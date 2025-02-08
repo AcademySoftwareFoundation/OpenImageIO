@@ -29,6 +29,15 @@ test_wrap(wrap_impl wrap, int coord, int origin, int width)
 void
 test_wrapmodes()
 {
+    OIIO_CHECK_EQUAL(ImageBuf::WrapMode_from_string("black"),
+                     ImageBuf::WrapBlack);
+    OIIO_CHECK_EQUAL(ImageBuf::WrapMode_from_string("mirror"),
+                     ImageBuf::WrapMirror);
+    OIIO_CHECK_EQUAL(ImageBuf::WrapMode_from_string("unknown"),
+                     ImageBuf::WrapDefault);
+    OIIO_CHECK_EQUAL("black", ImageBuf::wrapmode_name(ImageBuf::WrapBlack));
+    OIIO_CHECK_EQUAL("mirror", ImageBuf::wrapmode_name(ImageBuf::WrapMirror));
+
     const int ori    = 0;
     const int w      = 4;
     static int val[] = { -7, -6, -5, -4, -3, -2, -1, 0, 1,
@@ -72,7 +81,7 @@ iterator_read_test()
             { { 0, 2, 8 }, { 1, 2, 9 }, { 2, 2, 10 }, { 3, 2, 11 } },
             { { 0, 3, 12 }, { 1, 3, 13 }, { 2, 3, 14 }, { 3, 3, 15 } } };
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A(spec, buf);
+    ImageBuf A(spec, cspan<float>(&buf[0][0][0], HEIGHT * WIDTH * CHANNELS));
 
     ITERATOR p(A);
     OIIO_CHECK_EQUAL(p[0], 0.0f);
@@ -125,7 +134,7 @@ iterator_wrap_test(ImageBuf::WrapMode wrap, std::string wrapname)
             { { 0, 2, 8 }, { 1, 2, 9 }, { 2, 2, 10 }, { 3, 2, 11 } },
             { { 0, 3, 12 }, { 1, 3, 13 }, { 2, 3, 14 }, { 3, 3, 15 } } };
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A(spec, buf);
+    ImageBuf A(spec, cspan<float>(&buf[0][0][0], HEIGHT * WIDTH * CHANNELS));
 
     std::cout << "iterator_wrap_test " << wrapname << ":";
     int i        = 0;
@@ -192,7 +201,7 @@ ImageBuf_test_appbuffer()
     };
     // clang-format on
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A(spec, buf);
+    ImageBuf A(spec, span<float>(&buf[0][0][0], HEIGHT * WIDTH * CHANNELS));
 
     // Make sure A now points to the buffer
     OIIO_CHECK_EQUAL((void*)A.pixeladdr(0, 0, 0), (void*)buf);
@@ -210,7 +219,7 @@ ImageBuf_test_appbuffer()
 
     // Make sure we can write to the buffer
     float pix[CHANNELS] = { 0.0, 42.0, 0 };
-    A.setpixel(3, 2, 0, pix);
+    A.setpixel(3, 2, 0, make_span(pix));
     OIIO_CHECK_EQUAL(buf[2][3][1], 42.0);
 
     // Make sure we can copy-construct the ImageBuf and it points to the
@@ -237,9 +246,10 @@ ImageBuf_test_appbuffer_strided()
     memset(mem, 0, res * res * nchans * sizeof(float));
 
     // Wrap the whole buffer, fill with green
-    ImageBuf wrapped(ImageSpec(res, res, nchans, TypeFloat), mem);
+    ImageBuf wrapped(ImageSpec(res, res, nchans, TypeFloat),
+                     span<float>(&mem[0][0][0], res * res * nchans));
     const float green[nchans] = { 0.0f, 1.0f, 0.0f };
-    ImageBufAlgo::fill(wrapped, green);
+    ImageBufAlgo::fill(wrapped, cspan<float>(green));
     float color[nchans] = { -1, -1, -1 };
     OIIO_CHECK_ASSERT(ImageBufAlgo::isConstantColor(wrapped, 0.0f, color)
                       && color[0] == 0.0f && color[1] == 1.0f
@@ -247,11 +257,13 @@ ImageBuf_test_appbuffer_strided()
 
     // Do a strided wrap in the interior: a 3x3 image with extra spacing
     // between pixels and rows, and fill it with red.
-    ImageBuf strided(ImageSpec(3, 3, nchans, TypeFloat), &mem[4][4][0],
+    ImageBuf strided(ImageSpec(3, 3, nchans, TypeFloat),
+                     span<float>(&mem[0][0][0], res * res * nchans),
+                     &mem[4][4][0],
                      2 * nchans * sizeof(float) /* every other pixel */,
                      2 * res * nchans * sizeof(float) /* ever other line */);
     const float red[nchans] = { 1.0f, 0.0f, 0.0f };
-    ImageBufAlgo::fill(strided, red);
+    ImageBufAlgo::fill(strided, cspan<float>(red));
 
     // The strided IB ought to look all-red
     OIIO_CHECK_ASSERT(ImageBufAlgo::isConstantColor(strided, 0.0f, color)
@@ -277,7 +289,7 @@ ImageBuf_test_appbuffer_strided()
         for (int y = 0; y < res; ++y) {
             for (int x = 0; x < res; ++x) {
                 float pixel[nchans];
-                test.getpixel(x, y, pixel);
+                test.getpixel(x, y, make_span(pixel));
                 if ((x == 4 || x == 6 || x == 8)
                     && (y == 4 || y == 6 || y == 8)) {
                     OIIO_CHECK_ASSERT(cspan<float>(pixel) == cspan<float>(red));
@@ -297,7 +309,7 @@ test_open_with_config()
 {
     // N.B. This function must run after ImageBuf_test_appbuffer, which
     // writes "A.tif".
-    ImageCache* ic = ImageCache::create(false);
+    auto ic = ImageCache::create(false);
     ImageSpec config;
     config.attribute("oiio:DebugOpenConfig!", 1);
     ImageBuf A("A_imagebuf_test.tif", 0, 0, ic, &config);
@@ -306,7 +318,6 @@ test_open_with_config()
     // Clear A because it would be unwise to let the ImageBuf outlive the
     // custom ImageCache we passed it to use.
     A.clear();
-    ic->destroy(ic);
 }
 
 
@@ -346,16 +357,16 @@ test_set_get_pixels()
 {
     std::cout << "\nTesting set_pixels, get_pixels:\n";
     const int nchans = 3;
-    ImageBuf A(ImageSpec(4, 4, nchans, TypeDesc::FLOAT));
+    ImageBuf A(ImageSpec(4, 4, nchans, TypeFloat));
     ImageBufAlgo::zero(A);
     std::cout << " Cleared:\n";
     print(A);
     float newdata[2 * 2 * nchans] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
-    A.set_pixels(ROI(1, 3, 1, 3), TypeDesc::FLOAT, newdata);
+    A.set_pixels(ROI(1, 3, 1, 3), make_span(newdata));
     std::cout << " After set:\n";
     print(A);
     float retrieved[2 * 2 * nchans] = { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9 };
-    A.get_pixels(ROI(1, 3, 1, 3, 0, 1), TypeDesc::FLOAT, retrieved);
+    A.get_pixels(ROI(1, 3, 1, 3, 0, 1), make_span(retrieved));
     OIIO_CHECK_ASSERT(0 == memcmp(retrieved, newdata, 2 * 2 * nchans));
 }
 
@@ -372,22 +383,23 @@ time_get_pixels()
     ImageBufAlgo::zero(A);
 
     // bench.work (size_t(xres*yres*nchans));
-    std::unique_ptr<float[]> fbuf(new float[xres * yres * nchans]);
+    size_t nvals = size_t(xres * yres * nchans);
+    std::vector<float> fbuf(nvals);
     bench("get_pixels 1Mpelx4 float[4]->float[4] ",
-          [&]() { A.get_pixels(A.roi(), TypeFloat, fbuf.get()); });
+          [&]() { A.get_pixels(A.roi(), make_span(fbuf)); });
     bench("get_pixels 1Mpelx4 float[4]->float[3] ", [&]() {
         ROI roi3   = A.roi();
         roi3.chend = 3;
-        A.get_pixels(roi3, TypeFloat, fbuf.get());
+        A.get_pixels(roi3, make_span(fbuf));
     });
 
-    std::unique_ptr<uint8_t[]> ucbuf(new uint8_t[xres * yres * nchans]);
+    std::vector<uint8_t> ucbuf(nvals);
     bench("get_pixels 1Mpelx4 float[4]->uint8[4] ",
-          [&]() { A.get_pixels(A.roi(), TypeUInt8, ucbuf.get()); });
+          [&]() { A.get_pixels(A.roi(), make_span(ucbuf)); });
 
-    std::unique_ptr<uint16_t[]> usbuf(new uint16_t[xres * yres * nchans]);
+    std::vector<uint16_t> usbuf(nvals);
     bench("get_pixels 1Mpelx4 float[4]->uint16[4] ",
-          [&]() { A.get_pixels(A.roi(), TypeUInt8, usbuf.get()); });
+          [&]() { A.get_pixels(A.roi(), make_span(usbuf)); });
 }
 
 
@@ -400,7 +412,7 @@ test_read_channel_subset()
     // FIrst, write a test image with 6 channels
     static float color6[] = { 0.6f, 0.5f, 0.4f, 0.3f, 0.2f, 0.1f };
     ImageBuf A(ImageSpec(2, 2, 6, TypeDesc::FLOAT));
-    ImageBufAlgo::fill(A, color6);
+    ImageBufAlgo::fill(A, cspan<float>(color6));
     A.write("sixchans.tif");
     std::cout << " Start with image:\n";
     print(A);
@@ -481,7 +493,7 @@ test_write_over()
     // Read the image
     float pixel[3];
     ImageBuf A("tmp-green.tif");
-    A.getpixel(4, 4, pixel);
+    A.getpixel(4, 4, make_span(pixel));
     OIIO_CHECK_ASSERT(pixel[0] == 0 && pixel[1] == 1 && pixel[2] == 0);
     A.reset();  // make sure A isn't held open, we're about to remove it
 
@@ -493,7 +505,7 @@ test_write_over()
     // We expect it to have the new color, not have the underlying
     // ImageCache misremember the old color!
     ImageBuf B("tmp-green.tif");
-    B.getpixel(4, 4, pixel);
+    B.getpixel(4, 4, make_span(pixel));
     OIIO_CHECK_ASSERT(pixel[0] == 1 && pixel[1] == 0 && pixel[2] == 0);
     B.reset();  // make sure B isn't held open, we're about to remove it
 
@@ -506,7 +518,7 @@ static void
 test_uncaught_error()
 {
     ImageBuf buf;
-    buf.error("Boo!");
+    buf.errorfmt("Boo!");
     // buf exists scope and is destroyed without anybody retrieving the error.
 }
 

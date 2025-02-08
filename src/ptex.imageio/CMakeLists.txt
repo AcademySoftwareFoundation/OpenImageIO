@@ -9,5 +9,5 @@ if (Ptex_FOUND)
     endif()
     add_oiio_plugin (ptexinput.cpp
                      LINK_LIBRARIES ${ptex_target} ZLIB::ZLIB
-                     DEFINITIONS "-DUSE_PTEX")
+                     DEFINITIONS "USE_PTEX")
 endif ()

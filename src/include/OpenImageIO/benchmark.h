@@ -243,11 +243,11 @@ private:
     size_t m_trials          = 10;
     size_t m_work            = 1;
     std::string m_name;
-    std::vector<double> m_times;  // times for each trial
-    double m_avg;                 // average time per iteration
-    double m_stddev;              // standard deviation per iteration
-    double m_range;               // range per iteration
-    double m_median;              // median per-iteration time
+    std::vector<double> m_times;   // times for each trial
+    double m_avg           = 0.0;  // average time per iteration
+    double m_stddev        = 0.0;  // standard deviation per iteration
+    double m_range         = 0.0;  // range per iteration
+    double m_median        = 0.0;  // median per-iteration time
     int m_exclude_outliers = 1;
     int m_verbose          = 1;
     int m_indent           = 0;
@@ -318,6 +318,9 @@ private:
 /// DEPRECATED(1.8): This may be considered obsolete, probably the
 /// Benchmarker class is a better solution.
 template<typename FUNC>
+#ifndef OIIO_INTERNAL
+OIIO_DEPRECATED("use Benchmarker instead")
+#endif
 double
 time_trial(FUNC func, int ntrials = 1, int nrepeats = 1, double* range = NULL)
 {
@@ -338,14 +341,6 @@ time_trial(FUNC func, int ntrials = 1, int nrepeats = 1, double* range = NULL)
     if (range)
         *range = maxtime - mintime;
     return mintime;
-}
-
-/// Version without repeats.
-template<typename FUNC>
-double
-time_trial(FUNC func, int ntrials, double* range)
-{
-    return time_trial(func, ntrials, 1, range);
 }
 
 

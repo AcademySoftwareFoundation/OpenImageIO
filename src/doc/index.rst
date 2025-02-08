@@ -27,7 +27,7 @@ OpenImageIO |version|
     `Web site <https://openimageio.org>`_ /
     `GitHub repository <https://github.com/AcademySoftwareFoundation/OpenImageIO>`_ /
     `Developer mail list <https://lists.aswf.io/g/oiio-dev>`_ /
-    `BSD License <https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/LICENSE.md>`_
+    `Apache 2.0 License <https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/LICENSE.md>`_
 
 
 ------------

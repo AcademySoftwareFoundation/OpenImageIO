@@ -57,8 +57,7 @@ private:
     JxlResizableParallelRunnerPtr m_runner;
     std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
     std::vector<uint8_t> m_icc_profile;
-    std::vector<float> m_pixels;
-    // std::vector<uint8_t> m_pixels;
+    std::unique_ptr<uint8_t[]> m_buffer;
 
     void init()
     {
@@ -66,6 +65,7 @@ private:
         m_config.reset();
         m_decoder = nullptr;
         m_runner  = nullptr;
+        m_buffer  = nullptr;
     }
 
     void close_file() { init(); }
@@ -218,9 +218,9 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     JxlBasicInfo info;
-    // JxlPixelFormat format = { channels, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0 };
-    JxlPixelFormat format = { m_channels, JXL_TYPE_FLOAT, JXL_NATIVE_ENDIAN,
-                              0 };
+    JxlPixelFormat format;
+    JxlDataType jxl_data_type;
+    TypeDesc m_data_type;
 
     for (;;) {
         JxlDecoderStatus status = JxlDecoderProcessInput(m_decoder.get());
@@ -239,11 +239,34 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         } else if (status == JXL_DEC_BASIC_INFO) {
             DBG std::cout << "JXL_DEC_BASIC_INFO\n";
 
+            // Get the basic information about the image
             if (JXL_DEC_SUCCESS
                 != JxlDecoderGetBasicInfo(m_decoder.get(), &info)) {
                 errorfmt("JxlDecoderGetBasicInfo failed\n");
                 return false;
             }
+
+            // Need to check how we can support bfloat16 if jpegxl supports it
+            bool is_float = info.exponent_bits_per_sample > 0;
+
+            switch (info.bits_per_sample) {
+            case 8:
+                jxl_data_type = JXL_TYPE_UINT8;
+                m_data_type   = TypeDesc::UINT8;
+                break;
+            case 16:
+                jxl_data_type = is_float ? JXL_TYPE_FLOAT16 : JXL_TYPE_UINT16;
+                m_data_type   = is_float ? TypeDesc::HALF : TypeDesc::UINT16;
+                break;
+            case 32:
+                jxl_data_type = JXL_TYPE_FLOAT;
+                m_data_type   = TypeDesc::FLOAT;
+                break;
+            default: errorfmt("Unsupported bits per sample\n"); return false;
+            }
+
+            format = { m_channels, jxl_data_type, JXL_NATIVE_ENDIAN, 0 };
+
             format.num_channels = info.num_color_channels
                                   + info.num_extra_channels;
             m_channels = info.num_color_channels + info.num_extra_channels;
@@ -284,19 +307,19 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 return false;
             }
             if (buffer_size
-                != info.xsize * info.ysize * m_channels * sizeof(float)) {
+                != info.xsize * info.ysize * m_channels * info.bits_per_sample
+                       / 8) {
                 errorfmt("Invalid out buffer size {} {}\n", buffer_size,
-                         info.xsize * info.ysize * m_channels * sizeof(float));
+                         info.xsize * info.ysize * m_channels
+                             * info.bits_per_sample / 8);
                 return false;
             }
-            m_pixels.resize(info.xsize * info.ysize * m_channels);
-            void* pixels_buffer       = (void*)m_pixels.data();
-            size_t pixels_buffer_size = m_pixels.size() * sizeof(float);
-            // size_t pixels_buffer_size = m_pixels.size() * sizeof(uint8_t);
+
+            m_buffer.reset(new uint8_t[buffer_size]);
+
             if (JXL_DEC_SUCCESS
                 != JxlDecoderSetImageOutBuffer(m_decoder.get(), &format,
-                                               pixels_buffer,
-                                               pixels_buffer_size)) {
+                                               m_buffer.get(), buffer_size)) {
                 errorfmt("JxlDecoderSetImageOutBuffer failed\n");
                 return false;
             }
@@ -321,8 +344,8 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
-    m_spec = ImageSpec(info.xsize, info.ysize, m_channels, TypeDesc::FLOAT);
-    // TypeDesc::UINT8);
+    m_spec = ImageSpec(info.xsize, info.ysize, m_channels, m_data_type);
+
     newspec = m_spec;
     return true;
 }
@@ -334,7 +357,7 @@ JxlInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     DBG std::cout << "JxlInput::read_native_scanline(, , " << y << ")\n";
-    size_t scanline_size = m_spec.width * m_channels * sizeof(float);
+    size_t scanline_size = m_spec.width * m_channels * m_spec.channel_bytes();
     // size_t scanline_size = m_spec.width * m_channels * sizeof(uint8_t);
 
     lock_guard lock(*this);
@@ -343,8 +366,7 @@ JxlInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
 
-    memcpy(data, (void*)((uint8_t*)(m_pixels.data()) + y * scanline_size),
-           scanline_size);
+    memcpy(data, (void*)(m_buffer.get() + y * scanline_size), scanline_size);
 
     return true;
 }
@@ -359,6 +381,8 @@ JxlInput::close()
     if (ioproxy_opened()) {
         close_file();
     }
+
+    m_buffer.reset();
     init();  // Reset to initial state
     return true;
 }

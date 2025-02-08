@@ -39,7 +39,7 @@ public:
     const char* format_name(void) const override { return "dpx"; }
     int supports(string_view feature) const override
     {
-        return (feature == "ioproxy");
+        return (feature == "ioproxy" || feature == "multiimage");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
@@ -139,13 +139,13 @@ DPXInput::open(const std::string& name, ImageSpec& newspec)
 
     m_stream = new InStream(ioproxy());
     if (!m_stream) {
-        errorf("Could not open file \"%s\"", name);
+        errorfmt("Could not open file \"{}\"", name);
         return false;
     }
 
     m_dpx.SetInStream(m_stream);
     if (!m_dpx.ReadHeader()) {
-        errorf("Could not read header");
+        errorfmt("Could not read header");
         close();
         return false;
     }
@@ -203,7 +203,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         break;
     case dpx::kFloat: typedesc = TypeDesc::FLOAT; break;
     case dpx::kDouble: typedesc = TypeDesc::DOUBLE; break;
-    default: errorf("Invalid component data size"); return false;
+    default: errorfmt("Invalid component data size"); return false;
     }
     m_spec = ImageSpec(m_dpx.header.Width(), m_dpx.header.Height(),
                        m_dpx.header.ImageElementComponentCount(subimage),
@@ -308,19 +308,16 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     }
     m_spec.attribute("Orientation", orientation);
 
+    m_spec.attribute("oiio:subimages", (int)m_dpx.header.ImageElementCount());
+
     // image linearity
     switch (m_dpx.header.Transfer(subimage)) {
-    case dpx::kLinear: m_spec.attribute("oiio:ColorSpace", "Linear"); break;
-    case dpx::kLogarithmic:
-        m_spec.attribute("oiio:ColorSpace", "KodakLog");
-        break;
-    case dpx::kITUR709: m_spec.attribute("oiio:ColorSpace", "Rec709"); break;
+    case dpx::kLinear: m_spec.set_colorspace("Linear"); break;
+    case dpx::kLogarithmic: m_spec.set_colorspace("KodakLog"); break;
+    case dpx::kITUR709: m_spec.set_colorspace("Rec709"); break;
     case dpx::kUserDefined:
         if (!std::isnan(m_dpx.header.Gamma()) && m_dpx.header.Gamma() != 0) {
-            float g = float(m_dpx.header.Gamma());
-            m_spec.attribute("oiio:ColorSpace",
-                             Strutil::fmt::format("Gamma{:.2}", g));
-            m_spec.attribute("oiio:Gamma", g);
+            set_colorspace_rec709_gamma(m_spec, float(m_dpx.header.Gamma()));
             break;
         }
         // intentional fall-through

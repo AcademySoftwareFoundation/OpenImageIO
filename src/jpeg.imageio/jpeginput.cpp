@@ -9,6 +9,7 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/tiffutils.h>
 
 #include "jpeg_pvt.h"
@@ -123,7 +124,7 @@ JpgInput::jpegerror(my_error_ptr /*myerr*/, bool fatal)
     // Send the error message to the ImageInput
     char errbuf[JMSG_LENGTH_MAX];
     (*m_cinfo.err->format_message)((j_common_ptr)&m_cinfo, errbuf);
-    errorf("JPEG error: %s (\"%s\")", errbuf, filename());
+    errorfmt("JPEG error: {} (\"{}\")", errbuf, filename());
 
     // Shut it down and clean it up
     if (fatal) {
@@ -182,15 +183,15 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     // Check magic number to assure this is a JPEG file
     uint8_t magic[2] = { 0, 0 };
     if (m_io->pread(magic, sizeof(magic), 0) != sizeof(magic)) {
-        errorf("Empty file \"%s\"", name);
+        errorfmt("Empty file \"{}\"", name);
         close_file();
         return false;
     }
 
     if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
         close_file();
-        errorf(
-            "\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x%x)",
+        errorfmt(
+            "\"{}\" is not a JPEG file, magic number doesn't match (was 0x{:x}{:x})",
             name, int(magic[0]), int(magic[1]));
         return false;
     }
@@ -228,7 +229,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 
     // read the file parameters
     if (jpeg_read_header(&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
-        errorf("Bad JPEG header for \"%s\"", filename());
+        errorfmt("Bad JPEG header for \"{}\"", filename());
         return false;
     }
 
@@ -253,8 +254,11 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height, nchannels,
                        TypeDesc::UINT8);
 
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 3 }))
+        return false;
+
     // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
-    m_spec.attribute("oiio:ColorSpace", "sRGB");
+    m_spec.set_colorspace("sRGB");
 
     if (m_cinfo.jpeg_color_space == JCS_CMYK)
         m_spec.attribute("jpeg:ColorSpace", "CMYK");
@@ -284,10 +288,42 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
                    && !strcmp((const char*)m->data, "Photoshop 3.0"))
             jpeg_decode_iptc((unsigned char*)m->data);
         else if (m->marker == JPEG_COM) {
+            std::string data((const char*)m->data, m->data_length);
+            // Additional string metadata can be stored in JPEG files as
+            // comment markers in the form "key:value" or "ident:key:value".
+            // If the string contains a single colon, we assume key:value.
+            // If there's multiple, we try splitting as ident:key:value and
+            // check if ident and key are reasonable (in particular, whether
+            // ident is a C-style identifier and key is not surrounded by
+            // whitespace). If ident passes but key doesn't, assume key:value.
+            auto separator = data.find(':');
+            if (OIIO::get_int_attribute("jpeg:com_attributes")
+                && (separator != std::string::npos && separator > 0)) {
+                std::string left  = data.substr(0, separator);
+                std::string right = data.substr(separator + 1);
+                separator         = right.find(':');
+                if (separator != std::string::npos && separator > 0) {
+                    std::string mid   = right.substr(0, separator);
+                    std::string value = right.substr(separator + 1);
+                    if (Strutil::string_is_identifier(left)
+                        && (mid == Strutil::trimmed_whitespace(mid))) {
+                        // Valid parsing: left is ident, mid is key
+                        std::string attribute = left + ":" + mid;
+                        if (!m_spec.find_attribute(attribute, TypeDesc::STRING))
+                            m_spec.attribute(attribute, value);
+                        continue;
+                    }
+                }
+                if (left == Strutil::trimmed_whitespace(left)) {
+                    // Valid parsing: left is key, right is value
+                    if (!m_spec.find_attribute(left, TypeDesc::STRING))
+                        m_spec.attribute(left, right);
+                    continue;
+                }
+            }
+            // If we made it this far, treat the comment as a description
             if (!m_spec.find_attribute("ImageDescription", TypeDesc::STRING))
-                m_spec.attribute("ImageDescription",
-                                 std::string((const char*)m->data,
-                                             m->data_length));
+                m_spec.attribute("ImageDescription", data);
         }
     }
 
@@ -325,6 +361,14 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     read_icc_profile(&m_cinfo, m_spec);  /// try to read icc profile
+
+    // Try to interpret as Ultra HDR image.
+    // The libultrahdr API requires to load the whole file content in memory
+    // therefore we first check for the presence of the "hdrgm:Version" metadata
+    // to avoid this costly process when not necessary.
+    // https://developer.android.com/media/platform/hdr-image-format#signal_of_the_format
+    if (m_spec.find_attribute("hdrgm:Version"))
+        m_is_uhdr = read_uhdr(m_io);
 
     newspec = m_spec;
     return true;
@@ -393,12 +437,92 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
     std::string errormsg;
     bool ok = decode_icc_profile(icc_buf, spec, errormsg);
     if (!ok) {
-        // errorfmt("Could not decode ICC profile: {}\n", errormsg);
-        // return false;
-        // Nah, just skip an ICC specific error?
+        errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
+                 errormsg);
+        return false;
     }
 
     return true;
+}
+
+
+
+bool
+JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
+{
+#if defined(USE_UHDR)
+    // Read entire file content into buffer.
+    const size_t buffer_size = ioproxy->size();
+    std::vector<unsigned char> buffer(buffer_size);
+    ioproxy->pread(buffer.data(), buffer_size, 0);
+
+    // Check if this is an actual Ultra HDR image.
+    const bool detect_uhdr = is_uhdr_image(buffer.data(), buffer.size());
+    if (!detect_uhdr)
+        return false;
+
+    // Create Ultra HDR decoder.
+    // Do not forget to release it once we don't need it,
+    // i.e if this function returns false
+    // or when we call close().
+    m_uhdr_dec = uhdr_create_decoder();
+
+    // Prepare decoder input.
+    // Note: we currently do not override any of the
+    // default settings.
+    uhdr_compressed_image_t uhdr_compressed;
+    uhdr_compressed.data     = buffer.data();
+    uhdr_compressed.data_sz  = buffer.size();
+    uhdr_compressed.capacity = buffer.size();
+    uhdr_dec_set_image(m_uhdr_dec, &uhdr_compressed);
+
+    // Decode Ultra HDR image
+    // and check for decoding errors.
+    uhdr_error_info_t err_info = uhdr_decode(m_uhdr_dec);
+
+    if (err_info.error_code != UHDR_CODEC_OK) {
+        errorfmt("Ultra HDR decoding failed with error code {}",
+                 int(err_info.error_code));
+        if (err_info.has_detail != 0)
+            errorfmt("Additional error details: {}", err_info.detail);
+        uhdr_release_decoder(m_uhdr_dec);
+        return false;
+    }
+
+    // Update spec with decoded image properties.
+    // Note: we currently only support a subset of all possible
+    // Ultra HDR image formats.
+    uhdr_raw_image_t* uhdr_raw = uhdr_get_decoded_image(m_uhdr_dec);
+
+    int nchannels;
+    TypeDesc desc;
+    switch (uhdr_raw->fmt) {
+    case UHDR_IMG_FMT_32bppRGBA8888:
+        nchannels = 4;
+        desc      = TypeDesc::UINT8;
+        break;
+    case UHDR_IMG_FMT_64bppRGBAHalfFloat:
+        nchannels = 4;
+        desc      = TypeDesc::HALF;
+        break;
+    case UHDR_IMG_FMT_24bppRGB888:
+        nchannels = 3;
+        desc      = TypeDesc::UINT8;
+        break;
+    default:
+        errorfmt("Unsupported Ultra HDR image format: {}", int(uhdr_raw->fmt));
+        uhdr_release_decoder(m_uhdr_dec);
+        return false;
+    }
+
+    ImageSpec newspec = ImageSpec(uhdr_raw->w, uhdr_raw->h, nchannels, desc);
+    newspec.extra_attribs = std::move(m_spec.extra_attribs);
+    m_spec                = newspec;
+
+    return true;
+#else
+    return false;
+#endif
 }
 
 
@@ -450,6 +574,28 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
 
+#if defined(USE_UHDR)
+    if (m_is_uhdr) {
+        uhdr_raw_image_t* uhdr_raw = uhdr_get_decoded_image(m_uhdr_dec);
+
+        unsigned int nbytes;
+        switch (uhdr_raw->fmt) {
+        case UHDR_IMG_FMT_32bppRGBA8888: nbytes = 4; break;
+        case UHDR_IMG_FMT_64bppRGBAHalfFloat: nbytes = 8; break;
+        case UHDR_IMG_FMT_24bppRGB888: nbytes = 3; break;
+        default: return false;
+        }
+
+        const size_t row_size   = uhdr_raw->stride[UHDR_PLANE_PACKED] * nbytes;
+        unsigned char* top_left = static_cast<unsigned char*>(
+            uhdr_raw->planes[UHDR_PLANE_PACKED]);
+        unsigned char* row_data_start = top_left + row_size * y;
+        memcpy(data, row_data_start, row_size);
+
+        return true;
+    }
+#endif
+
     // Set up our custom error handler
     if (setjmp(m_jerr.setjmp_buffer)) {
         // Jump to here if there's a libjpeg internal error
@@ -469,7 +615,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // Keep reading until we've read the scanline we really need
         if (jpeg_read_scanlines(&m_cinfo, (JSAMPLE**)&readdata, 1) != 1
             || m_fatalerr) {
-            errorf("JPEG failed scanline read (\"%s\")", filename());
+            errorfmt("JPEG failed scanline read (\"{}\")", filename());
             return false;
         }
     }
@@ -491,6 +637,11 @@ JpgInput::close()
         if (m_decomp_create)
             jpeg_destroy_decompress(&m_cinfo);
         m_decomp_create = false;
+#if defined(USE_UHDR)
+        if (m_is_uhdr)
+            uhdr_release_decoder(m_uhdr_dec);
+        m_is_uhdr = false;
+#endif
         close_file();
     }
     init();  // Reset to initial state

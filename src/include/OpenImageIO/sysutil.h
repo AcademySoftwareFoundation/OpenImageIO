@@ -44,52 +44,48 @@ namespace Sysutil {
 /// (which can be misleading because gcc allocates quite a bit of
 /// virtual, but not actually resident until malloced, memory per
 /// thread).
-OIIO_API size_t
+OIIO_UTIL_API size_t
 memory_used(bool resident = true);
 
 /// The amount of physical RAM on this machine, in bytes.
 /// If it can't figure it out, it will return 0.
-OIIO_API size_t
+OIIO_UTIL_API size_t
 physical_memory();
 
 /// Convert calendar time pointed by 'time' into local time and save it in
 /// 'converted_time' variable. This is a fully reentrant/thread-safe
 /// alternative to the non-reentrant C localtime() call.
-OIIO_API void
+OIIO_UTIL_API void
 get_local_time(const time_t* time, struct tm* converted_time);
 
 /// Return the full path of the currently-running executable program.
 ///
-OIIO_API std::string
+OIIO_UTIL_API std::string
 this_program_path();
 
 /// Return the value of an environment variable, or if it is not found in
 /// the environment, return `defaultval`, which in turn defaults to the
 /// empty string.
-OIIO_API string_view
-getenv(string_view name, string_view defaultval);
-
-// Legacy for link compatibility. DEPRECATED(2.3)
-OIIO_API string_view
-getenv(string_view name);
+OIIO_UTIL_API string_view
+getenv(string_view name, string_view defaultval = {});
 
 /// Sleep for the given number of microseconds.
 ///
-OIIO_API void
+OIIO_UTIL_API void
 usleep(unsigned long useconds);
 
 /// Try to put the process into the background so it doesn't continue to
 /// tie up any shell that it was launched from.  The arguments are the
 /// argc/argv that describe the program and its command line arguments.
 /// Return true if successful, false if it was unable to do so.
-OIIO_API bool
+OIIO_UTIL_API bool
 put_in_background(int argc, char* argv[]);
 
 /// Number of virtual cores available on this platform (including
 /// hyperthreads). Note that this is just a wrapper/synonym for C++
 /// std::thread::hardware_concurrency(), and was put in OIIO to allow its use
 /// before C++11 was our minimum.
-OIIO_API unsigned int
+OIIO_UTIL_API unsigned int
 hardware_concurrency();
 
 #if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 6, 0)
@@ -101,18 +97,21 @@ hardware_concurrency();
 /// release of OpenImageIO. It is now a synonym for hardware_concurrency().
 OIIO_DEPRECATED(
     "unreliable, replace with hardware_concurrency() [DEPRECATED in 2.6.0.0]")
-OIIO_API unsigned int
-physical_concurrency();
+inline unsigned int
+physical_concurrency()
+{
+    return hardware_concurrency();
+}
 #endif
 
 /// Get the maximum number of open file handles allowed on this system.
-OIIO_API size_t
+OIIO_UTIL_API size_t
 max_open_files();
 
 /// Return a string containing a readable stack trace from the point where
 /// it was called. Return an empty string if not supported on this platform
 /// or this build of OpenImageIO.
-OIIO_API std::string
+OIIO_UTIL_API std::string
 stacktrace();
 
 /// Turn on automatic stacktrace dump to the named file if the program
@@ -121,23 +120,23 @@ stacktrace();
 /// be "stdout" or "stderr" to merely print the trace to stdout or stderr,
 /// respectively. If the name is "", it will disable the auto-stacktrace
 /// printing.
-OIIO_API bool
+OIIO_UTIL_API bool
 setup_crash_stacktrace(string_view filename);
 
 /// Try to figure out how many columns wide the terminal window is. May not
 /// be correct on all systems, will default to 80 if it can't figure it out.
-OIIO_API int
+OIIO_UTIL_API int
 terminal_columns();
 
 /// Try to figure out how many rows tall the terminal window is. May not be
 /// correct on all systems, will default to 24 if it can't figure it out.
-OIIO_API int
+OIIO_UTIL_API int
 terminal_rows();
 
 
 /// Term object encapsulates information about terminal output for the sake
 /// of constructing ANSI escape sequences.
-class OIIO_API Term {
+class OIIO_UTIL_API Term {
 public:
     /// Default ctr: assume ANSI escape sequences are ok.
     Term() noexcept {}

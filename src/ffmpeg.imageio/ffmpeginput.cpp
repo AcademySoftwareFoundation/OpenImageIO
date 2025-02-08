@@ -2,16 +2,12 @@
 // SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-extern "C" {  // ffmpeg is a C api
 #include <cerrno>
+
+extern "C" {  // ffmpeg is a C api
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(57, 24, 100)
-#    error "OIIO FFmpeg support requires FFmpeg >= 3.0"
-#endif
-#include <libavutil/imgutils.h>
-}
 
 // It's hard to figure out FFMPEG versions from what they give us, so
 // record some of the milestones once and for all for easy reference.
@@ -29,6 +25,12 @@ extern "C" {  // ffmpeg is a C api
 #define USE_FFMPEG_4_3 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 91, 100))
 #define USE_FFMPEG_4_4 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 134, 100))
 
+#if !USE_FFMPEG_4_0
+#    error "OIIO FFmpeg support requires FFmpeg >= 4.0"
+#endif
+
+#include <libavutil/imgutils.h>
+}
 
 
 inline int
@@ -41,9 +43,9 @@ avpicture_fill(AVFrame* picture, uint8_t* ptr, enum AVPixelFormat pix_fmt,
 }
 
 
-#if USE_FFMPEG_3_1
-// AVStream::codec was changed to AVStream::codecpar
-#    define stream_codec(ix) m_format_context->streams[(ix)]->codecpar
+#define stream_codec(ix) m_format_context->streams[(ix)]->codecpar
+
+
 // avcodec_decode_video2 was deprecated.
 // This now works by sending `avpkt` to the decoder, which buffers the
 // decoded image in `avctx`. Then `avcodec_receive_frame` will copy the
@@ -65,16 +67,6 @@ receive_frame(AVCodecContext* avctx, AVFrame* picture, AVPacket* avpkt)
 
     return 1;
 }
-#else
-#    define stream_codec(ix) m_format_context->streams[(ix)]->codec
-inline int
-receive_frame(AVCodecContext* avctx, AVFrame* picture, AVPacket* avpkt)
-{
-    int ret;
-    avcodec_decode_video2(avctx, picture, &ret, avpkt);
-    return ret;
-}
-#endif
 
 
 
@@ -90,6 +82,10 @@ public:
     FFmpegInput();
     ~FFmpegInput() override;
     const char* format_name(void) const override { return "FFmpeg movie"; }
+    int supports(string_view feature) const override
+    {
+        return (feature == "multiimage");
+    }
     bool valid_file(const std::string& name) const override;
     bool open(const std::string& name, ImageSpec& spec) override;
     bool close(void) override;
@@ -126,6 +122,7 @@ private:
     std::vector<uint8_t> m_rgb_buffer;
     std::vector<int> m_video_indexes;
     int m_video_stream;
+    int m_data_stream;
     int64_t m_frames;
     int m_last_search_pos;
     int m_last_decoded_pos;
@@ -148,6 +145,7 @@ private:
         m_rgb_buffer.clear();
         m_video_indexes.clear();
         m_video_stream     = -1;
+        m_data_stream      = -1;
         m_frames           = 0;
         m_last_search_pos  = 0;
         m_last_decoded_pos = 0;
@@ -259,9 +257,16 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         errorfmt("\"{}\" could not find a valid videostream", file_name);
         return false;
     }
+    for (unsigned int i = 0; i < m_format_context->nb_streams; i++) {
+        if (stream_codec(i)->codec_type == AVMEDIA_TYPE_DATA) {
+            if (m_data_stream < 0) {
+                m_data_stream = i;
+                break;
+            }
+        }
+    }
 
     // codec context for videostream
-#if USE_FFMPEG_3_1
     AVCodecParameters* par = stream_codec(m_video_stream);
 
     m_codec = avcodec_find_decoder(par->codec_id);
@@ -283,15 +288,6 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         errorfmt("\"{}\" unsupported codec", file_name);
         return false;
     }
-#else
-    m_codec_context = stream_codec(m_video_stream);
-
-    m_codec = avcodec_find_decoder(m_codec_context->codec_id);
-    if (!m_codec) {
-        errorfmt("\"{}\" unsupported codec", file_name);
-        return false;
-    }
-#endif
 
     if (avcodec_open2(m_codec_context, m_codec, NULL) < 0) {
         errorfmt("\"{}\" could not open codec", file_name);
@@ -305,9 +301,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
                                & AV_CODEC_CAP_DELAY);
 
     AVStream* stream = m_format_context->streams[m_video_stream];
-    if (stream->avg_frame_rate.num != 0 && stream->avg_frame_rate.den != 0) {
-        m_frame_rate = stream->avg_frame_rate;
-    }
+    m_frame_rate     = av_guess_frame_rate(m_format_context, stream, NULL);
 
     m_frames     = stream->nb_frames;
     m_start_time = stream->start_time;
@@ -509,6 +503,26 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     while ((tag = av_dict_get(m_format_context->metadata, "", tag,
                               AV_DICT_IGNORE_SUFFIX))) {
         m_spec.attribute(tag->key, tag->value);
+    }
+    tag = NULL;
+    if (m_data_stream >= 0) {
+        while ((
+            tag = av_dict_get(m_format_context->streams[m_data_stream]->metadata,
+                              "", tag, AV_DICT_IGNORE_SUFFIX))) {
+            if (strcmp(tag->key, "timecode") == 0) {
+                m_spec.attribute("ffmpeg:TimeCode", tag->value);
+                break;
+            }
+        }
+    }
+    tag = NULL;
+    while (
+        (tag = av_dict_get(m_format_context->streams[m_video_stream]->metadata,
+                           "", tag, AV_DICT_IGNORE_SUFFIX))) {
+        if (strcmp(tag->key, "timecode") == 0) {
+            m_spec.attribute("ffmpeg:TimeCode", tag->value);
+            break;
+        }
     }
     int rat[2] = { m_frame_rate.num, m_frame_rate.den };
     m_spec.attribute("FramesPerSecond", TypeRational, &rat);

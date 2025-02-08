@@ -32,23 +32,24 @@ here](https://github.com/AcademySoftwareFoundation/OpenImageIO/discussions/4151)
 
 See the [Dependency proposal wiki page](https://github.com/AcademySoftwareFoundation/OpenImageIO/discussions/4151)
 
-* [ ] Big required upgrades with potentially widespread impact on the code base
+* [x] Big required upgrades with potentially widespread impact on the code base
   - [x] C++17 [#4155](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4155)
   - [x] Python 3.7 [#4157](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4157)
-  - [ ] OpenEXR/Imath 3.1 [#4156](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4156)
+  - [x] OpenEXR/Imath 3.1 [#4156](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4156)
 
-* [ ] Miscellaneous optional upgrades whose changes will be very localized
+* [x] Miscellaneous optional upgrades whose changes will be very localized
 
   This isn't a complete list, nor do we need to do all of these, but the
   highest priorities are:
 
-  - [ ] CMake 3.18 (from 3.15). Or possibly newer if there's a good reason? (3.19 or 3.20 are also reasonable.)
-  - [ ] OpenColorIO 2.0, or possibly 2.1 (from 1.1). Open for debate: should it be a required dependency rather than optional?
-  - [ ] fmt 8.0 (from 7.0), which has many improvements.
-  - [ ] GIFlib 5.0 (from 4.0), which adds thread safety.
-  - [ ] libheif 1.11 (from 1.3), which supports many additional features of that format.
-  - [ ] WebP 1.2 (from 0.6) which lets us use their exported CMake configs and retire FindWebP.cmake.
-  - [ ] pybind11 2.6 or 2.7 (from 2.4).
+  - [X] CMake 3.18 (from 3.15). [#4472](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4472)
+  - [x] OpenColorIO 2.2, and make it required. [#4367](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4367)
+  - [ ] fmt 8.0 (from 7.0), which has many improvements. CANCELLED: fmt 8.0+
+        does not work with the old icc compiler.
+  - [x] GIFlib 5.0 (from 4.0), which adds thread safety. [#4349](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4349)
+  - [x] libheif 1.11 (from 1.3), which supports many additional features of that format. [#4380](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4380)
+  - [x] WebP 1.2 (from 0.6) which lets us use their exported CMake configs and retire FindWebP.cmake. [#4354](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4354)
+  - [x] pybind11 2.6 or 2.7 (from 2.4). [#4297](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4297)
 
 
 - [x] [#4158](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4158) Eliminate the last few places where we use Boost and eliminate it as a dependency.
@@ -86,8 +87,8 @@ major release:
 
   Regardless of OCIO availability, version, or contents of any configs, have universal support for the [canonical color spaces](https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/documents/Specification/MaterialX.Specification.md#color-spaces-and-color-management-systems) that seem to be the common consensus of ACES, MaterialX, and USD.
 - [ ] Preliminary Rust bindings for most of the OpenImageIO APIs.
-- [ ] Python wheel construction so `pip install openimageio` will be an easy way
-      for users to install the whole banana.
+- [x] Python wheel construction so `pip install openimageio` will be an easy way
+      for users to install the whole banana. [#4428](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4428)
 
 If there is something you think should be on the roadmap for the next major
 release but is not, please open an issue or discussion to propose it, or

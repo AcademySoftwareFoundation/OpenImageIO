@@ -319,12 +319,13 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
         // unused still, should do conversion to unassociated
         bool convert_alpha;
         float gamma;
+        bool srgb;
 
         png_init_io(m_png, m_file);
         png_set_compression_level(m_png, Z_BEST_COMPRESSION);
 
         PNG_pvt::write_info(m_png, m_info, m_color_type, m_spec, m_pngtext,
-                            convert_alpha, gamma);
+                            convert_alpha, srgb, gamma);
     } else {
         // write DIB header
         ico_bitmapinfo bmi;

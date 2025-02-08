@@ -20,7 +20,9 @@ if [[ `which brew` == "" ]] ; then
 fi
 
 
-#brew update >/dev/null
+if [[ "${DO_BREW_UPDATE:=0}" != "0" ]] ; then
+    brew update >/dev/null
+fi
 echo ""
 echo "Before my brew installs:"
 brew list --versions
@@ -42,11 +44,16 @@ brew install --display-times -q freetype libraw dcmtk pybind11 numpy || true
 brew install --display-times -q ffmpeg libheif ptex || true
 brew install --display-times -q tbb || true
 brew install --display-times -q openvdb || true
-if [[ "${USE_OPENCV}" != "0" ]] ; then
+brew install --display-times -q robin-map || true
+if [[ "${USE_OPENCV}" != "0" ]] && [[ "${INSTALL_OPENCV:=1}" != "0" ]] ; then
     brew install --display-times -q opencv || true
 fi
-if [[ "${USE_QT}" != "0" ]] ; then
+if [[ "${USE_QT:=1}" != "0" ]] && [[ "${INSTALL_QT:=1}" != "0" ]] ; then
     brew install --display-times -q qt${QT_VERSION}
+fi
+if [[ "${USE_LLVM:=0}" != "0" ]] || [[ "${LLVMBREWVER}" != "" ]]; then
+    brew install --display-times -q llvm${LLVMBREWVER}
+    export PATH=/usr/local/opt/llvm/bin:$PATH
 fi
 
 echo ""
@@ -61,7 +68,6 @@ pip${PYTHON_VERSION} install numpy
 export PATH=/usr/local/opt/qt5/bin:$PATH
 export PATH=/usr/local/opt/python/libexec/bin:$PATH
 export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
-#export PATH=/usr/local/opt/llvm/bin:$PATH
 
 # Save the env for use by other stages
 src/build-scripts/save-env.bash

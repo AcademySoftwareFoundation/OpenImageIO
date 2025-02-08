@@ -268,7 +268,6 @@
 // the vfloat8 class (and friends) are in this version of simd.h, but that's
 // different from OIIO_SIMD >= 8, which means it's supported in hardware.
 #define OIIO_SIMD_HAS_MATRIX4 1  /* matrix44 defined */
-#define OIIO_SIMD_HAS_FLOAT8 1   /* DEPRECATED(1.8) */
 #define OIIO_SIMD_HAS_SIMD8 1    /* vfloat8, vint8, vbool8 defined */
 #define OIIO_SIMD_HAS_SIMD16 1   /* vfloat16, vint16, vbool16 defined */
 
@@ -300,21 +299,6 @@ class vfloat8;
 class vbool16;
 class vint16;
 class vfloat16;
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,9,0) && !defined(OIIO_INTERNAL)
-// Deprecated names -- remove these in 1.9
-// These are removed from visibility for the OIIO codebase itself, or for any
-// downstream project that defines OIIO_DISABLE_DEPRECATED to exclude
-// declarations deprecated as of version 1.9 or later.
-typedef vbool4 mask4;    // old name
-typedef vbool4 bool4;
-typedef vbool8 bool8;
-typedef vint4 int4;
-typedef vint8 int8;
-typedef vfloat3 float3;
-typedef vfloat4 float4;
-typedef vfloat8 float8;
-#endif
 
 } // namespace simd
 
@@ -964,10 +948,6 @@ public:
     typedef vbool4 vbool_t;   ///< bool type of the same length
     typedef vfloat4 vfloat_t; ///< float type of the same length
     typedef vint4 vint_t;     ///< int type of the same length
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vbool4 bool_t;   // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vfloat_t (1.8)")
-    typedef vfloat4 float_t; // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
@@ -1224,8 +1204,6 @@ vint4 max (const vint4& a, const vint4& b);
 
 /// Circular bit rotate by s bits, for N values at once.
 vint4 rotl (const vint4& x, const int s);
-// DEPRECATED(2.1)
-vint4 rotl32 (const vint4& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
 vint4 andnot (const vint4& a, const vint4& b);
@@ -1260,10 +1238,6 @@ public:
     typedef vbool8 vbool_t;   ///< bool type of the same length
     typedef vfloat8 vfloat_t; ///< float type of the same length
     typedef vint8 vint_t;     ///< int type of the same length
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vbool8 bool_t;   // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vfloat_t (1.8)")
-    typedef vfloat8 float_t; // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
@@ -1533,8 +1507,6 @@ vint8 max (const vint8& a, const vint8& b);
 
 /// Circular bit rotate by s bits, for N values at once.
 vint8 rotl (const vint8& x, const int s);
-// DEPRECATED(2.1)
-vint8 rotl32 (const vint8& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
 vint8 andnot (const vint8& a, const vint8& b);
@@ -1564,10 +1536,6 @@ public:
     typedef vbool16 vbool_t;   ///< bool type of the same length
     typedef vfloat16 vfloat_t; ///< float type of the same length
     typedef vint16 vint_t;     ///< int type of the same length
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vbool16 bool_t;   // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vfloat_t (1.8)")
-    typedef vfloat16 float_t; // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
@@ -1849,8 +1817,6 @@ vint16 max (const vint16& a, const vint16& b);
 
 /// Circular bit rotate by s bits, for N values at once.
 vint16 rotl (const vint16& x, const int s);
-// DEPRECATED(2.1)
-vint16 rotl32 (const vint16& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
 vint16 andnot (const vint16& a, const vint16& b);
@@ -1881,10 +1847,6 @@ public:
     typedef vfloat4 vfloat_t; ///< SIMD int type
     typedef vint4 vint_t;     ///< SIMD int type
     typedef vbool4 vbool_t;   ///< SIMD bool type
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vint4 int_t;      // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vfloat_t (1.8)")
-    typedef vbool4 bool_t;    // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
@@ -2203,8 +2165,6 @@ vfloat4 sign (const vfloat4& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat4 ceil (const vfloat4& a);
 vfloat4 floor (const vfloat4& a);
 vint4 ifloor (const vfloat4& a);    ///< (int)floor
-OIIO_DEPRECATED("use ifloor (1.8)")
-inline vint4 floori (const vfloat4& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer.
 /// CAVEAT: the rounding when mid-way between integers may differ depending
@@ -2556,10 +2516,6 @@ public:
     typedef vfloat8 vfloat_t; ///< SIMD int type
     typedef vint8 vint_t;     ///< SIMD int type
     typedef vbool8 vbool_t;   ///< SIMD bool type
-    OIIO_DEPRECATED("use vint_t (1.8)")
-    typedef vint8 int_t;      // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vbool8 bool_t;    // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
@@ -2823,7 +2779,6 @@ vfloat8 sign (const vfloat8& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat8 ceil (const vfloat8& a);
 vfloat8 floor (const vfloat8& a);
 vint8 ifloor (const vfloat8& a);    ///< (int)floor
-inline vint8 floori (const vfloat8& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer.
 /// CAVEAT: the rounding when mid-way between integers may differ depending
@@ -2874,10 +2829,6 @@ public:
     typedef vfloat16 vfloat_t; ///< SIMD int type
     typedef vint16 vint_t;     ///< SIMD int type
     typedef vbool16 vbool_t;   ///< SIMD bool type
-    OIIO_DEPRECATED("use vint_t (1.8)")
-    typedef vint16 int_t;      // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vbool16 bool_t;    // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
@@ -3145,8 +3096,6 @@ vfloat16 sign (const vfloat16& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat16 ceil (const vfloat16& a);
 vfloat16 floor (const vfloat16& a);
 vint16 ifloor (const vfloat16& a);    ///< (int)floor
-OIIO_DEPRECATED("use ifloor (1.8)")
-inline vint16 floori (const vfloat16& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer.
 /// CAVEAT: the rounding when mid-way between integers may differ depending
@@ -4849,9 +4798,6 @@ OIIO_FORCEINLINE vint4 bitcast_to_int (const vbool4& x)
 #endif
 }
 
-// Old names: (DEPRECATED 1.8)
-OIIO_DEPRECATED("use bitcast_to_int() (1.8)")
-inline vint4 bitcast_to_int4 (const vbool4& x) { return bitcast_to_int(x); }
 
 
 OIIO_FORCEINLINE vint4 vreduce_add (const vint4& v) {
@@ -5001,12 +4947,6 @@ OIIO_FORCEINLINE vint4 rotl(const vint4& x, int s) {
     return (x<<s) | srl(x,32-s);
 #endif
 }
-
-// DEPRECATED (2.1)
-OIIO_FORCEINLINE vint4 rotl32 (const vint4& x, const unsigned int k) {
-    return rotl(x, k);
-}
-
 
 OIIO_FORCEINLINE vint4 andnot (const vint4& a, const vint4& b) {
 #if OIIO_SIMD_SSE
@@ -5686,7 +5626,7 @@ OIIO_FORCEINLINE vint8 bitcast_to_int (const vbool8& x)
 #if OIIO_SIMD_AVX
     return _mm256_castps_si256 (x.simd());
 #else
-    return *(vint8 *)&x;
+    return vint8(bitcast_to_int(x.lo()), bitcast_to_int(x.hi()));
 #endif
 }
 
@@ -5828,11 +5768,6 @@ OIIO_FORCEINLINE vint8 rotl(const vint8& x, int s) {
 #else
     return (x<<s) | srl(x,32-s);
 #endif
-}
-
-// DEPRECATED (2.1)
-OIIO_FORCEINLINE vint8 rotl32 (const vint8& x, const unsigned int k) {
-    return rotl(x, k);
 }
 
 
@@ -6635,11 +6570,6 @@ OIIO_FORCEINLINE vint16 rotl(const vint16& x, int s) {
 #else
     return (x<<s) | srl(x,32-s);
 #endif
-}
-
-// DEPRECATED (2.1)
-OIIO_FORCEINLINE vint16 rotl32 (const vint16& x, const unsigned int k) {
-    return rotl(x, k);
 }
 
 
@@ -7738,9 +7668,9 @@ OIIO_FORCEINLINE vfloat4 andnot (const vfloat4& a, const vfloat4& b) {
 #if OIIO_SIMD_SSE
     return _mm_andnot_ps (a.simd(), b.simd());
 #else
-    const int *ai = (const int *)&a;
-    const int *bi = (const int *)&b;
-    return bitcast_to_float (vint4(~(ai[0]) & bi[0],
+    vint4 ai = bitcast_to_int(a);
+    vint4 bi = bitcast_to_int(b);
+    return bitcast_to_float(vint4(~(ai[0]) & bi[0],
                                   ~(ai[1]) & bi[1],
                                   ~(ai[2]) & bi[2],
                                   ~(ai[3]) & bi[3]));
@@ -9157,7 +9087,7 @@ OIIO_FORCEINLINE vint8 bitcast_to_int (const vfloat8& x)
 #if OIIO_SIMD_AVX
     return _mm256_castps_si256 (x.simd());
 #else
-    return *(vint8 *)&x;
+    return vint8(bitcast_to_int(x.lo()), bitcast_to_int(x.hi()));
 #endif
 }
 
@@ -9166,7 +9096,7 @@ OIIO_FORCEINLINE vfloat8 bitcast_to_float (const vint8& x)
 #if OIIO_SIMD_AVX
     return _mm256_castsi256_ps (x.simd());
 #else
-    return *(vfloat8 *)&x;
+    return vfloat8(bitcast_to_float(x.lo()), bitcast_to_float(x.hi()));
 #endif
 }
 
@@ -9395,9 +9325,9 @@ OIIO_FORCEINLINE vfloat8 andnot (const vfloat8& a, const vfloat8& b) {
 #if OIIO_SIMD_AVX
     return _mm256_andnot_ps (a.simd(), b.simd());
 #else
-    const int *ai = (const int *)&a;
-    const int *bi = (const int *)&b;
-    return bitcast_to_float (vint8(~(ai[0]) & bi[0],
+    vint8 ai = bitcast_to_int(a);
+    vint8 bi = bitcast_to_int(b);
+    return bitcast_to_float(vint8(~(ai[0]) & bi[0],
                                   ~(ai[1]) & bi[1],
                                   ~(ai[2]) & bi[2],
                                   ~(ai[3]) & bi[3],
@@ -10030,7 +9960,7 @@ OIIO_FORCEINLINE vint16 bitcast_to_int (const vfloat16& x)
 #if OIIO_SIMD_AVX >= 512
     return _mm512_castps_si512 (x.simd());
 #else
-    return *(vint16 *)&x;
+    return vint16(bitcast_to_int(x.lo()), bitcast_to_int(x.hi()));
 #endif
 }
 
@@ -10039,7 +9969,7 @@ OIIO_FORCEINLINE vfloat16 bitcast_to_float (const vint16& x)
 #if OIIO_SIMD_AVX >= 512
     return _mm512_castsi512_ps (x.simd());
 #else
-    return *(vfloat16 *)&x;
+    return vfloat16(bitcast_to_float(x.lo()), bitcast_to_float(x.hi()));
 #endif
 }
 

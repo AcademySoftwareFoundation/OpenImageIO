@@ -73,22 +73,6 @@ bitcast<float, int32_t>(const int32_t& val) noexcept
 #endif
 
 
-#if OIIO_VERSION_LESS(3, 0, 0)
-/// Note: The C++20 std::bit_cast has the reverse order of the template
-/// arguments of our original bit_cast! That is unfortunate. For now, we
-/// prefer using OIIO::bitcast. We'll keep this old one for backward
-/// compatibility, but will eventually deprecate for OIIO 2.5 and remove it
-/// for 3.0.
-template<typename IN_TYPE, typename OUT_TYPE>
-OIIO_DEPRECATED("Use OIIO::bitcast<To, From> instead")
-OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE
-    bit_cast(const IN_TYPE& in)
-{
-    return bitcast<OUT_TYPE, IN_TYPE>(in);
-}
-#endif
-
-
 OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE int
 bitcast_to_int(float x)
 {
@@ -269,6 +253,7 @@ rotl(uint32_t x, int s) noexcept
 
 
 // Old names -- DEPRECATED(2.1)
+OIIO_DEPRECATED("use rotl() instead (2.1)")
 OIIO_FORCEINLINE OIIO_HOSTDEVICE uint32_t
 rotl32(uint32_t x, int k)
 {
@@ -279,6 +264,7 @@ rotl32(uint32_t x, int k)
 #endif
 }
 
+OIIO_DEPRECATED("use rotl() instead (2.1)")
 OIIO_FORCEINLINE OIIO_HOSTDEVICE uint64_t
 rotl64(uint64_t x, int k)
 {

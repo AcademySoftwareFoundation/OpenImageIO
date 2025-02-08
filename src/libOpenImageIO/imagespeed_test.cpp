@@ -34,7 +34,7 @@ static std::string output_filename;
 static std::string output_format;
 static std::vector<char> buffer;
 static ImageSpec bufspec, outspec;
-static ImageCache* imagecache         = NULL;
+static std::shared_ptr<ImageCache> imagecache;
 static imagesize_t total_image_pixels = 0;
 static float cache_size               = 0;
 
@@ -142,7 +142,7 @@ time_read_imagebuf()
 {
     imagecache->invalidate_all(true);
     for (ustring filename : input_filename) {
-        ImageBuf ib(filename.string(), imagecache);
+        ImageBuf ib(filename, 0, 0, imagecache);
         ib.read(0, 0, true, conversion);
     }
 }
@@ -280,7 +280,7 @@ time_write_tiles_row_at_a_time()
 static void
 time_write_imagebuf()
 {
-    ImageBuf ib(output_filename, bufspec, &buffer[0]);  // wrap the buffer
+    ImageBuf ib(bufspec, span(buffer));  // wrap the buffer
     auto out = ImageOutput::create(output_filename);
     OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
@@ -440,7 +440,7 @@ test_pixel_iteration(const std::string& explanation,
     // Force the whole image to be read at once
     imagecache->attribute("autotile", autotile);
     imagecache->attribute("autoscanline", 1);
-    ImageBuf ib(input_filename[0].string(), imagecache);
+    ImageBuf ib(input_filename[0], 0, 0, imagecache);
     ib.read(0, 0, preload, TypeFloat);
     double t    = time_trial(std::bind(func, std::ref(ib), iters), ntrials);
     double rate = double(ib.spec().image_pixels()) / (t / iters);
@@ -496,7 +496,7 @@ main(int argc, char** argv)
     imagesize_t maxpelchans = 0;
     for (auto&& fn : input_filename) {
         ImageSpec spec;
-        if (!imagecache->get_imagespec(fn, spec, 0, 0, true)) {
+        if (!imagecache->get_imagespec(fn, spec)) {
             std::cout << "File \"" << fn << "\" could not be opened.\n";
             return -1;
         }
@@ -611,6 +611,5 @@ main(int argc, char** argv)
     if (verbose)
         std::cout << "\n" << imagecache->getstats(2) << "\n";
 
-    ImageCache::destroy(imagecache);
     return unit_test_failures;
 }

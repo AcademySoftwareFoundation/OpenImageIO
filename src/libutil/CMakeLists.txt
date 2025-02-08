@@ -47,6 +47,7 @@ function (setup_oiio_util_library targetname)
 
     target_include_directories (${targetname}
             PUBLIC
+                $<BUILD_INTERFACE:${OpenImageIO_LOCAL_DEPS_ROOT}/include>
                 $<INSTALL_INTERFACE:include>
             PRIVATE
                 ${ROBINMAP_INCLUDES}
@@ -68,7 +69,7 @@ function (setup_oiio_util_library targetname)
                                PRIVATE stdc++_libbacktrace)
     endif ()
 
-    if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
+    if (OIIO_INTERNALIZE_FMT OR fmt_LOCAL_BUILD)
         add_dependencies(${targetname} fmt_internal_target)
     else ()
         target_link_libraries (${targetname}
@@ -103,8 +104,14 @@ function (setup_oiio_util_library targetname)
 
     set_target_properties (${targetname} PROPERTIES
                            LINK_FLAGS ${OpenImageIO_Util_LINK_FLAGS})
+    
+    if (SKBUILD)
+        set (PYTHON_SITE_DIR .)
+        install_targets (NAMELINK_SKIP ${targetname})
+    else ()
+        install_targets (${targetname})
+    endif ()
 
-    install_targets (${targetname})
 endfunction()
 
 

@@ -4,6 +4,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+redirect += " 2>&1"
+failureok = True
+
 # Create some test images we need
 command += oiiotool ("--create 320x240 3 -d uint8 -o black.tif")
 command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 128x128 3 -d half -o grey128.exr")
@@ -41,6 +44,11 @@ command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --sub -d half -o sub.exr")
 command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --subc 0.1,0.1,0.1 -d half -o subc.exr")
+            
+# Test -- scale
+command += oiiotool ("--pattern fill:topleft=0,0,1:topright=0,1,0:bottomleft=1,0,1:bottomright=1,1,0 64x64 3"
+            + " --pattern fill:top=0:bottom=1 64x64 1"
+            + " --scale -o scale.exr")
 
 # test --mul of images
 command += oiiotool ("grey64.exr -pattern constant:color=1.5,1,0.5 64x64 3 --mul -o mul.exr")
@@ -180,6 +188,8 @@ command += oiiotool (
             " --pattern constant:color=0.5,0.0,0.0 128x128 3 --label B " +
             " --pop --pop --pop " +
             " R G --add -d half -o labeladd.exr")
+command += oiiotool ('-echo "This should make an error:" ' +
+                     '--create 1x1 3 --label 2hot2handle -o out.tif')
 
 # test subimages
 command += oiiotool ("--pattern constant:color=0.5,0.0,0.0 64x64 3 " +

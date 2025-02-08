@@ -116,7 +116,7 @@ public:
     /// color space correction when indicated.
     void pixel_transform(bool srgb_to_linear, int color_mode, int channel);
 
-    bool get_pixels(ROI roi, TypeDesc format, void* result)
+    bool get_pixels(ROI roi, TypeDesc format, span<std::byte> result)
     {
         if (m_corrected_image.localpixels())
             return m_corrected_image.get_pixels(roi, format, result);
@@ -223,6 +223,11 @@ public:
         return showPixelviewWindowAct && showPixelviewWindowAct->isChecked();
     }
 
+    bool windowguidesOn(void) const
+    {
+        return toggleWindowGuidesAct && toggleWindowGuidesAct->isChecked();
+    }
+
     bool pixelviewFollowsMouse(void) const
     {
         return pixelviewFollowsMouseBox
@@ -244,12 +249,10 @@ public:
     void rawcolor(bool val) { m_rawcolor = val; }
     bool rawcolor() const { return m_rawcolor; }
 
-#ifdef HAS_OCIO_2
     bool useOCIO() { return m_useOCIO; }
     const std::string& ocioColorSpace() { return m_ocioColourSpace; }
     const std::string& ocioDisplay() { return m_ocioDisplay; }
     const std::string& ocioView() { return m_ocioView; }
-#endif  // HAS_OCIO_2
 
 private slots:
     void open();                ///< Dialog to open new image from file
@@ -270,11 +273,12 @@ private slots:
     /// change the zoom, even to fit on screen. If minsize is true, do not
     /// resize smaller than default_width x default_height.
     void fitWindowToImage(bool zoomok = true, bool minsize = false);
-    void fullScreenToggle();           ///< Toggle full screen mode
-    void about();                      ///< Show "about iv" dialog
-    void prevImage();                  ///< View previous image in sequence
-    void nextImage();                  ///< View next image in sequence
-    void toggleImage();                ///< View most recently viewed image
+    void fullScreenToggle();    ///< Toggle full screen mode
+    void about();               ///< Show "about iv" dialog
+    void prevImage();           ///< View previous image in sequence
+    void nextImage();           ///< View next image in sequence
+    void toggleImage();         ///< View most recently viewed image
+    void toggleWindowGuides();  ///< Toggle data and display window overlay
     void exposureMinusOneTenthStop();  ///< Decrease exposure 1/10 stop
     void exposureMinusOneHalfStop();   ///< Decrease exposure 1/2 stop
     void exposurePlusOneTenthStop();   ///< Increase exposure 1/10 stop
@@ -310,11 +314,9 @@ private slots:
     void showPixelviewWindow();  ///< View closeup pixel view
     void editPreferences();      ///< Edit viewer preferences
 
-#ifdef HAS_OCIO_2
     void useOCIOAction(bool checked);
     void ocioColorSpaceAction();
     void ocioDisplayViewAction();
-#endif  // HAS_OCIO_2
 
 private:
     void createActions();
@@ -378,6 +380,7 @@ private:
     QAction* showInfoWindowAct;
     QAction* editPreferencesAct;
     QAction* showPixelviewWindowAct;
+    QAction* toggleWindowGuidesAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu,
         *helpMenu;
     QMenu* openRecentMenu;
@@ -427,7 +430,6 @@ private:
     friend class IvPreferenceWindow;
     friend bool image_progress_callback(void* opaque, float done);
 
-#ifdef HAS_OCIO_2
     friend class IvGL_OCIO;
 
     void createOCIOMenus(QMenu* parent);
@@ -444,7 +446,6 @@ private:
     std::string m_ocioColourSpace;
     std::string m_ocioDisplay;
     std::string m_ocioView;
-#endif  // HAS_OCIO_2
 };
 
 

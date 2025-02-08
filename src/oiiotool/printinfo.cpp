@@ -225,9 +225,6 @@ static bool
 read_input(Oiiotool& ot, const std::string& filename, ImageBuf& img,
            int subimage = 0, int miplevel = 0)
 {
-    if (img.subimage() >= 0 && img.subimage() == subimage)
-        return true;
-
     img.reset(filename, subimage, miplevel, nullptr, &ot.input_config);
     if (img.init_spec(filename, subimage, miplevel)) {
         // Force a read now for reasonable-sized first images in the
@@ -331,10 +328,10 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
                 mipdesc += format(" {}x{}", mipspec->width, mipspec->height);
             }
         } else if (input) {
-            ImageSpec mipspec;
-            for (int m = 1; input->seek_subimage(current_subimage, m, mipspec);
-                 ++m)
+            for (int m = 1; input->seek_subimage(current_subimage, m); ++m) {
+                ImageSpec mipspec = input->spec_dimensions(current_subimage, m);
                 mipdesc += format(" {}x{}", mipspec.width, mipspec.height);
+            }
         }
         lines.insert(lines.begin() + 1, mipdesc);
     }
@@ -398,7 +395,7 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
             if (img)
                 spec = *img->nativespec(i);
             if (input)
-                input->seek_subimage(i, 0, spec);
+                spec = input->spec(i, 0);
             int bits = spec.get_int_attribute("oiio:BitsPerSample",
                                               spec.format.size() * 8);
             if (i)
@@ -446,8 +443,6 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
     out << ser;
 
     if (input && opt.dumpdata) {
-        ImageSpec tmp;
-        input->seek_subimage(current_subimage, 0, tmp);
         dump_data(out, input, opt, current_subimage);
     }
 
@@ -456,7 +451,7 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
         for (int m = 0; m < nmip; ++m) {
             ImageSpec mipspec;
             if (input)
-                input->seek_subimage(current_subimage, m, mipspec);
+                mipspec = input->spec(current_subimage, m);
             else if (img)
                 mipspec = *img->spec(current_subimage, m);
             if (opt.filenameprefix)
@@ -530,7 +525,7 @@ OiioTool::print_info(std::ostream& out, Oiiotool& ot, ImageRec* img,
 
     for (int s = 0, nsubimages = img->subimages(); s < nsubimages; ++s) {
         const ImageSpec* spec = opt.native ? img->nativespec(s) : img->spec(s);
-        DASSERT(spec != nullptr);
+        OIIO_DASSERT(spec != nullptr);
         print_info_subimage(out, ot, s, nsubimages, img->miplevels(s), *spec,
                             img, nullptr, "", opt, field_re, field_exclude_re,
                             serformat, verbose);

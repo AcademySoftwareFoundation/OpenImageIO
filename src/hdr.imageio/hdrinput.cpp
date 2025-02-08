@@ -291,7 +291,7 @@ HdrInput::RGBE_ReadHeader()
     if (!line.size())
         return false;
 
-    m_spec.attribute("oiio:ColorSpace", "lin_srgb");
+    m_spec.set_colorspace("lin_rec709");
     // presume linear w/ srgb primaries -- seems like the safest assumption
     // for this old file format.
 
@@ -310,13 +310,7 @@ HdrInput::RGBE_ReadHeader()
             // 2.2, not 2.19998.
             float g = float(1.0 / tempf);
             g       = roundf(100.0 * g) / 100.0f;
-            m_spec.attribute("oiio:Gamma", g);
-            if (g == 1.0f)
-                m_spec.attribute("oiio:ColorSpace", "linear");
-            else
-                m_spec.attribute("oiio:ColorSpace",
-                                 Strutil::fmt::format("Gamma{:.2g}", g));
-
+            set_colorspace_rec709_gamma(m_spec, g);
         } else if (Strutil::parse_values(line,
                                          "EXPOSURE=", span<float>(tempf))) {
             m_spec.attribute("hdr:exposure", tempf);

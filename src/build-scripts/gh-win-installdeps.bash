@@ -13,10 +13,10 @@ VCPKG_INSTALLATION_ROOT=/c/vcpkg
 
 export CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH:=.}
 export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$DEP_DIR"
-export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$VCPKG_INSTALLATION_ROOT/installed/x64-windows"
-export PATH="$PATH:$DEP_DIR/bin:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin:/bin:$PWD/ext/dist/bin:$PWD/ext/dist/lib"
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/bin:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
+export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release"
+export PATH="$PATH:$DEP_DIR/bin:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/bin:/bin:$PWD/ext/dist/bin:$PWD/ext/dist/lib"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/bin:$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/bin"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/lib"
 
 # export MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 # export OPENEXR_CMAKE_FLAGS="$OPENEXR_CMAKE_FLAGS -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
@@ -48,33 +48,33 @@ echo "---------------"
 # vcpkg update
 # 
 
-#vcpkg install libdeflate:x64-windows
-#vcpkg install zlib:x64-windows
-vcpkg install tiff:x64-windows
-# vcpkg install libpng:x64-windows
-# vcpkg install giflib:x64-windows
-vcpkg install freetype:x64-windows
-# # vcpkg install openexr:x64-windows
-vcpkg install libjpeg-turbo:x64-windows
+#vcpkg install libdeflate:x64-windows-release
+#vcpkg install zlib:x64-windows-release
+vcpkg install tiff:x64-windows-release
+# vcpkg install libpng:x64-windows-release
+# vcpkg install giflib:x64-windows-release
+vcpkg install freetype:x64-windows-release
+# # vcpkg install openexr:x64-windows-release
+vcpkg install libjpeg-turbo:x64-windows-release
 # 
-# vcpkg install libraw:x64-windows
-# vcpkg install openjpeg:x64-windows
-# # vcpkg install ffmpeg:x64-windows   # takes FOREVER!
-# # vcpkg install webp:x64-windows  # No such vcpkg package?a
+# vcpkg install libraw:x64-windows-release
+# vcpkg install openjpeg:x64-windows-release
+# # vcpkg install ffmpeg:x64-windows-release   # takes FOREVER!
+# # vcpkg install webp:x64-windows-release  # No such vcpkg package?a
 # 
 # #echo "$VCPKG_INSTALLATION_ROOT"
 # #ls "$VCPKG_INSTALLATION_ROOT"
-# #echo "$VCPKG_INSTALLATION_ROOT/installed/x64-windows"
-# #ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows"
-# #echo "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
-# #ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
-# #echo "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
-# #ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
+# #echo "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release"
+# #ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release"
+# #echo "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/lib"
+# #ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/lib"
+# #echo "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/bin"
+# #ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/bin"
 # 
-# # export PATH="$PATH:$DEP_DIR/bin:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
-# export PATH="$DEP_DIR/lib:$DEP_DIR/bin:$PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
-export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows"
-# export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib:$DEP_DIR/lib:$DEP_DIR/bin"
+# # export PATH="$PATH:$DEP_DIR/bin:$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/bin"
+# export PATH="$DEP_DIR/lib:$DEP_DIR/bin:$PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/lib"
+export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release"
+# export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/lib:$DEP_DIR/lib:$DEP_DIR/bin"
 # 
 echo "All VCPkg installs:"
 vcpkg list
@@ -114,16 +114,18 @@ source src/build-scripts/build_pybind11.bash
 echo "CMAKE_PREFIX_PATH = $CMAKE_PREFIX_PATH"
 
 
-OPENEXR_CXX_FLAGS=" /W1 /EHsc /DWIN32=1 "
-#OPENEXR_BUILD_TYPE=$CMAKE_BUILD_TYPE
-OPENEXR_INSTALL_DIR=$DEP_DIR
-source src/build-scripts/build_openexr.bash
-export PATH="$OPENEXR_INSTALL_DIR/bin:$OPENEXR_INSTALL_DIR/lib:$PATH"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PATH
-# the above line is admittedly sketchy
+if [[ "$OPENEXR_VERSION" != "" ]] ; then
+    OPENEXR_CXX_FLAGS=" /W1 /EHsc /DWIN32=1 "
+    #OPENEXR_BUILD_TYPE=$CMAKE_BUILD_TYPE
+    OPENEXR_INSTALL_DIR=$DEP_DIR
+    source src/build-scripts/build_openexr.bash
+    export PATH="$OPENEXR_INSTALL_DIR/bin:$OPENEXR_INSTALL_DIR/lib:$PATH"
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PATH
+    # the above line is admittedly sketchy
+fi
 
-cp $DEP_DIR/lib/*.lib $DEP_DIR/bin
-cp $DEP_DIR/bin/*.dll $DEP_DIR/lib
+cp $DEP_DIR/lib/*.lib $DEP_DIR/bin || true
+cp $DEP_DIR/bin/*.dll $DEP_DIR/lib || true
 echo "DEP_DIR $DEP_DIR :"
 ls -R -l "$DEP_DIR"
 

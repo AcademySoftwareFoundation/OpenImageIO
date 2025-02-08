@@ -1,5 +1,5 @@
-Reading ../oiio-images/psd_123.psd
-../oiio-images/psd_123.psd :  257 x  126, 4 channel, uint8 psd
+Reading ../oiio-images/psd/psd_123.psd
+../oiio-images/psd/psd_123.psd :  257 x  126, 4 channel, uint8 psd
     4 subimages: 257x126 [u8,u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
  subimage  0:  257 x  126, 4 channel, uint8 psd
     SHA-1: D48458E9AEDB9C8618DE4B7DAA25BD4D7421778A
@@ -183,8 +183,8 @@ Reading ../oiio-images/psd_123.psd
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
     stEvt:when: "2011-08-22T22:14:43-04:00"
-Reading ../oiio-images/psd_123_nomaxcompat.psd
-../oiio-images/psd_123_nomaxcompat.psd :  257 x  126, 3 channel, uint8 psd
+Reading ../oiio-images/psd/psd_123_nomaxcompat.psd
+../oiio-images/psd/psd_123_nomaxcompat.psd :  257 x  126, 3 channel, uint8 psd
     4 subimages: 257x126 [u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
  subimage  0:  257 x  126, 3 channel, uint8 psd
     SHA-1: 5A7BDC7A11A9E4BDCBEC968375EE466DE74D0481
@@ -372,8 +372,8 @@ Reading ../oiio-images/psd_123_nomaxcompat.psd
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9; xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
     stEvt:when: "2011-08-22T22:14:43-04:00; 2011-08-29T12:10:28-04:00"
-Reading ../oiio-images/psd_bitmap.psd
-../oiio-images/psd_bitmap.psd :  320 x  240, 3 channel, uint8 psd
+Reading ../oiio-images/psd/psd_bitmap.psd
+../oiio-images/psd/psd_bitmap.psd :  320 x  240, 3 channel, uint8 psd
     SHA-1: F23185BC048E31BAC6BB4B319E5E5AC570CC7B89
     channel list: R, G, B
     Artist: "Daniel Wyatt"
@@ -440,8 +440,8 @@ Reading ../oiio-images/psd_bitmap.psd
     stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
     stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-Reading ../oiio-images/psd_indexed_trans.psd
-../oiio-images/psd_indexed_trans.psd :  320 x  240, 4 channel, uint8 psd
+Reading ../oiio-images/psd/psd_indexed_trans.psd
+../oiio-images/psd/psd_indexed_trans.psd :  320 x  240, 4 channel, uint8 psd
     SHA-1: 5B548EAE1F69EC4B65D762F52D8C542CF18515D5
     channel list: R, G, B, A
     Artist: "Daniel Wyatt"
@@ -511,8 +511,8 @@ Reading ../oiio-images/psd_indexed_trans.psd
     stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
     stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-Reading ../oiio-images/psd_rgb_8.psd
-../oiio-images/psd_rgb_8.psd :  320 x  240, 3 channel, uint8 psd
+Reading ../oiio-images/psd/psd_rgb_8.psd
+../oiio-images/psd/psd_rgb_8.psd :  320 x  240, 3 channel, uint8 psd
     SHA-1: 44362B2D9E51C40DF8ABF87CC749B77F2D0D9F4F
     channel list: R, G, B
     Artist: "Daniel Wyatt"
@@ -582,9 +582,9 @@ Reading ../oiio-images/psd_rgb_8.psd
     stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
     stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-Reading ../oiio-images/psd_rgb_16.psd
-../oiio-images/psd_rgb_16.psd :  320 x  240, 3 channel, uint16 psd
-    SHA-1: 591F6850EB0B548DF2CE7177661440CB812E5C31
+Reading ../oiio-images/psd/psd_rgb_16.psd
+../oiio-images/psd/psd_rgb_16.psd :  320 x  240, 3 channel, uint16 psd
+    SHA-1: E42334B0F0684E3C3BF9125F2920B07C44C17B11
     channel list: R, G, B
     Artist: "Daniel Wyatt"
     DateTime: "2007-01-18T15:49:21"
@@ -653,9 +653,9 @@ Reading ../oiio-images/psd_rgb_16.psd
     stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
     stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-Reading ../oiio-images/psd_rgb_32.psd
-../oiio-images/psd_rgb_32.psd :  320 x  240, 3 channel, float psd
-    SHA-1: B7F8CE4B4259A92AA13333EA8112C3E37C6BAB39
+Reading ../oiio-images/psd/psd_rgb_32.psd
+../oiio-images/psd/psd_rgb_32.psd :  320 x  240, 3 channel, float psd
+    SHA-1: 63CF8F7B010D24EFD3C41F51C16D8D285FE07313
     channel list: R, G, B
     Artist: "Daniel Wyatt"
     DateTime: "2007-01-18T15:49:21"
@@ -723,8 +723,8 @@ Reading ../oiio-images/psd_rgb_32.psd
     stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
     stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-Reading ../oiio-images/psd_rgba_8.psd
-../oiio-images/psd_rgba_8.psd :  320 x  240, 4 channel, uint8 psd
+Reading ../oiio-images/psd/psd_rgba_8.psd
+../oiio-images/psd/psd_rgba_8.psd :  320 x  240, 4 channel, uint8 psd
     2 subimages: 320x240 [u8,u8,u8,u8], 320x240 [u8,u8,u8,u8]
  subimage  0:  320 x  240, 4 channel, uint8 psd
     SHA-1: 81C22E59537BCDB081C12BF93E14DB2B5DDEEC13
@@ -805,8 +805,38 @@ Reading ../oiio-images/psd_rgba_8.psd
     stEvt:instanceID: "xmp.iid:037A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
     stEvt:when: "2011-08-22T22:07:44-04:00; 2011-08-25T17:39:28-04:00"
-Reading ../oiio-images/psd_123.psd
-../oiio-images/psd_123.psd :  257 x  126, 4 channel, uint8 psd
+Reading ../oiio-images/psd/psd_rgb_16_rle.psd
+../oiio-images/psd/psd_rgb_16_rle.psd : 3840 x 2160, 3 channel, uint16 psd
+    SHA-1: CF2071CFD7AF69ECEFC9EA00DC0EA7F8ED6A2E2B
+    channel list: R, G, B
+    DateTime: "2025-01-10T23:27:45+02:00"
+    ICCProfile: 0, 0, 2, 48, 65, 68, 66, 69, 2, 16, 0, 0, 109, 110, 116, 114, ... [560 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 26.0 (Windows)"
+    thumbnail_height: 90
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 3840
+    Exif:PixelYDimension: 2160
+    IPTC:DocumentID: "xmp.did:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    IPTC:InstanceID: "xmp.iid:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    IPTC:MetadataDate: "2025-01-10T23:28:11+02:00"
+    IPTC:ModifyDate: "2025-01-10T23:28:11+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "Adobe RGB (1998)"
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    stEvt:softwareAgent: "Adobe Photoshop 26.0 (Windows)"
+    stEvt:when: "2025-01-10T23:27:45+02:00"
+Reading ../oiio-images/psd/psd_123.psd
+../oiio-images/psd/psd_123.psd :  257 x  126, 4 channel, uint8 psd
     4 subimages: 257x126 [u8,u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
  subimage  0:  257 x  126, 4 channel, uint8 psd
     SHA-1: B229DA843AD0DA7C6FF92ABC78C737E81FEB6CF2
@@ -1459,7 +1489,7 @@ Reading src/Layers_16bit_RGB.psd
 src/Layers_16bit_RGB.psd :   48 x   27, 3 channel, uint16 psd
     4 subimages: 48x27 [u16,u16,u16], 48x27 [u16,u16,u16,u16], 48x27 [u16,u16,u16,u16], 48x27 [u16,u16,u16,u16]
  subimage  0:   48 x   27, 3 channel, uint16 psd
-    SHA-1: 22EAC1FF517BCCEA8EBA31AB240C11518EE42424
+    SHA-1: 0228B2F3AA493695E9653E1C32D303022DDEFAE4
     channel list: R, G, B
     DateTime: "2024-03-06T15:22:40+01:00"
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
@@ -1653,7 +1683,7 @@ Reading src/Layers_32bit_RGB.psd
 src/Layers_32bit_RGB.psd :   48 x   27, 3 channel, float psd
     4 subimages: 48x27 [f,f,f], 48x27 [f,f,f,f], 48x27 [f,f,f,f], 48x27 [f,f,f,f]
  subimage  0:   48 x   27, 3 channel, float psd
-    SHA-1: 90D05324071E32026D22E44FA9EF027C80D97308
+    SHA-1: C9C84C45C64884BD4D6F1B1E91CCA6744EA3C06C
     channel list: R, G, B
     DateTime: "2024-03-06T15:22:40+01:00"
     ICCProfile: 0, 0, 2, 56, 108, 99, 109, 115, 4, 48, 0, 0, 109, 110, 116, 114, ... [568 x uint8]

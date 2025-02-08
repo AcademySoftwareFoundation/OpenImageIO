@@ -3,16 +3,24 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <OpenImageIO/platform.h>
+
+// Special dance to disable warnings in the included files related to
+// the deprecation of unicode conversion functions.
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_CLANG_PRAGMA(clang diagnostic ignored "-Wdeprecated-declarations")
+#include <codecvt>
+#include <locale>
+OIIO_PRAGMA_WARNING_POP
+
 #include <algorithm>
 #include <cmath>
-#include <codecvt>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
 #include <limits>
-#include <locale>
 #include <mutex>
 #include <numeric>
 #include <sstream>
@@ -21,9 +29,11 @@
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #    include <xlocale.h>
 #endif
+#ifdef _WIN32
+#    include <windows.h>
+#endif
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
@@ -165,7 +175,84 @@ OIIO_UTIL_API int
 OIIO_UTIL_API int
     oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
 #endif
+OIIO_UTIL_API int oiio_print_uncaught_errors(1);
 }  // namespace pvt
+
+
+
+// ErrorHolder houses a string, with the addition that when it is destroyed,
+// it will disgorge any un-retrieved error messages, in an effort to help
+// beginning users diagnose their problems if they have forgotten to call
+// geterror().
+struct ErrorHolder {
+    std::string error_msg;
+
+    ~ErrorHolder()
+    {
+        if (!error_msg.empty() && pvt::oiio_print_uncaught_errors) {
+            OIIO::print(
+                "OpenImageIO exited with a pending error message that was never\n"
+                "retrieved via OIIO::geterror(). This was the error message:\n{}\n",
+                error_msg);
+        }
+    }
+};
+
+
+// To avoid thread oddities, we have the storage area buffering error
+// messages for append_error()/geterror() be thread-specific.
+static thread_local ErrorHolder error_msg_holder;
+
+
+void
+Strutil::pvt::append_error(string_view message)
+{
+    // Remove a single trailing newline
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
+    std::string& error_msg(error_msg_holder.error_msg);
+    OIIO_ASSERT(
+        error_msg.size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
+    // If we are appending to existing error messages, separate them with
+    // a single newline.
+    if (error_msg.size() && error_msg.back() != '\n')
+        error_msg += '\n';
+    error_msg += std::string(message);
+
+    // Remove a single trailing newline
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
+    error_msg = std::string(message);
+}
+
+
+bool
+Strutil::pvt::has_error()
+{
+    std::string& error_msg(error_msg_holder.error_msg);
+    return !error_msg.empty();
+}
+
+
+std::string
+Strutil::pvt::geterror(bool clear)
+{
+    std::string& error_msg(error_msg_holder.error_msg);
+    std::string e = error_msg;
+    if (clear)
+        error_msg.clear();
+    return e;
+}
+
+
+void
+pvt::log_fmt_error(const char* message)
+{
+    print("fmt exception: {}\n", message);
+    Strutil::pvt::append_error(std::string("fmt exception: ") + message);
+}
+
 
 
 void
@@ -234,15 +321,6 @@ Strutil::vsprintf(const char* fmt, va_list ap)
         ap = apsave;
 #endif
     }
-}
-
-
-
-std::string
-Strutil::vformat(const char* fmt, va_list ap)
-{
-    // For now, just treat as a synonym for vsprintf
-    return vsprintf(fmt, ap);
 }
 
 
@@ -886,6 +964,17 @@ Strutil::replace(string_view str, string_view pattern, string_view replacement,
 std::wstring
 Strutil::utf8_to_utf16wstring(string_view str) noexcept
 {
+#ifdef _WIN32
+    // UTF8<->UTF16 conversions are primarily needed on Windows, so use the
+    // fastest option (C++11 <codecvt> is many times slower due to locale
+    // access overhead, and is deprecated starting with C++17).
+    std::wstring result;
+    result.resize(
+        MultiByteToWideChar(CP_UTF8, 0, str.data(), str.length(), NULL, 0));
+    MultiByteToWideChar(CP_UTF8, 0, str.data(), str.length(), result.data(),
+                        (int)result.size());
+    return result;
+#else
     try {
         OIIO_PRAGMA_WARNING_PUSH
         OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
@@ -895,24 +984,25 @@ Strutil::utf8_to_utf16wstring(string_view str) noexcept
     } catch (const std::exception&) {
         return std::wstring();
     }
-}
-
-
-
-#if OPENIMAGEIO_VERSION < 30000
-// DEPRECATED(2.5) and slated for removal in 3.0.
-std::wstring
-Strutil::utf8_to_utf16(string_view str) noexcept
-{
-    return utf8_to_utf16wstring(str);
-}
 #endif
+}
 
 
 
 std::string
 Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 {
+#ifdef _WIN32
+    // UTF8<->UTF16 conversions are primarily needed on Windows, so use the
+    // fastest option (C++11 <codecvt> is many times slower due to locale
+    // access overhead, and is deprecated starting with C++17).
+    std::string result;
+    result.resize(WideCharToMultiByte(CP_UTF8, 0, str.data(), str.length(),
+                                      NULL, 0, NULL, NULL));
+    WideCharToMultiByte(CP_UTF8, 0, str.data(), str.length(), &result[0],
+                        (int)result.size(), NULL, NULL);
+    return result;
+#else
     try {
         OIIO_PRAGMA_WARNING_PUSH
         OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
@@ -922,6 +1012,7 @@ Strutil::utf16_to_utf8(const std::wstring& str) noexcept
     } catch (const std::exception&) {
         return std::string();
     }
+#endif
 }
 
 
@@ -929,22 +1020,24 @@ Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 std::string
 Strutil::utf16_to_utf8(const std::u16string& str) noexcept
 {
+#ifdef _WIN32
+    std::string result;
+    result.resize(WideCharToMultiByte(CP_UTF8, 0, (const WCHAR*)str.data(),
+                                      str.length(), NULL, 0, NULL, NULL));
+    WideCharToMultiByte(CP_UTF8, 0, (const WCHAR*)str.data(), str.length(),
+                        &result[0], (int)result.size(), NULL, NULL);
+    return result;
+#else
     try {
         OIIO_PRAGMA_WARNING_PUSH
         OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
-        // There is a bug in MSVS 2017 causing an unresolved symbol if char16_t is used (see https://stackoverflow.com/a/35103224)
-#if defined _MSC_VER && _MSC_VER >= 1900 && _MSC_VER < 1930
-        std::wstring_convert<std::codecvt_utf8_utf16<int16_t>, int16_t> convert;
-        auto p = reinterpret_cast<const int16_t*>(str.data());
-        return convert.to_bytes(p, p + str.size());
-#else
         std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conv;
         return conv.to_bytes(str);
-#endif
         OIIO_PRAGMA_WARNING_POP
     } catch (const std::exception&) {
         return std::string();
     }
+#endif
 }
 
 
@@ -1576,8 +1669,9 @@ Strutil::stoi(string_view str, size_t* pos, int base)
         }
         if (c >= base)
             break;
-        acc       = acc * base + c;
         anydigits = true;
+        if (OIIO_LIKELY(!overflow))
+            acc = acc * base + c;
         if (OIIO_UNLIKELY(acc > maxval))
             overflow = true;
     }
@@ -1863,6 +1957,32 @@ size_t
 Strutil::edit_distance(string_view a, string_view b, EditDistMetric metric)
 {
     return levenshtein_distance(a, b);
+}
+
+
+
+/// Interpret a string as a boolean value using the following heuristic:
+///   - If the string is a valid numeric value (represents an integer or
+///     floating point value), return true if it's non-zero, false if it's
+///     zero.
+///   - If the string is one of "false", "no", or "off", or if it contains
+///     only whitespace, return false.
+///   - All other non-empty strings return true.
+/// The comparisons are case-insensitive and ignore leading and trailing
+/// whitespace.
+bool
+Strutil::eval_as_bool(string_view value)
+{
+    Strutil::trim_whitespace(value);
+    if (Strutil::string_is_int(value)) {
+        return Strutil::stoi(value) != 0;
+    } else if (Strutil::string_is_float(value)) {
+        return Strutil::stof(value) != 0.0f;
+    } else {
+        return !(value.empty() || Strutil::iequals(value, "false")
+                 || Strutil::iequals(value, "no")
+                 || Strutil::iequals(value, "off"));
+    }
 }
 
 OIIO_NAMESPACE_END

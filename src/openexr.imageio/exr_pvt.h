@@ -10,6 +10,8 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/typedesc.h>
 
 #include <ImathBox.h>
@@ -24,42 +26,35 @@
 
 #define OPENEXR_HAS_FLOATVECTOR 1
 
-#define ENABLE_READ_DEBUG_PRINTS 0
-
+#define ENABLE_EXR_DEBUG_PRINTS 0
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#if OIIO_CPLUSPLUS_VERSION >= 17 || defined(__cpp_lib_gcd_lcm)
-using std::gcd;
+// Lots of debugging printf turned on for DEBUG builds or if you define
+// ENABLE_EXR_DEBUG_PRINTS above, *AND* the "OIIO_DEBUG_OPENEXR" environment
+// variable is set to something numerically non-zero.
+#if ENABLE_EXR_DEBUG_PRINTS || !defined(NDEBUG) /* allow debugging */
+static bool exrdebug = Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_OPENEXR"))
+                       || Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_ALL"));
+#    define DBGEXR(...) \
+        if (exrdebug)   \
+        Strutil::print(__VA_ARGS__)
 #else
-template<class M, class N, class T = std::common_type_t<M, N>>
-inline T
-gcd(M a, N b)
-{
-    while (b) {
-        T t = b;
-        b   = a % b;
-        a   = t;
-    }
-    return a;
-}
+#    define DBGEXR(...)
 #endif
 
 
+namespace pvt {
+
 // Split a full channel name into layer and suffix.
-inline void
-split_name(string_view fullname, string_view& layer, string_view& suffix)
-{
-    size_t dot = fullname.find_last_of('.');
-    if (dot == string_view::npos) {
-        suffix = fullname;
-        layer  = string_view();
-    } else {
-        layer  = string_view(fullname.data(), dot + 1);
-        suffix = string_view(fullname.data() + dot + 1,
-                             fullname.size() - dot - 1);
-    }
-}
+void
+split_name(string_view fullname, string_view& layer, string_view& suffix);
+
+// Do the channels appear to be R, G, B (or known common aliases)?
+bool
+channels_are_rgb(const ImageSpec& spec);
+
+}  // namespace pvt
 
 
 
@@ -105,8 +100,9 @@ public:
     {
         return (feature == "arbitrary_metadata"
                 || feature == "exif"  // Because of arbitrary_metadata
+                || feature == "ioproxy"
                 || feature == "iptc"  // Because of arbitrary_metadata
-                || feature == "ioproxy");
+                || feature == "multiimage");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec,

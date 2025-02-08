@@ -177,8 +177,13 @@ ImageOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                     ok &= write_tile(x, y, z, format, tilestart, xstride,
                                      ystride, zstride);
                 } else {
-                    if (!buf.get())
-                        buf.reset(new char[pixelsize * m_spec.tile_pixels()]);
+                    if (!buf.get()) {
+                        const size_t sz = pixelsize * m_spec.tile_pixels();
+                        buf.reset(new char[sz]);
+                        // Not all pixels will be initialized, so we set them to zero here.
+                        // This will avoid generation of NaN, FPEs and valgrind errors.
+                        memset(buf.get(), 0, sz);
+                    }
                     OIIO::copy_image(m_spec.nchannels, xw, yh, zd, tilestart,
                                      pixelsize, xstride, ystride, zstride,
                                      &buf[0], pixelsize,
@@ -232,7 +237,7 @@ bool
 ImageOutput::write_deep_image(const DeepData& deepdata)
 {
     if (m_spec.depth > 1) {
-        errorf("write_deep_image is not supported for volume (3D) images.");
+        errorfmt("write_deep_image is not supported for volume (3D) images.");
         return false;
         // FIXME? - not implementing 3D deep images for now.  The only
         // format that supports deep images at this time is OpenEXR, and
@@ -482,6 +487,7 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
                          ProgressCallback progress_callback,
                          void* progress_callback_data)
 {
+    pvt::LoggedTimer logtime("ImageOutput::write image");
     bool native          = (format == TypeDesc::UNKNOWN);
     stride_t pixel_bytes = native ? (stride_t)m_spec.pixel_bytes(native)
                                   : format.size() * m_spec.nchannels;
@@ -571,7 +577,7 @@ bool
 ImageOutput::copy_image(ImageInput* in)
 {
     if (!in) {
-        errorf("copy_image: no input supplied");
+        errorfmt("copy_image: no input supplied");
         return false;
     }
 
@@ -580,9 +586,9 @@ ImageOutput::copy_image(ImageInput* in)
     if (inspec.width != spec().width || inspec.height != spec().height
         || inspec.depth != spec().depth
         || inspec.nchannels != spec().nchannels) {
-        errorf("Could not copy %d x %d x %d channels to %d x %d x %d channels",
-               inspec.width, inspec.height, inspec.nchannels, spec().width,
-               spec().height, spec().nchannels);
+        errorfmt("Could not copy {} x {} x {} channels to {} x {} x {} channels",
+                 inspec.width, inspec.height, inspec.nchannels, spec().width,
+                 spec().height, spec().nchannels);
         return false;
     }
 
@@ -602,7 +608,7 @@ ImageOutput::copy_image(ImageInput* in)
         if (ok)
             ok = write_deep_image(deepdata);
         else
-            errorf("%s", in->geterror());  // copy err from in to out
+            errorfmt("{}", in->geterror());  // copy err from in to out
         return ok;
     }
 
@@ -617,7 +623,7 @@ ImageOutput::copy_image(ImageInput* in)
     if (ok)
         ok = write_image(format, &pixels[0]);
     else
-        errorf("%s", in->geterror());  // copy err from in to out
+        errorfmt("{}", in->geterror());  // copy err from in to out
     return ok;
 }
 
@@ -685,7 +691,7 @@ ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, TypeDesc format,
                                        void* image_buffer, TypeDesc buf_format)
 {
     if (!m_spec.tile_width || !m_spec.tile_height) {
-        errorf("Called write_tile for non-tiled image.");
+        errorfmt("Called write_tile for non-tiled image.");
         return false;
     }
     const ImageSpec& spec(this->spec());
@@ -1017,6 +1023,51 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
     }
 
     return true;  // all is ok
+}
+
+
+
+template<>
+inline size_t
+pvt::heapsize<ImageOutput::Impl>(const ImageOutput::Impl& impl)
+{
+    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
+}
+
+
+
+size_t
+ImageOutput::heapsize() const
+{
+    size_t size = pvt::heapsize(m_impl);
+    size += pvt::heapsize(m_spec);
+    return size;
+}
+
+
+
+size_t
+ImageOutput::footprint() const
+{
+    return sizeof(ImageOutput) + heapsize();
+}
+
+
+
+template<>
+size_t
+pvt::heapsize<ImageOutput>(const ImageOutput& output)
+{
+    return output.heapsize();
+}
+
+
+
+template<>
+size_t
+pvt::footprint<ImageOutput>(const ImageOutput& output)
+{
+    return output.footprint();
 }
 
 

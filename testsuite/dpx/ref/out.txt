@@ -1,5 +1,5 @@
-Reading ../oiio-images/dpx_nuke_10bits_rgb.dpx
-../oiio-images/dpx_nuke_10bits_rgb.dpx :  512 x  512, 3 channel, uint10 dpx
+Reading ../oiio-images/dpx/dpx_nuke_10bits_rgb.dpx
+../oiio-images/dpx/dpx_nuke_10bits_rgb.dpx :  512 x  512, 3 channel, uint10 dpx
     SHA-1: D63D2EC8C60AB41B1C0F72A65AE8FF27DA8A620E
     channel list: R, G, B
     DateTime: "2011:03:08 14:47:25"
@@ -36,11 +36,12 @@ Reading ../oiio-images/dpx_nuke_10bits_rgb.dpx
     dpx:XScannedSize: 0
     dpx:YScannedSize: 0
     oiio:BitsPerSample: 10
+    oiio:subimages: 1
     smpte:TimeCode: 00:00:00:00
-Comparing "../oiio-images/dpx_nuke_10bits_rgb.dpx" and "dpx_nuke_10bits_rgb.dpx"
+Comparing "../oiio-images/dpx/dpx_nuke_10bits_rgb.dpx" and "dpx_nuke_10bits_rgb.dpx"
 PASS
-Reading ../oiio-images/dpx_nuke_16bits_rgba.dpx
-../oiio-images/dpx_nuke_16bits_rgba.dpx :  512 x  512, 4 channel, uint10 dpx
+Reading ../oiio-images/dpx/dpx_nuke_16bits_rgba.dpx
+../oiio-images/dpx/dpx_nuke_16bits_rgba.dpx :  512 x  512, 4 channel, uint10 dpx
     SHA-1: E9FECE70CD875C5654F58DA9EC576399F089D855
     channel list: R, G, B, A
     DateTime: "2011:03:08 14:47:01"
@@ -77,8 +78,9 @@ Reading ../oiio-images/dpx_nuke_16bits_rgba.dpx
     dpx:XScannedSize: 0
     dpx:YScannedSize: 0
     oiio:BitsPerSample: 10
+    oiio:subimages: 1
     smpte:TimeCode: 00:00:00:00
-Comparing "../oiio-images/dpx_nuke_16bits_rgba.dpx" and "dpx_nuke_16bits_rgba.dpx"
+Comparing "../oiio-images/dpx/dpx_nuke_16bits_rgba.dpx" and "dpx_nuke_16bits_rgba.dpx"
 PASS
 Comparing "src/input_rgb_mattes.tif" and "output_rgb_mattes.dpx"
 PASS
@@ -100,6 +102,7 @@ stereo.dpx           :   80 x   60, 3 channel, uint10 dpx
     dpx:Transfer: "Undefined"
     dpx:Version: "V2.0"
     oiio:BitsPerSample: 10
+    oiio:subimages: 2
     Stats Min: 0 0 0 (of 1023)
     Stats Max: 1023 1023 1023 (of 1023)
     Stats Avg: 18.64 18.64 18.64 (of 1023)
@@ -124,6 +127,7 @@ stereo.dpx           :   80 x   60, 3 channel, uint10 dpx
     dpx:Transfer: "Undefined"
     dpx:Version: "V2.0"
     oiio:BitsPerSample: 10
+    oiio:subimages: 2
     Stats Min: 0 0 0 (of 1023)
     Stats Max: 1023 1023 1023 (of 1023)
     Stats Avg: 24.44 24.44 24.44 (of 1023)
@@ -151,5 +155,6 @@ grey.dpx             :  512 x  512, 1 channel, uint10 dpx
     dpx:Transfer: "Undefined"
     dpx:Version: "V2.0"
     oiio:BitsPerSample: 10
+    oiio:subimages: 1
 Comparing "grey.dpx" and "ref/grey.tif"
 PASS

@@ -143,18 +143,19 @@ Color information
     
     - `"scene_linear"` :  Color pixel values are known to be scene-linear and
       using facility-default color primaries as defined by the OpenColorIO
-      configuration. Note that `"linear"` is treated as a synonym. (Note: when
-      no color config is found, this are presumed to use sRGB/Rec709 color
-      primaries when built against OpenColorIO 2.1 or earlier, or when no OCIO
-      support is available, but is presumed to be ACEScg when built against
-      OCIO 2.2 or higher and using its built-in config.)
-    - `"lin_srgb"` :  Color pixel values are known to be linear and
-      using sRGB/Rec709 color primaries.
+      configuration.
+    - `"lin_srgb"`, `"lin_rec709"` :  Color pixel values are known to be
+      linear and using sRGB/Rec709 color primaries. Note that `"linear"` is
+      treated as a synonym.
     - `"sRGB"` :  Using standard sRGB response and primaries.
     - `"Rec709"` :  Using standard Rec709 response and primaries.
     - `"ACEScg"` :  ACEScg color space encoding.
     - `"AdobeRGB"` :  Adobe RGB color space.
     - `"KodakLog"` :  Kodak logarithmic color space.
+    - `"g22_rec709"` : Rec709/sRGB primaries, but using a response curve
+      corresponding to gamma 2.2.
+    - `"g18_rec709"` : Rec709/sRGB primaries, but using a response curve
+      corresponding to gamma 1.8.
     - `"GammaX.Y"` :  Color values have been gamma corrected
       (raised to the power :math:`1/\gamma`). The `X.Y` is the numeric value
       of the gamma exponent.
@@ -230,7 +231,7 @@ Disk file format info/hints
     `piz`, `pxr24`, `b44`, `b44a`, `dwaa`, or `dwab`.
 
     he compression name is permitted to have a quality value to be appended
-    fter a colon, for example `dwaa:60`.  The exact meaning and range of
+    after a colon, for example `dwaa:60`.  The exact meaning and range of
     he quality value can vary between different file formats and compression
     odes, and some don't support quality values at all (it will be ignored if
     ot supported, or if out of range).
@@ -915,23 +916,8 @@ conventions for storing image metadata, and this standard is growing in
 popularity and is commonly used in photo-browsing programs to record
 captions and keywords.
 
-The following IPTC metadata items correspond exactly to metadata in the
-OpenImageIO conventions, so it is recommended that you use the standards and
-that plugins supporting IPTC metadata respond likewise:
-
-    ===============  =========================================================================================================
-    IPTC tag         OpenImageIO metadata convention
-    ===============  =========================================================================================================
-    Caption          `"ImageDescription"`
-    Keyword          IPTC keywords should be concatenated, separated by semicolons (`;`), and stored as the `Keywords` attribute.
-    ExposureTime     `ExposureTime`
-    CopyrightNotice  `Copyright`
-    Creator          `Artist`
-    ===============  =========================================================================================================
-
-
-The remainder of IPTC metadata fields should use the following names,
-prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
+IPTC metadata fields should use the following names, prefixed with `IPTC:` to
+avoid conflicts with other plugins or standards.
 
 .. option:: "IPTC:ObjecTypeReference" : string
 
@@ -957,6 +943,10 @@ prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
 
     Category.
 
+.. option:: "IPTC:Keywords" : string
+
+    Semicolon-separated keywords describing the contents of the image.
+
 .. option:: "IPTC:ContentLocationCode" : string
 
     Code for content location.
@@ -974,6 +964,10 @@ prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
             "IPTC:ExpirationTime" : string
 
     Expiration date and time.
+
+.. option:: "IPTC:ExposureTime" : string
+
+    The exposure time (in seconds) of the captured image.
 
 .. option:: "IPTC:Instructions" : string
 
@@ -998,6 +992,10 @@ prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
 .. option:: "IPTC:ProgramVersion" : string
 
     The version number of the creation software.
+
+.. option:: "IPTC:Creator" : string
+
+    The artist, creator, or owner of the image.
 
 .. option:: "IPTC:AuthorsPosition" : string
 
@@ -1024,10 +1022,18 @@ prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
 
     The source of the image.
 
+.. option:: "IPTC:CopyrightNotice" : string
+
+    Any copyright notice for the image.
+
 .. option:: "IPTC:Contact" : string
 
     The contact information for the image (possibly including name, address,
     email, etc.).
+
+.. option:: "IPTC:Caption" : string
+
+    A caption for the image.
 
 .. option:: "IPTC:CaptionWriter" : string
 
@@ -1055,6 +1061,16 @@ prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
 .. option:: "IPTC:DocumentHistory" : string
 
     The history of the image or document.
+
+
+References for more information on IPTC metadata:
+
+* https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata
+* https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata#iptc-core-schema-1-5-specifications
+  This is the one where you can find the length limits
+* ExifTool's documentation about IPTC tags (caveat: not a definitive
+  reference, could be outdated or incorrect):
+  https://exiftool.org/TagNames/IPTC.html
 
 
 SMPTE metadata

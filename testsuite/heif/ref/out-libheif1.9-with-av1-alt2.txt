@@ -1,0 +1,152 @@
+Reading ref/IMG_7702_small.heic
+ref/IMG_7702_small.heic :  512 x  300, 3 channel, uint8 heif
+    SHA-1: 2380C124F8338910013FEA75C9C64C23567A3156
+    channel list: R, G, B
+    DateTime: "2019:01:21 16:10:54"
+    ExposureTime: 0.030303
+    FNumber: 1.8
+    Make: "Apple"
+    Model: "iPhone 7"
+    Orientation: 1 (normal)
+    ResolutionUnit: 2 (inches)
+    Software: "12.1.2"
+    XResolution: 72
+    YResolution: 72
+    Exif:ApertureValue: 1.69599 (f/1.8)
+    Exif:BrightnessValue: 3.99501
+    Exif:ColorSpace: 65535
+    Exif:DateTimeDigitized: "2019:01:21 16:10:54"
+    Exif:DateTimeOriginal: "2019:01:21 16:10:54"
+    Exif:ExifVersion: "0221"
+    Exif:ExposureBiasValue: 0
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 2 (normal program)
+    Exif:Flash: 24 (no flash, auto flash)
+    Exif:FlashPixVersion: "0100"
+    Exif:FocalLength: 3.99 (3.99 mm)
+    Exif:FocalLengthIn35mmFilm: 28
+    Exif:LensMake: "Apple"
+    Exif:LensModel: "iPhone 7 back camera 3.99mm f/1.8"
+    Exif:LensSpecification: 3.99, 3.99, 1.8, 1.8
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 20
+    Exif:PixelXDimension: 4032
+    Exif:PixelYDimension: 3024
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:ShutterSpeedValue: 5.03599 (1/32 s)
+    Exif:SubsecTimeDigitized: "006"
+    Exif:SubsecTimeOriginal: "006"
+    Exif:WhiteBalance: 0 (auto)
+    oiio:ColorSpace: "sRGB"
+Reading ref/Chimera-AV1-8bit-162.avif
+ref/Chimera-AV1-8bit-162.avif :  480 x  270, 3 channel, uint8 heif
+    SHA-1: F8FDAF1BD56A21E3AF99CF8EE7FA45434D2826C7
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"
+Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
+../oiio-images/heif/greyhounds-looking-for-a-table.heic : 3024 x 4032, 3 channel, uint8 heif
+    SHA-1: 8064B23A1A995B0D6525AFB5248EEC6C730BBB6C
+    channel list: R, G, B
+    DateTime: "2023:09:28 09:44:03"
+    ExposureTime: 0.0135135
+    FNumber: 2.4
+    Make: "Apple"
+    Model: "iPhone 12 Pro"
+    Orientation: 1 (normal)
+    ResolutionUnit: 2 (inches)
+    Software: "16.7"
+    XResolution: 72
+    YResolution: 72
+    Exif:ApertureValue: 2.52607 (f/2.4)
+    Exif:BrightnessValue: 2.7506
+    Exif:ColorSpace: 65535
+    Exif:DateTimeDigitized: "2023:09:28 09:44:03"
+    Exif:DateTimeOriginal: "2023:09:28 09:44:03"
+    Exif:DigitalZoomRatio: 1.3057
+    Exif:ExifVersion: "0232"
+    Exif:ExposureBiasValue: 0
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 2 (normal program)
+    Exif:Flash: 16 (no flash, flash suppression)
+    Exif:FocalLength: 1.54 (1.54 mm)
+    Exif:FocalLengthIn35mmFilm: 17
+    Exif:LensMake: "Apple"
+    Exif:LensModel: "iPhone 12 Pro back triple camera 1.54mm f/2.4"
+    Exif:LensSpecification: 1.54, 6, 1.6, 2.4
+    Exif:MeteringMode: 5 (pattern)
+    Exif:OffsetTime: "+02:00"
+    Exif:OffsetTimeDigitized: "+02:00"
+    Exif:OffsetTimeOriginal: "+02:00"
+    Exif:PhotographicSensitivity: 320
+    Exif:PixelXDimension: 4032
+    Exif:PixelYDimension: 3024
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:ShutterSpeedValue: 6.20983 (1/74 s)
+    Exif:SubsecTimeDigitized: "886"
+    Exif:SubsecTimeOriginal: "886"
+    Exif:WhiteBalance: 0 (auto)
+    GPS:Altitude: 3.24105 (3.24105 m)
+    GPS:AltitudeRef: 0 (above sea level)
+    GPS:DateStamp: "2023:09:28"
+    GPS:DestBearing: 90.2729
+    GPS:DestBearingRef: "T" (true north)
+    GPS:HPositioningError: 5.1893
+    GPS:ImgDirection: 90.2729
+    GPS:ImgDirectionRef: "T" (true north)
+    GPS:Latitude: 41, 50, 58.43
+    GPS:LatitudeRef: "N"
+    GPS:Longitude: 3, 7, 31.98
+    GPS:LongitudeRef: "E"
+    GPS:Speed: 0.171966
+    GPS:SpeedRef: "K" (km/hour)
+    oiio:ColorSpace: "sRGB"
+    oiio:OriginalOrientation: 6
+Reading ../oiio-images/heif/sewing-threads.heic
+../oiio-images/heif/sewing-threads.heic : 4000 x 3000, 3 channel, uint8 heif
+    SHA-1: 44551A0A8AADD2C71B504681F2BAE3F7863EF9B9
+    channel list: R, G, B
+    DateTime: "2023:12:12 18:39:16"
+    ExposureTime: 0.04
+    FNumber: 1.8
+    Make: "samsung"
+    Model: "SM-A326B"
+    Orientation: 1 (normal)
+    ResolutionUnit: 2 (inches)
+    Software: "A326BXXS8CWK2"
+    XResolution: 72
+    YResolution: 72
+    Exif:ApertureValue: 1.69 (f/1.8)
+    Exif:BrightnessValue: 1.19
+    Exif:ColorSpace: 1
+    Exif:DateTimeDigitized: "2023:12:12 18:39:16"
+    Exif:DateTimeOriginal: "2023:12:12 18:39:16"
+    Exif:DigitalZoomRatio: 1
+    Exif:ExifVersion: "0220"
+    Exif:ExposureBiasValue: 0
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 2 (normal program)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 4.6 (4.6 mm)
+    Exif:FocalLengthIn35mmFilm: 25
+    Exif:MaxApertureValue: 1.69 (f/1.8)
+    Exif:MeteringMode: 2 (center-weighted average)
+    Exif:OffsetTime: "+01:00"
+    Exif:OffsetTimeOriginal: "+01:00"
+    Exif:PhotographicSensitivity: 500
+    Exif:PixelXDimension: 4000
+    Exif:PixelYDimension: 3000
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:ShutterSpeedValue: 0.04 (1/1 s)
+    Exif:SubsecTime: "576"
+    Exif:SubsecTimeDigitized: "576"
+    Exif:SubsecTimeOriginal: "576"
+    Exif:WhiteBalance: 0 (auto)
+    Exif:YCbCrPositioning: 1
+    GPS:Altitude: 292 (292 m)
+    GPS:AltitudeRef: 0 (above sea level)
+    GPS:Latitude: 41, 43, 33.821
+    GPS:LatitudeRef: "N"
+    GPS:Longitude: 1, 49, 34.0187
+    GPS:LongitudeRef: "E"
+    oiio:ColorSpace: "sRGB"

@@ -5,10 +5,6 @@
 
 add_library (txReader MODULE txReader.cpp)
 
-target_compile_definitions(txReader PRIVATE
-                           ${${PROJECT_NAME}_compile_definitions})
-target_compile_options(txReader PRIVATE
-                           ${${PROJECT_NAME}_compile_options})
 target_include_directories (txReader PUBLIC ${NUKE_INCLUDES})
 target_link_libraries (txReader PUBLIC ${NUKE_LIBRARIES} OpenImageIO)
 install_targets (txReader)

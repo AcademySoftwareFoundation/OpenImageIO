@@ -119,14 +119,15 @@ getargs(int argc, char* argv[])
 
 
 static bool
-read_input(const std::string& filename, ImageBuf& img, ImageCache* cache,
-           int subimage = 0, int miplevel = 0)
+read_input(const std::string& filename, ImageBuf& img,
+           std::shared_ptr<ImageCache> cache, int subimage = 0,
+           int miplevel = 0)
 {
     if (img.subimage() >= 0 && img.subimage() == subimage
         && img.miplevel() == miplevel)
         return true;
 
-    img.reset(filename, cache);
+    img.reset(filename, 0, 0, cache);
     if (img.read(subimage, miplevel, false, TypeFloat))
         return true;
 
@@ -143,9 +144,9 @@ read_input(const std::string& filename, ImageBuf& img, ImageCache* cache,
 inline void
 safe_double_print(double val)
 {
-    if (OIIO::isnan(val))
+    if (std::isnan(val))
         print("nan\n");
-    else if (OIIO::isinf(val))
+    else if (std::isinf(val))
         print("inf\n");
     else
         print("{:g}\n", val);
@@ -232,7 +233,7 @@ main(int argc, char* argv[])
 
     // Create a private ImageCache so we can customize its cache size
     // and instruct it store everything internally as floats.
-    ImageCache* imagecache = ImageCache::create(true);
+    std::shared_ptr<ImageCache> imagecache = ImageCache::create(true);
     imagecache->attribute("forcefloat", 1);
     if (sizeof(void*) == 4)  // 32 bit or 64?
         imagecache->attribute("max_memory_MB", 512.0);
@@ -418,7 +419,6 @@ main(int argc, char* argv[])
     }
 
     imagecache->invalidate_all(true);
-    ImageCache::destroy(imagecache);
     shutdown();
     return ret;
 }

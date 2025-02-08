@@ -12,10 +12,7 @@
 export PATH=/usr/local/bin/_ccache:/usr/lib/ccache:$PATH
 export USE_CCACHE=${USE_CCACHE:=1}
 export CCACHE_CPP2=
-export CCACHE_DIR=/tmp/ccache
-if [[ "${RUNNER_OS}" == "macOS" ]] ; then
-    export CCACHE_DIR=$HOME/.ccache
-fi
+export CCACHE_DIR=$HOME/.ccache
 mkdir -p $CCACHE_DIR
 
 export OpenImageIO_ROOT=$PWD/dist
@@ -29,7 +26,6 @@ export UBSAN_OPTIONS=suppressions=$PWD/src/build-scripts/ubsan-suppressions.txt
 
 export PYTHON_VERSION=${PYTHON_VERSION:="3.7"}
 export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
-export BUILD_MISSING_DEPS=${BUILD_MISSING_DEPS:=1}
 export COMPILER=${COMPILER:=gcc}
 export CC=${CC:=gcc}
 export CXX=${CXX:=g++}
@@ -45,8 +41,10 @@ export LD_LIBRARY_PATH=${LOCAL_DEPS_DIR}/dist/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=${LOCAL_DEPS_DIR}/dist/lib64:$LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH=${LOCAL_DEPS_DIR}/dist/lib:$DYLD_LIBRARY_PATH
 
-# export OCIO="$PWD/testsuite/common/OpenColorIO/nuke-default/config.ocio"
 export TESTSUITE_CLEANUP_ON_SUCCESS=${TESTSUITE_CLEANUP_ON_SUCCESS:=1}
+
+# For CI, default to building missing dependencies automatically
+export OpenImageIO_BUILD_MISSING_DEPS=${OpenImageIO_BUILD_MISSING_DEPS:=all}
 
 # Sonar
 export BUILD_WRAPPER_OUT_DIR="${PWD}/bw_output"
@@ -70,7 +68,8 @@ fi
 export PAR_MAKEFLAGS=-j${PARALLEL}
 export CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:=${PARALLEL}}
 export CTEST_PARALLEL_LEVEL=${CTEST_PARALLEL_LEVEL:=${PARALLEL}}
-
+export OIIO_USE_CUDA=1
+export CUDAToolkit_ROOT=/usr/local/cuda
 
 mkdir -p build dist
 

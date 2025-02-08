@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -224,7 +224,7 @@ adjust_spec(ImageInput* in, ImageOutput* out, const ImageSpec& inspec,
 
     outspec.attribute("oiio:Gamma", gammaval);
     if (sRGB) {
-        outspec.attribute("oiio:ColorSpace", "sRGB");
+        outspec.set_colorspace("sRGB");
         if (!strcmp(in->format_name(), "jpeg")
             || outspec.find_attribute("Exif:ColorSpace"))
             outspec.attribute("Exif:ColorSpace", 1);
@@ -356,27 +356,24 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
     // subimage appending, we gather them all first.
     std::vector<ImageSpec> subimagespecs;
     if (out->supports("multiimage") && !out->supports("appendsubimage")) {
-        ImageCache* imagecache = ImageCache::create();
-        int nsubimages         = 0;
+        auto imagecache = ImageCache::create();
+        int nsubimages  = 0;
         ustring ufilename(in_filename);
         imagecache->get_image_info(ufilename, 0, 0, ustring("subimages"),
                                    TypeInt, &nsubimages);
         if (nsubimages > 1) {
             subimagespecs.resize(nsubimages);
             for (int i = 0; i < nsubimages; ++i) {
-                ImageSpec inspec = *imagecache->imagespec(ufilename, i, 0,
-                                                          true /*native*/);
+                ImageSpec inspec = *imagecache->imagespec(ufilename, i);
                 subimagespecs[i] = inspec;
                 adjust_spec(in.get(), out.get(), inspec, subimagespecs[i]);
             }
         }
-        ImageCache::destroy(imagecache);
     }
 
     bool ok                      = true;
     bool mip_to_subimage_warning = false;
-    for (int subimage = 0; ok && in->seek_subimage(subimage, 0, inspec);
-         ++subimage) {
+    for (int subimage = 0; ok && in->seek_subimage(subimage, 0); ++subimage) {
         if (subimage > 0 && !out->supports("multiimage")) {
             print(stderr,
                   "iconvert WARNING: {} does not support multiple subimages.\n"
@@ -388,6 +385,7 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
         int miplevel = 0;
         do {
             // Copy the spec, with possible change in format
+            inspec            = in->spec(subimage, miplevel);
             ImageSpec outspec = inspec;
             bool nocopy = adjust_spec(in.get(), out.get(), inspec, outspec);
             if (miplevel > 0) {
@@ -473,7 +471,7 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
             }
 
             ++miplevel;
-        } while (ok && in->seek_subimage(subimage, miplevel, inspec));
+        } while (ok && in->seek_subimage(subimage, miplevel));
     }
 
     out->close();

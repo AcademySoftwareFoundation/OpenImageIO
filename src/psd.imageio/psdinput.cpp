@@ -19,7 +19,6 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
-#include <OpenImageIO/span_util.h>
 #include <OpenImageIO/tiffutils.h>
 
 // #include "jpeg_memory_src.h"
@@ -383,8 +382,8 @@ private:
     static void cmyk_to_rgb(int n, cspan<T> cmyk, size_t cmyk_stride,
                             span<T> rgb, size_t rgb_stride)
     {
-        DASSERT(size_t(n) * cmyk_stride <= std::size(cmyk));
-        DASSERT(size_t(n) * rgb_stride <= std::size(rgb));
+        OIIO_DASSERT(size_t(n) * cmyk_stride <= std::size(cmyk));
+        OIIO_DASSERT(size_t(n) * rgb_stride <= std::size(rgb));
         for (int i = 0; i < n; ++i) {
             float C = convert_type<T, float>(cmyk[i * cmyk_stride + 0]);
             float M = convert_type<T, float>(cmyk[i * cmyk_stride + 1]);
@@ -808,7 +807,7 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             break;
         }
     } else if (m_header.color_mode == ColorMode_CMYK) {
-        oiio_span_size_type cmyklen = channel_count * spec.width;
+        span_size_t cmyklen = channel_count * spec.width;
         switch (bps) {
         case 4: {
             std::unique_ptr<float[]> cmyk(new float[cmyklen]);
@@ -842,11 +841,13 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         }
         }
     } else if (m_header.color_mode == ColorMode_Indexed) {
-        if (!indexed_to_rgb({ (unsigned char*)dst, spec.width * spec.nchannels },
+        if (!indexed_to_rgb({ (unsigned char*)dst,
+                              span_size_t(spec.width * spec.nchannels) },
                             channel_buffers[0], spec.width))
             return false;
     } else if (m_header.color_mode == ColorMode_Bitmap) {
-        if (!bitmap_to_rgb({ (unsigned char*)dst, spec.width * spec.nchannels },
+        if (!bitmap_to_rgb({ (unsigned char*)dst,
+                             span_size_t(spec.width * spec.nchannels) },
                            channel_buffers[0], spec.width))
             return false;
     } else {
@@ -1890,6 +1891,8 @@ PSDInput::load_image_data()
     // setup some generic properties and read any RLE lengths
     // Image Data Section has RLE lengths for all channels stored first
     for (ChannelInfo& channel_info : m_image_data.channel_info) {
+        channel_info.width       = m_header.width;
+        channel_info.height      = m_header.height;
         channel_info.compression = compression;
         channel_info.channel_id  = id++;
         channel_info.data_length = row_length * m_header.height;
@@ -2045,39 +2048,39 @@ PSDInput::read_channel_row(ChannelInfo& channel_info, uint32_t row, char* data)
             case 16: swap_endian((uint16_t*)data, channel_info.width); break;
             case 32: swap_endian((uint32_t*)data, channel_info.width); break;
             }
-            break;
-        case Compression_RLE: {
-            if (!ioseek(channel_info.row_pos[row]))
-                return false;
-            uint32_t rle_length = channel_info.rle_lengths[row];
-            char* rle_buffer;
-            OIIO_ALLOCATE_STACK_OR_HEAP(rle_buffer, char, rle_length);
-            if (!ioread(rle_buffer, rle_length)
-                || !decompress_packbits(rle_buffer, data, rle_length,
-                                        channel_info.row_length))
-                return false;
-        } break;
-        case Compression_ZIP: {
-            OIIO_ASSERT(channel_info.decompressed_data.size()
-                        == static_cast<uint64_t>(channel_info.width)
-                               * channel_info.height * (m_header.depth / 8));
-            // We simply copy over the row into destination
-            uint64_t row_index = static_cast<uint64_t>(row) * channel_info.width
-                                 * (m_header.depth / 8);
-            std::memcpy(data, channel_info.decompressed_data.data() + row_index,
-                        channel_info.row_length);
-        } break;
-        case Compression_ZIP_Predict: {
-            OIIO_ASSERT(channel_info.decompressed_data.size()
-                        == static_cast<uint64_t>(channel_info.width)
-                               * channel_info.height * (m_header.depth / 8));
-            // We simply copy over the row into destination
-            uint64_t row_index = static_cast<uint64_t>(row) * channel_info.width
-                                 * (m_header.depth / 8);
-            std::memcpy(data, channel_info.decompressed_data.data() + row_index,
-                        channel_info.row_length);
-        } break;
         }
+        break;
+    case Compression_RLE: {
+        if (!ioseek(channel_info.row_pos[row]))
+            return false;
+        uint32_t rle_length = channel_info.rle_lengths[row];
+        char* rle_buffer;
+        OIIO_ALLOCATE_STACK_OR_HEAP(rle_buffer, char, rle_length);
+        if (!ioread(rle_buffer, rle_length)
+            || !decompress_packbits(rle_buffer, data, rle_length,
+                                    channel_info.row_length))
+            return false;
+    } break;
+    case Compression_ZIP: {
+        OIIO_ASSERT(channel_info.decompressed_data.size()
+                    == static_cast<uint64_t>(channel_info.width)
+                           * channel_info.height * (m_header.depth / 8));
+        // We simply copy over the row into destination
+        uint64_t row_index = static_cast<uint64_t>(row) * channel_info.width
+                             * (m_header.depth / 8);
+        std::memcpy(data, channel_info.decompressed_data.data() + row_index,
+                    channel_info.row_length);
+    } break;
+    case Compression_ZIP_Predict: {
+        OIIO_ASSERT(channel_info.decompressed_data.size()
+                    == static_cast<uint64_t>(channel_info.width)
+                           * channel_info.height * (m_header.depth / 8));
+        // We simply copy over the row into destination
+        uint64_t row_index = static_cast<uint64_t>(row) * channel_info.width
+                             * (m_header.depth / 8);
+        std::memcpy(data, channel_info.decompressed_data.data() + row_index,
+                    channel_info.row_length);
+    } break;
     }
 
     return true;
@@ -2230,6 +2233,7 @@ PSDInput::decompress_packbits(const char* src, char* dst,
     int16_t header;
     int length;
 
+    char* dst_start = dst;
     while (src_remaining > 0 && dst_remaining > 0) {
         header = *reinterpret_cast<const signed char*>(src);
         src++;
@@ -2272,8 +2276,8 @@ PSDInput::decompress_packbits(const char* src, char* dst,
 
     if (!bigendian()) {
         switch (m_header.depth) {
-        case 16: swap_endian((uint16_t*)dst, m_spec.width); break;
-        case 32: swap_endian((uint32_t*)dst, m_spec.width); break;
+        case 16: swap_endian((uint16_t*)dst_start, m_spec.width); break;
+        case 32: swap_endian((uint32_t*)dst_start, m_spec.width); break;
         }
     }
 

@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
@@ -273,23 +273,6 @@ TGAOutput::write_tga20_data_fields()
             if (!write(tw) || !write(th)
                 || !write(m_thumb.localpixels(), m_thumb.spec().image_bytes()))
                 return false;
-        } else {
-            // Old API -- honor it for a while
-            // DEPRECATED(2.3)
-            unsigned char tw = m_spec.get_int_attribute("thumbnail_width", 0);
-            unsigned char th = m_spec.get_int_attribute("thumbnail_width", 0);
-            int tc = m_spec.get_int_attribute("thumbnail_nchannels", 0);
-            if (tw && th && tc == m_spec.nchannels) {
-                ParamValue* p = m_spec.find_attribute("thumbnail_image");
-                if (p) {
-                    ofs_thumb = (uint32_t)iotell();
-                    // dump thumbnail size
-                    if (!write(tw) || !write(th)
-                        || !write(p->data(), p->datasize())) {
-                        return false;
-                    }
-                }
-            }
         }
 
         // prepare the footer
@@ -370,8 +353,17 @@ TGAOutput::write_tga20_data_fields()
         }
 
         // gamma -- two shorts, giving a ratio
+        const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
         string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
-        if (Strutil::istarts_with(colorspace, "Gamma")) {
+        if (colorconfig.equivalent(colorspace, "g22_rec709")) {
+            m_gamma = 2.2f;
+            write(uint16_t(m_gamma * 10.0f));
+            write(uint16_t(10));
+        } else if (colorconfig.equivalent(colorspace, "g18_rec709")) {
+            m_gamma = 1.8f;
+            write(uint16_t(m_gamma * 10.0f));
+            write(uint16_t(10));
+        } else if (Strutil::istarts_with(colorspace, "Gamma")) {
             // Extract gamma value from color space, if it's there
             Strutil::parse_word(colorspace);
             float g = Strutil::from_string<float>(colorspace);
@@ -381,7 +373,7 @@ TGAOutput::write_tga20_data_fields()
             // NOTE: the spec states that only 1 decimal place of precision
             // is needed, thus the expansion by 10
             // numerator
-            write(uint16_t(m_gamma * 10.0f));
+            write(uint16_t(std::round(m_gamma * 10.0f)));
             write(uint16_t(10));
         } else {
             // just dump two zeros in there
@@ -718,7 +710,8 @@ TGAOutput::set_thumbnail(const ImageBuf& thumb)
         } else {
             roi.xend = (int)roundf(256.0f * ratio);
         }
-        m_thumb = ImageBufAlgo::resize(thumb, "", 0.0f, roi, this->threads());
+        m_thumb = ImageBufAlgo::resize(thumb, ImageBufAlgo::KWArgs(), roi,
+                                       this->threads());
         if (thumb.pixeltype() != TypeUInt8)
             m_thumb = ImageBufAlgo::copy(m_thumb, TypeUInt8);
     } else {

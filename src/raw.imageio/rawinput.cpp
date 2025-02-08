@@ -183,7 +183,7 @@ private:
              bool force = true, unsigned short ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? std::ssize(data) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::UINT16, size), data.data());
         }
@@ -192,7 +192,7 @@ private:
              bool force = true, unsigned char ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? std::ssize(data) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::UINT8, size), data.data());
         }
@@ -201,7 +201,7 @@ private:
              bool force = true, float ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? std::ssize(data) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::FLOAT, size), data.data());
         }
@@ -210,7 +210,7 @@ private:
              bool force = true, float ignval = 0)
     {
         float* d = OIIO_ALLOCA(float, data.size());
-        for (auto i = 0; i < data.size(); ++i)
+        for (size_t i = 0; i < std::size(data); ++i)
             d[i] = data[i];
         add(prefix, name, cspan<float>(d, data.size()), force, ignval);
     }
@@ -245,28 +245,38 @@ OIIO_EXPORT const char* raw_input_extensions[]
 OIIO_PLUGIN_EXPORTS_END
 
 namespace {
-const char*
-libraw_filter_to_str(unsigned int filters)
+std::string
+libraw_bayer_filter_to_str(unsigned int filters, const char* cdesc)
 {
-    // Convert the libraw filter pattern description
-    // into a slightly more human readable string
-    // LibRaw/internal/defines.h:166
-    switch (filters) {
-    // CYGM
-    case 0xe1e4e1e4: return "GMYC";
-    case 0x1b4e4b1e: return "CYGM";
-    case 0x1e4b4e1b: return "YCGM";
-    case 0xb4b4b4b4: return "GMCY";
-    case 0x1e4e1e4e: return "CYMG";
-
-    // RGB
-    case 0x16161616: return "BGRG";
-    case 0x61616161: return "GRGB";
-    case 0x49494949: return "GBGR";
-    case 0x94949494: return "RGBG";
-    default: break;
+    char result[5] = { 0, 0, 0, 0, 0 };
+    for (size_t i = 0; i < 4; i++) {
+        size_t index = filters & 3;  // Grab the last 2 bits
+        result[i]    = cdesc[index];
+        filters >>= 2;
     }
-    return "";
+    return result;
+}
+
+std::string
+libraw_xtrans_filter_to_str(char (&filters)[6][6])
+{
+    const char mapping[3] = { 'R', 'G', 'B' };
+
+    std::string result;
+    result.resize(41);
+
+    for (size_t y = 0; y < 6; y++) {
+        for (size_t x = 0; x < 6; x++) {
+            char c = filters[y][x];
+            if (c > 2 || c < 0)
+                c = 0;
+
+            result[y * 7 + x] = mapping[(size_t)c];
+        }
+        if (y > 0)
+            result[y * 7 - 1] = ' ';
+    }
+    return result;
 }
 }  // namespace
 
@@ -453,12 +463,21 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Output 16 bit images
     m_processor->imgdata.params.output_bps = 16;
 
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
+    // Exposing max_raw_memory_mb setting. Default max is 2048.
+    m_processor->imgdata.rawparams.max_raw_memory_mb
+        = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
+#endif
+
     // Disable exposure correction (unless config "raw:auto_bright" == 1)
     m_processor->imgdata.params.no_auto_bright
         = !config.get_int_attribute("raw:auto_bright", 0);
     // Turn off maximum threshold value (unless set to non-zero)
     m_processor->imgdata.params.adjust_maximum_thr
         = config.get_float_attribute("raw:adjust_maximum_thr", 0.0f);
+    // Set camera minimum value if "raw:user_black" is not negative
+    m_processor->imgdata.params.user_black
+        = config.get_int_attribute("raw:user_black", -1);
     // Set camera maximum value if "raw:user_sat" is not 0
     m_processor->imgdata.params.user_sat
         = config.get_int_attribute("raw:user_sat", 0);
@@ -481,42 +500,49 @@ RawInput::open_raw(bool unpack, const std::string& name,
     if (config.get_int_attribute("raw:use_camera_wb", 1) == 1) {
         auto& color  = m_processor->imgdata.color;
         auto& params = m_processor->imgdata.params;
-        auto& idata  = m_processor->imgdata.idata;
 
-        auto is_rgbg_or_bgrg = [&](unsigned int filters) {
-            std::string filter(libraw_filter_to_str(filters));
-            return filter == "RGBG" || filter == "BGRG";
-        };
         float norm[4] = { color.cam_mul[0], color.cam_mul[1], color.cam_mul[2],
                           color.cam_mul[3] };
 
-        if (is_rgbg_or_bgrg(idata.filters)) {
-            // normalize white balance around green
-            norm[0] /= norm[1];
-            norm[1] /= norm[1];
-            norm[2] /= norm[3] > 0 ? norm[3] : norm[1];
-            norm[3] /= norm[3] > 0 ? norm[3] : norm[1];
-        }
+        //        // normalize white balance around green
+        //        norm[0] /= norm[1];
+        //        norm[2] /= norm[3] > 0 ? norm[3] : norm[1];
+        //        norm[3] /= norm[3] > 0 ? norm[3] : norm[1];
+        //        norm[1] /= norm[1];
+
         params.user_mul[0] = norm[0];
         params.user_mul[1] = norm[1];
         params.user_mul[2] = norm[2];
         params.user_mul[3] = norm[3];
     } else {
-        // Set user white balance coefficients.
-        // Only has effect if "raw:use_camera_wb" is equal to 0,
-        // i.e. we are not using the camera white balance
-        auto p = config.find_attribute("raw:user_mul");
-        if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
-            m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
-            m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
-            m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
-            m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
-        }
-        if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
-            m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
-            m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
-            m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
-            m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+        if (config.get_int_attribute("raw:use_auto_wb", 0) == 1) {
+            m_processor->imgdata.params.use_auto_wb = 1;
+        } else {
+            auto p = config.find_attribute("raw:greybox");
+            if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
+                // p->get<int>() didn't work for me here
+                m_processor->imgdata.params.greybox[0] = p->get_int_indexed(0);
+                m_processor->imgdata.params.greybox[1] = p->get_int_indexed(1);
+                m_processor->imgdata.params.greybox[2] = p->get_int_indexed(2);
+                m_processor->imgdata.params.greybox[3] = p->get_int_indexed(3);
+            } else {
+                // Set user white balance coefficients.
+                // Only has effect if "raw:use_camera_wb" is equal to 0,
+                // i.e. we are not using the camera white balance
+                auto p = config.find_attribute("raw:user_mul");
+                if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
+                }
+                if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+                }
+            }
         }
     }
 
@@ -549,11 +575,14 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_processor->imgdata.params.gamm[0]      = 1.0 / 2.4;
         m_processor->imgdata.params.gamm[1]      = 12.92;
     } else if (Strutil::iequals(cs, "sRGB-linear")
+               || Strutil::iequals(cs, "lin_srgb")
+               || Strutil::iequals(cs, "lin_rec709")
                || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
         // Request "sRGB" primaries, linear response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
+        cs                                       = "lin_rec709";
     } else if (Strutil::iequals(cs, "Adobe")) {
         // Request Adobe color space with 2.2 gamma (no linear toe)
         m_processor->imgdata.params.output_color = 2;
@@ -592,7 +621,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
 #endif
     } else if (Strutil::iequals(cs, "Rec2020")) {
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
-        // ACES linear
+        // Rec2020
         m_processor->imgdata.params.output_color = 8;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
@@ -605,7 +634,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
         errorfmt("raw:ColorSpace set to unknown value \"{}\"", cs);
         return false;
     }
-    m_spec.attribute("oiio:ColorSpace", cs);
+    m_spec.set_colorspace(cs);
 
     // Exposure adjustment
     float exposure = config.get_float_attribute("raw:Exposure", -1.0f);
@@ -649,20 +678,51 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_spec.channelnames.clear();
             m_spec.channelnames.emplace_back("Y");
 
+            uint32_t raw_bps = m_processor->imgdata.rawdata.color.raw_bps;
+
+            float black_level = m_processor->imgdata.rawdata.color.black;
+            if (black_level == 0) {
+                unsigned* cblack = m_processor->imgdata.rawdata.color.cblack;
+                size_t size      = cblack[4] * cblack[5];
+                size_t offset    = 6;
+                if (size == 0) {
+                    size   = 4;
+                    offset = 0;
+                }
+
+                for (size_t i = 0; i < size; i++)
+                    black_level += cblack[offset + i];
+                black_level /= size;
+            }
+
             // Put the details about the filter pattern into the metadata
-            std::string filter(
-                libraw_filter_to_str(m_processor->imgdata.idata.filters));
+            std::string filter;
+            const bool is_xtrans
+                = strncmp(m_processor->imgdata.idata.make, "Fujifilm", 8) == 0
+                  && m_processor->imgdata.idata.filters == 9;
+
+            if (is_xtrans) {
+                filter = libraw_xtrans_filter_to_str(
+                    m_processor->imgdata.idata.xtrans);
+            } else {
+                filter = libraw_bayer_filter_to_str(
+                    m_processor->imgdata.idata.filters,
+                    m_processor->imgdata.idata.cdesc);
+            }
+
             if (filter.empty()) {
                 filter = "unknown";
             }
             m_spec.attribute("raw:FilterPattern", filter);
+            m_spec.attribute("raw:BlackLevel", black_level);
+            m_spec.attribute("raw:BitsPerSample", raw_bps);
 
             // Also, any previously set demosaicing options are void, so remove them
             m_spec.erase_attribute("oiio:ColorSpace");
             m_spec.erase_attribute("raw:ColorSpace");
             m_spec.erase_attribute("raw:Exposure");
         } else {
-            errorf("raw:Demosaic set to unknown value");
+            errorfmt("raw:Demosaic set to unknown value");
             return false;
         }
         // Set the attribute in the output spec
@@ -670,6 +730,88 @@ RawInput::open_raw(bool unpack, const std::string& name,
     } else {
         m_processor->imgdata.params.user_qual = 3;
         m_spec.attribute("raw:Demosaic", "AHD");
+    }
+
+    // Apply crop. If the user has provided a custom crop with `raw:cropbox`,
+    // use that. Otherwise crop to the imgdata.sizes.raw_inset_crops[0] if
+    // available. That should match the crop used in the in-camera jpeg in
+    // most cases. The crop is set as a 'display window', so the whole image
+    // pixels are still available.
+    {
+        ushort crop_left   = 0;
+        ushort crop_top    = 0;
+        ushort crop_width  = 0;
+        ushort crop_height = 0;
+        ushort left_margin = 0;
+        ushort top_margin  = 0;
+
+        auto p = config.find_attribute("raw:cropbox");
+        if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
+            crop_left   = p->get_int_indexed(0);
+            crop_top    = p->get_int_indexed(1);
+            crop_width  = p->get_int_indexed(2);
+            crop_height = p->get_int_indexed(3);
+        }
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
+        else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
+            crop_left   = m_processor->imgdata.sizes.raw_inset_crops[0].cleft;
+            crop_top    = m_processor->imgdata.sizes.raw_inset_crops[0].ctop;
+            crop_width  = m_processor->imgdata.sizes.raw_inset_crops[0].cwidth;
+            crop_height = m_processor->imgdata.sizes.raw_inset_crops[0].cheight;
+            left_margin = m_processor->imgdata.sizes.left_margin;
+            top_margin  = m_processor->imgdata.sizes.top_margin;
+        }
+#else
+        else if (m_processor->imgdata.sizes.raw_inset_crop.cwidth != 0) {
+            crop_left   = m_processor->imgdata.sizes.raw_inset_crop.cleft;
+            crop_top    = m_processor->imgdata.sizes.raw_inset_crop.ctop;
+            crop_width  = m_processor->imgdata.sizes.raw_inset_crop.cwidth;
+            crop_height = m_processor->imgdata.sizes.raw_inset_crop.cheight;
+            left_margin = m_processor->imgdata.sizes.left_margin;
+            top_margin  = m_processor->imgdata.sizes.top_margin;
+        }
+#endif
+        if (crop_width > 0 && crop_height > 0) {
+            ushort image_width  = m_processor->imgdata.sizes.width;
+            ushort image_height = m_processor->imgdata.sizes.height;
+
+            // If crop_left is undefined, assume central crop.
+            if (crop_left == 65535) {
+                crop_left = (image_width - crop_width) / 2;
+            }
+
+            // If crop_top is undefined, assume central crop.
+            if (crop_top == 65535) {
+                crop_top = (image_height - crop_height) / 2;
+            }
+
+            if (m_processor->imgdata.sizes.flip & 1) {
+                crop_left = image_width - crop_width - crop_left;
+            }
+
+            if (m_processor->imgdata.sizes.flip & 2) {
+                crop_top = image_height - crop_height - crop_top;
+            }
+
+            if (crop_top >= top_margin && crop_left >= left_margin) {
+                crop_top -= top_margin;
+                crop_left -= left_margin;
+
+                if (m_processor->imgdata.sizes.flip & 4) {
+                    std::swap(crop_left, crop_top);
+                    std::swap(crop_width, crop_height);
+                    std::swap(image_width, image_height);
+                }
+
+                if ((crop_left + crop_width <= image_width)
+                    && (crop_top + crop_height <= image_height)) {
+                    m_spec.full_x      = crop_left;
+                    m_spec.full_y      = crop_top;
+                    m_spec.full_width  = crop_width;
+                    m_spec.full_height = crop_height;
+                }
+            }
+        }
     }
 
     // Wavelets denoise before demosaic
@@ -726,7 +868,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // 3+ = Recovery
     int highlight_mode = config.get_int_attribute("raw:HighlightMode", 0);
     if (highlight_mode < 0 || highlight_mode > 9) {
-        errorf("raw:HighlightMode invalid value. range 0-9");
+        errorfmt("raw:HighlightMode invalid value. range 0-9");
         return false;
     }
     m_processor->imgdata.params.highlight = highlight_mode;
@@ -1319,6 +1461,34 @@ RawInput::get_colorinfo()
         cspan<float>(&(m_processor->imgdata.color.cam_xyz[0][0]),
                      &(m_processor->imgdata.color.cam_xyz[3][3])),
         false, 0.f);
+
+    if (m_processor->imgdata.idata.dng_version) {
+        add("raw", "dng:version", m_processor->imgdata.idata.dng_version);
+
+        auto const& c = m_processor->imgdata.rawdata.color;
+
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+        add("raw", "dng:baseline_exposure", c.dng_levels.baseline_exposure);
+#else
+        add("raw", "dng:baseline_exposure", c.baseline_exposure);
+#endif
+
+        for (int i = 0; i < 2; i++) {
+            std::string index = std::to_string(i + 1);
+            add("raw", "dng:calibration_illuminant" + index,
+                c.dng_color[i].illuminant);
+
+            add("raw", "dng:color_matrix" + index,
+                cspan<float>(&(c.dng_color[i].colormatrix[0][0]),
+                             &(c.dng_color[i].colormatrix[3][3])),
+                false, 0.f);
+
+            add("raw", "dng:camera_calibration" + index,
+                cspan<float>(&(c.dng_color[i].calibration[0][0]),
+                             &(c.dng_color[i].calibration[3][4])),
+                false, 0.f);
+        }
+    }
 }
 
 
@@ -1360,22 +1530,22 @@ RawInput::process()
     if (!m_image) {
         int ret = m_processor->dcraw_process();
         if (ret != LIBRAW_SUCCESS) {
-            errorf("Processing image failed, %s", libraw_strerror(ret));
+            errorfmt("Processing image failed, {}", libraw_strerror(ret));
             return false;
         }
 
         m_image = m_processor->dcraw_make_mem_image(&ret);
         if (!m_image) {
-            errorf("LibRaw failed to create in memory image");
+            errorfmt("LibRaw failed to create in memory image");
             return false;
         }
 
         if (m_image->type != LIBRAW_IMAGE_BITMAP) {
-            errorf("LibRaw did not return expected image type");
+            errorfmt("LibRaw did not return expected image type");
             return false;
         }
         if (m_image->colors != 1 && m_image->colors != 3) {
-            errorf("LibRaw did not return a 1 or 3 channel image");
+            errorfmt("LibRaw did not return a 1 or 3 channel image");
             return false;
         }
     }
@@ -1400,6 +1570,13 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
     if (!m_process) {
         // The user has selected not to apply any debayering.
+
+        if (m_processor->imgdata.rawdata.raw_image == nullptr) {
+            errorfmt(
+                "Raw undebayered data is not available for this file \"{}\"",
+                m_filename);
+            return false;
+        }
 
         // The raw_image buffer might contain junk pixels that are usually trimmed off
         // we must index into the raw buffer, taking these into account

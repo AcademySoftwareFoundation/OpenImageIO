@@ -56,7 +56,7 @@ static bool test_construction   = false;
 static bool test_gettexels      = false;
 static bool test_getimagespec   = false;
 static bool filtertest          = false;
-static TextureSystem* texsys    = NULL;
+static std::shared_ptr<TextureSystem> texsys;
 static std::string searchpath;
 static bool batch         = false;
 static bool nowarp        = false;
@@ -65,8 +65,8 @@ static bool use_handle    = false;
 static bool use_bluenoise = false;
 static float cachesize    = -1;
 static int maxfiles       = -1;
-static int mipmode        = TextureOpt::MipModeDefault;
-static int interpmode     = TextureOpt::InterpSmartBicubic;
+static int mipmode        = int(TextureOpt::MipModeDefault);
+static int interpmode     = int(TextureOpt::InterpSmartBicubic);
 static int stochastic     = 0;
 static float missing[4]   = { -1, 0, 0, 1 };
 static float fill         = -1;  // -1 signifies unset
@@ -326,11 +326,28 @@ initialize_opt(TextureOptBatch& opt)
     opt.fill = (fill >= 0.0f) ? fill : 1.0f;
     if (missing[0] >= 0)
         opt.missingcolor = (float*)&missing;
+
+#if OIIO_TEXTUREOPTBATCH_VERSION == 1
+    // Current layout of TextureOptBatch_v1
+    Wrap sw, tw;
+    Tex::parse_wrapmodes(wrapmodes.c_str(), sw, tw);
+    opt.swrap       = int(sw);
+    opt.twrap       = int(tw);
+    opt.rwrap       = opt.swrap;
+    opt.anisotropic = anisomax;
+    opt.mipmode     = int(mipmode);     // ideal: MipMode(mipmode);
+    opt.interpmode  = int(interpmode);  // ideal: InterpMode(interpmode);
+#else
+    // Some day, maybe for TextureOptBatch_v2, we'd like to switch to this to
+    // completely match the types and layout of TextureOpt.
     Tex::parse_wrapmodes(wrapmodes.c_str(), opt.swrap, opt.twrap);
     opt.rwrap       = opt.swrap;
     opt.anisotropic = anisomax;
     opt.mipmode     = MipMode(mipmode);
     opt.interpmode  = InterpMode(interpmode);
+#endif
+
+
     if (subimage >= 0)
         opt.subimage = subimage;
     else if (!subimagename.empty())
@@ -722,10 +739,10 @@ plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
         // Save filtered pixels back to the image.
         for (int i = 0; i < nchannels; ++i)
             result[i] *= scalefactor;
-        image.setpixel(p.x(), p.y(), result);
+        image.setpixel(p.x(), p.y(), make_span(result, nchannels));
         if (test_derivs) {
-            image_ds->setpixel(p.x(), p.y(), dresultds);
-            image_dt->setpixel(p.x(), p.y(), dresultdt);
+            image_ds->setpixel(p.x(), p.y(), make_span(dresultds, nchannels));
+            image_dt->setpixel(p.x(), p.y(), make_span(dresultdt, nchannels));
         }
     }
 }
@@ -829,7 +846,6 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
             }
             if (stochastic) {
                 // Hash the pixel coords to get a pseudo-random variant
-#if OIIO_VERSION_GREATER_EQUAL(2, 4, 0)
                 constexpr float inv
                     = 1.0f / float(std::numeric_limits<uint32_t>::max());
                 for (int i = 0; i < BatchWidth; ++i) {
@@ -840,7 +856,6 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
                     else
                         opt.rnd[i] = bjhash::bjfinal(x + i, y) * inv;
                 }
-#endif
             }
 
             int npoints  = std::min(BatchWidth, roi.xend - x);
@@ -985,7 +1000,7 @@ tex3d_region(ImageBuf& image, ustring filename, Mapping3D mapping, ROI roi)
         // Save filtered pixels back to the image.
         for (int i = 0; i < nchannels; ++i)
             result[i] *= scalefactor;
-        image.setpixel(p.x(), p.y(), result);
+        image.setpixel(p.x(), p.y(), make_span(result, nchannels));
     }
 }
 
@@ -1161,11 +1176,11 @@ env_region(ImageBuf& image, ustring filename, MappingEnv mapping,
         // Save filtered pixels back to the image.
         for (int i = 0; i < nchannels; ++i)
             result[i] *= scalefactor;
-        image.setpixel(p.x(), p.y(), result);
+        image.setpixel(p.x(), p.y(), make_span(result, nchannels));
         if (image_ds)
-            image_ds->setpixel(p.x(), p.y(), dresultds);
+            image_ds->setpixel(p.x(), p.y(), make_span(dresultds, nchannels));
         if (image_dt)
-            image_dt->setpixel(p.x(), p.y(), dresultdt);
+            image_dt->setpixel(p.x(), p.y(), make_span(dresultdt, nchannels));
     }
 }
 
@@ -1350,7 +1365,7 @@ test_getimagespec_gettexels(ustring filename)
 {
     ImageSpec spec;
     int miplevel = 0;
-    if (!texsys->get_imagespec(filename, 0, spec)) {
+    if (!texsys->get_imagespec(filename, spec, 0)) {
         Strutil::print(std::cerr, "Could not get spec for {}\n", filename);
         std::string e = texsys->geterror();
         if (!e.empty())
@@ -1381,7 +1396,8 @@ test_getimagespec_gettexels(ustring filename)
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) {
             imagesize_t texoffset = (y * w + x) * spec.nchannels;
-            buf.setpixel(x, y, &tmp[texoffset]);
+            buf.setpixel(x, y,
+                         make_span(tmp.data() + texoffset, spec.nchannels));
         }
     TypeDesc fmt(dataformatname);
     if (fmt != TypeDesc::UNKNOWN)
@@ -1424,12 +1440,12 @@ do_tex_thread_workout(int iterations, int mythread)
     ImageSpec spec0;
     if (texsys->is_udim(filenames[0])) {
         auto th = texsys->resolve_udim(filenames[0], 0.5f, 0.5f);
-        if (!th || !texsys->get_imagespec(th, nullptr, 0, spec0)) {
+        if (!th || !texsys->get_imagespec(th, nullptr, spec0, 0)) {
             Strutil::print(std::cerr, "Unexpected error with {}: {}\n",
                            filenames[0], texsys->geterror());
         }
     } else {
-        bool ok = texsys->get_imagespec(filenames[0], 0, spec0);
+        bool ok = texsys->get_imagespec(filenames[0], spec0, 0);
         if (!ok) {
             Strutil::print(std::cerr, "Unexpected error: {}\n",
                            texsys->geterror());
@@ -1649,7 +1665,7 @@ test_icwrite(int testicwrite)
 
     // The global "shared" ImageCache will be the same one the
     // TextureSystem uses.
-    ImageCache* ic = ImageCache::create();
+    std::shared_ptr<ImageCache> ic = ImageCache::create();
 
     // Set up the fake file and add it
     int tw = 64, th = 64;  // tile width and height
@@ -1733,7 +1749,8 @@ make_temp_noise_file(string_view filename, int seed)
     float c3[4] = { hashrand(1, 0, 0, 0, seed + 23 * 3),
                     hashrand(0, 1, 0, 0, seed + 23 * 3),
                     hashrand(0, 0, 1, 0, seed + 23 * 3), 1.0f };
-    ImageBufAlgo::fill(buf, c0, c1, c2, c3);
+    ImageBufAlgo::fill(buf, cspan<float>(c0), cspan<float>(c1),
+                       cspan<float>(c2), cspan<float>(c3));
     ImageSpec config;
     ImageBufAlgo::make_texture(ImageBufAlgo::MakeTxTexture, buf, filename,
                                config);
@@ -1852,7 +1869,7 @@ main(int argc, const char* argv[])
     if (test_getimagespec) {
         ImageSpec spec;
         for (int i = 0; i < iters; ++i) {
-            texsys->get_imagespec(filenames[0], 0, spec);
+            texsys->get_imagespec(filenames[0], spec, 0);
         }
         iters = 0;
     }
@@ -1919,7 +1936,7 @@ main(int argc, const char* argv[])
             int tries = nt <= 2 ? std::min(lowtrials, ntrials) : ntrials;
             double range;
             float t = (float)time_trial(std::bind(launch_tex_threads, nt, its),
-                                        tries, &range);
+                                        tries, 1, &range);
             if (single_thread_time == 0.0f)
                 single_thread_time = t * nt;
             float speedup    = single_thread_time / t;

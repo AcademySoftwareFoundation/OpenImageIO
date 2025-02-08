@@ -3,8 +3,8 @@
 
 # Building the OpenImageIO documentation
 
-The main OpenImageIO documentation can be read on [OpenImageIO Documentation
-on ReadTheDocs](https://openimageio.readthedocs.io/).
+The main OpenImageIO documentation can be read on [OpenImageIO
+Documentation](https://docs.openimageio.org).
 
 But sometimes -- such as for developers who are editing the documentation --
 it is helpful to be able to build and preview it locally. These are the steps

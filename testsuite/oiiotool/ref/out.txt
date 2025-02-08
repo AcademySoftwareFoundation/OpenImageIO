@@ -4,6 +4,10 @@
        0  < 0,0,0
     6400  > 1,0.9,1
    59136  within range
+This should make an error:
+oiiotool ERROR: --label : Invalid label name "2hot2handle"
+Full command line was:
+> oiiotool -echo "This should make an error:" --create 1x1 3 --label 2hot2handle -o out.tif
 --printstats:
  128 x   96, 3 channel, float tiff
     Stats Min: 0 0 0 (of 255)
@@ -36,8 +40,9 @@ add_rgb_rgba.exr     :   64 x   64, 4 channel, float openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 dumpdata:
 dump.exr             :    2 x    2, 3 channel, half openexr
     Pixel (0, 0): 0.000000000 0.000000000 0.000000000

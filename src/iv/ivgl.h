@@ -151,6 +151,7 @@ protected:
     void focusOutEvent(QFocusEvent* event) override;
 
     void paint_pixelview();
+    void paint_windowguides();
     void glSquare(float xmin, float ymin, float xmax, float ymax, float z = 0);
 
     virtual void create_shaders(void);

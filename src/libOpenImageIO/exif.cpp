@@ -1216,7 +1216,7 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
         // Exif spec says that anything other than 0xffff==uncalibrated
         // should be interpreted to be sRGB.
         if (cs != 0xffff)
-            spec.attribute("oiio:ColorSpace", "sRGB");
+            spec.set_colorspace("sRGB");
     }
 
     // Look for a maker note offset, now that we have seen all the metadata
@@ -1240,15 +1240,6 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
 
 
 
-// DEPRECATED (1.8)
-bool
-decode_exif(const void* exif, int length, ImageSpec& spec)
-{
-    return decode_exif(cspan<uint8_t>((const uint8_t*)exif, length), spec);
-}
-
-
-
 template<class T>
 inline void
 append(std::vector<char>& blob, T v, endian endianreq = endian::native)
@@ -1264,15 +1255,6 @@ appendvec(std::vector<char>& blob, const std::vector<T>& v)
 {
     blob.insert(blob.end(), (const char*)v.data(),
                 (const char*)(v.data() + v.size()));
-}
-
-
-
-// DEPRECATED(2.1)
-void
-encode_exif(const ImageSpec& spec, std::vector<char>& blob)
-{
-    encode_exif(spec, blob, endian::native);
 }
 
 

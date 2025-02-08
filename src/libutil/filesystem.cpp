@@ -541,6 +541,24 @@ Filesystem::ftell(FILE* file)
 
 
 
+std::string
+Filesystem::getline(FILE* file, size_t maxlen)
+{
+    std::string result;
+    char* buf;
+    OIIO_ALLOCATE_STACK_OR_HEAP(buf, char, maxlen + 1);
+    if (fgets(buf, int(maxlen + 1), file)) {
+        buf[maxlen] = 0;  // be sure it is terminated
+        if (!feof(file))
+            result.assign(buf);
+    } else {
+        result.assign("");
+    }
+    return result;
+}
+
+
+
 void
 Filesystem::open(OIIO::ifstream& stream, string_view path,
                  std::ios_base::openmode mode)
@@ -625,17 +643,6 @@ Filesystem::read_text_file(string_view filename, std::string& str, size_t size)
     str = contents.str();
     return true;
 }
-
-#if OIIO_VERSION_LESS(2, 6, 0)
-// Backwards link compatibility with the old 2-argument version
-namespace Filesystem {
-bool
-read_text_file(string_view filename, std::string& str)
-{
-    return read_text_file(filename, str, 0);
-}
-}  // namespace Filesystem
-#endif
 
 
 
@@ -1014,9 +1021,8 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern,
         // case 3: pattern has format, but no view
         return scan_for_matching_filenames(pattern, frame_numbers, filenames);
     }
-
-    return true;
 }
+
 
 bool
 Filesystem::scan_for_matching_filenames(const std::string& pattern_,
@@ -1178,7 +1184,7 @@ Filesystem::IOFile::IOFile(string_view filename, Mode mode)
 {
     // Call Filesystem::fopen since it handles UTF-8 file paths on Windows,
     // which std fopen does not.
-    m_file = Filesystem::fopen(m_filename, m_mode == Write ? "wb" : "rb");
+    m_file = Filesystem::fopen(m_filename, m_mode == Write ? "w+b" : "rb");
     if (!m_file) {
         m_mode          = Closed;
         int e           = errno;
@@ -1230,7 +1236,7 @@ Filesystem::IOFile::seek(int64_t offset)
 size_t
 Filesystem::IOFile::read(void* buf, size_t size)
 {
-    if (!m_file || !size || m_mode != Read)
+    if (!m_file || !size || m_mode == Closed)
         return 0;
     size_t r = fread(buf, 1, size, m_file);
     m_pos += r;
@@ -1249,7 +1255,7 @@ Filesystem::IOFile::read(void* buf, size_t size)
 size_t
 Filesystem::IOFile::pread(void* buf, size_t size, int64_t offset)
 {
-    if (!m_file || !size || offset < 0 || m_mode != Read)
+    if (!m_file || !size || offset < 0 || m_mode == Closed)
         return 0;
 #ifdef _WIN32
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -1296,10 +1302,6 @@ Filesystem::IOFile::pwrite(const void* buf, size_t size, int64_t offset)
     // FIXME: the system pwrite returns ssize_t and is -1 on error.
     return r < 0 ? size_t(0) : size_t(r);
 #endif
-    offset += r;
-    if (m_pos > int64_t(m_size))
-        m_size = offset;
-    return r;
 }
 
 size_t
@@ -1309,13 +1311,21 @@ Filesystem::IOFile::size() const
 }
 
 void
-Filesystem::IOFile::flush() const
+Filesystem::IOFile::flush()
 {
     if (m_file)
         fflush(m_file);
 }
 
 
+
+size_t
+Filesystem::IOVecOutput::read(void* buf, size_t size)
+{
+    size = pread(buf, size, m_pos);
+    m_pos += size;
+    return size;
+}
 
 size_t
 Filesystem::IOVecOutput::write(const void* buf, size_t size)
@@ -1325,7 +1335,14 @@ Filesystem::IOVecOutput::write(const void* buf, size_t size)
     return size;
 }
 
-
+size_t
+Filesystem::IOVecOutput::pread(void* buf, size_t size, int64_t offset)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    size = std::min(size, size_t(m_buf.size() - offset));
+    memcpy(buf, &m_buf[offset], size);
+    return size;
+}
 
 size_t
 Filesystem::IOVecOutput::pwrite(const void* buf, size_t size, int64_t offset)
@@ -1363,14 +1380,14 @@ Filesystem::IOMemReader::pread(void* buf, size_t size, int64_t offset)
     // N.B. No lock necessary
     if (!m_buf.size() || !size)
         return 0;
-    if (size + size_t(offset) > size_t(m_buf.size())) {
-        if (offset < 0 || offset >= m_buf.size()) {
+    if (size + size_t(offset) > std::size(m_buf)) {
+        if (offset < 0 || size_t(offset) >= std::size(m_buf)) {
             error(Strutil::fmt::format(
                 "Invalid pread offset {} for an IOMemReader buffer of size {}",
                 offset, m_buf.size()));
             return 0;
         }
-        size = m_buf.size() - size_t(offset);
+        size = std::size(m_buf) - size_t(offset);
     }
     memcpy(buf, m_buf.data() + offset, size);
     return size;

@@ -64,7 +64,7 @@ public:
     const char* format_name(void) const override { return "openvdb"; }
     int supports(string_view feature) const override
     {
-        return (feature == "arbitrary_metadata");
+        return (feature == "arbitrary_metadata" || feature == "multiimage");
     }
     bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
@@ -314,13 +314,13 @@ openVDB(const std::string& filename, const ImageInput* errReport)
             return file;
 
     } catch (const std::exception& e) {
-        errReport->errorf("Could not open '%s': %s", filename, e.what());
+        errReport->errorfmt("Could not open '{}': {}", filename, e.what());
         return nullptr;
     } catch (...) {
         errhint = "Unknown exception thrown";
     }
 
-    errReport->errorf("Could not open '%s': %s", filename, errhint);
+    errReport->errorfmt("Could not open '{}': {}", filename, errhint);
     return nullptr;
 }
 
@@ -523,11 +523,14 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
         }
     } catch (const std::exception& e) {
         init();  // Reset to initial state
-        errorf("Could not open '%s': %s", filename, e.what());
+        errorfmt("Could not open '{}': {}", filename, e.what());
         return false;
     }
     m_name       = filename;
     m_nsubimages = (int)m_layers.size();
+
+    for (auto& lr : m_layers)
+        lr.spec.attribute("oiio:subimages", m_nsubimages);
 
     bool ok = seek_subimage(0, 0);
     newspec = ImageInput::spec();

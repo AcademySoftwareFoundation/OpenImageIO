@@ -20,6 +20,7 @@ set (CMAKE_CXX_EXTENSIONS OFF)
 
 # Make sure we have dependencies we need
 find_package (OpenImageIO CONFIG REQUIRED)
+find_package (Imath CONFIG REQUIRED)
 
 # Special for OIIO testsuite when running in sanitize mode
 if (DEFINED ENV{SANITIZE})
@@ -34,5 +35,5 @@ set (chapters imageioapi imageoutput imageinput writingplugins
 foreach (chapter ${chapters})
     add_executable(docs-examples-${chapter} src/docs-examples-${chapter}.cpp)
     target_link_libraries (docs-examples-${chapter}
-                           PRIVATE OpenImageIO::OpenImageIO)
+                           PRIVATE OpenImageIO::OpenImageIO Imath::Imath)
 endforeach ()

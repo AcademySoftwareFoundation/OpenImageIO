@@ -38,17 +38,10 @@
 // behave like sprintf (OIIO_FORMAT_IS_FMT==0) or like python / {fmt} /
 // C++20ish std::format (OIIO_FORMAT_IS_FMT==1).
 #ifndef OIIO_FORMAT_IS_FMT
-#    define OIIO_FORMAT_IS_FMT 0
+#    define OIIO_FORMAT_IS_FMT 1
 #endif
 
-// If OIIO_HIDE_FORMAT is defined, mark the old-style format functions as
-// deprecated. (This is a debugging aid for downstream projects who want to
-// root out any places where they might be using the old one).
-#ifdef OIIO_HIDE_FORMAT
-#    define OIIO_FORMAT_DEPRECATED OIIO_DEPRECATED("old style (printf-like) formatting version of this function is deprecated")
-#else
-#    define OIIO_FORMAT_DEPRECATED
-#endif
+#define OIIO_FORMAT_DEPRECATED OIIO_DEPRECATED("old style (printf-like) formatting version of this function is deprecated")
 
 // If OIIO_PRINT_IS_SYNCHRONIZED is not defined, assume unsynchronized.
 #ifndef OIIO_PRINT_IS_SYNCHRONIZED
@@ -159,7 +152,9 @@ using old::format;
 #endif
 
 
-// format_to comes from fmt library
+// More things we wrap from fmt library
+using ::fmt::format_args;
+using ::fmt::make_format_args;
 using ::fmt::format_to;
 using ::fmt::format_to_n;
 
@@ -286,7 +281,11 @@ using sync::print;
 
 
 namespace pvt {
+// Internal use only
 OIIO_UTIL_API void debug(string_view str);
+OIIO_UTIL_API void append_error(string_view str);
+OIIO_UTIL_API bool has_error();
+OIIO_UTIL_API std::string geterror(bool clear);
 }
 
 /// `debug(format, ...)` prints debugging message when attribute "debug" is
@@ -310,15 +309,6 @@ std::string OIIO_UTIL_API vsprintf (const char *fmt, va_list ap)
 #endif
     ;
 
-/// Return a std::string formatted like Strutil::format, but passed
-/// already as a va_list.  This is not guaranteed type-safe and is not
-/// extensible like format(). Use with caution!
-OIIO_DEPRECATED("use `vsprintf` instead")
-std::string OIIO_UTIL_API vformat (const char *fmt, va_list ap)
-#if defined(__GNUC__) && !defined(__CUDACC__)
-    __attribute__ ((format (printf, 1, 0) ))
-#endif
-    ;
 
 /// Return a string expressing a number of bytes, in human readable form.
 ///  - memformat(153)           -> "153 B"
@@ -877,17 +867,6 @@ struct OIIO_UTIL_API StringILess {
 /// to a UTF-16 encoded wide char string, wstring.
 std::wstring OIIO_UTIL_API utf8_to_utf16wstring (string_view utf8str) noexcept;
 
-#if OPENIMAGEIO_VERSION < 30000
-/// Old name for utf8_to_utf16wstring. Will be deprecated for OIIO 2.5+ and
-/// removed for OIIO 3.0. Use utf8_to_utf16wstring which is more clear that
-/// this particular conversion from utf8 to utf16 returns a std::wstring and
-/// not a std::u16string.
-#if OPENIMAGEIO_VERSION >= 20500
-OIIO_DEPRECATED("Use utf8_to_utf16wstring instead")
-#endif
-std::wstring OIIO_UTIL_API utf8_to_utf16 (string_view utf8str) noexcept;
-#endif
-
 /// Conversion from wstring UTF-16 to a UTF-8 std::string.  This is the
 /// standard way to convert from Windows wide character strings used for
 /// filenames into the UTF-8 strings OIIO expects for filenames when passed to
@@ -1001,15 +980,15 @@ bool OIIO_UTIL_API parse_int (string_view &str, int &val, bool eat=true) noexcep
 bool OIIO_UTIL_API parse_float (string_view &str, float &val, bool eat=true) noexcept;
 
 /// Synonym for parse_int
-inline bool parse_value(string_view &str, float &val, bool eat=true) noexcept
-{
-    return parse_float(str, val, eat);
-}
-
-/// Synonym for parse_float
 inline bool parse_value(string_view &str, int &val, bool eat=true) noexcept
 {
     return parse_int(str, val, eat);
+}
+
+/// Synonym for parse_float
+inline bool parse_value(string_view &str, float &val, bool eat=true) noexcept
+{
+    return parse_float(str, val, eat);
 }
 
 /// Parse from `str`: a `prefix`, a series of int values separated by the
@@ -1023,7 +1002,7 @@ bool OIIO_UTIL_API
 parse_values(string_view& str, string_view prefix, span<int> values,
              string_view sep = "", string_view postfix = "",
              bool eat = true) noexcept;
-/// parse_values for int.
+/// parse_values for float.
 bool OIIO_UTIL_API
 parse_values(string_view& str, string_view prefix, span<float> values,
              string_view sep = "", string_view postfix = "",
@@ -1120,6 +1099,14 @@ string_view OIIO_UTIL_API parse_line(string_view& str, bool eat = true) noexcept
 /// match.
 string_view OIIO_UTIL_API parse_nested (string_view &str, bool eat=true) noexcept;
 
+/// Does the string follow the lexical rule of a C identifier?
+inline bool
+string_is_identifier(string_view str)
+{
+    // If a leading identifier is the entirety of str, it's an ident.
+    string_view ident = parse_identifier(str);
+    return (!ident.empty() && str.empty());
+}
 
 /// Look within `str` for the pattern:
 ///     head nonwhitespace_chars whitespace
@@ -1158,6 +1145,19 @@ enum class EditDistMetric { Levenshtein };
 OIIO_UTIL_API size_t
 edit_distance(string_view a, string_view b,
               EditDistMetric metric = EditDistMetric::Levenshtein);
+
+
+/// Evaluate a string as a boolean value using the following heuristic:
+///   - If the string is a valid numeric value (represents an integer or
+///     floating point value), return true if it's non-zero, false if it's
+///     zero.
+///   - If the string is one of "false", "no", or "off", or if it contains
+///     only whitespace, return false.
+///   - All other non-empty strings return true.
+/// The comparisons are case-insensitive and ignore leading and trailing
+/// whitespace.
+OIIO_UTIL_API bool
+eval_as_bool(string_view value);
 
 }  // namespace Strutil
 

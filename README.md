@@ -4,7 +4,7 @@
   <img src="ASWF/logos/openimageio-horizontal-gradient.png">
 </p>
 
-[![License](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/LICENSE.md)
+[![License](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/LICENSE.md)
 [![CI](https://github.com/AcademySoftwareFoundation/OpenImageIO/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademySoftwareFoundation/OpenImageIO/actions/workflows/ci.yml)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2694/badge)](https://bestpractices.coreinfrastructure.org/projects/2694)
 [![latest packaged version(s)](https://repology.org/badge/latest-versions/openimageio.svg)](https://repology.org/project/openimageio/versions)
@@ -80,7 +80,7 @@ For original code, we use the [Apache-2.0 license](LICENSE.md), and for
 documentation, the [Creative Commons Attribution 4.0 Unported
 License](http://creativecommons.org/licenses/by/4.0/). In 2023 we asked
 historical users to [relicense](RELICENSING.md) from the original BSD-3-clause
-license to Apache-2.0, and over 99.75% of lines of code have been relicensed
+license to Apache-2.0, and over 99.86% of lines of code have been relicensed
 to Apache-2.0. A small amount of code incorporated into this repository from
 other projects are covered by compatible [third-party open source
 licenses](THIRD-PARTY.md).
@@ -96,10 +96,15 @@ decisions, etc. Please be aware of our [Code of Conduct](CODE_OF_CONDUCT.md).
 💁 User Documentation
 ---------------------
 
-[OpenImageIO Documentation on ReadTheDocs](https://openimageio.readthedocs.io/)
+[OpenImageIO Documentation](https://docs.openimageio.org)
 is the best place to start if you are interested in how to use OpenImageIO,
 its APIs, its component programs (once they are built). There is also a [PDF
 version](https://readthedocs.org/projects/openimageio/downloads/pdf/latest/).
+
+Additional resources:
+
+- [User quick start](docs/QuickStart.md) is a quick example of using
+  OpenImageIO in Python, C++, and the command line.
 
 
 👷 Building and installing OpenImageIO
@@ -135,18 +140,21 @@ OpenImageIO welcomes code contributions, and [nearly 200 people](CREDITS.md)
 have done so over the years. We take code contributions via the usual GitHub
 pull request (PR) mechanism.
 
+* [Architecture overview](docs/dev/Architecture.md) is a high-level
+  description of the major classes and their relationships.
 * [CONTRIBUTING](CONTRIBUTING.md) has detailed instructions about the
   development process.
 * [ROADMAP](docs/ROADMAP.md) is a high-level overview of the current
   development priorities for the next annual release, expected in September,
   2024.
-* [RELEASING](RELEASING.md) explains our policies and procedures for making
-  releases. We have a major, possibly-compatibility-breaking, release annually
-  in September/October, and minor bug fix and safe feature addition release at
-  the beginning of every month.
+* [RELEASING](docs/dev/RELEASING.md) explains our policies and procedures for
+  making releases. We have a major, possibly-compatibility-breaking, release
+  annually in September/October, and minor bug fix and safe feature addition
+  release at the beginning of every month.
 * [Building the docs](src/doc/Building_the_docs.md) has instructions for
   building the documentation locally, which may be helpful if you are editing
   the documentation in nontrivial ways and want to preview the appearance.
+* Other developer documentation is in the [docs/dev](docs/dev) directory.
 
 
 ☎️ Communications channels and additional resources
@@ -157,5 +165,5 @@ pull request (PR) mechanism.
 * [Developer mail list](https://lists.aswf.io/g/oiio-dev)
 * [ASWF Slack](https://slack.aswf.io) (look for the `#openimageio` channel)
 * Biweekly Technical Steering Committee (TSC) Zoom meetings are on the [ASWF
-  Calendar](https://www.aswf.io/meeting-calendar/) (click on the OpenImageIO
+  Calendar](https://calendar.openimageio.org) (click on the OpenImageIO
   meeting entries, every second Monday, to get the Zoom link, anyone may join)

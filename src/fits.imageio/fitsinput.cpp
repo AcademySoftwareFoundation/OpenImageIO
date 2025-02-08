@@ -62,14 +62,14 @@ FitsInput::open(const std::string& name, ImageSpec& spec)
     // checking if the file exists and can be opened in READ mode
     m_fd = Filesystem::fopen(m_filename, "rb");
     if (!m_fd) {
-        errorf("Could not open file \"%s\"", m_filename);
+        errorfmt("Could not open file \"{}\"", m_filename);
         return false;
     }
 
     // checking if the file is FITS file
     char magic[6] = { 0 };
     if (fread(magic, 1, 6, m_fd) != 6 || strncmp(magic, "SIMPLE", 6)) {
-        errorf("%s isn't a FITS file", m_filename);
+        errorfmt("{} isn't a FITS file", m_filename);
         close();
         return false;
     }
@@ -105,10 +105,10 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     size_t n = fread(&data_tmp[0], 1, m_spec.scanline_bytes(), m_fd);
     if (n != m_spec.scanline_bytes()) {
         if (feof(m_fd))
-            errorf("Hit end of file unexpectedly (offset=%d, scanline %d)",
-                   ftell(m_fd), y);
+            errorfmt("Hit end of file unexpectedly (offset={}, scanline {})",
+                     ftell(m_fd), y);
         else
-            errorf("read error");
+            errorfmt("read error");
         return false;  // Read failed
     }
 
@@ -215,9 +215,9 @@ FitsInput::read_fits_header(void)
     // we read whole header at once
     if (fread(&fits_header[0], 1, HEADER_SIZE, m_fd) != HEADER_SIZE) {
         if (feof(m_fd))
-            errorf("Hit end of file unexpectedly (offset=%d)", ftell(m_fd));
+            errorfmt("Hit end of file unexpectedly (offset={})", ftell(m_fd));
         else
-            errorf("read error");
+            errorfmt("read error");
         return false;  // Read failed
     }
 
@@ -299,7 +299,7 @@ FitsInput::read_fits_header(void)
         --m_naxes;
     }
     if (m_naxes < 0 || m_naxes > 4) {
-        errorf("Number of data axes %d not supported", m_naxes);
+        errorfmt("Number of data axes {} not supported", m_naxes);
         return false;
     }
     m_spec.nchannels = 1;
@@ -329,16 +329,18 @@ FitsInput::read_fits_header(void)
         m_spec.height    = m_naxis[2];
         m_spec.depth     = m_naxis[3];
     } else {
-        errorf("Don't know now to read %d-channel FITS image", m_naxes);
+        errorfmt("Don't know now to read {}-channel FITS image", m_naxes);
         return false;
     }
     m_spec.full_width  = m_spec.width;
     m_spec.full_height = m_spec.height;
     m_spec.full_depth  = m_spec.depth;
 
+    m_spec.attribute("oiio:subimages", (int)m_subimages.size());
+
     // if (m_spec.width < 1 || m_spec.height < 1 || m_spec.depth < 1 ||
     //     m_spec.nchannels < 1) {
-    //     errorf("Don't know now to read empty (0 pixel) FITS image");
+    //     errorfmt("Don't know now to read empty (0 pixel) FITS image");
     //     return false;
     // }
 

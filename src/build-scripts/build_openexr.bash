@@ -43,6 +43,7 @@ cmake   -S . -B ${OPENEXR_BUILD_DIR} \
         -DCMAKE_BUILD_TYPE=${OPENEXR_BUILD_TYPE} \
         -DCMAKE_INSTALL_PREFIX="${OPENEXR_INSTALL_DIR}" \
         -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
+        -DBUILD_SHARED_LIBS=${OpenEXR_LOCAL_BUILD_SHARED_LIBS:=ON} \
         -DOPENEXR_BUILD_UTILS=0 \
         -DBUILD_TESTING=0 \
         -DOPENEXR_VIEWERS_ENABLE=0 \
@@ -59,6 +60,7 @@ popd
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
+export OpenEXR_ROOT=$OPENEXR_INSTALL_DIR
 export OPENEXR_ROOT=$OPENEXR_INSTALL_DIR
 export OPENEXR_LIBRARY_DIR=$OPENEXR_INSTALL_DIR/lib
 export LD_LIBRARY_PATH=$OPENEXR_ROOT/lib:$LD_LIBRARY_PATH

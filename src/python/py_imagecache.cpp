@@ -9,10 +9,7 @@ namespace PyOpenImageIO {
 // Make a special wrapper to help with the weirdo way we use create/destroy.
 class ImageCacheWrap {
 public:
-    struct ICDeleter {
-        void operator()(ImageCache* p) const { ImageCache::destroy(p); }
-    };
-    std::unique_ptr<ImageCache, ICDeleter> m_cache;
+    std::shared_ptr<ImageCache> m_cache;
 
     ImageCacheWrap(bool shared = true)
         : m_cache(ImageCache::create(shared))
@@ -23,7 +20,7 @@ public:
     ~ImageCacheWrap() {}  // will call the deleter on the IC
     static void destroy(ImageCacheWrap* x, bool teardown = false)
     {
-        ImageCache::destroy(x->m_cache.release(), teardown);
+        ImageCache::destroy(x->m_cache, teardown);
     }
     py::object get_pixels(const std::string& filename, int subimage,
                           int miplevel, int xbegin, int xend, int ybegin,
@@ -117,20 +114,29 @@ declare_imagecache(py::module& m)
         .def("resolve_filename",
              [](ImageCacheWrap& ic, const std::string& filename) {
                  py::gil_scoped_release gil;
-                 return PY_STR(ic.m_cache->resolve_filename(filename));
+                 return ic.m_cache->resolve_filename(filename);
              })
         // .def("get_image_info", &ImageCacheWrap::get_image_info)
         .def(
             "get_imagespec",
             [](const ImageCacheWrap& ic, const std::string& filename,
-               int subimage, int miplevel, bool native) {
+               int subimage) {
                 ImageSpec spec;
-                ic.m_cache->get_imagespec(ustring(filename), spec, subimage,
-                                          miplevel, native);
+                ic.m_cache->get_imagespec(ustring(filename), spec, subimage);
                 return spec;
             },
-            "filename"_a, "subimage"_a = 0, "miplevel"_a = 0,
-            "native"_a = false)
+            "filename"_a, "subimage"_a = 0)
+        .def(
+            "get_cache_dimensions",
+            [](const ImageCacheWrap& ic, const std::string& filename,
+               int subimage, int miplevel) {
+                ImageSpec spec;
+                ic.m_cache->get_imagespec(ustring(filename), spec, subimage);
+                ic.m_cache->get_cache_dimensions(ustring(filename), spec,
+                                                 subimage, miplevel);
+                return spec;
+            },
+            "filename"_a, "subimage"_a = 0, "miplevel"_a = 0)
         // .def("get_thumbnail", &ImageCacheWrap::get_thumbnail,
         //      "subimage"_a=0)
         .def("get_pixels", &ImageCacheWrap::get_pixels, "filename"_a,
@@ -147,14 +153,14 @@ declare_imagecache(py::module& m)
         .def(
             "geterror",
             [](ImageCacheWrap& self, bool clear) {
-                return PY_STR(self.m_cache->geterror(clear));
+                return self.m_cache->geterror(clear);
             },
             "clear"_a = true)
         .def(
             "getstats",
             [](ImageCacheWrap& ic, int level) {
                 py::gil_scoped_release gil;
-                return PY_STR(ic.m_cache->getstats(level));
+                return ic.m_cache->getstats(level);
             },
             "level"_a = 1)
         .def(

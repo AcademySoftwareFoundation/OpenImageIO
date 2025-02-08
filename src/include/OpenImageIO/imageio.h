@@ -36,11 +36,13 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/memory.h>
 
 OIIO_NAMESPACE_BEGIN
 
 class DeepData;
 class ImageBuf;
+class Timer;
 
 
 /// Type we use for stride lengths between pixels, scanlines, or image
@@ -64,11 +66,6 @@ const stride_t AutoStride = std::numeric_limits<stride_t>::min();
 /// bool, which if 'true' will STOP the read or write.
 typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
-
-
-// Deprecated typedefs. Just use ParamValue and ParamValueList directly.
-typedef ParamValue ImageIOParameter;
-typedef ParamValueList ImageIOParameterList;
 
 
 // Forward declaration of IOProxy
@@ -952,18 +949,7 @@ public:
                       ioproxy, plugin_searchpath);
     }
 
-    // DEPRECATED(2.2): back compatible version
-    static unique_ptr create (const std::string& filename, bool do_open,
-                              const ImageSpec *config,
-                              string_view plugin_searchpath);
-    // DEPRECATED(2.1) This method should no longer be used, it is redundant.
-    static unique_ptr create (const std::string& filename,
-                              const std::string& plugin_searchpath);
-
     /// @}
-
-    // DEPRECATED(2.1)
-    static void destroy (ImageInput *x);
 
 protected:
     ImageInput ();
@@ -1002,6 +988,11 @@ public:
     /// - `"thumbnail"` :
     ///       Does this format reader support retrieving a reduced
     ///       resolution copy of the image via the `thumbnail()` method?
+    ///
+    ///  - `"multiimage"` :
+    ///       Does this format support multiple subimages within a file?
+    ///       (Note: this doesn't necessarily mean that the particular
+    ///       file this ImageInput is reading has multiple subimages.)
     ///
     ///  - `"noimage"` :
     ///        Does this format allow 0x0 sized images, i.e. an image file
@@ -1185,21 +1176,29 @@ public:
         return subimage == current_subimage() && miplevel == current_miplevel();
     }
 
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,0,0) && !defined(OIIO_DOXYGEN)
     // Old version for backwards-compatibility: pass reference to newspec.
     // Some day this will be deprecated.
+    OIIO_DEPRECATED("Prefer the version that doesn't take an ImageSpec argument (2.0)")
     bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) {
         bool ok = seek_subimage (subimage, miplevel);
         if (ok)
             newspec = spec();
         return ok;
     }
+#endif
 
-    // DEPRECATED(2.1)
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,1,0) && !defined(OIIO_DOXYGEN)
     // Seek to the given subimage -- backwards-compatible call that
     // doesn't worry about MIP-map levels at all.
+    OIIO_DEPRECATED("Prefer the version that takes a mipmap argument (2.1)")
     bool seek_subimage (int subimage, ImageSpec &newspec) {
-        return seek_subimage (subimage, 0 /* miplevel */, newspec);
+        bool ok = seek_subimage (subimage, 0 /* miplevel */);
+        if (ok)
+            newspec = spec(subimage);
+        return ok;
     }
+#endif
 
     /// @{
     /// @name Reading pixels
@@ -1301,34 +1300,13 @@ public:
     /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note This call was changed for OpenImageIO 2.0 to include the
-    ///     explicit subimage and miplevel parameters. The previous
-    ///     versions, which lacked subimage and miplevel parameters (thus
-    ///     were dependent on a prior call to `seek_subimage`) are
-    ///     considered deprecated.
+    ///     explicit subimage and miplevel parameters.
     virtual bool read_scanlines (int subimage, int miplevel,
                                  int ybegin, int yend, int z,
                                  int chbegin, int chend,
                                  TypeDesc format, void *data,
                                  stride_t xstride=AutoStride,
                                  stride_t ystride=AutoStride);
-
-#ifndef OIIO_DOXYGEN
-    // DEPRECATED versions of read_scanlines (pre-1.9 OIIO). These will
-    // eventually be removed. Try to replace these calls with ones to the
-    // new variety of read_scanlines that takes an explicit subimage and
-    // miplevel. These old versions are NOT THREAD-SAFE.
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_scanlines (int ybegin, int yend, int z,
-                         TypeDesc format, void *data,
-                         stride_t xstride=AutoStride,
-                         stride_t ystride=AutoStride);
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_scanlines (int ybegin, int yend, int z,
-                         int chbegin, int chend,
-                         TypeDesc format, void *data,
-                         stride_t xstride=AutoStride,
-                         stride_t ystride=AutoStride);
-#endif
 
     /// Read the tile whose upper-left origin is (x,y,z) into `data[]`,
     /// converting if necessary from the native data format of the file into
@@ -1419,23 +1397,6 @@ public:
                              stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
 
-#ifndef OIIO_DOXYGEN
-    // DEPRECATED versions of read_tiles (pre-1.9 OIIO). These will
-    // eventually be removed. Try to replace these calls with ones to the
-    // new variety of read_tiles that takes an explicit subimage and
-    // miplevel. These old versions are NOT THREAD-SAFE.
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_tiles (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, TypeDesc format, void *data,
-                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride);
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_tiles (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, int chbegin, int chend,
-                     TypeDesc format, void *data, stride_t xstride=AutoStride,
-                     stride_t ystride=AutoStride, stride_t zstride=AutoStride);
-#endif
-
     /// Read the entire image of `spec.width x spec.height x spec.depth`
     /// pixels into a buffer with the given strides and in the desired
     /// data format.
@@ -1479,33 +1440,6 @@ public:
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
-
-#ifndef OIIO_DOXYGEN
-    // DEPRECATED versions of read_image (pre-1.9 OIIO). These will
-    // eventually be removed. Try to replace these calls with ones to the
-    // new variety of read_image that takes an explicit subimage and
-    // miplevel. These old versions are NOT THREAD-SAFE.
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    virtual bool read_image (TypeDesc format, void *data,
-                             stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride,
-                             ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    virtual bool read_image (int chbegin, int chend,
-                             TypeDesc format, void *data,
-                             stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride,
-                             ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_image (float *data) {
-        return read_image (current_subimage(), current_miplevel(),
-                           0, -1, TypeFloat, data);
-    }
-#endif
 
     /// Read deep scanlines containing pixels (*,y,z), for all y in the
     /// range [ybegin,yend) into `deepdata`. This will fail if it is not a
@@ -1676,12 +1610,22 @@ public:
     std::string geterror(bool clear = true) const;
 
     /// Error reporting for the plugin implementation: call this with
+    /// std::format-like arguments. It is not necessary to have the error
+    /// message contain a trailing newline.
+    template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const {
+        append_error(Strutil::fmt::format (fmt, args...));
+    }
+
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 6, 3) && \
+    !defined(OIIO_INTERNAL) && !defined(OIIO_DOXYGEN)
+    /// Error reporting for the plugin implementation: call this with
     /// Strutil::format-like arguments. It is not necessary to have the
     /// error message contain a trailing newline.
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
-    OIIO_FORMAT_DEPRECATED
+    OIIO_DEPRECATED("use errorfmt instead, with std::format-like arguments (3.0)")
     void error(const char* fmt, const Args&... args) const {
         append_error(Strutil::format (fmt, args...));
     }
@@ -1690,26 +1634,20 @@ public:
     /// printf-like arguments. It is not necessary to have the error message
     /// contain a trailing newline.
     template<typename... Args>
+    OIIO_DEPRECATED("use errorfmt instead, with std::format-like arguments (3.0)")
     void errorf(const char* fmt, const Args&... args) const {
         append_error(Strutil::sprintf (fmt, args...));
-    }
-
-    /// Error reporting for the plugin implementation: call this with
-    /// std::format-like arguments. It is not necessary to have the error
-    /// message contain a trailing newline.
-    template<typename... Args>
-    void errorfmt(const char* fmt, const Args&... args) const {
-        append_error(Strutil::fmt::format (fmt, args...));
     }
 
     // Error reporting for the plugin implementation: call this with
     // std::format-like arguments. It is not necessary to have the
     // error message contain a trailing newline.
     template<typename... Args>
-    OIIO_DEPRECATED("use `errorfmt` instead")
+    OIIO_DEPRECATED("use `errorfmt` instead (2.3)")
     void fmterror(const char* fmt, const Args&... args) const {
         append_error(Strutil::fmt::format (fmt, args...));
     }
+#endif
 
     /// Set the threading policy for this ImageInput, controlling the
     /// maximum amount of parallelizing thread "fan-out" that might occur
@@ -1748,6 +1686,16 @@ public:
     /// Call signature of a function that creates and returns an
     /// `ImageInput*`.
     typedef ImageInput* (*Creator)();
+
+    /// Memory tracking method.
+    /// Return the total heap memory allocated by `ImageInput`.
+    /// Overridable version of heapsize defined in memory.h.
+    virtual size_t heapsize() const;
+
+    /// Memory tracking method.
+    /// Return the total memory footprint of `ImageInput`.
+    /// Overridable version of footprint defined in memory.h.
+    virtual size_t footprint() const;
 
 protected:
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
@@ -1856,10 +1804,9 @@ private:
     std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
 
     void append_error(string_view message) const; // add to error message
-    // Deprecated:
-    OIIO_DEPRECATED("Deprecated")
-    static unique_ptr create (const std::string& filename, bool do_open,
-                              const std::string& plugin_searchpath);
+
+    /// declare friend heapsize and footprint definitions
+    template <typename T> friend size_t pvt::heapsize(const T&);
 };
 
 
@@ -1918,14 +1865,19 @@ public:
                       Strutil::utf16_to_utf8(plugin_searchpath));
     }
 
-    // DEPRECATED(2.2)
-    static unique_ptr create (const std::string &filename,
-                              const std::string &plugin_searchpath);
-
     /// @}
 
-    // @deprecated
-    static void destroy (ImageOutput *x);
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,2,0) \
+    && !defined(OIIO_DOXYGEN) && !defined(OIIO_INTERNAL)
+    OIIO_DEPRECATED("Obsolete version (2.2)")
+    static unique_ptr create (const std::string &filename,
+                              const std::string &plugin_searchpath) {
+        return create(filename, nullptr, plugin_searchpath);
+    }
+
+    OIIO_DEPRECATED("destroy is no longer needed")
+    static void destroy (ImageOutput *x) { delete x; }
+#endif
 
 protected:
     ImageOutput ();
@@ -2471,12 +2423,22 @@ public:
     std::string geterror(bool clear = true) const;
 
     /// Error reporting for the plugin implementation: call this with
+    /// std::format-like arguments. It is not necessary to have the error
+    /// message contain a trailing newline.
+    template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const {
+        append_error(Strutil::fmt::format (fmt, args...));
+    }
+
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 6, 3) && \
+    !defined(OIIO_INTERNAL) && !defined(OIIO_DOXYGEN)
+    /// Error reporting for the plugin implementation: call this with
     /// `Strutil::format`-like arguments. It is not necessary to have the
     /// error message contain a trailing newline.
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
-    OIIO_FORMAT_DEPRECATED
+    OIIO_DEPRECATED("use errorfmt instead, with std::format-like arguments (3.0)")
     void error(const char* fmt, const Args&... args) const {
         append_error(Strutil::format (fmt, args...));
     }
@@ -2485,26 +2447,20 @@ public:
     /// printf-like arguments. It is not necessary to have the error message
     /// contain a trailing newline.
     template<typename... Args>
+    OIIO_DEPRECATED("use errorfmt instead, with std::format-like arguments (3.0)")
     void errorf(const char* fmt, const Args&... args) const {
         append_error(Strutil::sprintf (fmt, args...));
-    }
-
-    /// Error reporting for the plugin implementation: call this with
-    /// std::format-like arguments. It is not necessary to have the error
-    /// message contain a trailing newline.
-    template<typename... Args>
-    void errorfmt(const char* fmt, const Args&... args) const {
-        append_error(Strutil::fmt::format (fmt, args...));
     }
 
     // Error reporting for the plugin implementation: call this with
     // std::format-like arguments. It is not necessary to have the error
     // message contain a trailing newline.
     template<typename... Args>
-    OIIO_DEPRECATED("use `errorfmt` instead")
+    OIIO_DEPRECATED("use `errorfmt` instead (2.3)")
     void fmterror(const char* fmt, const Args&... args) const {
         append_error(Strutil::fmt::format (fmt, args...));
     }
+#endif
 
     /// Set the threading policy for this ImageOutput, controlling the
     /// maximum amount of parallelizing thread "fan-out" that might occur
@@ -2532,6 +2488,16 @@ public:
     /// Call signature of a function that creates and returns an
     /// `ImageOutput*`.
     typedef ImageOutput* (*Creator)();
+
+    /// Memory tracking method.
+    /// Return the total heap memory allocated by `ImageOutput`.
+    /// Overridable version of heapsize defined in memory.h.
+    virtual size_t heapsize() const;
+
+    /// Memory tracking method.
+    /// Return the total memory footprint of `ImageOutput`.
+    /// Overridable version of footprint defined in memory.h.
+    virtual size_t footprint() const;
 
 protected:
     /// @{
@@ -2755,7 +2721,25 @@ private:
     std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
 
     void append_error(string_view message) const; // add to m_errmessage
+
+    /// declare friend heapsize and footprint definitions
+    template <typename T> friend size_t pvt::heapsize(const T&);
 };
+
+
+
+/// Memory tracking. Specializes the base memory tracking functions from memory.h.
+
+// heapsize specialization for `ImageSpec`
+template <> OIIO_API size_t pvt::heapsize<ImageSpec>(const ImageSpec&);
+
+// heapsize and footprint specializations for `ImageInput`
+template <> OIIO_API size_t pvt::heapsize<ImageInput>(const ImageInput&);
+template <> OIIO_API size_t pvt::footprint<ImageInput>(const ImageInput&);
+
+// heapsize and footprint specializations for `ImageOutput`
+template <> OIIO_API size_t pvt::heapsize<ImageOutput>(const ImageOutput&);
+template <> OIIO_API size_t pvt::footprint<ImageOutput>(const ImageOutput&);
 
 
 
@@ -2918,6 +2902,21 @@ OIIO_API std::string geterror(bool clear = true);
 ///    When nonzero, use the new "OpenEXR core C library" when available,
 ///    for OpenEXR >= 3.1. This is experimental, and currently defaults to 0.
 ///
+/// - `int jpeg:com_attributes`
+///
+///    When nonzero, try to parse JPEG comment blocks as key-value attributes,
+///    and only set ImageDescription if the parsing fails. Otherwise, always
+///    set ImageDescription to the first comment block. Default is 1.
+///
+/// - `int png:linear_premult` (0)
+///
+///    If nonzero, will convert perform any necessary premultiplication by
+///    alpha steps needed of the PNG reader/writer in a linear color space.
+///    If zero (the default), any needed premultiplication will happen
+///    directly on the values, even if they are sRGB or gamma-corrected.
+///    For more information, please see OpenImageIO's documentation on the
+///    built-in PNG format support.
+///
 /// - `int limits:channels` (1024)
 ///
 ///    When nonzero, the maximum number of color channels in an image. Image
@@ -2990,6 +2989,17 @@ OIIO_API std::string geterror(bool clear = true);
 ///   If nonzero, an `ImageBuf` that references a file but is not given an
 ///   ImageCache will read the image through the default ImageCache.
 ///
+/// - `imageinput:strict` (int: 0)
+///
+///   If zero (the default), ImageInput readers will try to be very tolerant
+///   of minor flaws or invalidity in image files being read, if possible just
+///   skipping something erroneous it encounters in the hopes that the rest of
+///   the file's data will be usable. If nonzero, anything clearly invalid in
+///   the file will be understood to be a corrupt file with unreliable data at
+///   best, and possibly malicious construction, and so will not attempt to
+///   further decode anything in the file. This may be a better choice to
+///   enable globally in an environment where security is a higher priority
+///   than being tolerant of partially broken image files.
 OIIO_API bool attribute(string_view name, TypeDesc type, const void* val);
 
 /// Shortcut attribute() for setting a single integer.
@@ -3055,6 +3065,21 @@ inline bool attribute (string_view name, string_view val) {
 ///   full paths), and all the directories that OpenImageIO will search for
 ///   fonts.  (Added in OpenImageIO 2.5)
 ///
+/// - `string font_family_list`
+///
+///   A semicolon-separated list of all the font family names that
+///   OpenImageIO can find.  (Added in OpenImageIO 3.0)
+///
+/// - `string font_style_list:family`
+///
+///   A semicolon-separated list of all the font style names that
+///   belong to the given font family.  (Added in OpenImageIO 3.0)
+///
+/// - `string font_filename:family:style`
+///
+///   The font file (with full path) that defines the given font
+///   family and style.  (Added in OpenImageIO 3.0)
+///
 /// - `string filter_list`
 ///
 ///   A semicolon-separated list of all built-in 2D filters. (Added in
@@ -3080,12 +3105,6 @@ inline bool attribute (string_view name, string_view val) {
 ///   Returns the version (such as "2.2.0") of OpenColorIO that is used by
 ///   OpenImageiO, or "0.0.0" if no OpenColorIO support has been enabled.
 ///   (Added in OpenImageIO 2.4.6)
-///
-/// - `int opencv_version`
-///
-///   Returns the encoded version (such as 40701 for 4.7.1) of the OpenCV that
-///   is used by OpenImageIO, or 0 if no OpenCV support has been enabled.
-///   (Added in OpenImageIO 2.5.2)
 ///
 /// - `string hw:simd`
 /// - `string build:simd` (read-only)
@@ -3185,6 +3204,33 @@ inline string_view get_string_attribute (string_view name,
 }
 
 
+/// Set the metadata of the `spec` to presume that color space is `name` (or
+/// to assume nothing about the color space if `name` is empty). The core
+/// operation is to set the "oiio:ColorSpace" attribute, but it also removes
+/// or alters several other attributes that may hint color space in ways that
+/// might be contradictory or no longer true. This uses the current default
+/// color config to adjudicate color space name equivalencies.
+///
+/// @version 3.0
+OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
+
+/// Set the metadata of the `spec` to reflect Rec709 color primaries and the
+/// given gamma. The core operation is to set the "oiio:ColorSpace" attribute,
+/// but it also removes or alters several other attributes that may hint color
+/// space in ways that might be contradictory or no longer true. This uses the
+/// current default color config to adjudicate color space name equivalencies.
+///
+/// @version 3.0
+OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
+
+
+/// Are the two named color spaces equivalent, based on the default color
+/// config in effect?
+///
+/// @version 3.0
+OIIO_API bool equivalent_colorspace(string_view a, string_view b);
+
+
 /// Register the input and output 'create' routines and list of file
 /// extensions for a particular format.
 OIIO_API void declare_imageio_format (const std::string &format_name,
@@ -3230,12 +3276,6 @@ get_extension_map()
 OIIO_API bool convert_pixel_values (TypeDesc src_type, const void *src,
                                     TypeDesc dst_type, void *dst, int n = 1);
 
-/// DEPRECATED(2.1): old name
-inline bool convert_types (TypeDesc src_type, const void *src,
-                           TypeDesc dst_type, void *dst, int n = 1) {
-    return convert_pixel_values (src_type, src, dst_type, dst, n);
-}
-
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
@@ -3253,18 +3293,6 @@ OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
                              void *dst, TypeDesc dst_type,
                              stride_t dst_xstride, stride_t dst_ystride,
                              stride_t dst_zstride);
-/// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
-inline bool convert_image(int nchannels, int width, int height, int depth,
-            const void *src, TypeDesc src_type,
-            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
-            void *dst, TypeDesc dst_type,
-            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int /*alpha_channel*/, int /*z_channel*/ = -1)
-{
-    return convert_image(nchannels, width, height, depth, src, src_type,
-                         src_xstride, src_ystride, src_zstride, dst, dst_type,
-                         dst_xstride, dst_ystride, dst_zstride);
-}
 
 
 /// A version of convert_image that will break up big jobs into multiple
@@ -3277,19 +3305,7 @@ OIIO_API bool parallel_convert_image (
                void *dst, TypeDesc dst_type,
                stride_t dst_xstride, stride_t dst_ystride,
                stride_t dst_zstride, int nthreads=0);
-/// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
-inline bool parallel_convert_image(
-            int nchannels, int width, int height, int depth,
-            const void *src, TypeDesc src_type,
-            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
-            void *dst, TypeDesc dst_type,
-            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int /*alpha_channel*/, int /*z_channel*/, int nthreads=0)
-{
-    return parallel_convert_image (nchannels, width, height, depth,
-           src, src_type, src_xstride, src_ystride, src_zstride,
-           dst, dst_type, dst_xstride, dst_ystride, dst_zstride, nthreads);
-}
+
 
 /// Add random [-ditheramplitude,ditheramplitude] dither to the color channels
 /// of the image.  Dither will not be added to the alpha or z channel.  The
@@ -3331,6 +3347,19 @@ OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
                           void *dst, stride_t dst_xstride,
                           stride_t dst_ystride, stride_t dst_zstride);
 
+/// Helper: manufacture a span given an image pointer, format, size, and
+/// strides. Use with caution! This is making a lot of assumptions that the
+/// data pointer really does point to memory that's ok to access according to
+/// the sizes and strides you give.
+OIIO_API span<std::byte>
+span_from_buffer(void* data, TypeDesc format, int nchannels, int width,
+                 int height, int depth, stride_t xstride = AutoStride, stride_t ystride = AutoStride,
+                 stride_t zstride = AutoStride);
+OIIO_API cspan<std::byte>
+cspan_from_buffer(const void* data, TypeDesc format, int nchannels, int width,
+                 int height, int depth, stride_t xstride = AutoStride, stride_t ystride = AutoStride,
+                 stride_t zstride = AutoStride);
+
 
 // All the wrap_foo functions implement a wrap mode, wherein coord is
 // altered to be origin <= coord < origin+width.  The return value
@@ -3361,18 +3390,58 @@ void debugfmt (const char* fmt, Args&&... args)
     Strutil::debug(fmt, std::forward<Args>(args)...);
 }
 
+namespace pvt {
+// For internal use - use errorfmt() below for a nicer interface.
+OIIO_API void append_error(string_view message);
+}
+
+/// error logging (mostly for OIIO internals) with `std::format` conventions.
+template<typename... Args>
+inline void errorfmt(const char* fmt, Args&&... args)
+{
+    pvt::append_error(string_view(Strutil::fmt::format(fmt, args...)));
+}
+
+/// Internal function to log time recorded by an OIIO::timer(). It will only
+/// trigger a read of the time if the "log_times" attribute is set or the
+/// OPENIMAGEIO_LOG_TIMES env variable is set.
+OIIO_API void log_time(string_view key, const Timer& timer, int count = 1);
+
+// to force correct linkage on some systems
+OIIO_API void _ImageIO_force_link ();
+
+
+//////////////////////////////////////////////////////////////////////////
+// DEPRECATED things
+//
+// These are all hidden from ocumentation and internal use, and should trigger
+// deprecation warnings if used externally. They will most likely be removed
+// entirely before the final release of OIIO 3.0.
+//
+#if !defined(OIIO_INTERNAL) && !defined(OIIO_DOXYGEN)
+
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 1, 0)
+// DEPRECATED(2.1): old name
+OIIO_DEPRECATED("use convert_pixel_values instead (2.1)")
+inline bool convert_types (TypeDesc src_type, const void *src,
+                           TypeDesc dst_type, void *dst, int n = 1) {
+    return convert_pixel_values (src_type, src, dst_type, dst, n);
+}
+#endif
+
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 6, 3)
 // (Unfortunate old synonym)
 template<typename... Args>
 OIIO_DEPRECATED("use `debugfmt` instead")
-void fmtdebug (const char* fmt, const Args&... args)
+inline void fmtdebug (const char* fmt, const Args&... args)
 {
     debug (Strutil::fmt::format(fmt, args...));
 }
 
 /// debug output with printf conventions.
 template<typename... Args>
-OIIO_FORMAT_DEPRECATED
-void debugf (const char* fmt, const Args&... args)
+OIIO_DEPRECATED("use `debugfmt` instead, with std::format-like arguments (3.0)")
+inline void debugf (const char* fmt, const Args&... args)
 {
     debug (Strutil::sprintf(fmt, args...));
 }
@@ -3380,15 +3449,16 @@ void debugf (const char* fmt, const Args&... args)
 /// debug output with the same conventions as Strutil::format. Beware, this
 /// will change one day!
 template<typename T1, typename... Args>
-OIIO_FORMAT_DEPRECATED
-void debug (const char* fmt, const T1& v1, const Args&... args)
+OIIO_DEPRECATED("use `debugfmt` instead, with std::format-like arguments (3.0)")
+inline void debug (const char* fmt, const T1& v1, const Args&... args)
 {
     debug (Strutil::format(fmt, v1, args...));
 }
+#endif
 
-
-// to force correct linkage on some systems
-OIIO_API void _ImageIO_force_link ();
+#endif
+//
+//////////////////////////////////////////////////////////////////////////
 
 OIIO_NAMESPACE_END
 

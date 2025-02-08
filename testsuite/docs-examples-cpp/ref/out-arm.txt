@@ -1,0 +1,146 @@
+pixels holds unassociated alpha
+example_output_error1
+error: Uninitialized input image
+example_output_error2
+error: Uninitialized input image
+example_zero
+example_fill
+example_checker
+example_noise1
+example_noise2
+example_point
+example_lines
+example_box
+example_text1
+example_text2
+example_channels
+example_channel_append
+example_copy
+example_crop
+example_cut
+example_paste
+example_rotate_n
+example_flip_flop_transpose
+example_reorient
+example_circular_shift
+example_rotate
+example_resize
+example_resample
+example_fit
+example_warp
+example_demosaic
+example_add
+example_sub
+example_absdiff
+example_abs
+example_scale
+example_mul
+example_div
+example_fixNonFinite
+Repaired 48 non-finite pixels
+example_fillholes_pushpull
+example_median_filter
+example_unsharp_mask
+example_make_texture
+zero1.exr            :  512 x  512, 3 channel, half openexr
+    SHA-1: 95823C334FCE55968E8D2827CCD1CF77CEE19ABD
+zero2.exr            :  256 x  256, 4 channel, half openexr
+    SHA-1: 6A521E1D2A632C26E53B83D2CC4B0EDECFC1E68C
+zero3.exr            :  256 x  256, 4 channel, half openexr
+    SHA-1: 1254F2956229777B721576B94A6A944ECB806A37
+zero4.exr            :  256 x  256, 4 channel, half openexr
+    SHA-1: 36EB49C5102703693C078717CE82AE05D4904680
+fill.exr             :  640 x  480, 3 channel, half openexr
+    SHA-1: 1BBCA1D5966D02554C13C1FAEF01F6E6E6169356
+checker.exr          :  640 x  480, 3 channel, half openexr
+    SHA-1: 64508259AE242B593B906C848A2D69C443A3FBFD
+noise1.exr           :  256 x  256, 3 channel, half openexr
+    SHA-1: 66FF64DDAFDDE290031C20FAA208A193908EE9D4
+noise2.exr           :  256 x  256, 3 channel, half openexr
+    SHA-1: 06011F9D59106096F4742A3DAB458D506A08E34C
+noise3.exr           :  512 x  384, 3 channel, half openexr
+    SHA-1: 95EDBCA9953281CE63A3E18C7C04BCCB07CB4C8A
+noise4.exr           :  512 x  384, 3 channel, half openexr
+    SHA-1: 43BC1FDFA1F18635B635A57D71DB08BB347CBD46
+blue-noise.exr       :  256 x  256, 4 channel, half openexr
+    SHA-1: 5A0A51D1AD3F34633B781AFF9B90E59996C31AD0
+point.exr            :  640 x  480, 4 channel, half openexr
+    SHA-1: 56E2BDBE03826F203132BD9E80AF44450307BDCE
+lines.exr            :  640 x  480, 4 channel, half openexr
+    SHA-1: 177C4C5C61ACDD54F198A45E52836DE897C4CE96
+box.exr              :  640 x  480, 4 channel, half openexr
+    SHA-1: 984273B0A06E54873E24A732651490117E40410C
+text1.exr            :  640 x  480, 3 channel, half openexr
+    SHA-1: 1CF68F9B099A30EFF06850CEFBEDD3C2F861A654
+text2.exr            :  640 x  480, 3 channel, half openexr
+    SHA-1: 00C96AE28FD12752AD1968D3D07EE30F1F218D76
+channels-rgba.exr    :  256 x  256, 4 channel, half openexr
+    SHA-1: C823E3701152B4B3C20DD79EA8A20CF4293F4B71
+channels-rgb.exr     :  256 x  256, 3 channel, half openexr
+    SHA-1: 4074B050432CE7C664CEC4546A46E74F9A310CDC
+channels-brga.exr    :  256 x  256, 4 channel, half openexr
+    SHA-1: 04E09E64C61CEA1634D26FB2E6C733875D163671
+channels-alpha.exr   :  256 x  256, 1 channel, half openexr
+    SHA-1: 99C332E70F321F0EA47C0F70AF8B0E3E6524F91F
+channel-append.exr   :  640 x  480, 5 channel, half openexr
+    SHA-1: E6A50C80C051F0F587FCB68B515B50E4DC3E9359
+copy.exr             :  256 x  256, 4 channel, float openexr
+    SHA-1: 7044589C8B904DAF6A2BA3246224E97DD460AC93
+crop.exr             :  200 x  100, 4 channel, half openexr
+    SHA-1: 4DA3918566D087A9D2D9E93B2A7BABE971FE6BBD
+cut.exr              :  200 x  100, 4 channel, half openexr
+    SHA-1: 4DA3918566D087A9D2D9E93B2A7BABE971FE6BBD
+paste.exr            :  256 x  256, 4 channel, half openexr
+    SHA-1: 67A4C36DEAED98A5A8ABA5F0E0EDE697345DC22A
+rotate-90.exr        :  256 x  256, 4 channel, half openexr
+    SHA-1: AFFAEA876E8E7760226B017B0A89A3549B7A5895
+rotate-180.exr       :  256 x  256, 4 channel, half openexr
+    SHA-1: A5E42C5F18177DA146EC7E4567E4AE3AE2816C3C
+rotate-270.exr       :  256 x  256, 4 channel, half openexr
+    SHA-1: 46C803894186457376A0C590768C9DB4877737BB
+flip.exr             :  256 x  256, 4 channel, half openexr
+    SHA-1: A9EB9A8762BCD8DD161C00B01E2DF39E5C91B0D4
+flop.exr             :  256 x  256, 4 channel, half openexr
+    SHA-1: 7C10717DB4F2E21F0B4F6D5404C660CA8B504F5E
+rotate-45.tif        :  256 x  256, 4 channel, uint8 tiff
+    SHA-1: E2E41264B7BD250C3AACF9F6161A0FA86B22FA57
+resize.tif           :  320 x  240, 4 channel, uint8 tiff
+    SHA-1: 6FD1A7A97729CD6D51A22ADE0709CC4DFDC3C826
+resample.exr         :  320 x  240, 4 channel, half openexr
+    SHA-1: 16FC7DCFE01DC312593B00B9F90D71BAF3D52450
+fit.tif              :  240 x  240, 4 channel, uint8 tiff
+    SHA-1: 5474A93DED5F9F44E561B70A53F509677961AB34
+warp.exr             :  256 x  256, 4 channel, half openexr
+    SHA-1: 7EA7EB6798E051B5F4EB3722498371E55869BC91
+transpose.exr        :  256 x  256, 4 channel, half openexr
+    SHA-1: FAD57FB60460383D3D2D24B346F35A44846CCC39
+reorient.exr         :  256 x  256, 4 channel, half openexr
+    SHA-1: 46C803894186457376A0C590768C9DB4877737BB
+cshift.exr           :  256 x  256, 4 channel, half openexr
+    SHA-1: 000F95FDC44D4DBDA8B4041C2506149C7AE28ACA
+texture.exr          :  256 x  256, 3 channel, half openexr (+mipmap)
+    SHA-1: 4074B050432CE7C664CEC4546A46E74F9A310CDC
+add.exr              :  256 x  256, 4 channel, half openexr
+    SHA-1: EA465A4FEA171DDF7D382931AE1FF1E37C4977F8
+add-cspan.exr        :  256 x  256, 4 channel, half openexr
+    SHA-1: 3E8E6F104951D3D156891708478193AAE6C5859F
+sub.exr              :  256 x  256, 4 channel, half openexr
+    SHA-1: 6A521E1D2A632C26E53B83D2CC4B0EDECFC1E68C
+absdiff.exr          :  256 x  256, 4 channel, half openexr
+    SHA-1: 6A521E1D2A632C26E53B83D2CC4B0EDECFC1E68C
+abs.exr              :  256 x  256, 4 channel, half openexr
+    SHA-1: A670546F9AB515ABEC009BFE4C4FF6AF4D628FBA
+mul.exr              :  256 x  256, 4 channel, half openexr
+    SHA-1: ECCDBBBF088912F0B77B887D6B8B480C3F93615E
+div.exr              :  256 x  256, 4 channel, half openexr
+    SHA-1: 6A85C923DB82C893C0D88028386F1C58604A4757
+checker_with_alpha_filled.exr :  256 x  256, 4 channel, half openexr
+    SHA-1: B245E027638D5C1BA2608FEDDB3BB9B5E9FA3A44
+tahoe_median_filter.tif :  512 x  384, 3 channel, uint8 tiff
+    SHA-1: A0B2E3A10A16EA8CC905F144C5F91B6A0964A177
+tahoe_unsharp_mask.tif :  512 x  384, 3 channel, uint8 tiff
+    SHA-1: 5842D16483BC74700DE9FD27967B2FFBD54DFCD2
+Comparing "simple.tif" and "ref/simple.tif"
+PASS
+Comparing "scanlines.tif" and "ref/scanlines.tif"
+PASS

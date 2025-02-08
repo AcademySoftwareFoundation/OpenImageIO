@@ -188,7 +188,7 @@ TypeDesc::c_str() const
     //     result = "float2";
     // else if (aggregate == VEC4 && basetype == FLOAT && vecsemantics == NOXFORM)
     //     result = "float4";
-    else if (vecsemantics == NOXFORM) {
+    else if (vecsemantics == NOXFORM && basetype == FLOAT) {
         switch (aggregate) {
         case VEC2: result = "float2"; break;
         case VEC3: result = "float3"; break;
@@ -198,6 +198,22 @@ TypeDesc::c_str() const
         }
         if (basetype != FLOAT)
             result += basetype_code[basetype];
+    } else if (vecsemantics == NOXFORM) {
+        switch (aggregate) {
+        case VEC2:
+        case VEC3:
+        case VEC4:
+            result = Strutil::fmt::format("vector{}{}", int(aggregate),
+                                          basetype_code[basetype]);
+            break;
+        case MATRIX33:
+            result = Strutil::fmt::format("matrix33{}",
+                                          basetype_code[basetype]);
+            break;
+        case MATRIX44:
+            result = Strutil::fmt::format("matrix{}", basetype_code[basetype]);
+            break;
+        }
     } else {
         // Special names for vector semantics
         const char* vec = "";
@@ -286,45 +302,45 @@ TypeDesc::fromstring(string_view typestring)
     if (t.basetype != UNKNOWN) {
         // already solved
     } else if (type == "color")
-        t = TypeColor;
+        t = OIIO::TypeColor;
     else if (type == "point")
-        t = TypePoint;
+        t = OIIO::TypePoint;
     else if (type == "vector")
-        t = TypeVector;
+        t = OIIO::TypeVector;
     else if (type == "normal")
-        t = TypeNormal;
+        t = OIIO::TypeNormal;
     else if (type == "matrix33")
-        t = TypeMatrix33;
+        t = OIIO::TypeMatrix33;
     else if (type == "matrix" || type == "matrix44")
-        t = TypeMatrix44;
+        t = OIIO::TypeMatrix44;
     else if (type == "vector2")
-        t = TypeVector2;
+        t = OIIO::TypeVector2;
     else if (type == "vector4")
-        t = TypeVector4;
+        t = OIIO::TypeVector4;
     else if (type == "float2")
-        t = TypeFloat2;
+        t = OIIO::TypeFloat2;
     else if (type == "float4")
-        t = TypeFloat4;
+        t = OIIO::TypeFloat4;
     else if (type == "timecode")
-        t = TypeTimeCode;
+        t = OIIO::TypeTimeCode;
     else if (type == "rational")
-        t = TypeRational;
+        t = OIIO::TypeRational;
     else if (type == "box2i")
-        t = TypeBox2i;
+        t = OIIO::TypeBox2i;
     else if (type == "box3i")
-        t = TypeBox3i;
+        t = OIIO::TypeBox3i;
     else if (type == "box2" || type == "box2f")
-        t = TypeBox2;
+        t = OIIO::TypeBox2;
     else if (type == "box3" || type == "box3f")
-        t = TypeBox3;
+        t = OIIO::TypeBox3;
     else if (type == "timecode")
-        t = TypeTimeCode;
+        t = OIIO::TypeTimeCode;
     else if (type == "keycode")
-        t = TypeKeyCode;
+        t = OIIO::TypeKeyCode;
     else if (type == "pointer")
-        t = TypePointer;
+        t = OIIO::TypePointer;
     else if (type == "ustringhash")
-        t = TypeUstringhash;
+        t = OIIO::TypeUstringhash;
     else {
         return 0;  // unknown
     }
@@ -653,24 +669,6 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
 
 
 
-// Old deprecated one
-std::string
-tostring(TypeDesc type, const void* data, const char* float_fmt,
-         const char* string_fmt, const char aggregate_delim[2],
-         const char* aggregate_sep, const char array_delim[2],
-         const char* array_sep)
-{
-    tostring_formatting fmt("%d", float_fmt, string_fmt, "%p",
-                            std::string(aggregate_delim + 0, 1).c_str(),
-                            std::string(aggregate_delim + 1, 1).c_str(),
-                            aggregate_sep,
-                            std::string(array_delim + 0, 1).c_str(),
-                            std::string(array_delim + 1, 1).c_str(), array_sep);
-    return tostring(type, data, fmt);
-}
-
-
-
 namespace {
 
 template<typename T = int>
@@ -910,33 +908,5 @@ TypeDesc::basetype_merge(TypeDesc at, TypeDesc bt)
     // we prefer float.
     return FLOAT;
 }
-
-
-
-// Static members of pre-constructed types
-// DEPRECATED(1.8)
-const TypeDesc TypeDesc::TypeFloat(TypeDesc::FLOAT);
-const TypeDesc TypeDesc::TypeColor(TypeDesc::FLOAT, TypeDesc::VEC3,
-                                   TypeDesc::COLOR);
-const TypeDesc TypeDesc::TypePoint(TypeDesc::FLOAT, TypeDesc::VEC3,
-                                   TypeDesc::POINT);
-const TypeDesc TypeDesc::TypeVector(TypeDesc::FLOAT, TypeDesc::VEC3,
-                                    TypeDesc::VECTOR);
-const TypeDesc TypeDesc::TypeNormal(TypeDesc::FLOAT, TypeDesc::VEC3,
-                                    TypeDesc::NORMAL);
-const TypeDesc TypeDesc::TypeMatrix33(TypeDesc::FLOAT, TypeDesc::MATRIX33);
-const TypeDesc TypeDesc::TypeMatrix44(TypeDesc::FLOAT, TypeDesc::MATRIX44);
-const TypeDesc TypeDesc::TypeMatrix = TypeDesc::TypeMatrix44;
-const TypeDesc TypeDesc::TypeString(TypeDesc::STRING);
-const TypeDesc TypeDesc::TypeInt(TypeDesc::INT);
-const TypeDesc TypeDesc::TypeHalf(TypeDesc::HALF);
-const TypeDesc TypeDesc::TypeTimeCode(TypeDesc::UINT, TypeDesc::SCALAR,
-                                      TypeDesc::TIMECODE, 2);
-const TypeDesc TypeDesc::TypeKeyCode(TypeDesc::INT, TypeDesc::SCALAR,
-                                     TypeDesc::KEYCODE, 7);
-const TypeDesc TypeDesc::TypeFloat4(TypeDesc::FLOAT, TypeDesc::VEC4);
-const TypeDesc TypeDesc::TypeRational(TypeDesc::INT, TypeDesc::VEC2,
-                                      TypeDesc::RATIONAL);
-
 
 OIIO_NAMESPACE_END

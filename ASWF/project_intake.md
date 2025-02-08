@@ -9,7 +9,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [X] A [CONTRIBUTING.md](../CONTRIBUTING.md) file explaining to other developers and your community of users how to contribute to the project. The file should explain what types of contributions are needed and how the process works, along with how to disclose security issues responsibly ( may also point to a [SECURITY.md](../SECURITY.md) file ).
   - [ ] A [CODEOWNERS](../CODEOWNERS) or [COMMITTERS](../COMMITERS.csv) file to define individuals or teams that are responsible for code in a repository; document current project owners and current and emeritus committers.
   - [X] A [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) file that sets the ground rules for participants’ behavior associated and helps to facilitate a friendly, welcoming environment. By default, projects should leverage the Linux Foundation Code of Conduct unless an alternate Code of Conduct was previously approved.
-  - [X] A [RELEASING.md](../RELEASING.md) file that provides documentation on the release methodology, cadence, criteria, etc.
+  - [X] A [RELEASING.md](docs/RELEASING.md) file that provides documentation on the release methodology, cadence, criteria, etc.
   - [X] A [GOVERNANCE.md](../GOVERNANCE.md) file that documents the project’s technical governance.
   - [ ] A [SUPPORT.md](../SUPPORT.md) file to let users and developers know about ways to get help with your project.
 - Infrastructure/Assets

@@ -480,7 +480,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
                  && m_dds.flags & DDS_DEPTH))
         || (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP
             && !(m_dds.caps.flags1 & DDS_CAPS1_COMPLEX))) {
-        errorf("Invalid DDS header, possibly corrupt file");
+        errorfmt("Invalid DDS header, possibly corrupt file");
         return false;
     }
 
@@ -493,7 +493,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
             && !(m_dds.fmt.flags
                  & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_ALPHA
                     | DDS_PF_ALPHAONLY)))) {
-        errorf("Image with no data");
+        errorfmt("Image with no data");
         return false;
     }
 
@@ -845,7 +845,7 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     // linear color space for HDR-ish images
     if (colorspace == nullptr
         && (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT))
-        colorspace = "linear";
+        colorspace = "lin_rec709";
 
     m_spec.set_colorspace(colorspace);
 

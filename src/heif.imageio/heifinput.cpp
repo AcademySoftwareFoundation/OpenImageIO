@@ -38,9 +38,7 @@ public:
     {
         return feature == "exif";
     }
-#if LIBHEIF_HAVE_VERSION(1, 4, 0)
     bool valid_file(const std::string& filename) const override;
-#endif
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -98,17 +96,12 @@ heif_input_imageio_create()
     return new HeifInput;
 }
 
-OIIO_EXPORT const char* heif_input_extensions[] = { "heic",  "heif",
-                                                    "heics", "hif",
-#if LIBHEIF_HAVE_VERSION(1, 7, 0)
-                                                    "avif",
-#endif
-                                                    nullptr };
+OIIO_EXPORT const char* heif_input_extensions[] = { "heic", "heif", "heics",
+                                                    "hif",  "avif", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
 
-#if LIBHEIF_HAVE_VERSION(1, 4, 0)
 bool
 HeifInput::valid_file(const std::string& filename) const
 {
@@ -120,7 +113,6 @@ HeifInput::valid_file(const std::string& filename) const
     return filetype_check != heif_filetype_no
            && filetype_check != heif_filetype_yes_unsupported;
 }
-#endif
 
 
 
@@ -166,11 +158,11 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
 
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     }
 
@@ -221,11 +213,11 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         m_himage = m_ihandle.decode_image(heif_colorspace_RGB, chroma);
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     }
 #else
@@ -247,10 +239,11 @@ HeifInput::seek_subimage(int subimage, int miplevel)
 #endif
 
     int bits = m_himage.get_bits_per_pixel(heif_channel_interleaved);
-    m_spec = ImageSpec(m_ihandle.get_width(), m_ihandle.get_height(), bits / 8,
-                       TypeUInt8);
+    m_spec   = ImageSpec(m_himage.get_width(heif_channel_interleaved),
+                         m_himage.get_height(heif_channel_interleaved), bits / 8,
+                         TypeUInt8);
 
-    m_spec.attribute("oiio:ColorSpace", "sRGB");
+    m_spec.set_colorspace("sRGB");
 
 #if LIBHEIF_HAVE_VERSION(1, 12, 0)
     // Libheif >= 1.12 added API call to find out if the image is associated
@@ -397,7 +390,7 @@ HeifInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     const uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved,
                                               &ystride);
     if (!hdata) {
-        errorf("Unknown read error");
+        errorfmt("Unknown read error");
         return false;
     }
     hdata += (y - m_spec.y) * ystride;

@@ -22,7 +22,7 @@ Comparing "pattern2-8-rgb.psd.tif" and "ref/pattern2.tif"
 PASS
 Comparing "pattern2-16-rgb.psd.tif" and "ref/pattern2.tif"
 PASS
-Comparing "pattern2-8-cmyk.psd.tif" and "ref/pattern2-cmyk.tif"
+Comparing "pattern2-8-cmyk.psd.tif" and "ref/pattern2-8-cmyk.psd.tif"
 PASS
 Comparing "pattern2-16-cmyk.psd.tif" and "ref/pattern2-16-cmyk.psd.tif"
 PASS
@@ -30,7 +30,7 @@ Comparing "pattern2-8-multichannel.psd.tif" and "ref/pattern2.tif"
 PASS
 Comparing "pattern2-16-multichannel.psd.tif" and "ref/pattern2.tif"
 PASS
-Comparing "pattern2-8-grayscale.psd.tif" and "ref/pattern2-gray.tif"
+Comparing "pattern2-8-grayscale.psd.tif" and "ref/pattern2-8-grayscale.psd.tif"
 PASS
 Comparing "pattern2-16-grayscale.psd.tif" and "ref/pattern2-16-grayscale.psd.tif"
 PASS

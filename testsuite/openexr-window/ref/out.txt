@@ -6,8 +6,9 @@ Reading ../openexr-images/DisplayWindow/t01.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t01.exr" and "t01.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t02.exr
@@ -20,8 +21,9 @@ Reading ../openexr-images/DisplayWindow/t02.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t02.exr" and "t02.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t03.exr
@@ -34,8 +36,9 @@ Reading ../openexr-images/DisplayWindow/t03.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t03.exr" and "t03.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t04.exr
@@ -48,8 +51,9 @@ Reading ../openexr-images/DisplayWindow/t04.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t04.exr" and "t04.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t05.exr
@@ -62,8 +66,9 @@ Reading ../openexr-images/DisplayWindow/t05.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t05.exr" and "t05.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t06.exr
@@ -76,8 +81,9 @@ Reading ../openexr-images/DisplayWindow/t06.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t06.exr" and "t06.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t07.exr
@@ -90,8 +96,9 @@ Reading ../openexr-images/DisplayWindow/t07.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t07.exr" and "t07.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t08.exr
@@ -105,8 +112,9 @@ Reading ../openexr-images/DisplayWindow/t08.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t08.exr" and "t08.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t09.exr
@@ -119,8 +127,9 @@ Reading ../openexr-images/DisplayWindow/t09.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t09.exr" and "t09.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t10.exr
@@ -133,8 +142,9 @@ Reading ../openexr-images/DisplayWindow/t10.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t10.exr" and "t10.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t11.exr
@@ -147,8 +157,9 @@ Reading ../openexr-images/DisplayWindow/t11.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t11.exr" and "t11.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t12.exr
@@ -161,8 +172,9 @@ Reading ../openexr-images/DisplayWindow/t12.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t12.exr" and "t12.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t13.exr
@@ -175,8 +187,9 @@ Reading ../openexr-images/DisplayWindow/t13.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t13.exr" and "t13.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t14.exr
@@ -189,8 +202,9 @@ Reading ../openexr-images/DisplayWindow/t14.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t14.exr" and "t14.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t15.exr
@@ -203,8 +217,9 @@ Reading ../openexr-images/DisplayWindow/t15.exr
     PixelAspectRatio: 1.5
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t15.exr" and "t15.exr"
 PASS
 Reading ../openexr-images/DisplayWindow/t16.exr
@@ -217,7 +232,8 @@ Reading ../openexr-images/DisplayWindow/t16.exr
     PixelAspectRatio: 0.666667
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/DisplayWindow/t16.exr" and "t16.exr"
 PASS

@@ -24,33 +24,11 @@ message (VERBOSE "CMAKE_CXX_COMPILE_FEATURES = ${CMAKE_CXX_COMPILE_FEATURES}")
 
 
 ###########################################################################
-# The proj_add_compile_definitions, proj_add_compile_options, and
-# proj_add_link_options are like the global add_compile_definitions (etc), but
-# they merely add to ${PROJECT_NAME}_blah lists, which are expected to be
-# added to library and executable targets in our project. The point is that
-# we really shouldn't be polluting the global definitions, in case our
-# cmake files are included in an "outer" project.
-#
-macro (proj_add_compile_definitions)
-    list (APPEND ${PROJECT_NAME}_compile_definitions ${ARGN})
-endmacro ()
-
-macro (proj_add_compile_options)
-    list (APPEND ${PROJECT_NAME}_compile_options ${ARGN})
-endmacro ()
-
-macro (proj_add_link_options)
-    list (APPEND ${PROJECT_NAME}_link_options ${ARGN})
-endmacro ()
-
-
-
-###########################################################################
 # C++ language standard
 #
 set (CMAKE_CXX_MINIMUM 17)
 set (CMAKE_CXX_STANDARD 17 CACHE STRING
-     "C++ standard to build with (14, 17, 20, etc.) Minimum is ${CMAKE_CXX_MINIMUM}.")
+     "C++ standard to build with (17, 20, etc.) Minimum is ${CMAKE_CXX_MINIMUM}.")
 set (DOWNSTREAM_CXX_STANDARD 17 CACHE STRING
      "C++ minimum standard to impose on downstream clients")
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -59,6 +37,12 @@ message (STATUS "Building with C++${CMAKE_CXX_STANDARD}, downstream minimum C++$
 if (CMAKE_CXX_STANDARD VERSION_LESS CMAKE_CXX_MINIMUM)
     message (FATAL_ERROR "C++${CMAKE_CXX_STANDARD} is not supported, minimum is C++${CMAKE_CXX_MINIMUM}")
 endif ()
+# Remember the -std flags we need will be used later for custom Cuda builds
+set (CSTD_FLAGS "")
+if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_INTEL)
+    set (CSTD_FLAGS "-std=c++${CMAKE_CXX_STANDARD}")
+endif ()
+
 
 ###########################################################################
 # Figure out which compiler we're using
@@ -85,18 +69,25 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER MATCHES "[Cc]lan
         set (CMAKE_CXX_COMPILER_ID "AppleClang")
         set (CMAKE_COMPILER_IS_APPLECLANG 1)
         string (REGEX REPLACE ".* version ([0-9]+\\.[0-9]+).*" "\\1" APPLECLANG_VERSION_STRING ${clang_full_version_string})
+        set (ANY_CLANG_VERSION_STRING ${APPLECLANG_VERSION_STRING})
         message (VERBOSE "The compiler is Clang: ${CMAKE_CXX_COMPILER_ID} version ${APPLECLANG_VERSION_STRING}")
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
         set (CMAKE_COMPILER_IS_INTELCLANG 1)
         string (REGEX MATCH "[0-9]+(\\.[0-9]+)+" INTELCLANG_VERSION_STRING ${clang_full_version_string})
+        set (ANY_CLANG_VERSION_STRING ${INTELCLANG_VERSION_STRING})
         message (VERBOSE "The compiler is Intel Clang: ${CMAKE_CXX_COMPILER_ID} version ${INTELCLANG_VERSION_STRING}")
     else ()
+        set (CMAKE_COMPILER_IS_GENERICCLANG 1)
         string (REGEX REPLACE ".* version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
+        set (ANY_CLANG_VERSION_STRING ${CLANG_VERSION_STRING})
         message (VERBOSE "The compiler is Clang: ${CMAKE_CXX_COMPILER_ID} version ${CLANG_VERSION_STRING}")
     endif ()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
     set (CMAKE_COMPILER_IS_INTEL 1)
     message (VERBOSE "Using Intel as the compiler")
+endif ()
+if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
+    set (COMPILER_IS_GCC_OR_ANY_CLANG TRUE)
 endif ()
 
 
@@ -114,12 +105,12 @@ else ()
 endif()
 option (EXTRA_WARNINGS "Enable lots of extra pedantic warnings" OFF)
 if (NOT MSVC)
-    proj_add_compile_options ("-Wall")
+    add_compile_options (-Wall -Wformat -Wformat=2)
     if (EXTRA_WARNINGS)
-        proj_add_compile_options ("-Wextra")
+        add_compile_options (-Wextra)
     endif ()
     if (STOP_ON_WARNING)
-        proj_add_compile_options ("-Werror")
+        add_compile_options (-Werror)
     endif ()
 endif ()
 
@@ -157,35 +148,35 @@ endif ()
 #
 if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
     # Clang-specific options
-    proj_add_compile_options ("-Wno-unused-function")
-    proj_add_compile_options ("-Wno-overloaded-virtual")
-    proj_add_compile_options ("-Wno-unneeded-internal-declaration")
-    proj_add_compile_options ("-Wno-unused-private-field")
-    proj_add_compile_options ("-Wno-tautological-compare")
+    add_compile_options ("-Wno-unused-function")
+    add_compile_options ("-Wno-overloaded-virtual")
+    add_compile_options ("-Wno-unneeded-internal-declaration")
+    add_compile_options ("-Wno-unused-private-field")
+    add_compile_options ("-Wno-tautological-compare")
     # disable warning about unused command line arguments
-    proj_add_compile_options ("-Qunused-arguments")
+    add_compile_options ("-Qunused-arguments")
     # Don't warn if we ask it not to warn about warnings it doesn't know
-    proj_add_compile_options ("-Wunknown-warning-option")
+    add_compile_options ("-Wunknown-warning-option")
     if (CLANG_VERSION_STRING VERSION_GREATER_EQUAL 3.6 OR
         APPLECLANG_VERSION_STRING VERSION_GREATER 6.1)
-        proj_add_compile_options ("-Wno-unused-local-typedefs")
+        add_compile_options ("-Wno-unused-local-typedefs")
     endif ()
     if (CLANG_VERSION_STRING VERSION_GREATER_EQUAL 3.9)
         # Don't warn about using unknown preprocessor symbols in `#if`
-        proj_add_compile_options ("-Wno-expansion-to-defined")
+        add_compile_options ("-Wno-expansion-to-defined")
     endif ()
     if (CMAKE_GENERATOR MATCHES "Xcode")
-        proj_add_compile_options ("-Wno-shorten-64-to-32")
+        add_compile_options ("-Wno-shorten-64-to-32")
     endif ()
 endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG))
     # gcc specific options
-    proj_add_compile_options ("-Wno-unused-local-typedefs")
-    proj_add_compile_options ("-Wno-unused-result")
+    add_compile_options ("-Wno-unused-local-typedefs")
+    add_compile_options ("-Wno-unused-result")
     if (NOT ${GCC_VERSION} VERSION_LESS 7.0)
-        proj_add_compile_options ("-Wno-aligned-new")
-        proj_add_compile_options ("-Wno-noexcept-type")
+        add_compile_options ("-Wno-aligned-new")
+        add_compile_options ("-Wno-noexcept-type")
     endif ()
 endif ()
 
@@ -193,30 +184,30 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     # Options common to gcc and clang
 
     # Ensure this macro is set for stdint.h
-    proj_add_compile_definitions ("-D__STDC_LIMIT_MACROS")
-    proj_add_compile_definitions ("-D__STDC_CONSTANT_MACROS")
+    add_compile_definitions (__STDC_LIMIT_MACROS)
+    add_compile_definitions (__STDC_CONSTANT_MACROS)
 endif ()
 
 if (INTELCLANG_VERSION_STRING VERSION_GREATER_EQUAL 2022.1.0)
     # New versions of icx warn about changing certain floating point options
-    proj_add_compile_options ("-Wno-overriding-t-option")
+    add_compile_options ("-Wno-overriding-t-option")
 endif ()
 
 if (MSVC)
     # Microsoft specific options
-    proj_add_compile_options (/W1)
-    proj_add_compile_options (/MP)
-    proj_add_compile_definitions (-D_CRT_SECURE_NO_DEPRECATE)
-    proj_add_compile_definitions (-D_CRT_SECURE_NO_WARNINGS)
-    proj_add_compile_definitions (-D_CRT_NONSTDC_NO_WARNINGS)
-    proj_add_compile_definitions (-D_SCL_SECURE_NO_WARNINGS)
-    proj_add_compile_definitions (-DJAS_WIN_MSVC_BUILD)
+    add_compile_options (/W1)
+    add_compile_options (/MP)
+    add_compile_definitions (_CRT_SECURE_NO_DEPRECATE)
+    add_compile_definitions (_CRT_SECURE_NO_WARNINGS)
+    add_compile_definitions (_CRT_NONSTDC_NO_WARNINGS)
+    add_compile_definitions (_SCL_SECURE_NO_WARNINGS)
+    add_compile_definitions (JAS_WIN_MSVC_BUILD)
 endif (MSVC)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD"
     AND ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
     # For FreeBSD, minimum arch of i586 is needed for atomic cpu instructions
-    proj_add_compile_options (-march=i586)
+    add_compile_options (-march=i586)
 endif ()
 
 # Fast-math mode may go faster, but it breaks IEEE and also makes inconsistent
@@ -224,23 +215,22 @@ endif ()
 option (ENABLE_FAST_MATH "Use fast math (may break IEEE fp rules)" OFF)
 if (ENABLE_FAST_MATH)
     if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
-        proj_add_compile_options ("-ffast-math")
+        add_compile_options ("-ffast-math")
     elseif (MSVC)
-        proj_add_compile_options ("/fp:fast")
+        add_compile_options ("/fp:fast")
     endif ()
 else ()
     if (CMAKE_COMPILER_IS_INTELCLANG)
         # Intel icx is fast-math by default, so if we don't want that, we need
         # to explicitly disable it.
-        proj_add_compile_options ("-fno-fast-math")
+        add_compile_options ("-fno-fast-math")
     endif ()
 endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     # this allows native instructions to be used for sqrtf instead of a function call
-    proj_add_compile_options ("-fno-math-errno")
+    add_compile_options ("-fno-math-errno")
 endif ()
-
 
 # We will use this for ccache and timing
 set (MY_RULE_LAUNCH "")
@@ -307,7 +297,7 @@ endif ()
 set (GLIBCXX_USE_CXX11_ABI "" CACHE STRING "For gcc, use the new C++11 library ABI (0|1)")
 if (CMAKE_COMPILER_IS_GNUCC AND ${GCC_VERSION} VERSION_GREATER_EQUAL 5.0)
     if (NOT ${GLIBCXX_USE_CXX11_ABI} STREQUAL "")
-        proj_add_compile_definitions ("-D_GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI}")
+        add_compile_definitions (_GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI})
     endif ()
 endif ()
 
@@ -320,18 +310,36 @@ endif ()
 # the proper compiler directives added to generate code for those ISA
 # capabilities.
 #
-set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
+set_cache (USE_SIMD "" "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
 set (SIMD_COMPILE_FLAGS "")
 message (STATUS "Compiling with SIMD level ${USE_SIMD}")
 if (NOT USE_SIMD STREQUAL "")
     if (USE_SIMD STREQUAL "0")
         set (SIMD_COMPILE_FLAGS ${SIMD_COMPILE_FLAGS} "-DOIIO_NO_SIMD=1")
     else ()
-        string (REPLACE "," ";" SIMD_FEATURE_LIST ${USE_SIMD})
+        set(_highest_msvc_arch 0)
+        string (REPLACE "," ";" SIMD_FEATURE_LIST "${USE_SIMD}")
         foreach (feature ${SIMD_FEATURE_LIST})
             message (VERBOSE "SIMD feature: ${feature}")
             if (MSVC OR CMAKE_COMPILER_IS_INTEL)
-                list (APPEND SIMD_COMPILE_FLAGS "/arch:${feature}")
+                if (feature STREQUAL "sse2")
+                    list (APPEND SIMD_COMPILE_FLAGS "/D__SSE2__")
+                endif ()
+                if (feature STREQUAL "sse4.1")
+                    list (APPEND SIMD_COMPILE_FLAGS "/D__SSE2__" "/D__SSE4_1__")
+                endif ()
+                if (feature STREQUAL "sse4.2")
+                    list (APPEND SIMD_COMPILE_FLAGS "/D__SSE2__" "/D__SSE4_2__")
+                endif ()
+                if (feature STREQUAL "avx" AND _highest_msvc_arch LESS 1)
+                    set(_highest_msvc_arch 1)
+                endif ()
+                if (feature STREQUAL "avx2" AND _highest_msvc_arch LESS 2)
+                    set(_highest_msvc_arch 2)
+                endif ()
+                if (feature STREQUAL "avx512f" AND _highest_msvc_arch LESS 3)
+                    set(_highest_msvc_arch 3)
+                endif ()
             else ()
                 list (APPEND SIMD_COMPILE_FLAGS "-m${feature}")
             endif ()
@@ -340,11 +348,25 @@ if (NOT USE_SIMD STREQUAL "")
                 # off by default except when we explicitly use madd. At some
                 # future time, we should look at this again carefully and
                 # see if we want to use it more widely by ffp-contract=fast.
-                proj_add_compile_options ("-ffp-contract=off")
+                add_compile_options ("-ffp-contract=off")
             endif ()
         endforeach()
+
+        # Only add a single /arch flag representing the highest level of support.
+        if (MSVC OR CMAKE_COMPILER_IS_INTEL)
+            if (_highest_msvc_arch EQUAL 1)
+                list (APPEND SIMD_COMPILE_FLAGS "/arch:AVX")
+            endif ()
+            if (_highest_msvc_arch EQUAL 2)
+                list (APPEND SIMD_COMPILE_FLAGS "/arch:AVX2")
+            endif ()
+            if (_highest_msvc_arch EQUAL 3)
+                list (APPEND SIMD_COMPILE_FLAGS "/arch:AVX512")
+            endif ()
+        endif ()
+        unset(_highest_msvc_arch)
     endif ()
-    proj_add_compile_options (${SIMD_COMPILE_FLAGS})
+    add_compile_options (${SIMD_COMPILE_FLAGS})
 endif ()
 
 
@@ -395,53 +417,108 @@ endif ()
 option (CODECOV "Build code coverage tests" OFF)
 if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for code coverage analysis")
-    proj_add_compile_options (-ftest-coverage -fprofile-arcs)
-    proj_add_link_options (-ftest-coverage -fprofile-arcs)
-    proj_add_compile_definitions ("-D${PROJ_NAME}_CODE_COVERAGE=1")
+    add_compile_options (-ftest-coverage -fprofile-arcs)
+    add_link_options (-ftest-coverage -fprofile-arcs)
+    add_compile_definitions (${PROJ_NAME}_CODE_COVERAGE=1)
+endif ()
+
+
+###########################################################################
+# Runtime profiling
+#
+set_cache (PROFILER "" "Build executables with profiler support (choices: gperftools)")
+if (PROFILER STREQUAL "gperftools")
+    find_library(PROFILER_LIBRARIES NAMES profiler)
+    message (STATUS "Compiling for profiling with ${PROFILER}, found ${PROFILER_LIBRARIES}")
+endif ()
+
+
+###########################################################################
+# Build profiling
+#
+set_option (${PROJ_NAME}_BUILD_PROFILER "Profile the build process" OFF)
+if (${PROJ_NAME}_BUILD_PROFILER AND CMAKE_COMPILER_IS_CLANG)
+    add_compile_options (-ftime-trace)
+    message (STATUS "Profiling the build process")
 endif ()
 
 
 ###########################################################################
 # Sanitizer options
 #
-set (SANITIZE "" CACHE STRING "Build code using sanitizer (address, thread)")
+set_cache (SANITIZE "" "Build code using sanitizer (address, thread, undefined)")
 if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for sanitizer=${SANITIZE}")
     string (REPLACE "," ";" SANITIZE_FEATURE_LIST ${SANITIZE})
     foreach (feature ${SANITIZE_FEATURE_LIST})
         message (STATUS "  sanitize feature: ${feature}")
-        proj_add_compile_options (-fsanitize=${feature})
-        proj_add_link_options (-fsanitize=${feature})
+        add_compile_options (-fsanitize=${feature})
+        add_link_options (-fsanitize=${feature})
     endforeach()
-    proj_add_compile_options (-g -fno-omit-frame-pointer)
+    add_compile_options (-g -fno-omit-frame-pointer)
     if (CMAKE_COMPILER_IS_GNUCC)
         # turn on glibcxx extra annotations to find vector writes past end
-        proj_add_compile_definitions ("-D_GLIBCXX_SANITIZE_VECTOR=1")
+        add_compile_definitions (_GLIBCXX_SANITIZE_VECTOR=1)
     endif ()
-    proj_add_compile_definitions ("-D${PROJECT_NAME}_SANITIZE=1")
+    add_compile_definitions (${PROJECT_NAME}_SANITIZE=1)
 endif ()
 
 
 ###########################################################################
-# Fortification and hardening options
+# Safety/security hardening options
 #
-# In modern gcc and clang, FORTIFY_SOURCE provides buffer overflow checks
-# (with some compiler-assisted deduction of buffer lengths) for the following
-# functions: memcpy, mempcpy, memmove, memset, strcpy, stpcpy, strncpy,
-# strcat, strncat, sprintf, vsprintf, snprintf, vsnprintf, gets.
+# Explanation of levels:
+#  0 : do nothing, not recommended.
+#  1 : enable features that have no (or nearly no) performance impact,
+#      recommended default for optimized, shipping code.
+#  2 : enable features that trade off performance for security, recommended
+#      for debugging or deploying in security-sensitive environments.
+#  3 : enable features that have a significant performance impact, only
+#      recommended for debugging.
 #
-# We try to avoid these unsafe functions anyway, but it's good to have the
-# extra protection, at least as an extra set of checks during CI. Some users
-# may also wish to enable it at some level if they are deploying it in a
-# security-sensitive environment. FORTIFY_SOURCE=3 may have minor performance
-# impact, though FORTIFY_SOURCE=2 should not have a measurable effect on
-# performance versus not doing any fortification. All fortification levels are
-# not available in all compilers.
-
-set (FORTIFY_SOURCE "0" CACHE STRING "Turn on Fortification level (0, 1, 2, 3)")
-if (FORTIFY_SOURCE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
-    message (STATUS "Compiling with _FORTIFY_SOURCE=${FORTIFY_SOURCE}")
-    proj_add_compile_options (-D_FORTIFY_SOURCE=${FORTIFY_SOURCE})
+# Some documentation:
+# https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+# https://www.gnu.org/software/libc/manual/html_node/Source-Fortification.html
+# https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_macros.html
+# https://libcxx.llvm.org/Hardening.html
+#
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    set (${PROJ_NAME}_HARDENING_DEFAULT 3)
+else ()
+    set (${PROJ_NAME}_HARDENING_DEFAULT 1)
+endif ()
+set_cache (${PROJ_NAME}_HARDENING ${${PROJ_NAME}_HARDENING_DEFAULT}
+           "Turn on security hardening features 0, 1, 2, 3")
+# Implementation:
+if (HARDENING GREATER_EQUAL 1)
+    # Features that should not detectably affect performance
+    if (COMPILER_IS_GCC_OR_ANY_CLANG)
+        # Enable PIE and pie to build as position-independent executables,
+        # needed for address space randomiztion used by some kernels.
+        add_compile_options (-fPIE -pie)
+        add_link_options (-fPIE -pie)
+        # Protect against stack overwrites. Is allegedly not a performance
+        # tradeoff.
+        add_compile_options (-fstack-protector-strong)
+        add_link_options (-fstack-protector-strong)
+    endif ()
+    # Defining _FORTIFY_SOURCE provides buffer overflow checks in modern gcc &
+    # clang with some compiler-assisted deduction of buffer lengths) for the
+    # many C functions such as memcpy, strcpy, sprintf, etc. See:
+    add_compile_definitions (_FORTIFY_SOURCE=${${PROJ_NAME}_HARDENING})
+    # Setting _LIBCPP_HARDENING_MODE enables various hardening features in
+    # clang/llvm's libc++ 18.0 and later.
+    add_compiler_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
+endif ()
+if (HARDENING GREATER_EQUAL 2)
+    # Features that might impact performance measurably
+    add_compile_definitions (_GLIBCXX_ASSERTIONS)
+    add_compiler_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE)
+endif ()
+if (HARDENING GREATER_EQUAL 3)
+    # Debugging features that might impact performance significantly
+    add_compile_definitions (_GLIBCXX_DEBUG)
+    add_compiler_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG)
 endif ()
 
 
@@ -540,7 +617,7 @@ endif ()
 set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
 if (EXTRA_CPP_ARGS)
     message (STATUS "Extra C++ args: ${EXTRA_CPP_ARGS}")
-    proj_add_compile_options (${EXTRA_CPP_ARGS})
+    add_compile_options (${EXTRA_CPP_ARGS})
 endif()
 set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when building DSOs")
 
@@ -554,7 +631,7 @@ if (${PROJECT_NAME}_SUPPORTED_RELEASE)
     set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
          CACHE STRING "Set the SO version for dynamic libraries")
 else ()
-    # Development master makes no ABI stability guarantee, so we make the
+    # Main development branch makes no ABI stability guarantee, so we make the
     # SO naming capture down to the major.minor.patch level.
     set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
          CACHE STRING "Set the SO version for dynamic libraries")
@@ -568,7 +645,7 @@ message(VERBOSE "Setting SOVERSION to: ${SOVERSION}")
 #
 option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static libs)" ON)
 if (NOT BUILD_SHARED_LIBS)
-    proj_add_compile_definitions (-D${PROJ_NAME}_STATIC_DEFINE=1)
+    add_compile_definitions (${PROJ_NAME}_STATIC_DEFINE=1)
 endif ()
 
 
@@ -593,7 +670,7 @@ endif ()
 # We expect our own CI runs to define env variable ${PROJECT_NAME}_CI
 #
 if (DEFINED ENV{${PROJECT_NAME}_CI})
-    proj_add_compile_definitions (-D${PROJ_NAME}_CI=1 -DBUILD_CI=1)
+    add_compile_definitions (${PROJ_NAME}_CI=1 BUILD_CI=1)
     if (APPLE)
         # Keep Mono framework from being incorrectly searched for include
         # files on GitHub Actions CI.
@@ -616,7 +693,13 @@ if (CMAKE_SKIP_RPATH)
     unset (CMAKE_INSTALL_RPATH)
 else ()
     if (NOT CMAKE_INSTALL_RPATH)
-        set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+        if(APPLE)
+            set(BASEPOINT @loader_path)
+        else()
+            set(BASEPOINT $ORIGIN)
+        endif()
+        set (CMAKE_INSTALL_RPATH ${BASEPOINT}
+                                 ${BASEPOINT}/../${CMAKE_INSTALL_LIBDIR})
     endif ()
     # add the automatically determined parts of the RPATH that
     # point to directories outside the build tree to the install RPATH
@@ -640,9 +723,25 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #    install_targets (target1 [target2 ...])
 #
 macro (install_targets)
-    install (TARGETS ${ARGN}
+    # Define options that can be passed to the macro
+    set(options NAMELINK_SKIP)
+
+    # Parse the arguments passed to the macro
+    cmake_parse_arguments(INSTALL_TARGETS "${options}" "" "" "${ARGN}")
+
+    # Check if NAMELINK_SKIP is specified
+    if (INSTALL_TARGETS_NAMELINK_SKIP)
+        # Set namelink_option to NAMELINK_SKIP if specified
+        set(namelink_option NAMELINK_SKIP)
+    else()
+        # Leave namelink_option empty if NAMELINK_SKIP is not specified
+        set(namelink_option)
+    endif()
+
+    # Use the install command with the appropriate options
+    install (TARGETS ${INSTALL_TARGETS_UNPARSED_ARGUMENTS}
              EXPORT ${PROJ_NAME}_EXPORTED_TARGETS
              RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
-             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
+             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user ${namelink_option}
              ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
 endmacro()
