@@ -99,20 +99,20 @@ span_from_buffer(void* data, TypeDesc format, int nchannels, int width,
     if (xstride >= 0) {
         bufend += xstride * (width - 1);
     } else {
-        bufstart -= xstride * (width - 1);
+        bufstart += xstride * (width - 1);
     }
     // Expand to the span range for a whole image plane.
     if (ystride >= 0) {
         bufend += ystride * (height - 1);
     } else {
-        bufstart -= ystride * (height - 1);
+        bufstart += ystride * (height - 1);
     }
     // Expand to the span range for a whole volume.
     if (depth > 1 && zstride != 0) {
         if (zstride >= 0) {
             bufend += zstride * (depth - 1);
         } else {
-            bufstart -= zstride * (depth - 1);
+            bufstart += zstride * (depth - 1);
         }
     }
     return { bufstart, size_t(bufend - bufstart) };
@@ -905,7 +905,7 @@ ImageBufImpl::set_bufspan_localpixels(span<std::byte> bufspan,
     }
     m_bufspan     = bufspan;
     m_localpixels = (char*)buforigin;
-    OIIO_DASSERT(check_span(m_bufspan, m_localpixels, spec().format));
+    OIIO_ASSERT(check_span(m_bufspan, m_localpixels, spec().format));
 }
 
 
