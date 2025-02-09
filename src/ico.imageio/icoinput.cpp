@@ -197,7 +197,9 @@ ICOInput::seek_subimage(int subimage, int miplevel)
         return false;
     }
     if (subimg.reserved != 0) {
-        errorfmt("Probably corrupt file");
+        errorfmt(
+            "Probably corrupt file (clue: header 'reserved' value should always be 0)",
+            subimg.reserved);
         return false;
     }
 
