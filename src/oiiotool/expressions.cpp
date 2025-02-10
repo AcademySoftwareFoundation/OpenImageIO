@@ -334,8 +334,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                     // trusting that the constantcolor check means all channels have the same value, so we only check the first channel
                     if (color[0] == 0.0f) {
                         result = "1";
-                    }
-                    else {
+                    } else {
                         result = "0";
                     }
                 } else {
