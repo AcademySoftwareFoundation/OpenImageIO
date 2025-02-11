@@ -183,6 +183,14 @@ command += oiiotool ("../common/tahoe-tiny.tif " +
                      "--echo \"filename={TOP.filename} file_extension={TOP.file_extension} file_noextension={TOP.file_noextension}\" " +
                      "--echo \"MINCOLOR={TOP.MINCOLOR} MAXCOLOR={TOP.MAXCOLOR} AVGCOLOR={TOP.AVGCOLOR}\"")
 
+command += oiiotool ("--echo \"Testing expressions IS_BLACK, IS_CONSTANT:\" " +
+                     "--pattern:type=uint16 constant:color=0.5,0.5,0.5 4x4 3 " +
+                     "--echo \"  grey is-black? {TOP.IS_BLACK} is-constant? {TOP.IS_CONSTANT}\" " +
+                     "--pattern:type=uint16 constant:color=0,0,0 4x4 3 " +
+                     "--echo \"  black is-black? {TOP.IS_BLACK} is-constant? {TOP.IS_CONSTANT}\" " +
+                     "--pattern:type=uint16 fill:left=0,0,0:right=1,1,1 4x4 3 " +
+                     "--echo \"  gradient is-black? {TOP.IS_BLACK} is-constant? {TOP.IS_CONSTANT}\" "
+                    )
 command += oiiotool (
     "--echo \"Testing NIMAGES:\" " +
     "--echo \"  {NIMAGES}\" " +
