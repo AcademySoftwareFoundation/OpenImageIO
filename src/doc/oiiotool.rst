@@ -163,7 +163,9 @@ contents of an expression may be any of:
     information from when the file was read from disk.
   * `STATS` : a multi-line string containing the image statistics that would
     be printed with `oiiotool -stats`.
-
+  * `IS_CONSTANT`: metadata to check if the image pixels are of constant color, returns 1 if true, and 0 if false.
+  * `IS_BLACK`: metadata to check if the image pixels are all black, a subset of IS_CONSTANT. Also returns 1 if true, and 0 if false.
+  
 * *imagename.'metadata'*
 
   If the metadata name is not a "C identifier" (initial letter followed by

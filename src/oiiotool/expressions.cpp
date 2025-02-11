@@ -317,6 +317,28 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                 result = out.str();
                 if (result.size() && result.back() == '\n')
                     result.pop_back();
+            } else if (metadata == "IS_CONSTANT") {
+                std::vector<float> color((*img)(0, 0).nchannels());
+                if (ImageBufAlgo::isConstantColor((*img)(0, 0), 0.0f, color)) {
+                    result = "1";
+                } else {
+                    result = "0";
+                }
+            } else if (metadata == "IS_BLACK") {
+                std::vector<float> color((*img)(0, 0).nchannels());
+                // Check constant first to guard against false positive average of 0 with negative values i.e. -2, 1, 1
+                if (ImageBufAlgo::isConstantColor((*img)(0, 0), 0.0f, color)) {
+                    // trusting that the constantcolor check means all channels have the same value, so we only check the first channel
+                    if (color[0] == 0.0f) {
+                        result = "1";
+                    } else {
+                        result = "0";
+                    }
+                } else {
+                    // Not even constant color case -> We don't want those to count as black frames.
+                    result = "0";
+                }
+
             } else if (using_bracket) {
                 // For the TOP[meta] syntax, if the metadata doesn't exist,
                 // return the empty string, and do not make an error.
