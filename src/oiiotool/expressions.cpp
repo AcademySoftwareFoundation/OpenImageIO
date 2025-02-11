@@ -317,7 +317,6 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                 result = out.str();
                 if (result.size() && result.back() == '\n')
                     result.pop_back();
-
             } else if (metadata == "IS_CONSTANT") {
                 std::vector<float> color((*img)(0, 0).nchannels());
                 if (ImageBufAlgo::isConstantColor((*img)(0, 0), 0.0f, color)) {
@@ -325,8 +324,6 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                 } else {
                     result = "0";
                 }
-
-
             } else if (metadata == "IS_BLACK") {
                 std::vector<float> color((*img)(0, 0).nchannels());
                 // Check constant first to guard against false positive average of 0 with negative values i.e. -2, 1, 1
