@@ -544,11 +544,7 @@ public:
         return subimg < subimages() ? m_subimages[subimg].spec(mip) : NULL;
     }
 
-    const ImageSpec* nativespec(int subimg = 0, int mip = 0) const
-    {
-        return subimg < subimages() ? &((*this)(subimg, mip).nativespec())
-                                    : nullptr;
-    }
+    const ImageSpec* nativespec(int subimg = 0) const;
 
     bool was_output() const { return m_was_output; }
     void was_output(bool val) { m_was_output = val; }
