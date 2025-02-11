@@ -14,7 +14,7 @@ set (minizip-ng_GIT_TAG "${minizip-ng_BUILD_VERSION}")
 set_cache (minizip-ng_BUILD_SHARED_LIBS OFF
            DOC "Should a local minizip-ng build, if necessary, build shared libraries" ADVANCED)
 
-checked_find_package (ZLIB REQUIRED)
+find_package (ZLIB REQUIRED)
 
 
 build_dependency_with_cmake(minizip-ng
