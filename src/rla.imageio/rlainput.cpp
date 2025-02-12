@@ -63,8 +63,10 @@ private:
         if (!ioread(buf, sizeof(T), nitems))
             return false;
         if (littleendian()
-            && (is_same<T, uint16_t>::value || is_same<T, int16_t>::value
-                || is_same<T, uint32_t>::value || is_same<T, int32_t>::value)) {
+            && (std::is_same<T, uint16_t>::value
+                || std::is_same<T, int16_t>::value
+                || std::is_same<T, uint32_t>::value
+                || std::is_same<T, int32_t>::value)) {
             swap_endian(buf, nitems);
         }
         return true;
@@ -110,10 +112,10 @@ private:
             swap_endian(s, 2);
             swap_endian(&i);
         }
-        out << Strutil::sprintf("%d/%u %d/%u %d/%u %d/%u (%d %d) (%u)\n",
-                                u.c[0], ((char*)u.c)[0], u.c[1],
-                                ((char*)u.c)[1], u.c[2], ((char*)u.c)[2],
-                                u.c[3], ((char*)u.c)[3], s[0], s[1], i);
+        print(out,
+              "{:d}/{:d} {:d}/{:d} {:d}/{:d} {:d}/{:d} ({:d} {:d}) ({:d})\n",
+              u.c[0], ((char*)u.c)[0], u.c[1], ((char*)u.c)[1], u.c[2],
+              ((char*)u.c)[2], u.c[3], ((char*)u.c)[3], s[0], s[1], i);
         ioseek(pos);
     }
 };
@@ -276,7 +278,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
                             ? get_channel_typedesc(m_rla.AuxChannelType,
                                                    m_rla.NumOfAuxBits)
                             : TypeUnknown;
-    TypeDesc maxtype  = ImageBufAlgo::type_merge(col_type, mat_type, aux_type);
+    TypeDesc maxtype  = TypeDesc::basetype_merge(col_type, mat_type, aux_type);
     if (maxtype == TypeUnknown) {
         errorfmt("Failed channel bytes sanity check");
         return false;  // failed sanity check
@@ -400,13 +402,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
         // decisions based on known gamma values. For example, you want
         // 2.2, not 2.19998.
         gamma = roundf(100.0 * gamma) / 100.0f;
-        if (gamma == 1.f)
-            m_spec.attribute("oiio:ColorSpace", "Linear");
-        else {
-            m_spec.attribute("oiio:ColorSpace",
-                             Strutil::fmt::format("Gamma{:.2g}", gamma));
-            m_spec.attribute("oiio:Gamma", gamma);
-        }
+        set_colorspace_rec709_gamma(m_spec, gamma);
     }
 
     float aspect = Strutil::stof(m_rla.AspectRatio);

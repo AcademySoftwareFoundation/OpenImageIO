@@ -8,7 +8,7 @@
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/span.h>
-#include <OpenImageIO/span_util.h>
+#include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/unittest.h>
 
 
@@ -20,12 +20,12 @@ using namespace OIIO;
 // int or float, and also return a string representation.
 template<typename T>
 static std::string
-test_numeric(T* data, int num_elements, TypeDesc type)
+test_numeric(cspan<T> data, TypeDesc type, int num_elements = 1)
 {
-    ParamValue p("name", type, num_elements, data);
+    ParamValue p("name", type, num_elements, data.data());
     int n = type.numelements() * num_elements;
     for (int i = 0; i < n; ++i)
-        OIIO_CHECK_EQUAL(p.get<T>(i), ((const T*)data)[i]);
+        OIIO_CHECK_EQUAL(p.get<T>(i), data[i]);
     if (std::numeric_limits<T>::is_integer) {
         OIIO_CHECK_EQUAL(p.get_int(), int(data[0]));
         for (int i = 0; i < n; ++i)
@@ -50,55 +50,55 @@ test_value_types()
 
     {
         int val = 42;
-        ret     = test_numeric(&val, 1, TypeDesc::INT);
+        ret     = test_numeric(make_cspan(val), TypeDesc::INT);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         unsigned int val = 42;
-        ret              = test_numeric(&val, 1, TypeDesc::UINT);
+        ret              = test_numeric(make_cspan(val), TypeDesc::UINT);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         short val = 42;
-        ret       = test_numeric(&val, 1, TypeDesc::INT16);
+        ret       = test_numeric(make_cspan(val), TypeDesc::INT16);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         unsigned short val = 42;
-        ret                = test_numeric(&val, 1, TypeDesc::UINT16);
+        ret                = test_numeric(make_cspan(val), TypeDesc::UINT16);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         char val = 42;
-        ret      = test_numeric(&val, 1, TypeDesc::INT8);
+        ret      = test_numeric(make_cspan(val), TypeDesc::INT8);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         unsigned char val = 42;
-        ret               = test_numeric(&val, 1, TypeDesc::UINT8);
+        ret               = test_numeric(make_cspan(val), TypeDesc::UINT8);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         float val = 2.25;
-        ret       = test_numeric(&val, 1, TypeDesc::FLOAT);
+        ret       = test_numeric(make_cspan(val), TypeDesc::FLOAT);
         OIIO_CHECK_EQUAL(ret, "2.25");
     }
 
     {
         double val = 2.25;
-        ret        = test_numeric(&val, 1, TypeDesc::DOUBLE);
+        ret        = test_numeric(make_cspan(val), TypeDesc::DOUBLE);
         OIIO_CHECK_EQUAL(ret, "2.25");
     }
 
     {
         half val = 2.25;
-        ret      = test_numeric(&val, 1, TypeDesc::HALF);
+        ret      = test_numeric(make_cspan(val), TypeDesc::HALF);
         OIIO_CHECK_EQUAL(ret, "2.25");
     }
 
@@ -127,36 +127,34 @@ test_value_types()
 
     {
         int imatrix[] = { 100, 200, 300, 400 };
-        ret           = test_numeric(&imatrix[0], 1, TypeInt);
+        ret           = test_numeric(make_cspan(imatrix[0]), TypeInt);
         OIIO_CHECK_EQUAL(ret, "100");
-        ret = test_numeric(imatrix, sizeof(imatrix) / sizeof(int), TypeInt);
+        ret = test_numeric(make_cspan(imatrix), TypeInt, 4);
         OIIO_CHECK_EQUAL(ret, "100, 200, 300, 400");
         OIIO_CHECK_NE(ret, "100, 200, 300, 400,");
         // Test it as an array as well
-        ret = test_numeric(&imatrix[0], 1, TypeDesc(TypeDesc::INT, 4));
+        ret = test_numeric(make_cspan(imatrix), TypeDesc(TypeDesc::INT, 4));
         OIIO_CHECK_EQUAL(ret, "100, 200, 300, 400");
     }
 
     {
         float fmatrix[] = { 10.12f, 200.34f, 300.11f, 400.9f };
-        ret             = test_numeric(&fmatrix[0], 1, TypeFloat);
+        ret             = test_numeric(make_cspan(fmatrix[0]), TypeFloat);
         OIIO_CHECK_EQUAL(ret, "10.12");
-        ret = test_numeric(fmatrix, sizeof(fmatrix) / sizeof(float), TypeFloat);
+        ret = test_numeric(make_cspan(fmatrix), TypeFloat, 4);
         OIIO_CHECK_EQUAL(ret, "10.12, 200.34, 300.11, 400.9");
         OIIO_CHECK_NE(ret, "10, 200, 300, 400");
         OIIO_CHECK_NE(ret, "10.12, 200.34, 300.11, 400.9,");
-        ret = test_numeric(&fmatrix[0], 1, TypeDesc(TypeDesc::FLOAT, 4));
+        ret = test_numeric(make_cspan(fmatrix), TypeDesc(TypeDesc::FLOAT, 4));
         OIIO_CHECK_EQUAL(ret, "10.12, 200.34, 300.11, 400.9");
     }
 
     {
         unsigned long long ullmatrix[] = { 0xffffffffffffffffULL,
                                            0xffffffffffffffffULL };
-        ret = test_numeric(&ullmatrix[0], 1, TypeDesc::UINT64);
+        ret = test_numeric(make_cspan(ullmatrix[0]), TypeDesc::UINT64);
         OIIO_CHECK_EQUAL(ret, "18446744073709551615");
-        ret = test_numeric(ullmatrix,
-                           sizeof(ullmatrix) / sizeof(unsigned long long),
-                           TypeDesc::UINT64);
+        ret = test_numeric(make_cspan(ullmatrix), TypeDesc::UINT64, 2);
         OIIO_CHECK_EQUAL(ret, "18446744073709551615, 18446744073709551615");
         OIIO_CHECK_NE(ret, "-1, -1");
         OIIO_CHECK_NE(ret, "18446744073709551615, 18446744073709551615,");
@@ -203,6 +201,20 @@ test_value_types()
         OIIO_CHECK_EQUAL(p.get_float(), 0.5f);
         // make sure we can retrieve rational as nicely formatted string
         OIIO_CHECK_EQUAL(p.get_string(), "1/2");
+    }
+
+    // Test ptr
+    {
+        int* ptr     = (int*)intptr_t(0xdeadbeef);
+        ParamValue p = make_pv("name", ptr);
+        OIIO_CHECK_EQUAL(p.type(), TypePointer);
+        OIIO_CHECK_EQUAL(p.get<int*>(), ptr);
+    }
+    {
+        const char* str = "foobar";
+        ParamValue p    = make_pv("name", str);
+        OIIO_CHECK_EQUAL(p.type(), TypeString);
+        OIIO_CHECK_EQUAL(p.get_string(), str);
     }
 
     // Double check that short data are "local", long data are allocated
@@ -261,14 +273,30 @@ test_from_string()
 
 
 
+void
+populate_pvl(ParamValueList& pl)
+{
+    pl["foo"]  = 42;
+    pl["pi"]   = float(M_PI);
+    pl["bar"]  = "barbarbar?";
+    pl["bar2"] = std::string("barbarbar?");
+    pl["bar3"] = ustring("barbarbar?");
+    pl["bar4"] = string_view("barbarbar?");
+    pl["red"]  = Imath::Color3f(1.0f, 0.0f, 0.0f);
+    pl["xy"]   = Imath::V3f(0.5f, 0.5f, 0.0f);
+    pl["Tx"]   = Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0, 1);
+}
+
+
+
 static void
 test_paramlist()
 {
     std::cout << "test_paramlist\n";
     ParamValueList pl;
-    pl.emplace_back("foo", int(42));
-    pl.emplace_back("pi", float(M_PI));
-    pl.emplace_back("bar", "barbarbar?");
+    populate_pvl(pl);
+    print("ParamValueList pl heapsize is: {}\n", pvt::heapsize(pl));
+    print("ParamValueList pl footprint is: {}\n", pvt::footprint(pl));
 
     OIIO_CHECK_EQUAL(pl.get_int("foo"), 42);
     OIIO_CHECK_EQUAL(pl.get_int("pi", 4), 4);  // should fail int
@@ -331,15 +359,7 @@ test_delegates()
 {
     std::cout << "test_delegates\n";
     ParamValueList pl;
-    pl["foo"]  = 42;
-    pl["pi"]   = float(M_PI);
-    pl["bar"]  = "barbarbar?";
-    pl["bar2"] = std::string("barbarbar?");
-    pl["bar3"] = ustring("barbarbar?");
-    pl["bar4"] = string_view("barbarbar?");
-    pl["red"]  = Imath::Color3f(1.0f, 0.0f, 0.0f);
-    pl["xy"]   = Imath::V3f(0.5f, 0.5f, 0.0f);
-    pl["Tx"]   = Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0, 1);
+    populate_pvl(pl);
 
     OIIO_CHECK_EQUAL(pl["absent"].get<int>(), 0);
     OIIO_CHECK_EQUAL(pl["absent"].type(), TypeUnknown);
@@ -384,14 +404,136 @@ test_delegates()
 
 
 
+static void
+test_paramlistspan()
+{
+    std::cout << "test_paramlistspan\n";
+    ParamValueList pvlist;
+    populate_pvl(pvlist);
+
+    ParamValueSpan pl(pvlist);
+    OIIO_CHECK_EQUAL(pl.get_int("foo"), 42);
+    OIIO_CHECK_EQUAL(pl.get_int("pi", 4), 4);  // should fail int
+    OIIO_CHECK_EQUAL(pl.get_float("pi"), float(M_PI));
+    OIIO_CHECK_EQUAL(pl.get_int("bar"), 0);
+    OIIO_CHECK_EQUAL(pl.get_int("bar"), 0);
+    OIIO_CHECK_EQUAL(pl.get_string("bar"), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl.get_string("foo"), "42");
+    OIIO_CHECK_ASSERT(pl.find("foo") != pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("Foo", TypeUnknown, true) == pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("Foo", TypeDesc::UNKNOWN, false) != pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("Foo", TypeDesc::UNKNOWN, true) == pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("foo", TypeDesc::INT) != pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("foo", TypeDesc::FLOAT) == pl.cend());
+
+    OIIO_CHECK_ASSERT(pl.contains("foo"));
+    OIIO_CHECK_ASSERT(!pl.contains("nonono"));
+
+    OIIO_CHECK_EQUAL(pl["absent"].get<int>(), 0);
+    OIIO_CHECK_EQUAL(pl["absent"].type(), TypeUnknown);
+    OIIO_CHECK_EQUAL(pl["foo"].get<int>(), 42);
+    OIIO_CHECK_EQUAL(pl["foo"].type(), TypeInt);
+    OIIO_CHECK_EQUAL(pl["foo"].as_string(), "42");
+    OIIO_CHECK_EQUAL(pl["pi"].get<float>(), float(M_PI));
+    OIIO_CHECK_EQUAL(pl["bar"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar"].get<string_view>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar"].get<ustring>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar"].as_string(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar2"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar3"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar4"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["red"].get<Imath::Color3f>(),
+                     Imath::Color3f(1.0f, 0.0f, 0.0f));
+    std::vector<float> redvec { 1.0f, 0.0f, 0.0f };
+    OIIO_CHECK_EQUAL(pl["red"].as_vec<float>(), redvec);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(0), 1.0f);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(1), 0.0f);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(2), 0.0f);
+    OIIO_CHECK_EQUAL(pl["xy"].get<Imath::V3f>(), Imath::V3f(0.5f, 0.5f, 0.0f));
+    OIIO_CHECK_EQUAL(pl["Tx"].get<Imath::M44f>(),
+                     Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0,
+                                 1));
+}
+
+
+
+static void
+print_pv(const ParamValue& pv)
+{
+    print("  {} : {} '{}'\n", pv.name(), pv.type(), pv.get_string());
+}
+
+
+
+static void
+print_pvspan(string_view explain, ParamValueSpan pvl)
+{
+    print("{}:\n", explain);
+    for (auto&& pv : pvl)
+        print_pv(pv);
+}
+
+
+
+static void
+test_implied_construction()
+{
+    print("Testing construction of PVs from {{name,value}} pairs:\n");
+
+    // Make sure we can pass a simple pair to something that takes PV
+    print_pv({ "foo_i", 42 });
+    print_pv({ "bar_f", 42.5f });
+    print_pv({ "bar_s", "forty two" });
+
+    // Test passing a ParamValueSpan from an immediate initializer list
+    print_pvspan("Testing of PVS from span of pairs",
+                 { { "foo_i", 42 },
+                   { "bar_f", 42.5f },
+                   { "bar_s", "forty two" } });
+
+    // Test passing a PVL to something that expects a PVS
+    ParamValueList pvl;
+    pvl["i"]    = 1;
+    pvl["f"]    = 2.5f;
+    pvl["s"]    = "forty two";
+    pvl["i42s"] = "42";
+    pvl["zero"] = 0;
+    print_pvspan("Testing of PVS from PVL", pvl);
+
+    ParamValueSpan pvs(pvl);
+    OIIO_CHECK_EQUAL(pvs.data(), pvl.data());  // make sure it wraps the PVL
+    OIIO_CHECK_EQUAL(size_t(pvs.size()), size_t(pvl.size()));
+    OIIO_CHECK_EQUAL(pvs[1].name(), pvl[1].name());  // check []
+    OIIO_CHECK_EQUAL(pvs[1].get<float>(), 2.5f);     // not found
+    OIIO_CHECK_EQUAL(pvs.find("s")->data(), pvl.find("s")->data());
+    OIIO_CHECK_EQUAL(pvs.find("unknown"), pvs.end());
+    OIIO_CHECK_EQUAL(pvs.get_int("i"), 1);
+    OIIO_CHECK_EQUAL(pvs.get_float("i"), 1.0f);
+    OIIO_CHECK_EQUAL(pvs.get_float("i42s"), 42.0f);
+    OIIO_CHECK_EQUAL(pvs.get_string("i"), "1");
+    OIIO_CHECK_EQUAL(pvs.get_string("zero"), "0");
+    OIIO_CHECK_EQUAL(pvs.get_int("zero"), 0);
+    OIIO_CHECK_EQUAL(pvs.get_bool("zero"), false);
+    OIIO_CHECK_EQUAL(pvs.get_bool("i"), true);
+    OIIO_CHECK_EQUAL(pvs.get_bool("f"), true);
+    OIIO_CHECK_EQUAL(pvs.get_bool("s"), true);
+    OIIO_CHECK_EQUAL(pvs.get_bool("unknown"), false);
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
-    std::cout << "ParamValue size = " << sizeof(ParamValue) << "\n";
+    print("sizeof(ParamValue) is: {}\n", sizeof(ParamValue));
+    print("sizeof(ParamValueList) is: {}\n", sizeof(ParamValueList));
+
     test_value_types();
     test_from_string();
     test_paramlist();
     test_delegates();
+    test_implied_construction();
+    test_paramlistspan();
 
     return unit_test_failures;
 }

@@ -1235,7 +1235,7 @@ ImageBufAlgo::color_map(ImageBuf& dst, const ImageBuf& src, int srcchannel,
         dst.errorfmt("invalid source channel selected");
         return false;
     }
-    if (nknots < 2 || knots.size() < (nknots * channels)) {
+    if (nknots < 2 || std::ssize(knots) < (nknots * channels)) {
         dst.errorfmt("not enough knot values supplied");
         return false;
     }

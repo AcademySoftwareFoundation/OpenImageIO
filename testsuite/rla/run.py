@@ -18,8 +18,8 @@ for f in files:
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR +
                      "/ginsu_rgb_nc8.rla -crop 100x100+100+100 -o rlacrop.rla")
 # Test corrupted files
-command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/rla/crash1.rla -o crash1.exr", failureok = True)
-command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/rla/crash2.rla -o crash2.exr", failureok = True)
+command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/crash1.rla -o crash1.exr", failureok = True)
+command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/crash2.rla -o crash2.exr", failureok = True)
 command += oiiotool("src/crash-1629.rla -o crash3.exr", failureok = True)
 command += oiiotool("src/crash-3951.rla -o crash4.exr", failureok = True)
 

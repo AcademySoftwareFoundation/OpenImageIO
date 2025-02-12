@@ -139,15 +139,15 @@ WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
             // WebP requires unassociated alpha, and it's sRGB.
             // Handle this all by wrapping an IB around it.
             ImageSpec specwrap(m_spec.width, m_spec.height, 4, TypeUInt8);
-            ImageBuf bufwrap(specwrap, &m_uncompressed_image[0]);
+            ImageBuf bufwrap(specwrap, cspan<uint8_t>(m_uncompressed_image));
             ROI rgbroi(0, m_spec.width, 0, m_spec.height, 0, 1, 0, 3);
             ImageBufAlgo::pow(bufwrap, bufwrap, 2.2f, rgbroi);
             ImageBufAlgo::unpremult(bufwrap, bufwrap);
             ImageBufAlgo::pow(bufwrap, bufwrap, 1.0f / 2.2f, rgbroi);
-            WebPPictureImportRGBA(&m_webp_picture, &m_uncompressed_image[0],
+            WebPPictureImportRGBA(&m_webp_picture, m_uncompressed_image.data(),
                                   m_scanline_size);
         } else {
-            WebPPictureImportRGB(&m_webp_picture, &m_uncompressed_image[0],
+            WebPPictureImportRGB(&m_webp_picture, m_uncompressed_image.data(),
                                  m_scanline_size);
         }
         if (!WebPEncode(&m_webp_config, &m_webp_picture)) {

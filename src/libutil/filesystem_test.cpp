@@ -224,7 +224,10 @@ test_file_status()
     std::cout << "Testing is_directory, is_regular, is_executable\n";
     OIIO_CHECK_ASSERT(Filesystem::is_regular("testfile"));
     OIIO_CHECK_ASSERT(!Filesystem::is_directory("testfile"));
+#ifndef _WIN32
+    // Directories look "executable" on Unix, not on Windows
     OIIO_CHECK_ASSERT(!Filesystem::is_executable("testfile"));
+#endif
     OIIO_CHECK_ASSERT(!Filesystem::is_regular("testdir"));
     OIIO_CHECK_ASSERT(Filesystem::is_directory("testdir"));
     OIIO_CHECK_ASSERT(!Filesystem::is_executable("testdir"));
@@ -509,7 +512,7 @@ test_scan_sequences()
     std::vector<std::string> filenames;
 
     for (size_t i = 1; i <= 5; i++) {
-        std::string fn = Strutil::sprintf("foo.%04d.exr", i);
+        std::string fn = Strutil::fmt::format("foo.{:04d}.exr", i);
         filenames.push_back(fn);
         create_test_file(fn);
     }
@@ -528,7 +531,8 @@ test_scan_sequences()
     Filesystem::create_directory("left/l");
 
     for (size_t i = 1; i <= 5; i++) {
-        std::string fn = Strutil::sprintf("left/l/foo_left_l.%04d.exr", i);
+        std::string fn = Strutil::fmt::format("left/l/foo_left_l.{:04d}.exr",
+                                              i);
         filenames.push_back(fn);
         create_test_file(fn);
     }
@@ -603,6 +607,44 @@ test_last_write_time()
 
 
 
+void
+test_getline()
+{
+    const char* contents    = "Line 1\n"
+                              "Line 2\n"
+                              "Really really really long long line line 3\n"
+                              "Line 4\n"
+                              "Line 5 no newline";
+    const char* tmpfilename = "getline.txt";
+    Filesystem::write_text_file(tmpfilename, contents);
+
+    FILE* in = Filesystem::fopen(tmpfilename, "r");
+    OIIO_CHECK_ASSERT(in != nullptr);
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "Line 1\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "Line 2\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30),
+                     "Really really really long long");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), " line line 3\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "Line 4\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "");  // EOF before \n
+    fclose(in);
+
+    // Again, with a complete line at the end to be sure we read it
+    Filesystem::write_text_file(tmpfilename, "Line 1\n"
+                                             "Line 2\n");
+    in = Filesystem::fopen(tmpfilename, "r");
+    OIIO_CHECK_ASSERT(in != nullptr);
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "Line 1\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "Line 2\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "");
+    OIIO_CHECK_ASSERT(feof(in));
+    fclose(in);
+
+    Filesystem::remove(tmpfilename);
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -613,6 +655,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_scan_sequences();
     test_mem_proxies();
     test_last_write_time();
+    test_getline();
 
     return unit_test_failures;
 }

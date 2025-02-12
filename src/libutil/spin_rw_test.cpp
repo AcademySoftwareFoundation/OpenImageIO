@@ -85,13 +85,16 @@ getargs(int argc, char* argv[])
     ap.arg("-v", &verbose)
       .help("Verbose mode");
     ap.arg("--threads %d", &numthreads)
-      .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
+      .help(Strutil::fmt::format("Number of threads (default: {})",
+                                 numthreads));
     ap.arg("--iters %d", &iterations)
-      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+      .help(Strutil::fmt::format("Number of iterations (default: {})",
+                                 iterations));
     ap.arg("--trials %d", &ntrials)
       .help("Number of trials");
     ap.arg("--rwratio %d", &read_write_ratio)
-       .help(Strutil::sprintf("Reader::writer ratio (default: %d)", read_write_ratio));
+       .help(Strutil::fmt::format("Reader::writer ratio (default: {})",
+                                 read_write_ratio));
     ap.arg("--wedge", &wedge)
       .help("Do a wedge test");
     // clang-format on
@@ -118,7 +121,7 @@ main(int argc, char* argv[])
         int its = iterations / nt;
 
         double range;
-        double t = time_trial(std::bind(test_spin_rw, nt, its), ntrials,
+        double t = time_trial(std::bind(test_spin_rw, nt, its), ntrials, 1,
                               &range);
 
         Strutil::printf("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n", nt,

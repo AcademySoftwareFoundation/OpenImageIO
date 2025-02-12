@@ -3,9 +3,9 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 if (VERBOSE)
-   message (STATUS "Create imagio_pvt.h from imageio_pvt.h.in")
+   message (STATUS "Create buildopts.h from buildopts.h.in")
 endif ()
-configure_file (imageio_pvt.h.in "${CMAKE_BINARY_DIR}/include/imageio_pvt.h" @ONLY)
+configure_file (buildopts.h.in "${CMAKE_BINARY_DIR}/include/buildopts.h" @ONLY)
 
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 
@@ -55,7 +55,9 @@ set (libOpenImageIO_srcs
                           imagebufalgo_minmaxchan.cpp
                           imagebufalgo_orient.cpp
                           imagebufalgo_xform.cpp
-                          imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
+                          imagebufalgo_demosaic.cpp
+                          imagebufalgo_yee.cpp
+                          imagebufalgo_yee.cpp
                           deepdata.cpp exif.cpp exif-canon.cpp
                           formatspec.cpp
                           icc.cpp imagebuf.cpp
@@ -66,6 +68,7 @@ set (libOpenImageIO_srcs
                           maketexture.cpp
                           bluenoise.cpp
                           printinfo.cpp
+                          oiio_gpu.cpp
                           ../libtexture/texturesys.cpp
                           ../libtexture/texture3d.cpp
                           ../libtexture/environment.cpp
@@ -85,7 +88,9 @@ if (EMBEDPLUGINS)
                                 PRIVATE
                                     EMBED_PLUGINS=1
                                     ${format_plugin_definitions})
-    target_include_directories (OpenImageIO
+    target_compile_options (OpenImageIO
+                            PRIVATE ${format_plugin_compile_options})
+    target_include_directories (OpenImageIO BEFORE
                                 PRIVATE ${format_plugin_include_dirs})
 
     # Organize the embedded plugins into source folders
@@ -119,8 +124,7 @@ endif ()
 target_compile_definitions(OpenImageIO
               PRIVATE
                   OIIO_FREETYPE_VERSION="${FREETYPE_VERSION_STRING}"
-                  OIIO_OpenCV_VERSION="${OpenCV_VERSION}"
-                  OIIO_PYTHON_VERSION="${Python_VERSION}"
+                  OIIO_PYTHON_VERSION="${Python3_VERSION}"
                   OIIO_QT_VERSION="${Qt6_VERSION}${Qt5_VERSION}"
                   OIIO_TBB_VERSION="${TBB_VERSION}"
              )
@@ -137,7 +141,6 @@ target_include_directories (OpenImageIO
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
                             )
-target_include_directories (OpenImageIO SYSTEM PUBLIC ${OpenCV_INCLUDES})
 
 if (NOT BUILD_SHARED_LIBS)
     target_compile_definitions (OpenImageIO PUBLIC OIIO_STATIC_DEFINE=1)
@@ -154,16 +157,14 @@ target_link_libraries (OpenImageIO
             ${OPENIMAGEIO_IMATH_TARGETS}
         PRIVATE
             ${OPENIMAGEIO_OPENEXR_TARGETS}
-            ${OpenCV_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
-            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
+            OpenColorIO::OpenColorIO
             $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
             $<TARGET_NAME_IF_EXISTS:pugixml::pugixml>
             $<TARGET_NAME_IF_EXISTS:TBB::tbb>
             $<TARGET_NAME_IF_EXISTS:Freetype::Freetype>
             ${BZIP2_LIBRARIES}
             ZLIB::ZLIB
-            $<TARGET_NAME_IF_EXISTS:Boost::thread>
             ${CMAKE_DL_LIBS}
         )
 
@@ -174,6 +175,8 @@ endif()
 if (MINGW)
     target_link_libraries (OpenImageIO PRIVATE ws2_32)
 endif()
+
+oiio_cuda_target (OpenImageIO)
 
 file (GLOB iba_sources "imagebufalgo_*.cpp")
 if (MSVC)
@@ -209,6 +212,7 @@ if (CMAKE_UNITY_BUILD)
         endif ()
     endforeach ()
     set_property (SOURCE ${iba_sources} APPEND PROPERTY SKIP_UNITY_BUILD_INCLUSION TRUE)
+    set_property (SOURCE ../openvdb.imageio/openvdbinput.cpp APPEND PROPERTY SKIP_UNITY_BUILD_INCLUSION TRUE)
 endif ()
 
 set_target_properties(OpenImageIO
@@ -227,53 +231,63 @@ if (UNIX AND NOT APPLE)
 endif ()
 set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS ${OpenImageIO_LINK_FLAGS})
 
-install_targets (OpenImageIO)
+if (SKBUILD)
+    install_targets (NAMELINK_SKIP OpenImageIO )
+else ()
+    install_targets (OpenImageIO)
+endif ()
+
 
 
 # Testing
 
 if (OIIO_BUILD_TESTS AND BUILD_TESTING)
 
-    add_executable (color_test color_test.cpp)
-    target_link_libraries (color_test PRIVATE OpenImageIO)
-    set_target_properties (color_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME color_test SRC color_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_color ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_test)
 
-    add_executable (imagebuf_test imagebuf_test.cpp)
-    target_link_libraries (imagebuf_test PRIVATE OpenImageIO)
-    set_target_properties (imagebuf_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME imagebuf_test SRC imagebuf_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_imagebuf ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebuf_test)
 
-    add_executable (imagecache_test imagecache_test.cpp)
-    target_link_libraries (imagecache_test PRIVATE OpenImageIO)
-    set_target_properties (imagecache_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME imagecache_test SRC imagecache_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_imagecache ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagecache_test)
 
-    add_executable (imagebufalgo_test imagebufalgo_test.cpp)
-    target_link_libraries (imagebufalgo_test PRIVATE OpenImageIO ${OpenCV_LIBRARIES})
-    set_target_properties (imagebufalgo_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME imagebufalgo_test SRC imagebufalgo_test.cpp
+                          SYSTEM_INCLUDE_DIRS
+                                ${ROBINMAP_INCLUDES}
+                                ${OpenCV_INCLUDES}            
+                          LINK_LIBRARIES OpenImageIO
+                                         ${OpenCV_LIBRARIES}
+                                         ${OPENIMAGEIO_IMATH_TARGETS}
+                          FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_imagebufalgo ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebufalgo_test)
 
-    add_executable (imagespec_test imagespec_test.cpp)
-    target_link_libraries (imagespec_test PRIVATE OpenImageIO)
-    set_target_properties (imagespec_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME imagespec_test SRC imagespec_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_imagespec ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagespec_test)
 
-    add_executable (imageinout_test imageinout_test.cpp)
-    target_link_libraries (imageinout_test PRIVATE OpenImageIO)
-    set_target_properties (imageinout_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME imageinout_test SRC imageinout_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_imageinout ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imageinout_test)
 
     if (NOT DEFINED ENV{OpenImageIO_CI})
-        add_executable (imagespeed_test imagespeed_test.cpp)
-        target_link_libraries (imagespeed_test PRIVATE OpenImageIO)
-        set_target_properties (imagespeed_test PROPERTIES FOLDER "Unit Tests")
+        fancy_add_executable (NAME imagespeed_test SRC imagespeed_test.cpp
+                              LINK_LIBRARIES OpenImageIO
+                              FOLDER "Unit Tests" NO_INSTALL)
         #add_test (imagespeed_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagespeed_test)
     endif ()
 
-    add_executable (compute_test compute_test.cpp)
-    target_link_libraries (compute_test PRIVATE OpenImageIO)
-    set_target_properties (compute_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME compute_test SRC compute_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_compute ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/compute_test)
 
 endif ()

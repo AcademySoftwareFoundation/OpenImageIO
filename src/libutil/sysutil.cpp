@@ -61,18 +61,14 @@
 #endif
 
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/ustring.h>
 
-#include <boost/version.hpp>
-#if BOOST_VERSION >= 106500
-#    ifndef _GNU_SOURCE
-#        define _GNU_SOURCE
-#    endif
-#    if !defined(OIIO_DISABLE_BOOST_STACKTRACE)
-#        include <boost/stacktrace.hpp>
-#    endif
+#if __has_include(<stacktrace>) && __cpp_lib_stacktrace >= 202011L
+#    include <stacktrace>
+#    define HAVE_STACKTRACE 1
 #endif
 
 OIIO_INTEL_PRAGMA(warning disable 2196)
@@ -300,15 +296,6 @@ Sysutil::getenv(string_view name, string_view defaultval)
 
 
 
-string_view
-Sysutil::getenv(string_view name)
-{
-    const char* env = ::getenv(std::string(name).c_str());
-    return string_view(env ? env : "");
-}
-
-
-
 void
 Sysutil::usleep(unsigned long useconds)
 {
@@ -516,7 +503,7 @@ Term::ansi_fgcolor(int r, int g, int b)
         r   = std::max(0, std::min(255, r));
         g   = std::max(0, std::min(255, g));
         b   = std::max(0, std::min(255, b));
-        ret = Strutil::sprintf("\033[38;2;%d;%d;%dm", r, g, b);
+        ret = Strutil::fmt::format("\033[38;2;{};{};{}m", r, g, b);
     }
     return ret;
 }
@@ -531,7 +518,7 @@ Term::ansi_bgcolor(int r, int g, int b)
         r   = std::max(0, std::min(255, r));
         g   = std::max(0, std::min(255, g));
         b   = std::max(0, std::min(255, b));
-        ret = Strutil::sprintf("\033[48;2;%d;%d;%dm", r, g, b);
+        ret = Strutil::fmt::format("\033[48;2;{};{};{}m", r, g, b);
     }
     return ret;
 }
@@ -565,9 +552,8 @@ Sysutil::put_in_background(int argc, char* argv[])
     // Simplest case:
     // daemon returns 0 if successful, thus return true if successful
     return daemon(1, 1) == 0;
-#endif
 
-#if defined(__APPLE__) && TARGET_OS_OSX
+#elif defined(__APPLE__) && TARGET_OS_OSX
     std::string newcmd = std::string(argv[0]) + " -F";
     for (int i = 1; i < argc; ++i) {
         newcmd += " \"";
@@ -578,28 +564,20 @@ Sysutil::put_in_background(int argc, char* argv[])
     if (system(newcmd.c_str()) != -1)
         exit(0);
     return true;
-#endif
 
-#ifdef _WIN32
+#elif defined(_WIN32)
     return true;
-#endif
 
+#else
     // Otherwise, we don't know what to do
     return false;
+#endif
 }
 
 
 
 unsigned int
 Sysutil::hardware_concurrency()
-{
-    return std::thread::hardware_concurrency();
-}
-
-
-
-unsigned int
-Sysutil::physical_concurrency()
 {
     return std::thread::hardware_concurrency();
 }
@@ -646,12 +624,21 @@ aligned_free(void* ptr)
 
 
 
+// Notes on stacktrace:
+//
+// To shed the boost dependency, we are disabling stacktrace for now. It's not
+// vital and probably not worth keeping boost just for that.
+//
+// C++23 has std::stacktrace, so as compilers add support for this, we will
+// phase it back in.
+
+
 std::string
 Sysutil::stacktrace()
 {
-#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
+#ifdef HAVE_STACKTRACE
     std::stringstream out;
-    out << boost::stacktrace::stacktrace();
+    out << std::stacktrace::current();
     return out.str();
 #else
     return "";
@@ -660,8 +647,7 @@ Sysutil::stacktrace()
 
 
 
-#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
-
+#ifdef HAVE_STACKTRACE
 static std::string stacktrace_filename;
 static std::mutex stacktrace_filename_mutex;
 
@@ -675,14 +661,12 @@ stacktrace_signal_handler(int signum)
         else if (stacktrace_filename == "stderr")
             std::cerr << Sysutil::stacktrace();
         else {
-#    if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
-            boost::stacktrace::safe_dump_to(stacktrace_filename.c_str());
-#    endif
+            Filesystem::write_text_file(stacktrace_filename,
+                                        Sysutil::stacktrace());
         }
     }
     ::raise(SIGABRT);
 }
-
 #endif
 
 
@@ -690,14 +674,15 @@ stacktrace_signal_handler(int signum)
 bool
 Sysutil::setup_crash_stacktrace(string_view filename)
 {
-#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
+#ifdef HAVE_STACKTRACE
     std::lock_guard<std::mutex> lock(stacktrace_filename_mutex);
     stacktrace_filename = filename;
     ::signal(SIGSEGV, &stacktrace_signal_handler);
     ::signal(SIGABRT, &stacktrace_signal_handler);
     return true;
-#endif
+#else
     return false;
+#endif
 }
 
 

@@ -40,3 +40,6 @@ d8810c5365ea88e2b1bce6155b7b495c18f2f9bc
 # style: update our formatting standard to clang-format 17.0 and C++17 (#4096)
 c618d45e13dcc382fb07a948be84b8074d1ed481
 b88b82ffe9b3c4fcf04bf17bacc4ee77b2d1ed92
+
+# style: Turn on clang-format for ivmain.cpp (#4382)
+55872131ada91e0fa3b8bc4519e335b352d284df

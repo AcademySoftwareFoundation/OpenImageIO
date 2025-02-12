@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-#include <boost/container/flat_map.hpp>
+#include <tsl/robin_map.h>
 
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -222,7 +222,7 @@ static XMPtag xmptag[] = {
 
 
 class XMPtagMap {
-    typedef boost::container::flat_map<std::string, const XMPtag*> tagmap_t;
+    typedef tsl::robin_map<std::string, const XMPtag*> tagmap_t;
     // Key is lower case so it's effectively case-insensitive
 public:
     XMPtagMap(const XMPtag* tag_table)
@@ -515,24 +515,6 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
 
 
 
-// DEPRECATED(2.1)
-bool
-decode_xmp(const std::string& xml, ImageSpec& spec)
-{
-    return decode_xmp(string_view(xml), spec);
-}
-
-
-
-// DEPRECATED(2.1)
-bool
-decode_xmp(const char* xml, ImageSpec& spec)
-{
-    return decode_xmp(string_view(xml), spec);
-}
-
-
-
 bool
 decode_xmp(cspan<uint8_t> xml, ImageSpec& spec)
 {
@@ -592,26 +574,26 @@ decode_xmp(string_view xml, ImageSpec& spec)
 // Turn one ParamValue (whose xmp info we know) into a properly
 // serialized xmp string.
 static std::string
-stringize(const ParamValueList::const_iterator& p, const XMPtag& xmptag)
+stringize(const ParamValue& p, const XMPtag& xmptag)
 {
-    if (p->type() == TypeDesc::STRING) {
+    if (p.type() == TypeDesc::STRING) {
         if (xmptag.special & DateConversion) {
             // FIXME -- convert to yyyy-mm-ddThh:mm:ss.sTZD
             // return std::string();
         }
-        return std::string(*(const char**)p->data());
-    } else if (p->type() == TypeDesc::INT) {
+        return p.get_string();
+    } else if (p.type() == TypeDesc::INT) {
         if (xmptag.special & IsBool)
-            return *(const int*)p->data() ? "True" : "False";
+            return *(const int*)p.data() ? "True" : "False";
         else  // ordinary int
-            return Strutil::sprintf("%d", *(const int*)p->data());
-    } else if (p->type() == TypeDesc::FLOAT) {
+            return p.get_string();
+    } else if (p.type() == TypeDesc::FLOAT) {
         if (xmptag.special & Rational) {
             unsigned int num, den;
-            float_to_rational(*(const float*)p->data(), num, den);
-            return Strutil::sprintf("%d/%d", num, den);
+            float_to_rational(p.get<float>(), num, den);
+            return Strutil::fmt::format("{}/{}", num, den);
         } else {
-            return Strutil::sprintf("%g", *(const float*)p->data());
+            return p.get_string();
         }
     }
     return std::string();
@@ -624,13 +606,12 @@ gather_xmp_attribs(const ImageSpec& spec,
                    std::vector<std::pair<const XMPtag*, std::string>>& list)
 {
     // Loop over all params...
-    for (ParamValueList::const_iterator p = spec.extra_attribs.begin();
-         p != spec.extra_attribs.end(); ++p) {
+    for (const auto& p : spec.extra_attribs) {
         // For this param, see if there's a table entry with a matching
         // name, where the xmp name is in the right category.
-        const XMPtag* tag = xmp_tagmap_ref().find(p->name());
+        const XMPtag* tag = xmp_tagmap_ref().find(p.name());
         if (tag) {
-            if (!Strutil::iequals(p->name(), tag->oiioname))
+            if (!Strutil::iequals(p.name(), tag->oiioname))
                 continue;  // Name doesn't match
             if (tag->special & Suppress) {
                 break;  // Purposely suppressing
@@ -689,20 +670,20 @@ encode_xmp_category(std::vector<std::pair<const XMPtag*, std::string>>& list,
         if (Strutil::istarts_with(xmpname, pattern)) {
             std::string x;
             if (control == XMP_attribs)
-                x = Strutil::sprintf("%s=\"%s\"", xmpname, val);
+                x = Strutil::fmt::format("{}=\"{}\"", xmpname, val);
             else if (control == XMP_AltList || control == XMP_BagList) {
                 std::vector<std::string> vals;
                 Strutil::split(val, vals, ";");
                 for (auto& val : vals) {
                     val = Strutil::strip(val);
-                    x += Strutil::sprintf("<rdf:li>%s</rdf:li>", val);
+                    x += Strutil::fmt::format("<rdf:li>{}</rdf:li>", val);
                 }
             } else
-                x = Strutil::sprintf("<%s>%s</%s>", xmpname, val, xmpname);
+                x = Strutil::fmt::format("<{}>{}</{}>", xmpname, val, xmpname);
             if (!x.empty() && control != XMP_suppress) {
                 if (!found) {
                     // if (nodename && nodename[0]) {
-                    //    x = Strutil::sprintf("<%s ", nodename);
+                    //    x = Strutil::fmt::format("<{} ", nodename);
                     // }
                 }
                 if (minimal
@@ -735,29 +716,29 @@ encode_xmp_category(std::vector<std::pair<const XMPtag*, std::string>>& list,
 #if 1
     if (xmp.length()) {
         if (control == XMP_BagList)
-            xmp = Strutil::sprintf("<%s><rdf:Bag> %s </rdf:Bag></%s>",
-                                   nodename ? nodename : xmlnamespace, xmp,
-                                   nodename ? nodename : xmlnamespace);
+            xmp = Strutil::fmt::format("<{}><rdf:Bag> {} </rdf:Bag></{}>",
+                                       nodename ? nodename : xmlnamespace, xmp,
+                                       nodename ? nodename : xmlnamespace);
         else if (control == XMP_SeqList)
-            xmp = Strutil::sprintf("<%s><rdf:Seq> %s </rdf:Seq></%s>",
-                                   nodename ? nodename : xmlnamespace, xmp,
-                                   nodename ? nodename : xmlnamespace);
+            xmp = Strutil::fmt::format("<{}><rdf:Seq> {} </rdf:Seq></{}>",
+                                       nodename ? nodename : xmlnamespace, xmp,
+                                       nodename ? nodename : xmlnamespace);
         else if (control == XMP_AltList)
-            xmp = Strutil::sprintf("<%s><rdf:Alt> %s </rdf:Alt></%s>",
-                                   nodename ? nodename : xmlnamespace, xmp,
-                                   nodename ? nodename : xmlnamespace);
+            xmp = Strutil::fmt::format("<{}><rdf:Alt> {} </rdf:Alt></{}>",
+                                       nodename ? nodename : xmlnamespace, xmp,
+                                       nodename ? nodename : xmlnamespace);
 #    if 0
         else if (control == XMP_nodes)
-            xmp = Strutil::sprintf("<%s>%s</%s>",
+            xmp = Strutil::fmt::format("<{}>{}</{}>",
                                    nodename ? nodename : xmlnamespace, xmp,
                                    nodename ? nodename : xmlnamespace);
 #    endif
 
         std::string r;
-        r += Strutil::sprintf("<rdf:Description rdf:about=\"\" "
-                              "xmlns:%s=\"%s\"%s",
-                              xmlnamespace, url,
-                              (control == XMP_attribs) ? " " : ">");
+        r += Strutil::fmt::format("<rdf:Description rdf:about=\"\" "
+                                  "xmlns:{}=\"{}\"{}",
+                                  xmlnamespace, url,
+                                  (control == XMP_attribs) ? " " : ">");
         r += xmp;
         if (control == XMP_attribs)
             r += "/> ";  // end the <rdf:Description...

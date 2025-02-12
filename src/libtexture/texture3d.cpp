@@ -18,7 +18,6 @@
 #include <OpenImageIO/texture.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
-#include <OpenImageIO/varyingref.h>
 
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
@@ -48,7 +47,54 @@ float2float(float val)
 
 }  // end anonymous namespace
 
-namespace pvt {  // namespace pvt
+bool
+TextureSystem::texture3d(ustring filename, TextureOpt& options, V3fParam P,
+                         V3fParam dPdx, V3fParam dPdy, V3fParam dPdz,
+                         int nchannels, float* result, float* dresultds,
+                         float* dresultdt, float* dresultdr)
+{
+    return m_impl->texture3d(filename, options, P, dPdx, dPdy, dPdz, nchannels,
+                             result, dresultds, dresultdt, dresultdr);
+}
+
+
+bool
+TextureSystem::texture3d(TextureHandle* texture_handle, Perthread* thread_info,
+                         TextureOpt& options, V3fParam P, V3fParam dPdx,
+                         V3fParam dPdy, V3fParam dPdz, int nchannels,
+                         float* result, float* dresultds, float* dresultdt,
+                         float* dresultdr)
+{
+    return m_impl->texture3d(texture_handle, thread_info, options, P, dPdx,
+                             dPdy, dPdz, nchannels, result, dresultds,
+                             dresultdt, dresultdr);
+}
+
+
+bool
+TextureSystem::texture3d(ustring filename, TextureOptBatch& options,
+                         Tex::RunMask mask, const float* P, const float* dPdx,
+                         const float* dPdy, const float* dPdz, int nchannels,
+                         float* result, float* dresultds, float* dresultdt,
+                         float* dresultdr)
+{
+    return m_impl->texture3d(filename, options, mask, P, dPdx, dPdy, dPdz,
+                             nchannels, result, dresultds, dresultdt,
+                             dresultdr);
+}
+
+
+bool
+TextureSystem::texture3d(TextureHandle* texture_handle, Perthread* thread_info,
+                         TextureOptBatch& options, Tex::RunMask mask,
+                         const float* P, const float* dPdx, const float* dPdy,
+                         const float* dPdz, int nchannels, float* result,
+                         float* dresultds, float* dresultdt, float* dresultdr)
+{
+    return m_impl->texture3d(texture_handle, thread_info, options, mask, P,
+                             dPdx, dPdy, dPdz, nchannels, result, dresultds,
+                             dresultdt, dresultdr);
+}
 
 
 
@@ -197,66 +243,6 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
         fill_gray_channels(spec, nchannels, result, dresultds, dresultdt,
                            dresultdr);
     return ok;
-}
-
-
-
-bool
-TextureSystemImpl::texture3d(ustring filename, TextureOptions& options,
-                             Runflag* runflags, int beginactive, int endactive,
-                             VaryingRef<Imath::V3f> P,
-                             VaryingRef<Imath::V3f> dPdx,
-                             VaryingRef<Imath::V3f> dPdy,
-                             VaryingRef<Imath::V3f> dPdz, int nchannels,
-                             float* result, float* dresultds, float* dresultdt,
-                             float* dresultdr)
-{
-#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
-    return false;
-#else
-    Perthread* thread_info        = get_perthread_info();
-    TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
-    return texture3d(texture_handle, thread_info, options, runflags,
-                     beginactive, endactive, P, dPdx, dPdy, dPdz, nchannels,
-                     result, dresultds, dresultdt, dresultdr);
-#endif
-}
-
-
-
-bool
-TextureSystemImpl::texture3d(
-    TextureHandle* texture_handle, Perthread* thread_info,
-    TextureOptions& options, Runflag* runflags, int beginactive, int endactive,
-    VaryingRef<Imath::V3f> P, VaryingRef<Imath::V3f> dPdx,
-    VaryingRef<Imath::V3f> dPdy, VaryingRef<Imath::V3f> dPdz, int nchannels,
-    float* result, float* dresultds, float* dresultdt, float* dresultdr)
-{
-#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
-    return false;
-#else
-    bool ok = true;
-    result += beginactive * nchannels;
-    if (dresultds) {
-        dresultds += beginactive * nchannels;
-        dresultdt += beginactive * nchannels;
-    }
-    for (int i = beginactive; i < endactive; ++i) {
-        if (runflags[i]) {
-            TextureOpt opt(options, i);
-            ok &= texture3d(texture_handle, thread_info, opt, P[i], dPdx[i],
-                            dPdy[i], dPdz[i], 4, result, dresultds, dresultdt,
-                            dresultdr);
-        }
-        result += nchannels;
-        if (dresultds) {
-            dresultds += nchannels;
-            dresultdt += nchannels;
-            dresultdr += nchannels;
-        }
-    }
-    return ok;
-#endif
 }
 
 
@@ -774,7 +760,5 @@ TextureSystemImpl::texture3d(ustring filename, TextureOptBatch& options,
                      dPdz, nchannels, result, dresultds, dresultdt, dresultdr);
 }
 
-
-}  // end namespace pvt
 
 OIIO_NAMESPACE_END

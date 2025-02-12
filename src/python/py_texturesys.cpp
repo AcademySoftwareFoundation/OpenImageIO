@@ -44,14 +44,11 @@ public:
 // Make a special wrapper to help with the weirdo way we use create/destroy.
 class TextureSystemWrap {
 public:
-    struct TSDeleter {
-        void operator()(TextureSystem* p) const { TextureSystem::destroy(p); }
-    };
-    std::unique_ptr<TextureSystem, TSDeleter> m_texsys;
+    std::shared_ptr<TextureSystem> m_texsys;
 
 
     TextureSystemWrap(bool shared = true)
-        : m_texsys(TextureSystem::create(shared, nullptr))
+        : m_texsys(TextureSystem::create(shared))
     {
     }
     TextureSystemWrap(const TextureSystemWrap&) = delete;
@@ -59,7 +56,7 @@ public:
     ~TextureSystemWrap() {}  // will call the deleter on the m_texsys
     static void destroy(TextureSystemWrap* x)
     {
-        TextureSystem::destroy(x->m_texsys.release());
+        TextureSystem::destroy(x->m_texsys);
     }
 };
 
@@ -159,10 +156,7 @@ declare_textureopt(py::module& m)
         .def_readwrite("fill", &TextureOptWrap::fill)
         .def_property("missingcolor", &TextureOptWrap::get_missingcolor,
                       &TextureOptWrap::set_missingcolor)
-        .def_readwrite("time", &TextureOptWrap::time)
-        .def_readwrite("bias", &TextureOptWrap::bias)  // DEPRECATED(2.4)
         .def_readwrite("rnd", &TextureOptWrap::rnd)
-        .def_readwrite("samples", &TextureOptWrap::samples)
         .def_property(
             "rwrap",
             [](const TextureOptWrap& texopt) { return (Tex::Wrap)texopt.rwrap; },

@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <set>
 #include <vector>
 
 #include <OpenImageIO/filesystem.h>
@@ -117,6 +118,14 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
+static std::set<std::string> metadata_include { "oiio:ConstantColor",
+                                                "oiio:AverageColor",
+                                                "oiio:SHA-1" };
+static std::set<std::string> metadata_exclude {
+    "XResolution",    "YResolution", "PixelAspectRatio",
+    "ResolutionUnit", "Orientation", "ImageDescription"
+};
+
 bool
 JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                 OpenMode mode)
@@ -229,7 +238,38 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                           comment.size() + 1);
     }
 
-    if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"), "sRGB"))
+    // Write other metadata as JPEG comments if requested
+    if (m_spec.get_int_attribute("jpeg:com_attributes")) {
+        for (const auto& p : m_spec.extra_attribs) {
+            std::string name = p.name().string();
+            auto colon       = name.find(':');
+            if (metadata_include.count(name)) {
+                // Allow explicitly included metadata
+            } else if (metadata_exclude.count(name))
+                continue;  // Suppress metadata that is processed separately
+            else if (Strutil::istarts_with(name, "ICCProfile"))
+                continue;  // Suppress ICC profile, gets written separately
+            else if (colon != ustring::npos) {
+                auto prefix = p.name().substr(0, colon);
+                if (Strutil::iequals(prefix, "oiio"))
+                    continue;  // Suppress internal metadata
+                else if (Strutil::iequals(prefix, "exif")
+                         || Strutil::iequals(prefix, "GPS")
+                         || Strutil::iequals(prefix, "XMP"))
+                    continue;  // Suppress EXIF metadata, gets written separately
+                else if (Strutil::iequals(prefix, "iptc"))
+                    continue;  // Suppress IPTC metadata
+                else if (is_imageio_format_name(prefix))
+                    continue;  // Suppress format-specific metadata
+            }
+            auto data = p.name().string() + ":" + p.get_string();
+            jpeg_write_marker(&m_cinfo, JPEG_COM, (JOCTET*)data.c_str(),
+                              data.size());
+        }
+    }
+
+    if (equivalent_colorspace(m_spec.get_string_attribute("oiio:ColorSpace"),
+                              "sRGB"))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Write EXIF info
@@ -248,8 +288,8 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
 
     // Write IPTC IIM metadata tags, if we have anything
     std::vector<char> iptc;
-    encode_iptc_iim(m_spec, iptc);
-    if (iptc.size()) {
+    if (m_spec.get_int_attribute("jpeg:iptc", 1)
+        && encode_iptc_iim(m_spec, iptc)) {
         static char photoshop[] = "Photoshop 3.0";
         std::vector<char> head(photoshop, photoshop + strlen(photoshop) + 1);
         static char _8BIM[] = "8BIM";
@@ -280,36 +320,33 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     m_spec.set_format(TypeDesc::UINT8);  // JPG is only 8 bit
 
     // Write ICC profile, if we have anything
-    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
-        ICC_PROFILE_ATTR);
-    if (icc_profile_parameter != NULL) {
-        unsigned char* icc_profile
-            = (unsigned char*)icc_profile_parameter->data();
-        unsigned int icc_profile_length = icc_profile_parameter->type().size();
-        if (icc_profile && icc_profile_length) {
+    if (auto icc_profile_parameter = m_spec.find_attribute(ICC_PROFILE_ATTR)) {
+        cspan<unsigned char> icc_profile((unsigned char*)
+                                             icc_profile_parameter->data(),
+                                         icc_profile_parameter->type().size());
+        if (icc_profile.size() && icc_profile.data()) {
             /* Calculate the number of markers we'll need, rounding up of course */
-            int num_markers = icc_profile_length / MAX_DATA_BYTES_IN_MARKER;
-            if ((unsigned int)(num_markers * MAX_DATA_BYTES_IN_MARKER)
-                != icc_profile_length)
+            size_t num_markers = icc_profile.size() / MAX_DATA_BYTES_IN_MARKER;
+            if (num_markers * MAX_DATA_BYTES_IN_MARKER
+                != std::size(icc_profile))
                 num_markers++;
-            int curr_marker     = 1; /* per spec, count starts at 1*/
-            size_t profile_size = MAX_DATA_BYTES_IN_MARKER + ICC_HEADER_SIZE;
-            std::vector<JOCTET> profile(profile_size);
+            int curr_marker = 1; /* per spec, count starts at 1*/
+            std::vector<JOCTET> profile(MAX_DATA_BYTES_IN_MARKER
+                                        + ICC_HEADER_SIZE);
+            size_t icc_profile_length = icc_profile.size();
             while (icc_profile_length > 0) {
                 // length of profile to put in this marker
-                unsigned int length
-                    = std::min(icc_profile_length,
-                               (unsigned int)MAX_DATA_BYTES_IN_MARKER);
+                size_t length = std::min(icc_profile_length,
+                                         size_t(MAX_DATA_BYTES_IN_MARKER));
                 icc_profile_length -= length;
                 // Write the JPEG marker header (APP2 code and marker length)
                 strcpy((char*)profile.data(), "ICC_PROFILE");  // NOSONAR
                 profile[11] = 0;
                 profile[12] = curr_marker;
                 profile[13] = (JOCTET)num_markers;
-                OIIO_ASSERT(profile_size >= ICC_HEADER_SIZE + length);
-                memcpy(profile.data() + ICC_HEADER_SIZE,
-                       icc_profile + length * (curr_marker - 1),
-                       length);  //NOSONAR
+                OIIO_ASSERT(profile.size() >= ICC_HEADER_SIZE + length);
+                spancpy(make_span(profile), ICC_HEADER_SIZE, icc_profile,
+                        length * (curr_marker - 1), length);
                 jpeg_write_marker(&m_cinfo, JPEG_APP0 + 2, profile.data(),
                                   ICC_HEADER_SIZE + length);
                 curr_marker++;
@@ -435,11 +472,11 @@ JpgOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 {
     y -= m_spec.y;
     if (y != m_next_scanline) {
-        errorf("Attempt to write scanlines out of order to %s", m_filename);
+        errorfmt("Attempt to write scanlines out of order to {}", m_filename);
         return false;
     }
     if (y >= (int)m_cinfo.image_height) {
-        errorf("Attempt to write too many scanlines to %s", m_filename);
+        errorfmt("Attempt to write too many scanlines to {}", m_filename);
         return false;
     }
     assert(y == (int)m_cinfo.next_scanline);

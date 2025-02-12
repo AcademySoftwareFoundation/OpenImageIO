@@ -219,7 +219,7 @@ Jpeg2000Output::write_scanline(int y, int z, TypeDesc format, const void* data,
 {
     y -= m_spec.y;
     if (y > m_spec.height) {
-        errorf("Attempt to write too many scanlines to %s", m_filename);
+        errorfmt("Attempt to write too many scanlines to {}", m_filename);
         return false;
     }
 
@@ -319,7 +319,7 @@ Jpeg2000Output::save_image()
 
     m_stream = opj_stream_default_create(false /* is_input */);
     if (!m_stream) {
-        errorf("Failed write jpeg2000::save_image");
+        errorfmt("Failed write jpeg2000::save_image");
         return false;
     }
 
@@ -332,7 +332,7 @@ Jpeg2000Output::save_image()
     if (!opj_start_compress(m_codec, m_image, m_stream)
         || !opj_encode(m_codec, m_stream)
         || !opj_end_compress(m_codec, m_stream)) {
-        errorf("Failed write jpeg2000::save_image");
+        errorfmt("Failed write jpeg2000::save_image");
         return false;
     }
 

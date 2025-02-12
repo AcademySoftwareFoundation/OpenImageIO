@@ -4,10 +4,11 @@
 
 #pragma once
 
-#include <png.h>
+#include <libpng16/png.h>
 #include <zlib.h>
 
 #include <OpenImageIO/Imath.h>
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
@@ -223,31 +224,23 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     int srgb_intent;
     double gamma = 0.0;
     if (png_get_sRGB(sp, ip, &srgb_intent)) {
-        spec.attribute("oiio:ColorSpace", "sRGB");
+        spec.set_colorspace("sRGB");
     } else if (png_get_gAMA(sp, ip, &gamma) && gamma > 0.0) {
         // Round gamma to the nearest hundredth to prevent stupid
         // precision choices and make it easier for apps to make
         // decisions based on known gamma values. For example, you want
         // 2.2, not 2.19998.
         float g = float(1.0 / gamma);
-        g       = roundf(100.0 * g) / 100.0f;
-        spec.attribute("oiio:Gamma", g);
-        if (g == 1.0f)
-            spec.attribute("oiio:ColorSpace", "linear");
-        else
-            spec.attribute("oiio:ColorSpace", Strutil::sprintf("Gamma%.2g", g));
+        g       = roundf(100.0f * g) / 100.0f;
+        set_colorspace_rec709_gamma(spec, g);
     } else {
         // If there's no info at all, assume sRGB.
-        spec.attribute("oiio:ColorSpace", "sRGB");
+        set_colorspace(spec, "sRGB");
     }
 
     if (png_get_valid(sp, ip, PNG_INFO_iCCP)) {
-        png_charp profile_name = NULL;
-#if OIIO_LIBPNG_VERSION > 10500 /* PNG function signatures changed */
-        png_bytep profile_data = NULL;
-#else
-        png_charp profile_data = NULL;
-#endif
+        png_charp profile_name     = nullptr;
+        png_bytep profile_data     = nullptr;
         png_uint_32 profile_length = 0;
         int compression_type;
         png_get_iCCP(sp, ip, &profile_name, &compression_type, &profile_data,
@@ -258,7 +251,8 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
                            profile_data);
             std::string errormsg;
             bool ok = decode_icc_profile(
-                cspan<uint8_t>((const uint8_t*)profile_data, profile_length),
+                cspan<uint8_t>((const uint8_t*)profile_data,
+                               span_size_t(profile_length)),
                 spec, errormsg);
             if (!ok) {
                 // errorfmt("Could not decode ICC profile: {}\n", errormsg);
@@ -270,10 +264,11 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
     png_timep mod_time;
     if (png_get_tIME(sp, ip, &mod_time)) {
-        std::string date = Strutil::sprintf("%4d:%02d:%02d %02d:%02d:%02d",
-                                            mod_time->year, mod_time->month,
-                                            mod_time->day, mod_time->hour,
-                                            mod_time->minute, mod_time->second);
+        std::string date
+            = Strutil::fmt::format("{:4d}:{:02d}:{:02d} {:02d}:{:02d}:{:02d}",
+                                   mod_time->year, mod_time->month,
+                                   mod_time->day, mod_time->hour,
+                                   mod_time->minute, mod_time->second);
         spec.attribute("DateTime", date);
     }
 
@@ -303,15 +298,22 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     int unit;
     png_uint_32 resx, resy;
     if (png_get_pHYs(sp, ip, &resx, &resy, &unit)) {
-        float scale = 1;
         if (unit == PNG_RESOLUTION_METER) {
             // Convert to inches, to match most other formats
-            scale = 2.54 / 100.0;
+            float scale = 2.54f / 100.0f;
+            float rx    = resx * scale;
+            float ry    = resy * scale;
+            // Round to nearest 0.1
+            rx = std::round(10.0f * rx) / 10.0f;
+            ry = std::round(10.0f * ry) / 10.0f;
             spec.attribute("ResolutionUnit", "inch");
-        } else
+            spec.attribute("XResolution", rx);
+            spec.attribute("YResolution", ry);
+        } else {
             spec.attribute("ResolutionUnit", "none");
-        spec.attribute("XResolution", (float)resx * scale);
-        spec.attribute("YResolution", (float)resy * scale);
+            spec.attribute("XResolution", (float)resx);
+            spec.attribute("YResolution", (float)resy);
+        }
     }
 
     float aspect = (float)png_get_pixel_aspect_ratio(sp, ip);
@@ -334,7 +336,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     png_uint_32 num_exif = 0;
     png_bytep exif_data  = nullptr;
     if (png_get_eXIf_1(sp, ip, &num_exif, &exif_data)) {
-        decode_exif(cspan<uint8_t>(exif_data, num_exif), spec);
+        decode_exif(cspan<uint8_t>(exif_data, span_size_t(num_exif)), spec);
     }
 #endif
 
@@ -429,9 +431,9 @@ create_write_struct(png_structp& sp, png_infop& ip, int& color_type,
 {
     // Check for things this format doesn't support
     if (spec.width < 1 || spec.height < 1)
-        return Strutil::sprintf("Image resolution must be at least 1x1, "
-                                "you asked for %d x %d",
-                                spec.width, spec.height);
+        return Strutil::fmt::format("Image resolution must be at least 1x1, "
+                                    "you asked for {} x {}",
+                                    spec.width, spec.height);
     if (spec.depth < 1)
         spec.depth = 1;
     if (spec.depth > 1)
@@ -455,8 +457,8 @@ create_write_struct(png_structp& sp, png_infop& ip, int& color_type,
         spec.alpha_channel = 3;
         break;
     default:
-        return Strutil::sprintf("PNG only supports 1-4 channels, not %d",
-                                spec.nchannels);
+        return Strutil::fmt::format("PNG only supports 1-4 channels, not {}",
+                                    spec.nchannels);
     }
     // N.B. PNG is very rigid about the meaning of the channels, so enforce
     // which channel is alpha, that's the only way PNG can do it.
@@ -572,7 +574,8 @@ put_parameter(png_structp& sp, png_infop& ip, const std::string& _name,
 ///
 inline const std::string
 write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
-           std::vector<png_text>& text, bool& convert_alpha, float& gamma)
+           std::vector<png_text>& text, bool& convert_alpha, bool& srgb,
+           float& gamma)
 {
     // Force either 16 or 8 bit integers
     if (spec.format == TypeDesc::UINT8 || spec.format == TypeDesc::INT8)
@@ -596,11 +599,14 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 
     gamma = spec.get_float_attribute("oiio:Gamma", 1.0);
 
+    const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
     string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
-    if (Strutil::iequals(colorspace, "Linear")) {
+    if (colorconfig.equivalent(colorspace, "scene_linear")
+        || colorconfig.equivalent(colorspace, "lin_rec709")) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0);
+        srgb = false;
     } else if (Strutil::istarts_with(colorspace, "Gamma")) {
         Strutil::parse_word(colorspace);
         float g = Strutil::from_string<float>(colorspace);
@@ -609,30 +615,37 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
-    } else if (Strutil::iequals(colorspace, "sRGB")) {
+        srgb = false;
+    } else if (colorconfig.equivalent(colorspace, "g22_rec709")) {
+        gamma = 2.2f;
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG gAMA chunk";
+        png_set_gAMA(sp, ip, 1.0f / gamma);
+        srgb = false;
+    } else if (colorconfig.equivalent(colorspace, "g18_rec709")) {
+        gamma = 1.8f;
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG gAMA chunk";
+        png_set_gAMA(sp, ip, 1.0f / gamma);
+        srgb = false;
+    } else if (colorconfig.equivalent(colorspace, "sRGB")) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA and cHRM chunk";
         png_set_sRGB_gAMA_and_cHRM(sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
+        srgb = true;
     }
 
     // Write ICC profile, if we have anything
     const ParamValue* icc_profile_parameter = spec.find_attribute(
         ICC_PROFILE_ATTR);
-    if (icc_profile_parameter != NULL) {
+    if (icc_profile_parameter != nullptr) {
         unsigned int length = icc_profile_parameter->type().size();
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG iCCP chunk";
-#if OIIO_LIBPNG_VERSION > 10500 /* PNG function signatures changed */
         unsigned char* icc_profile
             = (unsigned char*)icc_profile_parameter->data();
         if (icc_profile && length)
             png_set_iCCP(sp, ip, "Embedded Profile", 0, icc_profile, length);
-#else
-        char* icc_profile = (char*)icc_profile_parameter->data();
-        if (icc_profile && length)
-            png_set_iCCP(sp, ip, (png_charp) "Embedded Profile", 0, icc_profile,
-                         length);
-#endif
     }
 
     if (false && !spec.find_attribute("DateTime")) {
@@ -640,11 +653,11 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         time(&now);
         struct tm mytm;
         Sysutil::get_local_time(&now, &mytm);
-        std::string date = Strutil::sprintf("%4d:%02d:%02d %02d:%02d:%02d",
-                                            mytm.tm_year + 1900,
-                                            mytm.tm_mon + 1, mytm.tm_mday,
-                                            mytm.tm_hour, mytm.tm_min,
-                                            mytm.tm_sec);
+        std::string date
+            = Strutil::fmt::format("{:4d}:{:02d}:{:02d} {:02d}:{:02d}:{:02d}",
+                                   mytm.tm_year + 1900, mytm.tm_mon + 1,
+                                   mytm.tm_mday, mytm.tm_hour, mytm.tm_min,
+                                   mytm.tm_sec);
         spec.attribute("DateTime", date);
     }
 

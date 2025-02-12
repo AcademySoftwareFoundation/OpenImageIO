@@ -150,13 +150,24 @@ rla_type(TypeDesc t)
 
 
 
-/// Version of snprintf that is type safe and locale independent.
-template<typename... Args>
-inline int
-safe_snprintf(char* str, size_t size, const char* fmt, const Args&... args)
+// Formatted string into a fixed-length char array whose length we can't
+// exceed.
+template<size_t N, typename... Args>
+inline void
+safe_format_to(char (&str)[N], const char* fmt, const Args&... args)
 {
-    std::string s = Strutil::sprintf(fmt, args...);
-    return snprintf(str, size, "%s", s.c_str());
+    std::string s = Strutil::fmt::format(fmt, args...);
+    Strutil::safe_strcpy(str, s, N);
+}
+
+
+// Formatted string into an array whose length (passed) we can't exceed.
+template<typename... Args>
+inline void
+safe_format_to(char str[], size_t N, const char* fmt, const Args&... args)
+{
+    std::string s = Strutil::fmt::format(fmt, args...);
+    Strutil::safe_strcpy(str, s, N);
 }
 
 

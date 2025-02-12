@@ -223,6 +223,16 @@ OIIO_UTIL_API int fseek (FILE *file, int64_t offset, int whence);
 /// Version of ftell that works with 64 bit offsets on all systems.
 OIIO_UTIL_API int64_t ftell (FILE *file);
 
+/// Read one line of text from an open text file file until the hitting a
+/// newline, reaching `maxlen` characters without encountering a newline, or
+/// reaching the end of the file, and return the characters read as a
+/// std::string. The newline will be included in the returned string, unless
+/// the line was too long, in which case the string returned will be the
+/// partial result with no newline at the end. If an error occurs or if the
+/// end of the file is encountered before either a newline is reached or
+/// maxlen characters are read, an empty string will be returned.
+OIIO_UTIL_API std::string getline(FILE* file, size_t maxlen = 4096);
+
 /// Return the current (".") directory path.
 ///
 OIIO_UTIL_API std::string current_path ();
@@ -412,7 +422,7 @@ public:
     virtual const char* proxytype () const = 0;
     virtual void close () { }
     virtual bool opened () const { return mode() != Closed; }
-    virtual int64_t tell () { return m_pos; }
+    virtual int64_t tell() const { return m_pos; }
     // Seek to the position, returning true on success, false on failure.
     // Note the difference between this and std::fseek() which returns 0 on
     // success, and -1 on failure.
@@ -440,7 +450,7 @@ public:
 
     // Return the total size of the proxy data, in bytes.
     virtual size_t size () const { return 0; }
-    virtual void flush () const { }
+    virtual void flush() { }
 
     Mode mode () const { return m_mode; }
     const std::string& filename () const { return m_filename; }
@@ -471,7 +481,7 @@ protected:
 };
 
 
-/// IOProxy subclass for reading or writing (but not both) that wraps C
+/// IOProxy subclass for reading or writing (plus re-reading) that wraps C
 /// stdio 'FILE'.
 class OIIO_UTIL_API IOFile : public IOProxy {
 public:
@@ -491,7 +501,7 @@ public:
     size_t pread(void* buf, size_t size, int64_t offset) override;
     size_t pwrite(const void* buf, size_t size, int64_t offset) override;
     size_t size() const override;
-    void flush() const override;
+    void flush() override;
 
     // Access the FILE*
     FILE* handle() const { return m_file; }
@@ -521,7 +531,9 @@ public:
     {
     }
     const char* proxytype() const override { return "vecoutput"; }
+    size_t read(void* buf, size_t size) override;
     size_t write(const void* buf, size_t size) override;
+    size_t pread(void* buf, size_t size, int64_t offset) override;
     size_t pwrite(const void* buf, size_t size, int64_t offset) override;
     size_t size() const override { return m_buf.size(); }
 

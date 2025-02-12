@@ -36,9 +36,31 @@
 #ifndef _DPX_ENDIANSWAP_H
 #define _DPX_ENDIANSWAP_H 1
 
+#include <OpenImageIO/fmath.h>
+
+#define USE_OIIO_BYTESWAP 1
+
 
 namespace dpx
 {
+
+#if USE_OIIO_BYTESWAP
+
+template<typename T>
+inline T
+SwapBytes(T& value)
+{
+    return value = OIIO::byteswap(value);
+}
+
+template<typename T>
+void
+SwapBuffer(T* buf, size_t len)
+{
+    OIIO::byteswap_span(OIIO::span<T>(buf, OIIO::span_size_t(len)));
+}
+
+#else
 
 template <typename T>
 T SwapBytes(T& value)
@@ -91,6 +113,8 @@ void SwapBuffer(T *buf, unsigned int len)
 	for (unsigned int i = 0; i < len; i++)
 		SwapBytes(buf[i]);
 }
+
+#endif
 
 
 template <DataSize SIZE>

@@ -10,6 +10,17 @@
 
 // Note: libdpx originally from: https://github.com/PatrickPalmer/dpx
 // But that seems not to be actively maintained.
+//
+// Nevertheless, because the contents of the libdpx subdirectory is "imported"
+// code, we have always strived to keep our copy as textually close to the
+// original as possible, to enable us to diff it against the original and keep
+// up with any changes (if there ever are any). So we exclude this file from
+// clang-format and try to keep changes as minimal as possible.
+//
+// At some point, we may want to consider just accepting that we forked long
+// ago and are probably the sole maintainers of this code, and just allow
+// ourselves to diverge from the original.
+
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 #include "libdpx/DPXHeader.h"
@@ -28,7 +39,7 @@ public:
     const char* format_name(void) const override { return "dpx"; }
     int supports(string_view feature) const override
     {
-        return (feature == "ioproxy");
+        return (feature == "ioproxy" || feature == "multiimage");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
@@ -128,13 +139,13 @@ DPXInput::open(const std::string& name, ImageSpec& newspec)
 
     m_stream = new InStream(ioproxy());
     if (!m_stream) {
-        errorf("Could not open file \"%s\"", name);
+        errorfmt("Could not open file \"{}\"", name);
         return false;
     }
 
     m_dpx.SetInStream(m_stream);
     if (!m_dpx.ReadHeader()) {
-        errorf("Could not read header");
+        errorfmt("Could not read header");
         close();
         return false;
     }
@@ -192,7 +203,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         break;
     case dpx::kFloat: typedesc = TypeDesc::FLOAT; break;
     case dpx::kDouble: typedesc = TypeDesc::DOUBLE; break;
-    default: errorf("Invalid component data size"); return false;
+    default: errorfmt("Invalid component data size"); return false;
     }
     m_spec = ImageSpec(m_dpx.header.Width(), m_dpx.header.Height(),
                        m_dpx.header.ImageElementComponentCount(subimage),
@@ -275,7 +286,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     default: {
         for (int i = 0; i < m_dpx.header.ImageElementComponentCount(subimage);
              i++) {
-            std::string ch = Strutil::sprintf("channel%d", i);
+            std::string ch = Strutil::fmt::format("channel{}", i);
             m_spec.channelnames.push_back(ch);
         }
     }
@@ -297,19 +308,16 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     }
     m_spec.attribute("Orientation", orientation);
 
+    m_spec.attribute("oiio:subimages", (int)m_dpx.header.ImageElementCount());
+
     // image linearity
     switch (m_dpx.header.Transfer(subimage)) {
-    case dpx::kLinear: m_spec.attribute("oiio:ColorSpace", "Linear"); break;
-    case dpx::kLogarithmic:
-        m_spec.attribute("oiio:ColorSpace", "KodakLog");
-        break;
-    case dpx::kITUR709: m_spec.attribute("oiio:ColorSpace", "Rec709"); break;
+    case dpx::kLinear: m_spec.set_colorspace("Linear"); break;
+    case dpx::kLogarithmic: m_spec.set_colorspace("KodakLog"); break;
+    case dpx::kITUR709: m_spec.set_colorspace("Rec709"); break;
     case dpx::kUserDefined:
         if (!std::isnan(m_dpx.header.Gamma()) && m_dpx.header.Gamma() != 0) {
-            float g = float(m_dpx.header.Gamma());
-            m_spec.attribute("oiio:ColorSpace",
-                             Strutil::sprintf("Gamma%.2g", g));
-            m_spec.attribute("oiio:Gamma", g);
+            set_colorspace_rec709_gamma(m_spec, float(m_dpx.header.Gamma()));
             break;
         }
         // intentional fall-through
@@ -526,7 +534,8 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         // don't set the attribute at all
         break;
     default:
-        tmpstr = Strutil::sprintf("Undefined %d", (int)m_dpx.header.Signal());
+        tmpstr = Strutil::fmt::format("Undefined {}",
+                                      (int)m_dpx.header.Signal());
         break;
     }
     if (!tmpstr.empty())

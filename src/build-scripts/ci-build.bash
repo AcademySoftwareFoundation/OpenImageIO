@@ -12,6 +12,7 @@ OIIO_CMAKE_FLAGS="$MY_CMAKE_FLAGS $OIIO_CMAKE_FLAGS"
 export OIIO_SRC_DIR=${OIIO_SRC_DIR:=$PWD}
 export OIIO_BUILD_DIR=${OIIO_BUILD_DIR:=${OIIO_SRC_DIR}/build}
 export OIIO_INSTALL_DIR=${OIIO_INSTALL_DIR:=${OIIO_SRC_DIR}/dist}
+export OIIO_CMAKE_BUILD_TYPE=${OIIO_CMAKE_BUILD_TYPE:=${CMAKE_BUILD_TYPE:=Release}}
 
 if [[ "$USE_SIMD" != "" ]] ; then
     OIIO_CMAKE_FLAGS="$OIIO_CMAKE_FLAGS -DUSE_SIMD=$USE_SIMD"
@@ -32,7 +33,7 @@ fi
 
 # pushd $OIIO_BUILD_DIR
 cmake -S $OIIO_SRC_DIR -B $OIIO_BUILD_DIR -G "$CMAKE_GENERATOR" \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
+        -DCMAKE_BUILD_TYPE="${OIIO_CMAKE_BUILD_TYPE}" \
         -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
         -DCMAKE_INSTALL_PREFIX="$OpenImageIO_ROOT" \
         -DPYTHON_VERSION="$PYTHON_VERSION" \
@@ -43,7 +44,7 @@ cmake -S $OIIO_SRC_DIR -B $OIIO_BUILD_DIR -G "$CMAKE_GENERATOR" \
         $OIIO_CMAKE_FLAGS -DVERBOSE=1
 
 # Save a copy of the generated files for debugging broken CI builds.
-mkdir ${OIIO_BUILD_DIR}/cmake-save || /bin/true
+mkdir ${OIIO_BUILD_DIR}/cmake-save || true
 cp -r ${OIIO_BUILD_DIR}/CMake* ${OIIO_BUILD_DIR}/*.cmake ${OIIO_BUILD_DIR}/cmake-save
 
 : ${BUILDTARGET:=install}

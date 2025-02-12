@@ -39,11 +39,6 @@ test_format()
     OIIO_CHECK_EQUAL(Strutil::sprintf("%d", int64_t(0xffffffffffffffff)), "-1");
     OIIO_CHECK_EQUAL(Strutil::sprintf("%u", uint64_t(0xffffffffffffffff)), "18446744073709551615");
 
-#ifndef OIIO_HIDE_FORMAT
-    // spot check that Strutil::old::format() is sprintf:
-    OIIO_CHECK_EQUAL(Strutil::old::format("%d",1), "1");
-#endif
-
     // Test formatting with Strutil::fmt::format(), which uses the
     // Python conventions:
     OIIO_CHECK_EQUAL(Strutil::fmt::format("{} {:f} {}", int(3), 3.14f, 3.14f),
@@ -63,15 +58,6 @@ test_format()
     OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", uint64_t(0xffffffffffffffff)), "18446744073709551615");
     OIIO_CHECK_EQUAL(Strutil::fmt::format("{} {:f} {:g}", int(3), 3.14f, 3.14f),
                      "3 3.140000 3.14");
-
-#ifndef OIIO_HIDE_FORMAT
-    // Check that Strutil::format is aliased the right way
-#    if OIIO_FORMAT_IS_FMT
-    OIIO_CHECK_EQUAL(Strutil::format("{}", 1), "1");
-#    else
-    OIIO_CHECK_EQUAL(Strutil::format("%d", 1), "1");
-#    endif
-#endif
 
     Benchmarker bench;
     bench.indent (2);
@@ -346,13 +332,13 @@ void
 test_hash()
 {
     using namespace Strutil;
-    OIIO_CHECK_EQUAL(strhash("foo"), 6150913649986995171);
-    OIIO_CHECK_EQUAL(strhash(std::string("foo")), 6150913649986995171);
-    OIIO_CHECK_EQUAL(strhash(string_view("foo")), 6150913649986995171);
+    OIIO_CHECK_EQUAL(strhash("foo"), size_t(6150913649986995171));
+    OIIO_CHECK_EQUAL(strhash(std::string("foo")), size_t(6150913649986995171));
+    OIIO_CHECK_EQUAL(strhash(string_view("foo")), size_t(6150913649986995171));
     OIIO_CHECK_EQUAL(strhash(""), 0);  // empty string hashes to 0
     // Check longer hash and ensure that it's really constexpr
     constexpr size_t hash = Strutil::strhash("much longer string");
-    OIIO_CHECK_EQUAL(hash, 16257490369375554819ULL);
+    OIIO_CHECK_EQUAL(hash, size_t(16257490369375554819ULL));
 }
 
 
@@ -464,12 +450,16 @@ test_comparisons()
     OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcde", "BC"), 1);
     OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcde", "ac"), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcde", ""), 0);
+    OIIO_CHECK_EQUAL(Strutil::ifind("Xabcdeabcde", "x"), 0);
+    OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcdeX", "x"), 10);
     OIIO_CHECK_EQUAL(Strutil::ifind("", "abc"), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::ifind("", ""), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", "bc"), 6);
     OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", "BC"), 6);
     OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", "ac"), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", ""), 10);
+    OIIO_CHECK_EQUAL(Strutil::irfind("Xabcdeabcde", "x"), 0);
+    OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcdeX", "x"), 10);
     OIIO_CHECK_EQUAL(Strutil::irfind("", "abc"), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::irfind("", ""), std::string::npos);
 
@@ -901,6 +891,7 @@ test_numeric_conversion()
     OIIO_CHECK_EQUAL(Strutil::stoi("-12345678901234567890"),
                      std::numeric_limits<int>::min());
     OIIO_CHECK_EQUAL(Strutil::stoi("0x100", nullptr, 16), 256);  // hex
+    OIIO_CHECK_EQUAL(Strutil::stoi("25555555555555555551"), 2147483647);
 
     OIIO_CHECK_EQUAL(Strutil::stoui("hi"), 0);
     OIIO_CHECK_EQUAL(Strutil::stoui("  "), 0);
@@ -1498,6 +1489,16 @@ void test_parse ()
     OIIO_CHECK_EQUAL (ss, ""); OIIO_CHECK_EQUAL (s, "");
     s = "(blah"; ss = parse_nested (s);
     OIIO_CHECK_EQUAL (ss, ""); OIIO_CHECK_EQUAL (s, "(blah");
+
+    OIIO_CHECK_EQUAL(string_is_identifier("valid"), true);
+    OIIO_CHECK_EQUAL(string_is_identifier("_underscore"), true);
+    OIIO_CHECK_EQUAL(string_is_identifier("with123numbers"), true);
+    OIIO_CHECK_EQUAL(string_is_identifier("123invalidStart"), false);
+    OIIO_CHECK_EQUAL(string_is_identifier("invalid-char"), false);
+    OIIO_CHECK_EQUAL(string_is_identifier(""), false);
+    OIIO_CHECK_EQUAL(string_is_identifier("a"), true);
+    OIIO_CHECK_EQUAL(string_is_identifier("_"), true);
+    OIIO_CHECK_EQUAL(string_is_identifier("1"), false);
 }
 
 
@@ -1673,6 +1674,53 @@ test_base64_encode()
 
 
 
+void
+test_eval_as_bool()
+{
+    using namespace Strutil;
+    print("testing eval_as_bool()\n");
+
+    // Test cases for integer values
+    OIIO_CHECK_EQUAL(eval_as_bool("0"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("1"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("-1"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("10"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("-10"), true);
+
+    // Test cases for floating-point values
+    OIIO_CHECK_EQUAL(eval_as_bool("0.0"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("1.0"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("-1.0"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("10.5"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("-10.5"), true);
+
+    // Test cases for string values
+    OIIO_CHECK_EQUAL(eval_as_bool(""), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("false"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("FALSE"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("no"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("NO"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("off"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("OFF"), false);
+
+    OIIO_CHECK_EQUAL(eval_as_bool("true"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("TRUE"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("yes"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("YES"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("on"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("ON"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("OpenImageIO"), true);
+
+    // Test whitespace, case insensitivity, other tricky cases
+    OIIO_CHECK_EQUAL(eval_as_bool("   "), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("\t \n"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool(" faLsE"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("\tOFf"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("off OpenImageIO"), true);
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -1708,6 +1756,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_datetime();
     test_edit_distance();
     test_base64_encode();
+    test_eval_as_bool();
 
     Strutil::debug("debug message\n");
 

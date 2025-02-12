@@ -1,0 +1,112 @@
+Reading src/blender-render.jpg
+src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
+    SHA-1: A60D05FC42FDEE2FC8907531E3641C17D7C1E3AB
+    channel list: R, G, B
+    Blender:Camera: "Camera"
+    Blender:Date: "2024/09/17 15:50:17"
+    Blender:File: "<untitled>"
+    Blender:Frame: "001"
+    Blender:RenderTime: "00:03.49"
+    Blender:Scene: "Scene"
+    Blender:Time: "00:00:00:01"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+Comparing "src/blender-render.jpg" and "no-attribs.jpg"
+PASS
+Reading no-attribs.jpg
+no-attribs.jpg       :  640 x  480, 3 channel, uint8 jpeg
+    SHA-1: 329B449C07E6649023504E2C8E5130B41985CF7F
+    channel list: R, G, B
+    Exif:ColorSpace: 1
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+Reading src/blender-render.jpg
+src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
+    SHA-1: A60D05FC42FDEE2FC8907531E3641C17D7C1E3AB
+    channel list: R, G, B
+    Blender:Camera: "Camera"
+    Blender:Date: "2024/09/17 15:50:17"
+    Blender:File: "<untitled>"
+    Blender:Frame: "001"
+    Blender:RenderTime: "00:03.49"
+    Blender:Scene: "Scene"
+    Blender:Time: "00:00:00:01"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+Comparing "src/blender-render.jpg" and "with-attribs.jpg"
+PASS
+Reading with-attribs.jpg
+with-attribs.jpg     :  640 x  480, 3 channel, uint8 jpeg
+    SHA-1: 329B449C07E6649023504E2C8E5130B41985CF7F
+    channel list: R, G, B
+    Blender:Camera: "Camera"
+    Blender:Date: "2024/09/17 15:50:17"
+    Blender:File: "<untitled>"
+    Blender:Frame: "001"
+    Blender:RenderTime: "00:03.49"
+    Blender:Scene: "Scene"
+    Blender:Time: "00:00:00:01"
+    Exif:ColorSpace: 1
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+Reading src/blender-render.jpg
+src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
+    SHA-1: A60D05FC42FDEE2FC8907531E3641C17D7C1E3AB
+    channel list: R, G, B
+    Blender:Camera: "Camera"
+    Blender:Date: "2024/09/17 15:50:17"
+    Blender:File: "<untitled>"
+    Blender:Frame: "001"
+    Blender:RenderTime: "00:03.49"
+    Blender:Scene: "Scene"
+    Blender:Time: "00:00:00:01"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+Comparing "src/blender-render.jpg" and "with-attribs-and-desc.jpg"
+PASS
+Reading with-attribs-and-desc.jpg
+with-attribs-and-desc.jpg :  640 x  480, 3 channel, uint8 jpeg
+    SHA-1: 329B449C07E6649023504E2C8E5130B41985CF7F
+    channel list: R, G, B
+    ImageDescription: "A photo"
+    Blender:Camera: "Camera"
+    Blender:Date: "2024/09/17 15:50:17"
+    Blender:File: "<untitled>"
+    Blender:Frame: "001"
+    Blender:RenderTime: "00:03.49"
+    Blender:Scene: "Scene"
+    Blender:Time: "00:00:00:01"
+    Exif:ColorSpace: 1
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+Reading src/blender-render.jpg
+src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
+    SHA-1: A60D05FC42FDEE2FC8907531E3641C17D7C1E3AB
+    channel list: R, G, B
+    Blender:Camera: "Camera"
+    Blender:Date: "2024/09/17 15:50:17"
+    Blender:File: "<untitled>"
+    Blender:Frame: "001"
+    Blender:RenderTime: "00:03.49"
+    Blender:Scene: "Scene"
+    Blender:Time: "00:00:00:01"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+Comparing "src/blender-render.jpg" and "with-colon-desc.jpg"
+PASS
+Reading with-colon-desc.jpg
+with-colon-desc.jpg  :  640 x  480, 3 channel, uint8 jpeg
+    SHA-1: 329B449C07E6649023504E2C8E5130B41985CF7F
+    channel list: R, G, B
+    ImageDescription: "Example:Text"
+    Exif:ColorSpace: 1
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"

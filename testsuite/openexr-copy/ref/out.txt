@@ -1,0 +1,10 @@
+Comparing "compressed-pxr24.exr" and "ref/compressed-pxr24.exr"
+PASS
+Comparing "compressed-b44.exr" and "ref/compressed-b44.exr"
+PASS
+Comparing "compressed-b44a.exr" and "ref/compressed-b44a.exr"
+PASS
+Comparing "compressed-dwaa.exr" and "ref/compressed-dwaa.exr"
+PASS
+Comparing "compressed-dwab.exr" and "ref/compressed-dwab.exr"
+PASS

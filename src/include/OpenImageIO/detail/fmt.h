@@ -19,12 +19,18 @@
 #    define FMT_EXCEPTIONS 0
 #endif
 
-// Redefining FMT_THROW to something benign seems to avoid some UB or possibly
-// gcc 11+ compiler bug triggered by the definition of FMT_THROW in fmt 10.1+
-// when FMT_EXCEPTIONS=0, which results in mangling SIMD math. This nugget
-// below works around the problems for hard to understand reasons.
-#if !defined(FMT_THROW) && OIIO_GNUC_VERSION >= 110000
-#    define FMT_THROW(x) OIIO_ASSERT_MSG(0, "fmt exception: %s", (x).what())
+OIIO_NAMESPACE_BEGIN
+namespace pvt {
+OIIO_UTIL_API void
+log_fmt_error(const char* message);
+};
+OIIO_NAMESPACE_END
+
+// Redefining FMT_THROW to print and log the error. This should only occur if
+// we've made a mistake and mismatched a format string and its arguments.
+// Hopefully this will help us track it down.
+#if !defined(FMT_THROW) && !FMT_EXCEPTIONS
+#    define FMT_THROW(x) OIIO::pvt::log_fmt_error((x).what())
 #endif
 
 // Use the grisu fast floating point formatting for old fmt versions
@@ -47,6 +53,7 @@
 #    define FMT_USE_FLOAT128 0
 #endif
 
+// Suppress certain warnings generated in the fmt headers themselves
 OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_GNUC_VERSION >= 70000
 #    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -57,6 +64,15 @@ OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_INTEL_LLVM_COMPILER
 #    pragma GCC diagnostic ignored "-Wtautological-constant-compare"
 #endif
+#if OIIO_CLANG_VERSION >= 180000
+#    pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#if OIIO_CLANG_VERSION || OIIO_APPLE_CLANG_VERSION
+#    pragma clang diagnostic ignored "-Winvalid-noreturn"
+#endif
+// #if OIIO_GNUC_VERSION
+// #    pragma gcc diagnostic ignored "-Winvalid-noreturn"
+// #endif
 
 #include <OpenImageIO/detail/fmt/format.h>
 #include <OpenImageIO/detail/fmt/ostream.h>
@@ -148,7 +164,7 @@ struct index_formatter : format_parser_with_separator {
 // fmtlib custom formatter that formats a type `T` as if it were an array
 // `Elem[Size]` (and it must be laid out that way in memory). The formatting
 // spec will apply to each element. For example, if the object has 3 float
-// elements and the spec is "{.3f}", then the output might be "1.234 2.345
+// elements and the spec is "{:.3f}", then the output might be "1.234 2.345
 // 3.456".
 //
 // In addition to the usual formatting spec, we also recognize the following

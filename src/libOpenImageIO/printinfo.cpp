@@ -340,7 +340,7 @@ print_stats(std::ostream& out, string_view indent, const ImageBuf& input,
         print_deep_stats(out, indent, input, spec);
     } else {
         std::vector<float> constantValues(input.spec().nchannels);
-        if (isConstantColor(input, &constantValues[0])) {
+        if (isConstantColor(input, 0.0f, constantValues)) {
             print(out, "{}Constant: Yes\n", indent);
             print(out, "{}Constant Color: ", indent);
             for (unsigned int i = 0; i < constantValues.size(); ++i) {

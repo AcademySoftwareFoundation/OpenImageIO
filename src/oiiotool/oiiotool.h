@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -9,7 +9,7 @@
 #include <memory>
 #include <stack>
 
-#include <boost/container/flat_set.hpp>
+#include <tsl/robin_set.h>
 
 #include <OpenImageIO/half.h>
 
@@ -126,6 +126,7 @@ public:
     bool output_dither;
     bool output_force_tiles;  // for debugging
     bool metadata_nosoftwareattrib;
+    bool metadata_history;
 
     // Options for --diff
     float diff_warnthresh;
@@ -139,8 +140,8 @@ public:
     ImageRecRef curimg;                    // current image
     std::vector<ImageRecRef> image_stack;  // stack of previous images
     std::map<std::string, ImageRecRef> image_labels;  // labeled images
-    ImageCache* imagecache = nullptr;                 // back ptr to ImageCache
-    ColorConfig colorconfig;                          // OCIO color config
+    std::shared_ptr<ImageCache> imagecache;           // back ptr to ImageCache
+    std::unique_ptr<ColorConfig> m_colorconfig;       // OCIO color config
     Timer total_runtime;
     // total_readtime is the amount of time for direct reads, and does not
     // count time spent inside ImageCache.
@@ -258,6 +259,17 @@ public:
         return r;
     }
 
+    void popbottom()
+    {
+        if (image_stack.size()) {
+            // There are images on the full stack -- get rid of the bottom
+            image_stack.erase(image_stack.begin());
+        } else {
+            // Nothing on the stack, so get rid of the current image
+            curimg = ImageRecRef();
+        }
+    }
+
     ImageRecRef top() { return curimg; }
 
     // How many images are on the stack?
@@ -358,6 +370,8 @@ public:
     // Merge stats from another Oiiotool
     void merge_stats(const Oiiotool& ot);
 
+    ColorConfig& colorconfig();
+
 private:
     CallbackFunction m_pending_callback;
     std::vector<const char*> m_pending_argv;
@@ -422,7 +436,7 @@ private:
 /// and potentially MIPmap levels for each subimage.
 class ImageRec {
 public:
-    ImageRec(const std::string& name, ImageCache* imagecache)
+    ImageRec(const std::string& name, std::shared_ptr<ImageCache> imagecache)
         : m_name(name)
         , m_imagecache(imagecache)
     {
@@ -459,7 +473,7 @@ public:
 
     // Initialize an ImageRec with the given spec.
     ImageRec(const std::string& name, const ImageSpec& spec,
-             ImageCache* imagecache);
+             std::shared_ptr<ImageCache> imagecache);
 
     ImageRec(const ImageRec& copy) = delete;  // Disallow copy ctr
 
@@ -583,15 +597,6 @@ public:
     /// Error reporting for ImageRec: call this with printf-like arguments.
     /// Note however that this is fully typesafe!
     template<typename... Args>
-    OIIO_DEPRECATED("Use errorfmt instead")
-    void errorf(const char* fmt, const Args&... args) const
-    {
-        append_error(Strutil::sprintf(fmt, args...));
-    }
-
-    /// Error reporting for ImageRec: call this with printf-like arguments.
-    /// Note however that this is fully typesafe!
-    template<typename... Args>
     void errorfmt(const char* fmt, const Args&... args) const
     {
         append_error(Strutil::fmt::format(fmt, args...));
@@ -615,7 +620,7 @@ private:
     std::vector<SubimageRec> m_subimages;
     std::time_t m_time;  //< Modification time of the input file
     TypeDesc m_input_dataformat;
-    ImageCache* m_imagecache = nullptr;
+    std::shared_ptr<ImageCache> m_imagecache;
     mutable std::string m_err;
     std::unique_ptr<ImageSpec> m_configspec;
 
@@ -1099,7 +1104,7 @@ protected:
     std::vector<ImageBuf*> m_img;
     std::vector<string_view> m_args;
     ParamValueList m_options;
-    typedef boost::container::flat_set<int> FastIntSet;
+    typedef tsl::robin_set<int> FastIntSet;
     FastIntSet subimage_includes;  // Subimages to operate on (empty == all)
     FastIntSet subimage_excludes;  // Subimages to skip for the op
     setup_func_t m_setup_func;

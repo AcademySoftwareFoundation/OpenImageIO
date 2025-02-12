@@ -669,16 +669,6 @@ public:
         return ustring(Strutil::fmt::format(fmt, args...));
     }
 
-    /// NOTE: Semi-DEPRECATED! This will someday switch to behave like
-    /// fmt::format (or future std::format) but for now, it is back
-    /// compatible and equivalent to sprintf.
-    template<typename... Args>
-    OIIO_FORMAT_DEPRECATED static ustring format(const char* fmt,
-                                                 const Args&... args)
-    {
-        return ustring(Strutil::format(fmt, args...));
-    }
-
     /// Concatenate two strings, returning a ustring, implemented carefully
     /// to not perform any redundant copies or allocations.
     static ustring concat(string_view s, string_view t);
@@ -796,11 +786,10 @@ public:
     ~ustringhash() noexcept = default;
 
     /// Copy construct a ustringhash from another ustringhash.
-    OIIO_HOSTDEVICE constexpr ustringhash(const ustringhash& str) noexcept
-        = default;
+    constexpr ustringhash(const ustringhash& str) noexcept = default;
 
     /// Move construct a ustringhash from another ustringhash.
-    OIIO_HOSTDEVICE ustringhash(ustringhash&& str) noexcept = default;
+    ustringhash(ustringhash&& str) noexcept = default;
 
     /// Construct from a ustring
     ustringhash(const ustring& str) noexcept
@@ -864,9 +853,8 @@ public:
     }
 
     /// Assign from a ustringhash
-    OIIO_HOSTDEVICE constexpr ustringhash& operator=(const ustringhash& str)
-        = default;
-    OIIO_HOSTDEVICE ustringhash& operator=(ustringhash&& str) = default;
+    constexpr ustringhash& operator=(const ustringhash& str) = default;
+    ustringhash& operator=(ustringhash&& str)                = default;
 
     /// Assign from a ustring
     ustringhash& operator=(const ustring& str)
@@ -931,13 +919,13 @@ public:
     }
 
     /// Test for equality with a char*.
-    OIIO_CONSTEXPR17 bool operator==(const char* str) const noexcept
+    constexpr bool operator==(const char* str) const noexcept
     {
         return m_hash == Strutil::strhash(str);
     }
 
     /// Test for inequality with a char*.
-    OIIO_CONSTEXPR17 bool operator!=(const char* str) const noexcept
+    constexpr bool operator!=(const char* str) const noexcept
     {
         return m_hash != Strutil::strhash(str);
     }
@@ -1036,17 +1024,6 @@ operator""_ush(const char* str, std::size_t len)
 {
     return ustringhash(str, len);
 }
-
-
-
-#if OIIO_VERSION_LESS(3, 0, 0)
-/// Deprecated -- This is too easy to confuse with the ustringhash class. And
-/// also it is unnecessary if you use std::hash<ustring>. This will be removed
-/// in OIIO 3.0.
-using ustringHash
-    OIIO_DEPRECATED("Use std::hash<ustring> instead of ustringHash")
-    = std::hash<ustring>;
-#endif
 
 
 

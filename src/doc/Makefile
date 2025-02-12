@@ -48,7 +48,7 @@ cleanfigures:
 
 
 doxygen:
-	echo "make doxygen TBD"
+	echo "make doxygen"
 	doxygen Doxyfile
 	touch doxygen.turd
 

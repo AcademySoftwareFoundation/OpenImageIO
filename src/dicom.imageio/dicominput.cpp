@@ -157,7 +157,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
         m_subimage = 0;
         if (m_img->getStatus() != EIS_Normal) {
             m_img.reset();
-            errorf("Unable to open DICOM file %s", m_filename);
+            errorfmt("Unable to open DICOM file {}", m_filename);
             return false;
         }
         m_framecount = m_img->getFrameCount();
@@ -165,7 +165,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
     }
 
     if (subimage >= m_firstframe + m_framecount) {
-        errorf("Unable to seek to subimage %d", subimage);
+        errorfmt("Unable to seek to subimage {}", subimage);
         return false;
     }
 
@@ -174,7 +174,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
         m_img->processNextFrames(1);
         if (m_img->getStatus() != EIS_Normal) {
             m_img.reset();
-            errorf("Unable to seek to subimage %d", subimage);
+            errorfmt("Unable to seek to subimage {}", subimage);
             return false;
         }
         ++m_subimage;
@@ -269,7 +269,8 @@ DICOMInput::read_metadata()
             std::string tagname = tag.getTagName();
             if (ignore_tags.find(tagname) != ignore_tags.end())
                 continue;
-            std::string name = Strutil::sprintf("dicom:%s", tag.getTagName());
+            std::string name = Strutil::fmt::format("dicom:{}",
+                                                    tag.getTagName());
             DcmEVR evr       = tag.getEVR();
             // VR codes explained:
             // http://dicom.nema.org/Dicom/2013/output/chtml/part05/sect_6.2.html

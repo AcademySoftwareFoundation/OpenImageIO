@@ -58,8 +58,10 @@ private:
         if (!ioread(buf, sizeof(T), nitems))
             return false;
         if (littleendian()
-            && (is_same<T, uint16_t>::value || is_same<T, int16_t>::value
-                || is_same<T, uint32_t>::value || is_same<T, int32_t>::value)) {
+            && (std::is_same<T, uint16_t>::value
+                || std::is_same<T, int16_t>::value
+                || std::is_same<T, uint32_t>::value
+                || std::is_same<T, int32_t>::value)) {
             swap_endian(buf, nitems);
         }
         return true;
@@ -143,7 +145,7 @@ IffInput::open(const std::string& name, ImageSpec& spec)
     // limited to images.
     //
     // The openimageio IFF implementation deals specifically with Maya IFF
-    // images with it's data blocks structured as follows:
+    // images with its data blocks structured as follows:
     //
     // Header:
     // FOR4 <size> CIMG

@@ -9,57 +9,6 @@ set (libOpenImageIO_Util_srcs argparse.cpp benchmark.cpp
                   strutil.cpp sysutil.cpp thread.cpp timer.cpp
                   typedesc.cpp ustring.cpp xxhash.cpp)
 
-add_library (OpenImageIO_Util ${libOpenImageIO_Util_srcs})
-target_include_directories (OpenImageIO_Util
-        PUBLIC
-            $<INSTALL_INTERFACE:include>
-        )
-target_link_libraries (OpenImageIO_Util
-        PUBLIC
-            $<TARGET_NAME_IF_EXISTS:Threads::Threads>
-            ${GCC_ATOMIC_LIBRARIES}
-            ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
-            ${OPENIMAGEIO_IMATH_TARGETS}
-        PRIVATE
-            $<TARGET_NAME_IF_EXISTS:Boost::filesystem>
-            $<TARGET_NAME_IF_EXISTS:Boost::thread>
-            $<TARGET_NAME_IF_EXISTS:TBB::tbb>
-            ${CMAKE_DL_LIBS}
-        )
-
-if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
-    add_dependencies(OpenImageIO_Util fmt_internal_target)
-else ()
-    target_link_libraries (OpenImageIO_Util
-                           PUBLIC fmt::fmt-header-only)
-endif ()
-
-if (WIN32)
-    add_definitions(-DWIN32_LEAN_AND_MEAN -DNOMINMAX -DNOGDI -DVC_EXTRALEAN)
-    target_link_libraries (OpenImageIO_Util PRIVATE psapi)
-endif()
-
-target_compile_definitions (OpenImageIO_Util PRIVATE OpenImageIO_EXPORTS)
-if (NOT BUILD_SHARED_LIBS)
-    target_compile_definitions (OpenImageIO_Util PUBLIC OIIO_STATIC_DEFINE=1)
-endif ()
-
-if (OIIO_DISABLE_BOOST_STACKTRACE)
-    target_compile_definitions (OpenImageIO_Util PRIVATE OIIO_DISABLE_BOOST_STACKTRACE)
-endif ()
-
-# Propagate C++ minimum to downstream consumers
-target_compile_features (OpenImageIO_Util
-                         INTERFACE cxx_std_${DOWNSTREAM_CXX_STANDARD})
-
-set_target_properties(OpenImageIO_Util
-                      PROPERTIES
-                         VERSION     ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
-                         SOVERSION   ${SOVERSION}
-                         OUTPUT_NAME OpenImageIO_Util${OIIO_LIBNAME_SUFFIX}
-                         POSITION_INDEPENDENT_CODE ON
-                     )
-
 if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 9.0)
     set_property (SOURCE SHA1.cpp
                   APPEND PROPERTY COMPILE_OPTIONS -Wno-stringop-truncation)
@@ -73,122 +22,213 @@ if (CMAKE_UNITY_BUILD)
                                  PROPERTIES UNITY_GROUP utilsrc)
 endif ()
 
+
 set (OpenImageIO_Util_LINK_FLAGS "${VISIBILITY_MAP_COMMAND} ${EXTRA_DSO_LINK_ARGS}")
 if (UNIX AND NOT APPLE)
     # Hide symbols from any static dependent libraries embedded here.
     set (OpenImageIO_Util_LINK_FLAGS "${OpenImageIO_Util_LINK_FLAGS} -Wl,--exclude-libs,ALL")
 endif ()
-set_target_properties (OpenImageIO_Util PROPERTIES LINK_FLAGS ${OpenImageIO_Util_LINK_FLAGS})
 
-install_targets (OpenImageIO_Util)
 
+function (setup_oiio_util_library targetname)
+    if (BUILD_SHARED_LIBS AND NOT targetname MATCHES "static")
+        set (libtype SHARED)
+    else ()
+        set (libtype STATIC)
+    endif ()
+    add_library (${targetname} ${libtype} ${libOpenImageIO_Util_srcs})
+
+    target_compile_definitions(${targetname} PRIVATE
+                               ${${PROJECT_NAME}_compile_definitions})
+    target_compile_options(${targetname} PRIVATE
+                               ${${PROJECT_NAME}_compile_options})
+    target_link_options(${targetname} PRIVATE
+                               ${${PROJECT_NAME}_link_options})
+
+    target_include_directories (${targetname}
+            PUBLIC
+                $<BUILD_INTERFACE:${OpenImageIO_LOCAL_DEPS_ROOT}/include>
+                $<INSTALL_INTERFACE:include>
+            PRIVATE
+                ${ROBINMAP_INCLUDES}
+            )
+    target_link_libraries (${targetname}
+            PUBLIC
+                $<TARGET_NAME_IF_EXISTS:Threads::Threads>
+                ${GCC_ATOMIC_LIBRARIES}
+                ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
+                ${OPENIMAGEIO_IMATH_TARGETS}
+            PRIVATE
+                $<TARGET_NAME_IF_EXISTS:TBB::tbb>
+                ${CMAKE_DL_LIBS}
+            )
+
+    if (GCC_VERSION VERSION_GREATER_EQUAL 12.0
+        AND CMAKE_CXX_STANDARD VERSION_GREATER_EQUAL 23)
+        target_link_libraries (${targetname}
+                               PRIVATE stdc++_libbacktrace)
+    endif ()
+
+    if (OIIO_INTERNALIZE_FMT OR fmt_LOCAL_BUILD)
+        add_dependencies(${targetname} fmt_internal_target)
+    else ()
+        target_link_libraries (${targetname}
+                               PUBLIC fmt::fmt-header-only)
+    endif ()
+
+    if (WIN32)
+        target_compile_definitions(${targetname} PRIVATE
+                                   WIN32_LEAN_AND_MEAN NOMINMAX
+                                   NOGDI VC_EXTRALEAN)
+        target_link_libraries (${targetname} PRIVATE psapi)
+    endif()
+
+    target_compile_definitions (${targetname} PRIVATE OpenImageIO_EXPORTS)
+
+
+    if (NOT BUILD_SHARED_LIBS OR targetname MATCHES "static")
+        target_compile_definitions (${targetname} PUBLIC OIIO_STATIC_DEFINE=1)
+    endif ()
+
+    # Propagate C++ minimum to downstream consumers
+    target_compile_features (${targetname}
+                             INTERFACE cxx_std_${DOWNSTREAM_CXX_STANDARD})
+
+    set_target_properties(${targetname}
+                          PROPERTIES
+                             VERSION     ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
+                             SOVERSION   ${SOVERSION}
+                             OUTPUT_NAME ${targetname}${OIIO_LIBNAME_SUFFIX}
+                             POSITION_INDEPENDENT_CODE ON
+                         )
+
+    set_target_properties (${targetname} PROPERTIES
+                           LINK_FLAGS ${OpenImageIO_Util_LINK_FLAGS})
+    
+    if (SKBUILD)
+        set (PYTHON_SITE_DIR .)
+        install_targets (NAMELINK_SKIP ${targetname})
+    else ()
+        install_targets (${targetname})
+    endif ()
+
+endfunction()
+
+
+setup_oiio_util_library (OpenImageIO_Util)
+
+option (OpenImageIO_BUILD_STATIC_UTIL_LIBRARY
+        "Build additional static OpenImageIO_Util_static library" OFF)
+if (OpenImageIO_BUILD_STATIC_UTIL_LIBRARY)
+    setup_oiio_util_library (OpenImageIO_Util_static)
+endif ()
 
 
 if (OIIO_BUILD_TESTS AND BUILD_TESTING)
 
-    add_executable (argparse_test argparse_test.cpp)
-    target_link_libraries (argparse_test PRIVATE OpenImageIO_Util)
-    set_target_properties (argparse_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME argparse_test SRC argparse_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_argparse ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/argparse_test)
 
-    add_executable (atomic_test atomic_test.cpp)
-    target_link_libraries (atomic_test PRIVATE OpenImageIO_Util)
-    set_target_properties (atomic_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME atomic_test SRC atomic_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_atomic ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/atomic_test)
 
-    add_executable (span_test span_test.cpp)
-    target_link_libraries (span_test PRIVATE OpenImageIO_Util)
-    set_target_properties (span_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME span_test SRC span_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_span ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/span_test)
 
-    add_executable (spinlock_test spinlock_test.cpp)
-    target_link_libraries (spinlock_test PRIVATE OpenImageIO_Util)
-    set_target_properties (spinlock_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME spinlock_test SRC spinlock_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_spinlock ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/spinlock_test)
 
-    add_executable (spin_rw_test spin_rw_test.cpp)
-    target_link_libraries (spin_rw_test PRIVATE OpenImageIO_Util)
-    set_target_properties (spin_rw_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME spin_rw_test SRC spin_rw_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_spin_rw ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/spin_rw_test)
 
-    add_executable (ustring_test ustring_test.cpp)
-    target_link_libraries (ustring_test PRIVATE OpenImageIO_Util)
-    set_target_properties (ustring_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME ustring_test SRC ustring_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_ustring ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ustring_test)
 
-    add_executable (strutil_test strutil_test.cpp)
-    target_link_libraries (strutil_test PRIVATE OpenImageIO)
-    set_target_properties (strutil_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME strutil_test SRC strutil_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_strutil ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/strutil_test)
 
-    add_executable (fmath_test fmath_test.cpp)
-    target_link_libraries (fmath_test PRIVATE OpenImageIO_Util
-                                              ${OPENIMAGEIO_IMATH_TARGETS})
-    set_target_properties (fmath_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME fmath_test SRC fmath_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util
+                                         ${OPENIMAGEIO_IMATH_TARGETS})
     add_test (unit_fmath ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fmath_test)
 
-    add_executable (filesystem_test filesystem_test.cpp)
-    target_link_libraries (filesystem_test PRIVATE OpenImageIO_Util)
-    set_target_properties (filesystem_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME filesystem_test SRC filesystem_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_filesystem ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/filesystem_test)
 
-    add_executable (optparser_test optparser_test.cpp)
-    target_link_libraries (optparser_test PRIVATE OpenImageIO_Util)
-    set_target_properties (optparser_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME optparser_test SRC optparser_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_optparser ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/optparser_test)
 
-    add_executable (hash_test hash_test.cpp)
-    target_link_libraries (hash_test PRIVATE OpenImageIO_Util)
-    set_target_properties (hash_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME hash_test SRC hash_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_hash ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/hash_test)
 
-    add_executable (parallel_test parallel_test.cpp)
-    target_link_libraries (parallel_test PRIVATE OpenImageIO_Util)
-    set_target_properties (parallel_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME parallel_test SRC parallel_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_parallel ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/parallel_test)
 
-    add_executable (timer_test timer_test.cpp)
-    target_link_libraries (timer_test PRIVATE OpenImageIO_Util)
-    set_target_properties (timer_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME timer_test SRC timer_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_timer ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/timer_test)
 
-    add_executable (thread_test thread_test.cpp)
-    target_link_libraries (thread_test PRIVATE OpenImageIO_Util)
-    set_target_properties (thread_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME thread_test SRC thread_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_thread ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/thread_test)
 
-    add_executable (simd_test simd_test.cpp)
-    target_link_libraries (simd_test PRIVATE OpenImageIO
-                                             ${OPENIMAGEIO_IMATH_TARGETS})
-    set_target_properties (simd_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME simd_test SRC simd_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO
+                                         ${OPENIMAGEIO_IMATH_TARGETS})
     add_test (unit_simd ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/simd_test)
 
-    add_executable (filter_test filter_test.cpp)
-    target_link_libraries (filter_test PRIVATE OpenImageIO)
-    set_target_properties (filter_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME filter_test SRC filter_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO)
     add_test (unit_filter ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/filter_test)
 
-    add_executable (paramlist_test paramlist_test.cpp)
-    target_link_libraries (paramlist_test PRIVATE OpenImageIO
-                                                  ${OPENIMAGEIO_IMATH_TARGETS})
-    set_target_properties (paramlist_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME paramlist_test SRC paramlist_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util
+                                         ${OPENIMAGEIO_IMATH_TARGETS})
     add_test (unit_paramlist ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/paramlist_test)
 
-    add_executable (strongparam_test strongparam_test.cpp)
-    target_link_libraries (strongparam_test PRIVATE OpenImageIO)
-    set_target_properties (strongparam_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME strongparam_test SRC strongparam_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util)
     add_test (unit_strongparam ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/strongparam_test)
 
-    add_executable (typedesc_test typedesc_test.cpp)
-    target_link_libraries (typedesc_test PRIVATE OpenImageIO_Util
-                           ${OPENIMAGEIO_OPENEXR_TARGETS})
-    set_target_properties (typedesc_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME typedesc_test SRC typedesc_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util
+                                         ${OPENIMAGEIO_OPENEXR_TARGETS})
     add_test (unit_typedesc ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/typedesc_test)
 
-    add_executable (type_traits_test type_traits_test.cpp)
-    target_link_libraries (type_traits_test PRIVATE OpenImageIO_Util
-                           ${OPENIMAGEIO_OPENEXR_TARGETS})
-    set_target_properties (type_traits_test PROPERTIES FOLDER "Unit Tests")
+    fancy_add_executable (NAME type_traits_test SRC type_traits_test.cpp
+                          NO_INSTALL  FOLDER "Unit Tests"
+                          LINK_LIBRARIES OpenImageIO_Util
+                                         ${OPENIMAGEIO_OPENEXR_TARGETS})
     add_test (unit_type_traits ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/type_traits_test)
 
 endif ()

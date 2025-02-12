@@ -23,6 +23,8 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/timer.h>
 
+#include "imageio_pvt.h"
+
 
 // clang-format off
 #ifdef TIFFLIB_MAJOR_VERSION
@@ -43,10 +45,8 @@
 #    define OIIO_TIFFLIB_VERSION 40003
 #elif TIFFLIB_VERSION >= 20111221
 #    define OIIO_TIFFLIB_VERSION 40000
-#elif TIFFLIB_VERSION >= 20090820
-#    define OIIO_TIFFLIB_VERSION 30900
 #else
-#    error "libtiff 3.9.0 or later is required"
+#    error "libtiff 4.0.0 or later is required"
 #endif
 // clang-format on
 
@@ -231,7 +231,10 @@ private:
     {
         TIFFOutput* self = (TIFFOutput*)user_data;
         spin_lock lock(self->m_last_error_mutex);
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wformat-nonliteral")
         self->m_last_error = Strutil::vsprintf(fmt, ap);
+        OIIO_PRAGMA_WARNING_POP
         return 1;
     }
 
@@ -241,7 +244,10 @@ private:
     {
         TIFFOutput* self = (TIFFOutput*)user_data;
         spin_lock lock(self->m_last_error_mutex);
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wformat-nonliteral")
         self->m_last_error = Strutil::vsprintf(fmt, ap);
+        OIIO_PRAGMA_WARNING_POP
         return 1;
     }
 #endif
@@ -400,9 +406,10 @@ allval(const std::vector<T>& d, T v = T(0))
 
 
 static tsize_t
-writer_readproc(thandle_t, tdata_t, tsize_t)
+writer_readproc(thandle_t handle, tdata_t data, tsize_t size)
 {
-    return 0;
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    return io->read(data, size);
 }
 
 static tsize_t
@@ -748,7 +755,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                                         m_spec.channelnames[i]);
                     else
                         inknames.insert(inknames.size(),
-                                        Strutil::sprintf("ink%d", i));
+                                        Strutil::fmt::format("ink{}", i));
                 }
                 TIFFSetField(m_tif, TIFFTAG_INKNAMES, int(inknames.size() + 1),
                              &inknames[0]);
@@ -802,21 +809,24 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         TIFFSetField(m_tif, TIFFTAG_PREDICTOR, m_predictor);
 
     // ExtraSamples tag
-    if ((m_spec.alpha_channel >= 0 || m_spec.nchannels > 3)
+    if (((m_spec.alpha_channel >= 0 && m_spec.alpha_channel < m_spec.nchannels)
+         || m_spec.nchannels > 3)
         && m_photometric != PHOTOMETRIC_SEPARATED
         && m_spec.get_int_attribute("tiff:write_extrasamples", 1)) {
         bool unass = m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
         int defaultchans = m_spec.nchannels >= 3 ? 3 : 1;
         short e          = m_spec.nchannels - defaultchans;
-        std::vector<unsigned short> extra(e);
-        for (int c = 0; c < e; ++c) {
-            if (m_spec.alpha_channel == (c + defaultchans))
-                extra[c] = unass ? EXTRASAMPLE_UNASSALPHA
-                                 : EXTRASAMPLE_ASSOCALPHA;
-            else
-                extra[c] = EXTRASAMPLE_UNSPECIFIED;
+        if (e > 0) {
+            std::vector<unsigned short> extra(e);
+            for (int c = 0; c < e; ++c) {
+                if (m_spec.alpha_channel == (c + defaultchans))
+                    extra[c] = unass ? EXTRASAMPLE_UNASSALPHA
+                                     : EXTRASAMPLE_ASSOCALPHA;
+                else
+                    extra[c] = EXTRASAMPLE_UNSPECIFIED;
+            }
+            TIFFSetField(m_tif, TIFFTAG_EXTRASAMPLES, e, extra.data());
         }
-        TIFFSetField(m_tif, TIFFTAG_EXTRASAMPLES, e, &extra[0]);
     }
 
     ParamValue* param;
@@ -852,11 +862,11 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         time(&now);
         struct tm mytm;
         Sysutil::get_local_time(&now, &mytm);
-        std::string date = Strutil::sprintf("%4d:%02d:%02d %02d:%02d:%02d",
-                                            mytm.tm_year + 1900,
-                                            mytm.tm_mon + 1, mytm.tm_mday,
-                                            mytm.tm_hour, mytm.tm_min,
-                                            mytm.tm_sec);
+        std::string date
+            = Strutil::fmt::format("{:4d}:{:02d}:{:02d} {:02d}:{:02d}:{:02d}",
+                                   mytm.tm_year + 1900, mytm.tm_mon + 1,
+                                   mytm.tm_mday, mytm.tm_hour, mytm.tm_min,
+                                   mytm.tm_sec);
         m_spec.attribute("DateTime", date);
     }
 
@@ -871,7 +881,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
             TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, length, icc_profile);
     }
 
-    if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"), "sRGB"))
+    if (equivalent_colorspace(m_spec.get_string_attribute("oiio:ColorSpace"),
+                              "sRGB"))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Deal with missing XResolution or YResolution, or a PixelAspectRatio
@@ -1337,6 +1348,7 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                             const void* data, stride_t xstride,
                             stride_t ystride)
 {
+    pvt::LoggedTimer logger("TIFFOutput::write_scanlines");
     // If the stars all align properly, try to write strips, and use the
     // thread pool to parallelize the compression. This can give a large
     // speedup (5x or more!) because the zip compression dwarfs the
@@ -1563,6 +1575,7 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                         int zend, TypeDesc format, const void* data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    pvt::LoggedTimer logger("TIFFOutput::write_tiles");
     if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
 
@@ -1807,7 +1820,8 @@ TIFFOutput::fix_bitdepth(void* data, int nvals)
             v[i] = bit_range_convert<32, 24>(v[i]);
         bit_pack(cspan<unsigned int>(v, v + nvals), v, 24);
     } else {
-        OIIO_ASSERT(0 && "unsupported bit conversion -- shouldn't reach here");
+        errorfmt("unsupported bit conversion: {} -> {}", spec().format,
+                 m_bitspersample);
     }
 }
 

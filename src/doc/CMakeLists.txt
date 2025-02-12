@@ -8,8 +8,9 @@ set (public_docs
      "${OpenImageIO_SOURCE_DIR}/LICENSE.md"
      "${OpenImageIO_SOURCE_DIR}/THIRD-PARTY.md"
      "${OpenImageIO_SOURCE_DIR}/CHANGES.md"
-     CHANGES-0.x.md
-     CHANGES-1.x.md
+     "${OpenImageIO_SOURCE_DIR}/docs/CHANGES-0.x.md"
+     "${OpenImageIO_SOURCE_DIR}/docs/CHANGES-1.x.md"
+     "${OpenImageIO_SOURCE_DIR}/docs/CHANGES-2.x.md"
 )
 
 if (INSTALL_DOCS)
@@ -21,7 +22,7 @@ endif()
 # generate man pages using txt2man and a tiny python script to munge the
 # result of "$tool --help"
 find_program(TXT2MAN txt2man)
-if (UNIX AND TXT2MAN AND Python_Interpreter_FOUND)
+if (UNIX AND TXT2MAN AND Python3_Interpreter_FOUND)
     message (STATUS "Unix man page documentation will be generated")
     set (cli_tools oiiotool iinfo maketx idiff igrep iconvert)
 
@@ -34,7 +35,7 @@ if (UNIX AND TXT2MAN AND Python_Interpreter_FOUND)
         list (APPEND manpage_files ${outfile})
         add_custom_command (OUTPUT ${outfile}
             COMMAND ${tool} --help |
-            ${Python_EXECUTABLE} "${documentation_SOURCE_DIR}/help2man_preformat.py" |
+            ${Python3_EXECUTABLE} "${documentation_SOURCE_DIR}/help2man_preformat.py" |
             ${TXT2MAN} -v OpenImageIO -s 1 -t ${tool} > ${outfile}
             DEPENDS ${tool} help2man_preformat.py)
     endforeach()

@@ -6,10 +6,8 @@
 #include <iostream>
 #include <vector>
 
-#include <OpenImageIO/array_view.h>
 #include <OpenImageIO/image_view.h>
 #include <OpenImageIO/span.h>
-#include <OpenImageIO/span_util.h>
 #include <OpenImageIO/strided_ptr.h>
 #include <OpenImageIO/unittest.h>
 
@@ -493,10 +491,6 @@ main(int /*argc*/, char* /*argv*/[])
     test_spancpy();
     test_spanset();
     test_spanzero();
-
-    // array_view and span should be synonyms
-    OIIO_CHECK_ASSERT((
-        std::is_same<OIIO::cspan<float>, OIIO::array_view<const float>>::value));
 
     return unit_test_failures;
 }

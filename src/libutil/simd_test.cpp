@@ -44,7 +44,7 @@ getargs(int argc, char* argv[])
       .usage("simd_test [options]");
 
     ap.arg("--iterations %d", &iterations)
-      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+      .help(Strutil::fmt::format("Number of iterations (default: {})", iterations));
     ap.arg("--trials %d", &ntrials)
       .help("Number of trials");
 
@@ -529,7 +529,8 @@ void test_conversion_loadstore_int ()
 template<typename VEC>
 void test_vint_to_uint16s ()
 {
-    test_heading (Strutil::sprintf("test converting %s to uint16", VEC::type_name()));
+    test_heading (Strutil::fmt::format("test converting {} to uint16",
+                                       VEC::type_name()));
     VEC ival = VEC::Iota (0xffff0000);
     unsigned short buf[VEC::elements];
     ival.store (buf);
@@ -545,7 +546,8 @@ void test_vint_to_uint16s ()
 template<typename VEC>
 void test_vint_to_uint8s ()
 {
-    test_heading (Strutil::sprintf("test converting %s to uint8", VEC::type_name()));
+    test_heading (Strutil::fmt::format("test converting {} to uint8",
+                                       VEC::type_name()));
     VEC ival = VEC::Iota (0xffffff00);
     unsigned char buf[VEC::elements];
     ival.store (buf);
@@ -607,9 +609,9 @@ test_gatherscatter()
     OIIO_CHECK_SIMD_EQUAL(g, VEC::Iota());
 
     BOOL mask = BOOL::from_bitmask(0x55555555);  // every other one
-    ELEM every_other_iota[] = { 0, 0, 2, 0, 4, 0, 6, 0, 8, 0, 10, 0, 12, 0, 14, 0 };
-    gm = 0;
+    gm = 42;
     gm.gather_mask (mask, gather_source.data(), indices);
+    ELEM every_other_iota[] = { 0, 42, 2, 42, 4, 42, 6, 42, 8, 42, 10, 42, 12, 42, 14, 42 };
     OIIO_CHECK_SIMD_EQUAL (gm, VEC(every_other_iota));
 
     std::vector<ELEM> scatter_out (bufsize, (ELEM)-1);
@@ -622,7 +624,7 @@ test_gatherscatter()
         OIIO_CHECK_EQUAL (scatter_out[i], ((i%3) == 1 && (i&1) ? i/3 : -1));
 
     benchmark ("gather", [&](const ELEM *d){ VEC v; v.gather (d, indices); return v; }, gather_source.data());
-    benchmark ("gather_mask", [&](const ELEM *d){ VEC v; v.gather_mask (mask, d, indices); return v; }, gather_source.data());
+    benchmark ("gather_mask", [&](const ELEM *d){ VEC v = ELEM(0); v.gather_mask (mask, d, indices); return v; }, gather_source.data());
     benchmark ("scatter", [&](ELEM *d){ g.scatter (d, indices); return g; }, scatter_out.data());
     benchmark ("scatter_mask", [&](ELEM *d){ g.scatter_mask (mask, d, indices); return g; }, scatter_out.data());
 }
@@ -1015,7 +1017,7 @@ void test_arithmetic ()
     benchmark2 ("operator/", do_div<VEC>, a, b);
     benchmark  ("abs", do_abs<VEC>, a);
     benchmark  ("reduce_add", [](const VEC& a){ return vreduce_add(a); }, a);
-    if (is_same<VEC,vfloat3>::value) {  // For vfloat3, compare to Imath
+    if (std::is_same<VEC,vfloat3>::value) {  // For vfloat3, compare to Imath
         Imath::V3f a(2.51f,1.0f,1.0f), b(3.1f,1.0f,1.0f);
         benchmark2 ("add Imath::V3f", do_add<Imath::V3f>, a, b, 3 /*work*/);
         benchmark2 ("add Imath::V3f with simd", add_vec_simd, a, b, 3 /*work*/);
@@ -1611,8 +1613,8 @@ void test_mathfuncs ()
     VEC expA = mkvec<VEC> (0.367879441171442f, 1.0f, 2.718281828459045f, 90.0171313005218f);
     OIIO_CHECK_SIMD_EQUAL (exp(A), expA);
     OIIO_CHECK_SIMD_EQUAL_THRESH (log(expA), A, 1e-6f);
-    OIIO_CHECK_SIMD_EQUAL (fast_exp(A),
-                mkvec<VEC>(fast_exp(A[0]), fast_exp(A[1]), fast_exp(A[2]), fast_exp(A[3])));
+    OIIO_CHECK_SIMD_EQUAL_THRESH (fast_exp(A),
+                mkvec<VEC>(fast_exp(A[0]), fast_exp(A[1]), fast_exp(A[2]), fast_exp(A[3])), 1e-5f);
     OIIO_CHECK_SIMD_EQUAL_THRESH (fast_log(expA),
                 mkvec<VEC>(fast_log(expA[0]), fast_log(expA[1]), fast_log(expA[2]), fast_log(expA[3])), 0.00001f);
     OIIO_CHECK_SIMD_EQUAL_THRESH (fast_pow_pos(VEC(2.0f), A),
@@ -1939,6 +1941,25 @@ test_matrix()
 
 
 
+static void
+test_trivially_copyable()
+{
+    print("\nTesting trivially_copyable on all SIMD classes\n");
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat3>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<matrix44>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool16>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint16>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat16>::value);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -2094,6 +2115,7 @@ main(int argc, char* argv[])
     test_special();
     test_metaprogramming();
     test_matrix();
+    test_trivially_copyable();
 
     std::cout << "\nTotal time: " << Strutil::timeintervalformat(timer())
               << "\n";

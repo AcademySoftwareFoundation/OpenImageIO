@@ -14,6 +14,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <zlib.h>
 
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
@@ -128,6 +129,15 @@ private:
         uint64_t data_length;
         int64_t data_pos;
         uint16_t compression;
+
+        uint32_t width;
+        uint32_t height;
+
+        // This data is only relevant for the compression
+        // codecs zip and zipprediction as we need to preallocate
+        // the memory this vector is already decompressed and byteswapped
+        std::vector<char> decompressed_data;
+
         std::vector<uint32_t> rle_lengths;
         std::vector<int64_t> row_pos;
     };
@@ -276,6 +286,9 @@ private:
     //Global Additional Layer Info
     bool load_global_additional();
 
+    //Layers for 16- and 32-bit documents
+    bool load_layers_16_32(uint64_t length);
+
     //Image Data Section
     bool load_image_data();
 
@@ -285,8 +298,7 @@ private:
     void fill_channel_names(ImageSpec& spec, bool transparency);
 
     //Read a row of channel data
-    bool read_channel_row(const ChannelInfo& channel_info, uint32_t row,
-                          char* data);
+    bool read_channel_row(ChannelInfo& channel_info, uint32_t row, char* data);
 
     // Interleave channels (RRRGGGBBB -> RGBRGBRGB) while copying from
     // channel_buffers[0..nchans-1] to dst.
@@ -367,14 +379,16 @@ private:
                                   int alpha_channel, TypeDesc format) const;
 
     template<typename T>
-    static void cmyk_to_rgb(int n, const T* cmyk, size_t cmyk_stride, T* rgb,
-                            size_t rgb_stride)
+    static void cmyk_to_rgb(int n, cspan<T> cmyk, size_t cmyk_stride,
+                            span<T> rgb, size_t rgb_stride)
     {
-        for (; n; --n, cmyk += cmyk_stride, rgb += rgb_stride) {
-            float C = convert_type<T, float>(cmyk[0]);
-            float M = convert_type<T, float>(cmyk[1]);
-            float Y = convert_type<T, float>(cmyk[2]);
-            float K = convert_type<T, float>(cmyk[3]);
+        OIIO_DASSERT(size_t(n) * cmyk_stride <= std::size(cmyk));
+        OIIO_DASSERT(size_t(n) * rgb_stride <= std::size(rgb));
+        for (int i = 0; i < n; ++i) {
+            float C = convert_type<T, float>(cmyk[i * cmyk_stride + 0]);
+            float M = convert_type<T, float>(cmyk[i * cmyk_stride + 1]);
+            float Y = convert_type<T, float>(cmyk[i * cmyk_stride + 2]);
+            float K = convert_type<T, float>(cmyk[i * cmyk_stride + 3]);
 #if 0
             // WHY doesn't this work if it's cmyk?
             float R = (1.0f - C) * (1.0f - K);
@@ -388,12 +402,13 @@ private:
             float G = M * (K);
             float B = Y * (K);
 #endif
-            rgb[0] = convert_type<float, T>(R);
-            rgb[1] = convert_type<float, T>(G);
-            rgb[2] = convert_type<float, T>(B);
+            rgb[i * rgb_stride + 0] = convert_type<float, T>(R);
+            rgb[i * rgb_stride + 1] = convert_type<float, T>(G);
+            rgb[i * rgb_stride + 2] = convert_type<float, T>(B);
 
             if (cmyk_stride == 5 && rgb_stride == 4) {
-                rgb[3] = convert_type<float, T>(cmyk[4]);
+                rgb[i * rgb_stride + 3] = convert_type<float, T>(
+                    cmyk[i * cmyk_stride + 4]);
             }
         }
     }
@@ -414,8 +429,17 @@ private:
 
     int read_pascal_string(std::string& s, uint16_t mod_padding);
 
+    // Swap a planar bytespan representing the bytes of a float vector to its
+    // interleaved byte order. This is per scanline
+    void float_planar_to_interleaved(span<char> data, size_t width,
+                                     size_t height);
+
+    // All the compression modes known to photoshop
     bool decompress_packbits(const char* src, char* dst, uint32_t packed_length,
                              uint32_t unpacked_length);
+    bool decompress_zip(span<char> src, span<char> dest);
+    bool decompress_zip_prediction(span<char> src, span<char> dest,
+                                   const uint32_t width, const uint32_t height);
 
     // These are AdditionalInfo entries that, for PSBs, have an 8-byte length
     static const char* additional_info_psb[];
@@ -783,41 +807,47 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             break;
         }
     } else if (m_header.color_mode == ColorMode_CMYK) {
+        span_size_t cmyklen = channel_count * spec.width;
         switch (bps) {
         case 4: {
-            std::unique_ptr<float[]> cmyk(
-                new float[channel_count * spec.width]);
+            std::unique_ptr<float[]> cmyk(new float[cmyklen]);
             interleave_row(cmyk.get(), channel_buffers, spec.width,
                            channel_count);
-            cmyk_to_rgb(spec.width, cmyk.get(), channel_count, (float*)dst,
+            cmyk_to_rgb(spec.width, make_cspan(cmyk.get(), cmyklen),
+                        channel_count,
+                        make_span((float*)dst, spec.width * spec.nchannels),
                         spec.nchannels);
             break;
         }
         case 2: {
-            std::unique_ptr<unsigned short[]> cmyk(
-                new unsigned short[channel_count * spec.width]);
+            std::unique_ptr<unsigned short[]> cmyk(new unsigned short[cmyklen]);
             interleave_row(cmyk.get(), channel_buffers, spec.width,
                            channel_count);
-            cmyk_to_rgb(spec.width, cmyk.get(), channel_count,
-                        (unsigned short*)dst, spec.nchannels);
+            cmyk_to_rgb(spec.width, make_cspan(cmyk.get(), cmyklen),
+                        channel_count,
+                        make_span((uint16_t*)dst, spec.width * spec.nchannels),
+                        spec.nchannels);
             break;
         }
         default: {
-            std::unique_ptr<unsigned char[]> cmyk(
-                new unsigned char[channel_count * spec.width]);
+            std::unique_ptr<unsigned char[]> cmyk(new unsigned char[cmyklen]);
             interleave_row(cmyk.get(), channel_buffers, spec.width,
                            channel_count);
-            cmyk_to_rgb(spec.width, cmyk.get(), channel_count,
-                        (unsigned char*)dst, spec.nchannels);
+            cmyk_to_rgb(spec.width, make_cspan(cmyk.get(), cmyklen),
+                        channel_count,
+                        make_span((uint8_t*)dst, spec.width * spec.nchannels),
+                        spec.nchannels);
             break;
         }
         }
     } else if (m_header.color_mode == ColorMode_Indexed) {
-        if (!indexed_to_rgb({ (unsigned char*)dst, spec.width * spec.nchannels },
+        if (!indexed_to_rgb({ (unsigned char*)dst,
+                              span_size_t(spec.width * spec.nchannels) },
                             channel_buffers[0], spec.width))
             return false;
     } else if (m_header.color_mode == ColorMode_Bitmap) {
-        if (!bitmap_to_rgb({ (unsigned char*)dst, spec.width * spec.nchannels },
+        if (!bitmap_to_rgb({ (unsigned char*)dst,
+                             span_size_t(spec.width * spec.nchannels) },
                            channel_buffers[0], spec.width))
             return false;
     } else {
@@ -1420,6 +1450,11 @@ PSDInput::load_layers()
     if (!ok)
         return false;
 
+    // There is 3 cases where this could be empty:
+    // - 16-bit files store this data in the Lr16 tagged block
+    // - 32-bit files store this data in the Lr32 tagged block
+    // - Single layer files may optimize this section away and instead
+    //   store the data on the merged image data section
     if (!layer_info.length)
         return true;
 
@@ -1590,10 +1625,13 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         width  = layer.width;
         height = layer.height;
     }
+    channel_info.width  = width;
+    channel_info.height = height;
 
     channel_info.data_pos = iotell();
     channel_info.row_pos.resize(height);
     channel_info.row_length = (width * m_header.depth + 7) / 8;
+
     switch (channel_info.compression) {
     case Compression_Raw:
         if (height) {
@@ -1603,6 +1641,9 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
                                           + channel_info.row_length;
         }
         channel_info.data_length = channel_info.row_length * height;
+
+        if (!ioseek(channel_info.data_length, SEEK_CUR))
+            return false;
         break;
     case Compression_RLE:
         // RLE lengths are stored before the channel data
@@ -1620,19 +1661,52 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
                 channel_info.row_pos[i] = channel_info.row_pos[i - 1]
                                           + channel_info.rle_lengths[i - 1];
         }
+
+        if (!ioseek(channel_info.data_length, SEEK_CUR))
+            return false;
         break;
-    // These two aren't currently supported. They would likely
-    // require large changes in the code as they probably don't
-    // support random access like the other modes. I doubt these are
-    // used much and I haven't found any test images.
-    case Compression_ZIP:
-    case Compression_ZIP_Predict:
+    case Compression_ZIP: {
+        // We subtract the compression marker from the data length
+        channel_info.data_length -= 2;
+
+        // Unlike with raw and rle compression we cannot access each scanline
+        // randomly so we parse the data up-front and store it
+        std::vector<char> compressed_data(channel_info.data_length);
+        channel_info.decompressed_data = std::vector<char>(
+            width * height * (m_header.depth / 8));
+
+        if (!ioseek(channel_info.data_pos))
+            return false;
+        if (!ioread(compressed_data.data(), channel_info.data_length))
+            return false;
+
+        decompress_zip(compressed_data, channel_info.decompressed_data);
+    } break;
+    case Compression_ZIP_Predict: {
+        // We subtract the compression marker from the data length
+        channel_info.data_length -= 2;
+
+        // Unlike with raw and rle compression we cannot access each scanline
+        // randomly so we parse the data up-front and store it
+        std::vector<char> compressed_data(channel_info.data_length);
+        channel_info.decompressed_data = std::vector<char>(
+            width * height * (m_header.depth / 8));
+
+        if (!ioseek(channel_info.data_pos))
+            return false;
+        if (!ioread(compressed_data.data(), channel_info.data_length))
+            return false;
+
+        decompress_zip_prediction(compressed_data,
+                                  channel_info.decompressed_data, width,
+                                  height);
+    } break;
     default:
         errorfmt("[Layer Channel] unsupported compression {}",
                  channel_info.compression);
         return false;
     }
-    return ioseek(channel_info.data_length, SEEK_CUR);
+    return true;
 }
 
 
@@ -1664,7 +1738,10 @@ PSDInput::load_global_mask_info()
     uint32_t length;
 
     // This section should be at least 17 bytes, but some files lack
-    // global mask info and additional layer info, not covered in the spec
+    // global mask info and additional layer info, not covered in the spec.
+    // More modern photoshop files appear to omit this section entirely.
+    // We leave this code here though in case we want to deal with older photoshop files
+    // although it is not currently used anywhere else
     if (remaining < 17) {
         return ioseek(m_layer_mask_info.end);
     }
@@ -1727,17 +1804,73 @@ PSDInput::load_global_additional()
         // Long story short these are aligned to 4 bytes but that is not
         // included in the stored length and the specs do not mention it.
 
-        // round up to multiple of 4
-        length = (length + 3) & ~3;
-        remaining -= length;
-        // skip it for now
-        ok &= ioseek(length, SEEK_CUR);
+        // Load 16 and 32-bit layer data
+        if (std::memcmp(key, "Lr16", 4) == 0
+            || std::memcmp(key, "Lr32", 4) == 0) {
+            uint64_t begin_offset = iotell();
+            ok &= load_layers_16_32(length);
+            uint64_t size = iotell() - begin_offset;
+            remaining -= size;
+        } else {
+            // round up to multiple of 4
+            length = (length + 3) & ~3;
+            remaining -= length;
+            // skip it for now
+            ok &= ioseek(length, SEEK_CUR);
+        }
     }
     // finished with the layer and mask information section, seek to the end
     ok &= ioseek(m_layer_mask_info.end);
     return ok;
 }
 
+
+bool
+PSDInput::load_layers_16_32(uint64_t length)
+{
+    // Notice that, bar the reading of the length marker, reading this section is identical to
+    // the normal layer info section
+    bool ok = true;
+
+    if (length == 0)
+        return false;
+
+    LayerMaskInfo::LayerInfo& layer_info = m_layer_mask_info.layer_info;
+    // The layer info length must have been 0 in the actual layer info section
+    OIIO_ASSERT(layer_info.length == 0);
+    layer_info.length = length;
+
+    uint64_t begin = iotell();
+
+    // We read the layer info as we would usually since the section is exactly the same
+    ok &= read_bige<int16_t>(layer_info.layer_count);
+    if (layer_info.layer_count < 0) {
+        m_image_data.transparency = true;
+        layer_info.layer_count    = -layer_info.layer_count;
+    }
+    m_layers.resize(layer_info.layer_count);
+    for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count;
+         ++layer_nbr) {
+        Layer& layer = m_layers[layer_nbr];
+        if (!load_layer(layer))
+            return false;
+    }
+    for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count;
+         ++layer_nbr) {
+        Layer& layer = m_layers[layer_nbr];
+        if (!load_layer_channels(layer))
+            return false;
+    }
+
+    // This section, like the other tagged blocks are padded to 4 bytes
+    uint64_t length_read = iotell() - begin;
+    int64_t remaining    = (((length_read + 3) / 4) * 4) - length_read;
+    OIIO_ASSERT(remaining >= 0);
+    OIIO_ASSERT(remaining < 4);
+    ioseek(remaining, SEEK_CUR);
+
+    return ok;
+}
 
 
 bool
@@ -1758,6 +1891,8 @@ PSDInput::load_image_data()
     // setup some generic properties and read any RLE lengths
     // Image Data Section has RLE lengths for all channels stored first
     for (ChannelInfo& channel_info : m_image_data.channel_info) {
+        channel_info.width       = m_header.width;
+        channel_info.height      = m_header.height;
         channel_info.compression = compression;
         channel_info.channel_id  = id++;
         channel_info.data_length = row_length * m_header.height;
@@ -1893,8 +2028,7 @@ PSDInput::fill_channel_names(ImageSpec& spec, bool transparency)
 
 
 bool
-PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
-                           char* data)
+PSDInput::read_channel_row(ChannelInfo& channel_info, uint32_t row, char* data)
 {
     if (row >= channel_info.row_pos.size()) {
         errorfmt("Reading channel row out of range ({}, should be < {})", row,
@@ -1902,14 +2036,23 @@ PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
         return false;
     }
 
-    if (!ioseek(channel_info.row_pos[row]))
-        return false;
     switch (channel_info.compression) {
     case Compression_Raw:
+        if (!ioseek(channel_info.row_pos[row]))
+            return false;
         if (!ioread(data, channel_info.row_length))
             return false;
+
+        if (!bigendian()) {
+            switch (m_header.depth) {
+            case 16: swap_endian((uint16_t*)data, channel_info.width); break;
+            case 32: swap_endian((uint32_t*)data, channel_info.width); break;
+            }
+        }
         break;
     case Compression_RLE: {
+        if (!ioseek(channel_info.row_pos[row]))
+            return false;
         uint32_t rle_length = channel_info.rle_lengths[row];
         char* rle_buffer;
         OIIO_ALLOCATE_STACK_OR_HEAP(rle_buffer, char, rle_length);
@@ -1917,24 +2060,29 @@ PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
             || !decompress_packbits(rle_buffer, data, rle_length,
                                     channel_info.row_length))
             return false;
-        break;
-    }
+    } break;
+    case Compression_ZIP: {
+        OIIO_ASSERT(channel_info.decompressed_data.size()
+                    == static_cast<uint64_t>(channel_info.width)
+                           * channel_info.height * (m_header.depth / 8));
+        // We simply copy over the row into destination
+        uint64_t row_index = static_cast<uint64_t>(row) * channel_info.width
+                             * (m_header.depth / 8);
+        std::memcpy(data, channel_info.decompressed_data.data() + row_index,
+                    channel_info.row_length);
+    } break;
+    case Compression_ZIP_Predict: {
+        OIIO_ASSERT(channel_info.decompressed_data.size()
+                    == static_cast<uint64_t>(channel_info.width)
+                           * channel_info.height * (m_header.depth / 8));
+        // We simply copy over the row into destination
+        uint64_t row_index = static_cast<uint64_t>(row) * channel_info.width
+                             * (m_header.depth / 8);
+        std::memcpy(data, channel_info.decompressed_data.data() + row_index,
+                    channel_info.row_length);
+    } break;
     }
 
-    if (!bigendian()) {
-        switch (m_header.depth) {
-        case 16: swap_endian((uint16_t*)data, m_spec.width); break;
-        case 32:
-            swap_endian((uint32_t*)data, m_spec.width);
-            // if (row == 131)
-            //     printf ("%x %x %x %x\n",
-            //             ((uint32_t*)data)[0], ((uint32_t*)data)[1],
-            //             ((uint32_t*)data)[2], ((uint32_t*)data)[3]);
-            // convert_type<float,uint32_t> ((float *)&data[0],
-            //                               (uint32_t*)&data[1], m_spec.width);
-            break;
-        }
-    }
     return true;
 }
 
@@ -2051,6 +2199,31 @@ PSDInput::read_pascal_string(std::string& s, uint16_t mod_padding)
 
 
 
+void
+PSDInput::float_planar_to_interleaved(span<char> data, size_t width,
+                                      size_t height)
+{
+    std::vector<char> buffer(data.size());
+
+    // Shuffle from planar 1111... 2222... 3333... 4444... byte order to 1234 1234 1234 1234...
+    for (uint64_t y = 0; y < height; ++y) {
+        for (uint64_t x = 0; x < width; ++x) {
+            uint64_t rowIndex = y * width * sizeof(float);
+
+            buffer[rowIndex + x * sizeof(float) + 0] = data[rowIndex + x];
+            buffer[rowIndex + x * sizeof(float) + 1]
+                = data[rowIndex + width + x];
+            buffer[rowIndex + x * sizeof(float) + 2]
+                = data[rowIndex + width * 2 + x];
+            buffer[rowIndex + x * sizeof(float) + 3]
+                = data[rowIndex + width * 3 + x];
+        }
+    }
+    std::memcpy(data.data(), buffer.data(), buffer.size());
+}
+
+
+
 bool
 PSDInput::decompress_packbits(const char* src, char* dst,
                               uint32_t packed_length, uint32_t unpacked_length)
@@ -2060,6 +2233,7 @@ PSDInput::decompress_packbits(const char* src, char* dst,
     int16_t header;
     int length;
 
+    char* dst_start = dst;
     while (src_remaining > 0 && dst_remaining > 0) {
         header = *reinterpret_cast<const signed char*>(src);
         src++;
@@ -2099,8 +2273,121 @@ PSDInput::decompress_packbits(const char* src, char* dst,
             dst += length;
         }
     }
+
+    if (!bigendian()) {
+        switch (m_header.depth) {
+        case 16: swap_endian((uint16_t*)dst_start, m_spec.width); break;
+        case 32: swap_endian((uint32_t*)dst_start, m_spec.width); break;
+        }
+    }
+
     return true;
 }
+
+
+
+bool
+PSDInput::decompress_zip(span<char> src, span<char> dest)
+{
+    z_stream stream {};
+    stream.zfree     = Z_NULL;
+    stream.opaque    = Z_NULL;
+    stream.avail_in  = src.size();
+    stream.next_in   = (Bytef*)src.data();
+    stream.avail_out = dest.size();
+    stream.next_out  = (Bytef*)dest.data();
+
+    if (inflateInit(&stream) != Z_OK) {
+        errorfmt(
+            "zip compression inflate init failed with: src_size={}, dst_size={}",
+            src.size(), dest.size());
+        return false;
+    }
+
+    if (inflate(&stream, Z_FINISH) != Z_STREAM_END) {
+        errorfmt(
+            "unable to decode zip compressed data: src_size={}, dst_size={}",
+            src.size(), dest.size());
+        return false;
+    }
+
+    if (inflateEnd(&stream) != Z_OK) {
+        errorfmt(
+            "zip compression inflate cleanup failed with: src_size={}, dst_size={}",
+            src.size(), dest.size());
+        return false;
+    }
+
+    return true;
+}
+
+
+
+bool
+PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
+                                    const uint32_t width, const uint32_t height)
+{
+    OIIO_ASSERT(width * height * (m_header.depth / 8) == dest.size());
+    bool ok = true;
+    // Decompress into dest first and then apply the prediction decoding
+    // on dest
+    ok &= decompress_zip(src, dest);
+
+    switch (m_header.depth) {
+    case 8:
+        for (uint64_t y = 0; y < height; ++y) {
+            // Index x beginning at one since we look behind to calculate
+            // the offset
+            for (uint64_t x = 1; x < width; ++x) {
+                dest[y * width + x] += dest[y * width + x - 1];
+            };
+        };
+        break;
+    case 16: {
+        // 16-bit data requires endian swapping at this point already for the
+        // prediction decoding to work correctly
+        span<uint16_t> destView(reinterpret_cast<uint16_t*>(dest.data()),
+                                dest.size() / 2);
+        if (!bigendian())
+            byteswap_span(destView);
+
+        for (uint64_t y = 0; y < height; ++y) {
+            // Index x beginning at one since we look behind to calculate
+            // the offset
+            for (uint64_t x = 1; x < width; ++x) {
+                destView[y * width + x] += destView[y * width + x - 1];
+            };
+        };
+    } break;
+    case 32: {
+        // 32-bit files actually have the float bytes stored in planar fashion on disk
+        // which are then prediction encoded. Thus we first decode the bytes itself
+        uint64_t index = 0;
+        for (uint64_t y = 0; y < height; ++y) {
+            ++index;
+            for (uint64_t x = 1; x < (width * sizeof(float)); ++x) {
+                uint8_t value = dest[index] + dest[index - 1];
+                dest[index]   = value;
+                ++index;
+            }
+        }
+
+        // We now shuffle the byte order back into place from planar to interleaved
+        float_planar_to_interleaved(dest, width, height);
+
+        // Finally we byteswap if necessary
+        if (!bigendian())
+            byteswap_span(
+                span<uint32_t>(reinterpret_cast<uint32_t*>(dest.data()),
+                               dest.size() / 4));
+    } break;
+    default:
+        errorfmt("Unknown bitdepth: {} encountered", m_header.depth);
+        return false;
+    }
+
+    return ok;
+};
 
 
 

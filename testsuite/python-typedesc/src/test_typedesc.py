@@ -4,9 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-from __future__ import print_function
-from __future__ import absolute_import
 import OpenImageIO as oiio
+
 
 
 # Test that every expected enum value of BASETYPE exists
@@ -141,28 +140,6 @@ try:
     print ("equivalent(vector,float)", oiio.TypeDesc.equivalent(oiio.TypeDesc("vector"), oiio.TypeDesc("float")))
     print ("")
 
-    # DEPRECATED(1.8): Test the static data member types of pre-constructed types
-    breakdown_test (oiio.TypeDesc.TypeFloat,    "TypeFloat",    verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeColor,    "TypeColor",    verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeString,   "TypeString",   verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeInt,      "TypeInt",      verbose=False)
-    breakdown_test (oiio.TypeDesc.TypePoint,    "TypePoint",    verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeVector,   "TypeVector",   verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeNormal,   "TypeNormal",   verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeMatrix,   "TypeMatrix",   verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeMatrix33, "TypeMatrix33", verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeMatrix44, "TypeMatrix44", verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeTimeCode, "TypeTimeCode", verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeKeyCode,  "TypeKeyCode",  verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeRational, "TypeRational", verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeFloat2,   "TypeFloat2",   verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeVector2,  "TypeVector2",  verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeFloat4,   "TypeFloat4",   verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeVector4,  "TypeVector4",  verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeVector2i, "TypeVector2i", verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeHalf,     "TypeHalf",     verbose=False)
-    print ("")
-
     # Test the pre-constructed types
     breakdown_test (oiio.TypeFloat,    "TypeFloat",    verbose=False)
     breakdown_test (oiio.TypeColor,    "TypeColor",    verbose=False)
@@ -190,6 +167,7 @@ try:
     breakdown_test (oiio.TypeFloat4,   "TypeFloat4",   verbose=False)
     breakdown_test (oiio.TypeVector4,  "TypeVector4",  verbose=False)
     breakdown_test (oiio.TypeVector2i, "TypeVector2i", verbose=False)
+    breakdown_test (oiio.TypeVector3i, "TypeVector3i", verbose=False)
     breakdown_test (oiio.TypeHalf,     "TypeHalf",     verbose=False)
     breakdown_test (oiio.TypeRational, "TypeRational", verbose=False)
     breakdown_test (oiio.TypeUInt,     "TypeUInt",     verbose=False)

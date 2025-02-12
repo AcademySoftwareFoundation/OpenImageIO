@@ -35,7 +35,6 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
     m_type      = _type;
     m_nvalues   = _nvalues;
     m_interp    = _interp;
-    size_t n    = (size_t)(m_nvalues * m_type.numelements());
     size_t size = (size_t)(m_nvalues * m_type.size());
     bool small  = (size <= sizeof(m_data));
 
@@ -58,9 +57,9 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
             m_nonlocal = true;
         }
         if (m_type.basetype == TypeDesc::STRING && !_from_ustring) {
-            if (ustring* u = (ustring*)data())
-                for (size_t i = 0; i < n; ++i)
-                    u[i] = ustring(u[i].c_str());
+            // Convert non-ustrings to ustrings
+            for (ustring& u : as_span<ustring>())
+                u = ustring(u.c_str());
         }
     } else {
         // Big enough to warrant a malloc, but the caller said don't
@@ -126,17 +125,13 @@ template<class T>
 static void
 parse_elements(string_view value, ParamValue& p)
 {
-    using namespace Strutil;
-    TypeDesc type = p.type();
-    int num_items = type.numelements() * type.aggregate;
-    T* data       = (T*)p.data();
-    // Erase any leading whitespace
+    auto data = p.as_span<T>();
     value.remove_prefix(value.find_first_not_of(" \t"));
-    for (int i = 0; i < num_items; ++i) {
+    for (auto&& d : data) {
         // Make a temporary copy so we for sure have a 0-terminated string.
         std::string temp = value;
         // Grab the first value from it
-        data[i] = from_string<T>(temp);
+        d = Strutil::from_string<T>(temp);
         // Skip the value (eat until we find a delimiter -- space, comma, tab)
         value.remove_prefix(value.find_first_of(" ,\t"));
         // Skip the delimiter
@@ -310,7 +305,7 @@ ParamValue::get_string_indexed(int index) const
         if (element.vecsemantics == TypeDesc::RATIONAL
             && element.aggregate == TypeDesc::VEC2) {
             const int* val = (const int*)data() + 2 * index;
-            out            = Strutil::fmt::format("{}/{}}", val[0], val[1]);
+            out            = Strutil::fmt::format("{}/{}", val[0], val[1]);
         } else if (type() == TypeTimeCode) {
             out += tostring(TypeTimeCode, data());
         } else {
@@ -379,6 +374,17 @@ ParamValue::clear_value() noexcept
     m_data.ptr = nullptr;
     m_copy     = false;
     m_nonlocal = false;
+}
+
+
+
+template<>
+size_t
+pvt::heapsize<ParamValue>(const ParamValue& pv)
+{
+    return (pv.m_nonlocal && pv.m_copy)
+               ? pv.m_nvalues * static_cast<int>(pv.m_type.size())
+               : 0;
 }
 
 
@@ -653,5 +659,227 @@ ParamValueList::merge(const ParamValueList& other, bool override)
             add_or_replace(attr);
     }
 }
+
+
+
+ParamValueSpan::const_iterator
+ParamValueSpan::find(ustring name, TypeDesc type, bool casesensitive) const
+{
+    if (casesensitive) {
+        for (const_iterator i = cbegin(), e = cend(); i != e; ++i) {
+            if (i->name() == name && (type == TypeUnknown || type == i->type()))
+                return i;
+        }
+    } else {
+        for (const_iterator i = cbegin(), e = cend(); i != e; ++i) {
+            if (Strutil::iequals(i->name(), name)
+                && (type == TypeUnknown || type == i->type()))
+                return i;
+        }
+    }
+    return cend();
+}
+
+
+
+ParamValueSpan::const_iterator
+ParamValueSpan::find(string_view name, TypeDesc type, bool casesensitive) const
+{
+    if (casesensitive) {
+        return find(ustring(name), type, casesensitive);
+    } else {
+        for (const_iterator i = cbegin(), e = cend(); i != e; ++i) {
+            if (Strutil::iequals(i->name(), name)
+                && (type == TypeUnknown || type == i->type()))
+                return i;
+        }
+    }
+    return cend();
+}
+
+
+
+int
+ParamValueSpan::get_int(ustring name, int defaultval, bool casesensitive,
+                        bool convert) const
+{
+    auto p = find(name, convert ? TypeUnknown : TypeInt, casesensitive);
+    return (p == cend()) ? defaultval : p->get_int(defaultval);
+}
+
+
+
+int
+ParamValueSpan::get_int(string_view name, int defaultval, bool casesensitive,
+                        bool convert) const
+{
+    auto p = find(name, convert ? TypeUnknown : TypeInt, casesensitive);
+    return (p == cend()) ? defaultval : p->get_int(defaultval);
+}
+
+
+
+float
+ParamValueSpan::get_float(string_view name, float defaultval,
+                          bool casesensitive, bool convert) const
+{
+    auto p = find(name, convert ? TypeUnknown : TypeFloat, casesensitive);
+    return (p == cend()) ? defaultval : p->get_float(defaultval);
+}
+
+
+
+float
+ParamValueSpan::get_float(ustring name, float defaultval, bool casesensitive,
+                          bool convert) const
+{
+    auto p = find(name, convert ? TypeUnknown : TypeFloat, casesensitive);
+    return (p == cend()) ? defaultval : p->get_float(defaultval);
+}
+
+
+
+string_view
+ParamValueSpan::get_string(string_view name, string_view defaultval,
+                           bool casesensitive, bool convert) const
+{
+    auto p = find(name, convert ? TypeUnknown : TypeString, casesensitive);
+    return (p == cend()) ? defaultval : string_view(p->get_ustring());
+}
+
+
+
+string_view
+ParamValueSpan::get_string(ustring name, string_view defaultval,
+                           bool casesensitive, bool convert) const
+{
+    auto p = find(name, convert ? TypeUnknown : TypeString, casesensitive);
+    return (p == cend()) ? defaultval : string_view(p->get_ustring());
+}
+
+
+
+ustring
+ParamValueSpan::get_ustring(string_view name, string_view defaultval,
+                            bool casesensitive, bool convert) const
+{
+    auto p = find(name, convert ? TypeUnknown : TypeString, casesensitive);
+    return (p == cend()) ? ustring(defaultval) : p->get_ustring();
+}
+
+
+
+ustring
+ParamValueSpan::get_ustring(ustring name, string_view defaultval,
+                            bool casesensitive, bool convert) const
+{
+    auto p = find(name, convert ? TypeUnknown : TypeString, casesensitive);
+    return (p == cend()) ? ustring(defaultval) : p->get_ustring();
+}
+
+
+
+bool
+ParamValueSpan::get_bool(ustring name, bool defaultval,
+                         bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p == cend())
+        return defaultval;
+    if (p->type().basetype == TypeDesc::INT)
+        return p->get_int() ? 1 : 0;
+    return Strutil::eval_as_bool(p->get_string());
+}
+
+
+
+bool
+ParamValueSpan::get_bool(string_view name, bool defaultval,
+                         bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p == cend())
+        return defaultval;
+    if (p->type().basetype == TypeDesc::INT)
+        return p->get_int() ? 1 : 0;
+    return Strutil::eval_as_bool(p->get_string());
+}
+
+
+
+bool
+ParamValueSpan::getattribute(string_view name, TypeDesc type, void* value,
+                             bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        return convert_type(p->type(), p->data(), type, value);
+    } else {
+        return false;
+    }
+}
+
+
+
+bool
+ParamValueSpan::getattribute(string_view name, std::string& value,
+                             bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        ustring s;
+        bool ok = convert_type(p->type(), p->data(), TypeString, &s);
+        if (ok)
+            value = s.string();
+        return ok;
+    } else {
+        return false;
+    }
+}
+
+
+
+bool
+ParamValueSpan::getattribute_indexed(string_view name, int index, TypeDesc type,
+                                     void* value, bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        if (index >= int(p->type().basevalues()))
+            return false;
+        TypeDesc basetype = p->type().scalartype();
+        return convert_type(basetype,
+                            (const char*)p->data() + index * basetype.size(),
+                            type, value);
+    } else {
+        return false;
+    }
+}
+
+
+
+bool
+ParamValueSpan::getattribute_indexed(string_view name, int index,
+                                     std::string& value,
+                                     bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        if (index >= int(p->type().basevalues()))
+            return false;
+        TypeDesc basetype = p->type().scalartype();
+        ustring s;
+        bool ok = convert_type(basetype,
+                               (const char*)p->data() + index * basetype.size(),
+                               TypeString, &s);
+        if (ok)
+            value = s.string();
+        return ok;
+    } else {
+        return false;
+    }
+}
+
+
 
 OIIO_NAMESPACE_END

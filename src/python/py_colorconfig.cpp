@@ -107,7 +107,14 @@ declare_colorconfig(py::module& m)
              [](const ColorConfig& self, const std::string& color_space) {
                  return self.getAliases(color_space);
              })
-
+        .def("getNumNamedTransforms", &ColorConfig::getNumNamedTransforms)
+        .def("getNamedTransformNameByIndex",
+             &ColorConfig::getNamedTransformNameByIndex)
+        .def("getNamedTransformNames", &ColorConfig::getNamedTransformNames)
+        .def("getNamedTransformAliases",
+             [](const ColorConfig& self, const std::string& named_transform) {
+                 return self.getNamedTransformAliases(named_transform);
+             })
         .def("getColorSpaceFromFilepath",
              [](const ColorConfig& self, const std::string& str) {
                  return std::string(self.getColorSpaceFromFilepath(str));
@@ -129,7 +136,10 @@ declare_colorconfig(py::module& m)
                 return self.equivalent(color_space, other_color_space);
             },
             "color_space"_a, "other_color_space"_a)
-        .def("configname", &ColorConfig::configname);
+        .def("configname", &ColorConfig::configname)
+        .def_static("default_colorconfig", []() -> const ColorConfig& {
+            return ColorConfig::default_colorconfig();
+        });
 
     m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();
     m.attr("OpenColorIO_version_hex") = ColorConfig::OpenColorIO_version_hex();

@@ -4,10 +4,13 @@ by first name.
 If you know of somebody that I missed or have corrections, please email:
 lg@openimageio.org
 
+* Aaron Colwell
 * Adam Mains
 * Akihiro Yamasaki
 * Alan Jones
 * Alejandro Conty
+* Alejandro Aguirre
+* Alex Guirre
 * Alex Hughes
 * Alex Schworer
 * Alexander Kuleshov
@@ -19,10 +22,15 @@ lg@openimageio.org
 * Aman Shah
 * Ananth Garre
 * Anders Langlands
+* Andy Chan
+* AngryLoki
 * Angus Davis
+* Ankit Sinha
+* Anton Dukhovnikov
 * Anthony Nemoff
 * Aras Pranckevičius
 * Arkady Shapkin
+* Basile Fraboni
 * Basileios Anastasatos
 * Bastien Montagne
 * Ben De Luca
@@ -31,6 +39,7 @@ lg@openimageio.org
 * Blair Tennessy
 * Blazej Floch
 * Brad Smith
+* Bram Stolk
 * Brecht Van Lommel
 * Brent Davis
 * Brian Hall
@@ -39,18 +48,26 @@ lg@openimageio.org
 * Cassian Andrei
 * Chad Dombrova
 * Changlin Hsieh
+* Chaitanya Sharma
 * Chris Crosetto
 * Chris Foster
+* Chris Hellmuth
 * Chris Kulla
 * Chris Whalen
 * Christoph Willing
-* Cliff Stein
 * Clément Champetier
+* Cliff Stein
+* Curtis Black
+* D-Spirits
 * Dalai Felinto
 * Dan Wexler
 * Daniel Dresser
 * Daniel Flehner Heen
 * Daniel Wyatt
+* Danny Greenstein
+* Darby Johnston
+* Dharshan Vishwanatha
+* David Adler
 * David Aguilar
 * David Gordon
 * Deepak Gopinath
@@ -58,16 +75,19 @@ lg@openimageio.org
 * Dieter De Baets
 * Dinko Galetik
 * Dominik Bartkiewicz
+* Dominik Wójt
 * Duncan Chan
 * Dustin Rodrigues
 * Edgar Velazquez-Armendariz
 * Eloi Du Bois
 * Elvic Liang
+* Emil Dohne
 * Fabien Castan
 * Fabien Servant
 * Fredrik Averpil
 * Frédéric Devernay
 * Gaurav Bansal
+* Gerrard Tai
 * Gerdya
 * Ghislain Antony Vaillant
 * Gonzalo Garramuño
@@ -87,9 +107,12 @@ lg@openimageio.org
 * Jens Lindgren
 * Jep Hill
 * Jeph Alapat
+* Jeremy Retailleau
 * Jeremy Rose
 * Jeremy Selan
+* Jesse Yurkovich
 * Jim Hourihan
+* Joachim Reichel
 * Johannes Unterguggenberger
 * John Burnett
 * John Fea
@@ -101,6 +124,7 @@ lg@openimageio.org
 * Julien Enche
 * Justin Israel
 * Justina Mikonyte
+* Kaarrot
 * Kazuki Takahashi
 * Kevin Brightwell
 * Kimball Thurston
@@ -115,6 +139,7 @@ lg@openimageio.org
 * Lukas Schrangl
 * Lukasz Maliszewski
 * Luke Emrose
+* Lydia Zheng
 * M Joonas Pihlaja
 * Malcolm Humphreys
 * Manuel Gamito
@@ -128,6 +153,7 @@ lg@openimageio.org
 * Matteo F. Vescovi
 * Matthew E. Levine
 * Max Liani
+* Mel Massadian
 * Merwan Achibet
 * Michael Cho
 * Michael Oliver
@@ -150,10 +176,13 @@ lg@openimageio.org
 * Pascal Lecocq
 * Patrick Hodoul
 * Patrick Piché
+* Paul Franz
 * Paul Melis
 * Paul Molodowitch
 * Pavel Karneliuk
 * Pete Larabell
+* Peter Horvath
+* Peter Kovář
 * Philip Nemec
 * Pino Toscano
 * Povilas Kanapickas
@@ -177,6 +206,7 @@ lg@openimageio.org
 * SebTV
 * Seifeddine Dridi
 * Sergey Sharybin
+* Sergio Rojas
 * Shane Ambler
 * Simon Boorer
 * Solomon Boulos
@@ -189,11 +219,14 @@ lg@openimageio.org
 * Till Dechent
 * Tim D. Smith
 * Tim Grant
+* Todica Ionut
 * Tom Knowles
 * Troy James Sobotka
+* Vic P
 * Vinod Khare
 * Vishal Agrawal
 * Vitor Franchi
+* Vlad (Kuzmin) Erium
 * Wayne Arnold
 * Will Rosecrans
 * William Krick
@@ -201,4 +234,6 @@ lg@openimageio.org
 * Xo Wang
 * Yang Yang
 * Yann Lanthony
+* Zach Lewis
+* Ziad Khouri
 * zomgrolf

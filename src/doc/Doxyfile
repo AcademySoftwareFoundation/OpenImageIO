@@ -440,6 +440,27 @@ TYPEDEF_HIDES_STRUCT   = NO
 
 LOOKUP_CACHE_SIZE      = 0
 
+# The NUM_PROC_THREADS specifies the number of threads doxygen is allowed to use
+# during processing. When set to 0 doxygen will based this on the number of
+# cores available in the system. You can set it explicitly to a value larger
+# than 0 to get more control over the balance between CPU load and processing
+# speed. At this moment only the input processing can be done using multiple
+# threads. Since this is still an experimental feature the default is set to 1,
+# which effectively disables parallel processing. Please report any issues you
+# encounter. Generating dot graphs in parallel is controlled by the
+# DOT_NUM_THREADS setting.
+# Minimum value: 0, maximum value: 32, default value: 1.
+
+NUM_PROC_THREADS       = 0
+
+# If the TIMESTAMP tag is set different from NO then each generated page will
+# contain the date or date and time when the page was generated. Setting this to
+# NO can help when comparing the output of multiple runs.
+# Possible values are: YES, NO, DATETIME and DATE.
+# The default value is: NO.
+
+TIMESTAMP              = NO
+
 #---------------------------------------------------------------------------
 # Build related configuration options
 #---------------------------------------------------------------------------
@@ -697,7 +718,7 @@ SHOW_FILES             = YES
 # Folder Tree View (if specified).
 # The default value is: YES.
 
-SHOW_NAMESPACES        = YES
+SHOW_NAMESPACES        = NO
 
 # The FILE_VERSION_FILTER tag can be used to specify a program or script that
 # doxygen should invoke to get the current version for each file (typically from
@@ -2164,9 +2185,13 @@ PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          OIIO_HOSTDEVICE= \
                          OIIO_NAMESPACE_BEGIN="namespace OIIO {" \
                          OIIO_NAMESPACE_END="}" \
-                         OIIO_CONSTEXPR14=constexpr \
+                         OIIO_NAMESPACE_3_0_BEGIN="namespace OIIO {" \
+                         OIIO_NAMESPACE_3_0_END="}" \
+                         OIIO_NS_BEGIN="namespace OIIO {" \
+                         OIIO_NS_END="}" \
                          OIIO_CONSTEXPR17=constexpr \
                          OIIO_CONSTEXPR20=constexpr \
+                         OIIO_IB_DEPRECATE_RAW_PTR:= \
                          OIIO_INLINE_CONSTEXPR="inline constexpr" \
                          OIIO_PURE_FUNC= \
                          OIIO_CONST_FUNC= \
@@ -2174,7 +2199,6 @@ PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          OIIO_NODISCARD:= \
                          OIIO_DEPRECATED:=[[deprecated]] \
                          OIIO_FORMAT_DEPRECATED:= \
-                         OIIO_ERRORHANDLER_PRINTF_DEPRECATED:= \
                          OIIO_FORCEINLINE=inline \
                          IMATH_HALF_H_=1 \
                          INCLUDED_IMATHVEC_H=1 \
@@ -2556,3 +2580,5 @@ GENERATE_LEGEND        = YES
 # This tag requires that the tag HAVE_DOT is set to YES.
 
 DOT_CLEANUP            = YES
+
+CLANG_ASSISTED_PARSING = YES

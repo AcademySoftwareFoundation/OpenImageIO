@@ -228,8 +228,7 @@ ImageBufAlgo::compare_Yee(const ImageBuf& img0, const ImageBuf& img1,
     ImageBufAlgo::paste(aLAB, 0, 0, 0, 0, img0, roi, nthreads);
     AdobeRGBToXYZ(aLAB, ROI::All(), nthreads);  // contains XYZ now
     ImageBuf aLum;
-    int channelorder[] = { 1 };  // channel to copy
-    ImageBufAlgo::channels(aLum, aLAB, 1, channelorder);
+    ImageBufAlgo::channels(aLum, aLAB, 1, { 1 } /* channelorder */);
     ImageBufAlgo::mul(aLum, aLum, luminance, ROI::All(), nthreads);
     XYZToLAB(aLAB, ROI::All(), nthreads);  // now it's LAB
 
@@ -238,7 +237,7 @@ ImageBufAlgo::compare_Yee(const ImageBuf& img0, const ImageBuf& img1,
     ImageBufAlgo::paste(bLAB, 0, 0, 0, 0, img1, roi, nthreads);
     AdobeRGBToXYZ(bLAB, ROI::All(), nthreads);  // contains XYZ now
     ImageBuf bLum;
-    ImageBufAlgo::channels(bLum, bLAB, 1, channelorder);
+    ImageBufAlgo::channels(bLum, bLAB, 1, { 1 } /* channelorder */);
     ImageBufAlgo::mul(bLum, bLum, luminance, ROI::All(), nthreads);
     XYZToLAB(bLAB, ROI::All(), nthreads);  // now it's LAB
 

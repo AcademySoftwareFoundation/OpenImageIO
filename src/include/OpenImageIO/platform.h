@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -51,75 +51,6 @@
 
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/export.h>
-
-// Detect which C++ standard we're using, and handy macros.
-// See https://en.cppreference.com/w/cpp/compiler_support
-//
-// OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (14, 17, ...)
-// OIIO_CONSTEXPR14 :
-// OIIO_CONSTEXPR17 :
-// OIIO_CONSTEXPR20 : constexpr for C++ >= the designated version, otherwise
-//                    nothing (this is useful for things that can only be
-//                    constexpr for particular versions or greater).
-// OIIO_INLINE_CONSTEXPR : inline constexpr variables, added in C++17. For
-//                         older C++, static constexpr.
-//
-// Note: oiioversion.h defines OIIO_BUILD_CPP (set to 14, 17, etc.)
-// reflecting what OIIO itself was *built* with.  In contrast,
-// OIIO_CPLUSPLUS_VERSION defined below will be set to the right number for
-// the C++ standard being compiled RIGHT NOW. These two things may be the
-// same when compiling OIIO, but they may not be the same if another
-// package is compiling against OIIO and using these headers (OIIO may be
-// C++14 but the client package may be newer, or vice versa -- use these two
-// symbols to differentiate these cases, when important).
-#if (__cplusplus >= 202001L)
-#    define OIIO_CPLUSPLUS_VERSION 20
-#    define OIIO_CONSTEXPR17 constexpr
-#    define OIIO_CONSTEXPR20 constexpr
-#    define OIIO_INLINE_CONSTEXPR inline constexpr
-#elif (__cplusplus >= 201703L)
-#    define OIIO_CPLUSPLUS_VERSION 17
-#    define OIIO_CONSTEXPR17 constexpr
-#    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
-#    define OIIO_INLINE_CONSTEXPR inline constexpr
-#elif (__cplusplus >= 201402L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
-#    define OIIO_CPLUSPLUS_VERSION 14
-#    define OIIO_CONSTEXPR17 /* not constexpr before C++17 */
-#    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
-#    define OIIO_INLINE_CONSTEXPR static constexpr
-#else
-#    error "This version of OIIO is meant to work only with C++14 and above"
-#endif
-
-// DEPRECATED(2.3): use C++14 constexpr
-#define OIIO_CONSTEXPR14 constexpr
-
-// DEPRECATED(1.8): use C++11 constexpr
-#define OIIO_CONSTEXPR constexpr
-#define OIIO_CONSTEXPR_OR_CONST constexpr
-
-// DEPRECATED(1.8): use C++11 noexcept
-#define OIIO_NOEXCEPT noexcept
-
-
-// In C++20 (and some compilers before that), __has_cpp_attribute can
-// test for understand of [[attr]] tests.
-#ifndef __has_cpp_attribute
-#    define __has_cpp_attribute(x) 0
-#endif
-
-// On gcc & clang, __has_attribute can test for __attribute__((attr))
-#ifndef __has_attribute
-#    define __has_attribute(x) 0
-#endif
-
-// In C++17 (and some compilers before that), __has_include("blah.h") or
-// __has_include(<blah.h>) can test for presence of an include file.
-#ifndef __has_include
-#    define __has_include(x) 0
-#endif
-
-
 
 // Detect which compiler and version we're using
 
@@ -236,6 +167,53 @@
 #  define OIIO_MSVS_AT_LEAST_2022 0
 #  define OIIO_MSVS_BEFORE_2022   0
 #endif
+
+
+// Detect which C++ standard we're using, and handy macros.
+// See https://en.cppreference.com/w/cpp/compiler_support
+//
+// OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (14, 17, ...)
+// OIIO_CONSTEXPR17 :
+// OIIO_CONSTEXPR20 : constexpr for C++ >= the designated version, otherwise
+//                    nothing (this is useful for things that can only be
+//                    constexpr for particular versions or greater).
+//
+// Note: oiioversion.h defines OIIO_BUILD_CPP (set to 17, 20, etc.)
+// reflecting what OIIO itself was *built* with.  In contrast,
+// OIIO_CPLUSPLUS_VERSION defined below will be set to the right number for
+// the C++ standard being compiled RIGHT NOW. These two things may be the
+// same when compiling OIIO, but they may not be the same if another
+// package is compiling against OIIO and using these headers (OIIO may be
+// C++17 but the client package may be newer, or vice versa -- use these two
+// symbols to differentiate these cases, when important).
+#if (__cplusplus >= 202001L)
+#    define OIIO_CPLUSPLUS_VERSION 20
+#    define OIIO_CONSTEXPR20 constexpr
+#elif (__cplusplus >= 201703L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
+#    define OIIO_CPLUSPLUS_VERSION 17
+#    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
+#else
+#    error "This version of OIIO is meant to work only with C++17 and above"
+#endif
+
+// DEPRECATED(3.1): use C++17 inline constexpr
+#define OIIO_INLINE_CONSTEXPR inline constexpr
+
+// DEPRECATED(3.0): use C++17 constexpr
+#define OIIO_CONSTEXPR17 constexpr
+
+
+// In C++20 (and some compilers before that), __has_cpp_attribute can
+// test for understand of [[attr]] tests.
+#ifndef __has_cpp_attribute
+#    define __has_cpp_attribute(x) 0
+#endif
+
+// On gcc & clang, __has_attribute can test for __attribute__((attr))
+#ifndef __has_attribute
+#    define __has_attribute(x) 0
+#endif
+
 
 
 // Pragma control
@@ -389,7 +367,7 @@
 #endif
 
 
-// OIIO_FORCELINE is a function attribute that attempts to make the function
+// OIIO_FORCEINLINE is a function attribute that attempts to make the function
 // always inline. On many compilers regular 'inline' is only advisory. Put
 // this attribute before the function return type, just like you would use
 // 'inline'.
@@ -431,18 +409,11 @@
 #    define OIIO_CONST_FUNC
 #endif
 
-// OIIO_MAYBE_UNUSED is a function or variable attribute that assures the
-// compiler that it's fine for the item to appear to be unused.
-#if OIIO_CPLUSPLUS_VERSION >= 17 || __has_cpp_attribute(maybe_unused)
-#    define OIIO_MAYBE_UNUSED [[maybe_unused]]
-#elif defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER) || __has_attribute(unused)
-#    define OIIO_MAYBE_UNUSED __attribute__((unused))
-#else
-#    define OIIO_MAYBE_UNUSED
-#endif
-
-// DEPRECATED(1.9) name:
-#define OIIO_UNUSED_OK OIIO_MAYBE_UNUSED
+// OIIO_MAYBE_UNUSED is an annotator for function or variable attribute that
+// assures the compiler that it's fine for the item to appear to be unused.
+// Consider this deprecated (as of OIIO 3.0), you should favor C++17's
+// [[maybe_unused]] attribute.
+#define OIIO_MAYBE_UNUSED [[maybe_unused]]
 
 // OIIO_RESTRICT is a parameter attribute that indicates a promise that the
 // parameter definitely will not alias any other parameters in such a way
@@ -455,26 +426,26 @@
 
 
 // OIIO_DEPRECATED before a function declaration marks it as deprecated in
-// a way that will generate compile warnings if it is called.
-#if OIIO_CPLUSPLUS_VERSION >= 14 || __has_cpp_attribute(deprecated)
-#    define OIIO_DEPRECATED(msg) [[deprecated(msg)]]
-#elif defined(__GNUC__) || defined(__clang__) || __has_attribute(deprecated)
-#    define OIIO_DEPRECATED(msg) __attribute__((deprecated(msg)))
-#elif defined(_MSC_VER)
-#    define OIIO_DEPRECATED(msg) __declspec(deprecated(msg))
-#else
-#    define OIIO_DEPRECATED(msg)
-#endif
+// a way that will generate compile warnings if it is called. This should
+// itself be considered deprecated (as of OIIO 3.0) and code should use
+// [[deprecated(msg)]] instead.
+#define OIIO_DEPRECATED(msg) [[deprecated(msg)]]
 
+// OIIO_DEPRECATED_EXTERNAL marks things deprecated for downstream apps, but
+// still is allowed for internal use. Generally, this is used when we want to
+// deprecate for users but can't quite extract it internally yet.
+#ifndef OIIO_INTERNAL
+#  define OIIO_DEPRECATED_EXTERNAL(msg) [[deprecated(msg)]]
+#else
+#  define OIIO_DEPRECATED_EXTERNAL(msg)
+#endif
 
 // OIIO_FALLTHROUGH at the end of a `case` label's statements documents that
 // the switch statement case is intentionally falling through to the code
 // for the next case.
-#if OIIO_CPLUSPLUS_VERSION >= 17 || __has_cpp_attribute(fallthrough)
-#    define OIIO_FALLTHROUGH [[fallthrough]]
-#else
-#    define OIIO_FALLTHROUGH
-#endif
+// Consider this deprecated (as of OIIO 3.0), you should favor C++17's
+// [[fallthrough]] attribute.
+#define OIIO_FALLTHROUGH [[fallthrough]]
 
 
 // OIIO_NODISCARD following a function declaration documents that the
@@ -524,8 +495,10 @@
 // function decorators needed when compiling for CUDA devices.
 #ifdef __CUDACC__
 #    define OIIO_HOSTDEVICE __host__ __device__
+#    define OIIO_DEVICE __device__
 #else
 #    define OIIO_HOSTDEVICE
+#    define OIIO_DEVICE
 #endif
 
 
@@ -658,20 +631,14 @@ inline void aligned_delete(T* t) {
 }
 
 
-
-#if OIIO_CPLUSPLUS_VERSION >= 14
-    using std::enable_if_t;    // Use C++14 std::enable_if_t
-#else
-    // Define enable_if_t for C++11
-    template <bool B, class T = void>
-    using enable_if_t = typename std::enable_if<B, T>::type;
-#endif
+// DEPRECATED(2.6)
+using std::enable_if_t;
 
 // An enable_if helper to be used in template parameters which results in
 // much shorter symbols: https://godbolt.org/z/sWw4vP
 // Borrowed from fmtlib.
 #ifndef OIIO_ENABLE_IF
-#   define OIIO_ENABLE_IF(...) OIIO::enable_if_t<(__VA_ARGS__), int> = 0
+#   define OIIO_ENABLE_IF(...) std::enable_if_t<(__VA_ARGS__), int> = 0
 #endif
 
 OIIO_NAMESPACE_END

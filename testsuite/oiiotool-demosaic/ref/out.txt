@@ -1,0 +1,64 @@
+Computing diff of "testimage.exr" vs "result_float_RGGB_WB-linear.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_float_RGGB_WB-MHC.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_float_GRBG_WB-linear.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_float_GRBG_WB-MHC.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_float_GBRG_WB-linear.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_float_GBRG_WB-MHC.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_float_BGGR_WB-linear.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_float_BGGR_WB-MHC.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_half_RGGB-linear.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_half_RGGB-MHC.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_uint16_RGGB-linear.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint16_RGGB-MHC.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint8_RGGB-linear.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint8_RGGB-MHC.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_half_GRBG-linear.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_half_GRBG-MHC.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_uint16_GRBG-linear.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint16_GRBG-MHC.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint8_GRBG-linear.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint8_GRBG-MHC.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_half_GBRG-linear.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_half_GBRG-MHC.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_uint16_GBRG-linear.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint16_GBRG-MHC.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint8_GBRG-linear.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint8_GBRG-MHC.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_half_BGGR-linear.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_half_BGGR-MHC.exr"
+PASS
+Computing diff of "testimage.exr" vs "result_uint16_BGGR-linear.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint16_BGGR-MHC.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint8_BGGR-linear.tiff"
+PASS
+Computing diff of "testimage.exr" vs "result_uint8_BGGR-MHC.tiff"
+PASS

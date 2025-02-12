@@ -26,24 +26,12 @@ OIIO_NAMESPACE_BEGIN
 #endif
 
 
-// We use std::void_t as an aid to SFINAE. It's part of C++17, so prior to
-// that we'll have to roll our own.
-#if OIIO_CPLUSPLUS_VERSION >= 17 || defined(__cpp_lib_void_t)
-using std::void_t;
-#else
-namespace pvt {
-template<class... Ts> struct make_void { typedef void type; };
-}
-template<class... Ts> using void_t = typename pvt::make_void<Ts...>::type;
-#endif
-
-
 /// has_size_method<T>::value is true if T has a size() method and it returns
 /// an integral type.
 template<class, class = void> struct has_size_method : std::false_type { };
 
 template<class T>
-struct has_size_method<T, void_t<decltype(std::declval<T&>().size())>>
+struct has_size_method<T, std::void_t<decltype(std::declval<T&>().size())>>
     : std::is_integral<typename std::decay_t<decltype(std::declval<T&>().size())>> { };
 // How does this work? This overload is only defined if there is a size()
 // method, and it evaluates to true_type or false_type based on whether size()
@@ -54,7 +42,7 @@ struct has_size_method<T, void_t<decltype(std::declval<T&>().size())>>
 template<class, class = void> struct has_subscript : std::false_type { };
 
 template<class T>
-struct has_subscript<T, void_t<decltype(std::declval<T&>()[0])>>
+struct has_subscript<T, std::void_t<decltype(std::declval<T&>()[0])>>
     : std::true_type { };
 
 

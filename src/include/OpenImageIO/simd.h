@@ -268,7 +268,6 @@
 // the vfloat8 class (and friends) are in this version of simd.h, but that's
 // different from OIIO_SIMD >= 8, which means it's supported in hardware.
 #define OIIO_SIMD_HAS_MATRIX4 1  /* matrix44 defined */
-#define OIIO_SIMD_HAS_FLOAT8 1   /* DEPRECATED(1.8) */
 #define OIIO_SIMD_HAS_SIMD8 1    /* vfloat8, vint8, vbool8 defined */
 #define OIIO_SIMD_HAS_SIMD16 1   /* vfloat16, vint16, vbool16 defined */
 
@@ -300,21 +299,6 @@ class vfloat8;
 class vbool16;
 class vint16;
 class vfloat16;
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,9,0) && !defined(OIIO_INTERNAL)
-// Deprecated names -- remove these in 1.9
-// These are removed from visibility for the OIIO codebase itself, or for any
-// downstream project that defines OIIO_DISABLE_DEPRECATED to exclude
-// declarations deprecated as of version 1.9 or later.
-typedef vbool4 mask4;    // old name
-typedef vbool4 bool4;
-typedef vbool8 bool8;
-typedef vint4 int4;
-typedef vint8 int8;
-typedef vfloat3 float3;
-typedef vfloat4 float4;
-typedef vfloat8 float8;
-#endif
 
 } // namespace simd
 
@@ -531,7 +515,7 @@ public:
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
-    vbool4 () { }
+    vbool4() = default;
 
     /// Construct from a single value (store it in all slots)
     vbool4 (bool a) { load(a); }
@@ -542,7 +526,7 @@ public:
     vbool4 (bool a, bool b, bool c, bool d) { load (a, b, c, d); }
 
     /// Copy construct from another vbool4
-    vbool4 (const vbool4 &other) { m_simd = other.m_simd; }
+    vbool4(const vbool4 &other) = default;
 
     /// Construct from 4 int values
     vbool4 (int a, int b, int c, int d) {
@@ -576,10 +560,10 @@ public:
     static const vbool4 True ();
 
     /// Assign one value to all components
-    const vbool4 & operator= (bool a) { load(a); return *this; }
+    vbool4& operator=(bool a) { load(a); return *this; }
 
     /// Assignment of another vbool4
-    const vbool4 & operator= (const vbool4 & other);
+    vbool4& operator=(const vbool4& other) = default;
 
     /// Component access (get)
     int operator[] (int i) const;
@@ -673,7 +657,7 @@ public:
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
-    vbool8 () { }
+    vbool8() = default;
 
     /// Construct from a single value (store it in all slots)
     vbool8 (bool a) { load (a); }
@@ -684,7 +668,7 @@ public:
     vbool8 (bool a, bool b, bool c, bool d, bool e, bool f, bool g, bool h);
 
     /// Copy construct from another vbool8
-    vbool8 (const vbool8 &other) { m_simd = other.m_simd; }
+    vbool8(const vbool8 &other) = default;
 
     /// Construct from 8 int values
     vbool8 (int a, int b, int c, int d, int e, int f, int g, int h);
@@ -719,10 +703,10 @@ public:
     static const vbool8 True ();
 
     /// Assign one value to all components
-    const vbool8 & operator= (bool a);
+    vbool8& operator=(bool a) { load(a); return *this; }
 
     /// Assignment of another vbool8
-    const vbool8 & operator= (const vbool8 & other);
+    vbool8& operator=(const vbool8& other) = default;
 
     /// Component access (get)
     int operator[] (int i) const;
@@ -822,7 +806,7 @@ public:
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
-    vbool16 () { }
+    vbool16() = default;
 
     /// Construct from a single value (store it in all slots)
     vbool16 (bool a) { load (a); }
@@ -836,7 +820,7 @@ public:
             bool v8, bool v9, bool v10, bool v11, bool v12, bool v13, bool v14, bool v15);
 
     /// Copy construct from another vbool16
-    vbool16 (const vbool16 &other) { m_simd = other.m_simd; }
+    vbool16(const vbool16 &other) = default;
 
     /// Construct from 16 int values
     vbool16 (int v0, int v1, int v2, int v3, int v4, int v5, int v6, int v7,
@@ -874,10 +858,10 @@ public:
     static const vbool16 True ();
 
     /// Assign one value to all components
-    const vbool16 & operator= (bool a);
+    vbool16& operator=(bool a) { load(a); return *this; }
 
     /// Assignment of another vbool16
-    const vbool16 & operator= (const vbool16 & other);
+    vbool16& operator=(const vbool16& other) = default;
 
     /// Component access (get)
     int operator[] (int i) const;
@@ -964,14 +948,10 @@ public:
     typedef vbool4 vbool_t;   ///< bool type of the same length
     typedef vfloat4 vfloat_t; ///< float type of the same length
     typedef vint4 vint_t;     ///< int type of the same length
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vbool4 bool_t;   // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vfloat_t (1.8)")
-    typedef vfloat4 float_t; // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
-    vint4 () { }
+    vint4() = default;
 
     /// Construct from a single value (store it in all slots)
     vint4 (int a);
@@ -998,7 +978,7 @@ public:
     explicit vint4 (const char *vals);
 
     /// Copy construct from another vint4
-    vint4 (const vint4 & other) { m_simd = other.m_simd; }
+    vint4(const vint4& other) = default;
 
     /// Convert a vfloat to an vint. Equivalent to i = (int)f;
     explicit vint4 (const vfloat4& f); // implementation below
@@ -1035,10 +1015,15 @@ public:
     static const vint4 Giota ();
 
     /// Assign one value to all components.
-    const vint4 & operator= (int a);
+    vint4& operator=(int a) { load(a); return *this; }
 
     /// Assignment from another vint4
-    const vint4 & operator= (const vint4& other) ;
+#if !defined(__INTEL_COMPILER)
+    vint4& operator=(const vint4& other) = default;
+#else
+    // For explanation of the necessity of this, see implementation comment.
+    vint4& operator=(const vint4& other);
+#endif
 
     /// Component access (get)
     int operator[] (int i) const;
@@ -1219,8 +1204,6 @@ vint4 max (const vint4& a, const vint4& b);
 
 /// Circular bit rotate by s bits, for N values at once.
 vint4 rotl (const vint4& x, const int s);
-// DEPRECATED(2.1)
-vint4 rotl32 (const vint4& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
 vint4 andnot (const vint4& a, const vint4& b);
@@ -1255,14 +1238,10 @@ public:
     typedef vbool8 vbool_t;   ///< bool type of the same length
     typedef vfloat8 vfloat_t; ///< float type of the same length
     typedef vint8 vint_t;     ///< int type of the same length
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vbool8 bool_t;   // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vfloat_t (1.8)")
-    typedef vfloat8 float_t; // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
-    vint8 () { }
+    vint8() = default;
 
     /// Construct from a single value (store it in all slots)
     vint8 (int a);
@@ -1289,7 +1268,7 @@ public:
     explicit vint8 (const char *vals);
 
     /// Copy construct from another vint8
-    vint8 (const vint8 & other) { m_simd = other.m_simd; }
+    vint8(const vint8& other) = default;
 
     /// Convert a vfloat8 to an vint8. Equivalent to i = (int)f;
     explicit vint8 (const vfloat8& f); // implementation below
@@ -1329,10 +1308,15 @@ public:
     static const vint8 Giota ();
 
     /// Assign one value to all components.
-    const vint8 & operator= (int a);
+    vint8& operator=(int a) { load(a); return *this; }
 
     /// Assignment from another vint8
-    const vint8 & operator= (const vint8& other) ;
+#if !defined(__INTEL_COMPILER)
+    vint8& operator=(const vint8& other) = default;
+#else
+    // For explanation of the necessity of this, see implementation comment.
+    vint8& operator=(const vint8& other);
+#endif
 
     /// Component access (get)
     int operator[] (int i) const;
@@ -1523,8 +1507,6 @@ vint8 max (const vint8& a, const vint8& b);
 
 /// Circular bit rotate by s bits, for N values at once.
 vint8 rotl (const vint8& x, const int s);
-// DEPRECATED(2.1)
-vint8 rotl32 (const vint8& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
 vint8 andnot (const vint8& a, const vint8& b);
@@ -1554,14 +1536,10 @@ public:
     typedef vbool16 vbool_t;   ///< bool type of the same length
     typedef vfloat16 vfloat_t; ///< float type of the same length
     typedef vint16 vint_t;     ///< int type of the same length
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vbool16 bool_t;   // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vfloat_t (1.8)")
-    typedef vfloat16 float_t; // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
-    vint16 () { }
+    vint16() = default;
 
     /// Construct from a single value (store it in all slots)
     vint16 (int a);
@@ -1586,7 +1564,7 @@ public:
     explicit vint16 (const char *vals);
 
     /// Copy construct from another vint16
-    vint16 (const vint16 & other) { m_simd = other.m_simd; }
+    vint16(const vint16& other) = default;
 
     /// Convert a vfloat16 to an vint16. Equivalent to i = (int)f;
     explicit vint16 (const vfloat16& f); // implementation below
@@ -1629,10 +1607,15 @@ public:
     static const vint16 Giota ();
 
     /// Assign one value to all components.
-    const vint16 & operator= (int a);
+    vint16& operator=(int a) { load(a); return *this; }
 
     /// Assignment from another vint16
-    const vint16 & operator= (const vint16& other) ;
+#if !defined(__INTEL_COMPILER)
+    vint16& operator=(const vint16& other) = default;
+#else
+    // For explanation of the necessity of this, see implementation comment.
+    vint16& operator=(const vint16& other);
+#endif
 
     /// Component access (get)
     int operator[] (int i) const;
@@ -1834,8 +1817,6 @@ vint16 max (const vint16& a, const vint16& b);
 
 /// Circular bit rotate by s bits, for N values at once.
 vint16 rotl (const vint16& x, const int s);
-// DEPRECATED(2.1)
-vint16 rotl32 (const vint16& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
 vint16 andnot (const vint16& a, const vint16& b);
@@ -1866,14 +1847,10 @@ public:
     typedef vfloat4 vfloat_t; ///< SIMD int type
     typedef vint4 vint_t;     ///< SIMD int type
     typedef vbool4 vbool_t;   ///< SIMD bool type
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vint4 int_t;      // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vfloat_t (1.8)")
-    typedef vbool4 bool_t;    // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
-    vfloat4 () { }
+    vfloat4() = default;
 
     /// Construct from a single value (store it in all slots)
     vfloat4 (float a) { load(a); }
@@ -1885,7 +1862,7 @@ public:
     vfloat4 (const float *f) { load (f); }
 
     /// Copy construct from another vfloat4
-    vfloat4 (const vfloat4 &other) { m_simd = other.m_simd; }
+    vfloat4(const vfloat4 &other) = default;
 
     /// Construct from an vint4 (promoting all components to float)
     explicit vfloat4 (const vint4& ival);
@@ -1940,13 +1917,10 @@ public:
 #endif
 
     /// Assign a single value to all components
-    const vfloat4 & operator= (float a) { load(a); return *this; }
+    vfloat4& operator=(float a) { load(a); return *this; }
 
     /// Assign a vfloat4
-    const vfloat4 & operator= (vfloat4 other) {
-        m_simd = other.m_simd;
-        return *this;
-    }
+    vfloat4& operator=(const vfloat4& other) = default;
 
     /// Return a vfloat4 with all components set to 0.0
     static const vfloat4 Zero ();
@@ -2191,8 +2165,6 @@ vfloat4 sign (const vfloat4& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat4 ceil (const vfloat4& a);
 vfloat4 floor (const vfloat4& a);
 vint4 ifloor (const vfloat4& a);    ///< (int)floor
-OIIO_DEPRECATED("use ifloor (1.8)")
-inline vint4 floori (const vfloat4& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer.
 /// CAVEAT: the rounding when mid-way between integers may differ depending
@@ -2254,7 +2226,7 @@ public:
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
-    vfloat3 () { }
+    vfloat3() = default;
 
     /// Construct from a single value (store it in all slots)
     vfloat3 (float a) { load(a); }
@@ -2278,7 +2250,7 @@ public:
     vfloat3(const V& v) : vfloat3(v[0], v[1], v[2]) { }
 
     /// Copy construct from another vfloat3
-    vfloat3 (const vfloat3 &other);
+    vfloat3(const vfloat3& other) = default;
 
     /// Construct from a vfloat4. Note: it will not zero out the internal
     /// 4th component, but rather accept on faith that the vfloat4 you are
@@ -2315,7 +2287,7 @@ public:
 #endif
 
     /// Assign a single value to all components
-    const vfloat3 & operator= (float a) { load(a); return *this; }
+    vfloat3& operator=(float a) { load(a); return *this; }
 
     /// Return a vfloat3 with all components set to 0.0
     static const vfloat3 Zero ();
@@ -2421,15 +2393,10 @@ public:
     static constexpr int elements = 16;
 
     // Uninitialized
-    OIIO_FORCEINLINE matrix44() { }
+    OIIO_FORCEINLINE matrix44() = default;
 
     /// Copy constructor
-    OIIO_FORCEINLINE matrix44 (const matrix44 &M) {
-        m_row[0] = M[0];
-        m_row[1] = M[1];
-        m_row[2] = M[2];
-        m_row[3] = M[3];
-    }
+    OIIO_FORCEINLINE matrix44(const matrix44 &M) = default;
 
     /// Construct from a float array
     OIIO_FORCEINLINE explicit matrix44 (const float *f) {
@@ -2480,7 +2447,7 @@ public:
     const vfloat4& operator[] (int i) const;
 
     /// Assignment
-    const matrix44& operator= (const matrix44& m);
+    matrix44& operator=(const matrix44& m) = default;
 
     /// Return the transposed matrix
     matrix44 transposed () const;
@@ -2549,14 +2516,10 @@ public:
     typedef vfloat8 vfloat_t; ///< SIMD int type
     typedef vint8 vint_t;     ///< SIMD int type
     typedef vbool8 vbool_t;   ///< SIMD bool type
-    OIIO_DEPRECATED("use vint_t (1.8)")
-    typedef vint8 int_t;      // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vbool8 bool_t;    // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
-    vfloat8 () { }
+    vfloat8() = default;
 
     /// Construct from a single value (store it in all slots)
     vfloat8 (float a) { load(a); }
@@ -2569,7 +2532,7 @@ public:
     vfloat8 (const float *f) { load (f); }
 
     /// Copy construct from another vfloat8
-    vfloat8 (const vfloat8 &other) { m_simd = other.m_simd; }
+    vfloat8(const vfloat8 &other) = default;
 
     /// Construct from an int vector (promoting all components to float)
     explicit vfloat8 (const vint8& ival);
@@ -2607,13 +2570,10 @@ public:
 #endif
 
     /// Assign a single value to all components
-    const vfloat8& operator= (float a) { load(a); return *this; }
+    vfloat8& operator=(float a) { load(a); return *this; }
 
     /// Assign a vfloat8
-    const vfloat8& operator= (vfloat8 other) {
-        m_simd = other.m_simd;
-        return *this;
-    }
+    vfloat8& operator=(const vfloat8& other) = default;
 
     /// Return a vfloat8 with all components set to 0.0
     static const vfloat8 Zero ();
@@ -2819,7 +2779,6 @@ vfloat8 sign (const vfloat8& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat8 ceil (const vfloat8& a);
 vfloat8 floor (const vfloat8& a);
 vint8 ifloor (const vfloat8& a);    ///< (int)floor
-inline vint8 floori (const vfloat8& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer.
 /// CAVEAT: the rounding when mid-way between integers may differ depending
@@ -2870,14 +2829,10 @@ public:
     typedef vfloat16 vfloat_t; ///< SIMD int type
     typedef vint16 vint_t;     ///< SIMD int type
     typedef vbool16 vbool_t;   ///< SIMD bool type
-    OIIO_DEPRECATED("use vint_t (1.8)")
-    typedef vint16 int_t;      // old name (deprecated 1.8)
-    OIIO_DEPRECATED("use vbool_t (1.8)")
-    typedef vbool16 bool_t;    // old name (deprecated 1.8)
     static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
-    vfloat16 () { }
+    vfloat16() = default;
 
     /// Construct from a single value (store it in all slots)
     vfloat16 (float a) { load(a); }
@@ -2892,7 +2847,7 @@ public:
     vfloat16 (const float *f) { load (f); }
 
     /// Copy construct from another vfloat16
-    vfloat16 (const vfloat16 &other) { m_simd = other.m_simd; }
+    vfloat16(const vfloat16 &other) = default;
 
     /// Construct from an int vector (promoting all components to float)
     explicit vfloat16 (const vint16& ival);
@@ -2933,13 +2888,10 @@ public:
 #endif
 
     /// Assign a single value to all components
-    const vfloat16& operator= (float a) { load(a); return *this; }
+    vfloat16& operator=(float a) { load(a); return *this; }
 
     /// Assign a vfloat16
-    const vfloat16& operator= (vfloat16 other) {
-        m_simd = other.m_simd;
-        return *this;
-    }
+    vfloat16& operator=(const vfloat16& other) = default;
 
     /// Return a vfloat16 with all components set to 0.0
     static const vfloat16 Zero ();
@@ -3144,8 +3096,6 @@ vfloat16 sign (const vfloat16& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat16 ceil (const vfloat16& a);
 vfloat16 floor (const vfloat16& a);
 vint16 ifloor (const vfloat16& a);    ///< (int)floor
-OIIO_DEPRECATED("use ifloor (1.8)")
-inline vint16 floori (const vfloat16& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer.
 /// CAVEAT: the rounding when mid-way between integers may differ depending
@@ -3312,11 +3262,6 @@ OIIO_FORCEINLINE void vbool4::load (bool a, bool b, bool c, bool d) {
 
 OIIO_FORCEINLINE vbool4::vbool4 (const bool *a) {
     load (a[0], a[1], a[2], a[3]);
-}
-
-OIIO_FORCEINLINE const vbool4& vbool4::operator= (const vbool4 & other) {
-    m_simd = other.m_simd;
-    return *this;
 }
 
 
@@ -3683,16 +3628,6 @@ OIIO_FORCEINLINE vbool8::vbool8 (const bool *a) {
 }
 
 
-OIIO_FORCEINLINE const vbool8& vbool8::operator= (bool a) {
-    load(a);
-    return *this;
-}
-
-OIIO_FORCEINLINE const vbool8& vbool8::operator= (const vbool8 & other) {
-    m_simd = other.m_simd;
-    return *this;
-}
-
 OIIO_FORCEINLINE int vbool8::bitmask () const {
 #if OIIO_SIMD_AVX
     return _mm256_movemask_ps(m_simd);
@@ -4003,17 +3938,6 @@ OIIO_FORCEINLINE vbool16::vbool16 (const bool *a) {
 }
 
 
-OIIO_FORCEINLINE const vbool16& vbool16::operator= (bool a) {
-    load(a);
-    return *this;
-}
-
-OIIO_FORCEINLINE const vbool16& vbool16::operator= (const vbool16 & other) {
-    m_simd = other.m_simd;
-    return *this;
-}
-
-
 OIIO_FORCEINLINE int vbool16::bitmask () const {
     return static_cast<int>(m_simd);
 }
@@ -4164,10 +4088,17 @@ OIIO_FORCEINLINE bool none (const vbool16& v) { return reduce_or(v) == false; }
 //////////////////////////////////////////////////////////////////////
 // vint4 implementation
 
-OIIO_FORCEINLINE const vint4 & vint4::operator= (const vint4& other) {
+#if defined(__INTEL_COMPILER)
+// For reasons we don't understand, all sorts of failures crop up only on icc
+// if we make this =default. Although we still support icc for now, it's a
+// discontinued compiler, so we special-case it here rather than spend a lot
+// of time investigating what might be broken (and would of course never be
+// fixed if it's a compiler bug).
+OIIO_FORCEINLINE vint4& vint4::operator=(const vint4& other) {
     m_simd = other.m_simd;
     return *this;
 }
+#endif
 
 OIIO_FORCEINLINE int vint4::operator[] (int i) const {
     OIIO_DASSERT(i<elements);
@@ -4332,8 +4263,6 @@ OIIO_FORCEINLINE vint4::vint4 (const short *vals) { load(vals); }
 OIIO_FORCEINLINE vint4::vint4 (const unsigned char *vals) { load(vals); }
 OIIO_FORCEINLINE vint4::vint4 (const char *vals) { load(vals); }
 
-OIIO_FORCEINLINE const vint4 & vint4::operator= (int a) { load(a); return *this; }
-
 
 OIIO_FORCEINLINE void vint4::store (int *values) const {
 #if OIIO_SIMD_SSE
@@ -4411,7 +4340,7 @@ vint4::gather_mask (const vbool_t& mask, const value_t *baseptr, const vint_t& v
 #if OIIO_SIMD_AVX >= 2
     m_simd = _mm_mask_i32gather_epi32 (m_simd, baseptr, vindex, _mm_cvtps_epi32(mask), scale);
 #else
-    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+    SIMD_DO (if (mask[i]) m_val[i] = *(const value_t *)((const char *)baseptr + vindex[i]*scale));
 #endif
 }
 
@@ -4869,9 +4798,6 @@ OIIO_FORCEINLINE vint4 bitcast_to_int (const vbool4& x)
 #endif
 }
 
-// Old names: (DEPRECATED 1.8)
-OIIO_DEPRECATED("use bitcast_to_int() (1.8)")
-inline vint4 bitcast_to_int4 (const vbool4& x) { return bitcast_to_int(x); }
 
 
 OIIO_FORCEINLINE vint4 vreduce_add (const vint4& v) {
@@ -5022,12 +4948,6 @@ OIIO_FORCEINLINE vint4 rotl(const vint4& x, int s) {
 #endif
 }
 
-// DEPRECATED (2.1)
-OIIO_FORCEINLINE vint4 rotl32 (const vint4& x, const unsigned int k) {
-    return rotl(x, k);
-}
-
-
 OIIO_FORCEINLINE vint4 andnot (const vint4& a, const vint4& b) {
 #if OIIO_SIMD_SSE
     return _mm_andnot_si128 (a.simd(), b.simd());
@@ -5059,10 +4979,17 @@ OIIO_FORCEINLINE vint4 safe_mod (const vint4& a, int b) {
 //////////////////////////////////////////////////////////////////////
 // vint8 implementation
 
-OIIO_FORCEINLINE const vint8 & vint8::operator= (const vint8& other) {
+#if defined(__INTEL_COMPILER)
+// For reasons we don't understand, all sorts of failures crop up only on icc
+// if we make this =default. Although we still support icc for now, it's a
+// discontinued compiler, so we special-case it here rather than spend a lot
+// of time investigating what might be broken (and would of course never be
+// fixed if it's a compiler bug).
+OIIO_FORCEINLINE vint8& vint8::operator=(const vint8& other) {
     m_simd = other.m_simd;
     return *this;
 }
+#endif
 
 OIIO_FORCEINLINE int vint8::operator[] (int i) const {
     OIIO_DASSERT(i<elements);
@@ -5214,8 +5141,6 @@ OIIO_FORCEINLINE vint8::vint8 (const short *vals) { load(vals); }
 OIIO_FORCEINLINE vint8::vint8 (const unsigned char *vals) { load(vals); }
 OIIO_FORCEINLINE vint8::vint8 (const char *vals) { load(vals); }
 
-OIIO_FORCEINLINE const vint8 & vint8::operator= (int a) { load(a); return *this; }
-
 
 OIIO_FORCEINLINE void vint8::store (int *values) const {
 #if OIIO_SIMD_AVX
@@ -5294,7 +5219,7 @@ vint8::gather_mask (const vbool_t& mask, const value_t *baseptr, const vint_t& v
 #if OIIO_SIMD_AVX >= 2
     m_simd = _mm256_mask_i32gather_epi32 (m_simd, baseptr, vindex, _mm256_cvtps_epi32(mask), scale);
 #else
-    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+    SIMD_DO (if (mask[i]) m_val[i] = *(const value_t *)((const char *)baseptr + vindex[i]*scale));
 #endif
 }
 
@@ -5701,7 +5626,7 @@ OIIO_FORCEINLINE vint8 bitcast_to_int (const vbool8& x)
 #if OIIO_SIMD_AVX
     return _mm256_castps_si256 (x.simd());
 #else
-    return *(vint8 *)&x;
+    return vint8(bitcast_to_int(x.lo()), bitcast_to_int(x.hi()));
 #endif
 }
 
@@ -5845,11 +5770,6 @@ OIIO_FORCEINLINE vint8 rotl(const vint8& x, int s) {
 #endif
 }
 
-// DEPRECATED (2.1)
-OIIO_FORCEINLINE vint8 rotl32 (const vint8& x, const unsigned int k) {
-    return rotl(x, k);
-}
-
 
 OIIO_FORCEINLINE vint8 andnot (const vint8& a, const vint8& b) {
 #if OIIO_SIMD_AVX >= 2
@@ -5884,10 +5804,17 @@ OIIO_FORCEINLINE vint8 safe_mod (const vint8& a, int b) {
 //////////////////////////////////////////////////////////////////////
 // vint16 implementation
 
-OIIO_FORCEINLINE const vint16 & vint16::operator= (const vint16& other) {
+#if defined(__INTEL_COMPILER)
+// For reasons we don't understand, all sorts of failures crop up only on icc
+// if we make this =default. Although we still support icc for now, it's a
+// discontinued compiler, so we special-case it here rather than spend a lot
+// of time investigating what might be broken (and would of course never be
+// fixed if it's a compiler bug).
+OIIO_FORCEINLINE vint16& vint16::operator=(const vint16& other) {
     m_simd = other.m_simd;
     return *this;
 }
+#endif
 
 OIIO_FORCEINLINE int vint16::operator[] (int i) const {
     OIIO_DASSERT(i<elements);
@@ -6022,8 +5949,6 @@ OIIO_FORCEINLINE vint16::vint16 (const unsigned short *vals) { load(vals); }
 OIIO_FORCEINLINE vint16::vint16 (const short *vals) { load(vals); }
 OIIO_FORCEINLINE vint16::vint16 (const unsigned char *vals) { load(vals); }
 OIIO_FORCEINLINE vint16::vint16 (const char *vals) { load(vals); }
-
-OIIO_FORCEINLINE const vint16 & vint16::operator= (int a) { load(a); return *this; }
 
 
 OIIO_FORCEINLINE void vint16::load_mask (const vbool16 &mask, const int *values) {
@@ -6647,11 +6572,6 @@ OIIO_FORCEINLINE vint16 rotl(const vint16& x, int s) {
 #endif
 }
 
-// DEPRECATED (2.1)
-OIIO_FORCEINLINE vint16 rotl32 (const vint16& x, const unsigned int k) {
-    return rotl(x, k);
-}
-
 
 OIIO_FORCEINLINE vint16 andnot (const vint16& a, const vint16& b) {
 #if OIIO_SIMD_AVX >= 512
@@ -7058,7 +6978,7 @@ vfloat4::gather_mask (const vbool_t& mask, const value_t *baseptr, const vint_t&
 #if OIIO_SIMD_AVX >= 2
     m_simd = _mm_mask_i32gather_ps (m_simd, baseptr, vindex, mask, scale);
 #else
-    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+    SIMD_DO (if (mask[i]) m_val[i] = *(const value_t *)((const char *)baseptr + vindex[i]*scale));
 #endif
 }
 
@@ -7748,9 +7668,9 @@ OIIO_FORCEINLINE vfloat4 andnot (const vfloat4& a, const vfloat4& b) {
 #if OIIO_SIMD_SSE
     return _mm_andnot_ps (a.simd(), b.simd());
 #else
-    const int *ai = (const int *)&a;
-    const int *bi = (const int *)&b;
-    return bitcast_to_float (vint4(~(ai[0]) & bi[0],
+    vint4 ai = bitcast_to_int(a);
+    vint4 bi = bitcast_to_int(b);
+    return bitcast_to_float(vint4(~(ai[0]) & bi[0],
                                   ~(ai[1]) & bi[1],
                                   ~(ai[2]) & bi[2],
                                   ~(ai[3]) & bi[3]));
@@ -8069,14 +7989,6 @@ OIIO_FORCEINLINE vint4 AxBxCxDx (const vint4& a, const vint4& b,
 //////////////////////////////////////////////////////////////////////
 // vfloat3 implementation
 
-OIIO_FORCEINLINE vfloat3::vfloat3 (const vfloat3 &other)  : vfloat4(other) {
-#if OIIO_SIMD_SSE || OIIO_SIMD_NEON
-    m_simd = other.m_simd;
-#else
-    SIMD_CONSTRUCT_PAD (other[i]);
-#endif
-}
-
 OIIO_FORCEINLINE vfloat3::vfloat3 (const vfloat4 &other) {
 #if OIIO_SIMD_SSE || OIIO_SIMD_NEON
     m_simd = other.simd();
@@ -8337,16 +8249,6 @@ OIIO_FORCEINLINE const Imath::M44f& matrix44::M44f() const {
 
 OIIO_FORCEINLINE const vfloat4& matrix44::operator[] (int i) const {
     return m_row[i];
-}
-
-
-OIIO_FORCEINLINE const matrix44& matrix44::operator= (const matrix44& m)
-{
-    m_row[0] = m[0];
-    m_row[1] = m[1];
-    m_row[2] = m[2];
-    m_row[3] = m[3];
-    return *this;
 }
 
 
@@ -8966,7 +8868,7 @@ vfloat8::gather_mask (const vbool_t& mask, const value_t *baseptr, const vint_t&
 #if OIIO_SIMD_AVX >= 2
     m_simd = _mm256_mask_i32gather_ps (m_simd, baseptr, vindex, mask, scale);
 #else
-    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+    SIMD_DO (if (mask[i]) m_val[i] = *(const value_t *)((const char *)baseptr + vindex[i]*scale));
 #endif
 }
 
@@ -9185,7 +9087,7 @@ OIIO_FORCEINLINE vint8 bitcast_to_int (const vfloat8& x)
 #if OIIO_SIMD_AVX
     return _mm256_castps_si256 (x.simd());
 #else
-    return *(vint8 *)&x;
+    return vint8(bitcast_to_int(x.lo()), bitcast_to_int(x.hi()));
 #endif
 }
 
@@ -9194,7 +9096,7 @@ OIIO_FORCEINLINE vfloat8 bitcast_to_float (const vint8& x)
 #if OIIO_SIMD_AVX
     return _mm256_castsi256_ps (x.simd());
 #else
-    return *(vfloat8 *)&x;
+    return vfloat8(bitcast_to_float(x.lo()), bitcast_to_float(x.hi()));
 #endif
 }
 
@@ -9423,9 +9325,9 @@ OIIO_FORCEINLINE vfloat8 andnot (const vfloat8& a, const vfloat8& b) {
 #if OIIO_SIMD_AVX
     return _mm256_andnot_ps (a.simd(), b.simd());
 #else
-    const int *ai = (const int *)&a;
-    const int *bi = (const int *)&b;
-    return bitcast_to_float (vint8(~(ai[0]) & bi[0],
+    vint8 ai = bitcast_to_int(a);
+    vint8 bi = bitcast_to_int(b);
+    return bitcast_to_float(vint8(~(ai[0]) & bi[0],
                                   ~(ai[1]) & bi[1],
                                   ~(ai[2]) & bi[2],
                                   ~(ai[3]) & bi[3],
@@ -10058,7 +9960,7 @@ OIIO_FORCEINLINE vint16 bitcast_to_int (const vfloat16& x)
 #if OIIO_SIMD_AVX >= 512
     return _mm512_castps_si512 (x.simd());
 #else
-    return *(vint16 *)&x;
+    return vint16(bitcast_to_int(x.lo()), bitcast_to_int(x.hi()));
 #endif
 }
 
@@ -10067,7 +9969,7 @@ OIIO_FORCEINLINE vfloat16 bitcast_to_float (const vint16& x)
 #if OIIO_SIMD_AVX >= 512
     return _mm512_castsi512_ps (x.simd());
 #else
-    return *(vfloat16 *)&x;
+    return vfloat16(bitcast_to_float(x.lo()), bitcast_to_float(x.hi()));
 #endif
 }
 
@@ -10359,6 +10261,19 @@ template<> struct formatter<OIIO::simd::vint16>
 template<> struct formatter<OIIO::simd::matrix44>
     : OIIO::pvt::array_formatter<OIIO::simd::matrix44, float, 16> {};
 } // namespace fmt
+
+
+// Allow C++ metaprogramming to understand that the simd types are trivially
+// copyable (i.e. memcpy to copy simd types is fine).
+namespace std {  // not necessary in C++17, just say std::is_trivially_copyable
+#if defined(__INTEL_COMPILER)
+// Necessary because we have to define the vint types copy constructors on icc
+template<> struct is_trivially_copyable<OIIO::simd::vint4> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vint8> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vint16> : std::true_type {};
+#endif
+}  // namespace std
+
 
 #undef SIMD_DO
 #undef SIMD_CONSTRUCT

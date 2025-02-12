@@ -18,9 +18,6 @@
 
 working_dir	:= ${shell pwd}
 
-# Figure out which architecture we're on
-include ${working_dir}/src/make/detectplatform.mk
-
 MY_MAKE_FLAGS ?=
 MY_NINJA_FLAGS ?=
 MY_CMAKE_FLAGS ?=
@@ -29,14 +26,6 @@ NINJA ?= ninja
 CMAKE ?= cmake
 CMAKE_BUILD_TYPE ?= Release
 
-# Site-specific build instructions
-OPENIMAGEIO_SITE ?= ${shell uname -n}
-ifneq (${shell echo ${OPENIMAGEIO_SITE} | grep imageworks.com},)
-include ${working_dir}/site/spi/Makefile-bits
-endif
-
-# Set up variables holding the names of platform-dependent directories --
-# set these after evaluating site-specific instructions
 build_dir ?= build
 dist_dir  ?= dist
 
@@ -50,7 +39,6 @@ ifneq (${VERBOSE},0)
 	MY_NINJA_FLAGS += -v
 	TEST_FLAGS += -V
 endif
-$(info OPENIMAGEIO_SITE = ${OPENIMAGEIO_SITE})
 $(info dist_dir = ${dist_dir})
 $(info INSTALL_PREFIX = ${INSTALL_PREFIX})
 endif
@@ -89,10 +77,6 @@ endif
 
 ifneq (${OPENEXR_ROOT},)
 MY_CMAKE_FLAGS += -DOPENEXR_ROOT:STRING=${OPENEXR_ROOT}
-endif
-
-ifneq (${ILMBASE_ROOT},)
-MY_CMAKE_FLAGS += -DILMBASE_ROOT:STRING=${ILMBASE_ROOT}
 endif
 
 ifneq (${NUKE_VERSION},)
@@ -196,10 +180,6 @@ ifeq (${CODECOV},1)
   MY_CMAKE_FLAGS += -DCODECOV:BOOL=${CODECOV}
 endif
 
-ifneq (${SANITIZE},)
-  MY_CMAKE_FLAGS += -DSANITIZE=${SANITIZE}
-endif
-
 ifneq (${CLANG_TIDY},)
   MY_CMAKE_FLAGS += -DCLANG_TIDY:BOOL=1
 endif
@@ -221,11 +201,6 @@ endif
 ifneq (${CLANG_FORMAT_EXCLUDES},)
   MY_CMAKE_FLAGS += -DCLANG_FORMAT_EXCLUDES:STRING=${CLANG_FORMAT_EXCLUDES}
 endif
-
-ifneq (${BUILD_MISSING_DEPS},)
-  MY_CMAKE_FLAGS += -DBUILD_MISSING_DEPS:BOOL=${BUILD_MISSING_DEPS}
-endif
-
 
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
 #$(info MY_MAKE_FLAGS = ${MY_MAKE_FLAGS})
@@ -367,9 +342,8 @@ help:
 	@echo "  C++ compiler and build process:"
 	@echo "      VERBOSE=1                Show all compilation commands"
 	@echo "      STOP_ON_WARNING=0        Do not stop building if compiler warns"
-	@echo "      OPENIMAGEIO_SITE=xx      Use custom site build mods"
 	@echo "      MYCC=xx MYCXX=yy         Use custom compilers"
-	@echo "      CMAKE_CXX_STANDARD=14    C++ standard to build with (default is 17)"
+	@echo "      CMAKE_CXX_STANDARD=20    C++ standard to build with (default is 17)"
 	@echo "      USE_LIBCPLUSPLUS=1       For clang, use libc++"
 	@echo "      GLIBCXX_USE_CXX11_ABI=1  For gcc, use the new string ABI"
 	@echo "      EXTRA_CPP_ARGS=          Additional args to the C++ command"
@@ -377,7 +351,7 @@ help:
 	@echo "      USE_CCACHE=0             Disable ccache (even if available)"
 	@echo "      UNITY=BATCH              Do a 'Unity' build (BATCH or GROUP or nothing)"
 	@echo "      CODECOV=1                Enable code coverage tests"
-	@echo "      SANITIZE=name1,...       Enable sanitizers (address, leak, thread)"
+	@echo "      SANITIZE=name1,...       Enable sanitizers (address, leak, thread, undefined)"
 	@echo "      CLANG_TIDY=1             Run clang-tidy on all source (can be modified"
 	@echo "                                  by CLANG_TIDY_ARGS=... and CLANG_TIDY_FIX=1"
 	@echo "      CLANG_FORMAT_INCLUDES=... CLANG_FORMAT_EXCLUDES=..."
@@ -396,16 +370,15 @@ help:
 	@echo "          LibRaw  OpenColorIO  OpenCV  OpenGL  OpenJpeg  OpenVDB"
 	@echo "          PTex  R3DSDK  TBB  TIFF  Webp"
 	@echo "  Finding and Using Dependencies:"
-	@echo "      BOOST_ROOT=path          Custom Boost installation"
 	@echo "      OPENEXR_ROOT=path        Custom OpenEXR installation"
-	@echo "      ILMBASE_ROOT=path        Custom IlmBase installation"
 	@echo "      USE_EXTERNAL_PUGIXML=1   Use the system PugiXML, not the one in OIIO"
 	@echo "      USE_QT=0                 Skip anything that needs Qt"
 	@echo "      USE_PYTHON=0             Don't build the Python binding"
-	@echo "      PYTHON_VERSION=2.6       Specify the Python version"
+	@echo "      PYTHON_VERSION=3.9       Specify the Python version"
 	@echo "      USE_NUKE=0               Don't build Nuke plugins"
 	@echo "      Nuke_ROOT=path           Custom Nuke installation"
 	@echo "      NUKE_VERSION=ver         Custom Nuke version"
+	@echo "      IGNORE_HOMEBREWED_DEPS=1 Don't use dependencies installed by Homebrew"
 	@echo "  OIIO build-time options:"
 	@echo "      INSTALL_PREFIX=path      Set installation prefix (default: ./${INSTALL_PREFIX})"
 	@echo "      NAMESPACE=name           Override namespace base name (default: OpenImageIO)"
@@ -418,7 +391,6 @@ help:
 	@echo "                                  0, sse2, sse3, ssse3, sse4.1, sse4.2, f16c,"
 	@echo "                                  avx, avx2, avx512f)"
 	@echo "      TEX_BATCH_SIZE=16        Override TextureSystem SIMD batch size"
-	@echo "      BUILD_MISSING_DEPS=1     Try to download/build missing dependencies"
 	@echo "  make test, extra options:"
 	@echo "      TEST=regex               Run only tests matching the regex"
 	@echo ""

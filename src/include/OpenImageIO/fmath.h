@@ -79,19 +79,6 @@ OIIO_NAMESPACE_BEGIN
 #endif
 
 
-// Helper template to let us tell if two types are the same.
-// C++11 defines this, keep in OIIO namespace for back compat.
-// DEPRECATED(2.0) -- clients should switch OIIO::is_same -> std::is_same.
-using std::is_same;
-
-
-// For back compatibility: expose these in the OIIO namespace.
-// DEPRECATED(2.0) -- clients should switch OIIO:: -> std:: for these.
-using std::isfinite;
-using std::isinf;
-using std::isnan;
-
-
 // Define math constants just in case they aren't included (Windows is a
 // little finicky about this, only defining these if _USE_MATH_DEFINES is
 // defined before <cmath> is included, which is hard to control).
@@ -145,7 +132,7 @@ using std::isnan;
 /// Quick test for whether an integer is a power of 2.
 ///
 template<typename T>
-inline OIIO_HOSTDEVICE OIIO_CONSTEXPR14 bool
+inline OIIO_HOSTDEVICE constexpr bool
 ispow2(T x) noexcept
 {
     // Numerous references for this bit trick are on the web.  The
@@ -158,7 +145,7 @@ ispow2(T x) noexcept
 
 /// Round up to next higher power of 2 (return x if it's already a power
 /// of 2).
-inline OIIO_HOSTDEVICE OIIO_CONSTEXPR14 int
+inline OIIO_HOSTDEVICE constexpr int
 ceil2(int x) noexcept
 {
     // Here's a version with no loops.
@@ -181,7 +168,7 @@ ceil2(int x) noexcept
 
 /// Round down to next lower power of 2 (return x if it's already a power
 /// of 2).
-inline OIIO_HOSTDEVICE OIIO_CONSTEXPR14 int
+inline OIIO_HOSTDEVICE constexpr int
 floor2(int x) noexcept
 {
     // Make all bits past the first 1 also be 1, i.e. 0001xxxx -> 00011111
@@ -194,11 +181,6 @@ floor2(int x) noexcept
     // That's the power of two <= the original x
     return x & ~(x >> 1);
 }
-
-
-// Old names -- DEPRECATED(2.1)
-inline OIIO_HOSTDEVICE int pow2roundup(int x) { return ceil2(x); }
-inline OIIO_HOSTDEVICE int pow2rounddown(int x) { return floor2(x); }
 
 
 
@@ -686,9 +668,13 @@ sincos (double x, double* sine, double* cosine)
 }
 
 
-inline OIIO_HOSTDEVICE float sign (float x)
+
+/// Return -1 if x<0, 0 if x==0, 1 if x>0. For floating point types, this is
+/// not friendly to NaN inputs!
+template<typename T>
+inline OIIO_HOSTDEVICE T sign(T x)
 {
-    return x < 0.0f ? -1.0f : (x==0.0f ? 0.0f : 1.0f);
+    return x < T(0) ? T(-1) : (x == T(0) ? T(0) : T(1));
 }
 
 
@@ -1852,7 +1838,7 @@ template<typename T>
 OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_exp2 (const T& xval) {
     using namespace simd;
     typedef typename T::vint_t intN;
-#if OIIO_SIMD_SSE
+#if (OIIO_SIMD_SSE || OIIO_SIMD_NEON) && !OIIO_MSVS_BEFORE_2022
     // See float specialization for explanations
     T x = clamp (xval, T(-126.0f), T(126.0f));
     intN m (x); x -= T(m);

@@ -65,7 +65,7 @@ OIIO_NAMESPACE_BEGIN
 ///
 /// Parse the command line:
 ///
-///     ap.parse (argc, argv);
+///     ap.parse_args(argc, argv);
 ///
 /// Extract the values like they are attributes in a ParamValueList:
 ///
@@ -79,7 +79,7 @@ OIIO_NAMESPACE_BEGIN
 // Old syntax
 // ----------
 //
-// We still support this old syntax as well:
+// We still support this old syntax as well, but only internally:
 //
 // The parse function takes a list of options and variables or functions
 // for storing option values and return <0 on failure:
@@ -107,7 +107,7 @@ OIIO_NAMESPACE_BEGIN
 //                   "set the camera position",
 //             "-lookat %f %f %f", &lx, &ly, &lz,
 //                   "set the position of interest",
-//             "-oversampling %d", &oversampling,  "oversamping rate",
+//             "-oversampling %d", &oversampling,  "oversampling rate",
 //             "-passes %d", &passes, "number of passes",
 //             "-lens %f %f %f", &aperture, &focalDistance, &focalLength,
 //                    "set aperture, focal distance, focal length",
@@ -760,20 +760,25 @@ public:
     // The format string is followed by a list of pointers to the argument
     // variables, just like scanf.  A NULL terminates the list.  Multiple
     // calls to options() will append additional options.
+    OIIO_DEPRECATED_EXTERNAL("(2.2)")
     int options(const char* intro, ...);
 
     // old name
-    // DEPRECATED(2.2)
+    OIIO_DEPRECATED_EXTERNAL("Use parse_args() instead. (2.2)")
     int parse(int argc, const char** argv) { return parse_args(argc, argv); }
 
     // Type for a callback that writes something to the output stream.
+    OIIO_DEPRECATED_EXTERNAL("(2.2)")
     typedef std::function<void(const ArgParse& ap, std::ostream&)> callback_t;
     // Set callbacks to run that will print any matter you want as part
     // of the verbose usage, before and after the options are detailed.
+    OIIO_DEPRECATED_EXTERNAL("(2.2)")
     void set_preoption_help(callback_t callback);
+    OIIO_DEPRECATED_EXTERNAL("(2.2)")
     void set_postoption_help(callback_t callback);
 
     // DEPRECATED(2.2) synonym for `print_help()`.
+    OIIO_DEPRECATED_EXTERNAL("Use print_help() instead. (2.2)")
     void usage() const { print_help(); }
 };
 

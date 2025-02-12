@@ -12,14 +12,15 @@ endif ()
 
 message (STATUS "Building ${PROJECT_NAME} ${PROJECT_VERSION} - ${CMAKE_BUILD_TYPE}")
 
-# Use C++14
-set (CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to prefer (14, 17, etc.)")
+# Use C++17
+set (CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to prefer (17, 20, etc.)")
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 
 
 # Make sure we have dependencies we need
 find_package (OpenImageIO CONFIG REQUIRED)
+find_package (Imath CONFIG REQUIRED)
 
 # Special for OIIO testsuite when running in sanitize mode
 if (DEFINED ENV{SANITIZE})
@@ -34,5 +35,5 @@ set (chapters imageioapi imageoutput imageinput writingplugins
 foreach (chapter ${chapters})
     add_executable(docs-examples-${chapter} src/docs-examples-${chapter}.cpp)
     target_link_libraries (docs-examples-${chapter}
-                           PRIVATE OpenImageIO::OpenImageIO)
+                           PRIVATE OpenImageIO::OpenImageIO Imath::Imath)
 endforeach ()

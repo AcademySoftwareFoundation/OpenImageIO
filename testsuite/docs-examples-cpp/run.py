@@ -13,6 +13,19 @@ else :
 # Prep:
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr grid.exr")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.tif tahoe.tif")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr A.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr B.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/with_nans.tif with_nans.tif")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/checker_with_alpha.exr checker_with_alpha.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/unpremult.tif unpremult.tif")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/bayer.png bayer.png")
+
+command += oiio_app("oiiotool") +  "--pattern fill:top=0:bottom=1 256x256 1 -o mono.exr > out.txt ;"
+
+# Copy the grid to both a tiled and scanline version
+command += oiio_app("iconvert") + "../common/grid.tif --scanline scanline.tif > out.txt ;" 
+command += oiio_app("iconvert") + "../common/grid.tif --tile 64 64 tiled.tif > out.txt ;" 
+
 
 # Build
 command += run_app("cmake -S " + test_source_dir + " -B build -DCMAKE_BUILD_TYPE=Release >> build.txt 2>&1", silent=True)
@@ -24,7 +37,10 @@ for chapter in [ "imageioapi", "imageoutput", "imageinput", "writingplugins",
     command += run_app(prefix + "docs-examples-" + chapter)
 
 # hashes merely check that the images don't change, but saves us the space
-# of checking in a full copy of the image if it's not needed.
+# of checking in a full copy of the image if it's not needed. This is not
+# suitable if the image may change slightly from platform to platform or
+# with different versions of dependencies, for that we should use the
+# full reference image comparison with appropriate thresholds.
 hashes = [
     # Outputs from the ImageBufAlgo chapter:
     "zero1.exr",
@@ -43,8 +59,39 @@ hashes = [
     "box.exr",
     "text1.exr",
     "text2.exr",
+    "channels-rgba.exr",
+    "channels-rgb.exr",
+    "channels-brga.exr",
+    "channels-alpha.exr",
+    "channel-append.exr",
+    "copy.exr",
+    "crop.exr",
+    "cut.exr",
+    "paste.exr",
+    "rotate-90.exr",
+    "rotate-180.exr",
+    "rotate-270.exr",
+    "flip.exr",
+    "flop.exr",
+    "rotate-45.tif",
+    "resize.tif",
+    "resample.exr",
+    "fit.tif",
+    "warp.exr",
+    "transpose.exr",
+    "reorient.exr",
     "cshift.exr",
-    "texture.exr"
+    "texture.exr",
+    "add.exr",
+    "add-cspan.exr",
+    "sub.exr",
+    "absdiff.exr",
+    "abs.exr",
+    "mul.exr",
+    "div.exr",
+    "checker_with_alpha_filled.exr",
+    "tahoe_median_filter.tif",
+    "tahoe_unsharp_mask.tif"
 ]
 for file in hashes :
     command += info_command(file, verbose=False)
@@ -55,6 +102,10 @@ outputs = [
     # Outputs from the ImageOutput chapter:
     "simple.tif", "scanlines.tif",
     # Outputs from the ImageInput chapter:
+
+    # Outputs from the ImageBuf chapter:
+
+    # Outputs from the ImageBufAlgo chapter:
 
     # ... etc ... other chapters ...
 

@@ -4,8 +4,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-from __future__ import print_function
-from __future__ import absolute_import
 import math, os
 import OpenImageIO as oiio
 from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo, ROI
@@ -226,6 +224,15 @@ try:
     write (b, "abs.exr", oiio.HALF)
     b = test_iba (ImageBufAlgo.absdiff, a, (0.2,0.2,0.2))
     write (b, "absdiff.exr", oiio.HALF)
+    a = ImageBuf()
+    
+    # scale
+    a = ImageBuf(ImageSpec(128, 128, 3, oiio.HALF))
+    ImageBufAlgo.fill(a, topleft = (0, 0, 1), topright = (0, 1, 0),
+                          bottomleft = (1, 0, 1), bottomright = (1, 1, 0))
+    b = ImageBuf(ImageSpec(128, 128, 1, oiio.HALF))
+    ImageBufAlgo.fill(a, top = 0, bottom = 1)
+    b = test_iba(ImageBufAlgo.scale, a, b)
     a = ImageBuf()
 
     # mul

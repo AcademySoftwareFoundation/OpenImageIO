@@ -161,7 +161,7 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
 
     m_spec = ImageSpec(w, h, (m_demux_flags & ALPHA_FLAG) ? 4 : 3, TypeUInt8);
     m_scanline_size = m_spec.scanline_bytes();
-    m_spec.attribute("oiio:ColorSpace", "sRGB");  // webp is always sRGB
+    m_spec.set_colorspace("sRGB");  // webp is always sRGB
     if (m_demux_flags & ANIMATION_FLAG) {
         m_spec.attribute("oiio:Movie", 1);
         m_frame_count       = (int)WebPDemuxGetI(m_demux, WEBP_FF_FRAME_COUNT);
@@ -308,14 +308,18 @@ WebpInput::read_current_subimage()
                                        m_spec.scanline_bytes());
             // WebP requires unassociated alpha, and it's sRGB.
             // Handle this all by wrapping an IB around it.
-            ImageBuf fullbuf(m_spec, m_decoded_image.get());
+            ImageBuf fullbuf(m_spec,
+                             span<std::byte>((std::byte*)m_decoded_image.get(),
+                                             m_spec.image_bytes()));
             ImageBufAlgo::premult(fullbuf, fullbuf);
         }
     } else {
         // This subimage writes *atop* the prior image, we must composite
         ImageSpec fullspec(m_spec.width, m_spec.height, m_spec.nchannels,
                            m_spec.format);
-        ImageBuf fullbuf(fullspec, m_decoded_image.get());
+        ImageBuf fullbuf(fullspec,
+                         span<std::byte>((std::byte*)m_decoded_image.get(),
+                                         fullspec.image_bytes()));
         ImageSpec fragspec(m_iter.width, m_iter.height, 4, TypeUInt8);
         fragspec.x = m_iter.x_offset;
         fragspec.y = m_iter.y_offset;

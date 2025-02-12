@@ -44,10 +44,12 @@ private:
     png_structp m_png;       ///< PNG read structure pointer
     png_infop m_info;        ///< PNG image info structure pointer
     unsigned int m_dither;
-    int m_color_type;      ///< PNG color model type
-    bool m_convert_alpha;  ///< Do we deassociate alpha?
-    bool m_need_swap;      ///< Do we need to swap bytes?
-    float m_gamma;         ///< Gamma to use for alpha conversion
+    int m_color_type;       ///< PNG color model type
+    bool m_convert_alpha;   ///< Do we deassociate alpha?
+    bool m_need_swap;       ///< Do we need to swap bytes?
+    bool m_linear_premult;  ///< Do premult for sRGB images in linear
+    bool m_srgb   = false;  ///< It's an sRGB image (not gamma)
+    float m_gamma = 1.0f;   ///< Gamma to use for alpha conversion
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
     std::vector<unsigned char> m_tilebuffer;
@@ -56,14 +58,16 @@ private:
     // Initialize private members to pre-opened state
     void init(void)
     {
-        m_png           = NULL;
-        m_info          = NULL;
-        m_convert_alpha = true;
-        m_need_swap     = false;
-        m_gamma         = 1.0;
+        m_png            = NULL;
+        m_info           = NULL;
+        m_convert_alpha  = true;
+        m_need_swap      = false;
+        m_linear_premult = false;
+        m_srgb           = false;
+        m_err            = false;
+        m_gamma          = 1.0;
         m_pngtext.clear();
         ioproxy_clear();
-        m_err = false;
     }
 
     // Add a parameter to the output
@@ -90,7 +94,7 @@ private:
 
     template<class T>
     void deassociateAlpha(T* data, size_t npixels, int channels,
-                          int alpha_channel, float gamma);
+                          int alpha_channel, bool srgb, float gamma);
 };
 
 
@@ -185,6 +189,10 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 
     m_need_swap = (m_spec.format == TypeDesc::UINT16 && littleendian());
 
+    m_linear_premult = m_spec.get_int_attribute("png:linear_premult",
+                                                OIIO::get_int_attribute(
+                                                    "png:linear_premult"));
+
     png_set_filter(m_png, 0,
                    spec().get_int_attribute("png:filter", PNG_NO_FILTERS));
     // https://www.w3.org/TR/PNG-Encoders.html#E.Filter-selection
@@ -204,7 +212,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 
 #if defined(PNG_SKIP_sRGB_CHECK_PROFILE) && defined(PNG_SET_OPTION_SUPPORTED)
     // libpng by default checks ICC profiles and are very strict, treating
-    // it as a serious error if it doesn't match th profile it thinks is
+    // it as a serious error if it doesn't match the profile it thinks is
     // right for sRGB. This call disables that behavior, which tends to have
     // many false positives. Some references to discussion about this:
     //    https://github.com/kornelski/pngquant/issues/190
@@ -214,7 +222,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 #endif
 
     s = PNG_pvt::write_info(m_png, m_info, m_color_type, m_spec, m_pngtext,
-                            m_convert_alpha, m_gamma);
+                            m_convert_alpha, m_srgb, m_gamma);
 
     if (s.length()) {
         close();
@@ -273,20 +281,24 @@ PNGOutput::close()
 template<class T>
 void
 PNGOutput::deassociateAlpha(T* data, size_t npixels, int channels,
-                            int alpha_channel, float gamma)
+                            int alpha_channel, bool srgb, float gamma)
 {
-    if (gamma == 1) {
+    if (srgb && m_linear_premult) {
+        // sRGB with request to do unpremult in linear space
         for (size_t x = 0; x < npixels; ++x, data += channels) {
             DataArrayProxy<T, float> val(data);
             float alpha = val[alpha_channel];
             if (alpha != 0.0f && alpha != 1.0f) {
                 for (int c = 0; c < channels; c++) {
-                    if (c != alpha_channel)
-                        val[c] = data[c] / alpha;
+                    if (c != alpha_channel) {
+                        float f = sRGB_to_linear(val[c]);
+                        val[c]  = linear_to_sRGB(f / alpha);
+                    }
                 }
             }
         }
-    } else {
+    } else if (gamma != 1.0f && m_linear_premult) {
+        // Gamma correction with request to do unpremult in linear space
         for (size_t x = 0; x < npixels; ++x, data += channels) {
             DataArrayProxy<T, float> val(data);
             float alpha = val[alpha_channel];
@@ -296,6 +308,20 @@ PNGOutput::deassociateAlpha(T* data, size_t npixels, int channels,
                 for (int c = 0; c < channels; c++) {
                     if (c != alpha_channel)
                         val[c] = val[c] * alpha_deassociate;
+                }
+            }
+        }
+    } else {
+        // Do the unpremult directly on the values. This is correct for the
+        // "gamma=1" case, and is also commonly what is needed for many sRGB
+        // images (even though it's technically wrong in that case).
+        for (size_t x = 0; x < npixels; ++x, data += channels) {
+            DataArrayProxy<T, float> val(data);
+            float alpha = val[alpha_channel];
+            if (alpha != 0.0f && alpha != 1.0f) {
+                for (int c = 0; c < channels; c++) {
+                    if (c != alpha_channel)
+                        val[c] = data[c] / alpha;
                 }
             }
         }
@@ -331,7 +357,7 @@ PNGOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                             TypeFloat, AutoStride, AutoStride, AutoStride);
         // Deassociate alpha
         deassociateAlpha(floatvals, size_t(m_spec.width), m_spec.nchannels,
-                         m_spec.alpha_channel, m_gamma);
+                         m_spec.alpha_channel, m_srgb, m_gamma);
         data    = floatvals;
         format  = TypeFloat;
         xstride = size_t(m_spec.nchannels) * sizeof(float);
@@ -394,7 +420,7 @@ PNGOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                             AutoStride);
         // Deassociate alpha
         deassociateAlpha(floatvals, npixels, m_spec.nchannels,
-                         m_spec.alpha_channel, m_gamma);
+                         m_spec.alpha_channel, m_srgb, m_gamma);
         data    = floatvals;
         format  = TypeFloat;
         xstride = size_t(m_spec.nchannels) * sizeof(float);
