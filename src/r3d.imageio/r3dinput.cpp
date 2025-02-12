@@ -280,7 +280,6 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
 
     // Interleaved RGB decoding in 16-bits per pixel
     m_job.PixelType   = R3DSDK::PixelType_16Bit_RGB_Interleaved;
-    m_job.BytesPerRow = m_channels * width * sizeof(uint16_t);
 
     m_spec = ImageSpec(width, height, m_channels, TypeDesc::UINT16);
     m_spec.attribute("FramesPerSecond", TypeFloat, &m_fps);
