@@ -453,7 +453,7 @@ jobs:
                             PUGIXML_VERSION=v1.14
                             WEBP_VERSION=v1.4.0
 
-          - desc: clang14 C++20 avx2 exr3.1 ocio2.1
+          - desc: clang14 C++20 avx2 exr3.1 ocio2.2
             nametag: linux-clang14
             runner: ubuntu-22.04
             cxx_compiler: clang++
@@ -466,6 +466,7 @@ jobs:
             python_ver: "3.10"
             simd: avx2,f16c
             setenvs: export LLVM_VERSION=14.0.0
+                            LLVM_DISTRO_NAME=ubuntu-18.04
                             USE_OPENVDB=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: debug gcc9/C++17, sse4.2, exr3.1
