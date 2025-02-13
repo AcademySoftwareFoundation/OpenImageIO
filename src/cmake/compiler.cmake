@@ -617,7 +617,7 @@ set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when bu
 ###########################################################################
 # Set the versioning for shared libraries.
 #
-if (${PROJECT_NAME}_SUPPORTED_RELEASE)
+if (${PROJECT_NAME}_SUPPORTED_RELEASE AND NOT SKBUILD)
     # Supported releases guarantee ABI back-compatibility within the release
     # family, so SO versioning is major.minor.
     set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
