@@ -604,7 +604,15 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
     // OIIO conventions.
     if (num_bits == 8 || num_bits == 16 || num_bits == 32) {
         // ok -- no rescaling needed
-    } else if (num_bits == 10) {
+    }
+    int bytes_per_chan = ceil2(std::max(int(num_bits), 8)) / 8;
+    if (size_t(offset + (m_spec.width - 1) * pixelsize
+               + num_channels * bytes_per_chan)
+        > m_buf.size()) {
+        errorfmt("Probably corrupt file (buffer overrun avoided)");
+        return false;  // Probably corrupt? Would have overrun
+    }
+    if (num_bits == 10) {
         // fast, common case -- use templated hard-code
         for (int x = 0; x < m_spec.width; ++x) {
             uint16_t* b = (uint16_t*)(&m_buf[offset + x * pixelsize]);
