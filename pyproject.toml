@@ -29,6 +29,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 requires-python = ">= 3.8"
+dependencies = [
+    "numpy>=1.19",
+]
 
 [project.urls]
 Homepage = "https://openimageio.org/"
