@@ -42,6 +42,7 @@ add_rgb_rgba.exr     :   64 x   64, 4 channel, float openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 dumpdata:
 dump.exr             :    2 x    2, 3 channel, half openexr
     Pixel (0, 0): 0.000000000 0.000000000 0.000000000
