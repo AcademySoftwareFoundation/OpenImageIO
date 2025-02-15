@@ -37,8 +37,10 @@
 #    include <mach-o/dyld.h>
 #    include <mach/mach_init.h>
 #    include <mach/task.h>
+#    include <crt_externs.h>
 #    include <sys/ioctl.h>
 #    include <sys/sysctl.h>
+#    include <spawn.h>
 #    include <unistd.h>
 #endif
 
@@ -554,17 +556,27 @@ Sysutil::put_in_background(int argc, char* argv[])
     return daemon(1, 1) == 0;
 
 #elif defined(__APPLE__) && TARGET_OS_OSX
-    std::string newcmd = std::string(argv[0]) + " -F";
-    for (int i = 1; i < argc; ++i) {
-        newcmd += " \"";
-        newcmd += argv[i];
-        newcmd += "\"";
-    }
-    newcmd += " &";
-    if (system(newcmd.c_str()) != -1)
-        exit(0);
-    return true;
+    pid_t pid;
+    posix_spawnattr_t attr;
+    posix_spawnattr_init(&attr);
+    posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSID);
+    char **environ = *_NSGetEnviron();
 
+    std::vector<char*> newargv;
+    newargv.push_back(argv[0]);
+    newargv.push_back((char*)"-F");
+    for (int i = 1; i < argc; ++i) {
+        newargv.push_back(argv[i]);
+    }
+    newargv.push_back(nullptr);
+
+    int status = posix_spawn(&pid, argv[0], nullptr, &attr, newargv.data(), environ);
+    posix_spawnattr_destroy(&attr);
+    if (status == 0)
+        exit(0);
+
+    return true;
+    
 #elif defined(_WIN32)
     return true;
 
