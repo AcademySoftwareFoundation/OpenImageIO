@@ -34,13 +34,13 @@
 
 #ifdef __APPLE__
 #    include <TargetConditionals.h>
+#    include <crt_externs.h>
 #    include <mach-o/dyld.h>
 #    include <mach/mach_init.h>
 #    include <mach/task.h>
-#    include <crt_externs.h>
+#    include <spawn.h>
 #    include <sys/ioctl.h>
 #    include <sys/sysctl.h>
-#    include <spawn.h>
 #    include <unistd.h>
 #endif
 
@@ -560,7 +560,7 @@ Sysutil::put_in_background(int argc, char* argv[])
     posix_spawnattr_t attr;
     posix_spawnattr_init(&attr);
     posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSID);
-    char **environ = *_NSGetEnviron();
+    char** environ = *_NSGetEnviron();
 
     std::vector<char*> newargv;
     newargv.push_back(argv[0]);
@@ -570,13 +570,14 @@ Sysutil::put_in_background(int argc, char* argv[])
     }
     newargv.push_back(nullptr);
 
-    int status = posix_spawn(&pid, argv[0], nullptr, &attr, newargv.data(), environ);
+    int status = posix_spawn(&pid, argv[0], nullptr, &attr, newargv.data(),
+                             environ);
     posix_spawnattr_destroy(&attr);
     if (status == 0)
         exit(0);
 
     return true;
-    
+
 #elif defined(_WIN32)
     return true;
 
