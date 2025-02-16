@@ -529,49 +529,27 @@ Term::ansi_bgcolor(int r, int g, int b)
 
 bool
 #ifdef _WIN32
-Sysutil::put_in_background(int, char*[])
+Sysutil::put_in_background()
 #else
-Sysutil::put_in_background(int argc, char* argv[])
+Sysutil::put_in_background()
 #endif
 {
-    // You would think that this would be sufficient:
-    //   pid_t pid = fork ();
-    //   if (pid < 0)       // Some kind of error, we were unable to background
-    //      return false;
-    //   if (pid == 0)
-    //       return true;   // This is the child process, so continue with life
-    //   // Otherwise, this is the parent process, so terminate
-    //   exit (0);
-    // But it's not.  On OS X, it's not safe to fork() if your app is linked
-    // against certain libraries or frameworks.  So the only thing that I
-    // think is safe is to exec a new process.
-    // Another solution is this:
-    //    daemon (1, 1);
-    // But it suffers from the same problem on OS X, and seems to just be
-    // a wrapper for fork.
-
 #if defined(__linux__) || defined(__GLIBC__)
     // Simplest case:
     // daemon returns 0 if successful, thus return true if successful
     return daemon(1, 1) == 0;
 
 #elif defined(__APPLE__) && TARGET_OS_OSX
+    if (getppid() == 1) {
+        return true;
+    }
     pid_t pid;
     posix_spawnattr_t attr;
     posix_spawnattr_init(&attr);
     posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSID);
+    char** argv    = *_NSGetArgv();
     char** environ = *_NSGetEnviron();
-
-    std::vector<char*> newargv;
-    newargv.push_back(argv[0]);
-    newargv.push_back((char*)"-F");
-    for (int i = 1; i < argc; ++i) {
-        newargv.push_back(argv[i]);
-    }
-    newargv.push_back(nullptr);
-
-    int status = posix_spawn(&pid, argv[0], nullptr, &attr, newargv.data(),
-                             environ);
+    int status     = posix_spawn(&pid, argv[0], nullptr, &attr, argv, environ);
     posix_spawnattr_destroy(&attr);
     if (status == 0)
         exit(0);

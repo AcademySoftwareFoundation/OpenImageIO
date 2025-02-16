@@ -75,11 +75,10 @@ OIIO_UTIL_API void
 usleep(unsigned long useconds);
 
 /// Try to put the process into the background so it doesn't continue to
-/// tie up any shell that it was launched from.  The arguments are the
-/// argc/argv that describe the program and its command line arguments.
+/// tie up any shell that it was launched from.
 /// Return true if successful, false if it was unable to do so.
 OIIO_UTIL_API bool
-put_in_background(int argc, char* argv[]);
+put_in_background();
 
 /// Number of virtual cores available on this platform (including
 /// hyperthreads). Note that this is just a wrapper/synonym for C++
