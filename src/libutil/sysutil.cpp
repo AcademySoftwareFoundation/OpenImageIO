@@ -548,8 +548,7 @@ Sysutil::put_in_background(int argc, char* argv[])
     posix_spawnattr_init(&attr);
     posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSID);
     char** environ = *_NSGetEnviron();
-    int status = posix_spawn(&pid, argv[0], nullptr, &attr, argv,
-                             environ);
+    int status     = posix_spawn(&pid, argv[0], nullptr, &attr, argv, environ);
     posix_spawnattr_destroy(&attr);
     if (status == 0)
         exit(0);
