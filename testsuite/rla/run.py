@@ -22,5 +22,6 @@ command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/crash1.rla -o crash1.exr", failu
 command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/crash2.rla -o crash2.exr", failureok = True)
 command += oiiotool("src/crash-1629.rla -o crash3.exr", failureok = True)
 command += oiiotool("src/crash-3951.rla -o crash4.exr", failureok = True)
+command += oiiotool("src/crash-1.rla -o crash5.exr", failureok = True)
 
 outputs = [ "rlacrop.rla", 'out.txt' ]

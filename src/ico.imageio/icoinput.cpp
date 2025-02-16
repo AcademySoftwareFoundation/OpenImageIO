@@ -190,6 +190,19 @@ ICOInput::seek_subimage(int subimage, int miplevel)
         swap_endian(&subimg.numColours);
     }
 
+    // some sanity checking
+    if (subimg.bpp != 1 && subimg.bpp != 4 && subimg.bpp != 8
+        && subimg.bpp != 16 && subimg.bpp != 24 && subimg.bpp != 32) {
+        errorfmt("Unsupported image color depth, probably corrupt file");
+        return false;
+    }
+    if (subimg.reserved != 0) {
+        errorfmt(
+            "Probably corrupt file (clue: header 'reserved' value should always be 0)",
+            subimg.reserved);
+        return false;
+    }
+
     ioseek(subimg.ofs, SEEK_SET);
 
     // test for a PNG icon
