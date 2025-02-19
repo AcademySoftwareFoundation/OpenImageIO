@@ -16,7 +16,7 @@ fn main() -> Result<()> {
     include_paths.extend(pkgconfig.include_paths);
 
     cxx_build::bridges(NAMES.iter().map(|s| format!("src/{}.rs", s)))
-        .files(NAMES.iter().map(|s| format!("src/ffi_{}.cpp", s)))
+        .files(NAMES.iter().map(|s| format!("src/{}.cpp", s)))
         .flag_if_supported("-std=c++17")
         .includes(&include_paths)
         .compile("oiio-sys");
@@ -25,8 +25,8 @@ fn main() -> Result<()> {
 
     for name in NAMES {
         println!("cargo:rerun-if-changed=src/{}.rs", name);
-        println!("cargo:rerun-if-changed=src/ffi_{}.cpp", name);
-        println!("cargo:rerun-if-changed=include/ffi_{}.h", name);
+        println!("cargo:rerun-if-changed=src/{}.cpp", name);
+        println!("cargo:rerun-if-changed=include/{}.h", name);
     }
 
     Ok(())

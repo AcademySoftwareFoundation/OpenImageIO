@@ -6,20 +6,22 @@
 #include <string>
 #include <vector>
 
-namespace oiio {
+namespace oiio_ffi {
 using TypeDesc     = OIIO::TypeDesc;
 using BaseType     = OIIO::TypeDesc::BASETYPE;
 using Aggregate    = OIIO::TypeDesc::AGGREGATE;
 using VecSemantics = OIIO::TypeDesc::VECSEMANTICS;
 
-TypeDesc constexpr typedesc_new(BaseType btype, Aggregate agg,
-                                VecSemantics semantics, int arraylen) noexcept;
+TypeDesc
+typedesc_new(BaseType btype, Aggregate agg, VecSemantics semantics,
+             int arraylen) noexcept;
 
-TypeDesc constexpr typedesc_from_basetype_arraylen(BaseType btype,
-                                                   int arraylen) noexcept;
+TypeDesc
+typedesc_from_basetype_arraylen(BaseType btype, int arraylen) noexcept;
 
-TypeDesc constexpr typedesc_from_basetype_aggregate_arraylen(
-    BaseType btype, Aggregate agg, int arraylen) noexcept;
+TypeDesc
+typedesc_from_basetype_aggregate_arraylen(BaseType btype, Aggregate agg,
+                                          int arraylen) noexcept;
 
 TypeDesc
 typedesc_from_string(rust::Str typestring);
@@ -123,4 +125,4 @@ typedesc_basetype_merge_3(TypeDesc a, TypeDesc b, TypeDesc c);
 bool
 typedesc_convert_type(TypeDesc srctype, rust::Slice<const uint8_t> src,
                       TypeDesc dsttype, rust::Slice<uint8_t> dst, int n);
-}  // namespace oiio
+}  // namespace oiio_ffi
