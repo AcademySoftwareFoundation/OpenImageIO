@@ -148,7 +148,7 @@ cmake --version
 # If we're using clang to compile on native Ubuntu, we need to install it.
 # If on an ASWF CentOS docker container, it already is installed.
 #
-if [[ ("$CXX" == "clang++" && "$ASWF_ORG" == "") || "$LLVM_VERSION" != "" ]] ; then
+if [[ "$LLVM_VERSION" != "" ]] ; then
     source src/build-scripts/build_llvm.bash
 fi
 
