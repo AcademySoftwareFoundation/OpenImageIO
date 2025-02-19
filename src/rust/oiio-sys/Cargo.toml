@@ -24,6 +24,9 @@ anyhow = { workspace = true }
 cxx-build = "1.0.140"
 pkg-config = "0.3.31"
 
+[dev-dependencies]
+proptest = "1.6.0"
+
 # The docs are the same across all platforms so we only need to build once.
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

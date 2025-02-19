@@ -1,4 +1,4 @@
-#include "ffi_typedesc.h"
+#include "oiio-sys/include/typedesc.h"
 #include "rust/cxx.h"
 #include <OpenImageIO/string_view.h>
 #include <OpenImageIO/typedesc.h>
@@ -6,21 +6,23 @@
 #include <stdexcept>
 #include <stdio.h>
 
-namespace oiio {
-TypeDesc constexpr typedesc_new(BaseType btype, Aggregate agg,
-                                VecSemantics semantics, int arraylen) noexcept
+namespace oiio_ffi {
+TypeDesc
+typedesc_new(BaseType btype, Aggregate agg, VecSemantics semantics,
+             int arraylen) noexcept
 {
     return TypeDesc(btype, agg, semantics, arraylen);
 }
 
-TypeDesc constexpr typedesc_from_basetype_arraylen(BaseType btype,
-                                                   int arraylen) noexcept
+TypeDesc
+typedesc_from_basetype_arraylen(BaseType btype, int arraylen) noexcept
 {
     return TypeDesc(btype, arraylen);
 }
 
-TypeDesc constexpr typedesc_from_basetype_aggregate_arraylen(
-    BaseType btype, Aggregate agg, int arraylen) noexcept
+TypeDesc
+typedesc_from_basetype_aggregate_arraylen(BaseType btype, Aggregate agg,
+                                          int arraylen) noexcept
 {
     return TypeDesc(btype, agg, arraylen);
 }
@@ -232,4 +234,4 @@ typedesc_convert_type(TypeDesc srctype, rust::Slice<const uint8_t> src,
 {
     return convert_type(srctype, src.data(), dsttype, dst.data(), n);
 }
-}  // namespace oiio
+}  // namespace oiio_ffi
