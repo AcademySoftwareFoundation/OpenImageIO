@@ -167,7 +167,7 @@ pub struct TypeDesc {
     pub basetype: BaseType,
     pub aggregate: Aggregate,
     pub vecsemantics: VecSemantics,
-    pub arraylen: usize,
+    pub arraylen: i32,
 }
 
 impl std::fmt::Display for TypeDesc {
@@ -184,7 +184,7 @@ impl From<TypeDesc> for sys::typedesc::TypeDesc {
             aggregate: value.aggregate.into(),
             vecsemantics: value.vecsemantics.into(),
             _reserved: 0,
-            arraylen: value.arraylen as i32,
+            arraylen: value.arraylen,
         }
     }
 }
@@ -195,7 +195,7 @@ impl From<sys::typedesc::TypeDesc> for TypeDesc {
             basetype: value.basetype.into(),
             aggregate: value.aggregate.into(),
             vecsemantics: value.vecsemantics.into(),
-            arraylen: value.arraylen as usize,
+            arraylen: value.arraylen,
         }
     }
 }
@@ -241,26 +241,21 @@ impl Ord for TypeDesc {
 }
 
 impl TypeDesc {
-    pub fn new(btype: BaseType, agg: Aggregate, semantics: VecSemantics, arraylen: usize) -> Self {
-        sys::typedesc::typedesc_new(btype.into(), agg.into(), semantics.into(), arraylen as i32)
-            .into()
+    pub fn new(btype: BaseType, agg: Aggregate, semantics: VecSemantics, arraylen: i32) -> Self {
+        sys::typedesc::typedesc_new(btype.into(), agg.into(), semantics.into(), arraylen).into()
     }
 
-    pub fn from_basetype_arraylen(btype: BaseType, arraylen: usize) -> Self {
-        sys::typedesc::typedesc_from_basetype_arraylen(btype.into(), arraylen as i32).into()
+    pub fn from_basetype_arraylen(btype: BaseType, arraylen: i32) -> Self {
+        sys::typedesc::typedesc_from_basetype_arraylen(btype.into(), arraylen).into()
     }
 
     pub fn from_basetype_aggregate_arraylen(
         btype: BaseType,
         agg: Aggregate,
-        arraylen: usize,
+        arraylen: i32,
     ) -> Self {
-        sys::typedesc::typedesc_from_basetype_aggregate_arraylen(
-            btype.into(),
-            agg.into(),
-            arraylen as i32,
-        )
-        .into()
+        sys::typedesc::typedesc_from_basetype_aggregate_arraylen(btype.into(), agg.into(), arraylen)
+            .into()
     }
 
     pub fn from_string(typestring: &str) -> Self {
@@ -373,8 +368,8 @@ impl TypeDesc {
         src: &[u8],
         dsttype: TypeDesc,
         dst: &mut [u8],
-        n: usize,
+        n: i32,
     ) -> bool {
-        sys::typedesc::typedesc_convert_type(srctype.into(), src, dsttype.into(), dst, n as i32)
+        sys::typedesc::typedesc_convert_type(srctype.into(), src, dsttype.into(), dst, n)
     }
 }
