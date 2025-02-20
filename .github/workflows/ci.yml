@@ -453,28 +453,25 @@ jobs:
                             PUGIXML_VERSION=v1.14
                             WEBP_VERSION=v1.4.0
 
-          - desc: clang14 C++20 avx2 exr3.1 ocio2.1
+          - desc: clang15 C++17 avx2 exr3.1 ocio2.2
             nametag: linux-clang14
-            runner: ubuntu-20.04
-            cxx_compiler: clang++
-            cc_compiler: clang
-            cxx_std: 20
+            runner: ubuntu-22.04
+            cxx_compiler: clang++-15
+            cc_compiler: clang-15
+            cxx_std: 17
             fmt_ver: 10.1.1
             opencolorio_ver: v2.2.1
             openexr_ver: v3.1.13
             pybind11_ver: v2.12.0
-            python_ver: 3.8
+            python_ver: "3.10"
             simd: avx2,f16c
-            setenvs: export LLVM_VERSION=14.0.0
-                            USE_OPENVDB=0
-                            # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: debug gcc9/C++17, sse4.2, exr3.1
             nametag: linux-gcc9-cpp17-debug
-            runner: ubuntu-20.04
+            runner: ubuntu-22.04
             cxx_compiler: g++-9
             cxx_std: 17
             build_type: Debug
-            python_ver: 3.8
+            python_ver: "3.10"
             simd: sse4.2
             openexr_ver: v3.1.13
             pybind11_ver: v2.7.0
@@ -482,11 +479,11 @@ jobs:
             setenvs: export PUGIXML_VERSION=v1.9
           - desc: static libs gcc9 C++17 exr3.1
             nametag: linux-static
-            runner: ubuntu-20.04
+            runner: ubuntu-22.04
             cxx_compiler: g++-9
             cxx_std: 17
             openexr_ver: v3.1.13
-            python_ver: 3.8
+            python_ver: "3.10"
             pybind11_ver: v2.7.0
             setenvs: export BUILD_SHARED_LIBS=OFF
             depcmds: |

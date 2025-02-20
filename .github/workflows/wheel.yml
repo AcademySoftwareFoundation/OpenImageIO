@@ -14,21 +14,25 @@ permissions:
 on:
   push:
     # Workflow run on tags for v3 only, or pre-tagged pushes of release, or
-    # dev-3.* branches.
+    # dev-3.* branches. Also if the branch name itself contains the substrings
+    # 'wheel' or 'python'.
     tags:
       - v3.*
     branches:
       - release
       - dev-3.*
+      - "*wheel*"
+      - "*python*"
   pull_request:
-    # Workflow run on pull_request only when related files change.
+    # Workflow run on pull_request only when related files change, or when the
+    # branch name itself contains the substrings 'wheel' or 'python'.
     paths:
       - .github/workflows/wheel.yml
       - pyproject.toml
       - src/python/*.py
       - src/python/*.h
       - src/python/*.cpp
-      - src/cmake/pythonutils.cmake
+      - src/cmake/*.cmake
   schedule:
     # Nightly build
     - cron:  "0 8 * * *"

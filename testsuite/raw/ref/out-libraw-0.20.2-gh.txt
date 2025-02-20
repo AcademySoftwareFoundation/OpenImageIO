@@ -546,7 +546,7 @@
     Sony:ImageStabilization: 1
     Sony:LensID: 40
     Sony:LensMount: 25
-Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2-libraw0.20.0.tif"
+Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
 PASS
 Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
 PASS

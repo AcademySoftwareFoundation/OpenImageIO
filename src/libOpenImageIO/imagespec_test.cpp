@@ -81,19 +81,42 @@ test_imagespec_pixels()
     OIIO_CHECK_EQUAL((size_t)(BYTES_IN_FLOAT * CHANNELS), spec.pixel_bytes());
     OIIO_CHECK_EQUAL((imagesize_t)(BYTES_IN_FLOAT * CHANNELS * WIDTH),
                      spec.scanline_bytes());
+    OIIO_CHECK_EQUAL((imagesize_t)(sizeof(uint16_t) * CHANNELS * WIDTH),
+                     spec.scanline_bytes(TypeUInt16));
+    OIIO_CHECK_EQUAL(spec.scanline_bytes(true),
+                     spec.scanline_bytes(TypeUnknown));
     OIIO_CHECK_EQUAL((imagesize_t)(WIDTH * HEIGHT), spec.image_pixels());
 
     // check that the magnitude is right (not clamped) -- should be about > 2^40
-    long long expected_bytes = BYTES_IN_FLOAT * CHANNELS * WIDTH * HEIGHT;
+    uint64_t expected_bytes = BYTES_IN_FLOAT * CHANNELS * WIDTH * HEIGHT;
     // log (x) / log (2) = log2 (x)
     // log (2^32) / log (2) = log2 (2^32) = 32
     // log (2^32) * M_LOG2E = 32
     double log2_result = log((double)expected_bytes) * M_LOG2E;
     OIIO_CHECK_LT(40, log2_result);
-    OIIO_CHECK_EQUAL((imagesize_t)expected_bytes, spec.image_bytes());
+    OIIO_CHECK_EQUAL(expected_bytes, spec.image_bytes());
 
     std::cout << "expected_bytes = " << expected_bytes << ", log "
               << log((double)expected_bytes) << std::endl;
+
+    OIIO_CHECK_EQUAL(spec.image_bytes(true), spec.image_bytes(TypeUnknown));
+    OIIO_CHECK_EQUAL(spec.image_bytes(false), spec.image_bytes(TypeFloat));
+
+    // Check tiles -- should be zero
+    OIIO_CHECK_EQUAL(spec.tile_bytes(), 0);
+    OIIO_CHECK_EQUAL(spec.tile_bytes(TypeUnknown), 0);
+    OIIO_CHECK_EQUAL(spec.tile_bytes(TypeUInt16), 0);
+    // Make apparent tiles and check
+    spec.tile_width  = 7;
+    spec.tile_height = 5;
+    spec.tile_depth  = 3;
+    OIIO_CHECK_EQUAL((imagesize_t)(BYTES_IN_FLOAT * spec.nchannels
+                                   * spec.tile_pixels()),
+                     spec.tile_bytes());
+    OIIO_CHECK_EQUAL((imagesize_t)(sizeof(uint16_t) * spec.nchannels
+                                   * spec.tile_pixels()),
+                     spec.tile_bytes(TypeUInt16));
+    OIIO_CHECK_EQUAL(spec.tile_bytes(true), spec.tile_bytes(TypeUnknown));
 }
 
 

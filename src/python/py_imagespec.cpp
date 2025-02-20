@@ -112,8 +112,6 @@ declare_imagespec(py::module& m)
                 return spec.channel_bytes(chan, native);
             },
             "channel"_a, "native"_a = false)
-        // .def("pixel_bytes",
-        //      [](const ImageSpec &spec){ return spec.pixel_bytes(); })
         .def(
             "pixel_bytes",
             [](const ImageSpec& spec, bool native) {
@@ -126,28 +124,34 @@ declare_imagespec(py::module& m)
                 return spec.pixel_bytes(chbegin, chend, native);
             },
             "chbegin"_a, "chend"_a, "native"_a = false)
-        // .def("scanline_bytes",
-        //      [](const ImageSpec &spec){ return spec.scanline_bytes(); })
         .def(
             "scanline_bytes",
             [](const ImageSpec& spec, bool native) {
                 return spec.scanline_bytes(native);
             },
             "native"_a = false)
-        // .def("tile_bytes",
-        //      [](const ImageSpec &spec){ return spec.tile_bytes(); })
+        .def("scanline_bytes",
+             [](const ImageSpec& spec, TypeDesc type) {
+                 return spec.scanline_bytes(type);
+             })
         .def(
             "tile_bytes",
             [](const ImageSpec& spec, bool native) {
                 return spec.tile_bytes(native);
             },
             "native"_a = false)
-        // .def("image_bytes",
-        //      [](const ImageSpec &spec){ return spec.image_bytes(); })
+        .def("tile_bytes", [](const ImageSpec& spec,
+                              TypeDesc type) { return spec.tile_bytes(type); })
         .def(
             "image_bytes",
             [](const ImageSpec& spec, bool native) {
                 return spec.image_bytes(native);
+            },
+            "native"_a = false)
+        .def(
+            "image_bytes",
+            [](const ImageSpec& spec, TypeDesc datatype) {
+                return spec.image_bytes(datatype);
             },
             "native"_a = false)
         .def("tile_pixels", &ImageSpec::tile_pixels)
