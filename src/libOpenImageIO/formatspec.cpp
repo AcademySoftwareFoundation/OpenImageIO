@@ -275,6 +275,17 @@ ImageSpec::scanline_bytes(bool native) const noexcept
 
 
 imagesize_t
+ImageSpec::scanline_bytes(TypeDesc type) const noexcept
+{
+    return type == TypeUnknown
+               ? scanline_bytes(true)
+               : clamped_mult64(clamped_mult64(size_t(width), size_t(nchannels)),
+                                type.size());
+}
+
+
+
+imagesize_t
 ImageSpec::tile_pixels() const noexcept
 {
     if (tile_width <= 0 || tile_height <= 0 || tile_depth <= 0)
@@ -297,6 +308,17 @@ ImageSpec::tile_bytes(bool native) const noexcept
 
 
 imagesize_t
+ImageSpec::tile_bytes(TypeDesc type) const noexcept
+{
+    return type == TypeUnknown
+               ? tile_bytes(true)
+               : clamped_mult64(clamped_mult64(tile_pixels(), nchannels),
+                                type.size());
+}
+
+
+
+imagesize_t
 ImageSpec::image_pixels() const noexcept
 {
     if (width < 0 || height < 0 || depth < 0)
@@ -313,6 +335,17 @@ imagesize_t
 ImageSpec::image_bytes(bool native) const noexcept
 {
     return clamped_mult64(image_pixels(), (imagesize_t)pixel_bytes(native));
+}
+
+
+
+imagesize_t
+ImageSpec::image_bytes(TypeDesc datatype) const noexcept
+{
+    if (datatype == TypeUnknown)
+        return image_bytes(false);  // special case: native size
+    return clamped_mult64(image_pixels(),
+                          imagesize_t(nchannels) * datatype.size());
 }
 
 
