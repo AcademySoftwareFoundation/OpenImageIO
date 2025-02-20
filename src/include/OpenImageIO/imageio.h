@@ -390,6 +390,13 @@ public:
     /// overflow where it's not representable in an `imagesize_t`.
     imagesize_t scanline_bytes (bool native=false) const noexcept;
 
+    /// Returns the number of bytes comprising each scanline, if all channels
+    /// were of the given type. If `type` is `TypeUnknown`, then it returns
+    /// the bytes a scanline using each channel's native type. This will
+    /// return `std::numeric_limits<imagesize_t>::max()` in the event of an
+    /// overflow where it's not representable in an `imagesize_t`.
+    imagesize_t scanline_bytes(TypeDesc type) const noexcept;
+
     /// Return the number of pixels comprising a tile (or 0 if it is not a
     /// tiled image).  This will return
     /// `std::numeric_limits<imagesize_t>::max()` in the event of an
@@ -403,6 +410,13 @@ public:
     /// in the "native" data format of the file (these may differ in the
     /// case of per-channel formats).
     imagesize_t tile_bytes (bool native=false) const noexcept;
+
+    /// Returns the number of bytes comprising each tile, if all channels
+    /// were of the given type. If `type` is `TypeUnknown`, then it returns
+    /// the bytes a scanline using each channel's native type. This will
+    /// return `std::numeric_limits<imagesize_t>::max()` in the event of an
+    /// overflow where it's not representable in an `imagesize_t`.
+    imagesize_t tile_bytes(TypeDesc type) const noexcept;
 
     /// Return the number of pixels for an entire image.  This will
     /// return `std::numeric_limits<imagesize_t>::max()` in the event of
@@ -419,6 +433,12 @@ public:
     /// a pixel in the "native" data format of the file (these may differ in
     /// the case of per-channel formats).
     imagesize_t image_bytes (bool native=false) const noexcept;
+
+    /// Returns the number of bytes comprising an entire image of these
+    /// dimensions, if the values were all of type `datatype`. For the
+    /// special case of `datatype == `TypeUnknown`, compute the size of
+    /// the image in the "native" data types for all channels.
+    imagesize_t image_bytes(TypeDesc datatype) const noexcept;
 
     /// Verify that on this platform, a `size_t` is big enough to hold the
     /// number of bytes (and pixels) in a scanline, a tile, and the
