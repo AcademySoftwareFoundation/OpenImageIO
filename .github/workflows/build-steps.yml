@@ -52,6 +52,8 @@ on:
         type: string
       build_docs:
         type: string
+      clang_format:
+        type: string
       generator:
         type: string
       ctest_args:
@@ -144,6 +146,10 @@ jobs:
         if: inputs.skip_tests != '1'
         shell: bash
         run: src/build-scripts/ci-test.bash
+      - name: clang-format
+        if: inputs.clang_format == '1'
+        shell: bash
+        run: src/build-scripts/run-clang-format.bash
       - name: Code coverage
         if: inputs.coverage == '1'
         run: src/build-scripts/ci-coverage.bash
