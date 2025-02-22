@@ -37,14 +37,20 @@ include (FindThreads)
 # Dependencies for required formats and features. These are so critical
 # that we will not complete the build if they are not found.
 
+# ZLIB
+# We prefer zlib-ng to regular zlib, but we can use either.
+
 check_is_enabled(ZLIBNG ENABLE_ZLIBNG)
+check_is_enabled(ZLIB ALLOW_ZLIB)
+
 if (ENABLE_ZLIBNG)
-    checked_find_package (ZLIB REQUIRED
-        VERSION_MIN 2.2.4 # ZLIB-NG
-        BUILD_LOCAL missing
-    )
+    if (ALLOW_ZLIB)
+        checked_find_package (ZLIB PREFER_CONFIG REQUIRED)
+    else ()
+        checked_find_package (ZLIB CONFIG REQUIRED)
+    endif ()
 else ()
-    checked_find_package (ZLIB REQUIRED)  # Needed by several packages
+    checked_find_package (ZLIB REQUIRED)
 endif ()
 
 # Help set up this target for libtiff config file when using static libtiff
