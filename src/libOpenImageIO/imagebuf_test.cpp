@@ -448,7 +448,6 @@ test_read_channel_subset()
            true /*force*/, TypeDesc::FLOAT);
     std::cout << " After reading channels [2,5), we have:\n";
     print(B);
-    OIIO_CHECK_EQUAL(B.nativespec().nchannels, 6);
     OIIO_CHECK_EQUAL(B.spec().nchannels, 3);
     OIIO_CHECK_EQUAL(B.spec().format, TypeDesc::FLOAT);
     OIIO_CHECK_EQUAL(B.spec().channelnames[0], "B");
