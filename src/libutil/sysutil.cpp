@@ -565,11 +565,7 @@ Sysutil::put_in_background()
 
 
 bool
-#ifdef _WIN32
-Sysutil::put_in_background(int, char*[])
-#else
 Sysutil::put_in_background(int argc, char* argv[])
-#endif
 {
     return put_in_background();
 }
