@@ -525,14 +525,8 @@ Term::ansi_bgcolor(int r, int g, int b)
     return ret;
 }
 
-
-
 bool
-#ifdef _WIN32
-Sysutil::put_in_background(int, char*[])
-#else
-Sysutil::put_in_background(int argc, char* argv[])
-#endif
+Sysutil::put_in_background()
 {
 #if defined(__linux__) || defined(__GLIBC__)
     // Simplest case:
@@ -540,6 +534,10 @@ Sysutil::put_in_background(int argc, char* argv[])
     return daemon(1, 1) == 0;
 
 #elif defined(__APPLE__) && TARGET_OS_OSX
+    // On macOS, check if the parent process is launchd (PID 1).
+    // If getppid() == 1, the current process is already detached from the shell
+    // and running in the background. Returning early prevents spawning
+    // another background process, avoiding infinite recursion.
     if (getppid() == 1) {
         return true;
     }
@@ -547,6 +545,7 @@ Sysutil::put_in_background(int argc, char* argv[])
     posix_spawnattr_t attr;
     posix_spawnattr_init(&attr);
     posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSID);
+    char** argv    = *_NSGetArgv();
     char** environ = *_NSGetEnviron();
     int status     = posix_spawn(&pid, argv[0], nullptr, &attr, argv, environ);
     posix_spawnattr_destroy(&attr);
@@ -562,6 +561,17 @@ Sysutil::put_in_background(int argc, char* argv[])
     // Otherwise, we don't know what to do
     return false;
 #endif
+}
+
+
+bool
+#ifdef _WIN32
+Sysutil::put_in_background(int, char*[])
+#else
+Sysutil::put_in_background(int argc, char* argv[])
+#endif
+{
+    return put_in_background();
 }
 
 
