@@ -427,8 +427,13 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
         if (m->marker == (JPEG_APP0 + 2)
             && !strcmp((const char*)m->data, "ICC_PROFILE")) {
             int seq_no = GETJOCTET(m->data[12]);
-            memcpy(icc_buf.data() + data_offset[seq_no],
-                   m->data + ICC_HEADER_SIZE, data_length[seq_no]);
+            if (data_offset[seq_no] + data_length[seq_no] > icc_buf.size()) {
+                errorfmt("Possible corrupt file, invalid ICC profile\n");
+                return false;
+            }
+            spancpy(make_span(icc_buf), data_offset[seq_no],
+                    make_cspan(m->data + ICC_HEADER_SIZE, data_length[seq_no]),
+                    0, data_length[seq_no]);
         }
     }
     spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, total_length),
@@ -436,7 +441,7 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
 
     std::string errormsg;
     bool ok = decode_icc_profile(icc_buf, spec, errormsg);
-    if (!ok) {
+    if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
         errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
                  errormsg);
         return false;
