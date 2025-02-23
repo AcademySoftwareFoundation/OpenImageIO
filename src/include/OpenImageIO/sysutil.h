@@ -74,10 +74,18 @@ getenv(string_view name, string_view defaultval = {});
 OIIO_UTIL_API void
 usleep(unsigned long useconds);
 
-/// Try to put the process into the background so it doesn't continue to
-/// tie up any shell that it was launched from.  The arguments are the
-/// argc/argv that describe the program and its command line arguments.
+/// Puts the process into the background, detaching it from the shell
+/// to prevent it from occupying the terminal or blocking the shell
+/// it was launched from. This allows the process to continue running
+/// independently in the background.
 /// Return true if successful, false if it was unable to do so.
+OIIO_UTIL_API bool
+put_in_background();
+
+/// Obsolete version. The argc, argv parameters are not used. We suggest
+/// switching to the version of `put_in_background()` that takes no
+/// arguments.
+/// DEPRECATED(3.0) old API.
 OIIO_UTIL_API bool
 put_in_background(int argc, char* argv[]);
 
