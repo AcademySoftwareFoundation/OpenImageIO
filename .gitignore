@@ -8,6 +8,7 @@ wheelhouse/
 _coverage/
 .python-version
 .idea
+.vs
 .vscode
 .cproject
 .project
