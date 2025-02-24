@@ -355,10 +355,10 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
             cspan<uint8_t>((const uint8_t*)m_image->icc_profile_buf,
                            m_image->icc_profile_len),
             m_spec, errormsg);
-        if (!ok) {
-            // errorfmt("Could not decode ICC profile: {}\n", errormsg);
-            // return false;
-            // Nah, just skip an ICC specific error?
+        if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
+                     errormsg);
+            return false;
         }
     }
 

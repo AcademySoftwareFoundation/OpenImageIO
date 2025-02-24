@@ -1245,8 +1245,15 @@ PSDInput::load_resource_1039(uint32_t length)
     TypeDesc type(TypeDesc::UINT8, length);
     common_attribute("ICCProfile", type, icc_buf.get());
     std::string errormsg;
-    decode_icc_profile(cspan<uint8_t>(icc_buf.get(), length), m_common_attribs,
-                       errormsg);
+    bool ok = decode_icc_profile(cspan<uint8_t>(icc_buf.get(), length),
+                                 m_common_attribs, errormsg)
+              && decode_icc_profile(cspan<uint8_t>(icc_buf.get(), length),
+                                    m_composite_attribs, errormsg);
+    if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+        errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
+                 errormsg);
+        return false;
+    }
     return true;
 }
 
