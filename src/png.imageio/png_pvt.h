@@ -250,14 +250,12 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
                            TypeDesc(TypeDesc::UINT8, profile_length),
                            profile_data);
             std::string errormsg;
-            bool ok = decode_icc_profile(
-                cspan<uint8_t>((const uint8_t*)profile_data,
-                               span_size_t(profile_length)),
-                spec, errormsg);
-            if (!ok) {
-                // errorfmt("Could not decode ICC profile: {}\n", errormsg);
-                // return false;
-                // Nah, just skip an ICC specific error?
+            bool ok
+                = decode_icc_profile(make_cspan(profile_data, profile_length),
+                                     spec, errormsg);
+            if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+                errorfmt("Could not decode ICC profile: {}\n", errormsg);
+                return false;
             }
         }
     }
