@@ -395,6 +395,7 @@ jobs:
                             LLVM_VERSION=17.0.6 LLVM_DISTRO_NAME=ubuntu-22.04
                             SKIP_SYSTEM_DEPS_INSTALL=1 QT_VERSION=0
                             OpenImageIO_OPTIONAL_DEPS=ALL
+                            EXTRA_DEP_PACKAGES="git cmake ninja-build g++"
 
           - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.3 ocio2.4
             nametag: linux-latest-releases
