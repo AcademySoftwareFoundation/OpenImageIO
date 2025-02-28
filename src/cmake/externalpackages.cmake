@@ -37,7 +37,21 @@ include (FindThreads)
 # Dependencies for required formats and features. These are so critical
 # that we will not complete the build if they are not found.
 
-checked_find_package (ZLIB REQUIRED)  # Needed by several packages
+# ZLIB
+# We prefer zlib-ng to regular zlib, but we can use either.
+
+check_is_enabled(ZLIBNG ENABLE_ZLIBNG)
+check_is_enabled(ZLIB ALLOW_ZLIB)
+
+if (ENABLE_ZLIBNG)
+    if (ALLOW_ZLIB)
+        checked_find_package (ZLIB PREFER_CONFIG REQUIRED)
+    else ()
+        checked_find_package (ZLIB CONFIG REQUIRED)
+    endif ()
+else ()
+    checked_find_package (ZLIB REQUIRED)
+endif ()
 
 # Help set up this target for libtiff config file when using static libtiff
 if (NOT TARGET CMath::CMath)
