@@ -14,7 +14,8 @@
 #include <OpenImageIO/imageio.h>
 using namespace OIIO;
 
-void example1()
+void
+example1()
 {
     //
     // Example code fragment from the docs goes here.
@@ -36,7 +37,8 @@ void example1()
 #include <OpenImageIO/imageio.h>
 using namespace OIIO;
 
-void simple_write()
+void
+simple_write()
 {
     const char* filename = "simple.tif";
     const int xres = 320, yres = 240, channels = 3;
@@ -54,7 +56,8 @@ void simple_write()
 
 
 
-void scanlines_write()
+void
+scanlines_write()
 {
     const char* filename = "scanlines.tif";
     const int xres = 320, yres = 240, channels = 3;
@@ -64,21 +67,22 @@ void scanlines_write()
         return;  // error
     ImageSpec spec(xres, yres, channels, TypeDesc::UINT8);
 
-// BEGIN-imageoutput-scanlines
+    // BEGIN-imageoutput-scanlines
     unsigned char scanline[xres * channels] = { 0 };
-    out->open (filename, spec);
-    int z = 0;   // Always zero for 2D images
-    for (int y = 0;  y < yres;  ++y) {
+    out->open(filename, spec);
+    int z = 0;  // Always zero for 2D images
+    for (int y = 0; y < yres; ++y) {
         // ... generate data in scanline[0..xres*channels-1] ...
-        out->write_scanline (y, z, TypeDesc::UINT8, scanline);
+        out->write_scanline(y, z, TypeDesc::UINT8, scanline);
     }
     out->close();
-// END-imageoutput-scanlines
+    // END-imageoutput-scanlines
 }
 
 
 
-int main(int /*argc*/, char** /*argv*/)
+int
+main(int /*argc*/, char** /*argv*/)
 {
     simple_write();
     scanlines_write();

@@ -111,7 +111,9 @@ else
         time sudo apt-get -q install -y ${EXTRA_DEP_PACKAGES}
     fi
 
-    time sudo apt-get -q install -y python3-numpy
+    if [[ "${USE_PYTHON}" != "0" ]] ; then
+        time sudo apt-get -q install -y python3-numpy
+    fi
     if [[ "${PIP_INSTALLS}" != "" ]] ; then
         time pip3 install ${PIP_INSTALLS}
     fi
