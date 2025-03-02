@@ -1,3 +1,24 @@
+Release 3.0.4.0 (Mar 2, 2025) -- compared to 3.0.3.0
+-----------------------------------------------------
+  - *oiiotool*: Oiiotool new expression eval tokens IS_CONSTANT, IS_BLACK [#4610](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4610) (by Lydia Zheng)
+  - *oiiotool*: Better handling of wildcards that match no files [#4627](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4627)
+  - *ImageBuf*: IB::pixeltype() did not always return the right value [#4614](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4614)
+  - *ImageBuf*: Fix bug in ImageBuf construction from ptr + neg strides [#4630](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4630)
+  - *ICC*: ICC profile recognition and robustness improvements, especially for PSD [#4644](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4644)
+  - *exr*: Fill in OpenEXR lineOrder attribute when reading [#4628](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4628) (by vernalchen)
+  - *ico*: More robust to corrupted ICO files [#4625](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4625)
+  - *rla*: More robust to corrupted RLA files that could overrun buffers [#4624](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4624)
+  - *span.h*: Eliminate needless definitions of `std::size(span)` that were triggering strange behavior on recent MSVS compiler versions. [#4652](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4652)
+  - *build*: Fix recently broken rpath setting [#4618](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4618)
+  - *build/python wheels*: Ensure python-based builds use maj.min.patch SO versioning [#4634](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4634) (by zachlewis)
+  - *build/python wheels*: Fix recently broken rpath to restore python wheel building [#4633](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4633)
+  - *ci*: Run wheel workflow on certain pushes [#4617](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4617)
+  - *docs*: Argparse documentation/comments typos [#4612](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4612)
+  - *admin*: Document Python Wheel completed in roadmap [#4620](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4620) (by Todica Ionut)
+  - *admin*: Add ".vs" to .gitignore [#4645](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4645)
+  - *admin*: Set up .gitattributes file and ensure it properly categorizes certain files for GitHub's language analysis statistics. [#4648](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4648)
+
+
 Release 3.0.3.1 (Feb 1, 2025) -- compared to 3.0.3.1
 -----------------------------------------------------
 The code is identical to v3.0.3.0, but some build issues were fixed to allow

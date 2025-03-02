@@ -222,6 +222,7 @@ lg@openimageio.org
 * Todica Ionut
 * Tom Knowles
 * Troy James Sobotka
+* Vernal Chen
 * Vic P
 * Vinod Khare
 * Vishal Agrawal
