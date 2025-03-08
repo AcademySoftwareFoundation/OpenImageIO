@@ -247,26 +247,26 @@ print_dir_entry(std::ostream& out, const TagMap& tagmap,
         return false;  // bogus! overruns the buffer
     mydata += offset_adjustment;
     const char* name = tagmap.name(dir.tdir_tag);
-    print(out,
-          "  Tag {}/0x{} ({}) type={} ({}) count={} offset={} = ", dir.tdir_tag,
-          dir.tdir_tag, (name ? name : "unknown"), dir.tdir_type,
-          tiff_datatype_to_typedesc(dir), dir.tdir_count, dir.tdir_offset);
+    OIIO::print(out, "  Tag {}/0x{} ({}) type={} ({}) count={} offset={} = ",
+                dir.tdir_tag, dir.tdir_tag, (name ? name : "unknown"),
+                dir.tdir_type, tiff_datatype_to_typedesc(dir), dir.tdir_count,
+                dir.tdir_offset);
 
     switch (dir.tdir_type) {
     case TIFF_ASCII:
-        print(out, "'{}'", string_view(mydata, dir.tdir_count));
+        OIIO::print(out, "'{}'", string_view(mydata, dir.tdir_count));
         break;
     case TIFF_RATIONAL: {
         const unsigned int* u = (unsigned int*)mydata;
         for (size_t i = 0; i < dir.tdir_count; ++i)
-            print(out, "{}/{} = {} ", u[2 * i], << u[2 * i + 1],
-                  (double)u[2 * i] / (double)u[2 * i + 1]);
+            OIIO::print(out, "{}/{} = {} ", u[2 * i], << u[2 * i + 1],
+                        (double)u[2 * i] / (double)u[2 * i + 1]);
     } break;
     case TIFF_SRATIONAL: {
         const int* u = (int*)mydata;
         for (size_t i = 0; i < dir.tdir_count; ++i)
-            print(out, "{}/{} = {} ", u[2 * i], u[2 * i + 1],
-                  (double)u[2 * i] / (double)u[2 * i + 1]);
+            OIIO::print(out, "{}/{} = {} ", u[2 * i], u[2 * i + 1],
+                        (double)u[2 * i] / (double)u[2 * i + 1]);
     } break;
     case TIFF_SHORT: out << ((unsigned short*)mydata)[0]; break;
     case TIFF_LONG: out << ((unsigned int*)mydata)[0]; break;
@@ -276,14 +276,15 @@ print_dir_entry(std::ostream& out, const TagMap& tagmap,
     default:
         if (len <= 4 && dir.tdir_count > 4) {
             // Request more data than is stored.
-            print(out, "Ignoring buffer with too much count of short data.\n");
+            OIIO::print(out,
+                        "Ignoring buffer with too much count of short data.\n");
             return false;
         }
         for (size_t i = 0; i < dir.tdir_count; ++i)
-            print(out, "{} ", (int)((unsigned char*)mydata)[i]);
+            OIIO::print(out, "{} ", (int)((unsigned char*)mydata)[i]);
         break;
     }
-    print(out, "\n");
+    OIIO::print(out, "\n");
     return true;
 }
 
@@ -299,11 +300,12 @@ dumpdata(cspan<uint8_t> blob, cspan<size_t> ifdoffsets, size_t start,
         bool at_ifd = (std::find(ifdoffsets.cbegin(), ifdoffsets.cend(), pos)
                        != ifdoffsets.end());
         if (pos == 0 || pos == start || at_ifd || (pos % 10) == 0) {
-            print(out, "\n@{}: ", pos);
+            OIIO::print(out, "\n@{}: ", pos);
             if (at_ifd) {
                 uint16_t n = *(uint16_t*)&blob[pos];
-                print(out, "\nNew IFD: {} tags:  [offset_adjustment={}]\n", n,
-                      offset_adjustment);
+                OIIO::print(out,
+                            "\nNew IFD: {} tags:  [offset_adjustment={}]\n", n,
+                            offset_adjustment);
                 TIFFDirEntry* td = (TIFFDirEntry*)&blob[pos + 2];
                 for (int i = 0; i < n; ++i, ++td)
                     print_dir_entry(out, tiff_tagmap_ref(), *td, blob,
@@ -312,10 +314,10 @@ dumpdata(cspan<uint8_t> blob, cspan<size_t> ifdoffsets, size_t start,
         }
         unsigned char c = (unsigned char)blob[pos];
         if (c >= ' ' && c < 127)
-            print(out, "{:c} ", c);
-        print(out, "({:d}) ", int(c));
+            OIIO::print(out, "{:c} ", c);
+        OIIO::print(out, "({:d}) ", int(c));
     }
-    print(out, "\n");
+    OIIO::print(out, "\n");
     return out.str();
 }
 #endif
@@ -924,7 +926,7 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
                                       offset_adjustment);
         } else {
 #if DEBUG_EXIF_READ || DEBUG_EXIF_UNHANDLED
-            print(
+            OIIO::print(
                 stderr,
                 "read_exif_tag: Unhandled {} tag={} (0x{:x}), type={} count={} ({}), offset={}\n",
                 tagmap.mapname(), dir.tdir_tag, dir.tdir_tag, dir.tdir_type,

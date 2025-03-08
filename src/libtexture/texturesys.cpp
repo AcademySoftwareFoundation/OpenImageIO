@@ -773,31 +773,33 @@ TextureSystemImpl::getstats(int level, bool icstats) const
 #undef BOOLOPT
 #undef INTOPT
 #undef STROPT
-        print(out, "  Options:  {}\n", Strutil::wordwrap(opt, 75, 12));
+        OIIO::print(out, "  Options:  {}\n", Strutil::wordwrap(opt, 75, 12));
 
-        print(out, "  Queries/batches : \n");
-        print(out, "    texture     :  {} queries in {} batches\n",
-              stats.texture_queries, stats.texture_batches);
-        print(out, "    texture 3d  :  {} queries in {} batches\n",
-              stats.texture3d_queries, stats.texture3d_batches);
-        print(out, "    shadow      :  {} queries in {} batches\n",
-              stats.shadow_queries, stats.shadow_batches);
-        print(out, "    environment :  {} queries in {} batches\n",
-              stats.environment_queries, stats.environment_batches);
-        print(out, "    gettextureinfo :  {} queries\n",
-              stats.imageinfo_queries);
-        print(out, "  Interpolations :\n");
-        print(out, "    closest  : {}\n", stats.closest_interps);
-        print(out, "    bilinear : {}\n", stats.bilinear_interps);
-        print(out, "    bicubic  : {}\n", stats.cubic_interps);
+        OIIO::print(out, "  Queries/batches : \n");
+        OIIO::print(out, "    texture     :  {} queries in {} batches\n",
+                    stats.texture_queries, stats.texture_batches);
+        OIIO::print(out, "    texture 3d  :  {} queries in {} batches\n",
+                    stats.texture3d_queries, stats.texture3d_batches);
+        OIIO::print(out, "    shadow      :  {} queries in {} batches\n",
+                    stats.shadow_queries, stats.shadow_batches);
+        OIIO::print(out, "    environment :  {} queries in {} batches\n",
+                    stats.environment_queries, stats.environment_batches);
+        OIIO::print(out, "    gettextureinfo :  {} queries\n",
+                    stats.imageinfo_queries);
+        OIIO::print(out, "  Interpolations :\n");
+        OIIO::print(out, "    closest  : {}\n", stats.closest_interps);
+        OIIO::print(out, "    bilinear : {}\n", stats.bilinear_interps);
+        OIIO::print(out, "    bicubic  : {}\n", stats.cubic_interps);
         if (stats.aniso_queries)
-            print(out, "  Average anisotropic probes : {:.3g}\n",
-                  (double)stats.aniso_probes / (double)stats.aniso_queries);
+            OIIO::print(out, "  Average anisotropic probes : {:.3g}\n",
+                        (double)stats.aniso_probes
+                            / (double)stats.aniso_queries);
         else
-            print(out, "  Average anisotropic probes : 0\n");
-        print(out, "  Max anisotropy in the wild : {:.3g}\n", stats.max_aniso);
+            OIIO::print(out, "  Average anisotropic probes : 0\n");
+        OIIO::print(out, "  Max anisotropy in the wild : {:.3g}\n",
+                    stats.max_aniso);
         if (icstats)
-            print(out, "\n");
+            OIIO::print(out, "\n");
     }
     if (icstats)
         out << m_imagecache->getstats(level);

@@ -776,10 +776,10 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
 
     // Write out the image
     if (verbose) {
-        print(outstream, "  Writing file: {}\n", outputfilename);
-        print(outstream, "  Filter \"{}\"\n", filtername);
-        print(outstream, "  Top level is {}x{}\n", outspec.width,
-              outspec.height);
+        OIIO::print(outstream, "  Writing file: {}\n", outputfilename);
+        OIIO::print(outstream, "  Filter \"{}\"\n", filtername);
+        OIIO::print(outstream, "  Top level is {}x{}\n", outspec.width,
+                    outspec.height);
     }
 
     if (clamp_half) {
@@ -800,13 +800,14 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     if (verbose) {
         size_t mem = Sysutil::memory_used(true);
         peak_mem   = std::max(peak_mem, mem);
-        print(outstream, "    {:15s} ({})  write {}\n", formatres(outspec),
-              Strutil::memformat(mem), Strutil::timeintervalformat(wtime, 2));
+        OIIO::print(outstream, "    {:15s} ({})  write {}\n",
+                    formatres(outspec), Strutil::memformat(mem),
+                    Strutil::timeintervalformat(wtime, 2));
     }
 
     if (mipmap) {  // Mipmap levels:
         if (verbose)
-            print(outstream, "  Mipmapping...\n");
+            OIIO::print(outstream, "  Mipmapping...\n");
         std::vector<std::string> mipimages;
         std::string mipimages_unsplit = configspec.get_string_attribute(
             "maketx:mipimages");
@@ -889,16 +890,16 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                         return false;
                     }
                     if (verbose) {
-                        print(outstream,
-                              "  Downsampling filter \"{}\" width = {}",
-                              filter->name(), filter->width());
+                        OIIO::print(outstream,
+                                    "  Downsampling filter \"{}\" width = {}",
+                                    filter->name(), filter->width());
                         if (sharpen > 0.0f)
-                            print(
+                            OIIO::print(
                                 outstream,
                                 ", sharpening {} with {} unsharp mask {} the resize",
                                 sharpen, sharpenfilt,
                                 (sharpen_first ? "before" : "after"));
-                        print(outstream, "\n");
+                        OIIO::print(outstream, "\n");
                     }
                     if (do_highlight_compensation)
                         ImageBufAlgo::rangecompress(*img, *img);
@@ -965,18 +966,18 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
             if (verbose) {
                 size_t mem = Sysutil::memory_used(true);
                 peak_mem   = std::max(peak_mem, mem);
-                print(outstream, "    {:15s} ({})  downres {} write {}\n",
-                      formatres(smallspec), Strutil::memformat(mem),
-                      Strutil::timeintervalformat(this_miptime, 2),
-                      Strutil::timeintervalformat(wtime, 2));
+                OIIO::print(outstream, "    {:15s} ({})  downres {} write {}\n",
+                            formatres(smallspec), Strutil::memformat(mem),
+                            Strutil::timeintervalformat(this_miptime, 2),
+                            Strutil::timeintervalformat(wtime, 2));
             }
             std::swap(img, small);
         }
     }
 
     if (verbose)
-        print(outstream, "  Wrote file: {}  ({})\n", outputfilename,
-              Strutil::memformat(Sysutil::memory_used(true)));
+        OIIO::print(outstream, "  Wrote file: {}  ({})\n", outputfilename,
+                    Strutil::memformat(Sysutil::memory_used(true)));
     writetimer.reset();
     writetimer.start();
     if (!out->close()) {
@@ -1073,14 +1074,14 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     size_t peak_mem              = 0;
     Timer alltime;
 
-#define STATUS(task, timer)                                \
-    {                                                      \
-        size_t mem = Sysutil::memory_used(true);           \
-        peak_mem   = std::max(peak_mem, mem);              \
-        if (verbose)                                       \
-            print(outstream, "  {:25s} {}   ({})\n", task, \
-                  Strutil::timeintervalformat(timer, 2),   \
-                  Strutil::memformat(mem));                \
+#define STATUS(task, timer)                                      \
+    {                                                            \
+        size_t mem = Sysutil::memory_used(true);                 \
+        peak_mem   = std::max(peak_mem, mem);                    \
+        if (verbose)                                             \
+            OIIO::print(outstream, "  {:25s} {}   ({})\n", task, \
+                        Strutil::timeintervalformat(timer, 2),   \
+                        Strutil::memformat(mem));                \
     }
 
     ImageSpec configspec = _configspec;
@@ -1457,7 +1458,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         && pixel_stats.avg[0] == pixel_stats.avg[2]
         && ImageBufAlgo::isMonochrome(*src)) {
         if (verbose)
-            print(
+            OIIO::print(
                 outstream,
                 "  Monochrome image detected. Converting to single channel texture.\n");
         std::shared_ptr<ImageBuf> newsrc(new ImageBuf(src->spec()));
@@ -1822,15 +1823,16 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     } else if (!do_resize) {
         // Need format conversion, but no resize -- just copy the pixels
         if (verbose)
-            print(outstream, "  Copying for format conversion from {} to {}\n",
-                  src->spec().format, dstspec.format);
+            OIIO::print(outstream,
+                        "  Copying for format conversion from {} to {}\n",
+                        src->spec().format, dstspec.format);
         toplevel.reset(new ImageBuf(dstspec));
         toplevel->copy_pixels(*src);
     } else {
         // Resize
         if (verbose)
-            print(outstream, "  Resizing image to {} x {}\n", dstspec.width,
-                  dstspec.height);
+            OIIO::print(outstream, "  Resizing image to {} x {}\n",
+                        dstspec.width, dstspec.height);
         string_view resize_filter(filtername);
         if (Strutil::istarts_with(resize_filter, "unsharp-"))
             resize_filter = "lanczos3";
@@ -2016,22 +2018,24 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     if (verbose || configspec.get_int_attribute("maketx:runstats")
         || configspec.get_int_attribute("maketx:stats")) {
         double all = alltime();
-        print(outstream, "maketx run time (seconds): {:5.2f}\n", all);
-        print(outstream, "  file read:       {:5.2f}\n", stat_readtime);
-        print(outstream, "  file write:      {:5.2f}\n", stat_writetime);
-        print(outstream, "  initial resize:  {:5.2f}\n", stat_resizetime);
-        print(outstream, "  hash:            {:5.2f}\n", stat_hashtime);
-        print(outstream, "  pixelstats:      {:5.2f}\n", stat_pixelstatstime);
-        print(outstream, "  mip computation: {:5.2f}\n", stat_miptime);
-        print(outstream, "  color convert:   {:5.2f}\n", stat_colorconverttime);
-        print(
+        OIIO::print(outstream, "maketx run time (seconds): {:5.2f}\n", all);
+        OIIO::print(outstream, "  file read:       {:5.2f}\n", stat_readtime);
+        OIIO::print(outstream, "  file write:      {:5.2f}\n", stat_writetime);
+        OIIO::print(outstream, "  initial resize:  {:5.2f}\n", stat_resizetime);
+        OIIO::print(outstream, "  hash:            {:5.2f}\n", stat_hashtime);
+        OIIO::print(outstream, "  pixelstats:      {:5.2f}\n",
+                    stat_pixelstatstime);
+        OIIO::print(outstream, "  mip computation: {:5.2f}\n", stat_miptime);
+        OIIO::print(outstream, "  color convert:   {:5.2f}\n",
+                    stat_colorconverttime);
+        OIIO::print(
             outstream,
             "  unaccounted:     {:5.2f}  ({:5.2f} {:5.2f} {:5.2f} {:5.2f} {:5.2f})\n",
             all - stat_readtime - stat_writetime - stat_resizetime
                 - stat_hashtime - stat_miptime,
             misc_time_1, misc_time_2, misc_time_3, misc_time_4, misc_time_5);
-        print(outstream, "maketx peak memory used: {}\n",
-              Strutil::memformat(peak_mem));
+        OIIO::print(outstream, "maketx peak memory used: {}\n",
+                    Strutil::memformat(peak_mem));
     }
 
 #undef STATUS
