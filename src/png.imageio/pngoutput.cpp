@@ -135,7 +135,7 @@ bool
 PNGOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
-    if (!check_open(mode, userspec, { 0, 65535, 0, 65535, 0, 1, 0, 256 }))
+    if (!check_open(mode, userspec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 }))
         return false;
 
     // If not uint8 or uint16, default to uint8
