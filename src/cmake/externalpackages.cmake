@@ -47,6 +47,7 @@ if (ENABLE_ZLIBNG)
     if (ALLOW_ZLIB)
         checked_find_package (ZLIB PREFER_CONFIG REQUIRED)
     else ()
+        # This assumption will hold until zlib-1.3.2 is released.
         checked_find_package (ZLIB CONFIG REQUIRED)
     endif ()
 else ()

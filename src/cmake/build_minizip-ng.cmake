@@ -45,8 +45,6 @@ build_dependency_with_cmake(minizip-ng
         -D MZ_ICONV=OFF
         -D MZ_FETCH_LIBS=OFF
         -D MZ_FORCE_FETCH_LIBS=OFF
-        -D ZLIB_LIBRARY=${ZLIB_LIBRARIES}
-        -D ZLIB_INCLUDE_DIR=${ZLIB_INCLUDE_DIRS}
     )
 
 
