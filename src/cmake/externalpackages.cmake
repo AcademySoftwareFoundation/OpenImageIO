@@ -113,7 +113,9 @@ else ()
 endif()
 
 # From pythonutils.cmake
-find_python()
+if (USE_PYTHON)
+    find_python()
+endif ()
 if (USE_PYTHON)
     checked_find_package (pybind11 REQUIRED VERSION_MIN 2.7)
 endif ()
