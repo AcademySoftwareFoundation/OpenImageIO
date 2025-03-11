@@ -509,7 +509,7 @@ const PSDInput::ResourceLoader PSDInput::resource_loaders[]
 
 const char* PSDInput::additional_info_psb[]
     = { "LMsk", "Lr16", "Lr32", "Layr", "Mt16", "Mt32", "Mtrn",
-        "Alph", "FMsk", "Ink2", "FEid", "FXid", "PxSD", "cinf" };
+        "Alph", "FMsk", "lnk2", "FEid", "FXid", "PxSD", "cinf", "lnkE", "pths" };
 
 const unsigned int PSDInput::additional_info_psb_count
     = sizeof(additional_info_psb) / sizeof(additional_info_psb[0]);
