@@ -267,6 +267,7 @@ jobs:
       skip_tests: ${{ matrix.skip_tests }}
       abi_check: ${{ matrix.abi_check }}
       build_docs: ${{ matrix.build_docs }}
+      clang_format: ${{ matrix.clang_format }}
       generator: ${{ matrix.generator }}
       ctest_args: ${{ matrix.ctest_args }}
       ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
@@ -367,24 +368,25 @@ jobs:
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
 
-          # Test formatting. This test entry doesn't do a full build, it
+          # Test formatting. This test entry doesn't build at all, it
           # just runs clang-format on everything, and passes if nothing is
           # misformatted. Upon failure, the build artifact will be the full
           # source code with the formatting fixed (diffs will also appear in
           # the console output).
           - desc: "clang-format"
             nametag: clang-format
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             cxx_std: 17
             extra_artifacts: "src/*.*"
-            openexr_ver: v3.1.13
             python_ver: "3.10"
+            pybind11_ver: "0"
+            clang_format: 1
+            skip_build: 1
             skip_tests: 1
-            setenvs: export BUILDTARGET=clang-format
-                            OIIO_CMAKE_FLAGS=-DUSE_PYTHON=0
-                            LLVM_VERSION=17.0.6 LLVM_DISTRO_NAME=ubuntu-22.04
-                            SKIP_SYSTEM_DEPS_INSTALL=1 QT_VERSION=0
-                            OpenImageIO_OPTIONAL_DEPS=ALL
+            setenvs: export SKIP_SYSTEM_DEPS_INSTALL=1 SKIP_APT_GET_UPDATE=1
+                            INSTALL_OPENCV=0 QT_VERSION=0 USE_LIBHEIF=0
+                            EXTRA_DEP_PACKAGES="clang-format-17"
+                            CLANG_FORMAT_EXE=clang-format-17
 
           - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.3 ocio2.4
             nametag: linux-latest-releases

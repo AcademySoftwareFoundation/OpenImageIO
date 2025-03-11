@@ -86,12 +86,11 @@ else
         time sudo apt-get update
     fi
 
-    time sudo apt-get -q install -y \
-        git cmake ninja-build ccache g++ \
-        libilmbase-dev libopenexr-dev \
-        libtiff-dev libgif-dev libpng-dev
     if [[ "${SKIP_SYSTEM_DEPS_INSTALL}" != "1" ]] ; then
         time sudo apt-get -q install -y --fix-missing \
+            git cmake ninja-build ccache g++ \
+            libilmbase-dev libopenexr-dev \
+            libtiff-dev libgif-dev libpng-dev \
             libraw-dev libwebp-dev \
             libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
             dcmtk libopenvdb-dev \
@@ -112,7 +111,9 @@ else
         time sudo apt-get -q install -y ${EXTRA_DEP_PACKAGES}
     fi
 
-    time sudo apt-get -q install -y python3-numpy
+    if [[ "${USE_PYTHON}" != "0" ]] ; then
+        time sudo apt-get -q install -y python3-numpy
+    fi
     if [[ "${PIP_INSTALLS}" != "" ]] ; then
         time pip3 install ${PIP_INSTALLS}
     fi
@@ -158,7 +159,9 @@ fi
 # Packages we need to build from scratch.
 #
 
-source src/build-scripts/build_pybind11.bash
+if [[ "$PYBIND11_VERSION" != "0" ]] ; then
+    source src/build-scripts/build_pybind11.bash
+fi
 
 if [[ "$OPENEXR_VERSION" != "" ]] ; then
     source src/build-scripts/build_openexr.bash
