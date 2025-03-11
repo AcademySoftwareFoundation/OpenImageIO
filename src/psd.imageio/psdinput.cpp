@@ -15,6 +15,7 @@
 #include <memory>
 #include <vector>
 #include <zlib.h>
+#include <string_view>
 
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
@@ -508,8 +509,8 @@ const PSDInput::ResourceLoader PSDInput::resource_loaders[]
 
 
 const char* PSDInput::additional_info_psb[]
-    = { "LMsk", "Lr16", "Lr32", "Layr", "Mt16", "Mt32", "Mtrn",
-        "Alph", "FMsk", "Ink2", "FEid", "FXid", "PxSD", "cinf" };
+    = { "LMsk", "Lr16", "Lr32", "Layr", "Mt16", "Mt32", "Mtrn", "Alph",
+        "FMsk", "lnk2", "FEid", "FXid", "PxSD", "cinf", "lnkE", "pths" };
 
 const unsigned int PSDInput::additional_info_psb_count
     = sizeof(additional_info_psb) / sizeof(additional_info_psb[0]);
@@ -1794,11 +1795,14 @@ PSDInput::load_global_additional()
         // the spec supports 8BIM, and 8B64 (presumably for psb support)
         if (std::memcmp(signature, "8BIM", 4) != 0
             && std::memcmp(signature, "8B64", 4) != 0) {
-            errorfmt("[Global Additional Layer Info] invalid signature");
-            return false;
+            errorfmt(
+                "[Global Additional Layer Info] invalid signature");
+                return false;
         }
         if (!ioread(key, 4))
             return false;
+
+        /* std::cout << std::string_view(key, 4) << std::endl; */
 
         remaining -= 8;
         if (m_header.version == 2 && is_additional_info_psb(key)) {
