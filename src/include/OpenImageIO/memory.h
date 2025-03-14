@@ -48,36 +48,11 @@ template<typename T>
 inline size_t
 footprint(const T* t)
 {
-    return sizeof(T) + (t ? footprint(*t) : 0);
+    return sizeof(T*) + (t ? footprint(*t) : 0);
 }
 
 /// Specializations for common STL types
 
-
-// heapsize specialization for std::string
-template<>
-inline size_t
-heapsize<std::string>(const std::string& s)
-{
-    // accounts for small string optimization that does not
-    // use any heap allocations
-    const char* const sbegin = (const char*)&s;
-    const char* const send   = sbegin + sizeof(std::string);
-    const char* const sdata  = s.data();
-    const bool is_small      = sdata >= sbegin && sdata < send;
-    return is_small ? 0 : s.capacity();
-}
-
-// heapsize specialization for std::vector
-template<typename T>
-inline size_t
-heapsize(const std::vector<T>& vec)
-{
-    size_t size = 0;
-    for (const T& elem : vec)
-        size += footprint(elem);
-    return size;
-}
 
 // heapsize specialization for std::shared_ptr
 template<typename T>
@@ -110,6 +85,32 @@ footprint(const std::unique_ptr<T>& ref)
 {
     return sizeof(std::unique_ptr<T>) + heapsize(ref);
 }
+
+// heapsize specialization for std::string
+template<>
+inline size_t
+heapsize<std::string>(const std::string& s)
+{
+    // accounts for small string optimization that does not
+    // use any heap allocations
+    const char* const sbegin = (const char*)&s;
+    const char* const send   = sbegin + sizeof(std::string);
+    const char* const sdata  = s.data();
+    const bool is_small      = sdata >= sbegin && sdata < send;
+    return is_small ? 0 : s.capacity();
+}
+
+// heapsize specialization for std::vector
+template<typename T>
+inline size_t
+heapsize(const std::vector<T>& vec)
+{
+    size_t size = 0;
+    for (const T& elem : vec)
+        size += footprint(elem);
+    return size;
+}
+
 
 }  // namespace pvt
 
