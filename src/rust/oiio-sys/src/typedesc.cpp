@@ -47,31 +47,31 @@ typedesc_as_str(const TypeDesc& typedesc)
     return rust::Str(typedesc.c_str());
 }
 
-constexpr size_t
+size_t
 typedesc_numelements(const TypeDesc& typedesc) noexcept
 {
     return typedesc.numelements();
 }
 
-constexpr size_t
+size_t
 typedesc_basevalues(const TypeDesc& typedesc) noexcept
 {
     return typedesc.basevalues();
 }
 
-constexpr bool
+bool
 typedesc_is_array(const TypeDesc& typedesc) noexcept
 {
     return typedesc.is_array();
 }
 
-constexpr bool
+bool
 typedesc_is_unsized_array(const TypeDesc& typedesc) noexcept
 {
     return typedesc.is_unsized_array();
 }
 
-constexpr bool
+bool
 typedesc_is_sized_array(const TypeDesc& typedesc) noexcept
 {
     return typedesc.is_sized_array();
@@ -83,7 +83,7 @@ typedesc_size(const TypeDesc& typedesc) noexcept
     return typedesc.size();
 }
 
-constexpr TypeDesc
+TypeDesc
 typedesc_elementtype(const TypeDesc& typedesc) noexcept
 {
     return typedesc.elementtype();
@@ -95,7 +95,7 @@ typedesc_elementsize(const TypeDesc& typedesc) noexcept
     return typedesc.elementsize();
 }
 
-constexpr TypeDesc
+TypeDesc
 typedesc_scalartype(const TypeDesc& typedesc)
 {
     return typedesc.scalartype();
@@ -119,7 +119,7 @@ typedesc_is_signed(const TypeDesc& typedesc) noexcept
     return typedesc.is_signed();
 }
 
-constexpr bool
+bool
 typedesc_is_unknown(const TypeDesc& typedesc) noexcept
 {
     return typedesc.is_unknown();
@@ -129,76 +129,76 @@ size_t
 typedesc_fromstring(TypeDesc& typedesc, rust::Str typestring)
 {
     return typedesc.fromstring(
-        std::string_view(typestring.data(), typestring.length()));
+        std::string_view(typestring.data(), typestring.size()));
 }
 
-constexpr bool
+bool
 typedesc_eq(const TypeDesc& typedesc, const TypeDesc& t) noexcept
 {
     return typedesc == t;
 }
 
-constexpr bool
+bool
 typedesc_ne(const TypeDesc& typedesc, const TypeDesc& t) noexcept
 {
     return typedesc != t;
 }
 
-constexpr bool
+bool
 typedesc_eq_basetype(const TypeDesc& t, BaseType b) noexcept
 {
     return t == b;
 }
 
-constexpr bool
+bool
 basetype_eq_typedesc(BaseType b, const TypeDesc& t) noexcept
 {
     return b == t;
 }
 
-constexpr bool
+bool
 typedesc_ne_basetype(const TypeDesc& t, BaseType b) noexcept
 {
     return t != b;
 }
 
-constexpr bool
+bool
 basetype_ne_typedesc(BaseType b, const TypeDesc& t) noexcept
 {
     return b != t;
 }
 
-constexpr bool
+bool
 typedesc_equivalent(const TypeDesc& typedesc, const TypeDesc& b) noexcept
 {
     return typedesc.equivalent(b);
 }
 
-constexpr bool
+bool
 typedesc_is_vec2(const TypeDesc& typedesc, BaseType b) noexcept
 {
     return typedesc.is_vec2(b);
 }
 
-constexpr bool
+bool
 typedesc_is_vec3(const TypeDesc& typedesc, BaseType b) noexcept
 {
     return typedesc.is_vec3(b);
 }
 
-constexpr bool
+bool
 typedesc_is_vec4(const TypeDesc& typedesc, BaseType b) noexcept
 {
     return typedesc.is_vec4(b);
 }
 
-constexpr bool
+bool
 typedesc_is_box2(const TypeDesc& typedesc, BaseType b) noexcept
 {
     return typedesc.is_box2(b);
 }
 
-constexpr bool
+bool
 typedesc_is_box3(const TypeDesc& typedesc, BaseType b) noexcept
 {
     return typedesc.is_box3(b);

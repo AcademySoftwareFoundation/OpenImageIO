@@ -1,12 +1,13 @@
 pub use ffi::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum BaseType {
     Unknown,
     None,
     UInt8,
     Int8,
-    Uint16,
+    UInt16,
     Int16,
     UInt32,
     Int32,
@@ -27,6 +28,7 @@ unsafe impl cxx::ExternType for BaseType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum Aggregate {
     Scalar = 1,
     Vec2 = 2,
@@ -42,6 +44,7 @@ unsafe impl cxx::ExternType for Aggregate {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum VecSemantics {
     NoSemantics = 0,
     Color,
@@ -60,6 +63,7 @@ unsafe impl cxx::ExternType for VecSemantics {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(C)]
 pub struct TypeDesc {
     pub basetype: BaseType,
@@ -181,64 +185,89 @@ mod ffi {
 mod tests {
     use proptest::prelude::*;
 
-    use super::*;
+    use super::{Aggregate, BaseType, VecSemantics, *};
 
-    fn basetype_strategy() -> impl Strategy<Value = BaseType> {
-        prop_oneof![
-            Just(BaseType::Unknown),
-            Just(BaseType::None),
-            Just(BaseType::UInt8),
-            Just(BaseType::Int8),
-            Just(BaseType::Uint16),
-            Just(BaseType::Int16),
-            Just(BaseType::UInt32),
-            Just(BaseType::Int32),
-            Just(BaseType::UInt64),
-            Just(BaseType::Int64),
-            Just(BaseType::Half),
-            Just(BaseType::Float),
-            Just(BaseType::Double),
-            Just(BaseType::String),
-            Just(BaseType::Ptr),
-            Just(BaseType::UStringHash),
-            Just(BaseType::LastBase),
-        ]
-    }
+    fn from_string_strategy() -> impl Strategy<Value = (TypeDesc, &'static str)> {
+        any::<BaseType>().prop_map(|base_type| {
+            let base_type_str = match base_type {
+                BaseType::Unknown => "unknown",
+                BaseType::None => "void",
+                BaseType::UInt8 => "uint8",
+                BaseType::Int8 => "int8",
+                BaseType::UInt16 => "uint16",
+                BaseType::Int16 => "int16",
+                BaseType::UInt32 => "uint32",
+                BaseType::Int32 => "int32",
+                BaseType::UInt64 => "uint64",
+                BaseType::Int64 => "int64",
+                BaseType::Half => "half",
+                BaseType::Float => "float",
+                BaseType::Double => "double",
+                BaseType::String => "string",
+                BaseType::Ptr => "pointer",
+                BaseType::UStringHash => "ustringhash",
+                BaseType::LastBase => "unknown",
+            };
 
-    fn aggregate_strategy() -> impl Strategy<Value = Aggregate> {
-        prop_oneof![
-            Just(Aggregate::Scalar),
-            Just(Aggregate::Vec2),
-            Just(Aggregate::Vec3),
-            Just(Aggregate::Vec4),
-            Just(Aggregate::Matrix33),
-            Just(Aggregate::Matrix44),
-        ]
-    }
-
-    fn semantics_strategy() -> impl Strategy<Value = VecSemantics> {
-        prop_oneof![
-            Just(VecSemantics::NoSemantics),
-            Just(VecSemantics::Color),
-            Just(VecSemantics::Point),
-            Just(VecSemantics::Vector),
-            Just(VecSemantics::Normal),
-            Just(VecSemantics::Timecode),
-            Just(VecSemantics::Keycode),
-            Just(VecSemantics::Rational),
-            Just(VecSemantics::Box),
-        ]
+            (typedesc_from_basetype_arraylen(base_type, 0), base_type_str)
+        })
     }
 
     proptest! {
         #[test]
-        fn test_typedesc_new(btype in basetype_strategy(), agg in aggregate_strategy(), semantics in semantics_strategy(), arraylen in 0i32..i32::MAX) {
+        fn test_typedesc_new_success(btype in any::<BaseType>(), agg in any::<Aggregate>(), semantics in any::<VecSemantics>(), arraylen in i32::MIN..i32::MAX) {
             let result = typedesc_new(btype, agg, semantics, arraylen);
 
             prop_assert_eq!(result.basetype, btype);
             prop_assert_eq!(result.aggregate, agg);
             prop_assert_eq!(result.vecsemantics, semantics);
             prop_assert_eq!(result.arraylen, arraylen);
+        }
+
+        #[test]
+        fn test_typedesc_from_basetype_arraylen_success(btype in any::<BaseType>(), arraylen in i32::MIN..i32::MAX) {
+            let result = typedesc_from_basetype_arraylen(btype, arraylen);
+
+            prop_assert_eq!(result.basetype, btype);
+            prop_assert_eq!(result.aggregate, Aggregate::Scalar);
+            prop_assert_eq!(result.vecsemantics, VecSemantics::NoSemantics);
+            prop_assert_eq!(result.arraylen, arraylen);
+        }
+
+        #[test]
+        fn test_typedesc_from_basetype_aggregate_arraylen_success(btype in any::<BaseType>(), agg in any::<Aggregate>(), arraylen in any::<i32>()) {
+            let result = typedesc_from_basetype_aggregate_arraylen(btype, agg, arraylen);
+
+            prop_assert_eq!(result.basetype, btype);
+            prop_assert_eq!(result.aggregate, agg);
+            prop_assert_eq!(result.vecsemantics, VecSemantics::NoSemantics);
+            prop_assert_eq!(result.arraylen, arraylen);
+        }
+
+        #[test]
+        fn test_typedesc_from_string_success((expected_type_desc, input_str) in from_string_strategy()) {
+            let result = typedesc_from_string(&input_str);
+
+            prop_assert_eq!(result.basetype, expected_type_desc.basetype);
+            prop_assert_eq!(result.aggregate, expected_type_desc.aggregate);
+            prop_assert_eq!(result.vecsemantics, expected_type_desc.vecsemantics);
+            prop_assert_eq!(result.arraylen, expected_type_desc.arraylen);
+        }
+
+        #[test]
+        fn test_typedesc_clone_success(type_desc in any::<TypeDesc>()) {
+            let result = typedesc_clone(&type_desc);
+
+            prop_assert_eq!(result.basetype, type_desc.basetype);
+            prop_assert_eq!(result.aggregate, type_desc.aggregate);
+            prop_assert_eq!(result.vecsemantics, type_desc.vecsemantics);
+            prop_assert_eq!(result.arraylen, type_desc.arraylen);
+            // let result = typedesc_from_string(&input_str);
+
+            // prop_assert_eq!(result.basetype, expected_type_desc.basetype);
+            // prop_assert_eq!(result.aggregate, expected_type_desc.aggregate);
+            // prop_assert_eq!(result.vecsemantics, expected_type_desc.vecsemantics);
+            // prop_assert_eq!(result.arraylen, expected_type_desc.arraylen);
         }
     }
 }

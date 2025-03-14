@@ -1,7 +1,7 @@
 #pragma once
 
 #include "rust/cxx.h"
-#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/typedesc.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -32,31 +32,31 @@ typedesc_clone(const TypeDesc& t) noexcept;
 rust::Str
 typedesc_as_str(const TypeDesc& typedesc);
 
-constexpr size_t
+size_t
 typedesc_numelements(const TypeDesc& typedesc) noexcept;
 
-constexpr size_t
+size_t
 typedesc_basevalues(const TypeDesc& typedesc) noexcept;
 
-constexpr bool
+bool
 typedesc_is_array(const TypeDesc& typedesc) noexcept;
 
-constexpr bool
+bool
 typedesc_is_unsized_array(const TypeDesc& typedesc) noexcept;
 
-constexpr bool
+bool
 typedesc_is_sized_array(const TypeDesc& typedesc) noexcept;
 
 size_t
 typedesc_size(const TypeDesc& typedesc) noexcept;
 
-constexpr TypeDesc
+TypeDesc
 typedesc_elementtype(const TypeDesc& typedesc) noexcept;
 
 size_t
 typedesc_elementsize(const TypeDesc& typedesc) noexcept;
 
-constexpr TypeDesc
+TypeDesc
 typedesc_scalartype(const TypeDesc& typedesc);
 
 size_t
@@ -68,46 +68,46 @@ typedesc_is_floating_point(const TypeDesc& typedesc) noexcept;
 bool
 typedesc_is_signed(const TypeDesc& typedesc) noexcept;
 
-constexpr bool
+bool
 typedesc_is_unknown(const TypeDesc& typedesc) noexcept;
 
 size_t
 typedesc_fromstring(TypeDesc& typedesc, rust::Str typestring);
 
-constexpr bool
+bool
 typedesc_eq(const TypeDesc& typedesc, const TypeDesc& t) noexcept;
 
-constexpr bool
+bool
 typedesc_ne(const TypeDesc& typedesc, const TypeDesc& t) noexcept;
 
-constexpr bool
+bool
 typedesc_eq_basetype(const TypeDesc& t, BaseType b) noexcept;
 
-constexpr bool
+bool
 basetype_eq_typedesc(BaseType b, const TypeDesc& t) noexcept;
 
-constexpr bool
+bool
 typedesc_ne_basetype(const TypeDesc& t, BaseType b) noexcept;
 
-constexpr bool
+bool
 basetype_ne_typedesc(BaseType b, const TypeDesc& t) noexcept;
 
-constexpr bool
+bool
 typedesc_equivalent(const TypeDesc& typedesc, const TypeDesc& b) noexcept;
 
-constexpr bool
+bool
 typedesc_is_vec2(const TypeDesc& typedesc, BaseType b) noexcept;
 
-constexpr bool
+bool
 typedesc_is_vec3(const TypeDesc& typedesc, BaseType b) noexcept;
 
-constexpr bool
+bool
 typedesc_is_vec4(const TypeDesc& typedesc, BaseType b) noexcept;
 
-constexpr bool
+bool
 typedesc_is_box2(const TypeDesc& typedesc, BaseType b) noexcept;
 
-constexpr bool
+bool
 typedesc_is_box3(const TypeDesc& typedesc, BaseType b) noexcept;
 
 void
