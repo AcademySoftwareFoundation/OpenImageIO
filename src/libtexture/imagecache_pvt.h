@@ -269,40 +269,33 @@ public:
     //! LevelSpec is a minified ImageSpec to describe a miplevel image in the ImageCache.
     //! It holds fields that can differ from the ImageSpec of the associated subimage.
     //! TODO: can we compress this even more with bitfield and dynamic alloc ?
-    //!     ideally we don't want to store any fields that are identical to the reference spec... 
-    struct LevelSpec
-    {
+    //!     ideally we don't want to store any fields that are identical to the reference spec...
+    struct LevelSpec {
         //! fields that can change for each miplevel
-        int x;                    ///< origin (upper left corner) of pixel data
-        int y;                    ///< origin (upper left corner) of pixel data
-        int z;                    ///< origin (upper left corner) of pixel data
-        int width;                ///< width of the pixel data window
-        int height;               ///< height of the pixel data window
-        int depth;                ///< depth of pixel data, >1 indicates a "volume"
-        int full_x;               ///< origin of the full (display) window
-        int full_y;               ///< origin of the full (display) window
-        int full_z;               ///< origin of the full (display) window
-        int full_width;           ///< width of the full (display) window
-        int full_height;          ///< height of the full (display) window
-        int full_depth;           ///< depth of the full (display) window
-        int tile_width;           ///< tile width (0 for a non-tiled image)
-        int tile_height;          ///< tile height (0 for a non-tiled image)
-        int tile_depth;           ///< tile depth (0 for a non-tiled image,
-                                  //<             1 for a non-volume image)
+        int x;            ///< origin (upper left corner) of pixel data
+        int y;            ///< origin (upper left corner) of pixel data
+        int z;            ///< origin (upper left corner) of pixel data
+        int width;        ///< width of the pixel data window
+        int height;       ///< height of the pixel data window
+        int depth;        ///< depth of pixel data, >1 indicates a "volume"
+        int full_x;       ///< origin of the full (display) window
+        int full_y;       ///< origin of the full (display) window
+        int full_z;       ///< origin of the full (display) window
+        int full_width;   ///< width of the full (display) window
+        int full_height;  ///< height of the full (display) window
+        int full_depth;   ///< depth of the full (display) window
+        int tile_width;   ///< tile width (0 for a non-tiled image)
+        int tile_height;  ///< tile height (0 for a non-tiled image)
+        int tile_depth;   ///< tile depth (0 for a non-tiled image,
+                          //<             1 for a non-volume image)
 
         //! Similar to ImageSpec
         LevelSpec();
         LevelSpec(const LevelSpec& other) = default;
-        LevelSpec(const ImageSpec& levelspec); /// copy members from ImageSpec
+        LevelSpec(const ImageSpec& levelspec);  /// copy members from ImageSpec
 
         //! Returns true iif all members are identical to the `spec` members of the same name.
         bool is_same(const ImageSpec& spec) const;
-
-        //! Tests if this LevelSpec describes a single tile
-        bool has_one_tile() const;
-
-        //! Tests if this LevelSpec describes a full image
-        bool has_full_pixel_range() const;
 
         //! The following methods are similar to the ones from ImageSpec
         //! evaluated with the LevelSpec members.
@@ -316,9 +309,10 @@ public:
     /// Info for each MIP level that isn't in the ImageSpec, or that we
     /// precompute.
     struct LevelInfo {
-        std::shared_ptr<ImageSpec> m_spec;        ///< ImageSpec for the subimage
-        std::unique_ptr<LevelSpec> m_levelspec;   ///< Extra level info in case they are
-            // different from the subimage spec
+        std::shared_ptr<ImageSpec> m_spec;  ///< ImageSpec for the subimage
+        std::unique_ptr<LevelSpec>
+            m_levelspec;  ///< Extra level info in case they are
+        // different from the subimage spec
         mutable std::unique_ptr<float[]> polecolor;  ///< Pole colors
         atomic_ll* tiles_read;  ///< Bitfield for tiles read at least once
         int nxtiles, nytiles, nztiles;  ///< Number of tiles in each dimension
@@ -424,11 +418,13 @@ public:
 
         ImageSpec& get_subimage_spec()
         {
-            OIIO_DASSERT(m_spec); return *m_spec;
+            OIIO_DASSERT(m_spec);
+            return *m_spec;
         }
         const ImageSpec& get_subimage_spec() const
         {
-            OIIO_DASSERT(m_spec); return *m_spec;
+            OIIO_DASSERT(m_spec);
+            return *m_spec;
         }
     };
 
