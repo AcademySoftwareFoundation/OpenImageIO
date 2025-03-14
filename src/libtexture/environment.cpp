@@ -202,7 +202,6 @@ convention is dictated by OpenEXR.
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 using namespace simd;
-using LevelInfo = ImageCacheFile::LevelInfo;
 
 bool
 TextureSystem::environment(ustring filename, TextureOpt& options, V3fParam R,

@@ -350,22 +350,22 @@ init_ntiles(LevelInfo& lvl, const T& s)
 
 
 
-LevelInfo::LevelInfo(std::shared_ptr<ImageSpec> spec_,
+LevelInfo::LevelInfo(SubimageInfo& subimage,
                      std::unique_ptr<LevelSpec> levelspec_)
-    : m_spec(spec_)
+    : m_subimage(subimage)
     , m_levelspec(std::move(levelspec_))
 {
-    OIIO_DASSERT(m_spec);
-    full_pixel_range = m_levelspec ? has_full_pixel_range(*m_levelspec)
-                                   : has_full_pixel_range(*m_spec);
-    onetile = m_levelspec ? has_one_tile(*m_levelspec) : has_one_tile(*m_spec);
+    const ImageSpec& spec = get_subimage_spec();
+    full_pixel_range      = m_levelspec ? has_full_pixel_range(*m_levelspec)
+                                        : has_full_pixel_range(spec);
+    onetile = m_levelspec ? has_one_tile(*m_levelspec) : has_one_tile(spec);
     polecolorcomputed = false;
 
     // Allocate bit field for which tiles have been read at least once.
     if (m_levelspec)
         init_ntiles(*this, *m_levelspec);
     else
-        init_ntiles(*this, *m_spec);
+        init_ntiles(*this, spec);
 
     int total_tiles = nxtiles * nytiles * nztiles;
     OIIO_DASSERT(total_tiles >= 1);
@@ -378,7 +378,7 @@ LevelInfo::LevelInfo(std::shared_ptr<ImageSpec> spec_,
 
 
 LevelInfo::LevelInfo(const LevelInfo& src)
-    : m_spec(src.m_spec)
+    : m_subimage(src.m_subimage)
     , m_levelspec(src.m_levelspec
                       ? std::make_unique<LevelSpec>(*src.m_levelspec)
                       : nullptr)
@@ -389,16 +389,33 @@ LevelInfo::LevelInfo(const LevelInfo& src)
     , onetile(src.onetile)
     , polecolorcomputed(src.polecolorcomputed)
 {
-    OIIO_DASSERT(m_spec);
+    const ImageSpec& spec = get_subimage_spec();
     if (src.polecolor) {
-        polecolor.reset(new float[2 * m_spec->nchannels]);
-        std::copy_n(src.polecolor.get(), 2 * m_spec->nchannels,
-                    polecolor.get());
+        polecolor.reset(new float[2 * spec.nchannels]);
+        std::copy_n(src.polecolor.get(), 2 * spec.nchannels, polecolor.get());
     }
     int nwords = round_to_multiple(nxtiles * nytiles * nztiles, 64) / 64;
     tiles_read = new atomic_ll[nwords];
     for (int i = 0; i < nwords; ++i)
         tiles_read[i] = src.tiles_read[i].load();
+}
+
+
+
+ImageSpec&
+LevelInfo::get_subimage_spec()
+{
+    OIIO_DASSERT(m_subimage.m_spec);
+    return *m_subimage.m_spec;
+}
+
+
+
+const ImageSpec&
+LevelInfo::get_subimage_spec() const
+{
+    OIIO_DASSERT(m_subimage.m_spec);
+    return *m_subimage.m_spec;
 }
 
 
@@ -412,7 +429,7 @@ LevelInfo::get_level_dimensions(ImageSpec& spec) const
     if (m_levelspec)
         m_levelspec->copy_dimensions(spec);
     else
-        spec.copy_dimensions(*m_spec);
+        spec.copy_dimensions(get_subimage_spec());
 }
 
 
@@ -420,8 +437,7 @@ LevelInfo::get_level_dimensions(ImageSpec& spec) const
 void
 LevelInfo::init_level_spec()
 {
-    OIIO_DASSERT(m_spec);
-    m_levelspec = std::make_unique<LevelSpec>(LevelSpec(*m_spec));
+    m_levelspec = std::make_unique<LevelSpec>(LevelSpec(get_subimage_spec()));
 }
 
 
@@ -459,8 +475,8 @@ LevelInfo::set_full_depth(int d)
 int
 LevelInfo::get_full_width() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->full_width : m_spec->full_width;
+    return m_levelspec ? m_levelspec->full_width
+                       : get_subimage_spec().full_width;
 }
 
 
@@ -468,8 +484,8 @@ LevelInfo::get_full_width() const
 int
 LevelInfo::get_full_height() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->full_height : m_spec->full_height;
+    return m_levelspec ? m_levelspec->full_height
+                       : get_subimage_spec().full_height;
 }
 
 
@@ -477,8 +493,8 @@ LevelInfo::get_full_height() const
 int
 LevelInfo::get_full_depth() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->full_depth : m_spec->full_depth;
+    return m_levelspec ? m_levelspec->full_depth
+                       : get_subimage_spec().full_depth;
 }
 
 
@@ -486,8 +502,8 @@ LevelInfo::get_full_depth() const
 int
 LevelInfo::get_tile_width() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->tile_width : m_spec->tile_width;
+    return m_levelspec ? m_levelspec->tile_width
+                       : get_subimage_spec().tile_width;
 }
 
 
@@ -495,8 +511,8 @@ LevelInfo::get_tile_width() const
 int
 LevelInfo::get_tile_height() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->tile_height : m_spec->tile_height;
+    return m_levelspec ? m_levelspec->tile_height
+                       : get_subimage_spec().tile_height;
 }
 
 
@@ -504,8 +520,8 @@ LevelInfo::get_tile_height() const
 int
 LevelInfo::get_tile_depth() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->tile_depth : m_spec->tile_depth;
+    return m_levelspec ? m_levelspec->tile_depth
+                       : get_subimage_spec().tile_depth;
 }
 
 
@@ -513,8 +529,7 @@ LevelInfo::get_tile_depth() const
 int
 LevelInfo::get_full_x() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->full_x : m_spec->full_x;
+    return m_levelspec ? m_levelspec->full_x : get_subimage_spec().full_x;
 }
 
 
@@ -522,8 +537,7 @@ LevelInfo::get_full_x() const
 int
 LevelInfo::get_full_y() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->full_y : m_spec->full_y;
+    return m_levelspec ? m_levelspec->full_y : get_subimage_spec().full_y;
 }
 
 
@@ -531,8 +545,7 @@ LevelInfo::get_full_y() const
 int
 LevelInfo::get_full_z() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->full_z : m_spec->full_z;
+    return m_levelspec ? m_levelspec->full_z : get_subimage_spec().full_z;
 }
 
 
@@ -540,8 +553,7 @@ LevelInfo::get_full_z() const
 int
 LevelInfo::get_x() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->x : m_spec->x;
+    return m_levelspec ? m_levelspec->x : get_subimage_spec().x;
 }
 
 
@@ -549,8 +561,7 @@ LevelInfo::get_x() const
 int
 LevelInfo::get_y() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->y : m_spec->y;
+    return m_levelspec ? m_levelspec->y : get_subimage_spec().y;
 }
 
 
@@ -558,8 +569,7 @@ LevelInfo::get_y() const
 int
 LevelInfo::get_z() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->z : m_spec->z;
+    return m_levelspec ? m_levelspec->z : get_subimage_spec().z;
 }
 
 
@@ -567,8 +577,7 @@ LevelInfo::get_z() const
 int
 LevelInfo::get_width() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->width : m_spec->width;
+    return m_levelspec ? m_levelspec->width : get_subimage_spec().width;
 }
 
 
@@ -576,8 +585,7 @@ LevelInfo::get_width() const
 int
 LevelInfo::get_height() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->height : m_spec->height;
+    return m_levelspec ? m_levelspec->height : get_subimage_spec().height;
 }
 
 
@@ -585,8 +593,7 @@ LevelInfo::get_height() const
 int
 LevelInfo::get_depth() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->depth : m_spec->depth;
+    return m_levelspec ? m_levelspec->depth : get_subimage_spec().depth;
 }
 
 
@@ -594,8 +601,7 @@ LevelInfo::get_depth() const
 int
 LevelInfo::get_channels() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_spec->nchannels;
+    return get_subimage_spec().nchannels;
 }
 
 
@@ -603,8 +609,8 @@ LevelInfo::get_channels() const
 imagesize_t
 LevelInfo::get_tile_pixels() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->tile_pixels() : m_spec->tile_pixels();
+    return m_levelspec ? m_levelspec->tile_pixels()
+                       : get_subimage_spec().tile_pixels();
 }
 
 
@@ -613,8 +619,7 @@ size_t
 LevelInfo::get_channel_bytes() const
 {
     //! NOTE: In the image cache there is a single format for all channels
-    OIIO_DASSERT(m_spec);
-    return m_spec->format.size();
+    return get_subimage_spec().format.size();
 }
 
 
@@ -653,8 +658,8 @@ LevelInfo::get_scanline_bytes() const
 imagesize_t
 LevelInfo::get_image_pixels() const
 {
-    OIIO_DASSERT(m_spec);
-    return m_levelspec ? m_levelspec->image_pixels() : m_spec->image_pixels();
+    return m_levelspec ? m_levelspec->image_pixels()
+                       : get_subimage_spec().image_pixels();
 }
 
 
@@ -1022,11 +1027,10 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             // that differ from the native spec
             LevelSpec levelspec(tempspec);
             if (levelspec.is_same(*si.m_spec)) {
-                LevelInfo levelinfo(si.m_spec);
+                LevelInfo levelinfo(si);
                 si.levels.push_back(levelinfo);
             } else {
-                LevelInfo levelinfo(si.m_spec,
-                                    std::make_unique<LevelSpec>(levelspec));
+                LevelInfo levelinfo(si, std::make_unique<LevelSpec>(levelspec));
                 si.levels.push_back(levelinfo);
             }
             ++nmip;
@@ -1072,10 +1076,10 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                 ++nmip;
                 LevelSpec levelspec(s);
                 if (levelspec.is_same(*si.m_spec)) {
-                    LevelInfo levelinfo(si.m_spec);
+                    LevelInfo levelinfo(si);
                     si.levels.push_back(levelinfo);
                 } else {
-                    LevelInfo levelinfo(si.m_spec,
+                    LevelInfo levelinfo(si,
                                         std::make_unique<LevelSpec>(levelspec));
                     si.levels.push_back(levelinfo);
                 }

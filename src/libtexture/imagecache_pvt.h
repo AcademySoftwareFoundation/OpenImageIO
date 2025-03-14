@@ -308,11 +308,12 @@ public:
 
     /// Info for each MIP level that isn't in the ImageSpec, or that we
     /// precompute.
+    struct SubimageInfo;
     struct LevelInfo {
-        std::shared_ptr<ImageSpec> m_spec;  ///< ImageSpec for the subimage
+        SubimageInfo&
+            m_subimage;  ///< Parent subimage to access the reference spec
         std::unique_ptr<LevelSpec>
-            m_levelspec;  ///< Extra level info in case they are
-        // different from the subimage spec
+            m_levelspec;  ///< Extra level info in case they are different from the subimage spec
         mutable std::unique_ptr<float[]> polecolor;  ///< Pole colors
         atomic_ll* tiles_read;  ///< Bitfield for tiles read at least once
         int nxtiles, nytiles, nztiles;  ///< Number of tiles in each dimension
@@ -320,10 +321,9 @@ public:
         bool onetile;           ///< Whole level fits on one tile
         mutable bool polecolorcomputed;  ///< Pole color was computed
 
-        LevelInfo(std::shared_ptr<ImageSpec> spec,
-                  std::unique_ptr<LevelSpec> levelspec);
-        LevelInfo(std::shared_ptr<ImageSpec> spec)
-            : LevelInfo(spec, nullptr)
+        LevelInfo(SubimageInfo& subimage, std::unique_ptr<LevelSpec> levelspec);
+        LevelInfo(SubimageInfo& subimage)
+            : LevelInfo(subimage, nullptr)
         {
         }
 
@@ -331,8 +331,8 @@ public:
         ~LevelInfo() { delete[] tiles_read; }
 
         //! Returns the reference ImageSpec associated with the subimage at mip 0
-        ImageSpec& get_subimage_spec() { return *m_spec; }
-        const ImageSpec& get_subimage_spec() const { return *m_spec; }
+        ImageSpec& get_subimage_spec();
+        const ImageSpec& get_subimage_spec() const;
 
         //! Overrides the dimensions in `spec` with the current level dimensions
         void get_level_dimensions(ImageSpec& spec) const;
