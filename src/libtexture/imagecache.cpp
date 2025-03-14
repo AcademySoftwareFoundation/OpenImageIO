@@ -38,6 +38,8 @@
 
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
+using LevelInfo = ImageCacheFile::LevelInfo;
+using LevelSpec = ImageCacheFile::LevelSpec;
 
 // The static perthread mutex needs to outlive the shared_image_cache
 // instance, so must be declared first in this file to avoid static
@@ -212,17 +214,157 @@ ImageCacheStatistics::merge(const ImageCacheStatistics& s)
 
 
 
-ImageCacheFile::LevelInfo::LevelInfo(std::unique_ptr<ImageSpec> spec_,
-                                     const ImageSpec& nativespec_)
-    : m_spec(std::move(spec_))
-    , nativespec(nativespec_)
+LevelSpec::LevelSpec()
+    : x(0)
+    , y(0)
+    , z(0)
+    , width(0)
+    , height(0)
+    , depth(1)
+    , full_x(0)
+    , full_y(0)
+    , full_z(0)
+    , full_width(0)
+    , full_height(0)
+    , full_depth(0)
+    , tile_width(0)
+    , tile_height(0)
+    , tile_depth(1)
 {
-    const ImageSpec& spec = m_spec ? *m_spec : nativespec;
-    full_pixel_range
-        = (spec.x == spec.full_x && spec.y == spec.full_y
+}
+
+
+
+LevelSpec::LevelSpec(const ImageSpec& levelspec)
+    : x(levelspec.x)
+    , y(levelspec.y)
+    , z(levelspec.z)
+    , width(levelspec.width)
+    , height(levelspec.height)
+    , depth(levelspec.depth)
+    , full_x(levelspec.full_x)
+    , full_y(levelspec.full_y)
+    , full_z(levelspec.full_z)
+    , full_width(levelspec.full_width)
+    , full_height(levelspec.full_height)
+    , full_depth(levelspec.full_depth)
+    , tile_width(levelspec.tile_width)
+    , tile_height(levelspec.tile_height)
+    , tile_depth(levelspec.tile_depth)
+{
+}
+
+
+
+bool
+LevelSpec::is_same(const ImageSpec& spec) const
+{
+    return x == spec.x
+        && y == spec.y
+        && z == spec.z
+        && width == spec.width
+        && height == spec.height
+        && depth == spec.depth
+        && full_x == spec.full_x
+        && full_y == spec.full_y
+        && full_z == spec.full_z
+        && full_width == spec.full_width
+        && full_height == spec.full_height
+        && full_depth == spec.full_depth
+        && tile_width == spec.tile_width
+        && tile_height == spec.tile_height
+        && tile_depth == spec.tile_depth;
+}
+
+
+
+bool
+LevelSpec::has_one_tile() const
+{
+    return width <= tile_width
+        && height <= tile_height
+        && depth <= tile_depth;
+}
+
+
+
+bool
+LevelSpec::has_full_pixel_range() const
+{
+    return x == full_x
+        && y == full_y
+        && z == full_z
+        && width == full_width
+        && height == full_height
+        && depth == full_depth;
+}
+
+
+
+imagesize_t
+LevelSpec::tile_pixels() const
+{
+    if (tile_width <= 0 || tile_height <= 0 || tile_depth <= 0)
+        return 0;
+    imagesize_t r = clamped_mult64((imagesize_t)tile_width,
+                                (imagesize_t)tile_height);
+    if (tile_depth > 1)
+        r = clamped_mult64(r, (imagesize_t)tile_depth);
+    return r;
+}
+
+
+
+imagesize_t
+LevelSpec::image_pixels() const
+{
+    if (width < 0 || height < 0 || depth < 0)
+        return 0;
+    imagesize_t r = clamped_mult64((imagesize_t)width, (imagesize_t)height);
+    if (depth > 1)
+        r = clamped_mult64(r, (imagesize_t)depth);
+    return r;
+}
+
+
+
+void
+LevelSpec::copy_dimensions(ImageSpec& spec)
+{
+    spec.x = x;
+    spec.y = y;
+    spec.z = z;
+    spec.width = width;
+    spec.height = height;
+    spec.depth = depth;
+    spec.full_x = full_x;
+    spec.full_y = full_y;
+    spec.full_z = full_z;
+    spec.full_width = full_width;
+    spec.full_height = full_height;
+    spec.full_depth = full_depth;
+    spec.tile_width = tile_width;
+    spec.tile_height = tile_height;
+    spec.tile_depth = tile_depth;
+}
+
+
+
+LevelInfo::LevelInfo(std::shared_ptr<ImageSpec> spec_,
+                                     std::unique_ptr<LevelSpec> levelspec_)
+    : m_spec(spec_)
+    , m_levelspec(std::move(levelspec_))
+{
+    assert(m_spec);
+    const ImageSpec& spec = *m_spec;
+    full_pixel_range = m_levelspec
+        ? m_levelspec->has_full_pixel_range()
+        : (spec.x == spec.full_x && spec.y == spec.full_y
            && spec.z == spec.full_z && spec.width == spec.full_width
            && spec.height == spec.full_height && spec.depth == spec.full_depth);
-    onetile = (spec.width <= spec.tile_width && spec.height <= spec.tile_height
+    onetile = m_levelspec
+        ? m_levelspec->has_one_tile()
+        : (spec.width <= spec.tile_width && spec.height <= spec.tile_height
                && spec.depth <= spec.tile_depth);
     polecolorcomputed = false;
 
@@ -246,8 +388,9 @@ ImageCacheFile::LevelInfo::LevelInfo(std::unique_ptr<ImageSpec> spec_,
 
 
 
-ImageCacheFile::LevelInfo::LevelInfo(const LevelInfo& src)
-    : nativespec(src.nativespec)
+LevelInfo::LevelInfo(const LevelInfo& src)
+    : m_spec(src.m_spec)
+    , m_levelspec(src.m_levelspec ? std::make_unique<LevelSpec>(*src.m_levelspec) : nullptr)
     , nxtiles(src.nxtiles)
     , nytiles(src.nytiles)
     , nztiles(src.nztiles)
@@ -255,9 +398,9 @@ ImageCacheFile::LevelInfo::LevelInfo(const LevelInfo& src)
     , onetile(src.onetile)
     , polecolorcomputed(src.polecolorcomputed)
 {
-    if (src.m_spec)
-        m_spec = std::make_unique<ImageSpec>(*src.m_spec);
-    const ImageSpec& spec = m_spec ? *m_spec : nativespec;
+    assert(m_spec);
+    const ImageSpec& spec = *m_spec;
+
     if (src.polecolor) {
         polecolor.reset(new float[2 * spec.nchannels]);
         std::copy_n(src.polecolor.get(), 2 * spec.nchannels, polecolor.get());
@@ -266,6 +409,269 @@ ImageCacheFile::LevelInfo::LevelInfo(const LevelInfo& src)
     tiles_read = new atomic_ll[nwords];
     for (int i = 0; i < nwords; ++i)
         tiles_read[i] = src.tiles_read[i].load();
+}
+
+
+
+void
+LevelInfo::get_level_dimensions(ImageSpec& spec) const
+{
+    //! NOTE: because I don't have a better solution yet,
+    //! LevelSpec copies **to** ImageSpec while ImageSpec
+    //! copies **from** ImageSpec
+    if (m_levelspec)
+        m_levelspec->copy_dimensions(spec);
+    else
+        spec.copy_dimensions(*m_spec);
+}
+
+
+
+void
+LevelInfo::init_level_spec()
+{
+    OIIO_DASSERT(m_spec);
+    m_levelspec = std::make_unique<LevelSpec>(LevelSpec(*m_spec));
+}
+
+
+
+void
+LevelInfo::set_full_width(int w)
+{
+    if (!m_levelspec)
+        init_level_spec();
+    m_levelspec->full_width = w;
+}
+
+
+
+void
+LevelInfo::set_full_height(int h)
+{
+    if (!m_levelspec)
+        init_level_spec();
+    m_levelspec->full_height = h;
+}
+
+
+
+void
+LevelInfo::set_full_depth(int d)
+{
+    if (!m_levelspec)
+        init_level_spec();
+    m_levelspec->full_depth = d;
+}
+
+
+
+int
+LevelInfo::get_full_width() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->full_width : m_spec->full_width;
+}
+
+
+
+int
+LevelInfo::get_full_height() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->full_height : m_spec->full_height;
+}
+
+
+
+int
+LevelInfo::get_full_depth() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->full_depth : m_spec->full_depth;
+}
+
+
+
+int
+LevelInfo::get_tile_width() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->tile_width : m_spec->tile_width;
+}
+
+
+
+int
+LevelInfo::get_tile_height() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->tile_height : m_spec->tile_height;
+}
+
+
+
+int
+LevelInfo::get_tile_depth() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->tile_depth : m_spec->tile_depth;
+}
+
+
+
+int
+LevelInfo::get_full_x() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->full_x : m_spec->full_x;
+}
+
+
+
+int
+LevelInfo::get_full_y() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->full_y : m_spec->full_y;
+}
+
+
+
+int
+LevelInfo::get_full_z() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->full_z : m_spec->full_z;
+}
+
+
+
+int
+LevelInfo::get_x() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->x : m_spec->x;
+}
+
+
+
+int
+LevelInfo::get_y() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->y : m_spec->y;
+}
+
+
+
+int
+LevelInfo::get_z() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->z : m_spec->z;
+}
+
+
+
+int
+LevelInfo::get_width() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->width : m_spec->width;
+}
+
+
+
+int
+LevelInfo::get_height() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->height : m_spec->height;
+}
+
+
+
+int
+LevelInfo::get_depth() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->depth : m_spec->depth;
+}
+
+
+
+int
+LevelInfo::get_channels() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_spec->nchannels;
+}
+
+
+
+imagesize_t
+LevelInfo::get_tile_pixels() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->tile_pixels() : m_spec->tile_pixels();
+}
+
+
+
+size_t
+LevelInfo::get_channel_bytes() const
+{
+    //! NOTE: In the image cache there is a single format for all channels
+    OIIO_DASSERT(m_spec);
+    return m_spec->format.size();
+}
+
+
+
+size_t
+LevelInfo::get_pixel_bytes() const
+{
+    //! TODO: maybe this shouldn't ever happen in the image cache and we
+    // could get rid of the condition
+    if (get_channels() <= 0)
+        return 0;
+    return clamped_mult32((size_t)get_channels(), get_channel_bytes());
+}
+
+
+
+imagesize_t
+LevelInfo::get_tile_bytes() const
+{
+    return clamped_mult64(get_tile_pixels(), (imagesize_t)get_pixel_bytes());
+}
+
+
+
+imagesize_t
+LevelInfo::get_scanline_bytes() const
+{
+    if (get_width() < 0)
+        return 0;
+    return clamped_mult64((imagesize_t)get_width(), (imagesize_t)get_pixel_bytes());
+}
+
+
+
+imagesize_t
+LevelInfo::get_image_pixels() const
+{
+    OIIO_DASSERT(m_spec);
+    return m_levelspec ? m_levelspec->image_pixels() : m_spec->image_pixels();
+}
+
+
+
+imagesize_t
+LevelInfo::get_image_bytes() const
+{
+    return clamped_mult64(get_image_pixels(), (imagesize_t)get_pixel_bytes());
 }
 
 
@@ -378,6 +784,9 @@ void
 ImageCacheFile::SubimageInfo::init(ImageCacheFile& icfile,
                                    const ImageSpec& spec, bool forcefloat)
 {
+    m_spec = std::make_shared<ImageSpec>(spec);
+    OIIO_DASSERT(m_spec);
+
     volume = (spec.depth > 1 || spec.full_depth > 1);
     full_pixel_range
         = (spec.x == spec.full_x && spec.y == spec.full_y
@@ -567,7 +976,6 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
         do {
             nativespec           = inp->spec(nsubimages, nmip);
             tempspec             = nativespec;
-            bool tmpspecmodified = false;
             if (nmip == 0) {
                 // Things to do on MIP level 0, i.e. once per subimage
                 si.init(*this, tempspec, imagecache().forcefloat());
@@ -601,7 +1009,6 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                     tempspec.tile_height = tempspec.height;
                     tempspec.tile_depth  = tempspec.depth;
                 }
-                tmpspecmodified = true;
             }
             // If a request was made for a maximum MIP resolution to use for
             // texture lookups and this level is too big, bump up this
@@ -613,7 +1020,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             m_total_imagesize += tempspec.image_bytes();
             // All MIP levels need the same number of channels
             if (nmip > 0
-                && tempspec.nchannels != spec(nsubimages, 0).nchannels) {
+                && tempspec.nchannels != si.m_spec->nchannels) {
                 // No idea what to do with a subimage that doesn't have the
                 // same number of channels as the others, so just skip it.
                 inp.reset();
@@ -624,12 +1031,14 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             }
             // ImageCache can't store differing formats per channel
             tempspec.channelformats.clear();
-            if (tmpspecmodified) {
-                LevelInfo levelinfo(std::make_unique<ImageSpec>(tempspec),
-                                    nativespec);
+            // In each mip level we only want to store the fields
+            // that differ from the native spec
+            LevelSpec levelspec(tempspec);
+            if (levelspec.is_same(*si.m_spec)) {
+                LevelInfo levelinfo(si.m_spec);
                 si.levels.push_back(levelinfo);
             } else {
-                LevelInfo levelinfo(nativespec);
+                LevelInfo levelinfo(si.m_spec, std::make_unique<LevelSpec>(levelspec));
                 si.levels.push_back(levelinfo);
             }
             ++nmip;
@@ -673,8 +1082,14 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                     s.tile_depth  = d;
                 }
                 ++nmip;
-                LevelInfo levelinfo(s);
-                si.levels.push_back(levelinfo);
+                LevelSpec levelspec(s);
+                if (levelspec.is_same(*si.m_spec)) {
+                    LevelInfo levelinfo(si.m_spec);
+                    si.levels.push_back(levelinfo);
+                } else {
+                    LevelInfo levelinfo(si.m_spec, std::make_unique<LevelSpec>(levelspec));
+                    si.levels.push_back(levelinfo);
+                }
             }
         }
         if (si.untiled && !imagecache().accept_untiled()) {
@@ -698,7 +1113,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
         // needing to rifle through the imagespecs each time.
         si.minwh.reset(new int[nmip + 1]);
         for (int m = 0; m < nmip; ++m)
-            si.minwh[m] = std::min(si.spec(m).width, si.spec(m).height);
+            si.minwh[m] = std::min(si.levels[m].get_width(), si.levels[m].get_height());
         si.minwh[nmip] = 0;  // One past the end, set to 0
         ++nsubimages;
     } while (inp->seek_subimage(nsubimages, 0));
@@ -721,11 +1136,12 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
 void
 ImageCacheFile::init_from_spec()
 {
-    ImageSpec& spec(this->spec(0, 0));
+    const LevelInfo& lvl = this->levelinfo(0, 0);
+    const ImageSpec& spec = lvl.get_subimage_spec();
     const ParamValue* p;
 
     // FIXME -- this should really be per-subimage
-    if (spec.depth <= 1 && spec.full_depth <= 1)
+    if (lvl.get_depth() <= 1 && lvl.get_full_depth() <= 1)
         m_texformat = TexFormatTexture;
     else
         m_texformat = TexFormatTexture3d;
@@ -742,13 +1158,13 @@ ImageCacheFile::init_from_spec()
         if (m_texformat == TexFormatTexture) {
             for (int s = 0; s < subimages(); ++s) {
                 for (int m = 0; m < miplevels(s); ++m) {
-                    ImageSpec& spec(this->spec(s, m));
-                    if (spec.full_width > spec.width)
-                        spec.full_width = spec.width;
-                    if (spec.full_height > spec.height)
-                        spec.full_height = spec.height;
-                    if (spec.full_depth > spec.depth)
-                        spec.full_depth = spec.depth;
+                    LevelInfo& lvl(this->levelinfo(s, m));
+                    if (lvl.get_full_width() > lvl.get_width())
+                        lvl.set_full_width(lvl.get_width());
+                    if (lvl.get_full_height() > lvl.get_height())
+                        lvl.set_full_height(lvl.get_height());
+                    if (lvl.get_full_depth() > lvl.get_depth())
+                        lvl.set_full_depth(lvl.get_depth());
                 }
             }
         }
@@ -776,18 +1192,18 @@ ImageCacheFile::init_from_spec()
 
     if (m_texformat == TexFormatCubeFaceEnv
         || m_texformat == TexFormatCubeFaceShadow) {
-        int w = std::max(spec.full_width, spec.tile_width);
-        int h = std::max(spec.full_height, spec.tile_height);
-        if (spec.width == 3 * w && spec.height == 2 * h)
+        int w = std::max(lvl.get_full_width(), lvl.get_tile_width());
+        int h = std::max(lvl.get_full_height(), lvl.get_tile_height());
+        if (lvl.get_width() == 3 * w && lvl.get_height() == 2 * h)
             m_envlayout = LayoutCubeThreeByTwo;
-        else if (spec.width == w && spec.height == 6 * h)
+        else if (lvl.get_width() == w && lvl.get_height() == 6 * h)
             m_envlayout = LayoutCubeOneBySix;
         else
             m_envlayout = LayoutTexture;
     }
 
     // Squash some problematic texture metadata if we suspect it's wrong
-    pvt::check_texture_metadata_sanity(spec);
+    pvt::check_texture_metadata_sanity(this->get_subimage_spec(0));
 
     // See if there's a SHA-1 hash in the image description
     string_view fing = spec.get_string_attribute("oiio:SHA-1");
@@ -846,10 +1262,10 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info,
     TypeDesc format = id.file().datatype(subimage);
 
     bool ok = true;
-    const ImageSpec& spec(this->spec(subimage, miplevel));
+    const LevelInfo& lvl(this->levelinfo(subimage, miplevel));
     for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
-        ok = inp->read_tiles(subimage, miplevel, x, x + spec.tile_width, y,
-                             y + spec.tile_height, z, z + spec.tile_depth,
+        ok = inp->read_tiles(subimage, miplevel, x, x + lvl.get_tile_width(), y,
+                             y + lvl.get_tile_height(), z, z + lvl.get_tile_depth(),
                              chbegin, chend, format, data);
         if (ok) {
             if (tries)  // succeeded, but only after a failure!
@@ -873,15 +1289,15 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info,
     }
 
     if (ok) {
-        size_t b = spec.tile_bytes();
+        size_t b = lvl.get_tile_bytes();
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
         ++m_tilesread;
         if (id.colortransformid() > 0) {
             // print("CONVERT id {} {},{} to cs {}\n", filename(), id.x(), id.y(),
             //       id.colortransformid());
-            ImageSpec tilespec(spec.tile_width, spec.tile_height,
-                               spec.nchannels, format);
+            ImageSpec tilespec(lvl.get_tile_width(), lvl.get_tile_height(),
+                               lvl.get_channels(), format);
             ImageBuf wrapper(tilespec, make_cspan((const std::byte*)data,
                                                   tilespec.image_bytes()));
             ImageBufAlgo::colorconvert(
@@ -923,24 +1339,24 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
 
     // Figure out the size and strides for a single tile, make an ImageBuf
     // to hold it temporarily.
-    const ImageSpec& spec(this->spec(subimage, miplevel));
-    int tw = spec.tile_width;
-    int th = spec.tile_height;
+    const LevelInfo& lvl(this->levelinfo(subimage, miplevel));
+    int tw = lvl.get_tile_width();
+    int th = lvl.get_tile_height();
     OIIO_DASSERT(chend > chbegin);
     int nchans = chend - chbegin;
     ImageSpec lospec(tw, th, nchans, TypeDesc::FLOAT);
     ImageBuf lores(lospec);
 
     // Figure out the range of texels we need for this tile
-    x -= spec.x;
-    y -= spec.y;
-    // z -= spec.z;
-    int x0 = x - (x % spec.tile_width);
-    int x1 = std::min(x0 + spec.tile_width - 1, spec.full_width - 1);
-    int y0 = y - (y % spec.tile_height);
-    int y1 = std::min(y0 + spec.tile_height - 1, spec.full_height - 1);
-    //    int z0 = z - (z % spec.tile_depth);
-    //    int z1 = std::min (z0+spec.tile_depth-1, spec.full_depth-1);
+    x -= lvl.get_x();
+    y -= lvl.get_y();
+    // z -= lvl.get_z();
+    int x0 = x - (x % lvl.get_tile_width());
+    int x1 = std::min(x0 + lvl.get_tile_width() - 1, lvl.get_full_width() - 1);
+    int y0 = y - (y % lvl.get_tile_height());
+    int y1 = std::min(y0 + lvl.get_tile_height() - 1, lvl.get_full_height() - 1);
+    //    int z0 = z - (z % lvl.get_tile_depth());
+    //    int z1 = std::min (z0+lvl.get_tile_depth()-1, lvl.get_full_depth()-1);
 
     // Save the contents of the per-thread microcache.  This is because
     // a caller several levels up may be retaining a reference to
@@ -958,24 +1374,23 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
     // automipped.  So we simply override bad decisions by adjusting the
     // cache size to be a minimum of twice as big as any image we automip.
     imagecache().set_min_cache_size(
-        2 * (long long)this->spec(subimage, 0).image_bytes());
+        2 * (long long)lvl.get_subimage_spec().image_bytes());
 
     // Texel by texel, generate the values by interpolating filtered
     // lookups form the next finer subimage.
-    const ImageSpec& upspec(
-        this->spec(subimage, miplevel - 1));  // next higher level
+    const LevelInfo& uplvl(this->levelinfo(subimage, miplevel - 1)); // next higher level
     span<float> bilerppels = OIIO_ALLOCA_SPAN(float, 4 * nchans);
     span<float> resultpel  = OIIO_ALLOCA_SPAN(float, nchans);
     bool ok                = true;
     // FIXME(volume) -- loop over z, too
     for (int j = y0; j <= y1; ++j) {
-        float yf = (j + 0.5f) / spec.full_height;
+        float yf = (j + 0.5f) / lvl.get_full_height();
         int ylow;
-        float yfrac = floorfrac(yf * upspec.full_height - 0.5, &ylow);
+        float yfrac = floorfrac(yf * uplvl.get_full_height() - 0.5, &ylow);
         for (int i = x0; i <= x1; ++i) {
-            float xf = (i + 0.5f) / spec.full_width;
+            float xf = (i + 0.5f) / lvl.get_full_width();
             int xlow;
-            float xfrac = floorfrac(xf * upspec.full_width - 0.5, &xlow);
+            float xfrac = floorfrac(xf * uplvl.get_full_width() - 0.5, &xlow);
             ok &= imagecache().get_pixels(this, thread_info, subimage,
                                           miplevel - 1, xlow, xlow + 2, ylow,
                                           ylow + 2, 0, 1, chbegin, chend,
@@ -1019,13 +1434,13 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
     int colortransformid = id.colortransformid();
 
     // Strides for a single tile
-    const ImageSpec& spec(this->spec(subimage, miplevel));
-    int tw = spec.tile_width;
-    int th = spec.tile_height;
+    const LevelInfo& lvl(this->levelinfo(subimage, miplevel));
+    int tw = lvl.get_tile_width();
+    int th = lvl.get_tile_height();
     OIIO_DASSERT(chend > chbegin);
     int nchans       = chend - chbegin;
     stride_t xstride = AutoStride, ystride = AutoStride, zstride = AutoStride;
-    spec.auto_stride(xstride, ystride, zstride, format, nchans, tw, th);
+    ImageSpec::auto_stride(xstride, ystride, zstride, format, nchans, tw, th);
 
     bool ok = true;
     if (subimageinfo(subimage).autotiled) {
@@ -1039,16 +1454,16 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
         size_t pixelsize = size_t(nchans * format.size());
         // Because of the way we copy below, we need to allocate the
         // buffer to be an even multiple of the tile width, so round up.
-        stride_t scanlinesize = tw * ((spec.width + tw - 1) / tw);
+        stride_t scanlinesize = tw * ((lvl.get_width() + tw - 1) / tw);
         scanlinesize *= pixelsize;
         std::unique_ptr<char[]> buf(
             new char[scanlinesize * th]);  // a whole tile-row size
-        int yy = y - spec.y;               // counting from top scanline
+        int yy = y - lvl.get_y();               // counting from top scanline
         // [y0,y1] is the range of scanlines to read for a tile-row
         int y0 = yy - (yy % th);
-        int y1 = std::min(y0 + th - 1, spec.height - 1);
-        y0 += spec.y;
-        y1 += spec.y;
+        int y1 = std::min(y0 + th - 1, lvl.get_height() - 1);
+        y0 += lvl.get_y();
+        y1 += lvl.get_y();
         // Read the whole tile-row worth of scanlines
         ok = inp->read_scanlines(subimage, miplevel, y0, y1 + 1, z, chbegin,
                                  chend, format, (void*)&buf[0], pixelsize,
@@ -1058,7 +1473,7 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
             if (!err.empty() && errors_should_issue())
                 imagecache().error("{}", err);
         }
-        size_t b = (y1 - y0 + 1) * spec.scanline_bytes();
+        size_t b = (y1 - y0 + 1) * lvl.get_scanline_bytes();
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
         ++m_tilesread;
@@ -1066,9 +1481,9 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
         // For all tiles in the tile-row, enter them into the cache if not
         // already there.  Special case for the tile we're actually being
         // asked for -- save it in 'data' rather than adding a tile.
-        int xx = x - spec.x;      // counting from left row
+        int xx = x - lvl.get_x();      // counting from left row
         int x0 = xx - (xx % tw);  // start of the tile we are retrieving
-        for (int i = 0; i < spec.width; i += tw) {
+        for (int i = 0; i < lvl.get_width(); i += tw) {
             if (i == xx) {
                 // This is the tile we've been asked for
                 convert_image(nchans, tw, th, 1, &buf[x0 * pixelsize], format,
@@ -1078,7 +1493,7 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
                 // Not the tile we asked for, but it's in the same
                 // tile-row, so let's put it in the cache anyway so
                 // it'll be there when asked for.
-                TileID id(*this, subimage, miplevel, i + spec.x, y0, z, chbegin,
+                TileID id(*this, subimage, miplevel, i + lvl.get_x(), y0, z, chbegin,
                           chend, colortransformid);
                 if (!imagecache().tile_in_cache(id, thread_info)) {
                     ImageCacheTileRef tile;
@@ -1099,7 +1514,7 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
             if (!err.empty() && errors_should_issue())
                 imagecache().error("{}", err);
         }
-        size_t b = spec.image_bytes();
+        size_t b = lvl.get_image_bytes();
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
         ++m_tilesread;
@@ -1184,23 +1599,23 @@ ImageCacheFile::get_average_color(float* avg, int subimage, int chbegin,
         // try to figure it out by grabbing the single pixel at the 1x1
         // MIP level.
         int nlevels = (int)si.levels.size();
-        const ImageSpec& spec(si.spec(nlevels - 1));  // The 1x1 level
-        if (spec.width != 1 || spec.height != 1 || spec.depth != 1)
+        const LevelInfo& lvl(this->levelinfo(subimage, nlevels - 1));
+        if (lvl.get_width() != 1 || lvl.get_height() != 1 || lvl.get_depth() != 1)
             return false;  // no hope, there's no 1x1 MIP level to sample
         spin_lock lock(si.average_color_mutex);
         if (!si.has_average_color) {
-            si.average_color.resize(spec.nchannels);
+            si.average_color.resize(lvl.get_channels());
             bool ok = m_imagecache.get_pixels(this, NULL, subimage, nlevels - 1,
-                                              spec.x, spec.x + 1, spec.y,
-                                              spec.y + 1, spec.z, spec.z + 1, 0,
-                                              spec.nchannels, TypeFloat,
+                                              lvl.get_x(), lvl.get_x() + 1, lvl.get_y(),
+                                              lvl.get_y() + 1, lvl.get_z(), lvl.get_z() + 1, 0,
+                                              lvl.get_channels(), TypeFloat,
                                               &si.average_color[0]);
             si.has_average_color = ok;
         }
     }
 
     if (si.has_average_color) {
-        const ImageSpec& spec(si.spec(0));
+        const ImageSpec& spec(si.get_subimage_spec());
         for (int i = 0, c = chbegin; c < chend; ++i, ++c)
             avg[i] = (c < spec.nchannels) ? si.average_color[c] : 0.0f;
         return true;
@@ -1361,12 +1776,12 @@ ImageCacheImpl::verify_file(ImageCacheFile* tf,
                     // FIXME -- be sure to add extra tests
                     // here if more metadata have significance later!
                     bool match = (tf->subimages() == dup->subimages());
-                    const ImageSpec& tfspec(tf->nativespec(0, 0));
-                    const ImageSpec& dupspec(dup->nativespec(0, 0));
-                    match &= (tfspec.width == dupspec.width
-                              && tfspec.height == dupspec.height
-                              && tfspec.depth == dupspec.depth
-                              && tfspec.nchannels == dupspec.nchannels
+                    const LevelInfo& tflvl(tf->levelinfo(0, 0));
+                    const LevelInfo& duplvl(dup->levelinfo(0, 0));
+                    match &= (tflvl.get_width() == duplvl.get_width()
+                              && tflvl.get_height() == duplvl.get_height()
+                              && tflvl.get_depth() == duplvl.get_depth()
+                              && tflvl.get_channels() == duplvl.get_channels()
                               && tf->subimages() == dup->subimages()
                               && tf->miplevels(0) == dup->miplevels(0)
                               && tf->m_swrap == dup->m_swrap
@@ -1541,10 +1956,10 @@ ImageCacheTile::ImageCacheTile(const TileID& id, const void* pels,
     : m_id(id)
 {
     ImageCacheFile& file(m_id.file());
-    const ImageSpec& spec(file.spec(id.subimage(), id.miplevel()));
+    const LevelInfo& lvl(file.levelinfo(id.subimage(), id.miplevel()));
     m_channelsize = file.datatype(id.subimage()).size();
     m_pixelsize   = id.nchannels() * m_channelsize;
-    m_tile_width  = spec.tile_width;
+    m_tile_width  = lvl.get_tile_width();
     if (copy) {
         size_t size = memsize_needed();
         OIIO_ASSERT_MSG(size > 0 && memsize() == 0,
@@ -1554,11 +1969,11 @@ ImageCacheTile::ImageCacheTile(const TileID& id, const void* pels,
         m_pixels_size = size;
         m_pixels.reset(new char[m_pixels_size]);
         m_valid
-            = convert_image(id.nchannels(), spec.tile_width, spec.tile_height,
-                            spec.tile_depth, pels, format, xstride, ystride,
+            = convert_image(id.nchannels(), lvl.get_tile_width(), lvl.get_tile_height(),
+                            lvl.get_tile_depth(), pels, format, xstride, ystride,
                             zstride, &m_pixels[0], file.datatype(id.subimage()),
-                            m_pixelsize, m_pixelsize * spec.tile_width,
-                            m_pixelsize * spec.tile_width * spec.tile_height);
+                            m_pixelsize, m_pixelsize * lvl.get_tile_width(),
+                            m_pixelsize * lvl.get_tile_width() * lvl.get_tile_height());
     } else {
         m_nofree      = true;  // Don't free the pointer!
         m_pixels_size = 0;
@@ -1584,8 +1999,8 @@ ImageCacheTile::~ImageCacheTile()
 size_t
 ImageCacheTile::memsize_needed() const
 {
-    const ImageSpec& spec(file().spec(m_id.subimage(), m_id.miplevel()));
-    size_t s = spec.tile_pixels() * pixelsize();
+    const LevelInfo& lvl(file().levelinfo(m_id.subimage(), m_id.miplevel()));
+    size_t s = lvl.get_tile_pixels() * pixelsize();
     // N.B. Round up so we can use a SIMD fetch for the last pixel and
     // channel without running off the end.
     s += OIIO_SIMD_MAX_SIZE_BYTES;
@@ -1609,20 +2024,19 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
     m_valid = file.read_tile(thread_info, m_id, &m_pixels[0]);
     file.imagecache().incr_mem(size);
     if (m_valid) {
-        ImageCacheFile::LevelInfo& lev(
+        LevelInfo& lev(
             file.levelinfo(m_id.subimage(), m_id.miplevel()));
-        const ImageSpec& spec(lev.spec());
-        m_tile_width = spec.tile_width;
+        m_tile_width = lev.get_tile_width();
         OIIO_DASSERT(m_tile_width > 0);
-        int whichtile = ((m_id.x() - spec.x) / spec.tile_width)
-                        + ((m_id.y() - spec.y) / spec.tile_height) * lev.nxtiles
-                        + ((m_id.z() - spec.z) / spec.tile_depth)
+        int whichtile = ((m_id.x() - lev.get_x()) / lev.get_tile_width())
+                        + ((m_id.y() - lev.get_y()) / lev.get_tile_height()) * lev.nxtiles
+                        + ((m_id.z() - lev.get_z()) / lev.get_tile_depth())
                               * (lev.nxtiles * lev.nytiles);
         int index       = whichtile / 64;
         int64_t bitmask = int64_t(1ULL << (whichtile & 63));
         int64_t oldval  = lev.tiles_read[index].fetch_or(bitmask);
         if (oldval & bitmask)  // Was it previously read?
-            file.register_redundant_tile(spec.tile_bytes());
+            file.register_redundant_tile(lev.get_tile_bytes());
     } else {
         // (! m_valid)
         m_used = false;  // Don't let it hold mem if invalid
@@ -1663,10 +2077,10 @@ ImageCacheTile::wait_pixels_ready() const
 const void*
 ImageCacheTile::data(int x, int y, int z, int c) const
 {
-    const ImageSpec& spec = m_id.file().spec(m_id.subimage(), m_id.miplevel());
-    size_t w              = spec.tile_width;
-    size_t h              = spec.tile_height;
-    size_t d              = spec.tile_depth;
+    const LevelInfo& lvl(m_id.file().levelinfo(m_id.subimage(), m_id.miplevel()));
+    size_t w              = lvl.get_tile_width();
+    size_t h              = lvl.get_tile_height();
+    size_t d              = lvl.get_tile_depth();
     OIIO_DASSERT(d >= 1);
     x -= m_id.x();
     y -= m_id.y();
@@ -1777,7 +2191,8 @@ ImageCacheImpl::onefile_stat_line(const ImageCacheFileRef& file, int i,
     // FIXME -- make meaningful stat printouts for multi-image textures
     std::ostringstream out;
     out.imbue(std::locale::classic());  // Force "C" locale with '.' decimal
-    const ImageSpec& spec(file->spec(0, 0));
+    const LevelInfo& lvl(file->levelinfo(0, 0));
+    const ImageSpec& spec(lvl.get_subimage_spec());
     const char* formatcode = "u8";
     switch (spec.format.basetype) {
     case TypeDesc::UINT8: formatcode = "u8 "; break;
@@ -1810,10 +2225,10 @@ ImageCacheImpl::onefile_stat_line(const ImageCacheFileRef& file, int i,
                   Strutil::timeintervalformat(file->iotime()));
     }
     if (file->subimages() > 1)
-        print(out, "{:3} face x{}.{}", file->subimages(), spec.nchannels,
+        print(out, "{:3} face x{}.{}", file->subimages(), lvl.get_channels(),
               formatcode);
     else
-        print(out, "{:4}x{:4}x{}.{}", spec.width, spec.height, spec.nchannels,
+        print(out, "{:4}x{:4}x{}.{}", lvl.get_width(), lvl.get_height(), lvl.get_channels(),
               formatcode);
     print(out, "  {} ", file->filename());
     if (file->duplicate()) {
@@ -2873,18 +3288,19 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
         return false;
     }
 
-    const ImageSpec& spec(file->spec(subimage, miplevel));
+    const LevelInfo& lvl(file->levelinfo(subimage, miplevel));
+    const ImageSpec& spec(lvl.get_subimage_spec());
     if (dataname == s_resolution && datatype == TypeDesc(TypeDesc::INT, 2)) {
         int* d = (int*)data;
-        d[0]   = spec.width;
-        d[1]   = spec.height;
+        d[0]   = lvl.get_width();
+        d[1]   = lvl.get_height();
         return true;
     }
     if (dataname == s_resolution && datatype == TypeDesc(TypeDesc::INT, 3)) {
         int* d = (int*)data;
-        d[0]   = spec.width;
-        d[1]   = spec.height;
-        d[2]   = spec.depth;
+        d[0]   = lvl.get_width();
+        d[1]   = lvl.get_height();
+        d[2]   = lvl.get_depth();
         return true;
     }
     if (dataname == s_texturetype && datatype == TypeString) {
@@ -2927,17 +3343,17 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
             || datatype == TypeDesc(TypeDesc::INT, 6))) {
         int* d = (int*)data;
         if (datatype.arraylen == 4) {
-            d[0] = spec.x;
-            d[1] = spec.y;
-            d[2] = spec.x + spec.width - 1;
-            d[3] = spec.y + spec.height - 1;
+            d[0] = lvl.get_x();
+            d[1] = lvl.get_y();
+            d[2] = lvl.get_x() + lvl.get_width() - 1;
+            d[3] = lvl.get_y() + lvl.get_height() - 1;
         } else {
-            d[0] = spec.x;
-            d[1] = spec.y;
-            d[2] = spec.z;
-            d[3] = spec.x + spec.width - 1;
-            d[4] = spec.y + spec.height - 1;
-            d[5] = spec.z + spec.depth - 1;
+            d[0] = lvl.get_x();
+            d[1] = lvl.get_y();
+            d[2] = lvl.get_z();
+            d[3] = lvl.get_x() + lvl.get_width() - 1;
+            d[4] = lvl.get_y() + lvl.get_height() - 1;
+            d[5] = lvl.get_z() + lvl.get_depth() - 1;
         }
         return true;
     }
@@ -2946,17 +3362,17 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
             || datatype == TypeDesc(TypeDesc::INT, 6))) {
         int* d = (int*)data;
         if (datatype.arraylen == 4) {
-            d[0] = spec.full_x;
-            d[1] = spec.full_y;
-            d[2] = spec.full_x + spec.full_width - 1;
-            d[3] = spec.full_y + spec.full_height - 1;
+            d[0] = lvl.get_full_x();
+            d[1] = lvl.get_full_y();
+            d[2] = lvl.get_full_x() + lvl.get_full_width() - 1;
+            d[3] = lvl.get_full_y() + lvl.get_full_height() - 1;
         } else {
-            d[0] = spec.full_x;
-            d[1] = spec.full_y;
-            d[2] = spec.full_z;
-            d[3] = spec.full_x + spec.full_width - 1;
-            d[4] = spec.full_y + spec.full_height - 1;
-            d[5] = spec.full_z + spec.full_depth - 1;
+            d[0] = lvl.get_full_x();
+            d[1] = lvl.get_full_y();
+            d[2] = lvl.get_full_z();
+            d[3] = lvl.get_full_x() + lvl.get_full_width() - 1;
+            d[4] = lvl.get_full_y() + lvl.get_full_height() - 1;
+            d[5] = lvl.get_full_z() + lvl.get_full_depth() - 1;
         }
         return true;
     }
@@ -3094,7 +3510,7 @@ ImageCacheImpl::imagespec(ImageCacheFile* file,
                   file->miplevels(subimage));
         return NULL;
     }
-    return &file->nativespec(subimage, miplevel);
+    return &file->get_subimage_spec(subimage);
 }
 
 
@@ -3150,10 +3566,8 @@ ImageCacheImpl::get_cache_dimensions(ImageCacheFile* file,
         return false;
     }
     //! copy dimensions from mip level ImageSpec
-    //! TODO: store nativespec in SubImageInfo, and extra overrides in LevelInfo
-    //! and simply copy extra overrides here
-    const ImageSpec& mipspec = file->spec(subimage, miplevel);
-    spec.copy_dimensions(mipspec);
+    const LevelInfo& lvl(file->levelinfo(subimage, miplevel));
+    lvl.get_level_dimensions(spec);
     return true;
 }
 
@@ -3281,20 +3695,20 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
 
     if (!thread_info)
         thread_info = get_perthread_info();
-    const ImageSpec& spec(file->spec(subimage, miplevel));
+    const LevelInfo& lvl(file->levelinfo(subimage, miplevel));
     bool ok = true;
 
     // Compute channels and stride if not given (assume all channels,
     // contiguous data layout for strides).
     if (chbegin < 0 || chend < 0) {
         chbegin = 0;
-        chend   = spec.nchannels;
+        chend   = lvl.get_channels();
     }
     int result_nchans = chend - chbegin;
     if (cache_chbegin < 0 || cache_chend < 0 || cache_chbegin > chbegin
         || cache_chend < chend) {
         cache_chbegin = 0;
-        cache_chend   = spec.nchannels;
+        cache_chend   = lvl.get_channels();
     }
     int cache_nchans = cache_chend - cache_chbegin;
     ImageSpec::auto_stride(xstride, ystride, zstride, format, result_nchans,
@@ -3312,12 +3726,12 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
                     && result_nchans == cache_nchans);
     stride_t scanlinesize       = (xend - xbegin) * result_pixelsize;
     stride_t zplanesize         = (yend - ybegin) * scanlinesize;
-    OIIO_DASSERT(spec.depth >= 1 && spec.tile_depth >= 1);
+    OIIO_DASSERT(lvl.get_depth() >= 1 && lvl.get_tile_depth() >= 1);
 
     imagesize_t npixelsread = 0;
     char* zptr              = (char*)result;
     for (int z = zbegin; z < zend; ++z, zptr += zstride) {
-        if (z < spec.z || z >= (spec.z + spec.depth)) {
+        if (z < lvl.get_z() || z >= (lvl.get_z() + lvl.get_depth())) {
             // nonexistent planes
             if (xstride == result_pixelsize && ystride == scanlinesize) {
                 // Can zero out the plane in one shot
@@ -3334,16 +3748,16 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
             continue;
         }
         int old_tx = -100000, old_ty = -100000, old_tz = -100000;
-        int tz     = z - ((z - spec.z) % spec.tile_depth);
+        int tz     = z - ((z - lvl.get_z()) % lvl.get_tile_depth());
         char* yptr = zptr;
-        int ty     = ybegin - ((ybegin - spec.y) % spec.tile_height);
-        int tyend  = ty + spec.tile_height;
+        int ty     = ybegin - ((ybegin - lvl.get_y()) % lvl.get_tile_height());
+        int tyend  = ty + lvl.get_tile_height();
         for (int y = ybegin; y < yend; ++y, yptr += ystride) {
             if (y == tyend) {
                 ty = tyend;
-                tyend += spec.tile_height;
+                tyend += lvl.get_tile_height();
             }
-            if (y < spec.y || y >= (spec.y + spec.height)) {
+            if (y < lvl.get_y() || y >= (lvl.get_y() + lvl.get_height())) {
                 // nonexistent scanlines
                 if (xstride == result_pixelsize) {
                     // Can zero out the scanline in one shot
@@ -3356,17 +3770,17 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
                 }
                 continue;
             }
-            // int ty = y - ((y - spec.y) % spec.tile_height);
+            // int ty = y - ((y - lvl.get_y()) % lvl.get_tile_height());
             char* xptr       = yptr;
             const char* data = NULL;
             for (int x = xbegin; x < xend;
                  ++x, xptr += xstride, ++npixelsread) {
-                if (x < spec.x || x >= (spec.x + spec.width)) {
+                if (x < lvl.get_x() || x >= (lvl.get_x() + lvl.get_width())) {
                     // nonexistent columns
                     memset(xptr, 0, result_pixelsize);
                     continue;
                 }
-                int tx = x - ((x - spec.x) % spec.tile_width);
+                int tx = x - ((x - lvl.get_x()) % lvl.get_tile_width());
                 if (old_tx != tx || old_ty != ty || old_tz != tz) {
                     // Only do a find_tile and re-setup of the data
                     // pointer when we move across a tile boundary.
@@ -3388,7 +3802,7 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
                 }
                 if (xcontig) {
                     // Special case for a contiguous span within one tile
-                    int spanend   = std::min(tx + spec.tile_width, xend);
+                    int spanend   = std::min(tx + lvl.get_tile_width(), xend);
                     stride_t span = spanend - x;
                     convert_pixel_values(cachetype, data, format, xptr,
                                          result_nchans * span);
@@ -3435,17 +3849,17 @@ ImageCacheImpl::get_tile(ImageHandle* file, Perthread* thread_info,
     if (subimage < 0 || subimage >= file->subimages() || miplevel < 0
         || miplevel >= file->miplevels(subimage))
         return nullptr;
-    const ImageSpec& spec(file->spec(subimage, miplevel));
+    const LevelInfo& lvl(file->levelinfo(subimage, miplevel));
     // Snap x,y,z to the corner of the tile
-    int xtile = (x - spec.x) / spec.tile_width;
-    int ytile = (y - spec.y) / spec.tile_height;
-    int ztile = (z - spec.z) / spec.tile_depth;
-    x         = spec.x + xtile * spec.tile_width;
-    y         = spec.y + ytile * spec.tile_height;
-    z         = spec.z + ztile * spec.tile_depth;
+    int xtile = (x - lvl.get_x()) / lvl.get_tile_width();
+    int ytile = (y - lvl.get_y()) / lvl.get_tile_height();
+    int ztile = (z - lvl.get_z()) / lvl.get_tile_depth();
+    x         = lvl.get_x() + xtile * lvl.get_tile_width();
+    y         = lvl.get_y() + ytile * lvl.get_tile_height();
+    z         = lvl.get_z() + ztile * lvl.get_tile_depth();
     if (chend < chbegin) {  // chend < chbegin means "all channels."
         chbegin = 0;
-        chend   = spec.nchannels;
+        chend   = lvl.get_channels();
     }
     TileID id(*file, subimage, miplevel, x, y, z, chbegin, chend);
     if (find_tile(id, thread_info, true)) {
@@ -3476,7 +3890,7 @@ TypeDesc
 ImageCacheImpl::tile_format(const Tile* tile) const
 {
     const TileID& id(((const ImageCacheTile*)tile)->id());
-    const ImageSpec& spec(id.file().spec(id.subimage(), id.miplevel()));
+    const ImageSpec& spec(id.file().get_subimage_spec(id.subimage()));
     return spec.format;
 }
 
@@ -3486,9 +3900,9 @@ ROI
 ImageCacheImpl::tile_roi(const Tile* tile) const
 {
     const TileID& id(((const ImageCacheTile*)tile)->id());
-    const ImageSpec& spec(id.file().spec(id.subimage(), id.miplevel()));
-    return ROI(id.x(), id.x() + spec.tile_width, id.y(),
-               id.y() + spec.tile_height, id.z(), id.z() + spec.tile_depth,
+    const LevelInfo& lvl(id.file().levelinfo(id.subimage(), id.miplevel()));
+    return ROI(id.x(), id.x() + lvl.get_tile_width(), id.y(),
+               id.y() + lvl.get_tile_height(), id.z(), id.z() + lvl.get_tile_depth(),
                id.chbegin(), id.chend());
 }
 
@@ -3540,7 +3954,7 @@ ImageCacheImpl::add_tile(ustring filename, int subimage, int miplevel, int x,
     }
     if (chend < chbegin) {  // chend < chbegin means "all channels."
         chbegin = 0;
-        chend   = file->spec(subimage, miplevel).nchannels;
+        chend   = file->levelinfo(subimage, miplevel).get_channels();
     }
     TileID tileid(*file, subimage, miplevel, x, y, z, chbegin, chend);
     ImageCacheTileRef tile = new ImageCacheTile(tileid, buffer, format, xstride,
@@ -3673,10 +4087,9 @@ ImageCacheImpl::invalidate_all(bool force)
             // auto-tile setting.
             if (sub.untiled) {
                 for (int m = 0, mend = f->miplevels(s); m < mend; ++m) {
-                    const ImageCacheFile::LevelInfo& level(f->levelinfo(s, m));
-                    const ImageSpec& spec(level.spec());
-                    if (spec.tile_width != m_autotile
-                        || spec.tile_height != m_autotile) {
+                    const LevelInfo& level(f->levelinfo(s, m));
+                    if (level.get_tile_width() != m_autotile
+                        || level.get_tile_height() != m_autotile) {
                         all_files.push_back(name);
                         break;
                     }
@@ -4083,23 +4496,6 @@ ImageCacheImpl::footprint(ImageCacheFootprint& output) const
             for (const auto& level : sub.levels) {
                 const size_t lvlftp = footprint(level);
                 output.add<kLevelInfoMem>(lvlftp, format);
-
-                // extra infos; there are two ImageSpec structures stored in each LevelInfos,
-                // and they turn out to be memory heavy, so we further break that down next.
-                const size_t lvlspecftp = footprint(level.m_spec)
-                                          + footprint(level.nativespec);
-                const size_t lvlattrftp
-                    = (level.m_spec ? footprint(level.m_spec->extra_attribs)
-                                    : 0)
-                      + footprint(level.nativespec.extra_attribs);
-                const size_t lvlchanftp
-                    = (level.m_spec ? footprint(level.m_spec->channelnames) : 0)
-                      + footprint(level.nativespec.channelnames);
-                output.add<kLevelInfoSpecMem>(lvlspecftp, format);
-                output.add<kLevelInfoSpecMembMem>(2 * sizeof(ImageSpec),
-                                                  format);
-                output.add<kLevelInfoSpecParmsMem>(lvlattrftp, format);
-                output.add<kLevelInfoSpecChanMem>(lvlchanftp, format);
             }
         }
     }

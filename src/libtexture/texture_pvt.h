@@ -401,7 +401,7 @@ public:
     /// portion of the way to the next texel to the right or down,
     /// respectively.
     void st_to_texel(float s, float t, TextureFile& texturefile,
-                     const ImageSpec& spec, int& i, int& j, float& ifrac,
+                     const TextureFile::LevelInfo& lvl, int& i, int& j, float& ifrac,
                      float& jfrac);
 
     /// Called when the requested texture is missing, fills in the
@@ -526,20 +526,20 @@ TextureSystemImpl::anisotropic_aspect(float& majorlength, float& minorlength,
 
 inline void
 TextureSystemImpl::st_to_texel(float s, float t, TextureFile& texturefile,
-                               const ImageSpec& spec, int& i, int& j,
+                               const TextureFile::LevelInfo& lvl, int& i, int& j,
                                float& ifrac, float& jfrac)
 {
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
     // Note that we have two modes, depending on the m_sample_border.
     if (texturefile.m_sample_border == 0) {
         // texel samples are at 0.5/res, 1.5/res, ..., (res-0.5)/res,
-        s = s * spec.width + spec.x - 0.5f;
-        t = t * spec.height + spec.y - 0.5f;
+        s = s * lvl.get_width() + lvl.get_x() - 0.5f;
+        t = t * lvl.get_height() + lvl.get_y() - 0.5f;
     } else {
         // first and last rows/columns are *exactly* on the boundary,
         // so samples are at 0, 1/(res-1), ..., 1.
-        s = s * (spec.width - 1) + spec.x;
-        t = t * (spec.height - 1) + spec.y;
+        s = s * (lvl.get_width() - 1) + lvl.get_x();
+        t = t * (lvl.get_height() - 1) + lvl.get_y();
     }
     ifrac = floorfrac(s, &i);
     jfrac = floorfrac(t, &j);
