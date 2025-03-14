@@ -19,12 +19,10 @@ repository = "https://github.com/AcademySoftwareFoundation/OpenImageIO.git"
 members = ["oiio-sys"]
 
 [workspace.dependencies]
-anyhow = "1.0.95"
-cxx = { version = "1.0.140", features = ["c++17"] }
-thiserror = "2.0.11"
+cxx = { version = "1.0.143", features = ["c++17"] }
+thiserror = "2.0.12"
 
 [dependencies]
-anyhow = { workspace = true }
 cxx = { workspace = true }
 oiio-sys = { path = "oiio-sys", version = "0.1.0" }
 thiserror = { workspace = true }

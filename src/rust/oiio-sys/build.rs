@@ -17,10 +17,11 @@ fn main() -> Result<()> {
 
     cxx_build::bridges(NAMES.iter().map(|s| format!("src/{}.rs", s)))
         .files(NAMES.iter().map(|s| format!("src/{}.cpp", s)))
-        .flag_if_supported("-std=c++17")
+        .std("c++17")
         .includes(&include_paths)
         .compile("oiio-sys");
 
+    println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/lib.rs");
 
     for name in NAMES {
