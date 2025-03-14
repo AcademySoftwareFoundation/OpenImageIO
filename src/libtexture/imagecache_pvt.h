@@ -310,8 +310,7 @@ public:
     /// precompute.
     struct SubimageInfo;
     struct LevelInfo {
-        SubimageInfo&
-            m_subimage;  ///< Parent subimage to access the reference spec
+        ImageSpec* m_spec;  ///< Ptr to parent subimage spec
         std::unique_ptr<LevelSpec>
             m_levelspec;  ///< Extra level info in case they are different from the subimage spec
         mutable std::unique_ptr<float[]> polecolor;  ///< Pole colors
@@ -321,9 +320,9 @@ public:
         bool onetile;           ///< Whole level fits on one tile
         mutable bool polecolorcomputed;  ///< Pole color was computed
 
-        LevelInfo(SubimageInfo& subimage, std::unique_ptr<LevelSpec> levelspec);
-        LevelInfo(SubimageInfo& subimage)
-            : LevelInfo(subimage, nullptr)
+        LevelInfo(ImageSpec* spec, std::unique_ptr<LevelSpec> levelspec);
+        LevelInfo(ImageSpec* spec)
+            : LevelInfo(spec, nullptr)
         {
         }
 

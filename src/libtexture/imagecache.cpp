@@ -350,9 +350,8 @@ init_ntiles(LevelInfo& lvl, const T& s)
 
 
 
-LevelInfo::LevelInfo(SubimageInfo& subimage,
-                     std::unique_ptr<LevelSpec> levelspec_)
-    : m_subimage(subimage)
+LevelInfo::LevelInfo(ImageSpec* spec_, std::unique_ptr<LevelSpec> levelspec_)
+    : m_spec(spec_)
     , m_levelspec(std::move(levelspec_))
 {
     const ImageSpec& spec = get_subimage_spec();
@@ -378,7 +377,7 @@ LevelInfo::LevelInfo(SubimageInfo& subimage,
 
 
 LevelInfo::LevelInfo(const LevelInfo& src)
-    : m_subimage(src.m_subimage)
+    : m_spec(src.m_spec)
     , m_levelspec(src.m_levelspec
                       ? std::make_unique<LevelSpec>(*src.m_levelspec)
                       : nullptr)
@@ -405,8 +404,8 @@ LevelInfo::LevelInfo(const LevelInfo& src)
 ImageSpec&
 LevelInfo::get_subimage_spec()
 {
-    OIIO_DASSERT(m_subimage.m_spec);
-    return *m_subimage.m_spec;
+    OIIO_DASSERT(m_spec);
+    return *m_spec;
 }
 
 
@@ -414,8 +413,8 @@ LevelInfo::get_subimage_spec()
 const ImageSpec&
 LevelInfo::get_subimage_spec() const
 {
-    OIIO_DASSERT(m_subimage.m_spec);
-    return *m_subimage.m_spec;
+    OIIO_DASSERT(m_spec);
+    return *m_spec;
 }
 
 
@@ -1023,14 +1022,15 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             }
             // ImageCache can't store differing formats per channel
             tempspec.channelformats.clear();
-            // In each mip level we only want to store the fields
-            // that differ from the native spec
+            // Each mip level stores only the fields that differ from the native spec
             LevelSpec levelspec(tempspec);
+            OIIO_DASSERT(si.m_spec);
             if (levelspec.is_same(*si.m_spec)) {
-                LevelInfo levelinfo(si);
+                LevelInfo levelinfo(si.m_spec.get());
                 si.levels.push_back(levelinfo);
             } else {
-                LevelInfo levelinfo(si, std::make_unique<LevelSpec>(levelspec));
+                LevelInfo levelinfo(si.m_spec.get(),
+                                    std::make_unique<LevelSpec>(levelspec));
                 si.levels.push_back(levelinfo);
             }
             ++nmip;
@@ -1075,11 +1075,12 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                 }
                 ++nmip;
                 LevelSpec levelspec(s);
+                OIIO_DASSERT(si.m_spec);
                 if (levelspec.is_same(*si.m_spec)) {
-                    LevelInfo levelinfo(si);
+                    LevelInfo levelinfo(si.m_spec.get());
                     si.levels.push_back(levelinfo);
                 } else {
-                    LevelInfo levelinfo(si,
+                    LevelInfo levelinfo(si.m_spec.get(),
                                         std::make_unique<LevelSpec>(levelspec));
                     si.levels.push_back(levelinfo);
                 }
