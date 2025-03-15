@@ -338,9 +338,6 @@ public:
         //! Overrides the dimensions in `spec` with the current level dimensions
         void get_level_dimensions(ImageSpec& spec) const;
 
-        //! If `m_levelspec` is null, this function initialises `m_levelspec` from `m_spec`
-        void init_level_spec();
-
         //! Update the `full_` values in `m_levelspec`
         void set_full_width(int w);
         void set_full_height(int h);

@@ -435,18 +435,13 @@ LevelInfo::get_level_dimensions(ImageSpec& spec) const
 
 
 void
-LevelInfo::init_level_spec()
-{
-    m_levelspec = std::make_unique<LevelSpec>(LevelSpec(get_subimage_spec()));
-}
-
-
-
-void
 LevelInfo::set_full_width(int w)
 {
     if (!m_levelspec)
-        init_level_spec();
+        m_levelspec = std::make_shared<LevelSpec>(
+            LevelSpec(get_subimage_spec()));
+    else if (shared_levelspec)
+        m_levelspec = std::make_shared<LevelSpec>(LevelSpec(*m_levelspec));
     m_levelspec->full_width = w;
 }
 
@@ -456,7 +451,10 @@ void
 LevelInfo::set_full_height(int h)
 {
     if (!m_levelspec)
-        init_level_spec();
+        m_levelspec = std::make_shared<LevelSpec>(
+            LevelSpec(get_subimage_spec()));
+    else if (shared_levelspec)
+        m_levelspec = std::make_shared<LevelSpec>(LevelSpec(*m_levelspec));
     m_levelspec->full_height = h;
 }
 
@@ -466,7 +464,10 @@ void
 LevelInfo::set_full_depth(int d)
 {
     if (!m_levelspec)
-        init_level_spec();
+        m_levelspec = std::make_shared<LevelSpec>(
+            LevelSpec(get_subimage_spec()));
+    else if (shared_levelspec)
+        m_levelspec = std::make_shared<LevelSpec>(LevelSpec(*m_levelspec));
     m_levelspec->full_depth = d;
 }
 
@@ -1186,6 +1187,7 @@ ImageCacheFile::init_from_spec()
                         lvl.set_full_height(lvl.get_height());
                     if (lvl.get_full_depth() > lvl.get_depth())
                         lvl.set_full_depth(lvl.get_depth());
+                    //! TODO: try to deduplicate LevelSpec with previous subimages if possible
                 }
             }
         }
