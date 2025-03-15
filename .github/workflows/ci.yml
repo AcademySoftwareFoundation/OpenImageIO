@@ -14,6 +14,7 @@ on:
       - '!**/analysis.yml'
       - '!**/docs.yml'
       - '!**/scorecard.yml'
+      - '!**/wheel.yml'
       - '!**.properties'
       - '!docs/**'
   pull_request:
