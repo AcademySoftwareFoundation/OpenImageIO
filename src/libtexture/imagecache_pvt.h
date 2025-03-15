@@ -295,7 +295,7 @@ public:
         LevelSpec(const ImageSpec& levelspec);  /// copy members from ImageSpec
 
         //! Returns true iif all members are identical to the `spec` members of the same name.
-        bool is_same(const ImageSpec& spec) const;
+        template<typename T> bool is_same(const T& spec) const;
 
         //! The following methods are similar to the ones from ImageSpec
         //! evaluated with the LevelSpec members.
@@ -308,21 +308,23 @@ public:
 
     /// Info for each MIP level that isn't in the ImageSpec, or that we
     /// precompute.
-    struct SubimageInfo;
     struct LevelInfo {
-        ImageSpec* m_spec;  ///< Ptr to parent subimage spec
-        std::unique_ptr<LevelSpec>
+        ImageSpec*
+            m_spec;  ///< Ptr to parent subimage spec, this ptr should live as long as the parent subimage
+        std::shared_ptr<LevelSpec>
             m_levelspec;  ///< Extra level info in case they are different from the subimage spec
         mutable std::unique_ptr<float[]> polecolor;  ///< Pole colors
         atomic_ll* tiles_read;  ///< Bitfield for tiles read at least once
         int nxtiles, nytiles, nztiles;  ///< Number of tiles in each dimension
         bool full_pixel_range;  ///< pixel data window matches image window
         bool onetile;           ///< Whole level fits on one tile
+        bool shared_levelspec;  ///< mark whether LevelSpec is created for this mip level or reused
         mutable bool polecolorcomputed;  ///< Pole color was computed
 
-        LevelInfo(ImageSpec* spec, std::unique_ptr<LevelSpec> levelspec);
+        LevelInfo(ImageSpec* spec, std::shared_ptr<LevelSpec> levelspec,
+                  bool shared_levelspec);
         LevelInfo(ImageSpec* spec)
-            : LevelInfo(spec, nullptr)
+            : LevelInfo(spec, nullptr, false)
         {
         }
 

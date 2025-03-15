@@ -23,11 +23,9 @@ template<>
 inline size_t
 heapsize<ImageCacheFile::LevelInfo>(const ImageCacheFile::LevelInfo& lvl)
 {
-    //! NOTE: we don't count the memory allocated for the shared_ptr m_spec,
-    // i.e. the associated subimage spec here, we account for it in the subimage heapsize once.
-    // We only account for the LevelSpec diff structure.
-    size_t size = heapsize(lvl.m_levelspec);
-    size += heapsize(lvl.polecolor);
+    size_t size = heapsize(lvl.polecolor);
+    if (lvl.shared_levelspec)
+        size += heapsize(lvl.m_levelspec);
     if (lvl.tiles_read) {
         const size_t total_tiles   = lvl.nxtiles * lvl.nytiles * lvl.nztiles;
         const size_t bitfield_size = round_to_multiple(total_tiles, 64) / 64;

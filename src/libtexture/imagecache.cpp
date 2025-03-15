@@ -256,8 +256,9 @@ LevelSpec::LevelSpec(const ImageSpec& s)
 
 
 
+template<typename T>
 bool
-LevelSpec::is_same(const ImageSpec& s) const
+LevelSpec::is_same(const T& s) const
 {
     return x == s.x && y == s.y && z == s.z && width == s.width
            && height == s.height && depth == s.depth && full_x == s.full_x
@@ -350,7 +351,8 @@ init_ntiles(LevelInfo& lvl, const T& s)
 
 
 
-LevelInfo::LevelInfo(ImageSpec* spec_, std::unique_ptr<LevelSpec> levelspec_)
+LevelInfo::LevelInfo(ImageSpec* spec_, std::shared_ptr<LevelSpec> levelspec_,
+                     bool shared_levelspec_)
     : m_spec(spec_)
     , m_levelspec(std::move(levelspec_))
 {
@@ -358,6 +360,7 @@ LevelInfo::LevelInfo(ImageSpec* spec_, std::unique_ptr<LevelSpec> levelspec_)
     full_pixel_range      = m_levelspec ? has_full_pixel_range(*m_levelspec)
                                         : has_full_pixel_range(spec);
     onetile = m_levelspec ? has_one_tile(*m_levelspec) : has_one_tile(spec);
+    shared_levelspec  = shared_levelspec_;
     polecolorcomputed = false;
 
     // Allocate bit field for which tiles have been read at least once.
@@ -386,6 +389,7 @@ LevelInfo::LevelInfo(const LevelInfo& src)
     , nztiles(src.nztiles)
     , full_pixel_range(src.full_pixel_range)
     , onetile(src.onetile)
+    , shared_levelspec(src.shared_levelspec)
     , polecolorcomputed(src.polecolorcomputed)
 {
     const ImageSpec& spec = get_subimage_spec();
@@ -422,9 +426,6 @@ LevelInfo::get_subimage_spec() const
 void
 LevelInfo::get_level_dimensions(ImageSpec& spec) const
 {
-    //! NOTE: because I don't have a better solution yet,
-    //! LevelSpec copies **to** ImageSpec while ImageSpec
-    //! copies **from** ImageSpec
     if (m_levelspec)
         m_levelspec->copy_dimensions(spec);
     else
@@ -1029,8 +1030,20 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                 LevelInfo levelinfo(si.m_spec.get());
                 si.levels.push_back(levelinfo);
             } else {
-                LevelInfo levelinfo(si.m_spec.get(),
-                                    std::make_unique<LevelSpec>(levelspec));
+                // next we try to deduplicate LevelSpec across subimages:
+                // i.e. we check if the previous subimage at the same mip level
+                // has an allocated LevelSpec and has the same dimensions
+                std::shared_ptr<LevelSpec> tmp;
+                if (nsubimages > 0) {
+                    const LevelInfo& lvl(levelinfo(nsubimages - 1, nmip));
+                    if (lvl.m_levelspec && levelspec.is_same(*lvl.m_levelspec))
+                        tmp = lvl.m_levelspec;
+                }
+                // if we cannot reuse a previously allocated LevelSpec, just create one
+                const bool shared_levelspec = bool(tmp);
+                if (!shared_levelspec)
+                    tmp = std::make_shared<LevelSpec>(levelspec);
+                LevelInfo levelinfo(si.m_spec.get(), tmp, shared_levelspec);
                 si.levels.push_back(levelinfo);
             }
             ++nmip;
@@ -1080,8 +1093,21 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                     LevelInfo levelinfo(si.m_spec.get());
                     si.levels.push_back(levelinfo);
                 } else {
-                    LevelInfo levelinfo(si.m_spec.get(),
-                                        std::make_unique<LevelSpec>(levelspec));
+                    // next we try to deduplicate LevelSpec across subimages:
+                    // i.e. we check if the previous subimage at the same mip level
+                    // has an allocated LevelSpec and has the same dimensions
+                    std::shared_ptr<LevelSpec> tmp;
+                    if (nsubimages > 0) {
+                        const LevelInfo& lvl(levelinfo(nsubimages - 1, nmip));
+                        if (lvl.m_levelspec
+                            && levelspec.is_same(*lvl.m_levelspec))
+                            tmp = lvl.m_levelspec;
+                    }
+                    // if we cannot reuse a previously allocated LevelSpec, just create one
+                    const bool shared_levelspec = bool(tmp);
+                    if (!shared_levelspec)
+                        tmp = std::make_shared<LevelSpec>(levelspec);
+                    LevelInfo levelinfo(si.m_spec.get(), tmp, shared_levelspec);
                     si.levels.push_back(levelinfo);
                 }
             }
