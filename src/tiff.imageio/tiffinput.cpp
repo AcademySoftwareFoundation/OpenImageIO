@@ -134,6 +134,27 @@ public:
     bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                            int ybegin, int yend, int zbegin, int zend,
                            void* data) override;
+
+    // Helper: already having locked the ImageInput and done a seek_subimage
+    // to the right subimage & miplevel, read the designated scanline.
+    bool read_native_scanline_locked(int subimage, int miplevel, int y,
+                                     span<std::byte> data);
+    bool read_native_tile_locked(int subimage, int miplevel, int x, int y,
+                                 int z, span<std::byte> data);
+    bool read_native_tiles_locked(int subimage, int miplevel, int xbegin,
+                                  int xend, int ybegin, int yend, int zbegin,
+                                  int zend, size_t ntiles,
+                                  span<std::byte> data);
+
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               span<std::byte> data) override;
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, span<std::byte> data) override;
+    bool read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
+                                      int xend, int ybegin, int yend,
+                                      int zbegin, int zend,
+                                      span<std::byte> data) override;
+
     bool read_scanline(int y, int z, TypeDesc format, void* data,
                        stride_t xstride) override;
     bool read_scanlines(int subimage, int miplevel, int ybegin, int yend, int z,
@@ -217,11 +238,13 @@ private:
     void readspec_photometric();
 
     // Convert planar separate to contiguous data format
+    // FIXME: should change to be span-based
     void separate_to_contig(int nplanes, int nvals,
                             const unsigned char* separate,
                             unsigned char* contig);
 
     // Convert palette to RGB
+    // FIXME: should change to be span-based
     void palette_to_rgb(int n, const unsigned char* palettepels,
                         unsigned char* rgb);
     void palette_to_rgb(int n, const uint16_t* palettepels, unsigned char* rgb);
@@ -1680,6 +1703,28 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
+    auto native_sl_bytes = m_spec.scanline_bytes(true);
+    return read_native_scanline_locked(subimage, miplevel, y,
+                                       as_writable_bytes(data, native_sl_bytes));
+}
+
+
+
+bool
+TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
+                                       span<std::byte> data)
+{
+    // Not necessary, we assume this has already been done:
+    //
+    // lock_guard lock(*this);
+    // if (!seek_subimage(subimage, miplevel))
+    //     return false;
+#ifndef NDEBUG /* double check in debug mode */
+    if (!valid_raw_span_size(data, m_spec, m_spec.x, m_spec.x + m_spec.width, y,
+                             y + 1))
+        return false;
+#endif
+
     y -= m_spec.y;
 
     if (m_use_rgba_interface) {
@@ -1701,7 +1746,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         }
         copy_image(m_spec.nchannels, m_spec.width, 1, 1,
                    &m_rgbadata[y * size_t(m_spec.width)], m_spec.nchannels, 4,
-                   4 * m_spec.width, AutoStride, data, m_spec.nchannels,
+                   4 * m_spec.width, AutoStride, data.data(), m_spec.nchannels,
                    m_spec.width * m_spec.nchannels, AutoStride);
         return true;
     }
@@ -1772,10 +1817,11 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             return false;
         }
         if (m_bitspersample <= 8)
-            palette_to_rgb(m_spec.width, &m_scratch[0], (unsigned char*)data);
+            palette_to_rgb(m_spec.width, &m_scratch[0],
+                           (unsigned char*)data.data());
         else if (m_bitspersample == 16)
             palette_to_rgb(m_spec.width, (uint16_t*)&m_scratch[0],
-                           (unsigned char*)data);
+                           (unsigned char*)data.data());
         return true;
     }
     // Not palette...
@@ -1784,7 +1830,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     size_t input_bytes = plane_bytes * m_inputchannels;
     // Where to read?  Directly into user data if no channel shuffling, bit
     // shifting, or CMYK conversion is needed, otherwise into scratch space.
-    unsigned char* readbuf = (unsigned char*)data;
+    unsigned char* readbuf = (unsigned char*)data.data();
     if (need_bit_convert || m_separate
         || (m_photometric == PHOTOMETRIC_SEPARATED && !m_raw_color))
         readbuf = &m_scratch[0];
@@ -1807,8 +1853,9 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             bit_convert(m_separate ? m_spec.width : nvals,
                         &m_scratch2[plane_bytes * c], m_bitspersample,
-                        m_separate ? &m_scratch[plane_bytes * c]
-                                   : (unsigned char*)data + plane_bytes * c,
+                        m_separate
+                            ? &m_scratch[plane_bytes * c]
+                            : (unsigned char*)data.data() + plane_bytes * c,
                         8);
     } else if (m_bitspersample > 8 && m_bitspersample < 16) {
         // m_scratch now holds nvals n-bit values, contig or separate
@@ -1817,8 +1864,9 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             bit_convert(m_separate ? m_spec.width : nvals,
                         &m_scratch2[plane_bytes * c], m_bitspersample,
-                        m_separate ? &m_scratch[plane_bytes * c]
-                                   : (unsigned char*)data + plane_bytes * c,
+                        m_separate
+                            ? &m_scratch[plane_bytes * c]
+                            : (unsigned char*)data.data() + plane_bytes * c,
                         16);
     } else if (m_bitspersample > 16 && m_bitspersample < 32) {
         // m_scratch now holds nvals n-bit values, contig or separate
@@ -1827,8 +1875,9 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             bit_convert(m_separate ? m_spec.width : nvals,
                         &m_scratch2[plane_bytes * c], m_bitspersample,
-                        m_separate ? &m_scratch[plane_bytes * c]
-                                   : (unsigned char*)data + plane_bytes * c,
+                        m_separate
+                            ? &m_scratch[plane_bytes * c]
+                            : (unsigned char*)data.data() + plane_bytes * c,
                         32);
     }
 
@@ -1847,7 +1896,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             // If no CMYK->RGB conversion is necessary, we can "separate"
             // straight into the data area.
             separate_to_contig(planes, m_spec.width, &m_scratch[0],
-                               (unsigned char*)data);
+                               (unsigned char*)data.data());
         }
     }
 
@@ -1856,11 +1905,11 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // The CMYK will be in m_scratch.
         if (spec().format == TypeDesc::UINT8) {
             cmyk_to_rgb(m_spec.width, (unsigned char*)&m_scratch[0],
-                        m_inputchannels, (unsigned char*)data,
+                        m_inputchannels, (unsigned char*)data.data(),
                         m_spec.nchannels);
         } else if (spec().format == TypeDesc::UINT16) {
             cmyk_to_rgb(m_spec.width, (unsigned short*)&m_scratch[0],
-                        m_inputchannels, (unsigned short*)data,
+                        m_inputchannels, (unsigned short*)data.data(),
                         m_spec.nchannels);
         } else {
             errorfmt("CMYK only supported for UINT8, UINT16");
@@ -1869,7 +1918,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     }
 
     if (m_photometric == PHOTOMETRIC_MINISWHITE)
-        invert_photometric(nvals, data);
+        invert_photometric(nvals, data.data());
 
     return true;
 }
@@ -1879,6 +1928,25 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 bool
 TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                  int yend, int z, void* data)
+{
+    // Implement the raw pointer version of read_native_scanlines for
+    // tiff by calling the span version, with the assumed size.
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+    ybegin      = clamp(ybegin, m_spec.y, m_spec.y + m_spec.height);
+    yend        = clamp(yend, m_spec.y, m_spec.y + m_spec.height);
+    size_t size = m_spec.scanline_bytes(true) * size_t(yend - ybegin);
+
+    return TIFFInput::read_native_scanlines(subimage, miplevel, ybegin, yend,
+                                            as_writable_bytes(data, size));
+}
+
+
+
+bool
+TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                 int yend, span<std::byte> data)
 {
     // If the stars all align properly, try to read strips, and use the
     // thread pool to parallelize the decompression. This can give a large
@@ -1892,6 +1960,12 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     yend        = std::min(yend, spec().y + spec().height);
     int nstrips = (yend - ybegin + m_rowsperstrip - 1) / m_rowsperstrip;
+    auto native_sl_bytes = m_spec.scanline_bytes(true);
+
+    // Validate that the span provided can hold the requested scanlines.
+    if (!valid_raw_span_size(data, m_spec, m_spec.x, m_spec.x + m_spec.width,
+                             ybegin, yend))
+        return false;
 
     // See if it's easy to read this scanline range as strips. For edge
     // cases we don't with to deal with here, we just call the base class
@@ -1912,9 +1986,13 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         // No other unusual cases
         && !m_use_rgba_interface;
     if (!read_as_strips) {
-        // Punt and call the base class, which loops over scanlines.
-        return ImageInput::read_native_scanlines(subimage, miplevel, ybegin,
-                                                 yend, z, data);
+        // Punt and read one scanline at a time
+        bool ok = true;
+        for (int y = ybegin; ok && y < yend; ++y)
+            ok &= read_native_scanline_locked(
+                subimage, miplevel, y,
+                data.subspan(native_sl_bytes * (y - ybegin), native_sl_bytes));
+        return ok;
     }
 
     // Are we reading raw (compressed) strips and doing the decompression
@@ -1957,7 +2035,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     size_t ystride = m_spec.scanline_bytes(true);
     int stripchans = m_separate ? 1 : m_spec.nchannels;  // chans in each strip
     int planes     = m_separate ? m_spec.nchannels : 1;  // color planes
-        // N.B. "separate" planarconfig stores only one channel in a strip
+    // N.B. "separate" planarconfig stores only one channel in a strip
     int stripvals = m_spec.width * stripchans
                     * m_rowsperstrip;  // values in a strip
     imagesize_t strip_bytes = stripvals * m_spec.format.size();
@@ -1979,19 +2057,21 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                                  tmsize_t(cbound));
             if (csize < 0) {
                 std::string err = oiio_tiff_last_error();
-                errorfmt("TIFFRead{}Strip failed reading line y={},z={}: {}",
-                         read_raw_strips ? "Raw" : "Encoded", y, z,
+                errorfmt("TIFFRead{}Strip failed reading line y={}: {}",
+                         read_raw_strips ? "Raw" : "Encoded", y,
                          err.size() ? err.c_str() : "unknown error");
                 ok = false;
             }
             auto out            = this;
             auto uncompress_etc = [=, &ok](int /*id*/) {
-                out->uncompress_one_strip(cbuf, (unsigned long)csize, data,
-                                          strip_bytes, out->m_spec.nchannels,
+                out->uncompress_one_strip(cbuf, (unsigned long)csize,
+                                          data.data(), strip_bytes,
+                                          out->m_spec.nchannels,
                                           out->m_spec.width,
                                           out->m_rowsperstrip, &ok);
                 if (out->m_photometric == PHOTOMETRIC_MINISWHITE)
-                    out->invert_photometric(stripvals * stripchans, data);
+                    out->invert_photometric(stripvals * stripchans,
+                                            data.data());
             };
             if (parallelize) {
                 // Push the rest of the work onto the thread pool queue
@@ -1999,7 +2079,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             } else {
                 uncompress_etc(0);
             }
-            data = (char*)data + strip_bytes * planes;
+            data = data.subspan(strip_bytes * planes);
         }
 
     } else {
@@ -2018,40 +2098,39 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                 tstrip_t stripnum = ((y - m_spec.y) / m_rowsperstrip)
                                     + c * strips_in_file;
                 tsize_t csize = TIFFReadEncodedStrip(m_tif, stripnum,
-                                                     (char*)data
+                                                     (char*)data.data()
                                                          + c * mystrip_bytes,
                                                      tmsize_t(mystrip_bytes));
                 if (csize < 0) {
                     std::string err = oiio_tiff_last_error();
-                    errorfmt(
-                        "TIFFReadEncodedStrip failed reading line y={},z={}: {}",
-                        y, z, err.size() ? err.c_str() : "unknown error");
+                    errorfmt("TIFFReadEncodedStrip failed reading line y={}: {}",
+                             y, err.size() ? err.c_str() : "unknown error");
                     ok = false;
                 }
             }
             if (m_photometric == PHOTOMETRIC_MINISWHITE)
-                invert_photometric(mystripvals * planes, data);
+                invert_photometric(mystripvals * planes, data.data());
             if (m_separate) {
                 // handle "separate" planarconfig: copy to temp area, then
                 // separate_to_contig it back.
                 char* sepbuf = separate_tmp.get()
                                + stripidx * mystrip_bytes * planes;
-                memcpy(sepbuf, data, mystrip_bytes * planes);
+                memcpy(sepbuf, data.data(), mystrip_bytes * planes);
                 separate_to_contig(planes, m_spec.width * myrps,
                                    (unsigned char*)sepbuf,
-                                   (unsigned char*)data);
+                                   (unsigned char*)data.data());
             }
-            data = (char*)data + mystrip_bytes * planes;
+            data = data.subspan(mystrip_bytes * planes);
         }
     }
 
     // If we have left over scanlines, read them serially
     m_next_scanline = y - m_spec.y;
     for (; y < yend; ++y) {
-        bool ok = read_native_scanline(subimage, miplevel, y, z, data);
+        bool ok = read_native_scanline_locked(subimage, miplevel, y, data);
         if (!ok)
             return false;
-        data = (char*)data + ystride;
+        data = data.subspan(ystride);
     }
     tasks.wait();
     return true;
@@ -2060,12 +2139,21 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
 
 bool
-TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
-                            void* data)
+TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
+                                   int z, span<std::byte> data)
 {
-    lock_guard lock(*this);
-    if (!seek_subimage(subimage, miplevel))
+    // Not necessary, we assume this has already been done:
+    //
+    // lock_guard lock(*this);
+    // if (!seek_subimage(subimage, miplevel))
+    //     return false;
+
+#ifndef NDEBUG /* double check in debug mode */
+    if (!valid_raw_span_size(data, m_spec, x, x + m_spec.tile_width, y,
+                             y + m_spec.tile_height, z, z + m_spec.tile_depth))
         return false;
+#endif
+
     x -= m_spec.x;
     y -= m_spec.y;
 
@@ -2096,7 +2184,7 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                    &m_rgbadata[vert_offset * m_spec.tile_width
                                + (th - 1) * m_spec.tile_width],
                    m_spec.nchannels, 4, -m_spec.tile_width * 4, AutoStride,
-                   data, m_spec.nchannels,
+                   data.data(), m_spec.nchannels,
                    m_spec.nchannels * imagesize_t(m_spec.tile_width),
                    AutoStride);
         return true;
@@ -2112,17 +2200,18 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                            || m_bitspersample == 32);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
-        if (TIFFReadTile(m_tif, &m_scratch[0], x, y, z, 0) < 0) {
+        if (TIFFReadTile(m_tif, m_scratch.data(), x, y, z, 0) < 0) {
 #if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
 #endif
             return false;
         }
         if (m_bitspersample <= 8)
-            palette_to_rgb(tile_pixels, &m_scratch[0], (unsigned char*)data);
+            palette_to_rgb(tile_pixels, m_scratch.data(),
+                           (unsigned char*)data.data());
         else if (m_bitspersample == 16)
-            palette_to_rgb(tile_pixels, (uint16_t*)&m_scratch[0],
-                           (unsigned char*)data);
+            palette_to_rgb(tile_pixels, (uint16_t*)m_scratch.data(),
+                           (unsigned char*)data.data());
     } else {
         // Not palette
         imagesize_t plane_bytes = m_spec.tile_pixels() * m_spec.format.size();
@@ -2132,8 +2221,8 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         // Where to read?  Directly into user data if no channel shuffling
         // or bit shifting is needed, otherwise into scratch space.
         unsigned char* readbuf = (no_bit_convert && !m_separate)
-                                     ? (unsigned char*)data
-                                     : &m_scratch[0];
+                                     ? (unsigned char*)data.data()
+                                     : m_scratch.data();
         // Perform the reads.  Note that for contig, planes==1, so it will
         // only do one TIFFReadTile.
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
@@ -2150,8 +2239,9 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
             for (int c = 0; c < planes; ++c) /* planes==1 for contig */
                 bit_convert(m_separate ? tile_pixels : nvals,
                             &scratch2[plane_bytes * c], m_bitspersample,
-                            m_separate ? &m_scratch[plane_bytes * c]
-                                       : (unsigned char*)data + plane_bytes * c,
+                            m_separate
+                                ? m_scratch.data() + plane_bytes * c
+                                : (unsigned char*)data.data() + plane_bytes * c,
                             8);
         } else if (m_bitspersample > 8 && m_bitspersample < 16) {
             // m_scratch now holds nvals n-bit values, contig or separate
@@ -2159,23 +2249,39 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
             for (int c = 0; c < planes; ++c) /* planes==1 for contig */
                 bit_convert(m_separate ? tile_pixels : nvals,
                             &scratch2[plane_bytes * c], m_bitspersample,
-                            m_separate ? &m_scratch[plane_bytes * c]
-                                       : (unsigned char*)data + plane_bytes * c,
+                            m_separate
+                                ? m_scratch.data() + plane_bytes * c
+                                : (unsigned char*)data.data() + plane_bytes * c,
                             16);
         }
         if (m_separate) {
             // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB).
             // We know the data is in m_scratch at this point, so
             // contiguize it into the user data area.
-            separate_to_contig(planes, tile_pixels, &m_scratch[0],
-                               (unsigned char*)data);
+            separate_to_contig(planes, tile_pixels, m_scratch.data() + 0,
+                               (unsigned char*)data.data());
         }
     }
 
     if (m_photometric == PHOTOMETRIC_MINISWHITE)
-        invert_photometric(nvals, data);
+        invert_photometric(nvals, data.data());
 
     return true;
+}
+
+
+
+bool
+TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                            void* data)
+{
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+
+    auto native_tile_bytes = m_spec.tile_bytes(true);
+    return read_native_tile_locked(subimage, miplevel, x, y, z,
+                                   as_writable_bytes(data, native_tile_bytes));
 }
 
 
@@ -2191,6 +2297,45 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
     if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
 
+    OIIO_DASSERT(m_spec.tile_depth >= 1);
+    size_t ntiles = size_t(
+        (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
+        * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height
+        * (zend - zbegin + m_spec.tile_depth - 1) / m_spec.tile_depth);
+    auto native_tile_bytes = m_spec.tile_bytes(true);
+    return read_native_tiles_locked(
+        subimage, miplevel, xbegin, xend, ybegin, yend, zbegin, zend, ntiles,
+        as_writable_bytes(data, ntiles * native_tile_bytes));
+}
+
+
+
+bool
+TIFFInput::read_native_tiles_locked(int subimage, int miplevel, int xbegin,
+                                    int xend, int ybegin, int yend, int zbegin,
+                                    int zend, size_t ntiles,
+                                    span<std::byte> data)
+{
+    // Not necessary, we assume this has already been done:
+    //
+    // lock_guard lock(*this);
+    // if (!seek_subimage(subimage, miplevel))
+    //     return false;
+    // if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
+    //     return false;
+#ifndef NDEBUG /* double check in debug mode */
+    if (!valid_raw_span_size(data, m_spec, xbegin, xend, ybegin, yend, zbegin,
+                             zend))
+        return false;
+#endif
+
+    stride_t pixel_bytes   = (stride_t)m_spec.pixel_bytes(true);
+    stride_t tileystride   = pixel_bytes * m_spec.tile_width;
+    stride_t tilezstride   = tileystride * m_spec.tile_height;
+    stride_t ystride       = (xend - xbegin) * pixel_bytes;
+    stride_t zstride       = (yend - ybegin) * ystride;
+    imagesize_t tile_bytes = m_spec.tile_bytes(true);
+
     // If the stars all align properly, use the thread pool to parallelize
     // the decompression. This can give a large speedup (5x or more!)
     // because the zip decompression dwarfs the actual raw I/O. But libtiff
@@ -2199,11 +2344,6 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
     // bother trying to handle any of the uncommon cases with strips. This
     // covers most real-world cases.
     thread_pool* pool = default_thread_pool();
-    OIIO_DASSERT(m_spec.tile_depth >= 1);
-    size_t ntiles = size_t(
-        (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
-        * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height
-        * (zend - zbegin + m_spec.tile_depth - 1) / m_spec.tile_depth);
     bool parallelize =
         // more than one tile, or no point parallelizing
         ntiles > 1
@@ -2230,25 +2370,38 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
         && m_spec.get_int_attribute("tiff:multithread",
                                     OIIO::get_int_attribute("tiff:multithread"));
 
-    // If we're not parallelizing, just call the parent class default
-    // implementation of read_native_tiles, which will loop over the tiles
-    // and read each one individually.
     if (!parallelize) {
-        return ImageInput::read_native_tiles(subimage, miplevel, xbegin, xend,
-                                             ybegin, yend, zbegin, zend, data);
+        // If we're not parallelizing, just loop over the tiles and read each
+        // one individually.
+        std::unique_ptr<std::byte[]> pels(new std::byte[tile_bytes]);
+        for (int z = zbegin; z < zend; z += m_spec.tile_depth) {
+            for (int y = ybegin; y < yend; y += m_spec.tile_height) {
+                for (int x = xbegin; x < xend; x += m_spec.tile_width) {
+                    bool ok = read_native_tile_locked(subimage, miplevel, x, y,
+                                                      z,
+                                                      make_span(pels.get(),
+                                                                tile_bytes));
+                    if (!ok)
+                        return false;
+                    copy_image(m_spec.nchannels, m_spec.tile_width,
+                               m_spec.tile_height, m_spec.tile_depth,
+                               pels.get(), size_t(pixel_bytes), pixel_bytes,
+                               tileystride, tilezstride,
+                               data.data() + (z - zbegin) * zstride
+                                   + (y - ybegin) * ystride
+                                   + (x - xbegin) * pixel_bytes,
+                               pixel_bytes, ystride, zstride);
+                }
+            }
+        }
+        return true;
     }
 
     // Make room for, and read the raw (still compressed) tiles. As each one
     // is read, kick off the decompress and any other extras, to execute in
     // parallel.
-    stride_t pixel_bytes   = (stride_t)m_spec.pixel_bytes(true);
-    stride_t tileystride   = pixel_bytes * m_spec.tile_width;
-    stride_t tilezstride   = tileystride * m_spec.tile_height;
-    stride_t ystride       = (xend - xbegin) * pixel_bytes;
-    stride_t zstride       = (yend - ybegin) * ystride;
-    imagesize_t tile_bytes = m_spec.tile_bytes(true);
-    int tilevals           = m_spec.tile_pixels() * m_spec.nchannels;
-    size_t cbound          = compressBound((uLong)tile_bytes);
+    int tilevals  = m_spec.tile_pixels() * m_spec.nchannels;
+    size_t cbound = compressBound((uLong)tile_bytes);
     std::unique_ptr<char[]> compressed_scratch(new char[cbound * ntiles]);
     std::unique_ptr<char[]> scratch(new char[tile_bytes * ntiles]);
     task_set tasks(pool);
@@ -2288,7 +2441,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                                out->m_spec.tile_height, out->m_spec.tile_depth,
                                ubuf, size_t(pixel_bytes), pixel_bytes,
                                tileystride, tilezstride,
-                               (char*)data + (z - zbegin) * zstride
+                               data.data() + (z - zbegin) * zstride
                                    + (y - ybegin) * ystride
                                    + (x - xbegin) * pixel_bytes,
                                pixel_bytes, ystride, zstride);
@@ -2298,6 +2451,55 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
     }
     tasks.wait();
     return ok;
+}
+
+
+
+bool
+TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                             int ybegin, int yend, span<std::byte> data)
+{
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+    if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend))
+        return false;
+    if (!valid_raw_span_size(data, m_spec, m_spec.x, m_spec.x + m_spec.width,
+                             ybegin, yend))
+        return false;
+
+    OIIO_DASSERT(m_spec.tile_depth == 1);
+    size_t ntiles = size_t(
+        (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
+        * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height);
+    return read_native_tiles_locked(subimage, miplevel, xbegin, xend, ybegin,
+                                    yend, 0, 1, ntiles, data);
+}
+
+
+
+bool
+TIFFInput::read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
+                                        int xend, int ybegin, int yend,
+                                        int zbegin, int zend,
+                                        span<std::byte> data)
+{
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+    if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
+        return false;
+    if (!valid_raw_span_size(data, m_spec, m_spec.x, m_spec.x + m_spec.width,
+                             ybegin, yend, zbegin, zend))
+        return false;
+
+    OIIO_DASSERT(m_spec.tile_depth >= 1);
+    size_t ntiles = size_t(
+        (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
+        * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height
+        * (zend - zbegin + m_spec.tile_depth - 1) / m_spec.tile_depth);
+    return read_native_tiles_locked(subimage, miplevel, xbegin, xend, ybegin,
+                                    yend, zbegin, zend, ntiles, data);
 }
 
 

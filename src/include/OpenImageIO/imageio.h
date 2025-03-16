@@ -687,8 +687,19 @@ public:
     decode_compression_metadata(string_view defaultcomp = "",
                                 int defaultqual = -1) const;
 
-    /// Helper function to verify that the given pixel range exactly covers
-    /// a set of tiles.  Also returns false if the spec indicates that the
+    /// Helper function to verify that the given pixel range exactly covers a
+    /// set of 2D tiles.  Also returns false if the spec indicates that the
+    /// image isn't tiled at all.
+    bool valid_tile_range (int xbegin, int xend, int ybegin, int yend) noexcept {
+        return (tile_width &&
+                ((xbegin-x) % tile_width)  == 0 &&
+                ((ybegin-y) % tile_height) == 0 &&
+                (((xend-x) % tile_width)  == 0 || (xend-x) == width) &&
+                (((yend-y) % tile_height) == 0 || (yend-y) == height));
+    }
+
+    /// Helper function to verify that the given pixel range exactly covers a
+    /// set of 3D tiles.  Also returns false if the spec indicates that the
     /// image isn't tiled at all.
     bool valid_tile_range (int xbegin, int xend, int ybegin, int yend,
                            int zbegin, int zend) noexcept {
@@ -1528,44 +1539,123 @@ public:
     ///     code (except for read_native_deep_* varieties). These are the
     ///     methods that are overloaded by the ImageInput subclasses that
     ///     implement the individual file format readers.
-    //
-    // The read_native_* methods always read the "native" data types
-    // (including per-channel data types) and assume that `data` points to
-    // contiguous memory (no non-default strides). In contrast, the
-    // read_scanline/scanlines/tile/tiles handle data type translation and
-    // arbitrary strides.
-    //
-    // The read_native_* methods take an explicit subimage and miplevel, and
-    // thus do not require a prior call to seek_subimage (and therefore no
-    // saved state). They are all required to be thread-safe when called
-    // concurrently with any other read_native_* call or with the varieties
-    // of read_tiles() that also takes an explicit subimage and miplevel
-    // parameter.
-    //
-    // As far as format-reading ImageInput subclasses are concerned, the
-    // only truly required overloads are read_native_scanline (always) and
-    // read_native_tile (only for formats that support tiles). The other
-    // varieties are special cases, for example if the particular format is
-    // able to efficiently read multiple scanlines or tiles at once, and if
-    // the subclass does not provide overloads, the base class
-    // implementation will be used instead, which is implemented by reducing
-    // the operation to multiple calls to read_scanline or read_tile.
+    ///
+    /// The read_native_* methods always read the "native" data types
+    /// (including per-channel data types) and assume that `data` points to
+    /// contiguous memory (no non-default strides). In contrast, the
+    /// read_scanline/scanlines/tile/tiles handle data type translation and
+    /// arbitrary strides.
+    ///
+    /// The read_native_* methods take an explicit subimage and miplevel, and
+    /// thus do not require a prior call to seek_subimage (and therefore no
+    /// saved state). They are all required to be thread-safe when called
+    /// concurrently with any other read_native_* call or with the varieties
+    /// of read_tiles() that also takes an explicit subimage and miplevel
+    /// parameter.
+    ///
+    /// As far as format-reading ImageInput subclasses are concerned, the
+    /// only truly required overloads are read_native_scanline (always) and
+    /// read_native_tile (only for formats that support tiles). The other
+    /// varieties are special cases, for example if the particular format is
+    /// able to efficiently read multiple scanlines or tiles at once, and if
+    /// the subclass does not provide overloads, the base class
+    /// implementation will be used instead, which is implemented by reducing
+    /// the operation to multiple calls to read_scanline or read_tile.
+    ///
+    /// Note for ImageInput implementors:
+    ///
+    /// The preferred ImageInput implementation strategy (and, eventually,
+    /// required) is to fully implement the span-based, all-channel verison of
+    /// read_native_scanlines and/or read_native_tiles and/or
+    /// read_native_volumetric_tiles (whichever of these are supported by the
+    /// image file format), and to make a trivial implementation of the old
+    /// pointer-based varieties that simply call the span ones (with an
+    /// inferred length).
+    ///
+    /// The channel-subset versions may also, optionally, be implemented. If
+    /// omitted, they will fall back to a default implementation that calls
+    /// the all-channel versions to read into a temporary buffer, then copies
+    /// the requested channels to the user's buffer. It is only worth custom
+    /// implementations of the channel-subset versions for formats where there
+    /// is a significant performance advantage due to the underlying library
+    /// providing that as a feature (as OpenEXR does, for example, but most
+    /// format reading APIs do not).
+    ///
+    /// For the time being, old ImageInput format readers that do not yet
+    /// implement the span-based readers, but provide full featured
+    /// implementations of the pointer-based varieties, will continue to work.
+    /// This is because the default base-class implementation of the
+    /// span-based read_native methods will, if not overloaded, simply call
+    /// the pointer-based versions.
+    ///
+    /// To reiterate: A format-reader is expected to provide EITHER (a)
+    /// span-based calls with full implementations and pointer-based calls
+    /// that simply call the span-based ones, OR (b) pointer-based full
+    /// implementations only and rely on the base class span-based calls to
+    /// call them by default.
 
+    /// Read a range of scanlines (all channels) of native data into
+    /// contiguous memory defined by the span `data`.
+    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                       int yend, span<std::byte> data);
+
+    /// Read a range of scanlines (with potentially a subset of channels) of
+    /// native data into contiguous memory defined by the span `data`.
+    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                       int yend, int chbegin, int chend,
+                                       span<std::byte> data);
+
+    /// Read a range of tiles (all channels) of native data into contiguous
+    /// memory defined by the span `data`.
+    virtual bool read_native_tiles(int subimage, int miplevel,
+                                   int xbegin, int xend, int ybegin, int yend,
+                                   span<std::byte> data);
+
+    /// Read a range of tiles (with potentially a subset of channels) of
+    /// native data into contiguous memory defined by the span `data`.
+    virtual bool read_native_tiles(int subimage, int miplevel,
+                                   int xbegin, int xend, int ybegin, int yend,
+                                   int chbegin, int chend,
+                                   span<std::byte> data);
+
+    /// Read a range of 3D volumetric tiles (all channels) of native data into
+    /// contiguous memory. This is only functional for volumetric formats.
+    virtual bool read_native_volumetric_tiles(int subimage, int miplevel,
+                                   int xbegin, int xend, int ybegin, int yend,
+                                   int zbegin, int zend, span<std::byte> data);
+
+    /// Read a range of 3D volumetric tiles (with potentially a subset of
+    /// channels) of native data into contiguous memory. This is only
+    /// functional for volumetric formats.
+    virtual bool read_native_volumetric_tiles(int subimage, int miplevel,
+                                int xbegin, int xend, int ybegin, int yend,
+                                int zbegin, int zend, int chbegin, int chend,
+                                span<std::byte> data);
+
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read a single scanline (all channels) of native data into contiguous
     /// memory.
     virtual bool read_native_scanline (int subimage, int miplevel,
                                        int y, int z, void *data) = 0;
+
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read a range of scanlines (all channels) of native data into
     /// contiguous memory.
     virtual bool read_native_scanlines (int subimage, int miplevel,
                                         int ybegin, int yend, int z,
                                         void *data);
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read a range of scanlines (with optionally a subset of channels) of
     /// native data into contiguous memory.
     virtual bool read_native_scanlines (int subimage, int miplevel,
                                         int ybegin, int yend, int z,
                                         int chbegin, int chend, void *data);
 
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read a single tile (all channels) of native data into contiguous
     /// memory. The base class read_native_tile fails. A format reader that
     /// supports tiles MUST overload this virtual method that reads a single
@@ -1573,6 +1663,8 @@ public:
     virtual bool read_native_tile (int subimage, int miplevel,
                                    int x, int y, int z, void *data);
 
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read multiple tiles (all channels) of native data into contiguous
     /// memory. A format reader that supports reading multiple tiles at once
     /// (in a way that's more efficient than reading the tiles one at a
@@ -1584,6 +1676,8 @@ public:
                                     int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend, void *data);
 
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read multiple tiles (potentially a subset of channels) of native
     /// data into contiguous memory. A format reader that supports reading
     /// multiple tiles at once, and can handle a channel subset while doing
@@ -1596,6 +1690,7 @@ public:
                                     int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend,
                                     int chbegin, int chend, void *data);
+
     /// @}
 
 
@@ -1766,6 +1861,16 @@ protected:
     /// Helper: retrieve the current position of the proxy, akin to ftell.
     int64_t iotell() const;
 
+    /// @}
+
+    /// @{
+    /// @name Helper methods for ImageInput implementations.
+    ///
+    /// This set of utility functions are not meant to be called by user code.
+    /// They are protected methods of ImageInput, and are used internally by
+    /// the ImageInput format-reading implementations.
+    ///
+
     /// Helper: convenience boilerplate for several checks and operations that
     /// every implementation of ImageInput::open() will need to do. Failure is
     /// presumed to indicate a file that is corrupt (or perhaps maliciously
@@ -1813,6 +1918,16 @@ protected:
         // Reserved for future use
     };
 
+    /// Helper method: Validate that a `[chbegin, chend)` X `[xbegin, xend)` X
+    /// `[ybegin, yend)` X `[zbegin, zend)` slab of native channel data types
+    /// (according to the ImageSpec) can fit into the amount of contiguous
+    /// memory held by the span. If it can, return true. If it can't, call
+    /// `this->errorfmt()` with an appropriate error message and return false.
+    /// Unspecified channel range indicates all channels.
+    bool valid_raw_span_size(cspan<std::byte> buf, const ImageSpec& spec,
+                             int xbegin, int xend, int ybegin, int yend,
+                             int zbegin = 0, int zend = 1,
+                             int chbegin = 0, int chend = -1);
     /// @}
 
 private:
