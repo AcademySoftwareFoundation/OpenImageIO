@@ -238,10 +238,8 @@ private:
     void readspec_photometric();
 
     // Convert planar separate to contiguous data format
-    // FIXME: should change to be span-based
-    void separate_to_contig(int nplanes, int nvals,
-                            const unsigned char* separate,
-                            unsigned char* contig);
+    void separate_to_contig(size_t nplanes, size_t nvals,
+                            cspan<std::byte> separate, span<std::byte> contig);
 
     // Convert palette to RGB
     // FIXME: should change to be span-based
@@ -1555,14 +1553,15 @@ TIFFInput::close()
 /// Helper: Convert n pixels from separate (RRRGGGBBB) to contiguous
 /// (RGBRGBRGB) planarconfig.
 void
-TIFFInput::separate_to_contig(int nplanes, int nvals,
-                              const unsigned char* separate,
-                              unsigned char* contig)
+TIFFInput::separate_to_contig(size_t nplanes, size_t nvals,
+                              cspan<std::byte> separate, span<std::byte> contig)
 {
-    int channelbytes = m_spec.channel_bytes();
-    for (int p = 0; p < nvals; ++p)                 // loop over pixels
-        for (int c = 0; c < nplanes; ++c)           // loop over channels
-            for (int i = 0; i < channelbytes; ++i)  // loop over data bytes
+    size_t channelbytes = m_spec.channel_bytes();
+    OIIO_DASSERT(nplanes * nvals * channelbytes <= separate.size()
+                 && nplanes * nvals * channelbytes <= contig.size());
+    for (size_t p = 0; p < nvals; ++p)                 // loop over pixels
+        for (size_t c = 0; c < nplanes; ++c)           // loop over channels
+            for (size_t i = 0; i < channelbytes; ++i)  // loop over data bytes
                 contig[(p * nplanes + c) * channelbytes + i]
                     = separate[(c * nvals + p) * channelbytes + i];
 }
@@ -1889,14 +1888,15 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
         if (m_photometric == PHOTOMETRIC_SEPARATED && !m_raw_color) {
             // CMYK->RGB means we need temp storage.
             m_scratch2.resize(input_bytes);
-            separate_to_contig(planes, m_spec.width, &m_scratch[0],
-                               &m_scratch2[0]);
+            separate_to_contig(planes, m_spec.width,
+                               as_bytes(make_span(m_scratch)),
+                               as_writable_bytes(make_span(m_scratch2)));
             m_scratch.swap(m_scratch2);
         } else {
             // If no CMYK->RGB conversion is necessary, we can "separate"
             // straight into the data area.
-            separate_to_contig(planes, m_spec.width, &m_scratch[0],
-                               (unsigned char*)data.data());
+            separate_to_contig(planes, m_spec.width,
+                               as_bytes(make_span(m_scratch)), data);
         }
     }
 
@@ -2117,8 +2117,9 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                + stripidx * mystrip_bytes * planes;
                 memcpy(sepbuf, data.data(), mystrip_bytes * planes);
                 separate_to_contig(planes, m_spec.width * myrps,
-                                   (unsigned char*)sepbuf,
-                                   (unsigned char*)data.data());
+                                   make_span((const std::byte*)sepbuf,
+                                             mystrip_bytes * planes),
+                                   data);
             }
             data = data.subspan(mystrip_bytes * planes);
         }
@@ -2258,8 +2259,8 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
             // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB).
             // We know the data is in m_scratch at this point, so
             // contiguize it into the user data area.
-            separate_to_contig(planes, tile_pixels, m_scratch.data() + 0,
-                               (unsigned char*)data.data());
+            separate_to_contig(planes, tile_pixels,
+                               as_bytes(make_span(m_scratch)), data);
         }
     }
 
