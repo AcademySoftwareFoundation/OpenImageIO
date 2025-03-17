@@ -1023,8 +1023,7 @@ TIFFInput::readspec(bool read_meta)
         m_spec.tile_depth  = 0;
     }
 
-    m_bitspersample = 8;
-    TIFFGetField(m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
+    TIFFGetFieldDefaulted(m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
     m_spec.attribute("oiio:BitsPerSample", (int)m_bitspersample);
 
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
