@@ -669,9 +669,35 @@ public:
     /// Move assignment.
     const ImageBuf& operator=(ImageBuf&& src);
 
-    /// Copy all the metadata from `src` to `*this` (except for pixel data
-    /// resolution, channel types and names, and data format).
+    /// Copy all the metadata from `src` to `*this`, replacing all named
+    /// metadata that was previously in `*this`. The "full" size and desired
+    /// tile size will also be replaced by the corresponding values from
+    /// `src`, but the pixel data resolution, channel types and names, and
+    /// data format of `*this` will not be altered.
     void copy_metadata(const ImageBuf& src);
+
+    /// Merge metadata from `src` into the metadata of `*this` (except for the
+    /// data format and pixel data window size). Metadata in `*this` that is
+    /// not in `src` will not be altered. Metadata in `*this` that also is in
+    /// `src` will be replaced only if `override` is True. If `pattern` is not
+    /// empty, only metadata having a substring that matches the regex pattern
+    /// will be merged.
+    ///
+    /// @param src
+    ///     The source ImageBuf supplying the metadata (but not pixel
+    ///     values).
+    /// @param override
+    ///     If true, `src` attributes will replace any identically-named
+    ///     attributes already in `*this`. If false (the default), only
+    ///     attributes whose names are not already in this list will be
+    ///     appended.
+    /// @param pattern
+    ///     If not empty, only copy metadata from `src` whose name contains
+    ///     a substring matching the regex `pattern`.
+    ///
+    /// @version 3.0.5+
+    void merge_metadata(const ImageBuf& src, bool override = false,
+                        string_view pattern = {});
 
     /// Copy the pixel data from `src` to `*this`, automatically converting
     /// to the existing data format of `*this`.  It only copies pixels in
