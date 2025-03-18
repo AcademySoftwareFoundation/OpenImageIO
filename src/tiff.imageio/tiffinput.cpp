@@ -242,13 +242,14 @@ private:
                             cspan<std::byte> separate, span<std::byte> contig);
 
     // Convert palette to RGB
-    // FIXME: should change to be span-based
-    void palette_to_rgb(int n, const unsigned char* palettepels,
-                        unsigned char* rgb);
-    void palette_to_rgb(int n, const uint16_t* palettepels, unsigned char* rgb);
+    void palette_to_rgb(size_t n, cspan<uint8_t> palettepels,
+                        span<uint8_t> rgb);
+    void palette_to_rgb(size_t n, cspan<uint16_t> palettepels,
+                        span<uint8_t> rgb);
 
     // Convert in-bits to out-bits (outbits must be 8, 16, 32, and
     // inbits < outbits)
+    // FIXME: should change to be span-based
     void bit_convert(int n, const unsigned char* in, int inbits, void* out,
                      int outbits);
 
@@ -1568,41 +1569,46 @@ TIFFInput::separate_to_contig(size_t nplanes, size_t nvals,
 
 
 
-// palette_to_rgb for <= 8 bit palette addressing
+// palette_to_rgb, for either a uint8 or uint16 valued palette
 void
-TIFFInput::palette_to_rgb(int n, const unsigned char* palettepels,
-                          unsigned char* rgb)
+TIFFInput::palette_to_rgb(size_t n, cspan<uint8_t> palettepels,
+                          span<uint8_t> rgb)
 {
     size_t vals_per_byte = 8 / m_bitspersample;
     size_t entries       = 1 << m_bitspersample;
-    int highest          = entries - 1;
+    size_t highest       = entries - 1;
     OIIO_DASSERT(m_spec.nchannels == 3);
     OIIO_DASSERT(m_colormap.size() == 3 * entries);
-    for (int x = 0; x < n; ++x) {
-        int i = palettepels[x / vals_per_byte];
+    OIIO_DASSERT(palettepels.size() == n && rgb.size() == n * 3);
+    for (size_t x = 0; x < n; ++x) {
+        uint32_t i = palettepels[x / vals_per_byte];
         i >>= (m_bitspersample * (vals_per_byte - 1 - (x % vals_per_byte)));
         i &= highest;
-        *rgb++ = m_colormap[0 * entries + i] / 257;
-        *rgb++ = m_colormap[1 * entries + i] / 257;
-        *rgb++ = m_colormap[2 * entries + i] / 257;
+        rgb[3 * x + 0] = m_colormap[0 * entries + i] / 257;
+        rgb[3 * x + 1] = m_colormap[1 * entries + i] / 257;
+        rgb[3 * x + 2] = m_colormap[2 * entries + i] / 257;
     }
 }
 
 
 
-// palette_to_rgb, for 16 bit palette addressing
 void
-TIFFInput::palette_to_rgb(int n, const uint16_t* palettepels,
-                          unsigned char* rgb)
+TIFFInput::palette_to_rgb(size_t n, cspan<uint16_t> palettepels,
+                          span<uint8_t> rgb)
 {
+    // palette_to_rgb(int(n), palettepels.data(), rgb.data());
+    // return;
     size_t entries = 1 << m_bitspersample;
+    size_t highest = entries - 1;
     OIIO_DASSERT(m_spec.nchannels == 3);
     OIIO_DASSERT(m_colormap.size() == 3 * entries);
-    for (int x = 0; x < n; ++x) {
-        int i  = palettepels[x];
-        *rgb++ = m_colormap[0 * entries + i] / 257;
-        *rgb++ = m_colormap[1 * entries + i] / 257;
-        *rgb++ = m_colormap[2 * entries + i] / 257;
+    OIIO_DASSERT(palettepels.size() == n && rgb.size() == n * 3);
+    for (size_t x = 0; x < n; ++x) {
+        uint32_t i = palettepels[x];
+        i &= highest;
+        rgb[3 * x + 0] = m_colormap[0 * entries + i] / 257;
+        rgb[3 * x + 1] = m_colormap[1 * entries + i] / 257;
+        rgb[3 * x + 2] = m_colormap[2 * entries + i] / 257;
     }
 }
 
@@ -1809,18 +1815,19 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
                              && m_bitspersample != 32);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
-        if (TIFFReadScanline(m_tif, &m_scratch[0], y) < 0) {
+        if (TIFFReadScanline(m_tif, m_scratch.data(), y) < 0) {
 #if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
 #endif
             return false;
         }
+        size_t n(m_spec.width);
         if (m_bitspersample <= 8)
-            palette_to_rgb(m_spec.width, &m_scratch[0],
-                           (unsigned char*)data.data());
+            palette_to_rgb(n, make_cspan((uint8_t*)m_scratch.data(), n),
+                           span_cast<uint8_t>(data));
         else if (m_bitspersample == 16)
-            palette_to_rgb(m_spec.width, (uint16_t*)&m_scratch[0],
-                           (unsigned char*)data.data());
+            palette_to_rgb(n, make_cspan((uint16_t*)m_scratch.data(), n),
+                           span_cast<uint8_t>(data));
         return true;
     }
     // Not palette...
@@ -2208,11 +2215,13 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
             return false;
         }
         if (m_bitspersample <= 8)
-            palette_to_rgb(tile_pixels, m_scratch.data(),
-                           (unsigned char*)data.data());
+            palette_to_rgb(tile_pixels,
+                           make_cspan((uint8_t*)m_scratch.data(), tile_pixels),
+                           span_cast<uint8_t>(data));
         else if (m_bitspersample == 16)
-            palette_to_rgb(tile_pixels, (uint16_t*)m_scratch.data(),
-                           (unsigned char*)data.data());
+            palette_to_rgb(tile_pixels,
+                           make_cspan((uint16_t*)m_scratch.data(), tile_pixels),
+                           span_cast<uint8_t>(data));
     } else {
         // Not palette
         imagesize_t plane_bytes = m_spec.tile_pixels() * m_spec.format.size();
