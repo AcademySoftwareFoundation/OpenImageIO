@@ -52,9 +52,6 @@ private:
     // helper to uncompress a rle channel
     size_t uncompress_rle_channel(const uint8_t* in, uint8_t* out, int size);
 
-    // helper to pack (interleave) zbuffer channel
-    void pack_zbuffer_channel(uint8_t* in, float* out, int size);
-
     /// Helper: read buf[0..nitems-1], swap endianness if necessary
     template<typename T> bool read(T* buf, size_t nitems = 1)
     {
@@ -909,15 +906,5 @@ IffInput::uncompress_rle_channel(const uint8_t* in, uint8_t* out, int size)
     return in - _in;
 }
 
-
-void
-IffInput::pack_zbuffer_channel(uint8_t* in, float* out, int size)
-{
-    for (int i = 0; i < size; i++) {
-        uint32_t val = (in[i] << 24) | (in[i + size] << 16)
-                       | (in[i + 2 * size] << 8) | (in[i + 3 * size]);
-        std::memcpy(&out[i], &val, m_header.zbuffer_bytes());
-    }
-}
 
 OIIO_PLUGIN_NAMESPACE_END
