@@ -2998,18 +2998,45 @@ current top image.
 
     Takes two images -- the first will be a source of metadata only, and the
     second the source of pixels -- and produces a new copy of the second
-    image with the metadata from the first image added.
+    image with the metadata from the first image.
 
-    The output image's pixels will come only from the second input. Metadata
-    from the second input will be preserved if no identically-named metadata
-    was present in the first input image.
-
-    Examples::
+    Example::
 
         # Add all the metadata from meta.exr to pixels.exr and write the
         # combined image to out.exr.
         oiiotool meta.exr pixels.exr --pastemeta -o out.exr
 
+
+.. option:: --mergemeta <location>
+
+    Takes two images -- the first will be a source of metadata only, and the
+    second the source of pixels -- and produces a new copy of the second
+    image with the metadata from the first image added added to the second
+    image, item by item (i.e. not wholly removing the metadata that was
+    there before).
+
+    Optional appended modifiers include:
+
+    - `override=` *int* : If zero (the default), no
+      existing metadata in the destination will be altered, i.e., the only
+      metadata copied from source to destination will be those that did not
+      previously exist in the destination. If the override value is nonzero,
+      then all metadata items in the source will *replace* any existing
+      correspondingly named items in the destination.
+
+    - `pattern=` *regex* : If supplied, only copies metadata whose name
+      matches has a substring matching the regular expression. The special
+      character `^` indicates the beginning of the string and `$` indicates
+      the end of the string. 
+
+    Example::
+
+        # Add all of meta.exr's metadata whose name begins with "camera:"
+        # to pixels.exr, replacing any similarly named items, and write
+        # the combined image to out.exr.
+        oiiotool meta.exr pixels.exr --pastemeta:pattern="^camera:override=1" -o out.exr
+
+    The `--mergemeta` command  was added in OIIO 3.0.4.
 
 .. option:: --mosaic <size>
 

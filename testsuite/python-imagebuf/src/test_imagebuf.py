@@ -149,6 +149,43 @@ def ftupstr(tup) :
     return "(" + ", ".join(["{:.5}".format(x) for x in tup]) + ")"
 
 
+# Test the functionality of metadata copying and merging
+def test_copy_metadata() :
+    print ("\nTesting metadata copying")
+    # specA has numerical abc and def
+    specA = oiio.ImageSpec(64, 64, 3, "uint8")
+    specA.attribute("abc", 1)
+    specA.attribute("def", 3.14)
+    A = oiio.ImageBuf(specA)
+    print_imagespec (A.spec(), msg=" A's spec")
+    # specB has no abc, string def, and two camera attribs
+    specFull = oiio.ImageSpec(64, 64, 3, "uint8")
+    specFull.attribute("def", "Bfoo")
+    specFull.attribute("camera:x", "Bx")
+    specFull.attribute("camera:y", "By")
+    B = oiio.ImageBuf(specFull)
+    print_imagespec (B.spec(), msg=" B's spec")
+    print(" A full copy of A should have abc and def as A does:")
+    C = A.copy()
+    print_imagespec (C.spec(), msg=" result of C = A.copy():")
+    print(" A.copy_metadata(B) should be identical to B")
+    C = A.copy()
+    C.copy_metadata (B)
+    print_imagespec (C.spec(), msg=" result of A.copy_metadata(B):")
+    print(" A.merge_metadata(B) should have abc, def from A, camera from B")
+    C = A.copy()
+    C.merge_metadata (B)
+    print_imagespec (C.spec(), msg=" result of A.merge_metadata(B):")
+    print(" A.merge_metadata(B,True) should have abc from A, def and camera from B")
+    C = A.copy()
+    C.merge_metadata (B, override=True)
+    print_imagespec (C.spec(), msg=" result of A.merge_metadata(B, override=True):")
+    print(" A.merge_metadata(B,pattern) should have abc,def from A, camera from B")
+    C = A.copy()
+    C.merge_metadata (B, pattern="^camera:")
+    print_imagespec (C.spec(), msg=" result of A.merge_metadata(B, pattern='^camera:'):")
+
+
 
 ######################################################################
 # main test starts here
@@ -258,6 +295,7 @@ try:
     test_deep ()
     test_multiimage ()
     test_uninitialized ()
+    test_copy_metadata ()
 
     print ("\nDone.")
 except Exception as detail:

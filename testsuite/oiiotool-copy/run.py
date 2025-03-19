@@ -93,11 +93,17 @@ command += oiiotool ("../common/grid.tif "
             + "--pattern checker 256x256 3 --paste +150+75 -o pasted.tif")
 
 # test --pastemeta
-command += oiiotool ("--pattern:type=half constant:color=0,1,0 64x64 3 -o green.exr")
-command += oiiotool ("--pattern:type=half constant:color=1,0,0 64x64 3 -attrib hair brown -attrib eyes 2 -attrib weight 20.5 -o redmeta.exr")
-command += oiiotool ("redmeta.exr green.exr --pastemeta -o greenmeta.exr")
+command += oiiotool ("--pattern:type=half constant:color=0,1,0 64x64 3 -attrib hair black -o green.exr")
+command += oiiotool ("--pattern:type=half constant:color=1,0,0 64x64 3 -attrib hair brown -attrib eyes 2 -attrib weight 20.5 -attrib camera:lens AX30 --attrib camera:shutter 0.0125  -o meta.exr")
+command += oiiotool ("meta.exr green.exr --pastemeta -o greenmeta.exr")
+command += oiiotool ("meta.exr green.exr --mergemeta -o greenmeta-merge.exr")
+command += oiiotool ("meta.exr green.exr --mergemeta:override=1 -o greenmeta-merge-override.exr")
+command += oiiotool ("meta.exr green.exr --mergemeta:pattern=\"^camera:\" -o greenmeta-merge-camera.exr")
 command += info_command ("green.exr", safematch=True)
 command += info_command ("greenmeta.exr", safematch=True)
+command += info_command ("greenmeta-merge.exr", safematch=True)
+command += info_command ("greenmeta-merge-override.exr", safematch=True)
+command += info_command ("greenmeta-merge-camera.exr", safematch=True)
 
 # test mosaic
 # Purposely test with fewer images than the mosaic array size
