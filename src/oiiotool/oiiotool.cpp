@@ -2982,7 +2982,7 @@ action_subimage_append_n(Oiiotool& ot, int n, string_view command)
     for (int i = 0; i < n; ++i) {
         ImageRecRef A = images[i];
         for (int s = 0; s < A->subimages(); ++s, ++sub) {
-            for (int m = 0; m < A->miplevels(s); ++m) {
+            for (int m = 0; m < allmiplevels[s]; ++m) {
                 bool ok = (*R)(sub, m).copy((*A)(s, m));
                 if (!ok) {
                     ot.error(command, (*R)(sub, m).geterror());
