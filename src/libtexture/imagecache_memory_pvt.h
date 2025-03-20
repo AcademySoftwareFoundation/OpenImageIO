@@ -24,8 +24,8 @@ inline size_t
 heapsize<ImageCacheFile::LevelInfo>(const ImageCacheFile::LevelInfo& lvl)
 {
     size_t size = heapsize(lvl.polecolor);
-    size += heapsize(lvl.m_spec);
-    size += heapsize(lvl.nativespec);
+    if (!lvl.shared_levelspec)
+        size += heapsize(lvl.m_levelspec);
     if (lvl.tiles_read) {
         const size_t total_tiles   = lvl.nxtiles * lvl.nytiles * lvl.nztiles;
         const size_t bitfield_size = round_to_multiple(total_tiles, 64) / 64;
@@ -41,6 +41,7 @@ heapsize<ImageCacheFile::SubimageInfo>(const ImageCacheFile::SubimageInfo& sub)
 {
     size_t size = heapsize(sub.levels);
     size += heapsize(sub.average_color);
+    size += heapsize(sub.m_spec);
     size += (sub.minwh ? sub.n_mip_levels * sizeof(int) : 0);
     size += (sub.Mlocal ? sizeof(Imath::M44f) : 0);
     return size;
