@@ -346,6 +346,44 @@ test_make_span()
 
 
 void
+test_as_bytes()
+{
+    print("testing as_bytes, as_writable_bytes\n");
+
+    float c_arr[] = { 1, 2.5, 3, 4 };
+    span<float> aspan(c_arr);
+    OIIO_CHECK_ASSERT(aspan.size() == 4 && aspan[1] == 2.5f);
+
+    auto ab  = as_bytes(aspan);
+    auto awb = as_writable_bytes(aspan);
+    OIIO_CHECK_EQUAL(ab.size(), aspan.size() * sizeof(float));
+    OIIO_CHECK_EQUAL(ab.size_bytes(), aspan.size_bytes());
+    OIIO_CHECK_EQUAL(ab.data(), reinterpret_cast<std::byte*>(aspan.data()));
+    OIIO_CHECK_EQUAL(awb.size(), aspan.size() * sizeof(float));
+    OIIO_CHECK_EQUAL(awb.size_bytes(), aspan.size_bytes());
+    OIIO_CHECK_EQUAL(awb.data(), reinterpret_cast<std::byte*>(aspan.data()));
+}
+
+
+
+void
+test_span_cast()
+{
+    print("testing span_cast\n");
+
+    float c_arr[] = { 1, 2.5, 3, 4 };
+    span<float> aspan(c_arr);
+    OIIO_CHECK_ASSERT(aspan.size() == 4 && aspan[1] == 2.5f);
+
+    auto cast = span_cast<uint16_t>(aspan);
+    OIIO_CHECK_EQUAL(cast.size_bytes(), aspan.size_bytes());
+    OIIO_CHECK_EQUAL(cast.size(), 8);
+    OIIO_CHECK_EQUAL(cast.data(), reinterpret_cast<uint16_t*>(aspan.data()));
+}
+
+
+
+void
 test_spancpy()
 {
     print("testing spancpy\n");
@@ -488,6 +526,8 @@ main(int /*argc*/, char* /*argv*/[])
     test_image_view();
     test_image_view_mutable();
     test_make_span();
+    test_as_bytes();
+    test_span_cast();
     test_spancpy();
     test_spanset();
     test_spanzero();

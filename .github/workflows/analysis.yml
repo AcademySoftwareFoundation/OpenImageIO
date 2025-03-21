@@ -24,6 +24,7 @@ on:
       - '!**/ci.yml'
       - '!**/docs.yml'
       - '!**/scorecard.yml'
+      - '!**/wheel.yml'
       - '!**.properties'
       - '!docs/**'
   # Run analysis on PRs only if the branch name indicates that the purpose of

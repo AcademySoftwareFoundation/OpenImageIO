@@ -19,6 +19,13 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/detail/fmt.h>
 
+// Span notes and helpful links:
+// - cppreference on std::span:
+//   https://en.cppreference.com/w/cpp/container/span
+// - Another implementation, for reference:
+//   https://github.com/tcbrindle/span/blob/master/include/tcb/span.hpp
+
+
 OIIO_NAMESPACE_BEGIN
 
 // Our pre-3.0 implementation had span::size() as a signed value, because we
@@ -86,11 +93,17 @@ public:
     constexpr span () noexcept = default;
 
     /// Copy constructor (copies the span pointer and length, NOT the data).
-    template<class U, span_size_t N>
+    constexpr span (const span &copy) noexcept = default;
+
+    /// Copy constructor from a different extent (copies the span pointer and
+    /// length, NOT the data). This allows for construction of `span<const T>`
+    /// from `span<T>`, and for converting fixed extent to dynamic extent.
+    /// It does not allow for converting to an incompatible data type.
+    template<class U, span_size_t N,
+             OIIO_ENABLE_IF(std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>>
+                             && (extent == dynamic_extent || extent == N))>
     constexpr span (const span<U,N> &copy) noexcept
         : m_data(copy.data()), m_size(copy.size()) { }
-    /// Copy constructor (copies the span pointer and length, NOT the data).
-    constexpr span (const span &copy) noexcept = default;
 
     /// Construct from T* and length.
     constexpr span (pointer data, size_type size) noexcept
@@ -105,7 +118,7 @@ public:
 
     /// Construct from a fixed-length C array.  Template magic automatically
     /// finds the length from the declared type of the array.
-    template<size_t N>
+    template<size_t N, OIIO_ENABLE_IF(Extent == dynamic_extent || Extent == N)>
     constexpr span (T (&data)[N]) noexcept : m_data(data), m_size(N) { }
 
     /// Construct from std::vector<T>.
@@ -155,20 +168,26 @@ public:
         return { m_data + Offset, Count != dynamic_extent ? Count : (Extent != dynamic_extent ? Extent - Offset : m_size - Offset) };
     }
 
-    /// Subspan containing just the first element.
+    /// Subspan containing just the first `count` elements. The count will be
+    /// clamped to be no more than the current size.
     constexpr span<element_type, dynamic_extent> first (size_type count) const {
-        return { m_data, count };
+        return { m_data, std::min(count, m_size) };
     }
 
-    /// Subspan containing just the last element.
+    /// Subspan containing just the last `count` elements. The count will be
+    /// clamped to be no more than the current size.
     constexpr span<element_type, dynamic_extent> last (size_type count) const {
+        count = std::min(count, m_size);
         return { m_data + ( m_size - count ), count };
     }
 
-    /// Subspan starting atoOffset and containing count elements.
+    /// Subspan starting at offset and containing count elements. The range
+    /// requested will be clamped to the current size of the span.
     constexpr span<element_type, dynamic_extent>
     subspan (size_type offset, size_type count = dynamic_extent) const {
-        return { m_data + offset, count == dynamic_extent ? m_size - offset : count };
+        offset = std::min(offset, m_size);
+        count = std::min(count, m_size - offset);
+        return { m_data + offset, count };
     }
 
     /// Return the number of elements in the span.
@@ -200,9 +219,15 @@ public:
     }
 
     /// The first element of the span.
-    constexpr reference front() const noexcept { return m_data[0]; }
+    constexpr reference front() const noexcept {
+        OIIO_DASSERT(m_size >= 1);
+        return m_data[0];
+    }
     /// The last element of the span.
-    constexpr reference back() const noexcept { return m_data[size()-1]; }
+    constexpr reference back() const noexcept {
+        OIIO_DASSERT(m_size >= 1);
+        return m_data[size() - 1];
+    }
 
     /// Iterator pointing to the beginning of the span.
     constexpr iterator begin() const noexcept { return m_data; }
@@ -481,6 +506,20 @@ make_cspan(const T* data, span_size_t size)  // cspan from ptr + size
 
 
 
+/// Convert a span of any type to a span of a differing type covering the same
+/// memory. If the sizes are not identical, it will truncate length if
+/// necessary to not spill past the bounds of the input span. Use with
+/// caution!
+template<class T, class S = std::byte, span_size_t Extent>
+span<T>
+span_cast(const span<S, Extent>& s) noexcept
+{
+    return make_span(reinterpret_cast<T*>(s.data()),
+                     s.size_bytes() / sizeof(T));
+}
+
+
+
 /// Convert a span of any type to a span of bytes covering the same range of
 /// memory.
 template<typename T, span_size_t Extent>
@@ -501,6 +540,37 @@ span<std::byte,
 as_writable_bytes(span<T, Extent> s) noexcept
 {
     return { reinterpret_cast<std::byte*>(s.data()), s.size_bytes() };
+}
+
+
+
+/// Convert a raw `const T*` ptr + length to a span of const bytes covering
+/// the same range of memory. For non-void pointers, the length is in the
+/// number of elements of T; for void pointers, the length is measured in
+/// bytes.
+template<typename T>
+span<const std::byte>
+as_bytes(const T* ptr, size_t len) noexcept
+{
+    size_t nbytes = len;
+    if constexpr (!std::is_void_v<T>)
+        nbytes *= sizeof(T);
+    return make_cspan(reinterpret_cast<const std::byte*>(ptr), nbytes);
+}
+
+
+
+/// Convert a raw `T*` ptr + length to a span of mutable bytes covering the
+/// same range of memory. For non-void pointers, the length is in the number
+/// of elements of T; for void pointers, the length is measured in bytes.
+template<class T, OIIO_ENABLE_IF(!std::is_const_v<T>)>
+span<std::byte>
+as_writable_bytes(T* ptr, size_t len) noexcept
+{
+    size_t nbytes = len;
+    if constexpr (!std::is_void_v<T>)
+        nbytes *= sizeof(T);
+    return make_span(reinterpret_cast<std::byte*>(ptr), nbytes);
 }
 
 

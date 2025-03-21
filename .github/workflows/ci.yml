@@ -14,6 +14,7 @@ on:
       - '!**/analysis.yml'
       - '!**/docs.yml'
       - '!**/scorecard.yml'
+      - '!**/wheel.yml'
       - '!**.properties'
       - '!docs/**'
   pull_request:
@@ -56,7 +57,7 @@ jobs:
             setenvs: export PUGIXML_VERSION=v1.9 WEBP_VERSION=v1.1.0 USE_OPENVDB=0
                             FREETYPE_VERSION=VER-2-10-0
           - desc: VP2021 clang10/C++17 avx2 exr3.1 ocio2.0
-            nametag: linux-clang10-cpp14
+            nametag: linux-vfx2021.clang10.cpp14
             runner: ubuntu-latest
             container: aswf/ci-osl:2021-clang10
             vfxyear: 2021
@@ -84,7 +85,7 @@ jobs:
             pybind11_ver: v2.9.0
             setenvs: export FREETYPE_VERSION=VER-2-12-0
           - desc: VP2022 clang13/C++17 py39 avx2 exr3.1 ocio2.1
-            nametag: linux-vfx2022-clang13
+            nametag: linux-vfx2022.clang13
             runner: ubuntu-latest
             container: aswf/ci-osl:2022-clang13
             vfxyear: 2022
@@ -173,7 +174,8 @@ jobs:
       #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
       #   with:
       #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Checkout repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: '0'
       - name: Prepare ccache timestamp
@@ -223,7 +225,8 @@ jobs:
             cd src/doc
             time make doxygen
             time make sphinx
-      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+      - name: Upload testsuite debugging artifacts
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         if: ${{ failure() || matrix.build_docs == '1'}}
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
@@ -287,7 +290,7 @@ jobs:
             pybind11_ver: v2.10.0
             setenvs: PUGIXML_VERSION=v1.13
           - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.1 qt5.15
-            nametag: linux-vfx2023-icc
+            nametag: linux-vfx2023.icc
             runner: ubuntu-latest
             container: aswf/ci-osl:2023
             opencolorio_ver: v2.2.1
@@ -303,7 +306,7 @@ jobs:
             # For icc, use fp-model precise to eliminate needless LSB errors
             # that make test results differ from other platforms.
           - desc: VFX2023 icx/C++17 py3.10 exr3.1 ocio2.2 qt5.15
-            nametag: linux-vfx2023-icx
+            nametag: linux-vfx2023.icx
             runner: ubuntu-latest
             container: aswf/ci-osl:2023
             cc_compiler: icx
@@ -327,7 +330,7 @@ jobs:
             pybind11_ver: v2.12.0
             setenvs: PUGIXML_VERSION=v1.14
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
-            nametag: linux-vfx2024
+            nametag: linux-vfx2024.clang
             runner: ubuntu-latest
             container: aswftesting/ci-osl:2024-clang17
             cc_compiler: clang

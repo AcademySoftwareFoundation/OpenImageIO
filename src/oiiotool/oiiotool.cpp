@@ -2982,7 +2982,7 @@ action_subimage_append_n(Oiiotool& ot, int n, string_view command)
     for (int i = 0; i < n; ++i) {
         ImageRecRef A = images[i];
         for (int s = 0; s < A->subimages(); ++s, ++sub) {
-            for (int m = 0; m < A->miplevels(s); ++m) {
+            for (int m = 0; m < allmiplevels[s]; ++m) {
                 bool ok = (*R)(sub, m).copy((*A)(s, m));
                 if (!ok) {
                     ot.error(command, (*R)(sub, m).geterror());
@@ -4760,6 +4760,18 @@ action_paste(Oiiotool& ot, cspan<const char*> argv)
 OIIOTOOL_OP(pastemeta, 2, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     *img[0] = *img[2];
     img[0]->copy_metadata(*img[1]);
+    return true;
+});
+
+
+
+// --mergemeta
+OIIOTOOL_OP(mergemeta, 2, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    std::string pattern = op.options("pattern");
+    bool override       = op.options("override").get<int>();
+
+    *img[0] = *img[2];
+    img[0]->merge_metadata(*img[1], override, pattern);
     return true;
 });
 
@@ -6787,8 +6799,11 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Paste fg over bg at the given position (e.g., +100+50; '-' or 'auto' indicates using the data window position as-is; options: all=%d, mergeroi=%d)")
       .OTACTION(action_paste);
     ap.arg("--pastemeta")
-      .help("Copy the metadata from the first image to the second image and write the combined result.")
+      .help("Copy the metadata from the first image to the second image and keep the combined result")
       .OTACTION(action_pastemeta);
+    ap.arg("--mergemeta")
+      .help("Merge the metadata from the first image into the second image and keep the combined result (options: pattern=REGEX, override=%d)")
+      .OTACTION(action_mergemeta);
     ap.arg("--mosaic %s:WxH")
       .help("Assemble images into a mosaic (arg: WxH; options: pad=0, fit=WxH)")
       .OTACTION(action_mosaic);

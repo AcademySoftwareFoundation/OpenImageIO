@@ -149,6 +149,91 @@ Writing multi-image file
 Testing uninitialized bufs
   empty nchannels: 0
 
+Testing metadata copying
+ A's spec
+  resolution 64x64+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  uint8
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  abc = 1
+  def = 3.140000104904175
+ B's spec
+  resolution 64x64+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  uint8
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  def = "Bfoo"
+  camera:x = "Bx"
+  camera:y = "By"
+ A full copy of A should have abc and def as A does:
+ result of C = A.copy():
+  resolution 64x64+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  uint8
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  abc = 1
+  def = 3.140000104904175
+ A.copy_metadata(B) should be identical to B
+ result of A.copy_metadata(B):
+  resolution 64x64+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  uint8
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  def = "Bfoo"
+  camera:x = "Bx"
+  camera:y = "By"
+ A.merge_metadata(B) should have abc, def from A, camera from B
+ result of A.merge_metadata(B):
+  resolution 64x64+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  uint8
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  abc = 1
+  def = 3.140000104904175
+  camera:x = "Bx"
+  camera:y = "By"
+ A.merge_metadata(B,True) should have abc from A, def and camera from B
+ result of A.merge_metadata(B, override=True):
+  resolution 64x64+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  uint8
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  abc = 1
+  def = "Bfoo"
+  camera:x = "Bx"
+  camera:y = "By"
+ A.merge_metadata(B,pattern) should have abc,def from A, camera from B
+ result of A.merge_metadata(B, pattern='^camera:'):
+  resolution 64x64+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  uint8
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  abc = 1
+  def = 3.140000104904175
+  camera:x = "Bx"
+  camera:y = "By"
+
 Done.
 Comparing "out.tif" and "ref/out.tif"
 PASS

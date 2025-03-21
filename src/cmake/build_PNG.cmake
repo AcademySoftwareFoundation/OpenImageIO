@@ -6,8 +6,8 @@
 # PNG by hand!
 ######################################################################
 
-set_cache (PNG_BUILD_VERSION 1.6.44 "PNG version for local builds")
-set (PNG_GIT_REPOSITORY "https://github.com/glennrp/libpng")
+set_cache (PNG_BUILD_VERSION 1.6.47 "PNG version for local builds")
+set (PNG_GIT_REPOSITORY "https://github.com/pnggroup/libpng")
 set (PNG_GIT_TAG "v${PNG_BUILD_VERSION}")
 
 set_cache (PNG_BUILD_SHARED_LIBS OFF
