@@ -333,7 +333,14 @@ make_pv(string_view name, T* val)
 /// methods.
 class OIIO_UTIL_API ParamValueList : public std::vector<ParamValue> {
 public:
+    // Default constructor
     ParamValueList() {}
+
+    // Construct from a span of ParamValue items
+    ParamValueList(cspan<ParamValue> params)
+    {
+        assign(params.begin(), params.end());
+    }
 
     /// Add space for one more ParamValue to the list, and return a
     /// reference to its slot.
