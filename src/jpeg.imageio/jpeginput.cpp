@@ -568,6 +568,10 @@ bool
 JpgInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                 int yend, int z, void* data)
 {
+    if (ybegin >= yend) {
+        errorfmt("Invalid scanline range requested: {}-{}", ybegin, yend);
+        return false;
+    }
     size_t size = m_spec.scanline_bytes(true) * size_t(yend - ybegin);
     return read_native_scanlines(subimage, miplevel, ybegin, yend,
                                  as_writable_bytes(data, size));
@@ -679,8 +683,9 @@ JpgInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     m_next_scanline = yend;
 
     if (m_cmyk)
-        cmyk_to_rgb(m_spec.width * nscanlines, (unsigned char*)readdata, 4,
-                    (unsigned char*)data.data(), 3);
+        cmyk_to_rgb(m_spec.width * nscanlines,
+                    reinterpret_cast<unsigned char*>(readdata), 4,
+                    reinterpret_cast<unsigned char*>(data.data()), 3);
 
     return true;
 }

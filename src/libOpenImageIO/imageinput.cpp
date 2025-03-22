@@ -933,7 +933,7 @@ ImageInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
 #endif
     ) {
         // Only for debug builds or if OIIO "debug" is enabled at runtime,
-        // validate that the span size.
+        // validate that the span size is correct.
         ImageSpec s = spec_dimensions(subimage, miplevel);
         if (!valid_raw_span_size(data, s, xbegin, xend, ybegin, yend, 0, 1,
                                  chbegin, chend))

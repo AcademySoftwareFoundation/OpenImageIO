@@ -1823,10 +1823,16 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
         }
         size_t n(m_spec.width);
         if (m_bitspersample <= 8)
-            palette_to_rgb(n, make_cspan((uint8_t*)m_scratch.data(), n),
+            palette_to_rgb(n,
+                           make_cspan(reinterpret_cast<const uint8_t*>(
+                                          m_scratch.data()),
+                                      n),
                            span_cast<uint8_t>(data));
         else if (m_bitspersample == 16)
-            palette_to_rgb(n, make_cspan((uint16_t*)m_scratch.data(), n),
+            palette_to_rgb(n,
+                           make_cspan(reinterpret_cast<const uint16_t*>(
+                                          m_scratch.data()),
+                                      n),
                            span_cast<uint8_t>(data));
         return true;
     }
@@ -1836,7 +1842,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     size_t input_bytes = plane_bytes * m_inputchannels;
     // Where to read?  Directly into user data if no channel shuffling, bit
     // shifting, or CMYK conversion is needed, otherwise into scratch space.
-    unsigned char* readbuf = (unsigned char*)data.data();
+    unsigned char* readbuf = reinterpret_cast<unsigned char*>(data.data());
     if (need_bit_convert || m_separate
         || (m_photometric == PHOTOMETRIC_SEPARATED && !m_raw_color))
         readbuf = &m_scratch[0];
