@@ -315,7 +315,7 @@ uint8_t foo[2][2][3] =
     /* (1, 1): */ { 64, 128, 191 /* (0.2509804, 0.5019608, 0.7490196) */ } },
 };
 Reading tmp.tif
-<ImageSpec version="26">
+<ImageSpec version="27">
 <SHA1>39754B9B5BF224DA2869627680D5853D787E794F</SHA1>
 <x>0</x>
 <y>0</y>

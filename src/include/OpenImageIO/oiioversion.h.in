@@ -223,8 +223,10 @@ namespace OIIO = @PROJ_NAMESPACE@;
 /// Version 25 added the thumbnail retrieval and set. (OIIO 2.3)
 /// Version 26 deprecated the old stateful ImageInput::read_* methods.
 ///     (OIIO 2.6.3/3.0)
+/// Version 27 added image_span-based versions of ImageInput::read_native_
+///     methods. (OIIO 3.1)
 
-#define OIIO_PLUGIN_VERSION 26
+#define OIIO_PLUGIN_VERSION 27
 
 #define OIIO_PLUGIN_NAMESPACE_BEGIN OIIO_NAMESPACE_BEGIN
 #define OIIO_PLUGIN_NAMESPACE_END OIIO_NAMESPACE_END
