@@ -818,7 +818,6 @@ public:
         , m_nimages(ninputs + 1)
         , m_setup_func(setup_func)
         , m_impl_func(impl_func)
-        , m_control_options(control_options)
     {
         m_control_options.assign(control_options.begin(),
                                  control_options.end());
