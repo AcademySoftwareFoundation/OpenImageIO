@@ -103,7 +103,7 @@ main(int argc, char* argv[])
     ArgParse ap = getargs(argc, argv);
 
     if (!ap["foreground_mode"].get<int>())
-        Sysutil::put_in_background(argc, argv);
+        Sysutil::put_in_background();
 
     // LG
     //    Q_INIT_RESOURCE(iv);

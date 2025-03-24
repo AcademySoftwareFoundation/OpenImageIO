@@ -532,13 +532,6 @@ FMT_END_NAMESPACE
 // Declare std::size and std::ssize for our string_view.
 namespace std {
 
-#if OIIO_CPLUSPLUS_VERSION < 17
-template<class CharT, class Traits = std::char_traits<CharT>>
-constexpr size_t size(const OIIO::basic_string_view<CharT, Traits>& c) {
-    return c.size();
-}
-#endif
-
 #if OIIO_CPLUSPLUS_VERSION < 20
 template<class CharT, class Traits = std::char_traits<CharT>>
 constexpr ptrdiff_t ssize(const OIIO::basic_string_view<CharT, Traits>& c) {
