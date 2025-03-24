@@ -39,6 +39,7 @@ with a feature set, scalability, and robustness needed for feature film
 production.
 """[1:-1]
 
+__version__ = VERSION_STRING # type: ignore # noqa: F405
 
 def _call_program(name, args):
     bin_dir = os.path.join(os.path.dirname(__file__), 'bin')

@@ -209,7 +209,9 @@ private:
     // Read tags from the current directory of m_tif and fill out spec.
     // If read_meta is false, assume that m_spec already contains valid
     // metadata and should not be cleared or rewritten.
-    void readspec(bool read_meta = true);
+    // Return true if all is fine, false if something really bad happens,
+    // like we think the file is hopelessly corrupted.
+    bool readspec(bool read_meta = true);
 
     // Figure out all the photometric-related aspects of the header
     void readspec_photometric();
@@ -832,7 +834,8 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
     m_next_scanline = 0;  // next scanline we'll read
     if (subimage == m_subimage || TIFFSetDirectory(m_tif, subimage)) {
         m_subimage = subimage;
-        readspec(read_meta);
+        if (!readspec(read_meta))
+            return false;
 
         char emsg[1024];
         if (m_use_rgba_interface && !TIFFRGBAImageOK(m_tif, emsg)) {
@@ -931,7 +934,7 @@ TIFFInput::spec_dimensions(int subimage, int miplevel)
 #define ICC_PROFILE_ATTR "ICCProfile"
 
 
-void
+bool
 TIFFInput::readspec(bool read_meta)
 {
     uint32_t width = 0, height = 0, depth = 0;
@@ -1020,8 +1023,7 @@ TIFFInput::readspec(bool read_meta)
         m_spec.tile_depth  = 0;
     }
 
-    m_bitspersample = 8;
-    TIFFGetField(m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
+    TIFFGetFieldDefaulted(m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
     m_spec.attribute("oiio:BitsPerSample", (int)m_bitspersample);
 
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
@@ -1201,7 +1203,7 @@ TIFFInput::readspec(bool read_meta)
     // assumed to be identical to what we already have in m_spec,
     // skip everything following.
     if (!read_meta)
-        return;
+        return true;
 
     short resunit = -1;
     TIFFGetField(m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
@@ -1239,8 +1241,13 @@ TIFFInput::readspec(bool read_meta)
         m_spec.attribute(ICC_PROFILE_ATTR,
                          TypeDesc(TypeDesc::UINT8, icc_datasize), icc_buf);
         std::string errormsg;
-        decode_icc_profile(cspan<uint8_t>(icc_buf, icc_datasize), m_spec,
-                           errormsg);
+        bool ok = decode_icc_profile(cspan<uint8_t>(icc_buf, icc_datasize),
+                                     m_spec, errormsg);
+        if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
+                     errormsg);
+            return false;
+        }
     }
 
     // Search for an EXIF IFD in the TIFF file, and if found, rummage
@@ -1370,6 +1377,8 @@ TIFFInput::readspec(bool read_meta)
 
     if (m_testopenconfig)  // open-with-config debugging
         m_spec.attribute("oiio:DebugOpenConfig!", 42);
+
+    return true;
 }
 
 

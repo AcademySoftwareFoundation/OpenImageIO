@@ -1966,19 +1966,6 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     the ImageBuf.
 
 
-.. py:method:: ImageBuf.copy_metadata (other_imagebuf)
-
-    Replaces the metadata (all ImageSpec items, except for the data format
-    and pixel data window size) with the corresponding metadata from the
-    other ImageBuf.
-
-
-.. py:method:: ImageBuf.copy_pixels (other_imagebuf)
-
-    Replace the pixels in this ImageBuf with the values from the other
-    ImageBuf.
-
-
 .. py:method:: ImageBuf ImageBuf.copy (format=TypeUnknown)
 
     Return a full copy of this ImageBuf (with optional data format
@@ -2018,6 +2005,40 @@ awaiting a call to `reset()` or `copy()` before it is useful.
         C = ImageBuf()
         C.copy (A, oiio.FLOAT)
 
+
+
+.. py:method:: ImageBuf.copy_pixels (other_imagebuf)
+
+    Replace the pixels in this ImageBuf with the values from the other
+    ImageBuf.
+
+
+.. py:method:: ImageBuf.copy_metadata (other_imagebuf)
+
+    Replace the metadata of `Self` (all ImageSpec items, except for the data
+    format and pixel data window size) with the metadata from the other
+    ImageBuf.
+
+
+.. py:method:: ImageBuf.merge_metadata (src, override : bool = False, pattern : str = "")
+
+    Merge metadata from `src` into the metadata of `Self` (except for the data
+    format and pixel data window size). Metadata in `Self` that is not in
+    `src` will not be altered. Metadata in `Self` that also is in `src` will
+    be replaced only if `override` is True. If `pattern` is not empty, only
+    metadata having a substring that matches the regex pattern will be merged.
+
+    @version 3.0.5+
+
+    Example:
+
+    .. code-block:: python
+
+        A = ImageBuf("A.exr")
+        B = ImageBuf("B.exr")
+        A.merge_metadata(B, True, "^camera:")
+        # Now A contains all of B's metadata whose name starts with the
+        # substring "camera:"
 
 
 .. py:method:: ImageBuf.swap (other_imagebuf)

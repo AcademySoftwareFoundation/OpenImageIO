@@ -568,7 +568,7 @@ endif ()
 # is being built as a subproject.
 if (PROJECT_IS_TOP_LEVEL)
     set (CLANG_FORMAT_EXE_HINT "" CACHE PATH "clang-format executable's directory (will search if not specified")
-    set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
+    set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp testsuite/*.cpp testsuite/*.h"
         CACHE STRING "Glob patterns to include for clang-format")
     set (CLANG_FORMAT_EXCLUDES "*pugixml*" "*SHA1*" "*/farmhash.cpp"
                                "src/dpx.imageio/libdpx/*"

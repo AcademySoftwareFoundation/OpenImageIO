@@ -426,8 +426,6 @@ declare_imagebuf(py::module& m)
 
         .def("pixelindex", &ImageBuf::pixelindex, "x"_a, "y"_a, "z"_a,
              "check_range"_a = false)
-        .def("copy_metadata", &ImageBuf::copy_metadata)
-        .def("copy_pixels", &ImageBuf::copy_pixels)
         .def(
             "copy",
             [](ImageBuf& self, const ImageBuf& src, TypeDesc format) {
@@ -442,6 +440,15 @@ declare_imagebuf(py::module& m)
                 return src.copy(format);
             },
             "format"_a = TypeUnknown)
+        .def("copy_pixels", &ImageBuf::copy_pixels)
+        .def("copy_metadata", &ImageBuf::copy_metadata)
+        .def(
+            "merge_metadata",
+            [](ImageBuf& self, const ImageBuf& src, bool override,
+               const std::string& pattern) {
+                self.merge_metadata(src, override, pattern);
+            },
+            "src"_a, "override"_a = false, "pattern"_a = "")
         .def("swap", &ImageBuf::swap)
         .def("getchannel", &ImageBuf::getchannel, "x"_a, "y"_a, "z"_a, "c"_a,
              "wrap"_a = "black")
