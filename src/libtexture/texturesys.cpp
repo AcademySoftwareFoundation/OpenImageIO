@@ -2429,6 +2429,7 @@ TextureSystemImpl::sample_closest(
 {
     bool allok = true;
     const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
+    const LevelInfo& lvl(si.levelinfo(miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     wrap_impl swrap_func         = wrap_functions[(int)options.swrap];
     wrap_impl twrap_func         = wrap_functions[(int)options.twrap];
@@ -2462,7 +2463,7 @@ TextureSystemImpl::sample_closest(
         bool svalid, tvalid;  // Valid texels?  false means black border
         svalid = swrap_func(stex, si.get_x(miplevel), si.get_width(miplevel));
         tvalid = twrap_func(ttex, si.get_y(miplevel), si.get_height(miplevel));
-        if (!si.has_full_pixel_range(miplevel)) {
+        if (!lvl.full_pixel_range) {
             svalid &= (stex >= si.get_x(miplevel)
                        && stex < (si.get_x(miplevel)
                                   + si.get_width(miplevel)));  // data window
@@ -2567,7 +2568,7 @@ TextureSystemImpl::sample_bilinear(
     vfloat4* accum_, vfloat4* daccumds_, vfloat4* daccumdt_)
 {
     const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
-    // const LevelInfo& lvl(texturefile.levelinfo(options.subimage, miplevel));
+    const LevelInfo& lvl(si.levelinfo(miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     wrap_impl swrap_func         = wrap_functions[(int)options.swrap];
     wrap_impl twrap_func         = wrap_functions[(int)options.twrap];
@@ -2587,8 +2588,7 @@ TextureSystemImpl::sample_bilinear(
     int tile_chbegin = 0, tile_chend = si.get_channels();
     // need_pole: do we potentially need to fade to special pole color?
     // If we do, can't restrict channel range or fade_to_pole won't work.
-    bool need_pole = (options.envlayout == LayoutLatLong
-                      && si.has_one_tile(miplevel));
+    bool need_pole = (options.envlayout == LayoutLatLong && lvl.onetile);
     if (si.get_channels() > m_max_tile_channels && !need_pole) {
         // For files with many channels, narrow the range we cache
         tile_chbegin = options.firstchannel;
@@ -2649,7 +2649,7 @@ TextureSystemImpl::sample_bilinear(
         }
 
         // Account for crop windows
-        if (!si.has_full_pixel_range(miplevel)) {
+        if (!lvl.full_pixel_range) {
             stvalid &= (sttex >= xy) & (sttex < (xy + widthheight));
         }
         if (none(stvalid)) {
@@ -2923,6 +2923,7 @@ TextureSystemImpl::sample_bicubic(
     vfloat4* accum_, vfloat4* daccumds_, vfloat4* daccumdt_)
 {
     const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
+    const LevelInfo& lvl(si.levelinfo(miplevel));
     TypeDesc::BASETYPE pixeltype   = texturefile.pixeltype(options.subimage);
     wrap_impl_simd swrap_func_simd = wrap_functions_simd[(int)options.swrap];
     wrap_impl_simd twrap_func_simd = wrap_functions_simd[(int)options.twrap];
@@ -2949,8 +2950,7 @@ TextureSystemImpl::sample_bicubic(
 
     // need_pole: do we potentially need to fade to special pole color?
     // If we do, can't restrict channel range or fade_to_pole won't work.
-    bool need_pole   = (options.envlayout == LayoutLatLong
-                      && si.has_one_tile(miplevel));
+    bool need_pole   = (options.envlayout == LayoutLatLong && lvl.onetile);
     int tile_chbegin = 0, tile_chend = si.get_channels();
     if (si.get_channels() > m_max_tile_channels) {
         // For files with many channels, narrow the range we cache
@@ -3001,7 +3001,7 @@ TextureSystemImpl::sample_bicubic(
                                               spec_height_simd);
         bool allvalid       = reduce_and(svalid & tvalid);
         bool anyvalid       = reduce_or(svalid | tvalid);
-        if (!si.has_full_pixel_range(miplevel) && anyvalid) {
+        if (!lvl.full_pixel_range && anyvalid) {
             // Handle case of crop windows or overscan
             svalid &= (stex >= spec_x_simd) & (stex < spec_x_plus_width_simd);
             tvalid &= (ttex >= spec_y_simd) & (ttex < spec_y_plus_height_simd);

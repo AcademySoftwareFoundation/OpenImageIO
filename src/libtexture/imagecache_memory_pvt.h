@@ -18,16 +18,6 @@ OIIO_NAMESPACE_BEGIN
 
 namespace pvt {
 
-#ifndef USE_UNCOMPRESSED_LEVELSPEC
-// heapsize specialization for ImageCacheFile::LevelSpec
-template<>
-inline size_t
-heapsize<ImageCacheFile::LevelSpec>(const ImageCacheFile::LevelSpec& lvlspec)
-{
-    return lvlspec.overrides ? lvlspec.fields.count() * sizeof(int) : 0ul;
-}
-#endif
-
 // heapsize specialization for ImageCacheFile::LevelInfo
 template<>
 inline size_t
