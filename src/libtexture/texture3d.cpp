@@ -310,6 +310,7 @@ TextureSystemImpl::accum3d_sample_closest(
     float* daccumdt, float* daccumdr)
 {
     const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
+    const LevelInfo& lvl(si.levelinfo(miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
     float s = P.x * si.get_full_width(miplevel) + si.get_full_x(miplevel);
@@ -327,7 +328,7 @@ TextureSystemImpl::accum3d_sample_closest(
     svalid = swrap_func(stex, si.get_x(miplevel), si.get_width(miplevel));
     tvalid = twrap_func(ttex, si.get_y(miplevel), si.get_height(miplevel));
     rvalid = rwrap_func(rtex, si.get_z(miplevel), si.get_depth(miplevel));
-    if (!si.has_full_pixel_range(miplevel)) {
+    if (!lvl.full_pixel_range) {
         svalid &= (stex >= si.get_x(miplevel)
                    && stex < (si.get_x(miplevel)
                               + si.get_width(miplevel)));  // data window
@@ -477,7 +478,7 @@ TextureSystemImpl::accum3d_sample_bilinear(
     float* daccumdt, float* daccumdr)
 {
     const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
-    // const LevelInfo& lvl(si.levelinfo(miplevel));
+    const LevelInfo& lvl(si.levelinfo(miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
     // and subtract 0.5 because samples are at texel centers.
@@ -533,7 +534,7 @@ TextureSystemImpl::accum3d_sample_bilinear(
     rvalid[0] = rwrap_func(rtex[0], si.get_z(miplevel), si.get_depth(miplevel));
     rvalid[1] = rwrap_func(rtex[1], si.get_z(miplevel), si.get_depth(miplevel));
     // Account for crop windows
-    if (!si.has_full_pixel_range(miplevel)) {
+    if (!lvl.full_pixel_range) {
         svalid[0] &= (stex[0] >= si.get_x(miplevel)
                       && stex[0] < si.get_x(miplevel) + si.get_width(miplevel));
         svalid[1] &= (stex[1] >= si.get_x(miplevel)
