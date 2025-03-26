@@ -22,7 +22,6 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/unordered_map_concurrent.h>
 
-#include <bitset>
 
 OIIO_NAMESPACE_BEGIN
 
@@ -176,7 +175,7 @@ public:
     int subimages() const { return (int)m_subimages.size(); }
     int miplevels(int subimage) const
     {
-        return (int)m_subimages[subimage].levels.size();
+        return subimageinfo(subimage).miplevels();
     }
 
     void get_cache_dimensions(int subimage, int miplevel, ImageSpec& spec) const
@@ -264,57 +263,11 @@ public:
     // success, false on failure.
     bool get_average_color(float* avg, int subimage, int chbegin, int chend);
 
-    //! LevelSpec is a minified ImageSpec to describe a miplevel image in the ImageCache.
-    //! It holds fields that can differ from the ImageSpec of the associated subimage.
-    struct LevelSpec {
-        int x;            ///< origin (upper left corner) of pixel data
-        int y;            ///< origin (upper left corner) of pixel data
-        int z;            ///< origin (upper left corner) of pixel data
-        int width;        ///< width of the pixel data window
-        int height;       ///< height of the pixel data window
-        int depth;        ///< depth of pixel data, >1 indicates a "volume"
-        int full_x;       ///< origin of the full (display) window
-        int full_y;       ///< origin of the full (display) window
-        int full_z;       ///< origin of the full (display) window
-        int full_width;   ///< width of the full (display) window
-        int full_height;  ///< height of the full (display) window
-        int full_depth;   ///< depth of the full (display) window
-        int tile_width;   ///< tile width (0 for a non-tiled image)
-        int tile_height;  ///< tile height (0 for a non-tiled image)
-        int tile_depth;   ///< tile depth (0 for a non-tiled image,
-                          //<             1 for a non-volume image)
-
-        //! Similar to ImageSpec
-        LevelSpec();
-        LevelSpec(const LevelSpec& other) = default;
-        LevelSpec(const ImageSpec& spec);  /// copy members from ImageSpec
-
-        //! NOTE: the following copies LevelSpec internals to `spec`, contrary to
-        //! `ImageSpec::copy_dimensions` which does the opposite.
-        void copy_dimensions(ImageSpec& spec) const
-        {
-            spec.x           = x;
-            spec.y           = y;
-            spec.z           = z;
-            spec.width       = width;
-            spec.height      = height;
-            spec.depth       = depth;
-            spec.full_x      = full_x;
-            spec.full_y      = full_y;
-            spec.full_z      = full_z;
-            spec.full_width  = full_width;
-            spec.full_height = full_height;
-            spec.full_depth  = full_depth;
-            spec.tile_width  = tile_width;
-            spec.tile_height = tile_height;
-            spec.tile_depth  = tile_depth;
-        }
-    };
-
     /// Info for each MIP level that isn't in the ImageSpec, or that we
     /// precompute.
+    using Dimensions = ImageSpec::Dimensions;
     struct LevelInfo {
-        LevelSpec* m_levelspec;              ///< Level dimensions
+        Dimensions* m_dims;                  ///< Level dimensions
         std::unique_ptr<float[]> polecolor;  ///< Pole colors
         atomic_ll* tiles_read;  ///< Bitfield for tiles read at least once
         int nxtiles, nytiles, nztiles;  ///< Number of tiles in each dimension
@@ -323,7 +276,7 @@ public:
         bool onetile : 1;            ///< Whole level fits on one tile
         bool polecolorcomputed : 1;  ///< Pole color was computed
 
-        LevelInfo(ImageSpec* spec, LevelSpec* levelspec = nullptr);
+        LevelInfo(ImageSpec* spec, Dimensions* dims = nullptr);
         LevelInfo(const LevelInfo& src);  // needed for vector<LevelInfo>
         ~LevelInfo() { delete[] tiles_read; }
     };
@@ -363,10 +316,7 @@ public:
         void get_cache_dimensions(int m, ImageSpec& s) const
         {
             const LevelInfo& lvl = levelinfo(m);
-            if (lvl.m_levelspec)
-                lvl.m_levelspec->copy_dimensions(s);
-            else
-                s.copy_dimensions(spec());
+            s.dims               = lvl.m_dims ? *lvl.m_dims : spec().dims;
         }
 
         ImageSpec& spec()
@@ -392,143 +342,27 @@ public:
             return levels[miplevel];
         }
 
-        //! SubimageInfo has access to the reference ImageSpec
-        //! LevelInfo stores optionally the dimensions that differ from the reference
-        //! These getter internally check where is the required value stored
-        int get_full_width(int m) const
+        const Dimensions& dimensions(int miplevel) const
         {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->full_width
-                                   : spec().full_width;
+            const LevelInfo& lvl = levelinfo(miplevel);
+            return lvl.m_dims ? *lvl.m_dims : spec().dims;
         }
-        int get_full_height(int m) const
+
+        Dimensions& dimensions(int miplevel)
         {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->full_height
-                                   : spec().full_height;
+            LevelInfo& lvl = levelinfo(miplevel);
+            return lvl.m_dims ? *lvl.m_dims : spec().dims;
         }
-        int get_full_depth(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->full_depth
-                                   : spec().full_depth;
-        }
-        int get_tile_width(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->tile_width
-                                   : spec().tile_width;
-        }
-        int get_tile_height(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->tile_height
-                                   : spec().tile_height;
-        }
-        int get_tile_depth(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->tile_depth
-                                   : spec().tile_depth;
-        }
-        int get_full_x(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->full_x : spec().full_x;
-        }
-        int get_full_y(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->full_y : spec().full_y;
-        }
-        int get_full_z(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->full_z : spec().full_z;
-        }
-        int get_x(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->x : spec().x;
-        }
-        int get_y(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->y : spec().y;
-        }
-        int get_z(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->z : spec().z;
-        }
-        int get_width(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->width : spec().width;
-        }
-        int get_height(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->height : spec().height;
-        }
-        int get_depth(int m) const
-        {
-            const LevelInfo& lvl = levelinfo(m);
-            return lvl.m_levelspec ? lvl.m_levelspec->depth : spec().depth;
-        }
-        int get_channels(int m = 0) const { return spec().nchannels; }
 
         //! The following methods are similar to the ones from ImageSpec.
         //! Underlying evaluation is from either the subimage`m_spec`
-        //! or the level `m_levelspec` info.
-        imagesize_t get_tile_pixels(int m) const
-        {
-            if (get_tile_width(m) <= 0 || get_tile_height(m) <= 0
-                || get_tile_depth(m) <= 0)
-                return 0;
-            imagesize_t r = clamped_mult64((imagesize_t)get_tile_width(m),
-                                           (imagesize_t)get_tile_height(m));
-            if (get_tile_depth(m) > 1)
-                r = clamped_mult64(r, (imagesize_t)get_tile_depth(m));
-            return r;
-        }
-        size_t get_channel_bytes(int m) const { return spec().format.size(); }
-        size_t get_pixel_bytes(int m) const
-        {
-            //! TODO: maybe this shouldn't ever happen in the image cache and we
-            // could get rid of the condition
-            if (get_channels(m) <= 0)
-                return 0;
-            return clamped_mult32((size_t)get_channels(m),
-                                  get_channel_bytes(m));
-        }
-        imagesize_t get_tile_bytes(int m) const
-        {
-            return clamped_mult64(get_tile_pixels(m),
-                                  (imagesize_t)get_pixel_bytes(m));
-        }
-        imagesize_t get_scanline_bytes(int m) const
-        {
-            if (get_width(m) < 0)
-                return 0;
-            return clamped_mult64((imagesize_t)get_width(m),
-                                  (imagesize_t)get_pixel_bytes(m));
-        }
-        imagesize_t get_image_pixels(int m) const
-        {
-            if (get_width(m) < 0 || get_height(m) < 0 || get_depth(m) < 0)
-                return 0;
-            imagesize_t r = clamped_mult64((imagesize_t)get_width(m),
-                                           (imagesize_t)get_height(m));
-            if (get_depth(m) > 1)
-                r = clamped_mult64(r, (imagesize_t)get_depth(m));
-            return r;
-        }
-        imagesize_t get_image_bytes(int m) const
-        {
-            return clamped_mult64(get_image_pixels(m),
-                                  (imagesize_t)get_pixel_bytes(m));
-        }
+        //! or the level M dimensions.
+        imagesize_t get_tile_pixels(int m) const;
+        size_t get_pixel_bytes() const;
+        imagesize_t get_tile_bytes(int m) const;
+        imagesize_t get_scanline_bytes(int m) const;
+        imagesize_t get_image_pixels(int m) const;
+        imagesize_t get_image_bytes(int m) const;
     };
 
     const SubimageInfo& subimageinfo(int subimage) const
@@ -545,15 +379,11 @@ public:
 
     const LevelInfo& levelinfo(int subimage, int miplevel) const
     {
-        OIIO_DASSERT((int)m_subimages.size() > subimage);
-        OIIO_DASSERT((int)m_subimages[subimage].levels.size() > miplevel);
-        return m_subimages[subimage].levels[miplevel];
+        return subimageinfo(subimage).levelinfo(miplevel);
     }
     LevelInfo& levelinfo(int subimage, int miplevel)
     {
-        OIIO_DASSERT((int)m_subimages.size() > subimage);
-        OIIO_DASSERT((int)m_subimages[subimage].levels.size() > miplevel);
-        return m_subimages[subimage].levels[miplevel];
+        return subimageinfo(subimage).levelinfo(miplevel);
     }
 
     /// Do we currently have a valid spec?
@@ -569,8 +399,8 @@ public:
     {
         m_validspec = false;
         m_subimages.clear();
-        m_subimageinfo_specs.clear();
-        m_levelinfo_specs.clear();
+        m_pool_specs.clear();
+        m_pool_dims.clear();
     }
 
     /// Should we print an error message? Keeps track of whether the
@@ -611,10 +441,12 @@ private:
         // set_imageinput -- those are guaranteed thread-safe.
 #endif
     std::vector<SubimageInfo> m_subimages;  ///< Info on each subimage
-    std::vector<std::unique_ptr<ImageSpec>> m_subimageinfo_specs;
-    std::vector<std::unique_ptr<LevelSpec>> m_levelinfo_specs;
-    static constexpr bool enable_subimage_spec_reuse = true;
-    static constexpr bool enable_level_spec_reuse    = true;
+    std::vector<std::unique_ptr<ImageSpec>> m_pool_specs;  ///< Pool of ImageSpec
+    std::vector<std::unique_ptr<Dimensions>> m_pool_dims;  ///< Pool of Dimensions
+    static constexpr bool enable_specs_reuse
+        = true;  ///< Indicates to share ImageSpec across subimages
+    static constexpr bool enable_dims_reuse
+        = true;  ///< Indicates to share Dimensions across subimages and miplevels
 
     TexFormat m_texformat;        ///< Which texture format
     TextureOpt::Wrap m_swrap;     ///< Default wrap modes
@@ -688,16 +520,14 @@ private:
 
     /// helpers for ImageCacheFile::open(...):
     /// search for a matching ImageSpec within the existing subimages
-    ImageSpec* find_subimage_spec(int subimage, const ImageSpec& spec);
+    ImageSpec* find_spec(int subimage, const ImageSpec& spec);
     /// returns a pointer to an existing or a newly allocated ImageSpec that matches `spec`
-    ImageSpec* find_or_create_subimage_spec(int subimage,
-                                            const ImageSpec& spec);
-    /// search for a similar LevelSpec within the existing subimages at the specified miplevel
-    LevelSpec* find_level_spec(int subimage, int miplevel,
-                               const LevelSpec& spec);
-    /// returns a pointer to an existing or a newly allocated LevelSpec that matches the dimensions from `spec`
-    LevelSpec* find_or_create_level_spec(int subimage, int miplevel,
-                                         const ImageSpec& spec);
+    ImageSpec* find_or_create_spec(int subimage, const ImageSpec& spec);
+    /// search for a similar Dimensions within the existing subimages at the specified miplevel
+    Dimensions* find_dims(int subimage, int miplevel, const Dimensions& spec);
+    /// returns a pointer to an existing or a newly allocated Dimensions that matches the dimensions from `spec`
+    Dimensions* find_or_create_dims(int subimage, int miplevel,
+                                    const ImageSpec& spec);
     /// read and init the texture format of this ImageCacheFile from the given ImageSpec
     /// returns a pointer in case the texture dimensions need to be sanitized
     /// FIXME -- this should really be per-subimage

@@ -252,23 +252,49 @@ public:
     ///
     /// Here are the hard-coded data fields:
 
-    int x;                    ///< origin (upper left corner) of pixel data
-    int y;                    ///< origin (upper left corner) of pixel data
-    int z;                    ///< origin (upper left corner) of pixel data
-    int width;                ///< width of the pixel data window
-    int height;               ///< height of the pixel data window
-    int depth;                ///< depth of pixel data, >1 indicates a "volume"
-    int full_x;               ///< origin of the full (display) window
-    int full_y;               ///< origin of the full (display) window
-    int full_z;               ///< origin of the full (display) window
-    int full_width;           ///< width of the full (display) window
-    int full_height;          ///< height of the full (display) window
-    int full_depth;           ///< depth of the full (display) window
-    int tile_width;           ///< tile width (0 for a non-tiled image)
-    int tile_height;          ///< tile height (0 for a non-tiled image)
-    int tile_depth;           ///< tile depth (0 for a non-tiled image,
-                              ///<             1 for a non-volume image)
-    int nchannels;            ///< number of image channels, e.g., 4 for RGBA
+    struct Dimensions
+    {
+        int x;              ///< origin (upper left corner) of pixel data
+        int y;              ///< origin (upper left corner) of pixel data
+        int z;              ///< origin (upper left corner) of pixel data
+        int width;          ///< width of the pixel data window
+        int height;         ///< height of the pixel data window
+        int depth;          ///< depth of pixel data, >1 indicates a "volume"
+        int full_x;         ///< origin of the full (display) window
+        int full_y;         ///< origin of the full (display) window
+        int full_z;         ///< origin of the full (display) window
+        int full_width;     ///< width of the full (display) window
+        int full_height;    ///< height of the full (display) window
+        int full_depth;     ///< depth of the full (display) window
+        int tile_width;     ///< tile width (0 for a non-tiled image)
+        int tile_height;    ///< tile height (0 for a non-tiled image)
+        int tile_depth;     ///< tile depth (0 for a non-tiled image,
+                            ///<             1 for a non-volume image)
+        int nchannels;      ///< number of image channels, e.g., 4 for RGBA
+    };
+
+    union {
+        struct {
+            int x;              ///< origin (upper left corner) of pixel data
+            int y;              ///< origin (upper left corner) of pixel data
+            int z;              ///< origin (upper left corner) of pixel data
+            int width;          ///< width of the pixel data window
+            int height;         ///< height of the pixel data window
+            int depth;          ///< depth of pixel data, >1 indicates a "volume"
+            int full_x;         ///< origin of the full (display) window
+            int full_y;         ///< origin of the full (display) window
+            int full_z;         ///< origin of the full (display) window
+            int full_width;     ///< width of the full (display) window
+            int full_height;    ///< height of the full (display) window
+            int full_depth;     ///< depth of the full (display) window
+            int tile_width;     ///< tile width (0 for a non-tiled image)
+            int tile_height;    ///< tile height (0 for a non-tiled image)
+            int tile_depth;     ///< tile depth (0 for a non-tiled image,
+                                ///<             1 for a non-volume image)
+            int nchannels;      ///< number of image channels, e.g., 4 for RGBA
+        };
+        Dimensions dims;
+    };
 
     TypeDesc format;          ///< Data format of the channels.
         ///< Describes the native format of the pixel data values
@@ -783,23 +809,9 @@ public:
     /// arbitrary named metadata or channel names (thus, for an `ImageSpec`
     /// with lots of metadata, it is much less expensive than copying the
     /// whole thing with `operator=()`).
-    void copy_dimensions (const ImageSpec &other) {
-        x = other.x;
-        y = other.y;
-        z = other.z;
-        width = other.width;
-        height = other.height;
-        depth = other.depth;
-        full_x = other.full_x;
-        full_y = other.full_y;
-        full_z = other.full_z;
-        full_width = other.full_width;
-        full_height = other.full_height;
-        full_depth = other.full_depth;
-        tile_width = other.tile_width;
-        tile_height = other.tile_height;
-        tile_depth = other.tile_depth;
-        nchannels = other.nchannels;
+    void copy_dimensions (const ImageSpec &other)
+    {
+        dims = other.dims;
         format = other.format;
         channelformats = other.channelformats;
         alpha_channel = other.alpha_channel;
