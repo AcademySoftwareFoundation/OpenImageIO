@@ -40,7 +40,7 @@ using namespace pvt;
 using namespace simd;
 using LevelInfo    = ImageCacheFile::LevelInfo;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
-using Dimensions   = ImageSpec::Dimensions;
+using Dimensions   = ImageCacheFile::Dimensions;
 
 namespace {  // anonymous
 

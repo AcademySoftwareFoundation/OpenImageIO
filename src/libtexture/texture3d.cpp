@@ -26,7 +26,7 @@ OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 using LevelInfo    = ImageCacheFile::LevelInfo;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
-using Dimensions   = ImageSpec::Dimensions;
+using Dimensions   = ImageCacheFile::Dimensions;
 
 namespace {  // anonymous
 
