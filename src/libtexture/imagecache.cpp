@@ -38,7 +38,7 @@
 
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
-using Dimensions   = ImageSpec::Dimensions;
+using Dimensions   = ImageCacheFile::Dimensions;
 using LevelInfo    = ImageCacheFile::LevelInfo;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
 
@@ -318,7 +318,7 @@ LevelInfo::LevelInfo(ImageSpec* spec_, Dimensions* dims_)
     , nztiles(1)
 {
     OIIO_DASSERT(spec_);
-    const Dimensions& dims = m_dims ? *m_dims : spec_->dims;
+    const Dimensions& dims = m_dims ? *m_dims : Dimensions::convert(*spec_);
     nchannels              = dims.nchannels;
     full_pixel_range       = has_full_pixel_range(dims);
     onetile                = has_one_tile(dims);
@@ -466,42 +466,43 @@ ImageCacheFile::set_imageinput(std::shared_ptr<ImageInput> newval)
 
 
 void
-ImageCacheFile::SubimageInfo::init(ImageCacheFile& icfile, ImageSpec* spec,
+ImageCacheFile::SubimageInfo::init(ImageCacheFile& icfile, ImageSpec* spec_,
                                    bool forcefloat)
 {
-    m_spec = spec;
+    m_spec = spec_;
     OIIO_DASSERT(m_spec);
-    const ImageSpec& s = *m_spec;
-    volume             = (s.depth > 1 || s.full_depth > 1);
-    full_pixel_range   = has_full_pixel_range(*spec);
+    const ImageSpec& spec = *m_spec;
+    volume                = (spec.depth > 1 || spec.full_depth > 1);
+    full_pixel_range      = has_full_pixel_range(spec);
     if (!full_pixel_range) {
-        sscale  = float(s.full_width) / s.width;
-        soffset = float(s.full_x - s.x) / s.width;
-        tscale  = float(s.full_height) / s.height;
-        toffset = float(s.full_y - s.y) / s.height;
+        sscale  = float(spec.full_width) / spec.width;
+        soffset = float(spec.full_x - spec.x) / spec.width;
+        tscale  = float(spec.full_height) / spec.height;
+        toffset = float(spec.full_y - spec.y) / spec.height;
     } else {
         sscale = tscale = 1.0f;
         soffset = toffset = 0.0f;
     }
-    subimagename = ustring(s.get_string_attribute("oiio:subimagename"));
+    subimagename = ustring(spec.get_string_attribute("oiio:subimagename"));
     datatype     = TypeDesc::FLOAT;
     if (!forcefloat) {
         // If we aren't forcing everything to be float internally, then
         // there are a few other types we allow.
-        if (s.format == TypeDesc::UINT8 || s.format == TypeDesc::UINT16
-            || s.format == TypeDesc::HALF
-            /* future expansion:  || s.format == AnotherFormat ... */)
-            datatype = s.format;
+        if (spec.format == TypeDesc::UINT8 || spec.format == TypeDesc::UINT16
+            || spec.format == TypeDesc::HALF
+            /* future expansion:  || spec.format == AnotherFormat ... */)
+            datatype = spec.format;
     }
     channelsize = datatype.size();
-    pixelsize   = channelsize * s.nchannels;
+    pixelsize   = channelsize * spec.nchannels;
 
     // See if there's a constant color tag
-    string_view software = s.get_string_attribute("Software");
+    string_view software = spec.get_string_attribute("Software");
     bool from_maketx     = Strutil::istarts_with(software, "OpenImageIO")
                        || Strutil::istarts_with(software, "maketx");
 
-    string_view constant_color = s.get_string_attribute("oiio:ConstantColor");
+    string_view constant_color = spec.get_string_attribute(
+        "oiio:ConstantColor");
     if (from_maketx && constant_color.size()) {
         while (constant_color.size()) {
             float val;
@@ -511,14 +512,14 @@ ImageCacheFile::SubimageInfo::init(ImageCacheFile& icfile, ImageSpec* spec,
             if (!Strutil::parse_char(constant_color, ','))
                 break;
         }
-        if (average_color.size() == size_t(s.nchannels)) {
+        if (average_color.size() == size_t(spec.nchannels)) {
             is_constant_image = true;
             has_average_color = true;
         }
     }
 
     // See if there's an average color tag
-    string_view avgcolor = s.get_string_attribute("oiio:AverageColor");
+    string_view avgcolor = spec.get_string_attribute("oiio:AverageColor");
     if (from_maketx && avgcolor.size()) {
         while (avgcolor.size()) {
             float val;
@@ -528,11 +529,11 @@ ImageCacheFile::SubimageInfo::init(ImageCacheFile& icfile, ImageSpec* spec,
             if (!Strutil::parse_char(avgcolor, ','))
                 break;
         }
-        if (average_color.size() == size_t(s.nchannels))
+        if (average_color.size() == size_t(spec.nchannels))
             has_average_color = true;
     }
 
-    const ParamValue* p = s.find_attribute("worldtolocal", TypeMatrix);
+    const ParamValue* p = spec.find_attribute("worldtolocal", TypeMatrix);
     if (p) {
         Imath::M44f c2w;
         icfile.m_imagecache.get_commontoworld(c2w);
@@ -674,10 +675,11 @@ ImageCacheFile::find_or_create_dims(int subimage, int miplevel,
     // next we try to deduplicate Dimensions across subimages
     Dimensions* tmp = nullptr;
     if (enable_dims_reuse && subimage > 0)
-        tmp = find_dims(subimage, miplevel, spec.dims);
+        tmp = find_dims(subimage, miplevel, Dimensions::convert(spec));
     // if we cannot reuse a previously allocated Dimensions, just create one
     if (!tmp) {
-        m_pool_dims.emplace_back(std::make_unique<Dimensions>(spec.dims));
+        m_pool_dims.emplace_back(
+            std::make_unique<Dimensions>(Dimensions::convert(spec)));
         tmp = m_pool_dims.back().get();
     }
     return tmp;

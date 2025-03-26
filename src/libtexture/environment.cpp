@@ -203,7 +203,7 @@ OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 using namespace simd;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
-using Dimensions   = ImageSpec::Dimensions;
+using Dimensions   = ImageCacheFile::Dimensions;
 
 bool
 TextureSystem::environment(ustring filename, TextureOpt& options, V3fParam R,
