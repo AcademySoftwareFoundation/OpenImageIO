@@ -22,7 +22,6 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/unordered_map_concurrent.h>
 
-
 OIIO_NAMESPACE_BEGIN
 
 
@@ -263,9 +262,50 @@ public:
     // success, false on failure.
     bool get_average_color(float* avg, int subimage, int chbegin, int chend);
 
+    //! Dimensions is a minified ImageSpec that only store the fields
+    //! that can change per mip map level.
+    //! It is used as standalone container or can be used as a view
+    //! over the same fields of ImageSpec via the Dimensions::convert() function.
+    struct Dimensions {
+        int x;            ///< origin (upper left corner) of pixel data
+        int y;            ///< origin (upper left corner) of pixel data
+        int z;            ///< origin (upper left corner) of pixel data
+        int width;        ///< width of the pixel data window
+        int height;       ///< height of the pixel data window
+        int depth;        ///< depth of pixel data, >1 indicates a "volume"
+        int full_x;       ///< origin of the full (display) window
+        int full_y;       ///< origin of the full (display) window
+        int full_z;       ///< origin of the full (display) window
+        int full_width;   ///< width of the full (display) window
+        int full_height;  ///< height of the full (display) window
+        int full_depth;   ///< depth of the full (display) window
+        int tile_width;   ///< tile width (0 for a non-tiled image)
+        int tile_height;  ///< tile height (0 for a non-tiled image)
+        int tile_depth;   ///< tile depth (0 for a non-tiled image,
+                          ///<             1 for a non-volume image)
+        int nchannels;    ///< number of image channels, e.g., 4 for RGBA
+
+        static const Dimensions& convert(const ImageSpec& s)
+        {
+            // is that evil ?
+            OIIO_STATIC_ASSERT(alignof(ImageSpec) >= alignof(Dimensions));
+            OIIO_DASSERT(sizeof(Dimensions)
+                         == ((size_t)&s.format - (size_t)&s.x));
+            return *((Dimensions*)&s.x);
+        }
+
+        static Dimensions& convert(ImageSpec& s)
+        {
+            // is that evil ?
+            OIIO_STATIC_ASSERT(alignof(ImageSpec) >= alignof(Dimensions));
+            OIIO_DASSERT(sizeof(Dimensions)
+                         == ((size_t)&s.format - (size_t)&s.x));
+            return *((Dimensions*)&s.x);
+        }
+    };
+
     /// Info for each MIP level that isn't in the ImageSpec, or that we
     /// precompute.
-    using Dimensions = ImageSpec::Dimensions;
     struct LevelInfo {
         Dimensions* m_dims;                  ///< Level dimensions
         std::unique_ptr<float[]> polecolor;  ///< Pole colors
@@ -315,8 +355,10 @@ public:
 
         void get_cache_dimensions(int m, ImageSpec& s) const
         {
-            const LevelInfo& lvl = levelinfo(m);
-            s.dims               = lvl.m_dims ? *lvl.m_dims : spec().dims;
+            const Dimensions& dims = dimensions(m);
+            Dimensions& output     = Dimensions::convert(s);
+            // if the alignment of Dimensions and ImageSpec matches, default copy should work
+            output = dims;
         }
 
         ImageSpec& spec()
@@ -345,18 +387,12 @@ public:
         const Dimensions& dimensions(int miplevel) const
         {
             const LevelInfo& lvl = levelinfo(miplevel);
-            return lvl.m_dims ? *lvl.m_dims : spec().dims;
-        }
-
-        Dimensions& dimensions(int miplevel)
-        {
-            LevelInfo& lvl = levelinfo(miplevel);
-            return lvl.m_dims ? *lvl.m_dims : spec().dims;
+            return lvl.m_dims ? *lvl.m_dims : Dimensions::convert(spec());
         }
 
         //! The following methods are similar to the ones from ImageSpec.
-        //! Underlying evaluation is from either the subimage`m_spec`
-        //! or the level M dimensions.
+        //! Underlying evaluation is from either the subimage spec
+        //! or the level specific dimensions if they exist.
         imagesize_t get_tile_pixels(int m) const;
         size_t get_pixel_bytes() const;
         imagesize_t get_tile_bytes(int m) const;
