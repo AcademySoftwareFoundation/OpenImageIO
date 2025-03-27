@@ -262,8 +262,15 @@ declare_imagespec(py::module& m)
         .def("to_xml",
              [](const ImageSpec& spec) { return PY_STR(spec.to_xml()); })
         .def("from_xml", &ImageSpec::from_xml)
-        .def("valid_tile_range", &ImageSpec::valid_tile_range, "xbegin"_a,
-             "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a, "zend"_a)
+        .def(
+            "valid_tile_range",
+            [](ImageSpec& self, int xbegin, int xend, int ybegin, int yend,
+               int zbegin, int zend) {
+                return self.valid_tile_range(xbegin, xend, ybegin, yend, zbegin,
+                                             zend);
+            },
+            "xbegin"_a, "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a = 0,
+            "zend"_a = 1)
         .def("copy_dimensions", &ImageSpec::copy_dimensions, "other"_a)
         .def(
             "set_colorspace",
