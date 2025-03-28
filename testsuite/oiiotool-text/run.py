@@ -43,6 +43,11 @@ command += oiiotool ("--create 320x240 3 "
             "\"--text:x=25:y=120:font=Droid Serif Bold:size=40\" \"Hello, world\" "
             "-d uint8 -o fontbyfamily.tif")
 
+# test size
+command += oiiotool ("--create 320x240 3 "
+            "\"--text:measure=1:render=0:font=Droid Serif Bold:size=40\" \"Hello, world\" "
+            "--echo \"Text size: xy {TEXT_X} {TEXT_Y} wh {TEXT_WIDTH} {TEXT_HEIGHT}\" ")
+
 # Outputs to check against references
 outputs = [ "text.tif", "aligned.tif", "textshadowed.tif", "textalpha.tif", "fontbyfamily.tif" ]
 
