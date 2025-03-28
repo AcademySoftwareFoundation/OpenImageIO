@@ -166,14 +166,13 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     }
 
 
-    // IFF image files only supports UINT8 and UINT16.  If something
-    // else was requested, revert to the one most likely to be readable
-    // by any IFF reader: UINT8
+    // IFF image files only support UINT8 and UINT16. If another format is
+    // requested, convert to UINT16 to preserve the most fidelity and ensure
+    // compatibility with common IFF readers.
 
-    TypeDesc base_format = spec.format;
     if (base_format != TypeDesc::UINT8 && base_format != TypeDesc::UINT16) {
-        errorfmt("Unsupported format {}. Converting to UINT8.", base_format);
-        base_format = TypeDesc::UINT8;
+        base_format = TypeDesc::UINT16;
+        errorfmt("Unsupported format {}. Converting to UINT16.", spec.format);
     }
 
     // format
