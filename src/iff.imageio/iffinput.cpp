@@ -516,7 +516,6 @@ IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
 
     if (m_buf.empty()) {
         if (!readimg()) {
-            errorfmt("IFF error could not read image for tile");
             return false;
         }
     }
