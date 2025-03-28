@@ -170,6 +170,7 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     // requested, convert to UINT16 to preserve the most fidelity and ensure
     // compatibility with common IFF readers.
 
+    TypeDesc base_format = spec.format;
     if (base_format != TypeDesc::UINT8 && base_format != TypeDesc::UINT16) {
         base_format = TypeDesc::UINT16;
         errorfmt("Unsupported format {}. Converting to UINT16.", spec.format);
