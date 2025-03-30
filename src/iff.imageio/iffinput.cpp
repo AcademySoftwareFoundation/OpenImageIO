@@ -51,6 +51,8 @@ private:
 
     // helper to uncompress a rle channel
     size_t uncompress_rle_channel(const uint8_t* in, uint8_t* out, int size);
+    size_t uncompress_rle_channel_span(span<uint8_t> in, span<uint8_t> out,
+                                       size_t max);
 
     /// Helper: read buf[0..nitems-1], swap endianness if necessary
     template<typename T> bool read(T* buf, size_t nitems = 1)
@@ -451,8 +453,6 @@ IffInput::read_header()
                                         } else {
                                             // skip to the next block.
                                             if (!ioseek(chunksize, SEEK_CUR)) {
-                                                errorfmt(
-                                                    "IFF error io seek failed");
                                                 return false;
                                             }
                                         }
@@ -460,14 +460,12 @@ IffInput::read_header()
                                 } else {
                                     // skip to the next block.
                                     if (!ioseek(chunksize, SEEK_CUR)) {
-                                        errorfmt("IFF error io seek failed");
                                         return false;
                                     }
                                 }
                             } else {
                                 // skip to the next block.
                                 if (!ioseek(chunksize, SEEK_CUR)) {
-                                    errorfmt("IFF error io seek failed");
                                     return false;
                                 }
                             }
@@ -477,7 +475,6 @@ IffInput::read_header()
                     } else {
                         // skip to the next block.
                         if (!ioseek(chunksize, SEEK_CUR)) {
-                            errorfmt("IFF error io seek failed");
                             return false;
                         }
                     }
@@ -486,7 +483,6 @@ IffInput::read_header()
         } else {
             // skip to the next block.
             if (!ioseek(chunksize, SEEK_CUR)) {
-                errorfmt("IFF error io seek failed");
                 return false;
             }
         }
@@ -605,12 +601,8 @@ IffInput::readimg()
             // if tile compression fails to be less than image data stored
             // uncompressed the tile is written uncompressed
 
-            // set channels
-            uint8_t channels = m_header.rgba_count;
-
             // set tile size
-            uint32_t tile_size = tw * th * channels * m_header.channel_bytes()
-                                 + 8;
+            uint32_t tile_size = tw * th * m_header.rgba_channels_bytes() + 8;
 
             // test if compressed
             // we use the non aligned size
@@ -626,7 +618,6 @@ IffInput::readimg()
                 scratch.resize(image_size);
 
                 if (!ioread(scratch.data(), 1, scratch.size())) {
-                    errorfmt("IFF error io seek failed");
                     return false;
                 }
 
@@ -688,7 +679,6 @@ IffInput::readimg()
                 scratch.resize(image_size);
 
                 if (!ioread(scratch.data(), 1, scratch.size())) {
-                    errorfmt("IFF error io seek failed");
                     return false;
                 }
 
@@ -814,39 +804,119 @@ IffInput::readimg()
                 return false;
             }
 
+            // tile compress
+            bool tile_compressed = false;
+
+            // if tile compression fails to be less than image data stored
+            // uncompressed the tile is written uncompressed
+
+            // set tile size
+            uint32_t tile_size = tw * th * m_header.zbuffer_bytes() + 8;
+
+            // test if compressed
+            // we use the non aligned size
+            if (tile_size > size) {
+                tile_compressed = true;
+            }
+
             // set tile size
             std::vector<uint8_t> scratch;
 
-            // set bytes.
+            // set bytes
             scratch.resize(image_size);
 
             // zbuffer is always compressed in IFF
 
             if (!ioread(scratch.data(), 1, scratch.size())) {
-                errorfmt("IFF error io seek failed");
                 return false;
             }
 
-            // set tile data
-            uint8_t* p = scratch.data();
+            // read tile
 
-            for (int c = m_header.zbuffer_bytes() - 1; c >= 0; --c) {
-                std::vector<uint8_t> in(tw * th);
-                uint8_t* in_p = in.data();
+            if (tile_compressed) {
+                span<uint8_t> scratch_span(scratch);
 
-                // uncompress and increment
-                p += uncompress_rle_channel(p, in_p, tw * th);
+                for (int c = m_header.zbuffer_bytes() - 1; c >= 0; --c) {
+                    std::vector<uint8_t> in(tw * th);
+                    span<uint8_t> in_span(in);
 
-                // set tile
-                for (uint32_t py = ymin; py <= ymax; py++) {
-                    uint8_t* out_dy = static_cast<uint8_t*>(m_buf.data())
-                                      + (py * m_header.width)
+                    // uncompress and advance span
+                    size_t used = uncompress_rle_channel_span(scratch_span,
+                                                              in_span, tw * th);
+                    if (used > scratch_span.size()) {
+                        errorfmt("rle read exceeds scratch buffer");
+                        return false;
+                    }
+                    scratch_span = scratch_span.subspan(used);
+
+                    // write to output buffer
+                    for (uint32_t py = ymin; py <= ymax; py++) {
+                        uint8_t* out_dy = static_cast<uint8_t*>(m_buf.data())
+                                          + (py * m_header.width)
+                                                * m_header.pixel_bytes();
+
+                        for (uint16_t px = xmin; px <= xmax; px++) {
+                            uint8_t* out_p = out_dy
+                                             + px * m_header.pixel_bytes()
+                                             + m_header.rgba_channels_bytes()
+                                             + c;
+
+                            if (in_span.empty()) {
+                                errorfmt("in span underflow");
+                                return false;
+                            }
+                            *out_p++ = in_span.front();
+                            in_span  = in_span.subspan(1);
+                        }
+                    }
+                }
+
+            } else {
+                span<uint8_t> scratch_span(scratch);
+
+                size_t row_stride      = tw * m_header.pixel_bytes();
+                size_t full_tile_bytes = row_stride * th;
+
+                if (scratch_span.size() < full_tile_bytes) {
+                    errorfmt("scratch buffer too small for uncompressed tile");
+                    return false;
+                }
+
+                scratch_span = scratch_span.first(full_tile_bytes);
+
+                int sy = 0;
+                for (uint16_t py = ymin; py <= ymax; py++, sy++) {
+                    uint8_t* out_dy = m_buf.data()
+                                      + (py * m_header.width + xmin)
                                             * m_header.pixel_bytes();
 
-                    for (uint16_t px = xmin; px <= xmax; px++) {
-                        uint8_t* out_p = out_dy + px * m_header.pixel_bytes()
-                                         + m_header.rgba_channels_bytes() + c;
-                        *out_p++ = *in_p++;
+                    int sx = 0;
+                    for (uint16_t px = xmin; px <= xmax; px++, sx++) {
+                        size_t offset = (sy * tw + sx) * m_header.pixel_bytes();
+                        if (offset + m_header.pixel_bytes()
+                            > scratch_span.size()) {
+                            errorfmt("uncompressed span overflow at offset {}",
+                                     offset);
+                            return false;
+                        }
+
+                        span<uint8_t> pixel_span
+                            = scratch_span.subspan(offset,
+                                                   m_header.pixel_bytes());
+
+                        for (int c = m_header.zbuffer_bytes() - 1; c >= 0;
+                             --c) {
+                            size_t channel_index
+                                = m_header.rgba_channels_bytes() + c;
+                            if (channel_index >= pixel_span.size()) {
+                                errorfmt(
+                                    "channel index {} out of range for pixel span of size {}",
+                                    channel_index, pixel_span.size());
+                                return false;
+                            }
+
+                            *out_dy++ = pixel_span[channel_index];
+                        }
                     }
                 }
             }
@@ -855,7 +925,6 @@ IffInput::readimg()
         } else {
             // skip to the next block
             if (!ioseek(chunksize, SEEK_CUR)) {
-                errorfmt("IFF error io seek failed");
                 return false;
             }
         }
@@ -878,7 +947,6 @@ IffInput::readimg()
     }
     return true;
 }
-
 
 size_t
 IffInput::uncompress_rle_channel(const uint8_t* in, uint8_t* out, int size)
@@ -903,6 +971,47 @@ IffInput::uncompress_rle_channel(const uint8_t* in, uint8_t* out, int size)
         }
     }
     return in - _in;
+}
+
+size_t
+IffInput::uncompress_rle_channel_span(span<uint8_t> in, span<uint8_t> out,
+                                      size_t max)
+{
+    const uint8_t* in_ptr = in.data();
+    const uint8_t* in_end = in.data() + in.size();
+
+    uint8_t* out_ptr       = out.data();
+    const uint8_t* out_end = out.data() + std::min(max, out.size());
+
+    while (out_ptr < out_end && in_ptr < in_end) {
+        if (in_ptr >= in_end)
+            break;
+
+        uint8_t header = *in_ptr++;
+        uint8_t count  = (header & 0x7f) + 1;
+        bool run       = (header & 0x80);
+
+        if (!run) {
+            if (in_ptr + count > in_end)
+                break;
+            if (out_ptr + count > out_end)
+                break;
+
+            std::copy(in_ptr, in_ptr + count, out_ptr);
+            in_ptr += count;
+            out_ptr += count;
+        } else {
+            if (in_ptr >= in_end)
+                break;
+            if (out_ptr + count > out_end)
+                break;
+
+            uint8_t value = *in_ptr++;
+            std::fill(out_ptr, out_ptr + count, value);
+            out_ptr += count;
+        }
+    }
+    return static_cast<size_t>(in_ptr - in.data());
 }
 
 
