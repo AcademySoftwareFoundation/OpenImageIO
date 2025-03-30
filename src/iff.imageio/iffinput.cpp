@@ -874,7 +874,7 @@ IffInput::readimg()
             } else {
                 span<uint8_t> scratch_span(scratch);
 
-                size_t row_stride      = tw * m_header.pixel_bytes();
+                size_t row_stride      = tw * m_header.zbuffer_bytes();
                 size_t full_tile_bytes = row_stride * th;
 
                 if (scratch_span.size() < full_tile_bytes) {
