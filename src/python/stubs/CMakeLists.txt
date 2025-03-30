@@ -1,7 +1,7 @@
 
 # Setup the pystub target, which is not built by default.
 
-set (_stub_file "${CMAKE_SOURCE_DIR}/src/python/stubs/__init__.pyi")
+set (_stub_file "${CMAKE_SOURCE_DIR}/src/python/stubs/OpenImageIO/__init__.pyi")
 
 # Note: the python version must be kept in sync with `[[tool.cibuildwheel.overrides]]` in pyproject.toml.
 # The stubs are generated within a container so the version of python does not need to match

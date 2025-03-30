@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+from __future__ import annotations
+
 import OpenImageIO as oiio
 
 
@@ -72,7 +74,7 @@ def vecsemantics_enum_test():
         print ("Failed VECSEMANTICS")
 
 # print the details of a type t
-def breakdown_test(t, name="", verbose=True):
+def breakdown_test(t: oiio.TypeDesc, name="", verbose=True):
     print ("type '%s'" % name)
     print ("    c_str \"" + t.c_str() + "\"")
     if verbose:

@@ -394,6 +394,8 @@ The workflow for releasing new stubs is as follows:
 
 - Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
 - Run `make pystubs` locally to generate updated stubs in `src/python/stubs/__init__.pyi`
+- Run `make test-pystubs` locally to use mypy to test the stubs against the code in 
+  the python testsuite.
 - Commit the new stubs and push to Github
 - In CI, the stubs will be included in the wheels built by `cibuildwheel`, as defined in `.github/wheel.yml`
 - In CI, one of the `cibuildwheel` Github actions will rebuild the stubs to a 
