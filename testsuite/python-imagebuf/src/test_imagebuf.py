@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+from __future__ import annotations
 
 import array
 import numpy
@@ -11,7 +12,7 @@ import OpenImageIO as oiio
 
 
 # Print the contents of an ImageSpec
-def print_imagespec (spec, subimage=0, mip=0, msg="") :
+def print_imagespec (spec: oiio.ImageSpec, subimage=0, mip=0, msg="") :
     if msg != "" :
         print (str(msg))
     if spec.depth <= 1 :
@@ -39,9 +40,9 @@ def print_imagespec (spec, subimage=0, mip=0, msg="") :
     print ("  deep = ", spec.deep)
     for attrib in spec.extra_attribs :
         if type(attrib.value) == str :
-            print (" ", attrib.name, "= \"" + attrib.value + "\"")
+            print ("  {} = \"{}\"".format(attrib.name, attrib.value))
         else :
-            print (" ", attrib.name, "=", attrib.value)
+            print ("  {} = {}".format(attrib.name,attrib.value))
     # Equivalent, using indexing rather than iterating:
     #for i in range(len(spec.extra_attribs)) :
     #    if type(spec.extra_attribs[i].value) == str :
@@ -50,7 +51,7 @@ def print_imagespec (spec, subimage=0, mip=0, msg="") :
     #        print (" ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value)
 
 
-def write (image, filename, format=oiio.UNKNOWN) :
+def write (image, filename: str, format=oiio.UNKNOWN) :
     if not image.has_error :
         image.write (filename, format)
     if image.has_error :
@@ -118,6 +119,7 @@ def test_multiimage () :
     print ("Writing multi-image file")
     spec = oiio.ImageSpec (128, 64, 3, "float")
     out = oiio.ImageOutput.create ("multipart.exr")
+    assert out is not None
     # Open with intent to write two subimages, each with same spec
     if not out.open ("multipart.exr", (spec, spec)) :
         print ("Error on initial open:", out.geterror())

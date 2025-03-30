@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+from __future__ import annotations
+
 import os
 import OpenImageIO as oiio
 

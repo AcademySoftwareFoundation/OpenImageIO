@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+from __future__ import annotations
 
 import OpenImageIO as oiio
 
@@ -15,19 +16,10 @@ test_chantypes = (oiio.TypeHalf, oiio.TypeHalf, oiio.TypeHalf, oiio.TypeHalf,
 test_channames = ("R", "G", "B", "A", "Z", "Zback")
 print ("test_chantypes ", str(test_chantypes[0]), str(test_chantypes[1]), str(test_chantypes[2]), str(test_chantypes[3]), str(test_chantypes[4]), str(test_chantypes[5]))
 
-def set_dd_sample (dd, pixel, sample, vals) :
-    if dd.samples(pixel) <= sample :
-        dd.set_samples(pixel, sample+1)
-    for c in range(ib.nchannels) :
-        dd.set_value (pixel, c, sample, vals[c])
-
-def add_dd_sample (dd, pixel, sample, vals) :
-    set_dd_sample (dd, pixel, dd.samples(pixel), vale)
-
 
 # Make a simple deep image
 # Only odd pixel indes have samples, and they have #samples = pixel index.
-def make_test_deep_image () :
+def make_test_deep_image () -> oiio.DeepData:
     dd = oiio.DeepData()
     dd.init (test_xres*test_yres, test_nchannels, test_chantypes, test_channames)
     for p in range(dd.pixels) :
@@ -54,7 +46,7 @@ def make_test_deep_image () :
 
 
 
-def print_deep_image (dd, prefix="After init,") :
+def print_deep_image (dd: oiio.DeepData, prefix: str = "After init,") :
     print (prefix, "dd has", dd.pixels, "pixels,", dd.channels, "channels.")
     print ("  Channel indices: Z=", dd.Z_channel, "Zback=", dd.Zback_channel, "A=", dd.A_channel, "AR=", dd.AR_channel, "AG=", dd.AG_channel, "AB=", dd.AB_channel)
     for p in range(dd.pixels) :
@@ -68,7 +60,7 @@ def print_deep_image (dd, prefix="After init,") :
                 print ()
 
 
-def print_deep_imagebuf (buf, prefix) :
+def print_deep_imagebuf (buf: oiio.ImageBuf, prefix: str) :
     print_deep_image (buf.deepdata(), prefix)
 
 
@@ -241,13 +233,13 @@ def test_opaque_z () :
     print ()
 
 
-def set_ib_sample (ib, x, y, sample, vals) :
+def set_ib_sample (ib: oiio.ImageBuf, x: int, y: int, sample: int, vals: tuple[float, ...]) :
     if ib.deep_samples(x, y) <= sample :
         ib.set_deep_samples (x, y, 0, sample+1)
     for c in range(ib.nchannels) :
         ib.set_deep_value (x, y, 0, c, sample, vals[c])
 
-def add_ib_sample (ib, x, y, vals) :
+def add_ib_sample (ib: oiio.ImageBuf, x: int, y: int, vals: tuple[float, ...]) :
     set_ib_sample (ib, x, y, ib.deep_samples(x,y), vals)
 
 
@@ -301,6 +293,7 @@ try:
     spec.channelformats = test_chantypes
     spec.deep = True
     output = oiio.ImageOutput.create ("deeptest.exr")
+    assert output is not None
     output.open ("deeptest.exr", spec, "create")
     output.write_deep_image (dd)
     output.close ()
@@ -308,6 +301,7 @@ try:
     # read the exr file and double check it
     print ("\nReading image...")
     input = oiio.ImageInput.open ("deeptest.exr")
+    assert input is not None
     ddr = input.read_native_deep_image ()
     if ddr :
         print_deep_image (ddr)
