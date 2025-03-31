@@ -164,10 +164,6 @@ JphOutput::open(const std::string& name, const ImageSpec& spec,
 
     m_filename = name;
 
-    // If not uint8 or uint16, default to uint16
-    //if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
-    //    m_spec.set_format(TypeDesc::UINT16);
-
     m_dither        = (m_spec.format == TypeDesc::UINT8)
                           ? m_spec.get_int_attribute("oiio:dither", 0)
                           : 0;
@@ -407,11 +403,22 @@ JphOutput::create_jph_image()
     std::string progression_order = m_spec.get_string_attribute("jph:prog_order", "RPCL");
 
     cod.set_progression_order(progression_order.c_str());
-    
-    float quantization_step = m_spec.get_float_attribute("jph:qstep", 0.0039f);
-    m_stream->access_qcd().set_irrev_quant(quantization_step);
 
-    cod.set_reversible(m_spec.get_int_attribute("jph:reversible", 0) == 1);
+    cod.set_reversible(true);
+    const ParamValue *compressionparams = m_spec.find_attribute("compression", TypeString);
+    if (compressionparams){
+        std::string compressionparms = compressionparams->get_string();
+        // Sadly cannot use decode_compression_metadata since we are asking for a float param to be returned.
+        auto comp_and_value = Strutil::splitsv(compressionparms, ":");
+        if (comp_and_value.size() >= 2){
+            string_view comp = comp_and_value[0];
+            if (comp == "qstep"){
+                float quantization_step = Strutil::stof(comp_and_value[1]);
+                cod.set_reversible(false);
+                m_stream->access_qcd().set_irrev_quant(quantization_step);
+            }
+        }
+    }
 
     cod.set_num_decomposition(m_spec.get_int_attribute("jph:num_decomps", 5));
     m_stream->set_planar(false);
