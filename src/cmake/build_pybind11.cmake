@@ -23,6 +23,9 @@ build_dependency_with_cmake(pybind11
         # Don't built unnecessary parts of Pybind11
         -D BUILD_TESTING=OFF
         -D PYBIND11_TEST=OFF
+        # Fix for pybind11 breaking against cmake 4.0.
+        # Remove when pybind11 is fixed to declare its own minimum high enough.
+        -D CMAKE_POLICY_VERSION_MINIMUM=3.5
     )
 
 

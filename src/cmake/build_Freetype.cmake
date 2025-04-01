@@ -32,6 +32,9 @@ build_dependency_with_cmake(Freetype
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON
         -D CMAKE_INSTALL_LIBDIR=lib
         ${_freetype_EXTRA_CMAKE_ARGS}
+        # Fix for freetype breaking against cmake 4.0.
+        # Remove when freetype is fixed to declare its own minimum high enough.
+        -D CMAKE_POLICY_VERSION_MINIMUM=3.5
 )
 
 # Set some things up that we'll need for a subsequent find_package to work

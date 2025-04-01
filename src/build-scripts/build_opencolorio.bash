@@ -28,6 +28,11 @@ OPENCOLORIO_BUILDOPTS="-DOCIO_BUILD_APPS=OFF -DOCIO_BUILD_NUKE=OFF \
                        -DOCIO_BUILD_PYTHON=OFF -DOCIO_BUILD_PYGLUE=OFF \
                        -DOCIO_BUILD_JAVA=OFF \
                        -DBUILD_SHARED_LIBS=${OPENCOLORIO_BUILD_SHARED_LIBS:=ON}"
+
+# Fix yaml-cpp which breaks against cmake 4.0 because of too-old cmake min.
+# Remove when yaml-cpp is fixed to declare its own minimum high enough.
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
 BASEDIR=`pwd`
 pwd
 echo "OpenColorIO install dir will be: ${OPENCOLORIO_INSTALL_DIR}"
