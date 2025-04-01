@@ -20,6 +20,10 @@ FREETYPE_BUILD_DIR=${FREETYPE_BUILD_DIR:=${FREETYPE_SRC_DIR}/build}
 FREETYPE_INSTALL_DIR=${FREETYPE_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist}
 FREETYPE_BUILD_TYPE=${FREETYPE_BUILD_TYPE:=Release}
 
+# Fix for freetype breaking against cmake 4.0 because of too-old cmake min.
+# Remove when freetype is fixed to declare its own minimum high enough.
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
 pwd
 echo "Freetype install dir will be: ${FREETYPE_INSTALL_DIR}"
 
