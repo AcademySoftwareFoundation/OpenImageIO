@@ -44,13 +44,19 @@ check_is_enabled(ZLIBNG ENABLE_ZLIBNG)
 check_is_enabled(ZLIB ALLOW_ZLIB)
 
 if (ENABLE_ZLIBNG)
+    # For zlib <= 1.3.1, we can differentiate between whether
+    # find_package(ZLIB ...) finds zlib-ng or zlib with the CONFIG
+    # or PREFER_CONFIG options.
     if (ALLOW_ZLIB)
+        # Prefer zlib-ng if it's available, but fail over to zlib if it isn't.
         checked_find_package (ZLIB PREFER_CONFIG REQUIRED)
     else ()
-        # This assumption will hold until zlib-1.3.2 is released.
         checked_find_package (ZLIB CONFIG REQUIRED)
     endif ()
 else ()
+    # Starting v1.3.2, zlib will export CMake configs; so once zlib-1.3.2+
+    # starts shipping with distros, we will have to re-evaluate how (and if)
+    # we support "ignoring" compatibility-mode-zlib-ng in favor of system zlib.
     checked_find_package (ZLIB REQUIRED)
 endif ()
 
