@@ -23,6 +23,9 @@ build_dependency_with_cmake(ZLIB
         -D BUILD_SHARED_LIBS=${ZLIB_BUILD_SHARED_LIBS}
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON
         -D CMAKE_INSTALL_LIBDIR=lib
+        # Fix for zlib breaking against cmake 4.0.
+        # Remove when zlib is fixed to declare its own minimum high enough.
+        -D CMAKE_POLICY_VERSION_MINIMUM=3.5
     )
 
 # Set some things up that we'll need for a subsequent find_package to work
