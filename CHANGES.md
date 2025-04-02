@@ -1,3 +1,22 @@
+Release 3.0.5.0 (Apr 2, 2025) -- compared to 3.0.4.0
+-----------------------------------------------------
+  - *ImageBuf*: `ImageBuf::merge_metadata()` merges one IB's metadata into another's without deleting the metadata already present. It can also filter which metadata are copied using a regex. [#4672](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4672)
+  - *oiiotool*: `--pastemeta` now takes additional modifiers that allows options for merging rather than rewriting, and is able to copy only a subset of the metadata specified by a regex. [#4672](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4672) [#4674](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4674) [#4676](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4676)
+  - *oiiotool*: Fix invalid loop bound when appending mipmap textures using oiiotool [#4671](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4671) (by Basile Fraboni)
+  - *png*: Increase allowed width/height limit [#4655](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4655) (by Jesse Yurkovich)
+  - *psd*: Improved tag recognition in psd files [#4663](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4663) (by Lydia Zheng)
+  - *tiff*: The default value for bitspersample should be 1 [#4670](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4670) (by vernalchen)
+  - *int*: Switch to spans for some exif manipulation, fixing warnings [#4689](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4689)
+  - *span.h*: OIIO::span improvements [#4667](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4667)
+  - *build*: Better disabling of work when USE_PYTHON=0 [#4657](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4657)
+  - *build*: Improve OpenJpeg version detection. [#4665](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4665) (by jreichel-nvidia)
+  - *build*: Bump auto-build libdeflate to 1.23 to avoid AVX512 not available errors [#4679](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4679) (by LI JI)
+  - *build*: Cmake 4.0 compatibility [#4686](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4686) [#4688](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4688)
+  - *ci*: Fix wheel building on Mac [#4668](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4668) [#4675](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4675)
+  - *ci*: Update libPNG address and version for ci & autobuild [#4659](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4659)
+
+
+
 Release 3.0.4.0 (Mar 2, 2025) -- compared to 3.0.3.0
 -----------------------------------------------------
   - *oiiotool*: Oiiotool new expression eval tokens IS_CONSTANT, IS_BLACK [#4610](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4610) (by Lydia Zheng)
