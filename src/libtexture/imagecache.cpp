@@ -911,14 +911,12 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                 clamp_dimensions(tempspec);
             // Each mip level stores only the fields that differ from the native spec
             OIIO_DASSERT(sispec);
-            if (has_same_dimensions(*sispec, tempspec))
-                si.levels.emplace_back(LevelInfo(sispec));
-            else {
-                Dimensions* tmp = find_or_create_dims(nsubimages, nmip,
-                                                      tempspec);
-                OIIO_DASSERT(tmp);
-                si.levels.emplace_back(LevelInfo(sispec, tmp));
+            Dimensions* dims = nullptr;
+            if (!has_same_dimensions(*sispec, tempspec)) {
+                dims = find_or_create_dims(nsubimages, nmip, tempspec);
+                OIIO_DASSERT(dims);
             }
+            si.levels.emplace_back(LevelInfo(sispec, dims));
             ++nmip;
         } while (inp->seek_subimage(nsubimages, nmip));
 
@@ -961,13 +959,12 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                 }
                 ++nmip;
                 OIIO_DASSERT(sispec);
-                if (has_same_dimensions(*sispec, s))
-                    si.levels.emplace_back(LevelInfo(sispec));
-                else {
-                    Dimensions* tmp = find_or_create_dims(nsubimages, nmip, s);
-                    OIIO_DASSERT(tmp);
-                    si.levels.emplace_back(LevelInfo(sispec, tmp));
+                Dimensions* dims = nullptr;
+                if (!has_same_dimensions(*sispec, s)) {
+                    dims = find_or_create_dims(nsubimages, nmip, s);
+                    OIIO_DASSERT(dims);
                 }
+                si.levels.emplace_back(LevelInfo(sispec, dims));
             }
         }
         if (si.untiled && !imagecache().accept_untiled())
