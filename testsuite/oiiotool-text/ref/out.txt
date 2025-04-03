@@ -1,3 +1,4 @@
+Text size: xy 1 -30 wh 251 37
 Comparing "text.tif" and "ref/text-freetype2.7.tif"
 PASS
 Comparing "aligned.tif" and "ref/aligned.tif"
