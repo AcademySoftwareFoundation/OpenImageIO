@@ -55,6 +55,10 @@ ifneq (${NAMESPACE},)
 MY_CMAKE_FLAGS += -DOIIO_NAMESPACE:STRING=${NAMESPACE}
 endif
 
+ifneq (${BUILD_MISSING_DEPS},)
+MY_CMAKE_FLAGS += -DOpenImageIO_BUILD_MISSING_DEPS=all
+endif
+
 ifneq (${USE_PYTHON},)
 MY_CMAKE_FLAGS += -DUSE_PYTHON:BOOL=${USE_PYTHON}
 endif
@@ -394,4 +398,3 @@ help:
 	@echo "  make test, extra options:"
 	@echo "      TEST=regex               Run only tests matching the regex"
 	@echo ""
-
