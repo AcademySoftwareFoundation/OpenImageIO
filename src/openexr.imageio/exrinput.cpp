@@ -1073,6 +1073,9 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
     if (miplevel < 0 || miplevel >= part.nmiplevels)  // out of range
         return false;
 
+    if (miplevel == 0 && part.nmiplevels > 1)
+        part.spec.attribute("oiio:miplevels", part.nmiplevels);
+
     m_miplevel = miplevel;
     m_spec     = part.spec;
 
