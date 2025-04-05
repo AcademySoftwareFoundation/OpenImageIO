@@ -206,7 +206,7 @@ PtexInput::seek_subimage(int subimage, int miplevel)
     }
 
     // Add the number of miplevels as an attribute for the first miplevel.
-    if (miplevel == 0)
+    if (miplevel == 0 && nmiplevels > 1)
         m_spec.attribute("oiio:miplevels", nmiplevels);
 
     facedata->release();
