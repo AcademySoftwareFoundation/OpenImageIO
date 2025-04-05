@@ -540,6 +540,11 @@ ImageCacheFile::SubimageInfo::init(ImageCacheFile& icfile, ImageSpec* spec_,
         const Imath::M44f* m = (const Imath::M44f*)p->data();
         Mlocal.reset(new Imath::M44f(c2w * (*m)));
     }
+
+    // Try to preallocate if the number of miplevels is known beforehand
+    int nmiplevels = spec.get_int_attribute("oiio:miplevels", 0);
+    if (n_mip_levels > 0)
+        levels.reserve(nmiplevels);
 }
 
 
@@ -826,7 +831,12 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
     // first time.  So read all the subimages, fill out all the fields
     // of the ImageCacheFile.
     m_subimages.clear();
-    int nsubimages = 0;
+    // Try to preallocate if the number of subimages is known beforehand
+    int nsubimages = nativespec.get_int_attribute("oiio:subimages", 0);
+    if (nsubimages > 0)
+        m_subimages.reserve(nsubimages);
+    // reset subimage counter to zero
+    nsubimages = 0;
 
     // Since each subimage can potentially have its own mipmap levels,
     // keep track of the highest level discovered
@@ -996,6 +1006,13 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
 
     init_from_spec();  // Fill in the rest of the fields
     set_imageinput(inp);
+
+    // reduce memory usage if possible
+    if (m_pool_specs.size() > 1024)
+        m_pool_specs.shrink_to_fit();
+    if (m_pool_dims.size() > 1024)
+        m_pool_dims.shrink_to_fit();
+
     return inp;
 }
 
