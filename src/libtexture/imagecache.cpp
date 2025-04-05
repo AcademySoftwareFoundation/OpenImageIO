@@ -543,7 +543,7 @@ ImageCacheFile::SubimageInfo::init(ImageCacheFile& icfile, ImageSpec* spec_,
 
     // Try to preallocate if the number of miplevels is known beforehand
     int nmiplevels = spec.get_int_attribute("oiio:miplevels", 0);
-    if (n_mip_levels > 0)
+    if (nmiplevels > 0)
         levels.reserve(nmiplevels);
 }
 
