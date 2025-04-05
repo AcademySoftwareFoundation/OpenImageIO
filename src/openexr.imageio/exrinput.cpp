@@ -670,9 +670,6 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
 
-    if (miplevel == 0)
-        spec.attribute("oiio:miplevels", nmiplevels);
-
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);
 
@@ -1075,6 +1072,9 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
 
     if (miplevel < 0 || miplevel >= part.nmiplevels)  // out of range
         return false;
+
+    if (miplevel == 0 && part.nmiplevels > 1)
+        part.spec.attribute("oiio:miplevels", part.nmiplevels);
 
     m_miplevel = miplevel;
     m_spec     = part.spec;
