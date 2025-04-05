@@ -107,8 +107,11 @@ inline size_t
 heapsize(const std::vector<T>& vec)
 {
     size_t size = 0;
+    // account for used allocated memory
     for (const T& elem : vec)
         size += footprint(elem);
+    // account for unused allocated memory
+    size += (vec.capacity() - vec.size()) * sizeof(T);
     return size;
 }
 

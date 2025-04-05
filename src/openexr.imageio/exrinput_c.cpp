@@ -773,6 +773,9 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
 
+    if (miplevel == 0)
+        spec.attribute("oiio:miplevels", nmiplevels);
+
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);
 
