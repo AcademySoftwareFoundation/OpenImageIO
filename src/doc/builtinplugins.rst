@@ -425,10 +425,10 @@ the `set_ioproxy()` methods.
      - reference high quantity
    * - ``dpx:XScannedSize``
      - float
-     - X scanned size
+     - X scanned size in millimeters
    * - ``dpx:YScannedSize``
      - float
-     - Y scanned size
+     - Y scanned size in millimeters
    * - ``dpx:FramePosition``
      - int
      - frame position in sequence
