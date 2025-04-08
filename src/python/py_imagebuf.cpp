@@ -361,7 +361,9 @@ declare_imagebuf(py::module& m)
              "height"_a = 0, "depth"_a = 0)
         .def("spec", &ImageBuf::spec,
              py::return_value_policy::reference_internal)
-        .def("nativespec", &ImageBuf::nativespec,
+        .def("file_format", &ImageBuf::file_format,
+             py::return_value_policy::reference_internal)
+        .def("file_channelformats", &ImageBuf::file_channelformats,
              py::return_value_policy::reference_internal)
         .def("specmod", &ImageBuf::specmod,
              py::return_value_policy::reference_internal)
