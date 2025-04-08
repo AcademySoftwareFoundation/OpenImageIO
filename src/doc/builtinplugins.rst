@@ -42,10 +42,10 @@ tiles.
      - The compression of the BMP file (``"rle4"`` or ``"rle8"``, if
        RLE compression is used).
    * - ``XResolution``
-     - float
+     - int
      - hres
    * - ``YResolution``
-     - float
+     - int
      - vres
    * - ``ResolutionUnit``
      - string
