@@ -1,3 +1,10 @@
+# /// script
+# dependencies = [
+#   "mypy~=1.15.0",
+#   "stubgenlib~=0.1.0",
+# ]
+# ///
+
 from __future__ import absolute_import, annotations, division, print_function
 
 import mypy.stubgen
@@ -109,4 +116,8 @@ mypy.stubgen.InspectionStubGenerator = InspectionStubGenerator  # type: ignore[a
 mypy.stubgenc.InspectionStubGenerator = InspectionStubGenerator  # type: ignore[misc]
 
 if __name__ == "__main__":
+    import sys
+    oiio_path = sys.argv[1]
+    sys.path.append(oiio_path)
+    sys.argv[1:] = ["-p", "OpenImageIO", "-o", oiio_path]
     mypy.stubgen.main()

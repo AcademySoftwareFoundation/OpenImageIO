@@ -161,42 +161,26 @@ macro (setup_python_module)
     install(FILES __init__.py DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
     # Create the __init__.pyi stub file
-    # Define where to create the virtual environment
-    set(PYTHON_VENV_DIR "${CMAKE_BINARY_DIR}/venv")
-
-    if(WIN32)
-        set(PYTHON_VENV_EXE "${PYTHON_VENV_DIR}/Scripts/python.exe")
-    else()
-        set(PYTHON_VENV_EXE "${PYTHON_VENV_DIR}/bin/python")
-    endif()
-
-    # Create the virtualenv if it doesn't exist
-    add_custom_command(
-        COMMAND ${Python3_EXECUTABLE} -m venv "${PYTHON_VENV_DIR}"
-        COMMAND ${PYTHON_VENV_EXE} -m pip install mypy~=1.15.0 stubgenlib~=0.1.0
-        OUTPUT "${PYTHON_VENV_DIR}/bin/activate"
-        COMMENT "Creating virtualenv at ${PYTHON_VENV_DIR}"
-    )
 
     # Run stub generation process
     set(_stub_file "${CMAKE_BINARY_DIR}/lib/python/site-packages/OpenImageIO.pyi")
-    # FIXME: is this the right location to use?  the source gets copied to build/src 
+    # FIXME: is this the right location to use?  the source gets copied to build/src
     set(_stub_gen "${CMAKE_SOURCE_DIR}/src/python/generate_stubs.py")
     add_custom_command(
-        COMMAND PYTHONPATH=${PYTHON_BUILD_SITE} ${PYTHON_VENV_EXE} ${_stub_gen} -p OpenImageIO -o ${PYTHON_BUILD_SITE}
+        COMMAND pipx run ${_stub_gen} ${PYTHON_BUILD_SITE}
         OUTPUT ${_stub_file}
-        DEPENDS "${PYTHON_VENV_DIR}/bin/activate" ${_stub_gen}
+        DEPENDS ${_stub_gen}
         COMMENT "Creating python stubs"
     )
     install(FILES ${_stub_file} DESTINATION ${PYTHON_SITE_DIR} RENAME __init__.pyi COMPONENT user)
     # install the marker file
-    file(WRITE "py.typed" "")
-    install(FILES "py.typed"DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+    file(WRITE "${CMAKE_BINARY_DIR}/lib/python/site-packages/py.typed" "")
+    install(FILES "${CMAKE_BINARY_DIR}/lib/python/site-packages/py.typed" DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
     # Ensure this runs after PyOpenImageIO
     add_custom_target(
         PyOpenImageIO_stubs ALL 
-        DEPENDS "${PYTHON_VENV_DIR}/bin/activate" ${_stub_file} ${CMAKE_SOURCE_DIR}/src/python/py.typed
+        DEPENDS ${_stub_file} "${CMAKE_BINARY_DIR}/lib/python/site-packages/py.typed"
     )
     add_dependencies(PyOpenImageIO_stubs PyOpenImageIO)
 
