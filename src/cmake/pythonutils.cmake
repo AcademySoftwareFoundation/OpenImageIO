@@ -191,7 +191,7 @@ macro (setup_python_module)
         endif()
 
         add_custom_command (
-            COMMAND ${PIPX_EXE} run --python=${Python3_EXECUTABLE} ${_stub_gen} ${PYTHON_BUILD_SITE}
+            COMMAND ${PIPX_EXE} run ${_stub_gen} ${PYTHON_BUILD_SITE}
             OUTPUT ${_stub_file}
             DEPENDS ${_stub_gen}
             COMMENT "Creating python stubs")
