@@ -161,7 +161,7 @@ macro (setup_python_module)
     install(FILES __init__.py DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
     # Create the __init__.pyi stub file
-    if (PYTHON_VERSION_FOUND VERSION_GREATER_EQUAL "3.9")
+    if (PYTHON_VERSION_FOUND VERSION_GREATER_EQUAL "3.10")
         # A modern version of python is required for the necessary version of mypy
 
         # Run stub generation process
@@ -191,7 +191,7 @@ macro (setup_python_module)
         # endif()
 
         add_custom_command (
-            COMMAND pipx run ${_stub_gen} ${PYTHON_BUILD_SITE}
+            COMMAND uv run ${_stub_gen} ${PYTHON_BUILD_SITE}
             OUTPUT ${_stub_file}
             DEPENDS ${_stub_gen}
             COMMENT "Creating python stubs")
