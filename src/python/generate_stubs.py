@@ -60,19 +60,22 @@ class OIIOSignatureGenerator(AdvancedSignatureGenerator):
             ("*.ImageInput.open", "object"): "ImageInput | None",
 
             # ("*.TextureSystem.imagespec", "object"): "ImageSpec | None",
-            # ("*.ImageInput.read_native_deep_*", "object"): "DeepData | None",
 
-            # pybind11 has special support, so it may be possible to get it to emit these types
+            # if you return an uninitialized unique_ptr to pybind11 it will convert to `None` (see #4685)
+            ("*.ImageInput.read_native_deep_*", "DeepData"): "DeepData | None",
+
+            # pybind11 has numpy support, so it may be possible to get it to emit these types
             # by using py::numpy in our wrapper code.
             ("*.ImageInput.read_*", "object"): "numpy.ndarray | None",
             ("*", "Buffer"): "numpy.ndarray",
             ("*.get_pixels", "object"): "numpy.ndarray | None",
 
-            # For results, object is too restrictive (produces spurious errors during type analysis)
+            # For results, `object` is too restrictive (produces spurious errors during type analysis)
             ("*.getattribute", "object"): "Any",
             ("*.ImageSpec.get", "object"): "Any",
 
-            # pybind11 does not have a way to emit tuple[T, ...], e.g. from std:vector<T>.
+            # pybind11 treats std:vector<T> as list[T], but we want tuple[T, ...]
+            # our custom code to convert vector to tuple obscures the contained type.
             ("*.ImageBufAlgo.histogram", "tuple"): "tuple[int, ...]",
             ("*.ImageBufAlgo.isConstantColor", "*"): "tuple[float, ...] | None",
             ("*.ImageBufAlgo.color_range_check", "*"): "tuple[int, ...] | None",
