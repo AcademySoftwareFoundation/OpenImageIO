@@ -169,25 +169,29 @@ macro (setup_python_module)
         # FIXME: is this the right location to use?  the source gets copied to build/src
         set (_stub_gen "${CMAKE_SOURCE_DIR}/src/python/generate_stubs.py")
 
-        find_program (UV_EXE NAMES uv uv.exe)
+        find_program (PIPX_EXE NAMES pipx pipx.exe)
 
-        if (NOT UV_EXE)
+        if (NOT PIPX_EXE)
             # add_custom_command (
             #     COMMAND ${Python3_EXECUTABLE} -m venv "${PYTHON_VENV_DIR}"
             #     COMMAND ${PYTHON_VENV_EXE} -m pip install uv
             #     OUTPUT "${PYTHON_VENV_DIR}/bin/activate"
             #     COMMENT "Creating virtualenv at ${PYTHON_VENV_DIR}"
             # )
+            message(INFO "Installing pipx")
             execute_process (
                 COMMAND ${Python3_EXECUTABLE} -m venv "${PYTHON_VENV_DIR}"
-                COMMAND ${PYTHON_VENV_EXE} -m pip install uv
+                COMMAND ${PYTHON_VENV_EXE} -m pip install pipx
                 COMMAND_ERROR_IS_FATAL ANY
             )
-            find_program (UV_EXE NAMES uv uv.exe)
+            find_program (PIPX_EXE NAMES pipx pipx.exe)
+            if (NOT PIPX_EXE)
+                message(FATAL_ERROR "Could not find or install pipx")
+            endif()
         endif()
 
         add_custom_command (
-            COMMAND ${UV_EXE} run --python=${Python3_EXECUTABLE} ${_stub_gen} ${PYTHON_BUILD_SITE}
+            COMMAND ${PIPX_EXE} run --python=${Python3_EXECUTABLE} ${_stub_gen} ${PYTHON_BUILD_SITE}
             OUTPUT ${_stub_file}
             DEPENDS ${_stub_gen}
             COMMENT "Creating python stubs")
