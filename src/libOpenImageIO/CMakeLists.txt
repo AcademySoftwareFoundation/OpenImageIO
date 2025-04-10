@@ -78,8 +78,12 @@ set (libOpenImageIO_srcs
                           ${libOpenImageIO_hdrs}
                          )
 
-
-add_library (OpenImageIO ${libOpenImageIO_srcs})
+if (WIN32)
+    configure_file(../build-scripts/version_win32.rc.in "${CMAKE_CURRENT_BINARY_DIR}/version_win32.rc" @ONLY)
+    add_library (OpenImageIO ${libOpenImageIO_srcs} ${CMAKE_CURRENT_BINARY_DIR}/version_win32.rc)
+else ()
+    add_library (OpenImageIO ${libOpenImageIO_srcs})
+endif ()
 
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
