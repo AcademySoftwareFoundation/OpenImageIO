@@ -119,8 +119,13 @@ mypy.stubgen.InspectionStubGenerator = InspectionStubGenerator  # type: ignore[a
 mypy.stubgenc.InspectionStubGenerator = InspectionStubGenerator  # type: ignore[misc]
 
 if __name__ == "__main__":
+    import os
     import sys
-    oiio_path = sys.argv[1]
-    sys.path.append(oiio_path)
-    sys.argv[1:] = ["-p", "OpenImageIO", "-o", oiio_path]
+    out_path = sys.argv[1]
+    print(f"Stub output directory: {out_path}")
+    sys.path.append(out_path)
+    sys.argv[1:] = ["-p", "OpenImageIO", "-o", out_path]
     mypy.stubgen.main()
+    dest = os.path.join(out_path, "OpenImageIO", "__init__.pyi")
+    print(f"Renaming to {dest}")
+    os.rename(os.path.join(out_path, "OpenImageIO", "OpenImageIO.pyi"), dest)

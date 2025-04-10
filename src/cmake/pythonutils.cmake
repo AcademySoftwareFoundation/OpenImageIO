@@ -144,7 +144,7 @@ macro (setup_python_module)
         set (PYTHON_SITE_DIR .)
     endif ()
 
-    set(PYTHON_BUILD_SITE "${CMAKE_BINARY_DIR}/lib/python/site-packages")
+    set (PYTHON_BUILD_SITE "${CMAKE_BINARY_DIR}/lib/python/site-packages/OpenImageIO")
 
     # In the build area, put it in lib/python so it doesn't clash with the
     # non-python libraries of the same name (which aren't prefixed by "lib"
@@ -164,8 +164,12 @@ macro (setup_python_module)
     if (PYTHON_VERSION_FOUND VERSION_GREATER_EQUAL "3.10")
         # A modern version of python is required for the necessary version of mypy
 
+        # copy the __init__.py file so that the package is importable on all platforms
+        file (COPY __init__.py DESTINATION ${PYTHON_BUILD_SITE})
+        # write the marker file
+        file (WRITE "${PYTHON_BUILD_SITE}/py.typed" "")
+
         # Run stub generation process
-        set (_stub_file "${CMAKE_BINARY_DIR}/lib/python/site-packages/OpenImageIO.pyi")
         # FIXME: is this the right location to use?  the source gets copied to build/src
         set (_stub_gen "${CMAKE_SOURCE_DIR}/src/python/generate_stubs.py")
 
@@ -191,20 +195,18 @@ macro (setup_python_module)
         # endif()
 
         add_custom_command (
-            COMMAND uv run ${_stub_gen} ${PYTHON_BUILD_SITE}
-            OUTPUT ${_stub_file}
-            DEPENDS ${_stub_gen}
+            COMMAND uv run --python=${Python3_EXECUTABLE} ${_stub_gen} "${CMAKE_BINARY_DIR}/lib/python/site-packages"
+            OUTPUT "${PYTHON_BUILD_SITE}/__init__.pyi"
+            DEPENDS ${_stub_gen} "${PYTHON_BUILD_SITE}/__init__.py"
             COMMENT "Creating python stubs")
-        install (FILES ${_stub_file} DESTINATION ${PYTHON_SITE_DIR} RENAME __init__.pyi COMPONENT user)
-        # install the marker file
-        file (WRITE "${CMAKE_BINARY_DIR}/lib/python/site-packages/py.typed" "")
-        install (FILES "${CMAKE_BINARY_DIR}/lib/python/site-packages/py.typed"
-                DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+
+        install (FILES "${PYTHON_BUILD_SITE}/__init__.pyi" DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+        install (FILES "${PYTHON_BUILD_SITE}/py.typed" DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
         # Ensure this runs after PyOpenImageIO
         add_custom_target (
             PyOpenImageIO_stubs ALL
-            DEPENDS ${_stub_file} "${CMAKE_BINARY_DIR}/lib/python/site-packages/py.typed")
+            DEPENDS "${PYTHON_BUILD_SITE}/__init__.pyi" "${PYTHON_BUILD_SITE}/py.typed")
         add_dependencies (PyOpenImageIO_stubs PyOpenImageIO)
     endif()
 
