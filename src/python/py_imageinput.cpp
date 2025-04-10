@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "py_oiio.h"
+#include <optional>
 
 namespace PyOpenImageIO {
 

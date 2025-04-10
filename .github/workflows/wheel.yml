@@ -207,7 +207,12 @@ jobs:
           name: Install Python
           with:
             python-version: '3.9'
-        
+
+        - name: Install uv
+          uses: astral-sh/setup-uv@v5
+          with:
+            version: "0.6.13"
+
         - name: Build wheels
           uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
           env:
@@ -262,6 +267,11 @@ jobs:
         name: Install Python
         with:
           python-version: '3.9'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.13"
 
       - name: Build wheels
         uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
@@ -321,7 +331,11 @@ jobs:
         # https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
         with:
           python-version: '3.8'
-        
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.13"
 
       - name: Build wheels
         uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
@@ -377,6 +391,11 @@ jobs:
         name: Install Python
         with:
           python-version: '3.9'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.13"
 
       - name: Build wheels
         uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1

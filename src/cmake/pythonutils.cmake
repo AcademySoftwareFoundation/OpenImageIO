@@ -144,12 +144,14 @@ macro (setup_python_module)
         set (PYTHON_SITE_DIR .)
     endif ()
 
+    set (PYTHON_BUILD_SITE "${CMAKE_BINARY_DIR}/lib/python/site-packages/OpenImageIO")
+
     # In the build area, put it in lib/python so it doesn't clash with the
     # non-python libraries of the same name (which aren't prefixed by "lib"
     # on Windows).
     set_target_properties (${target_name} PROPERTIES
-            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/site-packages
-            ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/site-packages
+            LIBRARY_OUTPUT_DIRECTORY ${PYTHON_BUILD_SITE}
+            ARCHIVE_OUTPUT_DIRECTORY ${PYTHON_BUILD_SITE}
             )
 
     install (TARGETS ${target_name}
@@ -157,6 +159,56 @@ macro (setup_python_module)
              LIBRARY DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
     install(FILES __init__.py DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+
+    # Create the __init__.pyi stub file
+    if (PYTHON_VERSION_FOUND VERSION_GREATER_EQUAL "3.10")
+        # A modern version of python is required for the necessary version of mypy
+
+        # copy the __init__.py file so that the package is importable on all platforms
+        file (COPY __init__.py DESTINATION ${PYTHON_BUILD_SITE})
+        # write the marker file
+        file (WRITE "${PYTHON_BUILD_SITE}/py.typed" "")
+
+        # Run stub generation process
+        # FIXME: is this the right location to use?  the source gets copied to build/src
+        set (_stub_gen "${CMAKE_SOURCE_DIR}/src/python/generate_stubs.py")
+
+        # find_program (PIPX_EXE NAMES pipx pipx.exe)
+
+        # if (NOT PIPX_EXE)
+        #     # add_custom_command (
+        #     #     COMMAND ${Python3_EXECUTABLE} -m venv "${PYTHON_VENV_DIR}"
+        #     #     COMMAND ${PYTHON_VENV_EXE} -m pip install uv
+        #     #     OUTPUT "${PYTHON_VENV_DIR}/bin/activate"
+        #     #     COMMENT "Creating virtualenv at ${PYTHON_VENV_DIR}"
+        #     # )
+        #     message(INFO "Installing pipx")
+        #     execute_process (
+        #         COMMAND ${Python3_EXECUTABLE} -m venv "${PYTHON_VENV_DIR}"
+        #         COMMAND ${PYTHON_VENV_EXE} -m pip install pipx
+        #         COMMAND_ERROR_IS_FATAL ANY
+        #     )
+        #     find_program (PIPX_EXE NAMES pipx pipx.exe)
+        #     if (NOT PIPX_EXE)
+        #         message(FATAL_ERROR "Could not find or install pipx")
+        #     endif()
+        # endif()
+
+        add_custom_command (
+            COMMAND uv run --python=${Python3_EXECUTABLE} ${_stub_gen} "${CMAKE_BINARY_DIR}/lib/python/site-packages"
+            OUTPUT "${PYTHON_BUILD_SITE}/__init__.pyi"
+            DEPENDS ${_stub_gen} "${PYTHON_BUILD_SITE}/__init__.py"
+            COMMENT "Creating python stubs")
+
+        install (FILES "${PYTHON_BUILD_SITE}/__init__.pyi" DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+        install (FILES "${PYTHON_BUILD_SITE}/py.typed" DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+
+        # Ensure this runs after PyOpenImageIO
+        add_custom_target (
+            PyOpenImageIO_stubs ALL
+            DEPENDS "${PYTHON_BUILD_SITE}/__init__.pyi" "${PYTHON_BUILD_SITE}/py.typed")
+        add_dependencies (PyOpenImageIO_stubs PyOpenImageIO)
+    endif()
 
 endmacro ()
 

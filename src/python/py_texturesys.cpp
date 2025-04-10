@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "py_oiio.h"
+#include <optional>
 
 namespace PyOpenImageIO {
 
@@ -295,14 +296,14 @@ declare_texturesystem(py::module& m)
         .def(
             "imagespec",
             [](TextureSystemWrap& ts, const std::string& filename,
-               int subimage) -> py::object {
+               int subimage) -> std::optional<ImageSpec> {
                 py::gil_scoped_release gil;
                 const ImageSpec* spec
                     = ts.m_texsys->imagespec(ustring(filename), subimage);
                 if (!spec) {
-                    return py::none();
+                    return std::nullopt;
                 }
-                return py::object(py::cast(*spec));
+                return *spec;
             },
             "filename"_a, "subimage"_a = 0)
         .def(
@@ -321,6 +322,7 @@ declare_texturesystem(py::module& m)
             },
             "filename"_a, "s"_a, "t"_a)
         .def(
+            // FIXME: use std:tuple here
             "inventory_udim",
             [](TextureSystemWrap& ts, const std::string& filename) {
                 // Return a tuple containing (nutiles, nvtiles, filenames)

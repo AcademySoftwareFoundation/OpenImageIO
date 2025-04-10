@@ -5,6 +5,7 @@
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <optional>
 
 
 namespace PyOpenImageIO {
@@ -2172,7 +2173,7 @@ IBA_ocionamedtransform_colorconfig_ret(
 
 
 
-py::object
+std::optional<py::tuple>
 IBA_isConstantColor(const ImageBuf& src, float threshold, ROI roi = ROI::All(),
                     int nthreads = 0)
 {
@@ -2186,7 +2187,7 @@ IBA_isConstantColor(const ImageBuf& src, float threshold, ROI roi = ROI::All(),
     if (r) {
         return C_to_tuple(&constcolor[0], (int)constcolor.size());
     } else {
-        return py::none();
+        return std::nullopt;
     }
 }
 
@@ -2221,7 +2222,7 @@ IBA_nonzero_region(const ImageBuf& src, ROI roi, int nthreads)
 
 
 
-py::object
+std::optional<py::tuple>
 IBA_color_range_check(ImageBuf& src, const py::object& low,
                       const py::object& high, ROI roi, int nthreads)
 {
@@ -2242,11 +2243,10 @@ IBA_color_range_check(ImageBuf& src, const py::object& low,
         counts[0] = lowcount;
         counts[1] = highcount;
         counts[2] = inrangecount;
-        result    = C_to_tuple<int64_t>(counts);
+        return C_to_tuple<int64_t>(counts);
     } else {
-        result = py::none();
+        return std::nullopt;
     }
-    return result;
 }
 
 
@@ -2351,7 +2351,7 @@ IBA_text_size(const std::string& text, int fontsize = 16,
 
 
 
-py::object
+py::tuple
 IBA_histogram(const ImageBuf& src, int channel = 0, int bins = 256,
               float min = 0.0f, float max = 1.0f, bool ignore_empty = false,
               ROI roi = {}, int nthreads = 0)
