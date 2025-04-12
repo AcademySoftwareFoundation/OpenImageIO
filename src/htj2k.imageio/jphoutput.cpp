@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include <vector>
 #include <iostream>
+#include <vector>
 
 #include "ojph_arg.h"
-#include <ojph_mem.h>
-#include <ojph_file.h>
 #include <ojph_codestream.h>
-#include <ojph_params.h>
+#include <ojph_file.h>
+#include <ojph_mem.h>
 #include <ojph_message.h>
+#include <ojph_params.h>
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
@@ -21,55 +21,56 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
 
-struct size_list_interpreter : public ojph::cli_interpreter::arg_inter_base
-{
-  size_list_interpreter(const int max_num_elements, int& num_elements,
-                        ojph::size* list)
-  : max_num_eles(max_num_elements), sizelist(list), num_eles(num_elements)
-  {}
-
-  virtual void operate(const char *str)
-  {
-    const char *next_char = str;
-    num_eles = 0;
-    do
+struct size_list_interpreter : public ojph::cli_interpreter::arg_inter_base {
+    size_list_interpreter(const int max_num_elements, int& num_elements,
+                          ojph::size* list)
+        : max_num_eles(max_num_elements)
+        , sizelist(list)
+        , num_eles(num_elements)
     {
-      if (num_eles)
-      {
-        if (*next_char != ',') //separate sizes by a comma
-          throw "sizes in a sizes list must be separated by a comma";
-        next_char++;
-      }
-
-      char *endptr;
-      sizelist[num_eles].w = (ojph::ui32)strtoul(next_char, &endptr, 10);
-      if (endptr == next_char)
-        throw "size number is improperly formatted";
-      next_char = endptr;
-      if (*next_char != ',')
-        throw "size must have a "","" between the two numbers";
-      next_char++;
-      sizelist[num_eles].h = (ojph::ui32)strtoul(next_char, &endptr, 10);
-      if (endptr == next_char)
-        throw "number is improperly formatted";
-      next_char = endptr;
-
-
-      ++num_eles;
     }
-    while (*next_char == ',' && num_eles < max_num_eles);
-    if (num_eles < max_num_eles)
+
+    virtual void operate(const char* str)
     {
-      if (*next_char)
-        throw "size elements must separated by a "",""";
-    }
-    else if (*next_char)
-        throw "there are too many elements in the size list";
-  }
+        const char* next_char = str;
+        num_eles              = 0;
+        do {
+            if (num_eles) {
+                if (*next_char != ',')  //separate sizes by a comma
+                    throw "sizes in a sizes list must be separated by a comma";
+                next_char++;
+            }
 
-  const int max_num_eles;
-  ojph::size* sizelist;
-  int& num_eles;
+            char* endptr;
+            sizelist[num_eles].w = (ojph::ui32)strtoul(next_char, &endptr, 10);
+            if (endptr == next_char)
+                throw "size number is improperly formatted";
+            next_char = endptr;
+            if (*next_char != ',')
+                throw "size must have a "
+                      ","
+                      " between the two numbers";
+            next_char++;
+            sizelist[num_eles].h = (ojph::ui32)strtoul(next_char, &endptr, 10);
+            if (endptr == next_char)
+                throw "number is improperly formatted";
+            next_char = endptr;
+
+
+            ++num_eles;
+        } while (*next_char == ',' && num_eles < max_num_eles);
+        if (num_eles < max_num_eles) {
+            if (*next_char)
+                throw "size elements must separated by a "
+                      ","
+                      "";
+        } else if (*next_char)
+            throw "there are too many elements in the size list";
+    }
+
+    const int max_num_eles;
+    ojph::size* sizelist;
+    int& num_eles;
 };
 
 
@@ -127,7 +128,6 @@ private:
     bool save_image();
 
     template<typename T> void write_scanline(int y, int z, const void* data);
-
 };
 
 // Obligatory material to make this a recognizable imageio plugin
@@ -144,19 +144,19 @@ OIIO_EXPORT int openjph_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 openjph_imageio_library_version()
 {
-    return ustring::fmtformat("OpenJph {}.{}.{}", OPENJPH_VERSION_MAJOR, OPENJPH_VERSION_MINOR, OPENJPH_VERSION_PATCH).c_str();
+    return ustring::fmtformat("OpenJph {}.{}.{}", OPENJPH_VERSION_MAJOR,
+                              OPENJPH_VERSION_MINOR, OPENJPH_VERSION_PATCH)
+        .c_str();
 }
 
 
-OIIO_EXPORT const char* openjph_output_extensions[] = { "j2c", 
-                                                         nullptr };
+OIIO_EXPORT const char* openjph_output_extensions[] = { "j2c", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-JphOutput::open(const std::string& name, const ImageSpec& spec,
-                     OpenMode mode)
+JphOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
     if (!check_open(mode, spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 },
                     uint64_t(OpenChecks::Disallow2Channel)))
@@ -164,9 +164,9 @@ JphOutput::open(const std::string& name, const ImageSpec& spec,
 
     m_filename = name;
 
-    m_dither        = (m_spec.format == TypeDesc::UINT8)
-                          ? m_spec.get_int_attribute("oiio:dither", 0)
-                          : 0;
+    m_dither = (m_spec.format == TypeDesc::UINT8)
+                   ? m_spec.get_int_attribute("oiio:dither", 0)
+                   : 0;
 
     m_convert_alpha = m_spec.alpha_channel != -1;
 
@@ -216,7 +216,7 @@ deassociateAlpha(T* data, int size, int channels, int alpha_channel,
 
 bool
 JphOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
-                               stride_t xstride)
+                          stride_t xstride)
 {
     y -= m_spec.y;
     if (y > m_spec.height) {
@@ -258,9 +258,8 @@ JphOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
 
 bool
-JphOutput::write_tile(int x, int y, int z, TypeDesc format,
-                           const void* data, stride_t xstride, stride_t ystride,
-                           stride_t zstride)
+JphOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                      stride_t xstride, stride_t ystride, stride_t zstride)
 {
     // Emulate tiles by buffering the whole image
     return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
@@ -300,8 +299,6 @@ JphOutput::close()
 bool
 JphOutput::save_image()
 {
-
-
     // m_stream = opj_stream_default_create(false /* is_input */);
     m_stream->flush();
     m_stream->close();
@@ -320,11 +317,10 @@ JphOutput::save_image()
 ojph::j2c_outfile*
 JphOutput::create_jph_image()
 {
-    m_stream = new ojph::codestream;
+    m_stream            = new ojph::codestream;
     ojph::param_siz siz = m_stream->access_siz();
-    siz.set_image_extent(ojph::point(m_spec.width,
-          m_spec.height));
-    
+    siz.set_image_extent(ojph::point(m_spec.width, m_spec.height));
+
 
     // TODO
     /*
@@ -336,14 +332,14 @@ JphOutput::create_jph_image()
     int precision          = 16;
     const ParamValue* prec = m_spec.find_attribute("oiio:BitsPerSample",
                                                    TypeDesc::INT);
-    bool is_signed = false;
+    bool is_signed         = false;
 
     if (prec)
         precision = *(int*)prec->data();
     else if (m_spec.format == TypeDesc::UINT8
              || m_spec.format == TypeDesc::INT8)
         precision = 8;
-    
+
     switch (m_spec.format.basetype) {
     case TypeDesc::INT8:
     case TypeDesc::UINT8:
@@ -354,21 +350,18 @@ JphOutput::create_jph_image()
         precision = 32;
         is_signed = true;
         break;
-    case TypeDesc::HALF:
-        is_signed = true;
-        break;
+    case TypeDesc::HALF: is_signed = true; break;
     case TypeDesc::DOUBLE:
-            throw "OpenJPH::Write Double is not currently supported.";
-    default:
-        break;
+        throw "OpenJPH::Write Double is not currently supported.";
+    default: break;
     }
-    
+
     output_depth = m_spec.get_int_attribute("jph:bit_depth", precision);
 
     siz.set_num_components(m_spec.nchannels);
-    ojph::point subsample(1,1); // Default subsample
+    ojph::point subsample(1, 1);  // Default subsample
     for (ojph::ui32 c = 0; c < m_spec.nchannels; ++c)
-          siz.set_component(c, subsample, output_depth, is_signed);
+        siz.set_component(c, subsample, output_depth, is_signed);
 
     ojph::size tile_size(0, 0);
     ojph::point tile_offset(0, 0);
@@ -378,7 +371,8 @@ JphOutput::create_jph_image()
     siz.set_tile_offset(tile_offset);
     ojph::param_cod cod = m_stream->access_cod();
 
-    std::string block_args = m_spec.get_string_attribute("jph:block_size", "64,64");
+    std::string block_args = m_spec.get_string_attribute("jph:block_size",
+                                                         "64,64");
     std::stringstream ss(block_args);
     char comma;
     int block_size_x, block_size_y;
@@ -386,33 +380,36 @@ JphOutput::create_jph_image()
 
     cod.set_block_dims(block_size_x, block_size_y);
     cod.set_color_transform(true);
-    
-    int num_precincts = -1;
-    const int max_precinct_sizes = 33; //maximum number of decompositions is 32
+
+    int num_precincts            = -1;
+    const int max_precinct_sizes = 33;  //maximum number of decompositions is 32
     ojph::size precinct_size[max_precinct_sizes];
-    std::string precinct_size_args = m_spec.get_string_attribute("jph:precincts", "undef");
-    if (precinct_size_args != "undef"){
+    std::string precinct_size_args
+        = m_spec.get_string_attribute("jph:precincts", "undef");
+    if (precinct_size_args != "undef") {
         size_list_interpreter sizelist(max_precinct_sizes, num_precincts,
-                                    precinct_size);
+                                       precinct_size);
         sizelist.operate(precinct_size_args.c_str());
 
         if (num_precincts != -1)
             cod.set_precinct_size(num_precincts, precinct_size);
     }
 
-    std::string progression_order = m_spec.get_string_attribute("jph:prog_order", "RPCL");
+    std::string progression_order
+        = m_spec.get_string_attribute("jph:prog_order", "RPCL");
 
     cod.set_progression_order(progression_order.c_str());
 
     cod.set_reversible(true);
-    const ParamValue *compressionparams = m_spec.find_attribute("compression", TypeString);
-    if (compressionparams){
+    const ParamValue* compressionparams = m_spec.find_attribute("compression",
+                                                                TypeString);
+    if (compressionparams) {
         std::string compressionparms = compressionparams->get_string();
         // Sadly cannot use decode_compression_metadata since we are asking for a float param to be returned.
         auto comp_and_value = Strutil::splitsv(compressionparms, ":");
-        if (comp_and_value.size() >= 2){
+        if (comp_and_value.size() >= 2) {
             string_view comp = comp_and_value[0];
-            if (comp == "qstep"){
+            if (comp == "qstep") {
                 float quantization_step = Strutil::stof(comp_and_value[1]);
                 cod.set_reversible(false);
                 m_stream->access_qcd().set_irrev_quant(quantization_step);
@@ -426,7 +423,8 @@ JphOutput::create_jph_image()
     //                           color_space);
 
     // Floating point support
-    if (m_spec.format.basetype == TypeDesc::HALF || m_spec.format.basetype == TypeDesc::FLOAT){
+    if (m_spec.format.basetype == TypeDesc::HALF
+        || m_spec.format.basetype == TypeDesc::FLOAT) {
         // If we are treating the J2H file format as floating point
         // We need to enable the NLT type3 and the file needs to be signed, we only support half and float
         // not double (yet).
@@ -438,7 +436,7 @@ JphOutput::create_jph_image()
     m_image = new ojph::j2c_outfile;
     //ojph::j2c_outfile j2c_file;
     m_image->open(m_filename.c_str());
-    m_stream->write_headers(m_image); //, "test comment", 1);
+    m_stream->write_headers(m_image);  //, "test comment", 1);
 
     return m_image;
 }
@@ -448,9 +446,9 @@ template<typename T>
 void
 JphOutput::write_scanline(int y, int /*z*/, const void* data)
 {
-    int bits                  = sizeof(T) * 8;
-    const T* scanline         = static_cast<const T*>(data);
-    ojph::ui32 next_comp = 0;
+    int bits                 = sizeof(T) * 8;
+    const T* scanline        = static_cast<const T*>(data);
+    ojph::ui32 next_comp     = 0;
     ojph::line_buf* cur_line = m_stream->exchange(NULL, next_comp);
     for (int c = 0; c < m_spec.nchannels; ++c) {
         assert(c == next_comp);
@@ -461,9 +459,8 @@ JphOutput::write_scanline(int y, int /*z*/, const void* data)
                 val = bit_range_convert(val, bits, output_depth);
             cur_line->i32[i] = val;
         }
-        cur_line = m_stream->exchange (cur_line, next_comp);
+        cur_line = m_stream->exchange(cur_line, next_comp);
     }
-
 }
 
 
