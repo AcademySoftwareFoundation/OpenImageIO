@@ -274,6 +274,9 @@ macro (oiio_add_all_tests)
     oiio_add_tests (jpeg2000
                     FOUNDVAR OPENJPEG_FOUND
                     IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
+    oiio_add_tests (htj2k
+                    FOUNDVAR OPENJPH_FOUND
+                    IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (jpeg2000-j2kp4files
                     FOUNDVAR OPENJPEG_FOUND
                     IMAGEDIR j2kp4files_v1_5
