@@ -4203,6 +4203,16 @@ current top image.
       `shadow=` *size*
         if nonzero, will make a dark shadow halo to make the text more clear
         on bright backgrounds.
+      `measure=` *int*
+        if nonzero, will compute the rendered size of the text and store its
+        dimensions in the "user variables" (as if by `--set`) `TEXT_X`,
+        `TEXT_Y`, `TEXT_WIDTH`, `TEXT_HEIGHT`. (This modifier was added
+        in OpenImageIO 3.0.5.0.)
+      `render=` *int*
+        if zero, will not actually draw the text into the image (the
+        default is 1, meaning that the text will draw). Suppressing the
+        drawing is primarily useful in conjunction with `measure=1`.
+        (This modifier was added in OpenImageIO 3.0.5.0.)
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
