@@ -1,3 +1,7 @@
+Release 3.0.6.0 (May 1?, 2025) -- compared to 3.0.5.0
+-----------------------------------------------------
+
+
 Release 3.0.5.0 (Apr 2, 2025) -- compared to 3.0.4.0
 -----------------------------------------------------
   - *ImageBuf*: `ImageBuf::merge_metadata()` merges one IB's metadata into another's without deleting the metadata already present. It can also filter which metadata are copied using a regex. [#4672](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4672)
