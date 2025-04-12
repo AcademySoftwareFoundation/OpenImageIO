@@ -1212,7 +1212,7 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             int y             = std::max(int(yb), ybegin);
             uint8_t* linedata = static_cast<uint8_t*>(data)
                                 + scanlinebytes * (y - ybegin);
-            pvt::divector<uint8_t> fullchunk;
+            default_init_vector<uint8_t> fullchunk;
             int nlines = scansperchunk;
             exr_chunk_info_t cinfo;
             exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;

@@ -1343,7 +1343,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     int whole_width  = nxtiles * m_spec.tile_width;
     int whole_height = nytiles * m_spec.tile_height;
 
-    pvt::divector<char> tmpbuf;
+    default_init_vector<char> tmpbuf;
     void* origdata = data;
     if (whole_width != (xend - xbegin) || whole_height != (yend - ybegin)) {
         // Deal with the case of reading not a whole number of tiles --
