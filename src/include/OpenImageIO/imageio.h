@@ -28,9 +28,10 @@
 #include <string>
 #include <vector>
 
-#include <OpenImageIO/span.h>
-#include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/span.h>
+#include <OpenImageIO/image_span.h>
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/strutil.h>
@@ -44,6 +45,11 @@ class DeepData;
 class ImageBuf;
 class Timer;
 
+#ifndef OIIO_STRIDE_T_DEFINED
+#    define OIIO_STRIDE_T_DEFINED
+/// Type we use to express how many pixels (or bytes) constitute an image,
+/// tile, or scanline.
+using imagesize_t = uint64_t;
 
 /// Type we use for stride lengths between pixels, scanlines, or image
 /// planes.
@@ -55,7 +61,8 @@ using imagesize_t = uint64_t;
 
 /// Special value to indicate a stride length that should be
 /// auto-computed.
-const stride_t AutoStride = std::numeric_limits<stride_t>::min();
+inline constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
+#endif
 
 
 
@@ -3475,12 +3482,34 @@ OIIO_API void premult (int nchannels, int width, int height, int depth,
 /// AutoStride for any of the stride values, and they will be
 /// auto-computed assuming contiguous data.  Return true if ok, false if
 /// it didn't know how to do the conversion.
+///
+/// Note: when possible, the image_span based copy_image should be preferred.
+/// This one will eventually be deprecated.
 OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
                           const void *src, stride_t pixelsize,
                           stride_t src_xstride, stride_t src_ystride,
                           stride_t src_zstride,
                           void *dst, stride_t dst_xstride,
                           stride_t dst_ystride, stride_t dst_zstride);
+
+/// Helper routine for data conversion: Copy the contents of the `src` image
+/// span to `dst` that has exactly the same dimensions but may have different
+/// strides. Return true if ok, false if it couldn't do it. (Reserved for
+/// future use; currently is always succeeds)
+template<typename D, size_t Drank, typename S, size_t Srank>
+bool copy_image(image_span<D, Drank> dst, image_span<S, Srank> src)
+{
+    // Arbitrary types are handled by just converting to generic byte
+    // image_spans.
+    return copy_image(as_image_span_writable_bytes(dst),
+                      as_image_span_bytes(src));
+}
+
+/// copy_image base case: generic span of bytes.
+OIIO_API bool
+copy_image(image_span<std::byte> dst, image_span<const std::byte> src);
+
+
 
 /// Helper: manufacture a span given an image pointer, format, size, and
 /// strides. Use with caution! This is making a lot of assumptions that the

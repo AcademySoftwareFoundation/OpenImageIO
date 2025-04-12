@@ -95,8 +95,8 @@ Efficient unique strings: ``ustring``
 
 .. _sec-span:
 
-Non-owning array views: ``span`` / ``cspan``
-============================================
+Non-owning contiguous array views: ``span`` / ``cspan``
+=======================================================
 
 .. doxygenclass:: OIIO::span
     :members:
@@ -107,6 +107,18 @@ Additionally, there is a convenience template:
 .. cpp:type:: template<typename T> cspan = span<const T>
 
     `cspan<T>` is a synonym for a non-mutable `span<const T>`.
+
+|
+
+
+.. _sec-span:
+
+Non-owning image array views: ``image_span``
+============================================
+
+.. doxygenclass:: OIIO::image_span
+    :members:
+
 
 |
 
