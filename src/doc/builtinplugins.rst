@@ -1225,6 +1225,62 @@ the `set_ioproxy()` methods.
 
 |
 
+.. _sec-bundledplugins-htj2k:
+
+High Throughput JPEG2000 (HTJ2K):
+===============================================
+
+HTJ2K is an extension of JPEG2000 (Jpeg2000 Part 15) that offers substantailly faster encoding and decoding performance.
+While the OpenJpeg library can decode these files, they need to be decoded using the OpenJPH library.
+
+Currently the HTJ2K encoding encodes to file:`.j2c`` files. For more details on HTJ2K please see: https://ds.jpeg.org/whitepapers/jpeg-htj2k-whitepaper.pdf and https://github.com/aous72/OpenJPH.
+
+The default operation on creating a HTJ2K file is to use lossless compression.
+
+**Configuration settings for HTJ2K output**
+
+When opening a HTJ2K ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``jph:bit_depth``
+     - int
+     - The output bitdepth of the file.
+   * - ``jph:num_decomps``
+     - int
+     - (5) number of decompositions.
+   * - ``jph:block_size``
+     - string
+     - The output block size, defaults to 64,64   
+   * - ``jph:prog_order``
+     - string
+     - (RPCL) is the progression order, and can be one of:
+               LRCP, RLCP, RPCL, PCRL, CPRL. These determine the sequence in which the image data is processed and transmitted. The letters stand for:
+        R: Resolution
+        P: position
+        C: component
+        L: Layer
+        RPCL is common for applications where resolution scalability is important.
+   * - ``jph:precincts``
+     - string
+     -   x,y,x,y,...,x,y where x,y is the precinct size
+               starting from the coarsest resolution; the last precinct
+               is repeated for all finer resolutions
+   * - ``compression``
+     - string
+     - If supplied, must be ``"qstep:<VALUE>"``, where <VALUE> is the quantization step size for lossy compression; 
+       quantization steps size for all subbands are derived from this value. Valid values can be from 0.00001 to 0.5.
+       If not used, the encoder will be lossless.
+
+
+|
+
 .. _sec-bundledplugins-jpegxl:
 
 JPEG XL
