@@ -125,6 +125,7 @@ if __name__ == "__main__":
     print(f"Stub output directory: {out_path}")
     sys.path.append(out_path)
     sys.argv[1:] = ["-p", "OpenImageIO", "-o", out_path]
+    os.environ.setdefault("OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH", "1")
     mypy.stubgen.main()
     dest = os.path.join(out_path, "OpenImageIO", "__init__.pyi")
     print(f"Renaming to {dest}")
