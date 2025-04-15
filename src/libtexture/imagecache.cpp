@@ -1008,10 +1008,10 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
     set_imageinput(inp);
 
     // reduce memory usage if possible
-    if (m_pool_specs.size() > 1024)
-        m_pool_specs.shrink_to_fit();
-    if (m_pool_dims.size() > 1024)
-        m_pool_dims.shrink_to_fit();
+    // if (m_pool_specs.size() > 1024)
+    m_pool_specs.shrink_to_fit();
+    // if (m_pool_dims.size() > 1024)
+    m_pool_dims.shrink_to_fit();
 
     return inp;
 }
