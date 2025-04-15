@@ -750,6 +750,7 @@ pvt::contiguize(image_span<const std::byte> src, span<std::byte> dst)
         image_span dstspan(dst.data(), src.nchannels(), src.width(),
                            src.height(), src.depth(), AutoStride, AutoStride,
                            AutoStride, AutoStride, src.chansize());
+        OIIO_DASSERT(dstspan.size_bytes() == src.size_bytes());
         copy_image(dstspan, src);
         return make_cspan(dst.data(), src.size_bytes());
     }

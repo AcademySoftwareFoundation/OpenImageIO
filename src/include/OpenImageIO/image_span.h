@@ -205,7 +205,8 @@ public:
     /// un-typed memory.
     image_span<const std::byte> as_bytes_image_span() const noexcept
     {
-        return image_span<const std::byte>(static_cast<const std::byte*>(m_data),
+        return image_span<const std::byte>(reinterpret_cast<const std::byte*>(
+                                               m_data),
                                            nchannels(), width(), height(),
                                            depth(), chanstride(), xstride(),
                                            ystride(), zstride(), m_chansize);
@@ -216,7 +217,7 @@ public:
     /// Note that this will not work (be a compiler error) if T a const type.
     image_span<std::byte> as_writable_bytes_image_span() const noexcept
     {
-        return image_span<std::byte>(static_cast<std::byte*>(m_data),
+        return image_span<std::byte>(reinterpret_cast<std::byte*>(m_data),
                                      nchannels(), width(), height(), depth(),
                                      chanstride(), xstride(), ystride(),
                                      zstride(), m_chansize);
