@@ -65,7 +65,7 @@ OIIO_NAMESPACE_BEGIN
 ///
 /// Parse the command line:
 ///
-///     ap.parse (argc, argv);
+///     ap.parse_args(argc, argv);
 ///
 /// Extract the values like they are attributes in a ParamValueList:
 ///
@@ -79,7 +79,7 @@ OIIO_NAMESPACE_BEGIN
 // Old syntax
 // ----------
 //
-// We still support this old syntax as well:
+// We still support this old syntax as well, but only internally:
 //
 // The parse function takes a list of options and variables or functions
 // for storing option values and return <0 on failure:
@@ -107,7 +107,7 @@ OIIO_NAMESPACE_BEGIN
 //                   "set the camera position",
 //             "-lookat %f %f %f", &lx, &ly, &lz,
 //                   "set the position of interest",
-//             "-oversampling %d", &oversampling,  "oversamping rate",
+//             "-oversampling %d", &oversampling,  "oversampling rate",
 //             "-passes %d", &passes, "number of passes",
 //             "-lens %f %f %f", &aperture, &focalDistance, &focalLength,
 //                    "set aperture, focal distance, focal length",

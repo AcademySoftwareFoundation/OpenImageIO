@@ -12,6 +12,7 @@ on:
       - '**/ci.yml'
       - '**/analysis.yml'
       - '**/scorecard.yml'
+      - '**/wheel.yml'
       - '**.properties'
       - 'src/**.cpp'
       - '**.cmake'
@@ -22,6 +23,7 @@ on:
       - '**/ci.yml'
       - '**/analysis.yml'
       - '**/scorecard.yml'
+      - '**/wheel.yml'
       - '**.properties'
       - 'src/**.cpp'
       - '**.cmake'
@@ -56,10 +58,6 @@ jobs:
       build_type: ${{ matrix.build_type || 'Release' }}
       depcmds: ${{ matrix.depcmds }}
       extra_artifacts: ${{ matrix.extra_artifacts }}
-      fmt_ver: ${{ matrix.fmt_ver }}
-      opencolorio_ver: ${{ matrix.opencolorio_ver }}
-      openexr_ver: ${{ matrix.openexr_ver }}
-      pybind11_ver: ${{ matrix.pybind11_ver }}
       python_ver: ${{ matrix.python_ver }}
       setenvs: ${{ matrix.setenvs }}
       simd: ${{ matrix.simd }}
@@ -68,10 +66,6 @@ jobs:
       abi_check: ${{ matrix.abi_check }}
       build_docs: ${{ matrix.build_docs }}
       generator: ${{ matrix.generator }}
-      ctest_args: ${{ matrix.ctest_args }}
-      ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
-      coverage: ${{ matrix.coverage || '0' }}
-      sonar: ${{ matrix.sonar || '0' }}
 
     strategy:
       fail-fast: false
@@ -80,12 +74,13 @@ jobs:
           - desc: docs
             nametag: docslinux
             runner: ubuntu-latest
-            container: aswftesting/ci-openexr:2024
-            vfxyear: 2024
             cxx_std: 17
             python_ver: "3.11"
             build_docs: 1
             skip_build: 1
             skip_tests: 1
             setenvs: export EXTRA_DEP_PACKAGES="doxygen sphinx-doc"
-                            PIP_INSTALLS="sphinx breathe sphinx-tabs furo"
+                            PIP_INSTALLS="sphinx breathe==4.34.0 sphinx-tabs furo==2022.6.21"
+                            SKIP_SYSTEM_DEPS_INSTALL=1
+                            USE_OPENCV=0 USE_FFMPEG=0 USE_FREETYPE=0
+                            USE_LIBHEIF=0 QT_VERSION=0 PYBIND11_VERSION=0

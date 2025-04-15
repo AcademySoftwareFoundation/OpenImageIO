@@ -134,6 +134,7 @@ lg@openimageio.org
 * LazyDodo
 * Leonid Onokhov
 * Leszek Godlewski
+* Li Ji
 * Lucas Panian
 * Lucille Caillaud
 * Lukas Schrangl

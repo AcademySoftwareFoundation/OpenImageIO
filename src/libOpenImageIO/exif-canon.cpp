@@ -990,8 +990,9 @@ encode_indexed_tag (int tifftag, TIFFDataType tifftype, // TIFF tag and type
         }
     }
     if (anyfound)
-        append_tiff_dir_entry (dirs, data, tifftag, tifftype,
-                               array.size(), array.data(), offset_correction);
+        append_tiff_dir_entry(dirs, data, tifftag, tifftype,
+                              array.size(), as_bytes(make_cspan(array)),
+                              offset_correction);
 }
 
 
@@ -1015,8 +1016,9 @@ encode_canon_makernote (std::vector<char>& data,
                 d = param->get_ustring().c_str();
                 count = param->get_ustring().size() + 1;
             }
-            append_tiff_dir_entry (makerdirs, data, t.tifftag, t.tifftype,
-                                   count, d, offset_correction);
+            append_tiff_dir_entry(makerdirs, data, t.tifftag, t.tifftype,
+                                  count, as_bytes(d, count),
+                                  offset_correction);
         }
     }
 

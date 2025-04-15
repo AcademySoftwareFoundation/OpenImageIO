@@ -47,6 +47,7 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfInputPart.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
+#include <OpenEXR/ImfLineOrderAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
 #include <OpenEXR/ImfMultiPartInputFile.h>
 #include <OpenEXR/ImfPartType.h>
@@ -128,7 +129,6 @@ static std::map<std::string, std::string> exr_tag_to_oiio_std {
     { "envmap", "" },
     { "tiledesc", "" },
     { "tiles", "" },
-    { "openexr:lineOrder", "" },
     { "type", "" },
 
     // FIXME: Things to consider in the future:
@@ -467,6 +467,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         const Imf::V3dAttribute* v3dattr;
         const Imf::M33dAttribute* m33dattr;
         const Imf::M44dAttribute* m44dattr;
+        const Imf::LineOrderAttribute* lattr;
         const char* name = hit.name();
         auto found       = exr_tag_to_oiio_std.find(name);
         std::string oname(found != exr_tag_to_oiio_std.end() ? found->second
@@ -635,6 +636,18 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                         oname, n, d);
                 }
             }
+        } else if (type == "lineOrder"
+                   && (lattr
+                       = header->findTypedAttribute<Imf::LineOrderAttribute>(
+                           name))) {
+            const char* lineOrder = "increasingY";
+            switch (lattr->value()) {
+            case Imf::INCREASING_Y: lineOrder = "increasingY"; break;
+            case Imf::DECREASING_Y: lineOrder = "decreasingY"; break;
+            case Imf::RANDOM_Y: lineOrder = "randomY"; break;
+            default: break;
+            }
+            spec.attribute("openexr:lineOrder", lineOrder);
         } else {
 #if 0
             print(std::cerr, "  unknown attribute '{}' name '{}'\n",

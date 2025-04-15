@@ -233,22 +233,25 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
         m_spec.auto_stride(xstride, format, m_spec.nchannels);
     // Do the strides indicate that the data area is contiguous?
     bool contiguous = (xstride == buffer_pixel_bytes);
+    // Bytes a scanline takes in native formats
+    size_t native_sl_bytes = m_spec.scanline_bytes(true);
 
     // If user's format and strides are set up to accept the native data
     // layout, read the scanline directly into the user's buffer.
     if (native_data && contiguous)
-        return read_native_scanline(current_subimage(), current_miplevel(), y,
-                                    z, data);
+        return read_native_scanlines(current_subimage(), current_miplevel(), y,
+                                     y + 1,
+                                     as_writable_bytes(data, native_sl_bytes));
 
     // Complex case -- either changing data type or stride
     int scanline_values = m_spec.width * m_spec.nchannels;
 
     unsigned char* buf;
-    OIIO_ALLOCATE_STACK_OR_HEAP(buf, unsigned char,
-                                m_spec.scanline_bytes(true));
+    OIIO_ALLOCATE_STACK_OR_HEAP(buf, unsigned char, native_sl_bytes);
 
-    bool ok = read_native_scanline(current_subimage(), current_miplevel(), y, z,
-                                   buf);
+    bool ok = read_native_scanlines(current_subimage(), current_miplevel(), y,
+                                    y + 1,
+                                    as_writable_bytes(buf, native_sl_bytes));
     if (!ok)
         return false;
     if (m_spec.channelformats.empty()) {
@@ -331,16 +334,19 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
     bool contiguous                = (xstride == (stride_t)buffer_pixel_bytes
                        && ystride == (stride_t)buffer_scanline_bytes);
 
+    auto dataspan = make_span(static_cast<std::byte*>(data),
+                              buffer_scanline_bytes * size_t(yend - ybegin));
+
     // no_type_convert is true if asking for data in the native format
     bool no_type_convert = (format == spec.format
                             && spec.channelformats.empty());
     if ((native || no_type_convert) && contiguous) {
         if (chbegin == 0 && chend == spec.nchannels)
-            return read_native_scanlines(subimage, miplevel, ybegin, yend, z,
-                                         data);
+            return read_native_scanlines(subimage, miplevel, ybegin, yend,
+                                         dataspan);
         else
-            return read_native_scanlines(subimage, miplevel, ybegin, yend, z,
-                                         chbegin, chend, data);
+            return read_native_scanlines(subimage, miplevel, ybegin, yend,
+                                         chbegin, chend, dataspan);
     }
 
     // No such luck.  Read scanlines in chunks.
@@ -350,14 +356,16 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
     int chunk = std::max(1, (1 << 26) / int(spec.scanline_bytes(true)));
     chunk     = std::max(chunk, int(oiio_read_chunk));
     chunk     = round_to_multiple(chunk, rps);
-    std::unique_ptr<char[]> buf(new char[chunk * native_scanline_bytes]);
+    std::unique_ptr<std::byte[]> buf(
+        new std::byte[chunk * native_scanline_bytes]);
+    auto bufspan = make_span(buf.get(), chunk * native_scanline_bytes);
 
     bool ok             = true;
     int scanline_values = spec.width * nchans;
     for (; ok && ybegin < yend; ybegin += chunk) {
         int y1 = std::min(ybegin + chunk, yend);
-        ok &= read_native_scanlines(subimage, miplevel, ybegin, y1, z, chbegin,
-                                    chend, &buf[0]);
+        ok &= read_native_scanlines(subimage, miplevel, ybegin, y1, chbegin,
+                                    chend, bufspan);
         if (!ok)
             break;
 
@@ -366,11 +374,11 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         if (spec.channelformats.empty()) {
             // No per-channel formats -- do the conversion in one shot
             if (contiguous) {
-                ok = convert_pixel_values(spec.format, &buf[0], format, data,
+                ok = convert_pixel_values(spec.format, buf.get(), format, data,
                                           chunkvalues);
             } else {
                 ok = parallel_convert_image(nchans, spec.width, nscanlines, 1,
-                                            &buf[0], spec.format, AutoStride,
+                                            buf.get(), spec.format, AutoStride,
                                             AutoStride, AutoStride, data,
                                             format, xstride, ystride, zstride,
                                             threads());
@@ -472,6 +480,54 @@ ImageInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     });
     // clang-format on
     return true;
+}
+
+
+
+bool
+ImageInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                  int yend, span<std::byte> data)
+{
+    if (pvt::oiio_print_debug
+#ifndef NDEBUG
+        || true
+#endif
+    ) {
+        // Only for debug builds or if OIIO "debug" is enabled at runtime,
+        // validate that the span size.
+        ImageSpec s = spec_dimensions(subimage, miplevel);
+        if (!valid_raw_span_size(data, s, s.x, s.x + s.width, ybegin, yend))
+            return false;
+    }
+
+    // Default implementation (for now): call the old pointer based flavor
+    return read_native_scanlines(subimage, miplevel, ybegin, yend, 0,
+                                 data.data());
+}
+
+
+
+bool
+ImageInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                  int yend, int chbegin, int chend,
+                                  span<std::byte> data)
+{
+    if (pvt::oiio_print_debug
+#ifndef NDEBUG
+        || true
+#endif
+    ) {
+        // Only for debug builds or if OIIO "debug" is enabled at runtime,
+        // validate that the span size.
+        ImageSpec s = spec_dimensions(subimage, miplevel);
+        if (!valid_raw_span_size(data, s, s.x, s.x + s.width, ybegin, yend, 0,
+                                 1, chbegin, chend))
+            return false;
+    }
+
+    // Default implementation (for now): call the old pointer based flavor
+    return read_native_scanlines(subimage, miplevel, ybegin, yend, 0, chbegin,
+                                 chend, data.data());
 }
 
 
@@ -839,6 +895,106 @@ ImageInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
         }
     }
     return true;
+}
+
+
+
+bool
+ImageInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                              int ybegin, int yend, span<std::byte> data)
+{
+    if (pvt::oiio_print_debug
+#ifndef NDEBUG
+        || true
+#endif
+    ) {
+        // Only for debug builds or if OIIO "debug" is enabled at runtime,
+        // validate that the span size.
+        ImageSpec s = spec_dimensions(subimage, miplevel);
+        if (!valid_raw_span_size(data, s, xbegin, xend, ybegin, yend))
+            return false;
+    }
+
+    // Default implementation (for now): call the old pointer based flavor
+    return read_native_tiles(subimage, miplevel, xbegin, xend, ybegin, yend, 0,
+                             1, data.data());
+}
+
+
+
+bool
+ImageInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                              int ybegin, int yend, int chbegin, int chend,
+                              span<std::byte> data)
+{
+    if (pvt::oiio_print_debug
+#ifndef NDEBUG
+        || true
+#endif
+    ) {
+        // Only for debug builds or if OIIO "debug" is enabled at runtime,
+        // validate that the span size is correct.
+        ImageSpec s = spec_dimensions(subimage, miplevel);
+        if (!valid_raw_span_size(data, s, xbegin, xend, ybegin, yend, 0, 1,
+                                 chbegin, chend))
+            return false;
+    }
+
+    // Default implementation (for now): call the old pointer based flavor
+    return read_native_tiles(subimage, miplevel, xbegin, xend, ybegin, yend, 0,
+                             1, chbegin, chend, data.data());
+}
+
+
+
+bool
+ImageInput::read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
+                                         int xend, int ybegin, int yend,
+                                         int zbegin, int zend,
+                                         span<std::byte> data)
+{
+    if (pvt::oiio_print_debug
+#ifndef NDEBUG
+        || true
+#endif
+    ) {
+        // Only for debug builds or if OIIO "debug" is enabled at runtime,
+        // validate that the span size.
+        ImageSpec s = spec_dimensions(subimage, miplevel);
+        if (!valid_raw_span_size(data, s, xbegin, xend, ybegin, yend, zbegin,
+                                 zend))
+            return false;
+    }
+
+    // Default implementation (for now): call the old pointer based flavor
+    return read_native_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
+                             zbegin, zend, data.data());
+}
+
+
+
+bool
+ImageInput::read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
+                                         int xend, int ybegin, int yend,
+                                         int zbegin, int zend, int chbegin,
+                                         int chend, span<std::byte> data)
+{
+    if (pvt::oiio_print_debug
+#ifndef NDEBUG
+        || true
+#endif
+    ) {
+        // Only for debug builds or if OIIO "debug" is enabled at runtime,
+        // validate that the span size.
+        ImageSpec s = spec_dimensions(subimage, miplevel);
+        if (!valid_raw_span_size(data, s, xbegin, xend, ybegin, yend, zbegin,
+                                 zend, chbegin, chend))
+            return false;
+    }
+
+    // Default implementation (for now): call the old pointer based flavor
+    return read_native_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
+                             zbegin, zend, chbegin, chend, data.data());
 }
 
 
@@ -1269,6 +1425,27 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
     }
 
     return true;  // all is ok
+}
+
+
+
+bool
+ImageInput::valid_raw_span_size(cspan<std::byte> buf, const ImageSpec& spec,
+                                int xbegin, int xend, int ybegin, int yend,
+                                int zbegin, int zend, int chbegin, int chend)
+{
+    if (chend < 0 || chend > spec.nchannels)
+        chend = spec.nchannels;
+    size_t sz = spec.pixel_bytes(chbegin, chend, true /*native*/)
+                * size_t(xend - xbegin) * size_t(yend - ybegin)
+                * size_t(zend - zbegin);
+    if (sz > buf.size()) {
+        errorfmt(
+            "Buffer span size is inadequate to read the requested {} pixels ({} bytes vs {} needed)",
+            format_name(), buf.size(), sz);
+        return false;
+    }
+    return true;
 }
 
 

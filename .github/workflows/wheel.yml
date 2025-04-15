@@ -14,21 +14,25 @@ permissions:
 on:
   push:
     # Workflow run on tags for v3 only, or pre-tagged pushes of release, or
-    # dev-3.* branches.
+    # dev-3.* branches. Also if the branch name itself contains the substrings
+    # 'wheel' or 'python'.
     tags:
       - v3.*
     branches:
       - release
       - dev-3.*
+      - "*wheel*"
+      - "*python*"
   pull_request:
-    # Workflow run on pull_request only when related files change.
+    # Workflow run on pull_request only when related files change, or when the
+    # branch name itself contains the substrings 'wheel' or 'python'.
     paths:
       - .github/workflows/wheel.yml
       - pyproject.toml
       - src/python/*.py
       - src/python/*.h
       - src/python/*.cpp
-      - src/cmake/pythonutils.cmake
+      - src/cmake/*.cmake
   schedule:
     # Nightly build
     - cron:  "0 8 * * *"
@@ -264,6 +268,7 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
+          CMAKE_GENERATOR: "Unix Makefiles"
           # TODO: Re-enable HEIF when we provide a build recipe that does 
           # not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
@@ -323,6 +328,7 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
+          CMAKE_GENERATOR: "Unix Makefiles"
 
       - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
@@ -377,6 +383,7 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
+          CMAKE_POLICY_VERSION_MINIMUM: 3.5
 
       - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:

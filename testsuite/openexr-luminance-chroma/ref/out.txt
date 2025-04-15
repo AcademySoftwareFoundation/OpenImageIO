@@ -9,6 +9,7 @@ Reading ../openexr-images/Chromaticities/Rec709_YC.exr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
 Comparing "../openexr-images/Chromaticities/Rec709_YC.exr" and "Rec709_YC.exr"
 PASS
@@ -24,6 +25,7 @@ Reading ../openexr-images/Chromaticities/XYZ_YC.exr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
 Comparing "../openexr-images/Chromaticities/XYZ_YC.exr" and "XYZ_YC.exr"
 PASS
@@ -39,6 +41,7 @@ Reading ../openexr-images/LuminanceChroma/CrissyField.exr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
 Comparing "../openexr-images/LuminanceChroma/CrissyField.exr" and "CrissyField.exr"
 PASS
@@ -53,6 +56,7 @@ Reading ../openexr-images/LuminanceChroma/Flowers.exr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
 Comparing "../openexr-images/LuminanceChroma/Flowers.exr" and "Flowers.exr"
 PASS
@@ -67,6 +71,7 @@ Reading ../openexr-images/LuminanceChroma/MtTamNorth.exr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
 Comparing "../openexr-images/LuminanceChroma/MtTamNorth.exr" and "MtTamNorth.exr"
 PASS
@@ -81,6 +86,7 @@ Reading ../openexr-images/LuminanceChroma/StarField.exr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
 Comparing "../openexr-images/LuminanceChroma/StarField.exr" and "StarField.exr"
 PASS

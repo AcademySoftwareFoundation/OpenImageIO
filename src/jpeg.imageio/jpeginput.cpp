@@ -427,8 +427,13 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
         if (m->marker == (JPEG_APP0 + 2)
             && !strcmp((const char*)m->data, "ICC_PROFILE")) {
             int seq_no = GETJOCTET(m->data[12]);
-            memcpy(icc_buf.data() + data_offset[seq_no],
-                   m->data + ICC_HEADER_SIZE, data_length[seq_no]);
+            if (data_offset[seq_no] + data_length[seq_no] > icc_buf.size()) {
+                errorfmt("Possible corrupt file, invalid ICC profile\n");
+                return false;
+            }
+            spancpy(make_span(icc_buf), data_offset[seq_no],
+                    make_cspan(m->data + ICC_HEADER_SIZE, data_length[seq_no]),
+                    0, data_length[seq_no]);
         }
     }
     spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, total_length),
@@ -436,7 +441,7 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
 
     std::string errormsg;
     bool ok = decode_icc_profile(icc_buf, spec, errormsg);
-    if (!ok) {
+    if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
         errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
                  errormsg);
         return false;
@@ -552,14 +557,51 @@ bool
 JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
+    return read_native_scanlines(subimage, miplevel, y, y + 1,
+                                 as_writable_bytes(data, m_spec.scanline_bytes(
+                                                             true)));
+}
+
+
+
+bool
+JpgInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                int yend, int z, void* data)
+{
+    if (ybegin >= yend) {
+        errorfmt("Invalid scanline range requested: {}-{}", ybegin, yend);
+        return false;
+    }
+    size_t size = m_spec.scanline_bytes(true) * size_t(yend - ybegin);
+    return read_native_scanlines(subimage, miplevel, ybegin, yend,
+                                 as_writable_bytes(data, size));
+}
+
+
+
+bool
+JpgInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                int yend, span<std::byte> data)
+{
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (m_raw)
         return false;
-    if (y < 0 || y >= (int)m_cinfo.output_height)  // out of range scanline
+    if (ybegin < 0 || yend > (int)m_cinfo.output_height || ybegin >= yend) {
+        // out of range scanlines
+        errorfmt(
+            "JPEG read_native_scanlines: Out of valid range scanline indices (b={} e={}).",
+            ybegin, yend);
         return false;
-    if (m_next_scanline > y) {
+    }
+
+    // Validate that the span provided can hold the requested scanlines.
+    if (!valid_raw_span_size(data, m_spec, m_spec.x, m_spec.x + m_spec.width,
+                             ybegin, yend))
+        return false;
+
+    if (m_next_scanline > ybegin) {
         // User is trying to read an earlier scanline than the one we're
         // up to.  Easy fix: close the file and re-open.
         // Don't forget to save and restore any configuration settings.
@@ -589,8 +631,8 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         const size_t row_size   = uhdr_raw->stride[UHDR_PLANE_PACKED] * nbytes;
         unsigned char* top_left = static_cast<unsigned char*>(
             uhdr_raw->planes[UHDR_PLANE_PACKED]);
-        unsigned char* row_data_start = top_left + row_size * y;
-        memcpy(data, row_data_start, row_size);
+        unsigned char* row_data_start = top_left + row_size * ybegin;
+        memcpy(data.data(), row_data_start, row_size * (yend - ybegin));
 
         return true;
     }
@@ -602,27 +644,48 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return false;
     }
 
-    void* readdata = data;
+    int nscanlines     = yend - ybegin;
+    size_t sl_bytes    = m_spec.scanline_bytes(true /*native*/);
+    JSAMPLE** readdata = OIIO_ALLOCA(JSAMPLE*, nscanlines);
+    for (int i = 0; i < nscanlines; ++i)
+        readdata[i] = reinterpret_cast<JSAMPLE*>(&data[i * sl_bytes]);
+
     if (m_cmyk) {
         // If the file's data is CMYK, read into a 4-channel buffer, then
         // we'll have to convert.
-        m_cmyk_buf.resize(m_spec.width * 4);
-        readdata = &m_cmyk_buf[0];
+        m_cmyk_buf.resize(m_spec.width * 4 * nscanlines);
+        for (int i = 0; i < nscanlines; ++i)
+            readdata[i] = reinterpret_cast<JSAMPLE*>(m_cmyk_buf.data()
+                                                     + i * m_spec.width * 4);
         OIIO_DASSERT(m_spec.nchannels == 3);
     }
 
-    for (; m_next_scanline <= y; ++m_next_scanline) {
+    // If we need to skip scanlines to get to the first requested one...
+    for (; m_next_scanline < ybegin; ++m_next_scanline) {
         // Keep reading until we've read the scanline we really need
-        if (jpeg_read_scanlines(&m_cinfo, (JSAMPLE**)&readdata, 1) != 1
-            || m_fatalerr) {
+        if (jpeg_read_scanlines(&m_cinfo, readdata, 1) != 1 || m_fatalerr) {
             errorfmt("JPEG failed scanline read (\"{}\")", filename());
             return false;
         }
     }
 
+    for (int y = ybegin; y < yend;) {
+        int toread = y - ybegin;
+        int r      = jpeg_read_scanlines(&m_cinfo, readdata + toread, yend - y);
+        if (r == 0 || m_fatalerr) {
+            errorfmt(
+                "JPEG failed scanline reading scanlines {}-{} from \"{}\" (returned {})",
+                y, yend, filename(), r);
+            return false;
+        }
+        y += r;
+    }
+    m_next_scanline = yend;
+
     if (m_cmyk)
-        cmyk_to_rgb(m_spec.width, (unsigned char*)readdata, 4,
-                    (unsigned char*)data, 3);
+        cmyk_to_rgb(m_spec.width * nscanlines,
+                    reinterpret_cast<unsigned char*>(readdata), 4,
+                    reinterpret_cast<unsigned char*>(data.data()), 3);
 
     return true;
 }

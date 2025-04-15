@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <memory>
+#include <regex>
 
 #include <OpenImageIO/half.h>
 
@@ -99,20 +100,20 @@ span_from_buffer(void* data, TypeDesc format, int nchannels, int width,
     if (xstride >= 0) {
         bufend += xstride * (width - 1);
     } else {
-        bufstart -= xstride * (width - 1);
+        bufstart += xstride * (width - 1);
     }
     // Expand to the span range for a whole image plane.
     if (ystride >= 0) {
         bufend += ystride * (height - 1);
     } else {
-        bufstart -= ystride * (height - 1);
+        bufstart += ystride * (height - 1);
     }
     // Expand to the span range for a whole volume.
     if (depth > 1 && zstride != 0) {
         if (zstride >= 0) {
             bufend += zstride * (depth - 1);
         } else {
-            bufstart -= zstride * (depth - 1);
+            bufstart += zstride * (depth - 1);
         }
     }
     return { bufstart, size_t(bufend - bufstart) };
@@ -169,6 +170,8 @@ public:
               void* progress_callback_data       = nullptr,
               DoLock do_lock                     = DoLock(true));
     void copy_metadata(const ImageBufImpl& src);
+    void merge_metadata(const ImageBufImpl& src, bool override = false,
+                        string_view pattern = {});
 
     // At least one of bufspan or buforigin is supplied. Set this->m_bufspan
     // and this->m_localpixels appropriately.
@@ -905,7 +908,7 @@ ImageBufImpl::set_bufspan_localpixels(span<std::byte> bufspan,
     }
     m_bufspan     = bufspan;
     m_localpixels = (char*)buforigin;
-    OIIO_DASSERT(check_span(m_bufspan, m_localpixels, spec().format));
+    OIIO_ASSERT(check_span(m_bufspan, m_localpixels, spec().format));
 }
 
 
@@ -1770,6 +1773,55 @@ void
 ImageBuf::copy_metadata(const ImageBuf& src)
 {
     m_impl->copy_metadata(*src.m_impl);
+}
+
+
+
+void
+ImageBufImpl::merge_metadata(const ImageBufImpl& src, bool override,
+                             string_view pattern)
+{
+    ImageSpec& myspec(this->specmod());
+    const ImageSpec& srcspec(src.spec());
+    std::regex re(std::string(pattern), std::regex_constants::basic);
+    for (const auto& a : srcspec.extra_attribs) {
+        if ((pattern.empty() || std::regex_search(a.name().string(), re))
+            && (override || !myspec.extra_attribs.contains(a.name())))
+            myspec.attribute(a.name(), a.type(), a.data());
+    }
+
+    if (override) {
+        if (pattern.empty() || std::regex_search("full_geom", re)) {
+            m_spec.full_x      = srcspec.full_x;
+            m_spec.full_y      = srcspec.full_y;
+            m_spec.full_z      = srcspec.full_z;
+            m_spec.full_width  = srcspec.full_width;
+            m_spec.full_height = srcspec.full_height;
+            m_spec.full_depth  = srcspec.full_depth;
+        }
+        if (pattern.empty() || std::regex_search("tile_size", re)) {
+            if (src.storage() == ImageBuf::IMAGECACHE) {
+                // If we're copying metadata from a cached image, be sure to
+                // get the file's tile size, not the cache's tile size.
+                m_spec.tile_width  = src.nativespec().tile_width;
+                m_spec.tile_height = src.nativespec().tile_height;
+                m_spec.tile_depth  = src.nativespec().tile_depth;
+            } else {
+                m_spec.tile_width  = srcspec.tile_width;
+                m_spec.tile_height = srcspec.tile_height;
+                m_spec.tile_depth  = srcspec.tile_depth;
+            }
+        }
+    }
+}
+
+
+
+void
+ImageBuf::merge_metadata(const ImageBuf& src, bool override,
+                         string_view pattern)
+{
+    m_impl->merge_metadata(*src.m_impl, override, pattern);
 }
 
 

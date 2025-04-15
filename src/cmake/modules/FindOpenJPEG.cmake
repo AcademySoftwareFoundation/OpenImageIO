@@ -83,10 +83,8 @@ if (OPENJPEG_INCLUDE_DIR)
 endif ()
 
 # Search for opj_config.h -- it is only part of OpenJpeg >= 2.0, and will
-# contain symbols OPJ_VERSION_MAJOR and OPJ_VERSION_MINOR. If the file
-# doesn't exist, we're dealing with OpenJPEG 1.x.
-# Note that for OpenJPEG 2.x, the library is named libopenjp2, not
-# libopenjpeg (which is for 1.x)
+# contain symbols OPJ_VERSION_MAJOR, OPJ_VERSION_MINOR, and OBJ_VERSION_BUILD
+# since OpenJpeg >= 2.1.
 set (OPENJPEG_CONFIG_FILE "${OPENJPEG_INCLUDE_DIR}/opj_config.h")
 if (EXISTS "${OPENJPEG_CONFIG_FILE}")
     file(STRINGS "${OPENJPEG_CONFIG_FILE}" TMP REGEX "^#define OPJ_PACKAGE_VERSION .*$")
@@ -94,20 +92,24 @@ if (EXISTS "${OPENJPEG_CONFIG_FILE}")
         # 2.0 is the only one with this construct
         set (OPJ_VERSION_MAJOR 2)
         set (OPJ_VERSION_MINOR 0)
+        set (OPJ_VERSION_BUILD 0)
     else ()
         # 2.1 and beyond
         file(STRINGS "${OPENJPEG_CONFIG_FILE}" TMP REGEX "^#define OPJ_VERSION_MAJOR .*$")
         string (REGEX MATCHALL "[0-9]+" OPJ_VERSION_MAJOR ${TMP})
         file(STRINGS "${OPENJPEG_CONFIG_FILE}" TMP REGEX "^#define OPJ_VERSION_MINOR .*$")
         string (REGEX MATCHALL "[0-9]+" OPJ_VERSION_MINOR ${TMP})
+        file(STRINGS "${OPENJPEG_CONFIG_FILE}" TMP REGEX "^#define OPJ_VERSION_BUILD .*$")
+        string (REGEX MATCHALL "[0-9]+" OPJ_VERSION_BUILD ${TMP})
     endif ()
 else ()
     # Guess OpenJPEG 1.5 -- older versions didn't have the version readily
     # apparent in the headers.
     set (OPJ_VERSION_MAJOR 1)
     set (OPJ_VERSION_MINOR 5)
+    set (OPJ_VERSION_BUILD 0)
 endif ()
-set (OPENJPEG_VERSION "${OPJ_VERSION_MAJOR}.${OPJ_VERSION_MINOR}")
+set (OPENJPEG_VERSION "${OPJ_VERSION_MAJOR}.${OPJ_VERSION_MINOR}.${OPJ_VERSION_BUILD}")
 
 
 # Locate the OpenJpeg library
