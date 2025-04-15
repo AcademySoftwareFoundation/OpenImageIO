@@ -154,6 +154,13 @@ jobs:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux }}
 
+      - name: Build stubs
+        if: matrix.build == 'CPython 3.11 64 bits manylinux2014'
+        run: |
+          pip install ./wheelhouse/*.whl
+          python ./src/python/generate_stubs.py ./out
+          cat ./out/*.pyi
+
       - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
