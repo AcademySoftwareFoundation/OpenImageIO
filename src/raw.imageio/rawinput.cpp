@@ -72,7 +72,6 @@ public:
                               void* data) override;
 
 private:
-    bool process();
     bool m_process  = true;
     bool m_unpacked = false;
     std::unique_ptr<LibRaw> m_processor;
@@ -87,9 +86,10 @@ private:
     std::string m_make;
 
     bool do_unpack();
+    bool do_process();
 
     // Do the actual open. It expects m_filename and m_config to be set.
-    bool open_raw(bool unpack, const std::string& name,
+    bool open_raw(bool unpack, bool process, const std::string& name,
                   const ImageSpec& config);
     void get_makernotes();
     void get_makernotes_canon();
@@ -374,12 +374,14 @@ RawInput::open(const std::string& name, ImageSpec& newspec,
     m_filename = name;
     m_config   = config;
 
+    bool force_load = config.get_int_attribute("raw:ForceLoad");
+
     // For a fresh open, we are concerned with just reading all the
     // metadata quickly, because maybe that's all that will be needed. So
     // call open_raw passing unpack=false. This will not read the pixels! We
     // will need to close and re-open with unpack=true if and when we need
     // the actual pixel values.
-    bool ok = open_raw(false, m_filename, m_config);
+    bool ok = open_raw(force_load, force_load, m_filename, m_config);
     if (ok)
         newspec = m_spec;
     return ok;
@@ -388,7 +390,7 @@ RawInput::open(const std::string& name, ImageSpec& newspec,
 
 
 bool
-RawInput::open_raw(bool unpack, const std::string& name,
+RawInput::open_raw(bool unpack, bool process, const std::string& name,
                    const ImageSpec& config)
 {
     // std::cout << "open_raw " << name << " unpack=" << unpack << "\n";
@@ -517,7 +519,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     } else {
         if (config.get_int_attribute("raw:use_auto_wb", 0) == 1) {
             m_processor->imgdata.params.use_auto_wb = 1;
-        } else {
+            // White balancing to a box requires use_auto_wb = 1
             auto p = config.find_attribute("raw:greybox");
             if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
                 // p->get<int>() didn't work for me here
@@ -525,23 +527,23 @@ RawInput::open_raw(bool unpack, const std::string& name,
                 m_processor->imgdata.params.greybox[1] = p->get_int_indexed(1);
                 m_processor->imgdata.params.greybox[2] = p->get_int_indexed(2);
                 m_processor->imgdata.params.greybox[3] = p->get_int_indexed(3);
-            } else {
-                // Set user white balance coefficients.
-                // Only has effect if "raw:use_camera_wb" is equal to 0,
-                // i.e. we are not using the camera white balance
-                auto p = config.find_attribute("raw:user_mul");
-                if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
-                    m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
-                    m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
-                    m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
-                    m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
-                }
-                if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
-                    m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
-                    m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
-                    m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
-                    m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
-                }
+            }
+        } else {
+            // Set user white balance coefficients.
+            // Only has effect if "raw:use_camera_wb" is equal to 0,
+            // i.e. we are not using the camera white balance
+            auto p = config.find_attribute("raw:user_mul");
+            if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
+                m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
+                m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
+                m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
+                m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
+            }
+            if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
+                m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
+                m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
+                m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
+                m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
             }
         }
     }
@@ -938,6 +940,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
         }
     }
 
+    if (process) {
+        do_process();
+    }
 
     // Metadata
 
@@ -1517,7 +1522,7 @@ RawInput::do_unpack()
     // We need to unpack but we didn't when we opened the file. Close and
     // re-open with unpack.
     close();
-    bool ok    = open_raw(true, m_filename, m_config);
+    bool ok    = open_raw(true, false, m_filename, m_config);
     m_unpacked = true;
     return ok;
 }
@@ -1525,7 +1530,7 @@ RawInput::do_unpack()
 
 
 bool
-RawInput::process()
+RawInput::do_process()
 {
     if (!m_image) {
         int ret = m_processor->dcraw_process();
@@ -1624,7 +1629,7 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     // Check the state of the internal RAW reader.
     // Have to load the entire image at once, so only do this once
     if (!m_image) {
-        if (!process()) {
+        if (!do_process()) {
             return false;
         }
     }
