@@ -3,7 +3,10 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <OpenImageIO/half.h>
+
 #include <OpenImageIO/benchmark.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/parallel.h>
 #include <OpenImageIO/unittest.h>
@@ -120,7 +123,7 @@ fill_image_span(image_span<T> img)
 
 
 // Check that an image span in the characteristic way
-template<typename T>
+template<typename T, typename S = T>
 bool
 check_image_span(image_span<T> img, int xoff = 0, int yoff = 0, int zoff = 0)
 {
@@ -129,7 +132,8 @@ check_image_span(image_span<T> img, int xoff = 0, int yoff = 0, int zoff = 0)
         for (uint32_t y = 0; y < img.height(); ++y) {
             for (uint32_t x = 0; x < img.width(); ++x) {
                 for (uint32_t c = 0; c < img.nchannels(); ++c) {
-                    auto v = testvalue<T>(x + xoff, y + yoff, z + zoff, c);
+                    auto v = convert_type<S, T>(
+                        testvalue<S>(x + xoff, y + yoff, z + zoff, c));
                     OIIO_CHECK_EQUAL(img(x, y, z)[c], v);
                     if (img(x, y, z)[c] != v) {
                         print("\tError at ({}, {}, {})[{}]\n", x, y, z, c);
@@ -279,6 +283,72 @@ test_image_span_contiguize()
 
 
 
+template<typename Stype = float, typename Dtype = Stype>
+void
+test_image_span_convert_image()
+{
+    // Benchmark old (ptr) versus new (span) convert_image functions
+    const int xres = 2048, yres = 1536, nchans = 4;
+    const size_t schansize = sizeof(Stype);
+    const size_t dchansize = sizeof(Dtype);
+    print("\nTesting convert_image {} -> {} (total {}M values):\n",
+          TypeDescFromC_v<Stype>, TypeDescFromC_v<Dtype>,
+          xres * yres * nchans * 3 / 4 / 1024 / 1024);
+
+    // We test different amounts of contiguity. Each test copies 3/4 of the
+    // total image, to keep the total number of bytes copied identical.
+    const stride_t src_xstride(schansize * nchans);
+    const stride_t src_ystride(src_xstride * xres);
+    const stride_t dst_xstride(dchansize * nchans);
+    const stride_t dst_ystride(dst_xstride * xres);
+    for (int i = 0; i < 3; ++i) {
+        size_t nc(nchans), w(xres), h(yres);
+        std::string label;
+        if (i == 0) {
+            // Fully contiguous region -- copy 3/4 of the image.
+            label = "contig buffer";
+            h     = h * 3 / 4;
+        } else if (i == 1) {
+            // Contiguous scanlines -- copy 3/4 of the width of each scanline.
+            label = "contig scanlines";
+            w     = w * 3 / 4;
+        } else if (i == 2) {
+            // Contiguous pixels -- copy 3 of 4 channels of each pixel.
+            label = "contig pixels";
+            nc    = nc * 3 / 4;
+        }
+
+        print("  test convert_image {}\n", label);
+        std::vector<Stype> sbuf(xres * yres * nchans, Stype(10));
+        std::vector<Dtype> dbuf(xres * yres * nchans, Dtype(20));
+
+        // Spans for src and dst
+        image_span sispan(sbuf.data(), nc, w, h, 1, schansize, src_xstride,
+                          src_ystride, AutoStride);
+        image_span dispan(dbuf.data(), nc, w, h, 1, dchansize, dst_xstride,
+                          dst_ystride, AutoStride);
+
+        fill_image_span(sispan);
+
+        // Benchmark old (ptr) versus new (span) contiguize functions
+        Benchmarker bench;
+        bench.units(Benchmarker::Unit::ms);
+
+        bench(Strutil::format("    convert_image image_span {}", label),
+              [&]() { convert_image(sispan, dispan); });
+        // Test correctness
+        bench(Strutil::format("    convert_image raw ptrs   {}", label), [&]() {
+            convert_image(nc, w, h, 1, sbuf.data(), TypeDescFromC_v<Stype>,
+                          src_xstride, src_ystride, AutoStride, dbuf.data(),
+                          TypeDescFromC_v<Dtype>, dst_xstride, dst_ystride,
+                          AutoStride);
+        });
+        OIIO_CHECK_ASSERT((check_image_span<Dtype, Stype>(dispan)));
+    }
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -296,6 +366,17 @@ main(int /*argc*/, char* /*argv*/[])
     test_image_span_contiguize<float>();
     test_image_span_contiguize<uint16_t>();
     test_image_span_contiguize<uint8_t>();
+
+    test_image_span_convert_image<float, half>();
+    test_image_span_convert_image<float, uint16_t>();
+    test_image_span_convert_image<float, uint8_t>();
+    test_image_span_convert_image<half, float>();
+    test_image_span_convert_image<uint16_t, float>();
+    test_image_span_convert_image<uint8_t, float>();
+    test_image_span_convert_image<uint16_t, uint8_t>();
+    test_image_span_convert_image<uint8_t, uint16_t>();
+    test_image_span_convert_image<uint16_t, half>();
+    test_image_span_convert_image<half, uint16_t>();
 
     return unit_test_failures;
 }

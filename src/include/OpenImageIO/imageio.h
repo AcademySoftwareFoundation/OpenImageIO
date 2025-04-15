@@ -3418,6 +3418,25 @@ get_extension_map()
 OIIO_API bool convert_pixel_values (TypeDesc src_type, const void *src,
                                     TypeDesc dst_type, void *dst, int n = 1);
 
+/// Helper function: copy values from spans `src` to `dst`, converting between
+/// types as appropriate. Return true if ok, false if it didn't know how to do
+/// the conversion.
+///
+/// The conversion is of normalized (pixel-like) values -- for example 'UINT8'
+/// 255 will convert to float 1.0 and vice versa, not float 255.0. If you want
+/// a straight C-like data cast conversion (e.g., uint8 255 -> float 255.0),
+/// then you should prefer the un-normalized convert_type() utility function
+/// found in typedesc.h.
+template<typename SrcType, typename DstType>
+bool
+convert_pixel_values(cspan<SrcType> src, span<DstType> dst)
+{
+    OIIO_DASSERT(dst.size() >= src.size());
+    return convert_pixel_values(TypeDescFromC_v<SrcType>, src.data(),
+                                TypeDescFromC_v<DstType>, dst.data(),
+                                std::min(dst.size(), src.size()));
+}
+
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
@@ -3436,6 +3455,50 @@ OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
                              stride_t dst_xstride, stride_t dst_ystride,
                              stride_t dst_zstride);
 
+/// Helper routine for data conversion: Convert an image described by
+/// image_span `src` into image_span `dst`, which must be the same dimensions
+/// but possibly differing data type and strides.  Clever use of this function
+/// can not only exchange data among different formats (e.g., half to 8-bit
+/// unsigned), but also can copy selective channels, copy subimages, etc.
+/// Return true if ok, false if it didn't know how to do the conversion.
+template<typename SrcType, typename DstType>
+bool
+convert_image(image_span<SrcType> src, image_span<DstType> dst)
+{
+    // For now, just implement by wrapping the pointer-based version.
+    OIIO_DASSERT(src.nchannels() == dst.nchannels()
+                 && src.width() == dst.width() && src.height() == dst.height()
+                 && src.depth() == dst.depth());
+    return convert_image(src.nchannels(), src.width(), src.height(),
+                         src.depth(), src.data(), TypeDescFromC_v<SrcType>,
+                         src.xstride(), src.ystride(), src.zstride(),
+                         dst.data(), TypeDescFromC_v<DstType>, dst.xstride(),
+                         dst.ystride(), dst.zstride());
+}
+
+
+/// Helper routine for data conversion: Convert an image described by
+/// image_span `src` into image_span `dst`, which must be the same dimensions
+/// but possibly differing data type and strides. The data types are passed as
+/// `TypeDesc`, and the spans are untyped bytes that provide the dimensions
+/// and memory layout.
+inline bool
+convert_image(image_span<const std::byte> src, TypeDesc src_type,
+              image_span<std::byte> dst, TypeDesc dst_type)
+{
+    // For now, just implement by wrapping the pointer-based version.
+    OIIO_DASSERT(src.nchannels() == dst.nchannels()
+                 && src.width() == dst.width() && src.height() == dst.height()
+                 && src.depth() == dst.depth());
+    OIIO_DASSERT(src_type.size() == src.chansize()
+                 && dst_type.size() == dst.chansize());
+    return convert_image(src.nchannels(), src.width(), src.height(),
+                         src.depth(), src.data(), src_type, src.xstride(),
+                         src.ystride(), src.zstride(), dst.data(), dst_type,
+                         dst.xstride(), dst.ystride(), dst.zstride());
+}
+
+
 
 /// A version of convert_image that will break up big jobs into multiple
 /// threads.
@@ -3447,6 +3510,48 @@ OIIO_API bool parallel_convert_image (
                void *dst, TypeDesc dst_type,
                stride_t dst_xstride, stride_t dst_ystride,
                stride_t dst_zstride, int nthreads=0);
+
+/// A version of convert_image that will break up big jobs into multiple
+/// threads. The data types are taken from the spans.
+template<typename SrcType, typename DstType>
+bool
+parallel_convert_image(image_span<SrcType> src, image_span<DstType> dst,
+                       int nthreads = 0)
+{
+    // For now, just implement by wrapping the pointer-based version.
+    OIIO_DASSERT(src.nchannels() == dst.nchannels()
+                 && src.width() == dst.width() && src.height() == dst.height()
+                 && src.depth() == dst.depth());
+    return parallel_convert_image(src.nchannels(), src.width(), src.height(),
+                                  src.depth(), src.data(),
+                                  TypeDescFromC_v<SrcType>, src.xstride(),
+                                  src.ystride(), src.zstride(), dst.data(),
+                                  TypeDescFromC_v<SrcType>, dst.xstride(),
+                                  dst.ystride(), dst.zstride(), nthreads);
+}
+
+/// A version of convert_image that will break up big jobs into multiple
+/// threads. The data types are passed as `TypeDesc`, and the spans are
+/// untyped bytes that provide the dimensions and memory layout.
+inline bool
+parallel_convert_image(image_span<const std::byte> src, TypeDesc src_type,
+                       image_span<std::byte> dst, TypeDesc dst_type,
+                       int nthreads = 0)
+{
+    // For now, just implement by wrapping the pointer-based version.
+    OIIO_DASSERT(src.nchannels() == dst.nchannels()
+                 && src.width() == dst.width() && src.height() == dst.height()
+                 && src.depth() == dst.depth());
+    OIIO_DASSERT(src_type.size() == src.chansize()
+                 && dst_type.size() == dst.chansize());
+    return parallel_convert_image(src.nchannels(), src.width(), src.height(),
+                                  src.depth(), src.data(),
+                                  src_type, src.xstride(),
+                                  src.ystride(), src.zstride(), dst.data(),
+                                  dst_type, dst.xstride(),
+                                  dst.ystride(), dst.zstride(), nthreads);
+}
+
 
 
 /// Add random [-ditheramplitude,ditheramplitude] dither to the color channels
