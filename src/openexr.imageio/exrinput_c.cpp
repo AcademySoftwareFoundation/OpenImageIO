@@ -773,9 +773,6 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
 
-    if (miplevel == 0 && nmiplevels > 1)
-        spec.attribute("oiio:miplevels", nmiplevels);
-
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);
 
@@ -1065,6 +1062,11 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
 
     m_miplevel = miplevel;
     m_spec     = part.spec;
+
+    //! Add the number of miplevels as an attribute for the first miplevel.
+    //! TOFIX: adding the following attribute breaks unit tests
+    // if (m_miplevel == 0 && part.nmiplevels > 1)
+    //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     if (miplevel == 0 && part.levelmode == EXR_TILE_ONE_LEVEL) {
         return true;
