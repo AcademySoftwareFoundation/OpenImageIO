@@ -155,7 +155,7 @@ jobs:
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux }}
 
       - name: Build stubs
-        if: matrix.build == 'CPython 3.11 64 bits manylinux2014'
+        if: matrix.build == 'CPython 3.9 64 bits manylinux_2_28'
         run: |
           pip install ./wheelhouse/*.whl
           python ./src/python/generate_stubs.py ./out
