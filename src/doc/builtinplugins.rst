@@ -2228,7 +2228,12 @@ options are supported:
      - Maximum memory allocation for processing of raw images. Stop processing if
        raw buffer size grows larger than that value (in megabytes).
        (Default: 2048)
-
+   * - ``raw:ForceLoad``
+     - int
+     - If 1, forces libraw to decompress and process the image during
+       initialization. This populates the image attributes which depend on the
+       pixel values.
+       (Default: 0)
 
 |
 
