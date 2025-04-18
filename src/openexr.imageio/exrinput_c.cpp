@@ -1063,6 +1063,11 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     m_miplevel = miplevel;
     m_spec     = part.spec;
 
+    //! Add the number of miplevels as an attribute for the first miplevel.
+    //! TOFIX: adding the following attribute breaks unit tests
+    // if (m_miplevel == 0 && part.nmiplevels > 1)
+    //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
+
     if (miplevel == 0 && part.levelmode == EXR_TILE_ONE_LEVEL) {
         return true;
     }
