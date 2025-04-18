@@ -20,6 +20,10 @@ OPENJPEG_BUILD_DIR=${OPENJPEG_BUILD_DIR:=${OPENJPEG_SRC_DIR}/build}
 OPENJPEG_INSTALL_DIR=${OPENJPEG_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist}
 #OPENJPEG_CONFIG_OPTS=${OPENJPEG_CONFIG_OPTS:=}
 
+# Fix for openjpeg breaking against cmake 4.0 because of too-old cmake min.
+# Remove when openjpeg is fixed to declare its own minimum high enough.
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
 pwd
 echo "OpenJPEG install dir will be: ${OPENJPEG_INSTALL_DIR}"
 

@@ -6,7 +6,7 @@
 # libdeflate by hand!
 ######################################################################
 
-set_cache (libdeflate_BUILD_VERSION 1.20 "libdeflate version for local builds")
+set_cache (libdeflate_BUILD_VERSION 1.23 "libdeflate version for local builds")
 set (libdeflate_GIT_REPOSITORY "https://github.com/ebiggers/libdeflate")
 set (libdeflate_GIT_TAG "v${libdeflate_BUILD_VERSION}")
 set_cache (libdeflate_BUILD_SHARED_LIBS OFF # ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}

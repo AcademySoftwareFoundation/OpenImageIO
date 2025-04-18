@@ -78,8 +78,12 @@ set (libOpenImageIO_srcs
                           ${libOpenImageIO_hdrs}
                          )
 
-
-add_library (OpenImageIO ${libOpenImageIO_srcs})
+if (WIN32)
+    configure_file(../build-scripts/version_win32.rc.in "${CMAKE_CURRENT_BINARY_DIR}/version_win32.rc" @ONLY)
+    add_library (OpenImageIO ${libOpenImageIO_srcs} ${CMAKE_CURRENT_BINARY_DIR}/version_win32.rc)
+else ()
+    add_library (OpenImageIO ${libOpenImageIO_srcs})
+endif ()
 
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
@@ -289,5 +293,10 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_compute ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/compute_test)
+
+    if (WIN32)
+        set (version_string "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}.0")
+        add_test (NAME win32_versioning COMMAND powershell ${CMAKE_SOURCE_DIR}/testsuite/win32/version_check.ps1 "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/" ${version_string})
+    endif ()
 
 endif ()

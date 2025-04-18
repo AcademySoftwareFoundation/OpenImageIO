@@ -4757,23 +4757,24 @@ action_paste(Oiiotool& ot, cspan<const char*> argv)
 
 
 // --pastemeta
-OIIOTOOL_OP(pastemeta, 2, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    *img[0] = *img[2];
-    img[0]->copy_metadata(*img[1]);
-    return true;
-});
+OIIOTOOL_OP(
+    pastemeta, 2,
+    [&](OiiotoolOp& op, span<ImageBuf*> img) {
+        std::string pattern = op.options("pattern");
+        int merge           = op.options("merge").get<int>(0);
 
+        *img[0] = *img[2];
+        if (merge == 0) {
+            // merge strategy 0 completely discards the existing metadata
+            img[0]->specmod().extra_attribs.clear();
+        }
 
-
-// --mergemeta
-OIIOTOOL_OP(mergemeta, 2, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    std::string pattern = op.options("pattern");
-    bool override       = op.options("override").get<int>();
-
-    *img[0] = *img[2];
-    img[0]->merge_metadata(*img[1], override, pattern);
-    return true;
-});
+        img[0]->merge_metadata(*img[1], merge > 1, pattern);
+        return true;
+    },
+    // Special policy to ensure we consider all subimages of second image
+    // (pixel inputs), not the default of considering only the first image.
+    { { "subimage_policy", "last" } });
 
 
 
@@ -5140,9 +5141,21 @@ OIIOTOOL_INPLACE_OP(text, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
         aligny = TextAlignY::Bottom;
     if (Strutil::iequals(ay, "center") || Strutil::iequals(ay, "c"))
         aligny = TextAlignY::Center;
-    int shadow = op.options().get_int("shadow");
-    return ImageBufAlgo::render_text(*img[0], x, y, op.args(1), fontsize, font,
-                                     textcolor, alignx, aligny, shadow);
+    int shadow  = op.options().get_int("shadow");
+    int measure = op.options().get_int("measure");
+    int render  = op.options().get_int("render", 1);
+    if (measure) {
+        ROI roi = ImageBufAlgo::text_size(op.args(1), fontsize, font);
+        ot.uservars["TEXT_X"]      = roi.xbegin;
+        ot.uservars["TEXT_Y"]      = roi.ybegin;
+        ot.uservars["TEXT_WIDTH"]  = roi.width();
+        ot.uservars["TEXT_HEIGHT"] = roi.height();
+    }
+    if (render)
+        return ImageBufAlgo::render_text(*img[0], x, y, op.args(1), fontsize,
+                                         font, textcolor, alignx, aligny,
+                                         shadow);
+    return true;
 });
 
 
@@ -6799,11 +6812,8 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Paste fg over bg at the given position (e.g., +100+50; '-' or 'auto' indicates using the data window position as-is; options: all=%d, mergeroi=%d)")
       .OTACTION(action_paste);
     ap.arg("--pastemeta")
-      .help("Copy the metadata from the first image to the second image and keep the combined result")
+      .help("Paste the metadata from the first image into the second image (options: merge=%d, pattern=REGEX)")
       .OTACTION(action_pastemeta);
-    ap.arg("--mergemeta")
-      .help("Merge the metadata from the first image into the second image and keep the combined result (options: pattern=REGEX, override=%d)")
-      .OTACTION(action_mergemeta);
     ap.arg("--mosaic %s:WxH")
       .help("Assemble images into a mosaic (arg: WxH; options: pad=0, fit=WxH)")
       .OTACTION(action_mosaic);

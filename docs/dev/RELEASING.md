@@ -414,7 +414,7 @@ notes process be simpler and more automated.
 We have been using the [git-cliff](https://github.com/orhun/git-cliff) tool
 as the starting point for release notes. The command we use is:
 
-    git cliff -c src/doc/cliff.toml -d v1.2.3.4..HEAD > cliff.out.md
+    git cliff -c src/doc/cliff.toml v1.2.3.4..HEAD > cliff.out.md
 
 where v1.2.3.4 in this example is the tag of the last release. You could also
 use commit hashes to denote the range of changes you want to document.

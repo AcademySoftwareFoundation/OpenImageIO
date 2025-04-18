@@ -781,13 +781,16 @@ public:
     // stack.
     OiiotoolOp(Oiiotool& ot, string_view opname, cspan<const char*> argv,
                int ninputs, setup_func_t setup_func = nullptr,
-               impl_func_t impl_func = nullptr)
+               impl_func_t impl_func          = nullptr,
+               ParamValueSpan control_options = {})
         : ot(ot)
         , m_nargs((int)argv.size())
         , m_nimages(ninputs + 1)
         , m_setup_func(setup_func)
         , m_impl_func(impl_func)
     {
+        m_control_options.assign(control_options.begin(),
+                                 control_options.end());
         if (Strutil::starts_with(opname, "--"))
             opname.remove_prefix(1);  // canonicalize to one dash
         m_opname = opname.substr(0, opname.find_first_of(':'));  // and no :
@@ -801,6 +804,12 @@ public:
     OiiotoolOp(Oiiotool& ot, string_view opname, cspan<const char*> argv,
                int ninputs, impl_func_t impl_func)
         : OiiotoolOp(ot, opname, argv, ninputs, {}, impl_func)
+    {
+    }
+    OiiotoolOp(Oiiotool& ot, string_view opname, cspan<const char*> argv,
+               int ninputs, impl_func_t impl_func,
+               ParamValueSpan control_options)
+        : OiiotoolOp(ot, opname, argv, ninputs, {}, impl_func, control_options)
     {
     }
     virtual ~OiiotoolOp() {}
@@ -891,10 +900,12 @@ public:
             m_img.resize(nimages());
             for (int m = 0, nmip = ir(0)->miplevels(); m < nmip; ++m) {
                 m_current_miplevel = m;
-                for (int i = 0; i < nimages(); ++i)
-                    m_img[i] = &((*ir(i))(std::min(s, ir(i)->subimages() - 1),
-                                          std::min(m, ir(i)->miplevels(s))));
-
+                for (int i = 0; i < nimages(); ++i) {
+                    // If the subimage doesn't exist, just use the last
+                    int ss   = std::min(s, ir(i)->subimages() - 1);
+                    m_img[i] = &(
+                        (*ir(i))(ss, std::min(m, ir(i)->miplevels(ss))));
+                }
                 if (subimage_is_active(s)) {
                     // Call the impl kernel for this subimage
                     bool ok = impl(m_img);
@@ -1010,7 +1021,35 @@ public:
             }
         }
         all_subimages |= m_options.get_int("allsubimages", ot.allsubimages);
-        return all_subimages ? (nimages() > 1 ? ir(1)->subimages() : 1) : 1;
+
+        // How many subimages are we going to operate on? There are a few
+        // strategies for handling the decision when the input images differ
+        // in the number of subimages. The default is to operate on subimage
+        // list from the first image input.
+        int n = 1;
+        if (all_subimages) {
+            OIIO_DASSERT(nimages() >= 1);
+            std::string subimage_policy = m_control_options["subimage_policy"];
+            if (subimage_policy == "max") {
+                // operate on the maximum number of subimages of the inputs
+                for (int i = 1; i < nimages(); ++i)
+                    n = std::max(n, ir(i)->subimages());
+            } else if (subimage_policy == "min") {
+                // operate on the minimum number of subimages of the inputs
+                if (nimages() > 1)
+                    n = ir(1)->subimages();
+                for (int i = 2; i < nimages(); ++i)
+                    n = std::min(n, ir(i)->subimages());
+            } else if (subimage_policy == "last") {
+                // operate on the subimages of the last input
+                n = ir(nimages() - 1)->subimages();
+            } else /* if (subimage_policy == "first")*/ {  // default
+                // default: operate on the subimages of the first input
+                if (nimages() > 1)
+                    n = ir(1)->subimages();
+            }
+        }
+        return n;
     }
 
     // Is the given subimage in the active set to be operated on by this op?
@@ -1112,6 +1151,7 @@ protected:
     new_output_imagerec_func_t m_new_output_imagerec_func;
     int m_current_subimage;  // for impl(), which subimage are we on?
     int m_current_miplevel;  // for impl(), which miplevel are we on?
+    ParamValueList m_control_options;
 };
 
 

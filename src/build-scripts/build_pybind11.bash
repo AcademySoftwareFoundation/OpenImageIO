@@ -22,6 +22,10 @@ LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
 PYBIND11_INSTALL_DIR=${PYBIND11_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist}
 #PYBIND11_BUILD_OPTS=${PYBIND11_BUILD_OPTS:=}
 
+# Fix for pybind11 breaking against cmake 4.0 because of too-old cmake min.
+# Remove when pybind11 is fixed to declare its own minimum high enough.
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
 if [[ "${PYTHON_VERSION}" != "" ]] ; then
     PYBIND11_BUILD_OPTS+=" -DPYBIND11_PYTHON_VERSION=${PYTHON_VERSION}"
 fi
