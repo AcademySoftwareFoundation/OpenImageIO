@@ -1096,11 +1096,10 @@ public:
     /// knowledge of its pixel memory layout.  USE WITH EXTREME CAUTION.
     ImageSpec& specmod();
 
-    /// Return a read-only (const) reference to the "native" image spec
-    /// (that describes the file, which may be slightly different than
-    /// the spec of the ImageBuf, particularly if the IB is backed by an
-    /// ImageCache that is imposing some particular data format or tile
-    /// size).
+    /// Return the "native" channel format that describes the file,
+    /// which may be slightly different than the spec of the ImageBuf,
+    /// particularly if the IB is backed by an ImageCache that is imposing
+    /// some particular data format or tile size.
     ///
     /// This may differ from `spec()` --- for example, if a data format
     /// conversion was requested, if the buffer is backed by an ImageCache
@@ -1108,7 +1107,14 @@ public:
     /// that of the file, or if the file had differing per-channel data
     /// formats (ImageBuf must contain a single data format for all
     /// channels).
-    const ImageSpec& nativespec() const;
+    TypeDesc file_format() const;
+    /// Same as the above for channel specific formats.
+    std::vector<TypeDesc> file_channelformats() const;
+
+    /// DEPRECATED old API. This will now return spec() by default.
+    /// We recommend switching to the new API.
+    /// TODO: uncomment for backwards compatibility once everything else is in place.
+    // const ImageSpec& nativespec() const;
 
     /// Does this ImageBuf have an associated thumbnail?
     bool has_thumbnail() const;

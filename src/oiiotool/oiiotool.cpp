@@ -418,7 +418,7 @@ Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy, string_view channel_set)
     // If this is the first tiled image we have come across, use it to
     // set our tile size (unless the user explicitly set a tile size, or
     // explicitly instructed scanline output).
-    const ImageSpec& nspec((*img)().nativespec());
+    const ImageSpec& nspec((*img)().spec());
     if (nspec.tile_width && !output_tilewidth && !output_scanline) {
         output_tilewidth  = nspec.tile_width;
         output_tileheight = nspec.tile_height;
@@ -464,28 +464,29 @@ void
 Oiiotool::remember_input_channelformats(ImageRecRef img)
 {
     for (int s = 0, subimages = img->subimages(); s < subimages; ++s) {
-        const ImageSpec& nspec((*img)(s, 0).nativespec());
+        const ImageBuf& buf((*img)(s, 0));
+        const ImageSpec& spec(buf.spec());
         // Overall default format is the merged type of all subimages
         // of the first input image.
         input_dataformat         = TypeDesc::basetype_merge(input_dataformat,
-                                                            nspec.format);
-        std::string subimagename = nspec.get_string_attribute(
+                                                            buf.file_format());
+        std::string subimagename = spec.get_string_attribute(
             "oiio:subimagename");
         if (subimagename.size()) {
             // Record a best guess for this subimage, if not already set.
             auto key = Strutil::fmt::format("{}.*", subimagename);
             if (input_channelformats[key] == "")
-                input_channelformats[key] = nspec.format.c_str();
+                input_channelformats[key] = buf.file_format().c_str();
         }
         if (!input_bitspersample)
-            input_bitspersample = nspec.get_int_attribute("oiio:BitsPerSample");
-        for (int c = 0; c < nspec.nchannels; ++c) {
+            input_bitspersample = spec.get_int_attribute("oiio:BitsPerSample");
+        for (int c = 0; c < spec.nchannels; ++c) {
             // For each channel, if we don't already have a type recorded
             // for its name, record it. Both the bare channel name, and also
             // "subimagename.channelname", so that we can remember the same
             // name differently for different subimages.
-            std::string chname     = nspec.channel_name(c);
-            std::string chtypename = nspec.channelformat(c).c_str();
+            std::string chname     = spec.channel_name(c);
+            std::string chtypename = buf.file_channelformats()[c].c_str();
             if (subimagename.size()) {
                 std::string subchname
                     = Strutil::fmt::format("{}.{}", subimagename, chname);
@@ -5776,7 +5777,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         for (int s = 0, send = ir->subimages(); s < send; ++s) {
             for (int m = 0, mend = ir->miplevels(s); m < mend && ok; ++m) {
                 ImageSpec spec = *ir->spec(s, m);
-                adjust_output_options(filename, spec, ir->nativespec(s, m), ot,
+                adjust_output_options(filename, spec, ir->nativespec(s), ot,
                                       supports_tiles, fileoptions,
                                       (*ir)[s].was_direct_read());
                 if (s > 0 || m > 0) {  // already opened first subimage/level
