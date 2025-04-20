@@ -148,8 +148,12 @@ jobs:
           python-version: '3.9'
 
       - name: Build wheels
+        # Note: the version of cibuildwheel should be kept in sync with src/python/stubs/CMakeLists.txt
         uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
         env:
+          # pass GITHUB_ACTIONS through to the build container so that custom
+          # processes can tell they are running in CI.
+          CIBW_ENVIRONMENT_PASS_LINUX: GITHUB_ACTIONS
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux }}
