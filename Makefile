@@ -243,6 +243,11 @@ build: config
 	    ${CMAKE} --build . --config ${CMAKE_BUILD_TYPE} \
 	  )
 
+pystubs: config
+	@ ( cd ${build_dir} ; \
+	    ${CMAKE} --build . --config ${CMAKE_BUILD_TYPE} --target pystubs \
+	  )
+
 # 'make install' builds everthing and installs it in 'dist'.
 # Suppress pointless output from docs installation.
 install: build
