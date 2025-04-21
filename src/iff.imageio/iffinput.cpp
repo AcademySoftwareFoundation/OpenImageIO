@@ -525,8 +525,12 @@ IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
 
     // tile size
     int w  = m_header.width;
-    int tw = std::min(x + static_cast<int>(m_header.tile_width), static_cast<int>(m_header.width)) - x;
-    int th = std::min(y + static_cast<int>(m_header.tile_height), static_cast<int>(m_header.height)) - y;
+    int tw = std::min(x + static_cast<int>(m_header.tile_width),
+                      static_cast<int>(m_header.width))
+             - x;
+    int th = std::min(y + static_cast<int>(m_header.tile_height),
+                      static_cast<int>(m_header.height))
+             - y;
 
     // tile data
     int oy = 0;
