@@ -7,6 +7,14 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+#if defined(_MSC_VER)
+#    define UNUSED_PARAM(x) (void)(x)
+#elif defined(__GNUC__) || defined(__clang__)
+#    define UNUSED_PARAM(x) (void)(x)
+#else
+#    define UNUSED_PARAM(x) (void)(x)
+#endif
+
 using namespace iff_pvt;
 
 class IffInput final : public ImageInput {
@@ -50,9 +58,8 @@ private:
     bool readimg(void);
 
     // helper to uncompress a rle channel
-    size_t uncompress_rle_channel(const uint8_t* in, uint8_t* out, int size);
-    size_t uncompress_rle_channel_span(span<uint8_t> in, span<uint8_t> out,
-                                       size_t max);
+    size_t uncompress_rle_channel(span<uint8_t> in, span<uint8_t> out,
+                                  size_t max);
 
     /// Helper: read buf[0..nitems-1], swap endianness if necessary
     template<typename T> bool read(T* buf, size_t nitems = 1)
@@ -613,164 +620,209 @@ IffInput::readimg()
             // handle 8-bit data.
             if (m_header.rgba_bits == 8) {
                 std::vector<uint8_t> scratch;
-
-                // set bytes.
                 scratch.resize(image_size);
 
                 if (!ioread(scratch.data(), 1, scratch.size())) {
                     return false;
                 }
 
-                // set tile data
-                uint8_t* p = scratch.data();
+                span<uint8_t> scratch_span(scratch);
 
-                // tile compress
                 if (tile_compressed) {
-                    // map BGR(A) to RGB(A)
                     for (int c = m_header.rgba_count - 1; c >= 0; --c) {
                         std::vector<uint8_t> in(tw * th);
-                        uint8_t* in_p = in.data();
+                        span<uint8_t> in_span(in);
 
-                        // uncompress and increment
-                        p += uncompress_rle_channel(p, in_p, tw * th);
+                        size_t used = uncompress_rle_channel(scratch_span,
+                                                             in_span, tw * th);
+                        if (used > scratch_span.size()) {
+                            errorfmt(
+                                "RLE uncompress exceeds buffer size for channel %d",
+                                c);
+                            return false;
+                        }
 
-                        // set tile
-                        for (uint16_t py = ymin; py <= ymax; py++) {
+                        scratch_span = scratch_span.subspan(used);
+
+                        size_t offset = 0;
+                        for (uint16_t py = ymin; py <= ymax; ++py) {
                             uint8_t* out_dy = m_buf.data()
                                               + (py * m_header.width)
                                                     * m_header.pixel_bytes();
 
-                            for (uint16_t px = xmin; px <= xmax; px++) {
+                            for (uint16_t px = xmin; px <= xmax; ++px) {
+                                if (offset >= in_span.size()) {
+                                    errorfmt(
+                                        "in_span underflow at pixel (%u, %u)",
+                                        px, py);
+                                    return false;
+                                }
+
                                 uint8_t* out_p
                                     = out_dy + px * m_header.pixel_bytes() + c;
-                                *out_p++ = *in_p++;
+                                *out_p = in_span[offset++];
                             }
                         }
                     }
                 } else {
+                    uint8_t* p = scratch.data();
+                    span<uint8_t> input(p,
+                                        (ymax - ymin + 1) * tw
+                                            * m_header.rgba_channels_bytes());
+
                     int sy = 0;
-                    for (uint16_t py = ymin; py <= ymax; py++) {
+                    for (uint16_t py = ymin; py <= ymax; ++py, ++sy) {
                         uint8_t* out_dy = m_buf.data()
-                                          + (py * m_header.width + xmin)
+                                          + (py * m_header.width)
                                                 * m_header.pixel_bytes();
 
-                        // set tile
                         int sx = 0;
-                        for (uint16_t px = xmin; px <= xmax; px++) {
-                            uint8_t* in_p
-                                = p + (sy * tw + sx) * m_header.pixel_bytes();
+                        for (uint16_t px = xmin; px <= xmax; ++px, ++sx) {
+                            size_t offset = (sy * tw + sx)
+                                            * m_header.rgba_channels_bytes();
+
+                            if (offset + m_header.rgba_channels_bytes()
+                                > input.size()) {
+                                errorfmt("input span overflow at (%u, %u)", px,
+                                         py);
+                                return false;
+                            }
+
+                            span<uint8_t> pixel_in
+                                = input.subspan(offset,
+                                                m_header.rgba_channels_bytes());
+                            uint8_t* out_p = out_dy
+                                             + px * m_header.pixel_bytes();
 
                             // map BGR(A) to RGB(A)
                             for (int c = m_header.rgba_count - 1; c >= 0; --c) {
-                                uint8_t* out_p = in_p + c;
-                                *out_dy++      = *out_p;
+                                *out_p++ = pixel_in[c];
                             }
-                            sx++;
                         }
-                        sy++;
                     }
                 }
             }
             // handle 16-bit data.
             else if (m_header.rgba_bits == 16) {
                 std::vector<uint8_t> scratch;
-
-                // set bytes.
                 scratch.resize(image_size);
 
                 if (!ioread(scratch.data(), 1, scratch.size())) {
                     return false;
                 }
 
-                // set tile data
-                uint8_t* p = scratch.data();
+                span<uint8_t> scratch_span(scratch);
 
                 if (tile_compressed) {
-                    // set map
                     std::vector<uint8_t> map;
                     if (littleendian()) {
-                        int rgb16[]  = { 0, 2, 4, 1, 3, 5 };
-                        int rgba16[] = { 0, 2, 4, 6, 1, 3, 5, 7 };
-                        if (m_header.rgba_count == 3) {
-                            map = std::vector<uint8_t>(rgb16, &rgb16[6]);
-                        } else {
-                            map = std::vector<uint8_t>(rgba16, &rgba16[8]);
-                        }
-
+                        uint8_t rgb16[]  = { 0, 2, 4, 1, 3, 5 };
+                        uint8_t rgba16[] = { 0, 2, 4, 6, 1, 3, 5, 7 };
+                        map              = (m_header.rgba_count == 3)
+                                               ? std::vector<uint8_t>(rgb16, rgb16 + 6)
+                                               : std::vector<uint8_t>(rgba16, rgba16 + 8);
                     } else {
-                        int rgb16[]  = { 1, 3, 5, 0, 2, 4 };
-                        int rgba16[] = { 1, 3, 5, 7, 0, 2, 4, 6 };
-                        if (m_header.rgba_count == 3) {
-                            map = std::vector<uint8_t>(rgb16, &rgb16[6]);
-                        } else {
-                            map = std::vector<uint8_t>(rgba16, &rgba16[8]);
-                        }
+                        uint8_t rgb16[]  = { 1, 3, 5, 0, 2, 4 };
+                        uint8_t rgba16[] = { 1, 3, 5, 7, 0, 2, 4, 6 };
+                        map              = (m_header.rgba_count == 3)
+                                               ? std::vector<uint8_t>(rgb16, rgb16 + 6)
+                                               : std::vector<uint8_t>(rgba16, rgba16 + 8);
                     }
 
-                    // use map BGR(A)BGR(A) to RRGGBB(AA)
-                    for (int c
-                         = (m_header.rgba_count * m_header.channel_bytes()) - 1;
+                    for (int c = m_header.rgba_count * m_header.channel_bytes()
+                                 - 1;
                          c >= 0; --c) {
                         int mc = map[c];
 
                         std::vector<uint8_t> in(tw * th);
-                        uint8_t* in_p = in.data();
+                        span<uint8_t> in_span(in);
 
-                        // uncompress and increment
-                        p += uncompress_rle_channel(p, in_p, tw * th);
+                        size_t used = uncompress_rle_channel(scratch_span,
+                                                             in_span, tw * th);
+                        if (used > scratch_span.size()) {
+                            errorfmt(
+                                "RLE uncompress exceeds span size (channel byte %d)",
+                                c);
+                            return false;
+                        }
 
-                        // set tile
-                        for (uint16_t py = ymin; py <= ymax; py++) {
-                            uint8_t* out_dy = static_cast<uint8_t*>(
-                                                  m_buf.data())
+                        scratch_span = scratch_span.subspan(used);
+
+                        size_t offset = 0;
+                        for (uint16_t py = ymin; py <= ymax; ++py) {
+                            uint8_t* out_dy = m_buf.data()
                                               + (py * m_header.width)
                                                     * m_header.pixel_bytes();
 
-                            for (uint16_t px = xmin; px <= xmax; px++) {
+                            for (uint16_t px = xmin; px <= xmax; ++px) {
+                                if (offset >= in_span.size()) {
+                                    errorfmt("in_span underflow at (%u, %u)",
+                                             px, py);
+                                    return false;
+                                }
+
                                 uint8_t* out_p
                                     = out_dy + px * m_header.pixel_bytes() + mc;
-                                *out_p++ = *in_p++;
+                                *out_p = in_span[offset++];
                             }
                         }
                     }
                 } else {
+                    uint8_t* p = scratch.data();
+                    span<uint8_t> input(p,
+                                        (ymax - ymin + 1) * tw
+                                            * m_header.rgba_channels_bytes());
+
                     int sy = 0;
-                    for (uint16_t py = ymin; py <= ymax; py++) {
+                    for (uint16_t py = ymin; py <= ymax; ++py, ++sy) {
                         uint8_t* out_dy = m_buf.data()
                                           + (py * m_header.width + xmin)
                                                 * m_header.pixel_bytes();
 
-                        // set scanline, make copy easier
-                        std::vector<uint16_t> scanline(
-                            tw * m_header.pixel_bytes());
-                        uint16_t* sl_p = scanline.data();
+                        std::vector<uint16_t> scanline(tw
+                                                       * m_header.rgba_count);
+                        span<uint16_t> sl_span(scanline);
 
-                        // set tile
                         int sx = 0;
-                        for (uint16_t px = xmin; px <= xmax; px++) {
-                            uint8_t* in_p
-                                = p + (sy * tw + sx) * m_header.pixel_bytes();
+                        for (uint16_t px = xmin; px <= xmax; ++px, ++sx) {
+                            size_t offset = (sy * tw + sx)
+                                            * m_header.rgba_channels_bytes();
 
-                            // map BGR(A) to RGB(A)
+                            if (offset + m_header.rgba_channels_bytes()
+                                > input.size()) {
+                                errorfmt("input span overflow at (%u, %u)", px,
+                                         py);
+                                return false;
+                            }
+
+                            span<uint8_t> pixel_in
+                                = input.subspan(offset,
+                                                m_header.rgba_channels_bytes());
+
                             for (int c = m_header.rgba_count - 1; c >= 0; --c) {
                                 uint16_t pixel;
-                                uint8_t* out_p = in_p + c;
-                                memcpy(&pixel, out_p, 2);
-                                // swap endianness
+                                memcpy(&pixel, pixel_in.data() + c * 2, 2);
+
                                 if (littleendian()) {
                                     swap_endian(&pixel);
                                 }
-                                *sl_p++ = pixel;
+
+                                if (sl_span.empty()) {
+                                    errorfmt(
+                                        "scanline span overflow at (%u, %u)",
+                                        px, py);
+                                    return false;
+                                }
+
+                                sl_span.front() = pixel;
+                                sl_span         = sl_span.subspan(1);
                             }
-                            sx++;
                         }
-                        // copy data
+
                         memcpy(out_dy, scanline.data(),
                                tw * m_header.pixel_bytes());
-                        sy++;
                     }
                 }
-
             } else {
                 errorfmt("\"{}\": unsupported number of bits per pixel for tile",
                          m_filename);
@@ -832,7 +884,6 @@ IffInput::readimg()
             }
 
             // read tile
-
             if (tile_compressed) {
                 span<uint8_t> scratch_span(scratch);
 
@@ -841,8 +892,8 @@ IffInput::readimg()
                     span<uint8_t> in_span(in);
 
                     // uncompress and advance span
-                    size_t used = uncompress_rle_channel_span(scratch_span,
-                                                              in_span, tw * th);
+                    size_t used = uncompress_rle_channel(scratch_span, in_span,
+                                                         tw * th);
                     if (used > scratch_span.size()) {
                         errorfmt("rle read exceeds scratch buffer");
                         return false;
@@ -873,49 +924,43 @@ IffInput::readimg()
 
             } else {
                 span<uint8_t> scratch_span(scratch);
+                size_t total_pixels   = tw * th;
+                size_t expected_bytes = total_pixels * m_header.zbuffer_bytes();
 
-                size_t row_stride      = tw * m_header.zbuffer_bytes();
-                size_t full_tile_bytes = row_stride * th;
-
-                if (scratch_span.size() < full_tile_bytes) {
-                    errorfmt("scratch buffer too small for uncompressed tile");
+                if (scratch_span.size() < expected_bytes) {
+                    errorfmt(
+                        "scratch buffer too small for uncompressed zbuffer");
                     return false;
                 }
-
-                scratch_span = scratch_span.first(full_tile_bytes);
 
                 int sy = 0;
                 for (uint16_t py = ymin; py <= ymax; py++, sy++) {
                     uint8_t* out_dy = m_buf.data()
-                                      + (py * m_header.width + xmin)
+                                      + (py * m_header.width)
                                             * m_header.pixel_bytes();
 
                     int sx = 0;
                     for (uint16_t px = xmin; px <= xmax; px++, sx++) {
-                        size_t offset = (sy * tw + sx) * m_header.pixel_bytes();
-                        if (offset + m_header.pixel_bytes()
+                        size_t pixel_index  = sy * tw + sx;
+                        size_t pixel_offset = pixel_index
+                                              * m_header.zbuffer_bytes();
+
+                        if (pixel_offset + m_header.zbuffer_bytes()
                             > scratch_span.size()) {
-                            errorfmt("uncompressed span overflow at offset {}",
-                                     offset);
+                            errorfmt("in span overflow at pixel (%u, %u)", px,
+                                     py);
                             return false;
                         }
 
-                        span<uint8_t> pixel_span
-                            = scratch_span.subspan(offset,
-                                                   m_header.pixel_bytes());
+                        span<uint8_t> in_span
+                            = scratch_span.subspan(pixel_offset,
+                                                   m_header.zbuffer_bytes());
+                        uint8_t* out_p = out_dy + px * m_header.pixel_bytes()
+                                         + m_header.rgba_channels_bytes();
 
                         for (int c = m_header.zbuffer_bytes() - 1; c >= 0;
                              --c) {
-                            size_t channel_index
-                                = m_header.rgba_channels_bytes() + c;
-                            if (channel_index >= pixel_span.size()) {
-                                errorfmt(
-                                    "channel index {} out of range for pixel span of size {}",
-                                    channel_index, pixel_span.size());
-                                return false;
-                            }
-
-                            *out_dy++ = pixel_span[channel_index];
+                            *out_p++ = in_span[c];
                         }
                     }
                 }
@@ -949,33 +994,8 @@ IffInput::readimg()
 }
 
 size_t
-IffInput::uncompress_rle_channel(const uint8_t* in, uint8_t* out, int size)
-{
-    const uint8_t* const _in = in;
-    const uint8_t* const end = out + size;
-
-    while (out < end) {
-        const uint8_t count = (*in & 0x7f) + 1;
-        const bool run      = (*in & 0x80) ? true : false;
-        ++in;
-
-        if (!run) {
-            for (int i = 0; i < count; i++) {
-                *out++ = *in++;
-            }
-        } else {
-            const uint8_t p = *in++;
-            for (int i = 0; i < count; i++) {
-                *out++ = p;
-            }
-        }
-    }
-    return in - _in;
-}
-
-size_t
-IffInput::uncompress_rle_channel_span(span<uint8_t> in, span<uint8_t> out,
-                                      size_t max)
+IffInput::uncompress_rle_channel(span<uint8_t> in, span<uint8_t> out,
+                                 size_t max)
 {
     const uint8_t* in_ptr = in.data();
     const uint8_t* in_end = in.data() + in.size();

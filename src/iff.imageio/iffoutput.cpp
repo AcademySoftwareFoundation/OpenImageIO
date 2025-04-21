@@ -212,6 +212,7 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     // check if the client wants the image to be run length encoded
     // currently only RGB RLE compression is supported, we default to RLE
     // as Maya does not handle non-compressed IFF's very well.
+
     m_header.compression
         = (m_spec.get_string_attribute("compression") == "none") ? NONE : RLE;
 
@@ -418,9 +419,6 @@ IffOutput::close(void)
 
                 // RGBA
                 if (m_header.rgba_count > 0) {
-                    // channels
-                    uint8_t channels = m_header.rgba_count;
-
                     // write 'RGBA' type
                     if (!iowritefmt("RGBA"))
                         return false;
@@ -447,70 +445,75 @@ IffOutput::close(void)
                     // handle 8-bit data
                     if (m_spec.format == TypeDesc::UINT8) {
                         if (tile_compressed) {
-                            uint32_t index = 0, size = 0;
-                            std::vector<uint8_t> tmp;
+                            uint32_t index = 0;
+                            std::vector<uint8_t> tmp(tile_length * 2);
+                            span<uint8_t> tmp_span(tmp);
 
-                            // set bytes
-                            tmp.resize(tile_length * 2);
-
-                            // map: RGB(A) to BGRA
                             for (int c = m_header.rgba_count - 1; c >= 0; --c) {
                                 std::vector<uint8_t> in(tw * th);
-                                uint8_t* in_p = in.data();
+                                span<uint8_t> in_span(in);
 
-                                // set tile
+                                size_t offset = 0;
                                 for (uint32_t py = ymin; py <= ymax; py++) {
                                     const uint8_t* in_dy
                                         = m_buf.data()
                                           + py * m_header.scanline_bytes();
 
                                     for (uint32_t px = xmin; px <= xmax; px++) {
-                                        // get pixel
-                                        uint8_t pixel;
                                         const uint8_t* in_dx
                                             = in_dy
                                               + px * m_header.pixel_bytes() + c;
-                                        memcpy(&pixel, in_dx, 1);
-                                        // set pixel
-                                        *in_p++ = pixel;
+
+                                        if (offset >= in_span.size()) {
+                                            errorfmt(
+                                                "in_span overflow while writing tile (%u, %u)",
+                                                px, py);
+                                            return false;
+                                        }
+
+                                        in_span[offset++] = *in_dx;
                                     }
                                 }
 
-                                // compress rle channel
-                                size = compress_rle_channel(in.data(),
-                                                            tmp.data() + index,
-                                                            tw * th, in, tmp);
-                                index += size;
+                                // compress_rle_channel now uses span-aware logic
+                                span<uint8_t> out_subspan = tmp_span.subspan(
+                                    index);
+                                size_t size = compress_rle_channel(
+                                    in_span.data(), out_subspan.data(),
+                                    static_cast<int>(tw * th), in_span,
+                                    out_subspan);
+
+                                index += static_cast<uint32_t>(size);
                             }
 
-                            // if size exceeds tile length write uncompressed
-
+                            // check if compressed data fits
                             if (index < tile_length) {
-                                memcpy(scratch.data(), tmp.data(), index);
+                                if (scratch.size() < index)
+                                    scratch.resize(index);
 
-                                // set tile length
+                                memcpy(scratch.data(), tmp.data(), index);
                                 tile_length = index;
 
-                                // append xmin, xmax, ymin and ymax
-                                length = index + 8;
+                                // add tile region size (8 bytes for xmin, xmax, ymin, ymax)
+                                length = tile_length + 8;
 
-                                // set length
                                 uint32_t align = align_chunk(length, 4);
                                 if (align > length) {
-                                    if (scratch.size() < index + align - length)
-                                        scratch.resize(index + align - length);
-                                    out_p = scratch.data() + index;
-                                    // Pad.
-                                    for (uint32_t i = 0; i < align - length;
-                                         i++) {
-                                        *out_p++ = '\0';
-                                        tile_length++;
-                                    }
+                                    uint32_t pad_size = align - length;
+                                    if (scratch.size() < tile_length + pad_size)
+                                        scratch.resize(tile_length + pad_size);
+
+                                    span<uint8_t> pad
+                                        = span<uint8_t>(scratch).subspan(
+                                            tile_length, pad_size);
+                                    std::fill(pad.begin(), pad.end(), 0);
+                                    tile_length += pad_size;
                                 }
                             } else {
                                 tile_compressed = false;
                             }
                         }
+
                         if (!tile_compressed) {
                             for (uint32_t py = ymin; py <= ymax; py++) {
                                 const uint8_t* in_dy
@@ -519,17 +522,22 @@ IffOutput::close(void)
                                             * m_header.pixel_bytes();
 
                                 for (uint32_t px = xmin; px <= xmax; px++) {
-                                    // map: RGB(A)8 RGBA to BGRA
-                                    for (int c = channels - 1; c >= 0; --c) {
-                                        // get pixel
-                                        uint8_t pixel;
+                                    for (int c = m_header.rgba_count - 1;
+                                         c >= 0; --c) {
                                         const uint8_t* in_dx
                                             = in_dy
                                               + px * m_header.pixel_bytes()
                                               + c * m_header.channel_bytes();
-                                        memcpy(&pixel, in_dx, 1);
-                                        // set pixel
-                                        *out_p++ = pixel;
+
+                                        if (out_p >= scratch.data()
+                                                         + scratch.size()) {
+                                            errorfmt(
+                                                "scratch overflow while writing uncompressed tile (%u, %u)",
+                                                px, py);
+                                            return false;
+                                        }
+
+                                        *out_p++ = *in_dx;
                                     }
                                 }
                             }
@@ -538,101 +546,91 @@ IffOutput::close(void)
                     // handle 16-bit data
                     else if (m_spec.format == TypeDesc::UINT16) {
                         if (tile_compressed) {
-                            uint32_t index = 0, size = 0;
-                            std::vector<uint8_t> tmp;
-
-                            // set bytes.
-                            tmp.resize(tile_length * 2);
-
-                            // set map
                             std::vector<uint8_t> map;
                             if (littleendian()) {
-                                int rgb16[]  = { 0, 2, 4, 1, 3, 5 };
-                                int rgba16[] = { 0, 2, 4, 7, 1, 3, 5, 6 };
-                                if (m_header.rgba_count == 3) {
-                                    map = std::vector<uint8_t>(rgb16,
-                                                               &rgb16[6]);
-                                } else {
-                                    map = std::vector<uint8_t>(rgba16,
-                                                               &rgba16[8]);
-                                }
-
+                                uint8_t rgb16[]  = { 0, 2, 4, 1, 3, 5 };
+                                uint8_t rgba16[] = { 0, 2, 4, 7, 1, 3, 5, 6 };
+                                map              = (m_header.rgba_count == 3)
+                                                       ? std::vector<uint8_t>(rgb16,
+                                                                 rgb16 + 6)
+                                                       : std::vector<uint8_t>(rgba16,
+                                                                 rgba16 + 8);
                             } else {
-                                int rgb16[]  = { 1, 3, 5, 0, 2, 4 };
-                                int rgba16[] = { 1, 3, 5, 7, 0, 2, 4, 6 };
-                                if (m_header.rgba_count == 3) {
-                                    map = std::vector<uint8_t>(rgb16,
-                                                               &rgb16[6]);
-                                } else {
-                                    map = std::vector<uint8_t>(rgba16,
-                                                               &rgba16[8]);
-                                }
+                                uint8_t rgb16[]  = { 1, 3, 5, 0, 2, 4 };
+                                uint8_t rgba16[] = { 1, 3, 5, 7, 0, 2, 4, 6 };
+                                map              = (m_header.rgba_count == 3)
+                                                       ? std::vector<uint8_t>(rgb16,
+                                                                 rgb16 + 6)
+                                                       : std::vector<uint8_t>(rgba16,
+                                                                 rgba16 + 8);
                             }
 
-                            // map: RRGGBB(AA) to BGR(A)BGR(A)
-                            for (int c = (channels * m_spec.channel_bytes())
-                                         - 1;
+                            uint32_t index = 0;
+                            std::vector<uint8_t> tmp(tile_length * 2);
+                            span<uint8_t> tmp_span(tmp);
+
+                            for (int c = static_cast<int>(map.size()) - 1;
                                  c >= 0; --c) {
                                 int mc = map[c];
 
                                 std::vector<uint8_t> in(tw * th);
-                                uint8_t* in_p = in.data();
+                                span<uint8_t> in_span(in);
 
-                                // set tile
+                                size_t offset = 0;
                                 for (uint32_t py = ymin; py <= ymax; py++) {
                                     const uint8_t* in_dy
                                         = m_buf.data()
                                           + py * m_header.scanline_bytes();
 
                                     for (uint32_t px = xmin; px <= xmax; px++) {
-                                        // get pixel
-                                        uint8_t pixel;
                                         const uint8_t* in_dx
                                             = in_dy
                                               + px * m_header.pixel_bytes()
                                               + mc;
-                                        memcpy(&pixel, in_dx, 1);
-                                        // set pixel.
-                                        *in_p++ = pixel;
+
+                                        if (offset >= in_span.size()) {
+                                            errorfmt(
+                                                "in_span overflow at (%u, %u)",
+                                                px, py);
+                                            return false;
+                                        }
+
+                                        in_span[offset++] = *in_dx;
                                     }
                                 }
 
-                                // compress rle channel
-                                size = compress_rle_channel(in.data(),
-                                                            tmp.data() + index,
-                                                            tw * th, in, tmp);
-                                index += size;
+                                span<uint8_t> tmp_out = tmp_span.subspan(index);
+                                size_t size           = compress_rle_channel(
+                                    in_span.data(), tmp_out.data(),
+                                    static_cast<int>(tw * th), in_span,
+                                    tmp_out);
+                                index += static_cast<uint32_t>(size);
                             }
 
-                            // if size exceeds tile length write uncompressed
-
                             if (index < tile_length) {
-                                memcpy(scratch.data(), tmp.data(), index);
-
-                                // set tile length
+                                if (scratch.size() < index)
+                                    scratch.resize(index);
+                                std::memcpy(scratch.data(), tmp.data(), index);
                                 tile_length = index;
 
-                                // append xmin, xmax, ymin and ymax
-                                length = index + 8;
+                                length = index + 8;  // tile region
 
-                                // set length
                                 uint32_t align = align_chunk(length, 4);
                                 if (align > length) {
-                                    if (scratch.size() < index + align - length)
-                                        scratch.resize(index + align - length);
-                                    out_p = scratch.data() + index;
-                                    // Pad.
-                                    for (uint32_t i = 0; i < align - length;
-                                         i++) {
-                                        *out_p++ = '\0';
-                                        tile_length++;
-                                    }
+                                    uint32_t pad_size = align - length;
+                                    if (scratch.size() < tile_length + pad_size)
+                                        scratch.resize(tile_length + pad_size);
+
+                                    span<uint8_t> pad
+                                        = span<uint8_t>(scratch).subspan(
+                                            tile_length, pad_size);
+                                    std::fill(pad.begin(), pad.end(), 0);
+                                    tile_length += pad_size;
                                 }
                             } else {
                                 tile_compressed = false;
                             }
                         }
-
                         if (!tile_compressed) {
                             for (uint32_t py = ymin; py <= ymax; py++) {
                                 const uint8_t* in_dy
@@ -641,19 +639,28 @@ IffOutput::close(void)
                                             * m_header.pixel_bytes();
 
                                 for (uint32_t px = xmin; px <= xmax; px++) {
-                                    // map: RGB(A) to BGRA
-                                    for (int c = channels - 1; c >= 0; --c) {
+                                    const uint8_t* px_data
+                                        = in_dy + px * m_header.pixel_bytes();
+
+                                    for (int c = m_header.rgba_count - 1;
+                                         c >= 0; --c) {
                                         uint16_t pixel;
-                                        const uint8_t* in_dx
-                                            = in_dy
-                                              + px * m_header.pixel_bytes()
-                                              + c * m_header.channel_bytes();
-                                        memcpy(&pixel, in_dx, 2);
-                                        if (littleendian())
+                                        memcpy(&pixel, px_data + c * 2, 2);
+
+                                        if (littleendian()) {
                                             swap_endian(&pixel);
-                                        // set pixel
-                                        *out_p++ = pixel & 0xff;
-                                        *out_p++ = pixel >> 8;
+                                        }
+
+                                        if (out_p + 2
+                                            > scratch.data() + scratch.size()) {
+                                            errorfmt(
+                                                "scratch overflow while writing uncompressed 16-bit tile (%u, %u)",
+                                                px, py);
+                                            return false;
+                                        }
+
+                                        *out_p++ = pixel & 0xff;         // LSB
+                                        *out_p++ = (pixel >> 8) & 0xff;  // MSB
                                     }
                                 }
                             }
@@ -692,62 +699,96 @@ IffOutput::close(void)
                     // append xmin, xmax, ymin and ymax
                     length += 8;
 
+                    // tile compression
+                    bool tile_compressed = (m_header.compression == RLE);
+
                     // set bytes
                     std::vector<uint8_t> scratch(tile_length, 0);
                     uint8_t* out_p = static_cast<uint8_t*>(scratch.data());
+                    if (tile_compressed) {
+                        uint32_t index = 0, size = 0;
+                        std::vector<uint8_t> tmp;
 
-                    uint32_t index = 0, size = 0;
-                    std::vector<uint8_t> tmp;
+                        tmp.resize(tile_length * 2);
 
-                    tmp.resize(tile_length * 2);
+                        for (int c = m_header.zbuffer_bytes() - 1; c >= 0;
+                             --c) {
+                            std::vector<uint8_t> in(tw * th);
+                            uint8_t* in_p = in.data();
 
-                    for (int c = m_header.zbuffer_bytes() - 1; c >= 0; --c) {
-                        std::vector<uint8_t> in(tw * th);
-                        uint8_t* in_p = in.data();
+                            // set tile
+                            for (uint32_t py = ymin; py <= ymax; py++) {
+                                const uint8_t* in_dy
+                                    = m_buf.data()
+                                      + py * m_header.scanline_bytes();
 
-                        // set tile
-                        for (uint32_t py = ymin; py <= ymax; py++) {
-                            const uint8_t* in_dy
-                                = m_buf.data() + py * m_header.scanline_bytes();
-
-                            for (uint32_t px = xmin; px <= xmax; px++) {
-                                // get pixel
-                                uint8_t pixel;
-                                const uint8_t* in_dx
-                                    = in_dy + px * m_header.pixel_bytes()
-                                      + m_header.rgba_channels_bytes() + c;
-                                memcpy(&pixel, in_dx, 1);
-                                // set pixel.
-                                *in_p++ = pixel;
+                                for (uint32_t px = xmin; px <= xmax; px++) {
+                                    // get pixel
+                                    uint8_t pixel;
+                                    const uint8_t* in_dx
+                                        = in_dy + px * m_header.pixel_bytes()
+                                          + m_header.rgba_channels_bytes() + c;
+                                    memcpy(&pixel, in_dx, 1);
+                                    // set pixel.
+                                    *in_p++ = pixel;
+                                }
                             }
+
+                            // compress rle channel
+                            size = compress_rle_channel(in.data(),
+                                                        tmp.data() + index,
+                                                        tw * th, in, tmp);
+                            index += size;
                         }
 
-                        // compress rle channel
-                        size = compress_rle_channel(in.data(),
-                                                    tmp.data() + index, tw * th,
-                                                    in, tmp);
-                        index += size;
+                        // if size exceeds tile length write uncompressed
+
+                        if (index < tile_length) {
+                            memcpy(scratch.data(), tmp.data(), index);
+
+                            // set tile length
+                            tile_length = index;
+
+                            // append xmin, xmax, ymin and ymax
+                            length = index + 8;
+
+                            // set length
+                            uint32_t align = align_chunk(length, 4);
+                            if (align > length) {
+                                if (scratch.size() < index + align - length)
+                                    scratch.resize(index + align - length);
+                                out_p = scratch.data() + index;
+                                // pad
+                                for (uint32_t i = 0; i < align - length; i++) {
+                                    *out_p++ = '\0';
+                                    tile_length++;
+                                }
+                            }
+                        } else {
+                            tile_compressed = false;
+                        }
                     }
 
-                    // always write RLE compressed for zbuffer
-                    memcpy(scratch.data(), tmp.data(), index);
+                    if (!tile_compressed) {
+                        for (uint32_t py = ymin; py <= ymax; py++) {
+                            const uint8_t* in_dy
+                                = m_buf.data()
+                                  + (py * m_header.width)
+                                        * m_header.pixel_bytes();
 
-                    // set tile length
-                    tile_length = index;
-
-                    // append xmin, xmax, ymin and ymax
-                    length = index + 8;
-
-                    // set length
-                    uint32_t align = align_chunk(length, 4);
-                    if (align > length) {
-                        if (scratch.size() < index + align - length)
-                            scratch.resize(index + align - length);
-                        out_p = scratch.data() + index;
-                        // Pad.
-                        for (uint32_t i = 0; i < align - length; i++) {
-                            *out_p++ = '\0';
-                            tile_length++;
+                            for (uint32_t px = xmin; px <= xmax; px++) {
+                                for (int c = m_header.zbuffer_bytes() - 1;
+                                     c >= 0; --c) {
+                                    // get pixel
+                                    uint8_t pixel;
+                                    const uint8_t* in_dx
+                                        = in_dy + px * m_header.pixel_bytes()
+                                          + m_header.rgba_channels_bytes() + c;
+                                    memcpy(&pixel, in_dx, 1);
+                                    // set pixel
+                                    *out_p++ = pixel;
+                                }
+                            }
                         }
                     }
 
