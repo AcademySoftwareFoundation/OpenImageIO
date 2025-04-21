@@ -366,7 +366,7 @@ IffOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
     int iy = 0;
     for (int oy = y; oy < y + th; oy++) {
         // in
-        uint8_t* in_p = (uint8_t*)data
+        const uint8_t* in_p = reinterpret_cast<const uint8_t*>(data)
                         + (iy * m_spec.tile_width) * m_header.pixel_bytes();
         // out
         uint8_t* out_p = &m_buf[0] + (oy * w + x) * m_header.pixel_bytes();
