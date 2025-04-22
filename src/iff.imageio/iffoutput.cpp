@@ -771,6 +771,9 @@ IffOutput::close(void)
                     }
 
                     if (!tile_compressed) {
+                        span<uint8_t> scratch_span(scratch);
+                        size_t offset = 0;
+
                         for (uint32_t py = ymin; py <= ymax; py++) {
                             const uint8_t* in_dy
                                 = m_buf.data()
@@ -780,17 +783,24 @@ IffOutput::close(void)
                             for (uint32_t px = xmin; px <= xmax; px++) {
                                 for (int c = m_header.zbuffer_bytes() - 1;
                                      c >= 0; --c) {
-                                    // get pixel
-                                    uint8_t pixel;
                                     const uint8_t* in_dx
                                         = in_dy + px * m_header.pixel_bytes()
                                           + m_header.rgba_channels_bytes() + c;
-                                    memcpy(&pixel, in_dx, 1);
-                                    // set pixel
-                                    *out_p++ = pixel;
+
+                                    if (offset >= scratch_span.size()) {
+                                        errorfmt(
+                                            "scratch span overflow while writing uncompressed zbuffer tile (%u, %u)",
+                                            px, py);
+                                        return false;
+                                    }
+
+                                    scratch_span[offset++] = *in_dx;
                                 }
                             }
                         }
+
+                        out_p = scratch_span.data()
+                                + offset;  // keep out_p correct if used after
                     }
 
                     // write 'ZBUF' length

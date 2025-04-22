@@ -7,14 +7,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#if defined(_MSC_VER)
-#    define UNUSED_PARAM(x) (void)(x)
-#elif defined(__GNUC__) || defined(__clang__)
-#    define UNUSED_PARAM(x) (void)(x)
-#else
-#    define UNUSED_PARAM(x) (void)(x)
-#endif
-
 using namespace iff_pvt;
 
 class IffInput final : public ImageInput {
