@@ -158,6 +158,11 @@ message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 # defined for downstream projects using OIIO.
 add_compile_definitions (OIIO_INTERNAL=1)
 
+# If CMake variable OIIO_SITE is set, set compile symbol OIIO_SITE_sitename
+if (OIIO_SITE)
+    add_compile_definitions (OIIO_SITE_${OIIO_SITE})
+endif ()
+
 include (GNUInstallDirs)
 
 # Utilities for build instructions of the format-reading plugins
@@ -241,13 +246,6 @@ set (format_plugin_libs "")
 set (format_plugin_include_dirs "")
 set (format_plugin_definitions "")
 file (GLOB all_format_plugin_dirs src/*.imageio)
-if ("${OIIO_SITE}" STREQUAL "SPI")
-    # SPI only -- because of a workaround for a very weird linkage issue
-    # specific to our system, we need to be sure libtiff is referenced first.
-    file (GLOB tiff_format_plugin_dir src/tiff.imageio)
-    list (REMOVE_ITEM all_format_plugin_dirs ${tiff_format_plugin_dir})
-    list (INSERT all_format_plugin_dirs 0 ${tiff_format_plugin_dir})
-endif ()
 if (EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     foreach (plugin_dir ${all_format_plugin_dirs})
         add_subdirectory (${plugin_dir})
