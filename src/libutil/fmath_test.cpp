@@ -433,7 +433,7 @@ test_packbits()
         " packed to 10 bits, as 16 bit values: %04x %04x %04x %04x %04x\n",
         u10[0], u10[1], u10[2], u10[3], u10[4]);
     uint16_t u16[8];
-    bit_unpack(8, (const unsigned char*)u10, 10, u16);
+    bit_unpack(make_cspan((const unsigned char*)u10, 10), 10, make_span(u16));
     Strutil::printf(
         " unpacked back to 16 bits: %04x %04x %04x %04x %04x %04x %04x %04x\n",
         u16[0], u16[1], u16[2], u16[3], u16[4], u16[5], u16[6], u16[7]);
