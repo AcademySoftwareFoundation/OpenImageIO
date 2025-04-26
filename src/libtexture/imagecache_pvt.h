@@ -527,9 +527,8 @@ struct TileID {
         }
     }
 
-    /// Destructor is trivial, because we don't hold any resources
-    /// of our own.  This is by design.
-    ~TileID() {}
+    /// Trivial destructor.
+    ~TileID() = default;
 
     ImageCacheFile& file(void) const { return *m_file; }
     ImageCacheFile* file_ptr(void) const { return m_file; }
