@@ -170,7 +170,6 @@ hw_simd_caps()
     if (cpu_has_avx512dq())    caps.emplace_back ("avx512dq");
     if (cpu_has_avx512ifma())  caps.emplace_back ("avx512ifma");
     if (cpu_has_avx512pf())    caps.emplace_back ("avx512pf");
-    if (cpu_has_avx512er())    caps.emplace_back ("avx512er");
     if (cpu_has_avx512cd())    caps.emplace_back ("avx512cd");
     if (cpu_has_avx512bw())    caps.emplace_back ("avx512bw");
     if (cpu_has_avx512vl())    caps.emplace_back ("avx512vl");
@@ -202,7 +201,6 @@ oiio_simd_caps()
     if (OIIO_AVX512DQ_ENABLED)   caps.emplace_back ("avx512dq");
     if (OIIO_AVX512IFMA_ENABLED) caps.emplace_back ("avx512ifma");
     if (OIIO_AVX512PF_ENABLED)   caps.emplace_back ("avx512pf");
-    if (OIIO_AVX512ER_ENABLED)   caps.emplace_back ("avx512er");
     if (OIIO_AVX512CD_ENABLED)   caps.emplace_back ("avx512cd");
     if (OIIO_AVX512BW_ENABLED)   caps.emplace_back ("avx512bw");
     if (OIIO_AVX512VL_ENABLED)   caps.emplace_back ("avx512vl");
