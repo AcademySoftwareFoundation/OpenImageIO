@@ -309,22 +309,22 @@ py_buffer_to_stdvector(std::vector<T>& vals, const py::buffer& obj)
     for (size_t i = 0; i < binfo.size; ++i) {
         if (std::is_same<T, float>::value
             && binfo.format.basetype == TypeDesc::FLOAT) {
-            vals.emplace_back(binfo.dataval<float>(i));
+            vals.push_back(binfo.dataval<float>(i));
         } else if ((std::is_same<T, float>::value || std::is_same<T, int>::value)
                    && binfo.format.basetype == TypeDesc::INT) {
-            vals.emplace_back(T(binfo.dataval<int>(i)));
+            vals.push_back(T(binfo.dataval<int>(i)));
         } else if (std::is_same<T, unsigned int>::value
                    && binfo.format.basetype == TypeDesc::UINT) {
-            vals.emplace_back(T(binfo.dataval<unsigned int>(i)));
+            vals.push_back(T(binfo.dataval<unsigned int>(i)));
         } else if (std::is_same<T, unsigned char>::value
                    && binfo.format.basetype == TypeDesc::UINT8) {
-            vals.emplace_back(T(binfo.dataval<unsigned char>(i)));
+            vals.push_back(T(binfo.dataval<unsigned char>(i)));
         } else if (std::is_same<T, unsigned short>::value
                    && binfo.format.basetype == TypeDesc::UINT16) {
-            vals.emplace_back(T(binfo.dataval<unsigned short>(i)));
+            vals.push_back(T(binfo.dataval<unsigned short>(i)));
         } else {
             // FIXME? Other cases?
-            vals.emplace_back(T(42));
+            vals.push_back(T(42));
             ok = false;
         }
     }
