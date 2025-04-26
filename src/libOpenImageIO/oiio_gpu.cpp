@@ -99,6 +99,8 @@ initialize_cuda()
 {
     std::lock_guard lock(compute_mutex);
 
+    cuda_supported = false;
+
     // Environment OPENIMAGEIO_CUDA=0 trumps everything else, turns off
     // Cuda functionality. We don't even initialize in this case.
     std::string env = Sysutil::getenv("OPENIMAGEIO_CUDA");
@@ -112,34 +114,35 @@ initialize_cuda()
     if (!checkCudaErrors(cudaGetDeviceCount(&deviceCount))) {
         return;
     }
+    OIIO::debugfmt("Number of CUDA devices: {}\n", deviceCount);
 
     // Initialize CUDA
-    if (!CUDA_CHECK(cudaFree(0))) {
+    bool ok = CUDA_CHECK(cudaFree(0)) && CUDA_CHECK(cudaSetDevice(0))
+              && CUDA_CHECK(cudaStreamCreate(&cuda_stream));
+    if (!ok) {
         cuda_geterror();  // clear the error
         return;
     }
 
-    CUDA_CHECK(cudaSetDevice(0));
-    CUDA_CHECK(cudaStreamCreate(&cuda_stream));
-
-    OIIO::debugfmt("Number of CUDA devices: {}\n", deviceCount);
     for (int dev = 0; dev < deviceCount; ++dev) {
         cudaDeviceProp deviceProp;
-        CUDA_CHECK(cudaGetDeviceProperties(&deviceProp, dev));
-        CUDA_CHECK(cudaDriverGetVersion(&cuda_driver_version));
-        CUDA_CHECK(cudaRuntimeGetVersion(&cuda_runtime_version));
-        cuda_device_name   = ustring(deviceProp.name);
-        cuda_compatibility = 100 * deviceProp.major + deviceProp.minor;
-        cuda_total_memory  = deviceProp.totalGlobalMem;
-        OIIO::debugfmt(
-            "CUDA device \"{}\": driver {}, runtime {}, Cuda compat {}\n",
-            deviceProp.name, cuda_driver_version, cuda_runtime_version,
-            cuda_compatibility);
-        OIIO::debugfmt(" total mem {:g} MB\n",
-                       cuda_total_memory / (1024.0 * 1024.0));
-        break;  // only inventory the first Cuda device. FIXME?
+        bool ok = CUDA_CHECK(cudaGetDeviceProperties(&deviceProp, dev))
+                  && CUDA_CHECK(cudaDriverGetVersion(&cuda_driver_version))
+                  && CUDA_CHECK(cudaRuntimeGetVersion(&cuda_runtime_version));
+        if (ok) {
+            cuda_device_name   = ustring(deviceProp.name);
+            cuda_compatibility = 100 * deviceProp.major + deviceProp.minor;
+            cuda_total_memory  = deviceProp.totalGlobalMem;
+            OIIO::debugfmt(
+                "CUDA device \"{}\": driver {}, runtime {}, Cuda compat {}\n",
+                deviceProp.name, cuda_driver_version, cuda_runtime_version,
+                cuda_compatibility);
+            OIIO::debugfmt(" total mem {:g} MB\n",
+                           cuda_total_memory / (1024.0 * 1024.0));
+            cuda_supported = true;
+            break;  // only inventory the first Cuda device. FIXME?
+        }
     }
-    cuda_supported = true;
 }
 
 #endif /* defined(OIIO_USE_CUDA) */
