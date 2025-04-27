@@ -40,7 +40,7 @@ inline constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
 /// Note that the optional template parameter `Rank` includes the channels as
 /// the first dimension.  When no Rank template parameter is provided, it
 /// defaults to 4, meaning it's an image span that can describe any choice of
-/// a scanline, 2D image, or volume.
+/// a scanline (Rank 2), 2D image (Rank 3), or volume (Rank 4).
 template<typename T, size_t Rank = 4> class image_span {
     static_assert(Rank >= 2 && Rank <= 4, "Rank must be between 2 and 4");
 
