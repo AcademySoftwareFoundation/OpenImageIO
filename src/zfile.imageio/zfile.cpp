@@ -275,11 +275,11 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
 
     ParamValue* p;
     if ((p = m_spec.find_attribute("worldtocamera", TypeMatrix)))
-        header.worldtocamera = p->get<Imath::M44f>();
+        header.worldtocamera = p->cast_get<Imath::M44f>();
     else
         header.worldtocamera = Imath::M44f();  // assigns ident
     if ((p = m_spec.find_attribute("worldtoscreen", TypeMatrix)))
-        header.worldtoscreen = p->get<Imath::M44f>();
+        header.worldtoscreen = p->cast_get<Imath::M44f>();
     else
         header.worldtoscreen = Imath::M44f();  // assigns ident
 

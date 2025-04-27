@@ -380,7 +380,7 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
         const ParamValue* param = m_spec.find_attribute("oiio:ioproxy",
                                                         TypeDesc::PTR);
         if (param)
-            m_io = param->get<Filesystem::IOProxy*>();
+            m_io = param->cast_get<Filesystem::IOProxy*>();
 
         if (!spec_to_header(m_spec, m_subimage, m_headers[m_subimage]))
             return false;

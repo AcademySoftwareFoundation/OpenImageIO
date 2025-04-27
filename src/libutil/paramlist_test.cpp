@@ -25,7 +25,7 @@ test_numeric(cspan<T> data, TypeDesc type, int num_elements = 1)
     ParamValue p("name", type, num_elements, data.data());
     int n = type.numelements() * num_elements;
     for (int i = 0; i < n; ++i)
-        OIIO_CHECK_EQUAL(p.get<T>(i), data[i]);
+        OIIO_CHECK_EQUAL(p.cast_get<T>(i), data[i]);
     if (std::numeric_limits<T>::is_integer) {
         OIIO_CHECK_EQUAL(p.get_int(), int(data[0]));
         for (int i = 0; i < n; ++i)
@@ -105,7 +105,7 @@ test_value_types()
     {
         const char* val = "hello";
         ParamValue p("name", val);
-        OIIO_CHECK_EQUAL(p.get<ustring>(), "hello");
+        OIIO_CHECK_EQUAL(p.cast_get<ustring>(), "hello");
         OIIO_CHECK_EQUAL(p.get_ustring(), "hello");
         OIIO_CHECK_EQUAL(p.get_string(), "hello");
     }
@@ -115,13 +115,13 @@ test_value_types()
         ParamValue p("name", val);
         OIIO_CHECK_EQUAL(p.get_string(), "hello");
         OIIO_CHECK_EQUAL(p.get_ustring(), "hello");
-        OIIO_CHECK_EQUAL(p.get<ustringhash>(), val);
+        OIIO_CHECK_EQUAL(p.cast_get<ustringhash>(), val);
     }
 
     {
         const void* ptr = reinterpret_cast<const void*>(size_t(0xdeadbeef));
         ParamValue p("name", TypeDesc::PTR, 1, &ptr);
-        OIIO_CHECK_EQUAL(p.get<void*>(), ptr);
+        OIIO_CHECK_EQUAL(p.cast_get<void*>(), ptr);
         OIIO_CHECK_EQUAL(p.get_string(), "0xdeadbeef");
     }
 
@@ -165,7 +165,7 @@ test_value_types()
                                   "this is another test" };
 
         ParamValue p("name", smatrix[0]);
-        OIIO_CHECK_EQUAL(p.get<ustring>(), smatrix[0]);
+        OIIO_CHECK_EQUAL(p.cast_get<ustring>(), smatrix[0]);
         OIIO_CHECK_EQUAL(p.get_string(), smatrix[0]);
 
         ParamValue q("name", TypeString, sizeof(smatrix) / sizeof(char*),
@@ -195,8 +195,8 @@ test_value_types()
         int rat[2] = { 1, 2 };
         ParamValue p("name", TypeRational, 1, rat);
         // make sure we can retrieve it as int[2] (numerator, denominator)
-        OIIO_CHECK_EQUAL(p.get<int>(0), rat[0]);
-        OIIO_CHECK_EQUAL(p.get<int>(1), rat[1]);
+        OIIO_CHECK_EQUAL(p.cast_get<int>(0), rat[0]);
+        OIIO_CHECK_EQUAL(p.cast_get<int>(1), rat[1]);
         // make sure we can retrieve rational as float, with conversion
         OIIO_CHECK_EQUAL(p.get_float(), 0.5f);
         // make sure we can retrieve rational as nicely formatted string
@@ -208,7 +208,7 @@ test_value_types()
         int* ptr     = (int*)intptr_t(0xdeadbeef);
         ParamValue p = make_pv("name", ptr);
         OIIO_CHECK_EQUAL(p.type(), TypePointer);
-        OIIO_CHECK_EQUAL(p.get<int*>(), ptr);
+        OIIO_CHECK_EQUAL(p.cast_get<int*>(), ptr);
     }
     {
         const char* str = "foobar";
@@ -504,7 +504,7 @@ test_implied_construction()
     OIIO_CHECK_EQUAL(pvs.data(), pvl.data());  // make sure it wraps the PVL
     OIIO_CHECK_EQUAL(size_t(pvs.size()), size_t(pvl.size()));
     OIIO_CHECK_EQUAL(pvs[1].name(), pvl[1].name());  // check []
-    OIIO_CHECK_EQUAL(pvs[1].get<float>(), 2.5f);     // not found
+    OIIO_CHECK_EQUAL(pvs[1].cast_get<float>(), 2.5f);     // not found
     OIIO_CHECK_EQUAL(pvs.find("s")->data(), pvl.find("s")->data());
     OIIO_CHECK_EQUAL(pvs.find("unknown"), pvs.end());
     OIIO_CHECK_EQUAL(pvs.get_int("i"), 1);

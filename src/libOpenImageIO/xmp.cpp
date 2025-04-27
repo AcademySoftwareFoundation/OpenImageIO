@@ -584,13 +584,13 @@ stringize(const ParamValue& p, const XMPtag& xmptag)
         return p.get_string();
     } else if (p.type() == TypeDesc::INT) {
         if (xmptag.special & IsBool)
-            return *(const int*)p.data() ? "True" : "False";
+            return p.cast_get<int>() ? "True" : "False";
         else  // ordinary int
             return p.get_string();
     } else if (p.type() == TypeDesc::FLOAT) {
         if (xmptag.special & Rational) {
             unsigned int num, den;
-            float_to_rational(p.get<float>(), num, den);
+            float_to_rational(p.cast_get<float>(), num, den);
             return Strutil::fmt::format("{}/{}", num, den);
         } else {
             return p.get_string();

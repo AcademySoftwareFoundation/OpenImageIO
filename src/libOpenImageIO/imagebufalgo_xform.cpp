@@ -454,7 +454,7 @@ get_filterptr_option(ImageBufAlgo::KWArgs options)
     Filter2D::ref filterptr;
     auto f = options.find(filterptr_us, TypePointer);
     if (f != options.end())
-        filterptr = Filter2D::ref(f->get<const Filter2D*>(),
+        filterptr = Filter2D::ref(f->cast_get<const Filter2D*>(),
                                   Filter2D::no_destroy);
     return filterptr;
 }

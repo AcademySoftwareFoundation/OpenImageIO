@@ -905,10 +905,11 @@ ImageSpec::metadata_val(const ParamValue& p, bool human)
         if (exp)
             nice = exp->explainer(p, exp->extradata);
         if (ptype.elementtype() == TypeRational) {
+            cspan<int> vals = p.as_cspan<int>();
             for (int i = 0, n = (int)ptype.numelements(); i < n; ++i) {
                 if (i)
                     nice += ", ";
-                int num = p.get<int>(2 * i + 0), den = p.get<int>(2 * i + 1);
+                int num = vals[2 * i + 0], den = vals[2 * i + 1];
                 if (den)
                     nice += Strutil::fmt::format("{:g}",
                                                  float(num) / float(den));

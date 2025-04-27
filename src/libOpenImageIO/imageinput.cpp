@@ -1299,7 +1299,7 @@ void
 ImageInput::ioproxy_retrieve_from_config(const ImageSpec& config)
 {
     if (auto p = config.find_attribute("oiio:ioproxy", TypeDesc::PTR))
-        set_ioproxy(p->get<Filesystem::IOProxy*>());
+        set_ioproxy(p->cast_get<Filesystem::IOProxy*>());
 }
 
 

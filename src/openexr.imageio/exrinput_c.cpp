@@ -343,7 +343,7 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
     const ParamValue* param = config.find_attribute("oiio:ioproxy",
                                                     TypeDesc::PTR);
     if (param)
-        m_userdata.m_io = param->get<Filesystem::IOProxy*>();
+        m_userdata.m_io = param->cast_get<Filesystem::IOProxy*>();
 
     // Quick check to immediately reject nonexistent or non-exr files.
     //KDTDISABLE quick checks are still file iOPs, let the file open handle this

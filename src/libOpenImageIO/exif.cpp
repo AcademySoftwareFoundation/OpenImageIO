@@ -949,12 +949,14 @@ append_tiff_dir_entry_integer(const ParamValue& p,
 {
     T i;
     switch (p.type().basetype) {
-    case TypeDesc::UINT: i = static_cast<T>(p.get<uint32_t>()); break;
-    case TypeDesc::INT: i = static_cast<T>(p.get<int32_t>()); break;
-    case TypeDesc::UINT16: i = static_cast<T>(p.get<uint16_t>()); break;
-    case TypeDesc::INT16: i = static_cast<T>(p.get<int16_t>()); break;
-    case TypeDesc::UINT8: i = static_cast<T>(p.get<uint8_t>()); break;
-    case TypeDesc::INT8: i = static_cast<T>(p.get<int8_t>()); break;
+    case TypeDesc::UINT: i = static_cast<T>(p.cast_get<uint32_t>()); break;
+    case TypeDesc::INT: i = static_cast<T>(p.cast_get<int32_t>()); break;
+    case TypeDesc::UINT16:
+        i = static_cast<T>(p.cast_get<uint16_t>());
+        break;
+    case TypeDesc::INT16: i = static_cast<T>(p.cast_get<int16_t>()); break;
+    case TypeDesc::UINT8: i = static_cast<T>(p.cast_get<uint8_t>()); break;
+    case TypeDesc::INT8: i = static_cast<T>(p.cast_get<int8_t>()); break;
     case TypeDesc::STRING: {
         if (Strutil::string_is_int(p.get_ustring())) {
             i = static_cast<T>(p.get_int());

@@ -486,12 +486,12 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     {
         auto p = config.find_attribute("raw:aber");
         if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 2)) {
-            m_processor->imgdata.params.aber[0] = p->get<float>(0);
-            m_processor->imgdata.params.aber[2] = p->get<float>(1);
+            m_processor->imgdata.params.aber[0] = p->cast_get<float>(0);
+            m_processor->imgdata.params.aber[2] = p->cast_get<float>(1);
         }
         if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 2)) {
-            m_processor->imgdata.params.aber[0] = p->get<double>(0);
-            m_processor->imgdata.params.aber[2] = p->get<double>(1);
+            m_processor->imgdata.params.aber[0] = p->cast_get<double>(0);
+            m_processor->imgdata.params.aber[2] = p->cast_get<double>(1);
         }
     }
 
@@ -534,16 +534,16 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             // i.e. we are not using the camera white balance
             auto p = config.find_attribute("raw:user_mul");
             if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
-                m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
-                m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
-                m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
-                m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
+                m_processor->imgdata.params.user_mul[0] = p->cast_get<float>(0);
+                m_processor->imgdata.params.user_mul[1] = p->cast_get<float>(1);
+                m_processor->imgdata.params.user_mul[2] = p->cast_get<float>(2);
+                m_processor->imgdata.params.user_mul[3] = p->cast_get<float>(3);
             }
             if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
-                m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
-                m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
-                m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
-                m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+                m_processor->imgdata.params.user_mul[0] = p->cast_get<double>(0);
+                m_processor->imgdata.params.user_mul[1] = p->cast_get<double>(1);
+                m_processor->imgdata.params.user_mul[2] = p->cast_get<double>(2);
+                m_processor->imgdata.params.user_mul[3] = p->cast_get<double>(3);
             }
         }
     }

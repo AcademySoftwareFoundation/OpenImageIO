@@ -225,25 +225,22 @@ public:
                    : cspan<T>();
     }
 
-    /// Return a `span<T>` pointing to the bounded data. If the type `T` is
-    /// not the actual underlying base type, return an empty span.
-    template<typename T> span<T> as_span() noexcept
-    {
-        return BaseTypeFromC<T>::value == m_type.basetype
-                   ? make_span(reinterpret_cast<T*>(const_cast<void*>(data())),
-                               size_t(m_nvalues * m_type.basevalues()))
-                   : span<T>();
-    }
-
     // Use with extreme caution! This is just doing a cast. You'd better
     // be really sure you are asking for the right type. Note that for
     // "string" data, you can get<ustring> or get<char*>, but it's not
     // a std::string.
-    template<typename T> const T& get(int i = 0) const noexcept
+    template<typename T> const T& cast_get(int i = 0) const noexcept
     {
         OIIO_DASSERT(i >= 0 && i < int(m_nvalues * m_type.basevalues())
                      && "OIIO::ParamValue::get() range check");
         return (reinterpret_cast<const T*>(data()))[i];
+    }
+
+    template<typename T>
+    OIIO_DEPRECATED("renamed to cast_get")
+    const T& get(int i = 0) const noexcept
+    {
+        return cast_get<T>(i);
     }
 
     /// Retrieve an integer, with conversions from a wide variety of type
@@ -297,6 +294,24 @@ private:
                       Copy _copy                = Copy(true),
                       FromUstring _from_ustring = FromUstring(false)) noexcept;
     void clear_value() noexcept;
+
+    /// Return a `span<T>` pointing to the bounded data. If the type `T` is
+    /// not the actual underlying base type, return an empty span.
+    template<typename T> span<T> as_span() noexcept
+    {
+        return BaseTypeFromC<T>::value == m_type.basetype
+                   ? make_span(reinterpret_cast<T*>(const_cast<void*>(data())),
+                               size_t(m_nvalues * m_type.basevalues()))
+                   : span<T>();
+    }
+
+    /// Return a `cspan<T>` pointing to the bounded data. There is
+    /// no check, so it had better be the right type!
+    template<typename T> cspan<T> as_cspan_unchecked() const noexcept
+    {
+        return make_cspan(reinterpret_cast<const T*>(data()),
+                          size_t(m_nvalues * m_type.basevalues()));
+    }
 
     /// declare a friend heapsize definition
     template<typename T> friend size_t pvt::heapsize(const T&);

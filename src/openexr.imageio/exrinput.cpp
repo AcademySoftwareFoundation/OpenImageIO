@@ -217,7 +217,7 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     const ParamValue* param = config.find_attribute("oiio:ioproxy",
                                                     TypeDesc::PTR);
     if (param)
-        m_io = param->get<Filesystem::IOProxy*>();
+        m_io = param->cast_get<Filesystem::IOProxy*>();
 
     // Quick check to immediately reject nonexistent or non-exr files.
     if (!m_io && !Filesystem::is_regular(name)) {

@@ -123,9 +123,8 @@ from_string<unsigned short>(string_view s)
 // helper to parse a list from a string
 template<class T>
 static void
-parse_elements(string_view value, ParamValue& p)
+parse_elements(string_view value, span<T> data)
 {
-    auto data = p.as_span<T>();
     value.remove_prefix(value.find_first_not_of(" \t"));
     for (auto&& d : data) {
         // Make a temporary copy so we for sure have a 0-terminated string.
@@ -148,21 +147,21 @@ ParamValue::ParamValue(string_view name, TypeDesc type, string_view value)
     : ParamValue(name, type, 1, nullptr)
 {
     if (type.basetype == TypeDesc::INT) {
-        parse_elements<int>(value, *this);
+        parse_elements(value, as_span<int>());
     } else if (type.basetype == TypeDesc::UINT) {
-        parse_elements<unsigned int>(value, *this);
+        parse_elements(value, as_span<uint32_t>());
     } else if (type.basetype == TypeDesc::FLOAT) {
-        parse_elements<float>(value, *this);
+        parse_elements(value, as_span<float>());
     } else if (type.basetype == TypeDesc::DOUBLE) {
-        parse_elements<double>(value, *this);
+        parse_elements(value, as_span<double>());
     } else if (type.basetype == TypeDesc::INT64) {
-        parse_elements<int64_t>(value, *this);
+        parse_elements(value, as_span<int64_t>());
     } else if (type.basetype == TypeDesc::UINT64) {
-        parse_elements<uint64_t>(value, *this);
+        parse_elements(value, as_span<uint64_t>());
     } else if (type.basetype == TypeDesc::INT16) {
-        parse_elements<short>(value, *this);
+        parse_elements(value, as_span<int16_t>());
     } else if (type.basetype == TypeDesc::UINT16) {
-        parse_elements<unsigned short>(value, *this);
+        parse_elements(value, as_span<uint64_t>());
     } else if (type == TypeDesc::STRING) {
         ustring s(value);
         init(name, type, 1, &s);
@@ -287,7 +286,7 @@ ParamValue::get_string_indexed(int index) const
     if (index < 0 || index >= n)
         return out;
     if (element.basetype == TypeDesc::STRING) {
-        return get<ustring>(index).string();
+        return cast_get<ustring>(index).string();
     } else if (element.basetype == TypeDesc::FLOAT) {
         formatType<float>(*this, index, index + 1, "{}", out);
     } else if (element.basetype == TypeDesc::DOUBLE) {
@@ -327,7 +326,7 @@ ParamValue::get_string_indexed(int index) const
         out += "ptr ";
         formatType<void*>(*this, index, index + 1, "{:p}", out);
     } else if (element.basetype == TypeDesc::USTRINGHASH) {
-        return get<ustringhash>(index).string();
+        return cast_get<ustringhash>(index).string();
     } else {
         out += Strutil::fmt::format(
             "<unknown data type> (base {:d}, agg {:d} vec {:d})",
@@ -344,9 +343,9 @@ ParamValue::get_ustring(int maxsize) const
     // Special case for retrieving a string already in ustring form,
     // super inexpensive.
     if (type() == TypeDesc::STRING)
-        return get<ustring>();
+        return cast_get<ustring>();
     if (type() == TypeDesc::USTRINGHASH)
-        return ustring(get<ustringhash>());
+        return ustring(cast_get<ustringhash>());
     return ustring(get_string(maxsize));
 }
 
@@ -358,9 +357,9 @@ ParamValue::get_ustring_indexed(int index) const
     // Special case for retrieving a string already in ustring form,
     // super inexpensive.
     if (type() == TypeDesc::STRING)
-        return get<ustring>(index);
+        return cast_get<ustring>(index);
     if (type() == TypeDesc::USTRINGHASH)
-        return ustring(get<ustringhash>());
+        return ustring(cast_get<ustringhash>());
     return ustring(get_string_indexed(index));
 }
 
