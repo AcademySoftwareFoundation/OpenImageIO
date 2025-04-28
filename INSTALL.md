@@ -74,6 +74,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Ptex >= 2.3.1 (probably works for older; tested through 2.4.3)
  * If you want to be able to do font rendering into images:
      * Freetype >= 2.10.0 (tested through 2.13)
+ * If you want to be able to read "ultra-HDR" embedded in JPEG files:
+     * libultrahdr >= 1.3 (tested through 1.4)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
