@@ -83,12 +83,21 @@ get_default_quantize(TypeDesc format, long long& quant_min,
                      long long& quant_max) noexcept;
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
+/// contiguous-stride ("RGBRGB"), for any format or stride values (measured in
+/// bytes).  Caller must pass in a dst pointing to enough memory to hold the
+/// contiguous rectangle.  Return span where the contiguous data ended up,
+/// which is either dst or src (if the strides indicated that data were
+/// already contiguous).
+OIIO_API span<const std::byte>
+contiguize(image_span<const std::byte> src, span<std::byte> dst);
+
+/// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values
 /// (measured in bytes).  Caller must pass in a dst pointing to enough
 /// memory to hold the contiguous rectangle.  Return a ptr to where the
 /// contiguous data ended up, which is either dst or src (if the strides
 /// indicated that data were already contiguous).
-const void*
+OIIO_API const void*
 contiguize(const void* src, int nchannels, stride_t xstride, stride_t ystride,
            stride_t zstride, void* dst, int width, int height, int depth,
            TypeDesc format);

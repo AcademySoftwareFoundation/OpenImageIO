@@ -757,7 +757,7 @@ scaled_conversion(const S& src, F scale, F min, F max)
 template<typename S, typename D>
 void convert_type (const S *src, D *dst, size_t n, D _min, D _max)
 {
-    if (std::is_same<S,D>::value) {
+    if constexpr (std::is_same<S,D>::value) {
         // They must be the same type.  Just memcpy.
         memcpy (dst, src, n*sizeof(D));
         return;
@@ -968,6 +968,25 @@ inline void convert_type (const S *src, D *dst, size_t n)
 
 
 
+/// Copy (type convert) consecutive values from the cspan `src` holding data
+/// of type S into the span `dst` holding the same number of elements of data
+/// of type D.
+///
+/// The conversion is not a simple cast, but correctly remaps the 0.0->1.0
+/// range from and to the full positive range of integral types. It's just a
+/// straight copy if both types are identical. Optional arguments `min` and
+/// `max` can give nonstandard quantizations.
+template<typename S, typename D>
+void convert_type (cspan<S> src, span<D> dst,
+                   D min = std::numeric_limits<D>::min(),
+                   D max = std::numeric_limits<D>::min())
+{
+    OIIO_DASSERT(src.size() == dst.size());
+    convert_type(src.data(), dst.data(), std::min(src.size(), dst.size()),
+                 min, max);
+}
+
+
 
 /// Convert a single value from the type of S to the type of D.
 /// The conversion is not a simple cast, but correctly remaps the
@@ -978,7 +997,7 @@ template<typename S, typename D>
 inline D
 convert_type (const S &src)
 {
-    if (std::is_same<S,D>::value) {
+    if constexpr (std::is_same<S,D>::value) {
         // They must be the same type.  Just return it.
         return (D)src;
     }
