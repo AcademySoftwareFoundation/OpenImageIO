@@ -252,6 +252,11 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_color ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_test)
 
+    fancy_add_executable (NAME image_span_test SRC image_span_test.cpp
+                          LINK_LIBRARIES OpenImageIO Imath::Imath
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_image_span ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/image_span_test)
+
     fancy_add_executable (NAME imagebuf_test SRC imagebuf_test.cpp
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
