@@ -731,11 +731,37 @@ _contiguize(const T* src, int nchannels, stride_t xstride, stride_t ystride,
 
 }  // namespace
 
+
+
+span<const std::byte>
+pvt::contiguize(image_span<const std::byte> src, span<std::byte> dst)
+{
+    // Contiguized result must fit in dst
+    OIIO_DASSERT(src.size_bytes() <= dst.size_bytes());
+
+    if (src.is_contiguous()) {
+        // Already contiguous -- don't copy, just return a span representation
+        // of the place it already lives in src.
+        return make_cspan(src.data(), src.size_bytes());
+    } else {
+        // Non-contiguous -- rely on copy_image() to do the heavy lifting.
+        image_span dstspan(dst.data(), src.nchannels(), src.width(),
+                           src.height(), src.depth(), AutoStride, AutoStride,
+                           AutoStride, AutoStride, src.chansize());
+        OIIO_DASSERT(dstspan.size_bytes() == src.size_bytes());
+        copy_image(dstspan, src);
+        return make_cspan(dst.data(), src.size_bytes());
+    }
+}
+
+
+
 const void*
 pvt::contiguize(const void* src, int nchannels, stride_t xstride,
                 stride_t ystride, stride_t zstride, void* dst, int width,
                 int height, int depth, TypeDesc format)
 {
+    OIIO_DASSERT(nchannels >= 0 && width >= 0 && height >= 0 && depth >= 0);
     switch (format.basetype) {
     case TypeDesc::FLOAT:
         return _contiguize((const float*)src, nchannels, xstride, ystride,
@@ -1016,6 +1042,117 @@ copy_image(int nchannels, int width, int height, int depth, const void* src,
                     memcpy(t, f, pixelsize);
                     f += src_xstride;
                     t += dst_xstride;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+
+
+template<typename T>
+void
+aligned_copy_image(image_span<std::byte> dst, image_span<const std::byte> src)
+{
+    size_t systride  = src.ystride();
+    size_t dystride  = dst.ystride();
+    size_t chunksize = src.chansize() * src.nchannels();
+    size_t nT        = chunksize / sizeof(T);
+    size_t sstrideT  = src.xstride() / sizeof(T);
+    size_t dstrideT  = dst.xstride() / sizeof(T);
+    for (uint32_t z = 0; z < src.depth(); ++z) {
+        std::byte* dscanline       = dst.getptr(0, 0, 0, z);
+        const std::byte* sscanline = src.getptr(0, 0, 0, z);
+        for (uint32_t y = 0; y < src.height(); ++y) {
+            auto dscanlineT = reinterpret_cast<T*>(dscanline);
+            auto sscanlineT = reinterpret_cast<const T*>(sscanline);
+            for (uint32_t x = 0; x < src.width(); ++x) {
+                for (size_t c = 0; c < nT; ++c) {
+                    dscanlineT[x * dstrideT + c] = sscanlineT[x * sstrideT + c];
+                }
+            }
+            sscanline += systride;
+            dscanline += dystride;
+        }
+    }
+}
+
+
+
+bool
+copy_image(image_span<std::byte> dst, image_span<const std::byte> src)
+{
+    OIIO_DASSERT(src.width() == dst.width() && src.height() == dst.height()
+                 && src.depth() == dst.depth()
+                 && src.nchannels() == dst.nchannels()
+                 && src.chansize() == dst.chansize());
+    if (src.is_contiguous() && dst.is_contiguous()) {
+        // Whole image is contiguous -- just do it in one memcpy
+        memcpy(dst.data(), src.data(), src.size_bytes());
+        return true;
+    }
+    if (src.is_contiguous_scanline() && dst.is_contiguous_scanline()) {
+        // Scanlines are contiguous -- do one memcpy per scanline
+        size_t chunksize = src.chansize() * src.nchannels()
+                           * size_t(src.width());
+        for (uint32_t z = 0; z < src.depth(); ++z) {
+            for (uint32_t y = 0; y < src.height(); ++y) {
+                std::byte* d       = dst.getptr(0, 0, y, z);
+                const std::byte* s = src.getptr(0, 0, y, z);
+                memcpy(d, s, chunksize);
+            }
+        }
+        return true;
+    }
+    if (dst.is_contiguous_pixel()) {
+        size_t systride = src.ystride();
+        size_t dystride = dst.ystride();
+        // Pixels are contiguous -- do one memcpy per pixel
+        size_t chunksize = src.chansize() * src.nchannels();
+#if 1
+        // Speedup trick: if we 'or' all the pointers and strides and the
+        // result is a multiple of 4, we can copy 4 bytes at a time.
+        size_t mashed = (chunksize | uintptr_t(src.data())
+                         | uintptr_t(dst.data()) | src.xstride() | src.ystride()
+                         | src.zstride());
+        if ((mashed & 3) == 0) {
+            aligned_copy_image<uint32_t>(dst, src);
+            return true;
+        }
+        if ((mashed & 1) == 0) {
+            aligned_copy_image<uint16_t>(dst, src);
+            return true;
+        }
+#endif
+        for (uint32_t z = 0; z < src.depth(); ++z) {
+            std::byte* dscanline       = dst.getptr(0, 0, 0, z);
+            const std::byte* sscanline = src.getptr(0, 0, 0, z);
+            for (uint32_t y = 0; y < src.height(); ++y) {
+                for (uint32_t x = 0; x < src.width(); ++x) {
+                    memcpy(dscanline + x * dst.xstride(),
+                           sscanline + x * src.xstride(), chunksize);
+                }
+                sscanline += systride;
+                dscanline += dystride;
+            }
+        }
+        return true;
+    }
+    // General case -- have to do item by item copy.
+    // FIXME: is there advantage to doing copies individually rather
+    // then with memcpy?
+    size_t chunksize = src.chansize();
+    for (uint32_t z = 0; z < src.depth(); ++z) {
+        for (uint32_t y = 0; y < src.height(); ++y) {
+            std::byte* dscanline       = dst.getptr(0, 0, y, z);
+            const std::byte* sscanline = src.getptr(0, 0, y, z);
+            for (uint32_t x = 0; x < src.width(); ++x) {
+                std::byte* dpel       = dscanline + x * dst.xstride();
+                const std::byte* spel = sscanline + x * src.xstride();
+                for (uint32_t c = 0; x < src.nchannels(); ++c) {
+                    memcpy(dpel + c * dst.chanstride(),
+                           spel + c * src.chanstride(), chunksize);
                 }
             }
         }

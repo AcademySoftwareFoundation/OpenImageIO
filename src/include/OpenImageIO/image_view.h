@@ -20,7 +20,9 @@ OIIO_NAMESPACE_BEGIN
 /// strides (expressed in bytes) through the data.  An image_view<T> is
 /// mutable (the values in the image may be modified), whereas an
 /// image_view<const T> is not mutable.
-template<typename T> class image_view {
+template<typename T>
+class OIIO_DEPRECATED("image_view is deprecated. Consider image_span.")
+    image_view {
 public:
     typedef T value_type;
     typedef T& reference;
