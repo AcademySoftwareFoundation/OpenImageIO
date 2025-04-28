@@ -225,7 +225,7 @@ public:
 
     /// Does this image_span represent contiguous pixels -- i.e. within each
     /// pixel, the channels directly follow each other in memory?
-    bool is_contiguous_pixel() const noexcept
+    constexpr bool is_contiguous_pixel() const noexcept
     {
         return chanstride() == m_chansize;
     }
@@ -233,7 +233,7 @@ public:
     /// Does this image_span represent contiguous scanlines -- i.e. channels
     /// contiguous within each pixel and pixels contiguous within each
     /// scanline?
-    bool is_contiguous_scanline() const noexcept
+    constexpr bool is_contiguous_scanline() const noexcept
     {
         return is_contiguous_pixel() && xstride() == chanstride() * nchannels();
     }
@@ -241,7 +241,7 @@ public:
     /// Does this image_span represent contiguous 2D image planes -- i.e.
     /// channels contiguous within each pixel, pixels contiguous within each
     /// scanline, scanlines contiguous within each 2D image plane?
-    bool is_contiguous_plane() const noexcept
+    constexpr bool is_contiguous_plane() const noexcept
     {
         return is_contiguous_scanline()
                && (Rank < 3 || ystride() == xstride() * width());
@@ -250,7 +250,7 @@ public:
     /// Does this image_span represent fully contiguous data in all
     /// dimensions, i.e., each channel, pixel, scanline, and image plane
     /// directly abuts its neighbour, with no gaps?
-    bool is_contiguous() const noexcept
+    constexpr bool is_contiguous() const noexcept
     {
         return is_contiguous_scanline()
                /* image plane is contiguous scanlines */
@@ -259,8 +259,14 @@ public:
                && (Rank < 4 || zstride() == ystride() * height());
     }
 
+    /// Return the total number of pixels in the span: `w * h * d`.
+    constexpr size_t npixels() const
+    {
+        return size_t(width()) * size_t(height()) * size_t(depth());
+    }
+
     /// Return the total number of values in the span: `c * w * h * d`.
-    size_t nvalues() const
+    constexpr size_t nvalues() const
     {
         return size_t(nchannels()) * size_t(width()) * size_t(height())
                * size_t(depth());
@@ -268,7 +274,7 @@ public:
 
     /// Return the total number of bytes of (c*w*h*d) values of the given type
     /// (but not counting space in any gaps).
-    size_t size_bytes() const { return nvalues() * chansize(); }
+    constexpr size_t size_bytes() const { return nvalues() * chansize(); }
 
     /// Return a reference to the value at channel c, pixel (x,y,z).
     inline T& get(int c, int x, int y = 0, int z = 0) const
