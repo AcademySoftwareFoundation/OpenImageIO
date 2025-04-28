@@ -55,10 +55,6 @@ using imagesize_t = uint64_t;
 /// planes.
 using stride_t = int64_t;
 
-/// Type we use to express how many pixels (or bytes) constitute an image,
-/// tile, or scanline.
-using imagesize_t = uint64_t;
-
 /// Special value to indicate a stride length that should be
 /// auto-computed.
 inline constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
@@ -2241,8 +2237,440 @@ public:
     virtual bool close () = 0;
     /// @}
 
+    // clang-format on
+
     /// @{
-    /// @name Writing pixels
+    /// @name Writing pixels ("safe" methods with bounded spans)
+    ///
+    /// Common features of all the `write` methods:
+    ///
+    /// * There is a base case that takes a `image_span<byte>` describing
+    ///   untyped memory layout and a `TypeDesc` describing the data type
+    ///   that the values should be converted to (or TypeUnknown to keep
+    ///   the data in its "native" file types with no conversion).
+    ///
+    /// * The type-aware versions that accept an `image_span<T>` and
+    ///   understand to convert the data into the approprate `T` type.
+    ///
+    /// * The image_span (in either case) includes the memory bounds and
+    ///   stride lengths (in bytes) between channels, scanlines, and
+    ///   volumetric slices.
+    ///
+    /// * Any *range* parameters (such as `ybegin` and `yend`) describe a
+    ///   "half open interval", meaning that `begin` is the first item and
+    ///   `end` is *one past the last item*. That means that the number of
+    ///   items is `end - begin`.
+    ///
+    /// * For ordinary 2D (non-volumetric) images, any `z` or `zbegin`
+    ///   coordinates should be 0 and any `zend` should be 1, indicating
+    ///   that only a single image "plane" exists.
+    ///
+    /// * Scanlines or tiles must be written in successive increasing
+    ///   coordinate order, unless the particular output file driver allows
+    ///   random access (indicated by `supports("random_access")`).
+    ///
+    /// * All write functions return `true` for success, `false` for failure
+    ///   (after which a call to `geterror()` may retrieve a specific error
+    ///   message).
+    ///
+
+    /// Write the full scanline that includes pixels (*,y,z), taking the
+    /// values from an `image_span`.  For 2D non-volume images, `z` should be
+    /// 0.
+    ///
+    /// @param  y/z         The y & z coordinates of the scanline.
+    /// @param  data        A full description of the pixel data location,
+    ///                     dimensions, and strides.
+    /// @returns            `true` upon success, or `false` upon failure.
+    template<typename T> bool write_scanline(int y, int z, image_span<T> data)
+    {
+        // reduce to type + image_span<byte>
+        return write_scanline(y, z, TypeDescFromC<T>::value(),
+                              as_image_span_bytes(data));
+    }
+
+    /// Write the full scanline that includes pixels (*,y,z), taking
+    /// contiguous values from a `span`.  For 2D non-volume images, `z` should
+    /// be 0.
+    ///
+    /// @param  y/z         The y & z coordinates of the scanline.
+    /// @param  data        A span of the contiguous data to write.
+    /// @returns            `true` upon success, or `false` upon failure.
+    template<typename T> bool write_scanline(int y, int z, span<T> data)
+    {
+        // reduce to type + image_span<byte>
+        auto isize = m_spec.image_bytes(TypeDescFromC<T>::value());
+        return write_scanline(y, z,
+                              image_span<T>(data.data(), m_spec.nchannels,
+                                            m_spec.width, 1, 1));
+    }
+
+    /// Base/explicit case of write_scanline: Given an explicit data type and
+    /// an `image_span` of untyped bytes, write the full scanline that
+    /// includes pixels (*,y,z) from the buffer. For 2D non-volume images, `z`
+    /// should be 0.
+    ///
+    /// @param  y/z         The y & z coordinates of the scanline.
+    /// @param  format      A TypeDesc describing the type of the pixel data
+    ///                     that `data`'s memory contains. Use `TypeUnknown`
+    ///                     to indicate that the data is already in the native
+    ///                     format and needs no type conversion.
+    /// @param  data        An `image_span<byte>` of the pixel data to write.
+    /// @returns            `true` upon success, or `false` upon failure.
+    virtual bool write_scanline(int y, int z, TypeDesc format,
+                                image_span<const std::byte> data);
+
+    /// Write multiple scanlines that include pixels (*,y,z) for all `ybegin
+    /// <= y < yend`, from data.  You can write a single scanline by passing
+    /// `yend == ybegin + 1`, but passing multiple scanlines in each call
+    /// often has performance advantages for many file formats.
+    ///
+    /// The image_span must have a width equal to a full scanline width,
+    /// and its height must be yend - ybegin.
+    ///
+    /// @param  ybegin/yend The y range of the scanlines being passed.
+    /// @param  z           The z coordinate of the scanline.
+    /// @param  data        A full description of the pixel data location,
+    ///                     dimensions, and strides.
+    /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    template<typename T>
+    bool write_scanlines(int ybegin, int yend, int z, image_span<T> data)
+    {
+        // image_span<T>: reduces to type + byte_buffer
+        return write_scanlines(ybegin, yend, z, TypeDescFromC<T>::value(),
+                               data.as_image_span_bytes());
+    }
+
+    /// A version of `write_scanlines()` taking a cspan<T>, which assumes
+    /// contiguous strides in all dimensions. This is a convenience wrapper
+    /// around the `write_scanlines()` that takes an `image_span<const T>`.
+    template<typename T>
+    bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+                         span<T> data)
+    {
+        auto ispan = image_span<T>(data.data(), m_spec.nchannels, m_spec.width,
+                                   yend - ybegin, 1);
+        OIIO_DASSERT(data.size_bytes() == ispan.size_bytes()
+                     && ispan.is_contiguous());
+        return write_scanlines(ybegin, yend, z, ispan);
+    }
+
+    /// Base/explicit case of write_scanlines: Given an explicit data type and
+    /// an `image_span` of untyped bytes, write the scanlines of pixels from
+    /// the buffer.
+    ///
+    /// @param  format      A TypeDesc describing the type of the pixel data
+    ///                     that `data`'s memory contains. Use `TypeUnknown`
+    ///                     to indicate that the data is already in the native
+    ///                     format and needs no type conversion.
+    ///
+    virtual bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+                                 image_span<const std::byte> data);
+
+
+    /// Write a single tile of pixels whose upper left pixel coordinate is (x,
+    /// y, z) from a buffer described by `data`, which is an `image_span`
+    /// incorporating its bounded dimensions, strides, and data type.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of write_image that takes raw pointers.
+    ///
+    /// @param  x/y/z       The x range of the pixels being passed.
+    /// @param  ybegin/yend The y range of the pixels being passed.
+    /// @param  zbegin/zend The z range of the pixels being passed
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  data        An `image_span<T>` describing the buffer and
+    ///                     including its sizes and byte strides for each
+    ///                     dimension (channel, x, y, z), and the data
+    ///                     type `T`.
+    /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    template<typename T>
+    bool write_tile(int x, int y, int z, image_span<T> data)
+    {
+        return write_tile(x, y, z, TypeDescFromC<T>::value(),
+                          as_image_span_bytes(data));
+    }
+    /// A version of `write_tile()` taking a cspan<T>, which assumes
+    /// contiguous strides in all dimensions. This is a convenience wrapper
+    /// around the `write_tile()` that takes an `image_span<const T>`.
+    template<typename T> bool write_tile(int x, int y, int z, span<T> data)
+    {
+        auto ispan = image_span<T>(data.data(), m_spec.nchannels,
+                                   m_spec.tile_width, m_spec.tile_height,
+                                   m_spec.tile_depth);
+        OIIO_DASSERT(data.size_bytes() == ispan.size_bytes()
+                     && ispan.is_contiguous());
+        return write_tile(x, y, z, ispan);
+    }
+    /// Base/explicit case of write_tile: Given an explicit data type and
+    /// an `image_span` of untyped bytes, write the tile of pixels from
+    /// the buffer.
+    ///
+    /// @param  format      A TypeDesc describing the type of the pixel data
+    ///                     that `data`'s memory contains. Use `TypeUnknown`
+    ///                     to indicate that the data is already in the native
+    ///                     format and needs no type conversion.
+    ///
+    virtual bool write_tile(int x, int y, int z, TypeDesc format,
+                            image_span<const std::byte> data);
+
+    /// Write a rectangular regions of tiles of pixels given by the range
+    ///
+    ///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+    ///
+    /// from a buffer described by `data`, which is an `image_span`
+    /// incorporating its bounded dimensions, strides, and data type.
+    /// The begin/end coordinates must be at tile or image boundaries.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of write_image that takes raw pointers.
+    ///
+    /// @param  xbegin/xend The x range of the pixels being passed.
+    /// @param  ybegin/yend The y range of the pixels being passed.
+    /// @param  zbegin/zend The z range of the pixels being passed
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  data        An `image_span<T>` describing the buffer and
+    ///                     including its sizes and byte strides for each
+    ///                     dimension (channel, x, y, z), and the data
+    ///                     type `T`.
+    /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    template<typename T>
+    bool write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                     int zend, image_span<T> data)
+    {
+        return write_tiles(xbegin, xend, ybegin, yend, zbegin, zend,
+                           TypeDescFromC<T>::value(),
+                           as_image_span_bytes(data));
+    }
+    /// A version of `write_tiles()` taking a cspan<T>, which assumes
+    /// contiguous strides in all dimensions. This is a convenience wrapper
+    /// around the `write_tiles()` that takes an `image_span<const T>`.
+    template<typename T>
+    bool write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                     int zend, span<T> data)
+    {
+        auto ispan = image_span<T>(data.data(), m_spec.nchannels, xend - xbegin,
+                                   yend - ybegin, zend - zbegin);
+        OIIO_DASSERT(data.size_bytes() == ispan.size_bytes()
+                     && ispan.is_contiguous());
+        return write_tiles(xbegin, xend, ybegin, yend, zbegin, zend, ispan);
+    }
+    /// Base/explicit case of write_tiles: Given an explicit data type and
+    /// an `image_span` of untyped bytes, write the tiles of pixels from
+    /// the buffer.
+    ///
+    /// @param  format      A TypeDesc describing the type of the pixel data
+    ///                     that `data`'s memory contains. Use `TypeUnknown`
+    ///                     to indicate that the data is already in the native
+    ///                     format and needs no type conversion.
+    ///
+    virtual bool write_tiles(int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend, TypeDesc format,
+                             image_span<const std::byte> data);
+
+    /// Write the entire image of `spec.width x spec.height x spec.depth`
+    /// pixels, from a buffer described by `data`, which is an `image_span`
+    /// incorporating its bounded dimensions, strides, and data type.
+    ///
+    /// Depending on the spec, this will write either all tiles or all
+    /// scanlines. Assume that data points to a layout in row-major order.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of write_image that takes raw pointers.
+    ///
+    /// @param  data        An `image_span<T>` describing the buffer and
+    ///                     including its sizes and byte strides for each
+    ///                     dimension (x, y, z, and channel), and the data
+    ///                     type `T`.
+    /// @returns            `true` upon success, or `false` upon failure.
+    template<typename T> bool write_image(image_span<T> data)
+    {
+        return write_image(TypeDescFromC<T>::value(),
+                           as_image_span_bytes(data));
+    }
+
+    /// Write the entire image of `spec.width x spec.height x spec.depth`
+    /// pixels, from a buffer described by `data`, which is an `cspan<T>`
+    /// assuming it points to a contiguously laid out buffer.
+    ///
+    /// Depending on the spec, this will write either all tiles or all
+    /// scanlines. Assume that data points to a layout in row-major order.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of write_image that takes raw pointers.
+    ///
+    /// @param  data        An `span<const T>` describing the bounds of
+    ///                     the buffer containing contiguously laid out
+    ///                     `T` data for the entire image.
+    /// @returns            `true` upon success, or `false` upon failure.
+    template<typename T> bool write_image(span<T> data)
+    {
+        // auto isize = m_spec.image_bytes(TypeDescFromC<T>::value());
+        auto ispan = image_span<const T>(data.data(), m_spec.nchannels,
+                                         m_spec.width, m_spec.height,
+                                         m_spec.depth);
+        OIIO_DASSERT(data.size_bytes() == ispan.size_bytes()
+                     && ispan.is_contiguous());
+        return write_image(ispan);
+    }
+
+    /// Base/explicit case of write_image: Given an explicit data type and an
+    /// `image_span` of untyped bytes, write the entire image of `spec.width x
+    /// spec.height x spec.depth` pixels from the buffer.
+    ///
+    /// Depending on the spec, this will write either all tiles or all
+    /// scanlines. Assume that data points to a layout in row-major order.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of write_image that takes raw pointers.
+    ///
+    /// @param  format      A TypeDesc describing the type of the pixel data
+    ///                     that `data`'s memory contains. Use `TypeUnknown`
+    ///                     to indicate that the data is already in the native
+    ///                     format and needs no type conversion.
+    /// @param  data        An `image_span<T>` describing the memory extent
+    ///                     of the data buffer and including the sizes and
+    ///                     and byte strides for each dimension (channel, x,
+    ///                     y, and z).
+    /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    virtual bool write_image(TypeDesc format, image_span<const std::byte> data);
+
+    /// Write a rectangle of pixels given by the range
+    ///
+    ///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+    ///
+    /// from a buffer described by `data`, which is an `image_span`
+    /// incorporating its bounded dimensions, strides, and data type.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of write_image that takes raw pointers.
+    ///
+    /// @param  xbegin/xend The x range of the pixels being passed.
+    /// @param  ybegin/yend The y range of the pixels being passed.
+    /// @param  zbegin/zend The z range of the pixels being passed
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  data        An `image_span<T>` describing the buffer and
+    ///                     including its sizes and byte strides for each
+    ///                     dimension (channel, x, y, z), and the data
+    ///                     type `T`.
+    /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    /// @note The call will fail for a format plugin that does not return
+    /// true for `supports("rectangles")`.
+    template<typename T>
+    bool write_rectangle(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                         int zend, image_span<T> data)
+    {
+        return write_rectangle(xbegin, xend, ybegin, yend, zbegin, zend,
+                               TypeDescFromC<T>::value(),
+                               as_image_span_bytes(data));
+    }
+
+    /// A version of `write_rectangle()` taking a cspan<T>, which assumes
+    /// contiguous strides in all dimensions. This is a convenience wrapper
+    /// around the `write_rectangle()` that takes an `image_span<const T>`.
+    template<typename T>
+    bool write_rectangle(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                         int zend, span<T> data)
+    {
+        auto ispan = image_span<const T>(data.data(), m_spec.nchannels,
+                                         xend - xbegin, yend - ybegin,
+                                         zend - zbegin);
+        OIIO_DASSERT(data.size_bytes() == ispan.size_bytes()
+                     && ispan.is_contiguous());
+        return write_rectangle(xbegin, xend, ybegin, yend, zbegin, zend, ispan);
+    }
+
+    /// Base/explicit case of write_rectangle: Given an explicit data type and
+    /// an `image_span` of untyped bytes, write the rectangle of pixels from
+    /// the buffer.
+    ///
+    /// @param  format      A TypeDesc describing the type of the pixel data
+    ///                     that `data`'s memory contains. Use `TypeUnknown`
+    ///                     to indicate that the data is already in the native
+    ///                     format and needs no type conversion.
+    ///
+    virtual bool write_rectangle(int xbegin, int xend, int ybegin, int yend,
+                                 int zbegin, int zend, TypeDesc format,
+                                 image_span<const std::byte> data);
+
+    // clang-format off
+
+    /// Write deep scanlines containing pixels (*,y,z), for all y in the
+    /// range [ybegin,yend), to a deep file. This will fail if it is not a
+    /// deep file.
+    ///
+    /// @param  ybegin/yend The y range of the scanlines being passed.
+    /// @param  z           The z coordinate of the scanline.
+    /// @param  deepdata    A `DeepData` object with the data for these
+    ///                     scanlines.
+    /// @returns            `true` upon success, or `false` upon failure.
+    virtual bool write_deep_scanlines (int ybegin, int yend, int z,
+                                       const DeepData &deepdata);
+
+    /// Write the block of deep tiles that include all pixels in
+    /// the range
+    ///
+    ///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+    ///
+    /// The begin/end pairs must correctly delineate tile boundaries, with
+    /// the exception that it may also be the end of the image data if the
+    /// image resolution is not a whole multiple of the tile size.
+    ///
+    /// @param  xbegin/xend The x range of the pixels covered by the group
+    ///                     of tiles passed.
+    /// @param  ybegin/yend The y range of the pixels covered by the tiles.
+    /// @param  zbegin/zend The z range of the pixels covered by the tiles
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  deepdata    A `DeepData` object with the data for the tiles.
+    /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    /// @note The call will fail if the image is not tiled, or if the pixel
+    /// ranges do not fall along tile (or image) boundaries, or if it is not
+    /// a valid tile range.
+    virtual bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                                   int zbegin, int zend,
+                                   const DeepData &deepdata);
+
+    /// Write the entire deep image described by `deepdata`. Depending on
+    /// the spec, this will write either all tiles or all scanlines.
+    ///
+    /// @param  deepdata    A `DeepData` object with the data for the image.
+    /// @returns            `true` upon success, or `false` upon failure.
+    virtual bool write_deep_image (const DeepData &deepdata);
+
+    /// Specify a reduced-resolution ("thumbnail") version of the image.
+    /// Note that many image formats may require the thumbnail to be
+    /// specified prior to writing the pixels.
+    ///
+    /// @param thumb
+    ///         A reference to an `ImageBuf` containing the thumbnail image.
+    /// @returns
+    ///         `true` upon success, `false` if it was not possible to write
+    ///         the thumbnail, or if this file format (or writer) does not
+    ///         support thumbnails.
+    ///
+    /// @note This method was added to OpenImageIO 2.3.
+    virtual bool set_thumbnail(const ImageBuf& thumb) { return false; }
+
+    /// @}
+
+    /// @{
+    /// @name Writing pixels (unsafe methods with pointers and strides)
+    ///
+    /// These methods are the "unsafe" versions of the `write` methods, which
+    /// take raw pointers and strides.  They are provided for backwards
+    /// compatibility with older code, but the preferred interface is to use
+    /// the `write` methods that take `image_span<const T>` or `cspan<T>`
+    /// arguments, which are bounds-safe and type-aware.
+    ///
+    /// These pointer-based versions are considered "soft-deprecated" in
+    /// OpenImageIO 3.1, will be marked/warned as deprecated in 3.2, and will
+    /// be removed in 4.0.
     ///
     /// Common features of all the `write` methods:
     ///
@@ -2445,63 +2873,6 @@ public:
                               stride_t zstride=AutoStride,
                               ProgressCallback progress_callback=nullptr,
                               void *progress_callback_data=nullptr);
-
-    /// Write deep scanlines containing pixels (*,y,z), for all y in the
-    /// range [ybegin,yend), to a deep file. This will fail if it is not a
-    /// deep file.
-    ///
-    /// @param  ybegin/yend The y range of the scanlines being passed.
-    /// @param  z           The z coordinate of the scanline.
-    /// @param  deepdata    A `DeepData` object with the data for these
-    ///                     scanlines.
-    /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool write_deep_scanlines (int ybegin, int yend, int z,
-                                       const DeepData &deepdata);
-
-    /// Write the block of deep tiles that include all pixels in
-    /// the range
-    ///
-    ///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
-    ///
-    /// The begin/end pairs must correctly delineate tile boundaries, with
-    /// the exception that it may also be the end of the image data if the
-    /// image resolution is not a whole multiple of the tile size.
-    ///
-    /// @param  xbegin/xend The x range of the pixels covered by the group
-    ///                     of tiles passed.
-    /// @param  ybegin/yend The y range of the pixels covered by the tiles.
-    /// @param  zbegin/zend The z range of the pixels covered by the tiles
-    ///                     (for a 2D image, zbegin=0 and zend=1).
-    /// @param  deepdata    A `DeepData` object with the data for the tiles.
-    /// @returns            `true` upon success, or `false` upon failure.
-    ///
-    /// @note The call will fail if the image is not tiled, or if the pixel
-    /// ranges do not fall along tile (or image) boundaries, or if it is not
-    /// a valid tile range.
-    virtual bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
-                                   int zbegin, int zend,
-                                   const DeepData &deepdata);
-
-    /// Write the entire deep image described by `deepdata`. Depending on
-    /// the spec, this will write either all tiles or all scanlines.
-    ///
-    /// @param  deepdata    A `DeepData` object with the data for the image.
-    /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool write_deep_image (const DeepData &deepdata);
-
-    /// Specify a reduced-resolution ("thumbnail") version of the image.
-    /// Note that many image formats may require the thumbnail to be
-    /// specified prior to writing the pixels.
-    ///
-    /// @param thumb
-    ///         A reference to an `ImageBuf` containing the thumbnail image.
-    /// @returns
-    ///         `true` upon success, `false` if it was not possible to write
-    ///         the thumbnail, or if this file format (or writer) does not
-    ///         support thumbnails.
-    ///
-    /// @note This method was added to OpenImageIO 2.3.
-    virtual bool set_thumbnail(const ImageBuf& thumb) { return false; }
 
     /// @}
 
@@ -2770,6 +3141,46 @@ protected:
                                      std::vector<unsigned char> &scratch,
                                      unsigned int dither=0,
                                      int xorigin=0, int yorigin=0, int zorigin=0);
+
+    // clang-format on
+
+    /// Helper routine used by write_* implementations: convert data (in
+    /// the given format and strides) to the "native" format of the file
+    /// (described by the 'spec' member variable), in contiguous order. This
+    /// requires a scratch space to be passed in so that there are no memory
+    /// leaks.  Returns a span referring to the native data, which may be the
+    /// original data if it was already in native format and contiguous, or
+    /// it may point to the scratch space if it needed to make a copy or do
+    /// conversions. For float->uint8 conversions only, if dither is
+    /// nonzero, random dither will be added to reduce quantization banding
+    /// artifacts; in this case, the specific nonzero dither value is used
+    /// as a seed for the hash function that produces the per-pixel dither
+    /// amounts, and the optional [xyz]origin parameters help it to align
+    /// the pixels to the right position in the dither pattern.
+    template<typename T>
+    cspan<std::byte> to_native(int xbegin, int xend, int ybegin, int yend,
+                               int zbegin, int zend, image_span<T> data,
+                               std::vector<unsigned char>& scratch,
+                               unsigned int dither = 0, int xorigin = 0,
+                               int yorigin = 0, int zorigin = 0)
+    {
+        auto ispan = image_span<T>(data.data(), m_spec.nchannels, xend - xbegin,
+                                   yend - ybegin, zend - zbegin);
+        OIIO_DASSERT(data.size_bytes() == ispan.size_bytes()
+                     && ispan.is_contiguous());
+        return to_native(xbegin, xend, ybegin, yend, zbegin, zend, ispan,
+                         scratch, dither, xorigin, yorigin, zorigin);
+    }
+
+    /// This version of the to_native helper takes an explicit data type
+    /// `format` and an image_span of generic (std::byte) data.
+    cspan<std::byte> to_native(int xbegin, int xend, int ybegin, int yend,
+                               int zbegin, int zend, TypeDesc format,
+                               image_span<const std::byte> data,
+                               std::vector<unsigned char>& scratch,
+                               unsigned int dither = 0, int xorigin = 0,
+                               int yorigin = 0, int zorigin = 0);
+    // clang-format off
 
     /// Helper function to copy a rectangle of data into the right spot in
     /// an image-sized buffer. In addition to copying to the right place,

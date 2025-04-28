@@ -42,14 +42,14 @@ simple_write()
 {
     const char* filename = "simple.tif";
     const int xres = 320, yres = 240, channels = 3;
-    unsigned char pixels[xres * yres * channels] = { 0 };
+    std::vector<unsigned char> pixels(xres * yres * channels);
 
     std::unique_ptr<ImageOutput> out = ImageOutput::create(filename);
     if (!out)
         return;  // error
     ImageSpec spec(xres, yres, channels, TypeDesc::UINT8);
     out->open(filename, spec);
-    out->write_image(TypeDesc::UINT8, pixels);
+    out->write_image(make_cspan(pixels));
     out->close();
 }
 // END-imageoutput-simple
@@ -68,12 +68,12 @@ scanlines_write()
     ImageSpec spec(xres, yres, channels, TypeDesc::UINT8);
 
     // BEGIN-imageoutput-scanlines
-    unsigned char scanline[xres * channels] = { 0 };
+    std::vector<unsigned char> scanline(xres * channels);
     out->open(filename, spec);
     int z = 0;  // Always zero for 2D images
     for (int y = 0; y < yres; ++y) {
         // ... generate data in scanline[0..xres*channels-1] ...
-        out->write_scanline(y, z, TypeDesc::UINT8, scanline);
+        out->write_scanline(y, z, make_span(scanline));
     }
     out->close();
     // END-imageoutput-scanlines
