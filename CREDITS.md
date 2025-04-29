@@ -44,6 +44,7 @@ lg@openimageio.org
 * Brent Davis
 * Brian Hall
 * Brice Gros
+* Campbell Barton
 * Carl Rand
 * Cassian Andrei
 * Chad Dombrova
@@ -135,6 +136,7 @@ lg@openimageio.org
 * Leonid Onokhov
 * Leszek Godlewski
 * Li Ji
+* Loïc Vital
 * Lucas Panian
 * Lucille Caillaud
 * Lukas Schrangl

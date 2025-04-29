@@ -1,5 +1,17 @@
-Release 3.0.6.0 (May 1?, 2025) -- compared to 3.0.5.0
+Release 3.0.6.0 (May 1, 2025) -- compared to 3.0.5.0
 -----------------------------------------------------
+  - *oiiotool*: Add `--render_text` modifiers `measure=` and `render=` [#4681](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4681)
+  - *python*: Fix handle leak [#4685](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4685)
+  - *bmp*: Correct the type for BMP x/y density [#4695](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4695) (by Campbell Barton)
+  - *dpx*: Specify the units for DPX scanned size [#4694](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4694) (by Campbell Barton)
+  - *sgi*: Fix valid_file to properly swap bytes on little-endian platforms [#4697](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4697) (by Jesse Yurkovich)
+  - *build*: Fix new dcmtk 3.6.9 vs C++ warning [#4698](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4698)
+  - *build*: Address Robin-map vs CMake 4.0 compatibility [#4701](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4701)
+  - *build*: Fix broken OIIO_SITE customization [#4709](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4709)
+  - *build*: Address compiler warnings in simd.h [#4724](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4724)
+  - *build/windows*: Clean up Windows compilation warnings [#4706](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4706)
+  - *build/windows*: Include Windows version information on produced binaries [#4696](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4696) (by Jesse Yurkovich)
+  - *ci*: Move away from soon-to-be-deprecated ubuntu-20.04 GHA runner [#4636](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4636)
 
 
 Release 3.0.5.0 (Apr 2, 2025) -- compared to 3.0.4.0
