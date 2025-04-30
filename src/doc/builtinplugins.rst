@@ -42,10 +42,10 @@ tiles.
      - The compression of the BMP file (``"rle4"`` or ``"rle8"``, if
        RLE compression is used).
    * - ``XResolution``
-     - float
+     - int
      - hres
    * - ``YResolution``
-     - float
+     - int
      - vres
    * - ``ResolutionUnit``
      - string
@@ -425,10 +425,10 @@ the `set_ioproxy()` methods.
      - reference high quantity
    * - ``dpx:XScannedSize``
      - float
-     - X scanned size
+     - X scanned size in millimeters
    * - ``dpx:YScannedSize``
      - float
-     - Y scanned size
+     - Y scanned size in millimeters
    * - ``dpx:FramePosition``
      - int
      - frame position in sequence
@@ -2228,7 +2228,12 @@ options are supported:
      - Maximum memory allocation for processing of raw images. Stop processing if
        raw buffer size grows larger than that value (in megabytes).
        (Default: 2048)
-
+   * - ``raw:ForceLoad``
+     - int
+     - If 1, forces libraw to decompress and process the image during
+       initialization. This populates the image attributes which depend on the
+       pixel values.
+       (Default: 0)
 
 |
 

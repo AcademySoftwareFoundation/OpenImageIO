@@ -618,7 +618,7 @@ test_gatherscatter()
     g.scatter (scatter_out.data(), indices);
     OIIO_CHECK_ASSERT (scatter_out == gather_source);
 
-    std::fill (scatter_out.begin(), scatter_out.end(), -1);
+    std::fill (scatter_out.begin(), scatter_out.end(), ELEM(-1));
     VEC::Iota().scatter_mask (mask, scatter_out.data(), indices);
     for (int i = 0; i < (int)scatter_out.size(); ++i)
         OIIO_CHECK_EQUAL (scatter_out[i], ((i%3) == 1 && (i&1) ? i/3 : -1));

@@ -575,6 +575,17 @@ as_writable_bytes(T* ptr, size_t len) noexcept
 
 
 
+/// Convert a reference to a single variable to a const byte span of that
+/// object's memory.
+template<typename T>
+span<const std::byte>
+as_bytes_ref(const T& ref) noexcept
+{
+    return make_cspan(reinterpret_cast<const std::byte*>(&ref), sizeof(T));
+}
+
+
+
 /// Try to copy `n` items of type `T` from `src[srcoffset...]` to
 /// `dst[dstoffset...]`. Don't read or write outside the respective span
 /// boundaries. Return the number of items actually copied, which should be

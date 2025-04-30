@@ -36,7 +36,13 @@ function (setup_oiio_util_library targetname)
     else ()
         set (libtype STATIC)
     endif ()
-    add_library (${targetname} ${libtype} ${libOpenImageIO_Util_srcs})
+    
+    if (WIN32)
+        configure_file(../build-scripts/version_win32.rc.in "${CMAKE_CURRENT_BINARY_DIR}/version_win32.rc" @ONLY)
+        add_library (${targetname} ${libtype} ${libOpenImageIO_Util_srcs} ${CMAKE_CURRENT_BINARY_DIR}/version_win32.rc)
+    else ()
+        add_library (${targetname} ${libtype} ${libOpenImageIO_Util_srcs})
+    endif ()
 
     target_compile_definitions(${targetname} PRIVATE
                                ${${PROJECT_NAME}_compile_definitions})

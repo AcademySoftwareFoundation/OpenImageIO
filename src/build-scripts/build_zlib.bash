@@ -21,6 +21,10 @@ ZLIB_BUILD_DIR=${ZLIB_BUILD_DIR:=${ZLIB_SRC_DIR}/build}
 ZLIB_INSTALL_DIR=${ZLIB_INSTALL_DIR:=${PWD}/ext/dist}
 #ZLIB_CONFIG_OPTS=${ZLIB_CONFIG_OPTS:=}
 
+# Fix zlib which breaks against cmake 4.0 because of too-old cmake min.
+# Remove when zlib is fixed to declare its own minimum high enough.
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
 pwd
 echo "zlib install dir will be: ${ZLIB_INSTALL_DIR}"
 

@@ -73,6 +73,10 @@ public:
               const ImageSpec& config) override;
     bool read_native_scanline(int subimage, int miplevel, int y, int z,
                               void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               span<std::byte> data) override;
     bool close() override;
 
     const std::string& filename() const { return m_filename; }
