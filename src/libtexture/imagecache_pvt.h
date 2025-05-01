@@ -285,21 +285,59 @@ public:
                           ///<             1 for a non-volume image)
         int nchannels;    ///< number of image channels, e.g., 4 for RGBA
 
+        static inline void validate_alignment()
+        {
+            //! test structure alignment
+            OIIO_STATIC_ASSERT(alignof(ImageSpec) >= alignof(Dimensions));
+
+            //! test structure size
+            OIIO_STATIC_ASSERT(sizeof(Dimensions)
+                               == offsetof(ImageSpec, format));
+
+            //! test members offsets
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, x)
+                               == offsetof(ImageSpec, x));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, y)
+                               == offsetof(ImageSpec, y));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, z)
+                               == offsetof(ImageSpec, z));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, width)
+                               == offsetof(ImageSpec, width));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, height)
+                               == offsetof(ImageSpec, height));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, depth)
+                               == offsetof(ImageSpec, depth));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_x)
+                               == offsetof(ImageSpec, full_x));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_y)
+                               == offsetof(ImageSpec, full_y));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_z)
+                               == offsetof(ImageSpec, full_z));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_width)
+                               == offsetof(ImageSpec, full_width));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_height)
+                               == offsetof(ImageSpec, full_height));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_depth)
+                               == offsetof(ImageSpec, full_depth));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, tile_width)
+                               == offsetof(ImageSpec, tile_width));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, tile_height)
+                               == offsetof(ImageSpec, tile_height));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, tile_depth)
+                               == offsetof(ImageSpec, tile_depth));
+            OIIO_STATIC_ASSERT(offsetof(Dimensions, nchannels)
+                               == offsetof(ImageSpec, nchannels));
+        }
+
         static const Dimensions& convert(const ImageSpec& s)
         {
-            // is that evil ?
-            OIIO_STATIC_ASSERT(alignof(ImageSpec) >= alignof(Dimensions));
-            OIIO_DASSERT(sizeof(Dimensions)
-                         == ((size_t)&s.format - (size_t)&s.x));
+            validate_alignment();
             return *((Dimensions*)&s.x);
         }
 
         static Dimensions& convert(ImageSpec& s)
         {
-            // is that evil ?
-            OIIO_STATIC_ASSERT(alignof(ImageSpec) >= alignof(Dimensions));
-            OIIO_DASSERT(sizeof(Dimensions)
-                         == ((size_t)&s.format - (size_t)&s.x));
+            validate_alignment();
             return *((Dimensions*)&s.x);
         }
     };
