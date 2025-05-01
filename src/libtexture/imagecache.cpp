@@ -233,59 +233,48 @@ has_same_dimensions(const T& a, const T& b)
 inline bool
 is_same(const ImageSpec& a, const ImageSpec& b)
 {
-    bool same = true;
+    if (!has_same_dimensions(a, b))
+        return false;
+    if (a.alpha_channel != b.alpha_channel)
+        return false;
+    if (a.z_channel != b.z_channel)
+        return false;
+    if (a.deep != b.deep)
+        return false;
+    if (a.format != b.format)
+        return false;
+    if (a.channelformats.size() != b.channelformats.size())
+        return false;
+    if (a.channelnames.size() != b.channelnames.size())
+        return false;
+    if (a.extra_attribs.size() != b.extra_attribs.size())
+        return false;
 
-    // test every field first
-    same &= has_same_dimensions(a, b);
-    same &= a.alpha_channel == b.alpha_channel;
-    same &= a.z_channel == b.z_channel;
-    same &= a.deep == b.deep;
-    if (!same)
-        return same;
-
-    // test format and channel formats
-    same &= a.format == b.format;
-    same &= a.channelformats.size() == b.channelformats.size();
-    if (!same)
-        return same;
     for (size_t i = 0; i < a.channelformats.size(); ++i)
-        same &= a.channelformats.at(i) == b.channelformats.at(i);
+        if (a.channelformats.at(i) != b.channelformats.at(i))
+            return false;
 
-    // test channel names
-    same &= a.channelnames.size() == b.channelnames.size();
-    if (!same)
-        return same;
     for (size_t i = 0; i < a.channelnames.size(); ++i)
-        same &= a.channelnames.at(i) == b.channelnames.at(i);
+        if (a.channelnames.at(i) != b.channelnames.at(i))
+            return false;
 
-    if (!same)
-        return same;
-
-    // test meta data
-    same &= a.extra_attribs.size() == b.extra_attribs.size();
-    if (!same)
-        return same;
     for (size_t i = 0; i < a.extra_attribs.size(); ++i) {
-        same &= a.extra_attribs.at(i).name() == b.extra_attribs.at(i).name();
-        same &= a.extra_attribs.at(i).type() == b.extra_attribs.at(i).type();
-        same &= a.extra_attribs.at(i).nvalues()
-                == b.extra_attribs.at(i).nvalues();
-        same &= a.extra_attribs.at(i).datasize()
-                == b.extra_attribs.at(i).datasize();
-        if (!same)
-            return same;
-
-        //! mem compare the attribute data
-        const int size       = a.extra_attribs.at(i).datasize();
-        const bool same_data = std::memcmp(a.extra_attribs.at(i).data(),
-                                           b.extra_attribs.at(i).data(), size)
-                               == 0;
-        same &= same_data;
-        if (!same)
-            return same;
+        const ParamValue& pa = a.extra_attribs.at(i);
+        const ParamValue& pb = b.extra_attribs.at(i);
+        //! compare attribute infos
+        if (pa.name() != pb.name())
+            return false;
+        if (pa.type() != pb.type())
+            return false;
+        if (pa.nvalues() != pb.nvalues())
+            return false;
+        if (pa.datasize() != pb.datasize())
+            return false;
+        //! compare attribute memory
+        if (std::memcmp(pa.data(), pb.data(), pa.datasize()) != 0)
+            return false;
     }
-
-    return same;
+    return true;
 }
 
 

@@ -285,6 +285,18 @@ public:
                           ///<             1 for a non-volume image)
         int nchannels;    ///< number of image channels, e.g., 4 for RGBA
 
+        static const Dimensions& convert(const ImageSpec& s)
+        {
+            validate_alignment();
+            return *((Dimensions*)&s.x);
+        }
+
+        static Dimensions& convert(ImageSpec& s)
+        {
+            validate_alignment();
+            return *((Dimensions*)&s.x);
+        }
+
         static inline void validate_alignment()
         {
             //! test structure alignment
@@ -327,18 +339,6 @@ public:
                                == offsetof(ImageSpec, tile_depth));
             OIIO_STATIC_ASSERT(offsetof(Dimensions, nchannels)
                                == offsetof(ImageSpec, nchannels));
-        }
-
-        static const Dimensions& convert(const ImageSpec& s)
-        {
-            validate_alignment();
-            return *((Dimensions*)&s.x);
-        }
-
-        static Dimensions& convert(ImageSpec& s)
-        {
-            validate_alignment();
-            return *((Dimensions*)&s.x);
         }
     };
 
