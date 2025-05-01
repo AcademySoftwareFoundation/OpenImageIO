@@ -17,7 +17,7 @@
 include (FindPackageHandleStandardArgs)
 
 find_path (LIBHEIF_INCLUDE_DIR
-    libheif/heif_version.h
+    libheif/heif_version-64.h
     HINTS
         ${LIBHEIF_INCLUDE_PATH}
         ENV LIBHEIF_INCLUDE_PATH
@@ -30,7 +30,7 @@ find_library (LIBHEIF_LIBRARY heif
               DOC "The directory where libheif libraries reside")
 
 if (LIBHEIF_INCLUDE_DIR)
-    file(STRINGS "${LIBHEIF_INCLUDE_DIR}/libheif/heif_version.h" TMP REGEX "^#define LIBHEIF_VERSION[ \t].*$")
+    file(STRINGS "${LIBHEIF_INCLUDE_DIR}/libheif/heif_version-64.h" TMP REGEX "^#define LIBHEIF_VERSION[ \t].*$")
     string(REGEX MATCHALL "[0-9.]+" LIBHEIF_VERSION ${TMP})
 endif ()
 
