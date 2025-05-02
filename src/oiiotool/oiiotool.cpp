@@ -3276,10 +3276,10 @@ OIIOTOOL_OP(colormap, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 // that we don't break compatibility repeatedly.
 
 namespace ImageBufAlgox {
-ImageBuf OIIO_API
+ImageBuf
 cryptomatte_colors(const ImageBuf& src, span<const int> channelset,
                    ROI roi = {}, int nthreads = 0);
-bool OIIO_API
+bool
 cryptomatte_colors(ImageBuf& dst, const ImageBuf& src,
                    span<const int> channelset, ROI roi = {}, int nthreads = 0);
 }  // namespace ImageBufAlgox

@@ -190,11 +190,6 @@
 #  else
 #    define OIIO_AVX512PF_ENABLED 0
 #  endif
-#  if defined(__AVX512ER__)
-#    define OIIO_AVX512ER_ENABLED 1   /* Exponential & reciprocal */
-#  else
-#    define OIIO_AVX512ER_ENABLED 0
-#  endif
 #  if defined(__AVX512CD__)
 #    define OIIO_AVX512CD_ENABLED 1   /* Conflict detection */
 #  else
@@ -215,7 +210,6 @@
 #  define OIIO_AVX512VL_ENABLED 0
 #  define OIIO_AVX512DQ_ENABLED 0
 #  define OIIO_AVX512PF_ENABLED 0
-#  define OIIO_AVX512ER_ENABLED 0
 #  define OIIO_AVX512CD_ENABLED 0
 #  define OIIO_AVX512BW_ENABLED 0
 #endif
@@ -6903,7 +6897,7 @@ OIIO_FORCEINLINE void vfloat4::store (float *values, int n) const {
 #if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat4::store (half *values) const {
 #if OIIO_F16C_ENABLED && OIIO_SIMD_SSE
-    __m128i h = _mm_cvtps_ph (m_simd, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
+    __m128i h = _mm_cvtps_ph (m_simd, _MM_FROUND_TO_NEAREST_INT);
     _mm_store_sd ((double *)values, _mm_castsi128_pd(h));
 #elif OIIO_SIMD_NEON
     float16x4_t f16 = vcvt_f16_f32(m_simd);
@@ -7627,10 +7621,7 @@ OIIO_FORCEINLINE vfloat4 rsqrt (const vfloat4 &a)
 
 OIIO_FORCEINLINE vfloat4 rsqrt_fast (const vfloat4 &a)
 {
-#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512ER_ENABLED
-    // Trickery: in and out of the 512 bit registers to use fast approx rsqrt
-    return _mm512_castps512_ps128(_mm512_rsqrt28_round_ps(_mm512_castps128_ps512(a), _MM_FROUND_NO_EXC));
-#elif OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
     // Trickery: in and out of the 512 bit registers to use fast approx rsqrt
     return _mm512_castps512_ps128(_mm512_rsqrt14_ps(_mm512_castps128_ps512(a)));
 #elif OIIO_SIMD_SSE
@@ -8794,7 +8785,7 @@ OIIO_FORCEINLINE void vfloat8::store (float *values, int n) const {
 #if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat8::store (half *values) const {
 #if OIIO_SIMD_AVX && OIIO_F16C_ENABLED
-    __m128i h = _mm256_cvtps_ph (m_simd, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
+    __m128i h = _mm256_cvtps_ph (m_simd, _MM_FROUND_TO_NEAREST_INT);
     _mm_storeu_si128 ((__m128i *)values, h);
 #elif OIIO_SIMD_SSE || OIIO_SIMD_NEON
     m_4[0].store(values);
@@ -9285,10 +9276,7 @@ OIIO_FORCEINLINE vfloat8 rsqrt (const vfloat8 &a)
 
 OIIO_FORCEINLINE vfloat8 rsqrt_fast (const vfloat8 &a)
 {
-#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512ER_ENABLED
-    // Trickery: in and out of the 512 bit registers to use fast approx rsqrt
-    return _mm512_castps512_ps256(_mm512_rsqrt28_round_ps(_mm512_castps256_ps512(a), _MM_FROUND_NO_EXC));
-#elif OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
     // Trickery: in and out of the 512 bit registers to use fast approx rsqrt
     return _mm512_castps512_ps256(_mm512_rsqrt14_ps(_mm512_castps256_ps512(a)));
 #elif OIIO_SIMD_AVX
@@ -9673,7 +9661,7 @@ OIIO_FORCEINLINE void vfloat16::store (float *values, int n) const {
 #if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat16::store (half *values) const {
 #if OIIO_SIMD_AVX >= 512
-    __m256i h = _mm512_cvtps_ph (m_simd, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
+    __m256i h = _mm512_cvtps_ph (m_simd, _MM_FROUND_TO_NEAREST_INT);
     _mm256_storeu_si256 ((__m256i *)values, h);
 #else
     m_8[0].store (values);
@@ -10113,9 +10101,7 @@ OIIO_FORCEINLINE vint16 rint (const vfloat16& a)
 
 OIIO_FORCEINLINE vfloat16 rcp_fast (const vfloat16 &a)
 {
-#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512ER_ENABLED
-    return _mm512_rcp28_ps(a);
-#elif OIIO_SIMD_AVX >= 512
+#if OIIO_SIMD_AVX >= 512
     vfloat16 r = _mm512_rcp14_ps(a);
     return r * nmadd (r, a, vfloat16(2.0f));
 #else
@@ -10146,9 +10132,7 @@ OIIO_FORCEINLINE vfloat16 rsqrt (const vfloat16 &a)
 
 OIIO_FORCEINLINE vfloat16 rsqrt_fast (const vfloat16 &a)
 {
-#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512ER_ENABLED
-    return _mm512_rsqrt28_round_ps(a, _MM_FROUND_NO_EXC);
-#elif OIIO_SIMD_AVX >= 512
+#if OIIO_SIMD_AVX >= 512
     return _mm512_rsqrt14_ps (a);
 #else
     return vfloat16(rsqrt_fast(a.lo()), rsqrt_fast(a.hi()));

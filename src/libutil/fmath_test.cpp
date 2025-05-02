@@ -334,9 +334,18 @@ test_convert_type(double tolerance = 1e-6)
 
 template<typename S, typename D>
 void
-do_convert_type(const std::vector<S>& svec, std::vector<D>& dvec)
+do_convert_type_ptr(const std::vector<S>& svec, std::vector<D>& dvec)
 {
     convert_type(&svec[0], &dvec[0], svec.size());
+    DoNotOptimize(dvec[0]);  // Be sure nothing is optimized away
+}
+
+
+template<typename S, typename D>
+void
+do_convert_type_span(const std::vector<S>& svec, std::vector<D>& dvec)
+{
+    convert_type(svec, dvec);
     DoNotOptimize(dvec[0]);  // Be sure nothing is optimized away
 }
 
@@ -349,17 +358,24 @@ benchmark_convert_type()
     const size_t size    = iterations;
     const S testval(1.0);
     std::vector<S> svec(size, testval);
-    std::vector<D> dvec(size);
-    Strutil::print("Benchmark conversion of {:6} -> {:6} : ",
-                   TypeDesc(BaseTypeFromC<S>::value).c_str(),
-                   TypeDesc(BaseTypeFromC<D>::value).c_str());
-    float time = time_trial(bind(do_convert_type<S, D>, std::cref(svec),
+    std::vector<D> dvec(size), dvec2(size);
+    print("Benchmark conversion of {:6} -> {:6} (ptr) : ",
+          TypeDesc(BaseTypeFromC<S>::value), TypeDesc(BaseTypeFromC<D>::value));
+    float time = time_trial(bind(do_convert_type_ptr<S, D>, std::cref(svec),
                                  std::ref(dvec)),
                             ntrials, repeats)
                  / repeats;
-    Strutil::print("{:7.1f} Mvals/sec\n", (size / 1.0e6) / time);
+    print("{:7.1f} Mvals/sec\n", (size / 1.0e6) / time);
+    print("Benchmark conversion of {:6} -> {:6} (span): ",
+          TypeDesc(BaseTypeFromC<S>::value), TypeDesc(BaseTypeFromC<D>::value));
+    float time2 = time_trial(bind(do_convert_type_ptr<S, D>, std::cref(svec),
+                                  std::ref(dvec2)),
+                             ntrials, repeats)
+                  / repeats;
+    print("{:7.1f} Mvals/sec\n", (size / 1.0e6) / time2);
     D r = convert_type<S, D>(testval);
     OIIO_CHECK_EQUAL(dvec[size - 1], r);
+    OIIO_CHECK_EQUAL(dvec2[size - 1], r);
 }
 
 
