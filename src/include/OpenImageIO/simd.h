@@ -213,6 +213,7 @@
 #  define OIIO_AVX512CD_ENABLED 0
 #  define OIIO_AVX512BW_ENABLED 0
 #endif
+#define OIIO_AVX512ER_ENABLED 0 /* DEPRECATED(3.1) */
 
 #if defined(__FMA__)
 #  define OIIO_FMA_ENABLED 1
