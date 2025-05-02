@@ -149,8 +149,9 @@ Copying ImageBuf's and blocks of pixels
 .. doxygenfunction:: OIIO::ImageBuf::operator=(ImageBuf &&src)
 .. doxygenfunction:: OIIO::ImageBuf::copy(const ImageBuf &src, TypeDesc format = TypeUnknown)
 .. doxygenfunction:: OIIO::ImageBuf::copy(TypeDesc format) const
-.. doxygenfunction:: OIIO::ImageBuf::copy_metadata
 .. doxygenfunction:: OIIO::ImageBuf::copy_pixels
+.. doxygenfunction:: OIIO::ImageBuf::copy_metadata
+.. doxygenfunction:: OIIO::ImageBuf::merge_metadata
 .. doxygenfunction:: OIIO::ImageBuf::swap
 
 

@@ -89,6 +89,9 @@ SgiInput::valid_file(Filesystem::IOProxy* ioproxy) const
 
     int16_t magic {};
     const size_t numRead = ioproxy->pread(&magic, sizeof(magic), 0);
+    if (littleendian()) {
+        swap_endian(&magic);
+    }
     return numRead == sizeof(magic) && magic == sgi_pvt::SGI_MAGIC;
 }
 

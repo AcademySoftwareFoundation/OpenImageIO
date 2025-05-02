@@ -11,7 +11,10 @@
 
 #define HAVE_CONFIG_H /* Sometimes DCMTK seems to need this */
 #include <dcmtk/config/osconfig.h>
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wformat-nonliteral")
 #include <dcmtk/dcmdata/dctk.h>
+OIIO_PRAGMA_WARNING_POP
 #include <dcmtk/dcmimage/dicopx.h>
 #include <dcmtk/dcmimage/diregist.h>
 #include <dcmtk/dcmimgle/dcmimage.h>

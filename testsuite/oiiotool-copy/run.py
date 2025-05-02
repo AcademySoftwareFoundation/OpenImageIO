@@ -93,11 +93,24 @@ command += oiiotool ("../common/grid.tif "
             + "--pattern checker 256x256 3 --paste +150+75 -o pasted.tif")
 
 # test --pastemeta
-command += oiiotool ("--pattern:type=half constant:color=0,1,0 64x64 3 -o green.exr")
-command += oiiotool ("--pattern:type=half constant:color=1,0,0 64x64 3 -attrib hair brown -attrib eyes 2 -attrib weight 20.5 -o redmeta.exr")
-command += oiiotool ("redmeta.exr green.exr --pastemeta -o greenmeta.exr")
+command += oiiotool ("--pattern:type=half constant:color=0,1,0 64x64 3 -attrib hair black -o green.exr")
+command += oiiotool ("--pattern:type=half constant:color=1,0,0 64x64 3 -attrib hair brown -attrib eyes 2 -attrib weight 20.5 -attrib camera:lens AX30 --attrib camera:shutter 0.0125  -o meta.exr")
 command += info_command ("green.exr", safematch=True)
-command += info_command ("greenmeta.exr", safematch=True)
+#  straight pastemeta -- full replacement
+command += oiiotool ("meta.exr green.exr --pastemeta -o greenmeta-replace.exr")
+command += info_command ("greenmeta-replace.exr", safematch=True)
+#  paste with nondestructive merge
+command += oiiotool ("meta.exr green.exr --pastemeta:merge=1 -o greenmeta-merge.exr")
+command += info_command ("greenmeta-merge.exr", safematch=True)
+#  pastemeta with destructive merge
+command += oiiotool ("meta.exr green.exr --pastemeta:merge=2 -o greenmeta-merge-override.exr")
+command += info_command ("greenmeta-merge-override.exr", safematch=True)
+#  pastemeta with pattern-selected subset
+command += oiiotool ("meta.exr green.exr --pastemeta:merge=1:pattern=\"^camera:\" -o greenmeta-merge-camera.exr")
+command += info_command ("greenmeta-merge-camera.exr", safematch=True)
+#  pastemeta odd case with more pixel subimages than meta subimages
+command += oiiotool ("-a meta.exr green.exr --dup --dup --siappend --siappend --pastemeta:merge=1 -o greenmeta-merge-2.exr")
+command += info_command ("greenmeta-merge-2.exr", safematch=True)
 
 # test mosaic
 # Purposely test with fewer images than the mosaic array size
@@ -140,7 +153,7 @@ outputs = [
             "chappend-rgbaz.exr", "chname.exr",
             "crop.tif", "cut.tif", "pasted.tif",
             "mosaic.tif", "mosaicfit.tif",
-            "greenmeta.exr",
+            "greenmeta-replace.exr",
             "chappend-3images.exr",
             "out.txt"
           ]

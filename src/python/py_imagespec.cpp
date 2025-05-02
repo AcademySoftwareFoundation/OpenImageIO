@@ -112,8 +112,6 @@ declare_imagespec(py::module& m)
                 return spec.channel_bytes(chan, native);
             },
             "channel"_a, "native"_a = false)
-        // .def("pixel_bytes",
-        //      [](const ImageSpec &spec){ return spec.pixel_bytes(); })
         .def(
             "pixel_bytes",
             [](const ImageSpec& spec, bool native) {
@@ -126,28 +124,34 @@ declare_imagespec(py::module& m)
                 return spec.pixel_bytes(chbegin, chend, native);
             },
             "chbegin"_a, "chend"_a, "native"_a = false)
-        // .def("scanline_bytes",
-        //      [](const ImageSpec &spec){ return spec.scanline_bytes(); })
         .def(
             "scanline_bytes",
             [](const ImageSpec& spec, bool native) {
                 return spec.scanline_bytes(native);
             },
             "native"_a = false)
-        // .def("tile_bytes",
-        //      [](const ImageSpec &spec){ return spec.tile_bytes(); })
+        .def("scanline_bytes",
+             [](const ImageSpec& spec, TypeDesc type) {
+                 return spec.scanline_bytes(type);
+             })
         .def(
             "tile_bytes",
             [](const ImageSpec& spec, bool native) {
                 return spec.tile_bytes(native);
             },
             "native"_a = false)
-        // .def("image_bytes",
-        //      [](const ImageSpec &spec){ return spec.image_bytes(); })
+        .def("tile_bytes", [](const ImageSpec& spec,
+                              TypeDesc type) { return spec.tile_bytes(type); })
         .def(
             "image_bytes",
             [](const ImageSpec& spec, bool native) {
                 return spec.image_bytes(native);
+            },
+            "native"_a = false)
+        .def(
+            "image_bytes",
+            [](const ImageSpec& spec, TypeDesc datatype) {
+                return spec.image_bytes(datatype);
             },
             "native"_a = false)
         .def("tile_pixels", &ImageSpec::tile_pixels)
@@ -258,8 +262,15 @@ declare_imagespec(py::module& m)
         .def("to_xml",
              [](const ImageSpec& spec) { return PY_STR(spec.to_xml()); })
         .def("from_xml", &ImageSpec::from_xml)
-        .def("valid_tile_range", &ImageSpec::valid_tile_range, "xbegin"_a,
-             "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a, "zend"_a)
+        .def(
+            "valid_tile_range",
+            [](ImageSpec& self, int xbegin, int xend, int ybegin, int yend,
+               int zbegin, int zend) {
+                return self.valid_tile_range(xbegin, xend, ybegin, yend, zbegin,
+                                             zend);
+            },
+            "xbegin"_a, "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a = 0,
+            "zend"_a = 1)
         .def("copy_dimensions", &ImageSpec::copy_dimensions, "other"_a)
         .def(
             "set_colorspace",

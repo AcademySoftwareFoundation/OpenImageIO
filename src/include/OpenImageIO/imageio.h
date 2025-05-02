@@ -28,9 +28,10 @@
 #include <string>
 #include <vector>
 
-#include <OpenImageIO/span.h>
-#include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/span.h>
+#include <OpenImageIO/image_span.h>
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/strutil.h>
@@ -44,6 +45,11 @@ class DeepData;
 class ImageBuf;
 class Timer;
 
+#ifndef OIIO_STRIDE_T_DEFINED
+#    define OIIO_STRIDE_T_DEFINED
+/// Type we use to express how many pixels (or bytes) constitute an image,
+/// tile, or scanline.
+using imagesize_t = uint64_t;
 
 /// Type we use for stride lengths between pixels, scanlines, or image
 /// planes.
@@ -55,7 +61,8 @@ using imagesize_t = uint64_t;
 
 /// Special value to indicate a stride length that should be
 /// auto-computed.
-const stride_t AutoStride = std::numeric_limits<stride_t>::min();
+inline constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
+#endif
 
 
 
@@ -390,6 +397,13 @@ public:
     /// overflow where it's not representable in an `imagesize_t`.
     imagesize_t scanline_bytes (bool native=false) const noexcept;
 
+    /// Returns the number of bytes comprising each scanline, if all channels
+    /// were of the given type. If `type` is `TypeUnknown`, then it returns
+    /// the bytes a scanline using each channel's native type. This will
+    /// return `std::numeric_limits<imagesize_t>::max()` in the event of an
+    /// overflow where it's not representable in an `imagesize_t`.
+    imagesize_t scanline_bytes(TypeDesc type) const noexcept;
+
     /// Return the number of pixels comprising a tile (or 0 if it is not a
     /// tiled image).  This will return
     /// `std::numeric_limits<imagesize_t>::max()` in the event of an
@@ -403,6 +417,13 @@ public:
     /// in the "native" data format of the file (these may differ in the
     /// case of per-channel formats).
     imagesize_t tile_bytes (bool native=false) const noexcept;
+
+    /// Returns the number of bytes comprising each tile, if all channels
+    /// were of the given type. If `type` is `TypeUnknown`, then it returns
+    /// the bytes a scanline using each channel's native type. This will
+    /// return `std::numeric_limits<imagesize_t>::max()` in the event of an
+    /// overflow where it's not representable in an `imagesize_t`.
+    imagesize_t tile_bytes(TypeDesc type) const noexcept;
 
     /// Return the number of pixels for an entire image.  This will
     /// return `std::numeric_limits<imagesize_t>::max()` in the event of
@@ -419,6 +440,12 @@ public:
     /// a pixel in the "native" data format of the file (these may differ in
     /// the case of per-channel formats).
     imagesize_t image_bytes (bool native=false) const noexcept;
+
+    /// Returns the number of bytes comprising an entire image of these
+    /// dimensions, if the values were all of type `datatype`. For the
+    /// special case of `datatype == `TypeUnknown`, compute the size of
+    /// the image in the "native" data types for all channels.
+    imagesize_t image_bytes(TypeDesc datatype) const noexcept;
 
     /// Verify that on this platform, a `size_t` is big enough to hold the
     /// number of bytes (and pixels) in a scanline, a tile, and the
@@ -667,8 +694,19 @@ public:
     decode_compression_metadata(string_view defaultcomp = "",
                                 int defaultqual = -1) const;
 
-    /// Helper function to verify that the given pixel range exactly covers
-    /// a set of tiles.  Also returns false if the spec indicates that the
+    /// Helper function to verify that the given pixel range exactly covers a
+    /// set of 2D tiles.  Also returns false if the spec indicates that the
+    /// image isn't tiled at all.
+    bool valid_tile_range (int xbegin, int xend, int ybegin, int yend) noexcept {
+        return (tile_width &&
+                ((xbegin-x) % tile_width)  == 0 &&
+                ((ybegin-y) % tile_height) == 0 &&
+                (((xend-x) % tile_width)  == 0 || (xend-x) == width) &&
+                (((yend-y) % tile_height) == 0 || (yend-y) == height));
+    }
+
+    /// Helper function to verify that the given pixel range exactly covers a
+    /// set of 3D tiles.  Also returns false if the spec indicates that the
     /// image isn't tiled at all.
     bool valid_tile_range (int xbegin, int xend, int ybegin, int yend,
                            int zbegin, int zend) noexcept {
@@ -1508,44 +1546,123 @@ public:
     ///     code (except for read_native_deep_* varieties). These are the
     ///     methods that are overloaded by the ImageInput subclasses that
     ///     implement the individual file format readers.
-    //
-    // The read_native_* methods always read the "native" data types
-    // (including per-channel data types) and assume that `data` points to
-    // contiguous memory (no non-default strides). In contrast, the
-    // read_scanline/scanlines/tile/tiles handle data type translation and
-    // arbitrary strides.
-    //
-    // The read_native_* methods take an explicit subimage and miplevel, and
-    // thus do not require a prior call to seek_subimage (and therefore no
-    // saved state). They are all required to be thread-safe when called
-    // concurrently with any other read_native_* call or with the varieties
-    // of read_tiles() that also takes an explicit subimage and miplevel
-    // parameter.
-    //
-    // As far as format-reading ImageInput subclasses are concerned, the
-    // only truly required overloads are read_native_scanline (always) and
-    // read_native_tile (only for formats that support tiles). The other
-    // varieties are special cases, for example if the particular format is
-    // able to efficiently read multiple scanlines or tiles at once, and if
-    // the subclass does not provide overloads, the base class
-    // implementation will be used instead, which is implemented by reducing
-    // the operation to multiple calls to read_scanline or read_tile.
+    ///
+    /// The read_native_* methods always read the "native" data types
+    /// (including per-channel data types) and assume that `data` points to
+    /// contiguous memory (no non-default strides). In contrast, the
+    /// read_scanline/scanlines/tile/tiles handle data type translation and
+    /// arbitrary strides.
+    ///
+    /// The read_native_* methods take an explicit subimage and miplevel, and
+    /// thus do not require a prior call to seek_subimage (and therefore no
+    /// saved state). They are all required to be thread-safe when called
+    /// concurrently with any other read_native_* call or with the varieties
+    /// of read_tiles() that also takes an explicit subimage and miplevel
+    /// parameter.
+    ///
+    /// As far as format-reading ImageInput subclasses are concerned, the
+    /// only truly required overloads are read_native_scanline (always) and
+    /// read_native_tile (only for formats that support tiles). The other
+    /// varieties are special cases, for example if the particular format is
+    /// able to efficiently read multiple scanlines or tiles at once, and if
+    /// the subclass does not provide overloads, the base class
+    /// implementation will be used instead, which is implemented by reducing
+    /// the operation to multiple calls to read_scanline or read_tile.
+    ///
+    /// Note for ImageInput implementors:
+    ///
+    /// The preferred ImageInput implementation strategy (and, eventually,
+    /// required) is to fully implement the span-based, all-channel verison of
+    /// read_native_scanlines and/or read_native_tiles and/or
+    /// read_native_volumetric_tiles (whichever of these are supported by the
+    /// image file format), and to make a trivial implementation of the old
+    /// pointer-based varieties that simply call the span ones (with an
+    /// inferred length).
+    ///
+    /// The channel-subset versions may also, optionally, be implemented. If
+    /// omitted, they will fall back to a default implementation that calls
+    /// the all-channel versions to read into a temporary buffer, then copies
+    /// the requested channels to the user's buffer. It is only worth custom
+    /// implementations of the channel-subset versions for formats where there
+    /// is a significant performance advantage due to the underlying library
+    /// providing that as a feature (as OpenEXR does, for example, but most
+    /// format reading APIs do not).
+    ///
+    /// For the time being, old ImageInput format readers that do not yet
+    /// implement the span-based readers, but provide full featured
+    /// implementations of the pointer-based varieties, will continue to work.
+    /// This is because the default base-class implementation of the
+    /// span-based read_native methods will, if not overloaded, simply call
+    /// the pointer-based versions.
+    ///
+    /// To reiterate: A format-reader is expected to provide EITHER (a)
+    /// span-based calls with full implementations and pointer-based calls
+    /// that simply call the span-based ones, OR (b) pointer-based full
+    /// implementations only and rely on the base class span-based calls to
+    /// call them by default.
 
+    /// Read a range of scanlines (all channels) of native data into
+    /// contiguous memory defined by the span `data`.
+    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                       int yend, span<std::byte> data);
+
+    /// Read a range of scanlines (with potentially a subset of channels) of
+    /// native data into contiguous memory defined by the span `data`.
+    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                       int yend, int chbegin, int chend,
+                                       span<std::byte> data);
+
+    /// Read a range of tiles (all channels) of native data into contiguous
+    /// memory defined by the span `data`.
+    virtual bool read_native_tiles(int subimage, int miplevel,
+                                   int xbegin, int xend, int ybegin, int yend,
+                                   span<std::byte> data);
+
+    /// Read a range of tiles (with potentially a subset of channels) of
+    /// native data into contiguous memory defined by the span `data`.
+    virtual bool read_native_tiles(int subimage, int miplevel,
+                                   int xbegin, int xend, int ybegin, int yend,
+                                   int chbegin, int chend,
+                                   span<std::byte> data);
+
+    /// Read a range of 3D volumetric tiles (all channels) of native data into
+    /// contiguous memory. This is only functional for volumetric formats.
+    virtual bool read_native_volumetric_tiles(int subimage, int miplevel,
+                                   int xbegin, int xend, int ybegin, int yend,
+                                   int zbegin, int zend, span<std::byte> data);
+
+    /// Read a range of 3D volumetric tiles (with potentially a subset of
+    /// channels) of native data into contiguous memory. This is only
+    /// functional for volumetric formats.
+    virtual bool read_native_volumetric_tiles(int subimage, int miplevel,
+                                int xbegin, int xend, int ybegin, int yend,
+                                int zbegin, int zend, int chbegin, int chend,
+                                span<std::byte> data);
+
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read a single scanline (all channels) of native data into contiguous
     /// memory.
     virtual bool read_native_scanline (int subimage, int miplevel,
                                        int y, int z, void *data) = 0;
+
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read a range of scanlines (all channels) of native data into
     /// contiguous memory.
     virtual bool read_native_scanlines (int subimage, int miplevel,
                                         int ybegin, int yend, int z,
                                         void *data);
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read a range of scanlines (with optionally a subset of channels) of
     /// native data into contiguous memory.
     virtual bool read_native_scanlines (int subimage, int miplevel,
                                         int ybegin, int yend, int z,
                                         int chbegin, int chend, void *data);
 
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read a single tile (all channels) of native data into contiguous
     /// memory. The base class read_native_tile fails. A format reader that
     /// supports tiles MUST overload this virtual method that reads a single
@@ -1553,6 +1670,8 @@ public:
     virtual bool read_native_tile (int subimage, int miplevel,
                                    int x, int y, int z, void *data);
 
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read multiple tiles (all channels) of native data into contiguous
     /// memory. A format reader that supports reading multiple tiles at once
     /// (in a way that's more efficient than reading the tiles one at a
@@ -1564,6 +1683,8 @@ public:
                                     int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend, void *data);
 
+    /// OLD pointer-based version: this will eventually be deprecated.
+    ///
     /// Read multiple tiles (potentially a subset of channels) of native
     /// data into contiguous memory. A format reader that supports reading
     /// multiple tiles at once, and can handle a channel subset while doing
@@ -1576,6 +1697,7 @@ public:
                                     int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend,
                                     int chbegin, int chend, void *data);
+
     /// @}
 
 
@@ -1746,6 +1868,16 @@ protected:
     /// Helper: retrieve the current position of the proxy, akin to ftell.
     int64_t iotell() const;
 
+    /// @}
+
+    /// @{
+    /// @name Helper methods for ImageInput implementations.
+    ///
+    /// This set of utility functions are not meant to be called by user code.
+    /// They are protected methods of ImageInput, and are used internally by
+    /// the ImageInput format-reading implementations.
+    ///
+
     /// Helper: convenience boilerplate for several checks and operations that
     /// every implementation of ImageInput::open() will need to do. Failure is
     /// presumed to indicate a file that is corrupt (or perhaps maliciously
@@ -1793,6 +1925,16 @@ protected:
         // Reserved for future use
     };
 
+    /// Helper method: Validate that a `[chbegin, chend)` X `[xbegin, xend)` X
+    /// `[ybegin, yend)` X `[zbegin, zend)` slab of native channel data types
+    /// (according to the ImageSpec) can fit into the amount of contiguous
+    /// memory held by the span. If it can, return true. If it can't, call
+    /// `this->errorfmt()` with an appropriate error message and return false.
+    /// Unspecified channel range indicates all channels.
+    bool valid_raw_span_size(cspan<std::byte> buf, const ImageSpec& spec,
+                             int xbegin, int xend, int ybegin, int yend,
+                             int zbegin = 0, int zend = 1,
+                             int chbegin = 0, int chend = -1);
     /// @}
 
 private:
@@ -3276,6 +3418,25 @@ get_extension_map()
 OIIO_API bool convert_pixel_values (TypeDesc src_type, const void *src,
                                     TypeDesc dst_type, void *dst, int n = 1);
 
+/// Helper function: copy values from spans `src` to `dst`, converting between
+/// types as appropriate. Return true if ok, false if it didn't know how to do
+/// the conversion.
+///
+/// The conversion is of normalized (pixel-like) values -- for example 'UINT8'
+/// 255 will convert to float 1.0 and vice versa, not float 255.0. If you want
+/// a straight C-like data cast conversion (e.g., uint8 255 -> float 255.0),
+/// then you should prefer the un-normalized convert_type() utility function
+/// found in typedesc.h.
+template<typename SrcType, typename DstType>
+bool
+convert_pixel_values(cspan<SrcType> src, span<DstType> dst)
+{
+    OIIO_DASSERT(dst.size() >= src.size());
+    return convert_pixel_values(TypeDescFromC_v<SrcType>, src.data(),
+                                TypeDescFromC_v<DstType>, dst.data(),
+                                std::min(dst.size(), src.size()));
+}
+
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
@@ -3294,6 +3455,50 @@ OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
                              stride_t dst_xstride, stride_t dst_ystride,
                              stride_t dst_zstride);
 
+/// Helper routine for data conversion: Convert an image described by
+/// image_span `src` into image_span `dst`, which must be the same dimensions
+/// but possibly differing data type and strides.  Clever use of this function
+/// can not only exchange data among different formats (e.g., half to 8-bit
+/// unsigned), but also can copy selective channels, copy subimages, etc.
+/// Return true if ok, false if it didn't know how to do the conversion.
+template<typename SrcType, typename DstType>
+bool
+convert_image(image_span<SrcType> src, image_span<DstType> dst)
+{
+    // For now, just implement by wrapping the pointer-based version.
+    OIIO_DASSERT(src.nchannels() == dst.nchannels()
+                 && src.width() == dst.width() && src.height() == dst.height()
+                 && src.depth() == dst.depth());
+    return convert_image(src.nchannels(), src.width(), src.height(),
+                         src.depth(), src.data(), TypeDescFromC_v<SrcType>,
+                         src.xstride(), src.ystride(), src.zstride(),
+                         dst.data(), TypeDescFromC_v<DstType>, dst.xstride(),
+                         dst.ystride(), dst.zstride());
+}
+
+
+/// Helper routine for data conversion: Convert an image described by
+/// image_span `src` into image_span `dst`, which must be the same dimensions
+/// but possibly differing data type and strides. The data types are passed as
+/// `TypeDesc`, and the spans are untyped bytes that provide the dimensions
+/// and memory layout.
+inline bool
+convert_image(image_span<const std::byte> src, TypeDesc src_type,
+              image_span<std::byte> dst, TypeDesc dst_type)
+{
+    // For now, just implement by wrapping the pointer-based version.
+    OIIO_DASSERT(src.nchannels() == dst.nchannels()
+                 && src.width() == dst.width() && src.height() == dst.height()
+                 && src.depth() == dst.depth());
+    OIIO_DASSERT(src_type.size() == src.chansize()
+                 && dst_type.size() == dst.chansize());
+    return convert_image(src.nchannels(), src.width(), src.height(),
+                         src.depth(), src.data(), src_type, src.xstride(),
+                         src.ystride(), src.zstride(), dst.data(), dst_type,
+                         dst.xstride(), dst.ystride(), dst.zstride());
+}
+
+
 
 /// A version of convert_image that will break up big jobs into multiple
 /// threads.
@@ -3305,6 +3510,48 @@ OIIO_API bool parallel_convert_image (
                void *dst, TypeDesc dst_type,
                stride_t dst_xstride, stride_t dst_ystride,
                stride_t dst_zstride, int nthreads=0);
+
+/// A version of convert_image that will break up big jobs into multiple
+/// threads. The data types are taken from the spans.
+template<typename SrcType, typename DstType>
+bool
+parallel_convert_image(image_span<SrcType> src, image_span<DstType> dst,
+                       int nthreads = 0)
+{
+    // For now, just implement by wrapping the pointer-based version.
+    OIIO_DASSERT(src.nchannels() == dst.nchannels()
+                 && src.width() == dst.width() && src.height() == dst.height()
+                 && src.depth() == dst.depth());
+    return parallel_convert_image(src.nchannels(), src.width(), src.height(),
+                                  src.depth(), src.data(),
+                                  TypeDescFromC_v<SrcType>, src.xstride(),
+                                  src.ystride(), src.zstride(), dst.data(),
+                                  TypeDescFromC_v<SrcType>, dst.xstride(),
+                                  dst.ystride(), dst.zstride(), nthreads);
+}
+
+/// A version of convert_image that will break up big jobs into multiple
+/// threads. The data types are passed as `TypeDesc`, and the spans are
+/// untyped bytes that provide the dimensions and memory layout.
+inline bool
+parallel_convert_image(image_span<const std::byte> src, TypeDesc src_type,
+                       image_span<std::byte> dst, TypeDesc dst_type,
+                       int nthreads = 0)
+{
+    // For now, just implement by wrapping the pointer-based version.
+    OIIO_DASSERT(src.nchannels() == dst.nchannels()
+                 && src.width() == dst.width() && src.height() == dst.height()
+                 && src.depth() == dst.depth());
+    OIIO_DASSERT(src_type.size() == src.chansize()
+                 && dst_type.size() == dst.chansize());
+    return parallel_convert_image(src.nchannels(), src.width(), src.height(),
+                                  src.depth(), src.data(),
+                                  src_type, src.xstride(),
+                                  src.ystride(), src.zstride(), dst.data(),
+                                  dst_type, dst.xstride(),
+                                  dst.ystride(), dst.zstride(), nthreads);
+}
+
 
 
 /// Add random [-ditheramplitude,ditheramplitude] dither to the color channels
@@ -3340,12 +3587,34 @@ OIIO_API void premult (int nchannels, int width, int height, int depth,
 /// AutoStride for any of the stride values, and they will be
 /// auto-computed assuming contiguous data.  Return true if ok, false if
 /// it didn't know how to do the conversion.
+///
+/// Note: when possible, the image_span based copy_image should be preferred.
+/// This one will eventually be deprecated.
 OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
                           const void *src, stride_t pixelsize,
                           stride_t src_xstride, stride_t src_ystride,
                           stride_t src_zstride,
                           void *dst, stride_t dst_xstride,
                           stride_t dst_ystride, stride_t dst_zstride);
+
+/// Helper routine for data conversion: Copy the contents of the `src` image
+/// span to `dst` that has exactly the same dimensions but may have different
+/// strides. Return true if ok, false if it couldn't do it. (Reserved for
+/// future use; currently is always succeeds)
+template<typename D, size_t Drank, typename S, size_t Srank>
+bool copy_image(image_span<D, Drank> dst, image_span<S, Srank> src)
+{
+    // Arbitrary types are handled by just converting to generic byte
+    // image_spans.
+    return copy_image(as_image_span_writable_bytes(dst),
+                      as_image_span_bytes(src));
+}
+
+/// copy_image base case: generic span of bytes.
+OIIO_API bool
+copy_image(image_span<std::byte> dst, image_span<const std::byte> src);
+
+
 
 /// Helper: manufacture a span given an image pointer, format, size, and
 /// strides. Use with caution! This is making a lot of assumptions that the

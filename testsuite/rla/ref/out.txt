@@ -319,5 +319,8 @@ Full command line was:
 oiiotool ERROR: read : "src/crash-3951.rla": Read error: couldn't read RLE data span
 Full command line was:
 > oiiotool src/crash-3951.rla -o crash4.exr
+oiiotool ERROR: read : "src/crash-1.rla": Probably corrupt file (buffer overrun avoided)
+Full command line was:
+> oiiotool src/crash-1.rla -o crash5.exr
 Comparing "rlacrop.rla" and "ref/rlacrop.rla"
 PASS

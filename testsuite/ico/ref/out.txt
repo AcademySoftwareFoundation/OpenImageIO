@@ -45,3 +45,4 @@ Reading ../oiio-images/ico/oiio.ico
     oiio:BitsPerSample: 8
 Comparing "../oiio-images/ico/oiio.ico" and "oiio.ico"
 PASS
+iconvert ERROR: Unsupported image color depth, probably corrupt file

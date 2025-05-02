@@ -51,6 +51,9 @@ build_dependency_with_cmake(OpenColorIO
         # conflict with any others in the system or linked into the same app.
         # -D OCIO_NAMESPACE=${OpenColorIO_VERSION_IDENT}_${PROJ_NAME}
         -D OCIO_LIBNAME_SUFFIX=_v${OpenColorIO_VERSION_IDENT}_${PROJ_NAME}
+        # Fix for yaml-cpp breaking against cmake 4.0.
+        # Remove when yaml-cpp is fixed to declare its own minimum high enough.
+        -D CMAKE_POLICY_VERSION_MINIMUM=3.5
     )
 
 # Set some things up that we'll need for a subsequent find_package to work

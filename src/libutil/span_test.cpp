@@ -6,7 +6,7 @@
 #include <iostream>
 #include <vector>
 
-#include <OpenImageIO/image_view.h>
+#include <OpenImageIO/image_span.h>
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/strided_ptr.h>
 #include <OpenImageIO/unittest.h>
@@ -260,60 +260,6 @@ test_span_strided_mutable()
 
 
 void
-test_image_view()
-{
-    const int X = 4, Y = 3, C = 3, Z = 1;
-    static const float IMG[Z][Y][X][C] = {
-        // 4x3 2D image with 3 channels
-        { { { 0, 0, 0 }, { 1, 0, 1 }, { 2, 0, 2 }, { 3, 0, 3 } },
-          { { 0, 1, 4 }, { 1, 1, 5 }, { 2, 1, 6 }, { 3, 1, 7 } },
-          { { 0, 2, 8 }, { 1, 2, 9 }, { 2, 2, 10 }, { 3, 2, 11 } } }
-    };
-
-    image_view<const float> I((const float*)IMG, 3, 4, 3);
-    for (int y = 0, i = 0; y < Y; ++y) {
-        for (int x = 0; x < X; ++x, ++i) {
-            OIIO_CHECK_EQUAL(I(x, y)[0], x);
-            OIIO_CHECK_EQUAL(I(x, y)[1], y);
-            OIIO_CHECK_EQUAL(I(x, y)[2], i);
-        }
-    }
-}
-
-
-
-void
-test_image_view_mutable()
-{
-    const int X = 4, Y = 3, C = 3, Z = 1;
-    static float IMG[Z][Y][X][C] = {
-        // 4x3 2D image with 3 channels
-        { { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
-          { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
-          { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } } }
-    };
-
-    image_view<float> I((float*)IMG, 3, 4, 3);
-    for (int y = 0, i = 0; y < Y; ++y) {
-        for (int x = 0; x < X; ++x, ++i) {
-            I(x, y)[0] = x;
-            I(x, y)[1] = y;
-            I(x, y)[2] = i;
-        }
-    }
-
-    for (int y = 0, i = 0; y < Y; ++y) {
-        for (int x = 0; x < X; ++x, ++i) {
-            OIIO_CHECK_EQUAL(I(x, y)[0], x);
-            OIIO_CHECK_EQUAL(I(x, y)[1], y);
-            OIIO_CHECK_EQUAL(I(x, y)[2], i);
-        }
-    }
-}
-
-
-
-void
 test_make_span()
 {
     print("testing make_span\n");
@@ -341,6 +287,44 @@ test_make_span()
         OIIO_CHECK_EQUAL(s1.data(), vec.data() + 1);
         OIIO_CHECK_EQUAL(s1[0], vec[1]);
     }
+}
+
+
+
+void
+test_as_bytes()
+{
+    print("testing as_bytes, as_writable_bytes\n");
+
+    float c_arr[] = { 1, 2.5, 3, 4 };
+    span<float> aspan(c_arr);
+    OIIO_CHECK_ASSERT(aspan.size() == 4 && aspan[1] == 2.5f);
+
+    auto ab  = as_bytes(aspan);
+    auto awb = as_writable_bytes(aspan);
+    OIIO_CHECK_EQUAL(ab.size(), aspan.size() * sizeof(float));
+    OIIO_CHECK_EQUAL(ab.size_bytes(), aspan.size_bytes());
+    OIIO_CHECK_EQUAL(ab.data(), reinterpret_cast<std::byte*>(aspan.data()));
+    OIIO_CHECK_EQUAL(awb.size(), aspan.size() * sizeof(float));
+    OIIO_CHECK_EQUAL(awb.size_bytes(), aspan.size_bytes());
+    OIIO_CHECK_EQUAL(awb.data(), reinterpret_cast<std::byte*>(aspan.data()));
+}
+
+
+
+void
+test_span_cast()
+{
+    print("testing span_cast\n");
+
+    float c_arr[] = { 1, 2.5, 3, 4 };
+    span<float> aspan(c_arr);
+    OIIO_CHECK_ASSERT(aspan.size() == 4 && aspan[1] == 2.5f);
+
+    auto cast = span_cast<uint16_t>(aspan);
+    OIIO_CHECK_EQUAL(cast.size_bytes(), aspan.size_bytes());
+    OIIO_CHECK_EQUAL(cast.size(), 8);
+    OIIO_CHECK_EQUAL(cast.data(), reinterpret_cast<uint16_t*>(aspan.data()));
 }
 
 
@@ -485,9 +469,9 @@ main(int /*argc*/, char* /*argv*/[])
     test_strided_ptr();
     test_span_strided();
     test_span_strided_mutable();
-    test_image_view();
-    test_image_view_mutable();
     test_make_span();
+    test_as_bytes();
+    test_span_cast();
     test_spancpy();
     test_spanset();
     test_spanzero();

@@ -23,6 +23,7 @@
 #include <OpenEXR/ImfTiledInputFile.h>
 
 #include "exr_pvt.h"
+#include "imageio_pvt.h"
 
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
@@ -1342,13 +1343,13 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     int whole_width  = nxtiles * m_spec.tile_width;
     int whole_height = nytiles * m_spec.tile_height;
 
-    std::unique_ptr<char[]> tmpbuf;
+    default_init_vector<char> tmpbuf;
     void* origdata = data;
     if (whole_width != (xend - xbegin) || whole_height != (yend - ybegin)) {
         // Deal with the case of reading not a whole number of tiles --
         // OpenEXR will happily overwrite user memory in this case.
-        tmpbuf.reset(new char[nxtiles * nytiles * m_spec.tile_bytes(true)]);
-        data = &tmpbuf[0];
+        tmpbuf.resize(nxtiles * nytiles * m_spec.tile_bytes(true));
+        data = tmpbuf.data();
     }
     char* buf = (char*)data - xbegin * pixelbytes
                 - ybegin * pixelbytes * m_spec.tile_width * nxtiles;

@@ -505,11 +505,7 @@ typedef tsl::robin_map<ustring, ImageCacheFileRef> FingerprintMap;
 ///
 struct TileID {
     /// Default constructor
-    ///
-    TileID()
-        : m_file(nullptr)
-    {
-    }
+    TileID() = default;
 
     /// Initialize a TileID based on full elaboration of image file,
     /// subimage, and tile x,y,z indices.
@@ -531,9 +527,8 @@ struct TileID {
         }
     }
 
-    /// Destructor is trivial, because we don't hold any resources
-    /// of our own.  This is by design.
-    ~TileID() {}
+    /// Trivial destructor.
+    ~TileID() = default;
 
     ImageCacheFile& file(void) const { return *m_file; }
     ImageCacheFile* file_ptr(void) const { return m_file; }
@@ -617,13 +612,13 @@ struct TileID {
     }
 
 private:
-    int m_x, m_y, m_z;         ///< x,y,z tile index within the subimage
-    int m_subimage;            ///< subimage
-    int m_miplevel;            ///< MIP-map level
-    short m_chbegin, m_chend;  ///< Channel range
-    int m_colortransformid;    ///< Colorspace id (0 == default)
-    int m_padding = 0;         ///< Unused
-    ImageCacheFile* m_file;    ///< Which ImageCacheFile we refer to
+    int m_x = 0, m_y = 0, m_z = 0;     ///< x,y,z tile index within the subimage
+    int m_subimage  = 0;               ///< subimage
+    int m_miplevel  = 0;               ///< MIP-map level
+    short m_chbegin = 0, m_chend = 0;  ///< Channel range
+    int m_colortransformid = 0;        ///< Colorspace id (0 == default)
+    int m_padding          = 0;        ///< Unused
+    ImageCacheFile* m_file = nullptr;  ///< Which ImageCacheFile we refer to
 };
 
 

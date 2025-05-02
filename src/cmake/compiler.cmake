@@ -568,7 +568,7 @@ endif ()
 # is being built as a subproject.
 if (PROJECT_IS_TOP_LEVEL)
     set (CLANG_FORMAT_EXE_HINT "" CACHE PATH "clang-format executable's directory (will search if not specified")
-    set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
+    set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp testsuite/*.cpp testsuite/*.h"
         CACHE STRING "Glob patterns to include for clang-format")
     set (CLANG_FORMAT_EXCLUDES "*pugixml*" "*SHA1*" "*/farmhash.cpp"
                                "src/dpx.imageio/libdpx/*"
@@ -617,7 +617,7 @@ set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when bu
 ###########################################################################
 # Set the versioning for shared libraries.
 #
-if (${PROJECT_NAME}_SUPPORTED_RELEASE)
+if (${PROJECT_NAME}_SUPPORTED_RELEASE AND NOT SKBUILD)
     # Supported releases guarantee ABI back-compatibility within the release
     # family, so SO versioning is major.minor.
     set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
@@ -691,6 +691,7 @@ else ()
             set(BASEPOINT $ORIGIN)
         endif()
         set (CMAKE_INSTALL_RPATH ${BASEPOINT}
+                                 ${BASEPOINT}/${CMAKE_INSTALL_LIBDIR}
                                  ${BASEPOINT}/../${CMAKE_INSTALL_LIBDIR})
     endif ()
     # add the automatically determined parts of the RPATH that

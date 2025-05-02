@@ -2996,19 +2996,39 @@ current top image.
 
 .. option:: --pastemeta <location>
 
-    Takes two images -- the first will be a source of metadata only, and the
-    second the source of pixels -- and produces a new copy of the second
-    image with the metadata from the first image added.
+    Takes two images -- the first image will be a source of metadata only, and the
+    second "destination" image will supply the pixels -- and produces a combined
+    image.
 
-    The output image's pixels will come only from the second input. Metadata
-    from the second input will be preserved if no identically-named metadata
-    was present in the first input image.
+    Optional appended modifiers include:
+
+    - `merge=` *int* : Determines the metadata merging strategy. If `0` (the
+      default), performs a full replacement -- the metadata from the
+      destination (second) image will be discarded entirely and re-populated
+      with the metadata from the metadata source (first) image. If `1`,
+      metadata from the source image will be non-destructively added to that
+      of the existing metadata of the destination image, item by item, if it
+      doesn't already contain metadata with the same name. If `2`, metadata
+      from the source image will be destructively added to that of the
+      existing metadata of the destination image, item by item, and will
+      replace any metadata already present having the same name. (This
+      modifier was added in OIIO 3.0.4.)
+
+    - `pattern=` *regex* : If supplied, only copies metadata whose name
+      matches has a substring matching the regular expression. The special
+      character `^` indicates the beginning of the string and `$` indicates
+      the end of the string. (This modifier was added in OIIO 3.0.4.)
 
     Examples::
 
-        # Add all the metadata from meta.exr to pixels.exr and write the
-        # combined image to out.exr.
+        # Add all the metadata from meta.exr to pixels.exr, discarding any
+        # metadata it previously had, and write the combined image to out.exr.
         oiiotool meta.exr pixels.exr --pastemeta -o out.exr
+
+        # Add all of meta.exr's metadata whose name begins with "camera:"
+        # to pixels.exr, replacing any identically named items but leaving
+        # others as they were, and write the combined image to out.exr.
+        oiiotool meta.exr pixels.exr --pastemeta:merge=2:pattern="^camera:override=1" -o out.exr
 
 
 .. option:: --mosaic <size>
@@ -4183,6 +4203,16 @@ current top image.
       `shadow=` *size*
         if nonzero, will make a dark shadow halo to make the text more clear
         on bright backgrounds.
+      `measure=` *int*
+        if nonzero, will compute the rendered size of the text and store its
+        dimensions in the "user variables" (as if by `--set`) `TEXT_X`,
+        `TEXT_Y`, `TEXT_WIDTH`, `TEXT_HEIGHT`. (This modifier was added
+        in OpenImageIO 3.0.5.0.)
+      `render=` *int*
+        if zero, will not actually draw the text into the image (the
+        default is 1, meaning that the text will draw). Suppressing the
+        drawing is primarily useful in conjunction with `measure=1`.
+        (This modifier was added in OpenImageIO 3.0.5.0.)
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
