@@ -1,3 +1,7 @@
+Release 3.0.6.1 (May 2, 2025) -- compared to 3.0.6.0
+-----------------------------------------------------
+  - *fix*: Restore OIIO_AVX512ER_ENABLED preprocessor symbol. Its absence could break backwards source compatibility if anyone was using it, even though it was useless and broken. Where compatibility goes, better safe than sorry. [#4735](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4735)
+
 Release 3.0.6.0 (May 1, 2025) -- compared to 3.0.5.0
 -----------------------------------------------------
   - *oiiotool*: Add `--render_text` modifiers `measure=` and `render=` [#4681](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4681)
