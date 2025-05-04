@@ -310,7 +310,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     // Write XMP packet, if we have anything
     std::string xmp = encode_xmp(m_spec, true);
     if (!xmp.empty()) {
-        static char prefix[] = "http://ns.adobe.com/xap/1.0/";  //NOSONAR
+        static const char* prefix = "http://ns.adobe.com/xap/1.0/";  //NOSONAR
         std::vector<char> block(prefix, prefix + strlen(prefix) + 1);
         block.insert(block.end(), xmp.c_str(), xmp.c_str() + xmp.length());
         jpeg_write_marker(&m_cinfo, JPEG_APP0 + 1, (JOCTET*)&block[0],

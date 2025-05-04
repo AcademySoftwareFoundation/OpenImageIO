@@ -465,7 +465,7 @@ Filesystem::unique_path(string_view model)
     std::string name;
 #endif
     static const char chrs[] = "0123456789abcdef";
-    static std::mt19937 rg { std::random_device {}() };
+    static std::mt19937 rg { std::random_device {}() };  //NOSONAR
     static std::uniform_int_distribution<size_t> pick(0, 15);
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
