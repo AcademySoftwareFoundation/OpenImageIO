@@ -290,9 +290,9 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     std::vector<char> iptc;
     if (m_spec.get_int_attribute("jpeg:iptc", 1)
         && encode_iptc_iim(m_spec, iptc)) {
-        static char photoshop[] = "Photoshop 3.0";
+        static const char* photoshop = "Photoshop 3.0";
         std::vector<char> head(photoshop, photoshop + strlen(photoshop) + 1);
-        static char _8BIM[] = "8BIM";
+        static const char* _8BIM = "8BIM";
         head.insert(head.end(), _8BIM, _8BIM + 4);
         head.push_back(4);  // 0x0404
         head.push_back(4);

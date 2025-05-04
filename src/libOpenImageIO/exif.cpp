@@ -737,8 +737,10 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
         while (dspan.size() && dspan.back() == 0)
             dspan = dspan.subspan(0, dspan.size() - 1);
         std::string str(dspan.begin(), dspan.end());
-        if (strlen(str.c_str()) < str.length())  // Stray \0 in the middle
+        if (Strutil::safe_strlen(str.c_str(), str.length()) < str.length()) {
+            // Stray \0 in the middle
             str = std::string(str.c_str());
+        }
         spec.attribute(name, str);
         return;
     }
