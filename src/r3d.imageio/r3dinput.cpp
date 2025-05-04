@@ -165,7 +165,7 @@ OIIO_EXPORT const char*
 r3d_imageio_library_version()
 {
     // Note: SDK version can differ from the actual library loaded
-    return "R3D 8.5.1";
+    return "R3D 9.0.0 Beta 1";
 }
 
 OIIO_EXPORT ImageInput*
@@ -174,7 +174,7 @@ r3d_input_imageio_create()
     return new R3dInput;
 }
 
-OIIO_EXPORT const char* r3d_input_extensions[] = { "r3d", nullptr };
+OIIO_EXPORT const char* r3d_input_extensions[] = { "r3d", "nev", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -838,8 +838,6 @@ R3dInput::open(const std::string& name, ImageSpec& newspec,
         // Interleaved RGB decoding in 16-bits per pixel
         // m_async_decompress_job.PixelType
         //     = R3DSDK::PixelType_16Bit_RGB_Interleaved;
-        // m_async_decompress_job.BytesPerRow = m_channels * width
-        //                                      * sizeof(uint16_t);
 
         // m_async_decompress_job.ImageProcessing = NULL;
         // m_async_decompress_job.HdrProcessing   = NULL;
@@ -857,7 +855,6 @@ R3dInput::open(const std::string& name, ImageSpec& newspec,
 
         // Interleaved RGB decoding in 16-bits per pixel
         m_job.PixelType   = R3DSDK::PixelType_16Bit_RGB_Interleaved;
-        m_job.BytesPerRow = m_channels * width * sizeof(uint16_t);
 
         m_job.ImageProcessing = NULL;
         m_job.HdrProcessing   = NULL;
