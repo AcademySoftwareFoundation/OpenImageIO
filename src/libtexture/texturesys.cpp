@@ -3016,10 +3016,10 @@ TextureSystemImpl::sample_bicubic(
         if (s_onetile & t_onetile) {
             // If we thought it was one tile, realize that it isn't unless
             // it's ascending.
-            s_onetile &= all(stex
-                             == (simd::shuffle<0>(stex) + (*(vint4*)iota)));
-            t_onetile &= all(ttex
-                             == (simd::shuffle<0>(ttex) + (*(vint4*)iota)));
+            s_onetile &= all(
+                stex == (simd::broadcast_element<0>(stex) + (*(vint4*)iota)));
+            t_onetile &= all(
+                ttex == (simd::broadcast_element<0>(ttex) + (*(vint4*)iota)));
         }
         bool onetile = (s_onetile & t_onetile);
         if (onetile & allvalid) {
@@ -3199,15 +3199,17 @@ TextureSystemImpl::sample_bicubic(
         simd::vfloat4 col[4];
         for (int j = 0; j < 4; ++j) {
             simd::vfloat4 lx = lerp(texel_simd[j][0], texel_simd[j][1],
-                                    shuffle<0>(h) /*h0x*/);
+                                    broadcast_element<0>(h) /*h0x*/);
             simd::vfloat4 rx = lerp(texel_simd[j][2], texel_simd[j][3],
-                                    shuffle<1>(h) /*h1x*/);
-            col[j]           = lerp(lx, rx, shuffle<1>(g) /*g1x*/);
+                                    broadcast_element<1>(h) /*h1x*/);
+            col[j]           = lerp(lx, rx, broadcast_element<1>(g) /*g1x*/);
         }
-        simd::vfloat4 ly          = lerp(col[0], col[1], shuffle<2>(h) /*h0y*/);
-        simd::vfloat4 ry          = lerp(col[2], col[3], shuffle<3>(h) /*h1y*/);
+        simd::vfloat4 ly          = lerp(col[0], col[1],
+                                         broadcast_element<2>(h) /*h0y*/);
+        simd::vfloat4 ry          = lerp(col[2], col[3],
+                                         broadcast_element<3>(h) /*h1y*/);
         simd::vfloat4 weight_simd = weight;
-        accum += weight_simd * lerp(ly, ry, shuffle<3>(g) /*g1y*/);
+        accum += weight_simd * lerp(ly, ry, broadcast_element<3>(g) /*g1y*/);
         if (daccumds_) {
             simd::vfloat4 scalex = weight_simd * float(spec.width);
             simd::vfloat4 scaley = weight_simd * float(spec.height);
