@@ -14,62 +14,66 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 
 ### Required dependencies -- OIIO will not build at all without these
 
- * **C++17 or higher** (also builds with C++20)
+ * C++17 or higher (also builds with C++20)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: **gcc 9.3** - 14.2, **clang 5** - 19, MSVS 2017 - 2019 (**v19.14
-   and up**), **Intel icc 19+**, Intel OneAPI C++ compiler 2022+.
- * **CMake >= 3.18.2** (tested through 3.31)
- * **Imath >= 3.1** (tested through 3.1.x and main)
- * **OpenEXR >= 3.1** (tested through 3.3 and main)
- * **libTIFF >= 4.0** (tested through 4.7)
- * **OpenColorIO >= 2.2** (tested through 2.4 and main)
- * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
-   through 3.0)
- * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 11.1).
+ * Compilers: gcc 9.3 - 14.2, clang 5 - 19, MSVS 2017 - 2019 (v19.14
+   and up), Intel icc 19+, Intel OneAPI C++ compiler 2022+.
+ * CMake >= 3.18.2 (tested through 4.0)
+ * Imath >= 3.1 (tested through 3.1.x and main)
+ * OpenEXR >= 3.1 (tested through 3.3 and main)
+ * libTIFF >= 4.0 (tested through 4.7)
+ * OpenColorIO >= 2.2 (tested through 2.4 and main)
+ * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
+   through 3.1)
+ * [fmtlib](https://github.com/fmtlib/fmt) >= 7.0 (tested through 11.1).
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
+ * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
+   through 1.4, which is the recommended version). If not found at build time,
+   this will be automatically downloaded unless the build sets
+   `-DBUILD_MISSING_FMT=OFF`.
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
    these are not found):
-     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.7)
+     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.8)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * **Python >= 3.7** (tested through 3.13)
-     * **pybind11 >= 2.7** (tested through 2.12)
-     * NumPy
+     * Python >= 3.7 (tested through 3.13)
+     * pybind11 >= 2.7 (tested through 2.13)
+     * NumPy (tested through 2.2.4)
  * If you want support for PNG files:
-     * **libPNG >= 1.6.0** (tested though 1.6.47)
+     * libPNG >= 1.6.0 (tested though 1.6.47)
  * If you want support for camera "RAW" formats:
-     * **LibRaw >= 0.20** (tested though 0.21.3 and master)
+     * LibRaw >= 0.20 (tested though 0.21.3 and master)
  * If you want support for a wide variety of video formats:
-     * **ffmpeg >= 4.0** (tested through 7.0)
+     * ffmpeg >= 4.0 (tested through 7.0)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 9.0 (tested through 11.0). Note that using OpenVDB >= 10.0
+     * OpenVDB >= 9.0 (tested through 12.0). Note that using OpenVDB >= 10.0
        requires that you compile OIIO with C++17 or higher.
  * If you want to use TBB as the thread pool:
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * **OpenCV 4.x** (tested through 4.10)
+     * OpenCV 4.x (tested through 4.11)
  * If you want support for GIF images:
-     * **giflib >= 5.0** (tested through 5.2)
+     * giflib >= 5.0 (tested through 5.2.2)
  * If you want support for HEIF/HEIC or AVIF images:
-     * **libheif >= 1.11** (1.16 required for correct orientation support,
-       tested through 1.18.2)
+     * libheif >= 1.11 (1.16 required for correct orientation support,
+       tested through 1.19.7)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.8)
  * If you want support for WebP images:
-     * **WebP >= 1.1** (tested through 1.5)
+     * WebP >= 1.1 (tested through 1.5)
  * If you want support for Ptex:
-     * Ptex >= 2.3.1 (probably works for older; tested through 2.4.2)
+     * Ptex >= 2.3.1 (probably works for older; tested through 2.4.3)
  * If you want to be able to do font rendering into images:
-     * **Freetype >= 2.10.0** (tested through 2.13)
+     * Freetype >= 2.10.0 (tested through 2.13)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against

@@ -3276,10 +3276,10 @@ OIIOTOOL_OP(colormap, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 // that we don't break compatibility repeatedly.
 
 namespace ImageBufAlgox {
-ImageBuf OIIO_API
+ImageBuf
 cryptomatte_colors(const ImageBuf& src, span<const int> channelset,
                    ROI roi = {}, int nthreads = 0);
-bool OIIO_API
+bool
 cryptomatte_colors(ImageBuf& dst, const ImageBuf& src,
                    span<const int> channelset, ROI roi = {}, int nthreads = 0);
 }  // namespace ImageBufAlgox
@@ -5141,9 +5141,21 @@ OIIOTOOL_INPLACE_OP(text, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
         aligny = TextAlignY::Bottom;
     if (Strutil::iequals(ay, "center") || Strutil::iequals(ay, "c"))
         aligny = TextAlignY::Center;
-    int shadow = op.options().get_int("shadow");
-    return ImageBufAlgo::render_text(*img[0], x, y, op.args(1), fontsize, font,
-                                     textcolor, alignx, aligny, shadow);
+    int shadow  = op.options().get_int("shadow");
+    int measure = op.options().get_int("measure");
+    int render  = op.options().get_int("render", 1);
+    if (measure) {
+        ROI roi = ImageBufAlgo::text_size(op.args(1), fontsize, font);
+        ot.uservars["TEXT_X"]      = roi.xbegin;
+        ot.uservars["TEXT_Y"]      = roi.ybegin;
+        ot.uservars["TEXT_WIDTH"]  = roi.width();
+        ot.uservars["TEXT_HEIGHT"] = roi.height();
+    }
+    if (render)
+        return ImageBufAlgo::render_text(*img[0], x, y, op.args(1), fontsize,
+                                         font, textcolor, alignx, aligny,
+                                         shadow);
+    return true;
 });
 
 

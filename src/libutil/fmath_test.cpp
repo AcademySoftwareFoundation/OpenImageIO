@@ -334,9 +334,18 @@ test_convert_type(double tolerance = 1e-6)
 
 template<typename S, typename D>
 void
-do_convert_type(const std::vector<S>& svec, std::vector<D>& dvec)
+do_convert_type_ptr(const std::vector<S>& svec, std::vector<D>& dvec)
 {
     convert_type(&svec[0], &dvec[0], svec.size());
+    DoNotOptimize(dvec[0]);  // Be sure nothing is optimized away
+}
+
+
+template<typename S, typename D>
+void
+do_convert_type_span(const std::vector<S>& svec, std::vector<D>& dvec)
+{
+    convert_type(svec, dvec);
     DoNotOptimize(dvec[0]);  // Be sure nothing is optimized away
 }
 
@@ -349,17 +358,24 @@ benchmark_convert_type()
     const size_t size    = iterations;
     const S testval(1.0);
     std::vector<S> svec(size, testval);
-    std::vector<D> dvec(size);
-    Strutil::print("Benchmark conversion of {:6} -> {:6} : ",
-                   TypeDesc(BaseTypeFromC<S>::value).c_str(),
-                   TypeDesc(BaseTypeFromC<D>::value).c_str());
-    float time = time_trial(bind(do_convert_type<S, D>, std::cref(svec),
+    std::vector<D> dvec(size), dvec2(size);
+    print("Benchmark conversion of {:6} -> {:6} (ptr) : ",
+          TypeDesc(BaseTypeFromC<S>::value), TypeDesc(BaseTypeFromC<D>::value));
+    float time = time_trial(bind(do_convert_type_ptr<S, D>, std::cref(svec),
                                  std::ref(dvec)),
                             ntrials, repeats)
                  / repeats;
-    Strutil::print("{:7.1f} Mvals/sec\n", (size / 1.0e6) / time);
+    print("{:7.1f} Mvals/sec\n", (size / 1.0e6) / time);
+    print("Benchmark conversion of {:6} -> {:6} (span): ",
+          TypeDesc(BaseTypeFromC<S>::value), TypeDesc(BaseTypeFromC<D>::value));
+    float time2 = time_trial(bind(do_convert_type_ptr<S, D>, std::cref(svec),
+                                  std::ref(dvec2)),
+                             ntrials, repeats)
+                  / repeats;
+    print("{:7.1f} Mvals/sec\n", (size / 1.0e6) / time2);
     D r = convert_type<S, D>(testval);
     OIIO_CHECK_EQUAL(dvec[size - 1], r);
+    OIIO_CHECK_EQUAL(dvec2[size - 1], r);
 }
 
 
@@ -433,7 +449,7 @@ test_packbits()
         " packed to 10 bits, as 16 bit values: %04x %04x %04x %04x %04x\n",
         u10[0], u10[1], u10[2], u10[3], u10[4]);
     uint16_t u16[8];
-    bit_unpack(8, (const unsigned char*)u10, 10, u16);
+    bit_unpack(make_cspan((const unsigned char*)u10, 10), 10, make_span(u16));
     Strutil::printf(
         " unpacked back to 16 bits: %04x %04x %04x %04x %04x %04x %04x %04x\n",
         u16[0], u16[1], u16[2], u16[3], u16[4], u16[5], u16[6], u16[7]);

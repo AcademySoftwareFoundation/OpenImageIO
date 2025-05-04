@@ -949,13 +949,15 @@ append_tiff_dir_entry_integer(const ParamValue& p,
 {
     T i;
     switch (p.type().basetype) {
-    case TypeDesc::UINT: i = (T) * (unsigned int*)p.data(); break;
-    case TypeDesc::INT: i = (T) * (int*)p.data(); break;
-    case TypeDesc::UINT16: i = (T) * (unsigned short*)p.data(); break;
-    case TypeDesc::INT16: i = (T) * (short*)p.data(); break;
+    case TypeDesc::UINT: i = static_cast<T>(p.get<uint32_t>()); break;
+    case TypeDesc::INT: i = static_cast<T>(p.get<int32_t>()); break;
+    case TypeDesc::UINT16: i = static_cast<T>(p.get<uint16_t>()); break;
+    case TypeDesc::INT16: i = static_cast<T>(p.get<int16_t>()); break;
+    case TypeDesc::UINT8: i = static_cast<T>(p.get<uint8_t>()); break;
+    case TypeDesc::INT8: i = static_cast<T>(p.get<int8_t>()); break;
     case TypeDesc::STRING: {
         if (Strutil::string_is_int(p.get_ustring())) {
-            i = (T)p.get_int();
+            i = static_cast<T>(p.get_int());
             break;
         } else {
             return false;
@@ -963,8 +965,8 @@ append_tiff_dir_entry_integer(const ParamValue& p,
     }
     default: return false;
     }
-    append_tiff_dir_entry(dirs, data, tag, type, 1, &i, offset_correction, 0,
-                          endianreq);
+    append_tiff_dir_entry(dirs, data, tag, type, 1, as_bytes_ref(i),
+                          offset_correction, 0, endianreq);
     return true;
 }
 
@@ -992,7 +994,8 @@ encode_exif_entry(const ParamValue& p, int tag, std::vector<TIFFDirEntry>& dirs,
             ustring s = *(const ustring*)p.data();
             if (s.size()) {
                 int len = size_t(s.size()) + 1;
-                append_tiff_dir_entry(dirs, data, tag, type, len, s.data(),
+                append_tiff_dir_entry(dirs, data, tag, type, len,
+                                      as_bytes(s.data(), len),
                                       offset_correction, 0, endianreq);
             }
             return;
@@ -1000,22 +1003,22 @@ encode_exif_entry(const ParamValue& p, int tag, std::vector<TIFFDirEntry>& dirs,
         break;
     case TIFF_RATIONAL:
         if (element == TypeDesc::FLOAT) {
-            unsigned int* rat = OIIO_ALLOCA(unsigned int, 2 * count);
-            const float* f    = (const float*)p.data();
+            auto rat       = OIIO_ALLOCA_SPAN(unsigned int, 2 * count);
+            const float* f = (const float*)p.data();
             for (size_t i = 0; i < count; ++i)
                 float_to_rational(f[i], rat[2 * i], rat[2 * i + 1]);
-            append_tiff_dir_entry(dirs, data, tag, type, count, rat,
+            append_tiff_dir_entry(dirs, data, tag, type, count, as_bytes(rat),
                                   offset_correction, 0, endianreq);
             return;
         }
         break;
     case TIFF_SRATIONAL:
         if (element == TypeDesc::FLOAT) {
-            int* rat       = OIIO_ALLOCA(int, 2 * count);
+            auto rat       = OIIO_ALLOCA_SPAN(int, 2 * count);
             const float* f = (const float*)p.data();
             for (size_t i = 0; i < count; ++i)
                 float_to_rational(f[i], rat[2 * i], rat[2 * i + 1]);
-            append_tiff_dir_entry(dirs, data, tag, type, count, rat,
+            append_tiff_dir_entry(dirs, data, tag, type, count, as_bytes(rat),
                                   offset_correction, 0, endianreq);
             return;
         }
@@ -1081,7 +1084,7 @@ pvt::decode_ifd(cspan<uint8_t> buf, size_t ifd_offset, ImageSpec& spec,
 void
 pvt::append_tiff_dir_entry(std::vector<TIFFDirEntry>& dirs,
                            std::vector<char>& data, int tag, TIFFDataType type,
-                           size_t count, const void* mydata,
+                           size_t count, cspan<std::byte> mydata,
                            size_t offset_correction, size_t offset_override,
                            OIIO::endian endianreq)
 {
@@ -1089,22 +1092,27 @@ pvt::append_tiff_dir_entry(std::vector<TIFFDirEntry>& dirs,
     dir.tdir_tag        = tag;
     dir.tdir_type       = type;
     dir.tdir_count      = count;
+    dir.tdir_offset     = 0;
     size_t len          = tiff_data_size(dir);
     char* ptr           = nullptr;
     bool data_in_offset = false;
     if (len <= 4) {
         dir.tdir_offset = 0;
         data_in_offset  = true;
-        if (mydata) {
+        if (mydata.size()) {
+            OIIO_DASSERT(len == mydata.size());
             ptr = (char*)&dir.tdir_offset;
-            memcpy(ptr, mydata, len);
+            memcpy(ptr, mydata.data(), len);
         }
     } else {
-        if (mydata) {
+        if (mydata.size()) {
             // Add to the data vector and use its offset
             size_t oldsize  = data.size();
             dir.tdir_offset = data.size() - offset_correction;
-            data.insert(data.end(), (char*)mydata, (char*)mydata + len);
+            OIIO_DASSERT(len == mydata.size());
+            data.insert(data.end(),
+                        reinterpret_cast<const char*>(mydata.begin()),
+                        reinterpret_cast<const char*>(mydata.end()));
             ptr = &data[oldsize];
         } else {
             // An offset override was given, use that, it means that data
@@ -1365,14 +1373,14 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
     if (exifdirs.size() || makerdirs.size()) {
         // Add some required Exif tags that wouldn't be in the spec
         append_tiff_dir_entry(exifdirs, blob, EXIF_EXIFVERSION, TIFF_UNDEFINED,
-                              4, "0230", tiffstart, 0, endianreq);
+                              4, as_bytes("0230", 4), tiffstart, 0, endianreq);
         append_tiff_dir_entry(exifdirs, blob, EXIF_FLASHPIXVERSION,
-                              TIFF_UNDEFINED, 4, "0100", tiffstart, 0,
-                              endianreq);
+                              TIFF_UNDEFINED, 4, as_bytes("0100", 4), tiffstart,
+                              0, endianreq);
         static char componentsconfig[] = { 1, 2, 3, 0 };
         append_tiff_dir_entry(exifdirs, blob, EXIF_COMPONENTSCONFIGURATION,
-                              TIFF_UNDEFINED, 4, componentsconfig, tiffstart, 0,
-                              endianreq);
+                              TIFF_UNDEFINED, 4, as_bytes(componentsconfig, 4),
+                              tiffstart, 0, endianreq);
     }
 
     // If any GPS info was found, add a version tag to the GPS fields.
@@ -1380,7 +1388,7 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
         // Add some required Exif tags that wouldn't be in the spec
         static char ver[] = { 2, 2, 0, 0 };
         append_tiff_dir_entry(gpsdirs, blob, GPSTAG_VERSIONID, TIFF_BYTE, 4,
-                              &ver, tiffstart, 0, endianreq);
+                              as_bytes(ver, 4), tiffstart, 0, endianreq);
     }
 
     // Compute offsets:
@@ -1422,7 +1430,7 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
         OIIO_ASSERT(exifdirs.size());
         // unsigned int size = (unsigned int) makerdirs_offset;
         append_tiff_dir_entry(exifdirs, blob, EXIF_MAKERNOTE, TIFF_BYTE,
-                              makerdirs_size, nullptr, 0, makerdirs_offset,
+                              makerdirs_size, {}, 0, makerdirs_offset,
                               endianreq);
     }
 
@@ -1430,14 +1438,14 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
     if (exifdirs.size()) {
         unsigned int size = (unsigned int)exifdirs_offset;
         append_tiff_dir_entry(tiffdirs, blob, TIFFTAG_EXIFIFD, TIFF_LONG, 1,
-                              &size, tiffstart, 0, endianreq);
+                              as_bytes_ref(size), tiffstart, 0, endianreq);
     }
 
     // If any GPS info was found, add a GPS IFD tag to the TIFF dirs
     if (gpsdirs.size()) {
         unsigned int size = (unsigned int)gpsdirs_offset;
         append_tiff_dir_entry(tiffdirs, blob, TIFFTAG_GPSIFD, TIFF_LONG, 1,
-                              &size, tiffstart, 0, endianreq);
+                              as_bytes_ref(size), tiffstart, 0, endianreq);
     }
 
     // All the tag dirs need to be sorted

@@ -114,7 +114,7 @@ ImageInput_read_tiles(ImageInput& self, int subimage, int miplevel, int xbegin,
 
 
 
-py::object
+std::unique_ptr<DeepData>
 ImageInput_read_native_deep_scanlines(ImageInput& self, int subimage,
                                       int miplevel, int ybegin, int yend, int z,
                                       int chbegin, int chend)
@@ -126,13 +126,15 @@ ImageInput_read_native_deep_scanlines(ImageInput& self, int subimage,
         dd.reset(new DeepData);
         ok = self.read_native_deep_scanlines(subimage, miplevel, ybegin, yend,
                                              z, chbegin, chend, *dd);
+        if (!ok)
+            dd.reset();
     }
-    return ok ? py::cast(dd.release()) : py::none();
+    return dd;
 }
 
 
 
-py::object
+std::unique_ptr<DeepData>
 ImageInput_read_native_deep_tiles(ImageInput& self, int subimage, int miplevel,
                                   int xbegin, int xend, int ybegin, int yend,
                                   int zbegin, int zend, int chbegin, int chend)
@@ -145,13 +147,15 @@ ImageInput_read_native_deep_tiles(ImageInput& self, int subimage, int miplevel,
         ok = self.read_native_deep_tiles(subimage, miplevel, xbegin, xend,
                                          ybegin, yend, zbegin, zend, chbegin,
                                          chend, *dd);
+        if (!ok)
+            dd.reset();
     }
-    return ok ? py::cast(dd.release()) : py::none();
+    return dd;
 }
 
 
 
-py::object
+std::unique_ptr<DeepData>
 ImageInput_read_native_deep_image(ImageInput& self, int subimage, int miplevel)
 {
     std::unique_ptr<DeepData> dd;
@@ -160,8 +164,10 @@ ImageInput_read_native_deep_image(ImageInput& self, int subimage, int miplevel)
         py::gil_scoped_release gil;
         dd.reset(new DeepData);
         ok = self.read_native_deep_image(subimage, miplevel, *dd);
+        if (!ok)
+            dd.reset();
     }
-    return ok ? py::cast(dd.release()) : py::none();
+    return dd;
 }
 
 
@@ -174,26 +180,21 @@ declare_imageinput(py::module& m)
     py::class_<ImageInput>(m, "ImageInput")
         .def_static(
             "create",
-            [](const std::string& filename,
-               const std::string& searchpath) -> py::object {
-                auto in = ImageInput::create(filename, false, nullptr, nullptr,
-                                             searchpath);
-                return in ? py::cast(in.release()) : py::none();
+            [](const std::string& filename, const std::string& searchpath) {
+                return ImageInput::create(filename, false, nullptr, nullptr,
+                                          searchpath);
             },
             "filename"_a, "plugin_searchpath"_a = "")
         .def_static(
             "open",
-            [](const std::string& filename) -> py::object {
-                auto in = ImageInput::open(filename);
-                return in ? py::cast(in.release()) : py::none();
+            [](const std::string& filename) {
+                return ImageInput::open(filename);
             },
             "filename"_a)
         .def_static(
             "open",
-            [](const std::string& filename,
-               const ImageSpec& config) -> py::object {
-                auto in = ImageInput::open(filename, &config);
-                return in ? py::cast(in.release()) : py::none();
+            [](const std::string& filename, const ImageSpec& config) {
+                return ImageInput::open(filename, &config);
             },
             "filename"_a, "config"_a)
         .def("format_name", &ImageInput::format_name)

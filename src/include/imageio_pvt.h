@@ -83,12 +83,21 @@ get_default_quantize(TypeDesc format, long long& quant_min,
                      long long& quant_max) noexcept;
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
+/// contiguous-stride ("RGBRGB"), for any format or stride values (measured in
+/// bytes).  Caller must pass in a dst pointing to enough memory to hold the
+/// contiguous rectangle.  Return span where the contiguous data ended up,
+/// which is either dst or src (if the strides indicated that data were
+/// already contiguous).
+OIIO_API span<const std::byte>
+contiguize(image_span<const std::byte> src, span<std::byte> dst);
+
+/// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values
 /// (measured in bytes).  Caller must pass in a dst pointing to enough
 /// memory to hold the contiguous rectangle.  Return a ptr to where the
 /// contiguous data ended up, which is either dst or src (if the strides
 /// indicated that data were already contiguous).
-const void*
+OIIO_API const void*
 contiguize(const void* src, int nchannels, stride_t xstride, stride_t ystride,
            stride_t zstride, void* dst, int width, int height, int depth,
            TypeDesc format);
@@ -222,6 +231,7 @@ print_stats(std::ostream& out, string_view indent, const ImageBuf& input,
             const ImageSpec& spec, ROI roi, std::string& err);
 
 
+
 enum class ComputeDevice : int {
     CPU  = 0,
     CUDA = 1,
@@ -269,6 +279,82 @@ OIIO_API void
 device_free(void* mem);
 
 }  // namespace pvt
+
+
+
+/// Allocator adaptor that interposes construct() calls to convert value
+/// initialization into default initialization.
+///
+/// This is a way to achieve a std::vector whose resize does not force a value
+/// initialization of every allocated element. Put in more plain terms, the
+/// following:
+///
+///     std::vector<int> v(Nlarge);
+///
+/// will zero-initialize the Nlarge elements, which may be a cost we do not
+/// wish to pay, particularly when allocating POD types that we are going to
+/// write over anyway. Sometimes we do the following instead:
+///
+///     std::unique_ptr<int[]> v (new int[Nlarge]);
+///
+/// which does not zero-initialize the elements. But it's more awkward, and
+/// lacks the methods you get automatically with vectors.
+///
+/// But you will get a lack of forced value initialization if you use a
+/// std::vector with a special allocator that does default initialization.
+/// This is such an allocator, so the following:
+///
+///    std::vector<T, default_init_allocator<T>> v(Nlarge);
+///
+/// will have the same performance characteristics as the new[] version.
+///
+/// For details:
+/// https://stackoverflow.com/questions/21028299/is-this-behavior-of-vectorresizesize-type-n-under-c11-and-boost-container/21028912#21028912
+///
+template<typename T, typename A = std::allocator<T>>
+class default_init_allocator : public A {
+    typedef std::allocator_traits<A> a_t;
+
+public:
+    template<typename U> struct rebind {
+        using other
+            = default_init_allocator<U, typename a_t::template rebind_alloc<U>>;
+    };
+
+    using A::A;
+
+    template<typename U>
+    void
+    construct(U* ptr) noexcept(std::is_nothrow_default_constructible<U>::value)
+    {
+        ::new (static_cast<void*>(ptr)) U;
+    }
+    template<typename U, typename... Args>
+    void construct(U* ptr, Args&&... args)
+    {
+        a_t::construct(static_cast<A&>(*this), ptr,
+                       std::forward<Args>(args)...);
+    }
+};
+
+
+/// Type alias for a std::vector that uses the default_init_allocator.
+///
+/// Consider using a `default_init_vector<T>` instead of `std::vector<T>` when
+/// all of the following are true:
+///
+/// * The use is entirely internal to OIIO (since at present, this type is
+///   not defined in any public header files).
+/// * The type T is POD (plain old data) or trivially constructible.
+/// * The vector is likely to be large enough that the cost of default
+///   initialization is worth trying to avoid.
+/// * After allocation, the vector will be filled with data before any reads
+///   are attempted, so the default initialization is not needed.
+///
+template<typename T>
+using default_init_vector = std::vector<T, default_init_allocator<T>>;
+
+
 
 OIIO_NAMESPACE_END
 

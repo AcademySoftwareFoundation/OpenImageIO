@@ -133,7 +133,7 @@ cspan<ExplanationTableEntry> canon_explanation_table ();
 void append_tiff_dir_entry (std::vector<TIFFDirEntry> &dirs,
                             std::vector<char> &data,
                             int tag, TIFFDataType type, size_t count,
-                            const void *mydata, size_t offset_correction,
+                            cspan<std::byte> mydata, size_t offset_correction,
                             size_t offset_override = 0,
                             OIIO::endian endianreq = OIIO::endian::native);
 
