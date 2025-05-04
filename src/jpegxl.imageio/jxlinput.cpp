@@ -254,13 +254,11 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 jxl_data_type = JXL_TYPE_UINT8;
                 m_data_type   = TypeDesc::UINT8;
                 bits          = 8;
-            }
-            else if (info.bits_per_sample <= 16) {
+            } else if (info.bits_per_sample <= 16) {
                 jxl_data_type = is_float ? JXL_TYPE_FLOAT16 : JXL_TYPE_UINT16;
                 m_data_type   = is_float ? TypeDesc::HALF : TypeDesc::UINT16;
                 bits          = 16;
-            }
-            else if (info.bits_per_sample <= 32) {
+            } else if (info.bits_per_sample <= 32) {
                 jxl_data_type = JXL_TYPE_FLOAT;
                 m_data_type   = TypeDesc::FLOAT;
                 bits          = 32;
