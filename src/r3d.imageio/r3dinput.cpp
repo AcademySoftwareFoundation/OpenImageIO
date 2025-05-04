@@ -3,11 +3,11 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 // R3D SDK can be downloaded from the following site:
-// https://www.red.com/download/r3d-sdk
+// https://www.red.com/download/r3d-sdk-beta
 //
-// The code has been tested with the version 8.5.1 installed in
-// /opt/R3DSDKv8_5_1 directory and setting up the variable
-// export R3DSDK_ROOT="/opt/R3DSDKv8_5_1"
+// The code has been tested with the version 9.0.0 Beta 1 installed in
+// /opt/R3DSDKv9_0_0-BETA1 directory and setting up the variable
+// export R3DSDK_ROOT="/opt/R3DSDKv9_0_0-BETA1"
 
 #define GPU
 #define CUDA
@@ -675,11 +675,11 @@ R3dInput::initialize()
     std::string library_path
         = Sysutil::getenv("OIIO_R3D_LIBRARY_PATH",
 #if defined(__linux__)
-                          "/opt/R3DSDKv8_5_1/Redistributable/linux"
+                          "/opt/R3DSDKv9_0_0-BETA1/Redistributable/linux"
 #elif defined(__APPLE__)
-                          "/Library/R3DSDKv8_5_1/Redistributable/mac"
+                          "/Library/R3DSDKv9_0_0-BETA1/Redistributable/mac"
 #elif defined(__WINDOWS__)
-                          "C:\\R3DSDKv8_5_1\\Redistributable\\win"
+                          "C:\\R3DSDKv9_0_0-BETA1\\Redistributable\\win"
 #else
 #    error "Unknown OS"
 #endif
