@@ -11,10 +11,9 @@ else ()
 endif ()
 
 add_oiio_plugin (jpeginput.cpp jpegoutput.cpp
-                 INCLUDE_DIRS ${LIBUHDR_INCLUDE_DIR}
                  LINK_LIBRARIES
                      $<TARGET_NAME_IF_EXISTS:libjpeg-turbo::jpeg>
                      $<TARGET_NAME_IF_EXISTS:JPEG::JPEG>
-                     ${LIBUHDR_LIBRARY}
+                     $<TARGET_NAME_IF_EXISTS:libuhdr::libuhdr>
                  DEFINITIONS "${UHDR_DEFS}"
                  )
