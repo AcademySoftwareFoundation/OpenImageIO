@@ -87,8 +87,8 @@ endif ()
 
 
 # Ultra HDR
-checked_find_package (libuhdr)
-
+checked_find_package (libuhdr
+                      VERSION_MIN 1.3)
 
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.0)

@@ -6,7 +6,7 @@
 # libuhdr by hand!
 ######################################################################
 
-set_cache (libuhdr_BUILD_VERSION 1.2.0 "libuhdr version for local builds")
+set_cache (libuhdr_BUILD_VERSION 1.4.0 "libultrahdr version for local builds")
 set (libuhdr_GIT_REPOSITORY "https://github.com/google/libultrahdr")
 set (libuhdr_GIT_TAG "v${libuhdr_BUILD_VERSION}")
 
