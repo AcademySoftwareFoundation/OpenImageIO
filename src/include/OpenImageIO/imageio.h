@@ -2346,8 +2346,7 @@ public:
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `write_scanlines()` that takes an `image_span<const T>`.
     template<typename T>
-    bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
-                         span<T> data)
+    bool write_scanlines(int ybegin, int yend, int z, span<T> data)
     {
         auto ispan = image_span<T>(data.data(), m_spec.nchannels, m_spec.width,
                                    yend - ybegin, 1);
