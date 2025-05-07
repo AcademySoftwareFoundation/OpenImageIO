@@ -246,12 +246,14 @@ Strutil::pvt::geterror(bool clear)
 }
 
 
+#if OIIO_VERSION_LESS(3, 1, 2) /* remove at next ABI compatibility boundary */
 void
 pvt::log_fmt_error(const char* message)
 {
     print("fmt exception: {}\n", message);
     Strutil::pvt::append_error(std::string("fmt exception: ") + message);
 }
+#endif
 
 
 
