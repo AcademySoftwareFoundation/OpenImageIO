@@ -40,7 +40,7 @@ http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/00065
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #define ICC_PROFILE_ATTR "ICCProfile"
-
+#define CICP_ATTR "oiio:CICP"
 
 namespace PNG_pvt {
 
@@ -325,6 +325,16 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     }
 
     interlace_type = png_get_interlace_type(sp, ip);
+
+#ifdef PNG_cICP_SUPPORTED
+    {
+        png_byte cp = 0, tf = 0, mc = 0, fr = 0;
+        if (png_get_cICP(sp, ip, &cp, &tf, &mc, &fr)) {
+            uint8_t cicp[4] = { cp, tf, mc, fr };
+            spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::UINT8, 4), cicp);
+        }
+    }
+#endif
 
 #ifdef PNG_eXIf_SUPPORTED
     // Recent version of PNG and libpng (>= 1.6.32, I think) have direct
@@ -697,6 +707,17 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         png_set_pHYs(sp, ip, (png_uint_32)(xres * scale),
                      (png_uint_32)(yres * scale), unittype);
     }
+
+#ifdef PNG_cICP_SUPPORTED
+    const ParamValue* p = spec.find_attribute(CICP_ATTR,
+                                              TypeDesc(TypeDesc::UINT8, 4));
+    if (p) {
+        const png_byte* vals = static_cast<const png_byte*>(p->data());
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG cICP chunk";
+        png_set_cICP(sp, ip, vals[0], vals[1], vals[2], vals[3]);
+    }
+#endif
 
 #ifdef PNG_eXIf_SUPPORTED
     std::vector<char> exifBlob;
