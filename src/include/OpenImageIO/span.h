@@ -95,6 +95,7 @@ public:
     /// Copy constructor (copies the span pointer and length, NOT the data).
     constexpr span (const span &copy) noexcept = default;
 
+#ifndef OIIO_DOXYGEN  /* this declaration confuses doxygen */
     /// Copy constructor from a different extent (copies the span pointer and
     /// length, NOT the data). This allows for construction of `span<const T>`
     /// from `span<T>`, and for converting fixed extent to dynamic extent.
@@ -104,6 +105,7 @@ public:
                              && (extent == dynamic_extent || extent == N))>
     constexpr span (const span<U,N> &copy) noexcept
         : m_data(copy.data()), m_size(copy.size()) { }
+#endif
 
     /// Construct from T* and length.
     constexpr span (pointer data, size_type size) noexcept
