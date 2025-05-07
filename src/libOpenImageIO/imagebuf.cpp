@@ -272,11 +272,39 @@ public:
         validate_spec();
         return m_spec;
     }
-    const ImageSpec& nativespec() const
+
+    TypeDesc file_format() const
     {
-        validate_spec();
-        return m_nativespec;
+        //! TODO: remove m_nativespec and store only the "native format"
+        return m_nativespec.format;
     }
+
+    TypeDesc& file_format()
+    {
+        //! TODO: remove m_nativespec and store only the "native format"
+        return m_nativespec.format;
+    }
+
+    std::vector<TypeDesc> file_channelformats() const
+    {
+        //! TODO: remove m_nativespec and store only the "native channels format"
+        return m_nativespec.channelformats;
+    }
+
+    std::vector<TypeDesc>& file_channelformats()
+    {
+        //! TODO: remove m_nativespec and store only the "native channels format"
+        return m_nativespec.channelformats;
+    }
+
+    /// DEPRECTATED
+    /// TODO: uncomment for backwards compatibility once everything else is in place.
+    // const ImageSpec& nativespec() const
+    // {
+    //     validate_spec();
+    //     return m_nativespec;
+    // }
+
     ImageSpec& specmod()
     {
         validate_spec();
@@ -343,6 +371,7 @@ private:
     int m_nmiplevels;               ///< # of MIP levels in the current subimage
     mutable int m_threads;          ///< thread policy for this image
     ImageSpec m_spec;               ///< Describes the image (size, etc)
+    //! TODO: remove m_nativespec
     ImageSpec m_nativespec;         ///< Describes the true native image
     std::unique_ptr<char[]> m_pixels;  ///< Pixel data, if local and we own it
     char* m_localpixels;               ///< Pointer to local pixels
@@ -390,7 +419,7 @@ private:
             return m_write_format[channel];
         if (m_write_format.size() == 1)
             return m_write_format[0];
-        return m_nativespec.format;
+        return file_format();
     }
 
     void lock() const { m_mutex.lock(); }
@@ -796,7 +825,7 @@ void
 ImageBufImpl::clear()
 {
     if (m_imagecache && !m_name.empty()
-        && (storage() == ImageBuf::IMAGECACHE || m_rioproxy)) {
+        && (cachedpixels() || m_rioproxy)) {
         // If we were backed by an ImageCache, invalidate any IC entries we
         // might have made. Also do so if we were using an IOProxy, because
         // the proxy may not survive long after the ImageBuf is destroyed.
@@ -931,7 +960,9 @@ ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
     m_current_miplevel = 0;
     if (buforigin || bufspan.size()) {
         m_spec           = spec;
+        //! TODO: remove m_nativespec
         m_nativespec     = nativespec ? *nativespec : spec;
+
         m_channel_stride = stride_t(spec.format.size());
         m_xstride        = xstride;
         m_ystride        = ystride;
@@ -1097,7 +1128,9 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
                                      TypeString, &fmt);
         m_fileformat = ustring(fmt);
 
+        // Read native image spec from the ImageCache
         m_imagecache->get_imagespec(m_name, m_nativespec, subimage);
+        // Copy and override the spec with cache internal data size
         m_spec = m_nativespec;
         m_imagecache->get_cache_dimensions(m_name, m_spec, subimage, miplevel);
 
@@ -1258,9 +1291,12 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     pvt::LoggedTimer logtime("IB::read");
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
-    if (chend < 0 || chend > nativespec().nchannels)
-        chend = nativespec().nchannels;
-    bool use_channel_subset = (chbegin != 0 || chend != nativespec().nchannels);
+
+    //! NOTE: m_imagecache can be null, make sure there is a fallback solution
+    const ImageSpec& nativespec = *m_imagecache->imagespec(m_name, m_current_subimage);
+    if (chend < 0 || chend > nativespec.nchannels)
+        chend = nativespec.nchannels;
+    bool use_channel_subset = (chbegin != 0 || chend != nativespec.nchannels);
 
     if (m_spec.deep) {
         Timer timer;
@@ -1316,7 +1352,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     } else {
         // No cache should take the "forced read now" route.
         force             = true;
-        m_cachedpixeltype = m_nativespec.format;
+        m_cachedpixeltype = file_format();
     }
 
     if (use_channel_subset) {
@@ -1325,24 +1361,26 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         m_spec.nchannels = chend - chbegin;
         m_spec.channelnames.resize(m_spec.nchannels);
         for (int c = 0; c < m_spec.nchannels; ++c)
-            m_spec.channelnames[c] = m_nativespec.channelnames[c + chbegin];
-        if (m_nativespec.channelformats.size()) {
+            m_spec.channelnames[c] = nativespec.channelnames[c + chbegin];
+        const std::vector<TypeDesc>& cformats = file_channelformats();
+        if (cformats.size()) {
             m_spec.channelformats.resize(m_spec.nchannels);
             for (int c = 0; c < m_spec.nchannels; ++c)
                 m_spec.channelformats[c]
-                    = m_nativespec.channelformats[c + chbegin];
+                    = cformats[c + chbegin];
         }
     }
 
     if (convert != TypeDesc::UNKNOWN)
         m_spec.format = convert;
     else
-        m_spec.format = m_nativespec.format;
+        m_spec.format = file_format();
     realloc();
     // N.B. realloc sets m_bufspan
 
     // If forcing a full read, make sure the spec reflects the nativespec's
     // tile sizes, rather than that imposed by the ImageCache.
+    /// TODO: what to do here again ? getting rid of nativespec will lose that info..
     m_spec.tile_width  = m_nativespec.tile_width;
     m_spec.tile_height = m_nativespec.tile_height;
     m_spec.tile_depth  = m_nativespec.tile_depth;
@@ -1350,7 +1388,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     if (force || !m_imagecache || m_rioproxy
         || (convert != TypeDesc::UNKNOWN && convert != m_cachedpixeltype
             && convert.size() >= m_cachedpixeltype.size()
-            && convert.size() >= m_nativespec.format.size())) {
+            && convert.size() >= file_format().size())) {
         // A specific conversion type was requested which is not the cached
         // type and whose bit depth is as much or more than the cached type.
         // Bypass the cache and read directly so that there is no possible
@@ -1701,8 +1739,8 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
     } else {
         // No override on the ImageBuf, nor on this call to write(), so
         // we just use what is known from the imagespec.
-        newspec.set_format(nativespec().format);
-        newspec.channelformats = nativespec().channelformats;
+        newspec.set_format(file_format());
+        newspec.channelformats = file_channelformats();
     }
 
     if (m_impl->m_wioproxy) {
@@ -1753,13 +1791,17 @@ ImageBufImpl::copy_metadata(const ImageBufImpl& src)
     m_spec.full_width  = srcspec.full_width;
     m_spec.full_height = srcspec.full_height;
     m_spec.full_depth  = srcspec.full_depth;
-    if (src.storage() == ImageBuf::IMAGECACHE) {
+    if (src.cachedpixels()) {
         // If we're copying metadata from a cached image, be sure to
         // get the file's tile size, not the cache's tile size.
-        m_spec.tile_width  = src.nativespec().tile_width;
-        m_spec.tile_height = src.nativespec().tile_height;
-        m_spec.tile_depth  = src.nativespec().tile_depth;
-    } else {
+        //! TOCHECK: is it actually correct to do as follows ?
+        const ImageSpec& nativespec = *m_imagecache->imagespec(m_name);
+        m_spec.tile_width  = nativespec.tile_width;
+        m_spec.tile_height = nativespec.tile_height;
+        m_spec.tile_depth  = nativespec.tile_depth;
+    }
+    else
+    {
         m_spec.tile_width  = srcspec.tile_width;
         m_spec.tile_height = srcspec.tile_height;
         m_spec.tile_depth  = srcspec.tile_depth;
@@ -1842,11 +1884,28 @@ ImageBuf::specmod()
 
 
 
-const ImageSpec&
-ImageBuf::nativespec() const
+TypeDesc
+ImageBuf::file_format() const
 {
-    return m_impl->nativespec();
+    return m_impl->file_format();
 }
+
+
+
+std::vector<TypeDesc>
+ImageBuf::file_channelformats() const
+{
+    return m_impl->file_channelformats();
+}
+
+
+
+// DEPRECATED
+// const ImageSpec&
+// ImageBuf::nativespec() const
+// {
+//     return m_impl->nativespec();
+// }
 
 
 
@@ -2265,12 +2324,12 @@ ImageBuf::copy(const ImageBuf& src, TypeDesc format)
         return true;
     }
     if (src.deep()) {
-        m_impl->reset(src.name(), src.spec(), &src.nativespec());
+        m_impl->reset(src.name(), src.spec());
         m_impl->m_deepdata = src.m_impl->m_deepdata;
         return true;
     }
     if (format.basetype == TypeDesc::UNKNOWN || src.deep())
-        m_impl->reset(src.name(), src.spec(), &src.nativespec());
+        m_impl->reset(src.name(), src.spec());
     else {
         ImageSpec newspec(src.spec());
         newspec.set_format(format);
