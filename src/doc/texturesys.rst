@@ -178,7 +178,7 @@ structure:
 
 - `int colortransformid` :
    If non-zero, specifies a color transformation to apply to the texels, a
-   handle to a transform retrerieved `TextureSystem::get_colortransform_id()`.
+   handle to a transform retrieved `TextureSystem::get_colortransform_id()`.
 
 
 
