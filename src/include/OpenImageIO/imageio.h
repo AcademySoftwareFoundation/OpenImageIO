@@ -2246,14 +2246,16 @@ public:
     ///
     /// * There is a base case that takes a `image_span<byte>` describing
     ///   untyped memory layout and a `TypeDesc` describing the data type
-    ///   that the values should be converted to (or TypeUnknown to keep
-    ///   the data in its "native" file types with no conversion).
+    ///   that the values should be converted from (or TypeUnknown to
+    ///   indicate that the data is already in its "native" file types with
+    ///   no conversion needed).
     ///
-    /// * The type-aware versions that accept an `image_span<T>` and
-    ///   understand to convert the data into the approprate `T` type.
+    /// * The type-aware versions that accept an `image_span<T>` (for
+    ///   optionally non-contiguous data) or `span<T>` (for contiguous data)
+    ///   and understand to convert the data from the given `T` type.
     ///
     /// * The image_span (in either case) includes the memory bounds and
-    ///   stride lengths (in bytes) between channels, scanlines, and
+    ///   stride lengths (in bytes) between channels, pixels, scanlines, and
     ///   volumetric slices.
     ///
     /// * Any *range* parameters (such as `ybegin` and `yend`) describe a
@@ -2288,8 +2290,8 @@ public:
     ///                     that `data`'s memory contains. Use `TypeUnknown`
     ///                     to indicate that the data is already in the native
     ///                     format and needs no type conversion.
-    /// @param  data        An `image_span<T>` describing the memory extent
-    ///                     of the data buffer and including the sizes and
+    /// @param  data        An `image_span<const byte>` describing the memory
+    ///                     extent of the data buffer and including the sizes
     ///                     and byte strides for each dimension (channel, x,
     ///                     y, and z).
     /// @returns            `true` upon success, or `false` upon failure.
