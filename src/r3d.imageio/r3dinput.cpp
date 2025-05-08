@@ -854,7 +854,7 @@ R3dInput::open(const std::string& name, ImageSpec& newspec,
         m_job.OutputBuffer = m_image_buffer;
 
         // Interleaved RGB decoding in 16-bits per pixel
-        m_job.PixelType   = R3DSDK::PixelType_16Bit_RGB_Interleaved;
+        m_job.PixelType = R3DSDK::PixelType_16Bit_RGB_Interleaved;
 
         m_job.ImageProcessing = NULL;
         m_job.HdrProcessing   = NULL;
