@@ -286,6 +286,26 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
 
 
 bool
+ImageInput::read_scanline(int y, int z, TypeDesc format,
+                          image_span<std::byte> data)
+{
+    size_t sz = (format == TypeUnknown ? m_spec.pixel_bytes(true /*native*/)
+                                       : format.size() * m_spec.nchannels)
+                * size_t(m_spec.width);
+    if (sz != data.size_bytes()) {
+        errorfmt(
+            "read_scanline: Buffer size is incorrect ({} bytes vs {} needed)",
+            sz, data.size_bytes());
+        return false;
+    }
+
+    // Default implementation (for now): call the old pointer+stride
+    return read_scanline(y, z, format, data.data(), data.xstride());
+}
+
+
+
+bool
 ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                            int z, int chbegin, int chend, TypeDesc format,
                            void* data, stride_t xstride, stride_t ystride)
@@ -1091,6 +1111,24 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
     if (progress_callback)
         progress_callback(progress_callback_data, 1.0f);
     return ok;
+}
+
+
+
+bool
+ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
+                       TypeDesc format, image_span<std::byte> data)
+{
+    size_t sz = m_spec.image_bytes(/*native=*/format == TypeUnknown);
+    if (sz != data.size_bytes()) {
+        errorfmt("read_image: Buffer size is incorrect ({} bytes vs {} needed)",
+                 sz, data.size_bytes());
+        return false;
+    }
+
+    // Default implementation (for now): call the old pointer+stride
+    return read_image(subimage, miplevel, chbegin, chend, format, data.data(),
+                      data.xstride(), data.ystride(), data.zstride());
 }
 
 
