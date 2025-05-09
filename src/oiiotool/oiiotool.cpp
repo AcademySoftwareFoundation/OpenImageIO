@@ -5176,6 +5176,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
     auto fileoptions     = ot.extract_options(command);
     int printinfo        = fileoptions.get_int("info", ot.printinfo);
     bool readnow         = fileoptions.get_int("now", 0);
+    bool native          = fileoptions.get_int("native", int(ot.nativeread));
     bool autocc          = fileoptions.get_int("autocc", ot.autocc);
     bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
     std::string infoformat = fileoptions.get_string("infoformat",
@@ -5261,6 +5262,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
             ot.input_channel_set = channel_set;
             readnow              = true;
         }
+        readnow |= native;
 
         if (substitute) {
             ot.push(ImageRecRef(new ImageRec(substitute)));
@@ -5273,9 +5275,10 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
             if (ot.input_config_set)
                 ot.curimg->configspec(ot.input_config);
             ot.curimg->input_dataformat(input_dataformat);
-            if (readnow)
-                ot.read(ReadNoCache, channel_set);
-            else
+            if (readnow) {
+                ReadPolicy policy = native ? ReadNativeNoCache : ReadNoCache;
+                ot.read(policy, channel_set);
+            } else
                 ot.read_nativespec();
             if (ot.first_input_dimensions.format == TypeUnknown) {
                 ot.first_input_dimensions.copy_dimensions(
@@ -6561,7 +6564,7 @@ Oiiotool::getargs(int argc, char* argv[])
 
     ap.separator("Commands that read images:");
     ap.arg("-i %s:FILENAME")
-      .help("Input file (options: autocc=, ch=, info=, infoformat=, now=, type=, unpremult=)")
+      .help("Input file (options: autocc=, ch=, info=, infoformat=, native=, now=, type=, unpremult=)")
       .OTACTION(input_file);
     ap.arg("--iconfig %s:NAME %s:VALUE")
       .help("Sets input config attribute (options: type=...)")

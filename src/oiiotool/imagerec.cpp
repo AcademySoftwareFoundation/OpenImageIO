@@ -335,8 +335,16 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
                 if (m_input_dataformat != ib->nativespec().format)
                     m_subimages[s].m_was_direct_read = false;
                 forceread = true;
-            } else if (readpolicy & ReadNative)
-                convert = ib->nativespec().format;
+            } else if (readpolicy & ReadNative) {
+                if (channel_set.size()) {
+                    convert = TypeUnknown;
+                    for (int c = chbegin; c < chend; ++c)
+                        convert = TypeDesc::basetype_merge(
+                            convert, ib->nativespec().channelformat(c));
+                } else {
+                    convert = ib->nativespec().format;
+                }
+            }
             if (!forceread && convert != TypeDesc::UINT8
                 && convert != TypeDesc::UINT16 && convert != TypeDesc::HALF
                 && convert != TypeDesc::FLOAT) {
