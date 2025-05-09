@@ -684,11 +684,10 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
 bool
 ImageOutput::write_image(TypeDesc format, image_span<const std::byte> data)
 {
-    size_t sz = m_spec.image_bytes(/*native=*/ format == TypeUnknown);
+    size_t sz = m_spec.image_bytes(/*native=*/format == TypeUnknown);
     if (sz != data.size_bytes()) {
-        errorfmt(
-            "write_image: Buffer size is incorrect ({} bytes vs {} needed)",
-            sz, data.size_bytes());
+        errorfmt("write_image: Buffer size is incorrect ({} bytes vs {} needed)",
+                 sz, data.size_bytes());
         return false;
     }
 
