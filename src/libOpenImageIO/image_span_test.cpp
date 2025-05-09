@@ -422,18 +422,18 @@ benchmark_image_span_passing()
     float sum = 0.0f;
 
     bench("  pass by value     (big)",
-          [&]() { sum += sum_image_span_val(ispan); });
-    bench("  pass by value imm (big)", [&]() {
+          [=, &sum]() { sum += sum_image_span_val(ispan); });
+    bench("  pass by value imm (big)", [=, &sum]() {
         sum += sum_image_span_val(
             image_span<const float>(sbuf.data(), nchans, xres, yres, 1));
     });
     bench("  pass by ref       (big)",
-          [&]() { sum += sum_image_span_ref(ispan); });
-    bench("  pass by ref imm   (big)", [&]() {
+          [=, &sum]() { sum += sum_image_span_ref(ispan); });
+    bench("  pass by ref imm   (big)", [=, &sum]() {
         sum += sum_image_span_ref(
             image_span<const float>(sbuf.data(), nchans, xres, yres, 1));
     });
-    bench("  pass by ptr       (big)", [&]() {
+    bench("  pass by ptr       (big)", [=, &sum]() {
         sum += sum_image_span_ptr(sbuf.data(), nchans, xres, yres, 1,
                                   sizeof(float), nchans * sizeof(float),
                                   nchans * sizeof(float) * xres,
@@ -445,18 +445,18 @@ benchmark_image_span_passing()
     int small = 16;
     image_span<const float> smispan(sbuf.data(), nchans, small, small, 1);
     bench("  pass by value     (small)",
-          [&]() { sum += sum_image_span_val(smispan); });
-    bench("  pass by value imm (small)", [&]() {
+          [=, &sum]() { sum += sum_image_span_val(smispan); });
+    bench("  pass by value imm (small)", [=, &sum]() {
         sum += sum_image_span_val(
             image_span<const float>(sbuf.data(), nchans, small, small, 1));
     });
     bench("  pass by ref       (small)",
-          [&]() { sum += sum_image_span_ref(smispan); });
-    bench("  pass by ref imm   (small)", [&]() {
+          [=, &sum]() { sum += sum_image_span_ref(smispan); });
+    bench("  pass by ref imm   (small)", [=, &sum]() {
         sum += sum_image_span_ref(
             image_span<const float>(sbuf.data(), nchans, small, small, 1));
     });
-    bench("  pass by ptr       (small)", [&]() {
+    bench("  pass by ptr       (small)", [=, &sum]() {
         sum += sum_image_span_ptr(sbuf.data(), nchans, small, small, 1,
                                   sizeof(float), nchans * sizeof(float),
                                   nchans * sizeof(float) * small,

@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+ls build
+
 mkdir -p build/benchmarks
 for t in image_span_test ; do
     echo
