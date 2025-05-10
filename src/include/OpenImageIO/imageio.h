@@ -2321,8 +2321,8 @@ public:
         return write_image(ispan);
     }
 
-    /// Write one scanline that include pixels (*,y,z) from `data`, which is
-    /// an `image_span` of un-typed bytes incorporating its bounded dimensions
+    /// Write one scanline that include pixels (*,y) from `data`, which is an
+    /// `image_span` of un-typed bytes incorporating its bounded dimensions
     /// and strides. The data type is given explicity by the `format`
     /// argument, and will be automatically converted to the type being stored
     /// in the file.
@@ -2330,7 +2330,7 @@ public:
     /// The image_span must have a width equal to a full scanline width,
     /// and its height and depth must be 1.
     ///
-    /// @param  y/z         The y & z coordinates of the scanline.
+    /// @param  y           The y coordinate of the scanline.
     /// @param  format      A TypeDesc describing the type of the pixel data
     ///                     that `data`'s memory contains. Use `TypeUnknown`
     ///                     to indicate that the data is already in the native
@@ -2340,34 +2340,31 @@ public:
     ///                     dimension (channel, x, y, z).
     /// @returns            `true` upon success, or `false` upon failure.
     ///
-    virtual bool write_scanline(int y, int z, TypeDesc format,
+    virtual bool write_scanline(int y, TypeDesc format,
                                 const image_span<const std::byte>& data);
 
     /// A version of `write_scanline()` taking an `image_span<T>`, where the
     /// type of the underlying data is `T`.  This is a convenience wrapper
     /// around the `write_scanline()` that takes an `image_span<const
     /// std::byte>`.
-    template<typename T>
-    bool write_scanline(int y, int z, const image_span<T>& data)
+    template<typename T> bool write_scanline(int y, const image_span<T>& data)
     {
         // reduce to type + image_span<byte>
-        return write_scanline(y, z, TypeDescFromC<T>::value(),
+        return write_scanline(y, TypeDescFromC<T>::value(),
                               as_image_span_bytes(data));
     }
 
     /// A version of `write_scanline()` taking a `cspan<T>`, which assumes
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `write_scanline()` that takes an `image_span<const T>`.
-    template<typename T> bool write_scanline(int y, int z, span<T> data)
+    template<typename T> bool write_scanline(int y, span<T> data)
     {
         // reduce to type + image_span<byte>
-        auto isize = m_spec.image_bytes(TypeDescFromC<T>::value());
-        return write_scanline(y, z,
-                              image_span<T>(data.data(), m_spec.nchannels,
-                                            m_spec.width, 1, 1));
+        return write_scanline(y, image_span<T>(data.data(), m_spec.nchannels,
+                                               m_spec.width, 1, 1));
     }
 
-    /// Write multiple scanlines that include pixels (*,y,z) for all `ybegin
+    /// Write multiple scanlines that include pixels (*,y) for all `ybegin
     /// <= y < yend`, from `data`, which is an `image_span` of un-typed bytes
     /// incorporating its bounded dimensions and strides. The data type is
     /// given explicity by the `format` argument, and will be automatically
@@ -2380,7 +2377,6 @@ public:
     /// and its height must be yend - ybegin.
     ///
     /// @param  ybegin/yend The y range of the scanlines being passed.
-    /// @param  z           The z coordinate of the scanline.
     /// @param  format      A TypeDesc describing the type of the pixel data
     ///                     that `data`'s memory contains. Use `TypeUnknown`
     ///                     to indicate that the data is already in the native
@@ -2390,7 +2386,7 @@ public:
     ///                     dimension (channel, x, y, z).
     /// @returns            `true` upon success, or `false` upon failure.
     ///
-    virtual bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+    virtual bool write_scanlines(int ybegin, int yend, TypeDesc format,
                                  const image_span<const std::byte>& data);
 
     /// A version of `write_scanlines()` taking an `image_span<T>`, where the
@@ -2398,10 +2394,10 @@ public:
     /// around the `write_scanlines()` that takes an `image_span<const
     /// std::byte>`.
     template<typename T>
-    bool write_scanlines(int ybegin, int yend, int z, const image_span<T>& data)
+    bool write_scanlines(int ybegin, int yend, const image_span<T>& data)
     {
         // image_span<T>: reduces to type + byte_buffer
-        return write_scanlines(ybegin, yend, z, TypeDescFromC<T>::value(),
+        return write_scanlines(ybegin, yend, TypeDescFromC<T>::value(),
                                data.as_image_span_bytes());
     }
 
@@ -2409,13 +2405,13 @@ public:
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `write_scanlines()` that takes an `image_span<const T>`.
     template<typename T>
-    bool write_scanlines(int ybegin, int yend, int z, span<T> data)
+    bool write_scanlines(int ybegin, int yend, span<T> data)
     {
         auto ispan = image_span<T>(data.data(), m_spec.nchannels, m_spec.width,
                                    yend - ybegin, 1);
         OIIO_DASSERT(data.size_bytes() == ispan.size_bytes()
                      && ispan.is_contiguous());
-        return write_scanlines(ybegin, yend, z, ispan);
+        return write_scanlines(ybegin, yend, ispan);
     }
 
 

@@ -111,7 +111,7 @@ ImageOutput::write_scanline(int /*y*/, int /*z*/, TypeDesc /*format*/,
 
 
 bool
-ImageOutput::write_scanline(int y, int z, TypeDesc format,
+ImageOutput::write_scanline(int y, TypeDesc format,
                             const image_span<const std::byte>& data)
 {
     size_t sz = (format == TypeUnknown ? m_spec.pixel_bytes(true /*native*/)
@@ -125,7 +125,7 @@ ImageOutput::write_scanline(int y, int z, TypeDesc format,
     }
 
     // Default implementation (for now): call the old pointer+stride
-    return write_scanline(y, z, format, data.data(), data.xstride());
+    return write_scanline(y, 0, format, data.data(), data.xstride());
 }
 
 
@@ -153,7 +153,7 @@ ImageOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
 
 bool
-ImageOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+ImageOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
                              const image_span<const std::byte>& data)
 {
     size_t sz = (format == TypeUnknown ? m_spec.pixel_bytes(true /*native*/)
@@ -167,7 +167,7 @@ ImageOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     }
 
     // Default implementation (for now): call the old pointer+stride
-    return write_scanlines(ybegin, yend, z, format, data.data(), data.xstride(),
+    return write_scanlines(ybegin, yend, 0, format, data.data(), data.xstride(),
                            data.ystride());
 }
 
