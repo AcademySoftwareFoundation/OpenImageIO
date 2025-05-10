@@ -2330,6 +2330,9 @@ public:
     /// The image_span must have a width equal to a full scanline width,
     /// and its height and depth must be 1.
     ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of write_scanline that takes raw pointers.
+    ///
     /// @param  y           The y coordinate of the scanline.
     /// @param  format      A TypeDesc describing the type of the pixel data
     ///                     that `data`'s memory contains. Use `TypeUnknown`
@@ -2375,6 +2378,9 @@ public:
     ///
     /// The image_span must have a width equal to a full scanline width,
     /// and its height must be yend - ybegin.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of write_scanlines that takes raw pointers.
     ///
     /// @param  ybegin/yend The y range of the scanlines being passed.
     /// @param  format      A TypeDesc describing the type of the pixel data
@@ -2424,7 +2430,7 @@ public:
     /// left corner) pixel of a tile.
     ///
     /// Added in OIIO 3.1, this is the "safe" preferred alternative to
-    /// the version of write_image that takes raw pointers.
+    /// the version of write_tile that takes raw pointers.
     ///
     /// @param  x/y/z       The x range of the pixels being passed.
     /// @param  ybegin/yend The y range of the pixels being passed.
@@ -2438,6 +2444,9 @@ public:
     ///                     including its sizes and byte strides for each
     ///                     dimension (channel, x, y, z).
     /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of write_tile that takes raw pointers.
     ///
     virtual bool write_tile(int x, int y, int z, TypeDesc format,
                             const image_span<const std::byte>& data);
@@ -2476,7 +2485,7 @@ public:
     /// coordinates must be at tile or image boundaries.
     ///
     /// Added in OIIO 3.1, this is the "safe" preferred alternative to
-    /// the version of write_image that takes raw pointers.
+    /// the version of write_tiles that takes raw pointers.
     ///
     /// @param  xbegin/xend The x range of the pixels being passed.
     /// @param  ybegin/yend The y range of the pixels being passed.
@@ -2533,7 +2542,7 @@ public:
     /// `supports("rectangles")`.
     ///
     /// Added in OIIO 3.1, this is the "safe" preferred alternative to
-    /// the version of write_image that takes raw pointers.
+    /// the version of write_rectangle that takes raw pointers.
     ///
     /// @param  xbegin/xend The x range of the pixels being passed.
     /// @param  ybegin/yend The y range of the pixels being passed.
