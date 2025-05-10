@@ -734,7 +734,7 @@ _contiguize(const T* src, int nchannels, stride_t xstride, stride_t ystride,
 
 
 span<const std::byte>
-pvt::contiguize(image_span<const std::byte> src, span<std::byte> dst)
+pvt::contiguize(const image_span<const std::byte>& src, span<std::byte> dst)
 {
     // Contiguized result must fit in dst
     OIIO_DASSERT(src.size_bytes() <= dst.size_bytes());
@@ -1053,7 +1053,8 @@ copy_image(int nchannels, int width, int height, int depth, const void* src,
 
 template<typename T>
 void
-aligned_copy_image(image_span<std::byte> dst, image_span<const std::byte> src)
+aligned_copy_image(const image_span<std::byte>& dst,
+                   const image_span<const std::byte>& src)
 {
     size_t systride  = src.ystride();
     size_t dystride  = dst.ystride();
@@ -1081,7 +1082,8 @@ aligned_copy_image(image_span<std::byte> dst, image_span<const std::byte> src)
 
 
 bool
-copy_image(image_span<std::byte> dst, image_span<const std::byte> src)
+copy_image(const image_span<std::byte>& dst,
+           const image_span<const std::byte>& src)
 {
     OIIO_DASSERT(src.width() == dst.width() && src.height() == dst.height()
                  && src.depth() == dst.depth()
