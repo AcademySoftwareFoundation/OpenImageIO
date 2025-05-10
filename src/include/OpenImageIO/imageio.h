@@ -2296,12 +2296,13 @@ public:
     ///                     y, and z).
     /// @returns            `true` upon success, or `false` upon failure.
     ///
-    virtual bool write_image(TypeDesc format, image_span<const std::byte> data);
+    virtual bool write_image(TypeDesc format,
+                             const image_span<const std::byte>& data);
 
     /// A version of `write_image()` taking an `image_span<T>`, where the type
     /// of the underlying data is `T`.  This is a convenience wrapper around
     /// the `write_image()` that takes an `image_span<const std::byte>`.
-    template<typename T> bool write_image(image_span<T> data)
+    template<typename T> bool write_image(const image_span<T>& data)
     {
         return write_image(TypeDescFromC<T>::value(),
                            as_image_span_bytes(data));
@@ -2340,13 +2341,14 @@ public:
     /// @returns            `true` upon success, or `false` upon failure.
     ///
     virtual bool write_scanline(int y, int z, TypeDesc format,
-                                image_span<const std::byte> data);
+                                const image_span<const std::byte>& data);
 
     /// A version of `write_scanline()` taking an `image_span<T>`, where the
     /// type of the underlying data is `T`.  This is a convenience wrapper
     /// around the `write_scanline()` that takes an `image_span<const
     /// std::byte>`.
-    template<typename T> bool write_scanline(int y, int z, image_span<T> data)
+    template<typename T>
+    bool write_scanline(int y, int z, const image_span<T>& data)
     {
         // reduce to type + image_span<byte>
         return write_scanline(y, z, TypeDescFromC<T>::value(),
@@ -2389,14 +2391,14 @@ public:
     /// @returns            `true` upon success, or `false` upon failure.
     ///
     virtual bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
-                                 image_span<const std::byte> data);
+                                 const image_span<const std::byte>& data);
 
     /// A version of `write_scanlines()` taking an `image_span<T>`, where the
     /// type of the underlying data is `T`.  This is a convenience wrapper
     /// around the `write_scanlines()` that takes an `image_span<const
     /// std::byte>`.
     template<typename T>
-    bool write_scanlines(int ybegin, int yend, int z, image_span<T> data)
+    bool write_scanlines(int ybegin, int yend, int z, const image_span<T>& data)
     {
         // image_span<T>: reduces to type + byte_buffer
         return write_scanlines(ybegin, yend, z, TypeDescFromC<T>::value(),
@@ -2442,13 +2444,13 @@ public:
     /// @returns            `true` upon success, or `false` upon failure.
     ///
     virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            image_span<const std::byte> data);
+                            const image_span<const std::byte>& data);
 
     /// A version of `write_tile()` taking an `image_span<T>`, where the type
     /// of the underlying data is `T`.  This is a convenience wrapper around
     /// the `write_tile()` that takes an `image_span<const std::byte>`.
     template<typename T>
-    bool write_tile(int x, int y, int z, image_span<T> data)
+    bool write_tile(int x, int y, int z, const image_span<T>& data)
     {
         return write_tile(x, y, z, TypeDescFromC<T>::value(),
                           as_image_span_bytes(data));
@@ -2495,14 +2497,14 @@ public:
     ///
     virtual bool write_tiles(int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, TypeDesc format,
-                             image_span<const std::byte> data);
+                             const image_span<const std::byte>& data);
 
     /// A version of `write_tiles()` taking an `image_span<T>`, where the type
     /// of the underlying data is `T`.  This is a convenience wrapper around
     /// the `write_tiles()` that takes an `image_span<const std::byte>`.
     template<typename T>
     bool write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                     int zend, image_span<T> data)
+                     int zend, const image_span<T>& data)
     {
         return write_tiles(xbegin, xend, ybegin, yend, zbegin, zend,
                            TypeDescFromC<T>::value(),
@@ -2550,7 +2552,7 @@ public:
     ///
     virtual bool write_rectangle(int xbegin, int xend, int ybegin, int yend,
                                  int zbegin, int zend, TypeDesc format,
-                                 image_span<const std::byte> data);
+                                 const image_span<const std::byte>& data);
 
     /// A version of `write_rectangle()` taking an `image_span<T>`, where the
     /// type of the underlying data is `T`.  This is a convenience wrapper
@@ -2558,7 +2560,7 @@ public:
     /// std::byte>`.
     template<typename T>
     bool write_rectangle(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                         int zend, image_span<T> data)
+                         int zend, const image_span<T>& data)
     {
         return write_rectangle(xbegin, xend, ybegin, yend, zbegin, zend,
                                TypeDescFromC<T>::value(),
@@ -3141,7 +3143,7 @@ protected:
     /// the pixels to the right position in the dither pattern.
     template<typename T>
     cspan<std::byte> to_native(int xbegin, int xend, int ybegin, int yend,
-                               int zbegin, int zend, image_span<T> data,
+                               int zbegin, int zend, const image_span<T>& data,
                                std::vector<unsigned char>& scratch,
                                unsigned int dither = 0, int xorigin = 0,
                                int yorigin = 0, int zorigin = 0)
@@ -3158,7 +3160,7 @@ protected:
     /// `format` and an image_span of generic (std::byte) data.
     cspan<std::byte> to_native(int xbegin, int xend, int ybegin, int yend,
                                int zbegin, int zend, TypeDesc format,
-                               image_span<const std::byte> data,
+                               const image_span<const std::byte>& data,
                                std::vector<unsigned char>& scratch,
                                unsigned int dither = 0, int xorigin = 0,
                                int yorigin = 0, int zorigin = 0);
@@ -3856,7 +3858,7 @@ OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
 /// Return true if ok, false if it didn't know how to do the conversion.
 template<typename SrcType, typename DstType>
 bool
-convert_image(image_span<SrcType> src, image_span<DstType> dst)
+convert_image(const image_span<SrcType>& src, const image_span<DstType>& dst)
 {
     // For now, just implement by wrapping the pointer-based version.
     OIIO_DASSERT(src.nchannels() == dst.nchannels()
@@ -3876,8 +3878,8 @@ convert_image(image_span<SrcType> src, image_span<DstType> dst)
 /// `TypeDesc`, and the spans are untyped bytes that provide the dimensions
 /// and memory layout.
 inline bool
-convert_image(image_span<const std::byte> src, TypeDesc src_type,
-              image_span<std::byte> dst, TypeDesc dst_type)
+convert_image(const image_span<const std::byte>& src, TypeDesc src_type,
+              const image_span<std::byte>& dst, TypeDesc dst_type)
 {
     // For now, just implement by wrapping the pointer-based version.
     OIIO_DASSERT(src.nchannels() == dst.nchannels()
@@ -3908,8 +3910,8 @@ OIIO_API bool parallel_convert_image (
 /// threads. The data types are taken from the spans.
 template<typename SrcType, typename DstType>
 bool
-parallel_convert_image(image_span<SrcType> src, image_span<DstType> dst,
-                       int nthreads = 0)
+parallel_convert_image(const image_span<SrcType>& src,
+                       const image_span<DstType>& dst, int nthreads = 0)
 {
     // For now, just implement by wrapping the pointer-based version.
     OIIO_DASSERT(src.nchannels() == dst.nchannels()
@@ -3927,9 +3929,9 @@ parallel_convert_image(image_span<SrcType> src, image_span<DstType> dst,
 /// threads. The data types are passed as `TypeDesc`, and the spans are
 /// untyped bytes that provide the dimensions and memory layout.
 inline bool
-parallel_convert_image(image_span<const std::byte> src, TypeDesc src_type,
-                       image_span<std::byte> dst, TypeDesc dst_type,
-                       int nthreads = 0)
+parallel_convert_image(const image_span<const std::byte>& src,
+                       TypeDesc src_type, const image_span<std::byte>& dst,
+                       TypeDesc dst_type, int nthreads = 0)
 {
     // For now, just implement by wrapping the pointer-based version.
     OIIO_DASSERT(src.nchannels() == dst.nchannels()
@@ -3995,7 +3997,8 @@ OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
 /// strides. Return true if ok, false if it couldn't do it. (Reserved for
 /// future use; currently is always succeeds)
 template<typename D, size_t Drank, typename S, size_t Srank>
-bool copy_image(image_span<D, Drank> dst, image_span<S, Srank> src)
+bool copy_image(const image_span<D, Drank>& dst,
+                const image_span<S, Srank>& src)
 {
     // Arbitrary types are handled by just converting to generic byte
     // image_spans.
@@ -4005,7 +4008,8 @@ bool copy_image(image_span<D, Drank> dst, image_span<S, Srank> src)
 
 /// copy_image base case: generic span of bytes.
 OIIO_API bool
-copy_image(image_span<std::byte> dst, image_span<const std::byte> src);
+copy_image(const image_span<std::byte> &dst,
+           const image_span<const std::byte>& src);
 
 
 

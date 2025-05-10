@@ -112,7 +112,7 @@ ImageOutput::write_scanline(int /*y*/, int /*z*/, TypeDesc /*format*/,
 
 bool
 ImageOutput::write_scanline(int y, int z, TypeDesc format,
-                            image_span<const std::byte> data)
+                            const image_span<const std::byte>& data)
 {
     size_t sz = (format == TypeUnknown ? m_spec.pixel_bytes(true /*native*/)
                                        : format.size() * m_spec.nchannels)
@@ -154,7 +154,7 @@ ImageOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
 bool
 ImageOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
-                             image_span<const std::byte> data)
+                             const image_span<const std::byte>& data)
 {
     size_t sz = (format == TypeUnknown ? m_spec.pixel_bytes(true /*native*/)
                                        : format.size() * m_spec.nchannels)
@@ -186,7 +186,7 @@ ImageOutput::write_tile(int /*x*/, int /*y*/, int /*z*/, TypeDesc /*format*/,
 
 bool
 ImageOutput::write_tile(int x, int y, int z, TypeDesc format,
-                        image_span<const std::byte> data)
+                        const image_span<const std::byte>& data)
 {
     size_t sz = format == TypeUnknown
                     ? m_spec.pixel_bytes(true /*native*/)
@@ -267,7 +267,7 @@ ImageOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 bool
 ImageOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                          int zend, TypeDesc format,
-                         image_span<const std::byte> data)
+                         const image_span<const std::byte>& data)
 {
     // Default implementation (for now): call the old pointer+stride
     return write_tiles(xbegin, xend, ybegin, yend, zbegin, zend, format,
@@ -293,7 +293,7 @@ bool
 ImageOutput::write_rectangle(int /*xbegin*/, int /*xend*/, int /*ybegin*/,
                              int /*yend*/, int /*zbegin*/, int /*zend*/,
                              TypeDesc /*format*/,
-                             image_span<const std::byte> /*data*/)
+                             const image_span<const std::byte>& /*data*/)
 {
     return false;
 }
@@ -570,7 +570,7 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
 cspan<std::byte>
 ImageOutput::to_native(int xbegin, int xend, int ybegin, int yend, int zbegin,
                        int zend, TypeDesc format,
-                       image_span<const std::byte> data,
+                       const image_span<const std::byte>& data,
                        std::vector<unsigned char>& scratch, unsigned int dither,
                        int xorigin, int yorigin, int zorigin)
 {
@@ -682,7 +682,8 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
 
 
 bool
-ImageOutput::write_image(TypeDesc format, image_span<const std::byte> data)
+ImageOutput::write_image(TypeDesc format,
+                         const image_span<const std::byte>& data)
 {
     size_t sz = m_spec.image_bytes(/*native=*/format == TypeUnknown);
     if (sz != data.size_bytes()) {

@@ -89,7 +89,7 @@ get_default_quantize(TypeDesc format, long long& quant_min,
 /// which is either dst or src (if the strides indicated that data were
 /// already contiguous).
 OIIO_API span<const std::byte>
-contiguize(image_span<const std::byte> src, span<std::byte> dst);
+contiguize(const image_span<const std::byte>& src, span<std::byte> dst);
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values
