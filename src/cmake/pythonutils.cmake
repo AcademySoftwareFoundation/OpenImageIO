@@ -156,7 +156,8 @@ macro (setup_python_module)
              RUNTIME DESTINATION ${PYTHON_SITE_DIR} COMPONENT user
              LIBRARY DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
-    install(FILES __init__.py DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+    install (FILES __init__.py stubs/OpenImageIO/__init__.pyi stubs/OpenImageIO/py.typed
+             DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
 endmacro ()
 
