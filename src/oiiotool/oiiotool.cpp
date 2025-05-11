@@ -2248,6 +2248,47 @@ icc_read(Oiiotool& ot, cspan<const char*> argv)
 }
 
 
+// Special OiiotoolOp whose purpose is to set attributes on the top image.
+class OpSetCICP final : public OiiotoolOp {
+public:
+    OpSetCICP(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
+    {
+        inplace(true);  // This action operates in-place
+        cicp = args(1);
+    }
+    OpSetCICP(Oiiotool& ot, string_view opname, int argc,
+                    const char* argv[])
+        : OpSetCICP(ot, opname, { argv, span_size_t(argc) })
+    {
+    }
+    bool setup() override
+    {
+        ir(0)->metadata_modified(true);
+        return true;
+    }
+    bool impl(span<ImageBuf*> img) override
+    {
+        // Because this is an in-place operation, img[0] is the same as
+        // img[1].
+        img[0]->specmod().set_cicp(cicp);
+        return true;
+    }
+
+private:
+    string_view cicp;
+};
+
+
+// --cicp
+static void
+action_cicp(Oiiotool& ot, cspan<const char*> argv)
+{
+    OpSetCICP op(ot, "cicp", argv);
+    op();
+}
+
+
 
 // --colorconfig
 static void
@@ -7173,6 +7214,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--iccread %s:FILENAME")
       .help("Add the contents of the file to the top image as its ICC profile")
       .OTACTION(icc_read);
+    ap.arg("--cicp %s:CICP")
+       .help("Set CICP metadata for supporting output formats (e.g., '12,16,0,1')")
+       .OTACTION(action_cicp);
     // clang-format on
 
     if (ap.parse_args(argc, (const char**)argv) < 0) {

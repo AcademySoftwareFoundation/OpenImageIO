@@ -717,6 +717,43 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
     data types, but not the arbitrary named metadata or channel names.
 
 
+.. py:method:: ImageSpec.set_cicp (pri: int, trc: int, mtx: int = 0, vfr: int = 1)
+               ImageSpec.set_cicp (cicp: str)
+
+    Set CICP metadata for image formats that support it. The overloaded
+    function accepts either a series of integers corresponding to the
+    H.273 enumerations for primaries, transfer characteristic, color
+    matrix, and video full range flag; or it'll accept a single string
+    argument of up to 4 comma-separated values. 
+
+    The third and fourth CICP values are optional, and are typically
+    more pertinant to video formats. The default values assume OIIO 
+    buffers hold unscaled (i.e., full-range) RGB-encoded data (as 
+    opposed to Y'CbCr or ICtCp).
+
+    Examples:
+
+    .. code-block:: python
+        
+        spec = ImageSpec(...)
+        spec.set_cicp(1, 13, 1)        # [1, 13, 1, 1]
+
+        # If only provided primaries and transfer characteristics,
+        # the color matrix is "identity" (0)
+        spec.set_cicp(1, 13)           # [1, 13, 0, 1]
+
+        # Passing an empty string will erase the attribute.
+        spec.set_cicp("") 
+        
+        # By default, OIIO assumes "full-range" scaling
+        spec.set_cicp("9,16,9")       # [9, 16, 9, 1]
+
+        # Use the following syntax to modify only certain values:
+        spec.set_cicp(",,,0")         # [9, 16, 9, 0] 
+
+    This function was added in version 3.0.7.
+
+
 .. py:method:: bool ImageSpec.set_colorspace (name)
 
     Set metadata to indicate the presumed color space `name`, or clear all
