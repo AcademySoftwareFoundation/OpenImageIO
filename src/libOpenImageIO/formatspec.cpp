@@ -1319,11 +1319,12 @@ ImageSpec::set_cicp(string_view cicp)
         erase_attribute("oiio:CICP");
         return;
     }
-    auto vals = Strutil::extract_from_list_string<int>("0,0,0,1", 4, 0);
-    auto p    = find_attribute("oiio:CICP", TypeDesc(TypeDesc::UINT8, 4));
+    std::vector<int> vals { 0, 0, 0, 1 };
+    auto p = find_attribute("oiio:CICP", TypeDesc(TypeDesc::UINT8, 4));
     if (p) {
-        string_view existing_vals = metadata_val(*p);
-        Strutil::extract_from_list_string<int>(vals, existing_vals);
+        const uint8_t* existing = static_cast<const uint8_t*>(p->data());
+        for (int i = 0; i < 4; ++i)
+            vals[i] = existing[i];
     }
     Strutil::extract_from_list_string<int>(vals, cicp);
     set_cicp(vals[0], vals[1], vals[2], vals[3]);
