@@ -716,7 +716,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG cICP chunk";
         // libpng will only write the chunk if the third byte is 0
-        png_set_cICP(sp, ip, vals[0], vals[1], (png_byte) 0, vals[3]);
+        png_set_cICP(sp, ip, vals[0], vals[1], (png_byte)0, vals[3]);
     }
 #endif
 

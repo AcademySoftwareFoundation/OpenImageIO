@@ -485,7 +485,7 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
     auto iter = extra_attribs.find(name, searchtype, casesensitive);
     if (iter != extra_attribs.end())
         return &(*iter);
-    // Check named items in the ImageSpec structs, not in extra_attrubs
+        // Check named items in the ImageSpec structs, not in extra_attrubs
 #define MATCH(n, t)                                 \
     (((!casesensitive && Strutil::iequals(name, n)) \
       || (casesensitive && name == n))              \
@@ -1320,7 +1320,7 @@ ImageSpec::set_cicp(string_view cicp)
         return;
     }
     auto vals = Strutil::extract_from_list_string<int>("0,0,0,1", 4, 0);
-    auto p = find_attribute("oiio:CICP", TypeDesc(TypeDesc::UINT8, 4));
+    auto p    = find_attribute("oiio:CICP", TypeDesc(TypeDesc::UINT8, 4));
     if (p) {
         string_view existing_vals = metadata_val(*p);
         Strutil::extract_from_list_string<int>(vals, existing_vals);

@@ -2257,8 +2257,7 @@ public:
         inplace(true);  // This action operates in-place
         cicp = args(1);
     }
-    OpSetCICP(Oiiotool& ot, string_view opname, int argc,
-                    const char* argv[])
+    OpSetCICP(Oiiotool& ot, string_view opname, int argc, const char* argv[])
         : OpSetCICP(ot, opname, { argv, span_size_t(argc) })
     {
     }
