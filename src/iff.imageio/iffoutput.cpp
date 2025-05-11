@@ -467,7 +467,7 @@ IffOutput::close(void)
 
                                         if (offset >= in_span.size()) {
                                             errorfmt(
-                                                "in_span overflow while writing tile (%u, %u)",
+                                                "in_span overflow while writing tile ({}, {})",
                                                 px, py);
                                             return false;
                                         }
@@ -533,7 +533,7 @@ IffOutput::close(void)
                                         if (out_p >= scratch.data()
                                                          + scratch.size()) {
                                             errorfmt(
-                                                "scratch overflow while writing uncompressed tile (%u, %u)",
+                                                "scratch overflow while writing uncompressed tile ({}, {})",
                                                 px, py);
                                             return false;
                                         }
@@ -591,7 +591,7 @@ IffOutput::close(void)
 
                                         if (offset >= in_span.size()) {
                                             errorfmt(
-                                                "in_span overflow at (%u, %u)",
+                                                "in_span overflow at ({}, {})",
                                                 px, py);
                                             return false;
                                         }
@@ -655,7 +655,7 @@ IffOutput::close(void)
                                         if (out_p + 2
                                             > scratch.data() + scratch.size()) {
                                             errorfmt(
-                                                "scratch overflow while writing uncompressed 16-bit tile (%u, %u)",
+                                                "scratch overflow while writing uncompressed 16-bit tile ({}, {})",
                                                 px, py);
                                             return false;
                                         }
@@ -789,7 +789,7 @@ IffOutput::close(void)
 
                                     if (offset >= scratch_span.size()) {
                                         errorfmt(
-                                            "scratch span overflow while writing uncompressed zbuffer tile (%u, %u)",
+                                            "scratch span overflow while writing uncompressed zbuffer tile ({}, {})",
                                             px, py);
                                         return false;
                                     }

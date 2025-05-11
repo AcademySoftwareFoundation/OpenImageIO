@@ -633,7 +633,7 @@ IffInput::readimg()
                                                              in_span, tw * th);
                         if (used > scratch_span.size()) {
                             errorfmt(
-                                "RLE uncompress exceeds buffer size for channel %d",
+                                "RLE uncompress exceeds buffer size for channel: {}",
                                 c);
                             return false;
                         }
@@ -649,7 +649,7 @@ IffInput::readimg()
                             for (uint16_t px = xmin; px <= xmax; ++px) {
                                 if (offset >= in_span.size()) {
                                     errorfmt(
-                                        "in_span underflow at pixel (%u, %u)",
+                                        "in_span underflow at pixel ({}, {})",
                                         px, py);
                                     return false;
                                 }
@@ -679,7 +679,7 @@ IffInput::readimg()
 
                             if (offset + m_header.rgba_channels_bytes()
                                 > input.size()) {
-                                errorfmt("input span overflow at (%u, %u)", px,
+                                errorfmt("input span overflow at ({}, {})", px,
                                          py);
                                 return false;
                             }
@@ -737,7 +737,7 @@ IffInput::readimg()
                                                              in_span, tw * th);
                         if (used > scratch_span.size()) {
                             errorfmt(
-                                "RLE uncompress exceeds span size (channel byte %d)",
+                                "RLE uncompress exceeds span size (channel byte {})",
                                 c);
                             return false;
                         }
@@ -752,7 +752,7 @@ IffInput::readimg()
 
                             for (uint16_t px = xmin; px <= xmax; ++px) {
                                 if (offset >= in_span.size()) {
-                                    errorfmt("in_span underflow at (%u, %u)",
+                                    errorfmt("in_span underflow at ({}, {})",
                                              px, py);
                                     return false;
                                 }
@@ -786,7 +786,7 @@ IffInput::readimg()
 
                             if (offset + m_header.rgba_channels_bytes()
                                 > input.size()) {
-                                errorfmt("input span overflow at (%u, %u)", px,
+                                errorfmt("input span overflow at ({}, {})", px,
                                          py);
                                 return false;
                             }
@@ -805,7 +805,7 @@ IffInput::readimg()
 
                                 if (sl_span.empty()) {
                                     errorfmt(
-                                        "scanline span overflow at (%u, %u)",
+                                        "scanline span overflow at ({}, {})",
                                         px, py);
                                     return false;
                                 }
@@ -943,7 +943,7 @@ IffInput::readimg()
 
                         if (pixel_offset + m_header.zbuffer_bytes()
                             > scratch_span.size()) {
-                            errorfmt("in span overflow at pixel (%u, %u)", px,
+                            errorfmt("in span overflow at pixel ({}, {})", px,
                                      py);
                             return false;
                         }
