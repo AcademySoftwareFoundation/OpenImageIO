@@ -328,9 +328,9 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
 #ifdef PNG_cICP_SUPPORTED
     {
-        png_byte cp = 0, tf = 0, mc = 0, fr = 0;
-        if (png_get_cICP(sp, ip, &cp, &tf, &mc, &fr)) {
-            uint8_t cicp[4] = { cp, tf, mc, fr };
+        png_byte pri = 0, trc = 0, mtx = 0, vfr = 0;
+        if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
+            uint8_t cicp[4] = { pri, trc, mtx, vfr };
             spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::UINT8, 4), cicp);
         }
     }
@@ -715,7 +715,8 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         const png_byte* vals = static_cast<const png_byte*>(p->data());
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG cICP chunk";
-        png_set_cICP(sp, ip, vals[0], vals[1], vals[2], vals[3]);
+        // libpng will only write the chunk if the third byte is 0
+        png_set_cICP(sp, ip, vals[0], vals[1], (png_byte) 0, vals[3]);
     }
 #endif
 
