@@ -365,7 +365,7 @@ template<typename T> using image1d_span = image_span<T, 2>;
 /// covering the same range of memory.
 template<typename T, size_t Rank>
 image_span<const std::byte>
-as_image_span_bytes(image_span<T, Rank> src) noexcept
+as_image_span_bytes(const image_span<T, Rank>& src) noexcept
 {
     return image_span<const std::byte>(
         reinterpret_cast<const std::byte*>(src.data()), src.nchannels(),
@@ -378,7 +378,7 @@ as_image_span_bytes(image_span<T, Rank> src) noexcept
 /// the same range of memory.
 template<typename T, size_t Rank>
 image_span<std::byte>
-as_image_span_writable_bytes(image_span<T, Rank> src) noexcept
+as_image_span_writable_bytes(const image_span<T, Rank>& src) noexcept
 {
     return image_span<std::byte>(reinterpret_cast<std::byte*>(src.data()),
                                  src.nchannels(), src.width(), src.height(),
