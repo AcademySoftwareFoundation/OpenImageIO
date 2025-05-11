@@ -374,7 +374,7 @@ jobs:
             simd: "avx2,f16c"
             skip_tests: 1
             # abi_check: v2.6.2.0
-            abi_check: 730687ae79bb6c3290afff535aa0e98b0531d165
+            abi_check: b35615200396c4767966446e446b4fe5ad960d2a
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
 
