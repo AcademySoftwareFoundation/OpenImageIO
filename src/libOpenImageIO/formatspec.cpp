@@ -485,7 +485,7 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
     auto iter = extra_attribs.find(name, searchtype, casesensitive);
     if (iter != extra_attribs.end())
         return &(*iter);
-        // Check named items in the ImageSpec structs, not in extra_attrubs
+    // Check named items in the ImageSpec structs, not in extra_attrubs
 #define MATCH(n, t)                                 \
     (((!casesensitive && Strutil::iequals(name, n)) \
       || (casesensitive && name == n))              \
@@ -1295,6 +1295,38 @@ void
 ImageSpec::set_colorspace(string_view colorspace)
 {
     ColorConfig::default_colorconfig().set_colorspace(*this, colorspace);
+}
+
+
+
+void
+ImageSpec::set_cicp(int pri, int trc, int mtx, int vfr)
+{
+    uint8_t vals[4] = { uint8_t(std::clamp(pri, 0, 255)),
+                        uint8_t(std::clamp(trc, 0, 255)),
+                        uint8_t(std::clamp(mtx, 0, 255)),
+                        uint8_t(std::clamp(vfr, 0, 255)) };
+    attribute("oiio:CICP", TypeDesc(TypeDesc::UINT8, 4), vals);
+}
+
+
+
+void
+ImageSpec::set_cicp(string_view cicp)
+{
+    // If the string is empty, erase the attribute.
+    if (cicp.empty()) {
+        erase_attribute("oiio:CICP");
+        return;
+    }
+    auto vals = Strutil::extract_from_list_string<int>("0,0,0,1", 4, 0);
+    auto p = find_attribute("oiio:CICP", TypeDesc(TypeDesc::UINT8, 4));
+    if (p) {
+        string_view existing_vals = metadata_val(*p);
+        Strutil::extract_from_list_string<int>(vals, existing_vals);
+    }
+    Strutil::extract_from_list_string<int>(vals, cicp);
+    set_cicp(vals[0], vals[1], vals[2], vals[3]);
 }
 
 

@@ -885,6 +885,40 @@ public:
         deep = other.deep;
     }
 
+    /// Set the "oiio:CICP" attribute to the given values. The `pri`, `tc`, `mtx`,
+    /// and `vfr` values are the CICP parameters, which are used to describe
+    /// aspects of the color encoding of the image, as defined in ITU-T H.273.
+    /// 
+    /// @param pri
+    ///     An integer representing the color primaries.
+    /// @param tc
+    ///     An integer representing the transfer characteristics.
+    /// @param mtx 
+    ///     An integer representing the matrix coefficients. RGB encodings
+    ///     typically use 0 (identity matrix).
+    /// @param vfr 
+    ///     An integer indicating whether the image is "full range" (Typically
+    ///     true of RGB encodings)
+    ///
+    /// @version 3.0
+    void set_cicp(int pri, int trc, int mtx=0, int vfr=1);
+    /// Set the "oiio:CICP" attribute to the given values. The `cicp` string
+    /// is a comma-delimeted list of integers representing the CICP parameters.
+    /// The `cicp` string should be in the format "pri,tc,mtx,vfr", where
+    /// `pri`, `trc`, `mtx`, and `vfr` are integers representing the color
+    /// primaries, transfer characteristics, matrix coefficients, and
+    /// video full range flag, respectively. If the `cicp` string is empty,
+    /// the "oiio:CICP" attribute will be removed from the `ImageSpec`.
+    /// The `cicp` string may also contain commas (",") without any 
+    /// integer value specified beforehand, in which case the 
+    /// corresponding CICP parameter will fall back to its current value,
+    /// or to the default value (of {0, 0, 0, 1}) if there is no current value.
+    /// For example, `",,,0"` would set the "video full range flag" to 0 to
+    /// indicate a "narrow range" encoding, while keeping the other three
+    /// parameters unchanged. 
+    /// @param cicp 
+    void set_cicp(string_view cicp);
+
     /// Set the metadata to presume that color space is `name` (or to assume
     /// nothing about the color space if `name` is empty). The core operation
     /// is to set the "oiio:ColorSpace" attribute, but it also removes or
@@ -2526,6 +2560,9 @@ public:
     ///  - `"noimage"` :
     ///        Does this format allow 0x0 sized images, i.e. an image file
     ///        with metadata only and no pixels?
+    ///
+    ///  - `"cicp"` :
+    ///        Does this format support embedding CICP metadata?
     ///
     /// This list of queries may be extended in future releases. Since this
     /// can be done simply by recognizing new query strings, and does not
@@ -4187,6 +4224,22 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 ///
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
+
+
+
+// /// Set the spec's metadata to reflect a custom set of CICP values.
+// /// The core operation is to set the "oiio:CICP" attribute to an
+// /// uint8[4] array. Currently, the CICP attribute must be 
+// /// manually maintained by the user; but OCIO-2.5 will offer
+// /// a way for config authors to specify CICP values for a
+// /// color space, and it will be possible to use this function
+// /// in ImageBufAlgos that mutate "oiio:ColorSpace".
+// ///
+// /// @version 3.0
+// OIIO_API void set_cicp(ImageSpec& spec, int transfer_characteristic,
+//                        int color_primaries, int matrix_coefficients,
+//                        int video_full_range_flag);
+
 
 
 /// Are the two named color spaces equivalent, based on the default color
