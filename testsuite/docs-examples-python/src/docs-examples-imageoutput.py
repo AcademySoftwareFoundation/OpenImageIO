@@ -56,9 +56,6 @@ def simple_write() :
 # END-imageoutput-simple
 
 
-import OpenImageIO as oiio
-import numpy as np
-
 def scanlines_write() :
     filename = "scanlines.tif"
     xres = 320
@@ -80,9 +77,35 @@ def scanlines_write() :
         # END-imageoutput-scanlines
 
 
+def tiles_write() :
+    filename = "tiles.tif"
+    xres = 320
+    yres = 240
+    channels = 3  # RGB
+    tilesize = 64
+    spec = oiio.ImageSpec(xres, yres, channels, 'uint8')
+    spec.tile_width = tilesize
+    spec.tile_height = tilesize
+
+    out = oiio.ImageOutput.create (filename)
+    if out:
+        # BEGIN-imageoutput-tiles
+        z = 0   # Always zero for 2D images
+        out.open (filename, spec)
+        for y in range(0, yres, tilesize) :
+            for x in range(0, xres, tilesize) :
+                # Generate pixel array for one tile.
+                # As an example, we are just making a zero-filled tile
+                tile = np.zeros((tilesize, tilesize, channels), dtype=np.uint8)
+                out.write_tile (x, y, z, tile)
+        out.close ()
+        # END-imageoutput-tiles
+
+
 
 if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
     simple_write()
     scanlines_write()
+    tiles_write()
