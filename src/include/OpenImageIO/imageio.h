@@ -4225,23 +4225,6 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
 
-
-
-// /// Set the spec's metadata to reflect a custom set of CICP values.
-// /// The core operation is to set the "oiio:CICP" attribute to an
-// /// uint8[4] array. Currently, the CICP attribute must be 
-// /// manually maintained by the user; but OCIO-2.5 will offer
-// /// a way for config authors to specify CICP values for a
-// /// color space, and it will be possible to use this function
-// /// in ImageBufAlgos that mutate "oiio:ColorSpace".
-// ///
-// /// @version 3.0
-// OIIO_API void set_cicp(ImageSpec& spec, int transfer_characteristic,
-//                        int color_primaries, int matrix_coefficients,
-//                        int video_full_range_flag);
-
-
-
 /// Are the two named color spaces equivalent, based on the default color
 /// config in effect?
 ///
