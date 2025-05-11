@@ -349,6 +349,124 @@ test_image_span_convert_image()
 
 
 
+// Sum all values in an image using a pass-by-value image_span
+float
+sum_image_span_val(image_span<const float> img)
+{
+    float sum = 0;
+    for (uint32_t z = 0; z < img.depth(); ++z) {
+        for (uint32_t y = 0; y < img.height(); ++y) {
+            for (uint32_t x = 0; x < img.width(); ++x) {
+                for (uint32_t c = 0; c < img.nchannels(); ++c) {
+                    sum += img.get(c, x, y, z);
+                }
+            }
+        }
+    }
+    return sum;
+}
+
+
+// Sum all values in an image using a pass-by-reference image_span
+float
+sum_image_span_ref(const image_span<const float>& img)
+{
+    float sum = 0;
+    for (uint32_t z = 0; z < img.depth(); ++z) {
+        for (uint32_t y = 0; y < img.height(); ++y) {
+            for (uint32_t x = 0; x < img.width(); ++x) {
+                for (uint32_t c = 0; c < img.nchannels(); ++c) {
+                    sum += img.get(c, x, y, z);
+                }
+            }
+        }
+    }
+    return sum;
+}
+
+
+// Sum all values in an image using raw pointers, sizes, strides
+float
+sum_image_span_ptr(const float* ptr, uint32_t chans, uint32_t width,
+                   uint32_t height, uint32_t depth, int64_t chstride,
+                   int64_t xstride, int64_t ystride, int64_t zstride)
+{
+    float sum = 0;
+    for (uint32_t z = 0; z < depth; ++z) {
+        for (uint32_t y = 0; y < height; ++y) {
+            for (uint32_t x = 0; x < width; ++x) {
+                for (uint32_t c = 0; c < chans; ++c) {
+                    const float* p = reinterpret_cast<const float*>(
+                        (const char*)ptr + c * chstride + x * xstride
+                        + y * ystride + z * zstride);
+                    sum += *p;
+                }
+            }
+        }
+    }
+    return sum;
+}
+
+
+
+void
+benchmark_image_span_passing()
+{
+    print("\nbenchmark_image_span_passing\n");
+    const int xres = 2048, yres = 1536, nchans = 4;
+    std::vector<float> sbuf(xres * yres * nchans, 1.0f);
+    image_span<const float> ispan(sbuf.data(), nchans, xres, yres, 1);
+
+    Benchmarker bench;
+    bench.units(Benchmarker::Unit::us);
+    float sum = 0.0f;
+
+    bench("  pass by value     (big)",
+          [=, &sum]() { sum += sum_image_span_val(ispan); });
+    bench("  pass by value imm (big)", [=, &sum]() {
+        sum += sum_image_span_val(
+            image_span<const float>(sbuf.data(), nchans, xres, yres, 1));
+    });
+    bench("  pass by ref       (big)",
+          [=, &sum]() { sum += sum_image_span_ref(ispan); });
+    bench("  pass by ref imm   (big)", [=, &sum]() {
+        sum += sum_image_span_ref(
+            image_span<const float>(sbuf.data(), nchans, xres, yres, 1));
+    });
+    bench("  pass by ptr       (big)", [=, &sum]() {
+        sum += sum_image_span_ptr(sbuf.data(), nchans, xres, yres, 1,
+                                  sizeof(float), nchans * sizeof(float),
+                                  nchans * sizeof(float) * xres,
+                                  nchans * sizeof(float) * xres * yres);
+    });
+
+    // Do it all again for a SMALL image
+    bench.units(Benchmarker::Unit::ns);
+    int small = 16;
+    image_span<const float> smispan(sbuf.data(), nchans, small, small, 1);
+    bench("  pass by value     (small)",
+          [=, &sum]() { sum += sum_image_span_val(smispan); });
+    bench("  pass by value imm (small)", [=, &sum]() {
+        sum += sum_image_span_val(
+            image_span<const float>(sbuf.data(), nchans, small, small, 1));
+    });
+    bench("  pass by ref       (small)",
+          [=, &sum]() { sum += sum_image_span_ref(smispan); });
+    bench("  pass by ref imm   (small)", [=, &sum]() {
+        sum += sum_image_span_ref(
+            image_span<const float>(sbuf.data(), nchans, small, small, 1));
+    });
+    bench("  pass by ptr       (small)", [=, &sum]() {
+        sum += sum_image_span_ptr(sbuf.data(), nchans, small, small, 1,
+                                  sizeof(float), nchans * sizeof(float),
+                                  nchans * sizeof(float) * small,
+                                  nchans * sizeof(float) * small * small);
+    });
+    print("  [sum={}]\n", sum);  // seems necessary to not optimize away
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -377,6 +495,8 @@ main(int /*argc*/, char* /*argv*/[])
     test_image_span_convert_image<uint8_t, uint16_t>();
     test_image_span_convert_image<uint16_t, half>();
     test_image_span_convert_image<half, uint16_t>();
+
+    benchmark_image_span_passing();
 
     return unit_test_failures;
 }
