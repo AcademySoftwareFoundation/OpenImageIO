@@ -34,7 +34,7 @@ static std::atomic_int64_t input_next_id(0);
 class ImageInput::Impl {
 public:
     Impl()
-        : m_id(++input_next_id)
+        : m_id(++input_next_id), m_threads(pvt::oiio_threads)
     {
     }
 
