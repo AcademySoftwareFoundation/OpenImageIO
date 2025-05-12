@@ -1,0 +1,2100 @@
+Reading ../oiio-images/psd/psd_123.psd
+../oiio-images/psd/psd_123.psd :  257 x  126, 4 channel, uint8 psd
+    4 subimages: 257x126 [u8,u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
+ subimage  0:  257 x  126, 4 channel, uint8 psd
+    SHA-1: D48458E9AEDB9C8618DE4B7DAA25BD4D7421778A
+    channel list: R, G, B, A
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    thumbnail_height: 78
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
+    IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00"
+ subimage  1:   33 x   98, 4 channel, uint8 psd
+    SHA-1: CDA136B1B34A86AEBDCB88283F0D2323F921C00C
+    channel list: R, G, B, A
+    pixel data origin: x=15, y=15
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
+    IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "1"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00"
+ subimage  2:   63 x  100, 4 channel, uint8 psd
+    SHA-1: E0B9D4A8BE16B52126EC5BC1E829D099EF4C5DC4
+    channel list: R, G, B, A
+    pixel data origin: x=84, y=13
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
+    IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "2"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00"
+ subimage  3:   61 x  102, 4 channel, uint8 psd
+    SHA-1: 11FDE5499A2150FD5C779C9012649E839750C1D8
+    channel list: R, G, B, A
+    pixel data origin: x=175, y=14
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
+    IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "3"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00"
+Reading ../oiio-images/psd/psd_123_nomaxcompat.psd
+../oiio-images/psd/psd_123_nomaxcompat.psd :  257 x  126, 3 channel, uint8 psd
+    4 subimages: 257x126 [u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
+ subimage  0:  257 x  126, 3 channel, uint8 psd
+    SHA-1: 5A7BDC7A11A9E4BDCBEC968375EE466DE74D0481
+    channel list: R, G, B
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    thumbnail_height: 78
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    IPTC:MetadataDate: "2011-08-29T12:10:28-04:00"
+    IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9; xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00; 2011-08-29T12:10:28-04:00"
+ subimage  1:   33 x   98, 4 channel, uint8 psd
+    SHA-1: CDA136B1B34A86AEBDCB88283F0D2323F921C00C
+    channel list: R, G, B, A
+    pixel data origin: x=15, y=15
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    IPTC:MetadataDate: "2011-08-29T12:10:28-04:00"
+    IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "1"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9; xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00; 2011-08-29T12:10:28-04:00"
+ subimage  2:   63 x  100, 4 channel, uint8 psd
+    SHA-1: E0B9D4A8BE16B52126EC5BC1E829D099EF4C5DC4
+    channel list: R, G, B, A
+    pixel data origin: x=84, y=13
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    IPTC:MetadataDate: "2011-08-29T12:10:28-04:00"
+    IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "2"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9; xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00; 2011-08-29T12:10:28-04:00"
+ subimage  3:   61 x  102, 4 channel, uint8 psd
+    SHA-1: 11FDE5499A2150FD5C779C9012649E839750C1D8
+    channel list: R, G, B, A
+    pixel data origin: x=175, y=14
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    IPTC:MetadataDate: "2011-08-29T12:10:28-04:00"
+    IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "3"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9; xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00; 2011-08-29T12:10:28-04:00"
+Reading ../oiio-images/psd/psd_bitmap.psd
+../oiio-images/psd/psd_bitmap.psd :  320 x  240, 3 channel, uint8 psd
+    SHA-1: F23185BC048E31BAC6BB4B319E5E5AC570CC7B89
+    channel list: R, G, B
+    Artist: "Daniel Wyatt"
+    DateTime: "2007-01-18T15:49:21"
+    ExposureTime: 0.0166667
+    FNumber: 3.5
+    Make: "Canon"
+    Model: "Canon PowerShot A640"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 180
+    YResolution: 180
+    aux:ApproximateFocusDistance: "339/100"
+    aux:Firmware: "1.00"
+    aux:FlashCompensation: "0/1"
+    aux:Lens: "7.3-29.2 mm"
+    aux:LensInfo: "7300/1000 29200/1000 0/0 0/0"
+    aux:OwnerName: "Daniel Wyatt"
+    Exif:ApertureValue: 3.625 (f/3.5)
+    Exif:ColorSpace: 65535
+    Exif:CompressedBitsPerPixel: 5
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2007:01:18 15:49:21"
+    Exif:DateTimeOriginal: "2007:01:18 15:49:21"
+    Exif:DigitalZoomRatio: 1
+    Exif:ExifVersion: "0220"
+    Exif:ExposureBiasValue: 0
+    Exif:ExposureMode: 0 (auto)
+    Exif:Flash: 16 (no flash, flash suppression)
+    Exif:FlashPixVersion: "0100"
+    Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:FocalPlaneXResolution: 12710.8
+    Exif:FocalPlaneYResolution: 12725.6
+    Exif:MaxApertureValue: 2.96875 (f/2.8)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 75
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    Exif:SceneCaptureType: 1 (landscape)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:ShutterSpeedValue: 5.90625 (1/59 s)
+    Exif:SubjectDistance: 3.39 (3.39 m)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:YCbCrPositioning: 1
+    IPTC:DocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    IPTC:InstanceID: "xmp.iid:F410E7E462CFE011B8B8C52D9599FB9E"
+    IPTC:MetadataDate: "2011-08-25T17:40:47-04:00"
+    IPTC:ModifyDate: "2011-08-25T17:40:47-04:00"
+    IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    photoshop:ColorMode: 0
+    rdf:parseType: "Resource"
+    stEvt:action: "saved; converted; derived"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:2A93235262CFE011B8B8C52D9599FB9E; xmp.iid:F310E7E462CFE011B8B8C52D9599FB9E; xmp.iid:F410E7E462CFE011B8B8C52D9599FB9E"
+    stEvt:parameters: "from image/jpeg to application/vnd.adobe.photoshop; converted from image/jpeg to application/vnd.adobe.photoshop"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T21:56:08-04:00; 2011-08-22T21:56:36-04:00; 2011-08-22T21:56:49-04:00; 2011-08-25T17:40-04:00; 2011-08-25T17:40:47-04:00"
+    stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
+    stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+Reading ../oiio-images/psd/psd_indexed_trans.psd
+../oiio-images/psd/psd_indexed_trans.psd :  320 x  240, 4 channel, uint8 psd
+    SHA-1: 3DEA3F342B61B6B2064310C06B2AE23692079EE7
+    channel list: R, G, B, A
+    Artist: "Daniel Wyatt"
+    DateTime: "2007-01-18T15:49:21"
+    ExposureTime: 0.0166667
+    FNumber: 3.5
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Make: "Canon"
+    Model: "Canon PowerShot A640"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 180
+    YResolution: 180
+    aux:ApproximateFocusDistance: "339/100"
+    aux:Firmware: "1.00"
+    aux:FlashCompensation: "0/1"
+    aux:Lens: "7.3-29.2 mm"
+    aux:LensInfo: "7300/1000 29200/1000 0/0 0/0"
+    aux:OwnerName: "Daniel Wyatt"
+    Exif:ApertureValue: 3.625 (f/3.5)
+    Exif:ColorSpace: 1
+    Exif:CompressedBitsPerPixel: 5
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2007:01:18 15:49:21"
+    Exif:DateTimeOriginal: "2007:01:18 15:49:21"
+    Exif:DigitalZoomRatio: 1
+    Exif:ExifVersion: "0220"
+    Exif:ExposureBiasValue: 0
+    Exif:ExposureMode: 0 (auto)
+    Exif:Flash: 16 (no flash, flash suppression)
+    Exif:FlashPixVersion: "0100"
+    Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:FocalPlaneXResolution: 12710.8
+    Exif:FocalPlaneYResolution: 12725.6
+    Exif:MaxApertureValue: 2.96875 (f/2.8)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 75
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    Exif:SceneCaptureType: 1 (landscape)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:ShutterSpeedValue: 5.90625 (1/59 s)
+    Exif:SubjectDistance: 3.39 (3.39 m)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:YCbCrPositioning: 1
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    IPTC:InstanceID: "xmp.iid:F3BDDC0457D2E011BF419187EAB8EBB9"
+    IPTC:MetadataDate: "2011-08-29T11:54:09-04:00"
+    IPTC:ModifyDate: "2011-08-29T11:54:09-04:00"
+    IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    oiio:ColorSpace: "sRGB"
+    photoshop:ColorMode: 2
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved; converted; derived"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:2A93235262CFE011B8B8C52D9599FB9E; xmp.iid:F3BDDC0457D2E011BF419187EAB8EBB9"
+    stEvt:parameters: "from image/jpeg to application/vnd.adobe.photoshop; converted from image/jpeg to application/vnd.adobe.photoshop"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T21:56:08-04:00; 2011-08-22T21:56:36-04:00; 2011-08-22T21:56:49-04:00; 2011-08-25T17:40-04:00; 2011-08-29T11:54:09-04:00"
+    stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
+    stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+Reading ../oiio-images/psd/psd_rgb_8.psd
+../oiio-images/psd/psd_rgb_8.psd :  320 x  240, 3 channel, uint8 psd
+    SHA-1: 44362B2D9E51C40DF8ABF87CC749B77F2D0D9F4F
+    channel list: R, G, B
+    Artist: "Daniel Wyatt"
+    DateTime: "2007-01-18T15:49:21"
+    ExposureTime: 0.0166667
+    FNumber: 3.5
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Make: "Canon"
+    Model: "Canon PowerShot A640"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 180
+    YResolution: 180
+    aux:ApproximateFocusDistance: "339/100"
+    aux:Firmware: "1.00"
+    aux:FlashCompensation: "0/1"
+    aux:Lens: "7.3-29.2 mm"
+    aux:LensInfo: "7300/1000 29200/1000 0/0 0/0"
+    aux:OwnerName: "Daniel Wyatt"
+    Exif:ApertureValue: 3.625 (f/3.5)
+    Exif:ColorSpace: 1
+    Exif:CompressedBitsPerPixel: 5
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2007:01:18 15:49:21"
+    Exif:DateTimeOriginal: "2007:01:18 15:49:21"
+    Exif:DigitalZoomRatio: 1
+    Exif:ExifVersion: "0220"
+    Exif:ExposureBiasValue: 0
+    Exif:ExposureMode: 0 (auto)
+    Exif:Flash: 16 (no flash, flash suppression)
+    Exif:FlashPixVersion: "0100"
+    Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:FocalPlaneXResolution: 12710.8
+    Exif:FocalPlaneYResolution: 12725.6
+    Exif:MaxApertureValue: 2.96875 (f/2.8)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 75
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    Exif:SceneCaptureType: 1 (landscape)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:ShutterSpeedValue: 5.90625 (1/59 s)
+    Exif:SubjectDistance: 3.39 (3.39 m)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:YCbCrPositioning: 1
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    IPTC:InstanceID: "xmp.iid:2A93235262CFE011B8B8C52D9599FB9E"
+    IPTC:MetadataDate: "2011-08-25T17:40-04:00"
+    IPTC:ModifyDate: "2011-08-25T17:40-04:00"
+    IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    oiio:ColorSpace: "sRGB"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved; converted; derived"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:2A93235262CFE011B8B8C52D9599FB9E"
+    stEvt:parameters: "from image/jpeg to application/vnd.adobe.photoshop; converted from image/jpeg to application/vnd.adobe.photoshop"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T21:56:08-04:00; 2011-08-22T21:56:36-04:00; 2011-08-22T21:56:49-04:00; 2011-08-25T17:40-04:00"
+    stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
+    stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+Reading ../oiio-images/psd/psd_rgb_16.psd
+../oiio-images/psd/psd_rgb_16.psd :  320 x  240, 3 channel, uint16 psd
+    SHA-1: E42334B0F0684E3C3BF9125F2920B07C44C17B11
+    channel list: R, G, B
+    Artist: "Daniel Wyatt"
+    DateTime: "2007-01-18T15:49:21"
+    ExposureTime: 0.0166667
+    FNumber: 3.5
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Make: "Canon"
+    Model: "Canon PowerShot A640"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 180
+    YResolution: 180
+    aux:ApproximateFocusDistance: "339/100"
+    aux:Firmware: "1.00"
+    aux:FlashCompensation: "0/1"
+    aux:Lens: "7.3-29.2 mm"
+    aux:LensInfo: "7300/1000 29200/1000 0/0 0/0"
+    aux:OwnerName: "Daniel Wyatt"
+    Exif:ApertureValue: 3.625 (f/3.5)
+    Exif:ColorSpace: 1
+    Exif:CompressedBitsPerPixel: 5
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2007:01:18 15:49:21"
+    Exif:DateTimeOriginal: "2007:01:18 15:49:21"
+    Exif:DigitalZoomRatio: 1
+    Exif:ExifVersion: "0220"
+    Exif:ExposureBiasValue: 0
+    Exif:ExposureMode: 0 (auto)
+    Exif:Flash: 16 (no flash, flash suppression)
+    Exif:FlashPixVersion: "0100"
+    Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:FocalPlaneXResolution: 12710.8
+    Exif:FocalPlaneYResolution: 12725.6
+    Exif:MaxApertureValue: 2.96875 (f/2.8)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 75
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    Exif:SceneCaptureType: 1 (landscape)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:ShutterSpeedValue: 5.90625 (1/59 s)
+    Exif:SubjectDistance: 3.39 (3.39 m)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:YCbCrPositioning: 1
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    IPTC:InstanceID: "xmp.iid:2993235262CFE011B8B8C52D9599FB9E"
+    IPTC:MetadataDate: "2011-08-25T17:39:49-04:00"
+    IPTC:ModifyDate: "2011-08-25T17:39:49-04:00"
+    IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    oiio:ColorSpace: "sRGB"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved; converted; derived"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:2993235262CFE011B8B8C52D9599FB9E"
+    stEvt:parameters: "from image/jpeg to application/vnd.adobe.photoshop; converted from image/jpeg to application/vnd.adobe.photoshop"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T21:56:08-04:00; 2011-08-22T21:56:36-04:00; 2011-08-25T17:39:49-04:00"
+    stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
+    stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+Reading ../oiio-images/psd/psd_rgb_32.psd
+../oiio-images/psd/psd_rgb_32.psd :  320 x  240, 3 channel, float psd
+    SHA-1: 63CF8F7B010D24EFD3C41F51C16D8D285FE07313
+    channel list: R, G, B
+    Artist: "Daniel Wyatt"
+    DateTime: "2007-01-18T15:49:21"
+    ExposureTime: 0.0166667
+    FNumber: 3.5
+    ICCProfile: 0, 0, 2, 8, 65, 68, 66, 69, 2, 16, 0, 0, 109, 110, 116, 114, ... [520 x uint8]
+    Make: "Canon"
+    Model: "Canon PowerShot A640"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 180
+    YResolution: 180
+    aux:ApproximateFocusDistance: "339/100"
+    aux:Firmware: "1.00"
+    aux:FlashCompensation: "0/1"
+    aux:Lens: "7.3-29.2 mm"
+    aux:LensInfo: "7300/1000 29200/1000 0/0 0/0"
+    aux:OwnerName: "Daniel Wyatt"
+    Exif:ApertureValue: 3.625 (f/3.5)
+    Exif:ColorSpace: 65535
+    Exif:CompressedBitsPerPixel: 5
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2007:01:18 15:49:21"
+    Exif:DateTimeOriginal: "2007:01:18 15:49:21"
+    Exif:DigitalZoomRatio: 1
+    Exif:ExifVersion: "0220"
+    Exif:ExposureBiasValue: 0
+    Exif:ExposureMode: 0 (auto)
+    Exif:Flash: 16 (no flash, flash suppression)
+    Exif:FlashPixVersion: "0100"
+    Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:FocalPlaneXResolution: 12710.8
+    Exif:FocalPlaneYResolution: 12725.6
+    Exif:MaxApertureValue: 2.96875 (f/2.8)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 75
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    Exif:SceneCaptureType: 1 (landscape)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:ShutterSpeedValue: 5.90625 (1/59 s)
+    Exif:SubjectDistance: 3.39 (3.39 m)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:YCbCrPositioning: 1
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1094992453
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright 2011 Adobe Systems Incorporated"
+    ICCProfile:creation_date: "2011:08:23 01:56:54"
+    ICCProfile:creator_signature: "41444245"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "6e6f6e65"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Apple Computer, Inc."
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1 (Linear RGB Profile)"
+    ICCProfile:profile_size: 520
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    IPTC:DocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    IPTC:InstanceID: "xmp.iid:2893235262CFE011B8B8C52D9599FB9E"
+    IPTC:MetadataDate: "2011-08-25T17:39:38-04:00"
+    IPTC:ModifyDate: "2011-08-25T17:39:38-04:00"
+    IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1 (Linear RGB Profile)"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved; converted; derived"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:57DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:58DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:2893235262CFE011B8B8C52D9599FB9E"
+    stEvt:parameters: "from image/jpeg to application/vnd.adobe.photoshop; converted from image/jpeg to application/vnd.adobe.photoshop"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T21:56:08-04:00; 2011-08-22T21:56:36-04:00; 2011-08-22T21:56:49-04:00; 2011-08-22T21:57:01-04:00; 2011-08-25T17:39:38-04:00"
+    stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
+    stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+Reading ../oiio-images/psd/psd_rgba_8.psd
+../oiio-images/psd/psd_rgba_8.psd :  320 x  240, 4 channel, uint8 psd
+    2 subimages: 320x240 [u8,u8,u8,u8], 320x240 [u8,u8,u8,u8]
+ subimage  0:  320 x  240, 4 channel, uint8 psd
+    SHA-1: 81C22E59537BCDB081C12BF93E14DB2B5DDEEC13
+    channel list: R, G, B, A
+    DateTime: "2011-08-22T22:07:44-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
+    IPTC:MetadataDate: "2011-08-25T17:39:28-04:00"
+    IPTC:ModifyDate: "2011-08-25T17:39:28-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:037A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:07:44-04:00; 2011-08-25T17:39:28-04:00"
+ subimage  1:  320 x  240, 4 channel, uint8 psd
+    SHA-1: 0C24F6EE3C3F1A14769F3A7272C35E684AB75AB3
+    channel list: R, G, B, A
+    DateTime: "2011-08-22T22:07:44-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
+    IPTC:MetadataDate: "2011-08-25T17:39:28-04:00"
+    IPTC:ModifyDate: "2011-08-25T17:39:28-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "Layer 1"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:037A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:07:44-04:00; 2011-08-25T17:39:28-04:00"
+Reading ../oiio-images/psd/psd_rgb_16_rle.psd
+../oiio-images/psd/psd_rgb_16_rle.psd : 3840 x 2160, 3 channel, uint16 psd
+    SHA-1: CF2071CFD7AF69ECEFC9EA00DC0EA7F8ED6A2E2B
+    channel list: R, G, B
+    DateTime: "2025-01-10T23:27:45+02:00"
+    ICCProfile: 0, 0, 2, 48, 65, 68, 66, 69, 2, 16, 0, 0, 109, 110, 116, 114, ... [560 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 26.0 (Windows)"
+    thumbnail_height: 90
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 3840
+    Exif:PixelYDimension: 2160
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1094992453
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright 1999 Adobe Systems Incorporated"
+    ICCProfile:creation_date: "1999:06:03 00:00:00"
+    ICCProfile:creator_signature: "41444245"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "6e6f6e65"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Apple Computer, Inc."
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "Adobe RGB (1998)"
+    ICCProfile:profile_size: 560
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    IPTC:DocumentID: "xmp.did:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    IPTC:InstanceID: "xmp.iid:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    IPTC:MetadataDate: "2025-01-10T23:28:11+02:00"
+    IPTC:ModifyDate: "2025-01-10T23:28:11+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "Adobe RGB (1998)"
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    stEvt:softwareAgent: "Adobe Photoshop 26.0 (Windows)"
+    stEvt:when: "2025-01-10T23:27:45+02:00"
+Reading ../oiio-images/psd/psd_123.psd
+../oiio-images/psd/psd_123.psd :  257 x  126, 4 channel, uint8 psd
+    4 subimages: 257x126 [u8,u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
+ subimage  0:  257 x  126, 4 channel, uint8 psd
+    SHA-1: B229DA843AD0DA7C6FF92ABC78C737E81FEB6CF2
+    channel list: R, G, B, A
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    thumbnail_height: 78
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
+    IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:UnassociatedAlpha: 1
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00"
+ subimage  1:   33 x   98, 4 channel, uint8 psd
+    SHA-1: E99937CC4768F96DC58D9B4F11ED3083818E4D51
+    channel list: R, G, B, A
+    pixel data origin: x=15, y=15
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
+    IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "1"
+    oiio:UnassociatedAlpha: 1
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00"
+ subimage  2:   63 x  100, 4 channel, uint8 psd
+    SHA-1: EB2ED42882FCD4BC1F0E11795B6B3E483158C1B4
+    channel list: R, G, B, A
+    pixel data origin: x=84, y=13
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
+    IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "2"
+    oiio:UnassociatedAlpha: 1
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00"
+ subimage  3:   61 x  102, 4 channel, uint8 psd
+    SHA-1: 81D2828D49B81D99397544651501C3AB9696EF52
+    channel list: R, G, B, A
+    pixel data origin: x=175, y=14
+    DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CS5.1 Windows"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
+    IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
+    IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "3"
+    oiio:UnassociatedAlpha: 1
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
+    stEvt:when: "2011-08-22T22:14:43-04:00"
+Reading src/different-mask-size.psd
+src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
+    4 subimages: 30x90 [u8,u8,u8], 30x90 [u8,u8,u8,u8], 4x93 [u8,u8,u8,u8], 4x93 [u8,u8,u8,u8]
+ subimage  0:   30 x   90, 3 channel, uint8 psd
+    SHA-1: 42E73C11525323760BF0BEB74370AECC18FC2D92
+    channel list: R, G, B
+    DateTime: "2014-02-16T17:20:13+09:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CC 2015.5 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 30
+    Exif:PixelYDimension: 90
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    IPTC:InstanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
+    IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
+    IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    oiio:ColorSpace: "sRGB"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:e5390921-47bd-41b6-9237-d4903a41e966; xmp.iid:1710094a-3678-4874-8382-1f328830d993; xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:softwareAgent: "Adobe Photoshop CC (Macintosh); Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:when: "2014-02-16T17:20:13+09:00; 2014-02-20T20:49:31+09:00; 2017-01-10T17:55:32+09:00"
+ subimage  1:   30 x   90, 4 channel, uint8 psd
+    SHA-1: B2E0D74684B53DF0382EAB0BB1A277438715BB2F
+    channel list: R, G, B, A
+    DateTime: "2014-02-16T17:20:13+09:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CC 2015.5 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 30
+    Exif:PixelYDimension: 90
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    IPTC:InstanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
+    IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
+    IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "Layer 0"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:e5390921-47bd-41b6-9237-d4903a41e966; xmp.iid:1710094a-3678-4874-8382-1f328830d993; xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:softwareAgent: "Adobe Photoshop CC (Macintosh); Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:when: "2014-02-16T17:20:13+09:00; 2014-02-20T20:49:31+09:00; 2017-01-10T17:55:32+09:00"
+ subimage  2:    4 x   93, 4 channel, uint8 psd
+    SHA-1: 8CE9A2A394ED148194055A22E59E55CE7BDFB3B7
+    channel list: R, G, B, A
+    pixel data origin: x=18, y=-2
+    DateTime: "2014-02-16T17:20:13+09:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CC 2015.5 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 30
+    Exif:PixelYDimension: 90
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    IPTC:InstanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
+    IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
+    IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "line1"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:e5390921-47bd-41b6-9237-d4903a41e966; xmp.iid:1710094a-3678-4874-8382-1f328830d993; xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:softwareAgent: "Adobe Photoshop CC (Macintosh); Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:when: "2014-02-16T17:20:13+09:00; 2014-02-20T20:49:31+09:00; 2017-01-10T17:55:32+09:00"
+ subimage  3:    4 x   93, 4 channel, uint8 psd
+    SHA-1: 8CE9A2A394ED148194055A22E59E55CE7BDFB3B7
+    channel list: R, G, B, A
+    pixel data origin: x=8, y=-2
+    DateTime: "2014-02-16T17:20:13+09:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CC 2015.5 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 30
+    Exif:PixelYDimension: 90
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    IPTC:InstanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
+    IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
+    IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "line2"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:e5390921-47bd-41b6-9237-d4903a41e966; xmp.iid:1710094a-3678-4874-8382-1f328830d993; xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:softwareAgent: "Adobe Photoshop CC (Macintosh); Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:when: "2014-02-16T17:20:13+09:00; 2014-02-20T20:49:31+09:00; 2017-01-10T17:55:32+09:00"
+Reading src/layer-mask.psd
+src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
+    3 subimages: 10x10 [u8,u8,u8,u8], 8x8 [u8,u8,u8,u8], 9x9 [u8,u8,u8,u8]
+ subimage  0:   10 x   10, 4 channel, uint8 psd
+    SHA-1: D74BDBDC714B652B6C62DE190A928EF79A0095ED
+    channel list: R, G, B, A
+    DateTime: "2017-07-13T10:26:10+09:00"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CC 2017 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 10
+    Exif:PixelYDimension: 10
+    IPTC:DocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    IPTC:InstanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    IPTC:MetadataDate: "2017-07-13T11:42:54+09:00"
+    IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
+    IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    photoshop:ColorMode: 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:a64763c8-be7b-ff48-b857-0f1ee8e5da2b; xmp.iid:9847e4c5-ca7e-fa42-9c7f-5fe6373d31de; xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
+    stEvt:when: "2017-07-13T10:26:10+09:00; 2017-07-13T10:32:41+09:00; 2017-07-13T11:42:54+09:00"
+ subimage  1:    8 x    8, 4 channel, uint8 psd
+    SHA-1: D1803D25687AA8C80C50AC74CCD47B1C59865B2F
+    channel list: R, G, B, A
+    pixel data origin: x=0, y=1
+    DateTime: "2017-07-13T10:26:10+09:00"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CC 2017 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 10
+    Exif:PixelYDimension: 10
+    IPTC:DocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    IPTC:InstanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    IPTC:MetadataDate: "2017-07-13T11:42:54+09:00"
+    IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
+    IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    oiio:subimagename: "Vector mask feather"
+    photoshop:ColorMode: 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:a64763c8-be7b-ff48-b857-0f1ee8e5da2b; xmp.iid:9847e4c5-ca7e-fa42-9c7f-5fe6373d31de; xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
+    stEvt:when: "2017-07-13T10:26:10+09:00; 2017-07-13T10:32:41+09:00; 2017-07-13T11:42:54+09:00"
+ subimage  2:    9 x    9, 4 channel, uint8 psd
+    SHA-1: 6BEB9ABA4756704D8A330EA3B8F79640F3D88088
+    channel list: R, G, B, A
+    pixel data origin: x=-2, y=-1
+    DateTime: "2017-07-13T10:26:10+09:00"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop CC 2017 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 10
+    Exif:PixelYDimension: 10
+    IPTC:DocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    IPTC:InstanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    IPTC:MetadataDate: "2017-07-13T11:42:54+09:00"
+    IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
+    IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    oiio:subimagename: "Layer mask"
+    photoshop:ColorMode: 3
+    rdf:parseType: "Resource"
+    stEvt:action: "created; saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:a64763c8-be7b-ff48-b857-0f1ee8e5da2b; xmp.iid:9847e4c5-ca7e-fa42-9c7f-5fe6373d31de; xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
+    stEvt:when: "2017-07-13T10:26:10+09:00; 2017-07-13T10:32:41+09:00; 2017-07-13T11:42:54+09:00"
+oiiotool ERROR: read : Failed to decode Exif data
+failed to open "src/crash-psd-exif-1632.psd": failed load_resources
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-psd-exif-1632.psd
+oiiotool ERROR: read : Corrupt thumbnail: 262304w * 24bpp does not match 480 width bytes
+failed to open "src/crash-thumb-1626.psd": failed load_resources
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-thumb-1626.psd
+Reading src/Layers_8bit_RGB.psd
+src/Layers_8bit_RGB.psd :   48 x   27, 3 channel, uint8 psd
+    4 subimages: 48x27 [u8,u8,u8], 48x27 [u8,u8,u8,u8], 48x27 [u8,u8,u8,u8], 48x27 [u8,u8,u8,u8]
+ subimage  0:   48 x   27, 3 channel, uint8 psd
+    SHA-1: AF5EF97B5D5B5AFB6578005E416C5F7E636FE9E4
+    channel list: R, G, B
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    thumbnail_height: 27
+    thumbnail_nchannels: 3
+    thumbnail_width: 48
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "adobe:docid:photoshop:a9aabed2-61e6-1c48-b9c0-22e2e6b3631a"
+    IPTC:InstanceID: "xmp.iid:91e10371-aef4-e042-b01b-18a054353721"
+    IPTC:MetadataDate: "2024-04-01T19:35:40+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:40+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:ColorSpace: "sRGB"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:91e10371-aef4-e042-b01b-18a054353721"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00; 2024-04-01T19:35:40+02:00"
+ subimage  1:   48 x   27, 4 channel, uint8 psd
+    SHA-1: 5AF647DD416B325A60135DC52F75AEE5CA748C5A
+    channel list: R, G, B, A
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "adobe:docid:photoshop:a9aabed2-61e6-1c48-b9c0-22e2e6b3631a"
+    IPTC:InstanceID: "xmp.iid:91e10371-aef4-e042-b01b-18a054353721"
+    IPTC:MetadataDate: "2024-04-01T19:35:40+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:40+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "Blue_Lagoon"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:91e10371-aef4-e042-b01b-18a054353721"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00; 2024-04-01T19:35:40+02:00"
+ subimage  2:   48 x   27, 4 channel, uint8 psd
+    SHA-1: C303E1C0CD86E2F3411D8337B29F52D8214DA091
+    channel list: R, G, B, A
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "adobe:docid:photoshop:a9aabed2-61e6-1c48-b9c0-22e2e6b3631a"
+    IPTC:InstanceID: "xmp.iid:91e10371-aef4-e042-b01b-18a054353721"
+    IPTC:MetadataDate: "2024-04-01T19:35:40+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:40+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "Layer"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:91e10371-aef4-e042-b01b-18a054353721"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00; 2024-04-01T19:35:40+02:00"
+ subimage  3:   48 x   27, 4 channel, uint8 psd
+    SHA-1: 79CF5E0C494DA95DF6EAADDC2CA0DD4D0CF4286C
+    channel list: R, G, B, A
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "adobe:docid:photoshop:a9aabed2-61e6-1c48-b9c0-22e2e6b3631a"
+    IPTC:InstanceID: "xmp.iid:91e10371-aef4-e042-b01b-18a054353721"
+    IPTC:MetadataDate: "2024-04-01T19:35:40+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:40+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "Layer2"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:91e10371-aef4-e042-b01b-18a054353721"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00; 2024-04-01T19:35:40+02:00"
+Reading src/Layers_16bit_RGB.psd
+src/Layers_16bit_RGB.psd :   48 x   27, 3 channel, uint16 psd
+    4 subimages: 48x27 [u16,u16,u16], 48x27 [u16,u16,u16,u16], 48x27 [u16,u16,u16,u16], 48x27 [u16,u16,u16,u16]
+ subimage  0:   48 x   27, 3 channel, uint16 psd
+    SHA-1: 0228B2F3AA493695E9653E1C32D303022DDEFAE4
+    channel list: R, G, B
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    thumbnail_height: 27
+    thumbnail_nchannels: 3
+    thumbnail_width: 48
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "adobe:docid:photoshop:d0b5fcf6-f464-234f-b5df-47c18ab8b898"
+    IPTC:InstanceID: "xmp.iid:709ebe80-9e41-244a-81bc-8a5e754fe63e"
+    IPTC:MetadataDate: "2024-04-01T19:35:30+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:30+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:ColorSpace: "sRGB"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:709ebe80-9e41-244a-81bc-8a5e754fe63e"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00; 2024-04-01T19:35:30+02:00"
+ subimage  1:   48 x   27, 4 channel, uint16 psd
+    SHA-1: 0D572837DF5C07DB70A5C63B355CE285439813A3
+    channel list: R, G, B, A
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "adobe:docid:photoshop:d0b5fcf6-f464-234f-b5df-47c18ab8b898"
+    IPTC:InstanceID: "xmp.iid:709ebe80-9e41-244a-81bc-8a5e754fe63e"
+    IPTC:MetadataDate: "2024-04-01T19:35:30+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:30+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "Blue_Lagoon"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:709ebe80-9e41-244a-81bc-8a5e754fe63e"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00; 2024-04-01T19:35:30+02:00"
+ subimage  2:   48 x   27, 4 channel, uint16 psd
+    SHA-1: 31AB60835F2FB36DEBEE8FF56FB8D08F4A8F126D
+    channel list: R, G, B, A
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "adobe:docid:photoshop:d0b5fcf6-f464-234f-b5df-47c18ab8b898"
+    IPTC:InstanceID: "xmp.iid:709ebe80-9e41-244a-81bc-8a5e754fe63e"
+    IPTC:MetadataDate: "2024-04-01T19:35:30+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:30+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "Layer"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:709ebe80-9e41-244a-81bc-8a5e754fe63e"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00; 2024-04-01T19:35:30+02:00"
+ subimage  3:   48 x   27, 4 channel, uint16 psd
+    SHA-1: 99B76EB713BA5C84D924E0ADDE14650ADAE2D590
+    channel list: R, G, B, A
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 1998 Hewlett-Packard Company"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "IEC http://www.iec.ch"
+    ICCProfile:device_model_description: "IEC 61966-2.1 Default RGB colour space - sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "sRGB IEC61966-2.1"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Media-relative colorimetric"
+    ICCProfile:viewing_conditions_description: "Reference Viewing Condition in IEC61966-2.1"
+    IPTC:DocumentID: "adobe:docid:photoshop:d0b5fcf6-f464-234f-b5df-47c18ab8b898"
+    IPTC:InstanceID: "xmp.iid:709ebe80-9e41-244a-81bc-8a5e754fe63e"
+    IPTC:MetadataDate: "2024-04-01T19:35:30+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:30+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "Layer2"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:709ebe80-9e41-244a-81bc-8a5e754fe63e"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00; 2024-04-01T19:35:30+02:00"
+Reading src/Layers_32bit_RGB.psd
+src/Layers_32bit_RGB.psd :   48 x   27, 3 channel, float psd
+    4 subimages: 48x27 [f,f,f], 48x27 [f,f,f,f], 48x27 [f,f,f,f], 48x27 [f,f,f,f]
+ subimage  0:   48 x   27, 3 channel, float psd
+    SHA-1: C9C84C45C64884BD4D6F1B1E91CCA6744EA3C06C
+    channel list: R, G, B
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 2, 56, 108, 99, 109, 115, 4, 48, 0, 0, 109, 110, 116, 114, ... [568 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    thumbnail_height: 27
+    thumbnail_nchannels: 3
+    thumbnail_width: 48
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1818455411
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "No copyright, use freely"
+    ICCProfile:creation_date: "2024:04:01 17:31:55"
+    ICCProfile:creator_signature: "6c636d73"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "0"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "RGB built-in"
+    ICCProfile:profile_size: 568
+    ICCProfile:profile_version: "4.3.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    IPTC:DocumentID: "adobe:docid:photoshop:c17239f3-0dba-274a-8b00-2c4bfa538ebe"
+    IPTC:InstanceID: "xmp.iid:cbd904c5-53b4-0d4e-9ff8-37ac35429f46"
+    IPTC:MetadataDate: "2024-04-01T19:35:16+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:16+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "RGB built-in"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:cbd904c5-53b4-0d4e-9ff8-37ac35429f46"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00"
+ subimage  1:   48 x   27, 4 channel, float psd
+    SHA-1: 00FF9A578E0AF4490EE2ACB6FDCC8EBC5FD119E4
+    channel list: R, G, B, A
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 2, 56, 108, 99, 109, 115, 4, 48, 0, 0, 109, 110, 116, 114, ... [568 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1818455411
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "No copyright, use freely"
+    ICCProfile:creation_date: "2024:04:01 17:31:55"
+    ICCProfile:creator_signature: "6c636d73"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "0"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "RGB built-in"
+    ICCProfile:profile_size: 568
+    ICCProfile:profile_version: "4.3.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    IPTC:DocumentID: "adobe:docid:photoshop:c17239f3-0dba-274a-8b00-2c4bfa538ebe"
+    IPTC:InstanceID: "xmp.iid:cbd904c5-53b4-0d4e-9ff8-37ac35429f46"
+    IPTC:MetadataDate: "2024-04-01T19:35:16+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:16+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:subimagename: "Blue_Lagoon"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "RGB built-in"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:cbd904c5-53b4-0d4e-9ff8-37ac35429f46"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00"
+ subimage  2:   48 x   27, 4 channel, float psd
+    SHA-1: FD0AEA8F5823B878CFAB53B6E0D85F43A382D5CF
+    channel list: R, G, B, A
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 2, 56, 108, 99, 109, 115, 4, 48, 0, 0, 109, 110, 116, 114, ... [568 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1818455411
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "No copyright, use freely"
+    ICCProfile:creation_date: "2024:04:01 17:31:55"
+    ICCProfile:creator_signature: "6c636d73"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "0"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "RGB built-in"
+    ICCProfile:profile_size: 568
+    ICCProfile:profile_version: "4.3.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    IPTC:DocumentID: "adobe:docid:photoshop:c17239f3-0dba-274a-8b00-2c4bfa538ebe"
+    IPTC:InstanceID: "xmp.iid:cbd904c5-53b4-0d4e-9ff8-37ac35429f46"
+    IPTC:MetadataDate: "2024-04-01T19:35:16+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:16+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:subimagename: "Layer"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "RGB built-in"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:cbd904c5-53b4-0d4e-9ff8-37ac35429f46"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00"
+ subimage  3:   48 x   27, 4 channel, float psd
+    SHA-1: EA826AA276DDD6E8A4A333EB2FF6F4FAAF1E695F
+    channel list: R, G, B, A
+    DateTime: "2024-03-06T15:22:40+01:00"
+    ICCProfile: 0, 0, 2, 56, 108, 99, 109, 115, 4, 48, 0, 0, 109, 110, 116, 114, ... [568 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 23.3 (Windows)"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 48
+    Exif:PixelYDimension: 27
+    exrio:name: "applied_color_corrections; cameraAperture; cameraFNumber; cameraFarClip; cameraFarRange; cameraFocalLength; cameraFov; cameraNearClip; cameraNearRange; cameraProjection; cameraTargetDistance; cameraTransform; channels; compression; cryptomatte/881c23b/conversion; cryptomatte/881c23b/hash; cryptomatte/881c23b/manifest; cryptomatte/881c23b/name; dataWindow; displayWindow; lineOrder; name; pixelAspectRatio; screenWindowCenter; screenWindowWidth; type; vfb2_layers_json; vrayChannelInfo; vrayInfo/camera; vrayInfo/cameraPerPix; vrayInfo/cameraRayCountID; vrayInfo/cleanupTimeID; vrayInfo/computername; vrayInfo/cpu; vrayInfo/date; vrayInfo/elapsedtime; vrayInfo/engine; vrayInfo/filename; vrayInfo/frame; vrayInfo/frameTimeID; vrayInfo/freeMemCPU; vrayInfo/giPerPix; vrayInfo/giRayCountID; vrayInfo/h; vrayInfo/infinitePrimsID; vrayInfo/kpaths; vrayInfo/lightcacheTimeID; vrayInfo/mbTrisID"
+    exrio:type: "int; float; m44f; chlist; compression; string; box2i; lineOrder; v2f"
+    exrio:value: 0, 0
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1818455411
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "No copyright, use freely"
+    ICCProfile:creation_date: "2024:04:01 17:31:55"
+    ICCProfile:creator_signature: "6c636d73"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "0"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "RGB built-in"
+    ICCProfile:profile_size: 568
+    ICCProfile:profile_version: "4.3.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    IPTC:DocumentID: "adobe:docid:photoshop:c17239f3-0dba-274a-8b00-2c4bfa538ebe"
+    IPTC:InstanceID: "xmp.iid:cbd904c5-53b4-0d4e-9ff8-37ac35429f46"
+    IPTC:MetadataDate: "2024-04-01T19:35:16+02:00"
+    IPTC:ModifyDate: "2024-04-01T19:35:16+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
+    oiio:subimagename: "Layer2"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "RGB built-in"
+    rdf:parseType: "Resource"
+    rdf:resource: "http://doc.exr-io.com/metadata/1.0/attribute"
+    stEvt:action: "saved"
+    stEvt:changed: "/"
+    stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:cbd904c5-53b4-0d4e-9ff8-37ac35429f46"
+    stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
+    stEvt:when: "2024-04-01T19:35:16+02:00"

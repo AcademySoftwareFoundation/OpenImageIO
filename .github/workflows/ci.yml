@@ -512,6 +512,26 @@ jobs:
             depcmds: |
               sudo rm -rf /usr/local/include/OpenEXR
               sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
+          - desc: Linux ARM latest releases gcc14 C++20 py3.12 avx2 exr3.3 ocio2.4
+            nametag: linux-latest-releases
+            runner: ubuntu-24.04-arm
+            cc_compiler: gcc-14
+            cxx_compiler: g++-14
+            cxx_std: 20
+            fmt_ver: 11.1.4
+            opencolorio_ver: v2.4.2
+            openexr_ver: v3.3.3
+            pybind11_ver: v2.13.6
+            python_ver: "3.12"
+            setenvs: export LIBJPEGTURBO_VERSION=3.1.0
+                            LIBRAW_VERSION=0.21.3
+                            LIBTIFF_VERSION=v4.7.0
+                            OPENJPEG_VERSION=v2.5.3
+                            PTEX_VERSION=v2.4.3
+                            PUGIXML_VERSION=v1.15
+                            WEBP_VERSION=v1.5.0
+                            FREETYPE_VERSION=VER-2-13-3
+                            USE_OPENVDB=0
 
 
   #
