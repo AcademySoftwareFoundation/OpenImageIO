@@ -1205,14 +1205,14 @@ test_shuffle4()
     OIIO_CHECK_SIMD_EQUAL((shuffle<0, 0, 2, 2>(a)), VEC(0, 0, 2, 2));
     OIIO_CHECK_SIMD_EQUAL((shuffle<1, 1, 3, 3>(a)), VEC(1, 1, 3, 3));
     OIIO_CHECK_SIMD_EQUAL((shuffle<0, 1, 0, 1>(a)), VEC(0, 1, 0, 1));
-    OIIO_CHECK_SIMD_EQUAL((shuffle<2>(a)), VEC(ELEM(2)));
+    OIIO_CHECK_SIMD_EQUAL((broadcast_element<2>(a)), VEC(ELEM(2)));
 
     benchmark("shuffle<...> ",
               [&](const VEC& v) { return shuffle<3, 2, 1, 0>(v); }, a);
-    benchmark("shuffle<0> ", [&](const VEC& v) { return shuffle<0>(v); }, a);
-    benchmark("shuffle<1> ", [&](const VEC& v) { return shuffle<1>(v); }, a);
-    benchmark("shuffle<2> ", [&](const VEC& v) { return shuffle<2>(v); }, a);
-    benchmark("shuffle<3> ", [&](const VEC& v) { return shuffle<3>(v); }, a);
+    benchmark("broadcast_element<0> ", [&](const VEC& v) { return broadcast_element<0>(v); }, a);
+    benchmark("broadcast_element<1> ", [&](const VEC& v) { return broadcast_element<1>(v); }, a);
+    benchmark("broadcast_element<2> ", [&](const VEC& v) { return broadcast_element<2>(v); }, a);
+    benchmark("broadcast_element<3> ", [&](const VEC& v) { return broadcast_element<3>(v); }, a);
 }
 
 
@@ -1227,17 +1227,17 @@ void test_shuffle8 ()
     OIIO_CHECK_SIMD_EQUAL ((shuffle<0,0,2,2,0,0,2,2>(a)), VEC(0,0,2,2,0,0,2,2));
     OIIO_CHECK_SIMD_EQUAL ((shuffle<1,1,3,3,1,1,3,3>(a)), VEC(1,1,3,3,1,1,3,3));
     OIIO_CHECK_SIMD_EQUAL ((shuffle<0,1,0,1,0,1,0,1>(a)), VEC(0,1,0,1,0,1,0,1));
-    OIIO_CHECK_SIMD_EQUAL ((shuffle<2>(a)), VEC(ELEM(2)));
+    OIIO_CHECK_SIMD_EQUAL ((broadcast_element<2>(a)), VEC(ELEM(2)));
 
     benchmark ("shuffle<...> ", [&](const VEC& v){ return shuffle<7,6,5,4,3,2,1,0>(v); }, a);
-    benchmark ("shuffle<0> ", [&](const VEC& v){ return shuffle<0>(v); }, a);
-    benchmark ("shuffle<1> ", [&](const VEC& v){ return shuffle<1>(v); }, a);
-    benchmark ("shuffle<2> ", [&](const VEC& v){ return shuffle<2>(v); }, a);
-    benchmark ("shuffle<3> ", [&](const VEC& v){ return shuffle<3>(v); }, a);
-    benchmark ("shuffle<4> ", [&](const VEC& v){ return shuffle<4>(v); }, a);
-    benchmark ("shuffle<5> ", [&](const VEC& v){ return shuffle<5>(v); }, a);
-    benchmark ("shuffle<6> ", [&](const VEC& v){ return shuffle<6>(v); }, a);
-    benchmark ("shuffle<7> ", [&](const VEC& v){ return shuffle<7>(v); }, a);
+    benchmark ("broadcast_element<0> ", [&](const VEC& v){ return broadcast_element<0>(v); }, a);
+    benchmark ("broadcast_element<1> ", [&](const VEC& v){ return broadcast_element<1>(v); }, a);
+    benchmark ("broadcast_element<2> ", [&](const VEC& v){ return broadcast_element<2>(v); }, a);
+    benchmark ("broadcast_element<3> ", [&](const VEC& v){ return broadcast_element<3>(v); }, a);
+    benchmark ("broadcast_element<4> ", [&](const VEC& v){ return broadcast_element<4>(v); }, a);
+    benchmark ("broadcast_element<5> ", [&](const VEC& v){ return broadcast_element<5>(v); }, a);
+    benchmark ("broadcast_element<6> ", [&](const VEC& v){ return broadcast_element<6>(v); }, a);
+    benchmark ("broadcast_element<7> ", [&](const VEC& v){ return broadcast_element<7>(v); }, a);
 }
 
 
@@ -1257,11 +1257,11 @@ void test_shuffle16 ()
     // Shuffle within groups of 4
     OIIO_CHECK_SIMD_EQUAL ((shuffle<3,2,1,0>(a)),
                            VEC(3,2,1,0,7,6,5,4,11,10,9,8,15,14,13,12));
-    OIIO_CHECK_SIMD_EQUAL ((shuffle<3>(a)),
-                           VEC(3,3,3,3,7,7,7,7,11,11,11,11,15,15,15,15));
+    OIIO_CHECK_SIMD_EQUAL ((broadcast_element<3>(a)), VEC(3));
 
-    benchmark ("shuffle4<> ", [&](const VEC& v){ return shuffle<3,2,1,0>(v); }, a);
-    benchmark ("shuffle<> ",  [&](const VEC& v){ return shuffle<3,2,1,0>(v); }, a);
+    benchmark ("shuffle4<> ", [&](const VEC& v){ return shuffle4<3,2,1,0>(v); }, a);
+    benchmark ("shuffle4<> ",  [&](const VEC& v){ return shuffle4<3>(v); }, a);
+    benchmark ("broadcast_element<> ",  [&](const VEC& v){ return broadcast_element<3>(v); }, a);
 }
 
 
