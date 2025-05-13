@@ -255,18 +255,16 @@ py::bytes
 ImageBuf_repr_png(const ImageBuf& self)
 {
     ImageSpec original_spec = self.spec();
-    ImageSpec new_spec (
-        original_spec.width, 
-        original_spec.height, 
-        original_spec.nchannels, 
-        TypeDesc::UINT8
-    );
+
+    if (original_spec.width < 1 || original_spec.height < 1) {
+        return py::bytes();
+    }
 
     std::vector<unsigned char> file_buffer;  // bytes will go here
     Filesystem::IOVecOutput file_vec (file_buffer);  // I/O proxy object
 
     std::unique_ptr<ImageOutput> out = ImageOutput::create ("temp.png", &file_vec);
-    out->open ("temp.png", new_spec);
+    out->open ("temp.png", original_spec);
     self.write(out.get());
     out->close ();
 
