@@ -37,7 +37,8 @@ static std::atomic_int64_t output_next_id(0);
 class ImageOutput::Impl {
 public:
     Impl()
-        : m_id(++output_next_id), m_threads(pvt::oiio_threads)
+        : m_id(++output_next_id)
+        , m_threads(pvt::oiio_threads)
     {
     }
 
