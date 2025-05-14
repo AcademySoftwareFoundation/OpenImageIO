@@ -3,6 +3,7 @@
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
+from __future__ import annotations
 
 import OpenImageIO as oiio
 
@@ -13,7 +14,7 @@ import numpy as np
 # write_image, write_scanlines, write_scanline, write_tile, or write_tiles,
 # depending on the 'method' argument).  (Just copy one subimage, one MIP
 # level.)
-def copy_subimage (input, output, method="image",
+def copy_subimage (in_filename: str, input: oiio.ImageInput, output: oiio.ImageOutput, method="image",
                    memformat=oiio.TypeFloat) :
     spec = input.spec ()
     if method == "image" :
@@ -64,11 +65,11 @@ def copy_subimage (input, output, method="image",
 # Read the whole image then write using write_image, write_scanlines,
 # write_scanline, write_tile, or write_tiles, depending on the 'method'
 # argument).  (Just copy one subimage, one MIP level.)
-def copy_image (in_filename, out_filename, method="image",
+def copy_image (in_filename: str, out_filename: str, method="image",
                 memformat=oiio.TypeFloat, outformat=oiio.TypeUnknown) :
     input = oiio.ImageInput.open (in_filename)
     if not input :
-        print ('Could not open "' + filename + '"')
+        print ('Could not open "' + in_filename + '"')
         print ("\tError: ", oiio.geterror())
         print ()
         return
@@ -83,7 +84,7 @@ def copy_image (in_filename, out_filename, method="image",
     if not ok :
         print ("Could not open", out_filename)
         return
-    ok = copy_subimage (input, output, method, memformat)
+    ok = copy_subimage (in_filename, input, output, method, memformat)
     input.close ()
     output.close ()
     if ok :
@@ -93,6 +94,7 @@ def copy_image (in_filename, out_filename, method="image",
 
 def test_subimages (out_filename="multipart.exr") :
     output = oiio.ImageOutput.create (out_filename)
+    assert output is not None
     spec = oiio.ImageSpec (64, 64, 3, "half")
     specs = (spec, spec, spec)
     output.open (out_filename, specs)
