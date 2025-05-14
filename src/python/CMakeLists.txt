@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-
+add_subdirectory (stubs)
 
 file (GLOB python_srcs *.cpp)
 setup_python_module (TARGET    PyOpenImageIO
@@ -19,3 +19,4 @@ set_target_properties(PyOpenImageIO PROPERTIES
                           UNITY_BUILD_BATCH_SIZE ${UNITY_SMALL_BATCH_SIZE})
 set_source_files_properties(${python_srcs} PROPERTIES
                             UNITY_GROUP PyOpenImageIO)
+
