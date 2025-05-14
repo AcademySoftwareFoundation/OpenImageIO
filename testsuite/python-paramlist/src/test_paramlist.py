@@ -4,18 +4,19 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+from __future__ import annotations
 
 import numpy
 import OpenImageIO as oiio
 
 
-def print_param_value(p) :
+def print_param_value(p: oiio.ParamValue) :
     if type(p.value) == float :
         print ("  item {} {} {:.6}".format(p.name, p.type, p.value))
     else :
         print ("  item {} {} {}".format(p.name, p.type, p.value))
 
-def print_param_list(pl) :
+def print_param_list(pl: oiio.ParamValueList) :
     for p in pl :
         print_param_value(p)
 

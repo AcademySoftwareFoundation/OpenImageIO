@@ -4,16 +4,20 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+from __future__ import annotations
+
 import math, os
 import OpenImageIO as oiio
 from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo, ROI
+from typing import Callable, TypeVar
 
+T = TypeVar("T")
 
 OIIO_TESTSUITE_ROOT = os.getenv('OIIO_TESTSUITE_ROOT', '')
 OIIO_TESTSUITE_IMAGEDIR = os.getenv('OIIO_TESTSUITE_IMAGEDIR', '')
 
-def make_constimage (xres, yres, chans=3, format=oiio.UINT8, value=(0,0,0),
-                xoffset=0, yoffset=0) :
+def make_constimage (xres: int, yres: int, chans=3, format: oiio.BASETYPE | str = oiio.UINT8, value=(0,0,0),
+                xoffset=0, yoffset=0) -> oiio.ImageBuf:
     spec = ImageSpec (xres,yres,chans,format)
     spec.x = xoffset
     spec.y = yoffset
@@ -22,13 +26,13 @@ def make_constimage (xres, yres, chans=3, format=oiio.UINT8, value=(0,0,0),
     return b
 
 
-def write (image, filename, format=oiio.UNKNOWN) :
+def write (image: oiio.ImageBuf, filename: str, format: oiio.BASETYPE | str = oiio.UNKNOWN) :
     if not image.has_error :
         image.write (filename, format)
     if image.has_error :
         print ("Error writing", filename, ":", image.geterror())
 
-def dumpimg (image, fmt="{:.3f}", msg="") :
+def dumpimg (image: oiio.ImageBuf, fmt="{:.3f}", msg="") :
     spec = image.spec()
     print (msg, end="")
     if image.has_error :
@@ -48,7 +52,7 @@ def dumpimg (image, fmt="{:.3f}", msg="") :
 # both the variety that returns an ImageBuf with the result, and also the kind
 # that modifies an existing ImageBuf in place. An error is printed if the
 # results differ. The "returned" IB is returned from the function.
-def test_iba (func, *args, **kwargs) :
+def test_iba (func: Callable[..., oiio.ImageBuf], *args, **kwargs) -> oiio.ImageBuf:
     # Test the version of func that returns an IB
     # func = getattr(ImageBufAlgo, funcname)
     b = func(*args, **kwargs)
@@ -415,12 +419,13 @@ try:
     # compare_Yee,
     # isConstantColor, isConstantChannel
 
-    b = ImageBuf (ImageSpec(256,256,3,oiio.UINT8));
+    b = ImageBuf (ImageSpec(256,256,3,oiio.UINT8))
     ImageBufAlgo.fill (b, (1,0.5,0.5))
-    r = ImageBufAlgo.isConstantColor (b)
-    print ("isConstantColor on pink image is (%.5g %.5g %.5g)" % r)
-    r = ImageBufAlgo.isConstantColor (checker)
-    print ("isConstantColor on checker is ", r)
+    v = ImageBufAlgo.isConstantColor (b)
+    assert v is not None
+    print ("isConstantColor on pink image is (%.5g %.5g %.5g)" % (v[0], v[1], v[2]))
+    v = ImageBufAlgo.isConstantColor (checker)
+    print ("isConstantColor on checker is ", v)
 
     b = ImageBuf("cmul1.exr")
     print ("Is", b.name, "monochrome? ", ImageBufAlgo.isMonochrome(b))
@@ -482,7 +487,7 @@ try:
     write (b, "dilate.tif", oiio.UINT8)
     b = test_iba (ImageBufAlgo.erode, undilated, 3, 3)
     write (b, "erode.tif", oiio.UINT8)
-    undilated = None
+    del undilated
 
     # unsharp_mask
     b = test_iba (ImageBufAlgo.unsharp_mask, ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif"),
