@@ -260,12 +260,16 @@ ImageBuf_repr_png(const ImageBuf& self)
         return py::bytes();
     }
 
+    // Alter the spec to make sure it dithers when outputting to 8 bit PNG
+    ImageSpec altered_spec = original_spec;
+    altered_spec.attribute("oiio:dither", 1);
+
     std::vector<unsigned char> file_buffer;         // bytes will go here
     Filesystem::IOVecOutput file_vec(file_buffer);  // I/O proxy object
 
     std::unique_ptr<ImageOutput> out = ImageOutput::create("temp.png",
                                                            &file_vec);
-    out->open("temp.png", original_spec);
+    out->open("temp.png", altered_spec);
     self.write(out.get());
     out->close();
 
