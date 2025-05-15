@@ -5453,6 +5453,17 @@ remove_all_cmd(std::string& str)
 
 // -o
 static void
+pre_output_file(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 2);
+    const std::string filename = ot.express(argv[1]);
+    const std::string outputdirpath = Filesystem::parent_path(filename);
+    if (!Filesystem::exists(outputdirpath)) {
+        Filesystem::create_directory(outputdirpath);
+    }
+}
+
+static void
 output_file(Oiiotool& ot, cspan<const char*> argv)
 {
     ot.total_writetime.start();
@@ -6374,6 +6385,8 @@ Oiiotool::getargs(int argc, char* argv[])
     Oiiotool& ot(*this);  // Local reference alias for *this
 
 // Macro that wraps a call to prepend a ref to the ot
+#define OTPREACTION(act) \
+    pre_action([&ot](cspan<const char*> argv) { return act(ot, argv); })
 #define OTACTION(act) \
     action([&ot](cspan<const char*> argv) { return act(ot, argv); })
 // Macro that wraps a call to an ot method
@@ -6383,9 +6396,13 @@ Oiiotool::getargs(int argc, char* argv[])
     bool help = false;
 
     bool sansattrib = false;
-    for (int i = 0; i < argc; ++i)
+    bool preflightenabled = false;
+    for (int i = 0; i < argc; ++i) {
         if (!strcmp(argv[i], "--sansattrib") || !strcmp(argv[i], "-sansattrib"))
             sansattrib = true;
+        if (!strcmp(argv[i], "--pre-flight") || !strcmp(argv[i], "-pre-flight"))
+            preflightenabled = true;
+    }
     ot.full_command_line = command_line_string(argc, argv, sansattrib);
 
     // clang-format off
@@ -6498,6 +6515,8 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--nostderr", &ot.nostderr)
       .help("Do not use stderr, output error messages to stdout")
       .hidden();
+    ap.arg("--pre-flight", &preflightenabled)
+      .help("Pre-flight through the options and call pre-action.");
 
     ap.separator("Control flow and scripting:");
     ap.arg("--set %s:NAME %s:VALUE")
@@ -6577,15 +6596,19 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Output the current image to the named file (options: "
             "all=, autocc=, autocrop=, autotrim=, bits=, contig=, datatype=, "
             "dither=, fileformatname=, scanline=, separate=, tile=, unpremult=)")
+      .OTPREACTION(pre_output_file)
       .OTACTION(output_file);
     ap.arg("-otex %s:FILENAME")
       .help("Output the current image as a texture")
+      .OTPREACTION(pre_output_file)
       .OTACTION(output_file);
     ap.arg("-oenv %s:FILENAME")
       .help("Output the current image as a latlong env map")
+      .OTPREACTION(pre_output_file)
       .OTACTION(output_file);
     ap.arg("-obump %s:FILENAME")
       .help("Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto, uvslopes_scale=val>=0)")
+      .OTPREACTION(pre_output_file)
       .OTACTION(output_file);
 
     ap.separator("Options that affect subsequent image output:");
@@ -7085,6 +7108,10 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Add the contents of the file to the top image as its ICC profile")
       .OTACTION(icc_read);
     // clang-format on
+
+    if (preflightenabled) {
+        ap.parse_args_preflight(argc, (const char**)argv);
+    }
 
     if (ap.parse_args(argc, (const char**)argv) < 0) {
         auto& errstream(ot.nostderr ? std::cout : std::cerr);

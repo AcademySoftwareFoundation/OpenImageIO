@@ -277,6 +277,8 @@ public:
     /// @defgroup Parsing arguments
     /// @{
 
+    void parse_args_preflight(int argc, const char** argv);
+
     /// With the options already set up, parse the command line. Return 0 if
     /// ok, -1 if it's a malformed command line.
     int parse_args(int argc, const char** argv);
@@ -523,6 +525,15 @@ public:
             m_argparse.params()[dest()] = 1;
             action(ArgParse::store_false());
             return *this;
+        }
+
+        /// Add an arbitrary action:   `func(Arg&, cspan<const char*>)`
+        Arg& pre_action(ArgAction&& func);
+
+        /// Add an arbitrary pre-action:   `func(cspan<const char*>)`
+        Arg& pre_action(Action&& func)
+        {
+            return pre_action([=](Arg&, cspan<const char*> a) { func(a); });
         }
 
         /// Add an arbitrary action:   `func(Arg&, cspan<const char*>)`

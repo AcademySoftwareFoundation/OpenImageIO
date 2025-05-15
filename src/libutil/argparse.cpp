@@ -107,6 +107,7 @@ private:
     std::vector<void*> m_param;          // pointers to app data vars
     std::vector<TypeDesc> m_paramtypes;  // Expected param types
     std::vector<std::string> m_prettyargs;
+    ArgParse::ArgAction m_pre_action = nullptr;
     ArgParse::ArgAction m_action = nullptr;
     callback_t m_callback        = nullptr;
     int m_repetitions            = 0;      // number of times on cmd line
@@ -154,6 +155,8 @@ public:
         , m_prog(Filesystem::filename(Sysutil::this_program_path()))
     {
     }
+
+    void parse_args_preflight(int argc, const char** argv);
 
     int parse_args(int argc, const char** argv);
 
@@ -415,6 +418,11 @@ ArgParse::ArgParse(int argc, const char** argv)
 ArgParse::~ArgParse() {}
 
 
+void
+ArgParse::parse_args_preflight(int argc, const char** argv)
+{
+    m_impl->parse_args_preflight(argc, argv);
+}
 
 // Top level command line parsing function called after all options
 // have been parsed and created from the format strings.  This function
@@ -437,7 +445,32 @@ ArgParse::parse_args(int xargc, const char** xargv)
     return r;
 }
 
+void 
+ArgParse::Impl::parse_args_preflight(int argc, const char** argv)
+{
+    for (int i = 1; i < argc; ++i) {
+        if (m_aborted)
+            break;
 
+        if (argv[i][0] == '-' && (isalpha(argv[i][1]) || argv[i][1] == '-')) {
+            std::string argname = argv[i];
+            size_t colon        = argname.find_first_of(':');
+            if (colon != std::string::npos)
+                argname = argname.substr(0, colon);
+
+            ArgOption* option = find_option(argname.c_str());
+            if (option && option->m_pre_action) {
+                if (option->is_flag() || option->is_reverse_flag()) {
+                    option->m_pre_action(*option, { argv + i, 1 });
+                } else {
+                    int n = option->nargs();
+                    option->m_pre_action(*option,
+                        { argv + i, span_size_t(n + 1) });
+                }
+            }
+        }
+    }
+}
 
 int
 ArgParse::Impl::parse_args(int xargc, const char** xargv)
@@ -805,6 +838,12 @@ ArgParse::Arg::metavar(string_view name)
 }
 
 
+ArgParse::Arg&
+ArgParse::Arg::pre_action(ArgAction&& pre_action)
+{
+    static_cast<ArgOption*>(this)->m_pre_action = std::move(pre_action);
+    return *this;
+}
 
 ArgParse::Arg&
 ArgParse::Arg::action(ArgAction&& action)
