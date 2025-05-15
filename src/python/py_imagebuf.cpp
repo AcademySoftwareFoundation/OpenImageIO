@@ -6,8 +6,8 @@
 
 #include <memory>
 
-#include <OpenImageIO/platform.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/platform.h>
 
 
 namespace PyOpenImageIO {
@@ -260,13 +260,14 @@ ImageBuf_repr_png(const ImageBuf& self)
         return py::bytes();
     }
 
-    std::vector<unsigned char> file_buffer;  // bytes will go here
-    Filesystem::IOVecOutput file_vec (file_buffer);  // I/O proxy object
+    std::vector<unsigned char> file_buffer;         // bytes will go here
+    Filesystem::IOVecOutput file_vec(file_buffer);  // I/O proxy object
 
-    std::unique_ptr<ImageOutput> out = ImageOutput::create ("temp.png", &file_vec);
-    out->open ("temp.png", original_spec);
+    std::unique_ptr<ImageOutput> out = ImageOutput::create("temp.png",
+                                                           &file_vec);
+    out->open("temp.png", original_spec);
     self.write(out.get());
-    out->close ();
+    out->close();
 
     // Cast to const char* and return as python bytes
     const char* char_ptr = reinterpret_cast<const char*>(file_buffer.data());
@@ -516,8 +517,7 @@ declare_imagebuf(py::module& m)
         .def(
             "deepdata", [](ImageBuf& self) { return *self.deepdata(); },
             py::return_value_policy::reference_internal)
-        .def(
-            "_repr_png_", &ImageBuf_repr_png)
+        .def("_repr_png_", &ImageBuf_repr_png)
 
         // FIXME -- do we want to provide pixel iterators?
         ;
