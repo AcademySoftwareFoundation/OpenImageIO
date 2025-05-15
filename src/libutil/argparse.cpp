@@ -108,13 +108,13 @@ private:
     std::vector<TypeDesc> m_paramtypes;  // Expected param types
     std::vector<std::string> m_prettyargs;
     ArgParse::ArgAction m_pre_action = nullptr;
-    ArgParse::ArgAction m_action = nullptr;
-    callback_t m_callback        = nullptr;
-    int m_repetitions            = 0;      // number of times on cmd line
-    bool m_has_callback          = false;  // needs a callback?
-    bool m_hidden                = false;  // hidden?
-    bool m_always_run            = false;  // always run?
-    bool m_error                 = false;  // invalid option, had an error
+    ArgParse::ArgAction m_action     = nullptr;
+    callback_t m_callback            = nullptr;
+    int m_repetitions                = 0;      // number of times on cmd line
+    bool m_has_callback              = false;  // needs a callback?
+    bool m_hidden                    = false;  // hidden?
+    bool m_always_run                = false;  // always run?
+    bool m_error                     = false;  // invalid option, had an error
     friend class ArgParse;
     friend class ArgParse::Arg;
     friend class ArgParse::Impl;
@@ -445,7 +445,7 @@ ArgParse::parse_args(int xargc, const char** xargv)
     return r;
 }
 
-void 
+void
 ArgParse::Impl::parse_args_preflight(int argc, const char** argv)
 {
     for (int i = 1; i < argc; ++i) {
@@ -465,7 +465,7 @@ ArgParse::Impl::parse_args_preflight(int argc, const char** argv)
                 } else {
                     int n = option->nargs();
                     option->m_pre_action(*option,
-                        { argv + i, span_size_t(n + 1) });
+                                         { argv + i, span_size_t(n + 1) });
                 }
             }
         }

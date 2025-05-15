@@ -5456,7 +5456,7 @@ static void
 pre_output_file(Oiiotool& ot, cspan<const char*> argv)
 {
     OIIO_DASSERT(argv.size() == 2);
-    const std::string filename = ot.express(argv[1]);
+    const std::string filename      = ot.express(argv[1]);
     const std::string outputdirpath = Filesystem::parent_path(filename);
     if (!Filesystem::exists(outputdirpath)) {
         Filesystem::create_directory(outputdirpath);
@@ -6395,7 +6395,7 @@ Oiiotool::getargs(int argc, char* argv[])
 
     bool help = false;
 
-    bool sansattrib = false;
+    bool sansattrib       = false;
     bool preflightenabled = false;
     for (int i = 0; i < argc; ++i) {
         if (!strcmp(argv[i], "--sansattrib") || !strcmp(argv[i], "-sansattrib"))
