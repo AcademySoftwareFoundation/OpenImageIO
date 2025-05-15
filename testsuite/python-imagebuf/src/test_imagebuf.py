@@ -58,6 +58,23 @@ def write (image, filename, format=oiio.UNKNOWN) :
 
 
 
+def test_repr_png () :
+    # Test a valid 16 bit exr
+    b = oiio.ImageBuf("src/AllHalfValues.exr")
+    png = b._repr_png_()
+
+    with open("valid_repr_png.png", "wb") as f:
+        f.write(png)
+    
+    # Test an invalid image with null dimensions
+    # create ImageBuf with x dimension as 0
+    b = oiio.ImageBuf(oiio.ImageSpec(0,2,4,"float"))
+    png = b._repr_png_()
+    with open("invalid_repr_png.png", "wb") as f:
+        f.write(png)
+
+
+
 def test_perchannel_formats () :
     # Test writing per-channel formats with an ImageBuf
     b = oiio.ImageBuf(oiio.ImageSpec(2,2,4,"float"))
@@ -296,6 +313,7 @@ try:
     test_multiimage ()
     test_uninitialized ()
     test_copy_metadata ()
+    test_repr_png ()
 
     print ("\nDone.")
 except Exception as detail:
