@@ -1,0 +1,18 @@
+{
+  "configurations" : [
+    {
+      "id" : "E800C18D-6608-42DB-8622-CF764A0DAE82",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+
+  ],
+  "version" : 1
+}
