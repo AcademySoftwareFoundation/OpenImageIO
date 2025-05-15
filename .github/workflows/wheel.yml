@@ -163,7 +163,11 @@ jobs:
       - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
-          path: ./wheelhouse/*.whl
+          path: |
+            ./wheelhouse/*.whl
+            ./wheelhouse/OpenImageIO/__init__.pyi
+        # if stub validation fails we want to upload the stubs for users to review
+        if: success() || failure()
 
   # ---------------------------------------------------------------------------
   # Linux ARM Wheels
@@ -225,7 +229,11 @@ jobs:
         - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
           with:
             name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
-            path: ./wheelhouse/*.whl
+            path: |
+              ./wheelhouse/*.whl
+              ./wheelhouse/OpenImageIO/__init__.pyi
+          # if stub validation fails we want to upload the stubs for users to review
+          if: success() || failure()
 
   # ---------------------------------------------------------------------------
   # macOS Wheels

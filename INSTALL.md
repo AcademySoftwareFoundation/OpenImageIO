@@ -398,7 +398,7 @@ for more information on customizing and overriding build-tool options and CMake 
 This repo contains python type stubs which are generated from `pybind11` signatures.
 The workflow for releasing new stubs is as follows:
 
-- Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
+- Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) and `docker`
 - Run `make pystubs` locally to generate updated stubs in `src/python/stubs/__init__.pyi`
 - Run `make test-pystubs` locally to use mypy to test the stubs against the code in 
   the python testsuite.
@@ -410,6 +410,10 @@ The workflow for releasing new stubs is as follows:
   in a change to the stubs, developers are notified of the need to regenerate 
   the stubs, so that changes can be reviewed and the rules in `generate_stubs.py` 
   can be updated, if necessary.
+
+Note that if you can't (or don't want to) build the stubs locally, you can 
+download an artifact containing the wheel and `__init__.pyi` file from any job 
+that fails the stub validation.
 
 Test Images
 -----------
