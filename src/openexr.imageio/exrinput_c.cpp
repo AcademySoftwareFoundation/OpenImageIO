@@ -368,7 +368,7 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
             // missingcolor as numeric array
             int n = m->type().basevalues();
             m_missingcolor.clear();
-            m_missingcolor.reserve(n);
+            m_missingcolor.resize(n);
             for (int i = 0; i < n; ++i)
                 m_missingcolor[i] = m->get_float(i);
         }
