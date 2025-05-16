@@ -35,38 +35,6 @@ of brevity, we will alias the package name as follows:
 
 .. _sec-pythontypedesc:
 
-
-Jupyter Notebooks
-=================
-
-Like any other Python package, OpenImageIO can be used in `Jupyter notebooks <https://jupyter.org/install>`_. 
-The ImageBuf objects support getting displayed inline within notebooks.
-
-.. image:: figures/imagebuf-notebook-demo.png
-
-.. warning::
-    
-    Currently, ImageBuf objects get displayed as **uint8 PNGs** inside of notebooks.
-    ImageBuf objects that store images with higher bit depths get dithered to account for this.
-    Keep in mind that directly saving the inline image to disk will not preserve the original image within the ImageBuf.
-
-
-Running a Local Jupyter Notebook
---------------------------------
-If you want to run a local Jupyter notebook with OpenImageIO, you can do so from within the Python environment in which you have installed OpenImageIO.
-
-.. code-block:: bash
-
-    pip install jupyterlab
-    jupyter lab
-
-Alternatively, if you prefer using `uv <https://github.com/astral-sh/uv>`_, you can run the following command:
-
-.. code-block:: bash
-
-    uv run --with jupyter jupyter lab
-
-
 TypeDesc
 ========
 
@@ -4058,6 +4026,43 @@ following boilerplate:
 
 
 |
+
+
+Jupyter Notebooks
+-----------------
+
+Like any other Python package, OpenImageIO can be used in `Jupyter notebooks <https://jupyter.org/install>`_. 
+The ImageBuf objects support getting displayed inline within notebooks.
+
+.. image:: figures/imagebuf-notebook-demo.png
+
+.. warning::
+    
+    Currently, ImageBuf objects get displayed as **uint8 PNGs** inside of notebooks.
+    ImageBuf objects that store images with higher bit depths get dithered to account for this.
+    Keep in mind that directly saving the inline image to disk will not preserve the original image within the ImageBuf.
+
+
+Running a Local Jupyter Notebook
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you want to run a local Jupyter notebook with OpenImageIO, you can do so from within the Python environment in which you have installed OpenImageIO.
+
+.. code-block:: bash
+
+    pip install jupyterlab
+    jupyter lab
+
+Alternatively, if you prefer using `uv <https://github.com/astral-sh/uv>`_, you can run the following command:
+
+.. code-block:: bash
+
+    uv run --with jupyter jupyter lab
+
+
+|
+
+Code fragments
+--------------
 
 **Subroutine to create a constant-colored image**
 
