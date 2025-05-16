@@ -208,6 +208,7 @@ def main() -> None:
             print("Changes to the source code have resulted in a change to the stubs.")
             print(get_colored_diff(old_text, new_text))
             print("Run `make pystubs` locally and commit the results for review.")
+            print("The resulting __init__.pyi file will be uploaded as an artifact on this job.")
             sys.exit(2)
 
 
