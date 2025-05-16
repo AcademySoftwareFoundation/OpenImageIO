@@ -698,7 +698,8 @@ IvGL::paintGL()
         
         gl_rect( left, bottom, right, top, -0.1f);     
         
-        glPopAttrib();     
+        glPopAttrib();  
+        glPopMatrix();     
     
     }
     glPopMatrix();  
@@ -1321,25 +1322,34 @@ IvGL::mousePressEvent(QMouseEvent* event)
 {
     remember_mouse(event->pos());
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
-    // mousemode = 3;
+    bool areaMode = m_viewer.areaSampleMode();
     bool Alt      = (event->modifiers() & Qt::AltModifier);
     m_drag_button = event->button();
     if (!m_mouse_activation) {
         switch (event->button()) {
         case Qt::LeftButton:
-            if (mousemode == ImageViewer::MouseModeZoom && !Alt)
-                m_viewer.zoomIn();
-            else if (mousemode == ImageViewer::MouseModeSelect && !Alt){
+            if (areaMode){
+                std::cerr << areaMode;
                 m_select_start = event->pos();
                 m_select_end = m_select_start;
                 m_selecting = true;
                 parent_t::update();
+            } else if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode){
+                m_viewer.zoomIn();
             }
+            // if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode)
+            //     m_viewer.zoomIn();
+            // else if (mousemode == ImageViewer::MouseModeSelect && !Alt && areaMode){
+            //     m_select_start = event->pos();
+            //     m_select_end = m_select_start;
+            //     m_selecting = true;
+            //     parent_t::update();
+            // }
             else
                 m_dragging = true;
             return;
         case Qt::RightButton:
-            if (mousemode == ImageViewer::MouseModeZoom && !Alt)
+            if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode)
                 m_viewer.zoomOut();
             else
                 m_dragging = true;
@@ -1371,7 +1381,6 @@ IvGL::mouseReleaseEvent(QMouseEvent* event)
         m_select_end = event->pos();
         m_selecting = false;
         analyze_selected_area();
-        parent_t::update();
 
     }
     parent_t::mouseReleaseEvent(event);
@@ -1383,6 +1392,19 @@ void
 IvGL::mouseMoveEvent(QMouseEvent* event)
 {
     QPoint pos = event->pos();
+
+    // Area probe override
+    if (m_viewer.areaSampleMode() && m_selecting) {
+        m_select_end = event->pos();
+        parent_t::update();
+        remember_mouse(pos);
+        if (m_viewer.pixelviewOn()){
+            parent_t::update();
+        }
+        parent_t::mouseMoveEvent(event);
+        return;
+    }
+
     // FIXME - there's probably a better Qt way than tracking the button
     // myself.
     bool Alt      = (event->modifiers() & Qt::AltModifier);
