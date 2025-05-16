@@ -1498,8 +1498,6 @@ static std::vector<std::string>
 get_regex_list_from_file(string_view filename)
 {
     // helper function that takes a text file and return all regex attribname entries as a list
-    std::ifstream inputFile(filename);
-
     std::string contents;
     Filesystem::read_text_file(filename, contents);
     return Strutil::splits(contents, "\n");
