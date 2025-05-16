@@ -115,6 +115,14 @@ heapsize(const std::vector<T>& vec)
     return size;
 }
 
+// footprint specialization for std::vector
+template<typename T>
+inline size_t
+footprint(const std::vector<T>& vec)
+{
+    return sizeof(std::vector<T>) + heapsize<T>(vec);
+}
+
 
 }  // namespace pvt
 
