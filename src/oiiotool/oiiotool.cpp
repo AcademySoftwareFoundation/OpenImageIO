@@ -1513,8 +1513,9 @@ public:
         : OiiotoolOp(ot, opname, argv, 1)
     {
         inplace(true);  // This action operates in-place
-        erase_from_file = "--eraseattrib_fromfile" || "-eraseattrib_fromfile";
-        if (opname != erase_from_file) {
+        erase_from_file = "--eraseattrib_fromfile";
+        erase_from_file_alt = "-eraseattrib_fromfile";
+        if (opname != erase_from_file && opname != erase_from_file_alt) {
             attribname = args(1);
         } else {
             // handle erase attribute using regex text file case
@@ -1556,6 +1557,7 @@ private:
     string_view regex_file;
     std::vector<std::string> attribname_list;
     std::string erase_from_file;
+    std::string erase_from_file_alt;
 };
 
 
@@ -1606,14 +1608,6 @@ erase_attribute(Oiiotool& ot, cspan<const char*> argv)
     action_attrib_helper(ot, argv[0], argv);
 }
 
-// --eraseattrib_fromfile
-static void
-erase_attribute_fromfile(Oiiotool& ot, cspan<const char*> argv)
-{
-    // action_attrib already has the property of erasing the attrib if no
-    // value is in the args.
-    action_attrib_helper(ot, argv[0], argv);
-}
 
 
 #if 0 /* apparently unused */
@@ -6682,7 +6676,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .OTACTION(erase_attribute);
     ap.arg("--eraseattrib_fromfile %s:REGEXFILE")
       .help("Erase attributes matching regex list from a txt file")
-      .OTACTION(erase_attribute_fromfile);
+      .OTACTION(erase_attribute);
     ap.arg("--caption %s:TEXT")
       .help("Sets caption (ImageDescription metadata)")
       .OTACTION(set_caption);
