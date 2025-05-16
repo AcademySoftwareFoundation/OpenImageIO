@@ -854,14 +854,11 @@ ImageViewer::open()
         if (filename.empty())
             continue;
         add_image(filename);
-        //        int n = m_images.size()-1;
-        //        IvImage *newimage = m_images[n];
-        //        newimage->read_iv (0, false, image_progress_callback, this);
     }
+
     if (old_lastimage >= 0) {
         // Otherwise, add_image already did this for us.
         current_image(old_lastimage + 1);
-        fitWindowToImage(true, true);
     }
 }
 
@@ -887,7 +884,6 @@ ImageViewer::openRecentFile()
         if (m_images.size() > 1) {
             // Otherwise, add_image already did this for us.
             current_image(m_images.size() - 1);
-            fitWindowToImage(true, true);
         }
     }
 }
