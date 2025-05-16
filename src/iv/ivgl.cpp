@@ -19,6 +19,7 @@
 #include "ivutils.h"
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
+#include <cfloat>
 
 OIIO_PRAGMA_WARNING_PUSH
 #if defined(__APPLE__)
@@ -664,7 +665,44 @@ IvGL::paintGL()
         paint_windowguides();
     }
 
-    glPopMatrix();
+    if (m_selecting){
+        glPushMatrix();
+        glLoadIdentity();
+        // Transform is now same as the main GL viewport -- window pixels as
+        // units, with (0,0) at the center of the visible window.
+
+
+        glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+        glDisable(GL_TEXTURE_2D);
+        if (m_use_shaders) {
+            glUseProgram(0);
+        }
+        
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glColor4f(0.2f, 0.5f, 1.0f, 0.3f);  // Light blue fill with transparency
+
+        int w = width();
+        int h = height();
+
+        float x1 = m_select_start.x() - w / 2.0f;
+        float y1 = -(m_select_start.y() - h / 2.0f);
+
+        float x2 = m_select_end.x() - w / 2.0f;
+        float y2 = -(m_select_end.y() - h / 2.0f);
+        
+        int left   = std::min(x1, x2);
+        int right  = std::max(x1, x2);
+        int bottom = std::min(y1, y2);
+        int top    = std::max(y1, y2);   
+        
+        gl_rect( left, bottom, right, top, -0.1f);     
+        
+        glPopAttrib();  
+        glPopMatrix();     
+    
+    }
+    glPopMatrix();  
 
     if (m_viewer.pixelviewOn()) {
         paint_pixelview();
@@ -1205,6 +1243,78 @@ IvGL::clamp_view_to_window()
     }
 }
 
+void
+IvGL::analyze_selected_area()
+{
+    IvImage* img = m_current_image;
+    const ImageSpec& spec(img->spec());
+
+    int x1, y1;
+    get_given_image_pixel(x1, y1, m_select_start.x(), m_select_start.y());
+
+    int x2, y2;
+    get_given_image_pixel(x2, y2, m_select_end.x(), m_select_end.y());
+    
+    float scale_x  = 1.0f;
+    float scale_y  = 1.0f;
+    float rotate_z = 0.0f;
+    float x1_img = x1;
+    float y1_img = y1;
+    float x2_img = x2;
+    float y2_img = y2;
+
+    handle_orientation(img->orientation(), spec.width, spec.height,
+                    scale_x, scale_y, rotate_z, x1_img, y1_img, true);
+    handle_orientation(img->orientation(), spec.width, spec.height,
+                    scale_x, scale_y, rotate_z, x2_img, y2_img, true);
+
+    x1_img = clamp<int>(x1_img, 0, spec.width - 1);
+    x2_img = clamp<int>(x2_img, 0, spec.width - 1);
+    y1_img = clamp<int>(y1_img, 0, spec.height - 1);
+    y2_img = clamp<int>(y2_img, 0, spec.height - 1);
+
+    int xmin = std::min(x1_img, x2_img);
+    int xmax = std::max(x1_img, x2_img);
+    int ymin = std::min(y1_img, y2_img);
+    int ymax = std::max(y1_img, y2_img);
+
+    // Min and max
+    std::vector<float> min_vals(spec.nchannels, std::numeric_limits<float>::max());
+    std::vector<float> max_vals(spec.nchannels, std::numeric_limits<float>::lowest());
+    std::vector<double> sums(spec.nchannels, 0.0);
+    int count = 0;
+
+    // loop through each pixel
+    float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
+    for (int y = ymin; y <= ymax; ++y) {
+        for (int x = xmin; x <= xmax; ++x) {
+            img->getpixel(x + spec.x, y + spec.y, fpixel);
+            for (int c = 0; c < spec.nchannels; ++c) {
+                min_vals[c] = std::min(min_vals[c], fpixel[c]);
+                max_vals[c] = std::max(max_vals[c], fpixel[c]);
+                sums[c] += fpixel[c];
+            }
+            ++count;
+        }
+    }
+
+QString result = "Area Probe:\n";
+for (int c = 0; c < spec.nchannels; ++c) {
+    float avg = (count > 0) ? static_cast<float>(sums[c] / count) : 0.0f;
+    result += QString(" [ch%1: min=%2 max=%3 avg=%4]\n")
+                  .arg(c)
+                  .arg(min_vals[c])
+                  .arg(max_vals[c])
+                  .arg(avg);
+                
+}
+
+m_viewer.statusViewInfo->setText(result);
+
+
+
+}
+
 
 
 void
@@ -1212,18 +1322,34 @@ IvGL::mousePressEvent(QMouseEvent* event)
 {
     remember_mouse(event->pos());
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
+    bool areaMode = m_viewer.areaSampleMode();
     bool Alt      = (event->modifiers() & Qt::AltModifier);
     m_drag_button = event->button();
     if (!m_mouse_activation) {
         switch (event->button()) {
         case Qt::LeftButton:
-            if (mousemode == ImageViewer::MouseModeZoom && !Alt)
+            if (areaMode){
+                std::cerr << areaMode;
+                m_select_start = event->pos();
+                m_select_end = m_select_start;
+                m_selecting = true;
+                parent_t::update();
+            } else if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode){
                 m_viewer.zoomIn();
+            }
+            // if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode)
+            //     m_viewer.zoomIn();
+            // else if (mousemode == ImageViewer::MouseModeSelect && !Alt && areaMode){
+            //     m_select_start = event->pos();
+            //     m_select_end = m_select_start;
+            //     m_selecting = true;
+            //     parent_t::update();
+            // }
             else
                 m_dragging = true;
             return;
         case Qt::RightButton:
-            if (mousemode == ImageViewer::MouseModeZoom && !Alt)
+            if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode)
                 m_viewer.zoomOut();
             else
                 m_dragging = true;
@@ -1251,6 +1377,12 @@ IvGL::mouseReleaseEvent(QMouseEvent* event)
     remember_mouse(event->pos());
     m_drag_button = Qt::NoButton;
     m_dragging    = false;
+    if (m_selecting){
+        m_select_end = event->pos();
+        m_selecting = false;
+        analyze_selected_area();
+
+    }
     parent_t::mouseReleaseEvent(event);
 }
 
@@ -1260,12 +1392,26 @@ void
 IvGL::mouseMoveEvent(QMouseEvent* event)
 {
     QPoint pos = event->pos();
+
+    // Area probe override
+    if (m_viewer.areaSampleMode() && m_selecting) {
+        m_select_end = event->pos();
+        parent_t::update();
+        remember_mouse(pos);
+        if (m_viewer.pixelviewOn()){
+            parent_t::update();
+        }
+        parent_t::mouseMoveEvent(event);
+        return;
+    }
+
     // FIXME - there's probably a better Qt way than tracking the button
     // myself.
     bool Alt      = (event->modifiers() & Qt::AltModifier);
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
     bool do_pan = false, do_zoom = false, do_wipe = false;
     bool do_select = false, do_annotate = false;
+    // std::cerr << mousemode;
     switch (mousemode) {
     case ImageViewer::MouseModeZoom:
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
@@ -1310,6 +1456,10 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     } else if (do_wipe) {
         // FIXME -- unimplemented
     } else if (do_select) {
+        if(m_selecting) {
+            m_select_end = event->pos();
+            parent_t::update();
+        }
         // FIXME -- unimplemented
     } else if (do_annotate) {
         // FIXME -- unimplemented
@@ -1353,7 +1503,29 @@ IvGL::get_focus_window_pixel(int& x, int& y)
     y = m_mousey;
 }
 
-
+void
+IvGL::get_given_image_pixel(int& x, int& y, int mouseX, int mouseY){
+    int w = width(), h = height();
+    float z = m_zoom;
+    // left,top,right,bottom are the borders of the visible window, in
+    // pixel coordinates
+    float left   = m_centerx - 0.5 * w / z;
+    float top    = m_centery - 0.5 * h / z;
+    float right  = m_centerx + 0.5 * w / z;
+    float bottom = m_centery + 0.5 * h / z;
+    // normx,normy are the position of the mouse, in normalized (i.e. [0..1])
+    // visible window coordinates.
+    float normx = (float)(mouseX + 0.5f) / w;
+    float normy = (float)(mouseY + 0.5f) / h;
+    // imgx,imgy are the position of the mouse, in pixel coordinates
+    float imgx = OIIO::lerp(left, right, normx);
+    float imgy = OIIO::lerp(top, bottom, normy);
+    // So finally x,y are the coordinates of the image pixel (on [0,res-1])
+    // underneath the mouse cursor.
+    //FIXME: Shouldn't this take image rotation into account?
+    x = (int)floorf(imgx);
+    y = (int)floorf(imgy);
+}
 
 void
 IvGL::get_focus_image_pixel(int& x, int& y)

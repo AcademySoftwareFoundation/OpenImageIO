@@ -76,6 +76,13 @@ public:
     /// widget boundaries)
     void get_focus_window_pixel(int& x, int& y);
 
+    /// Which image pixel is in the given mouse position?
+    ///
+    void get_given_image_pixel(int& x, int& y, int mouseX, int mouseY);
+
+    /// What are the min/max/avg values of each channel in the selected area?
+    void analyze_selected_area();
+
     /// Returns true if OpenGL is capable of loading textures in the sRGB color
     /// space.
     bool is_srgb_capable(void) const { return m_use_srgb; }
@@ -107,6 +114,9 @@ protected:
     bool m_dragging;                ///< Are we dragging?
     int m_mousex, m_mousey;         ///< Last mouse position
     Qt::MouseButton m_drag_button;  ///< Button on when dragging
+    QPoint m_select_start;          ///< Mouse start position for the area probe
+    QPoint m_select_end;            ///< Mouse end position for the area probe
+    bool m_selecting;               ///< Are we selecting?
     bool m_use_shaders;             ///< Are shaders supported?
     bool m_use_halffloat;           ///< Are half-float textures supported?
     bool m_use_float;               ///< Are float textures supported?
@@ -204,6 +214,7 @@ private:
 
     /// Destroys shaders and selects fixed-function pipeline
     void create_shaders_abort(void);
+    
 };
 
 #endif  // OPENIMAGEIO_IVGL_H

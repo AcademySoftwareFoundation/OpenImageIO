@@ -248,6 +248,7 @@ public:
 
     void rawcolor(bool val) { m_rawcolor = val; }
     bool rawcolor() const { return m_rawcolor; }
+    bool areaSampleMode() const;
 
     bool useOCIO() { return m_useOCIO; }
     const std::string& ocioColorSpace() { return m_ocioColourSpace; }
@@ -313,6 +314,7 @@ private slots:
     void showInfoWindow();       ///< View extended info on image
     void showPixelviewWindow();  ///< View closeup pixel view
     void editPreferences();      ///< Edit viewer preferences
+    void toggleAreaSample();     ///< Use area probe
 
     void useOCIOAction(bool checked);
     void ocioColorSpaceAction();
@@ -380,6 +382,7 @@ private:
     QAction* showInfoWindowAct;
     QAction* editPreferencesAct;
     QAction* showPixelviewWindowAct;
+    QAction* toggleAreaSampleAct;
     QAction* toggleWindowGuidesAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu,
         *helpMenu;
@@ -416,6 +419,7 @@ private:
     QPalette m_palette;                       // Custom palette
     bool m_darkPalette;                       // Use dark palette?
     bool m_rawcolor = false;                  // Use raw color mode
+    bool m_areaSampleMode = false;            // Use area sample mode
 
     // The default width and height of the window:
     static const int m_default_width  = 640;
