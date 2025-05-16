@@ -1494,6 +1494,22 @@ set_oiio_attribute(Oiiotool& ot, cspan<const char*> argv)
         OIIO::attribute(p.name(), p.type(), p.data());
 }
 
+static std::vector<std::string>
+get_regex_list_from_file(string_view filename)
+{
+    // helper function that takes a text file and return all regex attribname entries as a list
+    std::vector<std::string> regex_list;
+    std::ifstream inputFile(filename);
+    if (inputFile.is_open()) {
+        std::string line;
+        while (std::getline(inputFile, line)) {
+            regex_list.push_back(line);
+            //std::cout << "list element:" << regex_list.back() << std::endl;
+        }
+    }
+
+    return regex_list;
+}
 
 
 // Special OiiotoolOp whose purpose is to set attributes on the top image.
@@ -1503,7 +1519,16 @@ public:
         : OiiotoolOp(ot, opname, argv, 1)
     {
         inplace(true);  // This action operates in-place
-        attribname = args(1);
+        erase_from_file = "--eraseattrib_fromfile";
+        if (opname != erase_from_file) {
+            attribname = args(1);
+        }
+        else {
+            // handle erase attribute using regex text file case
+            // defined it outside to avoid magic number, still not very elegant solution wise
+            regex_file = args(1);
+            attribname_list = get_regex_list_from_file(regex_file);
+        }
         value      = (nargs() > 2 ? args(2) : "");
     }
     bool setup() override
@@ -1516,7 +1541,15 @@ public:
         // Because this is an in-place operation, img[0] is the same as
         // img[1].
         if (value.empty()) {
-            img[0]->specmod().erase_attribute(attribname);
+            if (attribname_list.empty()) {
+                img[0]->specmod().erase_attribute(attribname);
+            } else {
+                for (string_view attr : attribname_list) {
+                    //std::cout << "list element:" << attr << std::endl;
+                    img[0]->specmod().erase_attribute(attr);
+                }
+            }
+
         } else {
             TypeDesc type(options()["type"].as_string());
             set_attribute_helper(img[0]->specmod(), attribname, value, type);
@@ -1527,6 +1560,9 @@ public:
 private:
     string_view attribname;
     string_view value;
+    string_view regex_file;
+    std::vector<std::string> attribname_list;
+    std::string erase_from_file;
 };
 
 
@@ -1577,6 +1613,14 @@ erase_attribute(Oiiotool& ot, cspan<const char*> argv)
     action_attrib_helper(ot, argv[0], argv);
 }
 
+// --eraseattrib_fromfile
+static void
+erase_attribute_fromfile(Oiiotool& ot, cspan<const char*> argv)
+{
+    // action_attrib already has the property of erasing the attrib if no
+    // value is in the args.
+    action_attrib_helper(ot, argv[0], argv);
+}
 
 
 #if 0 /* apparently unused */
@@ -6643,6 +6687,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--eraseattrib %s:REGEX")
       .help("Erase attributes matching regex")
       .OTACTION(erase_attribute);
+    ap.arg("--eraseattrib_fromfile %s:REGEXFILE")
+      .help("Erase attributes matching regex list from a txt file")
+      .OTACTION(erase_attribute_fromfile);
     ap.arg("--caption %s:TEXT")
       .help("Sets caption (ImageDescription metadata)")
       .OTACTION(set_caption);
