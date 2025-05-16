@@ -19,6 +19,7 @@
 #include "ivutils.h"
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
+#include <cfloat>
 
 OIIO_PRAGMA_WARNING_PUSH
 #if defined(__APPLE__)
@@ -664,7 +665,48 @@ IvGL::paintGL()
         paint_windowguides();
     }
 
-    glPopMatrix();
+    // glPushMatrix();
+    //     glLoadIdentity();
+    //     glTranslatef(0, 0, 0);
+
+    //     glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+    //     glDisable(GL_TEXTURE_2D);
+    //     if (m_use_shaders) {
+    //         glUseProgram(0);
+    //     }
+        
+    //     glEnable(GL_BLEND);
+    //     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //     glColor4f(0.2f, 0.5f, 1.0f, .3f);  // Light blue fill with transparency
+        
+    //     gl_rect( 0,0,200,200, -0.1f);     
+        
+    //     glPopAttrib();
+
+    // glPopMatrix();
+
+    if (m_selecting){
+        std::cerr << "Drawing selection rectangle...\n";
+        glPushMatrix();
+        glLoadIdentity();
+        glTranslatef(0, 0, 0);
+
+        glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+        glDisable(GL_TEXTURE_2D);
+        if (m_use_shaders) {
+            glUseProgram(0);
+        }
+        
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glColor4f(0.2f, 0.5f, 1.0f, 1.3f);  // Light blue fill with transparency
+        
+        gl_rect( 0,0,200,200, -0.1f);     
+        
+        glPopAttrib();     
+    
+    }
+    glPopMatrix();  
 
     if (m_viewer.pixelviewOn()) {
         paint_pixelview();
@@ -1205,6 +1247,48 @@ IvGL::clamp_view_to_window()
     }
 }
 
+void
+IvGL::analyze_selected_area()
+{
+    QRect rect = QRect(m_select_start, m_select_end).normalized();
+
+    float zoom = m_zoom;
+    int img_x0 = (rect.left() - m_centerx) / zoom;
+    int img_y0 = (rect.top() - m_centery) / zoom;
+    int img_x1 = (rect.right() - m_centerx) / zoom;
+    int img_y1 = (rect.bottom() - m_centery) / zoom;
+
+    float minVal = FLT_MAX, maxVal = -FLT_MAX, sum = 0;
+    int count = 0;
+
+    const ImageBuf* img = m_current_image;
+    if (!img) return;
+
+    ImageBuf::ConstIterator<float> it(*img);
+    for (int y = img_y0; y <= img_y1; ++y) {
+        for (int x = img_x0; x <= img_x1; ++x) {
+            it.pos(x, y);
+            if (!it.valid()) continue;
+
+            int nchannels = img->nchannels();
+            for (int c = 0; c < nchannels; ++c) {
+                float val = it[c];
+                minVal = std::min(minVal, val);
+                maxVal = std::max(maxVal, val);
+                sum += val;
+                ++count;
+            }
+        }
+    }
+    float avg = (count > 0) ? sum / count : 0;
+    QString result = QString("Area Probe: min=%1 max=%2 avg=%3")
+                         .arg(minVal).arg(maxVal).arg(avg);
+    m_viewer.statusViewInfo->setText(result);
+
+
+
+}
+
 
 
 void
@@ -1212,6 +1296,7 @@ IvGL::mousePressEvent(QMouseEvent* event)
 {
     remember_mouse(event->pos());
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
+    mousemode = 3;
     bool Alt      = (event->modifiers() & Qt::AltModifier);
     m_drag_button = event->button();
     if (!m_mouse_activation) {
@@ -1219,6 +1304,12 @@ IvGL::mousePressEvent(QMouseEvent* event)
         case Qt::LeftButton:
             if (mousemode == ImageViewer::MouseModeZoom && !Alt)
                 m_viewer.zoomIn();
+            else if (mousemode == ImageViewer::MouseModeSelect && !Alt){
+                m_select_start = event->pos();
+                m_select_end = m_select_start;
+                m_selecting = true;
+                parent_t::update();
+            }
             else
                 m_dragging = true;
             return;
@@ -1251,6 +1342,13 @@ IvGL::mouseReleaseEvent(QMouseEvent* event)
     remember_mouse(event->pos());
     m_drag_button = Qt::NoButton;
     m_dragging    = false;
+    if (m_selecting){
+        m_select_end = event->pos();
+        m_selecting = false;
+        analyze_selected_area();
+        parent_t::update();
+
+    }
     parent_t::mouseReleaseEvent(event);
 }
 
@@ -1266,7 +1364,8 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
     bool do_pan = false, do_zoom = false, do_wipe = false;
     bool do_select = false, do_annotate = false;
-    switch (mousemode) {
+    std::cerr << mousemode;
+    switch (3) {
     case ImageViewer::MouseModeZoom:
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
         if ((m_drag_button == Qt::MiddleButton)
@@ -1310,6 +1409,10 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     } else if (do_wipe) {
         // FIXME -- unimplemented
     } else if (do_select) {
+        if(m_selecting) {
+            m_select_end = event->pos();
+            parent_t::update();
+        }
         // FIXME -- unimplemented
     } else if (do_annotate) {
         // FIXME -- unimplemented
