@@ -265,11 +265,12 @@ private slots:
     void moveToNewWindow();     ///< Split current image off as a new window
     void print();               ///< Print current image
     void deleteCurrentImage();  ///< Deleting displayed image
-    void zoomIn(bool smooth = true);              ///< Zoom in to next power of 2
-    void zoomOut(bool smooth = true);             ///< Zoom out to next power of 2
-    void zoomToCursor(float newzoom, bool smooth = true); ///< Zoom to a specific level
-    void normalSize();          ///< Adjust zoom to 1:1
-    void fitImageToWindow();    ///< Adjust zoom to fit window exactly
+    void zoomIn(bool smooth = true);   ///< Zoom in to next power of 2
+    void zoomOut(bool smooth = true);  ///< Zoom out to next power of 2
+    void zoomToCursor(float newzoom,
+                      bool smooth = true);  ///< Zoom to a specific level
+    void normalSize();                      ///< Adjust zoom to 1:1
+    void fitImageToWindow();  ///< Adjust zoom to fit window exactly
     /// Resize window to fit image exactly.  If zoomok is false, do not
     /// change the zoom, even to fit on screen. If minsize is true, do not
     /// resize smaller than default_width x default_height.
