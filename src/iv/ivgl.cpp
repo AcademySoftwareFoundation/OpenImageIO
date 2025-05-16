@@ -1212,7 +1212,7 @@ IvGL::mousePressEvent(QMouseEvent* event)
 {
     remember_mouse(event->pos());
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
-    bool Alt = (event->modifiers() & Qt::AltModifier);
+    bool Alt      = (event->modifiers() & Qt::AltModifier);
     m_drag_button = event->button();
     if (!m_mouse_activation) {
         switch (event->button()) {

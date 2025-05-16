@@ -2015,7 +2015,7 @@ ImageViewer::zoomIn(bool smooth)
     float current_zoom = zoom();
     if (current_zoom >= 64)
         return;
-    
+
     float newzoom = ceil2f(current_zoom);
 
     this->zoomToCursor(newzoom, smooth);
@@ -2028,11 +2028,11 @@ ImageViewer::zoomOut(bool smooth)
     IvImage* img = cur();
     if (!img)
         return;
-    
+
     float current_zoom = zoom();
     if (current_zoom <= 1.0f / 64)
         return;
-    
+
     float newzoom = floor2f(current_zoom);
 
     this->zoomToCursor(newzoom, smooth);
@@ -2051,10 +2051,11 @@ ImageViewer::zoomToCursor(float newzoom, bool smooth)
     float yoffset = yc - ym;
 
     float maxzoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
-    int nsteps = smooth ? (int)OIIO::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f) : 1;
+    int nsteps = smooth ? (int)OIIO::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f)
+                        : 1;
     for (int i = 1; i <= nsteps; ++i) {
-        float a = (float)i / (float)nsteps;  // Interpolation amount
-        float z = OIIO::lerp(oldzoom, newzoom, a);
+        float a         = (float)i / (float)nsteps;  // Interpolation amount
+        float z         = OIIO::lerp(oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
         view(xm + xoffset / zoomratio, ym + yoffset / zoomratio, z, false);
         if (i != nsteps) {
