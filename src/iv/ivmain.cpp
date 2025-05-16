@@ -167,8 +167,10 @@ main(int argc, char* argv[])
 
             std::vector<std::string> validImages;  // Vector to hold valid images
             for (auto& file : files) {
-                std::string extension = Filesystem::extension(file).substr(
-                    1);  // Remove the leading dot
+                std::string extension
+                    = Filesystem::extension(file,
+                                            false);  // Remove the leading dot
+                Strutil::to_lower(extension);
                 if (std::find(extensionsVector.begin(), extensionsVector.end(),
                               extension)
                     != extensionsVector.end()) {
