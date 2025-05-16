@@ -1252,13 +1252,14 @@ ImageViewer::displayCurrentImage(bool update)
 
     if (update) {
         glwin->update();
+        glwin->clamp_view_to_window();
     }
     float z = zoom();
     if (fitImageToWindowAct->isChecked())
         z = zoom_needed_to_fit(glwin->width(), glwin->height());
     zoom(z);
     //    glwin->trigger_redraw ();
-
+    
     updateTitle();
     updateStatusBar();
     if (infoWindow)
