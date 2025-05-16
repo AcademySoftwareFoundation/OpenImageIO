@@ -77,11 +77,12 @@ public:
     int cachesize;
     int autotile;
     int frame_padding;
-    bool eval_enable;              // Enable evaluation of expressions
-    bool parallel_frames = false;  // Parallelize over frame iteration
-    bool skip_bad_frames = false;  // Just skip a bad frame, don't exit
-    bool nostderr        = false;  // If true, use stdout for errors
-    bool noerrexit       = false;  // Don't exit on error
+    bool eval_enable;                // Enable evaluation of expressions
+    bool parallel_frames   = false;  // Parallelize over frame iteration
+    bool skip_bad_frames   = false;  // Just skip a bad frame, don't exit
+    bool nostderr          = false;  // If true, use stdout for errors
+    bool noerrexit         = false;  // Don't exit on error
+    bool createdirectories = false;
     std::string dumpdata_C_name;
     std::string full_command_line;
     std::string printinfo_metamatch;
