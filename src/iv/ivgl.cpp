@@ -699,9 +699,23 @@ IvGL::paintGL()
         
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glColor4f(0.2f, 0.5f, 1.0f, 1.3f);  // Light blue fill with transparency
+        glColor4f(0.2f, 0.5f, 1.0f, 0.3f);  // Light blue fill with transparency
+
+        int w = width();
+        int h = height();
+
+        float x1 = m_select_start.x() - w / 2.0f;
+        float y1 = -(m_select_start.y() - h / 2.0f);
+
+        float x2 = m_select_end.x() - w / 2.0f;
+        float y2 = -(m_select_end.y() - h / 2.0f);
         
-        gl_rect( 0,0,200,200, -0.1f);     
+        int left   = std::min(x1, x2);
+        int right  = std::max(x1, x2);
+        int bottom = std::min(y1, y2);
+        int top    = std::max(y1, y2);   
+        
+        gl_rect( left, bottom, right, top, -0.1f);     
         
         glPopAttrib();     
     
