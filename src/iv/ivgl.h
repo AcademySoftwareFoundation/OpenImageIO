@@ -96,8 +96,6 @@ public:
                             GLenum& gltype, GLenum& glformat,
                             GLenum& glinternal) const;
 
-    void clamp_view_to_window();
-
 protected:
     ImageViewer& m_viewer;          ///< Backpointer to viewer
     bool m_shaders_created;         ///< Have the shaders been created?
@@ -189,6 +187,8 @@ private:
     /// closeuptexsize is the size of the texture used to upload the pixelview
     /// to OpenGL.
     const static int closeuptexsize = 16;
+
+    void clamp_view_to_window();
 
     /// checks what OpenGL extensions we have
     ///
