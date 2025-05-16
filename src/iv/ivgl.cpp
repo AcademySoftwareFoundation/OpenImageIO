@@ -1321,7 +1321,7 @@ IvGL::mousePressEvent(QMouseEvent* event)
 {
     remember_mouse(event->pos());
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
-    mousemode = 3;
+    // mousemode = 3;
     bool Alt      = (event->modifiers() & Qt::AltModifier);
     m_drag_button = event->button();
     if (!m_mouse_activation) {
@@ -1389,8 +1389,8 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
     bool do_pan = false, do_zoom = false, do_wipe = false;
     bool do_select = false, do_annotate = false;
-    std::cerr << mousemode;
-    switch (3) {
+    // std::cerr << mousemode;
+    switch (mousemode) {
     case ImageViewer::MouseModeZoom:
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
         if ((m_drag_button == Qt::MiddleButton)
