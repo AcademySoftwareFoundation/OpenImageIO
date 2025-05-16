@@ -1513,7 +1513,7 @@ public:
         : OiiotoolOp(ot, opname, argv, 1)
     {
         inplace(true);  // This action operates in-place
-        erase_from_file = "--eraseattrib_fromfile";
+        erase_from_file     = "--eraseattrib_fromfile";
         erase_from_file_alt = "-eraseattrib_fromfile";
         if (opname != erase_from_file && opname != erase_from_file_alt) {
             attribname = args(1);
