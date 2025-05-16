@@ -1498,17 +1498,11 @@ static std::vector<std::string>
 get_regex_list_from_file(string_view filename)
 {
     // helper function that takes a text file and return all regex attribname entries as a list
-    std::vector<std::string> regex_list;
     std::ifstream inputFile(filename);
-    if (inputFile.is_open()) {
-        std::string line;
-        while (std::getline(inputFile, line)) {
-            regex_list.push_back(line);
-            //std::cout << "list element:" << regex_list.back() << std::endl;
-        }
-    }
 
-    return regex_list;
+    std::string contents;
+    Filesystem::read_text_file(filename, contents);
+    return Strutil::splits(contents, "\n");
 }
 
 
@@ -1519,7 +1513,7 @@ public:
         : OiiotoolOp(ot, opname, argv, 1)
     {
         inplace(true);  // This action operates in-place
-        erase_from_file = "--eraseattrib_fromfile";
+        erase_from_file = "--eraseattrib_fromfile" || "-eraseattrib_fromfile";
         if (opname != erase_from_file) {
             attribname = args(1);
         } else {
