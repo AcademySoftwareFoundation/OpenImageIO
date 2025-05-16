@@ -1326,7 +1326,6 @@ IvGL::wheelEvent(QWheelEvent* event)
 {
     m_mouse_activation = false;
     QPoint angdelta    = event->angleDelta() / 8;  // div by 8 to get degrees
-    std::cerr << "angdelta.y() " << angdelta.y() << " angdelta.x() " << angdelta.x() << "\n";
     if (abs(angdelta.y()) > abs(angdelta.x())      // predominantly vertical
         && abs(angdelta.y()) > 2) {                // suppress tiny motions
         if (angdelta.y() > 0) {
