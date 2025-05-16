@@ -2047,15 +2047,23 @@ current top image.
 
     Removes any metadata whose name matches the regular expression *pattern*
     from a list in *patternFile*
-    The patterns will be case insensitive.
+    The patterns will be case insensitive and one pattern per new line.
 
     Examples::
 
         # Remove One Item Only
         oiiotool in.jpg --eraseattrib_fromfile no_timecode.txt -o no_timecode.jpg
 
+        no_timecode.txt Content:
+        smpte:TimeCode
+
         # Remove all GPS tags and the Make Metadata
         oiiotool in.jpg --eraseattrib_fromfile no_gps_make.txt -o no_gps_make_metadata.jpg
+
+        no_gps_make.txt Content:
+        Make
+        GPS:.*
+
 
 .. option:: --orientation <orient>
 
