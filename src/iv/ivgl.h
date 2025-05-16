@@ -76,6 +76,8 @@ public:
     /// widget boundaries)
     void get_focus_window_pixel(int& x, int& y);
 
+    void analyze_selected_area();
+
     /// Returns true if OpenGL is capable of loading textures in the sRGB color
     /// space.
     bool is_srgb_capable(void) const { return m_use_srgb; }
@@ -107,6 +109,9 @@ protected:
     bool m_dragging;                ///< Are we dragging?
     int m_mousex, m_mousey;         ///< Last mouse position
     Qt::MouseButton m_drag_button;  ///< Button on when dragging
+    QPoint m_select_start;
+    QPoint m_select_end;
+    bool m_selecting;
     bool m_use_shaders;             ///< Are shaders supported?
     bool m_use_halffloat;           ///< Are half-float textures supported?
     bool m_use_float;               ///< Are float textures supported?
