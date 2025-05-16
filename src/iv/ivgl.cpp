@@ -1212,19 +1212,19 @@ IvGL::mousePressEvent(QMouseEvent* event)
 {
     remember_mouse(event->pos());
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
-    bool Alt      = (event->modifiers() & Qt::AltModifier);
+    bool Alt = (event->modifiers() & Qt::AltModifier);
     m_drag_button = event->button();
     if (!m_mouse_activation) {
         switch (event->button()) {
         case Qt::LeftButton:
             if (mousemode == ImageViewer::MouseModeZoom && !Alt)
-                m_viewer.zoomIn();
+                m_viewer.zoomIn(true);  // Animated zoom for mouse clicks
             else
                 m_dragging = true;
             return;
         case Qt::RightButton:
             if (mousemode == ImageViewer::MouseModeZoom && !Alt)
-                m_viewer.zoomOut();
+                m_viewer.zoomOut(true);  // Animated zoom for mouse clicks
             else
                 m_dragging = true;
             return;
@@ -1326,11 +1326,14 @@ IvGL::wheelEvent(QWheelEvent* event)
 {
     m_mouse_activation = false;
     QPoint angdelta    = event->angleDelta() / 8;  // div by 8 to get degrees
+    std::cerr << "angdelta.y() " << angdelta.y() << " angdelta.x() " << angdelta.x() << "\n";
     if (abs(angdelta.y()) > abs(angdelta.x())      // predominantly vertical
         && abs(angdelta.y()) > 2) {                // suppress tiny motions
-        float oldzoom = m_viewer.zoom();
-        float newzoom = (angdelta.y() > 0) ? ceil2f(oldzoom) : floor2f(oldzoom);
-        m_viewer.zoom(newzoom);
+        if (angdelta.y() > 0) {
+            m_viewer.zoomIn(false);
+        } else {
+            m_viewer.zoomOut(false);
+        }
         event->accept();
     }
     // TODO: Update this to keep the zoom centered on the event .x, .y
