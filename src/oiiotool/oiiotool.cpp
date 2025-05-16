@@ -1522,14 +1522,13 @@ public:
         erase_from_file = "--eraseattrib_fromfile";
         if (opname != erase_from_file) {
             attribname = args(1);
-        }
-        else {
+        } else {
             // handle erase attribute using regex text file case
             // defined it outside to avoid magic number, still not very elegant solution wise
-            regex_file = args(1);
+            regex_file      = args(1);
             attribname_list = get_regex_list_from_file(regex_file);
         }
-        value      = (nargs() > 2 ? args(2) : "");
+        value = (nargs() > 2 ? args(2) : "");
     }
     bool setup() override
     {
