@@ -2399,9 +2399,9 @@ void
 ImageViewer::toggleAreaSample()
 {
     m_areaSampleMode = !m_areaSampleMode;
-    // if (m_areaSampleMode == false){
-    //     updateStatusBar();
-    // }
+    if (m_areaSampleMode == false){
+        updateStatusBar();
+    }
     ((QOpenGLWidget*)(glwin))->update();
 }
 
