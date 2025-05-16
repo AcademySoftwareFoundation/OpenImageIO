@@ -76,6 +76,10 @@ public:
     /// widget boundaries)
     void get_focus_window_pixel(int& x, int& y);
 
+    /// Which image pixel is in the given mouse position?
+    ///
+    void get_given_image_pixel(int& x, int& y, int mouseX, int mouseY);
+
     void analyze_selected_area();
 
     /// Returns true if OpenGL is capable of loading textures in the sRGB color

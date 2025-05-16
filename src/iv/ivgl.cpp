@@ -665,31 +665,12 @@ IvGL::paintGL()
         paint_windowguides();
     }
 
-    // glPushMatrix();
-    //     glLoadIdentity();
-    //     glTranslatef(0, 0, 0);
-
-    //     glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
-    //     glDisable(GL_TEXTURE_2D);
-    //     if (m_use_shaders) {
-    //         glUseProgram(0);
-    //     }
-        
-    //     glEnable(GL_BLEND);
-    //     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //     glColor4f(0.2f, 0.5f, 1.0f, .3f);  // Light blue fill with transparency
-        
-    //     gl_rect( 0,0,200,200, -0.1f);     
-        
-    //     glPopAttrib();
-
-    // glPopMatrix();
-
     if (m_selecting){
-        std::cerr << "Drawing selection rectangle...\n";
         glPushMatrix();
         glLoadIdentity();
-        glTranslatef(0, 0, 0);
+        // Transform is now same as the main GL viewport -- window pixels as
+        // units, with (0,0) at the center of the visible window.
+
 
         glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
         glDisable(GL_TEXTURE_2D);
@@ -1266,40 +1247,70 @@ IvGL::clamp_view_to_window()
 void
 IvGL::analyze_selected_area()
 {
-    QRect rect = QRect(m_select_start, m_select_end).normalized();
+    IvImage* img = m_current_image;
+    const ImageSpec& spec(img->spec());
 
-    float zoom = m_zoom;
-    int img_x0 = (rect.left() - m_centerx) / zoom;
-    int img_y0 = (rect.top() - m_centery) / zoom;
-    int img_x1 = (rect.right() - m_centerx) / zoom;
-    int img_y1 = (rect.bottom() - m_centery) / zoom;
+    int x1, y1;
+    get_given_image_pixel(x1, y1, m_select_start.x(), m_select_start.y());
 
-    float minVal = FLT_MAX, maxVal = -FLT_MAX, sum = 0;
+    int x2, y2;
+    get_given_image_pixel(x2, y2, m_select_end.x(), m_select_end.y());
+    
+    float scale_x  = 1.0f;
+    float scale_y  = 1.0f;
+    float rotate_z = 0.0f;
+    float x1_img = x1;
+    float y1_img = y1;
+    float x2_img = x2;
+    float y2_img = y2;
+
+    handle_orientation(img->orientation(), spec.width, spec.height,
+                    scale_x, scale_y, rotate_z, x1_img, y1_img, true);
+    handle_orientation(img->orientation(), spec.width, spec.height,
+                    scale_x, scale_y, rotate_z, x2_img, y2_img, true);
+
+    x1_img = clamp<int>(x1_img, 0, spec.width - 1);
+    x2_img = clamp<int>(x2_img, 0, spec.width - 1);
+    y1_img = clamp<int>(y1_img, 0, spec.height - 1);
+    y2_img = clamp<int>(y2_img, 0, spec.height - 1);
+
+    int xmin = std::min(x1_img, x2_img);
+    int xmax = std::max(x1_img, x2_img);
+    int ymin = std::min(y1_img, y2_img);
+    int ymax = std::max(y1_img, y2_img);
+
+    // Min and max
+    std::vector<float> min_vals(spec.nchannels, std::numeric_limits<float>::max());
+    std::vector<float> max_vals(spec.nchannels, std::numeric_limits<float>::lowest());
+    std::vector<double> sums(spec.nchannels, 0.0);
     int count = 0;
 
-    const ImageBuf* img = m_current_image;
-    if (!img) return;
-
-    ImageBuf::ConstIterator<float> it(*img);
-    for (int y = img_y0; y <= img_y1; ++y) {
-        for (int x = img_x0; x <= img_x1; ++x) {
-            it.pos(x, y);
-            if (!it.valid()) continue;
-
-            int nchannels = img->nchannels();
-            for (int c = 0; c < nchannels; ++c) {
-                float val = it[c];
-                minVal = std::min(minVal, val);
-                maxVal = std::max(maxVal, val);
-                sum += val;
-                ++count;
+    // loop through each pixel
+    float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
+    for (int y = ymin; y <= ymax; ++y) {
+        for (int x = xmin; x <= xmax; ++x) {
+            img->getpixel(x + spec.x, y + spec.y, fpixel);
+            for (int c = 0; c < spec.nchannels; ++c) {
+                min_vals[c] = std::min(min_vals[c], fpixel[c]);
+                max_vals[c] = std::max(max_vals[c], fpixel[c]);
+                sums[c] += fpixel[c];
             }
+            ++count;
         }
     }
-    float avg = (count > 0) ? sum / count : 0;
-    QString result = QString("Area Probe: min=%1 max=%2 avg=%3")
-                         .arg(minVal).arg(maxVal).arg(avg);
-    m_viewer.statusViewInfo->setText(result);
+
+QString result = "Area Probe:\n";
+for (int c = 0; c < spec.nchannels; ++c) {
+    float avg = (count > 0) ? static_cast<float>(sums[c] / count) : 0.0f;
+    result += QString(" [ch%1: min=%2 max=%3 avg=%4]\n")
+                  .arg(c)
+                  .arg(min_vals[c])
+                  .arg(max_vals[c])
+                  .arg(avg);
+                
+}
+
+m_viewer.statusViewInfo->setText(result);
 
 
 
@@ -1474,7 +1485,29 @@ IvGL::get_focus_window_pixel(int& x, int& y)
     y = m_mousey;
 }
 
-
+void
+IvGL::get_given_image_pixel(int& x, int& y, int mouseX, int mouseY){
+    int w = width(), h = height();
+    float z = m_zoom;
+    // left,top,right,bottom are the borders of the visible window, in
+    // pixel coordinates
+    float left   = m_centerx - 0.5 * w / z;
+    float top    = m_centery - 0.5 * h / z;
+    float right  = m_centerx + 0.5 * w / z;
+    float bottom = m_centery + 0.5 * h / z;
+    // normx,normy are the position of the mouse, in normalized (i.e. [0..1])
+    // visible window coordinates.
+    float normx = (float)(mouseX + 0.5f) / w;
+    float normy = (float)(mouseY + 0.5f) / h;
+    // imgx,imgy are the position of the mouse, in pixel coordinates
+    float imgx = OIIO::lerp(left, right, normx);
+    float imgy = OIIO::lerp(top, bottom, normy);
+    // So finally x,y are the coordinates of the image pixel (on [0,res-1])
+    // underneath the mouse cursor.
+    //FIXME: Shouldn't this take image rotation into account?
+    x = (int)floorf(imgx);
+    y = (int)floorf(imgy);
+}
 
 void
 IvGL::get_focus_image_pixel(int& x, int& y)
