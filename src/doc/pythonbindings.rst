@@ -4280,8 +4280,8 @@ The ImageBuf objects support getting displayed inline within notebooks.
     Keep in mind that directly saving the inline image to disk will not preserve the original image within the ImageBuf.
 
 
-Running a Local Jupyter Notebook
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Running a Local Jupyter Notebook:
+
 If you want to run a local Jupyter notebook with OpenImageIO, you can do so from within the Python environment in which you have installed OpenImageIO.
 
 .. code-block:: bash
