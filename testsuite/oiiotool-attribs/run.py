@@ -7,6 +7,12 @@
 # Test oiiotool's ability to add and delete attributes
 
 
+# Test --eraseattrib_fromfile to erase from a list of regex matching attributes
+
+command += oiiotool (OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg --eraseattrib_fromfile src/regex_list.txt -o nomakegps.jpg")
+command += info_command ("nomakegps.jpg", safematch=True)
+
+
 # Test --eraseattrib ability to erase one specific attribute
 # The result should not have "Make"
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg --eraseattrib Make -o nomake.jpg")
