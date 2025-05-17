@@ -119,10 +119,10 @@ contents of an expression may be any of:
 * *imagename.metadata*
 
   The named metadata of an image.
-
+  
   If there is no metadata whose name matches, the expression will not have any
   substitution made and an error will be issued.
-
+  
   The *imagename* may be one of:
 
   * `TOP` : the top or current image;
@@ -135,9 +135,9 @@ contents of an expression may be any of:
   Remember that the positions on the stack (including `TOP`) refer to *at that
   moment*, with successive commands changing the contents of the top image. If
   the
-
+  
   The *metadata* may be any of:
-
+  
   * the name of any standard metadata of the specified image (e.g.,
     `ImageDescription`, or `width`)
   * `filename` : the name of the file (e.g., `foo.tif`)
@@ -165,7 +165,7 @@ contents of an expression may be any of:
     be printed with `oiiotool -stats`.
   * `IS_CONSTANT`: metadata to check if the image pixels are of constant color, returns 1 if true, and 0 if false.
   * `IS_BLACK`: metadata to check if the image pixels are all black, a subset of IS_CONSTANT. Also returns 1 if true, and 0 if false.
-
+  
 * *imagename.'metadata'*
 
   If the metadata name is not a "C identifier" (initial letter followed by
@@ -1083,7 +1083,7 @@ output each one to a different file, with names `sub0001.tif`,
         2
         3
         4
-
+    
 .. option:: --frames <seq>
             --framepadding <n>
 
@@ -1247,10 +1247,10 @@ These are all non-positional flags that affect how all images are read in the
     of an output file contains a color space and that color space is
     associated with a particular data format, it will output that data
     format (akin to `-d`).
-
+    
     The rules for deducing color spaces are as follows, in order of
     priority:
-
+    
     1. If the filename (input or output) contains as a substring the name of
        a color space from the current OpenColorIO configuration, that will
        be assumed to be the color space of input data (or be the requested
@@ -1262,7 +1262,7 @@ These are all non-positional flags that affect how all images are read in the
     3. When outputting to JPEG files, assume that sRGB is the desired output
        color space (since JPEG requires sRGB), but still this only occurs if
        the filename does not specify something different.
-
+    
     If the implied color transformation is unknown (for example, involving a
     color space that is not recognized), a warning will be printed, but it
     the rest of `oiiotool` processing will proceed (but without having
@@ -1451,7 +1451,7 @@ Writing images
     current image from the image stack, it merely saves a copy of it.
 
     Optional appended modifiers include:
-
+    
       `:type=` *name*
         Set the pixel data type (like `-d`) for this output image (e.g.,
         `uint8`, `uint16`, `half`, `float`, etc.).
@@ -1491,9 +1491,9 @@ Writing images
     which will be substituted with the index of the image (beginning with
     *n*). For example, to take a multi-image TIFF and extract all the
     subimages and save them as separate files::
-
+    
         oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
-
+    
     This will output the subimges as separate files `sub0001.tif`,
     `sub0002.tif`, and so on.
 
@@ -1509,10 +1509,10 @@ Writing images
     :program:`oiiotool` command line sequence of image operations, culminating
     in a direct saving of the results as a texture map, rather than saving to a
     temporary file and then separately invoking `maketx`.
-
+    
     In addition to all the optional arguments of `-o`, optional appended
     arguments for `-otex`, `-oenv`, and `-obump` also include:
-
+    
       `:wrap=` *string*
         Set the default $s$ and $t$ wrap modes of the texture, to one of:
         `:black`, `clamp`, `periodic`, `mirror`.
@@ -1584,11 +1584,11 @@ Writing images
     Examples::
 
         oiiotool in.tif -otex out.tx
-
+    
         oiiotool in.jpg --colorconvert sRGB linear -d uint16 -otex out.tx
-
+    
         oiiotool --pattern:checker 512x512 3 -d uint8 -otex:wrap=periodic checker.tx
-
+    
         oiiotool in.exr -otex:hilightcomp=1:sharpen=0.5 out.exr
 
 
@@ -1605,15 +1605,15 @@ Writing images
     is only for the named channel when encountered in a named subimage. And
     if the specification is of the form `subimagename.*=type`, then all
     channels of that subimage will be output with the given type.
-
+    
     Valid types are: `uint8`, `sint8`, `uint16`, `sint16`, `half`, `float`,
     `double`. The types `uint10` and `uint12` may be used to request 10- or
     12-bit unsigned integers.  If the output file format does not support
     them, `uint16` will be substituted.
-
+    
     If the `-d` option is not supplied, the output data type will be
     deduced from the data format of the input files, if possible.
-
+    
     In any case, if the output file type does not support the requested data
     type, it will instead use whichever supported data type results in the
     least amount of precision lost.
@@ -1638,7 +1638,7 @@ Writing images
     Sets the compression method, and optionally a quality setting, for the
     output image.  Each ImageOutput plugin will have its own set of methods
     that it supports.
-
+    
     Sets the compression method, and optionally a quality setting, for the
     output image.  Each ImageOutput plugin will have its own set of methods
     that it supports.
@@ -1731,7 +1731,7 @@ Writing images
     Examples::
 
         oiiotool test.tif --resize 256x0 --echo "result is {TOP.width}x{TOP.height}"
-
+    
     This will resize the input to be 256 pixels wide and automatically size
     it vertically to preserve the original aspect ratio, and then print a
     message to the console revealing the resolution of the resulting image.
@@ -1860,13 +1860,13 @@ Writing images
     image on the stack, and prints a report of those differences (how
     many pixels differed, the maximum amount, etc.).  This command does not
     alter the image stack.
-
+    
     The `--fail`, `--failpercent`, and `--hardfail` options set thresholds
     for `FAILURE`: if more than *B* % of pixels (on a 0-100 floating point
     scale) are greater than *A* different, or if *any* pixels are more than
     *C* different.  The defaults are to fail if more than 0% (any) pixels
     differ by more than 0.00001 (1e-6), and *C* is infinite.
-
+    
     The `--warn`, `--warnpercent`, and `hardwarn` options set thresholds for
     `WARNING`: if more than *B* % of pixels (on a 0-100 floating point scale)
     are greater than *A* different, or if *any* pixels are more than *C*
@@ -1917,25 +1917,25 @@ current top image.
     optional leading minus sign), it will be saved as `int` metadata; if it
     also contains a decimal point, it will be saved as `float` metadata;
     otherwise, it will be saved as a `string` metadata.
-
+    
     The `--sattrib` command is equivalent to `--attrib:type=string`.
 
     Examples::
 
         # Set the IPTC:City attribute to "Berkeley"
         oiiotool in.jpg --attrib "IPTC:City" "Berkeley" -o out.jpg
-
+    
         # Set a name attribute to "0", but force it to be a string
         oiiotool in.jpg --attrib:type=string "Name" "0" -o out.jpg
-
+    
         # Another way to force a string attribute using --sattrib:
         oiiotool in.jpg --sattrib "Name" "0" -o out.jpg
-
+    
         # Set the worldcam attribute to be a matrix
         oiiotool in.exr --attrib:type=matrix worldtocam \
                 "1,0,0,0,0,1,0,0,0,0,1,0,2.3,2.1,0,1" -o out.exr
 
-        # Set an attribute to be a timecode
+        # Set an attribute to be a timecode    
         oiiotool in.exr --attrib:type=timecode smpte:TimeCode "11:34:04:00" -o out.exr
 
         # Set an attribute in all subimages
@@ -1991,13 +1991,13 @@ current top image.
 
     By default, oiiotool writes "OpenImageIO <version>" and a SHA-1 hash of
     the command line as the "Software" metadata in output images.
-
+    
     The `--history` option appends the full command line arguments and appends
     that information to the "ImageHistory" metadata as well. This behavior is
     "opt-in" because some users may find it undesirable for metadata in the
     image to potentially reveal any proprietary information that might have
     been present in the command line arguments.
-
+    
     If the `OPENIMAGEIO_METADATA_HISTORY` environment variable is set to a
     nonzero integer value, the `--history` option will be enabled by default,
     but can be disabled on the command line with `--no-history`.
@@ -2036,10 +2036,10 @@ current top image.
 
         # Remove one item only
         oiiotool in.jpg --eraseattrib "smpte:TimeCode" -o no_timecode.jpg
-
+    
         # Remove all GPS tags
         oiiotool in.jpg --eraseattrib "GPS:.*" -o no_gps_metadata.jpg
-
+    
         # Remove all metadata
         oiiotool in.exr --eraseattrib:subimages=all ".*" -o no_metadata.exr
 
@@ -2091,7 +2091,7 @@ current top image.
     how the image should be displayed, it does NOT alter the pixels
     themselves, and so has no effect for image formats that don't support
     some kind of orientation metadata.
-
+    
     See the `--rotate90`, `--rotate180`, `--rotate270`, and `--reorient`
     commands for true rotation of the pixels (not just the metadata).
 
@@ -2100,7 +2100,7 @@ current top image.
     Set the pixel data window origin, essentially translating the existing
     pixel data window to a different position on the image plane.
     The new data origin is in the form::
-
+    
          [+-]x[+-]y
 
     Examples::
@@ -2114,7 +2114,7 @@ current top image.
     Alter the data window origin, translating the existing pixel data window
     by this relative amount.
     The offset is in the form::
-
+    
          [+-]x[+-]y
 
     Examples::
@@ -2333,9 +2333,9 @@ current top image.
 
     Create new black image with the given size and number of channels,
     pushing it onto the image stack and making it the new current image.
-
+    
     The *size* is in the form
-
+    
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
 
     If the offset is omitted, it will be x=0, y=0. Optional appended
@@ -2354,7 +2354,7 @@ current top image.
 .. option:: --pattern <patternname> <size> <channels>
 
     Create new image with the given size and number of channels,
-    initialize its pixels to the named pattern, and push it onto
+    initialize its pixels to the named pattern, and push it onto 
     the image stack to make it the new current image.
 
     The *size* is in the form
@@ -2399,9 +2399,9 @@ current top image.
       0). For any of these noise types, the option `seed=` can be used to
       change the random number seed and `mono=1` can be used to make
       monochromatic noise (same value in all channels).
-
+    
     Examples:
-
+    
         A constant 4-channel, 640x480 image with all pixels (0.5, 0.5, 0.1, 1)::
 
             --pattern constant:color=0.3,0.5,0.1,1.0 640x480 4
@@ -2462,7 +2462,7 @@ current top image.
     kernel image will have its origin offset so that the kernel center is at
     (0,0), and and will be normalized (the sum of all pixel values will be
     1.0).
-
+    
     Kernel names can be: `gaussian`, `sharp-gaussian`, `box`, `triangle`,
     `blackman-harris`, `mitchell`, `b-spline`, `cubic`, `keys`, `simon`,
     `rifman`, `disk`. There are also `catmull-rom` and `lanczos3` (and its
@@ -2481,7 +2481,7 @@ current top image.
     Capture a frame from a camera device, pushing it onto the image stack
     and making it the new current image.  Optional appended arguments
     include:
-
+    
     - `camera=` *num* : Select which camera number to capture (default: 0).
 
     Examples::
@@ -2500,7 +2500,7 @@ current top image.
     Replace the *two* top images with a new image that is the pixel-by-pixel
     sum of those images (`--add`), or add a constant color value to all
     pixels in the top image (`--addc`).
-
+    
     For `--addc`, if a single constant value is given, it will be added to
     all color channels. Alternatively, a series of comma-separated constant
     values (with no spaces!) may be used to specify a different value to
@@ -2534,7 +2534,7 @@ current top image.
     Replace the *two* top images with a new image that is the pixel-by-pixel
     difference between the first and second images (`--sub`), or subtract a
     constant color value from all pixels in the top image (`--subc`).
-
+    
     For `--subc`, if a single constant value is given, it will be subtracted
     from all color channels. Alternatively, a series of comma-separated
     constant values (with no spaces!) may be used to specify a different
@@ -2574,19 +2574,19 @@ current top image.
     Replace the *two* top images with a new image that is the pixel-by-pixel
     multiplicative product of those images (`--mul`), or multiply all pixels
     in the top image by a constant value (`--mulc`).
-
+    
     For `--mulc`, if a single constant value is given, it will be multiplied
     to all color channels. Alternatively, a series of comma-separated
     constant values (with no spaces!) may be used to specify a different
     value to multiply with each channel in the image.
-
+    
     Optional appended modifiers include:
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-
+    
         # Scale image brightness to 20% of its original
         oiiotool tahoe.jpg --mulc 0.2 -o mulc.jpg
     ..
@@ -2607,7 +2607,7 @@ current top image.
     the second image (`--div`), or divide all pixels in the top image by a
     constant value (`--divc`). Division by zero is defined as resulting in
     0.
-
+    
     For `--divc`, if a single constant value is given, all color channels
     will have their values divided by the same value.  Alternatively, a
     series of comma-separated constant values (with no spaces!) may be used
@@ -2656,7 +2656,7 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-
+    
        oiiotool tahoe.jpg --inverse -o inverse.jpg
     ..
 
@@ -2752,7 +2752,7 @@ current top image.
     are suppressed; (4) `salt` for "salt and pepper" noise where a portion of
     pixels given by  option `portion=` (default: 0.1) is replaced with value
     given by option `value=` (default: 0).
-
+    
     Optional appended modifiers include:
 
       `:seed=` *int*
@@ -2768,15 +2768,15 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-
+    
         # Add color gaussian noise to an image
         oiiotool tahoe.jpg --noise:type=gaussian:stddev=0.1 -o noisy.jpg
-
+    
         # Simulate bad pixels by turning 1% of pixels black, but only in RGB
         # channels (leave A alone)
         oiiotool tahoe-rgba.tif --noise:type=salt:value=0:portion=0.01:mono=1:nchannels=3 \
             -o dropouts.tif
-
+    
     ..
 
         .. |noiseimg1| image:: figures/unifnoise1.jpg
@@ -2919,7 +2919,7 @@ current top image.
     `mapname` may be one of: "magma", "inferno", "plasma", "viridis", "turbo",
     "blue-red", "spectrum", and "heat". Or, `mapname` may also be a
     comma-separated list of RGB triples, to form a custom color map curve.
-
+    
     Note that "magma", "inferno", "plasma", "viridis" are perceptually
     uniform, strictly increasing in luminance, look good when converted to
     grayscale, and work for people with all types of colorblindness. The
@@ -2929,19 +2929,19 @@ current top image.
     crappier maps (blue-red, spectrum, and heat). Don't be fooled by the
     flashy "spectrum" colors --- it is an empirically bad color map compared
     to the preferred ones.
-
+    
     Optional appended modifiers include:
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-
+    
         oiiotool tahoe.jpg --colormap inferno -o inferno.jpg
         oiiotool tahoe.jpg --colormap viridis -o viridis.jpg
         oiiotool tahoe.jpg --colormap turbo -o turbo.jpg
         oiiotool tahoe.jpg --colormap .25,.25,.25,0,.5,0,1,0,0 -o custom.jpg
-
+    
     .. |cmimage1| image:: figures/tahoe-small.jpg
        :width: 1.25 in
     .. |cmimage2| image:: figures/colormap-inferno.jpg
@@ -2953,7 +2953,7 @@ current top image.
     .. |cmimage5| image:: figures/colormap-custom.jpg
        :width: 1.25 in
     ..
-
+    
     +-----------------+-----------------+-----------------+-----------------+---------------+
     | |cmimage1|      | |cmimage2|      | |cmimage3|      | |cmimage4|      | |cmimage5|    |
     +-----------------+-----------------+-----------------+-----------------+---------------+
@@ -2970,9 +2970,9 @@ current top image.
     unique color in the output image.
 
     This command was added in OpenImageIO 2.6.
-
+    
     Example::
-
+    
         oiiotool crypto.exr --cryptomatte-colors "CryptoAsset" -o matte.exr
 
 
@@ -3109,7 +3109,7 @@ current top image.
     channel values for that pixel (larger Z means farther away). Both input
     images must have the same number and order of channels and must contain
     both depth/Z and alpha channels. Optional appended modifiers include:
-
+    
       `zeroisinf=` *num*
         If nonzero, indicates that z=0 pixels should be treated as if they
         were infinitely far away. (The default is 0, meaning that "zero
@@ -3129,9 +3129,9 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-
+    
         oiiotool grid.jpg --rotate90 -o rotate90.jpg
-
+    
     ..
 
     .. image:: figures/grid-small.jpg
@@ -3151,9 +3151,9 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-
+    
         oiiotool grid.jpg --rotate180 -o rotate180.jpg
-
+    
     ..
 
     .. image:: figures/grid-small.jpg
@@ -3172,9 +3172,9 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-
+    
         oiiotool grid.jpg --rotate270 -o rotate270.jpg
-
+    
     ..
 
     .. image:: figures/grid-small.jpg
@@ -3194,16 +3194,16 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-
+    
         oiiotool grid.jpg --flip -o flip.jpg
-
+    
     ..
 
     .. image:: figures/grid-small.jpg
        :width: 1.5 in
     .. image:: figures/flip.jpg
        :width: 1.5 in
-
+    
 .. option:: --flop
 
     Replace the current image with a new image that is flopped horizontally,
@@ -3215,9 +3215,9 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-
+    
         oiiotool grid.jpg --flop -o flop.jpg
-
+    
     ..
 
     .. image:: figures/grid-small.jpg
@@ -3231,11 +3231,11 @@ current top image.
     Replace the current image with a new image that is rotated and/or flipped
     as necessary to move the pixels to match the Orientation metadata
     that describes the desired display orientation.
-
+    
     Example::
-
+    
         oiiotool tahoe.jpg --reorient -o oriented.jpg
-
+    
 
 .. option:: --transpose
 
@@ -3265,16 +3265,16 @@ current top image.
     vertically, or `+50-30` to move by 50 pixels horizontally and -30
     pixels vertically.  *Circular* shifting means that the pixels wrap to
     the other side as they shift.
-
+    
     Optional appended modifiers include:
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-
+    
         oiiotool grid.jpg --cshift +70+30 -o cshift.jpg
-
+    
     .. image:: figures/grid-small.jpg
        :width: 1.5 in
     .. image:: figures/cshift.jpg
@@ -3286,8 +3286,8 @@ current top image.
     cropping old pixels no longer needed, padding black pixels where they
     previously did not exist in the old image, and adjusting the offsets
     if requested.
-
-    The size is in the form
+    
+    The size is in the form 
 
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
 
@@ -3297,7 +3297,7 @@ current top image.
 
     Note that `crop` does not *reposition* pixels, it only trims or pads to
     reset the image's pixel data window to the specified region.
-
+    
     If :program:`oiiotool`'s global `-a` flag is used (**all** subimages),
     or if the optional `--crop:allsubimages=1` is employed, the crop will be
     applied identically to all subimages.
@@ -3307,7 +3307,7 @@ current top image.
         # Both of these crop to a 100x120 region that begins at x=35,y=40
         oiiotool tahoe.exr --crop 100x120+35+40 -o crop.exr
         oiiotool tahoe.exr --crop 35,40,134,159 -o crop.exr
-
+    
     .. image:: figures/tahoe-small.jpg
        :width: 1.5 in
     .. image:: figures/crop.jpg
@@ -3328,7 +3328,7 @@ current top image.
     Examples::
 
         oiiotool greenrect.exr -trim -o trimmed.jpg
-
+    
         .. image:: figures/pretrim.jpg
            :width: 1.5 in
         .. image:: figures/trim.jpg
@@ -3352,11 +3352,11 @@ current top image.
         *xmin,ymin,xmax,ymax*
 
     Examples::
-
+    
         # Both of these crop to a 100x120 region that begins at x=35,y=40
         oiiotool tahoe.exr --cut 100x120+35+40 -o cut.exr
         oiiotool tahoe.exr --cut 35,40,134,159 -o cut.exr
-
+    
     .. image:: figures/tahoe-small.jpg
        :width: 1.5 in
     .. image:: figures/cut.jpg
@@ -3370,7 +3370,7 @@ current top image.
     given pixel data resolution rapidly, but at a low quality, either by
     simple bilinear interpolation or by just copying the "closest" pixel.
     The size is in the form of any of these:
-
+    
             *width* x *height*
 
             *width* x *height* [+-] *xoffset* [+-] *yoffset*
@@ -3378,7 +3378,7 @@ current top image.
             *xmin,ymin,xmax,ymax*
 
             *wscale% x hscale%*
-
+    
     if `width` or `height` is 0, that dimension will be automatically
     computed so as to preserve the original aspect ratio.
 
@@ -3392,12 +3392,12 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Examples (suppose that the original image is 640x480)::
-
+    
         --resample 1024x768         # new resolution w=1024, h=768
         --resample 50%              # reduce resolution to 320x240
         --resample 300%             # increase resolution to 1920x1440
         --resample 400x0            # new resolution will be 400x300
-
+    
 
 .. option:: --resize <size>
 
@@ -3456,7 +3456,7 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Examples (suppose that the original image is 640x480)::
-
+    
         --resize 1024x768         # new resolution w=1024, h=768
         --resize 50%              # reduce resolution to 320x240
         --resize 300%             # increase resolution to 1920x1440
@@ -3558,7 +3558,7 @@ current top image.
     but it will have different pixel dimensions than the original. It will
     always be the same or higher resolution, so it does not lose any detail
     present in the original.
-
+    
     As an example, if you have a 512x512 image with pixel aspect ratio 1.0,
     `--pixelaspect 2.0` will result in a 512x1024 image that has
     "PixelAspectRatio" metadata set to 2.0.
@@ -3576,7 +3576,7 @@ current top image.
     Examples::
 
         oiiotool mandrill.tif --pixelaspect 2.0 -o widepixels.tif
-
+    
 
 .. option:: --rotate <angle>
 
@@ -3610,7 +3610,7 @@ current top image.
     Examples::
 
         oiiotool mandrill.tif --rotate 45 -o rotated.tif
-
+    
         oiiotool mandrill.tif --rotate:center=80,91.5:filter=lanczos3 45 -o rotated.tif
 
     .. image:: figures/grid-small.jpg
@@ -3701,7 +3701,7 @@ current top image.
 
         # Use a kernel image already prepared
         oiiotool image.exr kernel.exr --convolve -o output.exr
-
+    
         # Construct a kernel image on the fly with --kernel
         oiiotool image.exr --kernel gaussian 5x5 --convolve -o blurred.exr
 
@@ -3722,7 +3722,7 @@ current top image.
     Examples::
 
         oiiotool image.jpg --blur 5x5 -o blurred.jpg
-
+    
         oiiotool image.jpg --blur:kernel=bspline 7x7 -o blurred.jpg
 
     .. |convimage1| image:: figures/tahoe-small.jpg
@@ -3795,7 +3795,7 @@ current top image.
         oiiotool orig.tif --dilate 3x3 --erode 3x3 -sub -o gradient.tif
         oiiotool orig.tif open.tif -o tophat.tif
         oiiotool close.tif orig.tif -o bottomhat.tif
-
+    
     .. |morph1| image:: figures/morphsource.jpg
        :width: 1.0 in
     .. |morph2| image:: figures/dilate.jpg
@@ -3838,7 +3838,7 @@ current top image.
     Examples::
 
         oiiotool tahoe.jpg --laplacian tahoe-laplacian.exr
-
+    
     .. |lapimage1| image:: figures/tahoe-small.jpg
        :width: 2.0 in
     .. |lapimage2| image:: figures/tahoe-laplacian.jpg
@@ -3858,7 +3858,7 @@ current top image.
     Unblur the top image using an "unsharp mask.""
 
     Optional appended modifiers include:
-
+    
       `kernel=` *name*
         Name of the blur kernel (default: `gaussian`). If the kernel name is
         `median`, the unsarp mask algorithm will use a median filter rather
@@ -3875,9 +3875,9 @@ current top image.
     Examples::
 
         oiiotool image.jpg --unsharp -o sharper.jpg
-
+    
         oiiotool image.jpg --unsharp:width=5:contrast=1.5 -o sharper.jpg
-
+    
         oiiotool image.jpg --unsharp:kernel=median -o sharper.jpg
         # Note: median filter helps emphasize compact high-frequency details
         # without over-sharpening long edges as the default unsharp filter
@@ -3905,10 +3905,10 @@ current top image.
 
         # Select the blue channel and take its DCT
         oiiotool image.jpg --ch 2 --fft -o fft.exr
-
+    
         # Reconstruct from the FFT
         oiiotool fft.exr --ifft -o reconstructed.exr
-
+    
         # Output the power spectrum: real^2 + imag^2
         oiiotool fft.exr --dup --mul --chsum -o powerspectrum.exr
 
@@ -3921,7 +3921,7 @@ current top image.
     as complex values (real and imaginary components) into the equivalent
     values expressed in polar form of amplitude and phase (with phase
     between 0 and :math:`2\pi`).
-
+    
     The `unpolar` performs the reverse transformation, converting from polar
     values (amplitude and phase) to complex (real and imaginary).
 
@@ -3995,14 +3995,14 @@ current top image.
       individually.
     - `clampalpha=` *val* : If *val* is nonzero, will additionally clamp the
       alpha channel to [0,1].  (Default: 0, no additional alpha clamp.)
-
+    
     If no value is given for either the minimum or maximum, it will NOT
     clamp in that direction.  For the variety of minimum and maximum that
     specify per-channel values, a missing value indicates that the
     corresponding channel should not be clamped.
-
+    
     Examples:
-
+    
     - `--clamp:min=0` : Clamp all channels to a minimum of 0 (all negative
       values are changed to 0).
     - `--clamp:min=0:max=1` : Clamp all channels to [0,1].
@@ -4039,7 +4039,7 @@ current top image.
     Range expansion is the inverse mapping back to a linear scale.
     Range compression and expansion only applies to color
     channels; alpha or z channels will not be modified.
-
+    
     By default, this transformation will happen to each color channel
     independently.  But if the optional `luma` argument is nonzero and the
     image has at least 3 channels and the first three channels are not alpha
@@ -4061,7 +4061,7 @@ current top image.
     if you resize an HDR image using a filter with negative lobes -- which
     could result in objectionable ringing or even negative result pixel
     values.  For example::
-
+    
         oiiotool hdr.exr --rangecompress --resize 512x512 --rangeexpand -o resized.exr
 
 .. option:: --fillholes
@@ -4077,7 +4077,7 @@ current top image.
 
     Draw (rasterize) a filled or unfilled a box with opposite corners
     `(x1,y1)` and `(x2,y2)`. Additional optional arguments include:
-
+    
       `color=` *r,g,b,...*
         specify the color of the lines
       `fill=` *bool*
@@ -4091,7 +4091,7 @@ current top image.
 
         oiiotool checker.exr --box:color=0,1,1,1 150,100,240,180 \
                      --box:color=0.5,0.5,0,0.5:fill=1 100,50,180,140 -o out.exr
-
+    
     .. image:: figures/box.png
         :align: center
         :width: 2.0 in
@@ -4146,26 +4146,26 @@ current top image.
     Alter the top image by filling the ROI specified by *size*. The fill can
     be a constant color, vertical gradient, horizontal gradient, or
     four-corner gradient.
-
+    
     Optional modifiers for constant color:
 
        `color=` *r,g,b,...*
          the color of the constant
-
+    
     Optional modifiers for vertical gradient:
 
        `top=` *r,g,b,...*
          the color for the top edge of the region
        `bottom=` *r,g,b,...*
          the color for the bottom edge of the region
-
+    
     Optional modifiers for horizontal gradient:
 
        `left=` *r,g,b,...*
          the color for the left edge of the region
        `right=` *r,g,b,...*
          the color for the right edge of the region
-
+    
     Optional modifiers for 4-corner gradient:
 
        `topleft=` *r,g,b,...*
@@ -4244,22 +4244,22 @@ current top image.
     The default positions the text starting at the center of the image,
     drawn 16 pixels high in opaque white in all channels (1,1,1,...), and
     using a default font (which may be system dependent).
-
+    
     Examples::
-
+    
         oiiotool --create 320x240 3 --text:x=10:y=400:size=40 "Hello world" \
             --text:x=100:y=200:font="Arial Bold":color=1,0,0:size=60 "Go Big Red!" \
             --tocolorspace sRGB -o text.jpg
-
+    
         oiiotool --create 320x240 3 --text:x=160:y=120:xalign=center "Centered" \
             --tocolorspace sRGB -o textcentered.jpg
-
+    
         oiiotool tahoe-small.jpg \
                 --text:x=160:y=40:xalign=center:size=40:shadow=0 "shadow = 0" \
                 --text:x=160:y=80:xalign=center:size=40:shadow=1 "shadow = 1" \
                 --text:x=160:y=120:xalign=center:size=40:shadow=2 "shadow = 2" \
                 --tocolorspace sRGB -o textshadowed.jpg
-
+    
     .. |textimg1| image:: figures/text.jpg
        :width: 2.0 in
     .. |textimg2| image:: figures/textcentered.jpg
@@ -4267,7 +4267,7 @@ current top image.
     .. |textimg3| image:: figures/textshadowed.jpg
        :width: 2.0 in
     ..
-
+    
     Note that because of slightly differing fonts and versions of Freetype
     available, we do not expect drawn text to be pixel-for-pixel identical
     on different platforms supported by OpenImageIO.
@@ -4403,7 +4403,7 @@ will be printed with the command `oiiotool --colorconfiginfo`.
     comma-separated floating-point values in the subsequent argument (spaces
     are allowed only if the whole collection of values is enclosed in quotes
     so that they are a single command-line argument).
-
+    
     The values fill in the matrix left to right, first row, then second row,
     etc. This means that colors are treated as "row vectors" that are
     post-multiplied by the matrix (`C*M`).
@@ -4469,13 +4469,13 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       making each one a comma-separated list.
 
     - `unpremult=` *val* :
-
+    
       If the numeric *val* is nonzero, the pixel values will be
       "un-premultipled" (divided by alpha) prior to the actual color
       conversion, and then re-multipled by alpha afterwards. The default is
       0, meaning the color transformation not will be automatically
       bracketed by divide-by-alpha / mult-by-alpha operations.
-
+    
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
@@ -4500,26 +4500,26 @@ will be printed with the command `oiiotool --colorconfiginfo`.
     or `""` for *viewname* means to use the default view on that display.
 
     Optional appended modifiers include:
-
+    
       `from=` *name*
         Assume the image is in the named color space. If no `from=` is
         supplied, it will try to deduce it from the image's metadata or
         previous `--iscolorspace` directives. If no such hints are
         available, it will assume the pixel data are in the default linear
         scene-referred color space.
-
+    
       `key=` *name*, `value=` *str*
         Adds a key/value pair to the "context" that OpenColorIO will used
         when applying the look. Multiple key/value pairs may be specified by
         making each one a comma-separated list.
-
+    
       `unpremult=` *val* :
         If the numeric *val* is nonzero, the pixel values will be
         "un-premultipled" (divided by alpha) prior to the actual color
         conversion, and then re-multipled by alpha afterwards. The default
         is 0, meaning the color transformation not will be automatically
         bracketed by divide-by-alpha / mult-by-alpha operations.
-
+    
       `inverse=` *val* :
         If *val* is nonzero, inverts the color transformation.
 
@@ -4574,7 +4574,7 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       Adds a key/value pair to the "context" that OpenColorIO will used
       when applying the look. Multiple key/value pairs may be specified by
       making each one a comma-separated list.
-
+    
     - `inverse=` *val* :
 
       If *val* is nonzero, inverts the color transformation.
@@ -4739,7 +4739,7 @@ General commands that also work for deep images
     closest deep pixel to copy for each output pixel).
 
     Optional appended modifiers include:
-
+    
     - `interp=` *val* :  If 0, the "closest" single pixel will be copied
       for each sample. If 1, the nearest 4 pixels will be interpolated to
       produce each sample. (Default: 1)
@@ -4753,7 +4753,7 @@ General commands that also work for deep images
     Print to the console detailed information about the values in every pixel.
 
     Optional appended modifiers include:
-
+    
     - `empty=` *val* :  If 0, will cause deep images to skip printing of
       information about pixels with no samples, and cause non-deep images to
       skip printing information about pixels that are entirely 0.0 value in
