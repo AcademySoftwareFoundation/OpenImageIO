@@ -4263,8 +4263,10 @@ add an alpha channel that is 1 everywhere**
 
 
 
-Jupyter Notebooks
------------------
+|
+
+**Running OpenImageIO in Jupyter Notebooks and displaying ImageBuf**
+
 
 Like any other Python package, OpenImageIO can be used in `Jupyter notebooks <https://jupyter.org/install>`_. 
 The ImageBuf objects support getting displayed inline within notebooks.
