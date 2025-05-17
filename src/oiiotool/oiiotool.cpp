@@ -1511,9 +1511,8 @@ public:
         : OiiotoolOp(ot, opname, argv, 1)
     {
         inplace(true);  // This action operates in-place
-        erase_from_file     = "--eraseattrib_fromfile";
-        erase_from_file_alt = "-eraseattrib_fromfile";
-        if (opname != erase_from_file && opname != erase_from_file_alt) {
+        bool fromfile = Strutil::ends_with(opname, "fromfile");
+        if (!fromfile) {
             attribname = args(1);
         } else {
             // handle erase attribute using regex text file case
@@ -1554,8 +1553,6 @@ private:
     string_view value;
     string_view regex_file;
     std::vector<std::string> attribname_list;
-    std::string erase_from_file;
-    std::string erase_from_file_alt;
 };
 
 
