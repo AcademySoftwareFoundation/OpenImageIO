@@ -5514,6 +5514,18 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         return;
     }
 
+    if (ot.createdirectories) {
+        const std::string outputdirpath = Filesystem::parent_path(filename);
+        if (!Filesystem::exists(outputdirpath)) {
+            const bool result = Filesystem::create_directory(outputdirpath);
+            if (!result) {
+                ot.errorfmt(command, "Failed to create output directory: {}",
+                            outputdirpath);
+                return;
+            }
+        }
+    }
+
     if (ot.noclobber && Filesystem::exists(filename)) {
         ot.warningfmt(command, "{} already exists, not overwriting.", filename);
         return;
@@ -6458,6 +6470,8 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Do not overwrite existing files");
     ap.arg("--noclobber", &ot.noclobber)
       .hidden(); // synonym
+    ap.arg("--create-dir", &ot.createdirectories)
+      .help("Create output directories if it doesn't exists");
     ap.arg("--threads %d:N")
       .help("Number of threads (default 0 == #cores)")
       .OTACTION(set_threads);
