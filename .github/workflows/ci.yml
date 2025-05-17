@@ -200,6 +200,10 @@ jobs:
       - name: Testsuite
         if: matrix.skip_tests != '1'
         run: src/build-scripts/ci-test.bash
+      - name: Benchmarks
+        if: matrix.benchmark == '1'
+        shell: bash
+        run: src/build-scripts/ci-benchmark.bash
       - name: Check out ABI standard
         if: matrix.abi_check != ''
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -232,6 +236,7 @@ jobs:
             build/cmake-save
             build/compat_reports
             build/sphinx
+            build/benchmarks
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -267,6 +272,7 @@ jobs:
       skip_build: ${{ matrix.skip_build }}
       skip_tests: ${{ matrix.skip_tests }}
       abi_check: ${{ matrix.abi_check }}
+      benchmark: ${{ matrix.benchmark }}
       build_docs: ${{ matrix.build_docs }}
       clang_format: ${{ matrix.clang_format }}
       generator: ${{ matrix.generator }}
@@ -312,6 +318,7 @@ jobs:
             python_ver: "3.10"
             pybind11_ver: v2.10.0
             simd: "avx2,f16c"
+            benchmark: 1
             setenvs: export USE_OPENVDB=0
                             xOPENCOLORIO_CXX=g++
                             UHDR_CMAKE_C_COMPILER=gcc
@@ -326,6 +333,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
+            benchmark: 1
             setenvs: PUGIXML_VERSION=v1.14
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024.clang
@@ -337,6 +345,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
+            benchmark: 1
             setenvs: PUGIXML_VERSION=v1.14
           - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025
@@ -346,6 +355,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 11.1.4
             pybind11_ver: v2.13.6
+            benchmark: 1
             setenvs: PUGIXML_VERSION=v1.15
           - desc: Sanitizers
             nametag: sanitizer
@@ -431,6 +441,7 @@ jobs:
             pybind11_ver: master
             python_ver: "3.12"
             simd: avx2,f16c
+            benchmark: 1
             setenvs: export LIBJPEGTURBO_VERSION=main
                             LIBRAW_VERSION=master
                             LIBTIFF_VERSION=master
@@ -529,6 +540,7 @@ jobs:
       simd: ${{ matrix.simd }}
       skip_build: ${{ matrix.skip_build }}
       skip_tests: ${{ matrix.skip_tests }}
+      benchmark: ${{ matrix.benchmark }}
       abi_check: ${{ matrix.abi_check }}
       build_docs: ${{ matrix.build_docs }}
       generator: ${{ matrix.generator }}
@@ -550,6 +562,7 @@ jobs:
             simd: sse4.2,avx2
             ctest_test_timeout: 1200
             setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
+            benchmark: 1
           - desc: MacOS-14-ARM aclang15/C++20/py3.12
             runner: macos-14
             nametag: macos14-arm-py312
@@ -564,6 +577,7 @@ jobs:
             cxx_compiler: clang++
             cxx_std: 20
             python_ver: "3.13"
+            benchmark: 1
 
 
   #
@@ -592,6 +606,7 @@ jobs:
       simd: ${{ matrix.simd }}
       skip_build: ${{ matrix.skip_build }}
       skip_tests: ${{ matrix.skip_tests }}
+      benchmark: ${{ matrix.benchmark }}
       abi_check: ${{ matrix.abi_check }}
       build_docs: ${{ matrix.build_docs }}
       generator: ${{ matrix.generator }}
@@ -624,3 +639,4 @@ jobs:
             generator: "Visual Studio 17 2022"
             python_ver: "3.9"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
+            benchmark: 1
