@@ -6,6 +6,7 @@
 
 #include <memory>
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/platform.h>
 
 
@@ -246,6 +247,35 @@ ImageBuf_set_write_format(ImageBuf& self, const py::object& py_channelformats)
     std::vector<TypeDesc> formats;
     py_to_stdvector(formats, py_channelformats);
     self.set_write_format(formats);
+}
+
+
+
+py::bytes
+ImageBuf_repr_png(const ImageBuf& self)
+{
+    ImageSpec original_spec = self.spec();
+
+    if (original_spec.width < 1 || original_spec.height < 1) {
+        return py::bytes();
+    }
+
+    // Alter the spec to make sure it dithers when outputting to 8 bit PNG
+    ImageSpec altered_spec = original_spec;
+    altered_spec.attribute("oiio:dither", 1);
+
+    std::vector<unsigned char> file_buffer;         // bytes will go here
+    Filesystem::IOVecOutput file_vec(file_buffer);  // I/O proxy object
+
+    std::unique_ptr<ImageOutput> out = ImageOutput::create("temp.png",
+                                                           &file_vec);
+    out->open("temp.png", altered_spec);
+    self.write(out.get());
+    out->close();
+
+    // Cast to const char* and return as python bytes
+    const char* char_ptr = reinterpret_cast<const char*>(file_buffer.data());
+    return py::bytes(char_ptr, file_buffer.size());
 }
 
 
@@ -491,6 +521,7 @@ declare_imagebuf(py::module& m)
         .def(
             "deepdata", [](ImageBuf& self) { return *self.deepdata(); },
             py::return_value_policy::reference_internal)
+        .def("_repr_png_", &ImageBuf_repr_png)
 
         // FIXME -- do we want to provide pixel iterators?
         ;
