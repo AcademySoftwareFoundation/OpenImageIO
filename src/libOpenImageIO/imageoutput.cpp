@@ -38,6 +38,7 @@ class ImageOutput::Impl {
 public:
     Impl()
         : m_id(++output_next_id)
+        , m_threads(pvt::oiio_threads)
     {
     }
 

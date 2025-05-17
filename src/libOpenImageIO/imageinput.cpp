@@ -35,6 +35,7 @@ class ImageInput::Impl {
 public:
     Impl()
         : m_id(++input_next_id)
+        , m_threads(pvt::oiio_threads)
     {
     }
 
