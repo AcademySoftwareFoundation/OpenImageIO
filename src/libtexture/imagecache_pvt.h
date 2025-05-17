@@ -266,7 +266,7 @@ public:
     /// precompute.
     struct LevelInfo {
         std::unique_ptr<ImageSpec> m_spec;  ///< ImageSpec for the mip level,
-            // only specified if different from nativespec
+        // only specified if different from nativespec
         ImageSpec nativespec;  ///< Native ImageSpec for the mip level
         mutable std::unique_ptr<float[]> polecolor;  ///< Pole colors
         atomic_ll* tiles_read;  ///< Bitfield for tiles read at least once
@@ -394,10 +394,10 @@ private:
     std::atomic<std::shared_ptr<ImageInput>> m_input;
 #else
     std::shared_ptr<ImageInput> m_input;  ///< Open ImageInput, NULL if closed
-        // Note that m_input, the shared pointer itself, is NOT safe to
-        // access directly. ALWAYS retrieve its value with get_imageinput
-        // (it's thread-safe to use that result) and set its value with
-        // set_imageinput -- those are guaranteed thread-safe.
+    // Note that m_input, the shared pointer itself, is NOT safe to
+    // access directly. ALWAYS retrieve its value with get_imageinput
+    // (it's thread-safe to use that result) and set its value with
+    // set_imageinput -- those are guaranteed thread-safe.
 #endif
     std::vector<SubimageInfo> m_subimages;  ///< Info on each subimage
     TexFormat m_texformat;                  ///< Which texture format
