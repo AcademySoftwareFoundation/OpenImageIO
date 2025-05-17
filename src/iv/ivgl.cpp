@@ -690,7 +690,9 @@ IvGL::shadowed_text(float x, float y, float /*z*/, const std::string& s,
      * Paint on intermediate QImage, AA text on QOpenGLWidget based
      * QPaintDevice requires MSAA
      */
-    QImage t(size(), QImage::Format_ARGB32_Premultiplied);
+    qreal dpr = devicePixelRatio();
+    QImage t(size() * dpr, QImage::Format_ARGB32_Premultiplied);
+    t.setDevicePixelRatio(dpr);
     t.fill(qRgba(0, 0, 0, 0));
     {
         QPainter painter(&t);
