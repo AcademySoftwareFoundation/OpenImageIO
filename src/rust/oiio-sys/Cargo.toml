@@ -20,9 +20,9 @@ links = "OpenImageIO"
 cxx = { workspace = true }
 
 [build-dependencies]
-anyhow = "1.0.97"
-cxx-build = "1.0.140"
-pkg-config = "0.3.31"
+anyhow = "1.0.98"
+cxx-build = "1.0.158"
+pkg-config = "0.3.32"
 
 [dev-dependencies]
 proptest = "1.6.0"

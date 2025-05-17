@@ -30,5 +30,13 @@ fn main() -> Result<()> {
         println!("cargo:rerun-if-changed=include/{}.h", name);
     }
 
+    for link_path in pkgconfig.link_paths {
+        println!("cargo:rustc-link-search=native={}", link_path.display());
+    }
+
+    for lib in pkgconfig.libs {
+        println!("cargo:rustc-link-lib={}", lib);
+    }
+
     Ok(())
 }
