@@ -32,5 +32,9 @@ command += oiiotool ("-echo gimp_gradient: src/gimp_gradient.png --printinfo:sta
 command += oiiotool ("--pattern fill:color=0.00235,0.00106,0.00117,0.0025 1x1 4 -d uint8 -o smallalpha.png")
 command += oiiotool ("--no-autopremult --dumpdata smallalpha.png")
 
+# Test embedding CICP metadata in PNG files
+command += oiiotool ("-i test16.png --cicp 1,13 -o test16.png")
+command += oiiotool ("-echo cicp: test16.png --printinfo")
+
 outputs = [ "test16.png", "out.txt" ]
 
