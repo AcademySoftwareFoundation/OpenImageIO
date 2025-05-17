@@ -246,26 +246,20 @@ individual plugin.
 
 .. tabs::
 
-   .. code-tab:: c++
+   .. tab:: C++
+      .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imageoutput.cpp
+          :language: c++
+          :start-after: BEGIN-imageoutput-tiles
+          :end-before: END-imageoutput-tiles
+          :dedent: 4
 
-      unsigned char tile[tilesize*tilesize*channels];
-      int z = 0;   // Always zero for 2D images
-      for (int y = 0;  y < yres;  y += tilesize) {
-          for (int x = 0;  x < xres;  x += tilesize) {
-              ... generate data in tile[] ..
-              out->write_tile (x, y, z, TypeDesc::UINT8, tile);
-          }
-      }
-      out->close ();
+   .. tab:: Python
 
-   .. code-tab:: py
-
-      z = 0  # Always zero for 2D images
-      for y in range(0, yres, tilesize) :
-          for x in range(0, xres, tilesize) :
-              # ... generate data in tile[][][] ..
-              out.write_tile (x, y, z, tile)
-      out.close ()
+      .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageoutput.py
+          :language: py
+          :start-after: BEGIN-imageoutput-tiles
+          :end-before: END-imageoutput-tiles
+          :dedent: 8
 
 The first three arguments to ``write_tile()`` specify which tile is being
 written by the pixel coordinates of any pixel contained in the tile: *x*
