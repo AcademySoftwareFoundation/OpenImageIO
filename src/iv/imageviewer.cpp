@@ -152,6 +152,7 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
 
     setWindowTitle(tr("Image Viewer"));
     resize(m_default_width, m_default_height);
+    setAcceptDrops(true);
     //    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
 
     setAttribute(Qt::WA_DeleteOnClose);
@@ -171,6 +172,25 @@ void
 ImageViewer::closeEvent(QCloseEvent*)
 {
     writeSettings();
+}
+
+void
+ImageViewer::dragEnterEvent(QDragEnterEvent* event)
+{
+    if (event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+}
+
+void
+ImageViewer::dropEvent(QDropEvent* event)
+{
+    const QMimeData* mimeData = event->mimeData();
+    if (mimeData->hasUrls()) {
+        for (const QUrl& url : mimeData->urls()) {
+            QString filePath = url.toLocalFile();
+            add_image(filePath.toStdString());
+        }
+    }
 }
 
 
