@@ -44,8 +44,9 @@ private:
     int m_frame_count        = 1;
     WebPDemuxer* m_demux     = nullptr;
     WebPIterator m_iter;
-    int m_subimage      = -1;  // Subimage we're pointed to
-    int m_subimage_read = -1;  // Subimage stored in decoded_image
+    int m_subimage      = -1;                // Subimage we're pointed to
+    int m_subimage_read = -1;                // Subimage stored in decoded_image
+    bool m_keep_unassociated_alpha = false;  // Do not convert unassociated alpha
 
     void init(void)
     {
@@ -204,6 +205,9 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
     // Make space for the decoded image
     m_decoded_image.reset(new uint8_t[m_spec.image_bytes()]);
 
+    if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
+        m_keep_unassociated_alpha = true;
+
     seek_subimage(0, 0);
     spec = m_spec;
     return true;
@@ -306,12 +310,15 @@ WebpInput::read_current_subimage()
                                        m_decoded_image.get() + offset,
                                        m_spec.image_bytes() - offset,
                                        m_spec.scanline_bytes());
-            // WebP requires unassociated alpha, and it's sRGB.
-            // Handle this all by wrapping an IB around it.
-            ImageBuf fullbuf(m_spec,
-                             span<std::byte>((std::byte*)m_decoded_image.get(),
-                                             m_spec.image_bytes()));
-            ImageBufAlgo::premult(fullbuf, fullbuf);
+
+            // WebP is unassociated alpha and sRGB.
+            // Convert to the OIIO-native associated form if required.
+            if (!m_keep_unassociated_alpha) {
+                ImageBuf fullbuf(
+                    m_spec, span<std::byte>((std::byte*)m_decoded_image.get(),
+                                            m_spec.image_bytes()));
+                ImageBufAlgo::premult(fullbuf, fullbuf);
+            }
         }
     } else {
         // This subimage writes *atop* the prior image, we must composite
@@ -328,10 +335,14 @@ WebpInput::read_current_subimage()
                                    (uint8_t*)fragbuf.localpixels(),
                                    fragspec.image_bytes(),
                                    fragspec.scanline_bytes());
-        // WebP requires unassociated alpha, and it's sRGB.
-        // Handle this all by wrapping an IB around it.
-        ImageBufAlgo::premult(fragbuf, fragbuf);
-        ImageBufAlgo::over(fullbuf, fragbuf, fullbuf);
+
+
+        // WebP is unassociated alpha and sRGB.
+        // Convert to the OIIO-native associated form if required.
+        if (!m_keep_unassociated_alpha) {
+            ImageBufAlgo::premult(fragbuf, fragbuf);
+            ImageBufAlgo::over(fullbuf, fragbuf, fullbuf);
+        }
     }
 
     if (!okptr) {
@@ -371,7 +382,8 @@ WebpInput::close()
     }
     m_decoded_image.reset();
     m_encoded_image.reset();
-    m_subimage = -1;
+    m_subimage                = -1;
+    m_keep_unassociated_alpha = false;
     init();
     return true;
 }

@@ -36,6 +36,7 @@ private:
     std::string m_filename;
     imagesize_t m_scanline_size;
     unsigned int m_dither;
+    bool m_convert_alpha;  // Do we deassociate alpha?
     std::vector<uint8_t> m_uncompressed_image;
 
     void init()
@@ -113,7 +114,9 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     // forcing UINT8 format
     m_spec.set_format(TypeDesc::UINT8);
-    m_dither = m_spec.get_int_attribute("oiio:dither", 0);
+    m_dither        = m_spec.get_int_attribute("oiio:dither", 0);
+    m_convert_alpha = m_spec.alpha_channel != -1
+                      && !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
 
     m_scanline_size = m_spec.scanline_bytes();
     m_uncompressed_image.resize(m_spec.image_bytes(), 0);
@@ -136,20 +139,25 @@ WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
     if (y == m_spec.height - 1) {
         if (m_spec.nchannels == 4) {
-            // WebP requires unassociated alpha, and it's sRGB.
-            // Handle this all by wrapping an IB around it.
-            ImageSpec specwrap(m_spec.width, m_spec.height, 4, TypeUInt8);
-            ImageBuf bufwrap(specwrap, cspan<uint8_t>(m_uncompressed_image));
-            ROI rgbroi(0, m_spec.width, 0, m_spec.height, 0, 1, 0, 3);
-            ImageBufAlgo::pow(bufwrap, bufwrap, 2.2f, rgbroi);
-            ImageBufAlgo::unpremult(bufwrap, bufwrap);
-            ImageBufAlgo::pow(bufwrap, bufwrap, 1.0f / 2.2f, rgbroi);
+            if (m_convert_alpha) {
+                // WebP requires unassociated alpha, and it's sRGB.
+                // Handle this all by wrapping an IB around it.
+                ImageSpec specwrap(m_spec.width, m_spec.height, 4, TypeUInt8);
+                ImageBuf bufwrap(specwrap,
+                                 cspan<uint8_t>(m_uncompressed_image));
+                ROI rgbroi(0, m_spec.width, 0, m_spec.height, 0, 1, 0, 3);
+                ImageBufAlgo::pow(bufwrap, bufwrap, 2.2f, rgbroi);
+                ImageBufAlgo::unpremult(bufwrap, bufwrap);
+                ImageBufAlgo::pow(bufwrap, bufwrap, 1.0f / 2.2f, rgbroi);
+            }
+
             WebPPictureImportRGBA(&m_webp_picture, m_uncompressed_image.data(),
                                   m_scanline_size);
         } else {
             WebPPictureImportRGB(&m_webp_picture, m_uncompressed_image.data(),
                                  m_scanline_size);
         }
+
         if (!WebPEncode(&m_webp_config, &m_webp_picture)) {
             errorfmt("Failed to encode {} as WebP image", m_filename);
             close();
