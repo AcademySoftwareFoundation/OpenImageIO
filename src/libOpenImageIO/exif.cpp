@@ -1092,6 +1092,7 @@ pvt::append_tiff_dir_entry(std::vector<TIFFDirEntry>& dirs,
     dir.tdir_tag        = tag;
     dir.tdir_type       = type;
     dir.tdir_count      = count;
+    dir.tdir_offset     = 0;
     size_t len          = tiff_data_size(dir);
     char* ptr           = nullptr;
     bool data_in_offset = false;
@@ -1099,8 +1100,9 @@ pvt::append_tiff_dir_entry(std::vector<TIFFDirEntry>& dirs,
         dir.tdir_offset = 0;
         data_in_offset  = true;
         if (mydata.size()) {
+            OIIO_DASSERT(len == mydata.size());
             ptr = (char*)&dir.tdir_offset;
-            memcpy(ptr, mydata.data(), mydata.size());
+            memcpy(ptr, mydata.data(), len);
         }
     } else {
         if (mydata.size()) {

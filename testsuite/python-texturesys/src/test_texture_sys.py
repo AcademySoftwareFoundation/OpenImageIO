@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+from __future__ import annotations
+
 import os
 import numpy
 
@@ -36,7 +38,8 @@ print ("missingcolor channels: 3 =", texture_sys.texture("", texture_opt, 0, 0, 
 print ("missingcolor channels: 4 =", texture_sys.texture("", texture_opt, 0, 0, 0, 0, 0, 0, 4))
 print ("")
 
-texture_opt.missingcolor = None
+# the stubs don't allow None for this type
+texture_opt.missingcolor = None  # type: ignore[assignment]
 print ("default-missingcolor =", texture_sys.texture("", texture_opt, 0, 0, 0, 0, 0, 0, 4))
 print ("")
 

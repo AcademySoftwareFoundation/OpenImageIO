@@ -176,8 +176,6 @@ jobs:
       #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          fetch-depth: '0'
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
         run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
@@ -340,7 +338,16 @@ jobs:
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
             setenvs: PUGIXML_VERSION=v1.14
-          - desc: VFX2024 sanitizers
+          - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
+            nametag: linux-vfx2025
+            runner: ubuntu-latest
+            container: aswftesting/ci-oiio:2025
+            python_ver: "3.11"
+            simd: "avx2,f16c"
+            fmt_ver: 11.1.4
+            pybind11_ver: v2.13.6
+            setenvs: PUGIXML_VERSION=v1.15
+          - desc: Sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
             container: aswf/ci-osl:2024-clang17
@@ -367,7 +374,7 @@ jobs:
             simd: "avx2,f16c"
             skip_tests: 1
             # abi_check: v2.6.2.0
-            abi_check: 730687ae79bb6c3290afff535aa0e98b0531d165
+            abi_check: b35615200396c4767966446e446b4fe5ad960d2a
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
 
@@ -397,7 +404,7 @@ jobs:
             cc_compiler: gcc-13
             cxx_compiler: g++-13
             cxx_std: 20
-            fmt_ver: 11.1.4
+            fmt_ver: 11.2.0
             opencolorio_ver: v2.4.2
             openexr_ver: v3.3.3
             pybind11_ver: v2.13.6
@@ -598,12 +605,21 @@ jobs:
         include:
           - desc: Windows-2019 VS2019
             runner: windows-2019
+            nametag: windows-2019
             vsver: 2019
             generator: "Visual Studio 16 2019"
             python_ver: "3.9"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
           - desc: Windows-2022 VS2022
             runner: windows-2022
+            nametag: windows-2022
+            vsver: 2022
+            generator: "Visual Studio 17 2022"
+            python_ver: "3.9"
+            setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
+          - desc: Windows-2025 VS2022
+            runner: windows-2025
+            nametag: windows-2025
             vsver: 2022
             generator: "Visual Studio 17 2022"
             python_ver: "3.9"

@@ -1180,8 +1180,13 @@ Reading images
 
     Optional appended modifiers include:
 
+      `:native=` *int*
+        If nonzero, read the image in as close as possible to its "native"
+        format, versus oiiotool's default of converting all images to float
+        internally. This also turns on "now". (Added in release 3.0.6.0.)
       `:now=` *int*
-        If 1, read the image now, before proceeding to the next command.
+        If nonzero, read the image now, before proceeding to the next command
+        (bypassing the ImageCache, even for big images).
       `:autocc=` *int*
         Enable or disable `--autocc` for this input image (the default is to use
         the global setting).

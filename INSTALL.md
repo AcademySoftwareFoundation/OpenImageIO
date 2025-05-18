@@ -74,6 +74,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Ptex >= 2.3.1 (probably works for older; tested through 2.4.3)
  * If you want to be able to do font rendering into images:
      * Freetype >= 2.10.0 (tested through 2.13)
+ * If you want to be able to read "ultra-HDR" embedded in JPEG files:
+     * libultrahdr >= 1.3 (tested through 1.4)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
@@ -393,6 +395,25 @@ the headers, and the CLI tools to a platform-specific, Python-specific location.
 See the [scikit-build-core docs](https://scikit-build-core.readthedocs.io/en/latest/configuration.html#configuring-cmake-arguments-and-defines)
 for more information on customizing and overriding build-tool options and CMake arguments.
 
+This repo contains python type stubs which are generated from `pybind11` signatures.
+The workflow for releasing new stubs is as follows:
+
+- Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) and `docker`
+- Run `make pystubs` locally to generate updated stubs in `src/python/stubs/__init__.pyi`
+- Run `make test-pystubs` locally to use mypy to test the stubs against the code in 
+  the python testsuite.
+- Commit the new stubs and push to Github
+- In CI, the stubs will be included in the wheels built by `cibuildwheel`, as defined in `.github/wheel.yml`
+- In CI, one of the `cibuildwheel` Github actions will rebuild the stubs to a 
+  temp location and verify that they match what has been committed to the repo.  
+  This step ensures that if changes to the C++ source code and bindings results 
+  in a change to the stubs, developers are notified of the need to regenerate 
+  the stubs, so that changes can be reviewed and the rules in `generate_stubs.py` 
+  can be updated, if necessary.
+
+Note that if you can't (or don't want to) build the stubs locally, you can 
+download an artifact containing the wheel and `__init__.pyi` file from any job 
+that fails the stub validation.
 
 Test Images
 -----------

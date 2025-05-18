@@ -2197,12 +2197,13 @@ PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          OIIO_CONST_FUNC= \
                          OIIO_MAYBE_UNUSED= \
                          OIIO_NODISCARD:= \
-                         OIIO_DEPRECATED:=[[deprecated]] \
+                         OIIO_DEPRECATED(x)=[[deprecated]] \
                          OIIO_FORMAT_DEPRECATED:= \
                          OIIO_FORCEINLINE=inline \
                          IMATH_HALF_H_=1 \
                          INCLUDED_IMATHVEC_H=1 \
                          INCLUDED_IMATHMATRIX_H=1 \
+                         OIIO_ENABLE_IF(x)="std::enable_if_t<(x), int> = 0" \
 
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
