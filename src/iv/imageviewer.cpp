@@ -152,7 +152,13 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
 
     setWindowTitle(tr("Image Viewer"));
     resize(m_default_width, m_default_height);
+    
     setAcceptDrops(true);
+    // Disable drag and drop on child widgets
+    for (QWidget* child : findChildren<QWidget*>()) {
+        child->setAcceptDrops(false);
+    }
+
     //    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
 
     setAttribute(Qt::WA_DeleteOnClose);
