@@ -589,7 +589,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
 /// * If dsttype is int32 or uint32: other integer types will do their best
 ///   (caveat emptor if you mix signed/unsigned). Also a source string will
 ///   convert to int if and only if its characters form a valid integer.
-/// * If dsttype is float: inteegers and other float types will do
+/// * If dsttype is float: integers and other float types will do
 ///   their best conversion; strings will convert if and only if their
 ///   characters form a valid float number.
 OIIO_UTIL_API bool
