@@ -25,6 +25,7 @@
 #include <QCheckBox>
 #include <QDialog>
 #include <QMainWindow>
+#include <QMimeData>
 
 #if OIIO_QT_MAJOR < 6
 #    include <QGLWidget>
@@ -338,6 +339,8 @@ private:
     void keyPressEvent(QKeyEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    void dropEvent(QDropEvent* event) override;
 
     QTimer* slideTimer;     ///< Timer to use for slide show mode
     long slideDuration_ms;  ///< Slide show mode duration (in ms)
