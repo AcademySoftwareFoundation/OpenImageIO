@@ -138,6 +138,8 @@ main(int argc, char* argv[])
     if (ap["rawcolor"].get<int>())
         mainWin->rawcolor(true);
 
+    QApplication::processEvents();  // Process any pending events
+
     // Make sure we are the top window with the focus.
     mainWin->raise();
     mainWin->activateWindow();
