@@ -280,6 +280,7 @@ jobs:
       ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
       coverage: ${{ matrix.coverage || 0 }}
       sonar: ${{ matrix.sonar || 0 }}
+      rust: ${{ matrix.rust || 0 }}
     strategy:
       fail-fast: false
       matrix:
@@ -293,6 +294,7 @@ jobs:
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
             setenvs: PUGIXML_VERSION=v1.13
+            rust: 1
           - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2023.icc
             runner: ubuntu-latest
@@ -307,6 +309,7 @@ jobs:
                             OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
                             FREETYPE_VERSION=VER-2-13-0
                             DISABLE_libuhdr=1
+            rust: 1
             # For icc, use fp-model precise to eliminate needless LSB errors
             # that make test results differ from other platforms.
           - desc: VFX2023 icx/C++17 py3.10 exr3.1 ocio2.2 qt5.15
@@ -323,6 +326,7 @@ jobs:
                             xOPENCOLORIO_CXX=g++
                             UHDR_CMAKE_C_COMPILER=gcc
                             UHDR_CMAKE_CXX_COMPILER=g++
+            rust: 1
             # Building libuhdr with icx results in test failures
             # so we force using gcc/g++.
           - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
@@ -335,6 +339,7 @@ jobs:
             pybind11_ver: v2.12.0
             benchmark: 1
             setenvs: PUGIXML_VERSION=v1.14
+            rust: 1
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024.clang
             runner: ubuntu-latest
@@ -347,6 +352,7 @@ jobs:
             pybind11_ver: v2.12.0
             benchmark: 1
             setenvs: PUGIXML_VERSION=v1.14
+            rust: 1
           - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025
             runner: ubuntu-latest
@@ -456,7 +462,7 @@ jobs:
                             FREETYPE_VERSION=master
                             QT_VERSION=0 INSTALL_OPENCV=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
-                            # Disabling the `apt-get update` in gh-installdeps.bash 
+                            # Disabling the `apt-get update` in gh-installdeps.bash
                             # addresses a job killing problem in the GHA Ubuntu
                             # 24.04 runners that cropped up circa May 29 2024. Maybe
                             # it will be fixed and we can do the update again later?
@@ -548,6 +554,7 @@ jobs:
       ctest_test_timeout: ${{ matrix.ctest_test_timeout || '800' }}
       coverage: ${{ matrix.coverage || 0 }}
       sonar: ${{ matrix.sonar || 0 }}
+      rust: ${{ matrix.rust || 0 }}
     strategy:
       fail-fast: false
       matrix:
@@ -563,6 +570,7 @@ jobs:
             ctest_test_timeout: 1200
             setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
             benchmark: 1
+            rust: 1
           - desc: MacOS-14-ARM aclang15/C++20/py3.12
             runner: macos-14
             nametag: macos14-arm-py312
@@ -570,6 +578,7 @@ jobs:
             cxx_compiler: clang++
             cxx_std: 20
             python_ver: "3.12"
+            rust: 1
           - desc: MacOS-15-ARM aclang16/C++20/py3.13
             runner: macos-15
             nametag: macos15-arm-py313
@@ -578,6 +587,7 @@ jobs:
             cxx_std: 20
             python_ver: "3.13"
             benchmark: 1
+            rust: 1
 
 
   #
@@ -614,6 +624,7 @@ jobs:
       ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
       coverage: ${{ matrix.coverage || 0 }}
       sonar: ${{ matrix.sonar || 0 }}
+      rust: ${{ matrix.rust || 0 }}
     strategy:
       fail-fast: false
       matrix:
@@ -625,6 +636,7 @@ jobs:
             generator: "Visual Studio 16 2019"
             python_ver: "3.9"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
+            rust: 1
           - desc: Windows-2022 VS2022
             runner: windows-2022
             nametag: windows-2022
@@ -632,6 +644,7 @@ jobs:
             generator: "Visual Studio 17 2022"
             python_ver: "3.9"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
+            rust: 1
           - desc: Windows-2025 VS2022
             runner: windows-2025
             nametag: windows-2025
@@ -640,3 +653,4 @@ jobs:
             python_ver: "3.9"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
             benchmark: 1
+            rust: 1

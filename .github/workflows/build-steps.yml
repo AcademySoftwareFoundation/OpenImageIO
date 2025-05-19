@@ -68,6 +68,8 @@ on:
         type: string
       nametag:
         type: string
+      rust:
+        type: string
     secrets:
         PASSED_GITHUB_TOKEN:
           required: false
@@ -155,6 +157,15 @@ jobs:
         if: inputs.clang_format == '1'
         shell: bash
         run: src/build-scripts/run-clang-format.bash
+      - name: Rust Install Toolchain
+        if: inputs.rust == '1'
+        uses: dtolnay/rust-toolchain@4305c38b25d97ef35a8ad1f985ccf2d2242004f2 # stable
+      - name: Rust Test
+        if: inputs.rust == '1'
+        shell: bash
+        env:
+          OIIO_CXX_STANDARD: c++${{inputs.cxx_std}}
+        run: src/build-scripts/ci-rust-test.bash
       - name: Code coverage
         if: inputs.coverage == '1'
         run: src/build-scripts/ci-coverage.bash
