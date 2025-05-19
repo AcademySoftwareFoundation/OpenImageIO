@@ -50,6 +50,8 @@ on:
         type: string
       abi_check:
         type: string
+      benchmark:
+        type: string
       build_docs:
         type: string
       clang_format:
@@ -145,6 +147,10 @@ jobs:
         if: inputs.skip_tests != '1'
         shell: bash
         run: src/build-scripts/ci-test.bash
+      - name: Benchmarks
+        if: inputs.benchmark == '1'
+        shell: bash
+        run: src/build-scripts/ci-benchmark.bash
       - name: clang-format
         if: inputs.clang_format == '1'
         shell: bash
@@ -193,13 +199,14 @@ jobs:
             time make sphinx
       - name: Upload testsuite debugging artifacts
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
-        if: ${{ failure() || inputs.build_docs == '1'}}
+        if: ${{ failure() || inputs.build_docs == '1' || inputs.benchmark == '1' }}
         with:
           name: oiio-${{github.job}}-${{inputs.nametag}}
           path: |
             build/cmake-save
             build/compat_reports
             build/sphinx
+            build/benchmarks
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
