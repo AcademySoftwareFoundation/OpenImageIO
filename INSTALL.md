@@ -17,7 +17,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++17 or higher (also builds with C++20)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: gcc 9.3 - 14.2, clang 5 - 19, MSVS 2017 - 2019 (v19.14
+ * Compilers: gcc 9.3 - 14.2, clang 5 - 19, MSVS 2017 - 2022 (v19.14
    and up), Intel icc 19+, Intel OneAPI C++ compiler 2022+.
  * CMake >= 3.18.2 (tested through 4.0)
  * Imath >= 3.1 (tested through 3.1.x and main)
@@ -316,11 +316,18 @@ Next, you need to do the "cmake configure" step:
 
 ```
 cmake -S . -B build -DOpenImageIO_BUILD_MISSING_DEPS=all ^
-  -DUSE_PYTHON=0 -DUSE_QT=0 -DBUILD_SHARED_LIBS=0 -DLINKSTATIC=1
+  -DBUILD_SHARED_LIBS=0 -DLINKSTATIC=1
 ```
 
 If that command succeeds, you can either do the full build and install 
 from the command line, or open the generated Visual Studio solution.
+
+Note that you can speed up the build by disabling certain components if you
+know you won't need them: Adding `-DUSE_PYTHON=0` to the command above will
+skip building the Python bindings, `-DUSE_QT=0` will disable looking foor and
+using Qt (needed only for the `iv` viewer), and `-DOIIO_BUILD_TESTS=0` will
+skip building certain unit tests (which you only need if you want to OIIO's
+tests).
 
 If you just want a one-step build/install from the command line, you can run:
 
