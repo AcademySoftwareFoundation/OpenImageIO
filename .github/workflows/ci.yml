@@ -309,7 +309,6 @@ jobs:
                             OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
                             FREETYPE_VERSION=VER-2-13-0
                             DISABLE_libuhdr=1
-            rust: 1
             # For icc, use fp-model precise to eliminate needless LSB errors
             # that make test results differ from other platforms.
           - desc: VFX2023 icx/C++17 py3.10 exr3.1 ocio2.2 qt5.15
@@ -326,7 +325,6 @@ jobs:
                             xOPENCOLORIO_CXX=g++
                             UHDR_CMAKE_C_COMPILER=gcc
                             UHDR_CMAKE_CXX_COMPILER=g++
-            rust: 1
             # Building libuhdr with icx results in test failures
             # so we force using gcc/g++.
           - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3

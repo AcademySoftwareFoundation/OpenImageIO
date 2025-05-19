@@ -14,12 +14,6 @@ fi
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OpenImageIO_ROOT/lib
 export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$OpenImageIO_ROOT/lib/pkgconfig
 
-# TEST
-echo TEST
-cat $OpenImageIO_ROOT/lib/pkgconfig/OpenImageIO.pc
-echo END TEST
-# END TEST
-
 echo "Using C++ STD ${OIIO_CXX_STANDARD}"
 
 echo "Running Rust oiio-sys tests"
