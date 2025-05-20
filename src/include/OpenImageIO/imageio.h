@@ -60,6 +60,10 @@ using stride_t = int64_t;
 inline constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
 #endif
 
+// Signal that this version of ImageBuf has constructors from spans
+#define OIIO_IMAGEINPUT_IMAGE_SPAN_SUPPORT 1
+#define OIIO_IMAGEOUTPUT_IMAGE_SPAN_SUPPORT 1
+
 
 
 /// Pointer to a function called periodically by read_image and

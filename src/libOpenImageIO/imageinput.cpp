@@ -293,6 +293,11 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
     ImageSpec spec = spec_dimensions(subimage, miplevel);
     if (chend < 0 || chend > spec.nchannels)
         chend = spec.nchannels;
+    if (chbegin < 0 || chbegin >= chend) {
+        errorfmt("read_scanlines: invalid channel range [{},{})", chbegin,
+                 chend);
+        return false;
+    }
     size_t isize = (format == TypeUnknown
                         ? spec.pixel_bytes(chbegin, chend, true /*native*/)
                         : format.size() * (chend - chbegin))
@@ -645,6 +650,10 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
     ImageSpec spec = spec_dimensions(subimage, miplevel);
     if (chend < 0 || chend > spec.nchannels)
         chend = spec.nchannels;
+    if (chbegin < 0 || chbegin >= chend) {
+        errorfmt("read_tiles: invalid channel range [{},{})", chbegin, chend);
+        return false;
+    }
     size_t isize = (format == TypeUnknown
                         ? spec.pixel_bytes(chbegin, chend, true /*native*/)
                         : format.size() * (chend - chbegin))
@@ -1193,9 +1202,13 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         return false;
     }
 
-    if (chend < 0)
+    if (chend < 0 || chend > spec.nchannels)
         chend = spec.nchannels;
-    chend              = clamp(chend, chbegin + 1, spec.nchannels);
+    if (chbegin < 0 || chbegin >= chend) {
+        errorfmt("read_image: invalid channel range [{},{})", chbegin,
+                 chend);
+        return false;
+    }
     int nchans         = chend - chbegin;
     bool native        = (format == TypeUnknown);
     size_t pixel_bytes = native ? spec.pixel_bytes(chbegin, chend, native)
