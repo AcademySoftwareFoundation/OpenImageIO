@@ -1903,7 +1903,7 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
     if (display.empty() || display == "default")
         display = getDefaultDisplayName();
     if (view.empty() || view == "default")
-        view = getDefaultViewName(display);
+        view = getDefaultViewName(display, inputColorSpace);
     // First, look up the requested processor in the cache. If it already
     // exists, just return it.
     ColorProcCacheKey prockey(inputColorSpace, ustring() /*outputColorSpace*/,
@@ -1919,15 +1919,18 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
     if (getImpl()->config_ && !disable_ocio) {
         OCIO::ConstConfigRcPtr config = getImpl()->config_;
         auto transform                = OCIO::DisplayViewTransform::Create();
+        auto legacy_viewing_pipeline  = OCIO::LegacyViewingPipeline::Create();
+        OCIO::TransformDirection dir  = inverse ? OCIO::TRANSFORM_DIR_INVERSE
+                                                : OCIO::TRANSFORM_DIR_FORWARD;
         transform->setSrc(inputColorSpace.c_str());
-        if (looks.size()) {
-            getImpl()->error(
-                "createDisplayTransform: looks overrides are not allowed in OpenColorIO v2");
-        }
-        OCIO::TransformDirection dir = inverse ? OCIO::TRANSFORM_DIR_INVERSE
-                                               : OCIO::TRANSFORM_DIR_FORWARD;
         transform->setDisplay(display.c_str());
         transform->setView(view.c_str());
+        transform->setDirection(dir);
+        legacy_viewing_pipeline->setDisplayViewTransform(transform);
+        if (looks.size()) {
+            legacy_viewing_pipeline->setLooksOverride(looks.c_str());
+            legacy_viewing_pipeline->setLooksOverrideEnabled(true);
+        }
         auto context = config->getCurrentContext();
         auto keys    = Strutil::splits(context_key, ",");
         auto values  = Strutil::splits(context_value, ",");
@@ -1941,7 +1944,7 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
         OCIO::ConstProcessorRcPtr p;
         try {
             // Get the processor corresponding to this transform.
-            p = config->getProcessor(context, transform, dir);
+            p = legacy_viewing_pipeline->getProcessor(config, context);
             getImpl()->clear_error();
             handle = ColorProcessorHandle(new ColorProcessor_OCIO(p));
         } catch (OCIO::Exception& e) {
