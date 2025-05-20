@@ -234,9 +234,12 @@ public:
     /// default display will be used.
     std::vector<std::string> getViewNames(string_view display = "") const;
 
-    /// Query the name of the default view for the specified display. If the
-    /// display is empty or not specified, the default display will be used.
-    const char* getDefaultViewName(string_view display = "") const;
+    /// Query the name of the default view for the specified display, given
+    /// the input color space. If the display is empty or not specified, the
+    /// default display will be used. If an input color space is not given,
+    /// the "default" color space will be used.
+    const char* getDefaultViewName(string_view display = "",
+                                   string_view inputColorSpace = "") const;
 
     /// Returns the colorspace attribute of the (display, view) pair. (Note
     /// that this may be either a color space or a display color space.)
@@ -351,8 +354,14 @@ public:
     /// Given a filepath, ask OCIO what color space it thinks the file
     /// should be, based on how the name matches file naming rules in the
     /// OCIO config.  (This is mostly a wrapper around OCIO's
-    /// ColorConfig::getColorSpaceFromSFilepath.)
+    /// ColorConfig::getColorSpaceFromFilepath.)
     string_view getColorSpaceFromFilepath(string_view str) const;
+
+    /// Given a filepath, returns whether the result of 
+    /// getColorSpaceFromFilepath() is the failover condition, due
+    /// to the OCIO config's file rules not otherwise finding a match
+    /// for the filepath. 
+    bool filepathOnlyMatchesDefaultRule(string_view str) const;
 
     /// Given a string (like a filename), look for the longest, right-most
     /// colorspace substring that appears. Returns "" if no such color space

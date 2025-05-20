@@ -1208,24 +1208,34 @@ ColorConfig::getDefaultDisplayName() const
 
 
 const char*
-ColorConfig::getDefaultViewName(string_view display) const
+ColorConfig::getDefaultViewName(string_view display,
+                                string_view inputColorSpace) const
 {
     if (display.empty() || display == "default")
         display = getDefaultDisplayName();
+    if (inputColorSpace.empty() || inputColorSpace == "default")
+        inputColorSpace = getImpl()->config_->getColorSpaceFromFilepath(
+            c_str(inputColorSpace));
     if (getImpl()->config_ && !disable_ocio)
-        return getImpl()->config_->getDefaultView(c_str(display));
+        return getImpl()->config_->getDefaultView(c_str(display),
+                                                  c_str(inputColorSpace));
     return nullptr;
 }
-
 
 
 const char*
 ColorConfig::getDisplayViewColorSpaceName(const std::string& display,
                                           const std::string& view) const
 {
-    if (getImpl()->config_ && !disable_ocio)
-        return getImpl()->config_->getDisplayViewColorSpaceName(display.c_str(),
-                                                                view.c_str());
+    if (getImpl()->config_ && !disable_ocio) {
+        string_view name
+            = getImpl()->config_->getDisplayViewColorSpaceName(c_str(display),
+                                                               c_str(view));
+        // Handle certain Shared View cases
+        if (c_str(name) == OCIO::OCIO_VIEW_USE_DISPLAY_NAME)
+            name = display;
+        return c_str(name);
+    }
     return nullptr;
 }
 
@@ -2090,7 +2100,11 @@ ColorConfig::getColorSpaceFromFilepath(string_view str) const
     return parseColorSpaceFromString(str);
 }
 
-
+bool
+ColorConfig::filepathOnlyMatchesDefaultRule(string_view str) const
+{
+    return getImpl()->config_->filepathOnlyMatchesDefaultRule(c_str(str));
+}
 
 string_view
 ColorConfig::parseColorSpaceFromString(string_view str) const

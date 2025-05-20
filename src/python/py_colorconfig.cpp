@@ -84,10 +84,10 @@ declare_colorconfig(py::module& m)
             "display"_a = "")
         .def(
             "getDefaultViewName",
-            [](const ColorConfig& self, const std::string& display) {
-                return self.getDefaultViewName(display);
+            [](const ColorConfig& self, const std::string& display, const std::string& input_color_space) {
+                return self.getDefaultViewName(display, input_color_space);
             },
-            "display"_a = "")
+            "display"_a = "", "input_color_space"_a = "")
         .def(
             "getDisplayViewColorSpaceName",
             [](const ColorConfig& self, const std::string& display,
@@ -118,6 +118,10 @@ declare_colorconfig(py::module& m)
         .def("getColorSpaceFromFilepath",
              [](const ColorConfig& self, const std::string& str) {
                  return std::string(self.getColorSpaceFromFilepath(str));
+             })
+        .def("filepathOnlyMatchesDefaultRule",
+             [](const ColorConfig& self, const std::string& str) {
+                 return self.filepathOnlyMatchesDefaultRule(str);
              })
         .def("parseColorSpaceFromString",
              [](const ColorConfig& self, const std::string& str) {
