@@ -24,15 +24,15 @@ fn main() -> Result<()> {
     if oiio_include_dir.is_ok() && oiio_lib_dir.is_ok() {
         let oiio_include_dir = oiio_include_dir.unwrap();
         let oiio_lib_dir = oiio_lib_dir.unwrap();
-
-        if glob::glob(
+        let mut paths = glob::glob(
             oiio_lib_dir
                 .join("libOpenImageIO_d.*")
                 .to_string_lossy()
                 .as_ref(),
         )
-        .is_ok()
-        {
+        .expect("Could not open the OpenImageIO directory.");
+
+        if paths.next().is_some() {
             libs.extend_from_slice(&["OpenImageIO_d".into(), "OpenImageIO_Util_d".into()]);
         } else {
             libs.extend_from_slice(&["OpenImageIO".into(), "OpenImageIO_Util".into()]);
