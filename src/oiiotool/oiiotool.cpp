@@ -1511,7 +1511,8 @@ public:
         : OiiotoolOp(ot, opname, argv, 1)
     {
         inplace(true);  // This action operates in-place
-        bool fromfile = Strutil::ends_with(opname, "fromfile");
+        auto options  = ot.extract_options(opname);
+        bool fromfile = options.get_int("fromfile", 0);
         if (!fromfile) {
             attribname = args(1);
         } else {
@@ -1600,7 +1601,9 @@ erase_attribute(Oiiotool& ot, cspan<const char*> argv)
 {
     // action_attrib already has the property of erasing the attrib if no
     // value is in the args.
+
     action_attrib_helper(ot, argv[0], argv);
+
 }
 
 
@@ -6667,10 +6670,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Sets string metadata attribute")
       .OTACTION(action_sattrib);
     ap.arg("--eraseattrib %s:REGEX")
-      .help("Erase attributes matching regex")
-      .OTACTION(erase_attribute);
-    ap.arg("--eraseattrib_fromfile %s:REGEXFILE")
-      .help("Erase attributes matching regex list from a txt file")
+      .help("Erase attributes matching regex (options: fromfile=1 filename-containing-patterns")
       .OTACTION(erase_attribute);
     ap.arg("--caption %s:TEXT")
       .help("Sets caption (ImageDescription metadata)")
