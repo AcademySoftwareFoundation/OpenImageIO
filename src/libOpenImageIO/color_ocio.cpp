@@ -2506,8 +2506,12 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
 
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
-    if (ok)
-        dst.specmod().set_colorspace(to);
+    if (ok) {
+        if (inverse)
+            dst.specmod().set_colorspace(from);
+        else
+            dst.specmod().set_colorspace(to);
+    }
     return ok;
 }
 
@@ -2566,6 +2570,13 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
 
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
+    if (ok) {
+        if (inverse)
+            dst.specmod().set_colorspace(from);
+        else
+            dst.specmod().set_colorspace(
+                colorconfig->getDisplayViewColorSpaceName(display, view));
+    }
     return ok;
 }
 
@@ -2617,7 +2628,14 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok)
-        dst.specmod().set_colorspace(name);
+        // If we can parse a color space from the file name, and we're not inverting
+        // the transform, then we'll use the color space name from the file.
+        // Otherwise, we'll leave `oiio:ColorSpace` alone.
+        // TODO: Use OCIO to extract InputDescription and OutputDescription CLF
+        // metadata attributes, if present.
+        if (!colorconfig->filepathOnlyMatchesDefaultRule(name))
+            dst.specmod().set_colorspace(
+                colorconfig->getColorSpaceFromFilepath(name));
     return ok;
 }
 
