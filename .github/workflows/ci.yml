@@ -576,7 +576,6 @@ jobs:
             cxx_compiler: clang++
             cxx_std: 20
             python_ver: "3.12"
-            rust: 1
           - desc: MacOS-15-ARM aclang16/C++20/py3.13
             runner: macos-15
             nametag: macos15-arm-py313

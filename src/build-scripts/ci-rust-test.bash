@@ -13,6 +13,8 @@ fi
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OpenImageIO_ROOT/lib
 export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$OpenImageIO_ROOT/lib/pkgconfig
+export OIIO_INCLUDE_DIR=$OpenImageIO_ROOT/include
+export OIIO_LIBRARY_DIR=$OpenImageIO_ROOT/lib
 
 echo "Using C++ STD ${OIIO_CXX_STANDARD}"
 
