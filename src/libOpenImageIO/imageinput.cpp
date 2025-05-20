@@ -1205,8 +1205,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
     if (chend < 0 || chend > spec.nchannels)
         chend = spec.nchannels;
     if (chbegin < 0 || chbegin >= chend) {
-        errorfmt("read_image: invalid channel range [{},{})", chbegin,
-                 chend);
+        errorfmt("read_image: invalid channel range [{},{})", chbegin, chend);
         return false;
     }
     int nchans         = chend - chbegin;
