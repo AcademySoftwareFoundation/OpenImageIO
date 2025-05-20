@@ -239,6 +239,14 @@ command += oiiotool ("--pattern fill:left=0,0,0:right=1,1,0 2x2 3 -d half -o dum
 command += oiiotool ("-echo dumpdata: --dumpdata dump.exr")
 command += oiiotool ("-echo dumpdata:C --dumpdata:C=data dump.exr")
 
+# TODO: Remove folder1/folder2/out.tif so that consecutive test run passes.
+# Test --create-dir
+# Validate -o failed due to missing directory `folder1/folder2/`
+command += oiiotool ("--create 2x2 1 -o folder1/folder2/out.tif")
+# Validate -o sucessed with flag `--create-dir` and `out.tif` is valid and inside directory `folder1/folder2/`
+command += oiiotool ("--create-dir --create 2x2 1 -o folder1/folder2/out.tif")
+command += oiiotool ("--info folder1/folder2/out.tif")
+
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
 # below.

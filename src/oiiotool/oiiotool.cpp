@@ -5514,15 +5514,23 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         return;
     }
 
-    if (ot.createdirectories) {
-        const std::string outputdirpath = Filesystem::parent_path(filename);
-        if (!Filesystem::exists(outputdirpath)) {
-            const bool result = Filesystem::create_directory(outputdirpath);
-            if (!result) {
-                ot.errorfmt(command, "Failed to create output directory: {}",
-                            outputdirpath);
+    const std::string outputdirpath = Filesystem::parent_path(filename);
+    if (!outputdirpath.empty() && !Filesystem::exists(outputdirpath)) {
+        if (ot.create_dir) {
+            std::string err;
+            const bool ok = Filesystem::create_directories(outputdirpath, err);
+            if (!ok) {
+                ot.errorfmt(command,
+                            "Failed to create output directory: {}\n\tError: {}",
+                            outputdirpath, err);
                 return;
             }
+        } else {
+            ot.errorfmt(command,
+                        "Non-existent output directory: {}\n"
+                        "\t--create-dir to create missing output directories",
+                        outputdirpath);
+            return;
         }
     }
 
@@ -6470,7 +6478,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Do not overwrite existing files");
     ap.arg("--noclobber", &ot.noclobber)
       .hidden(); // synonym
-    ap.arg("--create-dir", &ot.createdirectories)
+    ap.arg("--create-dir", &ot.create_dir)
       .help("Create output directories if it doesn't exists");
     ap.arg("--threads %d:N")
       .help("Number of threads (default 0 == #cores)")
