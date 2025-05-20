@@ -324,7 +324,7 @@ from the command line, or open the generated Visual Studio solution.
 
 Note that you can speed up the build by disabling certain components if you
 know you won't need them: Adding `-DUSE_PYTHON=0` to the command above will
-skip building the Python bindings, `-DUSE_QT=0` will disable looking foor and
+skip building the Python bindings, `-DUSE_QT=0` will disable looking for and
 using Qt (needed only for the `iv` viewer), and `-DOIIO_BUILD_TESTS=0` will
 skip building certain unit tests (which you only need if you want to OIIO's
 tests).
