@@ -387,7 +387,8 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
         m_nmiplevels = 1;
         m_miplevel   = 0;
         m_headers.resize(1);
-        copy_and_check_spec(userspec, m_spec);
+        if (!copy_and_check_spec(userspec, m_spec))
+            return false;
         sanity_check_channelnames();
         const ParamValue* param = m_spec.find_attribute("oiio:ioproxy",
                                                         TypeDesc::PTR);
@@ -1312,7 +1313,7 @@ OpenEXROutput::sanity_check_channelnames()
             if (m_spec.channelnames[c].empty()
                 || m_spec.channelnames[c] == m_spec.channelnames[i]) {
                 // Duplicate or missing channel name! We don't want
-                // libIlmImf to drop the channel (as it will do for
+                // libOpenEXR to drop the channel (as it will do for
                 // duplicates), so rename it and hope for the best.
                 m_spec.channelnames[c] = Strutil::fmt::format("channel{}", c);
                 break;
