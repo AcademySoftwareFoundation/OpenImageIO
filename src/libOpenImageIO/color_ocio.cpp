@@ -2113,6 +2113,25 @@ ColorConfig::getColorSpaceFromFilepath(string_view str) const
     return parseColorSpaceFromString(str);
 }
 
+string_view
+ColorConfig::getColorSpaceFromFilepath(string_view str, string_view default_cs,
+                                       bool cs_name_match) const
+{
+    if (getImpl() && getImpl()->config_) {
+        std::string s(str);
+        string_view r = getImpl()->config_->getColorSpaceFromFilepath(
+            s.c_str());
+        if (!getImpl()->config_->filepathOnlyMatchesDefaultRule(s.c_str()))
+            return r;
+    }
+    if (cs_name_match) {
+        string_view parsed = parseColorSpaceFromString(str);
+        if (parsed.size())
+            return parsed;
+    }
+    return default_cs;
+}
+
 bool
 ColorConfig::filepathOnlyMatchesDefaultRule(string_view str) const
 {
