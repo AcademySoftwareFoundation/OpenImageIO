@@ -5342,10 +5342,12 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
             // Try to deduce the color space it's in
             std::string colorspace(
                 ot.colorconfig().getColorSpaceFromFilepath(filename));
-            if (colorspace.size() && ot.debug)
+            bool no_match = ot.colorconfig().filepathOnlyMatchesDefaultRule(
+                filename);
+            if (colorspace.size() && ot.debug && !no_match)
                 print("  From {}, we deduce color space \"{}\"\n", filename,
                       colorspace);
-            if (colorspace.empty()) {
+            if (no_match) {
                 ot.read();
                 colorspace = ot.curimg->spec()->get_string_attribute(
                     "oiio:ColorSpace");
@@ -5661,7 +5663,8 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
     std::string outcolorspace = ot.colorconfig().getColorSpaceFromFilepath(
         filename);
-    if (autocc && outcolorspace.size()) {
+    if (autocc && outcolorspace.size()
+        && !ot.colorconfig().filepathOnlyMatchesDefaultRule(filename)) {
         TypeDesc type;
         int bits;
         type = ot.colorconfig().getColorSpaceDataType(outcolorspace, &bits);
