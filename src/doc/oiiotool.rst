@@ -2032,11 +2032,11 @@ current top image.
         are not set, only the first subimage will be changed, or all subimages
         if the `-a` command line flag was used.
       
-      `:fromfile=`
-        When set to 1, like `--eraseattrib:fromfile=1 filename-containing-pattern`
-        Removes any metadata whose name matches the regular expression *pattern*
-        from a list in *filename-containing-pattern*
-        The patterns will be case insensitive and one pattern per new line.
+      `:fromfile=` *int*
+        When set to 1, the next argument will be interpreted as
+        the name of a file containing a list of patterns to erase, for example:
+        `--eraseattrib:fromfile=1 patterns.txt`,
+        The patterns will be case insensitive and one pattern per line of the file.
         Default value is 0 (False).
 
     Examples::
