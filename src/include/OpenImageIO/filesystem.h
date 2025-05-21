@@ -165,6 +165,10 @@ inline bool create_directory (string_view path) {
     return create_directory (path, err);
 }
 
+/// Create directory for every element in `path` that does not already exist.
+/// Return true for success, false for failure and place an error message in err.
+OIIO_UTIL_API bool create_directories(string_view path, std::string& err) noexcept;
+
 /// Copy a file, directory, or link. It is an error if 'to' already exists.
 /// The file names are all UTF-8 encoded. Return true upon success, false upon
 /// failure and place an error message in err.

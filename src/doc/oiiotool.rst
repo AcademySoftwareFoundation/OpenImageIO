@@ -932,6 +932,11 @@ output each one to a different file, with names `sub0001.tif`,
     Sets "no clobber" mode, in which existing images on disk will never be
     overridden, even if the `-o` command specifies that file.
 
+.. option:: --create-dir
+
+    Create output directories if it doesn't exists already 
+    during the `-o` output action.
+
 .. option:: --threads <n>
 
     Use *n* execution threads if it helps to speed up image operations. The
