@@ -2050,7 +2050,7 @@ current top image.
         # Remove all metadata
         oiiotool in.exr --eraseattrib:subimages=all ".*" -o no_metadata.exr
 
-        #Remove all attribute that match any regex in text file
+        # Remove all attribute that match any regex in text file
         oiiotool in.exr --eraseattrib:fromfile=1 no_gps_make.txt -o no_gps_make_metadata.exr
 
         no_gps_make.txt content:
