@@ -2053,7 +2053,7 @@ current top image.
         # Remove all attribute that match any regex in text file
         oiiotool in.exr --eraseattrib:fromfile=1 no_gps_make.txt -o no_gps_make_metadata.exr
 
-        no_gps_make.txt content:
+        Example contents of file no_gps_make.txt:
             Make
             GPS:.*
 
