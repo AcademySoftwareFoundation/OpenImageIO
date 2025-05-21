@@ -362,6 +362,16 @@ public:
     /// ColorConfig::getColorSpaceFromFilepath.)
     string_view getColorSpaceFromFilepath(string_view str) const;
 
+    /// Given a filepath, ask OCIO what color space it thinks the file
+    /// should be, based on how the name matches file naming rules in the
+    /// OCIO config. If no match is found, return `default_cs` instead of
+    /// the OCIO config's default color space. If `cs_name_match` is
+    /// true, additionally attempt to match the color space name in the
+    /// filename, if the OCIO config heuristics fail to find a match.
+    string_view getColorSpaceFromFilepath(string_view str,
+                                          string_view default_cs,
+                                          bool cs_name_match = false) const;
+
     /// Given a filepath, returns whether the result of
     /// getColorSpaceFromFilepath() is the failover condition, due
     /// to the OCIO config's file rules not otherwise finding a match

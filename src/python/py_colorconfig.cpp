@@ -122,14 +122,27 @@ declare_colorconfig(py::module& m)
              [](const ColorConfig& self, const std::string& named_transform) {
                  return self.getNamedTransformAliases(named_transform);
              })
-        .def("getColorSpaceFromFilepath",
-             [](const ColorConfig& self, const std::string& str) {
-                 return std::string(self.getColorSpaceFromFilepath(str));
-             })
-        .def("filepathOnlyMatchesDefaultRule",
-             [](const ColorConfig& self, const std::string& str) {
-                 return self.filepathOnlyMatchesDefaultRule(str);
-             })
+        .def(
+            "getColorSpaceFromFilepath",
+            [](const ColorConfig& self, const std::string& filepath) {
+                return std::string(self.getColorSpaceFromFilepath(filepath));
+            },
+            "filepath"_a)
+        .def(
+            "getColorSpaceFromFilepath",
+            [](const ColorConfig& self, const std::string& filepath,
+               const std::string& default_cs, const bool& cs_name_match) {
+                return std::string(
+                    self.getColorSpaceFromFilepath(filepath, default_cs,
+                                                   cs_name_match));
+            },
+            "filepath"_a, "default_cs"_a, "cs_name_match"_a = false)
+        .def(
+            "filepathOnlyMatchesDefaultRule",
+            [](const ColorConfig& self, const std::string& filepath) {
+                return self.filepathOnlyMatchesDefaultRule(filepath);
+            },
+            "filepath"_a)
         .def("parseColorSpaceFromString",
              [](const ColorConfig& self, const std::string& str) {
                  return std::string(self.parseColorSpaceFromString(str));
