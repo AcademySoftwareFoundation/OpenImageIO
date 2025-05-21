@@ -36,10 +36,10 @@ Default view for sRGB - Display (from 'srgb_tx'): Colorimetry
 Color space name from DisplayView transform referencing Shared View: sRGB - Display
 Test buffer -- initial cs: ACEScg
 Test buffer -- initial values: [[[0.1 0.5 0.9]]] (ACEScg)
-Test buffer -- ociodisplay #1: [[[-2.1235147   0.6707234   0.80351627]]] (sRGB - Display)
-Test buffer -- ociodisplay #2: [[[-2.1235147   0.6707234   0.80351627]]] (sRGB - Display)
-Test buffer -- ociodisplay #3: [[[-2.2526047   0.6712879   0.80360305]]] (sRGB - Display)
-Test buffer -- ociodisplay #4: [[[-2.1235077   0.6707201   0.80352503]]] (sRGB - Display)
-Test buffer -- ociodisplay #5: [[[-2.1235077   0.6707201   0.80352503]]] (sRGB - Display)
+Test buffer -- ociodisplay #1: [[[-2.123   0.671   0.8037]]] (sRGB - Display)
+Test buffer -- ociodisplay #2: [[[-2.123   0.671   0.8037]]] (sRGB - Display)
+Test buffer -- ociodisplay #3: [[[-2.252   0.6714  0.8037]]] (sRGB - Display)
+Test buffer -- ociodisplay #4: [[[-2.123   0.671   0.8037]]] (sRGB - Display)
+Test buffer -- ociodisplay #5: [[[-2.123   0.671   0.8037]]] (sRGB - Display)
 
 Done.

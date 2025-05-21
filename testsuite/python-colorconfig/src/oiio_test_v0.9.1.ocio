@@ -43,7 +43,7 @@ displays:
     - !<Views> [ACES 1.0 - SDR Video, Un-tone-mapped, Colorimetry]
 
 active_displays: [sRGB - Display, Rec.1886 Rec.709 - Display]
-active_views: [Colorimetry, ACES 1.0 - SDR Video, Un-tone-mapped, Raw]
+active_views: [ACES 1.0 - SDR Video,  Un-tone-mapped, Colorimetry, Raw]
 inactive_colorspaces: [CIE XYZ-D65 - Display-referred, CIE XYZ-D65 - Scene-referred, linear]
 
 looks:
