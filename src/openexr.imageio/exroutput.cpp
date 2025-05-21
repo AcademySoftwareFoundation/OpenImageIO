@@ -1381,7 +1381,8 @@ OpenEXROutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     // where the address of the "virtual framebuffer" for the whole
     // image.
     imagesize_t scanlinebytes = m_spec.scanline_bytes(native);
-    char* buf = (char*)data - m_spec.x * pixel_bytes - y * scanlinebytes;
+    char* buf                 = (char*)data - ptrdiff_t(m_spec.x * pixel_bytes)
+                - ptrdiff_t(y * scanlinebytes);
 
     try {
         Imf::FrameBuffer frameBuffer;
@@ -1644,7 +1645,8 @@ OpenEXROutput::write_tiles(int xbegin, int xend, int ybegin, int yend,
         data = &padded[0];
     }
 
-    char* buf = (char*)data - xbegin * pixelbytes - ybegin * widthbytes;
+    char* buf = (char*)data - ptrdiff_t(xbegin * pixelbytes)
+                - ptrdiff_t(ybegin * widthbytes);
 
     try {
         Imf::FrameBuffer frameBuffer;
