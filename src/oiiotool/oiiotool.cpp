@@ -1517,7 +1517,6 @@ public:
             attribname = args(1);
         } else {
             // handle erase attribute using regex text file case
-            // defined it outside to avoid magic number, still not very elegant solution wise
             regex_file      = args(1);
             attribname_list = get_regex_list_from_file(regex_file);
         }
