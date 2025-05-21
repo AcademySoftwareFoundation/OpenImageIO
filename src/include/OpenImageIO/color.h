@@ -234,12 +234,17 @@ public:
     /// default display will be used.
     std::vector<std::string> getViewNames(string_view display = "") const;
 
+    /// Query the name of the default view for the specified display. If the
+    /// display is empty or not specified, the default display will be used.
+    /// This version does not consider the input color space.
+    const char* getDefaultViewName(string_view display = "") const;
+
     /// Query the name of the default view for the specified display, given
-    /// the input color space. If the display is empty or not specified, the
-    /// default display will be used. If an input color space is not given,
-    /// the "default" color space will be used.
-    const char* getDefaultViewName(string_view display         = "",
-                                   string_view inputColorSpace = "") const;
+    /// the input color space. If `display` is "default" or an empty string,
+    /// the default display will be used. The input color space is used to
+    /// determine the most appropriate default view for the given display.
+    const char* getDefaultViewName(string_view display,
+                                   string_view inputColorSpace) const;
 
     /// Returns the colorspace attribute of the (display, view) pair. (Note
     /// that this may be either a color space or a display color space.)

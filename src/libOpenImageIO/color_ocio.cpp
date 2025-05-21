@@ -1208,6 +1208,17 @@ ColorConfig::getDefaultDisplayName() const
 
 
 const char*
+ColorConfig::getDefaultViewName(string_view display) const
+{
+    if (display.empty() || display == "default")
+        display = getDefaultDisplayName();
+    if (getImpl()->config_ && !disable_ocio)
+        return getImpl()->config_->getDefaultView(c_str(display));
+    return nullptr;
+}
+
+
+const char*
 ColorConfig::getDefaultViewName(string_view display,
                                 string_view inputColorSpace) const
 {
