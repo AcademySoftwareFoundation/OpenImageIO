@@ -1494,6 +1494,14 @@ set_oiio_attribute(Oiiotool& ot, cspan<const char*> argv)
         OIIO::attribute(p.name(), p.type(), p.data());
 }
 
+static std::vector<std::string>
+get_regex_list_from_file(string_view filename)
+{
+    // helper function that takes a text file and return all regex attribname entries as a list
+    std::string contents;
+    Filesystem::read_text_file(filename, contents);
+    return Strutil::splits(contents, "\n");
+}
 
 
 // Special OiiotoolOp whose purpose is to set attributes on the top image.
@@ -1503,8 +1511,16 @@ public:
         : OiiotoolOp(ot, opname, argv, 1)
     {
         inplace(true);  // This action operates in-place
-        attribname = args(1);
-        value      = (nargs() > 2 ? args(2) : "");
+        auto options  = ot.extract_options(opname);
+        bool fromfile = options.get_int("fromfile", 0);
+        if (!fromfile) {
+            attribname = args(1);
+        } else {
+            // handle erase attribute using regex text file case
+            regex_file      = args(1);
+            attribname_list = get_regex_list_from_file(regex_file);
+        }
+        value = (nargs() > 2 ? args(2) : "");
     }
     bool setup() override
     {
@@ -1516,7 +1532,15 @@ public:
         // Because this is an in-place operation, img[0] is the same as
         // img[1].
         if (value.empty()) {
-            img[0]->specmod().erase_attribute(attribname);
+            if (attribname_list.empty()) {
+                img[0]->specmod().erase_attribute(attribname);
+            } else {
+                for (string_view attr : attribname_list) {
+                    //std::cout << "list element:" << attr << std::endl;
+                    img[0]->specmod().erase_attribute(attr);
+                }
+            }
+
         } else {
             TypeDesc type(options()["type"].as_string());
             set_attribute_helper(img[0]->specmod(), attribname, value, type);
@@ -1527,6 +1551,8 @@ public:
 private:
     string_view attribname;
     string_view value;
+    string_view regex_file;
+    std::vector<std::string> attribname_list;
 };
 
 
@@ -6663,7 +6689,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Sets string metadata attribute")
       .OTACTION(action_sattrib);
     ap.arg("--eraseattrib %s:REGEX")
-      .help("Erase attributes matching regex")
+      .help("Erase attributes matching regex (options: fromfile=1 filename-containing-patterns")
       .OTACTION(erase_attribute);
     ap.arg("--caption %s:TEXT")
       .help("Sets caption (ImageDescription metadata)")
