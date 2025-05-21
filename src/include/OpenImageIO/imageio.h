@@ -2164,11 +2164,12 @@ protected:
     ///     The ImageSpec that we are validating.
     ///
     /// @param range
-    ///     An ROI that describes the allowable pixel coordinates and channel
-    ///     indices as half-open intervals.  For example, the default value
-    ///     `{0, 65535, 0, 65535, 0, 1, 0, 4}` means that pixel coordinates
-    ///     must be non-negative and the width and height be representable by
-    ///     a uint16 value, up to 4 channels are allowed, and volumes are not
+    ///     An ROI that describes the allowable resolution and channel count:
+    ///     the width, height, depth, and channel count of the ROI are the
+    ///     maximum allowed for the file type. For example, the default value
+    ///     `{0, 65535, 0, 65535, 0, 1, 0, 4}` means that pixel data width
+    ///     and height must be non-negative and representable by uint16
+    ///     values, up to 4 channels are allowed, and volumes are not
     ///     permitted (z coordinate may only be 0). File formats that can
     ///     handle larger resolutions, or volumes, or >4 channels must
     ///     override these limits!
