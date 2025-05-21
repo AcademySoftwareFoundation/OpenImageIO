@@ -1600,9 +1600,7 @@ erase_attribute(Oiiotool& ot, cspan<const char*> argv)
 {
     // action_attrib already has the property of erasing the attrib if no
     // value is in the args.
-
     action_attrib_helper(ot, argv[0], argv);
-
 }
 
 
