@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-redirect = " >> out.txt 2>> out.txt"
+redirect = " >> out.txt 2>&1"
 
 # ../openexr-images/ScanLines:
 # Blobbies.exr     Cannon.exr  MtTamWest.exr     StillLife.exr
