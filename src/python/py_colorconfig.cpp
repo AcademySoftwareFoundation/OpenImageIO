@@ -84,7 +84,8 @@ declare_colorconfig(py::module& m)
             "display"_a = "")
         .def(
             "getDefaultViewName",
-            [](const ColorConfig& self, const std::string& display, const std::string& input_color_space) {
+            [](const ColorConfig& self, const std::string& display,
+               const std::string& input_color_space) {
                 return self.getDefaultViewName(display, input_color_space);
             },
             "display"_a = "", "input_color_space"_a = "")
