@@ -5,7 +5,7 @@ environment:
 search_path: ""
 strictparsing: true
 luma: [0.2126, 0.7152, 0.0722]
-name: oiio-test_v0.9.1
+name: oiio-test_v0.9.2
 description: |
    OIIO Test config, modified from "studio-config-v2.2.0_aces-v1.3_ocio-v2.4" on 2025-05-20T21:09:54.258778
    
@@ -13,16 +13,25 @@ description: |
 roles:
   aces_interchange: ACES2065-1
   cie_xyz_d65_interchange: CIE XYZ-D65 - Display-referred
-  color_picking: sRGB Encoded Rec.709 (sRGB)
+  color_picking: srgb_tx
   color_timing: ACEScct
   compositing_log: ACEScct
   data: Raw
   matte_paint: ACEScct
   scene_linear: lin_rec709
-  texture_paint: sRGB Encoded Rec.709 (sRGB)
+  texture_paint: srgb_tx
 
 file_rules:
+  # The ColorSpaceNamePathSearch rule is the "classic" "parse-colorspace-from-string" heuristic (with support for aliases)
   - !<Rule> {name: ColorSpaceNamePathSearch}
+  # The following rules implement lines 5649-5657 of oiiotool.cpp
+  - !<Rule> {name: JPG images, colorspace: srgb_tx, pattern: "*", extension: jpg}   # jpeginput.cpp, 261; jpegoutput.cpp, 262
+  - !<Rule> {name: JPEG images, colorspace: srgb_tx, pattern: "*", extension: jpeg}
+  - !<Rule> {name: GIF images, colorspace: srgb_tx, pattern: "*", extension: gif}
+  - !<Rule> {name: WebP images, colorspace: srgb_tx, pattern: "*", extension: webp} # webpinput.cpp, 165;
+  - !<Rule> {name: PPM images, colorspace: rec709_tx, pattern: "*", extension: ppm}
+  - !<Rule> {name: PMN images, colorspace: rec709_tx, pattern: "*", extension: pmn}
+  # Fallback to "lin_rec709" for all other files
   - !<Rule> {name: Default, colorspace: lin_rec709}
 
 viewing_rules:
@@ -35,16 +44,19 @@ shared_views:
   - !<View> {name: Colorimetry, view_transform: Un-tone-mapped, display_colorspace: <USE_DISPLAY_NAME>, rule: video}
 
 displays:
-  sRGB - Display:
+  sRGB (~2.22) - Display:
+    - !<View> {name: Raw, colorspace: Raw}
+    - !<Views> [ACES 1.0 - SDR Video, Un-tone-mapped, Colorimetry]
+  Gamma 2.2 Rec.709 - Display:
     - !<View> {name: Raw, colorspace: Raw}
     - !<Views> [ACES 1.0 - SDR Video, Un-tone-mapped, Colorimetry]
   Rec.1886 Rec.709 - Display:
     - !<View> {name: Raw, colorspace: Raw}
     - !<Views> [ACES 1.0 - SDR Video, Un-tone-mapped, Colorimetry]
 
-active_displays: [sRGB - Display, Rec.1886 Rec.709 - Display]
+active_displays: [sRGB (~2.22) - Display, Gamma 2.2 Rec.709 - Display, Rec.1886 Rec.709 - Display]
 active_views: [ACES 1.0 - SDR Video,  Un-tone-mapped, Colorimetry, Raw]
-inactive_colorspaces: [CIE XYZ-D65 - Display-referred, CIE XYZ-D65 - Scene-referred, linear]
+inactive_colorspaces: [CIE XYZ-D65 - Display-referred, CIE XYZ-D65 - Scene-referred, linear, rec709_tx]
 
 looks:
   - !<Look>
@@ -71,15 +83,22 @@ display_colorspaces:
     encoding: display-linear
 
   - !<ColorSpace>
-    name: sRGB - Display
-    aliases: [srgb_display]
+    name: sRGB (~2.22) - Display
+    aliases: [srgb_display, srgb_rec709_display, sRGB - Display]
     categories: [file-io]
     encoding: sdr-video
     from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_sRGB}
 
   - !<ColorSpace>
+    name: Gamma 2.2 Rec.709 - Display
+    aliases: [g22_rec709_display]
+    categories: [file-io]
+    encoding: sdr-video
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.2-REC.709}
+
+  - !<ColorSpace>
     name: Rec.1886 Rec.709 - Display
-    aliases: [rec1886_rec709_display]
+    aliases: [rec1886_rec709_display, g24_rec709_display]
     categories: [file-io]
     encoding: sdr-video
     from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_REC.1886-REC.709}
@@ -108,7 +127,7 @@ colorspaces:
 
   - !<ColorSpace>
     name: sRGB Encoded Rec.709 (sRGB)
-    aliases: [srgb_encoded_rec709_srgb, Utility - sRGB - Texture, srgb_texture, srgb_rec709_scene, Input - Generic - sRGB - Texture, sRGB - Texture, srgb_tx]
+    aliases: [srgb_encoded_rec709_srgb, Utility - sRGB - Texture, srgb_texture, srgb_rec709_scene, Input - Generic - sRGB - Texture, sRGB - Texture, srgb_tx, sRGB]
     categories: [file-io, texture]
     encoding: sdr-video
     from_scene_reference: !<GroupTransform>
@@ -116,6 +135,61 @@ colorspaces:
       children:
         - !<MatrixTransform> {matrix: [2.52168618674388, -1.13413098823972, -0.387555198504164, 0, -0.276479914229922, 1.37271908766826, -0.096239173438334, 0, -0.0153780649660342, -0.152975335867399, 1.16835340083343, 0, 0, 0, 0, 1]}
         - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, direction: inverse}
+  
+  - !<ColorSpace>
+    name: Rec.709 (~1.95) Encoded Rec.709 (sRGB)
+    aliases: [rec709_encoded_rec709_srgb, rec709_tx, rec709_rec709, Rec.709]
+    categories: [file-io, texture]
+    encoding: sdr-video
+    from_scene_reference: !<GroupTransform>
+      name: AP0 to Rec.709-Camera (~1.95) Encoded Rec.709 (sRGB)
+      children:
+        - !<MatrixTransform> {matrix: [2.52168618674388, -1.13413098823972, -0.387555198504164, 0, -0.276479914229922, 1.37271908766826, -0.096239173438334, 0, -0.0153780649660342, -0.152975335867399, 1.16835340083343, 0, 0, 0, 0, 1]}
+        - !<ExponentWithLinearTransform> {gamma: 2.22222222222222, offset: 0.099, direction: inverse}
+
+  - !<ColorSpace>
+    name: Gamma 1.8 Encoded Rec.709 (sRGB)
+    aliases: [gamma18_encoded_rec709_srgb, gamma18_tx, gamma18_rec709, g18_rec709]
+    categories: [file-io, texture]
+    encoding: sdr-video
+    from_scene_reference: !<GroupTransform>
+      name: AP0 to Gamma 1.8 Encoded Rec.709 (sRGB)
+      children:
+        - !<MatrixTransform> {matrix: [2.52168618674388, -1.13413098823972, -0.387555198504164, 0, -0.276479914229922, 1.37271908766826, -0.096239173438334, 0, -0.0153780649660342, -0.152975335867399, 1.16835340083343, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 1.8, style: pass_thru, direction: inverse}
+
+  - !<ColorSpace>
+    name: Gamma 2.2 Encoded Rec.709 (sRGB)
+    aliases: [gamma22_encoded_rec709_srgb, gamma22_tx, gamma22_rec709, g22_rec709]
+    categories: [file-io, texture]
+    encoding: sdr-video
+    from_scene_reference: !<GroupTransform>
+      name: AP0 to Gamma 2.2 Encoded Rec.709 (sRGB)
+      children:
+        - !<MatrixTransform> {matrix: [2.52168618674388, -1.13413098823972, -0.387555198504164, 0, -0.276479914229922, 1.37271908766826, -0.096239173438334, 0, -0.0153780649660342, -0.152975335867399, 1.16835340083343, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.2, style: pass_thru, direction: inverse}
+  
+  - !<ColorSpace>
+    name: Gamma 2.4 Encoded Rec.709 (sRGB)
+    aliases: [gamma24_encoded_rec709_srgb, gamma24_tx, gamma24_rec709, g24_rec709]
+    categories: [file-io, texture]
+    encoding: sdr-video
+    from_scene_reference: !<GroupTransform>
+      name: AP0 to Gamma 2.4 Encoded Rec.709 (sRGB)
+      children:
+        - !<MatrixTransform> {matrix: [2.52168618674388, -1.13413098823972, -0.387555198504164, 0, -0.276479914229922, 1.37271908766826, -0.096239173438334, 0, -0.0153780649660342, -0.152975335867399, 1.16835340083343, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.4, style: pass_thru, direction: inverse}
+
+  - !<ColorSpace>
+    name: Gamma 2.6 Encoded Rec.709 (sRGB)
+    aliases: [gamma26_encoded_rec709_srgb, gamma26_tx, gamma26_rec709, g26_rec709]
+    categories: [file-io, texture]
+    encoding: sdr-video
+    from_scene_reference: !<GroupTransform>
+      name: AP0 to Gamma 2.6 Encoded Rec.709 (sRGB)
+      children:
+        - !<MatrixTransform> {matrix: [2.52168618674388, -1.13413098823972, -0.387555198504164, 0, -0.276479914229922, 1.37271908766826, -0.096239173438334, 0, -0.0153780649660342, -0.152975335867399, 1.16835340083343, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.6, style: pass_thru, direction: inverse}
 
   - !<ColorSpace>
     name: Linear Rec.709 (sRGB)
@@ -155,7 +229,6 @@ colorspaces:
 
 
 named_transforms:
-
   - !<NamedTransform>
     name: sRGB - Curve
     aliases: [srgb_crv, Utility - Curve - sRGB, crv_srgb]
@@ -164,15 +237,42 @@ named_transforms:
       name: Linear to sRGB
       children:
         - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, direction: inverse}
+  
+  - !<NamedTransform>
+    name: Gamma 1.8 - Curve
+    aliases: [g18_crv, Utility - Curve - Gamma 1.8, crv_gamma18]
+    encoding: sdr-video
+    inverse_transform: !<GroupTransform>
+      name: Linear to Gamma 1.8
+      children:
+        - !<ExponentTransform> {value: 1.8, style: pass_thru, direction: inverse}
+  
+  - !<NamedTransform>
+    name: Gamma 2.2 - Curve
+    aliases: [g22_crv, Utility - Curve - Gamma 2.2, crv_gamma22]
+    encoding: sdr-video
+    inverse_transform: !<GroupTransform>
+      name: Linear to Gamma 2.2
+      children:
+        - !<ExponentTransform> {value: 2.2, style: pass_thru, direction: inverse}
 
   - !<NamedTransform>
     name: Rec.1886 - Curve
-    aliases: [rec1886_crv, Utility - Curve - Rec.1886, crv_rec1886]
+    aliases: [rec1886_crv, Utility - Curve - Rec.1886, crv_rec1886, crv_gamma24]
     encoding: sdr-video
     inverse_transform: !<GroupTransform>
       name: Linear to Rec.1886
       children:
         - !<ExponentTransform> {value: 2.4, style: pass_thru, direction: inverse}
+  
+  - !<NamedTransform>
+    name: Gamma 2.6 - Curve
+    aliases: [g26_crv, Utility - Curve - Gamma 2.6, crv_gamma26]
+    encoding: sdr-video
+    inverse_transform: !<GroupTransform>
+      name: Linear to Gamma 2.6
+      children:
+        - !<ExponentTransform> {value: 2.6, style: pass_thru, direction: inverse}
 
   - !<NamedTransform>
     name: Rec.709 - Curve
