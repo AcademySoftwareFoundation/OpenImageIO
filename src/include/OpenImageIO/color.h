@@ -238,7 +238,7 @@ public:
     /// the input color space. If the display is empty or not specified, the
     /// default display will be used. If an input color space is not given,
     /// the "default" color space will be used.
-    const char* getDefaultViewName(string_view display = "",
+    const char* getDefaultViewName(string_view display         = "",
                                    string_view inputColorSpace = "") const;
 
     /// Returns the colorspace attribute of the (display, view) pair. (Note
@@ -357,10 +357,10 @@ public:
     /// ColorConfig::getColorSpaceFromFilepath.)
     string_view getColorSpaceFromFilepath(string_view str) const;
 
-    /// Given a filepath, returns whether the result of 
+    /// Given a filepath, returns whether the result of
     /// getColorSpaceFromFilepath() is the failover condition, due
     /// to the OCIO config's file rules not otherwise finding a match
-    /// for the filepath. 
+    /// for the filepath.
     bool filepathOnlyMatchesDefaultRule(string_view str) const;
 
     /// Given a string (like a filename), look for the longest, right-most
