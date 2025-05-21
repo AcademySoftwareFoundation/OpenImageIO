@@ -1232,7 +1232,7 @@ ColorConfig::getDisplayViewColorSpaceName(const std::string& display,
             = getImpl()->config_->getDisplayViewColorSpaceName(c_str(display),
                                                                c_str(view));
         // Handle certain Shared View cases
-        if (c_str(name) == OCIO::OCIO_VIEW_USE_DISPLAY_NAME)
+        if (strcmp(c_str(name), "<USE_DISPLAY_NAME>") == 0)
             name = display;
         return c_str(name);
     }
@@ -2096,8 +2096,7 @@ ColorConfig::getColorSpaceFromFilepath(string_view str) const
         std::string s(str);
         string_view r = getImpl()->config_->getColorSpaceFromFilepath(
             s.c_str());
-        if (!getImpl()->config_->filepathOnlyMatchesDefaultRule(s.c_str()))
-            return r;
+        return r;    
     }
     // Fall back on parseColorSpaceFromString
     return parseColorSpaceFromString(str);
@@ -2506,12 +2505,8 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
 
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
-    if (ok) {
-        if (inverse)
-            dst.specmod().set_colorspace(from);
-        else
-            dst.specmod().set_colorspace(to);
-    }
+    if (ok)
+        dst.specmod().set_colorspace(to);
     return ok;
 }
 
@@ -2572,10 +2567,15 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok) {
         if (inverse)
-            dst.specmod().set_colorspace(from);
-        else
+            dst.specmod().set_colorspace(colorconfig->resolve(from));
+        else {
+            if (display.empty() || display == "default")
+                display = colorconfig->getDefaultDisplayName();
+            if (view.empty() || view == "default")
+                view = colorconfig->getDefaultViewName(display, colorconfig->resolve(from));
             dst.specmod().set_colorspace(
                 colorconfig->getDisplayViewColorSpaceName(display, view));
+        }
     }
     return ok;
 }
