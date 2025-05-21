@@ -2107,7 +2107,7 @@ ColorConfig::getColorSpaceFromFilepath(string_view str) const
         std::string s(str);
         string_view r = getImpl()->config_->getColorSpaceFromFilepath(
             s.c_str());
-        return r;    
+        return r;
     }
     // Fall back on parseColorSpaceFromString
     return parseColorSpaceFromString(str);
@@ -2583,7 +2583,9 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
             if (display.empty() || display == "default")
                 display = colorconfig->getDefaultDisplayName();
             if (view.empty() || view == "default")
-                view = colorconfig->getDefaultViewName(display, colorconfig->resolve(from));
+                view = colorconfig->getDefaultViewName(display,
+                                                       colorconfig->resolve(
+                                                           from));
             dst.specmod().set_colorspace(
                 colorconfig->getDisplayViewColorSpaceName(display, view));
         }
