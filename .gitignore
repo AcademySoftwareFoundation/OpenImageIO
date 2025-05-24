@@ -23,6 +23,7 @@ gastest.o
 /*.exr
 /*.tif
 /*.jpg
+/*.png
 /*.jxl
 /*.tx
 /*.log

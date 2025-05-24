@@ -243,6 +243,18 @@ build: config
 	    ${CMAKE} --build . --config ${CMAKE_BUILD_TYPE} \
 	  )
 
+# generate python stubs and add them to the repo
+pystubs: config
+	@ ( cd ${build_dir} ; \
+	    ${CMAKE} --build . --config ${CMAKE_BUILD_TYPE} --target pystubs \
+	  )
+
+# run mypy on python tests to confirm the stubs are working
+test-pystubs: pystubs
+	@ ( uv export --quiet --no-dev --no-build --no-emit-project --no-hashes -o ${build_dir}/requirements.txt ; \
+	    uvx --with-requirements ${build_dir}/requirements.txt mypy==1.15.0 \
+	  )
+
 # 'make install' builds everthing and installs it in 'dist'.
 # Suppress pointless output from docs installation.
 install: build

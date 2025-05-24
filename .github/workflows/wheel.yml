@@ -58,7 +58,8 @@ jobs:
 
     steps:
 
-    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    - name: Checkout repo
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
     - name: Build SDist
       run: pipx run build --sdist
@@ -66,7 +67,7 @@ jobs:
     - name: Check metadata
       run: pipx run twine check dist/*
 
-    - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+    - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
       with:
         name: cibw-sdist
         path: dist/*.tar.gz
@@ -140,24 +141,33 @@ jobs:
             arch: x86_64
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Checkout repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        name: Install Python
+      - name: Install Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: '3.9'
 
       - name: Build wheels
+        # Note: the version of cibuildwheel should be kept in sync with src/python/stubs/CMakeLists.txt
         uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
         env:
+          # pass GITHUB_ACTIONS through to the build container so that custom
+          # processes can tell they are running in CI.
+          CIBW_ENVIRONMENT_PASS_LINUX: GITHUB_ACTIONS
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux }}
 
-      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
-          path: ./wheelhouse/*.whl
+          path: |
+            ./wheelhouse/*.whl
+            ./wheelhouse/OpenImageIO/__init__.pyi
+        # if stub validation fails we want to upload the stubs for users to review
+        if: success() || failure()
 
   # ---------------------------------------------------------------------------
   # Linux ARM Wheels
@@ -201,10 +211,11 @@ jobs:
               arch: aarch64
 
       steps:
-        - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        - name: Checkout repo
+          uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-        - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-          name: Install Python
+        - name: Install Python
+          uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
           with:
             python-version: '3.9'
         
@@ -215,10 +226,14 @@ jobs:
             CIBW_ARCHS: ${{ matrix.arch }}
             CIBW_MANYLINUX_AARCH64_IMAGE: ${{ matrix.manylinux }}
 
-        - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
           with:
             name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
-            path: ./wheelhouse/*.whl
+            path: |
+              ./wheelhouse/*.whl
+              ./wheelhouse/OpenImageIO/__init__.pyi
+          # if stub validation fails we want to upload the stubs for users to review
+          if: success() || failure()
 
   # ---------------------------------------------------------------------------
   # macOS Wheels
@@ -256,10 +271,11 @@ jobs:
             arch: x86_64
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Checkout repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        name: Install Python
+      - name: Install Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: '3.9'
 
@@ -273,7 +289,7 @@ jobs:
           # not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
 
-      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
@@ -314,10 +330,11 @@ jobs:
             arch: arm64
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Checkout repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         
-      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        name: Install Python
+      - name: Install Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         # https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
         with:
           python-version: '3.8'
@@ -330,7 +347,7 @@ jobs:
           CIBW_ARCHS: ${{ matrix.arch }}
           CMAKE_GENERATOR: "Unix Makefiles"
 
-      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
@@ -371,10 +388,11 @@ jobs:
             arch: AMD64
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Checkout repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        name: Install Python
+      - name: Install Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: '3.9'
 
@@ -385,7 +403,7 @@ jobs:
           CIBW_ARCHS: ${{ matrix.arch }}
           CMAKE_POLICY_VERSION_MINIMUM: 3.5
 
-      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl

@@ -267,4 +267,4 @@ against dynamic libraries:
 * OpenVDB © 2012-2018 DreamWorks Animation LLC, Mozilla Public License 2.0. https://www.openvdb.org/
 * Thread Building Blocks © Intel. Apache 2.0 license. https://www.threadingbuildingblocks.org/
 * libheif © 2017-2018 Struktur AG (LGPL). https://github.com/strukturag/libheif
-
+* libultrahdr © 2022 The Android Open Source Project. Apache 2.0 license. https://github.com/google/libultrahdr

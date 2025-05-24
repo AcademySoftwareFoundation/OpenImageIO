@@ -144,3 +144,5 @@ Comparing "simple.tif" and "ref/simple.tif"
 PASS
 Comparing "scanlines.tif" and "ref/scanlines.tif"
 PASS
+Comparing "tiles.tif" and "ref/tiles.tif"
+PASS

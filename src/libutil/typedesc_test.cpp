@@ -87,20 +87,52 @@ test_templates()
 {
     print("Testing templates\n");
     OIIO_CHECK_EQUAL(BaseTypeFromC<float>::value, TypeDesc::FLOAT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const float>::value, TypeDesc::FLOAT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<half>::value, TypeDesc::HALF);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const half>::value, TypeDesc::HALF);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<double>::value, TypeDesc::DOUBLE);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const double>::value, TypeDesc::DOUBLE);
+
     OIIO_CHECK_EQUAL(BaseTypeFromC<int>::value, TypeDesc::INT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const int>::value, TypeDesc::INT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<int32_t>::value, TypeDesc::INT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const int32_t>::value, TypeDesc::INT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<unsigned int>::value, TypeDesc::UINT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const unsigned int>::value, TypeDesc::UINT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<uint32_t>::value, TypeDesc::UINT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const uint32_t>::value, TypeDesc::UINT);
+
+    OIIO_CHECK_EQUAL(BaseTypeFromC<short>::value, TypeDesc::INT16);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const short>::value, TypeDesc::INT16);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<int16_t>::value, TypeDesc::INT16);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const int16_t>::value, TypeDesc::INT16);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<unsigned short>::value, TypeDesc::UINT16);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const unsigned short>::value,
+                     TypeDesc::UINT16);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<uint16_t>::value, TypeDesc::UINT16);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const uint16_t>::value, TypeDesc::UINT16);
+
     OIIO_CHECK_EQUAL(BaseTypeFromC<char*>::value, TypeDesc::STRING);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const char*>::value, TypeDesc::STRING);
     OIIO_CHECK_EQUAL(BaseTypeFromC<ustring>::value, TypeDesc::STRING);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const ustring>::value, TypeDesc::STRING);
     OIIO_CHECK_EQUAL(BaseTypeFromC<void*>::value, TypeDesc::PTR);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const void*>::value, TypeDesc::PTR);
     OIIO_CHECK_EQUAL(BaseTypeFromC<int*>::value, TypeDesc::PTR);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<const int*>::value, TypeDesc::PTR);
 
     OIIO_CHECK_EQUAL(TypeDescFromC<float>::value(), TypeFloat);
+    OIIO_CHECK_EQUAL(TypeDescFromC<const float>::value(), TypeFloat);
     OIIO_CHECK_EQUAL(TypeDescFromC<int>::value(), TypeInt);
+    OIIO_CHECK_EQUAL(TypeDescFromC<const int>::value(), TypeInt);
     OIIO_CHECK_EQUAL(TypeDescFromC<ustring>::value(), TypeString);
+    OIIO_CHECK_EQUAL(TypeDescFromC<const ustring>::value(), TypeString);
     OIIO_CHECK_EQUAL(TypeDescFromC<char*>::value(), TypeString);
     OIIO_CHECK_EQUAL(TypeDescFromC<const char*>::value(), TypeString);
     OIIO_CHECK_EQUAL(TypeDescFromC<void*>::value(), TypePointer);
     OIIO_CHECK_EQUAL(TypeDescFromC<const void*>::value(), TypePointer);
     OIIO_CHECK_EQUAL(TypeDescFromC<int*>::value(), TypePointer);
+    OIIO_CHECK_EQUAL(TypeDescFromC<const int*>::value(), TypePointer);
 }
 
 
