@@ -4,13 +4,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+from __future__ import annotations
 
 import numpy
 import OpenImageIO as oiio
 
 
 # Print the contents of an ImageSpec
-def print_imagespec (spec, msg="") :
+def print_imagespec (spec: oiio.ImageSpec, msg="") :
     if msg != "" :
         print (str(msg))
     print ("  resolution (width,height,depth) = ", spec.width, spec.height, spec.depth)

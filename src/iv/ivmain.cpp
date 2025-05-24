@@ -138,6 +138,8 @@ main(int argc, char* argv[])
     if (ap["rawcolor"].get<int>())
         mainWin->rawcolor(true);
 
+    QApplication::processEvents();  // Process any pending events
+
     // Make sure we are the top window with the focus.
     mainWin->raise();
     mainWin->activateWindow();
@@ -167,8 +169,10 @@ main(int argc, char* argv[])
 
             std::vector<std::string> validImages;  // Vector to hold valid images
             for (auto& file : files) {
-                std::string extension = Filesystem::extension(file).substr(
-                    1);  // Remove the leading dot
+                std::string extension
+                    = Filesystem::extension(file,
+                                            false);  // Remove the leading dot
+                Strutil::to_lower(extension);
                 if (std::find(extensionsVector.begin(), extensionsVector.end(),
                               extension)
                     != extensionsVector.end()) {
