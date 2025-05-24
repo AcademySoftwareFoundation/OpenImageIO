@@ -213,6 +213,7 @@
 #  define OIIO_AVX512CD_ENABLED 0
 #  define OIIO_AVX512BW_ENABLED 0
 #endif
+#define OIIO_AVX512ER_ENABLED 0 /* DEPRECATED(3.1) */
 
 #if defined(__FMA__)
 #  define OIIO_FMA_ENABLED 1
@@ -613,8 +614,9 @@ private:
 template<int i0, int i1, int i2, int i3>
 OIIO_FORCEINLINE vbool4 shuffle (const vbool4& a);
 
-/// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> OIIO_FORCEINLINE vbool4 shuffle (const vbool4& a);
+/// broadcast_element<i>(a) returns a simd variable in which all lanes have
+/// value a[i].
+template<int i> OIIO_FORCEINLINE vbool4 broadcast_element(const vbool4& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
@@ -764,8 +766,9 @@ private:
 template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
 OIIO_FORCEINLINE vbool8 shuffle (const vbool8& a);
 
-/// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> OIIO_FORCEINLINE vbool8 shuffle (const vbool8& a);
+/// broadcast_element<i>(a) returns a simd variable in which all lanes have
+/// value a[i].
+template<int i> OIIO_FORCEINLINE vbool8 broadcast_element(const vbool8& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
@@ -1157,8 +1160,9 @@ vint4 srl (const vint4& val, const unsigned int bits);
 template<int i0, int i1, int i2, int i3>
 OIIO_FORCEINLINE vint4 shuffle (const vint4& a);
 
-/// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> OIIO_FORCEINLINE vint4 shuffle (const vint4& a);
+/// broadcast_element<i>(a) returns a simd variable in which all lanes have
+/// value a[i].
+template<int i> OIIO_FORCEINLINE vint4 broadcast_element(const vint4& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
@@ -1457,8 +1461,9 @@ vint8 srl (const vint8& val, const unsigned int bits);
 template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
 OIIO_FORCEINLINE vint8 shuffle (const vint8& a);
 
-/// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> OIIO_FORCEINLINE vint8 shuffle (const vint8& a);
+/// broadcast_element<i>(a) returns a simd variable in which all lanes have
+/// value a[i].
+template<int i> OIIO_FORCEINLINE vint8 broadcast_element(const vint8& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
@@ -1767,8 +1772,9 @@ template<int i> vint16 shuffle4 (const vint16& a);
 template<int i0, int i1, int i2, int i3>
 vint16 shuffle (const vint16& a);
 
-/// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> vint16 shuffle (const vint16& a);
+/// broadcast_element<i>(a) returns a simd variable in which all lanes have
+/// value a[i].
+template<int i> vint16 broadcast_element(const vint16& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
@@ -2092,8 +2098,9 @@ protected:
 template<int i0, int i1, int i2, int i3>
 OIIO_FORCEINLINE vfloat4 shuffle (const vfloat4& a);
 
-/// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> OIIO_FORCEINLINE vfloat4 shuffle (const vfloat4& a);
+/// broadcast_element<i>(a) returns a simd variable in which all lanes have
+/// value a[i].
+template<int i> OIIO_FORCEINLINE vfloat4 broadcast_element(const vfloat4& a);
 
 /// Return { a[i0], a[i1], b[i2], b[i3] }, where i0..i3 are the extracted
 /// 2-bit indices packed into the template parameter i (going from the low
@@ -2715,8 +2722,8 @@ protected:
 template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
 OIIO_FORCEINLINE vfloat8 shuffle (const vfloat8& a);
 
-/// shuffle<i>(a) is the same as shuffle<i,i,i,i,...>(a)
-template<int i> OIIO_FORCEINLINE vfloat8 shuffle (const vfloat8& a);
+/// broadcast_element<i>(a) is the same as shuffle<i,i,i,i,...>(a)
+template<int i> OIIO_FORCEINLINE vfloat8 broadcast_element(const vfloat8& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
@@ -3045,8 +3052,9 @@ template<int i> OIIO_FORCEINLINE vfloat16 shuffle4 (const vfloat16& a);
 template<int i0, int i1, int i2, int i3>
 OIIO_FORCEINLINE vfloat16 shuffle (const vfloat16& a);
 
-/// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> vfloat16 shuffle (const vfloat16& a);
+/// broadcast_element<i>(a) returns a simd variable in which all lanes have
+/// value a[i].
+template<int i> vfloat16 broadcast_element(const vfloat16& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
@@ -3467,9 +3475,15 @@ OIIO_FORCEINLINE vbool4 shuffle (const vbool4& a) {
 #endif
 }
 
-/// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> OIIO_FORCEINLINE vbool4 shuffle (const vbool4& a) {
+/// broadcast_element<i>(a) returns a simd variable in which all lanes have
+/// value a[i].
+template<int i> OIIO_FORCEINLINE vbool4 broadcast_element(const vbool4& a) {
     return shuffle<i,i,i,i>(a);
+}
+
+// DEPRECATED(3.1): old name; use broadcast_element instead
+template<int i> OIIO_FORCEINLINE vbool4 shuffle(const vbool4& a) {
+    return broadcast_element<i>(a);
 }
 
 
@@ -3795,8 +3809,13 @@ OIIO_FORCEINLINE vbool8 shuffle (const vbool8& a) {
 #endif
 }
 
-template<int i> OIIO_FORCEINLINE vbool8 shuffle (const vbool8& a) {
+template<int i> OIIO_FORCEINLINE vbool8 broadcast_element(const vbool8& a) {
     return shuffle<i,i,i,i,i,i,i,i>(a);
+}
+
+// DEPRECATED(3.1): old name; use broadcast_element instead
+template<int i> OIIO_FORCEINLINE vbool8 shuffle(const vbool8& a) {
+    return broadcast_element<i>(a);
 }
 
 
@@ -4738,7 +4757,14 @@ OIIO_FORCEINLINE vint4 shuffle (const vint4& a) {
 #endif
 }
 
-template<int i> OIIO_FORCEINLINE vint4 shuffle (const vint4& a) { return shuffle<i,i,i,i>(a); }
+template<int i> OIIO_FORCEINLINE vint4 broadcast_element(const vint4& a) {
+    return shuffle<i,i,i,i>(a);
+}
+
+// DEPRECATED(3.1): old name; use broadcast_element instead
+template<int i> OIIO_FORCEINLINE vint4 shuffle(const vint4& a) {
+    return broadcast_element<i>(a);
+}
 
 
 template<int i>
@@ -5578,8 +5604,13 @@ OIIO_FORCEINLINE vint8 shuffle (const vint8& a) {
 #endif
 }
 
-template<int i> OIIO_FORCEINLINE vint8 shuffle (const vint8& a) {
+template<int i> OIIO_FORCEINLINE vint8 broadcast_element(const vint8& a) {
     return shuffle<i,i,i,i,i,i,i,i>(a);
+}
+
+// DEPRECATED(3.1): old name; use broadcast_element instead
+template<int i> OIIO_FORCEINLINE vint8 shuffle(const vint8& a) {
+    return broadcast_element<i>(a);
 }
 
 
@@ -6389,8 +6420,15 @@ vint16 shuffle (const vint16& a) {
 #endif
 }
 
-template<int i> vint16 shuffle (const vint16& a) {
-    return shuffle<i,i,i,i> (a);
+template<int i> vint16 broadcast_element(const vint16& a) {
+    return a[i];
+}
+
+// DEPRECATED(3.1): old name and nonstandard use
+template<int i>
+OIIO_DEPRECATED("Use broadcast_element (3.1)")
+vint16 shuffle(const vint16& a) {
+    return broadcast_element<i> (a);
 }
 
 
@@ -7247,19 +7285,26 @@ OIIO_FORCEINLINE vfloat4 shuffle (const vfloat4& a) {
 #endif
 }
 
-template<int i> OIIO_FORCEINLINE vfloat4 shuffle (const vfloat4& a) { return shuffle<i,i,i,i>(a); }
+template<int i> OIIO_FORCEINLINE vfloat4 broadcast_element(const vfloat4& a) {
+    return shuffle<i,i,i,i>(a);
+}
+
+// DEPRECATED(3.1): old name; use broadcast_element instead
+template<int i> OIIO_FORCEINLINE vfloat4 shuffle (const vfloat4& a) {
+    return broadcast_element<i>(a);
+}
 
 #if OIIO_SIMD_NEON
-template<> OIIO_FORCEINLINE vfloat4 shuffle<0> (const vfloat4& a) {
+template<> OIIO_FORCEINLINE vfloat4 broadcast_element<0> (const vfloat4& a) {
     float32x2_t t = vget_low_f32(a.simd()); return vdupq_lane_f32(t,0);
 }
-template<> OIIO_FORCEINLINE vfloat4 shuffle<1> (const vfloat4& a) {
+template<> OIIO_FORCEINLINE vfloat4 broadcast_element<1> (const vfloat4& a) {
     float32x2_t t = vget_low_f32(a.simd()); return vdupq_lane_f32(t,1);
 }
-template<> OIIO_FORCEINLINE vfloat4 shuffle<2> (const vfloat4& a) {
+template<> OIIO_FORCEINLINE vfloat4 broadcast_element<2> (const vfloat4& a) {
     float32x2_t t = vget_high_f32(a.simd()); return vdupq_lane_f32(t,0);
 }
-template<> OIIO_FORCEINLINE vfloat4 shuffle<3> (const vfloat4& a) {
+template<> OIIO_FORCEINLINE vfloat4 broadcast_element<3> (const vfloat4& a) {
     float32x2_t t = vget_high_f32(a.simd()); return vdupq_lane_f32(t,1);
 }
 #endif
@@ -8259,9 +8304,9 @@ OIIO_FORCEINLINE matrix44 matrix44::transposed () const {
 
 OIIO_FORCEINLINE vfloat3 matrix44::transformp (const vfloat3 &V) const {
 #if OIIO_SIMD_SSE
-    vfloat4 R = shuffle<0>(V) * m_row[0] + shuffle<1>(V) * m_row[1] +
-               shuffle<2>(V) * m_row[2] + m_row[3];
-    R = R / shuffle<3>(R);
+    vfloat4 R = broadcast_element<0>(V) * m_row[0] + broadcast_element<1>(V) * m_row[1] +
+               broadcast_element<2>(V) * m_row[2] + m_row[3];
+    R = R / broadcast_element<3>(R);
     return vfloat3 (R.xyz0());
 #else
     value_t a, b, c, w;
@@ -8275,8 +8320,8 @@ OIIO_FORCEINLINE vfloat3 matrix44::transformp (const vfloat3 &V) const {
 
 OIIO_FORCEINLINE vfloat3 matrix44::transformv (const vfloat3 &V) const {
 #if OIIO_SIMD_SSE
-    vfloat4 R = shuffle<0>(V) * m_row[0] + shuffle<1>(V) * m_row[1] +
-               shuffle<2>(V) * m_row[2];
+    vfloat4 R = broadcast_element<0>(V) * m_row[0] + broadcast_element<1>(V) * m_row[1] +
+               broadcast_element<2>(V) * m_row[2];
     return vfloat3 (R.xyz0());
 #else
     value_t a, b, c;
@@ -8290,8 +8335,8 @@ OIIO_FORCEINLINE vfloat3 matrix44::transformv (const vfloat3 &V) const {
 OIIO_FORCEINLINE vfloat3 matrix44::transformvT (const vfloat3 &V) const {
 #if OIIO_SIMD_SSE
     matrix44 T = transposed();
-    vfloat4 R = shuffle<0>(V) * T[0] + shuffle<1>(V) * T[1] +
-               shuffle<2>(V) * T[2];
+    vfloat4 R = broadcast_element<0>(V) * T[0] + broadcast_element<1>(V) * T[1] +
+               broadcast_element<2>(V) * T[2];
     return vfloat3 (R.xyz0());
 #else
     value_t a, b, c;
@@ -8305,8 +8350,8 @@ OIIO_FORCEINLINE vfloat3 matrix44::transformvT (const vfloat3 &V) const {
 OIIO_FORCEINLINE vfloat4 operator* (const vfloat4 &V, const matrix44& M)
 {
 #if OIIO_SIMD_SSE
-    return shuffle<0>(V) * M[0] + shuffle<1>(V) * M[1] +
-           shuffle<2>(V) * M[2] + shuffle<3>(V) * M[3];
+    return broadcast_element<0>(V) * M[0] + broadcast_element<1>(V) * M[1] +
+           broadcast_element<2>(V) * M[2] + broadcast_element<3>(V) * M[3];
 #else
     float a, b, c, w;
     a = V[0] * M[0][0] + V[1] * M[1][0] + V[2] * M[2][0] + V[3] * M[3][0];
@@ -9028,12 +9073,17 @@ OIIO_FORCEINLINE vfloat8 shuffle (const vfloat8& a) {
 #endif
 }
 
-template<int i> OIIO_FORCEINLINE vfloat8 shuffle (const vfloat8& a) {
+template<int i> OIIO_FORCEINLINE vfloat8 broadcast_element(const vfloat8& a) {
 #if OIIO_SIMD_AVX >= 2
     return _mm256_permutevar8x32_ps (a, vint8(i));
 #else
-    return shuffle<i,i,i,i,i,i,i,i>(a);
+    return a[i];
 #endif
+}
+
+// DEPRECATED(3.1): old name; use broadcast_element instead
+template<int i> OIIO_FORCEINLINE vfloat8 shuffle(const vfloat8& a) {
+    return broadcast_element<i>(a);
 }
 
 
@@ -9098,9 +9148,9 @@ OIIO_FORCEINLINE vfloat8 vreduce_add (const vfloat8& v) {
     vfloat8 ab_cd_0_0_ef_gh_0_0 = _mm256_hadd_ps(v.simd(), _mm256_setzero_ps());
     vfloat8 abcd_0_0_0_efgh_0_0_0 = _mm256_hadd_ps(ab_cd_0_0_ef_gh_0_0, _mm256_setzero_ps());
     // get efgh in the 0-idx slot
-    vfloat8 efgh = shuffle<4>(abcd_0_0_0_efgh_0_0_0);
+    vfloat8 efgh = broadcast_element<4>(abcd_0_0_0_efgh_0_0_0);
     vfloat8 final_sum = abcd_0_0_0_efgh_0_0_0 + efgh;
-    return shuffle<0>(final_sum);
+    return broadcast_element<0>(final_sum);
 #else
     vfloat4 hadd4 = vreduce_add(v.lo()) + vreduce_add(v.hi());
     return vfloat8(hadd4, hadd4);
@@ -9907,7 +9957,14 @@ vfloat16 shuffle (const vfloat16& a) {
 #endif
 }
 
-template<int i> vfloat16 shuffle (const vfloat16& a) {
+template<int i> vfloat16 broadcast_element(const vfloat16& a) {
+    return a[i];
+}
+
+// DEPRECATED(3.1): old name and nonstandard use
+template<int i>
+OIIO_DEPRECATED("Use broadcast_element (3.1)")
+vfloat16 shuffle(const vfloat16& a) {
     return shuffle<i,i,i,i> (a);
 }
 

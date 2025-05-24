@@ -690,7 +690,9 @@ IvGL::shadowed_text(float x, float y, float /*z*/, const std::string& s,
      * Paint on intermediate QImage, AA text on QOpenGLWidget based
      * QPaintDevice requires MSAA
      */
-    QImage t(size(), QImage::Format_ARGB32_Premultiplied);
+    qreal dpr = devicePixelRatio();
+    QImage t(size() * dpr, QImage::Format_ARGB32_Premultiplied);
+    t.setDevicePixelRatio(dpr);
     t.fill(qRgba(0, 0, 0, 0));
     {
         QPainter painter(&t);
@@ -1218,13 +1220,13 @@ IvGL::mousePressEvent(QMouseEvent* event)
         switch (event->button()) {
         case Qt::LeftButton:
             if (mousemode == ImageViewer::MouseModeZoom && !Alt)
-                m_viewer.zoomIn();
+                m_viewer.zoomIn(true);  // Animated zoom for mouse clicks
             else
                 m_dragging = true;
             return;
         case Qt::RightButton:
             if (mousemode == ImageViewer::MouseModeZoom && !Alt)
-                m_viewer.zoomOut();
+                m_viewer.zoomOut(true);  // Animated zoom for mouse clicks
             else
                 m_dragging = true;
             return;
@@ -1328,9 +1330,11 @@ IvGL::wheelEvent(QWheelEvent* event)
     QPoint angdelta    = event->angleDelta() / 8;  // div by 8 to get degrees
     if (abs(angdelta.y()) > abs(angdelta.x())      // predominantly vertical
         && abs(angdelta.y()) > 2) {                // suppress tiny motions
-        float oldzoom = m_viewer.zoom();
-        float newzoom = (angdelta.y() > 0) ? ceil2f(oldzoom) : floor2f(oldzoom);
-        m_viewer.zoom(newzoom);
+        if (angdelta.y() > 0) {
+            m_viewer.zoomIn(false);
+        } else {
+            m_viewer.zoomOut(false);
+        }
         event->accept();
     }
     // TODO: Update this to keep the zoom centered on the event .x, .y

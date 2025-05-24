@@ -95,7 +95,7 @@ for file in hashes :
 # and need the images checked into the ref directory.
 outputs = [
     # Outputs from the ImageOutput chapter:
-    "simple.tif", "scanlines.tif",
+    "simple.tif", "scanlines.tif", "tiles.tif",
     # Outputs from the ImageInput chapter:
 
     # Outputs from the ImageBuf chapter:
