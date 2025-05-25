@@ -513,7 +513,7 @@ jobs:
               sudo rm -rf /usr/local/include/OpenEXR
               sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
           - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.3 ocio2.4
-            nametag: linux-latest-releases
+            nametag: linux-arm-latest-releases
             runner: ubuntu-24.04-arm
             cc_compiler: gcc-14
             cxx_compiler: g++-14
@@ -533,7 +533,7 @@ jobs:
                             FREETYPE_VERSION=VER-2-13-3
                             USE_OPENVDB=0
           - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.3 ocio2.4
-            nametag: linux-latest-releases
+            nametag: linux-arm-latest-releases-clang
             runner: ubuntu-24.04-arm
             cc_compiler: clang-18
             cxx_compiler: clang++-18
