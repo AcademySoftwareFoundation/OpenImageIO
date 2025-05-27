@@ -313,17 +313,13 @@ ojph::si16 convert_si32_to_si16(const ojph::si32 si32_value, bool convert_specia
 bool
 Jpeg2000Input::ojph_read_header(){
     ojph::param_siz siz = codestream.access_siz();
-    ojph::param_nlt nlt = codestream.access_nlt();
     int ch = siz.get_num_components();
     const int w = siz.get_recon_width(0);
     const int h = siz.get_recon_height(0);
     
-    bool nlt_is_signed;
-    ojph::ui8 nlt_bit_depth;
-    ojph::ui8 nl_type;
+
     TypeDesc dtype;
-    bool has_nlt = nlt.get_nonlinear_transform(0, nlt_bit_depth, nlt_is_signed, nl_type);
-    bool is_signed = siz.is_signed(0);
+
     
     if (ch > 4)
         ch = 4; // Only do the first 4 channels.
@@ -340,17 +336,11 @@ Jpeg2000Input::ojph_read_header(){
             case 12:
             case 16:
                 m_bpp[c] = 2;
-                if (has_nlt && is_signed)
-                    dtype = TypeDesc::HALF;
-                else
-                    dtype = TypeDesc::USHORT;
+                dtype = TypeDesc::USHORT;
                 break;
             case 32:
                 m_bpp[c] = 4;
-                if (has_nlt && is_signed)
-                    dtype = TypeDesc::DOUBLE;
-                else
-                    dtype    = TypeDesc::UINT;
+                dtype    = TypeDesc::UINT;
                 break;
         }
         if (m_bpp[c] != m_bpp[0]){
@@ -408,13 +398,6 @@ Jpeg2000Input::ojph_read_image(){
                         *dout = bit_range_convert(*sp++, file_bit_depth, buffer_bpp*8);
                     }
                 }
-                if (m_spec.format == TypeDesc::HALF){
-                    ojph::si16* dout = (ojph::si16 *)&m_buf[buffer_bpp*(i*w*ch)];;
-                    dout += c;
-                    for(ojph::ui32 j=w; j > 0; j--,  dout += ch){
-                        *dout = convert_si32_to_si16(*sp++);
-                    }
-                }
             }
         
     } else {
@@ -441,17 +424,10 @@ Jpeg2000Input::ojph_read_image(){
                         *dout = bit_range_convert(*sp++, file_bit_depth, buffer_bpp*8);
                     }
                 }
-                if (m_spec.format == TypeDesc::HALF){
-                    ojph::si16* dout = (ojph::si16 *)&m_buf[buffer_bpp*(i*w*ch)];
-                    dout += c;
-                    for(ojph::ui32 j=w; j > 0; j--,  dout += ch){
-                        *dout = convert_si32_to_si16(*sp++);
-                    }
-                }
             }
         }
     }
-    std::cerr << "Finished full decode\n";
+
     ojph_image_read = true;
     return true;
 }

@@ -754,10 +754,7 @@ Jpeg2000Output::create_jph_image()
         is_signed = false;
         break;
     case TypeDesc::FLOAT:
-        precision = 32;
-        is_signed = true;
-        break;
-    case TypeDesc::HALF: is_signed = true; break;
+    case TypeDesc::HALF:
     case TypeDesc::DOUBLE:
         throw "OpenJPH::Write Double is not currently supported.";
     default: break;
@@ -821,27 +818,7 @@ Jpeg2000Output::create_jph_image()
 
     cod.set_num_decomposition(m_spec.get_int_attribute("jph:num_decomps", 5));
     m_jph_stream->set_planar(false);
-    //m_image = opj_image_create(m_spec.nchannels, &component_params[0],
-    //                           color_space);
-
-    // Floating point support
-    if (m_spec.format.basetype == TypeDesc::HALF
-        || m_spec.format.basetype == TypeDesc::FLOAT) {
-        // If we are treating the J2H file format as floating point
-        // We need to enable the NLT type3 and the file needs to be signed, we only support half and float
-        // not double (yet).
-        std::cerr << "JPH: Floating point support enabled\n";
-        ojph::param_nlt nlt = m_jph_stream->access_nlt();
-        for (int c = 0; c < m_spec.nchannels; ++c) {
-            nlt.set_nonlinear_transform (
-                c,
-                ojph::param_nlt::nonlinearity::OJPH_NLT_BINARY_COMPLEMENT_NLT);
-        }
-    }
-
-
     m_jph_image = new ojph::j2c_outfile;
-    //ojph::j2c_outfile j2c_file;
     m_jph_image->open(m_filename.c_str());
     m_jph_stream->write_headers(m_jph_image);  //, "test comment", 1);
 
