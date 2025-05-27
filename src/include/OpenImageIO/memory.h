@@ -48,7 +48,7 @@ template<typename T>
 inline size_t
 footprint(const T* t)
 {
-    return sizeof(T) + (t ? footprint(*t) : 0);
+    return sizeof(T*) + (t ? footprint(*t) : 0);
 }
 
 /// Specializations for common STL types
@@ -68,16 +68,6 @@ heapsize<std::string>(const std::string& s)
     return is_small ? 0 : s.capacity();
 }
 
-// heapsize specialization for std::vector
-template<typename T>
-inline size_t
-heapsize(const std::vector<T>& vec)
-{
-    size_t size = 0;
-    for (const T& elem : vec)
-        size += footprint(elem);
-    return size;
-}
 
 // heapsize specialization for std::shared_ptr
 template<typename T>
@@ -110,6 +100,29 @@ footprint(const std::unique_ptr<T>& ref)
 {
     return sizeof(std::unique_ptr<T>) + heapsize(ref);
 }
+
+// heapsize specialization for std::vector
+template<typename T>
+inline size_t
+heapsize(const std::vector<T>& vec)
+{
+    size_t size = 0;
+    // account for used allocated memory
+    for (const T& elem : vec)
+        size += footprint(elem);
+    // account for unused allocated memory
+    size += (vec.capacity() - vec.size()) * sizeof(T);
+    return size;
+}
+
+// footprint specialization for std::vector
+template<typename T>
+inline size_t
+footprint(const std::vector<T>& vec)
+{
+    return sizeof(std::vector<T>) + heapsize<T>(vec);
+}
+
 
 }  // namespace pvt
 

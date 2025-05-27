@@ -30,10 +30,6 @@ enum FileFootprintEnty : uint8_t {
     kSubImageCount,
     kLevelInfoMem,
     kLevelInfoCount,
-    kLevelInfoSpecMem,
-    kLevelInfoSpecMembMem,
-    kLevelInfoSpecParmsMem,
-    kLevelInfoSpecChanMem,
     kFootprintEntrySize
 };
 
