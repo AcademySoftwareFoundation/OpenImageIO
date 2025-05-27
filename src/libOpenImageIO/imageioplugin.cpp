@@ -280,7 +280,6 @@ PLUGENTRY(ico);
 PLUGENTRY(iff);
 PLUGENTRY(jpeg);
 PLUGENTRY(jpeg2000);
-PLUGENTRY_WO(openjph);
 PLUGENTRY(jpegxl);
 PLUGENTRY(null);
 PLUGENTRY(openexr);
