@@ -366,13 +366,13 @@ Jpeg2000Input::ojph_read_image(){
     int h = m_spec.height;
     int ch = m_spec.nchannels;
     ojph::param_siz siz = codestream.access_siz();
-    std::cerr << "Reading " << w << h << ch << "\n";
+
     const int bufsize = w * h * ch * buffer_bpp;
     m_buf.resize(bufsize);
     codestream.create();
     
     int file_bit_depth = siz.get_bit_depth(0); // Assuming RGBA are the same.
-    std::cerr << "Starting full decode\n";
+
     // We are going to read the whole image into the buffer, since with openjph
     // its hard to easily grab part of the image.
     if (codestream.is_planar()){
@@ -448,23 +448,10 @@ public:
         if (error_code == 0x00050044){
             throw std::runtime_error("ojph error: not HTJ2K file");
         }
-        std::cerr << "OJPH Error handler:" << error_code << "\n";
         va_list args;
         va_start(args, fmt);
         default_error[0](error_code, file_name, line_num, fmt, args);
         va_end(args);
-         /* if (error_stream != NULL  && message_level <= OJPH_MSG_LEVEL::ERROR )
-          {
-            fprintf(error_stream, "ojph error 0x%08X at %s:%d: ",
-              error_code, file_name, line_num);
-            va_list args;
-            va_start(args, fmt);
-            //vfprintf(error_stream, fmt, args);
-            fprintf(error_stream, "\n");
-            va_end(args);
-          }
-
-          throw std::runtime_error("ojph error"); */
     }
 };
 
@@ -493,7 +480,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
         ojph_reader = false;
     }
     delete jphinfile;
-    std::cerr << "Falling through to openjpeg\n";
+
 #endif // USE_OPENJPH
 
     ioseek(0);

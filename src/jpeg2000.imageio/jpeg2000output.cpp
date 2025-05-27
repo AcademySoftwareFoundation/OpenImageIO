@@ -236,7 +236,6 @@ Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
         use_openjph = true;
 
     if (use_openjph) {
-        std::cerr << "OpenJPH Create " << "\n";
         m_jph_image = create_jph_image();
         return true;
     }
@@ -761,9 +760,6 @@ Jpeg2000Output::create_jph_image()
     }
 
     output_depth = m_spec.get_int_attribute("jph:bit_depth", precision);
-
-    std::cerr << "JPH: output depth = " << output_depth
-              << " is_signed = " << is_signed << " precision = " << precision << "\n";
 
     siz.set_num_components(m_spec.nchannels);
     ojph::point subsample(1, 1);  // Default subsample
