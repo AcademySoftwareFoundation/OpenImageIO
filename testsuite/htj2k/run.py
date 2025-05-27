@@ -5,6 +5,9 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+# These tests are checking the openjph library that can optionally be compiled into the Jpeg2000
+# plugin of OIIO. If the library is not enabled, these will fail.
+
 command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg"
                     " -o test.j2c")
 
