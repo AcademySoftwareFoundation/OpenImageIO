@@ -655,7 +655,7 @@ Jpeg2000Input::read_native_scanline(int subimage, int miplevel, int y, int z,
     else
         read_scanline<uint16_t>(y, z, data);
     
-    /*
+    
     // JPEG2000 specifically dictates unassociated (un-"premultiplied") alpha.
     // Convert to associated unless we were requested not to do so.
     if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha) {
@@ -667,7 +667,7 @@ Jpeg2000Input::read_native_scanline(int subimage, int miplevel, int y, int z,
             j2k_associateAlpha((unsigned char*)data, m_spec.width,
                                m_spec.nchannels, m_spec.alpha_channel, gamma);
     }
-     */
+     
 
     return true;
 }
