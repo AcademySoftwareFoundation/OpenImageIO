@@ -14,6 +14,14 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/tiffutils.h>
 
+#ifdef USE_OPENJPH
+#include <openjph/ojph_mem.h>
+#include <openjph/ojph_file.h>
+#include <openjph/ojph_codestream.h>
+#include <openjph/ojph_params.h>
+#include <openjph/ojph_message.h>
+#endif
+
 #ifndef OIIO_OPJ_VERSION
 #    if defined(OPJ_VERSION_MAJOR)
 // OpenJPEG >= 2.1 defines these symbols
@@ -177,6 +185,18 @@ private:
     }
 
     static void openjpeg_dummy_callback(const char* /*msg*/, void* /*data*/) {}
+
+#ifdef USE_OPENJPH
+
+private: // OJPH code
+    bool ojph_read_header();          // Read the header and set up the spec
+    bool ojph_read_image();           // We need to read the image once.
+    bool ojph_image_read = false;     // Have we read the image yet?
+    bool ojph_reader = false;         // Are we using the ojph reader?
+    std::vector<unsigned char> m_buf; // Buffer the image pixels
+    int buffer_bpp;                   // Bytes per pixel in the buffer
+    ojph::codestream codestream;      // The HTJ2K codestream
+#endif
 };
 
 
@@ -194,7 +214,10 @@ jpeg2000_input_imageio_create()
 {
     return new Jpeg2000Input;
 }
-OIIO_EXPORT const char* jpeg2000_input_extensions[] = { "jp2", "j2k", "j2c",
+OIIO_EXPORT const char* jpeg2000_input_extensions[] = { "jp2", "j2k", 
+#ifdef USE_OPENJPH
+    "j2c",
+#endif
                                                         nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -224,6 +247,253 @@ Jpeg2000Input::valid_file(Filesystem::IOProxy* ioproxy) const
     return is_jp2_header(header) || is_j2k_header(header);
 }
 
+#ifdef USE_OPENJPH
+// A wrapper for ojph::infile_base to use OIIO's IOProxy
+class jph_infile : public ojph::infile_base
+{
+private:
+    Filesystem::IOProxy* ioproxy;
+public:
+    jph_infile(Filesystem::IOProxy* iop) { 
+        ioproxy = iop; 
+    }
+    ~jph_infile() {
+        // if (ioproxy != NULL)
+        //   ioproxy->close();
+    }
+
+    //read reads size bytes, returns the number of bytes read
+    size_t read(void *ptr, size_t size) {
+        return ioproxy->read(ptr, size);
+    }
+    //seek returns 0 on success
+    int seek(ojph::si64 offset, enum infile_base::seek origin){
+        return ioproxy->seek(offset, origin);
+    }
+    ojph::si64 tell() {
+        return ioproxy->tell();
+    };
+    bool eof() {
+        return ioproxy->tell() == ioproxy->size();
+    }
+    void close(){
+        ioproxy->close();
+        ioproxy = NULL;
+    };
+};
+
+ojph::si16 convert_si32_to_si16(const ojph::si32 si32_value, bool convert_special_numbers_to_finite_numbers = false)
+  {
+    if (si32_value > INT16_MAX)
+      return INT16_MAX;
+    else if (si32_value < INT16_MIN)
+      return INT16_MIN;
+    else if (true == convert_special_numbers_to_finite_numbers)
+    {
+      const ojph::si16 si16_value = (ojph::si16)si32_value;
+      half half_value;
+      half_value.setBits(si16_value);
+      if (half_value.isFinite())
+        return si16_value;
+
+      // handle non-real number to real-number mapping
+      if (half_value.isNan())
+        half_value = 0.0f;
+      else if (half_value.isInfinity() && !half_value.isNegative())
+        half_value = HALF_MAX;
+      else if (half_value.isInfinity() && half_value.isNegative())
+        half_value = -1.0f * HALF_MAX;
+      
+      return half_value.bits();
+    }  
+    else
+      return (ojph::si16)si32_value;
+  }
+
+bool
+Jpeg2000Input::ojph_read_header(){
+    ojph::param_siz siz = codestream.access_siz();
+    ojph::param_nlt nlt = codestream.access_nlt();
+    int ch = siz.get_num_components();
+    const int w = siz.get_recon_width(0);
+    const int h = siz.get_recon_height(0);
+    
+    bool nlt_is_signed;
+    ojph::ui8 nlt_bit_depth;
+    ojph::ui8 nl_type;
+    TypeDesc dtype;
+    bool has_nlt = nlt.get_nonlinear_transform(0, nlt_bit_depth, nlt_is_signed, nl_type);
+    bool is_signed = siz.is_signed(0);
+    
+    if (ch > 4)
+        ch = 4; // Only do the first 4 channels.
+    m_bpp.resize(ch);
+    
+    for(int c=0; c < ch; c++){
+        switch(siz.get_bit_depth(c))
+        {
+            case 8:
+                dtype    = TypeDesc::UCHAR;
+                m_bpp[c] = 1;
+                break;
+            case 10:
+            case 12:
+            case 16:
+                m_bpp[c] = 2;
+                if (has_nlt && is_signed)
+                    dtype = TypeDesc::HALF;
+                else
+                    dtype = TypeDesc::USHORT;
+                break;
+            case 32:
+                m_bpp[c] = 4;
+                if (has_nlt && is_signed)
+                    dtype = TypeDesc::DOUBLE;
+                else
+                    dtype    = TypeDesc::UINT;
+                break;
+        }
+        if (m_bpp[c] != m_bpp[0]){
+            errorfmt("All channels need to be the same bitdepth");
+            close();
+            return false;
+        }
+    }
+
+    
+    m_spec   = ImageSpec(w, h, ch, dtype);
+    m_spec.default_channel_names();
+    m_spec.attribute("oiio:BitsPerSample", siz.get_bit_depth(0));
+    m_spec.set_colorspace("sRGB");
+    
+    return true;
+}
+
+bool 
+Jpeg2000Input::ojph_read_image(){
+    buffer_bpp = m_bpp[0];
+    int w = m_spec.width;
+    int h = m_spec.height;
+    int ch = m_spec.nchannels;
+    ojph::param_siz siz = codestream.access_siz();
+    std::cerr << "Reading " << w << h << ch << "\n";
+    const int bufsize = w * h * ch * buffer_bpp;
+    m_buf.resize(bufsize);
+    codestream.create();
+    
+    int file_bit_depth = siz.get_bit_depth(0); // Assuming RGBA are the same.
+    std::cerr << "Starting full decode\n";
+    // We are going to read the whole image into the buffer, since with openjph
+    // its hard to easily grab part of the image.
+    if (codestream.is_planar()){
+        for (ojph::ui32 c = 0; c < ch; ++c)
+            
+            for (ojph::ui32 i = 0; i < h; ++i)
+            {
+                ojph::ui32 comp_num;
+                ojph::line_buf *line = codestream.pull(comp_num);
+                const ojph::si32* sp = line->i32;
+                assert(comp_num == c);
+                if (m_spec.format == TypeDesc::UCHAR){
+                    unsigned char* dout = &m_buf[i*w*ch];
+                    dout += c;
+                    for(ojph::ui32 j=w; j > 0; j--,  dout += ch){
+                        *dout = *sp++;
+                    }
+                }
+                if (m_spec.format == TypeDesc::USHORT){
+                    unsigned short* dout = (unsigned short *)&m_buf[buffer_bpp*(i*w*ch)];
+                    dout += c;
+                    for(ojph::ui32 j=w; j > 0; j--,  dout += ch){
+                        *dout = bit_range_convert(*sp++, file_bit_depth, buffer_bpp*8);
+                    }
+                }
+                if (m_spec.format == TypeDesc::HALF){
+                    ojph::si16* dout = (ojph::si16 *)&m_buf[buffer_bpp*(i*w*ch)];;
+                    dout += c;
+                    for(ojph::ui32 j=w; j > 0; j--,  dout += ch){
+                        *dout = convert_si32_to_si16(*sp++);
+                    }
+                }
+            }
+        
+    } else {
+
+        for (ojph::ui32 i = 0; i < h; ++i)
+        {
+            for (ojph::ui32 c = 0; c < ch; ++c)
+            {
+                ojph::ui32 comp_num;
+                ojph::line_buf *line = codestream.pull(comp_num);
+                const ojph::si32* sp = line->i32;
+                assert(comp_num == c);
+                if (m_spec.format == TypeDesc::UCHAR){
+                    unsigned char* dout = &m_buf[i*w*ch];
+                    dout += c;
+                    for(ojph::ui32 j=w; j > 0; j--,  dout += ch){
+                        *dout = *sp++;
+                    }
+                }
+                if (m_spec.format == TypeDesc::USHORT){
+                    unsigned short* dout = (unsigned short *)&m_buf[buffer_bpp*(i*w*ch)];
+                    dout += c;
+                    for(ojph::ui32 j=w; j > 0; j--,  dout += ch){
+                        *dout = bit_range_convert(*sp++, file_bit_depth, buffer_bpp*8);
+                    }
+                }
+                if (m_spec.format == TypeDesc::HALF){
+                    ojph::si16* dout = (ojph::si16 *)&m_buf[buffer_bpp*(i*w*ch)];
+                    dout += c;
+                    for(ojph::ui32 j=w; j > 0; j--,  dout += ch){
+                        *dout = convert_si32_to_si16(*sp++);
+                    }
+                }
+            }
+        }
+    }
+    std::cerr << "Finished full decode\n";
+    ojph_image_read = true;
+    return true;
+}
+
+FILE *error_stream = stderr;
+
+class Oiio_Reader_Error_handler : public ojph::message_error {
+    // This is a special error handler, since in this case, if we get the error-code for not a J2K file, we dont
+    // want to print out anything. If not, we fall through to the regular error handler.
+    ojph::message_error *default_error;
+public:
+    Oiio_Reader_Error_handler(ojph::message_error *error){
+        default_error = error;
+    }
+    virtual void operator()(int error_code, const char* file_name,
+      int line_num, const char *fmt, ...)
+    {
+        if (error_code == 0x00050044){
+            throw std::runtime_error("ojph error: not HTJ2K file");
+        }
+        std::cerr << "OJPH Error handler:" << error_code << "\n";
+        va_list args;
+        va_start(args, fmt);
+        default_error[0](error_code, file_name, line_num, fmt, args);
+        va_end(args);
+         /* if (error_stream != NULL  && message_level <= OJPH_MSG_LEVEL::ERROR )
+          {
+            fprintf(error_stream, "ojph error 0x%08X at %s:%d: ",
+              error_code, file_name, line_num);
+            va_list args;
+            va_start(args, fmt);
+            //vfprintf(error_stream, fmt, args);
+            fprintf(error_stream, "\n");
+            va_end(args);
+          }
+
+          throw std::runtime_error("ojph error"); */
+    }
+};
+
+#endif // USE_OPENJPH
+
 bool
 Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
 {
@@ -231,6 +501,25 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
 
     if (!ioproxy_use_or_open(name))
         return false;
+    
+#ifdef USE_OPENJPH
+    jph_infile *jphinfile = new jph_infile(ioproxy());
+    ojph_reader = true;
+    ojph::message_error *default_error = ojph::get_error();
+
+    try {
+        Oiio_Reader_Error_handler error_handler(default_error);
+        ojph::configure_error(&error_handler);
+        codestream.read_headers(jphinfile);
+        return ojph_read_header();
+    }  catch (const std::runtime_error& e) {
+        ojph::configure_error(default_error);
+        ojph_reader = false;
+    }
+    delete jphinfile;
+    std::cerr << "Falling through to openjpeg\n";
+#endif // USE_OPENJPH
+
     ioseek(0);
 
     m_codec = create_decompressor();
@@ -388,11 +677,22 @@ Jpeg2000Input::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (!seek_subimage(subimage, miplevel))
         return false;
 
+#ifdef USE_OPENJPH
+    if (ojph_reader){
+        if (!ojph_image_read)
+            ojph_read_image();
+        unsigned char *start = &m_buf[buffer_bpp*(y*m_spec.width*m_spec.nchannels)];
+        memcpy(data, start, buffer_bpp*m_spec.width*m_spec.nchannels);
+        return true;
+    }
+#endif // USE_OPENJPH
+
     if (m_spec.format == TypeDesc::UINT8)
         read_scanline<uint8_t>(y, z, data);
     else
         read_scanline<uint16_t>(y, z, data);
-
+    
+    /*
     // JPEG2000 specifically dictates unassociated (un-"premultiplied") alpha.
     // Convert to associated unless we were requested not to do so.
     if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha) {
@@ -404,6 +704,7 @@ Jpeg2000Input::read_native_scanline(int subimage, int miplevel, int y, int z,
             j2k_associateAlpha((unsigned char*)data, m_spec.width,
                                m_spec.nchannels, m_spec.alpha_channel, gamma);
     }
+     */
 
     return true;
 }
