@@ -1144,9 +1144,9 @@ preliminary.  In particular, we are not yet very good at handling the
 metadata robustly.
 
 Optionally this plugin can be built with OpenJPH support, which is a
-JPEG-2000 decoder that is faster than OpenJPEG, and supports the
-High Throughput JPEG2000 (HTJ2K) format. If OpenJPH is not available, the
-OpenJPEG library will be used instead. OpenJPH is available at  https://github.com/aous72/OpenJPH .
+JPEG-2000 encoder/decoder that is faster than OpenJPEG, and supports the
+High Throughput JPEG2000 (HTJ2K) format (Jpeg2000 Part 15). If OpenJPH is not available, the
+OpenJPEG library will be used instead but only for decoding. OpenJPH is available at  https://github.com/aous72/OpenJPH .
 
 **Attributes**
 
