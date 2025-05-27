@@ -203,7 +203,7 @@ OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 using namespace simd;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
-using Dimensions   = ImageCacheFile::Dimensions;
+using ImageDims    = ImageCacheFile::ImageDims;
 
 bool
 TextureSystem::environment(ustring filename, TextureOpt& options, V3fParam R,
@@ -478,7 +478,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
             // Filters are in radians, and the vertical resolution of a
             // latlong map is PI radians.  So to compute the raster size of
             // our filter width...
-            const Dimensions& dims(si.dimensions(m));
+            const ImageDims& dims(si.leveldims(m));
             float filtwidth_ras = dims.full_height * filtwidth * M_1_PI;
             // Once the filter width is smaller than one texel at this level,
             // we've gone too far, so we know that we want to interpolate the
@@ -524,7 +524,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
             int lev = miplevel[level];
             if (options.interpmode == TextureOpt::InterpSmartBicubic) {
                 if (lev == 0
-                    || (si.dimensions(lev).full_height < naturalres / 2)) {
+                    || (si.leveldims(lev).full_height < naturalres / 2)) {
                     sampler = &TextureSystemImpl::sample_bicubic;
                     ++stats.cubic_interps;
                 } else {

@@ -17,7 +17,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++17 or higher (also builds with C++20)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: gcc 9.3 - 14.2, clang 5 - 19, MSVS 2017 - 2019 (v19.14
+ * Compilers: gcc 9.3 - 14.2, clang 5 - 19, MSVS 2017 - 2022 (v19.14
    and up), Intel icc 19+, Intel OneAPI C++ compiler 2022+.
  * CMake >= 3.18.2 (tested through 4.0)
  * Imath >= 3.1 (tested through 3.1.x and main)
@@ -280,64 +280,71 @@ Building on Windows
 
 You will need to have Git, CMake and Visual Studio installed.
 
-The minimal set of dependencies for OIIO is: zlib, libTIFF, Imath, OpenEXR, and libjpeg or libjpeg-turbo. If you have them built somewhere then you skip
-the section below, and will only have to point OIIO build process so their locations.
+The minimal set of dependencies for OIIO is: zlib, libTIFF, Imath, OpenEXR,
+OpenColorIO, and libjpeg or libjpeg-turbo. If you have them built somewhere
+then if you set the environment variable `CMAKE_PREFIX_PATH` to include those
+areas so CMake will find them, the OpenImageIO build will find those pre-built
+packages and use them. If you don't have them build, or are unsure, the
+`OpenImageIO_BUILD_MISSING_DEPS=all` CMake option will cause the build process
+to download the sources of those dependencies, build them, and use them.
 
-* zlib: this will build it, and then delete the non-static library, so they don't get picked up:
-  ```
-  cd {ZLIB_ROOT}
-  git clone https://github.com/madler/zlib .
-  cmake -S . -B build -DCMAKE_INSTALL_PREFIX=.
-  cmake --build build --config Release --target install
-  del build\Release\zlib.lib
-  ```
-* libTIFF:
-  ```
-  cd {TIFF_ROOT}
-  git clone https://gitlab.com/libtiff/libtiff.git .
-  cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=.
-  cmake --build build --config Release --target install
-  ```
-* libjpeg-turbo:
-  ```
-  cd {JPEG_ROOT}
-  git clone https://github.com/libjpeg-turbo/libjpeg-turbo .
-  cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=.
-  cmake --build build --config Release --target install
-  ```
-* OpenEXR: you'll have to point it to your `{ZLIB_ROOT}` location from the above. If copy-pasting the multi-line command (with lines ending in `^`) into
-  cmd.exe prompt, make sure to copy all the lines at once.
-  ```
-  cd {EXR_ROOT}
-  git clone https://github.com/AcademySoftwareFoundation/openexr .
-  cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=dist ^
-    -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DOPENEXR_BUILD_TOOLS=OFF ^
-    -DOPENEXR_INSTALL_TOOLS=OFF -DOPENEXR_INSTALL_EXAMPLES=OFF ^
-    -DZLIB_ROOT={ZLIB_ROOT}\build
-  cmake --build build --target install --config Release
-  ```
+To build OpenImageIO, you first need to clone the OIIO repository
+and check out the desired branch or tag:
 
-Now get the OIIO source and do one-time CMake configuration step. Replace `{*_ROOT}` below with folders where you have put the 3rd party
-dependencies.
-
-Note: For the `Imath_LIBRARY`, you might need to correct the `Imath-*.lib` file name that was built on your machine.
 ```
 cd {OIIO_ROOT}
 git clone https://github.com/AcademySoftwareFoundation/OpenImageIO .
-cmake -S . -B build -DVERBOSE=ON -DCMAKE_BUILD_TYPE=Release ^
-  -DZLIB_ROOT={ZLIB_ROOT}\build ^
-  -DTIFF_ROOT={TIFF_ROOT} ^
-  -DOpenEXR_ROOT={EXR_ROOT}\dist ^
-  -DImath_DIR={EXR_ROOT}\dist\lib\cmake\Imath ^
-  -DImath_INCLUDE_DIR={EXR_ROOT}\dist\include\Imath ^
-  -DImath_LIBRARY={EXR_ROOT}\dist\lib\Imath-3_2.lib ^
-  -DJPEG_ROOT={JPEG_ROOT} ^
-  -Dlibjpeg-turbo_ROOT={JPEG_ROOT} ^
-  -DUSE_PYTHON=0 -DUSE_QT=0 -DBUILD_SHARED_LIBS=0 -DLINKSTATIC=1
+git checkout release
 ```
 
-This will produce `{OIIO_ROOT}/build/OpenImageIO.sln` that can be opened in Visual Studio IDE. Note that the solution will be
-only for the Intel x64 architecture only; and will only target "min-spec" (SSE2) SIMD instruction set.
+OIIO_ROOT is the directory where you want to place the OIIO source code.
+
+Note the `git checkout release` line. There are a few choices here:
+- `release` - always will be the latest stable supported release, which is the
+  recommended choice for most users.
+- `v3.0.3.0` - a specific release version, which is the recommended choice for
+  most users who want to use a specific version of OIIO. Note that this is
+  just an example, and by the time you are reading these instructions, it will
+  likely be out of date. Adjust the version number to match the one you want.
+  Note that `release` is a shortcut for the latest stable release, if you
+  aren't sure which version you want.
+- `main` - the latest development version, which may be unstable, but is
+  probably what you want if you are a developer and are working on new
+  contributions to OIIO.
+
+Next, you need to do the "cmake configure" step:
+
+```
+cmake -S . -B build -DOpenImageIO_BUILD_MISSING_DEPS=all ^
+  -DBUILD_SHARED_LIBS=0 -DLINKSTATIC=1
+```
+
+If that command succeeds, you can either do the full build and install 
+from the command line, or open the generated Visual Studio solution.
+
+Note that you can speed up the build by disabling certain components if you
+know you won't need them: Adding `-DUSE_PYTHON=0` to the command above will
+skip building the Python bindings, `-DUSE_QT=0` will disable looking for and
+using Qt (needed only for the `iv` viewer), and `-DOIIO_BUILD_TESTS=0` will
+skip building certain unit tests (which you only need if you want to OIIO's
+tests).
+
+If you just want a one-step build/install from the command line, you can run:
+
+```
+cmake --build build --target install --config Release
+```
+
+and that will build the package and install it into the `{OIIO_ROOT/dist`
+area. (If you instead wanted the install to end up elsewhere, the easiest way
+is on the earlier config step, to add the option
+`-DCMAKE_INSTALL_PREFIX=somewhere_else`.)
+
+On the other hand, if you would prefer to open the generated Visual Studio
+solution, the "cmake configure" will have produced
+`{OIIO_ROOT}/build/OpenImageIO.sln` that can be opened in Visual Studio IDE.
+Note that the solution will be only for the Intel x64 architecture only; and
+will only target "min-spec" (SSE2) SIMD instruction set.
 
 Optional packages that OIIO can use (e.g. libpng, Qt) can be build and pointed to OIIO build process in a similar way.
 

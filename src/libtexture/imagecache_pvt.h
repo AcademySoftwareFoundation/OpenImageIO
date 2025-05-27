@@ -262,11 +262,11 @@ public:
     // success, false on failure.
     bool get_average_color(float* avg, int subimage, int chbegin, int chend);
 
-    //! Dimensions is a minified ImageSpec that only store the fields
-    //! that can change per mip map level.
-    //! It is used as standalone container or can be used as a view
-    //! over the same fields of ImageSpec via the Dimensions::convert() function.
-    struct Dimensions {
+    /// ImageDims is a minified ImageSpec that only store the fields
+    /// that can change per mip map level.
+    /// It is used as standalone container or can be used as a view
+    /// over the same fields of ImageSpec via the ImageDims::convert() function.
+    struct ImageDims {
         int x;            ///< origin (upper left corner) of pixel data
         int y;            ///< origin (upper left corner) of pixel data
         int z;            ///< origin (upper left corner) of pixel data
@@ -285,67 +285,51 @@ public:
                           ///<             1 for a non-volume image)
         int nchannels;    ///< number of image channels, e.g., 4 for RGBA
 
-        static const Dimensions& convert(const ImageSpec& s)
+        static const ImageDims& convert(const ImageSpec& s)
         {
-            validate_alignment();
-            return *((Dimensions*)&s.x);
+            return *((ImageDims*)&s.x);
         }
 
-        static Dimensions& convert(ImageSpec& s)
-        {
-            validate_alignment();
-            return *((Dimensions*)&s.x);
-        }
-
-        static inline void validate_alignment()
-        {
-            //! test structure alignment
-            OIIO_STATIC_ASSERT(alignof(ImageSpec) >= alignof(Dimensions));
-
-            //! test structure size
-            OIIO_STATIC_ASSERT(sizeof(Dimensions)
-                               == offsetof(ImageSpec, format));
-
-            //! test members offsets
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, x)
-                               == offsetof(ImageSpec, x));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, y)
-                               == offsetof(ImageSpec, y));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, z)
-                               == offsetof(ImageSpec, z));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, width)
-                               == offsetof(ImageSpec, width));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, height)
-                               == offsetof(ImageSpec, height));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, depth)
-                               == offsetof(ImageSpec, depth));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_x)
-                               == offsetof(ImageSpec, full_x));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_y)
-                               == offsetof(ImageSpec, full_y));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_z)
-                               == offsetof(ImageSpec, full_z));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_width)
-                               == offsetof(ImageSpec, full_width));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_height)
-                               == offsetof(ImageSpec, full_height));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, full_depth)
-                               == offsetof(ImageSpec, full_depth));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, tile_width)
-                               == offsetof(ImageSpec, tile_width));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, tile_height)
-                               == offsetof(ImageSpec, tile_height));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, tile_depth)
-                               == offsetof(ImageSpec, tile_depth));
-            OIIO_STATIC_ASSERT(offsetof(Dimensions, nchannels)
-                               == offsetof(ImageSpec, nchannels));
-        }
+        static ImageDims& convert(ImageSpec& s) { return *((ImageDims*)&s.x); }
     };
+
+    /// Sanity checks for ImageSpec <-> ImageDims structures alignment.
+    OIIO_STATIC_ASSERT(alignof(ImageSpec) >= alignof(ImageDims));
+    OIIO_STATIC_ASSERT(sizeof(ImageDims) == offsetof(ImageSpec, format));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, x) == offsetof(ImageSpec, x));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, y) == offsetof(ImageSpec, y));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, z) == offsetof(ImageSpec, z));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, width)
+                       == offsetof(ImageSpec, width));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, height)
+                       == offsetof(ImageSpec, height));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, depth)
+                       == offsetof(ImageSpec, depth));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_x)
+                       == offsetof(ImageSpec, full_x));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_y)
+                       == offsetof(ImageSpec, full_y));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_z)
+                       == offsetof(ImageSpec, full_z));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_width)
+                       == offsetof(ImageSpec, full_width));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_height)
+                       == offsetof(ImageSpec, full_height));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_depth)
+                       == offsetof(ImageSpec, full_depth));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, tile_width)
+                       == offsetof(ImageSpec, tile_width));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, tile_height)
+                       == offsetof(ImageSpec, tile_height));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, tile_depth)
+                       == offsetof(ImageSpec, tile_depth));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, nchannels)
+                       == offsetof(ImageSpec, nchannels));
 
     /// Info for each MIP level that isn't in the ImageSpec, or that we
     /// precompute.
     struct LevelInfo {
-        Dimensions* m_dims;                  ///< Level dimensions
+        ImageDims* m_dims;                   ///< Level dimensions
         std::unique_ptr<float[]> polecolor;  ///< Pole colors
         atomic_ll* tiles_read;  ///< Bitfield for tiles read at least once
         int nxtiles, nytiles, nztiles;  ///< Number of tiles in each dimension
@@ -354,7 +338,7 @@ public:
         bool onetile : 1;            ///< Whole level fits on one tile
         bool polecolorcomputed : 1;  ///< Pole color was computed
 
-        LevelInfo(ImageSpec* spec, Dimensions* dims = nullptr);
+        LevelInfo(ImageSpec* spec, ImageDims* dims = nullptr);
         LevelInfo(const LevelInfo& src);  // needed for vector<LevelInfo>
         ~LevelInfo() { delete[] tiles_read; }
     };
@@ -393,10 +377,9 @@ public:
 
         void get_cache_dimensions(int m, ImageSpec& s) const
         {
-            const Dimensions& dims = dimensions(m);
-            Dimensions& output     = Dimensions::convert(s);
-            // if the alignment of Dimensions and ImageSpec matches, default copy should work
-            output = dims;
+            const ImageDims& dims = leveldims(m);
+            ImageDims& output     = ImageDims::convert(s);
+            output                = dims;
         }
 
         ImageSpec& spec()
@@ -422,10 +405,10 @@ public:
             return levels[miplevel];
         }
 
-        const Dimensions& dimensions(int miplevel) const
+        const ImageDims& leveldims(int miplevel) const
         {
             const LevelInfo& lvl = levelinfo(miplevel);
-            return lvl.m_dims ? *lvl.m_dims : Dimensions::convert(spec());
+            return lvl.m_dims ? *lvl.m_dims : ImageDims::convert(spec());
         }
 
         //! The following methods are similar to the ones from ImageSpec.
@@ -455,6 +438,7 @@ public:
     {
         return subimageinfo(subimage).levelinfo(miplevel);
     }
+
     LevelInfo& levelinfo(int subimage, int miplevel)
     {
         return subimageinfo(subimage).levelinfo(miplevel);
@@ -509,18 +493,18 @@ private:
     std::atomic<std::shared_ptr<ImageInput>> m_input;
 #else
     std::shared_ptr<ImageInput> m_input;  ///< Open ImageInput, NULL if closed
-        // Note that m_input, the shared pointer itself, is NOT safe to
-        // access directly. ALWAYS retrieve its value with get_imageinput
-        // (it's thread-safe to use that result) and set its value with
-        // set_imageinput -- those are guaranteed thread-safe.
+    // Note that m_input, the shared pointer itself, is NOT safe to
+    // access directly. ALWAYS retrieve its value with get_imageinput
+    // (it's thread-safe to use that result) and set its value with
+    // set_imageinput -- those are guaranteed thread-safe.
 #endif
     std::vector<SubimageInfo> m_subimages;  ///< Info on each subimage
     std::vector<std::unique_ptr<ImageSpec>> m_pool_specs;  ///< Pool of ImageSpec
-    std::vector<std::unique_ptr<Dimensions>> m_pool_dims;  ///< Pool of Dimensions
+    std::vector<std::unique_ptr<ImageDims>> m_pool_dims;  ///< Pool of ImageDims
     static constexpr bool enable_specs_reuse
         = true;  ///< Indicates to share ImageSpec across subimages
     static constexpr bool enable_dims_reuse
-        = true;  ///< Indicates to share Dimensions across subimages and miplevels
+        = true;  ///< Indicates to share ImageDims across subimages and miplevels
 
     TexFormat m_texformat;        ///< Which texture format
     TextureOpt::Wrap m_swrap;     ///< Default wrap modes
@@ -597,11 +581,11 @@ private:
     ImageSpec* find_spec(int subimage, const ImageSpec& spec);
     /// returns a pointer to an existing or a newly allocated ImageSpec that matches `spec`
     ImageSpec* find_or_create_spec(int subimage, const ImageSpec& spec);
-    /// search for a similar Dimensions within the existing subimages at the specified miplevel
-    Dimensions* find_dims(int subimage, int miplevel, const Dimensions& spec);
-    /// returns a pointer to an existing or a newly allocated Dimensions that matches the dimensions from `spec`
-    Dimensions* find_or_create_dims(int subimage, int miplevel,
-                                    const ImageSpec& spec);
+    /// search for a similar ImageDims within the existing subimages at the specified miplevel
+    ImageDims* find_dims(int subimage, int miplevel, const ImageDims& spec);
+    /// returns a pointer to an existing or a newly allocated ImageDims that matches the dimensions from `spec`
+    ImageDims* find_or_create_dims(int subimage, int miplevel,
+                                   const ImageSpec& spec);
     /// read and init the texture format of this ImageCacheFile from the given ImageSpec
     /// returns a pointer in case the texture dimensions need to be sanitized
     /// FIXME -- this should really be per-subimage

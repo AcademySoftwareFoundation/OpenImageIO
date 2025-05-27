@@ -38,7 +38,7 @@
 
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
-using Dimensions   = ImageCacheFile::Dimensions;
+using ImageDims    = ImageCacheFile::ImageDims;
 using LevelInfo    = ImageCacheFile::LevelInfo;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
 
@@ -300,18 +300,18 @@ has_one_tile(const T& s)
 
 
 
-LevelInfo::LevelInfo(ImageSpec* spec_, Dimensions* dims_)
+LevelInfo::LevelInfo(ImageSpec* spec_, ImageDims* dims_)
     : m_dims(dims_)
     , nxtiles(1)
     , nytiles(1)
     , nztiles(1)
 {
     OIIO_DASSERT(spec_);
-    const Dimensions& dims = m_dims ? *m_dims : Dimensions::convert(*spec_);
-    nchannels              = dims.nchannels;
-    full_pixel_range       = has_full_pixel_range(dims);
-    onetile                = has_one_tile(dims);
-    polecolorcomputed      = false;
+    const ImageDims& dims = m_dims ? *m_dims : ImageDims::convert(*spec_);
+    nchannels             = dims.nchannels;
+    full_pixel_range      = has_full_pixel_range(dims);
+    onetile               = has_one_tile(dims);
+    polecolorcomputed     = false;
     // Allocate bit field for which tiles have been read at least once.
     if (!onetile) {
         nxtiles = (dims.width + dims.tile_width - 1) / dims.tile_width;
@@ -541,7 +541,7 @@ ImageCacheFile::SubimageInfo::init(ImageCacheFile& icfile, ImageSpec* spec_,
 imagesize_t
 ImageCacheFile::SubimageInfo::get_tile_pixels(int m) const
 {
-    const Dimensions& ls = dimensions(m);
+    const ImageDims& ls = leveldims(m);
     if (ls.tile_width <= 0 || ls.tile_height <= 0 || ls.tile_depth <= 0)
         return 0;
     imagesize_t r = clamped_mult64((imagesize_t)ls.tile_width,
@@ -577,7 +577,7 @@ ImageCacheFile::SubimageInfo::get_tile_bytes(int m) const
 imagesize_t
 ImageCacheFile::SubimageInfo::get_scanline_bytes(int m) const
 {
-    const Dimensions& ls = dimensions(m);
+    const ImageDims& ls = leveldims(m);
     if (ls.width < 0)
         return 0;
     return clamped_mult64((imagesize_t)ls.width,
@@ -589,7 +589,7 @@ ImageCacheFile::SubimageInfo::get_scanline_bytes(int m) const
 imagesize_t
 ImageCacheFile::SubimageInfo::get_image_pixels(int m) const
 {
-    const Dimensions& ls = dimensions(m);
+    const ImageDims& ls = leveldims(m);
     if (ls.width < 0 || ls.height < 0 || ls.depth < 0)
         return 0;
     imagesize_t r = clamped_mult64((imagesize_t)ls.width,
@@ -643,8 +643,8 @@ ImageCacheFile::find_or_create_spec(int subimage, const ImageSpec& spec)
 
 
 
-Dimensions*
-ImageCacheFile::find_dims(int subimage, int miplevel, const Dimensions& dims)
+ImageDims*
+ImageCacheFile::find_dims(int subimage, int miplevel, const ImageDims& dims)
 {
     constexpr int N = 10;
     int p           = 1;
@@ -662,18 +662,18 @@ ImageCacheFile::find_dims(int subimage, int miplevel, const Dimensions& dims)
 
 
 
-Dimensions*
+ImageDims*
 ImageCacheFile::find_or_create_dims(int subimage, int miplevel,
                                     const ImageSpec& spec)
 {
-    // next we try to deduplicate Dimensions across subimages
-    Dimensions* tmp = nullptr;
+    // next we try to deduplicate ImageDims across subimages
+    ImageDims* tmp = nullptr;
     if (enable_dims_reuse && subimage > 0)
-        tmp = find_dims(subimage, miplevel, Dimensions::convert(spec));
-    // if we cannot reuse a previously allocated Dimensions, just create one
+        tmp = find_dims(subimage, miplevel, ImageDims::convert(spec));
+    // if we cannot reuse a previously allocated ImageDims, just create one
     if (!tmp) {
         m_pool_dims.emplace_back(
-            std::make_unique<Dimensions>(Dimensions::convert(spec)));
+            std::make_unique<ImageDims>(ImageDims::convert(spec)));
         tmp = m_pool_dims.back().get();
     }
     return tmp;
@@ -910,7 +910,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                 clamp_dimensions(tempspec);
             // Each mip level stores only the fields that differ from the native spec
             OIIO_DASSERT(sispec);
-            Dimensions* dims = nullptr;
+            ImageDims* dims = nullptr;
             if (!has_same_dimensions(*sispec, tempspec)) {
                 dims = find_or_create_dims(nsubimages, nmip, tempspec);
                 OIIO_DASSERT(dims);
@@ -958,7 +958,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                 }
                 ++nmip;
                 OIIO_DASSERT(sispec);
-                Dimensions* dims = nullptr;
+                ImageDims* dims = nullptr;
                 if (!has_same_dimensions(*sispec, s)) {
                     dims = find_or_create_dims(nsubimages, nmip, s);
                     OIIO_DASSERT(dims);
@@ -979,8 +979,8 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
         // needing to rifle through the imagespecs each time.
         si.minwh.reset(new int[nmip + 1]);
         for (int m = 0; m < nmip; ++m)
-            si.minwh[m] = std::min(si.dimensions(m).width,
-                                   si.dimensions(m).height);
+            si.minwh[m] = std::min(si.leveldims(m).width,
+                                   si.leveldims(m).height);
         si.minwh[nmip] = 0;  // One past the end, set to 0
         ++nsubimages;
     } while (inp->seek_subimage(nsubimages, 0));
@@ -1011,8 +1011,8 @@ void
 ImageCacheFile::init_from_spec()
 {
     const SubimageInfo& si(this->subimageinfo(0));
-    const ImageSpec& spec  = si.spec();
-    const Dimensions& dims = si.dimensions(0);
+    const ImageSpec& spec = si.spec();
+    const ImageDims& dims = si.leveldims(0);
     const ParamValue* p;
 
     if ((p = spec.find_attribute("wrapmodes", TypeDesc::STRING))) {
@@ -1085,7 +1085,7 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info,
 
     int subimage = id.subimage();
     const SubimageInfo& si(subimageinfo(subimage));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
 
     // Special case for un-MIP-mapped
     if (si.unmipped && miplevel != 0)
@@ -1185,7 +1185,7 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
     // Figure out the size and strides for a single tile, make an ImageBuf
     // to hold it temporarily.
     const SubimageInfo& si(this->subimageinfo(subimage));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     int tw = dims.tile_width;
     int th = dims.tile_height;
     OIIO_DASSERT(chend > chbegin);
@@ -1223,7 +1223,7 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
 
     // Texel by texel, generate the values by interpolating filtered
     // lookups form the next finer subimage.
-    const Dimensions& prev(si.dimensions(miplevel - 1));
+    const ImageDims& prev(si.leveldims(miplevel - 1));
     span<float> bilerppels = OIIO_ALLOCA_SPAN(float, 4 * nchans);
     span<float> resultpel  = OIIO_ALLOCA_SPAN(float, nchans);
     bool ok                = true;
@@ -1280,7 +1280,7 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
 
     // Strides for a single tile
     const SubimageInfo& si(this->subimageinfo(subimage));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     int tw = dims.tile_width;
     int th = dims.tile_height;
     OIIO_DASSERT(chend > chbegin);
@@ -1445,7 +1445,7 @@ ImageCacheFile::get_average_color(float* avg, int subimage, int chbegin,
         // try to figure it out by grabbing the single pixel at the 1x1
         // MIP level.
         int nlevels = (int)si.levels.size();
-        const Dimensions& dims(si.dimensions(nlevels - 1));
+        const ImageDims& dims(si.leveldims(nlevels - 1));
         if (dims.width != 1 || dims.height != 1 || dims.depth != 1)
             return false;  // no hope, there's no 1x1 MIP level to sample
         spin_lock lock(si.average_color_mutex);
@@ -1625,9 +1625,9 @@ ImageCacheImpl::verify_file(ImageCacheFile* tf,
                     // here if more metadata have significance later!
                     bool match = (tf->subimages() == dup->subimages());
                     const SubimageInfo& tfsi(tf->subimageinfo(0));
-                    const Dimensions& tfdims(tfsi.dimensions(0));
+                    const ImageDims& tfdims(tfsi.leveldims(0));
                     const SubimageInfo& dupsi(dup->subimageinfo(0));
-                    const Dimensions& dupdims(dupsi.dimensions(0));
+                    const ImageDims& dupdims(dupsi.leveldims(0));
                     match &= (tfdims.width == dupdims.width
                               && tfdims.height == dupdims.height
                               && tfdims.depth == dupdims.depth
@@ -1807,7 +1807,7 @@ ImageCacheTile::ImageCacheTile(const TileID& id, const void* pels,
 {
     ImageCacheFile& file(m_id.file());
     const SubimageInfo& si(file.subimageinfo(m_id.subimage()));
-    const Dimensions& dims(si.dimensions(m_id.miplevel()));
+    const ImageDims& dims(si.leveldims(m_id.miplevel()));
     m_channelsize = file.datatype(id.subimage()).size();
     m_pixelsize   = id.nchannels() * m_channelsize;
     m_tile_width  = dims.tile_width;
@@ -1877,7 +1877,7 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
     if (m_valid) {
         SubimageInfo& si(file.subimageinfo(m_id.subimage()));
         LevelInfo& lev(si.levelinfo(m_id.miplevel()));
-        const Dimensions& dims(si.dimensions(m_id.miplevel()));
+        const ImageDims& dims(si.leveldims(m_id.miplevel()));
         m_tile_width = dims.tile_width;
         OIIO_DASSERT(m_tile_width > 0);
         int whichtile = ((m_id.x() - dims.x) / dims.tile_width)
@@ -1930,7 +1930,7 @@ const void*
 ImageCacheTile::data(int x, int y, int z, int c) const
 {
     const SubimageInfo& si(file().subimageinfo(m_id.subimage()));
-    const Dimensions& dims(si.dimensions(m_id.miplevel()));
+    const ImageDims& dims(si.leveldims(m_id.miplevel()));
     size_t w = dims.tile_width;
     size_t h = dims.tile_height;
     size_t d = dims.tile_depth;
@@ -3143,7 +3143,7 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
 
     const SubimageInfo& si(file->subimageinfo(subimage));
     const ImageSpec& spec(si.spec());
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     if (dataname == s_resolution && datatype == TypeDesc(TypeDesc::INT, 2)) {
         int* d = (int*)data;
         d[0]   = dims.width;
@@ -3550,7 +3550,7 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
     if (!thread_info)
         thread_info = get_perthread_info();
     const SubimageInfo& si(file->subimageinfo(subimage));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     bool ok = true;
 
     // Compute channels and stride if not given (assume all channels,
@@ -3705,7 +3705,7 @@ ImageCacheImpl::get_tile(ImageHandle* file, Perthread* thread_info,
         || miplevel >= file->miplevels(subimage))
         return nullptr;
     const SubimageInfo& si(file->subimageinfo(subimage));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     // Snap x,y,z to the corner of the tile
     int xtile = (x - dims.x) / dims.tile_width;
     int ytile = (y - dims.y) / dims.tile_height;
@@ -3757,7 +3757,7 @@ ImageCacheImpl::tile_roi(const Tile* tile) const
 {
     const TileID& id(((const ImageCacheTile*)tile)->id());
     const SubimageInfo& si(id.file().subimageinfo(id.subimage()));
-    const Dimensions& dims(si.dimensions(id.miplevel()));
+    const ImageDims& dims(si.leveldims(id.miplevel()));
     return ROI(id.x(), id.x() + dims.tile_width, id.y(),
                id.y() + dims.tile_height, id.z(), id.z() + dims.tile_depth,
                id.chbegin(), id.chend());
@@ -3945,7 +3945,7 @@ ImageCacheImpl::invalidate_all(bool force)
             if (sub.untiled) {
                 for (int m = 0, mend = f->miplevels(s); m < mend; ++m) {
                     const SubimageInfo& si(f->subimageinfo(s));
-                    const Dimensions& dims(si.dimensions(m));
+                    const ImageDims& dims(si.leveldims(m));
                     if (dims.tile_width != m_autotile
                         || dims.tile_height != m_autotile) {
                         all_files.push_back(name);

@@ -3066,6 +3066,11 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, will leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
 
 **Configuration settings for WebP output**
 
@@ -3088,6 +3093,25 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, indicates that the data being passed is already in
+       unassociated form (non-premultiplied colors) and should stay that way
+       for output rather than being assumed to be associated and get automatic
+       un-association to store in the file.
+   * - ``Compression``
+     - string
+     - If supplied, can be either ``"webp:quality"`` or ``"lossless:quality"``
+       where quality can be an integer between 0 and 100, and where using "webp"
+       indicates a request for lossy compression. For lossy, 0 gives the smallest
+       size and 100 the largest. For lossless, this parameter is the amount of effort
+       put into the compression: 0 is the fastest but gives larger files compared to
+       the slowest, but best, 100. The default, if quality is not specified, is
+       100 for lossy and 70 for lossless.
+   * - ``webp:method``
+     - int
+     - A general quality/speed trade-off (0=fast, 6=slower-better) for both
+       lossy and lossless image encoding. The default is 6.
 
 **Custom I/O Overrides**
 

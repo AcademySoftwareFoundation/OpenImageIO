@@ -40,7 +40,7 @@ using namespace pvt;
 using namespace simd;
 using LevelInfo    = ImageCacheFile::LevelInfo;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
-using Dimensions   = ImageCacheFile::Dimensions;
+using ImageDims    = ImageCacheFile::ImageDims;
 
 namespace {  // anonymous
 
@@ -1187,7 +1187,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
         return false;
     }
     const SubimageInfo& si(texfile->subimageinfo(subimage));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
 
     // FIXME -- this could be WAY more efficient than starting from
     // scratch for each pixel within the rectangle.  Instead, we should
@@ -2274,11 +2274,9 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
             break;
         case TextureOpt::InterpSmartBicubic:
             if (lev == 0
-                || (texturefile.subimageinfo(options.subimage).dimensions(lev).width
+                || (texturefile.subimageinfo(options.subimage).leveldims(lev).width
                     < naturalsres / 2)
-                || (texturefile.subimageinfo(options.subimage)
-                        .dimensions(lev)
-                        .height
+                || (texturefile.subimageinfo(options.subimage).leveldims(lev).height
                     < naturaltres / 2)) {
                 ok &= sample_bicubic(nsamples, sval, tval, lev, texturefile,
                                      thread_info, options, nchannels_result,
@@ -2333,7 +2331,7 @@ TextureSystemImpl::pole_color(TextureFile& texturefile,
 {
     SubimageInfo& si(texturefile.subimageinfo(subimage));
     LevelInfo& lvl(si.levelinfo(miplevel));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     if (!lvl.onetile)
         return NULL;  // Only compute color for one-tile MIP levels
     if (!lvl.polecolorcomputed) {
@@ -2423,7 +2421,7 @@ TextureSystemImpl::sample_closest(
     bool allok = true;
     const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
     const LevelInfo& lvl(si.levelinfo(miplevel));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     wrap_impl swrap_func         = wrap_functions[(int)options.swrap];
     wrap_impl twrap_func         = wrap_functions[(int)options.twrap];
@@ -2522,7 +2520,7 @@ TextureSystemImpl::sample_closest(
 inline void
 st_to_texel_simd(const vfloat4& s_, const vfloat4& t_,
                  TextureSystemImpl::TextureFile& texturefile,
-                 const Dimensions& dims, vint4& i, vint4& j, vfloat4& ifrac,
+                 const ImageDims& dims, vint4& i, vint4& j, vfloat4& ifrac,
                  vfloat4& jfrac)
 {
     vfloat4 s, t;
@@ -2558,7 +2556,7 @@ TextureSystemImpl::sample_bilinear(
 {
     const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
     const LevelInfo& lvl(si.levelinfo(miplevel));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     wrap_impl swrap_func         = wrap_functions[(int)options.swrap];
     wrap_impl twrap_func         = wrap_functions[(int)options.twrap];
@@ -2907,7 +2905,7 @@ TextureSystemImpl::sample_bicubic(
 {
     const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
     const LevelInfo& lvl(si.levelinfo(miplevel));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     TypeDesc::BASETYPE pixeltype   = texturefile.pixeltype(options.subimage);
     wrap_impl_simd swrap_func_simd = wrap_functions_simd[(int)options.swrap];
     wrap_impl_simd twrap_func_simd = wrap_functions_simd[(int)options.twrap];

@@ -616,6 +616,9 @@ struct formatter<OIIO::TypeDesc> {
     {
         // Get the presentation type, if any. Required to be 's'.
         auto it = ctx.begin(), end = ctx.end();
+        // Skip any width specifier. Remember that this is only for old
+        // versions of fmt, so just don't sweat it.
+        while (it != end && isdigit(*it)) ++it;
         if (it != end && (*it == 's')) ++it;
         // Check if reached the end of the range:
         if (it != end && *it != '}')

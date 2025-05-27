@@ -26,7 +26,7 @@ OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 using LevelInfo    = ImageCacheFile::LevelInfo;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
-using Dimensions   = ImageCacheFile::Dimensions;
+using ImageDims    = ImageCacheFile::ImageDims;
 
 namespace {  // anonymous
 
@@ -312,7 +312,7 @@ TextureSystemImpl::accum3d_sample_closest(
 {
     const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
     const LevelInfo& lvl(si.levelinfo(miplevel));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
     float s = P.x * dims.full_width + dims.full_x;
@@ -412,7 +412,7 @@ trilerp_accum(float* accum, float* daccumds, float* daccumdt, float* daccumdr,
               float rfrac, int actualchannels, float weight,
               const SubimageInfo& si, int miplevel, const Converter& convert)
 {
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     for (int c = 0; c < actualchannels; ++c) {
         accum[c] += weight
                     * trilerp(convert(((const T*)texel[0][0][0])[c]),
@@ -478,7 +478,7 @@ TextureSystemImpl::accum3d_sample_bilinear(
 {
     const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
     const LevelInfo& lvl(si.levelinfo(miplevel));
-    const Dimensions& dims(si.dimensions(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
     // and subtract 0.5 because samples are at texel centers.

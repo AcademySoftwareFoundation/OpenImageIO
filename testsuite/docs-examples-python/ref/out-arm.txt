@@ -144,3 +144,5 @@ Comparing "simple.tif" and "../docs-examples-cpp/ref/simple.tif"
 PASS
 Comparing "scanlines.tif" and "../docs-examples-cpp/ref/scanlines.tif"
 PASS
+Comparing "tiles.tif" and "ref/tiles.tif"
+PASS

@@ -932,6 +932,11 @@ output each one to a different file, with names `sub0001.tif`,
     Sets "no clobber" mode, in which existing images on disk will never be
     overridden, even if the `-o` command specifies that file.
 
+.. option:: --create-dir
+
+    Create output directories if it doesn't exists already 
+    during the `-o` output action.
+
 .. option:: --threads <n>
 
     Use *n* execution threads if it helps to speed up image operations. The
@@ -2031,6 +2036,13 @@ current top image.
         Only included subimages will have the attribute changed. If subimages
         are not set, only the first subimage will be changed, or all subimages
         if the `-a` command line flag was used.
+      
+      `:fromfile=` *int*
+        When set to 1, the next argument will be interpreted as
+        the name of a file containing a list of patterns to erase, for example:
+        `--eraseattrib:fromfile=1 patterns.txt`,
+        The patterns will be case insensitive and one pattern per line of the file.
+        Default value is 0 (False).
 
     Examples::
 
@@ -2042,6 +2054,13 @@ current top image.
     
         # Remove all metadata
         oiiotool in.exr --eraseattrib:subimages=all ".*" -o no_metadata.exr
+
+        # Remove all attribute that match any regex in text file
+        oiiotool in.exr --eraseattrib:fromfile=1 no_gps_make.txt -o no_gps_make_metadata.exr
+
+        Example contents of file no_gps_make.txt:
+            Make
+            GPS:.*
 
 
 .. option:: --orientation <orient>
@@ -4765,7 +4784,3 @@ General commands that also work for deep images
     `NaN` or `Inf` values (hereafter referred to collectively as
     "nonfinite") are repaired.  The *strategy* may be either `black` or
     `error`.
-
-
-
-

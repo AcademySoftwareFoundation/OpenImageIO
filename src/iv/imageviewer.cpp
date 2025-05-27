@@ -152,6 +152,13 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
 
     setWindowTitle(tr("Image Viewer"));
     resize(m_default_width, m_default_height);
+
+    setAcceptDrops(true);
+    // Disable drag and drop on child widgets
+    for (QWidget* child : findChildren<QWidget*>()) {
+        child->setAcceptDrops(false);
+    }
+
     //    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
 
     setAttribute(Qt::WA_DeleteOnClose);
@@ -171,6 +178,30 @@ void
 ImageViewer::closeEvent(QCloseEvent*)
 {
     writeSettings();
+}
+
+void
+ImageViewer::dragEnterEvent(QDragEnterEvent* event)
+{
+    if (event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+}
+
+void
+ImageViewer::dropEvent(QDropEvent* event)
+{
+    const QMimeData* mimeData = event->mimeData();
+    if (mimeData->hasUrls()) {
+        size_t old_size = m_images.size();
+        for (const QUrl& url : mimeData->urls()) {
+            QString filePath = url.toLocalFile();
+            add_image(filePath.toStdString());
+        }
+        // Switch to the first newly added image
+        if (m_images.size() > old_size) {
+            current_image(old_size);
+        }
+    }
 }
 
 
@@ -854,14 +885,11 @@ ImageViewer::open()
         if (filename.empty())
             continue;
         add_image(filename);
-        //        int n = m_images.size()-1;
-        //        IvImage *newimage = m_images[n];
-        //        newimage->read_iv (0, false, image_progress_callback, this);
     }
+
     if (old_lastimage >= 0) {
         // Otherwise, add_image already did this for us.
         current_image(old_lastimage + 1);
-        fitWindowToImage(true, true);
     }
 }
 
@@ -887,7 +915,6 @@ ImageViewer::openRecentFile()
         if (m_images.size() > 1) {
             // Otherwise, add_image already did this for us.
             current_image(m_images.size() - 1);
-            fitWindowToImage(true, true);
         }
     }
 }
@@ -2009,67 +2036,59 @@ ImageViewer::print()
 }
 
 
-
 void
-ImageViewer::zoomIn()
+ImageViewer::zoomIn(bool smooth)
 {
     IvImage* img = cur();
     if (!img)
         return;
-    if (zoom() >= 64)
-        return;
-    float oldzoom = zoom();
-    float newzoom = ceil2f(oldzoom);
 
+    float current_zoom = zoom();
+    if (current_zoom >= 64)
+        return;
+
+    float newzoom = ceil2f(current_zoom);
+
+    this->zoomToCursor(newzoom, smooth);
+}
+
+
+void
+ImageViewer::zoomOut(bool smooth)
+{
+    IvImage* img = cur();
+    if (!img)
+        return;
+
+    float current_zoom = zoom();
+    if (current_zoom <= 1.0f / 64)
+        return;
+
+    float newzoom = floor2f(current_zoom);
+
+    this->zoomToCursor(newzoom, smooth);
+}
+
+
+void
+ImageViewer::zoomToCursor(float newzoom, bool smooth)
+{
+    float oldzoom = zoom();
     float xc, yc;  // Center view position
     glwin->get_center(xc, yc);
     int xm, ym;  // Mouse position
     glwin->get_focus_image_pixel(xm, ym);
-    float xoffset      = xc - xm;
-    float yoffset      = yc - ym;
+    float xoffset = xc - xm;
+    float yoffset = yc - ym;
+
     float maxzoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
-    int nsteps         = (int)OIIO::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
+    int nsteps = smooth ? (int)OIIO::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f)
+                        : 1;
     for (int i = 1; i <= nsteps; ++i) {
         float a         = (float)i / (float)nsteps;  // Interpolation amount
         float z         = OIIO::lerp(oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
         view(xm + xoffset / zoomratio, ym + yoffset / zoomratio, z, false);
-        if (i != nsteps) {
-            QApplication::processEvents();
-            Sysutil::usleep(1000000 / 4 / nsteps);
-        }
-    }
-
-    fitImageToWindowAct->setChecked(false);
-}
-
-
-
-void
-ImageViewer::zoomOut()
-{
-    IvImage* img = cur();
-    if (!img)
-        return;
-    if (zoom() <= 1.0f / 64)
-        return;
-    float oldzoom = zoom();
-    float newzoom = floor2f(oldzoom);
-
-    float xcpel, ycpel;  // Center view position
-    glwin->get_center(xcpel, ycpel);
-    int xmpel, ympel;  // Mouse position
-    glwin->get_focus_image_pixel(xmpel, ympel);
-    float xoffset      = xcpel - xmpel;
-    float yoffset      = ycpel - ympel;
-    float maxzoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
-    int nsteps         = (int)OIIO::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
-    for (int i = 1; i <= nsteps; ++i) {
-        float a         = (float)i / (float)nsteps;  // Interpolation amount
-        float z         = OIIO::lerp(oldzoom, newzoom, a);
-        float zoomratio = z / oldzoom;
-        view(xmpel + xoffset / zoomratio, ympel + yoffset / zoomratio, z,
-             false);
         if (i != nsteps) {
             QApplication::processEvents();
             Sysutil::usleep(1000000 / 4 / nsteps);
