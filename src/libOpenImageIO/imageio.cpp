@@ -1356,4 +1356,45 @@ wrap_mirror(int& coord, int origin, int width)
 }
 
 
+
+/// Verify that the image_span has all its contents lying within the
+/// contiguous span.
+bool
+image_span_within_span(const image_span<const std::byte>& ispan,
+                       span<const std::byte> contiguous) noexcept
+{
+    // Start with first,last being the first byte of pixel 0, channel 0
+    const std::byte* first = ispan.data();  // first byte of ispan
+    const std::byte* last  = ispan.data();  // last byte of ispan
+    // Extend them to the start of the first pixel of the first and last image
+    // plane.
+    if (ispan.zstride() > 0)
+        last += ispan.zstride() * (ispan.depth() - 1);
+    else
+        first += ispan.zstride() * (ispan.depth() - 1);  // neg stride
+    // Extend them to the start of the first pixel of the first and last
+    // scanline of the first and last image plane.
+    if (ispan.ystride() > 0)
+        last += ispan.ystride() * (ispan.height() - 1);
+    else
+        first += ispan.ystride() * (ispan.height() - 1);  // neg stride
+    // Extend them to the start of the first pixel of the first and last
+    // column of the first and last scanline of the first and last image
+    // plane.
+    if (ispan.xstride() > 0)
+        last += ispan.xstride() * (ispan.width() - 1);
+    else
+        first += ispan.xstride() * (ispan.width() - 1);  // neg stride
+    // Make sure they cover the whole of those extreme pixels
+    if (ispan.chanstride() > 0)
+        last += ispan.chanstride() * (ispan.nchannels() - 1);
+    else
+        first += ispan.chanstride() * (ispan.nchannels() - 1);  // neg stride
+    // Make sure last covers the whole data type
+    last += ispan.chansize() - 1;
+    return (first >= contiguous.data()
+            && last < contiguous.data() + contiguous.size());
+}
+
+
 OIIO_NAMESPACE_END
