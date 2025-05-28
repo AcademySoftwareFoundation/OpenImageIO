@@ -15,8 +15,6 @@ if (OPENJPEG_FOUND)
         list(APPEND _jpeg2000_defs "USE_OPENJPH")
     endif()
 
-    message (WARNING "_jpeg2000_lib_dirs ${OPENJPH_LIBRARY_DIRS} ${OPENJPEG_LIBRARY_DIRS}")
-
     add_oiio_plugin(jpeg2000input.cpp jpeg2000output.cpp
         INCLUDE_DIRS ${_jpeg2000_includes}
         LINK_DIRECTORIES ${_jpeg2000_lib_dirs}
