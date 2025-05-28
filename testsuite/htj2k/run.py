@@ -20,6 +20,6 @@ command += diff_command(OIIO_TESTSUITE_IMAGEDIR+"/dpx_nuke_10bits_rgb.dpx", "tes
 
 
 command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg"
-                    " --compression qstep:0.03 -o testcompress.j2c")
+                    " --attrib qstep 0.03 -o testcompress.j2c")
 
 command += diff_command(OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg", "testcompress.j2c", extraargs="-fail 0.11")
