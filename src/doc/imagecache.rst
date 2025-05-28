@@ -60,8 +60,8 @@ Below are some simple code fragments that shows ImageCache in action::
     // (for brevity of this example, let's assume that 'size' is the
     // number of channels times the number of pixels in the requested region)
     float pixels[size];
-    cache->get_pixels ("file1.jpg", 0, 0, xbegin, xend, ybegin, yend,
-                       zbegin, zend, TypeDesc::FLOAT, pixels);
+    cache->get_pixels ("file1.jpg", 0, 0, ROI(xbegin, xend, ybegin, yend),
+                       make_span(pixels));
 
     // Get information about a file
     ImageSpec spec;

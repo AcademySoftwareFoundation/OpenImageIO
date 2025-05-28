@@ -215,6 +215,12 @@ public:
                     TextureOpt& options, int miplevel, int xbegin, int xend,
                     int ybegin, int yend, int zbegin, int zend, int chbegin,
                     int chend, TypeDesc format, void* result);
+    bool get_texels(ustring filename, TextureOpt& options, int miplevel,
+                    const ROI& roi, TypeDesc format,
+                    const image_span<std::byte>& result);
+    bool get_texels(TextureHandle* texture_handle, Perthread* thread_info,
+                    TextureOpt& options, int miplevel, const ROI& roi,
+                    TypeDesc format, const image_span<std::byte>& result);
 
     bool is_udim(ustring filename);
     bool is_udim(TextureHandle* udimfile);

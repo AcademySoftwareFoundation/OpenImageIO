@@ -25,6 +25,12 @@ public:
     py::object get_pixels(const std::string& filename, int subimage,
                           int miplevel, int xbegin, int xend, int ybegin,
                           int yend, int zbegin, int zend, TypeDesc datatype);
+    py::object get_pixels_roi(const std::string& filename, int subimage,
+                              int miplevel, const ROI& roi, TypeDesc datatype)
+    {
+        return get_pixels(filename, subimage, miplevel, roi.xbegin, roi.xend,
+                          roi.ybegin, roi.yend, roi.zbegin, roi.zend, datatype);
+    }
 };
 
 
@@ -142,6 +148,8 @@ declare_imagecache(py::module& m)
         .def("get_pixels", &ImageCacheWrap::get_pixels, "filename"_a,
              "subimage"_a, "miplevel"_a, "xbegin"_a, "xend"_a, "ybegin"_a,
              "yend"_a, "zbegin"_a = 0, "zend"_a = 1, "datatype"_a = TypeUnknown)
+        .def("get_pixels", &ImageCacheWrap::get_pixels_roi, "filename"_a,
+             "subimage"_a, "miplevel"_a, "roi"_a, "datatype"_a = TypeUnknown)
         // .def("get_tile", &ImageCacheWrap::get_tile)
         // .def("release_tile", &ImageCacheWrap::release_tile)
         // .def("tile_pixels", &ImageCacheWrap::tile_pixels)

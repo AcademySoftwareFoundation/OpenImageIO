@@ -1514,6 +1514,62 @@ public:
     /// @param  miplevel
     ///             The MIP level to retrieve pixels from (0 is the highest
     ///             resolution level).
+    /// @param  roi
+    ///             The range of pixels and channels to retrieve. The pixels
+    ///             retrieved include the begin values but not the end values
+    ///             (much like STL begin/end usage).
+    /// @param  format
+    ///             TypeDesc describing the data type of the values you want
+    ///             to retrieve into `result`. The pixel values will be
+    ///             converted to this type regardless of how they were
+    ///             stored in the file or in the cache.
+    /// @param  result
+    ///             An `image_span` describing the memory layout where the
+    ///             pixel values should be  stored, including bounds and
+    ///             strides for each dimension.
+    /// @returns
+    ///             `true` for success, `false` for failure.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    ///
+    bool get_texels(ustring filename, TextureOpt& options, int miplevel,
+                    const ROI& roi, TypeDesc format,
+                    const image_span<std::byte>& result);
+    /// A more efficient variety of `get_texels()` for cases where you can
+    /// use a `TextureHandle*` to specify the image and optionally have a
+    /// `Perthread*` for the calling thread.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    bool get_texels(TextureHandle* texture_handle, Perthread* thread_info,
+                    TextureOpt& options, int miplevel, const ROI& roi,
+                    TypeDesc format, const image_span<std::byte>& result);
+
+    /// For a texture specified by name, retrieve the rectangle of raw
+    /// unfiltered texels from the subimage specified in `options` and at
+    /// the designated `miplevel`, storing the pixel values beginning at the
+    /// address specified by `result`.  The pixel values will be converted
+    /// to the data type specified by `format`. The rectangular region to be
+    /// retrieved includes `begin` but does not include `end` (much like STL
+    /// begin/end usage). Requested pixels that are not part of the valid
+    /// pixel data region of the image file will be filled with zero values.
+    /// Channels requested but not present in the file will get the
+    /// `options.fill` value.
+    ///
+    /// These pointer-based versions are considered "soft-deprecated" in
+    /// OpenImageIO 3.1, will be marked/warned as deprecated in 3.2, and will
+    /// be removed in 4.0.
+    ///
+    /// @param  filename
+    ///             The name of the texture, as a UTF-8 encode ustring.
+    /// @param  options
+    ///             A TextureOpt describing access options, including wrap
+    ///             modes, fill value, and subimage, that will be used when
+    ///             retrieving pixels.
+    /// @param  miplevel
+    ///             The MIP level to retrieve pixels from (0 is the highest
+    ///             resolution level).
     /// @param  xbegin/xend/ybegin/yend/zbegin/zend
     ///             The range of pixels to retrieve. The pixels retrieved
     ///             include the begin value but not the end value (much like
