@@ -571,6 +571,9 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
         case EXR_COMPRESSION_B44A: comp = "b44a"; break;
         case EXR_COMPRESSION_DWAA: comp = "dwaa"; break;
         case EXR_COMPRESSION_DWAB: comp = "dwab"; break;
+#ifdef IMF_HTJ2K_COMPRESSION
+        case EXR_COMPRESSION_HTJ2K: comp = "htj2k"; break;
+#endif
         default: break;
         }
         if (comp)
