@@ -24,11 +24,11 @@
 #endif
 
 #ifdef USE_OPENJPH
-#include <openjph/ojph_arg.h>
-#include <openjph/ojph_codestream.h>
-#include <openjph/ojph_file.h>
-#include <openjph/ojph_mem.h>
-#include <openjph/ojph_params.h>
+#    include <openjph/ojph_arg.h>
+#    include <openjph/ojph_codestream.h>
+#    include <openjph/ojph_file.h>
+#    include <openjph/ojph_mem.h>
+#    include <openjph/ojph_params.h>
 #endif
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -80,8 +80,8 @@ private:
         m_convert_alpha = true;
 
 #ifdef USE_OPENJPH
-        m_jph_image     = NULL;
-        m_jph_stream    = NULL;
+        m_jph_image  = NULL;
+        m_jph_stream = NULL;
 #endif
         ioproxy_clear();
     }
@@ -160,7 +160,8 @@ private:
 
 #ifdef USE_OPENJPH
     ojph::j2c_outfile* create_jph_image();
-    template<typename T> void write_jph_scanline(int y, int /*z*/, const void* data);
+    template<typename T>
+    void write_jph_scanline(int y, int /*z*/, const void* data);
 #endif
 };
 
@@ -174,11 +175,11 @@ jpeg2000_output_imageio_create()
     return new Jpeg2000Output;
 }
 
-OIIO_EXPORT const char* jpeg2000_output_extensions[] = { "jp2", "j2k", 
+OIIO_EXPORT const char* jpeg2000_output_extensions[] = { "jp2", "j2k",
 #ifdef USE_OPENJPH
-                                                          "j2c", "jph", 
+                                                         "j2c", "jph",
 #endif
-                                                          nullptr };
+                                                         nullptr };
 
 
 OIIO_PLUGIN_EXPORTS_END
@@ -245,7 +246,7 @@ Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
     std::string compressionparms_str;
     if (compressionparams) {
         compressionparms_str = compressionparams->get_string();
-        if (compressionparms_str.compare(0, 5, "htj2k") == 0){
+        if (compressionparms_str.compare(0, 5, "htj2k") == 0) {
             errorfmt("OpenJPH not enabled, cannot create HTJ2K file");
             return false;
         }
@@ -318,18 +319,18 @@ Jpeg2000Output::write_scanline(int y, int z, TypeDesc format, const void* data,
     }
 
 #ifdef USE_OPENJPH
-    if (m_jph_image){
+    if (m_jph_image) {
         if (m_spec.format == TypeDesc::UINT8)
             write_jph_scanline<uint8_t>(y, z, data);
         else
             write_jph_scanline<uint16_t>(y, z, data);
-    } else 
-#endif // USE_OPENJPH
+    } else
+#endif  // USE_OPENJPH
         if (m_spec.format == TypeDesc::UINT8)
             write_scanline<uint8_t>(y, z, data);
         else
             write_scanline<uint16_t>(y, z, data);
-    
+
 
     if (y == m_spec.height - 1)
         save_image();
@@ -726,7 +727,7 @@ struct size_list_interpreter : public ojph::cli_interpreter::arg_inter_base {
 ojph::j2c_outfile*
 Jpeg2000Output::create_jph_image()
 {
-    m_jph_stream            = new ojph::codestream;
+    m_jph_stream        = new ojph::codestream;
     ojph::param_siz siz = m_jph_stream->access_siz();
     siz.set_image_extent(ojph::point(m_spec.width, m_spec.height));
 
@@ -806,7 +807,7 @@ Jpeg2000Output::create_jph_image()
     cod.set_reversible(true);
 
     float qstep = m_spec.get_float_attribute("jph:qstep", -1);
-    
+
     if (qstep > 0) {
         cod.set_reversible(false);
         m_jph_stream->access_qcd().set_irrev_quant(qstep);
