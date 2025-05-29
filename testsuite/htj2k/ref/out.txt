@@ -1,0 +1,6 @@
+Comparing "../../../../../../../Volumes/git/OpenImageIO/build/testsuite/oiio-images/tahoe-gps.jpg" and "test.j2c"
+PASS
+Comparing "../../../../../../../Volumes/git/OpenImageIO/build/testsuite/oiio-images/dpx_nuke_10bits_rgb.dpx" and "testdpx.j2c"
+PASS
+Comparing "../../../../../../../Volumes/git/OpenImageIO/build/testsuite/oiio-images/tahoe-gps.jpg" and "testcompress.j2c"
+PASS
