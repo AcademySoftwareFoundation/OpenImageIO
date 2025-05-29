@@ -152,6 +152,13 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
 
     setWindowTitle(tr("Image Viewer"));
     resize(m_default_width, m_default_height);
+
+    setAcceptDrops(true);
+    // Disable drag and drop on child widgets
+    for (QWidget* child : findChildren<QWidget*>()) {
+        child->setAcceptDrops(false);
+    }
+
     //    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
 
     setAttribute(Qt::WA_DeleteOnClose);
@@ -171,6 +178,30 @@ void
 ImageViewer::closeEvent(QCloseEvent*)
 {
     writeSettings();
+}
+
+void
+ImageViewer::dragEnterEvent(QDragEnterEvent* event)
+{
+    if (event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+}
+
+void
+ImageViewer::dropEvent(QDropEvent* event)
+{
+    const QMimeData* mimeData = event->mimeData();
+    if (mimeData->hasUrls()) {
+        size_t old_size = m_images.size();
+        for (const QUrl& url : mimeData->urls()) {
+            QString filePath = url.toLocalFile();
+            add_image(filePath.toStdString());
+        }
+        // Switch to the first newly added image
+        if (m_images.size() > old_size) {
+            current_image(old_size);
+        }
+    }
 }
 
 

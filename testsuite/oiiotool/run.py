@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import os
+import shutil
 
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
@@ -238,6 +240,18 @@ command += oiiotool ("--missingfile checker box.tif missing.tif --over -o box_ov
 command += oiiotool ("--pattern fill:left=0,0,0:right=1,1,0 2x2 3 -d half -o dump.exr")
 command += oiiotool ("-echo dumpdata: --dumpdata dump.exr")
 command += oiiotool ("-echo dumpdata:C --dumpdata:C=data dump.exr")
+
+# Test --create-dir
+# Remove `folder1/` if it already exists in order to subsequent test run to pass
+root_folder = "folder1"
+if os.path.exists(root_folder) and os.path.isdir(root_folder):
+    shutil.rmtree(root_folder)
+
+# Validate -o failed due to missing directory `folder1/folder2/`
+command += oiiotool (f"--create 2x2 1 -o {root_folder}/folder2/out.tif")
+# Validate -o sucessed with flag `--create-dir` and `out.tif` is valid and inside directory `folder1/folder2/`
+command += oiiotool (f"--create-dir --create 2x2 1 -o {root_folder}/folder2/out.tif")
+command += oiiotool (f"--info {root_folder}/folder2/out.tif")
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,

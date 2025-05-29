@@ -80,37 +80,50 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     if (!ioproxy_use_or_open(name))
         return false;
 
+    constexpr int default_lossy_quality   = 100;
+    constexpr int default_lossless_effort = 70;
+
+    // Support both 'compression=webp:value' and 'compression=lossless:value'
+    // The 'webp' form indicates that lossy compression is requested.
+    bool is_lossless = false;
+    int quality      = default_lossy_quality;
+    auto comp_qual   = m_spec.decode_compression_metadata("webp",
+                                                          default_lossy_quality);
+    if (Strutil::iequals(comp_qual.first, "webp")) {
+        quality = OIIO::clamp(comp_qual.second, 0, 100);
+    } else {
+        comp_qual = m_spec.decode_compression_metadata("lossless",
+                                                       default_lossless_effort);
+        if (Strutil::iequals(comp_qual.first, "lossless")) {
+            is_lossless = true;
+            quality     = OIIO::clamp(comp_qual.second, 0, 100);
+        }
+    }
+
+    if (!WebPConfigPreset(&m_webp_config, WEBP_PRESET_DEFAULT, quality)) {
+        errorfmt("Couldn't initialize WebPConfig\n");
+        close();
+        return false;
+    }
+
     if (!WebPPictureInit(&m_webp_picture)) {
         errorfmt("Couldn't initialize WebPPicture\n");
         close();
         return false;
     }
 
+    // Quality/speed trade-off (0=fast, 6=slower-better)
+    const int method     = m_spec.get_int_attribute("webp:method", 6);
+    m_webp_config.method = OIIO::clamp(method, 0, 6);
+
+    // Lossless encoding (0=lossy(default), 1=lossless).
+    m_webp_config.lossless = int(is_lossless);
+
+    m_webp_picture.use_argb   = m_webp_config.lossless;
     m_webp_picture.width      = m_spec.width;
     m_webp_picture.height     = m_spec.height;
     m_webp_picture.writer     = WebpImageWriter;
     m_webp_picture.custom_ptr = (void*)ioproxy();
-
-    if (!WebPConfigInit(&m_webp_config)) {
-        errorfmt("Couldn't initialize WebPPicture\n");
-        close();
-        return false;
-    }
-
-    auto compqual = m_spec.decode_compression_metadata("webp", 100);
-    if (Strutil::iequals(compqual.first, "webp")) {
-        m_webp_config.method  = 6;
-        m_webp_config.quality = OIIO::clamp(compqual.second, 1, 100);
-    } else {
-        // If compression name wasn't "webp", don't trust the quality
-        // metric, just use the default.
-        m_webp_config.method  = 6;
-        m_webp_config.quality = 100;
-    }
-
-    // Lossless encoding (0=lossy(default), 1=lossless).
-    m_webp_config.lossless
-        = (m_spec.get_string_attribute("compression", "lossy") == "lossless");
 
     // forcing UINT8 format
     m_spec.set_format(TypeDesc::UINT8);

@@ -382,6 +382,17 @@ Filesystem::create_directory(string_view path, std::string& err)
     return ok;
 }
 
+bool
+Filesystem::create_directories(string_view path, std::string& err) noexcept
+{
+    error_code ec;
+    bool ok = filesystem::create_directories(u8path(path), ec);
+    if (ok)
+        err.clear();
+    else
+        err = ec.message();
+    return ok;
+}
 
 bool
 Filesystem::copy(string_view from, string_view to, std::string& err)

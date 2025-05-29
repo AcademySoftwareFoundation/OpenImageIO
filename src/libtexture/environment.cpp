@@ -202,7 +202,8 @@ convention is dictated by OpenEXR.
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 using namespace simd;
-
+using SubimageInfo = ImageCacheFile::SubimageInfo;
+using ImageDims    = ImageCacheFile::ImageDims;
 
 bool
 TextureSystem::environment(ustring filename, TextureOpt& options, V3fParam R,
@@ -352,7 +353,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
         return missing_texture(options, nchannels, result, dresultds,
                                dresultdt);
     }
-    const ImageSpec& spec(texturefile->spec(options.subimage, 0));
+    const ImageSpec& spec(texturefile->spec(options.subimage));
 
     // Environment maps dictate particular wrap modes
     options.swrap = texturefile->m_sample_border
@@ -455,9 +456,8 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
         invsamples = 1.0f;
     }
 
-    ImageCacheFile::SubimageInfo& subinfo(
-        texturefile->subimageinfo(options.subimage));
-    int min_mip_level = subinfo.min_mip_level;
+    const SubimageInfo& si(texturefile->subimageinfo(options.subimage));
+    int min_mip_level = si.min_mip_level;
 
     // FIXME -- assuming latlong
     bool ok   = true;
@@ -472,14 +472,14 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
         int miplevel[2]  = { -1, -1 };
         float levelblend = 0;
 
-        int nmiplevels = (int)subinfo.levels.size();
+        int nmiplevels = (int)si.levels.size();
         for (int m = min_mip_level; m < nmiplevels; ++m) {
             // Compute the filter size in raster space at this MIP level.
             // Filters are in radians, and the vertical resolution of a
             // latlong map is PI radians.  So to compute the raster size of
             // our filter width...
-            float filtwidth_ras = subinfo.spec(m).full_height * filtwidth
-                                  * M_1_PI;
+            const ImageDims& dims(si.leveldims(m));
+            float filtwidth_ras = dims.full_height * filtwidth * M_1_PI;
             // Once the filter width is smaller than one texel at this level,
             // we've gone too far, so we know that we want to interpolate the
             // previous level and the current level.  Note that filtwidth_ras
@@ -524,8 +524,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
             int lev = miplevel[level];
             if (options.interpmode == TextureOpt::InterpSmartBicubic) {
                 if (lev == 0
-                    || (texturefile->spec(options.subimage, lev).full_height
-                        < naturalres / 2)) {
+                    || (si.leveldims(lev).full_height < naturalres / 2)) {
                     sampler = &TextureSystemImpl::sample_bicubic;
                     ++stats.cubic_interps;
                 } else {

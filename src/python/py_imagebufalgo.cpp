@@ -2397,9 +2397,9 @@ IBA_demosaic_ret(const ImageBuf& src, const std::string& pattern = "",
                  py::object white_balance = py::none(), ROI roi = ROI::All(),
                  int nthreads = 0)
 {
-    py::gil_scoped_release gil;
     std::vector<float> wb;
     py_to_stdvector(wb, white_balance);
+    py::gil_scoped_release gil;
     return ImageBufAlgo::demosaic(src,
                                   { { "pattern", pattern },
                                     { "algorithm", algorithm },
@@ -2416,9 +2416,9 @@ IBA_demosaic(ImageBuf& dst, const ImageBuf& src,
              py::object white_balance = py::none(), ROI roi = ROI::All(),
              int nthreads = 0)
 {
-    py::gil_scoped_release gil;
     std::vector<float> wb;
     py_to_stdvector(wb, white_balance);
+    py::gil_scoped_release gil;
     return ImageBufAlgo::demosaic(dst, src,
                                   { { "pattern", pattern },
                                     { "algorithm", algorithm },

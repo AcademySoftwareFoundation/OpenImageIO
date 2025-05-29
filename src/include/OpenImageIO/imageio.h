@@ -60,6 +60,10 @@ using stride_t = int64_t;
 inline constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
 #endif
 
+// Signal that this version of ImageBuf has constructors from spans
+#define OIIO_IMAGEINPUT_IMAGE_SPAN_SUPPORT 1
+#define OIIO_IMAGEOUTPUT_IMAGE_SPAN_SUPPORT 1
+
 
 
 /// Pointer to a function called periodically by read_image and
@@ -1234,8 +1238,343 @@ public:
     }
 #endif
 
+    // clang-format on
+
+    /// @name Reading pixels ("safe" methods with bounded spans)
+    ///
+    /// Common features of all the `read` methods:
+    ///
+    /// * There is a base case that takes a `image_span<byte>` describing
+    ///   untyped memory layout and a `TypeDesc` describing the data type
+    ///   that the values should be converted to (or TypeUnknown to keep
+    ///   the data in its "native" file types with no conversion).
+    ///
+    /// * The type-aware versions that accept an `image_span<T>` (for
+    ///   potentially non-contiguous data) or `span<T>` (for contiguous data)
+    ///   and understand to convert the data into the given `T` type.
+    ///
+    /// * The image_span (in either case) includes the memory bounds and
+    ///   stride lengths (in bytes) between channels, pixels, scanlines, and
+    ///   volumetric slices.
+    ///
+    /// * Any *range* parameters (such as `ybegin` and `yend`) describe a
+    ///   "half open interval", meaning that `begin` is the first item and
+    ///   `end` is *one past the last item*. That means that the number of
+    ///   items is `end - begin`.
+    ///
+    /// * For ordinary 2D (non-volumetric) images, any `z` or `zbegin`
+    ///   coordinates should be 0 and any `zend` should be 1, indicating
+    ///   that only a single image "plane" exists.
+    ///
+    /// * Some read methods take a channel range [chbegin,chend) to allow
+    ///   reading of a contiguous subset of channels (chbegin=0,
+    ///   chend=spec.nchannels reads all channels).
+    ///
+    /// * ImageInput readers are expected to give the appearance of random
+    ///   access -- in other words, if it can't randomly seek to the given
+    ///   scanline or tile, it should transparently close, reopen, and
+    ///   sequentially read through prior scanlines.
+    ///
+    /// * All read functions return `true` for success, `false` for failure
+    ///   (after which a call to `geterror()` may retrieve a specific error
+    ///   message).
+    ///
+
+    /// Read the entire image of `spec.width x spec.height x spec.depth`
+    /// pixels into a buffer with the given strides and in the desired
+    /// data format.
+    ///
+    /// Depending on the spec, this will read either all tiles or all
+    /// scanlines. Assume that data points to a layout in row-major order.
+    ///
+    /// This version of read_image, because it passes explicit subimage and
+    /// miplevel, does not require a separate call to seek_subimage, and is
+    /// guaranteed to be thread-safe against other concurrent calls to any
+    /// of the read_* methods that take an explicit subimage/miplevel (but
+    /// not against any other ImageInput methods).
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_image that takes raw pointers.
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  chbegin/chend
+    ///                     The channel range to read. If chend is -1, it
+    ///                     will automatically be set to spec.nchannels.
+    /// @param  format      A TypeDesc describing the type of the pixel data
+    ///                     that `data`'s memory contains. Use `TypeUnknown`
+    ///                     to indicate that you want the native data format
+    ///                     with no type conversion.
+    /// @param  data        An `image_span<byte>` describing the memory
+    ///                     extent of the data buffer and including the sizes
+    ///                     and byte strides for each dimension (channel, x,
+    ///                     y, and z).
+    /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    virtual bool read_image(int subimage, int miplevel, int chbegin, int chend,
+                            TypeDesc format, const image_span<std::byte>& data);
+
+    /// A version of `read_image()` taking an `image_span<T>`, where the type
+    /// of the underlying data is `T`.  This is a convenience wrapper around
+    /// the `read_image()` that takes an `image_span<std::byte>`.
+    template<typename T>
+    bool read_image(int subimage, int miplevel, int chbegin, int chend,
+                    const image_span<T>& data)
+    {
+        static_assert(!std::is_const_v<T>,
+                      "read_image() does not accept image_span<const T>");
+        return read_image(subimage, miplevel, chbegin, chend,
+                          TypeDescFromC<T>::value(),
+                          as_image_span_writable_bytes(data));
+    }
+
+    /// A version of `read_image()` taking a `span<T>`, which assumes
+    /// contiguous strides in all dimensions. This is a convenience wrapper
+    /// around the `read_image()` that takes an `image_span<T>`.
+    template<typename T>
+    bool read_image(int subimage, int miplevel, int chbegin, int chend,
+                    span<T> data)
+    {
+        static_assert(!std::is_const_v<T>,
+                      "read_image() does not accept span<const T>");
+        ImageSpec spec = spec_dimensions(subimage, miplevel);
+        if (chend < 0 || chend > spec.nchannels)
+            chend = spec.nchannels;
+        auto ispan = image_span<T>(data.data(), chend - chbegin, spec.width,
+                                   spec.height, spec.depth);
+        OIIO_DASSERT(data.size_bytes() == ispan.size_bytes()
+                     && ispan.is_contiguous());
+        return read_image(subimage, miplevel, chbegin, chend, ispan);
+    }
+
+    /// Read multiple scanlines that include pixels (*,y) for all ybegin <= y
+    /// < yend in the specified subimage and mip level, into `data`, using the
+    /// strides given and converting to the requested data `format`
+    /// (TypeUnknown indicates no conversion, just copy native data types).
+    /// Only channels [chbegin,chend) will be read/copied (chbegin=0,
+    /// chend=nchannels reads all channels, and chend=-1 also means the same
+    /// thing).
+    ///
+    /// This method, does not require a separate call to seek_subimage, and is
+    /// guaranteed to be thread-safe against other concurrent calls to any of
+    /// the read_* methods that take an explicit subimage/miplevel (but not
+    /// against any other non-thread-safe ImageInput methods).
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  ybegin/yend The y range of the scanlines to read.
+    /// @param  chbegin/chend
+    ///                     The channel range to read. If chend is -1, it
+    ///                     will automatically be set to spec.nchannels.
+    /// @param  format      A TypeDesc describing the type of the pixel data
+    ///                     that `data`'s memory contains. Use `TypeUnknown`
+    ///                     to indicate that you want the native data format
+    ///                     with no type conversion.
+    /// @param  data        An `image_span<byte>` describing the memory
+    ///                     extent of the data buffer and including the sizes
+    ///                     and byte strides for each dimension (channel, x,
+    ///                     y, and z).
+    /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    ///
+    virtual bool read_scanlines(int subimage, int miplevel, int ybegin,
+                                int yend, int chbegin, int chend,
+                                TypeDesc format,
+                                const image_span<std::byte>& data);
+
+    /// A version of `read_scanlines()` taking an `image_span<T>`, where the
+    /// type of the underlying data is `T`.  This is a convenience wrapper
+    /// around the `read_scanlines()` that takes an `image_span<std::byte>`.
+    template<typename T>
+    bool read_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                        int chbegin, int chend, const image_span<T>& data)
+    {
+        static_assert(!std::is_const_v<T>,
+                      "read_scanlines() does not accept span<const T>");
+        // reduce to type + image_span<byte>
+        return read_scanlines(subimage, miplevel, ybegin, yend, chbegin, chend,
+                              TypeDescFromC<T>::value(),
+                              as_image_span_writable_bytes(data));
+    }
+
+    /// A version of `read_scanlines()` taking a `span<T>`, which assumes
+    /// contiguous strides in all dimensions. This is a convenience wrapper
+    /// around the `read_scanlines()` that takes an `image_span<T>`.
+    template<typename T>
+    bool read_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                        int chbegin, int chend, span<T> data)
+    {
+        static_assert(!std::is_const_v<T>,
+                      "read_scanlines() does not accept span<const T>");
+        // reduce to type + image_span<byte>
+        ImageSpec spec = spec_dimensions(subimage, miplevel);
+        if (chend < 0 || chend > spec.nchannels)
+            chend = spec.nchannels;
+        auto ispan = image_span<T>(data.data(), chend - chbegin, spec.width,
+                                   spec.height, 1);
+        return read_scanlines(subimage, miplevel, ybegin, yend, chbegin, chend,
+                              ispan);
+    }
+
+    /// Read the block of multiple tiles that include all pixels in
+    ///
+    ///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+    ///
+    /// The begin/end pairs must correctly delineate tile boundaries, with
+    /// the exception that it may also be the end of the image data if the
+    /// image resolution is not a whole multiple of the tile size.
+    ///
+    /// This version of read_tiles, because it passes explicit subimage and
+    /// miplevel, does not require a separate call to seek_subimage, and is
+    /// guaranteed to be thread-safe against other concurrent calls to any
+    /// of the read_* methods that take an explicit subimage/miplevel (but
+    /// not against any other ImageInput methods).
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  xbegin/xend The x range of the pixels covered by the group
+    ///                     of tiles being read.
+    /// @param  ybegin/yend The y range of the pixels covered by the tiles.
+    /// @param  zbegin/zend The z range of the pixels covered by the tiles
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  chbegin/chend
+    ///                     The channel range to read.
+    /// @param  format      A TypeDesc describing the type of the pixel data
+    ///                     that `data`'s memory contains. Use `TypeUnknown`
+    ///                     to indicate that you want the native data format
+    ///                     with no type conversion.
+    /// @param  data        An `image_span<byte>` describing the memory
+    ///                     extent of the data buffer and including the sizes
+    ///                     and byte strides for each dimension (channel, x,
+    ///                     y, and z).
+    /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_tiles that takes raw pointers.
+    ///
+    /// @note The call will fail if the image is not tiled, or if the pixel
+    /// ranges do not fall along tile (or image) boundaries, or if it is not
+    /// a valid tile range.
+    virtual bool read_tiles(int subimage, int miplevel, int xbegin, int xend,
+                            int ybegin, int yend, int zbegin, int zend,
+                            int chbegin, int chend, TypeDesc format,
+                            const image_span<std::byte>& data);
+
+    /// A version of `read_tiles()` taking an `image_span<T>`, where the type
+    /// of the underlying data is `T`.  This is a convenience wrapper around
+    /// the `read_tiles()` that takes an `image_span<const std::byte>`.
+    template<typename T>
+    bool read_tiles(int subimage, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend, int chbegin,
+                    int chend, const image_span<T>& data)
+    {
+        return read_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
+                          zbegin, zend, chbegin, chend,
+                          TypeDescFromC<T>::value(),
+                          as_image_span_writable_bytes(data));
+    }
+
+    /// A version of `read_tiles()` taking a `cspan<T>`, which assumes
+    /// contiguous strides in all dimensions. This is a convenience wrapper
+    /// around the `read_tiles()` that takes an `image_span<const T>`.
+    template<typename T>
+    bool read_tiles(int subimage, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend, int chbegin,
+                    int chend, span<T> data)
+    {
+        static_assert(!std::is_const_v<T>,
+                      "read_tiles() does not accept span<const T>");
+        // reduce to type + image_span<byte>
+        ImageSpec spec = spec_dimensions(subimage, miplevel);
+        if (chend < 0 || chend > spec.nchannels)
+            chend = spec.nchannels;
+        auto ispan = image_span<T>(data.data(), chend - chbegin, xend - xbegin,
+                                   yend - ybegin, zend - zbegin);
+        OIIO_DASSERT(data.size_bytes() >= ispan.size_bytes()
+                     && ispan.is_contiguous());
+        return read_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
+                          zbegin, zend, chbegin, chend, ispan);
+    }
+
+    // clang-format off
+
+    /// Read deep scanlines containing pixels (*,y,z), for all y in the
+    /// range [ybegin,yend) into `deepdata`. This will fail if it is not a
+    /// deep file.
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  chbegin/chend
+    ///                     The channel range to read.
+    /// @param  ybegin/yend The y range of the scanlines being passed.
+    /// @param  z           The z coordinate of the scanline.
+    /// @param  deepdata    A `DeepData` object into which the data for
+    ///                     these scanlines will be placed.
+    /// @returns            `true` upon success, or `false` upon failure.
+    virtual bool read_native_deep_scanlines (int subimage, int miplevel,
+                                             int ybegin, int yend, int z,
+                                             int chbegin, int chend,
+                                             DeepData &deepdata);
+
+    /// Read into `deepdata` the block of native deep data tiles that
+    /// include all pixels and channels specified by pixel range.
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  xbegin/xend The x range of the pixels covered by the group
+    ///                     of tiles being read.
+    /// @param  ybegin/yend The y range of the pixels covered by the tiles.
+    /// @param  zbegin/zend The z range of the pixels covered by the tiles
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  chbegin/chend
+    ///                     The channel range to read.
+    /// @param  deepdata    A `DeepData` object into which the data for
+    ///                     these tiles will be placed.
+    /// @returns            `true` upon success, or `false` upon failure.
+    ///
+    /// @note The call will fail if the image is not tiled, or if the pixel
+    /// ranges do not fall along tile (or image) boundaries, or if it is not
+    /// a valid tile range.
+    virtual bool read_native_deep_tiles (int subimage, int miplevel,
+                                         int xbegin, int xend,
+                                         int ybegin, int yend,
+                                         int zbegin, int zend,
+                                         int chbegin, int chend,
+                                         DeepData &deepdata);
+
+    /// Read the entire deep data image of spec.width x spec.height x
+    /// spec.depth pixels, all channels, into `deepdata`.
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  deepdata    A `DeepData` object into which the data for
+    ///                     the image will be placed.
+    /// @returns            `true` upon success, or `false` upon failure.
+    virtual bool read_native_deep_image (int subimage, int miplevel,
+                                         DeepData &deepdata);
+
+    /// @}
+
     /// @{
-    /// @name Reading pixels
+    /// @name Reading pixels (unsafe methods with pointers and strides)
+    ///
+    /// These methods are the "unsafe" versions of the `read` methods, which
+    /// take raw pointers and strides.  They are provided for backwards
+    /// compatibility with older code, but the preferred interface is to use
+    /// the `read` methods that take `image_span<T>` or `span<T>` arguments,
+    /// which are bounds-safe and type-aware.
+    ///
+    /// These pointer-based versions are considered "soft-deprecated" in
+    /// OpenImageIO 3.1, will be marked/warned as deprecated in 3.2, and will
+    /// be removed in 4.0.
     ///
     /// Common features of all the `read` methods:
     ///
@@ -1457,7 +1796,7 @@ public:
     ///                     resolution level).
     /// @param  chbegin/chend
     ///                     The channel range to read. If chend is -1, it
-    ///                     will be set to spec.nchannels.
+    ///                     will automatically be set to spec.nchannels.
     /// @param  format      A TypeDesc describing the type of `data`.
     /// @param  data        Pointer to the pixel data.
     /// @param  xstride/ystride/zstride
@@ -1474,64 +1813,6 @@ public:
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
-
-    /// Read deep scanlines containing pixels (*,y,z), for all y in the
-    /// range [ybegin,yend) into `deepdata`. This will fail if it is not a
-    /// deep file.
-    ///
-    /// @param  subimage    The subimage to read from (starting with 0).
-    /// @param  miplevel    The MIP level to read (0 is the highest
-    ///                     resolution level).
-    /// @param  chbegin/chend
-    ///                     The channel range to read.
-    /// @param  ybegin/yend The y range of the scanlines being passed.
-    /// @param  z           The z coordinate of the scanline.
-    /// @param  deepdata    A `DeepData` object into which the data for
-    ///                     these scanlines will be placed.
-    /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool read_native_deep_scanlines (int subimage, int miplevel,
-                                             int ybegin, int yend, int z,
-                                             int chbegin, int chend,
-                                             DeepData &deepdata);
-
-    /// Read into `deepdata` the block of native deep data tiles that
-    /// include all pixels and channels specified by pixel range.
-    ///
-    /// @param  subimage    The subimage to read from (starting with 0).
-    /// @param  miplevel    The MIP level to read (0 is the highest
-    ///                     resolution level).
-    /// @param  xbegin/xend The x range of the pixels covered by the group
-    ///                     of tiles being read.
-    /// @param  ybegin/yend The y range of the pixels covered by the tiles.
-    /// @param  zbegin/zend The z range of the pixels covered by the tiles
-    ///                     (for a 2D image, zbegin=0 and zend=1).
-    /// @param  chbegin/chend
-    ///                     The channel range to read.
-    /// @param  deepdata    A `DeepData` object into which the data for
-    ///                     these tiles will be placed.
-    /// @returns            `true` upon success, or `false` upon failure.
-    ///
-    /// @note The call will fail if the image is not tiled, or if the pixel
-    /// ranges do not fall along tile (or image) boundaries, or if it is not
-    /// a valid tile range.
-    virtual bool read_native_deep_tiles (int subimage, int miplevel,
-                                         int xbegin, int xend,
-                                         int ybegin, int yend,
-                                         int zbegin, int zend,
-                                         int chbegin, int chend,
-                                         DeepData &deepdata);
-
-    /// Read the entire deep data image of spec.width x spec.height x
-    /// spec.depth pixels, all channels, into `deepdata`.
-    ///
-    /// @param  subimage    The subimage to read from (starting with 0).
-    /// @param  miplevel    The MIP level to read (0 is the highest
-    ///                     resolution level).
-    /// @param  deepdata    A `DeepData` object into which the data for
-    ///                     the image will be placed.
-    /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool read_native_deep_image (int subimage, int miplevel,
-                                         DeepData &deepdata);
 
     /// @}
 
@@ -2251,7 +2532,7 @@ public:
     ///   no conversion needed).
     ///
     /// * The type-aware versions that accept an `image_span<T>` (for
-    ///   optionally non-contiguous data) or `span<T>` (for contiguous data)
+    ///   potentially non-contiguous data) or `span<T>` (for contiguous data)
     ///   and understand to convert the data from the given `T` type.
     ///
     /// * The image_span (in either case) includes the memory bounds and

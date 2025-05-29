@@ -571,6 +571,9 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
         case EXR_COMPRESSION_B44A: comp = "b44a"; break;
         case EXR_COMPRESSION_DWAA: comp = "dwaa"; break;
         case EXR_COMPRESSION_DWAB: comp = "dwab"; break;
+#ifdef IMF_HTJ2K_COMPRESSION
+        case EXR_COMPRESSION_HTJ2K: comp = "htj2k"; break;
+#endif
         default: break;
         }
         if (comp)
@@ -1062,6 +1065,11 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
 
     m_miplevel = miplevel;
     m_spec     = part.spec;
+
+    //! Add the number of miplevels as an attribute for the first miplevel.
+    //! TOFIX: adding the following attribute breaks unit tests
+    // if (m_miplevel == 0 && part.nmiplevels > 1)
+    //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     if (miplevel == 0 && part.levelmode == EXR_TILE_ONE_LEVEL) {
         return true;
