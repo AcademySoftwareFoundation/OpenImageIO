@@ -1186,7 +1186,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
 bool
 OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                    int yend, int /*z*/, int chbegin, int chend,
+                                    int yend, int z, int chbegin, int chend,
                                     void* data)
 {
     lock_guard lock(*this);
@@ -1271,8 +1271,31 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             return false;
         }
     } catch (const std::exception& e) {
-        errorfmt("Failed OpenEXR read: {}", e.what());
-        return false;
+        std::string err = e.what();
+        if (m_missingcolor.size()) {
+            // User said not to fail for bad or missing scanlines. If we
+            // failed reading a single scanline, use the fill pattern. If we
+            // failed reading many scanlines, we don't know which ones, so go
+            // back and read them individually for a second chance.
+            DBGEXR("Handling missingcolor case for {}-{}: {}\n", ybegin, yend,
+                   err);
+            if (yend - ybegin == 1) {
+                // Read of one tile -- use the fill pattern
+                fill_missing(m_spec.x, m_spec.x + m_spec.width, ybegin, yend, 0,
+                             1, chbegin, chend, data, pixelbytes,
+                             scanlinebytes);
+            } else {
+                // Read of many tiles -- don't know which failed, so try
+                // again to read them all individually.
+                return read_native_scanlines_individually(subimage, miplevel,
+                                                          ybegin, yend, z,
+                                                          chbegin, chend, data,
+                                                          scanlinebytes);
+            }
+        } else {
+            errorfmt("Failed OpenEXR read: {}", err);
+            return false;
+        }
     } catch (...) {  // catch-all for edge cases or compiler bugs
         errorfmt("Failed OpenEXR read: unknown exception");
         return false;
@@ -1423,6 +1446,25 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     }
 
     return true;
+}
+
+
+
+bool
+OpenEXRInput::read_native_scanlines_individually(int subimage, int miplevel,
+                                                 int ybegin, int yend, int z,
+                                                 int chbegin, int chend,
+                                                 void* data, stride_t ystride)
+{
+    // Note: this is only called by read_native_scanlines, which still holds
+    // the mutex, so it's safe to directly access m_spec.
+    bool ok = true;
+    for (int y = ybegin; y < yend; ++y) {
+        char* d = (char*)data + (y - ybegin) * ystride;
+        ok &= read_native_scanlines(subimage, miplevel, y, y + 1, z, chbegin,
+                                    chend, d);
+    }
+    return ok;
 }
 
 
