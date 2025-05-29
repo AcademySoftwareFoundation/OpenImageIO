@@ -1218,14 +1218,35 @@ ColorConfig::getDefaultViewName(string_view display) const
 }
 
 
+const char*
+ColorConfig::getDefaultViewName(string_view display,
+                                string_view inputColorSpace) const
+{
+    if (display.empty() || display == "default")
+        display = getDefaultDisplayName();
+    if (inputColorSpace.empty() || inputColorSpace == "default")
+        inputColorSpace = getImpl()->config_->getColorSpaceFromFilepath(
+            c_str(inputColorSpace));
+    if (getImpl()->config_ && !disable_ocio)
+        return getImpl()->config_->getDefaultView(c_str(display),
+                                                  c_str(inputColorSpace));
+    return nullptr;
+}
+
 
 const char*
 ColorConfig::getDisplayViewColorSpaceName(const std::string& display,
                                           const std::string& view) const
 {
-    if (getImpl()->config_ && !disable_ocio)
-        return getImpl()->config_->getDisplayViewColorSpaceName(display.c_str(),
-                                                                view.c_str());
+    if (getImpl()->config_ && !disable_ocio) {
+        string_view name
+            = getImpl()->config_->getDisplayViewColorSpaceName(c_str(display),
+                                                               c_str(view));
+        // Handle certain Shared View cases
+        if (strcmp(c_str(name), "<USE_DISPLAY_NAME>") == 0)
+            name = display;
+        return c_str(name);
+    }
     return nullptr;
 }
 
@@ -1893,7 +1914,7 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
     if (display.empty() || display == "default")
         display = getDefaultDisplayName();
     if (view.empty() || view == "default")
-        view = getDefaultViewName(display);
+        view = getDefaultViewName(display, inputColorSpace);
     // First, look up the requested processor in the cache. If it already
     // exists, just return it.
     ColorProcCacheKey prockey(inputColorSpace, ustring() /*outputColorSpace*/,
@@ -1909,15 +1930,18 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
     if (getImpl()->config_ && !disable_ocio) {
         OCIO::ConstConfigRcPtr config = getImpl()->config_;
         auto transform                = OCIO::DisplayViewTransform::Create();
+        auto legacy_viewing_pipeline  = OCIO::LegacyViewingPipeline::Create();
+        OCIO::TransformDirection dir  = inverse ? OCIO::TRANSFORM_DIR_INVERSE
+                                                : OCIO::TRANSFORM_DIR_FORWARD;
         transform->setSrc(inputColorSpace.c_str());
-        if (looks.size()) {
-            getImpl()->error(
-                "createDisplayTransform: looks overrides are not allowed in OpenColorIO v2");
-        }
-        OCIO::TransformDirection dir = inverse ? OCIO::TRANSFORM_DIR_INVERSE
-                                               : OCIO::TRANSFORM_DIR_FORWARD;
         transform->setDisplay(display.c_str());
         transform->setView(view.c_str());
+        transform->setDirection(dir);
+        legacy_viewing_pipeline->setDisplayViewTransform(transform);
+        if (looks.size()) {
+            legacy_viewing_pipeline->setLooksOverride(looks.c_str());
+            legacy_viewing_pipeline->setLooksOverrideEnabled(true);
+        }
         auto context = config->getCurrentContext();
         auto keys    = Strutil::splits(context_key, ",");
         auto values  = Strutil::splits(context_value, ",");
@@ -1931,7 +1955,7 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
         OCIO::ConstProcessorRcPtr p;
         try {
             // Get the processor corresponding to this transform.
-            p = config->getProcessor(context, transform, dir);
+            p = legacy_viewing_pipeline->getProcessor(config, context);
             getImpl()->clear_error();
             handle = ColorProcessorHandle(new ColorProcessor_OCIO(p));
         } catch (OCIO::Exception& e) {
@@ -2083,14 +2107,36 @@ ColorConfig::getColorSpaceFromFilepath(string_view str) const
         std::string s(str);
         string_view r = getImpl()->config_->getColorSpaceFromFilepath(
             s.c_str());
-        if (!getImpl()->config_->filepathOnlyMatchesDefaultRule(s.c_str()))
-            return r;
+        return r;
     }
     // Fall back on parseColorSpaceFromString
     return parseColorSpaceFromString(str);
 }
 
+string_view
+ColorConfig::getColorSpaceFromFilepath(string_view str, string_view default_cs,
+                                       bool cs_name_match) const
+{
+    if (getImpl() && getImpl()->config_) {
+        std::string s(str);
+        string_view r = getImpl()->config_->getColorSpaceFromFilepath(
+            s.c_str());
+        if (!getImpl()->config_->filepathOnlyMatchesDefaultRule(s.c_str()))
+            return r;
+    }
+    if (cs_name_match) {
+        string_view parsed = parseColorSpaceFromString(str);
+        if (parsed.size())
+            return parsed;
+    }
+    return default_cs;
+}
 
+bool
+ColorConfig::filepathOnlyMatchesDefaultRule(string_view str) const
+{
+    return getImpl()->config_->filepathOnlyMatchesDefaultRule(c_str(str));
+}
 
 string_view
 ColorConfig::parseColorSpaceFromString(string_view str) const
@@ -2549,6 +2595,20 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
 
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
+    if (ok) {
+        if (inverse)
+            dst.specmod().set_colorspace(colorconfig->resolve(from));
+        else {
+            if (display.empty() || display == "default")
+                display = colorconfig->getDefaultDisplayName();
+            if (view.empty() || view == "default")
+                view = colorconfig->getDefaultViewName(display,
+                                                       colorconfig->resolve(
+                                                           from));
+            dst.specmod().set_colorspace(
+                colorconfig->getDisplayViewColorSpaceName(display, view));
+        }
+    }
     return ok;
 }
 
@@ -2600,7 +2660,14 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok)
-        dst.specmod().set_colorspace(name);
+        // If we can parse a color space from the file name, and we're not inverting
+        // the transform, then we'll use the color space name from the file.
+        // Otherwise, we'll leave `oiio:ColorSpace` alone.
+        // TODO: Use OCIO to extract InputDescription and OutputDescription CLF
+        // metadata attributes, if present.
+        if (!colorconfig->filepathOnlyMatchesDefaultRule(name))
+            dst.specmod().set_colorspace(
+                colorconfig->getColorSpaceFromFilepath(name));
     return ok;
 }
 
