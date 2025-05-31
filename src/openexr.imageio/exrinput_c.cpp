@@ -1217,7 +1217,8 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     parallel_for_chunked(
         ychunkstart, yend, scansperchunk,
         [&](int64_t yb, int64_t ye) {
-            int y             = std::max(int(yb), ybegin);
+            int y = std::max(int(yb), ybegin);
+            DBGEXR("reading y={}\n", y);
             uint8_t* linedata = static_cast<uint8_t*>(data)
                                 + scanlinebytes * (y - ybegin);
             default_init_vector<uint8_t> fullchunk;
@@ -1276,8 +1277,19 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             if (rv == EXR_ERR_SUCCESS)
                 rv = exr_decoding_run(m_exr_context, subimage, &decoder);
             if (rv != EXR_ERR_SUCCESS) {
-                ok = false;
-            } else if (cdata != linedata) {
+                if (check_fill_missing(spec.x, spec.x + spec.width, y,
+                                       y + nlines, 0, 1, chbegin, chend,
+                                       cdata + invalid * scanlinebytes,
+                                       pixelbytes, scanlinebytes)) {
+                    // clear the error
+                    DBGEXR("cfm true y={} {}-{}\n", y, yb, ye);
+                    rv = EXR_ERR_SUCCESS;
+                } else {
+                    DBGEXR("cfm false {}-{}\n", yb, ye);
+                    ok = false;
+                }
+            }
+            if (rv == EXR_ERR_SUCCESS && cdata != linedata) {
                 y += invalid;
                 nlines = std::min(nlines, yend - y);
                 memcpy(linedata, cdata + invalid * scanlinebytes,

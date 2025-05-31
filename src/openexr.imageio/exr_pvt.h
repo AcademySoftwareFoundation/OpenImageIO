@@ -220,6 +220,10 @@ private:
         m_missingcolor.clear();
     }
 
+    bool read_native_scanlines_individually(int subimage, int miplevel,
+                                            int ybegin, int yend, int z,
+                                            int chbegin, int chend, void* data,
+                                            stride_t ystride);
     bool read_native_tiles_individually(int subimage, int miplevel, int xbegin,
                                         int xend, int ybegin, int yend,
                                         int zbegin, int zend, int chbegin,
