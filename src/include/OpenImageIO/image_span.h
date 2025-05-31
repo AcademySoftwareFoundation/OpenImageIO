@@ -387,5 +387,21 @@ as_image_span_writable_bytes(const image_span<T, Rank>& src) noexcept
 }
 
 
+/// Verify that the image_span has all its contents lying within the
+/// contiguous span.
+OIIO_API bool
+image_span_within_span(const image_span<const std::byte>& ispan,
+                       span<const std::byte> contiguous) noexcept;
+
+/// image_span_within_span() for generic span types. Just reduce to
+/// const byte versions.
+template<typename T, size_t Trank, typename S>
+bool
+image_span_within_span(const image_span<T, Trank>& ispan,
+                       span<S> contiguous) noexcept
+{
+    return image_span_within_span(as_image_span_bytes(ispan),
+                                  as_bytes(contiguous));
+}
 
 OIIO_NAMESPACE_END

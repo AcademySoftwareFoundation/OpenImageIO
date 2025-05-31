@@ -467,6 +467,83 @@ benchmark_image_span_passing()
 
 
 
+void
+test_image_span_within_span()
+{
+    print("\ntest_image_span_within_span\n");
+
+    const int nchans = 3, xres = 5, yres = 7, zres = 11;
+    const int chstride = sizeof(float), xstride = chstride * nchans,
+              ystride = xstride * xres, zstride = ystride * yres;
+    float array[nchans * xres * yres * zres];
+    cspan<float> aspan(array);
+    // It better worrk with the same origin and default strides
+    OIIO_CHECK_ASSERT(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride, ystride, zstride),
+                               aspan));
+    // Make sure too big are recognized
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride + 1, xstride, ystride,
+                                          zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride + 1, ystride,
+                                          zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride, ystride + 1,
+                                          zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride, ystride,
+                                          zstride + 1),
+                               aspan));
+    // Make sure negagive strides used CORRECTLY are recognized
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          -chstride, xstride, ystride, zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, -xstride, ystride, zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride, -ystride, zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride, ystride, -zstride),
+                               aspan));
+    // Make sure negagive strides used CORRECTLY are recognized
+    OIIO_CHECK_ASSERT(
+        image_span_within_span(image_span(array + nchans - 1, nchans, xres,
+                                          yres, zres, -chstride, xstride,
+                                          ystride, zstride),
+                               aspan));
+    OIIO_CHECK_ASSERT(
+        image_span_within_span(image_span(array + (xres - 1) * nchans, nchans,
+                                          xres, yres, zres, chstride, -xstride,
+                                          ystride, zstride),
+                               aspan));
+    OIIO_CHECK_ASSERT(
+        image_span_within_span(image_span(array + (yres - 1) * xres * nchans,
+                                          nchans, xres, yres, zres, chstride,
+                                          xstride, -ystride, zstride),
+                               aspan));
+    OIIO_CHECK_ASSERT(image_span_within_span(
+        image_span(array + (zres - 1) * xres * yres * nchans, nchans, xres,
+                   yres, zres, chstride, xstride, ystride, -zstride),
+        aspan));
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -495,6 +572,8 @@ main(int /*argc*/, char* /*argv*/[])
     test_image_span_convert_image<uint8_t, uint16_t>();
     test_image_span_convert_image<uint16_t, half>();
     test_image_span_convert_image<half, uint16_t>();
+
+    test_image_span_within_span();
 
     benchmark_image_span_passing();
 
