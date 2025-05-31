@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+redirect = " >> out.txt 2>&1"
+
 # ../openexr-images/ScanLines:
 # Blobbies.exr     Cannon.exr  MtTamWest.exr     StillLife.exr
 # CandleGlass.exr  Desk.exr    PrismsLenses.exr  Tree.exr
@@ -44,3 +46,7 @@ imagedir = OIIO_TESTSUITE_IMAGEDIR + "/Beachball"
 files = [ "singlepart.0001.exr" ]
 for f in files:
     command += rw_command (imagedir, f)
+
+# Check writing overscan and negative range
+command += oiiotool("--create 64x64-16-16 3 -d half -o negoverscan.exr")
+command += info_command("negoverscan.exr", safematch=True)
