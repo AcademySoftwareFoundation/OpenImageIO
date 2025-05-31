@@ -1352,8 +1352,8 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
         tmpbuf.reset(new char[nxtiles * nytiles * m_spec.tile_bytes(true)]);
         data = &tmpbuf[0];
     }
-    char* buf = (char*)data - xbegin * pixelbytes
-                - ybegin * pixelbytes * m_spec.tile_width * nxtiles;
+    char* buf = (char*)data - ptrdiff_t(xbegin * pixelbytes)
+                - ptrdiff_t(ybegin * pixelbytes * m_spec.tile_width * nxtiles);
 
     try {
         Imf::FrameBuffer frameBuffer;
