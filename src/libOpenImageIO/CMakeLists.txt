@@ -154,6 +154,8 @@ endif ()
 target_compile_features (OpenImageIO
                          INTERFACE cxx_std_${DOWNSTREAM_CXX_STANDARD})
 
+target_link_directories (OpenImageIO PRIVATE ${format_plugin_lib_dirs})
+
 target_link_libraries (OpenImageIO
         PUBLIC
             OpenImageIO_Util
