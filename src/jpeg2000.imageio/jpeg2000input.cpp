@@ -344,7 +344,7 @@ Jpeg2000Input::ojph_read_header()
             dtype    = TypeDesc::UINT;
             break;
         default:
-            errorfmt("Unsupported bit depth {} for channel {}", 
+            errorfmt("Unsupported bit depth {} for channel {}",
                      siz.get_bit_depth(c), c);
             close();
             return false;
