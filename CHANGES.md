@@ -1,6 +1,41 @@
-Release 3.0.7.0 (Jun 1?, 2025) -- compared to 3.0.6.1
+Release 3.0.7.0 (Jun 1, 2025) -- compared to 3.0.6.1
 -----------------------------------------------------
-
+  - *oiiotool*: `--eraseattrib` new modifier `:fromfile=1` reads from a file
+    to get a list of patterns to specify the attributes to erase. [#4763](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4763) (by Lydia Zheng)
+  - *oiiotool*: Added `--create-dir` flag to create directories needed by `-o`
+    if they doesn't already exist [#4762](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4762) (by Dharshan Vishwanatha)
+  - *oiiotool*: --eraseattrib:fromfile=1 [#4763](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4763) (by Lydia Zheng)
+  - *oiiotool*: Added create-dir cmd arg to create dir if it doesn't exist [#4762](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4762) (by Dharshan Vishwanatha)
+  - *oiiotool*: -i:native=1, fix --native behavior, fix convert datatype [#4708](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4708)
+  - *iv*: Fix crash on .DS_Store; fix uppercase extensions [#4764](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4764) (by Anton Dukhovnikov)
+  - *iv*: Do not resize on open and other zoom fixes [#4766](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4766) (by Aleksandr Motsjonov)
+  - *iv*: Bug fix for iv window losing focus on mac on startup [#4773](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4773) (by Aleksandr Motsjonov)
+  - *iv*: Implement files drag and drop into an iv window [#4774](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4774) (by Aleksandr Motsjonov)
+  - *iv*: Use screen pixel ratio to render sharp text in pixel view tool [#4768](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4768) (by Aleksandr Motsjonov)
+  - *python*: Add python stub files [#4692](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4692) [#4754](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4754) (by Chad Dombrova)
+  - *python*: ImageBuf `_repr_png_` method added, which allows use of
+    ImageBuf in [Jupyter Notebooks](https://jupyter.org/) as a displayable object. [#4753](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4753) (by Oktay Comu)
+  - *exr*: Did not properly allocate 'missingcolor' vector [#4751](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4751)
+  - *exr*: Add `htj2k` as a compression option for OpenEXR. Only works with  OpenEXR 3.4 or higher (or in-progress OpenEXR main). [#4785](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4785) (by Li Ji)
+  - *iff*: Improved IFF support reading and writing z buffers [#4673](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4673) (by Mikael Sundell)
+  - *webp*: Respect the `oiio:UnassociatedAlpha` attribute [#4770](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4770) (by Jesse Yurkovich)
+  - *webp*: Allow finer grained control over WEBP compression settings [#4772](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4772) (by Jesse Yurkovich)
+  - *flx/python*: IBA.demosaic had GIL release in wrong spot [#4777](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4777)
+  - *fix*: ImageInput/ImageOutput did not set per-file threads correctly [#4750](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4750)
+  - *fix*: Address safety warnings in pvt::append_tiff_dir_entry [#4737](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4737)
+  - *build*: Fix fmt throwing behavior warnings [#4730](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4730)
+  - *build*: Detect libultrahdr version and enforce minimum of 1.3 [#4729](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4729)
+  - *build*: Fix failed test with old fmt [#4758](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4758)
+  - *ci*: Save time by not checking out entire project history [#4731](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4731)
+  - *ci*: New testing variants for VFX Platform 2025, Windows 2025 [#4744](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4744), Linux ARM [#4749](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4749)
+  - *ci*: Update ref output to compensate for GitHub windows drive changes [#4761](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4761)
+  - *ci*: Pkg config libdir fix [#4775](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4775) (by Scott Wilson)
+  - *ci*: For docs workflow, lock down versions and speed up [#4646](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4646)
+  - *ci*: Improved clang-format CI task [#4647](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4647)
+  - *ci*: Add facility for benchmarking as part of CI [#4745](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4745)
+  - *ci*: Update ref image for slightly changed freetype accents [#4765](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4765)
+  - *docs*: Online docs improvements, mostly formatting (#4736, #4743)
+  - *docs*: Update Windows build instructions to rely on deps auto-build [#4769](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4769)
 
 
 Release 3.0.6.1 (May 2, 2025) -- compared to 3.0.6.0

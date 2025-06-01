@@ -10,6 +10,7 @@ lg@openimageio.org
 * Alan Jones
 * Alejandro Conty
 * Alejandro Aguirre
+* Aleksandr Motsjonov
 * Alex Guirre
 * Alex Hughes
 * Alex Schworer
@@ -174,6 +175,7 @@ lg@openimageio.org
 * Noah Rahm (designer of our logo!)
 * Northon Patrick
 * Nuno Cardoso
+* Oktay Comu
 * Ole Gulbrandsen
 * Ott Tinn
 * Pascal Lecocq
