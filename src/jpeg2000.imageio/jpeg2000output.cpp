@@ -185,6 +185,7 @@ OIIO_EXPORT const char* jpeg2000_output_extensions[] = { "jp2", "j2k",
 OIIO_PLUGIN_EXPORTS_END
 
 
+
 bool
 Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
                      OpenMode mode)
@@ -204,8 +205,6 @@ Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
                           : 0;
     m_convert_alpha = m_spec.alpha_channel != -1
                       && !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
-
-
 
     ioproxy_retrieve_from_config(m_spec);
     if (!ioproxy_use_or_open(name))
@@ -331,7 +330,6 @@ Jpeg2000Output::write_scanline(int y, int z, TypeDesc format, const void* data,
         else
             write_scanline<uint16_t>(y, z, data);
 
-
     if (y == m_spec.height - 1)
         save_image();
 
@@ -443,6 +441,7 @@ Jpeg2000Output::save_image()
 }
 
 
+
 opj_image_t*
 Jpeg2000Output::create_jpeg2000_image()
 {
@@ -498,6 +497,7 @@ Jpeg2000Output::create_jpeg2000_image()
 }
 
 
+
 inline void
 Jpeg2000Output::init_components(opj_image_cmptparm_t* components, int precision)
 {
@@ -515,6 +515,7 @@ Jpeg2000Output::init_components(opj_image_cmptparm_t* components, int precision)
         components[i].sgnd = 0;
     }
 }
+
 
 
 opj_codec_t*
@@ -605,6 +606,7 @@ Jpeg2000Output::setup_cinema_compression(OPJ_RSIZ_CAPABILITIES p_rsizCap)
 }
 
 
+
 void
 Jpeg2000Output::setup_compression_params()
 {
@@ -649,6 +651,8 @@ Jpeg2000Output::setup_compression_params()
     if (compression_mode && compression_mode->data())
         m_compression_parameters.mode = *(int*)compression_mode->data();
 }
+
+
 
 OPJ_PROG_ORDER
 Jpeg2000Output::get_progression_order(const std::string& progression_order)

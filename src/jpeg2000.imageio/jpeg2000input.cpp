@@ -78,6 +78,7 @@ j2k_associateAlpha(T* data, int size, int channels, int alpha_channel,
 }  // namespace
 
 
+
 class Jpeg2000Input final : public ImageInput {
 public:
     Jpeg2000Input() { init(); }
@@ -233,6 +234,8 @@ Jpeg2000Input::init(void)
     ioproxy_clear();
 }
 
+
+
 bool
 Jpeg2000Input::valid_file(Filesystem::IOProxy* ioproxy) const
 {
@@ -277,6 +280,10 @@ public:
     };
 };
 
+
+
+// Convert a 32-bit signed integer to a 16-bit signed integer, with special
+// handling for special numbers (NaN, Infinity, etc.) if requested.
 ojph::si16
 convert_si32_to_si16(const ojph::si32 si32_value,
                      bool convert_special_numbers_to_finite_numbers = false)
@@ -305,6 +312,8 @@ convert_si32_to_si16(const ojph::si32 si32_value,
         return (ojph::si16)si32_value;
 }
 
+
+
 bool
 Jpeg2000Input::ojph_read_header()
 {
@@ -312,10 +321,7 @@ Jpeg2000Input::ojph_read_header()
     int ch              = siz.get_num_components();
     const int w         = siz.get_recon_width(0);
     const int h         = siz.get_recon_height(0);
-
-
     TypeDesc dtype;
-
 
     if (ch > 4)
         ch = 4;  // Only do the first 4 channels.
@@ -345,7 +351,6 @@ Jpeg2000Input::ojph_read_header()
         }
     }
 
-
     m_spec = ImageSpec(w, h, ch, dtype);
     m_spec.default_channel_names();
     m_spec.attribute("oiio:BitsPerSample", siz.get_bit_depth(0));
@@ -353,6 +358,8 @@ Jpeg2000Input::ojph_read_header()
 
     return true;
 }
+
+
 
 bool
 Jpeg2000Input::ojph_read_image()
@@ -630,6 +637,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& newspec,
 }
 
 
+
 bool
 Jpeg2000Input::read_native_scanline(int subimage, int miplevel, int y, int z,
                                     void* data)
@@ -687,6 +695,8 @@ Jpeg2000Input::close(void)
     return true;
 }
 
+
+
 bool
 Jpeg2000Input::is_jp2_header(const uint8_t header[12])
 {
@@ -695,12 +705,16 @@ Jpeg2000Input::is_jp2_header(const uint8_t header[12])
     return memcmp(header, jp2_header, sizeof(jp2_header)) == 0;
 }
 
+
+
 bool
 Jpeg2000Input::is_j2k_header(const uint8_t header[5])
 {
     const uint8_t j2k_header[] = { 0xFF, 0x4F, 0xFF, 0x51, 0x00 };
     return memcmp(header, j2k_header, sizeof(j2k_header)) == 0;
 }
+
+
 
 opj_codec_t*
 Jpeg2000Input::create_decompressor()
