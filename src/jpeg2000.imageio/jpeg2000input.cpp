@@ -435,7 +435,7 @@ Jpeg2000Input::ojph_read_image()
     return true;
 }
 
-FILE* error_stream = stderr;
+
 
 class Oiio_Reader_Error_handler : public ojph::message_error {
     // This is a special error handler, since in this case, if we get the error-code for not a J2K file, we dont
