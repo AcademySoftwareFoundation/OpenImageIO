@@ -67,8 +67,8 @@ private:
 
 #ifdef USE_OPENJPH
     // opj_cparameters_t m_compression_parameters;
-    ojph::j2c_outfile* m_jph_image;
-    ojph::codestream* m_jph_stream;
+    std::unique_ptr<ojph::j2c_outfile> m_jph_image;
+    std::unique_ptr<ojph::codestream> m_jph_stream;
     int output_depth;
 #endif
 
@@ -79,10 +79,6 @@ private:
         m_stream        = NULL;
         m_convert_alpha = true;
 
-#ifdef USE_OPENJPH
-        m_jph_image  = NULL;
-        m_jph_stream = NULL;
-#endif
         ioproxy_clear();
     }
 
@@ -107,12 +103,8 @@ private:
             m_stream = NULL;
         }
 #ifdef USE_OPENJPH
-        if (m_jph_stream) {
-            delete m_jph_stream;
-            m_jph_stream = NULL;
-            delete m_jph_image;
-            m_jph_image = NULL;
-        }
+    m_jph_stream.reset();
+    m_jph_image.reset();
 #endif
     }
 
@@ -159,7 +151,7 @@ private:
     static void openjpeg_dummy_callback(const char* /*msg*/, void* /*data*/) {}
 
 #ifdef USE_OPENJPH
-    ojph::j2c_outfile* create_jph_image();
+    void create_jph_image();
     template<typename T>
     void write_jph_scanline(int y, int /*z*/, const void* data);
 #endif
@@ -236,7 +228,7 @@ Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
         use_openjph = true;
 
     if (use_openjph) {
-        m_jph_image = create_jph_image();
+        create_jph_image();
         return true;
     }
 #else
@@ -728,10 +720,10 @@ struct size_list_interpreter : public ojph::cli_interpreter::arg_inter_base {
 
 
 
-ojph::j2c_outfile*
+void
 Jpeg2000Output::create_jph_image()
 {
-    m_jph_stream        = new ojph::codestream;
+    m_jph_stream = std::make_unique<ojph::codestream>();
     ojph::param_siz siz = m_jph_stream->access_siz();
     siz.set_image_extent(ojph::point(m_spec.width, m_spec.height));
 
@@ -819,12 +811,11 @@ Jpeg2000Output::create_jph_image()
 
     cod.set_num_decomposition(m_spec.get_int_attribute("jph:num_decomps", 5));
     m_jph_stream->set_planar(false);
-    m_jph_image = new ojph::j2c_outfile;
+    m_jph_image = std::make_unique<ojph::j2c_outfile>();
     m_jph_image->open(m_filename.c_str());
-    m_jph_stream->write_headers(m_jph_image);  //, "test comment", 1);
-
-    return m_jph_image;
+    m_jph_stream->write_headers(m_jph_image.get());  //, "test comment", 1);
 }
+
 
 
 template<typename T>
