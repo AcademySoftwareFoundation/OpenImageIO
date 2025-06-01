@@ -1,11 +1,14 @@
+Release 3.0.8.0 (Jul 1?, 2025) -- compared to 3.0.7.0
+-----------------------------------------------------
+
+
+
 Release 3.0.7.0 (Jun 1, 2025) -- compared to 3.0.6.1
 -----------------------------------------------------
   - *oiiotool*: `--eraseattrib` new modifier `:fromfile=1` reads from a file
     to get a list of patterns to specify the attributes to erase. [#4763](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4763) (by Lydia Zheng)
   - *oiiotool*: Added `--create-dir` flag to create directories needed by `-o`
     if they doesn't already exist [#4762](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4762) (by Dharshan Vishwanatha)
-  - *oiiotool*: --eraseattrib:fromfile=1 [#4763](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4763) (by Lydia Zheng)
-  - *oiiotool*: Added create-dir cmd arg to create dir if it doesn't exist [#4762](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4762) (by Dharshan Vishwanatha)
   - *oiiotool*: -i:native=1, fix --native behavior, fix convert datatype [#4708](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4708)
   - *iv*: Fix crash on .DS_Store; fix uppercase extensions [#4764](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4764) (by Anton Dukhovnikov)
   - *iv*: Do not resize on open and other zoom fixes [#4766](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4766) (by Aleksandr Motsjonov)
