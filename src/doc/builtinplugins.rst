@@ -1143,6 +1143,11 @@ JPEG-2000 is not yet widely used, so OpenImageIO's support of it is
 preliminary.  In particular, we are not yet very good at handling the
 metadata robustly.
 
+Optionally this plugin can be built with OpenJPH support, which is a
+JPEG-2000 encoder/decoder that is faster than OpenJPEG, and supports the
+High Throughput JPEG2000 (HTJ2K) format (Jpeg2000 Part 15). If OpenJPH is not available, the
+OpenJPEG library will be used instead but only for decoding. OpenJPH is available at  https://github.com/aous72/OpenJPH .
+
 **Attributes**
 
 .. list-table::
@@ -1186,6 +1191,9 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+  
+If OpenJPH is installed, the reader will attempt to read the file first with 
+the OpenJPH library, and if that fails, it will fall back to the OpenJPEG library.
 
 **Configuration settings for JPEG-2000 output**
 
@@ -1215,14 +1223,52 @@ control aspects of the writing itself:
        for output rather than being assumed to be associated and get automatic
        un-association to store in the file.
 
+If OpenJPH is installed, and the file extension is :file:`.j2c`, or if the -``compression`` flag is set to ``"htj2k"``, the
+writer will attempt to write the file with the OpenJPH library, and the following flags will be available:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``jph:bit_depth``
+     - int
+     - The output bitdepth of the file.
+   * - ``jph:num_decomps``
+     - int
+     - (5) number of decompositions.
+   * - ``jph:block_size``
+     - string
+     - The output block size, defaults to 64,64   
+   * - ``jph:prog_order``
+     - string
+     - (RPCL) is the progression order, and can be one of:
+               LRCP, RLCP, RPCL, PCRL, CPRL. These determine the sequence in which the image data is processed and transmitted. The letters stand for:
+        R: Resolution
+        P: position
+        C: component
+        L: Layer
+        RPCL is common for applications where resolution scalability is important.
+   * - ``jph:precincts``
+     - string
+     -   x,y,x,y,...,x,y where x,y is the precinct size
+               starting from the coarsest resolution; the last precinct
+               is repeated for all finer resolutions
+   * - ``jph:qstep``
+     - float
+     - If supplied, is the quantization step size for lossy compression; 
+       quantization steps size for all subbands are derived from this value. Valid values can be from 0.00001 to 0.5.
+       If not used, the encoder will be lossless.
+
+
 **Custom I/O Overrides**
 
 JPEG-2000 input and output both support the "custom I/O" feature via the
 special ``"oiio:ioproxy"`` attributes (see Sections
 :ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
-
-
 |
 
 .. _sec-bundledplugins-jpegxl:
