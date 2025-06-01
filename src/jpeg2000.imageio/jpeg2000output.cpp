@@ -103,8 +103,8 @@ private:
             m_stream = NULL;
         }
 #ifdef USE_OPENJPH
-    m_jph_stream.reset();
-    m_jph_image.reset();
+        m_jph_stream.reset();
+        m_jph_image.reset();
 #endif
     }
 
@@ -723,7 +723,7 @@ struct size_list_interpreter : public ojph::cli_interpreter::arg_inter_base {
 void
 Jpeg2000Output::create_jph_image()
 {
-    m_jph_stream = std::make_unique<ojph::codestream>();
+    m_jph_stream        = std::make_unique<ojph::codestream>();
     ojph::param_siz siz = m_jph_stream->access_siz();
     siz.set_image_extent(ojph::point(m_spec.width, m_spec.height));
 
