@@ -174,9 +174,7 @@ checked_find_package (OpenJPEG VERSION_MIN 2.0
 # Note: Recent OpenJPEG versions have exported cmake configs, but we don't
 # find them reliable at all, so we stick to our FindOpenJPEG.cmake module.
 
-checked_find_package (OpenJPH VERSION_MIN 0.21
-                      RECOMMEND_MIN 0.21
-                      RECOMMEND_MIN_REASON "for NLT support")
+checked_find_package (OpenJPH VERSION_MIN 0.21)
 
 checked_find_package (OpenVDB
                       VERSION_MIN  9.0
