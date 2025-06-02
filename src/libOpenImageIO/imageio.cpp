@@ -59,11 +59,13 @@ int limit_imagesize_MB(std::min(32 * 1024,
 int imageinput_strict(0);
 ustring font_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
-std::string format_list;         // comma-separated list of all formats
-std::string input_format_list;   // comma-separated list of readable formats
-std::string output_format_list;  // comma-separated list of writable formats
-std::string extension_list;      // list of all extensions for all formats
-std::string library_list;        // list of all libraries for all formats
+std::string allowed_input_format_list;      // list of input formats to be allowed at runtime 
+std::string allowed_output_format_list;     // list of output formats to be allowed at runtime 
+std::string format_list;                    // comma-separated list of all formats
+std::string input_format_list;              // comma-separated list of readable formats
+std::string output_format_list;             // comma-separated list of writable formats
+std::string extension_list;                 // list of all extensions for all formats
+std::string library_list;                   // list of all libraries for all formats
 int oiio_log_times = Strutil::stoi(Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
 std::vector<float> oiio_missingcolor;
 }  // namespace pvt
@@ -439,6 +441,14 @@ attribute(string_view name, TypeDesc type, const void* val)
         oiio_try_all_readers = *(const int*)val;
         return true;
     }
+    if (name == "allowed_input_formats" && type == TypeString) {
+        allowed_input_format_list = std::string(*(const char**)val);
+        return true;
+    }
+    if (name == "allowed_output_formats" && type == TypeString) {
+        allowed_output_format_list = std::string(*(const char**)val);
+        return true;
+    }
 
     return false;
 }
@@ -674,6 +684,20 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "IB_total_image_read_time" && type == TypeFloat) {
         *(float*)val = IB_total_image_read_time;
+        return true;
+    }
+    if (name == "allowed_input_formats" && type == TypeString) {
+        if (allowed_input_format_list.empty()) {
+            return false;
+        }
+        *(std::string*)val = allowed_input_format_list;
+        return true;
+    }
+    if (name == "allowed_output_formats" && type == TypeString) {
+        if (allowed_output_format_list.empty()) {
+            return false;
+        }
+        *(std::string*)val = allowed_output_format_list;
         return true;
     }
     return false;
