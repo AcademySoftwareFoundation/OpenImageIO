@@ -537,6 +537,28 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
         format = filename;
     }
 
+    ustring comma_sep_allowed_output_formats;
+    if (OIIO::getattribute("allowed_output_formats", TypeString,
+                           &comma_sep_allowed_output_formats)) {
+        std::vector<std::string> allowed_output_formats;
+        Strutil::split(comma_sep_allowed_output_formats, allowed_output_formats,
+                       ",", -1);
+
+        bool isValidFormat = 0;
+        for (std::string allowed_format : allowed_output_formats) {
+            if (allowed_format == format) {
+                isValidFormat = 1;
+                break;
+            }
+        }
+
+        if (!isValidFormat) {
+            OIIO::errorfmt(
+                "ImageOutput::create() called: output image format not found in list of allowed formats");
+            return out;
+        }
+    }
+
     ImageOutput::Creator create_function = nullptr;
     {  // scope the lock:
         std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
@@ -629,6 +651,29 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
         // If the file had no extension, maybe it was itself the format name
         format = filename;
     }
+
+    ustring comma_sep_allowed_input_formats;
+    if (OIIO::getattribute("allowed_input_formats", TypeString,
+                           &comma_sep_allowed_input_formats)) {
+        std::vector<std::string> allowed_input_formats;
+        Strutil::split(comma_sep_allowed_input_formats, allowed_input_formats,
+                       ",", -1);
+
+        bool isValidFormat = 0;
+        for (std::string allowed_format : allowed_input_formats) {
+            if (allowed_format == format) {
+                isValidFormat = 1;
+                break;
+            }
+        }
+
+        if (!isValidFormat) {
+            OIIO::errorfmt(
+                "ImageInput::create() called: input image format not found in list of allowed formats");
+            return in;
+        }
+    }
+
 
     ImageInput::Creator create_function = nullptr;
     {  // scope the lock:
