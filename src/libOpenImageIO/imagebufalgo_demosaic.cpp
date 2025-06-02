@@ -970,6 +970,7 @@ demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
     std::string pattern;
     std::string algorithm;
     std::string layout;
+    bool white_balance_auto     = true;
     float white_balance_RGBG[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
     std::string error;
 
@@ -1002,12 +1003,16 @@ demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
 
                 if (white_balance_RGBG[3] == 0)
                     white_balance_RGBG[3] = white_balance_RGBG[1];
+                white_balance_auto = false;
             } else if (pv.type() == TypeFloat && pv.nvalues() == 3) {
                 // The order in the options is always (R,G,B)
                 white_balance_RGBG[0] = pv.get_float_indexed(0);
                 white_balance_RGBG[1] = pv.get_float_indexed(1);
                 white_balance_RGBG[2] = pv.get_float_indexed(2);
                 white_balance_RGBG[3] = white_balance_RGBG[2];
+                white_balance_auto    = false;
+            } else if (pv.type() == TypeString && pv.get_string() == "auto") {
+                white_balance_auto = true;
             } else {
                 dst.errorfmt("ImageBufAlgo::demosaic() invalid white balance");
             }
@@ -1033,12 +1038,55 @@ demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
 
     IBAprep(dst_roi, &dst, &src, nullptr, &dst_spec);
 
-    if (pattern.length() == 0)
-        pattern = "bayer";
+    if (pattern.empty())
+        pattern = "auto";
+    if (layout.empty())
+        layout = "auto";
+    if (algorithm.empty())
+        algorithm = "auto";
+
+    if (layout == "auto") {
+        layout = src.spec().get_string_attribute("raw:FilterPattern");
+    }
+
+    if (pattern == "auto") {
+        size_t l = layout.length();
+        if ((l == 6 * 6 + 5) || (l == 6 * 6))
+            pattern = "xtrans";
+        else
+            pattern = "bayer";
+    }
+
+    if (white_balance_auto) {
+        auto pv = src.spec().find_attribute("raw:cam_mul");
+        if (pv != nullptr) {
+            if (pv->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
+                // The order in the options is always (R,G1,B,G2)
+                white_balance_RGBG[0] = pv->get_float_indexed(0);
+                white_balance_RGBG[1] = pv->get_float_indexed(1);
+                white_balance_RGBG[2] = pv->get_float_indexed(2);
+                white_balance_RGBG[3] = pv->get_float_indexed(3);
+
+                float scale = white_balance_RGBG[1];
+
+                if (white_balance_RGBG[3] == 0)
+                    white_balance_RGBG[3] = white_balance_RGBG[1];
+                else
+                    scale = (scale + white_balance_RGBG[3]) * 0.5f;
+
+                if (scale != 0) {
+                    white_balance_RGBG[0] /= scale;
+                    white_balance_RGBG[1] /= scale;
+                    white_balance_RGBG[2] /= scale;
+                    white_balance_RGBG[3] /= scale;
+                }
+            }
+        }
+    }
 
     if (pattern == "bayer") {
-        if (algorithm.length() == 0) {
-            algorithm = "linear";
+        if (algorithm == "auto") {
+            algorithm = "MHC";
         }
 
         if (algorithm == "linear") {
@@ -1057,7 +1105,7 @@ demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
             dst.errorfmt("ImageBufAlgo::demosaic() invalid algorithm");
         }
     } else if (pattern == "xtrans") {
-        if (algorithm.length() == 0) {
+        if (algorithm == "auto") {
             algorithm = "linear";
         }
 
