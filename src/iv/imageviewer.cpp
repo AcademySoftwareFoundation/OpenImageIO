@@ -495,7 +495,8 @@ ImageViewer::createActions()
     toggleAreaSampleAct = new QAction(tr("&Toggle Area Sample"), this);
     toggleAreaSampleAct->setCheckable(true);
     toggleAreaSampleAct->setShortcut(tr("Ctrl+A"));
-    connect(toggleAreaSampleAct, SIGNAL(triggered()), this, SLOT(toggleAreaSample()));
+    connect(toggleAreaSampleAct, SIGNAL(triggered()), this,
+            SLOT(toggleAreaSample()));
 }
 
 
@@ -2153,8 +2154,8 @@ ImageViewer::fitWindowToImage(bool zoomok, bool minsize)
     // (or we failed to open it).
     if (!img || !img->image_valid())
         return;
-        // FIXME -- figure out a way to make it exactly right, even for the
-        // main window border, etc.
+    // FIXME -- figure out a way to make it exactly right, even for the
+    // main window border, etc.
 #ifdef __APPLE__
     int extraw = 0;  //12; // width() - minimumWidth();
     int extrah = statusBar()->height()
@@ -2290,7 +2291,7 @@ calc_subimage_from_zoom(const IvImage* img, int& subimage, float& zoom,
 {
     int rel_subimage = std::trunc(std::log2(1.0f / zoom));
     subimage         = clamp<int>(img->subimage() + rel_subimage, 0,
-                          img->nsubimages() - 1);
+                                  img->nsubimages() - 1);
     if (!(img->subimage() == 0 && zoom > 1)
         && !(img->subimage() == img->nsubimages() - 1 && zoom < 1)) {
         float pow_zoom = powf(2.0f, (float)rel_subimage);
@@ -2395,11 +2396,12 @@ ImageViewer::editPreferences()
 }
 
 
+
 void
 ImageViewer::toggleAreaSample()
 {
     m_areaSampleMode = !m_areaSampleMode;
-    if (m_areaSampleMode){
+    if (m_areaSampleMode) {
         setCursor(Qt::CrossCursor);
     } else {
         unsetCursor();
@@ -2410,6 +2412,10 @@ ImageViewer::toggleAreaSample()
     ((QOpenGLWidget*)(glwin))->update();
 }
 
-bool ImageViewer::areaSampleMode() const {
+
+
+bool
+ImageViewer::areaSampleMode() const
+{
     return m_areaSampleMode;
 }

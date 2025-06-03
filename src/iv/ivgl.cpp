@@ -665,7 +665,7 @@ IvGL::paintGL()
         paint_windowguides();
     }
 
-    if (m_selecting){
+    if (m_selecting) {
         glPushMatrix();
         glLoadIdentity();
         // Transform is now same as the main GL viewport -- window pixels as
@@ -677,7 +677,7 @@ IvGL::paintGL()
         if (m_use_shaders) {
             glUseProgram(0);
         }
-        
+
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glColor4f(0.2f, 0.5f, 1.0f, 0.3f);  // Light blue fill with transparency
@@ -690,25 +690,24 @@ IvGL::paintGL()
 
         float x2 = m_select_end.x() - w / 2.0f;
         float y2 = -(m_select_end.y() - h / 2.0f);
-        
+
         int left   = std::min(x1, x2);
         int right  = std::max(x1, x2);
         int bottom = std::min(y1, y2);
-        int top    = std::max(y1, y2);   
-        
-        gl_rect( left, bottom, right, top, -0.1f);     
-        
-        glPopAttrib();  
-        glPopMatrix();     
-    
+        int top    = std::max(y1, y2);
+
+        gl_rect(left, bottom, right, top, -0.1f);
+
+        glPopAttrib();
+        glPopMatrix();
     }
-    glPopMatrix();  
+    glPopMatrix();
 
     if (m_viewer.pixelviewOn()) {
         paint_pixelview();
     }
 
-    if (m_viewer.probeviewOn()){
+    if (m_viewer.probeviewOn()) {
         paint_probeview();
     } else {
         m_area_probe_text.clear();
@@ -985,7 +984,8 @@ IvGL::paint_pixelview()
 void
 IvGL::paint_probeview()
 {
-    if (!m_current_image) return;
+    if (!m_current_image)
+        return;
     IvImage* img = m_current_image;
     const ImageSpec& spec(img->spec());
 
@@ -996,10 +996,10 @@ IvGL::paint_probeview()
     glLoadIdentity();
 
     // Set to window pixel units and center the origin
-    glTranslatef(0, 0, -1); // Push into screen to draw on top
-    
-    float closeup_width = closeupsize * 1.3f;  
-    float closeup_height = closeupsize * (0.06f * (spec.nchannels + 1));  
+    glTranslatef(0, 0, -1);  // Push into screen to draw on top
+
+    float closeup_width  = closeupsize * 1.3f;
+    float closeup_height = closeupsize * (0.06f * (spec.nchannels + 1));
 
     // Position the close-up box
     const float status_bar_offset = 35.0f;
@@ -1031,26 +1031,28 @@ IvGL::paint_probeview()
 
     float extraspace = 10 * (1 + spec.nchannels) + 4;
     glColor4f(0.1f, 0.1f, 0.1f, 0.5f);
-    gl_rect(-0.5f * closeup_width - 2, 0.5f * closeup_height + 10 + 2,0.5f * closeup_width + 2,
-        -0.5f * closeup_height - extraspace, -0.1f);
+    gl_rect(-0.5f * closeup_width - 2, 0.5f * closeup_height + 10 + 2,
+            0.5f * closeup_width + 2, -0.5f * closeup_height - extraspace,
+            -0.1f);
 
 
     // Draw probe text
     QFont font;
-    
+
     // int textx = m_pixelview_left_corner ? 9 : width() - closeup_width - 1;
     // int texty = 30;
-    int textx = 9;
-    int texty = height() - closeup_height - 30;
+    int textx    = 9;
+    int texty    = height() - closeup_height - 30;
     int yspacing = 15;
 
     if (m_area_probe_text.empty()) {
-    std::ostringstream oss; // Output stream
-    oss << "Area Probe:\n";
-    for (int i = 0; i < spec.nchannels; ++i)
-        oss << spec.channel_name(i) << ":   [min:  -----, max:  -----, avg:  -----]\n";
-    m_area_probe_text = oss.str();
-}
+        std::ostringstream oss;  // Output stream
+        oss << "Area Probe:\n";
+        for (int i = 0; i < spec.nchannels; ++i)
+            oss << spec.channel_name(i)
+                << ":   [min:  -----, max:  -----, avg:  -----]\n";
+        m_area_probe_text = oss.str();
+    }
 
     std::istringstream iss(m_area_probe_text);
     std::string line;
@@ -1336,7 +1338,7 @@ IvGL::update_area_probe_text()
 {
     IvImage* img = m_current_image;
     const ImageSpec& spec(img->spec());
- // (xw,yw) are the window coordinates of the mouse.
+    // (xw,yw) are the window coordinates of the mouse.
     int xw, yw;
     get_focus_window_pixel(xw, yw);
 
@@ -1345,19 +1347,19 @@ IvGL::update_area_probe_text()
 
     int x2, y2;
     get_given_image_pixel(x2, y2, m_select_end.x(), m_select_end.y());
-    
+
     float scale_x  = 1.0f;
     float scale_y  = 1.0f;
     float rotate_z = 0.0f;
-    float x1_img = x1;
-    float y1_img = y1;
-    float x2_img = x2;
-    float y2_img = y2;
+    float x1_img   = x1;
+    float y1_img   = y1;
+    float x2_img   = x2;
+    float y2_img   = y2;
 
-    handle_orientation(img->orientation(), spec.width, spec.height,
-                    scale_x, scale_y, rotate_z, x1_img, y1_img, true);
-    handle_orientation(img->orientation(), spec.width, spec.height,
-                    scale_x, scale_y, rotate_z, x2_img, y2_img, true);
+    handle_orientation(img->orientation(), spec.width, spec.height, scale_x,
+                       scale_y, rotate_z, x1_img, y1_img, true);
+    handle_orientation(img->orientation(), spec.width, spec.height, scale_x,
+                       scale_y, rotate_z, x2_img, y2_img, true);
 
     x1_img = clamp<int>(x1_img, 0, spec.width - 1);
     x2_img = clamp<int>(x2_img, 0, spec.width - 1);
@@ -1370,8 +1372,10 @@ IvGL::update_area_probe_text()
     int ymax = std::max(y1_img, y2_img);
 
     // Min and max
-    std::vector<float> min_vals(spec.nchannels, std::numeric_limits<float>::max());
-    std::vector<float> max_vals(spec.nchannels, std::numeric_limits<float>::lowest());
+    std::vector<float> min_vals(spec.nchannels,
+                                std::numeric_limits<float>::max());
+    std::vector<float> max_vals(spec.nchannels,
+                                std::numeric_limits<float>::lowest());
     std::vector<double> sums(spec.nchannels, 0.0);
     int count = 0;
 
@@ -1393,18 +1397,15 @@ IvGL::update_area_probe_text()
     for (int c = 0; c < spec.nchannels; ++c) {
         float avg = (count > 0) ? static_cast<float>(sums[c] / count) : 0.0f;
         result += QString("%1: [min: %2  max: %3  avg: %4]\n")
-                    .arg(QString::fromStdString(spec.channel_name(c)).leftJustified(5))
-                    .arg(min_vals[c], 6, 'f', 3)
-                    .arg(max_vals[c], 6, 'f', 3)
-                    .arg(avg,        6, 'f', 3);
+                      .arg(QString::fromStdString(spec.channel_name(c))
+                               .leftJustified(5))
+                      .arg(min_vals[c], 6, 'f', 3)
+                      .arg(max_vals[c], 6, 'f', 3)
+                      .arg(avg, 6, 'f', 3);
     }
 
     // m_viewer.statusViewInfo->setText(result);
     m_area_probe_text = result.toStdString();
-
-
-
-
 }
 
 
@@ -1422,13 +1423,15 @@ IvGL::mousePressEvent(QMouseEvent* event)
         case Qt::LeftButton:
             if (mousemode == ImageViewer::MouseModeZoom && !Alt)
                 m_viewer.zoomIn(true);  // Animated zoom for mouse clicks
-            else if (mousemode == ImageViewer::MouseModeSelect && !Alt && areaMode) {
+            else if (mousemode == ImageViewer::MouseModeSelect && !Alt
+                     && areaMode) {
                 std::cerr << areaMode;
                 m_select_start = event->pos();
-                m_select_end = m_select_start;
-                m_selecting = true;
+                m_select_end   = m_select_start;
+                m_selecting    = true;
                 parent_t::update();
-            } else if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode) {
+            } else if (mousemode == ImageViewer::MouseModeZoom && !Alt
+                       && !areaMode) {
                 m_viewer.zoomIn();
             }
             // if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode)
@@ -1471,12 +1474,12 @@ IvGL::mouseReleaseEvent(QMouseEvent* event)
     remember_mouse(event->pos());
     m_drag_button = Qt::NoButton;
     m_dragging    = false;
-    if (m_selecting){
+    if (m_selecting) {
         m_select_end = event->pos();
-        m_selecting = false;
+        m_selecting  = false;
         update_area_probe_text();
         m_select_start = QPoint();
-        m_select_end = QPoint();
+        m_select_end   = QPoint();
         parent_t::update();
     }
     parent_t::mouseReleaseEvent(event);
@@ -1492,10 +1495,10 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     // Area probe override
     if (m_viewer.areaSampleMode() && m_selecting) {
         m_select_end = event->pos();
-        update_area_probe_text(); 
+        update_area_probe_text();
         remember_mouse(pos);
         parent_t::update();
-        if (m_viewer.pixelviewOn()){
+        if (m_viewer.pixelviewOn()) {
             parent_t::update();
         }
         parent_t::mouseMoveEvent(event);
@@ -1553,7 +1556,7 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     } else if (do_wipe) {
         // FIXME -- unimplemented
     } else if (do_select) {
-        if(m_selecting) {
+        if (m_selecting) {
             m_select_end = event->pos();
             parent_t::update();
         }
@@ -1603,7 +1606,8 @@ IvGL::get_focus_window_pixel(int& x, int& y)
 }
 
 void
-IvGL::get_given_image_pixel(int& x, int& y, int mouseX, int mouseY){
+IvGL::get_given_image_pixel(int& x, int& y, int mouseX, int mouseY)
+{
     int w = width(), h = height();
     float z = m_zoom;
     // left,top,right,bottom are the borders of the visible window, in
