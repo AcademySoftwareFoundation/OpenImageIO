@@ -708,6 +708,10 @@ IvGL::paintGL()
         paint_pixelview();
     }
 
+    if (m_viewer.probeviewOn()){
+        paint_probeview();
+    }
+
     // Show the status info again.
     m_viewer.statusProgress->hide();
     m_viewer.statusViewInfo->show();
@@ -974,6 +978,78 @@ IvGL::paint_pixelview()
     glPopMatrix();
 }
 
+void
+IvGL::paint_probeview()
+{
+    if (!m_current_image) return;
+    IvImage* img = m_current_image;
+    const ImageSpec& spec(img->spec());
+
+    int xw, yw;
+    get_focus_window_pixel(xw, yw);
+
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Set to window pixel units and center the origin
+    glTranslatef(0, 0, -1); // Push into screen to draw on top
+    
+    float closeup_width = closeupsize * 1.3f;  
+    float closeup_height = closeupsize * 0.3f;  
+
+    // Position the close-up box
+    const float status_bar_offset = 35.0f;
+    glTranslatef(closeup_width * 0.5f + 5 - width() / 2,
+                 closeup_height * 0.5f + status_bar_offset - height() / 2, 0);
+
+    // Movement logic
+    // if (m_pixelview_left_corner) {
+    //     glTranslatef(closeup_width * 0.5f + 5 - width() / 2,
+    //                 closeup_height * 0.5f + status_bar_offset - height() / 2, 0);
+
+    //     if ((xw < closeup_width + 5) && yw > (height() - closeup_height - status_bar_offset))
+    //         m_pixelview_left_corner = false;
+    // } else {
+    //     glTranslatef(-closeup_width * 0.5f - 5 + width() / 2,
+    //                 closeup_height * 0.5f + status_bar_offset - height() / 2, 0);
+
+    //     if (xw > (width() - closeup_width - 5) && yw > (height() - closeup_height - status_bar_offset))
+    //         m_pixelview_left_corner = true;
+    // }
+
+
+
+    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+    glDisable(GL_TEXTURE_2D);
+    if (m_use_shaders)
+        glUseProgram(0);
+
+
+    float extraspace = 10 * (1 + spec.nchannels) + 4;
+    glColor4f(0.1f, 0.1f, 0.1f, 0.5f);
+    gl_rect(-0.5f * closeup_width - 2, 0.5f * closeup_height + 10 + 2,0.5f * closeup_width + 2,
+        -0.5f * closeup_height - extraspace, -0.1f);
+
+
+    // Draw probe text
+    QFont font;
+    
+    // int textx = m_pixelview_left_corner ? 9 : width() - closeup_width - 1;
+    // int texty = 30;
+    int textx = 9;
+    int texty = height() - closeup_height - 30;
+    int yspacing = 15;
+
+    std::istringstream iss(m_area_probe_text);
+    std::string line;
+    while (std::getline(iss, line)) {
+        shadowed_text(textx, texty, 0.0f, line, font);
+        texty += yspacing;
+    }
+
+    glPopAttrib();
+    glPopMatrix();
+}
 
 
 void
@@ -1244,10 +1320,13 @@ IvGL::clamp_view_to_window()
 }
 
 void
-IvGL::analyze_selected_area()
+IvGL::update_area_probe_text()
 {
     IvImage* img = m_current_image;
     const ImageSpec& spec(img->spec());
+ // (xw,yw) are the window coordinates of the mouse.
+    int xw, yw;
+    get_focus_window_pixel(xw, yw);
 
     int x1, y1;
     get_given_image_pixel(x1, y1, m_select_start.x(), m_select_start.y());
@@ -1298,18 +1377,19 @@ IvGL::analyze_selected_area()
         }
     }
 
-QString result = "Area Probe:\n";
-for (int c = 0; c < spec.nchannels; ++c) {
-    float avg = (count > 0) ? static_cast<float>(sums[c] / count) : 0.0f;
-    result += QString(" [ch%1: min=%2 max=%3 avg=%4]\n")
-                  .arg(c)
-                  .arg(min_vals[c])
-                  .arg(max_vals[c])
-                  .arg(avg);
-                
-}
+    QString result = "Area Probe:\n";
+    for (int c = 0; c < spec.nchannels; ++c) {
+        float avg = (count > 0) ? static_cast<float>(sums[c] / count) : 0.0f;
+        result += QString("%1 [min: %2  max: %3  avg: %4]\n")
+                    .arg(QString::fromStdString(spec.channel_name(c)).leftJustified(5))
+                    .arg(min_vals[c], 6, 'f', 3)
+                    .arg(max_vals[c], 6, 'f', 3)
+                    .arg(avg,        6, 'f', 3);
+    }
 
-m_viewer.statusViewInfo->setText(result);
+    // m_viewer.statusViewInfo->setText(result);
+    m_area_probe_text = result.toStdString();
+
 
 
 
@@ -1380,8 +1460,10 @@ IvGL::mouseReleaseEvent(QMouseEvent* event)
     if (m_selecting){
         m_select_end = event->pos();
         m_selecting = false;
-        analyze_selected_area();
-
+        update_area_probe_text();
+        m_select_start = QPoint();
+        m_select_end = QPoint();
+        parent_t::update();
     }
     parent_t::mouseReleaseEvent(event);
 }
@@ -1396,8 +1478,9 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     // Area probe override
     if (m_viewer.areaSampleMode() && m_selecting) {
         m_select_end = event->pos();
-        parent_t::update();
+        update_area_probe_text(); 
         remember_mouse(pos);
+        parent_t::update();
         if (m_viewer.pixelviewOn()){
             parent_t::update();
         }

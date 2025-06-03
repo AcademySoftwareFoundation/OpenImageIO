@@ -223,6 +223,11 @@ public:
         return showPixelviewWindowAct && showPixelviewWindowAct->isChecked();
     }
 
+    bool probeviewOn(void) const
+    {
+        return toggleAreaSampleAct && toggleAreaSampleAct->isChecked();
+    }
+
     bool windowguidesOn(void) const
     {
         return toggleWindowGuidesAct && toggleWindowGuidesAct->isChecked();

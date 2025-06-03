@@ -461,7 +461,7 @@ ImageViewer::createActions()
     connect(slideShowDuration, SIGNAL(valueChanged(int)), this,
             SLOT(setSlideShowDuration(int)));
 
-    toggleAreaSampleAct = new QAction(tr("Toggle Area Sample"), this);
+    toggleAreaSampleAct = new QAction(tr("&Toggle Area Sample"), this);
     toggleAreaSampleAct->setCheckable(true);
     toggleAreaSampleAct->setShortcut(tr("E"));
     connect(toggleAreaSampleAct, SIGNAL(triggered()), this, SLOT(toggleAreaSample()));
@@ -2380,9 +2380,9 @@ void
 ImageViewer::toggleAreaSample()
 {
     m_areaSampleMode = !m_areaSampleMode;
-    if (m_areaSampleMode == false){
-        updateStatusBar();
-    }
+    // if (m_areaSampleMode == false){
+    //     updateStatusBar();
+    // }
     ((QOpenGLWidget*)(glwin))->update();
 }
 
