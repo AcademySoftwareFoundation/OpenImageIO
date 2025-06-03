@@ -81,7 +81,7 @@ public:
     void get_given_image_pixel(int& x, int& y, int mouseX, int mouseY);
 
     /// What are the min/max/avg values of each channel in the selected area?
-    void analyze_selected_area();
+    void update_area_probe_text();
 
     /// Returns true if OpenGL is capable of loading textures in the sRGB color
     /// space.
@@ -130,11 +130,13 @@ protected:
     IvImage* m_current_image;      ///< Image to show on screen.
     GLuint m_pixelview_tex;        ///< Pixelview's own texture.
     bool m_pixelview_left_corner;  ///< Draw pixelview in upper left or right
+    bool m_probeview_left_corner;  ///< Draw probeview in bottom left or right
     /// Buffer passed to IvImage::copy_image when not using PBO.
     ///
     std::vector<unsigned char> m_tex_buffer;
 
     std::string m_color_shader_text;
+    std::string m_area_probe_text;
 
     /// Represents a texture object being used as a buffer.
     ///
@@ -161,6 +163,7 @@ protected:
     void focusOutEvent(QFocusEvent* event) override;
 
     void paint_pixelview();
+    void paint_probeview();
     void paint_windowguides();
     void glSquare(float xmin, float ymin, float xmax, float ymax, float z = 0);
 
