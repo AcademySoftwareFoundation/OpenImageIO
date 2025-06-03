@@ -710,6 +710,8 @@ IvGL::paintGL()
 
     if (m_viewer.probeviewOn()){
         paint_probeview();
+    } else {
+        m_area_probe_text.clear();
     }
 
     // Show the status info again.
@@ -997,7 +999,7 @@ IvGL::paint_probeview()
     glTranslatef(0, 0, -1); // Push into screen to draw on top
     
     float closeup_width = closeupsize * 1.3f;  
-    float closeup_height = closeupsize * 0.3f;  
+    float closeup_height = closeupsize * (0.06f * (spec.nchannels + 1));  
 
     // Position the close-up box
     const float status_bar_offset = 35.0f;
@@ -1041,6 +1043,14 @@ IvGL::paint_probeview()
     int textx = 9;
     int texty = height() - closeup_height - 30;
     int yspacing = 15;
+
+    if (m_area_probe_text.empty()) {
+    std::ostringstream oss; // Output stream
+    oss << "Area Probe:\n";
+    for (int i = 0; i < spec.nchannels; ++i)
+        oss << spec.channel_name(i) << ":   [min:  -----, max:  -----, avg:  -----]\n";
+    m_area_probe_text = oss.str();
+}
 
     std::istringstream iss(m_area_probe_text);
     std::string line;
@@ -1382,7 +1392,7 @@ IvGL::update_area_probe_text()
     QString result = "Area Probe:\n";
     for (int c = 0; c < spec.nchannels; ++c) {
         float avg = (count > 0) ? static_cast<float>(sums[c] / count) : 0.0f;
-        result += QString("%1 [min: %2  max: %3  avg: %4]\n")
+        result += QString("%1: [min: %2  max: %3  avg: %4]\n")
                     .arg(QString::fromStdString(spec.channel_name(c)).leftJustified(5))
                     .arg(min_vals[c], 6, 'f', 3)
                     .arg(max_vals[c], 6, 'f', 3)
