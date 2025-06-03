@@ -2196,7 +2196,7 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 ///     Optional white-balancing weights. Can contain either three (R,G,B), or four (R,G1,B,G2) values, or
 ///     string value of "auto".
 ///     The order of the white balance multipliers does not depend on the matrix layout.
-///     When set to "auto", OIIO will try to fetch the white balancing weights from the "raw:cam_mul"
+///     When set to "auto", OIIO will try to fetch the white balancing weights from the "raw:WhiteBalance"
 ///     attribute of the source image buffer, falling back to {1.0, 1.0, 1.0, 1.0} if absent.
 
 ImageBuf OIIO_API demosaic (const ImageBuf& src, KWArgs options = {},

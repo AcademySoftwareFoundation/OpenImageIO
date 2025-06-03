@@ -1058,7 +1058,7 @@ demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
     }
 
     if (white_balance_auto) {
-        auto pv = src.spec().find_attribute("raw:cam_mul");
+        auto pv = src.spec().find_attribute("raw:WhiteBalance");
         if (pv != nullptr) {
             if (pv->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
                 // The order in the options is always (R,G1,B,G2)
@@ -1066,20 +1066,6 @@ demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
                 white_balance_RGBG[1] = pv->get_float_indexed(1);
                 white_balance_RGBG[2] = pv->get_float_indexed(2);
                 white_balance_RGBG[3] = pv->get_float_indexed(3);
-
-                float scale = white_balance_RGBG[1];
-
-                if (white_balance_RGBG[3] == 0)
-                    white_balance_RGBG[3] = white_balance_RGBG[1];
-                else
-                    scale = (scale + white_balance_RGBG[3]) * 0.5f;
-
-                if (scale != 0) {
-                    white_balance_RGBG[0] /= scale;
-                    white_balance_RGBG[1] /= scale;
-                    white_balance_RGBG[2] /= scale;
-                    white_balance_RGBG[3] /= scale;
-                }
             }
         }
     }

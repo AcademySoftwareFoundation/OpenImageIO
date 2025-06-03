@@ -1423,7 +1423,7 @@ test_demosaic(const DemosaicTestConfig& config, const ImageBuf& src_image,
                                            config.pattern, wb, 0);
 
             mosaiced_image.specmod().attribute("raw:FilterPattern", layout);
-            mosaiced_image.specmod().attribute("raw:cam_mul",
+            mosaiced_image.specmod().attribute("raw:WhiteBalance",
                                                TypeDesc(TypeDesc::FLOAT, 4),
                                                wb);
 
