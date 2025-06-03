@@ -463,7 +463,7 @@ ImageViewer::createActions()
 
     toggleAreaSampleAct = new QAction(tr("&Toggle Area Sample"), this);
     toggleAreaSampleAct->setCheckable(true);
-    toggleAreaSampleAct->setShortcut(tr("E"));
+    toggleAreaSampleAct->setShortcut(tr("Ctrl+A"));
     connect(toggleAreaSampleAct, SIGNAL(triggered()), this, SLOT(toggleAreaSample()));
 }
 
@@ -2380,6 +2380,11 @@ void
 ImageViewer::toggleAreaSample()
 {
     m_areaSampleMode = !m_areaSampleMode;
+    if (m_areaSampleMode){
+        setCursor(Qt::CrossCursor);
+    } else {
+        unsetCursor();
+    }
     // if (m_areaSampleMode == false){
     //     updateStatusBar();
     // }
