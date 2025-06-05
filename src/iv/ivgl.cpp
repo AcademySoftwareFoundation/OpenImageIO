@@ -668,10 +668,7 @@ IvGL::paintGL()
     if (m_selecting) {
         glPushMatrix();
         glLoadIdentity();
-        // Transform is now same as the main GL viewport -- window pixels as
-        // units, with (0,0) at the center of the visible window.
-
-
+      
         glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
         glDisable(GL_TEXTURE_2D);
         if (m_use_shaders) {
@@ -981,6 +978,8 @@ IvGL::paint_pixelview()
     glPopMatrix();
 }
 
+
+
 void
 IvGL::paint_probeview()
 {
@@ -1006,20 +1005,6 @@ IvGL::paint_probeview()
     glTranslatef(closeup_width * 0.5f + 5 - width() / 2,
                  closeup_height * 0.5f + status_bar_offset - height() / 2, 0);
 
-    // Movement logic
-    // if (m_pixelview_left_corner) {
-    //     glTranslatef(closeup_width * 0.5f + 5 - width() / 2,
-    //                 closeup_height * 0.5f + status_bar_offset - height() / 2, 0);
-
-    //     if ((xw < closeup_width + 5) && yw > (height() - closeup_height - status_bar_offset))
-    //         m_pixelview_left_corner = false;
-    // } else {
-    //     glTranslatef(-closeup_width * 0.5f - 5 + width() / 2,
-    //                 closeup_height * 0.5f + status_bar_offset - height() / 2, 0);
-
-    //     if (xw > (width() - closeup_width - 5) && yw > (height() - closeup_height - status_bar_offset))
-    //         m_pixelview_left_corner = true;
-    // }
     glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
     glDisable(GL_TEXTURE_2D);
     if (m_use_shaders)
@@ -1057,6 +1042,7 @@ IvGL::paint_probeview()
     glPopAttrib();
     glPopMatrix();
 }
+
 
 
 void
@@ -1120,12 +1106,16 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
     update_uniforms(tex_width, tex_height, pixelview);
 }
 
+
+
 void
 IvGL::use_program(void)
 {
     glUseProgram(m_shader_program);
     print_error("After use program");
 }
+
+
 
 void
 IvGL::update_uniforms(int tex_width, int tex_height, bool pixelview)
@@ -1326,6 +1316,8 @@ IvGL::clamp_view_to_window()
     }
 }
 
+
+
 void
 IvGL::update_area_probe_text()
 {
@@ -1397,7 +1389,6 @@ IvGL::update_area_probe_text()
                       .arg(avg, 6, 'f', 3);
     }
 
-    // m_viewer.statusViewInfo->setText(result);
     m_area_probe_text = result.toStdString();
 }
 
@@ -1430,14 +1421,6 @@ IvGL::mousePressEvent(QMouseEvent* event)
                        && !areaMode) {
                 m_viewer.zoomIn(true);  // Animated zoom for mouse clicks
             }
-            // if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode)
-            //     m_viewer.zoomIn();
-            // else if (mousemode == ImageViewer::MouseModeSelect && !Alt && areaMode){
-            //     m_select_start = event->pos();
-            //     m_select_end = m_select_start;
-            //     m_selecting = true;
-            //     parent_t::update();
-            // }
             else
                 m_dragging = true;
             return;
@@ -1507,7 +1490,6 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
     bool do_pan = false, do_zoom = false, do_wipe = false;
     bool do_select = false, do_annotate = false;
-    // std::cerr << mousemode;
     switch (mousemode) {
     case ImageViewer::MouseModeZoom:
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
@@ -1565,6 +1547,7 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
         parent_t::update();
     parent_t::mouseMoveEvent(event);
 }
+
 
 
 void
@@ -1628,6 +1611,8 @@ IvGL::get_given_image_pixel(int& x, int& y, int mouseX, int mouseY)
     y = (int)floorf(imgy);
 }
 
+
+
 void
 IvGL::get_focus_image_pixel(int& x, int& y)
 {
@@ -1664,6 +1649,7 @@ IvGL::get_focus_image_pixel(int& x, int& y)
     std::cerr << "    mouse pixel image coords " << x << ' ' << y << "\n";
 #endif
 }
+
 
 
 void
@@ -1912,11 +1898,15 @@ IvGL::is_too_big(float width, float height)
     return tiles > m_texbufs.size();
 }
 
+
+
 void
 IvGL::update_state(void)
 {
     create_shaders();
 }
+
+
 
 void
 IvGL::print_error(const char* msg)
