@@ -668,7 +668,7 @@ IvGL::paintGL()
     if (m_selecting) {
         glPushMatrix();
         glLoadIdentity();
-      
+
         glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
         glDisable(GL_TEXTURE_2D);
         if (m_use_shaders) {
@@ -1418,8 +1418,7 @@ IvGL::mousePressEvent(QMouseEvent* event)
             } else if (mousemode == ImageViewer::MouseModeZoom && !Alt
                        && !areaMode) {
                 m_viewer.zoomIn(true);  // Animated zoom for mouse clicks
-            }
-            else
+            } else
                 m_dragging = true;
             return;
         case Qt::RightButton:
