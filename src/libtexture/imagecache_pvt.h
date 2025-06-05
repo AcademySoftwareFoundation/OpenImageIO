@@ -1065,6 +1065,15 @@ public:
                        ImageBuf& thumbnail, int subimage = 0);
 
     // Retrieve a rectangle of raw unfiltered pixels.
+    bool get_pixels(ustring filename, int subimage, int miplevel,
+                    const ROI& roi, TypeDesc format,
+                    const image_span<std::byte>& result, int cache_chbegin = 0,
+                    int cache_chend = -1);
+    bool get_pixels(ImageHandle* file, Perthread* thread_info, int subimage,
+                    int miplevel, const ROI& roi, TypeDesc format,
+                    const image_span<std::byte>& result, int cache_chbegin = 0,
+                    int cache_chend = -1);
+
     bool get_pixels(ustring filename, int subimage, int miplevel, int xbegin,
                     int xend, int ybegin, int yend, int zbegin, int zend,
                     TypeDesc format, void* result);
@@ -1187,6 +1196,9 @@ public:
                   int z, int chbegin, int chend, TypeDesc format,
                   const void* buffer, stride_t xstride, stride_t ystride,
                   stride_t zstride, bool copy);
+    bool add_tile(ustring filename, int subimage, int miplevel, int x, int y,
+                  int z, int chbegin, int chend, TypeDesc format,
+                  const image_span<const std::byte>& buffer, bool copy);
 
     /// Return the numerical subimage index for the given subimage name,
     /// as stored in the "oiio:subimagename" metadata.  Return -1 if no
