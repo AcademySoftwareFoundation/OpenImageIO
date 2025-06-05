@@ -1017,8 +1017,6 @@ IvGL::paint_probeview()
     // Draw probe text
     QFont font;
 
-    // int textx = m_pixelview_left_corner ? 9 : width() - closeup_width - 1;
-    // int texty = 30;
     int textx    = 9;
     int texty    = height() - closeup_height - 30;
     int yspacing = 15;
