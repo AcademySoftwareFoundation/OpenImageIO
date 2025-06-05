@@ -1034,8 +1034,6 @@ IvGL::paint_probeview()
     gl_rect(-0.5f * closeup_width - 2, 0.5f * closeup_height + 10 + 2,
             0.5f * closeup_width + 2, -0.5f * closeup_height - extraspace,
             -0.1f);
-
-
     // Draw probe text
     QFont font;
 
