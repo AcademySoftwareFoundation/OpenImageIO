@@ -1608,6 +1608,8 @@ IvGL::get_focus_window_pixel(int& x, int& y)
     y = m_mousey;
 }
 
+
+
 void
 IvGL::get_given_image_pixel(int& x, int& y, int mouseX, int mouseY)
 {
