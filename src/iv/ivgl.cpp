@@ -1027,8 +1027,6 @@ IvGL::paint_probeview()
     glDisable(GL_TEXTURE_2D);
     if (m_use_shaders)
         glUseProgram(0);
-
-
     float extraspace = 10 * (1 + spec.nchannels) + 4;
     glColor4f(0.1f, 0.1f, 0.1f, 0.5f);
     gl_rect(-0.5f * closeup_width - 2, 0.5f * closeup_height + 10 + 2,
