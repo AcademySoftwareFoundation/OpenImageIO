@@ -428,7 +428,7 @@ private:
     float m_default_gamma;                    // Default gamma of the display
     QPalette m_palette;                       // Custom palette
     bool m_darkPalette;                       // Use dark palette?
-    bool m_rawcolor = false;                  // Use raw color mode
+    bool m_rawcolor       = false;            // Use raw color mode
     bool m_areaSampleMode = false;            // Use area sample mode
 
     // The default width and height of the window:

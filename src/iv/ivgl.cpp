@@ -1421,18 +1421,20 @@ IvGL::mousePressEvent(QMouseEvent* event)
     if (!m_mouse_activation) {
         switch (event->button()) {
         case Qt::LeftButton:
-            if (areaMode){
+            if (areaMode) {
                 m_select_start = event->pos();
-                m_select_end = m_select_start;
-                m_selecting = true;
+                m_select_end   = m_select_start;
+                m_selecting    = true;
                 parent_t::update();
-            } else if (mousemode == ImageViewer::MouseModeSelect && !Alt && areaMode) {
+            } else if (mousemode == ImageViewer::MouseModeSelect && !Alt
+                       && areaMode) {
                 std::cerr << areaMode;
                 m_select_start = event->pos();
                 m_select_end   = m_select_start;
                 m_selecting    = true;
                 parent_t::update();
-            } else if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode) {
+            } else if (mousemode == ImageViewer::MouseModeZoom && !Alt
+                       && !areaMode) {
                 m_viewer.zoomIn(true);  // Animated zoom for mouse clicks
             }
             // if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode)

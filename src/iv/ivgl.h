@@ -217,7 +217,6 @@ private:
 
     /// Destroys shaders and selects fixed-function pipeline
     void create_shaders_abort(void);
-    
 };
 
 #endif  // OPENIMAGEIO_IVGL_H
