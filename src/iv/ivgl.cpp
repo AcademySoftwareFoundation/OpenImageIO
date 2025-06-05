@@ -1020,9 +1020,6 @@ IvGL::paint_probeview()
     //     if (xw > (width() - closeup_width - 5) && yw > (height() - closeup_height - status_bar_offset))
     //         m_pixelview_left_corner = true;
     // }
-
-
-
     glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
     glDisable(GL_TEXTURE_2D);
     if (m_use_shaders)
