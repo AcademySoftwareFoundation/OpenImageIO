@@ -160,7 +160,7 @@ protected:
                            bool pixelview = false);
 
     void shadowed_text(float x, float y, float z, const std::string& s,
-                       const QFont& font);
+                       const QColor& color = Qt::white);
 
     virtual void update_state(void);
 
@@ -174,19 +174,14 @@ protected:
 
 private:
     typedef QOpenGLWidget parent_t;
-    /// ncloseuppixels is the number of big pixels (in each direction)
-    /// visible in our closeup window.
-    const static int ncloseuppixels = 9;
-    /// closeuppixelzoom is the zoom factor we use for closeup pixels --
-    /// i.e. one image pixel will appear in the closeup window as a
-    /// closeuppixelzoom x closeuppixelzoom square.
-    const static int closeuppixelzoom = 24;
+    
     /// closeupsize is the size, in pixels, of the closeup window itself --
     /// just the number of pixels times the width of each closeup pixel.
-    const static int closeupsize = ncloseuppixels * closeuppixelzoom;
+    int closeupsize = 260;
+    
     /// closeuptexsize is the size of the texture used to upload the pixelview
     /// to OpenGL.
-    const static int closeuptexsize = 16;
+    const static int closeuptexsize = 25;
 
     void clamp_view_to_window();
 

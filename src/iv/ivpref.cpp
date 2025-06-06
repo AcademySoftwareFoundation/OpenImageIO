@@ -27,6 +27,12 @@ IvPreferenceWindow::IvPreferenceWindow(ImageViewer& viewer)
 
     layout = new QVBoxLayout;
     layout->addWidget(viewer.pixelviewFollowsMouseBox);
+    
+    QLayout* closeupPixelsLayout = new QHBoxLayout;
+    closeupPixelsLayout->addWidget(viewer.closeupPixelsLabel);
+    closeupPixelsLayout->addWidget(viewer.closeupPixelsBox);
+    layout->addLayout(closeupPixelsLayout);
+
     layout->addWidget(viewer.linearInterpolationBox);
     layout->addWidget(viewer.darkPaletteBox);
     layout->addWidget(viewer.autoMipmap);

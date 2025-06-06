@@ -491,6 +491,12 @@ ImageViewer::createActions()
     slideShowDuration->setAccelerated(true);
     connect(slideShowDuration, SIGNAL(valueChanged(int)), this,
             SLOT(setSlideShowDuration(int)));
+
+    closeupPixelsLabel = new QLabel(tr("# closeup pixels:"));
+    closeupPixelsBox = new QSpinBox();
+    closeupPixelsBox->setRange(3, 25);
+    closeupPixelsBox->setValue(13);
+    closeupPixelsBox->setSingleStep(2);
 }
 
 
@@ -826,6 +832,8 @@ ImageViewer::readSettings(bool ui_is_set_up)
         maxMemoryIC->setValue(settings.value("maxMemoryIC", 2048).toInt());
     slideShowDuration->setValue(
         settings.value("slideShowDuration", 10).toInt());
+    closeupPixelsBox->setValue(
+        settings.value("closeupPixels", 13).toInt());
 
     OIIO::attribute("imagebuf:use_imagecache", 1);
 
@@ -848,6 +856,7 @@ ImageViewer::writeSettings()
     settings.setValue("autoMipmap", autoMipmap->isChecked());
     settings.setValue("maxMemoryIC", maxMemoryIC->value());
     settings.setValue("slideShowDuration", slideShowDuration->value());
+    settings.setValue("closeupPixels", closeupPixelsBox->value());
     QStringList recent;
     for (auto&& s : m_recent_files)
         recent.push_front(QString(s.c_str()));
