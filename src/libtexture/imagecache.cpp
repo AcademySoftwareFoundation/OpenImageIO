@@ -3915,7 +3915,7 @@ ImageCacheImpl::add_tile(ustring filename, int subimage, int miplevel, int x,
     }
     if (chend < chbegin) {  // chend < chbegin means "all channels."
         chbegin = 0;
-        chend   = file->spec(subimage, miplevel).nchannels;
+        chend   = file->spec(subimage).nchannels;
     }
     TileID tileid(*file, subimage, miplevel, x, y, z, chbegin, chend);
     ImageCacheTileRef tile
