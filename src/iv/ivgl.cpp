@@ -191,17 +191,18 @@ const char*
 IvGL::color_func_shader_text()
 {
     // clang-format off
-    return
-        "uniform float gain;\n"
-        "uniform float gamma;\n"
-        "\n"
-        "vec4 ColorFunc(vec4 C)\n"
-        "{\n"
-        "    C.xyz *= gain;\n"
-        "    float invgamma = 1.0/gamma;\n"
-        "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
-        "    return C;\n"
-        "}\n";
+    return R"(
+        uniform float gain;
+        uniform float gamma;
+
+        vec4 ColorFunc(vec4 C)
+        {
+            C.xyz *= gain;
+            float invgamma = 1.0/gamma;
+            C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));
+            return C;
+        }
+    )";
     // clang-format on
 }
 
@@ -235,13 +236,14 @@ IvGL::create_shaders(void)
 
     if (!m_vertex_shader) {
         // clang-format off
-        static const GLchar* vertex_source =
-            "varying vec2 vTexCoord;\n"
-            "void main ()\n"
-            "{\n"
-            "    vTexCoord = gl_MultiTexCoord0.xy;\n"
-            "    gl_Position = ftransform();\n"
-            "}\n";
+        static const GLchar* vertex_source = R"(
+            varying vec2 vTexCoord;
+            void main ()
+            {
+                vTexCoord = gl_MultiTexCoord0.xy;
+                gl_Position = ftransform();
+            }
+        )";
         // clang-format on
 
         m_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -258,109 +260,118 @@ IvGL::create_shaders(void)
     }
 
     // clang-format off
-    static const GLchar* fragment_source =
-        "uniform sampler2D imgtex;\n"
-        "varying vec2 vTexCoord;\n"
-        "uniform int startchannel;\n"
-        "uniform int colormode;\n"
+    static const GLchar* fragment_source = R"(
+        uniform sampler2D imgtex;
+        varying vec2 vTexCoord;
+        uniform int startchannel;
+        uniform int colormode;
         // Remember, if imgchannels == 2, second channel would be channel 4 (a).
-        "uniform int imgchannels;\n"
-        "uniform int pixelview;\n"
-        "uniform int linearinterp;\n"
-        "uniform int width;\n"
-        "uniform int height;\n"
-        "vec4 rgba_mode (vec4 C)\n"
-        "{\n"
-        "    if (imgchannels <= 2) {\n"
-        "        if (startchannel == 1)\n"
-        "           return vec4(C.aaa, 1.0);\n"
-        "        return C.rrra;\n"
-        "    }\n"
-        "    return C;\n"
-        "}\n"
-        "vec4 rgb_mode (vec4 C)\n"
-        "{\n"
-        "    if (imgchannels <= 2) {\n"
-        "        if (startchannel == 1)\n"
-        "           return vec4(C.aaa, 1.0);\n"
-        "        return vec4 (C.rrr, 1.0);\n"
-        "    }\n"
-        "    float C2[4];\n"
-        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-        "    return vec4 (C2[startchannel], C2[startchannel+1], C2[startchannel+2], 1.0);\n"
-        "}\n"
-        "vec4 singlechannel_mode (vec4 C)\n"
-        "{\n"
-        "    float C2[4];\n"
-        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-        "    if (startchannel > imgchannels)\n"
-        "        return vec4 (0.0,0.0,0.0,1.0);\n"
-        "    return vec4 (C2[startchannel], C2[startchannel], C2[startchannel], 1.0);\n"
-        "}\n"
-        "vec4 luminance_mode (vec4 C)\n"
-        "{\n"
-        "    if (imgchannels <= 2)\n"
-        "        return vec4 (C.rrr, C.a);\n"
-        "    float lum = dot (C.rgb, vec3(0.2126, 0.7152, 0.0722));\n"
-        "    return vec4 (lum, lum, lum, C.a);\n"
-        "}\n"
-        "float heat_red(float x)\n"
-        "{\n"
-        "    return clamp (mix(0.0, 1.0, (x-0.35)/(0.66-0.35)), 0.0, 1.0) -\n"
-        "           clamp (mix(0.0, 0.5, (x-0.89)/(1.0-0.89)), 0.0, 1.0);\n"
-        "}\n"
-        "float heat_green(float x)\n"
-        "{\n"
-        "    return clamp (mix(0.0, 1.0, (x-0.125)/(0.375-0.125)), 0.0, 1.0) -\n"
-        "           clamp (mix(0.0, 1.0, (x-0.64)/(0.91-0.64)), 0.0, 1.0);\n"
-        "}\n"
-        "vec4 heatmap_mode (vec4 C)\n"
-        "{\n"
-        "    float C2[4];\n"
-        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-        "    return vec4(heat_red(C2[startchannel]),\n"
-        "                heat_green(C2[startchannel]),\n"
-        "                heat_red(1.0-C2[startchannel]),\n"
-        "                1.0);\n"
-        "}\n"
-        "void main ()\n"
-        "{\n"
-        "    vec2 st = vTexCoord;\n"
-        "    float black = 0.0;\n"
-        "    if (pixelview != 0 || linearinterp == 0) {\n"
-        "        vec2 wh = vec2(width,height);\n"
-        "        vec2 onehalf = vec2(0.5,0.5);\n"
-        "        vec2 st_res = st * wh /* + onehalf */ ;\n"
-        "        vec2 st_pix = floor (st_res);\n"
-        "        vec2 st_rem = st_res - st_pix;\n"
-        "        st = (st_pix + onehalf) / wh;\n"
-        "        if (pixelview != 0) {\n"
-        "            if (st.x < 0.0 || st.x >= 1.0 || \n"
-        "                    st.y < 0.0 || st.y >= 1.0 || \n"
-        "                    st_rem.x < 0.05 || st_rem.x >= 0.95 || \n"
-        "                    st_rem.y < 0.05 || st_rem.y >= 0.95)\n"
-        "                black = 1.0;\n"
-        "        }\n"
-        "    }\n"
-        "    vec4 C = texture2D (imgtex, st);\n"
-        "    C = mix (C, vec4(0.05,0.05,0.05,1.0), black);\n"
-        "    if (startchannel < 0)\n"
-        "        C = vec4(0.0,0.0,0.0,1.0);\n"
-        "    else if (colormode == 0)\n" // RGBA
-        "        C = rgba_mode (C);\n"
-        "    else if (colormode == 1)\n" // RGB (i.e., ignore alpha).
-        "        C = rgb_mode (C);\n"
-        "    else if (colormode == 2)\n" // Single channel.
-        "        C = singlechannel_mode (C);\n"
-        "    else if (colormode == 3)\n" // Luminance.
-        "        C = luminance_mode (C);\n"
-        "    else if (colormode == 4)\n" // Heatmap.
-        "        C = heatmap_mode (C);\n"
-        "    if (pixelview != 0)\n"
-        "        C.a = 1.0;\n"
-        "    C = ColorFunc(C);\n"
-        "    gl_FragColor = C;\n"
-        "}\n";
+        uniform int imgchannels;
+        uniform int pixelview;
+        uniform int linearinterp;
+        uniform int width;
+        uniform int height;
+
+        vec4 rgba_mode (vec4 C)
+        {
+            if (imgchannels <= 2) {
+                if (startchannel == 1)
+                return vec4(C.aaa, 1.0);
+                return C.rrra;
+            }
+            return C;
+        }
+
+        vec4 rgb_mode (vec4 C)
+        {
+            if (imgchannels <= 2) {
+                if (startchannel == 1)
+                return vec4(C.aaa, 1.0);
+                return vec4 (C.rrr, 1.0);
+            }
+            float C2[4];
+            C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;
+            return vec4 (C2[startchannel], C2[startchannel+1], C2[startchannel+2], 1.0);
+        }
+
+        vec4 singlechannel_mode (vec4 C)
+        {
+            float C2[4];
+            C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;
+            if (startchannel > imgchannels)
+                return vec4 (0.0,0.0,0.0,1.0);
+            return vec4 (C2[startchannel], C2[startchannel], C2[startchannel], 1.0);
+        }
+
+        vec4 luminance_mode (vec4 C)
+        {
+            if (imgchannels <= 2)
+                return vec4 (C.rrr, C.a);
+            float lum = dot (C.rgb, vec3(0.2126, 0.7152, 0.0722));
+            return vec4 (lum, lum, lum, C.a);
+        }
+
+        float heat_red(float x)
+        {
+            return clamp (mix(0.0, 1.0, (x-0.35)/(0.66-0.35)), 0.0, 1.0) -
+                clamp (mix(0.0, 0.5, (x-0.89)/(1.0-0.89)), 0.0, 1.0);
+        }
+
+        float heat_green(float x)
+        {
+            return clamp (mix(0.0, 1.0, (x-0.125)/(0.375-0.125)), 0.0, 1.0) -
+                clamp (mix(0.0, 1.0, (x-0.64)/(0.91-0.64)), 0.0, 1.0);
+        }
+
+        vec4 heatmap_mode (vec4 C)
+        {
+            float C2[4];
+            C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;
+            return vec4(heat_red(C2[startchannel]),
+                        heat_green(C2[startchannel]),
+                        heat_red(1.0-C2[startchannel]),
+                        1.0);
+        }
+
+        void main ()
+        {
+            vec2 st = vTexCoord;
+            float black = 0.0;
+            if (pixelview != 0 || linearinterp == 0) {
+                vec2 wh = vec2(width,height);
+                vec2 onehalf = vec2(0.5,0.5);
+                vec2 st_res = st * wh /* + onehalf */ ;
+                vec2 st_pix = floor (st_res);
+                vec2 st_rem = st_res - st_pix;
+                st = (st_pix + onehalf) / wh;
+                if (pixelview != 0) {
+                    if (st.x < 0.0 || st.x >= 1.0 || 
+                            st.y < 0.0 || st.y >= 1.0 || 
+                            st_rem.x < 0.05 || st_rem.x >= 0.95 || 
+                            st_rem.y < 0.05 || st_rem.y >= 0.95)
+                        black = 1.0;
+                }
+            }
+            vec4 C = texture2D (imgtex, st);
+            C = mix (C, vec4(0.05,0.05,0.05,1.0), black);
+            if (startchannel < 0)
+                C = vec4(0.0,0.0,0.0,1.0);
+            else if (colormode == 0) // RGBA
+                C = rgba_mode (C);
+            else if (colormode == 1) // RGB (i.e., ignore alpha).
+                C = rgb_mode (C);
+            else if (colormode == 2) // Single channel.
+                C = singlechannel_mode (C);
+            else if (colormode == 3) // Luminance.
+                C = luminance_mode (C);
+            else if (colormode == 4) // Heatmap.
+                C = heatmap_mode (C);
+            if (pixelview != 0)
+                C.a = 1.0;
+            C = ColorFunc(C);
+            gl_FragColor = C;
+        }
+    )";
     // clang-format on
 
     const char* fragment_sources[] = { "#version 120\n", color_shader,
