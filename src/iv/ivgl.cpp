@@ -1265,7 +1265,7 @@ IvGL::paint_probeview()
     std::istringstream iss(m_area_probe_text);
     std::string line;
     while (std::getline(iss, line)) {
-        shadowed_text(textx, texty, 0.0f, line, font);
+        shadowed_text(textx, texty, 0.0f, line);
         texty += yspacing;
     }
 
