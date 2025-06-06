@@ -382,6 +382,26 @@ TextureSystem::get_texels(TextureHandle* texture_handle, Perthread* thread_info,
 
 
 bool
+TextureSystem::get_texels(ustring filename, TextureOpt& options, int miplevel,
+                          const ROI& roi, TypeDesc format,
+                          const image_span<std::byte>& result)
+{
+    return m_impl->get_texels(filename, options, miplevel, roi, format, result);
+}
+
+
+bool
+TextureSystem::get_texels(TextureHandle* texture_handle, Perthread* thread_info,
+                          TextureOpt& options, int miplevel, const ROI& roi,
+                          TypeDesc format, const image_span<std::byte>& result)
+{
+    return m_impl->get_texels(texture_handle, thread_info, options, miplevel,
+                              roi, format, result);
+}
+
+
+
+bool
 TextureSystem::is_udim(ustring filename)
 {
     return m_impl->is_udim(filename);
@@ -1259,6 +1279,37 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
             error("{}", err);
     }
     return ok;
+}
+
+
+
+bool
+TextureSystemImpl::get_texels(TextureHandle* texture_handle,
+                              Perthread* thread_info, TextureOpt& options,
+                              int miplevel, const ROI& roi, TypeDesc format,
+                              const image_span<std::byte>& result)
+{
+    // Default implementation (for now): call the old pointer+stride
+    return get_texels(texture_handle, thread_info, options, miplevel,
+                      roi.xbegin, roi.xend, roi.ybegin, roi.yend, roi.zbegin,
+                      roi.zend, roi.chbegin, roi.chend, format, result.data());
+}
+
+
+
+bool
+TextureSystemImpl::get_texels(ustring filename, TextureOpt& options,
+                              int miplevel, const ROI& roi, TypeDesc format,
+                              const image_span<std::byte>& result)
+{
+    PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
+    TextureFile* texfile       = find_texturefile(filename, thread_info);
+    if (!texfile) {
+        error("Texture file \"{}\" not found", filename);
+        return false;
+    }
+    return get_texels((TextureHandle*)texfile, (Perthread*)thread_info, options,
+                      miplevel, roi, format, result);
 }
 
 

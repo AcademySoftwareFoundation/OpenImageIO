@@ -492,6 +492,12 @@ ImageViewer::createActions()
     connect(slideShowDuration, SIGNAL(valueChanged(int)), this,
             SLOT(setSlideShowDuration(int)));
 
+    toggleAreaSampleAct = new QAction(tr("&Toggle Area Sample"), this);
+    toggleAreaSampleAct->setCheckable(true);
+    toggleAreaSampleAct->setShortcut(tr("Ctrl+A"));
+    connect(toggleAreaSampleAct, SIGNAL(triggered()), this,
+            SLOT(toggleAreaSample()));
+
     closeupPixelsLabel = new QLabel(tr("# closeup pixels:"));
     closeupPixelsBox = new QSpinBox();
     closeupPixelsBox->setRange(3, 25);
@@ -743,6 +749,7 @@ ImageViewer::createMenus()
     // Mode: select, zoom, pan, wipe
     toolsMenu->addAction(showInfoWindowAct);
     toolsMenu->addAction(showPixelviewWindowAct);
+    toolsMenu->addAction(toggleAreaSampleAct);
     toolsMenu->addMenu(slideMenu);
     toolsMenu->addMenu(sortMenu);
 
@@ -2395,4 +2402,29 @@ ImageViewer::editPreferences()
         preferenceWindow->setPalette(m_palette);
     }
     preferenceWindow->show();
+}
+
+
+
+void
+ImageViewer::toggleAreaSample()
+{
+    m_areaSampleMode = !m_areaSampleMode;
+    if (m_areaSampleMode) {
+        setCursor(Qt::CrossCursor);
+    } else {
+        unsetCursor();
+    }
+    // if (m_areaSampleMode == false){
+    //     updateStatusBar();
+    // }
+    ((QOpenGLWidget*)(glwin))->update();
+}
+
+
+
+bool
+ImageViewer::areaSampleMode() const
+{
+    return m_areaSampleMode;
 }
