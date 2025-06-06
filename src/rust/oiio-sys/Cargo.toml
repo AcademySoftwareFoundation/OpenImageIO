@@ -1,0 +1,37 @@
+[package]
+name = "oiio-sys"
+version = "0.1.0"
+edition = "2021"
+description = "Rust sys bindings for OpenImageIO https://github.com/AcademySoftwareFoundation/OpenImageIO"
+documentation = "https://docs.rs/oiio-sys"
+authors = [
+    "Scott Wilson <scott@propersquid.com>",
+    "David Aguilar <davvid@gmail.com>",
+]
+license = "Apache-2.0"
+keywords = ["graphics", "images", "render", "texture", "vfx"]
+categories = ["graphics", "multimedia::images", "rendering::data-formats"]
+readme = "README.md"
+homepage = "https://github.com/AcademySoftwareFoundation/OpenImageIO"
+repository = "https://github.com/AcademySoftwareFoundation/OpenImageIO.git"
+links = "OpenImageIO"
+
+[dependencies]
+cxx = { version = "1.0.158", features = ["c++17"] }
+
+[build-dependencies]
+anyhow = "1.0.98"
+cxx-build = "1.0.158"
+glob = "0.3.2"
+pkg-config = "0.3.32"
+
+[dev-dependencies]
+proptest = "1.6.0"
+proptest-derive = "0.5.1"
+
+# The docs are the same across all platforms so we only need to build once.
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+rustc-args = ["--cfg", "docsrs"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
