@@ -76,6 +76,8 @@ LINKSTATIC = "1"
 # Standardize the install directory for libraries, as expected by
 # other parts of the wheels build process.
 CMAKE_INSTALL_LIBDIR = "lib"
+# Always build against zlib-ng (instead of regular zlib)
+DISABLE_ZLIB = "1"
 
 # Dynamically set the package version metadata by pasrsing CMakeLists.txt.
 [tool.scikit-build.metadata.version]
