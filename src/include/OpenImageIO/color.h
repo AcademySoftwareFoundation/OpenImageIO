@@ -236,7 +236,15 @@ public:
 
     /// Query the name of the default view for the specified display. If the
     /// display is empty or not specified, the default display will be used.
+    /// This version does not consider the input color space.
     const char* getDefaultViewName(string_view display = "") const;
+
+    /// Query the name of the default view for the specified display, given
+    /// the input color space. If `display` is "default" or an empty string,
+    /// the default display will be used. The input color space is used to
+    /// determine the most appropriate default view for the given display.
+    const char* getDefaultViewName(string_view display,
+                                   string_view inputColorSpace) const;
 
     /// Returns the colorspace attribute of the (display, view) pair. (Note
     /// that this may be either a color space or a display color space.)
@@ -351,8 +359,24 @@ public:
     /// Given a filepath, ask OCIO what color space it thinks the file
     /// should be, based on how the name matches file naming rules in the
     /// OCIO config.  (This is mostly a wrapper around OCIO's
-    /// ColorConfig::getColorSpaceFromSFilepath.)
+    /// ColorConfig::getColorSpaceFromFilepath.)
     string_view getColorSpaceFromFilepath(string_view str) const;
+
+    /// Given a filepath, ask OCIO what color space it thinks the file
+    /// should be, based on how the name matches file naming rules in the
+    /// OCIO config. If no match is found, return `default_cs` instead of
+    /// the OCIO config's default color space. If `cs_name_match` is
+    /// true, additionally attempt to match the color space name in the
+    /// filename, if the OCIO config heuristics fail to find a match.
+    string_view getColorSpaceFromFilepath(string_view str,
+                                          string_view default_cs,
+                                          bool cs_name_match = false) const;
+
+    /// Given a filepath, returns whether the result of
+    /// getColorSpaceFromFilepath() is the failover condition, due
+    /// to the OCIO config's file rules not otherwise finding a match
+    /// for the filepath.
+    bool filepathOnlyMatchesDefaultRule(string_view str) const;
 
     /// Given a string (like a filename), look for the longest, right-most
     /// colorspace substring that appears. Returns "" if no such color space
