@@ -666,14 +666,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: windows-2019
-            runner: windows-2019
-            vsver: 2019
-            generator: "Visual Studio 16 2019"
-            openexr_ver: v3.2.2
-            python_ver: 3.7
-            # simd: sse4.2
-          - desc: windows-2022
+          - desc: Windows-2022 VS2022
             runner: windows-2022
             vsver: 2022
             generator: "Visual Studio 17 2022"
