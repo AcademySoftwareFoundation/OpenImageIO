@@ -190,8 +190,7 @@ IvGL::create_textures(void)
 const char*
 IvGL::color_func_shader_text()
 {
-    // clang-format off
-    return R"(
+    return R"glsl(
         uniform float gain;
         uniform float gamma;
 
@@ -202,8 +201,7 @@ IvGL::color_func_shader_text()
             C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));
             return C;
         }
-    )";
-    // clang-format on
+    )glsl";
 }
 
 void
@@ -235,16 +233,14 @@ IvGL::create_shaders(void)
     GLint status;
 
     if (!m_vertex_shader) {
-        // clang-format off
-        static const GLchar* vertex_source = R"(
+        static const GLchar* vertex_source = R"glsl(
             varying vec2 vTexCoord;
             void main ()
             {
                 vTexCoord = gl_MultiTexCoord0.xy;
                 gl_Position = ftransform();
             }
-        )";
-        // clang-format on
+        )glsl";
 
         m_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(m_vertex_shader, 1, &vertex_source, NULL);
@@ -259,8 +255,7 @@ IvGL::create_shaders(void)
         }
     }
 
-    // clang-format off
-    static const GLchar* fragment_source = R"(
+    static const GLchar* fragment_source = R"glsl(
         uniform sampler2D imgtex;
         varying vec2 vTexCoord;
         uniform int startchannel;
@@ -371,8 +366,7 @@ IvGL::create_shaders(void)
             C = ColorFunc(C);
             gl_FragColor = C;
         }
-    )";
-    // clang-format on
+    )glsl";
 
     const char* fragment_sources[] = { "#version 120\n", color_shader,
                                        fragment_source };
