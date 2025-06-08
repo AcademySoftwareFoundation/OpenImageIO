@@ -658,13 +658,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: Windows-2019 VS2019
-            runner: windows-2019
-            nametag: windows-2019
-            vsver: 2019
-            generator: "Visual Studio 16 2019"
-            python_ver: "3.9"
-            setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
           - desc: Windows-2022 VS2022
             runner: windows-2022
             nametag: windows-2022

@@ -5341,7 +5341,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         if (autocc) {
             // Try to deduce the color space it's in
             std::string colorspace(
-                ot.colorconfig().getColorSpaceFromFilepath(filename));
+                ot.colorconfig().getColorSpaceFromFilepath(filename, "", true));
             if (colorspace.size() && ot.debug)
                 print("  From {}, we deduce color space \"{}\"\n", filename,
                       colorspace);
@@ -5659,8 +5659,8 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     // automatically set -d based on the name if --autocc is used.
     bool autocc          = fileoptions.get_int("autocc", ot.autocc);
     bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
-    std::string outcolorspace = ot.colorconfig().getColorSpaceFromFilepath(
-        filename);
+    std::string outcolorspace
+        = ot.colorconfig().getColorSpaceFromFilepath(filename, "", true);
     if (autocc && outcolorspace.size()) {
         TypeDesc type;
         int bits;
