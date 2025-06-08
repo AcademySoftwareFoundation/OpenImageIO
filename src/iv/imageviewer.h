@@ -250,6 +250,11 @@ public:
         return closeupPixelsBox ? closeupPixelsBox->value() : 13;
     }
 
+    int closeupAvgPixels(void) const
+    {
+        return closeupAvgPixelsBox ? closeupAvgPixelsBox->value() : 11;
+    }
+
     bool darkPalette(void) const
     {
         return darkPaletteBox ? darkPaletteBox->isChecked() : m_darkPalette;
@@ -423,6 +428,8 @@ private:
     QSpinBox* slideShowDuration;
     QLabel* closeupPixelsLabel;
     QSpinBox* closeupPixelsBox;
+    QLabel* closeupAvgPixelsLabel;
+    QSpinBox* closeupAvgPixelsBox;
 
     std::vector<IvImage*> m_images;  // List of images
     int m_current_image;             // Index of current image, -1 if none

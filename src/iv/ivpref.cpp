@@ -31,6 +31,8 @@ IvPreferenceWindow::IvPreferenceWindow(ImageViewer& viewer)
     QLayout* closeupPixelsLayout = new QHBoxLayout;
     closeupPixelsLayout->addWidget(viewer.closeupPixelsLabel);
     closeupPixelsLayout->addWidget(viewer.closeupPixelsBox);
+    closeupPixelsLayout->addWidget(viewer.closeupAvgPixelsLabel);
+    closeupPixelsLayout->addWidget(viewer.closeupAvgPixelsBox);
     layout->addLayout(closeupPixelsLayout);
 
     layout->addWidget(viewer.linearInterpolationBox);

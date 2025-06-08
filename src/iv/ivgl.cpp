@@ -806,11 +806,11 @@ IvGL::paint_pixelview()
     // ncloseuppixels is the number of big pixels (in each direction)
     // visible in our closeup window.
     int ncloseuppixels = m_viewer.closeupPixels();
+    int ncloseupavgpixels = m_viewer.closeupAvgPixels();
     
     int avg_window_offset = 0;
-    if (ncloseuppixels < 9) {
-        avg_window_offset = (9 - ncloseuppixels) / 2;
-        ncloseuppixels = 9;
+    if (ncloseuppixels > ncloseupavgpixels) {
+        avg_window_offset = (ncloseuppixels - ncloseupavgpixels) / 2;
     }
 
     /// closeuppixelzoom is the zoom factor we use for closeup pixels --
@@ -1111,7 +1111,9 @@ IvGL::paint_pixelview()
         << std::setw(maxLengths.max) << "   " << "  "
         << std::setw(maxLengths.avg) << "   " << "  ";
 
-        shadowed_text(textx, texty, 0.0f, header_stream.str(), center_color);
+        QColor center_text_color = center_color;
+        center_text_color.setAlpha(200);
+        shadowed_text(textx, texty, 0.0f, header_stream.str(), center_text_color);
 
         header_stream.str("");
         header_stream << std::left << "   "
@@ -1121,10 +1123,11 @@ IvGL::paint_pixelview()
         << std::setw(maxLengths.max) << "   " << "  "
         << std::setw(maxLengths.avg) << "Avg" << "  ";
 
-        shadowed_text(textx, texty, 0.0f, header_stream.str(), avg_color);
+        QColor avg_text_color = avg_color;
+        avg_text_color.setAlpha(200);
+        shadowed_text(textx, texty, 0.0f, header_stream.str(), avg_text_color);
 
         texty += yspacing;
-
         for (const auto& stat : channel_stats) {
             std::stringstream line_stream;
             line_stream << std::left << stat.name << ": "
@@ -2151,3 +2154,4 @@ IvGL::print_error(const char* msg)
 }
 
 OIIO_PRAGMA_WARNING_POP
+

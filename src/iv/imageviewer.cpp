@@ -500,9 +500,27 @@ ImageViewer::createActions()
 
     closeupPixelsLabel = new QLabel(tr("# closeup pixels:"));
     closeupPixelsBox = new QSpinBox();
-    closeupPixelsBox->setRange(3, 25);
+    closeupPixelsBox->setRange(9, 25);
     closeupPixelsBox->setValue(13);
     closeupPixelsBox->setSingleStep(2);
+
+    closeupAvgPixelsLabel = new QLabel(tr("# closeup avg pixels:"));
+    closeupAvgPixelsBox = new QSpinBox();
+    closeupAvgPixelsBox->setRange(3, 25);
+    closeupAvgPixelsBox->setValue(11);
+    closeupAvgPixelsBox->setSingleStep(2);
+
+    // Connect signals to ensure closeupAvgPixelsBox value is always <= closeupPixelsBox value
+    connect(closeupPixelsBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            [this](int value) {
+                if (closeupAvgPixelsBox->value() > value)
+                    closeupAvgPixelsBox->setValue(value);
+            });
+    connect(closeupAvgPixelsBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            [this](int value) {
+                if (value > closeupPixelsBox->value())
+                    closeupAvgPixelsBox->setValue(closeupPixelsBox->value());
+            });
 }
 
 
