@@ -3679,6 +3679,75 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
 
 
 
+bool
+ImageCacheImpl::get_pixels(ImageCacheFile* file,
+                           ImageCachePerThreadInfo* thread_info, int subimage,
+                           int miplevel, const ROI& roi, TypeDesc format,
+                           const image_span<std::byte>& result,
+                           int cache_chbegin, int cache_chend)
+{
+    // Default implementation (for now): call the old pointer+stride
+    return get_pixels(file, thread_info, subimage, miplevel, roi.xbegin,
+                      roi.xend, roi.ybegin, roi.yend, roi.zbegin, roi.zend,
+                      roi.chbegin, roi.chend, format, result.data(),
+                      result.xstride(), result.ystride(), result.zstride(),
+                      cache_chbegin, cache_chend);
+}
+
+
+
+bool
+ImageCache::get_pixels(ustring filename, int subimage, int miplevel,
+                       const ROI& roi, TypeDesc format,
+                       const image_span<std::byte>& result, int cache_chbegin,
+                       int cache_chend)
+{
+    return m_impl->get_pixels(filename, subimage, miplevel, roi.xbegin,
+                              roi.xend, roi.ybegin, roi.yend, roi.zbegin,
+                              roi.zend, roi.chbegin, roi.chend, format,
+                              result.data(), result.xstride(), result.ystride(),
+                              result.zstride(), cache_chbegin, cache_chend);
+}
+
+
+
+bool
+ImageCache::get_pixels(ImageCacheFile* file,
+                       ImageCachePerThreadInfo* thread_info, int subimage,
+                       int miplevel, const ROI& roi, TypeDesc format,
+                       const image_span<std::byte>& result, int cache_chbegin,
+                       int cache_chend)
+{
+    return m_impl->get_pixels(file, thread_info, subimage, miplevel, roi.xbegin,
+                              roi.xend, roi.ybegin, roi.yend, roi.zbegin,
+                              roi.zend, roi.chbegin, roi.chend, format,
+                              result.data(), result.xstride(), result.ystride(),
+                              result.zstride(), cache_chbegin, cache_chend);
+}
+
+
+
+bool
+ImageCacheImpl::get_pixels(ustring filename, int subimage, int miplevel,
+                           const ROI& roi, TypeDesc format,
+                           const image_span<std::byte>& result,
+                           int cache_chbegin, int cache_chend)
+{
+    ImageCachePerThreadInfo* thread_info = get_perthread_info();
+    ImageCacheFile* file                 = find_file(filename, thread_info);
+    if (!file) {
+        error("Image file \"{}\" not found", filename);
+        return false;
+    }
+    return get_pixels(file, thread_info, subimage, miplevel, roi.xbegin,
+                      roi.xend, roi.ybegin, roi.yend, roi.zbegin, roi.zend,
+                      roi.chbegin, roi.chend, format, result.data(),
+                      result.xstride(), result.ystride(), result.zstride(),
+                      cache_chbegin, cache_chend);
+}
+
+
+
 ImageCache::Tile*
 ImageCacheImpl::get_tile(ustring filename, int subimage, int miplevel, int x,
                          int y, int z, int chbegin, int chend)
@@ -3816,6 +3885,42 @@ ImageCacheImpl::add_tile(ustring filename, int subimage, int miplevel, int x,
     TileID tileid(*file, subimage, miplevel, x, y, z, chbegin, chend);
     ImageCacheTileRef tile = new ImageCacheTile(tileid, buffer, format, xstride,
                                                 ystride, zstride, copy);
+    if (!tile || !tile->valid()) {
+        if (file->errors_should_issue())
+            error("Could not construct the tile; unknown reasons.");
+        return false;
+    }
+    return add_tile_to_cache(tile, thread_info);
+}
+
+
+
+bool
+ImageCacheImpl::add_tile(ustring filename, int subimage, int miplevel, int x,
+                         int y, int z, int chbegin, int chend, TypeDesc format,
+                         const image_span<const std::byte>& buffer, bool copy)
+{
+    ImageCachePerThreadInfo* thread_info = get_perthread_info();
+    ImageCacheFile* file                 = find_file(filename, thread_info);
+    file                                 = verify_file(file, thread_info);
+    if (!file || file->broken()) {
+        if (!file || file->errors_should_issue())
+            error(
+                "Cannot add_tile for an image file that was not set up with add_file()");
+        return false;
+    }
+    if (file->is_udim()) {
+        error("Cannot add_tile to a UDIM-like virtual file");
+        return false;
+    }
+    if (chend < chbegin) {  // chend < chbegin means "all channels."
+        chbegin = 0;
+        chend   = file->spec(subimage).nchannels;
+    }
+    TileID tileid(*file, subimage, miplevel, x, y, z, chbegin, chend);
+    ImageCacheTileRef tile
+        = new ImageCacheTile(tileid, buffer.data(), format, buffer.xstride(),
+                             buffer.ystride(), buffer.zstride(), copy);
     if (!tile || !tile->valid()) {
         if (file->errors_should_issue())
             error("Could not construct the tile; unknown reasons.");
@@ -4755,6 +4860,17 @@ ImageCache::add_tile(ustring filename, int subimage, int miplevel, int x, int y,
     return m_impl->add_tile(filename, subimage, miplevel, x, y, z, chbegin,
                             chend, format, buffer, xstride, ystride, zstride,
                             copy);
+}
+
+
+
+bool
+ImageCache::add_tile(ustring filename, int subimage, int miplevel, int x, int y,
+                     int z, int chbegin, int chend, TypeDesc format,
+                     const image_span<const std::byte>& buffer, bool copy)
+{
+    return m_impl->add_tile(filename, subimage, miplevel, x, y, z, chbegin,
+                            chend, format, buffer, copy);
 }
 
 
