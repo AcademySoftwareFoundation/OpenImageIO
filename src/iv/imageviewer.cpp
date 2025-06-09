@@ -503,12 +503,20 @@ ImageViewer::createActions()
     closeupPixelsBox->setRange(9, 25);
     closeupPixelsBox->setValue(13);
     closeupPixelsBox->setSingleStep(2);
+    
+    QString closeupPixelsTooltip = tr("Number of pixels to show in the closeup view.");
+    closeupPixelsBox->setToolTip(closeupPixelsTooltip);
+    closeupPixelsLabel->setToolTip(closeupPixelsTooltip);
 
     closeupAvgPixelsLabel = new QLabel(tr("# closeup avg pixels:"));
     closeupAvgPixelsBox = new QSpinBox();
     closeupAvgPixelsBox->setRange(3, 25);
     closeupAvgPixelsBox->setValue(11);
     closeupAvgPixelsBox->setSingleStep(2);
+    
+    QString closeupAvgPixelsTooltip = tr("Number of pixels to use for averaging in the closeup view.");
+    closeupAvgPixelsBox->setToolTip(closeupAvgPixelsTooltip);
+    closeupAvgPixelsLabel->setToolTip(closeupAvgPixelsTooltip);
 
     // Connect signals to ensure closeupAvgPixelsBox value is always <= closeupPixelsBox value
     connect(closeupPixelsBox, QOverload<int>::of(&QSpinBox::valueChanged),
