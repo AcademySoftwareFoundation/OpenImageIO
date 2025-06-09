@@ -953,7 +953,7 @@ IvGL::paint_pixelview()
         // Disable shaders for this.
         glUseProgram(0);
     }
-    float extraspace = yspacing * (1 + spec.nchannels) + 4;
+    float extraspace = yspacing * (2 + spec.nchannels) + 4;
     glColor4f(0.1f, 0.1f, 0.1f, 0.7f);
     gl_rect(-0.5f * closeupsize , -0.5f * closeupsize,
             0.5f * closeupsize, -0.5f * closeupsize - extraspace, -0.1f);
@@ -1093,6 +1093,13 @@ IvGL::paint_pixelview()
             channel_stats.push_back({name, centerValue, normalized, min, max, avg});
         }
 
+        QColor center_text_color = center_color;
+        center_text_color.setAlpha(200);
+
+        std::string mouse_pos = Strutil::fmt::format("              ({:d},{:d})", (int)real_xp, (int)real_yp);
+        shadowed_text(textx, texty, 0.0f, mouse_pos, center_text_color);
+        texty += yspacing;
+
         std::stringstream header_stream;
         header_stream << std::left << "   "
         << std::setw(maxLengths.centerValue) << "   " << " "
@@ -1110,9 +1117,7 @@ IvGL::paint_pixelview()
         << std::setw(maxLengths.min) << "   " << "  "
         << std::setw(maxLengths.max) << "   " << "  "
         << std::setw(maxLengths.avg) << "   " << "  ";
-
-        QColor center_text_color = center_color;
-        center_text_color.setAlpha(200);
+        
         shadowed_text(textx, texty, 0.0f, header_stream.str(), center_text_color);
 
         header_stream.str("");
