@@ -1448,6 +1448,7 @@ test_demosaic(const DemosaicTestConfig& config, const ImageBuf& src_image,
                 list.push_back(ParamValue("pattern", pattern));
                 list.push_back(ParamValue("algorithm", name));
                 list.push_back(ParamValue("layout", layout));
+                list.push_back(ParamValue("white_balance_mode", "manual"));
                 list.push_back(
                     ParamValue("white_balance", TypeDesc::FLOAT, 4, wb));
                 test_demosaic_algo<T, threshold_index, write_images>(
@@ -1462,7 +1463,7 @@ test_demosaic(const DemosaicTestConfig& config, const ImageBuf& src_image,
                 list.push_back(ParamValue("pattern", "auto"));
                 list.push_back(ParamValue("algorithm", "auto"));
                 list.push_back(ParamValue("layout", "auto"));
-                list.push_back(ParamValue("white_balance", "auto"));
+                list.push_back(ParamValue("white_balance_mode", "auto"));
                 test_demosaic_algo<T, threshold_index, write_images>(
                     src_image, mosaiced_image, algo, list, file_name, name);
             }

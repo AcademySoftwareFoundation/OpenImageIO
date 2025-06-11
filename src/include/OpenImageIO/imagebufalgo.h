@@ -2182,7 +2182,7 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 ///     - `linear` - simple linear demosaicing. Fast, but can produce artefacts along sharp edges.
 ///     - `auto` - same as "linear"
 ///
-///   - "layout" : string (default: "auto"))
+///   - "layout" : string (default: "auto")
 ///
 ///     The order the color filter array elements are arranged in, pattern-specific. The Bayer pattern sensors
 ///     usually have 4 values in the layout string, describing the 2x2 pixels region. The X-Trans pattern
@@ -2191,13 +2191,19 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 ///     "raw:FilterPattern" attribute of the source image buffer, falling back to "RGGB" for Bayer,
 ///     "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans if absent.
 ///
-///   - "white-balance" : float[3] or float[4] or string, (default: "auto")
+///   - "white_balance_mode" : string (default: "auto")
 ///
-///     Optional white-balancing weights. Can contain either three (R,G,B), or four (R,G1,B,G2) values, or
-///     string value of "auto".
-///     The order of the white balance multipliers does not depend on the matrix layout.
-///     When set to "auto", OIIO will try to fetch the white balancing weights from the "raw:WhiteBalance"
+///     White-balancing mode. The following modes are supported:
+///     - `auto` - OIIO will try to fetch the white balancing weights from the "raw:WhiteBalance"
 ///     attribute of the source image buffer, falling back to {1.0, 1.0, 1.0, 1.0} if absent.
+///     - `manual` - The white balancing weights will be taken from the attribute `white_balance` (see below)
+///     if present, falling back to {1.0, 1.0, 1.0, 1.0} if absent.
+///     - `none` - no white balancing will be performed.
+///
+///   - "white_balance" : float[3] or float[4]
+///
+///     Optional white-balancing weights. Can contain either three (R,G,B), or four (R,G1,B,G2) values.
+///     The order of the white balance multipliers does not depend on the matrix layout.
 
 ImageBuf OIIO_API demosaic (const ImageBuf& src, KWArgs options = {},
                             ROI roi = {}, int nthreads = 0);

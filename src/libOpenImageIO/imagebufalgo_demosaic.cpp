@@ -19,6 +19,7 @@ namespace {
 static const ustring pattern_us("pattern");
 static const ustring algorithm_us("algorithm");
 static const ustring layout_us("layout");
+static const ustring white_balance_mode_us("white_balance_mode");
 static const ustring white_balance_us("white_balance");
 
 }  // namespace
@@ -970,8 +971,8 @@ demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
     std::string pattern;
     std::string algorithm;
     std::string layout;
-    bool white_balance_auto     = true;
-    float white_balance_RGBG[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    std::string white_balance_mode;
+    float custom_white_balance_RGBG[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
     std::string error;
 
     for (auto&& pv : options) {
@@ -993,26 +994,29 @@ demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
             } else {
                 dst.errorfmt("ImageBufAlgo::demosaic() invalid layout");
             }
+        } else if (pv.name() == white_balance_mode_us) {
+            if (pv.type() == TypeString) {
+                white_balance_mode = pv.get_string();
+            } else {
+                dst.errorfmt(
+                    "ImageBufAlgo::demosaic() invalid white_balance_mode");
+            }
         } else if (pv.name() == white_balance_us) {
             if (pv.type() == TypeFloat && pv.nvalues() == 4) {
                 // The order in the options is always (R,G1,B,G2)
-                white_balance_RGBG[0] = pv.get_float_indexed(0);
-                white_balance_RGBG[1] = pv.get_float_indexed(1);
-                white_balance_RGBG[2] = pv.get_float_indexed(2);
-                white_balance_RGBG[3] = pv.get_float_indexed(3);
+                custom_white_balance_RGBG[0] = pv.get_float_indexed(0);
+                custom_white_balance_RGBG[1] = pv.get_float_indexed(1);
+                custom_white_balance_RGBG[2] = pv.get_float_indexed(2);
+                custom_white_balance_RGBG[3] = pv.get_float_indexed(3);
 
-                if (white_balance_RGBG[3] == 0)
-                    white_balance_RGBG[3] = white_balance_RGBG[1];
-                white_balance_auto = false;
+                if (custom_white_balance_RGBG[3] == 0)
+                    custom_white_balance_RGBG[3] = custom_white_balance_RGBG[1];
             } else if (pv.type() == TypeFloat && pv.nvalues() == 3) {
                 // The order in the options is always (R,G,B)
-                white_balance_RGBG[0] = pv.get_float_indexed(0);
-                white_balance_RGBG[1] = pv.get_float_indexed(1);
-                white_balance_RGBG[2] = pv.get_float_indexed(2);
-                white_balance_RGBG[3] = white_balance_RGBG[2];
-                white_balance_auto    = false;
-            } else if (pv.type() == TypeString && pv.get_string() == "auto") {
-                white_balance_auto = true;
+                custom_white_balance_RGBG[0] = pv.get_float_indexed(0);
+                custom_white_balance_RGBG[1] = pv.get_float_indexed(1);
+                custom_white_balance_RGBG[2] = pv.get_float_indexed(2);
+                custom_white_balance_RGBG[3] = custom_white_balance_RGBG[2];
             } else {
                 dst.errorfmt("ImageBufAlgo::demosaic() invalid white balance");
             }
@@ -1057,17 +1061,28 @@ demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
             pattern = "bayer";
     }
 
-    if (white_balance_auto) {
+    if (white_balance_mode.length() == 0)
+        white_balance_mode = "auto";
+
+    float white_balance_RGBG[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    if (white_balance_mode == "auto") {
         auto pv = src.spec().find_attribute("raw:WhiteBalance");
-        if (pv != nullptr) {
-            if (pv->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
-                // The order in the options is always (R,G1,B,G2)
-                white_balance_RGBG[0] = pv->get_float_indexed(0);
-                white_balance_RGBG[1] = pv->get_float_indexed(1);
-                white_balance_RGBG[2] = pv->get_float_indexed(2);
-                white_balance_RGBG[3] = pv->get_float_indexed(3);
-            }
+        if ((pv != nullptr) && (pv->type() == TypeDesc(TypeDesc::FLOAT, 4))) {
+            // The order in the options is always (R,G1,B,G2)
+            white_balance_RGBG[0] = pv->get_float_indexed(0);
+            white_balance_RGBG[1] = pv->get_float_indexed(1);
+            white_balance_RGBG[2] = pv->get_float_indexed(2);
+            white_balance_RGBG[3] = pv->get_float_indexed(3);
         }
+    } else if (white_balance_mode == "manual") {
+        white_balance_RGBG[0] = custom_white_balance_RGBG[0];
+        white_balance_RGBG[1] = custom_white_balance_RGBG[1];
+        white_balance_RGBG[2] = custom_white_balance_RGBG[2];
+        white_balance_RGBG[3] = custom_white_balance_RGBG[3];
+    } else if (white_balance_mode != "none") {
+        dst.errorfmt("ImageBufAlgo::demosaic() unknown white balance mode {}",
+                     white_balance_mode);
     }
 
     if (pattern == "bayer") {
