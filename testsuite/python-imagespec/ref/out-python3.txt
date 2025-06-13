@@ -206,16 +206,6 @@ Testing set_colorspace:
   after set_colorspace('sRGB'): sRGB
   after set_colorspace(''): 
 
-Testing set_cicp:
-  after set_cicp('1,2,3,4'): [1 2 3 4]
-  after set_cicp(''): None
-  after set_cicp(1,2): [1 2 0 1]
-  after set_cicp(1,2,3): [1 2 3 1]
-  after set_cicp(1,2,3,4): [1 2 3 4]
-  after set_cicp(',,,0'): [1 2 3 0]
-  after set_cicp('1,13,1'): [ 1 13  1  0]
-  after set_cicp(',4'): [1 4 1 0]
-
 Testing global attribute store/retrieve:
 get_string_attribute plugin_searchpath :  perfect
 get_int_attribute plugin_searchpath :  0

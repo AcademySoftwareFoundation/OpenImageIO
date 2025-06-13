@@ -94,7 +94,18 @@ cicp:
   16 x   16, 4 channel, float png
     channel list: R, G, B, A
     Software: "OpenImageIO 3.1.2.0dev : DC4B1085141AF19019744DC43B156DE981E3B465"
-    oiio:CICP: 1, 13, 0, 1
+    CICP: 1, 13, 0, 1
+    oiio:ColorSpace: "sRGB"
+modified cicp:
+  16 x   16, 4 channel, float png
+    channel list: R, G, B, A
+    Software: "OpenImageIO 3.1.2.0dev : DC4B1085141AF19019744DC43B156DE981E3B465"
+    CICP: 1, 13, 0, 0
+    oiio:ColorSpace: "sRGB"
+removed cicp:
+  16 x   16, 4 channel, float png
+    channel list: R, G, B, A
+    Software: "OpenImageIO 3.1.2.0dev : DC4B1085141AF19019744DC43B156DE981E3B465"
     oiio:ColorSpace: "sRGB"
 Comparing "test16.png" and "ref/test16.png"
 PASS

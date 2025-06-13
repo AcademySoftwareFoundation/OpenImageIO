@@ -1299,39 +1299,6 @@ ImageSpec::set_colorspace(string_view colorspace)
 
 
 
-void
-ImageSpec::set_cicp(int pri, int trc, int mtx, int vfr)
-{
-    uint8_t vals[4] = { uint8_t(std::clamp(pri, 0, 255)),
-                        uint8_t(std::clamp(trc, 0, 255)),
-                        uint8_t(std::clamp(mtx, 0, 255)),
-                        uint8_t(std::clamp(vfr, 0, 255)) };
-    attribute("oiio:CICP", TypeDesc(TypeDesc::UINT8, 4), vals);
-}
-
-
-
-void
-ImageSpec::set_cicp(string_view cicp)
-{
-    // If the string is empty, erase the attribute.
-    if (cicp.empty()) {
-        erase_attribute("oiio:CICP");
-        return;
-    }
-    std::vector<int> vals { 0, 0, 0, 1 };
-    auto p = find_attribute("oiio:CICP", TypeDesc(TypeDesc::UINT8, 4));
-    if (p) {
-        const uint8_t* existing = static_cast<const uint8_t*>(p->data());
-        for (int i = 0; i < 4; ++i)
-            vals[i] = existing[i];
-    }
-    Strutil::extract_from_list_string<int>(vals, cicp);
-    set_cicp(vals[0], vals[1], vals[2], vals[3]);
-}
-
-
-
 template<>
 size_t
 pvt::heapsize<ImageSpec>(const ImageSpec& is)
