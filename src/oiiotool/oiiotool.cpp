@@ -2248,7 +2248,7 @@ icc_read(Oiiotool& ot, cspan<const char*> argv)
 }
 
 
-// Special OiiotoolOp whose purpose is to set attributes on the top image.
+// Set, modify, or remove the top image's CICP (ITU-T H.273) metadata.
 class OpSetCICP final : public OiiotoolOp {
 public:
     OpSetCICP(Oiiotool& ot, string_view opname, cspan<const char*> argv)
@@ -2270,7 +2270,21 @@ public:
     {
         // Because this is an in-place operation, img[0] is the same as
         // img[1].
-        img[0]->specmod().set_cicp(cicp);
+        if (cicp.empty()) {
+            img[0]->specmod().erase_attribute("CICP");
+            return true;
+        }
+        std::vector<int> vals { 0, 0, 0, 1 };
+        auto p = img[0]->spec().find_attribute("CICP",
+                                               TypeDesc(TypeDesc::INT, 4));
+        if (p) {
+            const int* existing = static_cast<const int*>(p->data());
+            for (int i = 0; i < 4; ++i)
+                vals[i] = existing[i];
+        }
+        Strutil::extract_from_list_string<int>(vals, cicp);
+        img[0]->specmod().attribute("CICP", TypeDesc(TypeDesc::INT, 4),
+                                    vals.data());
         return true;
     }
 
@@ -7214,7 +7228,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Add the contents of the file to the top image as its ICC profile")
       .OTACTION(icc_read);
     ap.arg("--cicp %s:CICP")
-       .help("Set CICP metadata for supporting output formats (e.g., '12,16,0,1')")
+       .help("Set or modifiy CICP metadata for supporting output formats (e.g., '12,16,0,1'); selectively persist existing values if not specified (e.g., ',,,0')")
        .OTACTION(action_cicp);
     // clang-format on
 

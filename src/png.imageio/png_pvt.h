@@ -40,7 +40,7 @@ http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/00065
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #define ICC_PROFILE_ATTR "ICCProfile"
-#define CICP_ATTR "oiio:CICP"
+#define CICP_ATTR "CICP"
 
 namespace PNG_pvt {
 
@@ -330,8 +330,8 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     {
         png_byte pri = 0, trc = 0, mtx = 0, vfr = 0;
         if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
-            uint8_t cicp[4] = { pri, trc, mtx, vfr };
-            spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::UINT8, 4), cicp);
+            int cicp[4] = { pri, trc, mtx, vfr };
+            spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::INT, 4), cicp);
         }
     }
 #endif
@@ -710,9 +710,12 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 
 #ifdef PNG_cICP_SUPPORTED
     const ParamValue* p = spec.find_attribute(CICP_ATTR,
-                                              TypeDesc(TypeDesc::UINT8, 4));
+                                              TypeDesc(TypeDesc::INT, 4));
     if (p) {
-        const png_byte* vals = static_cast<const png_byte*>(p->data());
+        const int* int_vals = static_cast<const int*>(p->data());
+        png_byte vals[4];
+        for (int i = 0; i < 4; ++i)
+            vals[i] = static_cast<png_byte>(int_vals[i]);
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG cICP chunk";
         // libpng will only write the chunk if the third byte is 0

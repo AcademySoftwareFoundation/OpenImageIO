@@ -35,6 +35,8 @@ command += oiiotool ("--no-autopremult --dumpdata smallalpha.png")
 # Test embedding CICP metadata in PNG files
 command += oiiotool ("-i test16.png --cicp 1,13 -o test16.png")
 command += oiiotool ("-echo cicp: test16.png --printinfo")
+command += oiiotool ("-echo modified cicp: test16.png --cicp ,,,0 --printinfo")
+command += oiiotool ("-echo removed cicp: test16.png --cicp "" --printinfo")
 
 outputs = [ "test16.png", "out.txt" ]
 

@@ -885,40 +885,6 @@ public:
         deep = other.deep;
     }
 
-    /// Set the "oiio:CICP" attribute to the given values. The `pri`, `tc`, `mtx`,
-    /// and `vfr` values are the CICP parameters, which are used to describe
-    /// aspects of the color encoding of the image, as defined in ITU-T H.273.
-    /// 
-    /// @param pri
-    ///     An integer representing the color primaries.
-    /// @param tc
-    ///     An integer representing the transfer characteristics.
-    /// @param mtx 
-    ///     An integer representing the matrix coefficients. RGB encodings
-    ///     typically use 0 (identity matrix).
-    /// @param vfr 
-    ///     An integer indicating whether the image is "full range" (Typically
-    ///     true of RGB encodings)
-    ///
-    /// @version 3.0
-    void set_cicp(int pri, int trc, int mtx=0, int vfr=1);
-    /// Set the "oiio:CICP" attribute to the given values. The `cicp` string
-    /// is a comma-delimeted list of integers representing the CICP parameters.
-    /// The `cicp` string should be in the format "pri,tc,mtx,vfr", where
-    /// `pri`, `trc`, `mtx`, and `vfr` are integers representing the color
-    /// primaries, transfer characteristics, matrix coefficients, and
-    /// video full range flag, respectively. If the `cicp` string is empty,
-    /// the "oiio:CICP" attribute will be removed from the `ImageSpec`.
-    /// The `cicp` string may also contain commas (",") without any 
-    /// integer value specified beforehand, in which case the 
-    /// corresponding CICP parameter will fall back to its current value,
-    /// or to the default value (of {0, 0, 0, 1}) if there is no current value.
-    /// For example, `",,,0"` would set the "video full range flag" to 0 to
-    /// indicate a "narrow range" encoding, while keeping the other three
-    /// parameters unchanged. 
-    /// @param cicp 
-    void set_cicp(string_view cicp);
-
     /// Set the metadata to presume that color space is `name` (or to assume
     /// nothing about the color space if `name` is empty). The core operation
     /// is to set the "oiio:ColorSpace" attribute, but it also removes or
