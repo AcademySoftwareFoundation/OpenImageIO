@@ -54,6 +54,7 @@ if [[ "$BUILDTARGET" != "none" ]] ; then
         echo "Using build wrapper '${OIIO_CMAKE_BUILD_WRAPPER}'"
     fi
     time ${OIIO_CMAKE_BUILD_WRAPPER} cmake --build ${OIIO_BUILD_DIR} --target ${BUILDTARGET} --config ${CMAKE_BUILD_TYPE}
+   ccache --show-stats || true
 fi
 # popd
 
