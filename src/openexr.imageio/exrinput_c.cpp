@@ -106,7 +106,7 @@ public:
                 || feature == "exif"  // Because of arbitrary_metadata
                 || feature == "ioproxy"
                 || feature == "iptc"  // Because of arbitrary_metadata
-                || feature == "multiimage");
+                || feature == "multiimage" || feature == "mipmap");
     }
     bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& newspec,
