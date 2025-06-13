@@ -93,19 +93,16 @@ smallalpha.png       :    1 x    1, 4 channel, uint8 png
 cicp:
   16 x   16, 4 channel, float png
     channel list: R, G, B, A
-    Software: "OpenImageIO 3.1.3.0dev : DC4B1085141AF19019744DC43B156DE981E3B465"
     CICP: 1, 13, 0, 1
     oiio:ColorSpace: "sRGB"
 modified_cicp:
   16 x   16, 4 channel, float png
     channel list: R, G, B, A
-    Software: "OpenImageIO 3.1.3.0dev : DC4B1085141AF19019744DC43B156DE981E3B465"
     CICP: 1, 13, 0, 0
     oiio:ColorSpace: "sRGB"
 removed_cicp:
   16 x   16, 4 channel, float png
     channel list: R, G, B, A
-    Software: "OpenImageIO 3.1.3.0dev : DC4B1085141AF19019744DC43B156DE981E3B465"
     oiio:ColorSpace: "sRGB"
 Comparing "test16.png" and "ref/test16.png"
 PASS
