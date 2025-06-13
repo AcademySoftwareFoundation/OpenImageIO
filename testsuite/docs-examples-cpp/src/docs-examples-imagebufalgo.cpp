@@ -531,6 +531,7 @@ example_demosaic()
     ImageBuf Src("bayer.png");
     float WB[3]          = { 2.0, 1.0, 1.5 };
     ParamValue options[] = { { "layout", "BGGR" },
+                             { "white_balance_mode", "manual" },
                              ParamValue("white_balance", TypeFloat, 3, WB) };
     ImageBuf Dst         = ImageBufAlgo::demosaic(Src, options);
     // END-imagebufalgo-demosaic

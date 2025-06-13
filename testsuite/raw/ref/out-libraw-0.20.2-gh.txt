@@ -84,6 +84,7 @@
     raw:HighlightMode: 0
     raw:pre_mul: 2.18485, 0.93582, 1.25676, 0
     raw:rgb_cam: 1.9205, -1.04135, 0.120857, 0, -0.246968, 1.75935, -0.512386, 0, -0.00695494, -0.489552, 1.49651, 0
+    raw:WhiteBalance: 2.02734, 1, 1.54688, 1
 ../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Artist: "                                    "
@@ -175,6 +176,7 @@
     raw:HighlightMode: 0
     raw:pre_mul: 2.42468, 0.92337, 1.16701, 0
     raw:rgb_cam: 1.63112, -0.49571, -0.135412, 0, -0.0198918, 1.37117, -0.351275, 0, 0.0569094, -0.396354, 1.33944, 0
+    raw:WhiteBalance: 1.80859, 1, 1.54688, 1
 ../oiio-images/raw/RAW_FUJI_F700.RAF : 2035 x 1533, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2007-01-06 14:20:22"
@@ -247,6 +249,7 @@
     raw:HighlightMode: 0
     raw:pre_mul: 2.0073, 0.938645, 1.0849, 0
     raw:rgb_cam: 1.47494, -0.398506, -0.0764295, 0, -0.0661386, 1.3549, -0.288761, 0, 0.034221, -0.397378, 1.36316, 0
+    raw:WhiteBalance: 1.64414, 1, 1.21681, 1
 ../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Artist: "                                    "
@@ -338,6 +341,7 @@
     raw:HighlightMode: 0
     raw:pre_mul: 2.42468, 0.92337, 1.16701, 0
     raw:rgb_cam: 1.63112, -0.49571, -0.135412, 0, -0.0198918, 1.37117, -0.351275, 0, 0.0569094, -0.396354, 1.33944, 0
+    raw:WhiteBalance: 1.80859, 1, 1.54688, 1
 ../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
     channel list: R, G, B
     full/display size: 3648 x 2736
@@ -411,6 +415,7 @@
     raw:HighlightMode: 0
     raw:pre_mul: 2.02919, 0.940322, 1.16178, 0
     raw:rgb_cam: 1.51654, -0.430227, -0.0863105, 0, -0.0494907, 1.30045, -0.250959, 0, 0.0301381, -0.345784, 1.31565, 0
+    raw:WhiteBalance: 1.92969, 1, 1.51562, 1
 ../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
     channel list: R, G, B
     full/display size: 2592 x 3872
@@ -478,6 +483,7 @@
     raw:HighlightMode: 0
     raw:pre_mul: 1.97416, 0.933243, 1.07503, 0
     raw:rgb_cam: 1.57863, -0.445627, -0.133005, 0, 0.00253742, 1.23613, -0.23867, 0, 0.0130546, -0.219968, 1.20691, 0
+    raw:WhiteBalance: 2.00393, 1.00589, 1.33595, 0.994106
 ../oiio-images/raw/RAW_SONY_A300.ARW : 3880 x 2608, 3 channel, uint16 raw
     channel list: R, G, B
     full/display size: 3872 x 2592
@@ -526,6 +532,7 @@
     raw:HighlightMode: 0
     raw:pre_mul: 1.90192, 0.934325, 1.3073, 0
     raw:rgb_cam: 1.55293, -0.400994, -0.151933, 0, -0.00496778, 1.23841, -0.233446, 0, 0.0079905, -0.190766, 1.18278, 0
+    raw:WhiteBalance: 1.92578, 1, 1.59375, 1
     Sony:AFMicroAdjOn: 0
     Sony:AFMicroAdjValue: 0
     Sony:AFPoint: -1
