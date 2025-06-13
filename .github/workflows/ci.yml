@@ -452,14 +452,9 @@ jobs:
                             OIIO_CMAKE_FLAGS="-DOIIO_HARDENING=2"
                             EXTRA_DEP_PACKAGES="python3.12-dev python3-numpy"
                             USE_OPENVDB=0
-                            SKIP_APT_GET_UPDATE=1
                             FREETYPE_VERSION=master
                             QT_VERSION=0 INSTALL_OPENCV=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
-                            # Disabling the `apt-get update` in gh-installdeps.bash 
-                            # addresses a job killing problem in the GHA Ubuntu
-                            # 24.04 runners that cropped up circa May 29 2024. Maybe
-                            # it will be fixed and we can do the update again later?
           - desc: all local builds gcc12 C++17 avx2 exr3.2 ocio2.3
             nametag: linux-local-builds
             runner: ubuntu-22.04
