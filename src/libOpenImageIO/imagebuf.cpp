@@ -1088,14 +1088,28 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
             // If no configspec, just do a regular soft invalidate
             invalidate(m_name, false);
         }
-        m_imagecache->get_image_info(m_name, subimage, miplevel, s_subimages,
-                                     TypeInt, &m_nsubimages);
-        m_imagecache->get_image_info(m_name, subimage, miplevel, s_miplevels,
-                                     TypeInt, &m_nmiplevels);
         const char* fmt = NULL;
-        m_imagecache->get_image_info(m_name, subimage, miplevel, s_fileformat,
-                                     TypeString, &fmt);
+        if (!(m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                           s_subimages, TypeInt, &m_nsubimages)
+              && m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                              s_miplevels, TypeInt,
+                                              &m_nmiplevels)
+              && m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                              s_fileformat, TypeString, &fmt))) {
+            error(m_imagecache->geterror());
+            return false;
+        }
         m_fileformat = ustring(fmt);
+
+        if (subimage < 0 || subimage >= m_nsubimages) {
+            error("Invalid subimage {} requested (of {} subimages)", subimage,
+                  m_nsubimages);
+        }
+        if (miplevel < 0 || miplevel >= m_nmiplevels) {
+            error(
+                "Invalid MIP level {} requested for subimage {} (of {} levels)",
+                miplevel, subimage, m_nmiplevels);
+        }
 
         m_imagecache->get_imagespec(m_name, m_nativespec, subimage);
         m_spec = m_nativespec;
@@ -1167,6 +1181,18 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         if (!input) {
             m_err = OIIO::geterror();
             atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+            return false;
+        }
+        if (subimage > 0 && !input->supports("multiimage")) {
+            error(
+                "Invalid subimage {} requested ({} does not support subimages)",
+                subimage, input->format_name());
+            return false;
+        }
+        if (miplevel > 0 && !input->supports("mipmap")) {
+            error(
+                "Invalid miplevel {} requested ({} does not support miplevels)",
+                miplevel, input->format_name());
             return false;
         }
         m_spec = input->spec(subimage, miplevel);
