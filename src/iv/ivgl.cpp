@@ -819,14 +819,36 @@ IvGL::paint_pixelview()
     /// closeuppixelzoom x closeuppixelzoom square.
     const float closeuppixelzoom = static_cast<float>(closeupsize)
                                    / ncloseuppixels;
-
+    const int text_line_height = 18;
     int follow_mouse_offset = 15;
+    
+    float follow_mouse_base_x = 0;
+    float follow_mouse_base_y = 0;
+
+    const int total_text_height = 4 * text_line_height;
+    const int status_bar_height = 15; // TODO m_viewer.statusBar()->height();
+
+    // Calculate if closeup would go beyond viewport boundaries
+    bool should_show_on_left = (xw + closeupsize + follow_mouse_offset) > width();
+    bool should_show_above = (yw + closeupsize + follow_mouse_offset + total_text_height + status_bar_height) > height();
+
     if (m_viewer.pixelviewFollowsMouse()) {
         // Display closeup overtop mouse -- translate the coordinate system
         // so that it is centered at the mouse position.
-        glTranslatef(
-            xw - width() / 2 + closeupsize / 2 + 4 + follow_mouse_offset,
-            -yw + height() / 2 - closeupsize / 2 - 4 - follow_mouse_offset, 0);
+
+        // Calculate base position (center of closeup at cursor)
+        follow_mouse_base_x = xw - width() / 2 + closeupsize / 2 + 4 + follow_mouse_offset;
+        follow_mouse_base_y = -yw + height() / 2 - closeupsize / 2 - 4 - follow_mouse_offset;
+
+        if (should_show_on_left) {
+            follow_mouse_base_x -= closeupsize + follow_mouse_offset * 2;
+        }
+
+        if(should_show_above){
+            follow_mouse_base_y += closeupsize + total_text_height + follow_mouse_offset * 2 + 8;
+        }
+        
+        glTranslatef(follow_mouse_base_x, follow_mouse_base_y, 0);
     } else {
         // Display closeup in corner -- translate the coordinate system so that
         // it is centered near the corner of the window.
@@ -948,7 +970,7 @@ IvGL::paint_pixelview()
     // extends slightly out from the closeup window (making it more
     // clearly visible), and also all the way down to cover the area
     // where the text will be printed, so it is very readable.
-    const int yspacing = 18;
+    
 
     glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
     glDisable(GL_TEXTURE_2D);
@@ -956,7 +978,7 @@ IvGL::paint_pixelview()
         // Disable shaders for this.
         glUseProgram(0);
     }
-    float extraspace = yspacing * (2 + spec.nchannels) + 4;
+    float extraspace = text_line_height * (2 + spec.nchannels) + 4;
     glColor4f(0.1f, 0.1f, 0.1f, 0.7f);
     gl_rect(-0.5f * closeupsize, -0.5f * closeupsize, 0.5f * closeupsize,
             -0.5f * closeupsize - extraspace, -0.1f);
@@ -970,14 +992,22 @@ IvGL::paint_pixelview()
     int textx, texty;
     if (m_viewer.pixelviewFollowsMouse()) {
         textx = xw + 8 + follow_mouse_offset;
-        texty = yw + closeupsize + yspacing + follow_mouse_offset;
+        texty = yw + closeupsize + text_line_height + follow_mouse_offset;
+
+        if(should_show_on_left){
+            textx -= closeupsize + follow_mouse_offset * 2;
+        }
+
+        if(should_show_above){
+            texty -= closeupsize + total_text_height + follow_mouse_offset * 2 + 8;
+        }
     } else {
         if (m_pixelview_left_corner) {
             textx = 9;
-            texty = closeupsize + yspacing;
+            texty = closeupsize + text_line_height;
         } else {
             textx = width() - closeupsize - 1;
-            texty = closeupsize + yspacing;
+            texty = closeupsize + text_line_height;
         }
     }
 
@@ -1140,7 +1170,7 @@ IvGL::paint_pixelview()
             = Strutil::fmt::format("              ({:d},{:d})", (int)real_xp,
                                    (int)real_yp);
         shadowed_text(textx, texty, 0.0f, mouse_pos, center_text_color);
-        texty += yspacing;
+        texty += text_line_height;
 
         std::stringstream header_stream;
         header_stream << std::left << "   " << std::setw(maxLengths.centerValue)
@@ -1200,7 +1230,7 @@ IvGL::paint_pixelview()
         avg_text_color.setAlpha(200);
         shadowed_text(textx, texty, 0.0f, header_stream.str(), avg_text_color);
 
-        texty += yspacing;
+        texty += text_line_height;
     }
 
     for (const auto& stat : channel_stats) {
@@ -1230,7 +1260,7 @@ IvGL::paint_pixelview()
         }
 
         shadowed_text(textx, texty, 0.0f, line_stream.str(), channelColor);
-        texty += yspacing;
+        texty += text_line_height;
     }
 
     glPopAttrib();
@@ -1271,6 +1301,14 @@ IvGL::paint_pixelview()
         if (m_viewer.pixelviewFollowsMouse()) {
             x = xw + offset + follow_mouse_offset;
             y = yw + offset + follow_mouse_offset;
+
+            if(should_show_on_left){
+                x -= closeupsize + follow_mouse_offset * 2;
+            }
+
+            if(should_show_above){
+                y -= closeupsize + total_text_height + follow_mouse_offset * 2 + 8;
+            }
         } else {
             if (m_pixelview_left_corner) {
                 x = offset + 1;
