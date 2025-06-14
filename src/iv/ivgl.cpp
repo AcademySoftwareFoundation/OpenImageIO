@@ -9,10 +9,10 @@
 #include <limits>
 
 #include <QComboBox>
+#include <QFontDatabase>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QProgressBar>
-#include <QFontDatabase>
 #if OIIO_QT_MAJOR >= 6
 #    include <QPainter>
 #    include <QPen>
@@ -749,7 +749,8 @@ IvGL::shadowed_text(float x, float y, float /*z*/, const std::string& s,
         QPainter painter(&t);
         painter.setRenderHint(QPainter::TextAntialiasing, true);
         QFont font;
-        font.setFamilies({"Monaco", "Menlo", "Consolas", "DejaVu Sans Mono", "Courier New"});
+        font.setFamilies({ "Monaco", "Menlo", "Consolas", "DejaVu Sans Mono",
+                           "Courier New" });
         font.setFixedPitch(true);
         font.setPointSize(11);
         painter.setFont(font);
@@ -805,9 +806,9 @@ IvGL::paint_pixelview()
 
     // ncloseuppixels is the number of big pixels (in each direction)
     // visible in our closeup window.
-    int ncloseuppixels = m_viewer.closeupPixels();
+    int ncloseuppixels    = m_viewer.closeupPixels();
     int ncloseupavgpixels = m_viewer.closeupAvgPixels();
-    
+
     int avg_window_offset = 0;
     if (ncloseuppixels > ncloseupavgpixels) {
         avg_window_offset = (ncloseuppixels - ncloseupavgpixels) / 2;
@@ -816,14 +817,16 @@ IvGL::paint_pixelview()
     /// closeuppixelzoom is the zoom factor we use for closeup pixels --
     /// i.e. one image pixel will appear in the closeup window as a
     /// closeuppixelzoom x closeuppixelzoom square.
-    const float closeuppixelzoom = static_cast<float>(closeupsize) / ncloseuppixels;
+    const float closeuppixelzoom = static_cast<float>(closeupsize)
+                                   / ncloseuppixels;
 
     int follow_mouse_offset = 15;
     if (m_viewer.pixelviewFollowsMouse()) {
         // Display closeup overtop mouse -- translate the coordinate system
         // so that it is centered at the mouse position.
-        glTranslatef(xw - width() / 2 + closeupsize / 2 + 4 + follow_mouse_offset,
-                     -yw + height() / 2 - closeupsize / 2 - 4 - follow_mouse_offset, 0);
+        glTranslatef(
+            xw - width() / 2 + closeupsize / 2 + 4 + follow_mouse_offset,
+            -yw + height() / 2 - closeupsize / 2 - 4 - follow_mouse_offset, 0);
     } else {
         // Display closeup in corner -- translate the coordinate system so that
         // it is centered near the corner of the window.
@@ -865,9 +868,9 @@ IvGL::paint_pixelview()
     float tmax = 1.0f;
     // Calculate patch of the image to use for the pixelview.
     int xbegin = 0;
-    int ybegin = 0; 
-    int xend = 0;
-    int yend = 0;
+    int ybegin = 0;
+    int xend   = 0;
+    int yend   = 0;
     if (xp >= 0 && xp < img->oriented_width() && yp >= 0
         && yp < img->oriented_height()) {
         // Keep the view within ncloseuppixels pixels.
@@ -875,14 +878,14 @@ IvGL::paint_pixelview()
                              spec.width - ncloseuppixels / 2 - 1);
         int ypp = clamp<int>(real_yp, ncloseuppixels / 2,
                              spec.height - ncloseuppixels / 2 - 1);
-        xbegin = std::max(xpp - ncloseuppixels / 2, 0);
-        ybegin = std::max(ypp - ncloseuppixels / 2, 0);
-        xend   = std::min(xpp + ncloseuppixels / 2 + 1, spec.width);
-        yend   = std::min(ypp + ncloseuppixels / 2 + 1, spec.height);
-        smin       = 0;
-        tmin       = 0;
-        smax       = float(xend - xbegin) / closeuptexsize;
-        tmax       = float(yend - ybegin) / closeuptexsize;
+        xbegin  = std::max(xpp - ncloseuppixels / 2, 0);
+        ybegin  = std::max(ypp - ncloseuppixels / 2, 0);
+        xend    = std::min(xpp + ncloseuppixels / 2 + 1, spec.width);
+        yend    = std::min(ypp + ncloseuppixels / 2 + 1, spec.height);
+        smin    = 0;
+        tmin    = 0;
+        smax    = float(xend - xbegin) / closeuptexsize;
+        tmax    = float(yend - ybegin) / closeuptexsize;
         //std::cerr << "img (" << xbegin << "," << ybegin << ") - (" << xend << "," << yend << ")\n";
         //std::cerr << "tex (" << smin << "," << tmin << ") - (" << smax << "," << tmax << ")\n";
         //std::cerr << "center mouse (" << xp << "," << yp << "), real (" << real_xp << "," << real_yp << ")\n";
@@ -955,8 +958,8 @@ IvGL::paint_pixelview()
     }
     float extraspace = yspacing * (2 + spec.nchannels) + 4;
     glColor4f(0.1f, 0.1f, 0.1f, 0.7f);
-    gl_rect(-0.5f * closeupsize , -0.5f * closeupsize,
-            0.5f * closeupsize, -0.5f * closeupsize - extraspace, -0.1f);
+    gl_rect(-0.5f * closeupsize, -0.5f * closeupsize, 0.5f * closeupsize,
+            -0.5f * closeupsize - extraspace, -0.1f);
 
     QColor center_color(0, 255, 255, 125);
     QColor avg_color(255, 255, 0, 125);
@@ -976,15 +979,16 @@ IvGL::paint_pixelview()
             textx = width() - closeupsize - 1;
             texty = closeupsize + yspacing;
         }
-    }        
+    }
 
     int pixel_x = (int)real_xp + spec.x;
     int pixel_y = (int)real_yp + spec.y;
-    
+
     float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
     img->getpixel(pixel_x, pixel_y, fpixel);
-    
-    int pixel_count = (xend - xbegin - avg_window_offset * 2) * (yend - ybegin - avg_window_offset * 2);
+
+    int pixel_count = (xend - xbegin - avg_window_offset * 2)
+                      * (yend - ybegin - avg_window_offset * 2);
 
     struct ChannelComponents {
         std::string name;
@@ -995,17 +999,18 @@ IvGL::paint_pixelview()
         std::string avg;
     };
     std::vector<ChannelComponents> channel_stats;
-    
+
     struct MaxLengths {
-        int name = 0;
+        int name        = 0;
         int centerValue = 0;
-        int normalized = 0;
-        int min = 0;
-        int max = 0;
-        int avg = 0;
+        int normalized  = 0;
+        int min         = 0;
+        int max         = 0;
+        int avg         = 0;
     };
     MaxLengths maxLengths;
 
+    bool is_inside_data_window = ybegin > 0 || yend > 0 || xbegin > 0 || xend > 0;
     for (int i = 0; i < spec.nchannels; ++i) {
         std::string name = spec.channelnames[i];
         std::string centerValue;
@@ -1016,135 +1021,203 @@ IvGL::paint_pixelview()
 
         switch (spec.format.basetype) {
         case TypeDesc::UINT8: {
-            unsigned char min_val = std::numeric_limits<unsigned char>::max();
-            unsigned char max_val = std::numeric_limits<unsigned char>::lowest();
-            int sum = 0;
-            for(int y = ybegin + avg_window_offset; y < yend - avg_window_offset; ++y) {
-                for(int x = xbegin + avg_window_offset; x < xend - avg_window_offset; ++x) {
-                    ImageBuf::ConstIterator<unsigned char, unsigned char> p(
-                        *img, x + spec.x, y + spec.y);
-                    min_val = std::min(min_val, p[i]);
-                    max_val = std::max(max_val, p[i]);
-                    sum += p[i];
-                }
-            }
-            unsigned char avg_val = (unsigned char)(sum / pixel_count);
+            unsigned char min_val = 0;
+            unsigned char max_val = 0;
+            unsigned char avg_val = 0;
 
-            ImageBuf::ConstIterator<unsigned char, unsigned char> p(*img, pixel_x, pixel_y);
+            if (is_inside_data_window) {
+                min_val = std::numeric_limits<unsigned char>::max();
+                max_val = std::numeric_limits<unsigned char>::lowest();
+                int sum = 0;
+                for (int y = ybegin + avg_window_offset;
+                     y < yend - avg_window_offset; ++y) {
+                    for (int x = xbegin + avg_window_offset;
+                         x < xend - avg_window_offset; ++x) {
+                        ImageBuf::ConstIterator<unsigned char, unsigned char> p(
+                            *img, x + spec.x, y + spec.y);
+                        min_val = std::min(min_val, p[i]);
+                        max_val = std::max(max_val, p[i]);
+                        sum += p[i];
+                    }
+                }
+                avg_val = (unsigned char)(sum / pixel_count);
+            }
+
+            ImageBuf::ConstIterator<unsigned char, unsigned char> p(*img,
+                                                                    pixel_x,
+                                                                    pixel_y);
             centerValue = Strutil::fmt::format("{:<3}", int(p[i]));
-            normalized = Strutil::fmt::format("({:3.3f})", fpixel[i]);
-            min = Strutil::fmt::format("{:<3}", min_val);
-            max = Strutil::fmt::format("{:<3}", max_val);
-            avg = Strutil::fmt::format("{:<3}", avg_val);
+            normalized  = Strutil::fmt::format("({:3.3f})", fpixel[i]);
+            min         = Strutil::fmt::format("{:<3}", min_val);
+            max         = Strutil::fmt::format("{:<3}", max_val);
+            avg         = Strutil::fmt::format("{:<3}", avg_val);
         } break;
         case TypeDesc::UINT16: {
             unsigned short min_val = std::numeric_limits<unsigned short>::max();
-            unsigned short max_val = std::numeric_limits<unsigned short>::lowest();
-            int sum = 0;
-            for(int y = ybegin + avg_window_offset; y < yend - avg_window_offset; ++y) {
-                for(int x = xbegin + avg_window_offset; x < xend - avg_window_offset; ++x) {
-                    ImageBuf::ConstIterator<unsigned short, unsigned short> p(
-                        *img, x + spec.x, y + spec.y);
-                    min_val = std::min(min_val, p[i]);
-                    max_val = std::max(max_val, p[i]);
-                    sum += p[i];
-                }
-            }
-            unsigned short avg_val = (unsigned short)(sum / pixel_count);
+            unsigned short max_val
+                = std::numeric_limits<unsigned short>::lowest();
+            unsigned short avg_val = 0;
 
-            ImageBuf::ConstIterator<unsigned short, unsigned short> p(*img, pixel_x, pixel_y);
+            if (is_inside_data_window) {
+                min_val = std::numeric_limits<unsigned short>::max();
+                max_val = std::numeric_limits<unsigned short>::lowest();
+                int sum = 0;
+                for (int y = ybegin + avg_window_offset;
+                     y < yend - avg_window_offset; ++y) {
+                    for (int x = xbegin + avg_window_offset;
+                         x < xend - avg_window_offset; ++x) {
+                        ImageBuf::ConstIterator<unsigned short, unsigned short>
+                            p(*img, x + spec.x, y + spec.y);
+                        min_val = std::min(min_val, p[i]);
+                        max_val = std::max(max_val, p[i]);
+                        sum += p[i];
+                    }
+                }
+                avg_val = (unsigned short)(sum / pixel_count);
+            }
+
+            ImageBuf::ConstIterator<unsigned short, unsigned short> p(*img,
+                                                                      pixel_x,
+                                                                      pixel_y);
             centerValue = Strutil::fmt::format("{:<5}", int(p[i]));
-            normalized = Strutil::fmt::format("({:3.3f})", fpixel[i]);
-            min = Strutil::fmt::format("{:<5}", min_val);
-            max = Strutil::fmt::format("{:<5}", max_val);
-            avg = Strutil::fmt::format("{:<5}", avg_val);
+            normalized  = Strutil::fmt::format("({:3.3f})", fpixel[i]);
+            min         = Strutil::fmt::format("{:<5}", min_val);
+            max         = Strutil::fmt::format("{:<5}", max_val);
+            avg         = Strutil::fmt::format("{:<5}", avg_val);
         } break;
         default: {  // everything else, treat as float
-            float min_val = std::numeric_limits<float>::max();
-            float max_val = std::numeric_limits<float>::lowest();
-            float sum = 0.0f;
-            for(int y = ybegin + avg_window_offset; y < yend - avg_window_offset; ++y) {
-                for(int x = xbegin + avg_window_offset; x < xend - avg_window_offset; ++x) {
-                    ImageBuf::ConstIterator<float, float> p(
-                        *img, x + spec.x, y + spec.y);
-                    min_val = std::min(min_val, p[i]);
-                    max_val = std::max(max_val, p[i]);
-                    sum += p[i];
+            float min_val = 0;
+            float max_val = 0;
+            float avg_val = 0;
+
+            if (is_inside_data_window) {
+                min_val   = std::numeric_limits<float>::max();
+                max_val   = std::numeric_limits<float>::lowest();
+                float sum = 0.0f;
+
+                for (int y = ybegin + avg_window_offset;
+                     y < yend - avg_window_offset; ++y) {
+                    for (int x = xbegin + avg_window_offset;
+                         x < xend - avg_window_offset; ++x) {
+                        ImageBuf::ConstIterator<float, float> p(*img,
+                                                                x + spec.x,
+                                                                y + spec.y);
+                        min_val = std::min(min_val, p[i]);
+                        max_val = std::max(max_val, p[i]);
+                        sum += p[i];
+                    }
                 }
+                avg_val = sum / pixel_count;
             }
-            float avg_val = sum / pixel_count;
 
             ImageBuf::ConstIterator<float, float> p(*img, pixel_x, pixel_y);
             centerValue = Strutil::fmt::format("{:<5.3f}", p[i]);
-            normalized = "";  // No normalized value for float
-            min = Strutil::fmt::format("{:<5.3f}", min_val);
-            max = Strutil::fmt::format("{:<5.3f}", max_val);
-            avg = Strutil::fmt::format("{:<5.3f}", avg_val);
+            normalized  = "";  // No normalized value for float
+            min         = Strutil::fmt::format("{:<5.3f}", min_val);
+            max         = Strutil::fmt::format("{:<5.3f}", max_val);
+            avg         = Strutil::fmt::format("{:<5.3f}", avg_val);
         } break;
         }
 
-        maxLengths.name = std::max(maxLengths.name, (int)name.length());
-        maxLengths.centerValue = std::max(maxLengths.centerValue, (int)centerValue.length());
-        maxLengths.normalized = std::max(maxLengths.normalized, (int)normalized.length());
-        maxLengths.min = std::max(maxLengths.min, (int)min.length());
-        maxLengths.max = std::max(maxLengths.max, (int)max.length());
-        maxLengths.avg = std::max(maxLengths.avg, (int)avg.length());
+        maxLengths.name        = std::max(maxLengths.name, (int)name.length());
+        maxLengths.centerValue = std::max(maxLengths.centerValue,
+                                          (int)centerValue.length());
+        maxLengths.normalized  = std::max(maxLengths.normalized,
+                                          (int)normalized.length());
+        maxLengths.min         = std::max(maxLengths.min, (int)min.length());
+        maxLengths.max         = std::max(maxLengths.max, (int)max.length());
+        maxLengths.avg         = std::max(maxLengths.avg, (int)avg.length());
 
-        channel_stats.push_back({name, centerValue, normalized, min, max, avg});
+        channel_stats.push_back(
+            { name, centerValue, normalized, min, max, avg });
     }
 
     {
         QColor center_text_color = center_color;
         center_text_color.setAlpha(200);
 
-        std::string mouse_pos = Strutil::fmt::format("              ({:d},{:d})", (int)real_xp, (int)real_yp);
+        std::string mouse_pos
+            = Strutil::fmt::format("              ({:d},{:d})", (int)real_xp,
+                                   (int)real_yp);
         shadowed_text(textx, texty, 0.0f, mouse_pos, center_text_color);
         texty += yspacing;
 
         std::stringstream header_stream;
-        header_stream << std::left << "   "
-        << std::setw(maxLengths.centerValue) << "   " << " "
-        << (maxLengths.normalized > 0 ? (std::stringstream() << std::left << std::setw(maxLengths.normalized) << "Norm" << "  ").str() : " ")
-        << std::setw(maxLengths.min) << "Min" << "  "
-        << std::setw(maxLengths.max) << "Max" << "  "
-        << std::setw(maxLengths.avg) << "   " << "  ";
+        header_stream << std::left << "   " << std::setw(maxLengths.centerValue)
+                      << "   "
+                      << " "
+                      << (maxLengths.normalized > 0
+                              ? (std::stringstream()
+                                 << std::left
+                                 << std::setw(maxLengths.normalized) << "Norm"
+                                 << "  ")
+                                    .str()
+                              : " ")
+                      << std::setw(maxLengths.min) << "Min"
+                      << "  " << std::setw(maxLengths.max) << "Max"
+                      << "  " << std::setw(maxLengths.avg) << "   "
+                      << "  ";
 
-        shadowed_text(textx, texty, 0.0f, header_stream.str(), QColor(200, 200, 200));
+        shadowed_text(textx, texty, 0.0f, header_stream.str(),
+                      QColor(200, 200, 200));
 
         header_stream.str("");
-        header_stream << std::left << "   "
-        << std::setw(maxLengths.centerValue) << "Val" << " "
-        << (maxLengths.normalized > 0 ? (std::stringstream() << std::left << std::setw(maxLengths.normalized) << "    " << "  ").str() : " ")
-        << std::setw(maxLengths.min) << "   " << "  "
-        << std::setw(maxLengths.max) << "   " << "  "
-        << std::setw(maxLengths.avg) << "   " << "  ";
-        
-        shadowed_text(textx, texty, 0.0f, header_stream.str(), center_text_color);
+        header_stream << std::left << "   " << std::setw(maxLengths.centerValue)
+                      << "Val"
+                      << " "
+                      << (maxLengths.normalized > 0
+                              ? (std::stringstream()
+                                 << std::left
+                                 << std::setw(maxLengths.normalized) << "    "
+                                 << "  ")
+                                    .str()
+                              : " ")
+                      << std::setw(maxLengths.min) << "   "
+                      << "  " << std::setw(maxLengths.max) << "   "
+                      << "  " << std::setw(maxLengths.avg) << "   "
+                      << "  ";
+
+        shadowed_text(textx, texty, 0.0f, header_stream.str(),
+                      center_text_color);
 
         header_stream.str("");
-        header_stream << std::left << "   "
-        << std::setw(maxLengths.centerValue) << "   " << " "
-        << (maxLengths.normalized > 0 ? (std::stringstream() << std::left << std::setw(maxLengths.normalized) << "    " << "  ").str() : " ")
-        << std::setw(maxLengths.min) << "   " << "  "
-        << std::setw(maxLengths.max) << "   " << "  "
-        << std::setw(maxLengths.avg) << "Avg" << "  ";
+        header_stream << std::left << "   " << std::setw(maxLengths.centerValue)
+                      << "   "
+                      << " "
+                      << (maxLengths.normalized > 0
+                              ? (std::stringstream()
+                                 << std::left
+                                 << std::setw(maxLengths.normalized) << "    "
+                                 << "  ")
+                                    .str()
+                              : " ")
+                      << std::setw(maxLengths.min) << "   "
+                      << "  " << std::setw(maxLengths.max) << "   "
+                      << "  " << std::setw(maxLengths.avg) << "Avg"
+                      << "  ";
 
         QColor avg_text_color = avg_color;
         avg_text_color.setAlpha(200);
         shadowed_text(textx, texty, 0.0f, header_stream.str(), avg_text_color);
-        
+
         texty += yspacing;
     }
 
     for (const auto& stat : channel_stats) {
         std::stringstream line_stream;
         line_stream << std::left << stat.name << ": "
-        << std::setw(maxLengths.centerValue) << stat.centerValue << " "
-        << (maxLengths.normalized > 0 ? (std::stringstream() << std::setw(maxLengths.normalized) << stat.normalized << "  ").str() : " ")
-        << std::setw(maxLengths.min) << stat.min << "  "
-        << std::setw(maxLengths.max) << stat.max << "  "
-        << std::setw(maxLengths.avg) << stat.avg << "  ";
-        
+                    << std::setw(maxLengths.centerValue) << stat.centerValue
+                    << " "
+                    << (maxLengths.normalized > 0
+                            ? (std::stringstream()
+                               << std::setw(maxLengths.normalized)
+                               << stat.normalized << "  ")
+                                  .str()
+                            : " ")
+                    << std::setw(maxLengths.min) << stat.min << "  "
+                    << std::setw(maxLengths.max) << stat.max << "  "
+                    << std::setw(maxLengths.avg) << stat.avg << "  ";
+
         QColor channelColor;
         if (stat.name[0] == 'R') {
             channelColor = QColor(255, 50, 50);
@@ -1155,7 +1228,7 @@ IvGL::paint_pixelview()
         } else {
             channelColor = Qt::white;
         }
-        
+
         shadowed_text(textx, texty, 0.0f, line_stream.str(), channelColor);
         texty += yspacing;
     }
@@ -1164,33 +1237,37 @@ IvGL::paint_pixelview()
     glPopMatrix();
 
     // Draw yellow square around center pixel
-    if (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()) {
+    if (xp >= 0 && xp < img->oriented_width() && yp >= 0
+        && yp < img->oriented_height()) {
         // Draw corner markers
-        auto draw_corners = [](QPainter& painter, float rect_x1, float rect_y1, float rect_x2, float rect_y2, const QColor& color) {
+        auto draw_corners = [](QPainter& painter, float rect_x1, float rect_y1,
+                               float rect_x2, float rect_y2,
+                               const QColor& color) {
             float corner_size = 4;  // Size of each corner marker
             painter.setPen(QPen(color, 1.0));
-            
+
             // Top-left corner
             painter.drawLine(rect_x1, rect_y1, rect_x1 + corner_size, rect_y1);
             painter.drawLine(rect_x1, rect_y1, rect_x1, rect_y1 + corner_size);
-            
-            // Top-right corner  
+
+            // Top-right corner
             painter.drawLine(rect_x2 - corner_size, rect_y1, rect_x2, rect_y1);
             painter.drawLine(rect_x2, rect_y1, rect_x2, rect_y1 + corner_size);
-            
+
             // Bottom-left corner
             painter.drawLine(rect_x1, rect_y2 - corner_size, rect_x1, rect_y2);
             painter.drawLine(rect_x1, rect_y2, rect_x1 + corner_size, rect_y2);
-            
+
             // Bottom-right corner
             painter.drawLine(rect_x2 - corner_size, rect_y2, rect_x2, rect_y2);
             painter.drawLine(rect_x2, rect_y2 - corner_size, rect_x2, rect_y2);
         };
 
-        float pixel_size = closeuppixelzoom-1;  // Size of each pixel in the view
+        float pixel_size = closeuppixelzoom
+                           - 1;  // Size of each pixel in the view
         float x, y;
-        
-        float offset = closeupsize/2 - pixel_size/2 + 5;
+
+        float offset = closeupsize / 2 - pixel_size / 2 + 5;
         if (m_viewer.pixelviewFollowsMouse()) {
             x = xw + offset + follow_mouse_offset;
             y = yw + offset + follow_mouse_offset;
@@ -1200,41 +1277,55 @@ IvGL::paint_pixelview()
                 y = offset + 1;
             } else {
                 x = width() - offset - pixel_size;
-                y = offset+1;
+                y = offset + 1;
             }
         }
 
-        if(spec.width - pixel_x <= floor(ncloseuppixels/2)) {
-            x = x + (floor(ncloseuppixels/2) - (spec.width - pixel_x) + 1) * closeuppixelzoom + 1;
+        if (spec.width - pixel_x <= floor(ncloseuppixels / 2)) {
+            x = x
+                + (floor(ncloseuppixels / 2) - (spec.width - pixel_x) + 1)
+                      * closeuppixelzoom
+                + 1;
         }
-        if(spec.height - pixel_y <= floor(ncloseuppixels/2)) {
-            y = y + (floor(ncloseuppixels/2) - (spec.height - pixel_y) + 1) * closeuppixelzoom + 1;
+        if (spec.height - pixel_y <= floor(ncloseuppixels / 2)) {
+            y = y
+                + (floor(ncloseuppixels / 2) - (spec.height - pixel_y) + 1)
+                      * closeuppixelzoom
+                + 1;
         }
 
-        if(pixel_x < floor(ncloseuppixels/2)) {
-            x = x - (floor(ncloseuppixels/2) - pixel_x) * closeuppixelzoom + 1;
+        if (pixel_x < floor(ncloseuppixels / 2)) {
+            x = x - (floor(ncloseuppixels / 2) - pixel_x) * closeuppixelzoom
+                + 1;
         }
-        if(pixel_y < floor(ncloseuppixels/2)) {
-            y = y - (floor(ncloseuppixels/2) - pixel_y) * closeuppixelzoom + 1;
+        if (pixel_y < floor(ncloseuppixels / 2)) {
+            y = y - (floor(ncloseuppixels / 2) - pixel_y) * closeuppixelzoom
+                + 1;
         }
-        
+
         // Extract the rect coordinates from the corners
-        float rect_x1 = x;                // Left edge
-        float rect_y1 = y;                // Top edge
-        float rect_x2 = x + pixel_size;   // Right edge 
-        float rect_y2 = y + pixel_size;   // Bottom edge
-        
+        float rect_x1 = x;               // Left edge
+        float rect_y1 = y;               // Top edge
+        float rect_x2 = x + pixel_size;  // Right edge
+        float rect_y2 = y + pixel_size;  // Bottom edge
+
         QPainter painter(this);
         draw_corners(painter, rect_x1, rect_y1, rect_x2, rect_y2, center_color);
-        if(avg_window_offset > 0) {
-            draw_corners(
-                painter, 
-                rect_x1 - (ncloseuppixels/2 - avg_window_offset) * closeuppixelzoom, 
-                rect_y1 - (ncloseuppixels/2 - avg_window_offset) * closeuppixelzoom, 
-                rect_x2 + (ncloseuppixels/2 - avg_window_offset) * closeuppixelzoom, 
-                rect_y2 + (ncloseuppixels/2 - avg_window_offset) * closeuppixelzoom, 
-                avg_color
-            );
+        if (avg_window_offset > 0) {
+            draw_corners(painter,
+                         rect_x1
+                             - (ncloseuppixels / 2 - avg_window_offset)
+                                   * closeuppixelzoom,
+                         rect_y1
+                             - (ncloseuppixels / 2 - avg_window_offset)
+                                   * closeuppixelzoom,
+                         rect_x2
+                             + (ncloseuppixels / 2 - avg_window_offset)
+                                   * closeuppixelzoom,
+                         rect_y2
+                             + (ncloseuppixels / 2 - avg_window_offset)
+                                   * closeuppixelzoom,
+                         avg_color);
         }
     }
 }
@@ -2175,4 +2266,3 @@ IvGL::print_error(const char* msg)
 }
 
 OIIO_PRAGMA_WARNING_POP
-

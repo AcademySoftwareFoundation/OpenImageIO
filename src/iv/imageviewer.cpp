@@ -499,22 +499,24 @@ ImageViewer::createActions()
             SLOT(toggleAreaSample()));
 
     closeupPixelsLabel = new QLabel(tr("# closeup pixels:"));
-    closeupPixelsBox = new QSpinBox();
+    closeupPixelsBox   = new QSpinBox();
     closeupPixelsBox->setRange(9, 25);
     closeupPixelsBox->setValue(13);
     closeupPixelsBox->setSingleStep(2);
-    
-    QString closeupPixelsTooltip = tr("Number of pixels to show in the closeup view.");
+
+    QString closeupPixelsTooltip = tr(
+        "Number of pixels to show in the closeup view.");
     closeupPixelsBox->setToolTip(closeupPixelsTooltip);
     closeupPixelsLabel->setToolTip(closeupPixelsTooltip);
 
     closeupAvgPixelsLabel = new QLabel(tr("# closeup avg pixels:"));
-    closeupAvgPixelsBox = new QSpinBox();
+    closeupAvgPixelsBox   = new QSpinBox();
     closeupAvgPixelsBox->setRange(3, 25);
     closeupAvgPixelsBox->setValue(11);
     closeupAvgPixelsBox->setSingleStep(2);
-    
-    QString closeupAvgPixelsTooltip = tr("Number of pixels to use for averaging in the closeup view.");
+
+    QString closeupAvgPixelsTooltip = tr(
+        "Number of pixels to use for averaging in the closeup view.");
     closeupAvgPixelsBox->setToolTip(closeupAvgPixelsTooltip);
     closeupAvgPixelsLabel->setToolTip(closeupAvgPixelsTooltip);
 
@@ -865,8 +867,7 @@ ImageViewer::readSettings(bool ui_is_set_up)
         maxMemoryIC->setValue(settings.value("maxMemoryIC", 2048).toInt());
     slideShowDuration->setValue(
         settings.value("slideShowDuration", 10).toInt());
-    closeupPixelsBox->setValue(
-        settings.value("closeupPixels", 13).toInt());
+    closeupPixelsBox->setValue(settings.value("closeupPixels", 13).toInt());
 
     OIIO::attribute("imagebuf:use_imagecache", 1);
 

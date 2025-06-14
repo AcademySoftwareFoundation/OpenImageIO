@@ -187,11 +187,11 @@ protected:
 
 private:
     typedef QOpenGLWidget parent_t;
-    
+
     /// closeupsize is the size, in pixels, of the closeup window itself --
     /// just the number of pixels times the width of each closeup pixel.
     int closeupsize = 260;
-    
+
     /// closeuptexsize is the size of the texture used to upload the pixelview
     /// to OpenGL.
     const static int closeuptexsize = 25;
