@@ -181,7 +181,8 @@ command += oiiotool ("../common/tahoe-tiny.tif ../common/tahoe-small.tif ../comm
 # Test some special attribute evaluation names
 command += oiiotool ("../common/tahoe-tiny.tif " +
                      "--echo \"filename={TOP.filename} file_extension={TOP.file_extension} file_noextension={TOP.file_noextension}\" " +
-                     "--echo \"MINCOLOR={TOP.MINCOLOR} MAXCOLOR={TOP.MAXCOLOR} AVGCOLOR={TOP.AVGCOLOR}\"")
+                     "--echo \"MINCOLOR={TOP.MINCOLOR} MAXCOLOR={TOP.MAXCOLOR} AVGCOLOR={TOP.AVGCOLOR}\" " +
+                     "--echo \"SUBIMAGES={TOP.SUBIMAGES}\"")
 
 command += oiiotool ("--echo \"Testing expressions IS_BLACK, IS_CONSTANT:\" " +
                      "--pattern:type=uint16 constant:color=0.5,0.5,0.5 4x4 3 " +

@@ -326,6 +326,7 @@ TOP = ../common/grid.tif, BOTTOM = ../common/tahoe-tiny.tif
 Stack holds [1] = ../common/tahoe-small.tif
 filename=../common/tahoe-tiny.tif file_extension=.tif file_noextension=../common/tahoe-tiny
 MINCOLOR=0,0,0 MAXCOLOR=0.745098,1,1 AVGCOLOR=0.101942,0.216695,0.425293
+SUBIMAGES=1
 Testing expressions IS_BLACK, IS_CONSTANT:
   grey is-black? 0 is-constant? 1
   black is-black? 1 is-constant? 1
