@@ -106,7 +106,7 @@ public:
                 || feature == "exif"  // Because of arbitrary_metadata
                 || feature == "ioproxy"
                 || feature == "iptc"  // Because of arbitrary_metadata
-                || feature == "multiimage");
+                || feature == "multiimage" || feature == "mipmap");
     }
     bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& newspec,
@@ -477,11 +477,15 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     spec = ImageSpec();
 
     exr_result_t rv = exr_get_data_window(ctxt, subimage, &top_datawindow);
-    if (rv != EXR_ERR_SUCCESS)
+    if (rv != EXR_ERR_SUCCESS) {
+        in->errorfmt("exr_get_data_window failed");
         return false;
+    }
     rv = exr_get_display_window(ctxt, subimage, &top_displaywindow);
-    if (rv != EXR_ERR_SUCCESS)
+    if (rv != EXR_ERR_SUCCESS) {
+        in->errorfmt("exr_get_display_window failed");
         return false;
+    }
     spec.x           = top_datawindow.min.x;
     spec.y           = top_datawindow.min.y;
     spec.z           = 0;
@@ -500,8 +504,10 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 
     exr_storage_t storage;
     rv = exr_get_storage(ctxt, subimage, &storage);
-    if (rv != EXR_ERR_SUCCESS)
+    if (rv != EXR_ERR_SUCCESS) {
+        in->errorfmt("exr_get_storage failed");
         return false;
+    }
     uint32_t txsz, tysz;
     if ((storage == EXR_STORAGE_TILED || storage == EXR_STORAGE_DEEP_TILED)
         && EXR_ERR_SUCCESS
@@ -512,8 +518,10 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 
         int32_t levelsx, levelsy;
         rv = exr_get_tile_levels(ctxt, subimage, &levelsx, &levelsy);
-        if (rv != EXR_ERR_SUCCESS)
+        if (rv != EXR_ERR_SUCCESS) {
+            in->errorfmt("exr_get_tile_levels failed");
             return false;
+        }
         nmiplevels = std::max(levelsx, levelsy);
     } else {
         spec.tile_width  = 0;
@@ -904,8 +912,10 @@ OpenEXRCoreInput::PartInfo::query_channels(OpenEXRCoreInput* in,
     spec.nchannels = 0;
     const exr_attr_chlist_t* chlist;
     exr_result_t rv = exr_get_channels(ctxt, subimage, &chlist);
-    if (rv != EXR_ERR_SUCCESS)
+    if (rv != EXR_ERR_SUCCESS) {
+        in->errorfmt("exr_get_channels failed");
         return false;
+    }
 
     std::vector<CChanNameHolder> cnh;
     int c = 0;
@@ -1048,20 +1058,29 @@ OpenEXRCoreInput::PartInfo::compute_mipres(int miplevel, ImageSpec& spec) const
 bool
 OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
 {
-    if (subimage < 0 || subimage >= m_nsubimages)  // out of range
+    if (subimage < 0 || subimage >= m_nsubimages) {  // out of range
+        // errorfmt("Could not seek to subimage={}: not in file", subimage,
+        //          miplevel);
         return false;
+    }
 
     PartInfo& part(m_parts[subimage]);
     if (!part.initialized) {
-        if (!part.parse_header(this, m_exr_context, subimage, miplevel))
+        if (!part.parse_header(this, m_exr_context, subimage, miplevel)) {
+            errorfmt("Could not seek to subimage={}: unable to parse header",
+                     subimage, miplevel);
             return false;
+        }
         part.initialized = true;
     }
 
     m_subimage = subimage;
 
-    if (miplevel < 0 || miplevel >= part.nmiplevels)  // out of range
+    if (miplevel < 0 || miplevel >= part.nmiplevels) {  // out of range
+        // errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+        //          subimage, miplevel);
         return false;
+    }
 
     m_miplevel = miplevel;
     m_spec     = part.spec;
@@ -1088,20 +1107,30 @@ ImageSpec
 OpenEXRCoreInput::spec(int subimage, int miplevel)
 {
     ImageSpec ret;
-    if (subimage < 0 || subimage >= m_nsubimages)
+    if (subimage < 0 || subimage >= m_nsubimages) {
+        errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                 subimage, miplevel);
         return ret;  // invalid
+    }
     const PartInfo& part(m_parts[subimage]);
     if (!part.initialized) {
         // Only if this subimage hasn't yet been inventoried do we need
         // to lock and seek.
         lock_guard lock(*this);
         if (!part.initialized) {
-            if (!seek_subimage(subimage, miplevel))
+            if (!seek_subimage(subimage, miplevel)) {
+                errorfmt(
+                    "Could not seek to subimage={} miplevel={}: not in file",
+                    subimage, miplevel);
                 return ret;
+            }
         }
     }
-    if (miplevel < 0 || miplevel >= part.nmiplevels)
+    if (miplevel < 0 || miplevel >= part.nmiplevels) {
+        errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                 subimage, miplevel);
         return ret;  // invalid
+    }
     ret = part.spec;
     part.compute_mipres(miplevel, ret);
     return ret;
@@ -1113,18 +1142,27 @@ ImageSpec
 OpenEXRCoreInput::spec_dimensions(int subimage, int miplevel)
 {
     ImageSpec ret;
-    if (subimage < 0 || subimage >= m_nsubimages)
+    if (subimage < 0 || subimage >= m_nsubimages) {
+        errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                 subimage, miplevel);
         return ret;  // invalid
+    }
     const PartInfo& part(m_parts[subimage]);
     if (!part.initialized) {
         // Only if this subimage hasn't yet been inventoried do we need
         // to lock and seek.
         lock_guard lock(*this);
-        if (!seek_subimage(subimage, miplevel))
+        if (!seek_subimage(subimage, miplevel)) {
+            errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                     subimage, miplevel);
             return ret;
+        }
     }
-    if (miplevel < 0 || miplevel >= part.nmiplevels)
+    if (miplevel < 0 || miplevel >= part.nmiplevels) {
+        errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                 subimage, miplevel);
         return ret;  // invalid
+    }
     ret.copy_dimensions(part.spec);
     part.compute_mipres(miplevel, ret);
     return ret;
@@ -1434,7 +1472,7 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                     int zend, void* data)
 {
     if (!m_exr_context) {
-        errorfmt("called OpenEXRInput::read_native_tile without an open file");
+        errorfmt("called OpenEXRInput::read_native_tiles without an open file");
         return false;
     }
 
@@ -1453,7 +1491,7 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                     void* data)
 {
     if (!m_exr_context) {
-        errorfmt("called OpenEXRInput::read_native_tile without an open file");
+        errorfmt("called OpenEXRInput::read_native_tiles without an open file");
         return false;
     }
 

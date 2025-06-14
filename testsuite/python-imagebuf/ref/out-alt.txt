@@ -234,6 +234,14 @@ Testing metadata copying
   camera:x = "Bx"
   camera:y = "By"
 
+Testing error handling for out-of-range subimage, miplevel
+  bayer.png subimage 1 mip 0: Invalid subimage 1 requested (png does not support subimages)
+  bayer.png subimage 0 mip 0: 
+  bayer.png subimage 0 mip 1: Invalid miplevel 1 requested (png does not support miplevels)
+  grid-small.exr subimage 1 mip 0: Could not seek to subimage=1 miplevel=0: not in file
+  grid-small.exr subimage 0 mip 0: 
+  grid-small.exr subimage 0 mip 1: Could not seek to subimage=0 miplevel=1: not in file
+
 Done.
 Comparing "out.tif" and "ref/out.tif"
 PASS

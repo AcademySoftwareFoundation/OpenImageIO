@@ -999,8 +999,11 @@ OpenEXRInput::PartInfo::compute_mipres(int miplevel, ImageSpec& spec) const
 bool
 OpenEXRInput::seek_subimage(int subimage, int miplevel)
 {
-    if (subimage < 0 || subimage >= m_nsubimages)  // out of range
+    if (subimage < 0 || subimage >= m_nsubimages) {  // out of range
+        // errorfmt("Could not seek to subimage={}: not in file", subimage,
+        //          miplevel);
         return false;
+    }
 
     if (subimage == m_subimage && miplevel == m_miplevel) {  // no change
         return true;
@@ -1011,8 +1014,11 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
         const Imf::Header* header = NULL;
         if (m_input_multipart)
             header = &(m_input_multipart->header(subimage));
-        if (!part.parse_header(this, header))
+        if (!part.parse_header(this, header)) {
+            errorfmt("Could not seek to subimage={}: unable to parse header",
+                     subimage, miplevel);
             return false;
+        }
         part.initialized = true;
     }
 
@@ -1074,8 +1080,11 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
 
     m_subimage = subimage;
 
-    if (miplevel < 0 || miplevel >= part.nmiplevels)  // out of range
+    if (miplevel < 0 || miplevel >= part.nmiplevels) {  // out of range
+        // errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+        //          subimage, miplevel);
         return false;
+    }
 
     m_miplevel = miplevel;
     m_spec     = part.spec;
@@ -1105,20 +1114,30 @@ ImageSpec
 OpenEXRInput::spec(int subimage, int miplevel)
 {
     ImageSpec ret;
-    if (subimage < 0 || subimage >= m_nsubimages)
+    if (subimage < 0 || subimage >= m_nsubimages) {
+        errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                 subimage, miplevel);
         return ret;  // invalid
+    }
     const PartInfo& part(m_parts[subimage]);
     if (!part.initialized) {
         // Only if this subimage hasn't yet been inventoried do we need
         // to lock and seek.
         lock_guard lock(*this);
         if (!part.initialized) {
-            if (!seek_subimage(subimage, miplevel))
+            if (!seek_subimage(subimage, miplevel)) {
+                errorfmt(
+                    "Could not seek to subimage={} miplevel={}: not in file",
+                    subimage, miplevel);
                 return ret;
+            }
         }
     }
-    if (miplevel < 0 || miplevel >= part.nmiplevels)
+    if (miplevel < 0 || miplevel >= part.nmiplevels) {
+        errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                 subimage, miplevel);
         return ret;  // invalid
+    }
     ret = part.spec;
     part.compute_mipres(miplevel, ret);
     return ret;
@@ -1130,18 +1149,27 @@ ImageSpec
 OpenEXRInput::spec_dimensions(int subimage, int miplevel)
 {
     ImageSpec ret;
-    if (subimage < 0 || subimage >= m_nsubimages)
+    if (subimage < 0 || subimage >= m_nsubimages) {
+        errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                 subimage, miplevel);
         return ret;  // invalid
+    }
     const PartInfo& part(m_parts[subimage]);
     if (!part.initialized) {
         // Only if this subimage hasn't yet been inventoried do we need
         // to lock and seek.
         lock_guard lock(*this);
-        if (!seek_subimage(subimage, miplevel))
+        if (!seek_subimage(subimage, miplevel)) {
+            errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                     subimage, miplevel);
             return ret;
+        }
     }
-    if (miplevel < 0 || miplevel >= part.nmiplevels)
+    if (miplevel < 0 || miplevel >= part.nmiplevels) {
+        errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                 subimage, miplevel);
         return ret;  // invalid
+    }
     ret.copy_dimensions(part.spec);
     part.compute_mipres(miplevel, ret);
     return ret;
