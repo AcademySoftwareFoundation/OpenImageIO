@@ -961,138 +961,139 @@ IvGL::paint_pixelview()
     QColor center_color(0, 255, 255, 125);
     QColor avg_color(255, 255, 0, 125);
 
-    if (1 /*xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()*/) {
-        // Now we print text giving the mouse coordinates and the numerical
-        // values of the pixel that the mouse is over.
-        int textx, texty;
-        if (m_viewer.pixelviewFollowsMouse()) {
-            textx = xw + 8 + follow_mouse_offset;
-            texty = yw + closeupsize + yspacing + follow_mouse_offset;
+
+    // Now we print text giving the mouse coordinates and the numerical
+    // values of the pixel that the mouse is over.
+    int textx, texty;
+    if (m_viewer.pixelviewFollowsMouse()) {
+        textx = xw + 8 + follow_mouse_offset;
+        texty = yw + closeupsize + yspacing + follow_mouse_offset;
+    } else {
+        if (m_pixelview_left_corner) {
+            textx = 9;
+            texty = closeupsize + yspacing;
         } else {
-            if (m_pixelview_left_corner) {
-                textx = 9;
-                texty = closeupsize + yspacing;
-            } else {
-                textx = width() - closeupsize - 1;
-                texty = closeupsize + yspacing;
+            textx = width() - closeupsize - 1;
+            texty = closeupsize + yspacing;
+        }
+    }        
+
+    int pixel_x = (int)real_xp + spec.x;
+    int pixel_y = (int)real_yp + spec.y;
+    
+    float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
+    img->getpixel(pixel_x, pixel_y, fpixel);
+    
+    int pixel_count = (xend - xbegin - avg_window_offset * 2) * (yend - ybegin - avg_window_offset * 2);
+
+    struct ChannelComponents {
+        std::string name;
+        std::string centerValue;
+        std::string normalized;
+        std::string min;
+        std::string max;
+        std::string avg;
+    };
+    std::vector<ChannelComponents> channel_stats;
+    
+    struct MaxLengths {
+        int name = 0;
+        int centerValue = 0;
+        int normalized = 0;
+        int min = 0;
+        int max = 0;
+        int avg = 0;
+    };
+    MaxLengths maxLengths;
+
+    for (int i = 0; i < spec.nchannels; ++i) {
+        std::string name = spec.channelnames[i];
+        std::string centerValue;
+        std::string normalized;
+        std::string min;
+        std::string max;
+        std::string avg;
+
+        switch (spec.format.basetype) {
+        case TypeDesc::UINT8: {
+            unsigned char min_val = std::numeric_limits<unsigned char>::max();
+            unsigned char max_val = std::numeric_limits<unsigned char>::lowest();
+            int sum = 0;
+            for(int y = ybegin + avg_window_offset; y < yend - avg_window_offset; ++y) {
+                for(int x = xbegin + avg_window_offset; x < xend - avg_window_offset; ++x) {
+                    ImageBuf::ConstIterator<unsigned char, unsigned char> p(
+                        *img, x + spec.x, y + spec.y);
+                    min_val = std::min(min_val, p[i]);
+                    max_val = std::max(max_val, p[i]);
+                    sum += p[i];
+                }
             }
-        }        
-        
-        float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
-        img->getpixel((int)real_xp + spec.x, (int)real_yp + spec.y, fpixel);
-        
-        int pixel_count = (xend - xbegin - avg_window_offset * 2) * (yend - ybegin - avg_window_offset * 2);
+            unsigned char avg_val = (unsigned char)(sum / pixel_count);
 
-        struct ChannelComponents {
-            std::string name;
-            std::string centerValue;
-            std::string normalized;
-            std::string min;
-            std::string max;
-            std::string avg;
-        };
-        std::vector<ChannelComponents> channel_stats;
-        
-        struct MaxLengths {
-            int name = 0;
-            int centerValue = 0;
-            int normalized = 0;
-            int min = 0;
-            int max = 0;
-            int avg = 0;
-        };
-        MaxLengths maxLengths;
-
-        for (int i = 0; i < spec.nchannels; ++i) {
-            std::string name = spec.channelnames[i];
-            std::string centerValue;
-            std::string normalized;
-            std::string min;
-            std::string max;
-            std::string avg;
-
-            int pixel_x = (int)real_xp + spec.x;
-            int pixel_y = (int)real_yp + spec.y;
-
-            switch (spec.format.basetype) {
-            case TypeDesc::UINT8: {
-                unsigned char min_val = std::numeric_limits<unsigned char>::max();
-                unsigned char max_val = std::numeric_limits<unsigned char>::lowest();
-                int sum = 0;
-                for(int y = ybegin + avg_window_offset; y < yend - avg_window_offset; ++y) {
-                    for(int x = xbegin + avg_window_offset; x < xend - avg_window_offset; ++x) {
-                        ImageBuf::ConstIterator<unsigned char, unsigned char> p(
-                            *img, x + spec.x, y + spec.y);
-                        min_val = std::min(min_val, p[i]);
-                        max_val = std::max(max_val, p[i]);
-                        sum += p[i];
-                    }
+            ImageBuf::ConstIterator<unsigned char, unsigned char> p(*img, pixel_x, pixel_y);
+            centerValue = Strutil::fmt::format("{:<3}", int(p[i]));
+            normalized = Strutil::fmt::format("({:3.3f})", fpixel[i]);
+            min = Strutil::fmt::format("{:<3}", min_val);
+            max = Strutil::fmt::format("{:<3}", max_val);
+            avg = Strutil::fmt::format("{:<3}", avg_val);
+        } break;
+        case TypeDesc::UINT16: {
+            unsigned short min_val = std::numeric_limits<unsigned short>::max();
+            unsigned short max_val = std::numeric_limits<unsigned short>::lowest();
+            int sum = 0;
+            for(int y = ybegin + avg_window_offset; y < yend - avg_window_offset; ++y) {
+                for(int x = xbegin + avg_window_offset; x < xend - avg_window_offset; ++x) {
+                    ImageBuf::ConstIterator<unsigned short, unsigned short> p(
+                        *img, x + spec.x, y + spec.y);
+                    min_val = std::min(min_val, p[i]);
+                    max_val = std::max(max_val, p[i]);
+                    sum += p[i];
                 }
-                unsigned char avg_val = (unsigned char)(sum / pixel_count);
-
-                ImageBuf::ConstIterator<unsigned char, unsigned char> p(*img, pixel_x, pixel_y);
-                centerValue = Strutil::fmt::format("{:<3}", int(p[i]));
-                normalized = Strutil::fmt::format("({:3.3f})", fpixel[i]);
-                min = Strutil::fmt::format("{:<3}", min_val);
-                max = Strutil::fmt::format("{:<3}", max_val);
-                avg = Strutil::fmt::format("{:<3}", avg_val);
-            } break;
-            case TypeDesc::UINT16: {
-                unsigned short min_val = std::numeric_limits<unsigned short>::max();
-                unsigned short max_val = std::numeric_limits<unsigned short>::lowest();
-                int sum = 0;
-                for(int y = ybegin + avg_window_offset; y < yend - avg_window_offset; ++y) {
-                    for(int x = xbegin + avg_window_offset; x < xend - avg_window_offset; ++x) {
-                        ImageBuf::ConstIterator<unsigned short, unsigned short> p(
-                            *img, x + spec.x, y + spec.y);
-                        min_val = std::min(min_val, p[i]);
-                        max_val = std::max(max_val, p[i]);
-                        sum += p[i];
-                    }
-                }
-                unsigned short avg_val = (unsigned short)(sum / pixel_count);
-
-                ImageBuf::ConstIterator<unsigned short, unsigned short> p(*img, pixel_x, pixel_y);
-                centerValue = Strutil::fmt::format("{:<5}", int(p[i]));
-                normalized = Strutil::fmt::format("({:3.3f})", fpixel[i]);
-                min = Strutil::fmt::format("{:<5}", min_val);
-                max = Strutil::fmt::format("{:<5}", max_val);
-                avg = Strutil::fmt::format("{:<5}", avg_val);
-            } break;
-            default: {  // everything else, treat as float
-                float min_val = std::numeric_limits<float>::max();
-                float max_val = std::numeric_limits<float>::lowest();
-                float sum = 0.0f;
-                for(int y = ybegin + avg_window_offset; y < yend - avg_window_offset; ++y) {
-                    for(int x = xbegin + avg_window_offset; x < xend - avg_window_offset; ++x) {
-                        ImageBuf::ConstIterator<float, float> p(
-                            *img, x + spec.x, y + spec.y);
-                        min_val = std::min(min_val, p[i]);
-                        max_val = std::max(max_val, p[i]);
-                        sum += p[i];
-                    }
-                }
-                float avg_val = sum / pixel_count;
-
-                ImageBuf::ConstIterator<float, float> p(*img, pixel_x, pixel_y);
-                centerValue = Strutil::fmt::format("{:<5.3f}", p[i]);
-                normalized = "";  // No normalized value for float
-                min = Strutil::fmt::format("{:<5.3f}", min_val);
-                max = Strutil::fmt::format("{:<5.3f}", max_val);
-                avg = Strutil::fmt::format("{:<5.3f}", avg_val);
-            } break;
             }
+            unsigned short avg_val = (unsigned short)(sum / pixel_count);
 
-            maxLengths.name = std::max(maxLengths.name, (int)name.length());
-            maxLengths.centerValue = std::max(maxLengths.centerValue, (int)centerValue.length());
-            maxLengths.normalized = std::max(maxLengths.normalized, (int)normalized.length());
-            maxLengths.min = std::max(maxLengths.min, (int)min.length());
-            maxLengths.max = std::max(maxLengths.max, (int)max.length());
-            maxLengths.avg = std::max(maxLengths.avg, (int)avg.length());
+            ImageBuf::ConstIterator<unsigned short, unsigned short> p(*img, pixel_x, pixel_y);
+            centerValue = Strutil::fmt::format("{:<5}", int(p[i]));
+            normalized = Strutil::fmt::format("({:3.3f})", fpixel[i]);
+            min = Strutil::fmt::format("{:<5}", min_val);
+            max = Strutil::fmt::format("{:<5}", max_val);
+            avg = Strutil::fmt::format("{:<5}", avg_val);
+        } break;
+        default: {  // everything else, treat as float
+            float min_val = std::numeric_limits<float>::max();
+            float max_val = std::numeric_limits<float>::lowest();
+            float sum = 0.0f;
+            for(int y = ybegin + avg_window_offset; y < yend - avg_window_offset; ++y) {
+                for(int x = xbegin + avg_window_offset; x < xend - avg_window_offset; ++x) {
+                    ImageBuf::ConstIterator<float, float> p(
+                        *img, x + spec.x, y + spec.y);
+                    min_val = std::min(min_val, p[i]);
+                    max_val = std::max(max_val, p[i]);
+                    sum += p[i];
+                }
+            }
+            float avg_val = sum / pixel_count;
 
-            channel_stats.push_back({name, centerValue, normalized, min, max, avg});
+            ImageBuf::ConstIterator<float, float> p(*img, pixel_x, pixel_y);
+            centerValue = Strutil::fmt::format("{:<5.3f}", p[i]);
+            normalized = "";  // No normalized value for float
+            min = Strutil::fmt::format("{:<5.3f}", min_val);
+            max = Strutil::fmt::format("{:<5.3f}", max_val);
+            avg = Strutil::fmt::format("{:<5.3f}", avg_val);
+        } break;
         }
 
+        maxLengths.name = std::max(maxLengths.name, (int)name.length());
+        maxLengths.centerValue = std::max(maxLengths.centerValue, (int)centerValue.length());
+        maxLengths.normalized = std::max(maxLengths.normalized, (int)normalized.length());
+        maxLengths.min = std::max(maxLengths.min, (int)min.length());
+        maxLengths.max = std::max(maxLengths.max, (int)max.length());
+        maxLengths.avg = std::max(maxLengths.avg, (int)avg.length());
+
+        channel_stats.push_back({name, centerValue, normalized, min, max, avg});
+    }
+
+    {
         QColor center_text_color = center_color;
         center_text_color.setAlpha(200);
 
@@ -1131,31 +1132,32 @@ IvGL::paint_pixelview()
         QColor avg_text_color = avg_color;
         avg_text_color.setAlpha(200);
         shadowed_text(textx, texty, 0.0f, header_stream.str(), avg_text_color);
-
+        
         texty += yspacing;
-        for (const auto& stat : channel_stats) {
-            std::stringstream line_stream;
-            line_stream << std::left << stat.name << ": "
-            << std::setw(maxLengths.centerValue) << stat.centerValue << " "
-            << (maxLengths.normalized > 0 ? (std::stringstream() << std::setw(maxLengths.normalized) << stat.normalized << "  ").str() : " ")
-            << std::setw(maxLengths.min) << stat.min << "  "
-            << std::setw(maxLengths.max) << stat.max << "  "
-            << std::setw(maxLengths.avg) << stat.avg << "  ";
-            
-            QColor channelColor;
-            if (stat.name[0] == 'R') {
-                channelColor = QColor(255, 50, 50);
-            } else if (stat.name[0] == 'G') {
-                channelColor = QColor(100, 255, 90);
-            } else if (stat.name[0] == 'B') {
-                channelColor = QColor(107, 188, 255);
-            } else {
-                channelColor = Qt::white;
-            }
-            
-            shadowed_text(textx, texty, 0.0f, line_stream.str(), channelColor);
-            texty += yspacing;
+    }
+
+    for (const auto& stat : channel_stats) {
+        std::stringstream line_stream;
+        line_stream << std::left << stat.name << ": "
+        << std::setw(maxLengths.centerValue) << stat.centerValue << " "
+        << (maxLengths.normalized > 0 ? (std::stringstream() << std::setw(maxLengths.normalized) << stat.normalized << "  ").str() : " ")
+        << std::setw(maxLengths.min) << stat.min << "  "
+        << std::setw(maxLengths.max) << stat.max << "  "
+        << std::setw(maxLengths.avg) << stat.avg << "  ";
+        
+        QColor channelColor;
+        if (stat.name[0] == 'R') {
+            channelColor = QColor(255, 50, 50);
+        } else if (stat.name[0] == 'G') {
+            channelColor = QColor(100, 255, 90);
+        } else if (stat.name[0] == 'B') {
+            channelColor = QColor(107, 188, 255);
+        } else {
+            channelColor = Qt::white;
         }
+        
+        shadowed_text(textx, texty, 0.0f, line_stream.str(), channelColor);
+        texty += yspacing;
     }
 
     glPopAttrib();
@@ -1200,6 +1202,20 @@ IvGL::paint_pixelview()
                 x = width() - offset - pixel_size;
                 y = offset+1;
             }
+        }
+
+        if(spec.width - pixel_x <= floor(ncloseuppixels/2)) {
+            x = x + (floor(ncloseuppixels/2) - (spec.width - pixel_x) + 1) * closeuppixelzoom + 1;
+        }
+        if(spec.height - pixel_y <= floor(ncloseuppixels/2)) {
+            y = y + (floor(ncloseuppixels/2) - (spec.height - pixel_y) + 1) * closeuppixelzoom + 1;
+        }
+
+        if(pixel_x < floor(ncloseuppixels/2)) {
+            x = x - (floor(ncloseuppixels/2) - pixel_x) * closeuppixelzoom + 1;
+        }
+        if(pixel_y < floor(ncloseuppixels/2)) {
+            y = y - (floor(ncloseuppixels/2) - pixel_y) * closeuppixelzoom + 1;
         }
         
         // Extract the rect coordinates from the corners
