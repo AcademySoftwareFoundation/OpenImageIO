@@ -174,8 +174,8 @@ Oiiotool::clear_options()
     printinfo_nometamatch.clear();
     printinfo_verbose = false;
     clear_input_config();
-    first_input_dimensions = ImageSpec();
-    output_dataformat      = TypeDesc::UNKNOWN;
+    m_first_input_dimensions = ImageSpec();
+    output_dataformat        = TypeDesc::UNKNOWN;
     output_channelformats.clear();
     output_bitspersample      = 0;
     output_scanline           = false;
@@ -5239,12 +5239,14 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         if (!ot.imagecache->get_image_info(ustring(filename), 0, 0,
                                            ustring("exists"), TypeInt, &exists))
             exists = 0;
-        // If the image doesn't appear t exist, but it's a procedural image
-        // generator, then that's ok.
+        // N.B. ImageCache "exists" really means "can be opened and read."
         if (!exists) {
             auto input = ImageInput::create(filename);
-            if (input && input->supports("procedural"))
+            if (input && input->supports("procedural")) {
+                // If the image doesn't appear to exist, but it's a procedural
+                // image generator, then that's ok.
                 exists = 1;
+            }
             if (!input) {
                 // If the create call failed, eat any stray global errors it
                 // may have issued.
@@ -5253,36 +5255,49 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         }
         ImageBufRef substitute;  // possible substitute for missing image
         if (!exists) {
-            // Try to get a more precise error message to report
-            if (!Filesystem::exists(filename))
-                ot.errorfmt("read", "File does not exist: \"{}\"", filename);
-            else {
+            // It neither can be opened nor is it a procedural.
+            std::string errmsg;
+            if (!Filesystem::exists(filename)) {
+                // It literally is a nonexistant file.
+                errmsg = Strutil::format("File does not exist: \"{}\"",
+                                         filename);
+            } else {
+                // The file exists, but it can't be opened as an image.
+                // Try to get a more precise error message to report.
                 auto in         = ImageInput::open(filename);
                 std::string err = in ? in->geterror() : OIIO::geterror();
-                ot.error("read", ot.format_read_error(filename, err));
+                errmsg = Strutil::format(ot.format_read_error(filename, err));
             }
             // Second chances: do we have a substitute image policy?
+            ImageSpec substitute_spec;
+            if (ot.first_input_dimensions_is_set())
+                ot.get_first_input_dimensions(substitute_spec);
+            else if (ot.parent_oiiotool
+                     && ot.parent_oiiotool->first_input_dimensions_is_set())
+                ot.parent_oiiotool->get_first_input_dimensions(substitute_spec);
+            else {
+                // How big to make the substitute image if we haven't yet read
+                // any image successfully? Punt and guess HD res RGBA.
+                substitute_spec = ImageSpec(1920, 1080, 4);
+            }
             if (ot.missingfile_policy == "black") {
-                ImageSpec substitute_spec = ot.first_input_dimensions;
-                if (substitute_spec.format == TypeUnknown
-                    || !substitute_spec.width || !substitute_spec.height
-                    || !substitute_spec.nchannels)
-                    substitute_spec = ImageSpec(1920, 1080, 4);
                 substitute.reset(
                     new ImageBuf(substitute_spec, InitializePixels::Yes));
             } else if (ot.missingfile_policy == "checker") {
-                ImageSpec substitute_spec = ot.first_input_dimensions;
-                if (substitute_spec.format == TypeUnknown
-                    || !substitute_spec.width || !substitute_spec.height
-                    || !substitute_spec.nchannels)
-                    substitute_spec = ImageSpec(1920, 1080, 4);
                 substitute.reset(new ImageBuf(substitute_spec));
                 ImageBufAlgo::checker(*substitute, 64, 64, 1,
                                       { 0.0f, 0.0f, 0.0f, 1.0f },
                                       { 1.0f, 1.0f, 1.0f, 1.0f });
             }
-            if (!substitute)
-                break;
+            if (!exists) {
+                if (substitute) {
+                    ot.warningfmt("read", "{}, Substituting {}", errmsg,
+                                  ot.missingfile_policy);
+                } else {
+                    ot.error("read", errmsg);
+                    break;
+                }
+            }
         }
         if (channel_set.size()) {
             ot.input_channel_set = channel_set;
@@ -5306,11 +5321,15 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                 ot.read(policy, channel_set);
             } else
                 ot.read_nativespec();
-            if (ot.first_input_dimensions.format == TypeUnknown) {
-                ot.first_input_dimensions.copy_dimensions(
-                    *ot.curimg->nativespec());
-                ot.first_input_dimensions.channelnames
+            if (!ot.first_input_dimensions_is_set()) {
+                ImageSpec new_first_dims;
+                new_first_dims.copy_dimensions(*ot.curimg->nativespec());
+                new_first_dims.channelnames
                     = ot.curimg->nativespec()->channelnames;
+                ot.set_first_input_dimensions(new_first_dims);
+                if (ot.parent_oiiotool)
+                    ot.parent_oiiotool->set_first_input_dimensions(
+                        new_first_dims);
             }
         }
         if ((printinfo || ot.printstats || ot.dumpdata || ot.hash)
@@ -7208,8 +7227,9 @@ one_sequence_iteration(Oiiotool& otmain, size_t i, int frame_number,
     }
 
     Oiiotool otit;  // Oiiotool for this iteration
-    otit.imagecache   = otmain.imagecache;
-    otit.frame_number = frame_number;
+    otit.imagecache      = otmain.imagecache;
+    otit.frame_number    = frame_number;
+    otit.parent_oiiotool = &otmain;
     otit.getargs((int)seq_argv.size(), (char**)&seq_argv[0]);
 
     if (otit.ap.aborted()) {

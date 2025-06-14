@@ -89,12 +89,13 @@ public:
     std::string printinfo_nometamatch;
     std::string printinfo_format;
     std::string missingfile_policy;
-    ImageSpec input_config;  // configuration options for reading
-    ImageSpec first_input_dimensions;
+    ImageSpec input_config;         // configuration options for reading
     std::string input_channel_set;  // Optional input channel set
     ParamValueList uservars;        // User-defined variables (with --set)
     ArgParse ap;                    // Command-line argument parser
     ErrorHandler eh;
+    // If this is a frame iteration child, retain a pointer to the parent
+    Oiiotool* parent_oiiotool = nullptr;
 
     struct ControlRec {
         std::string command;  // control command: "if", "while", etc.
@@ -162,6 +163,8 @@ public:
     TypeDesc input_dataformat;
     int input_bitspersample = 0;
     std::map<std::string, std::string> input_channelformats;
+    ImageSpec m_first_input_dimensions;
+    mutable spin_mutex m_first_input_dimensions_mutex;
 
     // stat_mutex guards when we are merging another ot's stats into this one
     std::mutex m_stat_mutex;
@@ -372,6 +375,27 @@ public:
     void merge_stats(const Oiiotool& ot);
 
     ColorConfig& colorconfig();
+
+    // Copy the internal 'm_first_input_dimensions` to `dims`.
+    void get_first_input_dimensions(ImageSpec& dims) const
+    {
+        std::lock_guard lock(m_first_input_dimensions_mutex);
+        dims.copy_dimensions(m_first_input_dimensions);
+    }
+
+    bool first_input_dimensions_is_set() const
+    {
+        return m_first_input_dimensions.format.basetype != TypeDesc::UNKNOWN;
+    }
+
+    // If the internal 'm_first_input_dimensions` is not yet set, set it to
+    // the values in `dims`.
+    void set_first_input_dimensions(const ImageSpec& dims)
+    {
+        std::lock_guard lock(m_first_input_dimensions_mutex);
+        if (!first_input_dimensions_is_set())
+            m_first_input_dimensions.copy_dimensions(dims);
+    }
 
 private:
     CallbackFunction m_pending_callback;
