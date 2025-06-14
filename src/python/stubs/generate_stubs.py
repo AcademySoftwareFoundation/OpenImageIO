@@ -30,8 +30,8 @@ class OIIOSignatureGenerator(AdvancedSignatureGenerator):
     sig_matcher = AdvancedSigMatcher(
         signature_overrides={
             # signatures for these special methods include many inaccurate overloads
-            "*.__ne__": "(self, other: object) -> bool",
-            "*.__eq__": "(self, other: object) -> bool",
+            # "*.__ne__": "(self, other: object) -> bool",
+            # "*.__eq__": "(self, other: object) -> bool",
         },
         arg_type_overrides={
             # FIXME: Buffer may in fact be more accurate here

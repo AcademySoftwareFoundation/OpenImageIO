@@ -82,6 +82,10 @@ jobs:
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
     strategy:
       matrix:
         include:
@@ -168,6 +172,22 @@ jobs:
             ./wheelhouse/OpenImageIO/__init__.pyi
         # if stub validation fails we want to upload the stubs for users to review
         if: success() || failure()
+
+      - name: Copy stubs to repo
+        run: |
+          pwd
+          tree .
+          if [ -f ./wheelhouse/OpenImageIO/__init__.pyi ]; then
+            echo "Copying stubs into repo"
+            cp ./wheelhouse/OpenImageIO/__init__.pyi ./src/python/stubs/OpenImageIO/__init__.pyi
+          fi
+        if: failure()
+
+      - name: Commit changed stubs back to the repository
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: "Automatic update to python stubs"
+        if: failure()
 
   # ---------------------------------------------------------------------------
   # Linux ARM Wheels
