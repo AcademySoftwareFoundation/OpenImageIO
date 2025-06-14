@@ -165,6 +165,7 @@ contents of an expression may be any of:
     be printed with `oiiotool -stats`.
   * `IS_CONSTANT`: metadata to check if the image pixels are of constant color, returns 1 if true, and 0 if false.
   * `IS_BLACK`: metadata to check if the image pixels are all black, a subset of IS_CONSTANT. Also returns 1 if true, and 0 if false.
+  * `SUBIMAGES`: the number of subimages in the file.
   
 * *imagename.'metadata'*
 
