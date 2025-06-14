@@ -173,9 +173,21 @@ jobs:
         # if stub validation fails we want to upload the stubs for users to review
         if: success() || failure()
 
-      # Commit all changed files back to the repository
-      - uses: stefanzweifel/git-auto-commit-action@v6
-        commit_message: "Automatic update to python stubs"
+      - name: Copy stubs to repo
+        run: |
+          pwd
+          tree .
+          if [ -f ./wheelhouse/OpenImageIO/__init__.pyi ]; then
+            echo "Copying stubs into repo"
+            cp ./wheelhouse/OpenImageIO/__init__.pyi ./src/python/stubs/OpenImageIO/__init__.pyi
+          fi
+        if: failure()
+
+      - name: Commit changed stubs back to the repository
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: "Automatic update to python stubs"
+        if: failure()
 
   # ---------------------------------------------------------------------------
   # Linux ARM Wheels
