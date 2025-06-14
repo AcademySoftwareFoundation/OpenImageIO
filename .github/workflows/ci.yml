@@ -32,6 +32,11 @@ on:
 
 permissions: read-all
 
+# Allow subsequent pushes to the same PR or REF to cancel any previous jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 
 jobs:
 
@@ -176,20 +181,22 @@ jobs:
       #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Prepare ccache timestamp
-        id: ccache_cache_keys
-        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
-      - name: ccache
-        id: ccache
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: /tmp/ccache
-          key: ${{github.job}}-${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
-          restore-keys: ${{github.job}}-
       - name: Build setup
         run: |
             ${{matrix.setenvs}}
             src/build-scripts/ci-startup.bash
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        shell: bash
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
+      - name: ccache-restore
+        id: ccache-restore
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          # path: ./ccache
+          key: ${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
+          restore-keys: ${{matrix.nametag}}
       - name: Dependencies
         run: |
             ${{matrix.depcmds}}
@@ -197,6 +204,12 @@ jobs:
       - name: Build
         if: matrix.skip_build != '1'
         run: src/build-scripts/ci-build.bash
+      - name: ccache-save
+        id: ccache-save
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
       - name: Testsuite
         if: matrix.skip_tests != '1'
         run: src/build-scripts/ci-test.bash
@@ -204,23 +217,6 @@ jobs:
         if: matrix.benchmark == '1'
         shell: bash
         run: src/build-scripts/ci-benchmark.bash
-      - name: Check out ABI standard
-        if: matrix.abi_check != ''
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          ref: ${{matrix.abi_check}}
-          path: abi_standard
-      - name: Build ABI standard
-        if: matrix.abi_check != ''
-        run: |
-            mkdir -p abi_standard/build
-            pushd abi_standard
-            src/build-scripts/ci-build.bash
-            popd
-      - name: Check ABI
-        if: matrix.abi_check != ''
-        run: |
-            src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
       - name: Build Docs
         if: matrix.build_docs == '1'
         run: |
@@ -472,7 +468,7 @@ jobs:
                             WEBP_VERSION=v1.4.0
 
           - desc: clang15 C++17 avx2 exr3.1 ocio2.2
-            nametag: linux-clang14
+            nametag: linux-clang15
             runner: ubuntu-22.04
             cxx_compiler: clang++-15
             cc_compiler: clang-15
