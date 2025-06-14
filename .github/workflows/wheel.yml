@@ -147,6 +147,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Install Python
         uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
@@ -171,11 +174,24 @@ jobs:
             ./wheelhouse/*.whl
             ./wheelhouse/OpenImageIO/__init__.pyi
         # if stub validation fails we want to upload the stubs for users to review
-        if: success() || failure()
+#         if: success() || failure()
 
-      # Commit all changed files back to the repository
-      - uses: stefanzweifel/git-auto-commit-action@v6
-        commit_message: "Automatic update to python stubs"
+      - name: Copy stubs to repo
+        run: |
+          pwd
+          ls -la .
+          ls -la ./wheelhouse/
+          if [ -f ./wheelhouse/OpenImageIO/__init__.pyi ]; then
+            echo "Copying stubs into repo"
+            cp ./wheelhouse/OpenImageIO/__init__.pyi ./src/python/stubs/OpenImageIO/__init__.pyi
+          fi
+#         if: failure()
+
+      - name: Commit changed stubs back to the repository
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: "Automatic update to python stubs"
+#         if: failure()
 
   # ---------------------------------------------------------------------------
   # Linux ARM Wheels
