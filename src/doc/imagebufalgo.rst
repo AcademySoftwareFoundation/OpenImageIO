@@ -1183,7 +1183,7 @@ Shuffling channels
 
        .. code-tab:: bash oiiotool
 
-          oiiotool -iconfig raw:Demosaic none -i test.cr3 --demosaic:layout=GRBG:white_balance=2.0,0.8,1.2,1.5 -o out.exr
+          oiiotool -iconfig raw:Demosaic none -i test.cr3 --demosaic:layout=GRBG:white_balance_mode=manual:white_balance=2.0,0.8,1.2,1.5 -o out.exr
 
 |
 

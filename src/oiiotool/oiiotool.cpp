@@ -3571,7 +3571,8 @@ OIIOTOOL_OP(warp, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 // --demosaic
 OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     ParamValueList list;
-    const std::vector<std::string> keys = { "pattern", "algorithm", "layout" };
+    const std::vector<std::string> keys = { "pattern", "algorithm", "layout",
+                                            "white_balance_mode" };
     for (const auto& key : keys) {
         auto iter = op.options().find(key);
         if (iter != op.options().cend()) {
