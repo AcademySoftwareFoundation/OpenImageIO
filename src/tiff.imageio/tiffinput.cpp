@@ -102,7 +102,7 @@ public:
     int supports(string_view feature) const override
     {
         return (feature == "exif" || feature == "iptc" || feature == "ioproxy"
-                || feature == "multiimage");
+                || feature == "multiimage" || feature == "mipmap");
         // N.B. No support for arbitrary metadata.
     }
     bool open(const std::string& name, ImageSpec& newspec) override;
@@ -775,17 +775,26 @@ TIFFInput::open(const std::string& name, ImageSpec& newspec,
 bool
 TIFFInput::seek_subimage(int subimage, int miplevel)
 {
-    if (subimage < 0)  // Illegal
+    if (subimage < 0 || miplevel < 0) {  // Illegal
+        errorfmt("Could not seek to subimage={} miplevel={}: invalid", subimage,
+                 miplevel);
         return false;
+    }
     if (m_emulate_mipmap) {
         // Emulating MIPmap?  Pretend one subimage, many MIP levels.
-        if (subimage != 0)
+        if (subimage != 0) {
+            errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                     subimage, miplevel);
             return false;
+        }
         subimage = miplevel;
     } else {
         // No MIPmap emulation
-        if (miplevel != 0)
+        if (miplevel != 0) {
+            errorfmt("Could not seek to subimage={} miplevel={}: not in file",
+                     subimage, miplevel);
             return false;
+        }
     }
 
     if (subimage == m_subimage) {
@@ -881,7 +890,9 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
         return true;
     } else {
         std::string e = oiio_tiff_last_error();
-        errorfmt("Err: {}", e.length() ? e : m_filename);
+        errorfmt("could not seek to {} {}",
+                 m_emulate_mipmap ? "miplevel" : "subimage", subimage,
+                 e.length() ? ": " : "", e.length() ? e : std::string(""));
         m_subimage = -1;
         return false;
     }
@@ -932,8 +943,10 @@ TIFFInput::spec_dimensions(int subimage, int miplevel)
     if (m_emulate_mipmap) {
         // This is the kind of TIFF file where we are emulating MIPmap
         // levels with TIFF subimages.
-        if (subimage != 0)
+        if (subimage != 0) {
+            errorfmt("Requst for subimage {} invalid", subimage);
             return ret;  // Invalid subimage request, return the empty spec
+        }
         // Index into the spec list by miplevel instead, because that's
         // what it really contains.
         s = miplevel;
