@@ -340,7 +340,7 @@ declare_imagebuf(py::module& m)
             [](ImageBuf& self, std::string filename, int subimage,
                int miplevel) {
                 py::gil_scoped_release gil;
-                self.init_spec(filename, subimage, miplevel);
+                return self.init_spec(filename, subimage, miplevel);
             },
             "filename"_a, "subimage"_a = 0, "miplevel"_a = 0)
         .def(
