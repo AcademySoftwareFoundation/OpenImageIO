@@ -174,8 +174,8 @@ IvGL::create_textures(void)
     // Create another texture for the pixelview.
     glGenTextures(1, &m_pixelview_tex);
     glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, 4, closeuptexsize, closeuptexsize, 0,
-                 GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, closeup_texture_size,
+                 closeup_texture_size, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -787,13 +787,13 @@ IvGL::paint_pixelview()
     IvImage* img = m_current_image;
     const ImageSpec& spec(img->spec());
 
-    // (xw,yw) are the window coordinates of the mouse.
-    int xw, yw;
-    get_focus_window_pixel(xw, yw);
+    // (x_mouse_viewport,y_mouse_viewport) are the window coordinates of the mouse.
+    int x_mouse_viewport, y_mouse_viewport;
+    get_focus_window_pixel(x_mouse_viewport, y_mouse_viewport);
 
-    // (xp,yp) are the image-space [0..res-1] position of the mouse.
-    int xp, yp;
-    get_focus_image_pixel(xp, yp);
+    // (x_mouse_image,y_mouse_image) are the image-space [0..res-1] position of the mouse.
+    int x_mouse_image, y_mouse_image;
+    get_focus_image_pixel(x_mouse_image, y_mouse_image);
 
     glPushMatrix();
     glLoadIdentity();
@@ -804,83 +804,107 @@ IvGL::paint_pixelview()
     // Pushed away from the camera 1 unit.  This makes the pixel view
     // elements closer to the camera than the main view.
 
-    // ncloseuppixels is the number of big pixels (in each direction)
-    // visible in our closeup window.
-    int ncloseuppixels    = m_viewer.closeupPixels();
-    int ncloseupavgpixels = m_viewer.closeupAvgPixels();
+    // n_closeup_pixels is the number of big pixels (in each direction)
+    // visible in our closeup window. Guaranteed to be an odd number
+    const int n_closeup_pixels = m_viewer.closeupPixels();
 
-    int avg_window_offset = 0;
-    if (ncloseuppixels > ncloseupavgpixels) {
-        avg_window_offset = (ncloseuppixels - ncloseupavgpixels) / 2;
-    }
+    // n_closeup_avg_pixels is the number of pixels used to calculate the average color.
+    // it is guaranteed to be no bigger than n_closeup_pixels. Guaranteed to be an odd number
+    const int n_closeup_avg_pixels = m_viewer.closeupAvgPixels();
 
-    /// closeuppixelzoom is the zoom factor we use for closeup pixels --
-    /// i.e. one image pixel will appear in the closeup window as a
-    /// closeuppixelzoom x closeuppixelzoom square.
-    const float closeuppixelzoom = static_cast<float>(closeupsize)
-                                   / ncloseuppixels;
+    // number of pixels from the side of the closeup window to the average color window.
+    const int avg_window_offset = (n_closeup_pixels - n_closeup_avg_pixels) / 2;
+
+    // closeup_pixel_zoom is the size of single image pixel inside close up window
+    const float closeup_pixel_size = static_cast<float>(closeup_window_size)
+                                     / n_closeup_pixels;
+
+    // height of a single line of text in the closeup window
     const int text_line_height = 18;
-    int follow_mouse_offset = 15;
-    
-    float follow_mouse_base_x = 0;
-    float follow_mouse_base_y = 0;
 
-    const int total_text_height = 4 * text_line_height;
-    const int status_bar_height = 15; // TODO m_viewer.statusBar()->height();
+    // number of pixels from the side of the closeup window to the mouse position when it is following the mouse
+    const int follow_mouse_offset = 15;
+
+    // total height of all text in the closeup window + padding
+    const int total_text_height = (spec.nchannels + 2) * text_line_height + 4;
+
+    // height of the status bar
+    const int status_bar_height = 15;  // TODO m_viewer.statusBar()->height();
 
     // Calculate if closeup would go beyond viewport boundaries
-    bool should_show_on_left = (xw + closeupsize + follow_mouse_offset) > width();
-    bool should_show_above = (yw + closeupsize + follow_mouse_offset + total_text_height + status_bar_height) > height();
+    bool should_show_on_left = (x_mouse_viewport + closeup_window_size
+                                + follow_mouse_offset)
+                               > width();
+    bool should_show_above = (y_mouse_viewport + closeup_window_size
+                              + follow_mouse_offset + total_text_height
+                              + status_bar_height)
+                             > height();
 
-    if (m_viewer.pixelviewFollowsMouse()) {
-        // Display closeup overtop mouse -- translate the coordinate system
-        // so that it is centered at the mouse position.
+    bool should_follow_mouse = m_viewer.pixelviewFollowsMouse();
 
-        // Calculate base position (center of closeup at cursor)
-        follow_mouse_base_x = xw - width() / 2 + closeupsize / 2 + 4 + follow_mouse_offset;
-        follow_mouse_base_y = -yw + height() / 2 - closeupsize / 2 - 4 - follow_mouse_offset;
+
+    // Use to translate OpenGL coordinate system to render closeup window
+    // at the correct position depending on user settings and mouse position
+    // OpenGL coordinate system has origin at the bottom left corner of the window
+    float x_gl_translate = 0;
+    float y_gl_translate = 0;
+
+    if (should_follow_mouse) {
+        // Display closeupview next to mouse cursor
+        // it is calculated dynamically such that closeup window is always visible
+        // even if mouse cursor is close to the edge of main window viewport
+        x_gl_translate = x_mouse_viewport - width() / 2
+                         + closeup_window_size / 2 + 4 + follow_mouse_offset;
+        y_gl_translate = -y_mouse_viewport + height() / 2
+                         - closeup_window_size / 2 - 4 - follow_mouse_offset;
 
         if (should_show_on_left) {
-            follow_mouse_base_x -= closeupsize + follow_mouse_offset * 2;
+            x_gl_translate -= closeup_window_size + follow_mouse_offset * 2;
         }
 
-        if(should_show_above){
-            follow_mouse_base_y += closeupsize + total_text_height + follow_mouse_offset * 2 + 8;
+        if (should_show_above) {
+            y_gl_translate += closeup_window_size + total_text_height
+                              + follow_mouse_offset * 2 + 8;
         }
-        
-        glTranslatef(follow_mouse_base_x, follow_mouse_base_y, 0);
-    } else {
+
+    } else if (m_pixelview_left_corner) {
         // Display closeup in corner -- translate the coordinate system so that
         // it is centered near the corner of the window.
-        if (m_pixelview_left_corner) {
-            glTranslatef(closeupsize * 0.5f + 5 - width() / 2,
-                         -closeupsize * 0.5f - 5 + height() / 2, 0);
-            // If the mouse cursor is over the pixelview closeup when it's on
-            // the upper left, switch to the upper right
-            if ((xw < closeupsize + 5) && yw < (closeupsize + 5))
-                m_pixelview_left_corner = false;
-        } else {
-            glTranslatef(-closeupsize * 0.5f - 5 + width() / 2,
-                         -closeupsize * 0.5f - 5 + height() / 2, 0);
-            // If the mouse cursor is over the pixelview closeup when it's on
-            // the upper right, switch to the upper left
-            if (xw > (width() - closeupsize - 5) && yw < (closeupsize + 5))
-                m_pixelview_left_corner = true;
-        }
+        x_gl_translate = closeup_window_size * 0.5f + 5 - width() / 2;
+        y_gl_translate = -closeup_window_size * 0.5f - 5 + height() / 2;
+
+        // If the mouse cursor is over the pixelview closeup when it's on
+        // the upper left, switch to the upper right
+        if ((x_mouse_viewport < closeup_window_size + 5)
+            && y_mouse_viewport < (closeup_window_size + 5 + total_text_height))
+            m_pixelview_left_corner = false;
+
+    } else {
+        x_gl_translate = -closeup_window_size * 0.5f - 5 + width() / 2;
+        y_gl_translate = -closeup_window_size * 0.5f - 5 + height() / 2;
+
+        // If the mouse cursor is over the pixelview closeup when it's on
+        // the upper right, switch to the upper left
+        if (x_mouse_viewport > (width() - closeup_window_size - 5)
+            && y_mouse_viewport < (closeup_window_size + 5 + total_text_height))
+            m_pixelview_left_corner = true;
     }
+
+    glTranslatef(x_gl_translate, y_gl_translate, 0);
+
     // In either case, the GL coordinate system is now scaled to window
     // pixel units, and centered on the middle of where the closeup
     // window is going to appear.  All other coordinates from here on
     // (in this procedure) should be relative to the closeup window center.
 
     glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
-    useshader(closeuptexsize, closeuptexsize, true);
+    useshader(closeup_texture_size, closeup_texture_size, true);
 
     float scale_x  = 1.0f;
     float scale_y  = 1.0f;
     float rotate_z = 0.0f;
-    float real_xp  = xp;
-    float real_yp  = yp;
+    float real_xp  = x_mouse_image;
+    float real_yp  = y_mouse_image;
     handle_orientation(img->orientation(), spec.width, spec.height, scale_x,
                        scale_y, rotate_z, real_xp, real_yp, true);
 
@@ -893,24 +917,28 @@ IvGL::paint_pixelview()
     int ybegin = 0;
     int xend   = 0;
     int yend   = 0;
-    if (xp >= 0 && xp < img->oriented_width() && yp >= 0
-        && yp < img->oriented_height()) {
-        // Keep the view within ncloseuppixels pixels.
-        int xpp = clamp<int>(real_xp, ncloseuppixels / 2,
-                             spec.width - ncloseuppixels / 2 - 1);
-        int ypp = clamp<int>(real_yp, ncloseuppixels / 2,
-                             spec.height - ncloseuppixels / 2 - 1);
-        xbegin  = std::max(xpp - ncloseuppixels / 2, 0);
-        ybegin  = std::max(ypp - ncloseuppixels / 2, 0);
-        xend    = std::min(xpp + ncloseuppixels / 2 + 1, spec.width);
-        yend    = std::min(ypp + ncloseuppixels / 2 + 1, spec.height);
+
+    bool is_mouse_inside_image = x_mouse_image >= 0
+                                 && x_mouse_image < img->oriented_width()
+                                 && y_mouse_image >= 0
+                                 && y_mouse_image < img->oriented_height();
+    if (is_mouse_inside_image) {
+        // Keep the view within n_closeup_pixels pixels.
+        int xpp = clamp<int>(real_xp, n_closeup_pixels / 2,
+                             spec.width - n_closeup_pixels / 2 - 1);
+        int ypp = clamp<int>(real_yp, n_closeup_pixels / 2,
+                             spec.height - n_closeup_pixels / 2 - 1);
+        xbegin  = std::max(xpp - n_closeup_pixels / 2, 0);
+        ybegin  = std::max(ypp - n_closeup_pixels / 2, 0);
+        xend    = std::min(xpp + n_closeup_pixels / 2 + 1, spec.width);
+        yend    = std::min(ypp + n_closeup_pixels / 2 + 1, spec.height);
         smin    = 0;
         tmin    = 0;
-        smax    = float(xend - xbegin) / closeuptexsize;
-        tmax    = float(yend - ybegin) / closeuptexsize;
+        smax    = float(xend - xbegin) / closeup_texture_size;
+        tmax    = float(yend - ybegin) / closeup_texture_size;
         //std::cerr << "img (" << xbegin << "," << ybegin << ") - (" << xend << "," << yend << ")\n";
         //std::cerr << "tex (" << smin << "," << tmin << ") - (" << smax << "," << tmax << ")\n";
-        //std::cerr << "center mouse (" << xp << "," << yp << "), real (" << real_xp << "," << real_yp << ")\n";
+        //std::cerr << "center mouse (" << x_mouse_image << "," << y_mouse_image << "), real (" << real_xp << "," << real_yp << ")\n";
 
         int nchannels = img->nchannels();
         // For simplicity, we don't support more than 4 channels without shaders
@@ -959,8 +987,9 @@ IvGL::paint_pixelview()
     glRotatef(rotate_z, 0, 0, 1);
 
     // This square is the closeup window itself
-    gl_rect(-0.5f * closeupsize, -0.5f * closeupsize, 0.5f * closeupsize,
-            0.5f * closeupsize, 0, smin, tmin, smax, tmax);
+    gl_rect(-0.5f * closeup_window_size, -0.5f * closeup_window_size,
+            0.5f * closeup_window_size, 0.5f * closeup_window_size, 0, smin,
+            tmin, smax, tmax);
     glPopMatrix();
     glPopAttrib();
 
@@ -970,7 +999,7 @@ IvGL::paint_pixelview()
     // extends slightly out from the closeup window (making it more
     // clearly visible), and also all the way down to cover the area
     // where the text will be printed, so it is very readable.
-    
+
 
     glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
     glDisable(GL_TEXTURE_2D);
@@ -978,49 +1007,29 @@ IvGL::paint_pixelview()
         // Disable shaders for this.
         glUseProgram(0);
     }
-    float extraspace = text_line_height * (2 + spec.nchannels) + 4;
+
     glColor4f(0.1f, 0.1f, 0.1f, 0.7f);
-    gl_rect(-0.5f * closeupsize, -0.5f * closeupsize, 0.5f * closeupsize,
-            -0.5f * closeupsize - extraspace, -0.1f);
+    gl_rect(-0.5f * closeup_window_size, -0.5f * closeup_window_size,
+            0.5f * closeup_window_size,
+            -0.5f * closeup_window_size - total_text_height, -0.1f);
 
-    QColor center_color(0, 255, 255, 125);
-    QColor avg_color(255, 255, 0, 125);
-
-
-    // Now we print text giving the mouse coordinates and the numerical
-    // values of the pixel that the mouse is over.
-    int textx, texty;
-    if (m_viewer.pixelviewFollowsMouse()) {
-        textx = xw + 8 + follow_mouse_offset;
-        texty = yw + closeupsize + text_line_height + follow_mouse_offset;
-
-        if(should_show_on_left){
-            textx -= closeupsize + follow_mouse_offset * 2;
-        }
-
-        if(should_show_above){
-            texty -= closeupsize + total_text_height + follow_mouse_offset * 2 + 8;
-        }
-    } else {
-        if (m_pixelview_left_corner) {
-            textx = 9;
-            texty = closeupsize + text_line_height;
-        } else {
-            textx = width() - closeupsize - 1;
-            texty = closeupsize + text_line_height;
-        }
-    }
+    // Colors for text and corner indicator of center pixel (Val) being measured
+    QColor center_pix_value_color(0, 255, 255, 125);
+    // Color for text and corner indicator of all pixels used for calculating average value
+    QColor avg_value_color(255, 255, 0, 125);
 
     int pixel_x = (int)real_xp + spec.x;
     int pixel_y = (int)real_yp + spec.y;
 
+    // array of channel values for pixel under mouse cursor
     float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
     img->getpixel(pixel_x, pixel_y, fpixel);
 
-    int pixel_count = (xend - xbegin - avg_window_offset * 2)
-                      * (yend - ybegin - avg_window_offset * 2);
+    int avg_pixel_count = (xend - xbegin - avg_window_offset * 2)
+                          * (yend - ybegin - avg_window_offset * 2);
 
-    struct ChannelComponents {
+    // String values to be printed in stats table for each channel
+    struct ChannelStats {
         std::string name;
         std::string centerValue;
         std::string normalized;
@@ -1028,8 +1037,9 @@ IvGL::paint_pixelview()
         std::string max;
         std::string avg;
     };
-    std::vector<ChannelComponents> channel_stats;
+    std::vector<ChannelStats> channels_stats;
 
+    // Maximum length of each string value in the stats table among all channels
     struct MaxLengths {
         int name        = 0;
         int centerValue = 0;
@@ -1040,7 +1050,8 @@ IvGL::paint_pixelview()
     };
     MaxLengths maxLengths;
 
-    bool is_inside_data_window = ybegin > 0 || yend > 0 || xbegin > 0 || xend > 0;
+    bool is_inside_data_window = ybegin > 0 || yend > 0 || xbegin > 0
+                                 || xend > 0;
     for (int i = 0; i < spec.nchannels; ++i) {
         std::string name = spec.channelnames[i];
         std::string centerValue;
@@ -1048,6 +1059,15 @@ IvGL::paint_pixelview()
         std::string min;
         std::string max;
         std::string avg;
+
+        /* 
+        For each channel we calculate:
+        - center value (value of pixel under mouse cursor)
+        - normalized value (value of pixel under mouse cursor divided by max value of all pixels in the closeup window)
+        - min, max and average value of all pixels in the averaging subset of pixels of closeup window
+
+        There are three almost identical cases for different pixel types.
+        */
 
         switch (spec.format.basetype) {
         case TypeDesc::UINT8: {
@@ -1070,7 +1090,7 @@ IvGL::paint_pixelview()
                         sum += p[i];
                     }
                 }
-                avg_val = (unsigned char)(sum / pixel_count);
+                avg_val = (unsigned char)(sum / avg_pixel_count);
             }
 
             ImageBuf::ConstIterator<unsigned char, unsigned char> p(*img,
@@ -1103,7 +1123,7 @@ IvGL::paint_pixelview()
                         sum += p[i];
                     }
                 }
-                avg_val = (unsigned short)(sum / pixel_count);
+                avg_val = (unsigned short)(sum / avg_pixel_count);
             }
 
             ImageBuf::ConstIterator<unsigned short, unsigned short> p(*img,
@@ -1137,7 +1157,7 @@ IvGL::paint_pixelview()
                         sum += p[i];
                     }
                 }
-                avg_val = sum / pixel_count;
+                avg_val = sum / avg_pixel_count;
             }
 
             ImageBuf::ConstIterator<float, float> p(*img, pixel_x, pixel_y);
@@ -1158,19 +1178,55 @@ IvGL::paint_pixelview()
         maxLengths.max         = std::max(maxLengths.max, (int)max.length());
         maxLengths.avg         = std::max(maxLengths.avg, (int)avg.length());
 
-        channel_stats.push_back(
+        channels_stats.push_back(
             { name, centerValue, normalized, min, max, avg });
     }
 
+
+    // Now we print text giving the mouse coordinates and the numerical
+    // values of the pixel that the mouse is over.
+    int x_text, y_text;
+    if (should_follow_mouse) {
+        x_text = x_mouse_viewport + 8 + follow_mouse_offset;
+        y_text = y_mouse_viewport + closeup_window_size + text_line_height
+                 + follow_mouse_offset;
+
+        if (should_show_on_left) {
+            x_text -= closeup_window_size + follow_mouse_offset * 2;
+        }
+
+        if (should_show_above) {
+            y_text -= closeup_window_size + total_text_height
+                      + follow_mouse_offset * 2 + 8;
+        }
+    } else if (m_pixelview_left_corner) {
+        x_text = 9;
+        y_text = closeup_window_size + text_line_height;
+    } else {
+        x_text = width() - closeup_window_size - 1;
+        y_text = closeup_window_size + text_line_height;
+    }
+
     {
-        QColor center_text_color = center_color;
-        center_text_color.setAlpha(200);
+        QColor center_pix_value_text_color = center_pix_value_color;
+        center_pix_value_text_color.setAlpha(200);
+
+        QColor avg_value_text_color = avg_value_color;
+        avg_value_text_color.setAlpha(200);
+
+        QColor normal_text_color(200, 200, 200);
 
         std::string mouse_pos
             = Strutil::fmt::format("              ({:d},{:d})", (int)real_xp,
                                    (int)real_yp);
-        shadowed_text(textx, texty, 0.0f, mouse_pos, center_text_color);
-        texty += text_line_height;
+        shadowed_text(x_text, y_text, 0.0f, mouse_pos,
+                      center_pix_value_text_color);
+        y_text += text_line_height;
+
+        // TODO Find a nicer way of doing this.
+        // Next three blocks are a hacky way of rendering a table header with
+        // Val and Avg rendered in a different color from rest of the text.
+        // It is done by rendering three texts on top of another.
 
         std::stringstream header_stream;
         header_stream << std::left << "   " << std::setw(maxLengths.centerValue)
@@ -1187,9 +1243,8 @@ IvGL::paint_pixelview()
                       << "  " << std::setw(maxLengths.max) << "Max"
                       << "  " << std::setw(maxLengths.avg) << "   "
                       << "  ";
-
-        shadowed_text(textx, texty, 0.0f, header_stream.str(),
-                      QColor(200, 200, 200));
+        shadowed_text(x_text, y_text, 0.0f, header_stream.str(),
+                      normal_text_color);
 
         header_stream.str("");
         header_stream << std::left << "   " << std::setw(maxLengths.centerValue)
@@ -1206,9 +1261,8 @@ IvGL::paint_pixelview()
                       << "  " << std::setw(maxLengths.max) << "   "
                       << "  " << std::setw(maxLengths.avg) << "   "
                       << "  ";
-
-        shadowed_text(textx, texty, 0.0f, header_stream.str(),
-                      center_text_color);
+        shadowed_text(x_text, y_text, 0.0f, header_stream.str(),
+                      center_pix_value_text_color);
 
         header_stream.str("");
         header_stream << std::left << "   " << std::setw(maxLengths.centerValue)
@@ -1225,15 +1279,13 @@ IvGL::paint_pixelview()
                       << "  " << std::setw(maxLengths.max) << "   "
                       << "  " << std::setw(maxLengths.avg) << "Avg"
                       << "  ";
+        shadowed_text(x_text, y_text, 0.0f, header_stream.str(),
+                      avg_value_text_color);
 
-        QColor avg_text_color = avg_color;
-        avg_text_color.setAlpha(200);
-        shadowed_text(textx, texty, 0.0f, header_stream.str(), avg_text_color);
-
-        texty += text_line_height;
+        y_text += text_line_height;
     }
 
-    for (const auto& stat : channel_stats) {
+    for (const auto& stat : channels_stats) {
         std::stringstream line_stream;
         line_stream << std::left << stat.name << ": "
                     << std::setw(maxLengths.centerValue) << stat.centerValue
@@ -1259,16 +1311,15 @@ IvGL::paint_pixelview()
             channelColor = Qt::white;
         }
 
-        shadowed_text(textx, texty, 0.0f, line_stream.str(), channelColor);
-        texty += text_line_height;
+        shadowed_text(x_text, y_text, 0.0f, line_stream.str(), channelColor);
+        y_text += text_line_height;
     }
 
     glPopAttrib();
     glPopMatrix();
 
-    // Draw yellow square around center pixel
-    if (xp >= 0 && xp < img->oriented_width() && yp >= 0
-        && yp < img->oriented_height()) {
+    // Draw cyan corners around center pixel
+    if (is_mouse_inside_image) {
         // Draw corner markers
         auto draw_corners = [](QPainter& painter, float rect_x1, float rect_y1,
                                float rect_x2, float rect_y2,
@@ -1293,78 +1344,96 @@ IvGL::paint_pixelview()
             painter.drawLine(rect_x2, rect_y2 - corner_size, rect_x2, rect_y2);
         };
 
-        float pixel_size = closeuppixelzoom
-                           - 1;  // Size of each pixel in the view
-        float x, y;
+        // Size of each pixel in the view taking into account spacing between pixels
+        float pixel_size = closeup_pixel_size - 1;
+        // Top left corner for the rect around center pixel
+        float rect_x1;  // Left edge
+        float rect_y1;  // Top edge
 
-        float offset = closeupsize / 2 - pixel_size / 2 + 5;
-        if (m_viewer.pixelviewFollowsMouse()) {
-            x = xw + offset + follow_mouse_offset;
-            y = yw + offset + follow_mouse_offset;
+        float offset_from_closeup_window = closeup_window_size / 2
+                                           - pixel_size / 2 + 5;
+        if (should_follow_mouse) {
+            rect_x1 = x_mouse_viewport + offset_from_closeup_window
+                      + follow_mouse_offset;
+            rect_y1 = y_mouse_viewport + offset_from_closeup_window
+                      + follow_mouse_offset;
 
-            if(should_show_on_left){
-                x -= closeupsize + follow_mouse_offset * 2;
+            if (should_show_on_left) {
+                rect_x1 -= closeup_window_size + follow_mouse_offset * 2;
             }
 
-            if(should_show_above){
-                y -= closeupsize + total_text_height + follow_mouse_offset * 2 + 8;
+            if (should_show_above) {
+                rect_y1 -= closeup_window_size + total_text_height
+                           + follow_mouse_offset * 2 + 8;
             }
+        } else if (m_pixelview_left_corner) {
+            rect_x1 = offset_from_closeup_window + 1;
+            rect_y1 = offset_from_closeup_window + 1;
         } else {
-            if (m_pixelview_left_corner) {
-                x = offset + 1;
-                y = offset + 1;
-            } else {
-                x = width() - offset - pixel_size;
-                y = offset + 1;
-            }
+            rect_x1 = width() - offset_from_closeup_window - pixel_size;
+            rect_y1 = offset_from_closeup_window + 1;
         }
-
-        if (spec.width - pixel_x <= floor(ncloseuppixels / 2)) {
-            x = x
-                + (floor(ncloseuppixels / 2) - (spec.width - pixel_x) + 1)
-                      * closeuppixelzoom
-                + 1;
-        }
-        if (spec.height - pixel_y <= floor(ncloseuppixels / 2)) {
-            y = y
-                + (floor(ncloseuppixels / 2) - (spec.height - pixel_y) + 1)
-                      * closeuppixelzoom
-                + 1;
-        }
-
-        if (pixel_x < floor(ncloseuppixels / 2)) {
-            x = x - (floor(ncloseuppixels / 2) - pixel_x) * closeuppixelzoom
-                + 1;
-        }
-        if (pixel_y < floor(ncloseuppixels / 2)) {
-            y = y - (floor(ncloseuppixels / 2) - pixel_y) * closeuppixelzoom
-                + 1;
-        }
-
-        // Extract the rect coordinates from the corners
-        float rect_x1 = x;               // Left edge
-        float rect_y1 = y;               // Top edge
-        float rect_x2 = x + pixel_size;  // Right edge
-        float rect_y2 = y + pixel_size;  // Bottom edge
 
         QPainter painter(this);
-        draw_corners(painter, rect_x1, rect_y1, rect_x2, rect_y2, center_color);
         if (avg_window_offset > 0) {
-            draw_corners(painter,
-                         rect_x1
-                             - (ncloseuppixels / 2 - avg_window_offset)
-                                   * closeuppixelzoom,
-                         rect_y1
-                             - (ncloseuppixels / 2 - avg_window_offset)
-                                   * closeuppixelzoom,
-                         rect_x2
-                             + (ncloseuppixels / 2 - avg_window_offset)
-                                   * closeuppixelzoom,
-                         rect_y2
-                             + (ncloseuppixels / 2 - avg_window_offset)
-                                   * closeuppixelzoom,
-                         avg_color);
+            // Drawing indicators of avg sub-section of the closeup window
+            // before adjusting center pixel position because avg is not shifted to the edges
+            short int center_to_avg_window_offset = n_closeup_pixels / 2
+                                                    - avg_window_offset;
+            float avg_x1 = rect_x1
+                           - center_to_avg_window_offset * closeup_pixel_size;
+            float avg_y1 = rect_y1
+                           - center_to_avg_window_offset * closeup_pixel_size;
+            float avg_x2 = rect_x1
+                           + (center_to_avg_window_offset + 1)
+                                 * closeup_pixel_size;
+            float avg_y2 = rect_y1
+                           + (center_to_avg_window_offset + 1)
+                                 * closeup_pixel_size;
+            draw_corners(painter, avg_x1, avg_y1, avg_x2, avg_y2,
+                         avg_value_color);
         }
+
+        // Adjust x and y of measured pixel position to account for the fact that the
+        // center pixel is not at the center of the closeup window
+        // in situation when pixel mouse is hovering over is close to the edge of an image
+        float half_closeup_window_size = n_closeup_pixels / 2;
+        short int px_to_right_edge     = spec.width - pixel_x;
+        short int px_to_bottom_edge    = spec.height - pixel_y;
+
+        bool is_close_to_right_edge = px_to_right_edge
+                                      <= half_closeup_window_size;
+        bool is_close_to_bottom_edge = px_to_bottom_edge
+                                       <= half_closeup_window_size;
+        bool is_close_to_left_edge = pixel_x <= half_closeup_window_size;
+        bool is_close_to_top_edge  = pixel_y <= half_closeup_window_size;
+
+        if (is_close_to_right_edge) {
+            rect_x1 += +(half_closeup_window_size - px_to_right_edge + 1)
+                           * closeup_pixel_size
+                       + 1;
+        }
+
+        if (is_close_to_bottom_edge) {
+            rect_y1 += +(half_closeup_window_size - px_to_bottom_edge + 1)
+                           * closeup_pixel_size
+                       + 1;
+        }
+
+        if (is_close_to_left_edge) {
+            rect_x1 -= (half_closeup_window_size - pixel_x) * closeup_pixel_size
+                       + 1;
+        }
+        if (is_close_to_top_edge) {
+            rect_y1 -= (half_closeup_window_size - pixel_y) * closeup_pixel_size
+                       + 1;
+        }
+
+        float rect_x2 = rect_x1 + pixel_size;  // Right edge
+        float rect_y2 = rect_y1 + pixel_size;  // Bottom edge
+
+        draw_corners(painter, rect_x1, rect_y1, rect_x2, rect_y2,
+                     center_pix_value_color);
     }
 }
 
@@ -1378,8 +1447,8 @@ IvGL::paint_probeview()
     IvImage* img = m_current_image;
     const ImageSpec& spec(img->spec());
 
-    int xw, yw;
-    get_focus_window_pixel(xw, yw);
+    int x_mouse_viewport, y_mouse_viewport;
+    get_focus_window_pixel(x_mouse_viewport, y_mouse_viewport);
 
     glPushMatrix();
     glLoadIdentity();
@@ -1387,8 +1456,8 @@ IvGL::paint_probeview()
     // Set to window pixel units and center the origin
     glTranslatef(0, 0, -1);  // Push into screen to draw on top
 
-    float closeup_width  = closeupsize * 1.3f;
-    float closeup_height = closeupsize * (0.06f * (spec.nchannels + 1));
+    float closeup_width  = closeup_window_size * 1.3f;
+    float closeup_height = closeup_window_size * (0.06f * (spec.nchannels + 1));
 
     // Position the close-up box
     const float status_bar_offset = 35.0f;
@@ -1407,8 +1476,8 @@ IvGL::paint_probeview()
     // Draw probe text
     QFont font;
 
-    int textx    = 9;
-    int texty    = height() - closeup_height - 30;
+    int x_text   = 9;
+    int y_text   = height() - closeup_height - 30;
     int yspacing = 15;
 
     if (m_area_probe_text.empty()) {
@@ -1423,8 +1492,8 @@ IvGL::paint_probeview()
     std::istringstream iss(m_area_probe_text);
     std::string line;
     while (std::getline(iss, line)) {
-        shadowed_text(textx, texty, 0.0f, line);
-        texty += yspacing;
+        shadowed_text(x_text, y_text, 0.0f, line);
+        y_text += yspacing;
     }
 
     glPopAttrib();
@@ -1603,8 +1672,8 @@ IvGL::update()
 
     // Set the right type for the texture used for pixelview.
     glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, glinternalformat, closeuptexsize,
-                 closeuptexsize, 0, glformat, gltype, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, glinternalformat, closeup_texture_size,
+                 closeup_texture_size, 0, glformat, gltype, NULL);
     print_error("Setting up pixelview texture");
 
     // Resize the buffer at once, rather than create one each drawing.
@@ -1711,9 +1780,9 @@ IvGL::update_area_probe_text()
 {
     IvImage* img = m_current_image;
     const ImageSpec& spec(img->spec());
-    // (xw,yw) are the window coordinates of the mouse.
-    int xw, yw;
-    get_focus_window_pixel(xw, yw);
+    // (x_mouse_viewport,y_mouse_viewport) are the window coordinates of the mouse.
+    int x_mouse_viewport, y_mouse_viewport;
+    get_focus_window_pixel(x_mouse_viewport, y_mouse_viewport);
 
     int x1, y1;
     get_given_image_pixel(x1, y1, m_select_start.x(), m_select_start.y());
