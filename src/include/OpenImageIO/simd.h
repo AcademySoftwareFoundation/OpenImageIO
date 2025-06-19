@@ -115,6 +115,11 @@
     // Cuda -- don't include any of these headers
 #elif defined(_WIN32)
 #  include <intrin.h>
+// MSVC's intrin.h includes arm_neon.h, clang (and by extension clang-cl)
+// has a version without this inclusion, so we need to manually add it
+#  if defined(__ARM_NEON__) && !defined(OIIO_NO_NEON)
+#    include <arm_neon.h>
+#  endif
 #elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__)) || defined(__e2k__)
 #  include <x86intrin.h>
 #elif defined(__GNUC__) && defined(__ARM_NEON__) && !defined(OIIO_NO_NEON)
