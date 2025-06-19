@@ -5,7 +5,6 @@
 #include "ivgl.h"
 #include "imageviewer.h"
 
-#include <iomanip>
 #include <iostream>
 #include <limits>
 
@@ -1229,77 +1228,62 @@ IvGL::paint_pixelview()
         // Val and Avg rendered in a different color from rest of the text.
         // It is done by rendering three texts on top of another.
 
-        std::stringstream header_stream;
-        header_stream << std::left << "   " << std::setw(maxLengths.centerValue)
-                      << "   "
-                      << " "
-                      << (maxLengths.normalized > 0
-                              ? (std::stringstream()
-                                 << std::left
-                                 << std::setw(maxLengths.normalized) << "Norm"
-                                 << "  ")
-                                    .str()
-                              : " ")
-                      << std::setw(maxLengths.min) << "Min"
-                      << "  " << std::setw(maxLengths.max) << "Max"
-                      << "  " << std::setw(maxLengths.avg) << "   "
-                      << "  ";
-        shadowed_text(x_text, y_text, 0.0f, header_stream.str(),
-                      normal_text_color);
 
-        header_stream.str("");
-        header_stream << std::left << "   " << std::setw(maxLengths.centerValue)
-                      << "Val"
-                      << " "
-                      << (maxLengths.normalized > 0
-                              ? (std::stringstream()
-                                 << std::left
-                                 << std::setw(maxLengths.normalized) << "    "
-                                 << "  ")
-                                    .str()
-                              : " ")
-                      << std::setw(maxLengths.min) << "   "
-                      << "  " << std::setw(maxLengths.max) << "   "
-                      << "  " << std::setw(maxLengths.avg) << "   "
-                      << "  ";
-        shadowed_text(x_text, y_text, 0.0f, header_stream.str(),
+        // Build the "Norm" column header conditionally
+        std::string normalized_header;
+        std::string empty_normalized_header;
+        if (maxLengths.normalized > 0) {
+            normalized_header = Strutil::fmt::format("{:<{}}  ", "Norm",
+                                                     maxLengths.normalized);
+            empty_normalized_header
+                = Strutil::fmt::format("{:<{}}  ", "    ",
+                                       maxLengths.normalized);
+        } else {
+            normalized_header       = "";
+            empty_normalized_header = "";
+        }
+
+        // Print Norm, Min, Max column headers with normal white color
+        std::string base_header = Strutil::fmt::format(
+            "   {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", "   ",
+            maxLengths.centerValue, normalized_header, "Min", maxLengths.min,
+            "Max", maxLengths.max, "   ", maxLengths.avg);
+        shadowed_text(x_text, y_text, 0.0f, base_header, normal_text_color);
+
+        // Print "Val" column headers with normal cyan color
+        std::string val_header = Strutil::fmt::format(
+            "   {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", "Val",
+            maxLengths.centerValue, empty_normalized_header, "   ",
+            maxLengths.min, "   ", maxLengths.max, "   ", maxLengths.avg);
+        shadowed_text(x_text, y_text, 0.0f, val_header,
                       center_pix_value_text_color);
 
-        header_stream.str("");
-        header_stream << std::left << "   " << std::setw(maxLengths.centerValue)
-                      << "   "
-                      << " "
-                      << (maxLengths.normalized > 0
-                              ? (std::stringstream()
-                                 << std::left
-                                 << std::setw(maxLengths.normalized) << "    "
-                                 << "  ")
-                                    .str()
-                              : " ")
-                      << std::setw(maxLengths.min) << "   "
-                      << "  " << std::setw(maxLengths.max) << "   "
-                      << "  " << std::setw(maxLengths.avg) << "Avg"
-                      << "  ";
-        shadowed_text(x_text, y_text, 0.0f, header_stream.str(),
-                      avg_value_text_color);
+        // Print "Avg" column header with normal yellow color
+        std::string avg_header = Strutil::fmt::format(
+            "   {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", "   ",
+            maxLengths.centerValue, empty_normalized_header, "   ",
+            maxLengths.min, "   ", maxLengths.max, "Avg", maxLengths.avg);
+        shadowed_text(x_text, y_text, 0.0f, avg_header, avg_value_text_color);
 
         y_text += text_line_height;
     }
 
     for (const auto& stat : channels_stats) {
-        std::stringstream line_stream;
-        line_stream << std::left << stat.name << ": "
-                    << std::setw(maxLengths.centerValue) << stat.centerValue
-                    << " "
-                    << (maxLengths.normalized > 0
-                            ? (std::stringstream()
-                               << std::setw(maxLengths.normalized)
-                               << stat.normalized << "  ")
-                                  .str()
-                            : " ")
-                    << std::setw(maxLengths.min) << stat.min << "  "
-                    << std::setw(maxLengths.max) << stat.max << "  "
-                    << std::setw(maxLengths.avg) << stat.avg << "  ";
+        // Build the "Norm" column header conditionally
+        std::string normalized_col;
+        if (maxLengths.normalized > 0) {
+            normalized_col = Strutil::fmt::format("{:<{}}  ", stat.normalized,
+                                                  maxLengths.normalized);
+        } else {
+            normalized_col = "";
+        }
+
+        std::string line
+            = Strutil::fmt::format("{:<{}}: {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ",
+                                   stat.name, maxLengths.name, stat.centerValue,
+                                   maxLengths.centerValue, normalized_col,
+                                   stat.min, maxLengths.min, stat.max,
+                                   maxLengths.max, stat.avg, maxLengths.avg);
 
         QColor channelColor;
         if (stat.name[0] == 'R') {
@@ -1312,7 +1296,7 @@ IvGL::paint_pixelview()
             channelColor = Qt::white;
         }
 
-        shadowed_text(x_text, y_text, 0.0f, line_stream.str(), channelColor);
+        shadowed_text(x_text, y_text, 0.0f, line, channelColor);
         y_text += text_line_height;
     }
 
