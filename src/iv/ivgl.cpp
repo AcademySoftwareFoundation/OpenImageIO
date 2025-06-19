@@ -5,6 +5,7 @@
 #include "ivgl.h"
 #include "imageviewer.h"
 
+#include <iomanip>
 #include <iostream>
 #include <limits>
 
