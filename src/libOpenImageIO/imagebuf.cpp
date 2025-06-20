@@ -185,6 +185,14 @@ public:
         error(Strutil::fmt::format(fmt, args...));
     }
 
+    // Another alias for error so we don't get mixed up with the global
+    // OIIO::errorfmt.
+    template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const
+    {
+        error(Strutil::fmt::format(fmt, args...));
+    }
+
     void error(string_view message) const;
 
     ImageBuf::IBStorage storage() const { return m_storage; }
@@ -1088,18 +1096,49 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
             // If no configspec, just do a regular soft invalidate
             invalidate(m_name, false);
         }
-        m_imagecache->get_image_info(m_name, subimage, miplevel, s_subimages,
-                                     TypeInt, &m_nsubimages);
-        m_imagecache->get_image_info(m_name, subimage, miplevel, s_miplevels,
-                                     TypeInt, &m_nmiplevels);
         const char* fmt = NULL;
-        m_imagecache->get_image_info(m_name, subimage, miplevel, s_fileformat,
-                                     TypeString, &fmt);
+        if (!(m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                           s_subimages, TypeInt, &m_nsubimages)
+              && m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                              s_miplevels, TypeInt,
+                                              &m_nmiplevels)
+              && m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                              s_fileformat, TypeString, &fmt))) {
+            std::string err = m_imagecache->geterror();
+            error(err.size()
+                      ? err
+                      : Strutil::format("trouble reading from {}", m_name));
+            m_spec       = ImageSpec();
+            m_nativespec = m_spec;
+            return false;
+        }
         m_fileformat = ustring(fmt);
 
-        m_imagecache->get_imagespec(m_name, m_nativespec, subimage);
-        m_spec = m_nativespec;
-        m_imagecache->get_cache_dimensions(m_name, m_spec, subimage, miplevel);
+        if (subimage < 0 || subimage >= m_nsubimages) {
+            error("Invalid subimage {} requested (of {} subimages)", subimage,
+                  m_nsubimages);
+            m_spec       = ImageSpec();
+            m_nativespec = m_spec;
+            return false;
+        }
+        if (miplevel < 0 || miplevel >= m_nmiplevels) {
+            error(
+                "Invalid MIP level {} requested for subimage {} (of {} levels)",
+                miplevel, subimage, m_nmiplevels);
+            m_spec       = ImageSpec();
+            m_nativespec = m_spec;
+            return false;
+        }
+        bool ok = m_imagecache->get_imagespec(m_name, m_nativespec, subimage);
+        m_spec  = m_nativespec;
+        ok &= m_imagecache->get_cache_dimensions(m_name, m_spec, subimage,
+                                                 miplevel);
+        if (!ok || m_nativespec.format == TypeUnknown) {
+            std::string cacheerr = m_imagecache->geterror();
+            error("Unable to find subimage={}, miplevel={}{}{}",
+                  cacheerr.size() ? ": " : "", cacheerr);
+            return false;
+        }
 
         m_xstride = m_spec.pixel_bytes();
         m_ystride = m_spec.scanline_bytes();
@@ -1165,20 +1204,26 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_current_miplevel = -1;
         auto input = ImageInput::open(filename, m_configspec.get(), m_rioproxy);
         if (!input) {
-            m_err = OIIO::geterror();
+            error("Could not open file: {}", OIIO::geterror());
             atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
             return false;
         }
-        m_spec = input->spec(subimage, miplevel);
+        m_spec       = input->spec(subimage, miplevel);
+        m_nativespec = m_spec;
         if (input->has_error()) {
-            m_err = input->geterror();
+            errorfmt("Error reading: {}", input->geterror());
+            atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+            return false;
+        }
+        if (m_spec.format == TypeUnknown) {
+            errorfmt("Could not seek to subimage={} miplevel={}", subimage,
+                     miplevel);
             atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
             return false;
         }
         m_badfile    = false;
         m_spec_valid = true;
         m_fileformat = ustring(input->format_name());
-        m_nativespec = m_spec;
         m_xstride    = m_spec.pixel_bytes();
         m_ystride    = m_spec.scanline_bytes();
         m_zstride    = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);

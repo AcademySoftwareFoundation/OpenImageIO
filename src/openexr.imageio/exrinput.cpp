@@ -1011,8 +1011,11 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
         const Imf::Header* header = NULL;
         if (m_input_multipart)
             header = &(m_input_multipart->header(subimage));
-        if (!part.parse_header(this, header))
+        if (!part.parse_header(this, header)) {
+            errorfmt("Could not seek to subimage={}: unable to parse header",
+                     subimage, miplevel);
             return false;
+        }
         part.initialized = true;
     }
 
