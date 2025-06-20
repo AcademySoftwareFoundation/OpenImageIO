@@ -497,6 +497,40 @@ ImageViewer::createActions()
     toggleAreaSampleAct->setShortcut(tr("Ctrl+A"));
     connect(toggleAreaSampleAct, SIGNAL(triggered()), this,
             SLOT(toggleAreaSample()));
+
+    closeupPixelsLabel = new QLabel(tr("# closeup pixels:"));
+    closeupPixelsBox   = new QSpinBox();
+    closeupPixelsBox->setRange(9, 25);
+    closeupPixelsBox->setValue(13);
+    closeupPixelsBox->setSingleStep(2);
+
+    QString closeupPixelsTooltip = tr(
+        "Number of pixels to show in the closeup view.");
+    closeupPixelsBox->setToolTip(closeupPixelsTooltip);
+    closeupPixelsLabel->setToolTip(closeupPixelsTooltip);
+
+    closeupAvgPixelsLabel = new QLabel(tr("# closeup avg pixels:"));
+    closeupAvgPixelsBox   = new QSpinBox();
+    closeupAvgPixelsBox->setRange(3, 25);
+    closeupAvgPixelsBox->setValue(11);
+    closeupAvgPixelsBox->setSingleStep(2);
+
+    QString closeupAvgPixelsTooltip = tr(
+        "Number of pixels to use for averaging in the closeup view.");
+    closeupAvgPixelsBox->setToolTip(closeupAvgPixelsTooltip);
+    closeupAvgPixelsLabel->setToolTip(closeupAvgPixelsTooltip);
+
+    // Connect signals to ensure closeupAvgPixelsBox value is always <= closeupPixelsBox value
+    connect(closeupPixelsBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            [this](int value) {
+                if (closeupAvgPixelsBox->value() > value)
+                    closeupAvgPixelsBox->setValue(value);
+            });
+    connect(closeupAvgPixelsBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            [this](int value) {
+                if (value > closeupPixelsBox->value())
+                    closeupAvgPixelsBox->setValue(closeupPixelsBox->value());
+            });
 }
 
 
@@ -833,6 +867,7 @@ ImageViewer::readSettings(bool ui_is_set_up)
         maxMemoryIC->setValue(settings.value("maxMemoryIC", 2048).toInt());
     slideShowDuration->setValue(
         settings.value("slideShowDuration", 10).toInt());
+    closeupPixelsBox->setValue(settings.value("closeupPixels", 13).toInt());
 
     OIIO::attribute("imagebuf:use_imagecache", 1);
 
@@ -855,6 +890,7 @@ ImageViewer::writeSettings()
     settings.setValue("autoMipmap", autoMipmap->isChecked());
     settings.setValue("maxMemoryIC", maxMemoryIC->value());
     settings.setValue("slideShowDuration", slideShowDuration->value());
+    settings.setValue("closeupPixels", closeupPixelsBox->value());
     QStringList recent;
     for (auto&& s : m_recent_files)
         recent.push_front(QString(s.c_str()));
