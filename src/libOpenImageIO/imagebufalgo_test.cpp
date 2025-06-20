@@ -1358,23 +1358,58 @@ mosaic<uint8_t>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
                                       white_balance, nthreads);
 }
 
+struct DemosaicTestAlgo {
+    const char* name;
+    const int inset;
+    float thresholds[4];
+};
+
 struct DemosaicTestConfig {
     const char* pattern;
     size_t size_x;
     size_t size_y;
-    size_t algos_count;
+    size_t default_algo;
+    std::vector<DemosaicTestAlgo> algos;
 };
 
-struct DemosaicTestAlgo {
-    const char* name;
-    const int inset;
-};
-
-template<typename T, bool write_images>
+template<typename T, size_t threshold_index, bool write_images>
 static void
-test_demosaic(const DemosaicTestConfig& config, const DemosaicTestAlgo* algos,
-              const ImageBuf& src_image, const float (&wb)[4],
-              const float thresholds[])
+test_demosaic_algo(const ImageBuf& src_image, const ImageBuf& mosaiced_image,
+                   const DemosaicTestAlgo& algo,
+                   const ImageBufAlgo::KWArgs& args,
+                   const std::string file_name, const std::string test_name)
+{
+    ImageBuf demosaiced_image = OIIO::ImageBufAlgo::demosaic(mosaiced_image,
+                                                             args);
+
+    int inset       = algo.inset;
+    float threshold = algo.thresholds[threshold_index];
+
+    ROI roi = src_image.roi();
+    roi.xbegin += inset;
+    roi.ybegin += inset;
+    roi.xend -= inset;
+    roi.yend -= inset;
+
+    ImageBufAlgo::CompareResults cr
+        = ImageBufAlgo::compare(src_image, demosaiced_image, threshold,
+                                threshold, roi);
+    OIIO_CHECK_FALSE(cr.error);
+
+    if (write_images) {
+        auto type        = TypeDescFromC<T>().value();
+        std::string ext  = type.is_floating_point() ? "exr" : "png";
+        std::string path = file_name + "_" + test_name + "." + ext;
+        auto imageOutput = ImageOutput::create(ext);
+        imageOutput->open(path, demosaiced_image.spec());
+        demosaiced_image.write(imageOutput.get());
+    }
+}
+
+template<typename T, size_t threshold_index, bool write_images>
+static void
+test_demosaic(const DemosaicTestConfig& config, const ImageBuf& src_image,
+              const float (&wb)[4])
 {
     for (size_t y = 0; y < config.size_y; y++) {
         for (size_t x = 0; x < config.size_x; x++) {
@@ -1387,54 +1422,50 @@ test_demosaic(const DemosaicTestConfig& config, const DemosaicTestAlgo* algos,
             std::string layout = mosaic<T>(mosaiced_image, src_image, x, y,
                                            config.pattern, wb, 0);
 
+            mosaiced_image.specmod().attribute("raw:FilterPattern", layout);
+            mosaiced_image.specmod().attribute("raw:WhiteBalance",
+                                               TypeDesc(TypeDesc::FLOAT, 4),
+                                               wb);
+
             std::string pattern(config.pattern);
             std::string ext = type.is_floating_point() ? "exr" : "png";
 
+            std::string file_name = pattern + "_" + std::string(type.c_str())
+                                    + "_" + std::to_string(y) + "_"
+                                    + std::to_string(x);
+
             if (write_images) {
-                std::string path = pattern + "_" + std::string(type.c_str())
-                                   + "_" + std::to_string(y) + "_"
-                                   + std::to_string(x) + "_src." + ext;
+                std::string path = file_name + "_src." + ext;
 
                 auto imageOutput = ImageOutput::create(ext);
                 imageOutput->open(path, mosaiced_image.spec());
                 mosaiced_image.write(imageOutput.get());
             }
 
-            for (size_t i = 0; i < config.algos_count; i++) {
-                std::string algo(algos[i].name);
-
+            for (const auto& algo : config.algos) {
+                std::string name = algo.name;
                 ParamValueList list;
                 list.push_back(ParamValue("pattern", pattern));
-                list.push_back(ParamValue("algorithm", algo));
+                list.push_back(ParamValue("algorithm", name));
                 list.push_back(ParamValue("layout", layout));
+                list.push_back(ParamValue("white_balance_mode", "manual"));
                 list.push_back(
                     ParamValue("white_balance", TypeDesc::FLOAT, 4, wb));
-                ImageBuf demosaiced_image
-                    = OIIO::ImageBufAlgo::demosaic(mosaiced_image, list);
+                test_demosaic_algo<T, threshold_index, write_images>(
+                    src_image, mosaiced_image, algo, list, file_name, name);
+            }
 
-                int inset       = algos[i].inset;
-                float threshold = thresholds[i];
-
-                ROI roi = src_image.roi();
-                roi.xbegin += inset;
-                roi.ybegin += inset;
-                roi.xend -= inset;
-                roi.yend -= inset;
-
-                ImageBufAlgo::CompareResults cr
-                    = ImageBufAlgo::compare(src_image, demosaiced_image,
-                                            threshold, threshold, roi);
-                OIIO_CHECK_FALSE(cr.error);
-
-                if (write_images) {
-                    std::string path = pattern + "_" + std::string(type.c_str())
-                                       + "_" + std::to_string(y) + "_"
-                                       + std::to_string(x) + "_" + algo + "."
-                                       + ext;
-                    auto imageOutput = ImageOutput::create(ext);
-                    imageOutput->open(path, demosaiced_image.spec());
-                    demosaiced_image.write(imageOutput.get());
-                }
+            // test auto options
+            {
+                std::string name = "auto";
+                const auto& algo = config.algos[config.default_algo];
+                ParamValueList list;
+                list.push_back(ParamValue("pattern", "auto"));
+                list.push_back(ParamValue("algorithm", "auto"));
+                list.push_back(ParamValue("layout", "auto"));
+                list.push_back(ParamValue("white_balance_mode", "auto"));
+                test_demosaic_algo<T, threshold_index, write_images>(
+                    src_image, mosaiced_image, algo, list, file_name, name);
             }
         }
     }
@@ -1453,30 +1484,45 @@ test_demosaic()
 
     float wb[4] = { 2.0, 1.1, 1.5, 0.9 };
 
-    const DemosaicTestConfig bayerConfig = { "bayer", 2, 2, 2 };
-    const DemosaicTestAlgo bayerAlgos[]  = { { "linear", 1 }, { "MHC", 2 } };
+    const DemosaicTestConfig bayerConfig
+        = { "bayer",       // pattern
+            2,             // size_x
+            2,             // size_y
+            1,             // default_algo
+            { { "linear",  // name
+                1,         // inset
+                {
+                    1.8e-07,  // float threshold
+                    0.00049,  // half  threshold
+                    3.1e-05,  // int16 threshold
+                    0.0079    // int8  threshold
+                } },
+              { "MHC",  // name
+                2,      // inset
+                {
+                    2.4e-07,  // float threshold
+                    0.00049,  // half  threshold
+                    4.6e-05,  // int16 threshold
+                    0.012     // int8  threshold
+                } } } };
 
     // There are 6x6=36 possible permutations of the XTrans pattern,
-    // of which only 18 are unique. It is sufficient to only test all variants of
-    // the top 3 vertical offsets, the bottom half is the same, but somewhat
-    // shuffled.
-    const DemosaicTestConfig xtransConfig = { "xtrans", 6, 3, 1 };
-    const DemosaicTestAlgo xtransAlgos[]  = { { "linear", 2 } };
-
-
-    const float bayer_thresholds[4][2] = {
-        { 1.8e-07, 2.4e-07 },  // float
-        { 0.00049, 0.00049 },  // half
-        { 3.1e-05, 4.6e-05 },  // int16
-        { 0.0079, 0.012 }      // int8
-    };
-
-    const float xtrans_thresholds[4][1] = {
-        { 0.00099 },  // float
-        { 0.0015 },   // half
-        { 0.0011 },   // int16
-        { 0.0079 }    // int8
-    };
+    // of which only 18 are unique. It is sufficient to only test all variants
+    // of the top 3 vertical offsets, the bottom half consists of the same
+    // layouts but in different order.
+    const DemosaicTestConfig xtransConfig
+        = { "xtrans",      // pattern
+            6,             // size_x
+            3,             // size_y
+            0,             // default_algo
+            { { "linear",  // name
+                2,         // inset
+                {
+                    0.00099,  // float threshold
+                    0.0015,   // half  threshold
+                    0.0011,   // int16 threshold
+                    0.0079    // int8  threshold
+                } } } };
 
     constexpr bool write_files = false;
     ImageBuf true_image;
@@ -1488,28 +1534,20 @@ test_demosaic()
     }
 
     true_image.copy(src_image, TypeDesc::FLOAT);
-    test_demosaic<float, write_files>(bayerConfig, bayerAlgos, true_image, wb,
-                                      bayer_thresholds[0]);
-    test_demosaic<float, write_files>(xtransConfig, xtransAlgos, true_image, wb,
-                                      xtrans_thresholds[0]);
+    test_demosaic<float, 0, write_files>(bayerConfig, true_image, wb);
+    test_demosaic<float, 0, write_files>(xtransConfig, true_image, wb);
 
     true_image.copy(src_image, TypeDesc::HALF);
-    test_demosaic<half, write_files>(bayerConfig, bayerAlgos, true_image, wb,
-                                     bayer_thresholds[1]);
-    test_demosaic<half, write_files>(xtransConfig, xtransAlgos, true_image, wb,
-                                     xtrans_thresholds[1]);
+    test_demosaic<half, 1, write_files>(bayerConfig, true_image, wb);
+    test_demosaic<half, 1, write_files>(xtransConfig, true_image, wb);
 
     true_image.copy(src_image, TypeDesc::UINT16);
-    test_demosaic<uint16_t, write_files>(bayerConfig, bayerAlgos, true_image,
-                                         wb, bayer_thresholds[2]);
-    test_demosaic<uint16_t, write_files>(xtransConfig, xtransAlgos, true_image,
-                                         wb, xtrans_thresholds[2]);
+    test_demosaic<uint16_t, 2, write_files>(bayerConfig, true_image, wb);
+    test_demosaic<uint16_t, 2, write_files>(xtransConfig, true_image, wb);
 
     true_image.copy(src_image, TypeDesc::UINT8);
-    test_demosaic<uint8_t, write_files>(bayerConfig, bayerAlgos, true_image, wb,
-                                        bayer_thresholds[3]);
-    test_demosaic<uint8_t, write_files>(xtransConfig, xtransAlgos, true_image,
-                                        wb, xtrans_thresholds[3]);
+    test_demosaic<uint8_t, 3, write_files>(bayerConfig, true_image, wb);
+    test_demosaic<uint8_t, 3, write_files>(xtransConfig, true_image, wb);
 }
 
 
