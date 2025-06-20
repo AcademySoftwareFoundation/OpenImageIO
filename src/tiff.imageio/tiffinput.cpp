@@ -102,7 +102,7 @@ public:
     int supports(string_view feature) const override
     {
         return (feature == "exif" || feature == "iptc" || feature == "ioproxy"
-                || feature == "multiimage");
+                || feature == "multiimage" || feature == "mipmap");
         // N.B. No support for arbitrary metadata.
     }
     bool open(const std::string& name, ImageSpec& newspec) override;
