@@ -1467,6 +1467,30 @@ RawInput::get_colorinfo()
                      &(m_processor->imgdata.color.cam_xyz[3][3])),
         false, 0.f);
 
+    {
+        float wb[4];
+        wb[0] = m_processor->imgdata.color.cam_mul[0];
+        wb[1] = m_processor->imgdata.color.cam_mul[1];
+        wb[2] = m_processor->imgdata.color.cam_mul[2];
+        wb[3] = m_processor->imgdata.color.cam_mul[3];
+
+        float scale = wb[1];
+
+        if (wb[3] == 0)
+            wb[3] = wb[1];
+        else
+            scale = (scale + wb[3]) * 0.5f;
+
+        if (scale != 0) {
+            wb[0] /= scale;
+            wb[1] /= scale;
+            wb[2] /= scale;
+            wb[3] /= scale;
+        }
+
+        add("raw", "WhiteBalance", cspan<float>(wb), false, 0.f);
+    }
+
     if (m_processor->imgdata.idata.dng_version) {
         add("raw", "dng:version", m_processor->imgdata.idata.dng_version);
 
