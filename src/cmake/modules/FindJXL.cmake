@@ -41,5 +41,4 @@ find_package_handle_standard_args(JXL
 
 if(JXL_FOUND)
   set(JXL_LIBRARIES ${JXL_LIBRARY} ${JXL_THREADS_LIBRARY})
-  set(JXL_INCLUDES ${JXL_INCLUDE_DIR})
 endif(JXL_FOUND)
