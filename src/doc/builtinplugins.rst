@@ -1345,11 +1345,9 @@ control aspects of the writing itself:
        For lossy, higher effort should more accurately reach the target quality.
    * - ``jpegxl:speed``
      - int
-     - Sets the encoding speed tier for the provided options. Minimum is 0
-       (slowest to encode, best quality/density), and maximum is 4 (fastest to
-       encode, at the cost of some quality/density). Default is 0.
-       (Note: in libjxl it named JXL_ENC_FRAME_SETTING_DECODING_SPEED. But it
-       is about encoding speed and compression quality, not decoding speed.)
+     - Sets the decoding speed tier for the provided options. Minimum is 0
+       (slowest to decode, best quality/density), and maximum is 4 (fastest to
+       decode, at the cost of some quality/density). Default is 0.
    * - ``jpegxl:photon_noise_iso``
      - float
      - (ISO_FILM_SPEED) Adds noise to the image emulating photographic film or
