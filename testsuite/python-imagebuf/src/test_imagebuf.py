@@ -205,6 +205,23 @@ def test_copy_metadata() :
     print_imagespec (C.spec(), msg=" result of A.merge_metadata(B, pattern='^camera:'):")
 
 
+# Test proper error handling for asking for out-of-range subimages or MIP levels.
+# Test with one format that supports neither subimages nor MIP levels,
+# and with one format that supports them, but the file we try has none.
+def test_outofrange_subimage_miplevel() :
+    print("\nTesting error handling for out-of-range subimage, miplevel")
+    for f in [ "bayer.png", "grid-small.exr", "tahoe-tiny.tif" ] :
+        buf = oiio.ImageBuf()
+        ok = buf.init_spec("../common/" + f, 1, 0)
+        print(" ", f, "subimage 1 mip 0:", ok, buf.geterror())
+        buf = oiio.ImageBuf()
+        ok = buf.init_spec("../common/" + f, 0, 0)
+        print(" ", f, "subimage 0 mip 0:", ok, buf.geterror())
+        buf = oiio.ImageBuf()
+        ok = buf.init_spec("../common/" + f, 0, 1)
+        print(" ", f, "subimage 0 mip 1:", ok, buf.geterror())
+
+
 
 ######################################################################
 # main test starts here
@@ -316,6 +333,7 @@ try:
     test_uninitialized ()
     test_copy_metadata ()
     test_repr_png ()
+    test_outofrange_subimage_miplevel ()
 
     print ("\nDone.")
 except Exception as detail:
