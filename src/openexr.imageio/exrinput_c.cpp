@@ -904,8 +904,10 @@ OpenEXRCoreInput::PartInfo::query_channels(OpenEXRCoreInput* in,
     spec.nchannels = 0;
     const exr_attr_chlist_t* chlist;
     exr_result_t rv = exr_get_channels(ctxt, subimage, &chlist);
-    if (rv != EXR_ERR_SUCCESS)
+    if (rv != EXR_ERR_SUCCESS) {
+        in->errorfmt("exr_get_channels failed");
         return false;
+    }
 
     std::vector<CChanNameHolder> cnh;
     int c = 0;
@@ -1053,8 +1055,11 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
 
     PartInfo& part(m_parts[subimage]);
     if (!part.initialized) {
-        if (!part.parse_header(this, m_exr_context, subimage, miplevel))
+        if (!part.parse_header(this, m_exr_context, subimage, miplevel)) {
+            errorfmt("Could not seek to subimage={}: unable to parse header",
+                     subimage, miplevel);
             return false;
+        }
         part.initialized = true;
     }
 
@@ -1087,6 +1092,8 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
 ImageSpec
 OpenEXRCoreInput::spec(int subimage, int miplevel)
 {
+    // By design, spec() inicates failure with empty spec, it does not call
+    // errorfmt().
     ImageSpec ret;
     if (subimage < 0 || subimage >= m_nsubimages)
         return ret;  // invalid
@@ -1112,6 +1119,8 @@ OpenEXRCoreInput::spec(int subimage, int miplevel)
 ImageSpec
 OpenEXRCoreInput::spec_dimensions(int subimage, int miplevel)
 {
+    // By design, spec_dimensions() inicates failure with empty spec, it does
+    // not call errorfmt().
     ImageSpec ret;
     if (subimage < 0 || subimage >= m_nsubimages)
         return ret;  // invalid
@@ -1434,7 +1443,7 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                     int zend, void* data)
 {
     if (!m_exr_context) {
-        errorfmt("called OpenEXRInput::read_native_tile without an open file");
+        errorfmt("called OpenEXRInput::read_native_tiles without an open file");
         return false;
     }
 
@@ -1453,7 +1462,7 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                     void* data)
 {
     if (!m_exr_context) {
-        errorfmt("called OpenEXRInput::read_native_tile without an open file");
+        errorfmt("called OpenEXRInput::read_native_tiles without an open file");
         return false;
     }
 
