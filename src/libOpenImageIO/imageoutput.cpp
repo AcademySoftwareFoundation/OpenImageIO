@@ -115,9 +115,11 @@ bool
 ImageOutput::write_scanline(int y, TypeDesc format,
                             const image_span<const std::byte>& data)
 {
-    size_t sz = (format == TypeUnknown ? m_spec.pixel_bytes(true /*native*/)
-                                       : format.size() * m_spec.nchannels)
-                * size_t(m_spec.width);
+    if (y < 0 || y >= m_spec.height) {
+        errorfmt("write_scanlines: Invalid scanline index {}", y);
+        return false;
+    }
+    size_t sz = m_spec.scanline_bytes(format);
     if (sz != data.size_bytes()) {
         errorfmt(
             "write_scanline: Buffer size is incorrect ({} bytes vs {} needed)",
@@ -157,9 +159,11 @@ bool
 ImageOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
                              const image_span<const std::byte>& data)
 {
-    size_t sz = (format == TypeUnknown ? m_spec.pixel_bytes(true /*native*/)
-                                       : format.size() * m_spec.nchannels)
-                * size_t(yend - ybegin) * size_t(m_spec.width);
+    if (ybegin < 0 || yend > m_spec.height || ybegin >= yend) {
+        errorfmt("write_scanlines: Invalid scanline range {}-{}", ybegin, yend);
+        return false;
+    }
+    size_t sz = m_spec.scanline_bytes(format) * size_t(yend - ybegin);
     if (sz != data.size_bytes()) {
         errorfmt(
             "write_scanlines: Buffer size is incorrect ({} bytes vs {} needed)",
