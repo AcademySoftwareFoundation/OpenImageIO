@@ -30,8 +30,10 @@ build_dependency_with_cmake(pystring
 )
 
 set (pystring_VERSION ${pystring_BUILD_VERSION})
+unset (PYSTRING_LIBRARY)
+unset (PYSTRING_INCLUDE_DIR)
 
-set (pystring_REFIND TRUE)
+set (pystring_REFIND FALSE)
 set (pystring_REFIND_VERSION ${pystring_BUILD_VERSION})
 
 
