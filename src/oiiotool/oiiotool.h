@@ -158,7 +158,8 @@ public:
     int frame_number            = 0;
     bool enable_function_timing = true;
     bool input_config_set       = false;
-    bool printed_info           = false;  // printed info at some point
+    bool printed_info           = false;    // printed info at some point
+    bool m_in_parallel_frame_loop = false;  // True when in parallel frame loop
     // Remember the first input dataformats we encountered
     TypeDesc input_dataformat;
     int input_bitspersample = 0;
@@ -396,6 +397,10 @@ public:
         if (!first_input_dimensions_is_set())
             m_first_input_dimensions.copy_dimensions(dims);
     }
+
+    void begin_parallel_frame_loop(int nthreads);
+    void end_parallel_frame_loop();
+    bool in_parallel_frame_loop() const { return m_in_parallel_frame_loop; }
 
 private:
     CallbackFunction m_pending_callback;
