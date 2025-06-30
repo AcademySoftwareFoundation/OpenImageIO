@@ -286,7 +286,7 @@ public:
     /// will not free/delete that memory, even when the ImageBuf is destroyed.
     /// Upon successful initialization, the storage will be reported as
     /// `APPBUFFER`. Note that the ImageBuf will be writable if passed an
-    /// `image_span<T>` with a mutable type `T`, but if will be "read-only" if
+    /// `image_span<T>` with a mutable type `T`, but it will be "read-only" if
     /// passed an `image_span<const T>`.
     ///
     /// @param spec
