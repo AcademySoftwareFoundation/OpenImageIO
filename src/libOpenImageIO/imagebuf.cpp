@@ -746,29 +746,31 @@ ImageBufImpl::new_pixels(ImageBuf::IBStorage storage, size_t size,
     size = (storage == ImageBuf::LOCALBUFFER && !m_spec.deep)
                ? m_spec.image_bytes()
                : 0;
-    // FIXME: this can be cleaned up a bit. If we're reallocating the same
-    // size that we previously had, we shouldn't need to free and then
-    // immediatel re-allocate again, right?
-    if (m_allocated_size)
-        free_pixels();
-    try {
-        m_pixels.reset(size ? new char[size] : nullptr);
-        // Set m_bufspan to the allocated memory
-        set_bufspan(m_pixels.get());
-    } catch (const std::exception& e) {
-        // Could not allocate enough memory. So don't allocate anything,
-        // consider this an uninitialized ImageBuf, issue an error, and hope
-        // it's handled well downstream.
-        m_pixels.reset();
-        OIIO::debugfmt("ImageBuf unable to allocate {} bytes ({})\n", size,
-                       e.what());
-        error("ImageBuf unable to allocate {} bytes ({})\n", size, e.what());
-        size      = 0;
-        m_bufspan = {};
+    if (m_allocated_size != size) {
+        if (m_allocated_size)
+            free_pixels();
+        try {
+            m_pixels.reset(size ? new char[size] : nullptr);
+            // Set m_bufspan to the allocated memory
+            set_bufspan(m_pixels.get());
+        } catch (const std::exception& e) {
+            // Could not allocate enough memory. So don't allocate anything,
+            // consider this an uninitialized ImageBuf, issue an error, and
+            // hope it's handled well downstream.
+            m_pixels.reset();
+            OIIO::debugfmt("ImageBuf unable to allocate {} bytes ({})\n", size,
+                           e.what());
+            error("ImageBuf unable to allocate {} bytes ({})\n", size,
+                  e.what());
+            size      = 0;
+            m_bufspan = {};
+        }
+        m_allocated_size = size;
+        pvt::IB_local_mem_current += m_allocated_size;
+        atomic_max(pvt::IB_local_mem_peak,
+                   (long long)pvt::IB_local_mem_current);
     }
-    m_allocated_size = size;
-    pvt::IB_local_mem_current += m_allocated_size;
-    atomic_max(pvt::IB_local_mem_peak, (long long)pvt::IB_local_mem_current);
+
     if (data && size)
         memcpy(m_pixels.get(), data, size);
     if (pvt::oiio_print_debug > 1)
