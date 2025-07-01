@@ -1,6 +1,21 @@
-Release 3.0.8.0 (Jul 1?, 2025) -- compared to 3.0.7.0
+Release 3.0.8.0 (Jul 1, 2025) -- compared to 3.0.7.0
 -----------------------------------------------------
-
+  - *oiiotool*: New expression pseudo-metadata term: SUBIMAGES [#4804](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4804)
+  - *oiiotool*: Fixes to --missingfile behavior [#4803](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4803)
+  - *iv*: Area probe [#4767](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4767) (by Danielle Imogu)
+  - *python*: Python ImageBuf.init_spec did not return correct value [#4805](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4805)
+  - *fix*: ImageOutput::check_open logic was flawed [#4779](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4779)
+  - *int(iv)*: Add raw string syntax modifier for VSCode and Cursor to understand its glsl [#4796](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4796) (by Aleksandr Motsjonov)
+  - *int(iv)*: Use R"()" syntax for glsl shader strings for better readability [#4795](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4795) (by Aleksandr Motsjonov)
+  - *exr*: Not honoring 'missingcolor' for scanline files [#4757](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4757)
+  - *build*: Add arm_neon.h include on Windows ARM64 with clang-cl [#4691](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4691) (by Anthony Roberts)
+  - *build*: Adjust pystring finding [#4816](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4816)
+  - *build(jxl)*: Use correct cmake variables for the include directories [#4810](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4810) [#4813](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4813)  (by Jesse Yurkovich)
+  - *tests*: Remove old test reference output we no longer need [#4817](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4817)
+  - *ci*: Remove tests on Windows-2019 GitHub runner [#4793](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4793)
+  - *ci*: Various ccache save/restore improvements for CI runs [#4797](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4797)
+  - *ci*: Simplify gh-win-installdeps, no more vcpkg [#4809](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4809)
+  - *admin*: Remove stale intake documents [#4815](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4815)
 
 
 Release 3.0.7.0 (Jun 1, 2025) -- compared to 3.0.6.1
