@@ -22,11 +22,12 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * CMake >= 3.18.2 (tested through 4.0)
  * Imath >= 3.1 (tested through 3.1.x and main)
  * OpenEXR >= 3.1 (tested through 3.3 and main)
- * libTIFF >= 4.0 (tested through 4.7)
+ * libTIFF >= 4.0 (tested through 4.7 and master)
  * OpenColorIO >= 2.2 (tested through 2.4 and main)
  * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
    through 3.1)
- * [fmtlib](https://github.com/fmtlib/fmt) >= 7.0 (tested through 11.1).
+ * zlib >= 1.2.7 (tested through 1.3.1)
+ * [fmtlib](https://github.com/fmtlib/fmt) >= 7.0 (tested through 11.2 and master).
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
  * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
@@ -37,24 +38,23 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
    these are not found):
-     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.8)
+     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.9)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 3.7 (tested through 3.13)
      * pybind11 >= 2.7 (tested through 2.13)
      * NumPy (tested through 2.2.4)
  * If you want support for PNG files:
-     * libPNG >= 1.6.0 (tested though 1.6.47)
+     * libPNG >= 1.6.0 (tested though 1.6.49)
  * If you want support for camera "RAW" formats:
-     * LibRaw >= 0.20 (tested though 0.21.3 and master)
+     * LibRaw >= 0.20 (tested though 0.21.4 and master)
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 4.0 (tested through 7.0)
  * If you want support for jpeg 2000 images:
-     * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
+     * OpenJpeg >= 2.0 (tested through 2.5.3; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 9.0 (tested through 12.0). Note that using OpenVDB >= 10.0
-       requires that you compile OIIO with C++17 or higher.
+     * OpenVDB >= 9.0 (tested through 12.0).
  * If you want to use TBB as the thread pool:
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
@@ -64,10 +64,10 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 5.0 (tested through 5.2.2)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.11 (1.16 required for correct orientation support,
-       tested through 1.19.7)
+       tested through 1.19.8)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
-     * DCMTK >= 3.6.1 (tested through 3.6.8)
+     * DCMTK >= 3.6.1 (tested through 3.6.9)
  * If you want support for WebP images:
      * WebP >= 1.1 (tested through 1.5)
  * If you want support for Ptex:
@@ -76,6 +76,10 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Freetype >= 2.10.0 (tested through 2.13)
  * If you want to be able to read "ultra-HDR" embedded in JPEG files:
      * libultrahdr >= 1.3 (tested through 1.4)
+ * If you want support for JPEG XL images:
+     * libjxl >= 0.10.1 (tested through 0.11.1)
+ * If you want support for "Ultra HDR" inside JPEG images:
+     * libuhdr >= 1.3 (tested through 1.4)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
