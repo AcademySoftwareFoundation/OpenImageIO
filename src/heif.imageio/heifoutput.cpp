@@ -143,7 +143,11 @@ HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
                            stride_t xstride)
 {
     data           = to_native_scanline(format, data, xstride, scratch);
-    int hystride   = 0;
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 20, 0, 0)
+    size_t hystride = 0;
+#else
+    int hystride = 0;
+#endif
     uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved, &hystride);
     hdata += hystride * (y - m_spec.y);
     memcpy(hdata, data, hystride);
