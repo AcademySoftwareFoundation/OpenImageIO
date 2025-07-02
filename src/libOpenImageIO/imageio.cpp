@@ -634,6 +634,10 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(int*)val = int(Sysutil::memory_used(true) >> 20);
         return true;
     }
+    if (name == "resident_memory_used_MB" && type == TypeFloat) {
+        *(float*)val = float(Sysutil::memory_used(true) >> 20);
+        return true;
+    }
     if (name == "missingcolor" && type.basetype == TypeDesc::FLOAT
         && oiio_missingcolor.size()) {
         // missingcolor as float array
