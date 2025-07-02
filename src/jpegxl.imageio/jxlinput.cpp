@@ -262,6 +262,9 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 jxl_data_type = JXL_TYPE_FLOAT;
                 m_data_type   = TypeDesc::FLOAT;
                 bits          = 32;
+            } else {
+                errorfmt("Unsupported bits per sample\n");
+                return false;
             }
 
             format = { m_channels, jxl_data_type, JXL_NATIVE_ENDIAN, 0 };
