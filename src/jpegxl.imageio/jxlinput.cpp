@@ -221,7 +221,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     JxlPixelFormat format;
     JxlDataType jxl_data_type;
     TypeDesc m_data_type;
-    uint32_t bits;
+    uint32_t bits = 0;
 
     for (;;) {
         JxlDecoderStatus status = JxlDecoderProcessInput(m_decoder.get());
