@@ -124,7 +124,7 @@ cleanup_on_success = False
 if int(os.getenv('TESTSUITE_CLEANUP_ON_SUCCESS', '0')) :
     cleanup_on_success = True
 
-image_extensions = [ ".tif", ".tx", ".exr", ".jpg", ".png", ".rla",
+image_extensions = [ ".tif", ".tiff", ".tx", ".exr", ".jpg", ".png", ".rla",
                      ".dpx", ".iff", ".psd", ".bmp", ".fits", ".ico",
                      ".jp2", ".jxl", ".sgi", ".tga", ".TGA", ".zfile" ]
 
