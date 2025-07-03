@@ -496,7 +496,7 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
         m_nativespec = *spec;
         if (buforigin || bufspan.size()) {
             if (!buforigin)
-                buforigin = bufspan.data();
+                buforigin = static_cast<const void*>(bufspan.data());
             set_bufspan((char*)buforigin, xstride, ystride, zstride);
             m_storage      = ImageBuf::APPBUFFER;
             m_pixels_valid = true;
