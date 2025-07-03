@@ -412,12 +412,12 @@ jobs:
             cxx_std: 20
             fmt_ver: 11.2.0
             opencolorio_ver: v2.4.2
-            openexr_ver: v3.3.3
+            openexr_ver: v3.3.4
             pybind11_ver: v2.13.6
             python_ver: "3.12"
             simd: avx2,f16c
-            setenvs: export LIBJPEGTURBO_VERSION=3.1.0
-                            LIBRAW_VERSION=0.21.3
+            setenvs: export LIBJPEGTURBO_VERSION=3.1.1
+                            LIBRAW_VERSION=0.21.4
                             LIBTIFF_VERSION=v4.7.0
                             OPENJPEG_VERSION=v2.5.3
                             PTEX_VERSION=v2.4.3
