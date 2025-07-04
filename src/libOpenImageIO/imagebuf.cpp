@@ -133,6 +133,22 @@ cspan_from_buffer(const void* data, TypeDesc format, int nchannels, int width,
 
 
 
+// Unsafe version of as_image_span_writable_bytes with a const_cast. Keep out
+// of the public APIs, just used as necessary utility here in imagebuf
+// internals.
+template<typename T, size_t Rank>
+image_span<std::byte>
+force_as_image_span_writable_bytes(const image_span<T, Rank>& src) noexcept
+{
+    return image_span<std::byte>(
+        const_cast<std::byte*>(reinterpret_cast<const std::byte*>(src.data())),
+        src.nchannels(), src.width(), src.height(), src.depth(),
+        src.chanstride(), src.xstride(), src.ystride(), src.zstride(),
+        src.chansize());
+}
+
+
+
 // Expansion of the opaque type that hides all the ImageBuf implementation
 // detail.
 class ImageBufImpl {
@@ -455,7 +471,7 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
         } else {
             m_storage  = ImageBuf::LOCALBUFFER;
             m_readonly = false;
-            alloc(*spec);
+            this->alloc(*spec);
         }
         m_spec_valid = true;
         m_blackpixel.resize(
@@ -503,7 +519,7 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
         } else {
             m_storage  = ImageBuf::LOCALBUFFER;
             m_readonly = false;
-            alloc(*spec);
+            this->alloc(*spec);
         }
         m_spec_valid = true;
         m_blackpixel.resize(
@@ -655,7 +671,7 @@ ImageBuf::ImageBuf(const ImageSpec& spec, void* buffer, stride_t xstride,
 ImageBuf::ImageBuf(const ImageSpec& spec,
                    const image_span<const std::byte>& buffer)
     : m_impl(new ImageBufImpl("", 0, 0, nullptr /*imagecache*/, &spec,
-                              as_image_span_writable_bytes(buffer),
+                              force_as_image_span_writable_bytes(buffer),
                               true /*readonly*/, nullptr /*config*/,
                               nullptr /*ioproxy*/),
              &impl_deleter)
@@ -768,7 +784,7 @@ ImageBufImpl::new_pixels(ImageBuf::IBStorage storage, size_t size,
         m_allocated_size = size;
         pvt::IB_local_mem_current += m_allocated_size;
         atomic_max(pvt::IB_local_mem_peak,
-                   (long long)pvt::IB_local_mem_current);
+                   static_cast<long long>(pvt::IB_local_mem_current));
     }
 
     if (data && size)
@@ -987,7 +1003,7 @@ ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
     } else {
         m_storage  = ImageBuf::LOCALBUFFER;
         m_readonly = false;
-        alloc(spec);
+        this->alloc(spec);
         // N.B. alloc sets m_bufspan
     }
     if (nativespec)
@@ -1022,7 +1038,7 @@ void
 ImageBuf::reset(const ImageSpec& spec,
                 const image_span<const std::byte>& buffer)
 {
-    m_impl->reset("", spec, nullptr, as_image_span_writable_bytes(buffer),
+    m_impl->reset("", spec, nullptr, force_as_image_span_writable_bytes(buffer),
                   true /*readonly*/);
 }
 
