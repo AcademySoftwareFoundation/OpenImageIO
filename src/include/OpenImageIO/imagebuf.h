@@ -1008,7 +1008,7 @@ public:
     }
 
     /// Base case of get_pixels: read into an image_span of generic bytes. The
-    /// requested data type is supplied by `format.
+    /// requested data type is supplied by `format`.
     bool get_pixels(ROI roi, TypeDesc format,
                     const image_span<std::byte>& buffer) const;
 
@@ -1064,13 +1064,13 @@ public:
 
 #ifndef OIIO_DOXYGEN
     /// Base case of get_pixels: read into a span of generic bytes. The
-    /// requested data type is supplied by `format.
+    /// requested data type is supplied by `format`.
     bool get_pixels(ROI roi, TypeDesc format, span<std::byte> buffer,
                     void* buforigin = nullptr, stride_t xstride = AutoStride,
                     stride_t ystride = AutoStride,
                     stride_t zstride = AutoStride) const;
 
-    /// Potentially unsafe get_pixels() using raw pointers. Use with catution!
+    /// Potentially unsafe get_pixels() using raw pointers. Use with caution!
     OIIO_IB_DEPRECATE_RAW_PTR
     bool get_pixels(ROI roi, TypeDesc format, void* result,
                     stride_t xstride = AutoStride,
@@ -1136,7 +1136,7 @@ public:
 
 #ifndef OIIO_DOXYGEN
     /// Base case of get_pixels: read into a span of generic bytes. The
-    /// requested data type is supplied by `format.
+    /// requested data type is supplied by `format`.
     bool set_pixels(ROI roi, TypeDesc format, cspan<std::byte> buffer,
                     const void* buforigin = nullptr,
                     stride_t xstride      = AutoStride,
