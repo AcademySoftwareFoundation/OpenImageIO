@@ -2453,6 +2453,9 @@ public:
     ///        Does this format allow 0x0 sized images, i.e. an image file
     ///        with metadata only and no pixels?
     ///
+    ///  - `"cicp"` :
+    ///        Does this format support embedding CICP metadata?
+    ///
     /// This list of queries may be extended in future releases. Since this
     /// can be done simply by recognizing new query strings, and does not
     /// require any new API entry points, addition of support for new
@@ -4064,7 +4067,6 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 ///
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
-
 
 /// Are the two named color spaces equivalent, based on the default color
 /// config in effect?
