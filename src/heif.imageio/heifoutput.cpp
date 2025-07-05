@@ -9,6 +9,13 @@
 
 #include <libheif/heif_cxx.h>
 
+#define MAKE_LIBHEIF_VERSION(a, b, c, d) \
+    (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
+
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 17, 0, 0)
+#    include <libheif/heif_properties.h>
+#endif
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -142,8 +149,12 @@ bool
 HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
                            stride_t xstride)
 {
-    data           = to_native_scanline(format, data, xstride, scratch);
-    int hystride   = 0;
+    data = to_native_scanline(format, data, xstride, scratch);
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 20, 0, 0)
+    size_t hystride = 0;
+#else
+    int hystride = 0;
+#endif
     uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved, &hystride);
     hdata += hystride * (y - m_spec.y);
     memcpy(hdata, data, hystride);
