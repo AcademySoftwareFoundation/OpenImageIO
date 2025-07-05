@@ -463,6 +463,7 @@ jobs:
             setenvs: export LLVM_VERSION=14.0.0
                             OPENCOLORIO_VERSION=v2.1.2
                             USE_OPENVDB=0
+                            QT_VERSION=6
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: debug gcc7/C++14, sse4.2, exr2.4
             nametag: linux-gcc7-cpp14-debug
