@@ -70,7 +70,6 @@ public:
         // Validations:
         // - an image_span<byte> can have any chansize, but any other T must
         //   have the chansize equal to the data type size.
-        OIIO_DASSERT(nchannels > 0 && width > 0 && height > 0 && depth > 0);
         OIIO_DASSERT((std::is_same<std::remove_const_t<T>, std::byte>::value)
                      || chansize == sizeof(T));
 
@@ -374,8 +373,8 @@ as_image_span_bytes(const image_span<T, Rank>& src) noexcept
 }
 
 
-/// Convert an image_span of any type to a mutable span of bytes covering
-/// the same range of memory.
+/// Convert an image_span of any nonconst type to a mutable span of bytes
+/// covering the same range of memory.
 template<typename T, size_t Rank>
 image_span<std::byte>
 as_image_span_writable_bytes(const image_span<T, Rank>& src) noexcept
@@ -385,7 +384,6 @@ as_image_span_writable_bytes(const image_span<T, Rank>& src) noexcept
                                  src.depth(), src.chanstride(), src.xstride(),
                                  src.ystride(), src.zstride(), src.chansize());
 }
-
 
 /// Verify that the image_span has all its contents lying within the
 /// contiguous span.
