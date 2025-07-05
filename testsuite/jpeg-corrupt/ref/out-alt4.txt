@@ -1,0 +1,46 @@
+Reading src/corrupt-exif.jpg
+src/corrupt-exif.jpg :  256 x  256, 3 channel, uint8 jpeg
+    SHA-1: 4E7872E76ACB971D56715978C9C4F8FF4055AD67
+    channel list: R, G, B
+    Orientation: 1 (normal)
+    ResolutionUnit: "in"
+    XResolution: 300
+    YResolution: 300
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+Reading src/corrupt-exif-1626.jpg
+src/corrupt-exif-1626.jpg :  256 x  256, 3 channel, uint8 jpeg
+    SHA-1: FB711E5A0E4440C6B7C7A94835C44706569FFB78
+    channel list: R, G, B
+    Orientation: 1 (normal)
+    ResolutionUnit: "in"
+    XResolution: 300
+    YResolution: 300
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+corrupt-icc-4551.jpg
+DCT coefficient out of range
+Reading src/corrupt-icc-4552.jpg
+src/corrupt-icc-4552.jpg : 1500 x 1000, 3 channel, uint8 jpeg
+    SHA-1: 58BC613FDC7513B4F3854D8D2910040B60FF7A7F
+    channel list: R, G, B
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
+    ResolutionUnit: "in"
+    XResolution: 72
+    YResolution: 72
+    ICCProfile:attributes: "Transparency , Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1281977967
+    ICCProfile:color_space: "RGB"
+    ICCProfile:creation_date: "1998:02:09 06:49:00"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "49454320"
+    ICCProfile:model: "73524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_size: 3144
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Unknown"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
