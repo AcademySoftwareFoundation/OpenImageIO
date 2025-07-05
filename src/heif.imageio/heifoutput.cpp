@@ -9,6 +9,13 @@
 
 #include <libheif/heif_cxx.h>
 
+#define MAKE_LIBHEIF_VERSION(a, b, c, d) \
+    (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
+
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 17, 0, 0)
+#    include <libheif/heif_properties.h>
+#endif
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
