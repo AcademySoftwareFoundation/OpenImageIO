@@ -1,3 +1,10 @@
+Release 3.0.8.1 (Jul 5, 2025) -- compared to 3.0.8.0
+-----------------------------------------------------
+  - *build(heif)*: Fixes to build against libheif 1.20 [#4822](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4822) (by Rui Chen)
+  - *build*: Wheel upload_pypi step should only run from main repo [#4820](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4820)
+  - *ci*: Bump 'latest' test versions [#4819](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4819)
+
+
 Release 3.0.8.0 (Jul 1, 2025) -- compared to 3.0.7.0
 -----------------------------------------------------
   - *oiiotool*: New expression pseudo-metadata term: SUBIMAGES [#4804](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4804)
