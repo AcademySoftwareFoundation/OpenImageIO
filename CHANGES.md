@@ -1,3 +1,7 @@
+Release 3.0.9.0 (Aug 1?, 2025) -- compared to 3.0.8.1
+-----------------------------------------------------
+
+
 Release 3.0.8.1 (Jul 5, 2025) -- compared to 3.0.8.0
 -----------------------------------------------------
   - *build(heif)*: Fixes to build against libheif 1.20 [#4822](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4822) (by Rui Chen)
