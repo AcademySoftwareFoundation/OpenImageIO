@@ -24,6 +24,7 @@ lg@openimageio.org
 * Ananth Garre
 * Anders Langlands
 * Andy Chan
+* Anthony Roberts
 * AngryLoki
 * Angus Davis
 * Ankit Sinha
@@ -67,6 +68,7 @@ lg@openimageio.org
 * Daniel Dresser
 * Daniel Flehner Heen
 * Daniel Wyatt
+* Danielle Imogu
 * Danny Greenstein
 * Darby Johnston
 * Dharshan Vishwanatha
@@ -79,6 +81,7 @@ lg@openimageio.org
 * Dinko Galetik
 * Dominik Bartkiewicz
 * Dominik Wójt
+* Don Olmstead
 * Duncan Chan
 * Dustin Rodrigues
 * Edgar Velazquez-Armendariz
