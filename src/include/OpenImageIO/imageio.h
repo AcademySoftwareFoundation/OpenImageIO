@@ -3133,7 +3133,7 @@ inline bool attribute (string_view name, string_view val) {
 ///   List of library dependencieis (where known) and versions, separatd by
 ///   semicolons. (Added in OpenImageIO 2.5.8.)
 ///
-/// - `float resident_memory_used_MB`
+/// - `int resident_memory_used_MB`
 ///
 ///   This read-only attribute can be used for debugging purposes to report
 ///   the approximate process memory used (resident) by the application, in
