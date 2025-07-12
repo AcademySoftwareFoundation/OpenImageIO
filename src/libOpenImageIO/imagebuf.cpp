@@ -2961,7 +2961,8 @@ ImageBuf::xbegin() const
 int
 ImageBuf::xend() const
 {
-    return spec().x + spec().width;
+    const ImageSpec& spec(m_impl->spec());
+    return spec.x + spec.width;
 }
 
 
@@ -2977,7 +2978,8 @@ ImageBuf::ybegin() const
 int
 ImageBuf::yend() const
 {
-    return spec().y + spec().height;
+    const ImageSpec& spec(m_impl->spec());
+    return spec.y + spec.height;
 }
 
 
@@ -2993,7 +2995,8 @@ ImageBuf::zbegin() const
 int
 ImageBuf::zend() const
 {
-    return spec().z + std::max(spec().depth, 1);
+    const ImageSpec& spec(m_impl->spec());
+    return spec.z + std::max(spec.depth, 1);
 }
 
 
@@ -3009,7 +3012,8 @@ ImageBuf::xmin() const
 int
 ImageBuf::xmax() const
 {
-    return spec().x + spec().width - 1;
+    const ImageSpec& spec(m_impl->spec());
+    return spec.x + spec.width - 1;
 }
 
 
@@ -3025,7 +3029,8 @@ ImageBuf::ymin() const
 int
 ImageBuf::ymax() const
 {
-    return spec().y + spec().height - 1;
+    const ImageSpec& spec(m_impl->spec());
+    return spec.y + spec.height - 1;
 }
 
 
@@ -3041,7 +3046,8 @@ ImageBuf::zmin() const
 int
 ImageBuf::zmax() const
 {
-    return spec().z + std::max(spec().depth, 1) - 1;
+    const ImageSpec& spec(m_impl->spec());
+    return spec.z + std::max(spec.depth, 1) - 1;
 }
 
 
