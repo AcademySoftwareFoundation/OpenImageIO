@@ -41,7 +41,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.9)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 3.7 (tested through 3.13)
+     * **Python >= 3.9** (tested through 3.13).
      * pybind11 >= 2.7 (tested through 3.0)
      * NumPy (tested through 2.2.4)
  * If you want support for PNG files:
