@@ -784,6 +784,8 @@ num_channels(int current_channel, int nchannels,
 void
 IvGL::paint_pixelview()
 {
+    using Strutil::fmt::format;
+
     IvImage* img = m_current_image;
     const ImageSpec& spec(img->spec());
 
@@ -1096,11 +1098,11 @@ IvGL::paint_pixelview()
             ImageBuf::ConstIterator<unsigned char, unsigned char> p(*img,
                                                                     pixel_x,
                                                                     pixel_y);
-            centerValue = Strutil::fmt::format("{:<3}", int(p[i]));
-            normalized  = Strutil::fmt::format("({:3.3f})", fpixel[i]);
-            min         = Strutil::fmt::format("{:<3}", min_val);
-            max         = Strutil::fmt::format("{:<3}", max_val);
-            avg         = Strutil::fmt::format("{:<3}", avg_val);
+            centerValue = format("{:<3}", int(p[i]));
+            normalized  = format("({:3.3f})", fpixel[i]);
+            min         = format("{:<3}", min_val);
+            max         = format("{:<3}", max_val);
+            avg         = format("{:<3}", avg_val);
         } break;
         case TypeDesc::UINT16: {
             unsigned short min_val = std::numeric_limits<unsigned short>::max();
@@ -1129,11 +1131,11 @@ IvGL::paint_pixelview()
             ImageBuf::ConstIterator<unsigned short, unsigned short> p(*img,
                                                                       pixel_x,
                                                                       pixel_y);
-            centerValue = Strutil::fmt::format("{:<5}", int(p[i]));
-            normalized  = Strutil::fmt::format("({:3.3f})", fpixel[i]);
-            min         = Strutil::fmt::format("{:<5}", min_val);
-            max         = Strutil::fmt::format("{:<5}", max_val);
-            avg         = Strutil::fmt::format("{:<5}", avg_val);
+            centerValue = format("{:<5}", int(p[i]));
+            normalized  = format("({:3.3f})", fpixel[i]);
+            min         = format("{:<5}", min_val);
+            max         = format("{:<5}", max_val);
+            avg         = format("{:<5}", avg_val);
         } break;
         default: {  // everything else, treat as float
             float min_val = 0;
@@ -1161,11 +1163,11 @@ IvGL::paint_pixelview()
             }
 
             ImageBuf::ConstIterator<float, float> p(*img, pixel_x, pixel_y);
-            centerValue = Strutil::fmt::format("{:<5.3f}", p[i]);
+            centerValue = format("{:<5.3f}", p[i]);
             normalized  = "";  // No normalized value for float
-            min         = Strutil::fmt::format("{:<5.3f}", min_val);
-            max         = Strutil::fmt::format("{:<5.3f}", max_val);
-            avg         = Strutil::fmt::format("{:<5.3f}", avg_val);
+            min         = format("{:<5.3f}", min_val);
+            max         = format("{:<5.3f}", max_val);
+            avg         = format("{:<5.3f}", avg_val);
         } break;
         }
 
@@ -1216,9 +1218,8 @@ IvGL::paint_pixelview()
 
         QColor normal_text_color(200, 200, 200);
 
-        std::string mouse_pos
-            = Strutil::fmt::format("              ({:d},{:d})", (int)real_xp,
-                                   (int)real_yp);
+        std::string mouse_pos = format("              ({:d},{:d})",
+                                       (int)real_xp, (int)real_yp);
         shadowed_text(x_text, y_text, 0.0f, mouse_pos,
                       center_pix_value_text_color);
         y_text += text_line_height;
@@ -1233,36 +1234,38 @@ IvGL::paint_pixelview()
         std::string normalized_header;
         std::string empty_normalized_header;
         if (maxLengths.normalized > 0) {
-            normalized_header = Strutil::fmt::format("{:<{}}  ", "Norm",
-                                                     maxLengths.normalized);
-            empty_normalized_header
-                = Strutil::fmt::format("{:<{}}  ", "    ",
-                                       maxLengths.normalized);
+            normalized_header       = format("{:<{}}  ", "Norm",
+                                             maxLengths.normalized);
+            empty_normalized_header = format("{:<{}}  ", "    ",
+                                             maxLengths.normalized);
         } else {
             normalized_header       = "";
             empty_normalized_header = "";
         }
 
         // Print Norm, Min, Max column headers with normal white color
-        std::string base_header = Strutil::fmt::format(
-            "   {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", "   ",
-            maxLengths.centerValue, normalized_header, "Min", maxLengths.min,
-            "Max", maxLengths.max, "   ", maxLengths.avg);
+        std::string base_header
+            = format("   {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", "   ",
+                     maxLengths.centerValue, normalized_header, "Min",
+                     maxLengths.min, "Max", maxLengths.max, "   ",
+                     maxLengths.avg);
         shadowed_text(x_text, y_text, 0.0f, base_header, normal_text_color);
 
         // Print "Val" column headers with normal cyan color
-        std::string val_header = Strutil::fmt::format(
-            "   {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", "Val",
-            maxLengths.centerValue, empty_normalized_header, "   ",
-            maxLengths.min, "   ", maxLengths.max, "   ", maxLengths.avg);
+        std::string val_header = format("   {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ",
+                                        "Val", maxLengths.centerValue,
+                                        empty_normalized_header, "   ",
+                                        maxLengths.min, "   ", maxLengths.max,
+                                        "   ", maxLengths.avg);
         shadowed_text(x_text, y_text, 0.0f, val_header,
                       center_pix_value_text_color);
 
         // Print "Avg" column header with normal yellow color
-        std::string avg_header = Strutil::fmt::format(
-            "   {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", "   ",
-            maxLengths.centerValue, empty_normalized_header, "   ",
-            maxLengths.min, "   ", maxLengths.max, "Avg", maxLengths.avg);
+        std::string avg_header = format("   {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ",
+                                        "   ", maxLengths.centerValue,
+                                        empty_normalized_header, "   ",
+                                        maxLengths.min, "   ", maxLengths.max,
+                                        "Avg", maxLengths.avg);
         shadowed_text(x_text, y_text, 0.0f, avg_header, avg_value_text_color);
 
         y_text += text_line_height;
@@ -1272,18 +1275,17 @@ IvGL::paint_pixelview()
         // Build the "Norm" column header conditionally
         std::string normalized_col;
         if (maxLengths.normalized > 0) {
-            normalized_col = Strutil::fmt::format("{:<{}}  ", stat.normalized,
-                                                  maxLengths.normalized);
+            normalized_col = format("{:<{}}  ", stat.normalized,
+                                    maxLengths.normalized);
         } else {
             normalized_col = "";
         }
 
-        std::string line
-            = Strutil::fmt::format("{:<{}}: {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ",
-                                   stat.name, maxLengths.name, stat.centerValue,
-                                   maxLengths.centerValue, normalized_col,
-                                   stat.min, maxLengths.min, stat.max,
-                                   maxLengths.max, stat.avg, maxLengths.avg);
+        std::string line = format("{:<{}}: {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ",
+                                  stat.name, maxLengths.name, stat.centerValue,
+                                  maxLengths.centerValue, normalized_col,
+                                  stat.min, maxLengths.min, stat.max,
+                                  maxLengths.max, stat.avg, maxLengths.avg);
 
         QColor channelColor;
         if (stat.name[0] == 'R') {
