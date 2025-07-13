@@ -1289,9 +1289,9 @@ IvGL::paint_pixelview()
 
         QColor channelColor;
         if (stat.name[0] == 'R') {
-            channelColor = QColor(255, 50, 50);
+            channelColor = QColor(250, 94, 143);
         } else if (stat.name[0] == 'G') {
-            channelColor = QColor(100, 255, 90);
+            channelColor = QColor(135, 203, 124);
         } else if (stat.name[0] == 'B') {
             channelColor = QColor(107, 188, 255);
         } else {
