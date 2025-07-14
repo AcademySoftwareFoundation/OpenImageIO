@@ -1094,6 +1094,30 @@ public:
     ///             The region of interest to copy into. A default
     ///             uninitialized ROI means the entire image.
     /// @param buffer
+    ///             An `image_span` delineating the extent of the safely
+    ///             accessible memory where the results should be copied from.
+    /// @returns
+    ///             Return true if the operation could be completed,
+    ///             otherwise return false.
+    ///
+    template<typename T> bool set_pixels(ROI roi, const image_span<T> buffer)
+    {
+        return set_pixels(roi, TypeDescFromC<T>::value(),
+                          as_image_span_bytes(buffer));
+    }
+
+    /// Base case of set_pixels: copy from an image_span of generic bytes.
+    /// The requested data type is supplied by `format`.
+    bool set_pixels(ROI roi, TypeDesc format,
+                    const image_span<const std::byte>& buffer);
+
+    /// Set the rectangle of pixels within the ROI to the values in the
+    /// `buffer`.
+    ///
+    /// @param roi
+    ///             The region of interest to copy into. A default
+    ///             uninitialized ROI means the entire image.
+    /// @param buffer
     ///             A span delineating the extent of the safely accessible
     ///             memory where the results should be copied from.
     /// @param  xstride/ystride/zstride

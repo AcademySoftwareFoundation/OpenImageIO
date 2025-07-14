@@ -2773,8 +2773,8 @@ set_pixels_(ImageBuf& buf, ROI roi, const void* data_, stride_t xstride,
 
 
 bool
-ImageBuf::set_pixels(ROI roi, TypeDesc format, const void* data,
-                     stride_t xstride, stride_t ystride, stride_t zstride)
+ImageBuf::set_pixels(ROI roi, TypeDesc format,
+                     const image_span<const std::byte>& buffer)
 {
     if (!initialized()) {
         errorfmt("Cannot set_pixels() on an uninitialized ImageBuf");
@@ -2784,13 +2784,38 @@ ImageBuf::set_pixels(ROI roi, TypeDesc format, const void* data,
         roi = this->roi();
     roi.chend = std::min(roi.chend, nchannels());
 
-    ImageSpec::auto_stride(xstride, ystride, zstride, format.size(),
-                           roi.nchannels(), roi.width(), roi.height());
+    if (buffer.chanstride() != stride_t(format.size())) {
+        errorfmt(
+            "set_pixels does not currently support image_span source with non-contiguous channels");
+        return false;
+    }
+    if (size_t(roi.nchannels()) > buffer.nchannels()
+        || size_t(roi.width()) > buffer.width()
+        || size_t(roi.height()) > buffer.height()
+        || size_t(roi.depth()) > buffer.depth()) {
+        errorfmt(
+            "set_pixels source image_span was not big enough for the specified ROI.");
+        return false;
+    }
 
     bool ok;
     OIIO_DISPATCH_TYPES2(ok, "set_pixels", set_pixels_, spec().format, format,
-                         *this, roi, data, xstride, ystride, zstride);
+                         *this, roi, buffer.data(), buffer.xstride(),
+                         buffer.ystride(), buffer.zstride());
     return ok;
+}
+
+
+
+bool
+ImageBuf::set_pixels(ROI roi, TypeDesc format, const void* data,
+                     stride_t xstride, stride_t ystride, stride_t zstride)
+{
+    image_span<const std::byte> s(reinterpret_cast<const std::byte*>(data),
+                                  roi.nchannels(), roi.width(), roi.height(),
+                                  roi.depth(), format.size(), xstride, ystride,
+                                  zstride);
+    return set_pixels(roi, format, s);
 }
 
 
