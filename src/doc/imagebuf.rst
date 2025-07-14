@@ -181,6 +181,8 @@ Getting and setting pixel values
 
 .. doxygenfunction:: OIIO::ImageBuf::get_pixels(ROI, const image_span<T>&) const
 .. doxygenfunction:: OIIO::ImageBuf::get_pixels(ROI, TypeDesc, const image_span<std::byte>&) const
+.. doxygenfunction:: OIIO::ImageBuf::set_pixels(ROI, const image_span<T>&)
+.. doxygenfunction:: OIIO::ImageBuf::set_pixels(ROI, TypeDesc, const image_span<std::byte>&)
 
 |
 
