@@ -1104,12 +1104,13 @@ IvGL::paint_pixelview()
             ImageBuf::ConstIterator<unsigned char, unsigned char> p(*img,
                                                                     pixel_x,
                                                                     pixel_y);
-            centerValue = format("{:<3}", int(p[i]));
             std::string center_value_separation_spaces(5, ' ');
-            normalized  = format("{:3.3f}", fpixel[i]) + center_value_separation_spaces;
-            min         = format("{:<3}", min_val);
-            max         = format("{:<3}", max_val);
-            avg         = format("{:<3}", avg_val);
+            centerValue = format("{:<3}", int(p[i]));
+            normalized  = format("{:3.3f}", fpixel[i])
+                         + center_value_separation_spaces;
+            min = format("{:<3}", min_val);
+            max = format("{:<3}", max_val);
+            avg = format("{:<3}", avg_val);
         } break;
         case TypeDesc::UINT16: {
             unsigned short min_val = std::numeric_limits<unsigned short>::max();
@@ -1138,12 +1139,13 @@ IvGL::paint_pixelview()
             ImageBuf::ConstIterator<unsigned short, unsigned short> p(*img,
                                                                       pixel_x,
                                                                       pixel_y);
-            centerValue = format("{:<5}", int(p[i]));
             std::string center_value_separation_spaces(2, ' ');
-            normalized  = format("{:3.3f}", fpixel[i]) + center_value_separation_spaces;
-            min         = format("{:<5}", min_val);
-            max         = format("{:<5}", max_val);
-            avg         = format("{:<5}", avg_val);
+            centerValue = format("{:<5}", int(p[i]));
+            normalized  = format("{:3.3f}", fpixel[i])
+                         + center_value_separation_spaces;
+            min = format("{:<5}", min_val);
+            max = format("{:<5}", max_val);
+            avg = format("{:<5}", avg_val);
         } break;
         default: {  // everything else, treat as float
             float min_val = 0;
@@ -1233,7 +1235,8 @@ IvGL::paint_pixelview()
 
     QColor normal_text_color(200, 200, 200);
     // Extra spaces to be added after value in case of float values. Depends on the length of the channel name.
-    std::string float_spaces_post_value_str(MAX_NAME_LENGTH - maxLengths.name, ' ');
+    std::string float_spaces_post_value_str(MAX_NAME_LENGTH - maxLengths.name,
+                                            ' ');
 
     {
         QColor center_pix_value_text_color = center_pix_value_color;
