@@ -525,6 +525,8 @@ Term::ansi_bgcolor(int r, int g, int b)
     return ret;
 }
 
+
+
 bool
 Sysutil::put_in_background()
 {
@@ -547,7 +549,7 @@ Sysutil::put_in_background()
     posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSID);
     char** argv    = *_NSGetArgv();
     char** environ = *_NSGetEnviron();
-    int status     = posix_spawn(&pid, argv[0], nullptr, &attr, argv, environ);
+    int status     = posix_spawnp(&pid, argv[0], nullptr, &attr, argv, environ);
     posix_spawnattr_destroy(&attr);
     if (status == 0)
         exit(0);
@@ -562,6 +564,7 @@ Sysutil::put_in_background()
     return false;
 #endif
 }
+
 
 
 bool
