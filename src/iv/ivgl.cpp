@@ -1052,12 +1052,14 @@ IvGL::paint_pixelview()
     };
     MaxLengths maxLengths;
 
+    const int MAX_NAME_LENGTH = 10;
+
     bool is_inside_data_window = ybegin > 0 || yend > 0 || xbegin > 0
                                  || xend > 0;
     for (int i = 0; i < spec.nchannels; ++i) {
         std::string name = spec.channelnames[i];
         // Truncate channel name if longer than 10 characters
-        if (name.length() > 10) {
+        if (name.length() > MAX_NAME_LENGTH) {
             name = format("{:.4}...{}", name, name.substr(name.length() - 3));
         }
         std::string centerValue;
@@ -1103,7 +1105,8 @@ IvGL::paint_pixelview()
                                                                     pixel_x,
                                                                     pixel_y);
             centerValue = format("{:<3}", int(p[i]));
-            normalized  = format("({:3.3f})", fpixel[i]);
+            std::string center_value_separation_spaces(5, ' ');
+            normalized  = format("{:3.3f}", fpixel[i]) + center_value_separation_spaces;
             min         = format("{:<3}", min_val);
             max         = format("{:<3}", max_val);
             avg         = format("{:<3}", avg_val);
@@ -1136,7 +1139,8 @@ IvGL::paint_pixelview()
                                                                       pixel_x,
                                                                       pixel_y);
             centerValue = format("{:<5}", int(p[i]));
-            normalized  = format("({:3.3f})", fpixel[i]);
+            std::string center_value_separation_spaces(2, ' ');
+            normalized  = format("{:3.3f}", fpixel[i]) + center_value_separation_spaces;
             min         = format("{:<5}", min_val);
             max         = format("{:<5}", max_val);
             avg         = format("{:<5}", avg_val);
@@ -1228,6 +1232,9 @@ IvGL::paint_pixelview()
     }
 
     QColor normal_text_color(200, 200, 200);
+    // Extra spaces to be added after value in case of float values. Depends on the length of the channel name.
+    std::string float_spaces_post_value_str(MAX_NAME_LENGTH - maxLengths.name, ' ');
+
     {
         QColor center_pix_value_text_color = center_pix_value_color;
         center_pix_value_text_color.setAlpha(200);
@@ -1243,9 +1250,8 @@ IvGL::paint_pixelview()
 
         // TODO Find a nicer way of doing this.
         // Next three blocks are a hacky way of rendering a table header with
-        // Val and Avg rendered in a different color from rest of the text.
+        // Val, Norm and Min, Max, Avg rendered in a different color from rest of the text.
         // It is done by rendering three texts on top of another.
-
 
         // Build the "Norm" column header conditionally
         std::string normalized_header;
@@ -1256,23 +1262,15 @@ IvGL::paint_pixelview()
             empty_normalized_header = format("{:<{}}  ", "    ",
                                              maxLengths.normalized);
         } else {
-            normalized_header       = "";
-            empty_normalized_header = "";
+            normalized_header       = float_spaces_post_value_str;
+            empty_normalized_header = float_spaces_post_value_str;
         }
-
-        // Print Norm, Min, Max column headers with normal white color
-        std::string base_header
-            = format("{:<{}}  {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", " ",
-                     maxLengths.name, "   ", maxLengths.centerValue,
-                     normalized_header, "Min", maxLengths.min, "Max",
-                     maxLengths.max, "   ", maxLengths.avg);
-        shadowed_text(x_text, y_text, 0.0f, base_header, normal_text_color);
 
         // Print "Val" column headers with normal cyan color
         std::string val_header
             = format("{:<{}}  {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", " ",
                      maxLengths.name, "Val", maxLengths.centerValue,
-                     empty_normalized_header, "   ", maxLengths.min, "   ",
+                     normalized_header, "   ", maxLengths.min, "   ",
                      maxLengths.max, "   ", maxLengths.avg);
         shadowed_text(x_text, y_text, 0.0f, val_header,
                       center_pix_value_text_color);
@@ -1281,7 +1279,7 @@ IvGL::paint_pixelview()
         std::string avg_header
             = format("{:<{}}  {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", " ",
                      maxLengths.name, "   ", maxLengths.centerValue,
-                     empty_normalized_header, "   ", maxLengths.min, "   ",
+                     empty_normalized_header, "Min", maxLengths.min, "Max",
                      maxLengths.max, "Avg", maxLengths.avg);
         shadowed_text(x_text, y_text, 0.0f, avg_header, avg_value_text_color);
 
@@ -1295,7 +1293,7 @@ IvGL::paint_pixelview()
             normalized_col = format("{:<{}}  ", stat.normalized,
                                     maxLengths.normalized);
         } else {
-            normalized_col = "";
+            normalized_col = float_spaces_post_value_str;
         }
 
         std::string line = format("{:<{}}: {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ",
