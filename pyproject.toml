@@ -49,7 +49,7 @@ oiiotool = "OpenImageIO:_command_line"
 build-backend = "scikit_build_core.build"
 requires = [
     "scikit-build-core>=0.10.6,<1",
-    "pybind11",
+    "pybind11>=2.13,<3",
 ]
 
 [tool.scikit-build]

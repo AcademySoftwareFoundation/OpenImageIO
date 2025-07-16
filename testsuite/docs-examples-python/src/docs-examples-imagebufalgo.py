@@ -439,7 +439,7 @@ def example_demosaic():
     # BEGIN-imagebufalgo-demosaic
     Src = ImageBuf("bayer.png")
     WB_RGBG = (2.0, 1.0, 1.5, 1.0)
-    Dst = ImageBufAlgo.demosaic(Src, layout="BGGR",
+    Dst = ImageBufAlgo.demosaic(Src, layout="BGGR", white_balance_mode="manual",
       white_balance = WB_RGBG)
     # END-imagebufalgo-demosaic
     Dst.write("demosaic.png")

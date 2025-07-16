@@ -28,6 +28,7 @@
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/filter.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -616,9 +617,11 @@ Oiiotool::extract_options(string_view command)
 
 // --threads
 static void
-set_threads(Oiiotool&, cspan<const char*> argv)
+set_threads(Oiiotool& ot, cspan<const char*> argv)
 {
     OIIO_DASSERT(argv.size() == 2);
+    if (ot.in_parallel_frame_loop())
+        return;
     int nthreads = Strutil::stoi(argv[1]);
     OIIO::attribute("threads", nthreads);
     OIIO::attribute("exr_threads", nthreads);
@@ -3571,7 +3574,8 @@ OIIOTOOL_OP(warp, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 // --demosaic
 OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     ParamValueList list;
-    const std::vector<std::string> keys = { "pattern", "algorithm", "layout" };
+    const std::vector<std::string> keys = { "pattern", "algorithm", "layout",
+                                            "white_balance_mode" };
     for (const auto& key : keys) {
         auto iter = op.options().find(key);
         if (iter != op.options().cend()) {
@@ -7227,9 +7231,10 @@ one_sequence_iteration(Oiiotool& otmain, size_t i, int frame_number,
     }
 
     Oiiotool otit;  // Oiiotool for this iteration
-    otit.imagecache      = otmain.imagecache;
-    otit.frame_number    = frame_number;
-    otit.parent_oiiotool = &otmain;
+    otit.imagecache               = otmain.imagecache;
+    otit.frame_number             = frame_number;
+    otit.parent_oiiotool          = &otmain;
+    otit.m_in_parallel_frame_loop = otmain.in_parallel_frame_loop();
     otit.getargs((int)seq_argv.size(), (char**)&seq_argv[0]);
 
     if (otit.ap.aborted()) {
@@ -7304,8 +7309,9 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
     int framepadding = 0;
     std::vector<int> sequence_args;  // Args with sequence numbers
     std::vector<bool> sequence_is_output;
-    bool is_sequence = false;
-    bool wildcard_on = true;
+    int parallel_frame_threads = OIIO::get_int_attribute("threads");
+    bool is_sequence           = false;
+    bool wildcard_on           = true;
     for (int a = 1; a < argc; ++a) {
         bool is_output     = false;
         bool is_output_all = false;
@@ -7335,6 +7341,11 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
         } else if ((strarg == "--views" || strarg == "-views")
                    && a < argc - 1) {
             Strutil::split(argv[++a], views, ",");
+        } else if ((strarg == "--threads" || strarg == "-threads")
+                   && a < argc - 1) {
+            int t = Strutil::stoi(argv[++a]);
+            t     = OIIO::clamp(t, 0, int(Sysutil::hardware_concurrency()));
+            parallel_frame_threads = t;
         } else if (strarg == "--wildcardoff" || strarg == "-wildcardoff") {
             wildcard_on = false;
         } else if (strarg == "--parallel-frames"
@@ -7440,9 +7451,12 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
     // every time.
     // Note: nfilenames really means, number of frame number iterations.
     if (ot.parallel_frames) {
-        // If --parframes was used, run the iterations in parallel.
+        // If --parframes was used, run the iterations in parallel, but
+        // each iteration should itself not try to internally parallelize.
         if (ot.debug)
-            print("Running {} frames in parallel\n", nfilenames);
+            print("Running {} frames in parallel with {} threads\n", nfilenames,
+                  parallel_frame_threads);
+        ot.begin_parallel_frame_loop(parallel_frame_threads);
         parallel_for(
             uint64_t(0), uint64_t(nfilenames),
             [&](uint64_t i) {
@@ -7450,7 +7464,8 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
                                        sequence_args, filenames,
                                        { argv, argv + argc });
             },
-            paropt().minitems(1));
+            paropt().minitems(1).maxthreads(parallel_frame_threads));
+        ot.end_parallel_frame_loop();
     } else {
         // Fully serialized over the frame range, multithreaded for each frame
         // individually.
@@ -7460,6 +7475,24 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
         }
     }
     return true;
+}
+
+
+
+void
+Oiiotool::begin_parallel_frame_loop(int nthreads)
+{
+    OIIO::attribute("threads", nthreads);
+    OIIO::attribute("exr_threads", 1);
+    m_in_parallel_frame_loop = true;
+}
+
+
+
+void
+Oiiotool::end_parallel_frame_loop()
+{
+    m_in_parallel_frame_loop = false;
 }
 
 

@@ -138,17 +138,19 @@ datestring(time_t t)
 
 template<class SRCTYPE>
 static void
-interppixel_NDC_clamped(const ImageBuf& buf, float x, float y,
-                        span<float> pixel, bool envlatlmode)
+interppixel_NDC(const ImageBuf& buf, float x, float y, span<float> pixel,
+                bool envlatlmode, ImageBuf::ConstIterator<SRCTYPE>& it,
+                ImageBuf::WrapMode wrapmode)
 {
-    int fx = buf.spec().full_x;
-    int fy = buf.spec().full_y;
-    int fw = buf.spec().full_width;
-    int fh = buf.spec().full_height;
+    const ImageSpec& spec(buf.spec());
+    int fx = spec.full_x;
+    int fy = spec.full_y;
+    int fw = spec.full_width;
+    int fh = spec.full_height;
     x      = static_cast<float>(fx) + x * static_cast<float>(fw);
     y      = static_cast<float>(fy) + y * static_cast<float>(fh);
 
-    int n     = buf.spec().nchannels;
+    int n     = spec.nchannels;
     float *p0 = OIIO_ALLOCA(float, 4 * n), *p1 = p0 + n, *p2 = p1 + n,
           *p3 = p2 + n;
 
@@ -160,8 +162,7 @@ interppixel_NDC_clamped(const ImageBuf& buf, float x, float y,
     yfrac = floorfrac(y, &ytexel);
 
     // Get the four texels
-    ImageBuf::ConstIterator<SRCTYPE> it(
-        buf, ROI(xtexel, xtexel + 2, ytexel, ytexel + 2), ImageBuf::WrapClamp);
+    it.rerange(xtexel, xtexel + 2, ytexel, ytexel + 2, 0, 1, wrapmode);
     for (int c = 0; c < n; ++c)
         p0[c] = it[c];
     ++it;
@@ -181,8 +182,10 @@ interppixel_NDC_clamped(const ImageBuf& buf, float x, float y,
         // wrong will tend to over-represent the high latitudes in
         // low-res MIP levels.  We fold the area weighting into our
         // linear interpolation by adjusting yfrac.
-        int ynext = OIIO::clamp(ytexel + 1, buf.ymin(), buf.ymax());
-        ytexel    = OIIO::clamp(ytexel, buf.ymin(), buf.ymax());
+        int ymin  = spec.y;
+        int ymax  = ymin + spec.height - 1;
+        int ynext = OIIO::clamp(ytexel + 1, ymin, ymax);
+        ytexel    = OIIO::clamp(ytexel, ymin, ymax);
         float w0  = (1.0f - yfrac)
                    * sinf((float)M_PI * (ytexel + 0.5f) / (float)fh);
         float w1 = yfrac * sinf((float)M_PI * (ynext + 0.5f) / (float)fh);
@@ -218,15 +221,16 @@ resize_block_(ImageBuf& dst, const ImageBuf& src, ROI roi, bool envlatlmode)
     float yscale    = 1.0f / (float)dstspec.full_height;
     int nchannels   = dst.nchannels();
     OIIO_DASSERT(dst.spec().format == TypeFloat);
+    ImageBuf::WrapMode wrapmode = src_is_crop ? ImageBuf::WrapBlack
+                                              : ImageBuf::WrapClamp;
+    ImageBuf::ConstIterator<SRCTYPE> srcit(src);
     ImageBuf::Iterator<float> d(dst, roi);
     for (int y = y0; y < y1; ++y) {
         float t = (y + 0.5f) * yscale + yoffset;
         for (int x = x0; x < x1; ++x, ++d) {
             float s = (x + 0.5f) * xscale + xoffset;
-            if (src_is_crop)
-                src.interppixel_NDC(s, t, pel);
-            else
-                interppixel_NDC_clamped<SRCTYPE>(src, s, t, pel, envlatlmode);
+            interppixel_NDC<SRCTYPE>(src, s, t, pel, envlatlmode, srcit,
+                                     wrapmode);
             for (int c = 0; c < nchannels; ++c)
                 d[c] = pel[c];
         }
@@ -311,7 +315,7 @@ resize_block(ImageBuf& dst, const ImageBuf& src, ROI roi, bool envlatlmode,
         !envlatlmode &&                          // not latlong wrap mode
         roi.xbegin == 0 &&                       // Region x at origin
         dstspec.width == roi.width() &&          // Full width ROI
-        dstspec.width == (srcspec.width / 2) &&  // Src is 2x resize
+        (2 * dstspec.width) == srcspec.width &&  // Src is 2x resize
         dstspec.format == srcspec.format &&      // Same formats
         dstspec.x == 0 && dstspec.y == 0 &&      // Not a crop or overscan
         srcspec.x == 0 && srcspec.y == 0) {
@@ -387,6 +391,7 @@ lightprobe_to_envlatl(ImageBuf& dst, const ImageBuf& src, bool y_is_up,
 
         span<float> pixel = OIIO_ALLOCA_SPAN(float, nchannels);
         float dw = dstspec.width, dh = dstspec.height;
+        ImageBuf::ConstIterator<SRCTYPE> srcit(src);
         for (ImageBuf::Iterator<float> d(dst, roi); !d.done(); ++d) {
             Imath::V3f V = latlong_to_dir((d.x() + 0.5f) / dw,
                                           (dh - 1.0f - d.y() + 0.5f) / dh,
@@ -394,8 +399,8 @@ lightprobe_to_envlatl(ImageBuf& dst, const ImageBuf& src, bool y_is_up,
             float r      = M_1_PI * acosf(V[2]) / hypotf(V[0], V[1]);
             float u      = (V[0] * r + 1.0f) * 0.5f;
             float v      = (V[1] * r + 1.0f) * 0.5f;
-            interppixel_NDC_clamped<SRCTYPE>(src, float(u), float(v), pixel,
-                                             false);
+            interppixel_NDC<SRCTYPE>(src, float(u), float(v), pixel, false,
+                                     srcit, ImageBuf::WrapClamp);
             for (int c = roi.chbegin; c < roi.chend; ++c)
                 d[c] = pixel[c];
         }

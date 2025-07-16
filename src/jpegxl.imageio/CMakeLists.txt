@@ -4,7 +4,7 @@
 
 if (JXL_FOUND)
     add_oiio_plugin (jxlinput.cpp jxloutput.cpp
-                     INCLUDE_DIRS ${JXL_INCLUDE_DIRS}
+                     INCLUDE_DIRS ${JXL_INCLUDES}
                      LINK_LIBRARIES ${JXL_LIBRARIES}
                      DEFINITIONS "USE_JXL")
 else()

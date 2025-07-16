@@ -281,6 +281,40 @@ public:
              void* buforigin = nullptr, stride_t xstride = AutoStride,
              stride_t ystride = AutoStride, stride_t zstride = AutoStride);
 
+    /// Construct an ImageBuf that "wraps" existing pixel memory owned by the
+    /// calling application. The ImageBuf does not own the pixel storage and
+    /// will not free/delete that memory, even when the ImageBuf is destroyed.
+    /// Upon successful initialization, the storage will be reported as
+    /// `APPBUFFER`. Note that the ImageBuf will be writable if passed an
+    /// `image_span<T>` with a mutable type `T`, but it will be "read-only" if
+    /// passed an `image_span<const T>`.
+    ///
+    /// @param spec
+    ///             An ImageSpec describing the image and its metadata. If
+    ///             not enough information is given to know the "shape" of
+    ///             the image (width, height, depth, channels, and data
+    ///             format), the ImageBuf will remain in an UNINITIALIZED
+    ///             state.
+    /// @param buffer
+    ///             An image_span delineating the extent and striding of the
+    ///             safely accessible memory comprising the pixel data.
+    template<typename T>
+    ImageBuf(const ImageSpec& spec, const image_span<T>& buffer)
+        : ImageBuf(spec, as_image_span_writable_bytes(buffer))
+    {
+    }
+    template<typename T>
+    ImageBuf(const ImageSpec& spec, const image_span<const T>& buffer)
+        : ImageBuf(spec, as_image_span_bytes(buffer))
+    {
+    }
+    // Special base case for read-only byte image_spans, this one does the
+    // hard work.
+    ImageBuf(const ImageSpec& spec, const image_span<const std::byte>& buffer);
+    // Special base case for mutable byte image_spans, this one does the hard
+    // work.
+    ImageBuf(const ImageSpec& spec, const image_span<std::byte>& buffer);
+
     // Unsafe constructor of an ImageBuf that wraps an existing buffer, where
     // only the origin pointer and the strides are given. Use with caution!
     OIIO_IB_DEPRECATE_RAW_PTR
@@ -332,6 +366,28 @@ public:
         set_name(name);
     }
 
+    /// Destroy any previous contents of the ImageBuf and re-initialize it as
+    /// if newly constructed with the same arguments, to "wrap" existing pixel
+    /// memory owned by the calling application. See the ImageBuf constructor
+    /// from an image_span for more details.
+    template<typename T>
+    void reset(const ImageSpec& spec, const image_span<T>& buffer)
+    {
+        // The general case for non-byte data types just converts to bytes and
+        // calls the byte version.
+        if constexpr (std::is_const_v<T>)
+            reset(spec, as_image_span_bytes(buffer));
+        else
+            reset(spec, as_image_span_writable_bytes(buffer));
+    }
+    // Special base case for read-only byte spans, this one does the hard work.
+    void reset(const ImageSpec& spec,
+               const image_span<const std::byte>& buffer);
+    // Special base case for mutable byte spans, this one does the hard work.
+    void reset(const ImageSpec& spec, const image_span<std::byte>& buffer);
+
+    /// Slated for deprecation in favor of the image_span-based version.
+    ///
     /// Destroy any previous contents of the ImageBuf and re-initialize it as
     /// if newly constructed with the same arguments, to "wrap" existing pixel
     /// memory owned by the calling application.
@@ -937,6 +993,33 @@ public:
     ///             The region of interest to copy into. A default
     ///             uninitialized ROI means the entire image.
     /// @param buffer
+    ///             An image_span delineating the extent of the safely
+    ///             accessible memory where the results should be stored.
+    /// @returns
+    ///             Return true if the operation could be completed,
+    ///             otherwise return false.
+    ///
+    template<typename T>
+    bool get_pixels(ROI roi, const image_span<T>& buffer) const
+    {
+        static_assert(!std::is_const_v<T>);
+        return get_pixels(roi, TypeDescFromC<T>::value(),
+                          as_image_span_writable_bytes(buffer));
+    }
+
+    /// Base case of get_pixels: read into an image_span of generic bytes. The
+    /// requested data type is supplied by `format`.
+    bool get_pixels(ROI roi, TypeDesc format,
+                    const image_span<std::byte>& buffer) const;
+
+    /// Retrieve the rectangle of pixels spanning the ROI (including
+    /// channels) at the current subimage and MIP-map level, storing the
+    /// pixel values into the `buffer`.
+    ///
+    /// @param roi
+    ///             The region of interest to copy into. A default
+    ///             uninitialized ROI means the entire image.
+    /// @param buffer
     ///             A span delineating the extent of the safely accessible
     ///             memory where the results should be stored.
     /// @param  xstride/ystride/zstride
@@ -981,13 +1064,13 @@ public:
 
 #ifndef OIIO_DOXYGEN
     /// Base case of get_pixels: read into a span of generic bytes. The
-    /// requested data type is supplied by `format.
+    /// requested data type is supplied by `format`.
     bool get_pixels(ROI roi, TypeDesc format, span<std::byte> buffer,
                     void* buforigin = nullptr, stride_t xstride = AutoStride,
                     stride_t ystride = AutoStride,
                     stride_t zstride = AutoStride) const;
 
-    /// Potentially unsafe get_pixels() using raw pointers. Use with catution!
+    /// Potentially unsafe get_pixels() using raw pointers. Use with caution!
     OIIO_IB_DEPRECATE_RAW_PTR
     bool get_pixels(ROI roi, TypeDesc format, void* result,
                     stride_t xstride = AutoStride,
@@ -1003,6 +1086,30 @@ public:
     /// the data buffer is assumed to have the same resolution as the ImageBuf
     /// itself. Return true if the operation could be completed, otherwise
     /// return false.
+
+    /// Set the rectangle of pixels within the ROI to the values in the
+    /// `buffer`.
+    ///
+    /// @param roi
+    ///             The region of interest to copy into. A default
+    ///             uninitialized ROI means the entire image.
+    /// @param buffer
+    ///             An `image_span` delineating the extent of the safely
+    ///             accessible memory where the results should be copied from.
+    /// @returns
+    ///             Return true if the operation could be completed,
+    ///             otherwise return false.
+    ///
+    template<typename T> bool set_pixels(ROI roi, const image_span<T> buffer)
+    {
+        return set_pixels(roi, TypeDescFromC<T>::value(),
+                          as_image_span_bytes(buffer));
+    }
+
+    /// Base case of set_pixels: copy from an image_span of generic bytes.
+    /// The requested data type is supplied by `format`.
+    bool set_pixels(ROI roi, TypeDesc format,
+                    const image_span<const std::byte>& buffer);
 
     /// Set the rectangle of pixels within the ROI to the values in the
     /// `buffer`.
@@ -1053,7 +1160,7 @@ public:
 
 #ifndef OIIO_DOXYGEN
     /// Base case of get_pixels: read into a span of generic bytes. The
-    /// requested data type is supplied by `format.
+    /// requested data type is supplied by `format`.
     bool set_pixels(ROI roi, TypeDesc format, cspan<std::byte> buffer,
                     const void* buforigin = nullptr,
                     stride_t xstride      = AutoStride,
