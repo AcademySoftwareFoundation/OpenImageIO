@@ -42,7 +42,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * **Python >= 3.7** (tested through 3.13)
-     * **pybind11 >= 2.7** (tested through 2.13)
+     * **pybind11 >= 2.7** (tested through 3.0)
      * NumPy (tested through 2.2.4)
  * If you want support for PNG files:
      * **libPNG >= 1.6.0** (tested though 1.6.49)
