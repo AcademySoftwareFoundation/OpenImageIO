@@ -26,6 +26,7 @@
 #include <QDialog>
 #include <QMainWindow>
 #include <QMimeData>
+#include <QSpinBox>
 
 #if OIIO_QT_MAJOR < 6
 #    include <QGLWidget>
@@ -50,7 +51,6 @@ class QMenu;
 class QMenuBar;
 class QProgressBar;
 class QPushButton;
-class QSpinBox;
 class QScrollArea;
 class QStatusBar;
 class QVBoxLayout;
@@ -245,6 +245,16 @@ public:
         return linearInterpolationBox && linearInterpolationBox->isChecked();
     }
 
+    int closeupPixels(void) const
+    {
+        return closeupPixelsBox ? closeupPixelsBox->value() : 13;
+    }
+
+    int closeupAvgPixels(void) const
+    {
+        return closeupAvgPixelsBox ? closeupAvgPixelsBox->value() : 11;
+    }
+
     bool darkPalette(void) const
     {
         return darkPaletteBox ? darkPaletteBox->isChecked() : m_darkPalette;
@@ -416,6 +426,10 @@ private:
     QSpinBox* maxMemoryIC;
     QLabel* slideShowDurationLabel;
     QSpinBox* slideShowDuration;
+    QLabel* closeupPixelsLabel;
+    QSpinBox* closeupPixelsBox;
+    QLabel* closeupAvgPixelsLabel;
+    QSpinBox* closeupAvgPixelsBox;
 
     std::vector<IvImage*> m_images;  // List of images
     int m_current_image;             // Index of current image, -1 if none
