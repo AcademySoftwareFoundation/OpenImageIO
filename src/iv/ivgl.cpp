@@ -779,7 +779,45 @@ num_channels(int current_channel, int nchannels,
     }
 }
 
+// Helper function to calculate min, max, and average for a given type and ROI
+template<typename T> struct ChannelStatsResult {
+    T min_val, max_val, avg_val;
+};
 
+template<typename T>
+ChannelStatsResult<T>
+calculate_channel_stats(const ImageBuf& img, const ROI& roi, int channel,
+                        bool is_inside_data_window)
+{
+    if (!is_inside_data_window) {
+        // Return zeros if not inside data window
+        return ChannelStatsResult<T> { T(0), T(0), T(0) };
+    }
+
+    int pixel_count = (roi.xend - roi.xbegin) * (roi.yend - roi.ybegin);
+    if (pixel_count <= 0) {
+        // ROI is empty or invalid, return zeros
+        return ChannelStatsResult<T> { T(0), T(0), T(0) };
+    }
+
+    T min_val  = std::numeric_limits<T>::max();
+    T max_val  = std::numeric_limits<T>::lowest();
+    double sum = 0.0;
+
+    ImageBuf::ConstIterator<T, T> it(img, roi);
+    for (; !it.done(); ++it) {
+        T val   = it[channel];
+        min_val = std::min(min_val, val);
+        max_val = std::max(max_val, val);
+        sum += val;
+    }
+
+    ChannelStatsResult<T> result;
+    result.min_val = min_val;
+    result.max_val = max_val;
+    result.avg_val = static_cast<T>(sum / pixel_count);
+    return result;
+}
 
 void
 IvGL::paint_pixelview()
@@ -1027,9 +1065,6 @@ IvGL::paint_pixelview()
     float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
     img->getpixel(pixel_x, pixel_y, fpixel);
 
-    int avg_pixel_count = (xend - xbegin - avg_window_offset * 2)
-                          * (yend - ybegin - avg_window_offset * 2);
-
     // String values to be printed in stats table for each channel
     struct ChannelStats {
         std::string name;
@@ -1056,8 +1091,28 @@ IvGL::paint_pixelview()
 
     bool is_inside_data_window = ybegin > 0 || yend > 0 || xbegin > 0
                                  || xend > 0;
-    for (int i = 0; i < spec.nchannels; ++i) {
-        std::string name = spec.channelnames[i];
+
+    // Calculate the ROI for min/max/avg calculation
+    ROI avg_roi(spec.x + xbegin + avg_window_offset,
+                spec.x + xend - avg_window_offset,
+                spec.y + ybegin + avg_window_offset,
+                spec.y + yend - avg_window_offset);
+
+    // Lambda for smart float formatting (max 5 chars including decimal)
+    auto format_float = [](float value) -> std::string {
+        if (value < 10) {
+            return format("{:.3f}", value);
+        } else if (value < 100) {
+            return format("{:.2f}", value);
+        } else if (value < 1000) {
+            return format("{:.1f}", value);
+        } else {
+            return format("{:.0f}", value);
+        }
+    };
+
+    for (int channel = 0; channel < spec.nchannels; ++channel) {
+        std::string name = spec.channelnames[channel];
         // Truncate channel name if longer than 10 characters
         if (name.length() > MAX_NAME_LENGTH) {
             name = format("{:.4}...{}", name, name.substr(name.length() - 3));
@@ -1079,120 +1134,60 @@ IvGL::paint_pixelview()
 
         switch (spec.format.basetype) {
         case TypeDesc::UINT8: {
-            unsigned char min_val = 0;
-            unsigned char max_val = 0;
-            unsigned char avg_val = 0;
-
-            if (is_inside_data_window) {
-                min_val = std::numeric_limits<unsigned char>::max();
-                max_val = std::numeric_limits<unsigned char>::lowest();
-                int sum = 0;
-                for (int y = ybegin + avg_window_offset;
-                     y < yend - avg_window_offset; ++y) {
-                    for (int x = xbegin + avg_window_offset;
-                         x < xend - avg_window_offset; ++x) {
-                        ImageBuf::ConstIterator<unsigned char, unsigned char> p(
-                            *img, x + spec.x, y + spec.y);
-                        min_val = std::min(min_val, p[i]);
-                        max_val = std::max(max_val, p[i]);
-                        sum += p[i];
-                    }
-                }
-                avg_val = (unsigned char)(sum / avg_pixel_count);
-            }
-
             ImageBuf::ConstIterator<unsigned char, unsigned char> p(*img,
                                                                     pixel_x,
                                                                     pixel_y);
             std::string center_value_separation_spaces(5, ' ');
-            centerValue = format("{:<3}", int(p[i]));
-            normalized  = format("{:3.3f}", fpixel[i])
+            auto stats
+                = calculate_channel_stats<unsigned char>(*img, avg_roi, channel,
+                                                         is_inside_data_window);
+
+            centerValue = format("{:<3}", int(p[channel]));
+            normalized  = format("{:3.3f}", fpixel[channel])
                          + center_value_separation_spaces;
-            min = format("{:<3}", min_val);
-            max = format("{:<3}", max_val);
-            avg = format("{:<3}", avg_val);
-        } break;
+            min = format("{:<3}", stats.min_val);
+            max = format("{:<3}", stats.max_val);
+            avg = format("{:<3}", stats.avg_val);
+            break;
+        }
         case TypeDesc::UINT16: {
-            unsigned short min_val = std::numeric_limits<unsigned short>::max();
-            unsigned short max_val
-                = std::numeric_limits<unsigned short>::lowest();
-            unsigned short avg_val = 0;
-
-            if (is_inside_data_window) {
-                min_val = std::numeric_limits<unsigned short>::max();
-                max_val = std::numeric_limits<unsigned short>::lowest();
-                int sum = 0;
-                for (int y = ybegin + avg_window_offset;
-                     y < yend - avg_window_offset; ++y) {
-                    for (int x = xbegin + avg_window_offset;
-                         x < xend - avg_window_offset; ++x) {
-                        ImageBuf::ConstIterator<unsigned short, unsigned short>
-                            p(*img, x + spec.x, y + spec.y);
-                        min_val = std::min(min_val, p[i]);
-                        max_val = std::max(max_val, p[i]);
-                        sum += p[i];
-                    }
-                }
-                avg_val = (unsigned short)(sum / avg_pixel_count);
-            }
-
             ImageBuf::ConstIterator<unsigned short, unsigned short> p(*img,
                                                                       pixel_x,
                                                                       pixel_y);
             std::string center_value_separation_spaces(2, ' ');
-            centerValue = format("{:<5}", int(p[i]));
-            normalized  = format("{:3.3f}", fpixel[i])
+            auto stats = calculate_channel_stats<unsigned short>(
+                *img, avg_roi, channel, is_inside_data_window);
+
+            centerValue = format("{:<5}", int(p[channel]));
+            normalized  = format("{:3.3f}", fpixel[channel])
                          + center_value_separation_spaces;
-            min = format("{:<5}", min_val);
-            max = format("{:<5}", max_val);
-            avg = format("{:<5}", avg_val);
-        } break;
-        default: {  // everything else, treat as float
-            float min_val = 0;
-            float max_val = 0;
-            float avg_val = 0;
+            min = format("{:<5}", stats.min_val);
+            max = format("{:<5}", stats.max_val);
+            avg = format("{:<5}", stats.avg_val);
+            break;
+        }
+        case TypeDesc::HALF: {
+            auto stats = calculate_channel_stats<half>(*img, avg_roi, channel,
+                                                       is_inside_data_window);
 
-            if (is_inside_data_window) {
-                min_val   = std::numeric_limits<float>::max();
-                max_val   = std::numeric_limits<float>::lowest();
-                float sum = 0.0f;
-
-                for (int y = ybegin + avg_window_offset;
-                     y < yend - avg_window_offset; ++y) {
-                    for (int x = xbegin + avg_window_offset;
-                         x < xend - avg_window_offset; ++x) {
-                        ImageBuf::ConstIterator<float, float> p(*img,
-                                                                x + spec.x,
-                                                                y + spec.y);
-                        min_val = std::min(min_val, p[i]);
-                        max_val = std::max(max_val, p[i]);
-                        sum += p[i];
-                    }
-                }
-                avg_val = sum / avg_pixel_count;
-            }
-
-            ImageBuf::ConstIterator<float, float> p(*img, pixel_x, pixel_y);
-
-            // Lambda for smart float formatting (max 5 chars including decimal)
-            auto formatFloat = [](float value) -> std::string {
-                if (value < 10) {
-                    return format("{:.3f}", value);
-                } else if (value < 100) {
-                    return format("{:.2f}", value);
-                } else if (value < 1000) {
-                    return format("{:.1f}", value);
-                } else {
-                    return format("{:.0f}", value);
-                }
-            };
-
-            centerValue = formatFloat(p[i]);
+            centerValue = format_float(fpixel[channel]);
             normalized  = "";  // No normalized value for float
-            min         = formatFloat(min_val);
-            max         = formatFloat(max_val);
-            avg         = formatFloat(avg_val);
-        } break;
+            min         = format_float(stats.min_val);
+            max         = format_float(stats.max_val);
+            avg         = format_float(stats.avg_val);
+            break;
+        }
+        default: {  // everything else, treat as float
+            auto stats = calculate_channel_stats<float>(*img, avg_roi, channel,
+                                                        is_inside_data_window);
+
+            centerValue = format_float(fpixel[channel]);
+            normalized  = "";  // No normalized value for float
+            min         = format_float(stats.min_val);
+            max         = format_float(stats.max_val);
+            avg         = format_float(stats.avg_val);
+            break;
+        }
         }
 
         maxLengths.name        = std::max(maxLengths.name, (int)name.length());
