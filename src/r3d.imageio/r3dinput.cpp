@@ -5,9 +5,9 @@
 // R3D SDK can be downloaded from the following site:
 // https://www.red.com/download/r3d-sdk
 //
-// The code has been tested with the version 9.0.0 installed in
-// /opt/R3DSDKv9_0_0 directory and setting up the shell variable
-// export R3DSDK_ROOT="/opt/R3DSDKv9_0_0"
+// The code has been tested with the version 9.0.1 installed in
+// /opt/R3DSDKv9_0_1 directory and setting up the shell variable
+// export R3DSDK_ROOT="/opt/R3DSDKv9_0_1"
 
 #define GPU
 #define CUDA
@@ -165,7 +165,7 @@ OIIO_EXPORT const char*
 r3d_imageio_library_version()
 {
     // Note: SDK version can differ from the actual library loaded
-    return "R3D 9.0.0";
+    return "R3D 9.0.1";
 }
 
 OIIO_EXPORT ImageInput*
@@ -675,11 +675,11 @@ R3dInput::initialize()
     std::string library_path
         = Sysutil::getenv("OIIO_R3D_LIBRARY_PATH",
 #if defined(__linux__)
-                          "/opt/R3DSDKv9_0_0/Redistributable/linux"
+                          "/opt/R3DSDKv9_0_1/Redistributable/linux"
 #elif defined(__APPLE__)
-                          "/Library/R3DSDKv9_0_0/Redistributable/mac"
+                          "/Library/R3DSDKv9_0_1/Redistributable/mac"
 #elif defined(__WINDOWS__)
-                          "C:\\R3DSDKv9_0_0\\Redistributable\\win"
+                          "C:\\R3DSDKv9_0_1\\Redistributable\\win"
 #else
 #    error "Unknown OS"
 #endif
