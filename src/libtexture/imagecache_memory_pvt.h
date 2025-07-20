@@ -24,8 +24,6 @@ inline size_t
 heapsize<ImageCacheFile::LevelInfo>(const ImageCacheFile::LevelInfo& lvl)
 {
     size_t size = heapsize(lvl.polecolor);
-    size += heapsize(lvl.m_spec);
-    size += heapsize(lvl.nativespec);
     if (lvl.tiles_read) {
         const size_t total_tiles   = lvl.nxtiles * lvl.nytiles * lvl.nztiles;
         const size_t bitfield_size = round_to_multiple(total_tiles, 64) / 64;

@@ -7,6 +7,8 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     channel list: R, G, B
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
+    oiio:miplevels: 3
+    oiio:subimages: 9
     ptex:meshType: "triangle"
     MIP 0 of 3 (4 x 4):
       Stats Min: 0.108809 0.137232 0.016301 (float)
@@ -45,6 +47,7 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     channel list: R, G, B
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
+    oiio:miplevels: 3
     ptex:meshType: "triangle"
     MIP 0 of 3 (4 x 4):
       Stats Min: 0.020023 0.192214 0.039280 (float)
@@ -83,6 +86,7 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     channel list: R, G, B
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
+    oiio:miplevels: 3
     ptex:meshType: "triangle"
     MIP 0 of 3 (4 x 4):
       Stats Min: 0.103171 0.052529 0.074530 (float)
@@ -121,6 +125,7 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     channel list: R, G, B
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
+    oiio:miplevels: 3
     ptex:meshType: "triangle"
     MIP 0 of 3 (4 x 4):
       Stats Min: 0.051939 0.004162 0.078232 (float)
@@ -159,6 +164,7 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     channel list: R, G, B
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
+    oiio:miplevels: 3
     ptex:meshType: "triangle"
     MIP 0 of 3 (4 x 4):
       Stats Min: 0.229137 0.003231 0.035421 (float)
@@ -197,6 +203,7 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     channel list: R, G, B
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
+    oiio:miplevels: 3
     ptex:meshType: "triangle"
     MIP 0 of 3 (4 x 4):
       Stats Min: 0.111276 0.040864 0.003579 (float)
@@ -235,6 +242,7 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     channel list: R, G, B
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
+    oiio:miplevels: 3
     ptex:meshType: "triangle"
     MIP 0 of 3 (4 x 4):
       Stats Min: 0.162757 0.121259 0.121143 (float)
@@ -273,6 +281,7 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     channel list: R, G, B
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
+    oiio:miplevels: 3
     ptex:meshType: "triangle"
     MIP 0 of 3 (4 x 4):
       Stats Min: 0.107848 0.005409 0.049162 (float)
@@ -311,6 +320,7 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     channel list: R, G, B
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
+    oiio:miplevels: 3
     ptex:meshType: "triangle"
     MIP 0 of 3 (4 x 4):
       Stats Min: 0.036327 0.051508 0.053422 (float)

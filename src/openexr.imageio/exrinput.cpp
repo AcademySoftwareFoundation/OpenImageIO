@@ -437,6 +437,9 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         case Imf::B44A_COMPRESSION: comp = "b44a"; break;
         case Imf::DWAA_COMPRESSION: comp = "dwaa"; break;
         case Imf::DWAB_COMPRESSION: comp = "dwab"; break;
+#ifdef IMF_HTJ2K_COMPRESSION
+        case Imf::HTJ2K_COMPRESSION: comp = "htj2k"; break;
+#endif
         default: break;
         }
         if (comp)
@@ -1008,8 +1011,11 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
         const Imf::Header* header = NULL;
         if (m_input_multipart)
             header = &(m_input_multipart->header(subimage));
-        if (!part.parse_header(this, header))
+        if (!part.parse_header(this, header)) {
+            errorfmt("Could not seek to subimage={}: unable to parse header",
+                     subimage, miplevel);
             return false;
+        }
         part.initialized = true;
     }
 
@@ -1076,6 +1082,11 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
 
     m_miplevel = miplevel;
     m_spec     = part.spec;
+
+    //! Add the number of miplevels as an attribute for the first miplevel.
+    //! TOFIX: adding the following attribute breaks unit tests
+    // if (m_miplevel == 0 && part.nmiplevels > 1)
+    //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 12 }))
         return false;
@@ -1178,7 +1189,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
 bool
 OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                    int yend, int /*z*/, int chbegin, int chend,
+                                    int yend, int z, int chbegin, int chend,
                                     void* data)
 {
     lock_guard lock(*this);
@@ -1263,8 +1274,31 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             return false;
         }
     } catch (const std::exception& e) {
-        errorfmt("Failed OpenEXR read: {}", e.what());
-        return false;
+        std::string err = e.what();
+        if (m_missingcolor.size()) {
+            // User said not to fail for bad or missing scanlines. If we
+            // failed reading a single scanline, use the fill pattern. If we
+            // failed reading many scanlines, we don't know which ones, so go
+            // back and read them individually for a second chance.
+            DBGEXR("Handling missingcolor case for {}-{}: {}\n", ybegin, yend,
+                   err);
+            if (yend - ybegin == 1) {
+                // Read of one tile -- use the fill pattern
+                fill_missing(m_spec.x, m_spec.x + m_spec.width, ybegin, yend, 0,
+                             1, chbegin, chend, data, pixelbytes,
+                             scanlinebytes);
+            } else {
+                // Read of many tiles -- don't know which failed, so try
+                // again to read them all individually.
+                return read_native_scanlines_individually(subimage, miplevel,
+                                                          ybegin, yend, z,
+                                                          chbegin, chend, data,
+                                                          scanlinebytes);
+            }
+        } else {
+            errorfmt("Failed OpenEXR read: {}", err);
+            return false;
+        }
     } catch (...) {  // catch-all for edge cases or compiler bugs
         errorfmt("Failed OpenEXR read: unknown exception");
         return false;
@@ -1351,8 +1385,8 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
         tmpbuf.resize(nxtiles * nytiles * m_spec.tile_bytes(true));
         data = tmpbuf.data();
     }
-    char* buf = (char*)data - xbegin * pixelbytes
-                - ybegin * pixelbytes * m_spec.tile_width * nxtiles;
+    char* buf = (char*)data - ptrdiff_t(xbegin * pixelbytes)
+                - ptrdiff_t(ybegin * pixelbytes * m_spec.tile_width * nxtiles);
 
     try {
         Imf::FrameBuffer frameBuffer;
@@ -1415,6 +1449,25 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     }
 
     return true;
+}
+
+
+
+bool
+OpenEXRInput::read_native_scanlines_individually(int subimage, int miplevel,
+                                                 int ybegin, int yend, int z,
+                                                 int chbegin, int chend,
+                                                 void* data, stride_t ystride)
+{
+    // Note: this is only called by read_native_scanlines, which still holds
+    // the mutex, so it's safe to directly access m_spec.
+    bool ok = true;
+    for (int y = ybegin; y < yend; ++y) {
+        char* d = (char*)data + (y - ybegin) * ystride;
+        ok &= read_native_scanlines(subimage, miplevel, y, y + 1, z, chbegin,
+                                    chend, d);
+    }
+    return ok;
 }
 
 

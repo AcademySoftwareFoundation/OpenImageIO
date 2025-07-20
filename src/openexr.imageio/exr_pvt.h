@@ -102,7 +102,7 @@ public:
                 || feature == "exif"  // Because of arbitrary_metadata
                 || feature == "ioproxy"
                 || feature == "iptc"  // Because of arbitrary_metadata
-                || feature == "multiimage");
+                || feature == "multiimage" || feature == "mipmap");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec,
@@ -220,6 +220,10 @@ private:
         m_missingcolor.clear();
     }
 
+    bool read_native_scanlines_individually(int subimage, int miplevel,
+                                            int ybegin, int yend, int z,
+                                            int chbegin, int chend, void* data,
+                                            stride_t ystride);
     bool read_native_tiles_individually(int subimage, int miplevel, int xbegin,
                                         int xend, int ybegin, int yend,
                                         int zbegin, int zend, int chbegin,

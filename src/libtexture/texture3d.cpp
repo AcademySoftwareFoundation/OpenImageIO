@@ -24,6 +24,9 @@
 
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
+using LevelInfo    = ImageCacheFile::LevelInfo;
+using SubimageInfo = ImageCacheFile::SubimageInfo;
+using ImageDims    = ImageCacheFile::ImageDims;
 
 namespace {  // anonymous
 
@@ -197,7 +200,7 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
                                dresultdr);
     }
 
-    const ImageSpec& spec(texturefile->spec(options.subimage, 0));
+    const ImageSpec& spec(texturefile->spec(options.subimage));
 
     // Figure out the wrap functions
     if (options.swrap == TextureOpt::WrapDefault)
@@ -307,14 +310,14 @@ TextureSystemImpl::accum3d_sample_closest(
     int actualchannels, float weight, float* accum, float* daccumds,
     float* daccumdt, float* daccumdr)
 {
-    const ImageSpec& spec(texturefile.spec(options.subimage, miplevel));
-    const ImageCacheFile::LevelInfo& levelinfo(
-        texturefile.levelinfo(options.subimage, miplevel));
+    const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
+    const LevelInfo& lvl(si.levelinfo(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
-    float s = P.x * spec.full_width + spec.full_x;
-    float t = P.y * spec.full_height + spec.full_y;
-    float r = P.z * spec.full_depth + spec.full_z;
+    float s = P.x * dims.full_width + dims.full_x;
+    float t = P.y * dims.full_height + dims.full_y;
+    float r = P.z * dims.full_depth + dims.full_z;
     int stex, ttex, rtex;       // Texel coordinates
     (void)floorfrac(s, &stex);  // don't need fractional result
     (void)floorfrac(t, &ttex);
@@ -324,29 +327,29 @@ TextureSystemImpl::accum3d_sample_closest(
     wrap_impl twrap_func = wrap_functions[(int)options.twrap];
     wrap_impl rwrap_func = wrap_functions[(int)options.rwrap];
     bool svalid, tvalid, rvalid;  // Valid texels?  false means black border
-    svalid = swrap_func(stex, spec.x, spec.width);
-    tvalid = twrap_func(ttex, spec.y, spec.height);
-    rvalid = rwrap_func(rtex, spec.z, spec.depth);
-    if (!levelinfo.full_pixel_range) {
-        svalid &= (stex >= spec.x
-                   && stex < (spec.x + spec.width));  // data window
-        tvalid &= (ttex >= spec.y && ttex < (spec.y + spec.height));
-        rvalid &= (rtex >= spec.z && rtex < (spec.z + spec.depth));
+    svalid = swrap_func(stex, dims.x, dims.width);
+    tvalid = twrap_func(ttex, dims.y, dims.height);
+    rvalid = rwrap_func(rtex, dims.z, dims.depth);
+    if (!lvl.full_pixel_range) {
+        svalid &= (stex >= dims.x
+                   && stex < (dims.x + dims.width));  // data window
+        tvalid &= (ttex >= dims.y && ttex < (dims.y + dims.height));
+        rvalid &= (rtex >= dims.z && rtex < (dims.z + dims.depth));
     }
     if (!(svalid & tvalid & rvalid)) {
         // All texels we need were out of range and using 'black' wrap.
         return true;
     }
 
-    int tile_chbegin = 0, tile_chend = spec.nchannels;
-    if (spec.nchannels > m_max_tile_channels) {
+    int tile_chbegin = 0, tile_chend = dims.nchannels;
+    if (dims.nchannels > m_max_tile_channels) {
         // For files with many channels, narrow the range we cache
         tile_chbegin = options.firstchannel;
         tile_chend   = options.firstchannel + actualchannels;
     }
-    int tile_s = (stex - spec.x) % spec.tile_width;
-    int tile_t = (ttex - spec.y) % spec.tile_height;
-    int tile_r = (rtex - spec.z) % spec.tile_depth;
+    int tile_s = (stex - dims.x) % dims.tile_width;
+    int tile_t = (ttex - dims.y) % dims.tile_height;
+    int tile_r = (rtex - dims.z) % dims.tile_depth;
     TileID id(texturefile, options.subimage, miplevel, stex - tile_s,
               ttex - tile_t, rtex - tile_r, tile_chbegin, tile_chend,
               options.colortransformid);
@@ -356,12 +359,13 @@ TextureSystemImpl::accum3d_sample_closest(
     TileRef& tile(thread_info->tile);
     if (!tile || !ok)
         return false;
-    imagesize_t tilepel = (tile_r * spec.tile_height + imagesize_t(tile_t))
-                              * spec.tile_width
+    imagesize_t tilepel = (tile_r * dims.tile_height + imagesize_t(tile_t))
+                              * dims.tile_width
                           + tile_s;
     int startchan_in_tile = options.firstchannel - id.chbegin();
-    imagesize_t offset    = spec.nchannels * tilepel + startchan_in_tile;
-    OIIO_DASSERT((size_t)offset < spec.nchannels * spec.tile_pixels());
+    imagesize_t offset    = dims.nchannels * tilepel + startchan_in_tile;
+    OIIO_DASSERT((size_t)offset
+                 < dims.nchannels * si.get_tile_pixels(miplevel));
     if (pixeltype == TypeDesc::UINT8) {
         const unsigned char* texel = tile->bytedata() + offset;
         for (int c = 0; c < actualchannels; ++c)
@@ -406,8 +410,9 @@ void
 trilerp_accum(float* accum, float* daccumds, float* daccumdt, float* daccumdr,
               const unsigned char* texel[2][2][2], float sfrac, float tfrac,
               float rfrac, int actualchannels, float weight,
-              const ImageSpec& spec, const Converter& convert)
+              const SubimageInfo& si, int miplevel, const Converter& convert)
 {
+    const ImageDims& dims(si.leveldims(miplevel));
     for (int c = 0; c < actualchannels; ++c) {
         accum[c] += weight
                     * trilerp(convert(((const T*)texel[0][0][0])[c]),
@@ -421,9 +426,9 @@ trilerp_accum(float* accum, float* daccumds, float* daccumdt, float* daccumdr,
                               tfrac, rfrac);
     }
     if (daccumds) {
-        float scalex = weight * spec.full_width;
-        float scaley = weight * spec.full_height;
-        float scalez = weight * spec.full_depth;
+        float scalex = weight * dims.full_width;
+        float scaley = weight * dims.full_height;
+        float scalez = weight * dims.full_depth;
         for (int c = 0; c < actualchannels; ++c) {
             daccumds[c]
                 += scalex
@@ -471,15 +476,15 @@ TextureSystemImpl::accum3d_sample_bilinear(
     int actualchannels, float weight, float* accum, float* daccumds,
     float* daccumdt, float* daccumdr)
 {
-    const ImageSpec& spec(texturefile.spec(options.subimage, miplevel));
-    const ImageCacheFile::LevelInfo& levelinfo(
-        texturefile.levelinfo(options.subimage, miplevel));
+    const SubimageInfo& si(texturefile.subimageinfo(options.subimage));
+    const LevelInfo& lvl(si.levelinfo(miplevel));
+    const ImageDims& dims(si.leveldims(miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
     // and subtract 0.5 because samples are at texel centers.
-    float s = P.x * spec.full_width + spec.full_x - 0.5f;
-    float t = P.y * spec.full_height + spec.full_y - 0.5f;
-    float r = P.z * spec.full_depth + spec.full_z - 0.5f;
+    float s = P.x * dims.full_width + dims.full_x - 0.5f;
+    float t = P.y * dims.full_height + dims.full_y - 0.5f;
+    float r = P.z * dims.full_depth + dims.full_z - 0.5f;
     int sint, tint, rint;
     float sfrac = floorfrac(s, &sint);
     float tfrac = floorfrac(t, &tint);
@@ -517,20 +522,20 @@ TextureSystemImpl::accum3d_sample_bilinear(
     bool* tvalid = valid_storage.bvalid + 2;
     bool* rvalid = valid_storage.bvalid + 4;
 
-    svalid[0] = swrap_func(stex[0], spec.x, spec.width);
-    svalid[1] = swrap_func(stex[1], spec.x, spec.width);
-    tvalid[0] = twrap_func(ttex[0], spec.y, spec.height);
-    tvalid[1] = twrap_func(ttex[1], spec.y, spec.height);
-    rvalid[0] = rwrap_func(rtex[0], spec.z, spec.depth);
-    rvalid[1] = rwrap_func(rtex[1], spec.z, spec.depth);
+    svalid[0] = swrap_func(stex[0], dims.x, dims.width);
+    svalid[1] = swrap_func(stex[1], dims.x, dims.width);
+    tvalid[0] = twrap_func(ttex[0], dims.y, dims.height);
+    tvalid[1] = twrap_func(ttex[1], dims.y, dims.height);
+    rvalid[0] = rwrap_func(rtex[0], dims.z, dims.depth);
+    rvalid[1] = rwrap_func(rtex[1], dims.z, dims.depth);
     // Account for crop windows
-    if (!levelinfo.full_pixel_range) {
-        svalid[0] &= (stex[0] >= spec.x && stex[0] < spec.x + spec.width);
-        svalid[1] &= (stex[1] >= spec.x && stex[1] < spec.x + spec.width);
-        tvalid[0] &= (ttex[0] >= spec.y && ttex[0] < spec.y + spec.height);
-        tvalid[1] &= (ttex[1] >= spec.y && ttex[1] < spec.y + spec.height);
-        rvalid[0] &= (rtex[0] >= spec.z && rtex[0] < spec.z + spec.depth);
-        rvalid[1] &= (rtex[1] >= spec.z && rtex[1] < spec.z + spec.depth);
+    if (!lvl.full_pixel_range) {
+        svalid[0] &= (stex[0] >= dims.x && stex[0] < dims.x + dims.width);
+        svalid[1] &= (stex[1] >= dims.x && stex[1] < dims.x + dims.width);
+        tvalid[0] &= (ttex[0] >= dims.y && ttex[0] < dims.y + dims.height);
+        tvalid[1] &= (ttex[1] >= dims.y && ttex[1] < dims.y + dims.height);
+        rvalid[0] &= (rtex[0] >= dims.z && rtex[0] < dims.z + dims.depth);
+        rvalid[1] &= (rtex[1] >= dims.z && rtex[1] < dims.z + dims.depth);
     }
     //    if (! (svalid[0] | svalid[1] | tvalid[0] | tvalid[1] | rvalid[0] | rvalid[1]))
     if (valid_storage.ivalid == none_valid)
@@ -557,23 +562,23 @@ TextureSystemImpl::accum3d_sample_bilinear(
         return true;
     }
 
-    int tilewidthmask  = spec.tile_width - 1;  // e.g. 63
-    int tileheightmask = spec.tile_height - 1;
-    int tiledepthmask  = spec.tile_depth - 1;
+    int tilewidthmask  = dims.tile_width - 1;  // e.g. 63
+    int tileheightmask = dims.tile_height - 1;
+    int tiledepthmask  = dims.tile_depth - 1;
     const unsigned char* texel[2][2][2];
     TileRef savetile[2][2][2];
     static float black[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-    int tile_s            = (stex[0] - spec.x) % spec.tile_width;
-    int tile_t            = (ttex[0] - spec.y) % spec.tile_height;
-    int tile_r            = (rtex[0] - spec.z) % spec.tile_depth;
+    int tile_s            = (stex[0] - dims.x) % dims.tile_width;
+    int tile_t            = (ttex[0] - dims.y) % dims.tile_height;
+    int tile_r            = (rtex[0] - dims.z) % dims.tile_depth;
     bool s_onetile     = (tile_s != tilewidthmask) & (stex[0] + 1 == stex[1]);
     bool t_onetile     = (tile_t != tileheightmask) & (ttex[0] + 1 == ttex[1]);
     bool r_onetile     = (tile_r != tiledepthmask) & (rtex[0] + 1 == rtex[1]);
     bool onetile       = (s_onetile & t_onetile & r_onetile);
     size_t channelsize = texturefile.channelsize(options.subimage);
     size_t pixelsize   = texturefile.pixelsize(options.subimage);
-    int tile_chbegin = 0, tile_chend = spec.nchannels;
-    if (spec.nchannels > m_max_tile_channels) {
+    int tile_chbegin = 0, tile_chend = dims.nchannels;
+    if (dims.nchannels > m_max_tile_channels) {
         // For files with many channels, narrow the range we cache
         tile_chbegin = options.firstchannel;
         tile_chend   = options.firstchannel + actualchannels;
@@ -591,23 +596,23 @@ TextureSystemImpl::accum3d_sample_bilinear(
         TileRef& tile(thread_info->tile);
         if (!tile->valid())
             return false;
-        imagesize_t tilepel = (tile_r * spec.tile_height + imagesize_t(tile_t))
-                                  * spec.tile_width
+        imagesize_t tilepel = (tile_r * dims.tile_height + imagesize_t(tile_t))
+                                  * dims.tile_width
                               + tile_s;
-        imagesize_t offset = (spec.nchannels * tilepel + startchan_in_tile)
+        imagesize_t offset = (dims.nchannels * tilepel + startchan_in_tile)
                              * channelsize;
-        OIIO_DASSERT(offset < spec.tile_bytes());
+        OIIO_DASSERT(offset < si.get_tile_bytes(miplevel));
 
         const unsigned char* b = tile->bytedata() + offset;
         texel[0][0][0]         = b;
         texel[0][0][1]         = b + pixelsize;
-        texel[0][1][0]         = b + pixelsize * spec.tile_width;
-        texel[0][1][1]         = b + pixelsize * spec.tile_width + pixelsize;
-        b += pixelsize * spec.tile_width * spec.tile_height;
+        texel[0][1][0]         = b + pixelsize * dims.tile_width;
+        texel[0][1][1]         = b + pixelsize * dims.tile_width + pixelsize;
+        b += pixelsize * dims.tile_width * dims.tile_height;
         texel[1][0][0] = b;
         texel[1][0][1] = b + pixelsize;
-        texel[1][1][0] = b + pixelsize * spec.tile_width;
-        texel[1][1][1] = b + pixelsize * spec.tile_width + pixelsize;
+        texel[1][1][0] = b + pixelsize * dims.tile_width;
+        texel[1][1][1] = b + pixelsize * dims.tile_width + pixelsize;
     } else {
         bool firstsample = true;
         for (int k = 0; k < 2; ++k) {
@@ -617,9 +622,9 @@ TextureSystemImpl::accum3d_sample_bilinear(
                         texel[k][j][i] = (unsigned char*)black;
                         continue;
                     }
-                    tile_s = (stex[i] - spec.x) % spec.tile_width;
-                    tile_t = (ttex[j] - spec.y) % spec.tile_height;
-                    tile_r = (rtex[k] - spec.z) % spec.tile_depth;
+                    tile_s = (stex[i] - dims.x) % dims.tile_width;
+                    tile_t = (ttex[j] - dims.y) % dims.tile_height;
+                    tile_r = (rtex[k] - dims.z) % dims.tile_depth;
                     id.xyz(stex[i] - tile_s, ttex[j] - tile_t,
                            rtex[k] - tile_r);
                     bool ok = find_tile(id, thread_info, firstsample);
@@ -630,21 +635,21 @@ TextureSystemImpl::accum3d_sample_bilinear(
                     if (!tile->valid())
                         return false;
                     savetile[k][j][i]   = tile;
-                    imagesize_t tilepel = (tile_r * spec.tile_height
+                    imagesize_t tilepel = (tile_r * dims.tile_height
                                            + imagesize_t(tile_t))
-                                              * spec.tile_width
+                                              * dims.tile_width
                                           + tile_s;
-                    imagesize_t offset = (spec.nchannels * tilepel
+                    imagesize_t offset = (dims.nchannels * tilepel
                                           + startchan_in_tile)
                                          * channelsize;
 #ifndef NDEBUG
-                    if (offset >= spec.tile_bytes())
+                    if (offset >= si.get_tile_bytes(miplevel))
                         std::cerr << "offset=" << offset << ", whd "
-                                  << spec.tile_width << ' ' << spec.tile_height
-                                  << ' ' << spec.tile_depth << " pixsize "
+                                  << dims.tile_width << ' ' << dims.tile_height
+                                  << ' ' << dims.tile_depth << " pixsize "
                                   << pixelsize << "\n";
 #endif
-                    OIIO_DASSERT((size_t)offset < spec.tile_bytes());
+                    OIIO_DASSERT((size_t)offset < si.get_tile_bytes(miplevel));
                     texel[k][j][i] = tile->bytedata() + offset;
                     OIIO_DASSERT(tile->id() == id);
                 }
@@ -655,20 +660,20 @@ TextureSystemImpl::accum3d_sample_bilinear(
 
     if (pixeltype == TypeDesc::UINT8) {
         trilerp_accum<uint8_t>(accum, daccumds, daccumdt, daccumdr, texel,
-                               sfrac, tfrac, rfrac, actualchannels, weight,
-                               spec, uchar2float);
+                               sfrac, tfrac, rfrac, actualchannels, weight, si,
+                               miplevel, uchar2float);
     } else if (pixeltype == TypeDesc::UINT16) {
         trilerp_accum<uint16_t>(accum, daccumds, daccumdt, daccumdr, texel,
-                                sfrac, tfrac, rfrac, actualchannels, weight,
-                                spec, ushort2float);
+                                sfrac, tfrac, rfrac, actualchannels, weight, si,
+                                miplevel, ushort2float);
     } else if (pixeltype == TypeDesc::HALF) {
         trilerp_accum<half>(accum, daccumds, daccumdt, daccumdr, texel, sfrac,
-                            tfrac, rfrac, actualchannels, weight, spec,
+                            tfrac, rfrac, actualchannels, weight, si, miplevel,
                             half2float);
     } else {
         // General case for float tiles
         trilerp_accum<float>(accum, daccumds, daccumdt, daccumdr, texel, sfrac,
-                             tfrac, rfrac, actualchannels, weight, spec,
+                             tfrac, rfrac, actualchannels, weight, si, miplevel,
                              float2float);
     }
 

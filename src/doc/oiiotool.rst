@@ -165,6 +165,7 @@ contents of an expression may be any of:
     be printed with `oiiotool -stats`.
   * `IS_CONSTANT`: metadata to check if the image pixels are of constant color, returns 1 if true, and 0 if false.
   * `IS_BLACK`: metadata to check if the image pixels are all black, a subset of IS_CONSTANT. Also returns 1 if true, and 0 if false.
+  * `SUBIMAGES`: the number of subimages in the file.
   
 * *imagename.'metadata'*
 
@@ -4280,20 +4281,41 @@ current top image.
     Optional appended modifiers include:
 
       `pattern=` *name*
-        sensor pattern. Currently supported patterns: "bayer", "xtrans".
+        sensor pattern. Currently supported patterns: "auto"(default), "bayer",
+        "xtrans". In the "auto" mode the pattern is deducted from the
+        "raw:FilterPattern" attribute of the source image buffer, defaulting to
+        "bayer" if absent.
       `layout=` *name*
-        photosite order of the specified pattern. The default value is "RGGB"
-        for Bayer, and "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans.
+        The order the color filter array elements are arranged in,
+        pattern-specific. The Bayer pattern sensors usually have 4 values in the
+        layout string, describing the 2x2 pixels region. The X-Trans pattern
+        sensors have 36 values in the layout string, describing the 6x6 pixels
+        region (with optional whitespaces separating the rows). When set to
+        "auto", OIIO will try to fetch the layout from the "raw:FilterPattern"
+        attribute of the source image buffer, falling back to "RGGB" for Bayer,
+        "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans if absent.
       `algorithm=` *name*
-        the name of the algorithm to use.
+        the name of the algorithm to use, defaults to "auto".
         The Bayer-pattern algorithms:
         - "linear"(simple bilinear demosaicing),
-        - "MHC"(Malvar-He-Cutler algorithm).
+        - "MHC"(Malvar-He-Cutler algorithm),
+        - "auto"(same as "MHC").
         The X-Trans-pattern algorithms:
-        - "linear"(simple bilinear demosaicing).
-      `white-balance=` *v1,v2,v3...*
+        - "linear"(simple bilinear demosaicing),
+        - "auto"(same as "linear").
+      `white_balance_mode=` *name*
+        white-balancing mode to use. The supported modes are:
+        - "auto"(OIIO will try to fetch the white balancing weights from the
+        "raw:WhiteBalance" attribute of the source image buffer, falling back to
+        {1.0, 1.0, 1.0, 1.0} if absent),
+        - "manual"(The white balancing weights will be taken from the attribute
+        "white-balance" (see below) if present, falling back to
+        {1.0, 1.0, 1.0, 1.0} if absent),
+        - "none"(no white balancing will be performed).
+      `white_balance=` *v1,v2,v3...*
         optional white balance weights, can contain either three (R,G,B) or four
-        (R,G1,B,G2) values. The order of the white balance multipliers is as
+        (R,G1,B,G2) values, only used when the white-balancing mode (see above)
+        is set to "manual". The order of the white balance multipliers is as
         specified, it does not depend on the matrix layout.
 
     Examples::
@@ -4302,7 +4324,7 @@ current top image.
             --output out.exr
 
          oiiotool --iconfig raw:Demosaic none --input test.cr3 \
-            --demosaic:pattern=bayer:layout=GRBG:algorithm=MHC:white_balance=2.0,0.8,1.2,1.5 \
+            --demosaic:pattern=bayer:layout=GRBG:algorithm=MHC:white_balance_mode=manual:white_balance=2.0,0.8,1.2,1.5 \
             --output out.exr
 
 

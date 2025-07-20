@@ -2162,28 +2162,45 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 /// The `options` list contains optional ParamValue's that may control the reconstruction.
 /// The following options are recognized:
 ///
-///   - "pattern" : string (default: "bayer")
+///   - "pattern" : string (default: "auto")
 ///
 ///     The type of image sensor color filter array. Currently suported patterns:
 ///     - `bayer` - Bayer-pattern image.
 ///     - `xtrans` - X-Trans-pattern image.
+///     - `auto` - the pattern is deducted from the "raw:FilterPattern" attribute of the source image buffer.
 ///
-///   - "algorithm" : string (default: "linear")
+///   - "algorithm" : string (default: "auto")
 ///
 ///     The demosaicing algorithm, pattern-specific.
 ///     The following algorithms are supported for Bayer-pattern images:
 ///     - `linear` - simple bilinear demosaicing. Fast, but can produce artefacts along sharp edges.
 ///     - `MHC` - Malvar-He-Cutler linear demosaicing algorithm. Slower than `linear`, but produces 
 ///       significantly better results.
+///     - `auto` - same as "MHC"
 ///
 ///     The following algorithms are supported for X-Trans-pattern images:
 ///     - `linear` - simple linear demosaicing. Fast, but can produce artefacts along sharp edges.
+///     - `auto` - same as "linear"
 ///
-///   - "layout" : string (default: "RGGB" for Bayer, "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans)
+///   - "layout" : string (default: "auto")
 ///
-///     The order the color filter array elements are arranged in, pattern-specific.
+///     The order the color filter array elements are arranged in, pattern-specific. The Bayer pattern sensors
+///     usually have 4 values in the layout string, describing the 2x2 pixels region. The X-Trans pattern
+///     sensors have 36 values in the layout string, describing the 6x6 pixels region (with optional
+///     whitespaces separating the rows). When set to "auto", OIIO will try to fetch the layout from the
+///     "raw:FilterPattern" attribute of the source image buffer, falling back to "RGGB" for Bayer,
+///     "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans if absent.
 ///
-///   - "white-balance" : float[3] or float[4], (default: {1.0, 1.0, 1.0, 1.0})
+///   - "white_balance_mode" : string (default: "auto")
+///
+///     White-balancing mode. The following modes are supported:
+///     - `auto` - OIIO will try to fetch the white balancing weights from the "raw:WhiteBalance"
+///     attribute of the source image buffer, falling back to {1.0, 1.0, 1.0, 1.0} if absent.
+///     - `manual` - The white balancing weights will be taken from the attribute `white_balance` (see below)
+///     if present, falling back to {1.0, 1.0, 1.0, 1.0} if absent.
+///     - `none` - no white balancing will be performed.
+///
+///   - "white_balance" : float[3] or float[4]
 ///
 ///     Optional white-balancing weights. Can contain either three (R,G,B), or four (R,G1,B,G2) values.
 ///     The order of the white balance multipliers does not depend on the matrix layout.

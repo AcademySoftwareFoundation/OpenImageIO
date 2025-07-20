@@ -28,6 +28,7 @@
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/filter.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -174,8 +175,8 @@ Oiiotool::clear_options()
     printinfo_nometamatch.clear();
     printinfo_verbose = false;
     clear_input_config();
-    first_input_dimensions = ImageSpec();
-    output_dataformat      = TypeDesc::UNKNOWN;
+    m_first_input_dimensions = ImageSpec();
+    output_dataformat        = TypeDesc::UNKNOWN;
     output_channelformats.clear();
     output_bitspersample      = 0;
     output_scanline           = false;
@@ -616,9 +617,11 @@ Oiiotool::extract_options(string_view command)
 
 // --threads
 static void
-set_threads(Oiiotool&, cspan<const char*> argv)
+set_threads(Oiiotool& ot, cspan<const char*> argv)
 {
     OIIO_DASSERT(argv.size() == 2);
+    if (ot.in_parallel_frame_loop())
+        return;
     int nthreads = Strutil::stoi(argv[1]);
     OIIO::attribute("threads", nthreads);
     OIIO::attribute("exr_threads", nthreads);
@@ -3571,7 +3574,8 @@ OIIOTOOL_OP(warp, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 // --demosaic
 OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     ParamValueList list;
-    const std::vector<std::string> keys = { "pattern", "algorithm", "layout" };
+    const std::vector<std::string> keys = { "pattern", "algorithm", "layout",
+                                            "white_balance_mode" };
     for (const auto& key : keys) {
         auto iter = op.options().find(key);
         if (iter != op.options().cend()) {
@@ -5239,12 +5243,14 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         if (!ot.imagecache->get_image_info(ustring(filename), 0, 0,
                                            ustring("exists"), TypeInt, &exists))
             exists = 0;
-        // If the image doesn't appear t exist, but it's a procedural image
-        // generator, then that's ok.
+        // N.B. ImageCache "exists" really means "can be opened and read."
         if (!exists) {
             auto input = ImageInput::create(filename);
-            if (input && input->supports("procedural"))
+            if (input && input->supports("procedural")) {
+                // If the image doesn't appear to exist, but it's a procedural
+                // image generator, then that's ok.
                 exists = 1;
+            }
             if (!input) {
                 // If the create call failed, eat any stray global errors it
                 // may have issued.
@@ -5253,36 +5259,49 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         }
         ImageBufRef substitute;  // possible substitute for missing image
         if (!exists) {
-            // Try to get a more precise error message to report
-            if (!Filesystem::exists(filename))
-                ot.errorfmt("read", "File does not exist: \"{}\"", filename);
-            else {
+            // It neither can be opened nor is it a procedural.
+            std::string errmsg;
+            if (!Filesystem::exists(filename)) {
+                // It literally is a nonexistant file.
+                errmsg = Strutil::format("File does not exist: \"{}\"",
+                                         filename);
+            } else {
+                // The file exists, but it can't be opened as an image.
+                // Try to get a more precise error message to report.
                 auto in         = ImageInput::open(filename);
                 std::string err = in ? in->geterror() : OIIO::geterror();
-                ot.error("read", ot.format_read_error(filename, err));
+                errmsg = Strutil::format(ot.format_read_error(filename, err));
             }
             // Second chances: do we have a substitute image policy?
+            ImageSpec substitute_spec;
+            if (ot.first_input_dimensions_is_set())
+                ot.get_first_input_dimensions(substitute_spec);
+            else if (ot.parent_oiiotool
+                     && ot.parent_oiiotool->first_input_dimensions_is_set())
+                ot.parent_oiiotool->get_first_input_dimensions(substitute_spec);
+            else {
+                // How big to make the substitute image if we haven't yet read
+                // any image successfully? Punt and guess HD res RGBA.
+                substitute_spec = ImageSpec(1920, 1080, 4);
+            }
             if (ot.missingfile_policy == "black") {
-                ImageSpec substitute_spec = ot.first_input_dimensions;
-                if (substitute_spec.format == TypeUnknown
-                    || !substitute_spec.width || !substitute_spec.height
-                    || !substitute_spec.nchannels)
-                    substitute_spec = ImageSpec(1920, 1080, 4);
                 substitute.reset(
                     new ImageBuf(substitute_spec, InitializePixels::Yes));
             } else if (ot.missingfile_policy == "checker") {
-                ImageSpec substitute_spec = ot.first_input_dimensions;
-                if (substitute_spec.format == TypeUnknown
-                    || !substitute_spec.width || !substitute_spec.height
-                    || !substitute_spec.nchannels)
-                    substitute_spec = ImageSpec(1920, 1080, 4);
                 substitute.reset(new ImageBuf(substitute_spec));
                 ImageBufAlgo::checker(*substitute, 64, 64, 1,
                                       { 0.0f, 0.0f, 0.0f, 1.0f },
                                       { 1.0f, 1.0f, 1.0f, 1.0f });
             }
-            if (!substitute)
-                break;
+            if (!exists) {
+                if (substitute) {
+                    ot.warningfmt("read", "{}, Substituting {}", errmsg,
+                                  ot.missingfile_policy);
+                } else {
+                    ot.error("read", errmsg);
+                    break;
+                }
+            }
         }
         if (channel_set.size()) {
             ot.input_channel_set = channel_set;
@@ -5306,11 +5325,15 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                 ot.read(policy, channel_set);
             } else
                 ot.read_nativespec();
-            if (ot.first_input_dimensions.format == TypeUnknown) {
-                ot.first_input_dimensions.copy_dimensions(
-                    *ot.curimg->nativespec());
-                ot.first_input_dimensions.channelnames
+            if (!ot.first_input_dimensions_is_set()) {
+                ImageSpec new_first_dims;
+                new_first_dims.copy_dimensions(*ot.curimg->nativespec());
+                new_first_dims.channelnames
                     = ot.curimg->nativespec()->channelnames;
+                ot.set_first_input_dimensions(new_first_dims);
+                if (ot.parent_oiiotool)
+                    ot.parent_oiiotool->set_first_input_dimensions(
+                        new_first_dims);
             }
         }
         if ((printinfo || ot.printstats || ot.dumpdata || ot.hash)
@@ -5341,7 +5364,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         if (autocc) {
             // Try to deduce the color space it's in
             std::string colorspace(
-                ot.colorconfig().getColorSpaceFromFilepath(filename));
+                ot.colorconfig().getColorSpaceFromFilepath(filename, "", true));
             if (colorspace.size() && ot.debug)
                 print("  From {}, we deduce color space \"{}\"\n", filename,
                       colorspace);
@@ -5659,8 +5682,8 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     // automatically set -d based on the name if --autocc is used.
     bool autocc          = fileoptions.get_int("autocc", ot.autocc);
     bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
-    std::string outcolorspace = ot.colorconfig().getColorSpaceFromFilepath(
-        filename);
+    std::string outcolorspace
+        = ot.colorconfig().getColorSpaceFromFilepath(filename, "", true);
     if (autocc && outcolorspace.size()) {
         TypeDesc type;
         int bits;
@@ -7208,8 +7231,10 @@ one_sequence_iteration(Oiiotool& otmain, size_t i, int frame_number,
     }
 
     Oiiotool otit;  // Oiiotool for this iteration
-    otit.imagecache   = otmain.imagecache;
-    otit.frame_number = frame_number;
+    otit.imagecache               = otmain.imagecache;
+    otit.frame_number             = frame_number;
+    otit.parent_oiiotool          = &otmain;
+    otit.m_in_parallel_frame_loop = otmain.in_parallel_frame_loop();
     otit.getargs((int)seq_argv.size(), (char**)&seq_argv[0]);
 
     if (otit.ap.aborted()) {
@@ -7284,8 +7309,9 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
     int framepadding = 0;
     std::vector<int> sequence_args;  // Args with sequence numbers
     std::vector<bool> sequence_is_output;
-    bool is_sequence = false;
-    bool wildcard_on = true;
+    int parallel_frame_threads = OIIO::get_int_attribute("threads");
+    bool is_sequence           = false;
+    bool wildcard_on           = true;
     for (int a = 1; a < argc; ++a) {
         bool is_output     = false;
         bool is_output_all = false;
@@ -7315,6 +7341,11 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
         } else if ((strarg == "--views" || strarg == "-views")
                    && a < argc - 1) {
             Strutil::split(argv[++a], views, ",");
+        } else if ((strarg == "--threads" || strarg == "-threads")
+                   && a < argc - 1) {
+            int t = Strutil::stoi(argv[++a]);
+            t     = OIIO::clamp(t, 0, int(Sysutil::hardware_concurrency()));
+            parallel_frame_threads = t;
         } else if (strarg == "--wildcardoff" || strarg == "-wildcardoff") {
             wildcard_on = false;
         } else if (strarg == "--parallel-frames"
@@ -7420,9 +7451,12 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
     // every time.
     // Note: nfilenames really means, number of frame number iterations.
     if (ot.parallel_frames) {
-        // If --parframes was used, run the iterations in parallel.
+        // If --parframes was used, run the iterations in parallel, but
+        // each iteration should itself not try to internally parallelize.
         if (ot.debug)
-            print("Running {} frames in parallel\n", nfilenames);
+            print("Running {} frames in parallel with {} threads\n", nfilenames,
+                  parallel_frame_threads);
+        ot.begin_parallel_frame_loop(parallel_frame_threads);
         parallel_for(
             uint64_t(0), uint64_t(nfilenames),
             [&](uint64_t i) {
@@ -7430,7 +7464,8 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
                                        sequence_args, filenames,
                                        { argv, argv + argc });
             },
-            paropt().minitems(1));
+            paropt().minitems(1).maxthreads(parallel_frame_threads));
+        ot.end_parallel_frame_loop();
     } else {
         // Fully serialized over the frame range, multithreaded for each frame
         // individually.
@@ -7440,6 +7475,24 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
         }
     }
     return true;
+}
+
+
+
+void
+Oiiotool::begin_parallel_frame_loop(int nthreads)
+{
+    OIIO::attribute("threads", nthreads);
+    OIIO::attribute("exr_threads", 1);
+    m_in_parallel_frame_loop = true;
+}
+
+
+
+void
+Oiiotool::end_parallel_frame_loop()
+{
+    m_in_parallel_frame_loop = false;
 }
 
 

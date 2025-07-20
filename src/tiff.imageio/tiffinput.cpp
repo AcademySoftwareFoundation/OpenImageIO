@@ -102,7 +102,7 @@ public:
     int supports(string_view feature) const override
     {
         return (feature == "exif" || feature == "iptc" || feature == "ioproxy"
-                || feature == "multiimage");
+                || feature == "multiimage" || feature == "mipmap");
         // N.B. No support for arbitrary metadata.
     }
     bool open(const std::string& name, ImageSpec& newspec) override;
@@ -113,13 +113,13 @@ public:
     {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
         lock_guard lock(*this);
-        return m_emulate_mipmap ? 0 : m_subimage;
+        return m_subimage;
     }
     int current_miplevel(void) const override
     {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
         lock_guard lock(*this);
-        return m_emulate_mipmap ? m_subimage : 0;
+        return m_miplevel;
     }
     bool seek_subimage(int subimage, int miplevel) override;
     ImageSpec spec(int subimage, int miplevel) override;
@@ -173,7 +173,9 @@ private:
     std::string m_filename;                 ///< Stash the filename
     std::vector<unsigned char> m_scratch;   ///< Scratch space for us to use
     std::vector<unsigned char> m_scratch2;  ///< More scratch
-    int m_subimage;           ///< What subimage are we looking at?
+    int m_subimage;           ///< What subimage do we think we're on?
+    int m_miplevel;           ///< Which mip level do we think we're on?
+    int m_actual_subimage;    ///< Actual subimage we're on
     int m_next_scanline;      ///< Next scanline we'll read, relative to ymin
     bool m_no_random_access;  ///< Should we avoid random access?
     bool m_emulate_mipmap;    ///< Should we emulate mip with subimage?
@@ -202,6 +204,8 @@ private:
     {
         m_tif                     = NULL;
         m_subimage                = -1;
+        m_miplevel                = -1;
+        m_actual_subimage         = -1;
         m_emulate_mipmap          = false;
         m_keep_unassociated_alpha = false;
         m_raw_color               = false;
@@ -742,8 +746,10 @@ TIFFInput::valid_file(Filesystem::IOProxy* ioproxy) const
 bool
 TIFFInput::open(const std::string& name, ImageSpec& newspec)
 {
-    m_filename = name;
-    m_subimage = -1;
+    m_filename        = name;
+    m_subimage        = -1;
+    m_miplevel        = -1;
+    m_actual_subimage = -1;
 
     bool ok = seek_subimage(0, 0);
     newspec = spec();
@@ -775,8 +781,14 @@ TIFFInput::open(const std::string& name, ImageSpec& newspec,
 bool
 TIFFInput::seek_subimage(int subimage, int miplevel)
 {
-    if (subimage < 0)  // Illegal
+    if (subimage == m_subimage && miplevel == m_miplevel) {
+        // We're already pointing to the right subimage
+        return true;
+    }
+
+    if (subimage < 0 || miplevel < 0)  // Illegal
         return false;
+    int orig_subimage = subimage;  // the original request
     if (m_emulate_mipmap) {
         // Emulating MIPmap?  Pretend one subimage, many MIP levels.
         if (subimage != 0)
@@ -788,15 +800,12 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
             return false;
     }
 
-    if (subimage == m_subimage) {
-        // We're already pointing to the right subimage
-        return true;
-    }
-
     // If we're emulating a MIPmap, only resolution is allowed to change
     // between MIP levels, so if we already have a valid level in m_spec,
     // we don't need to re-parse metadata, it's guaranteed to be the same.
-    bool read_meta = !(m_emulate_mipmap && m_tif && m_subimage >= 0);
+    bool read_meta = true;
+    if (m_emulate_mipmap && m_tif && m_miplevel >= 0)
+        read_meta = false;
 
     if (!m_tif) {
 #if OIIO_TIFFLIB_VERSION >= 40500
@@ -850,12 +859,12 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
             return false;
         }
         m_is_byte_swapped = TIFFIsByteSwapped(m_tif);
-        m_subimage        = 0;
+        m_actual_subimage = 0;
     }
 
     m_next_scanline = 0;  // next scanline we'll read
-    if (subimage == m_subimage || TIFFSetDirectory(m_tif, subimage)) {
-        m_subimage = subimage;
+    if (subimage == m_actual_subimage || TIFFSetDirectory(m_tif, subimage)) {
+        m_actual_subimage = subimage;
         if (!readspec(read_meta))
             return false;
 
@@ -878,11 +887,17 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
         if (!check_open(m_spec,
                         { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 16 }))
             return false;
+        m_subimage = orig_subimage;
+        m_miplevel = miplevel;
         return true;
     } else {
         std::string e = oiio_tiff_last_error();
-        errorfmt("Err: {}", e.length() ? e : m_filename);
-        m_subimage = -1;
+        errorfmt("could not seek to {} {}",
+                 m_emulate_mipmap ? "miplevel" : "subimage", subimage,
+                 e.length() ? ": " : "", e.length() ? e : std::string(""));
+        m_subimage        = -1;
+        m_miplevel        = -1;
+        m_actual_subimage = -1;
         return false;
     }
 }
@@ -905,6 +920,10 @@ TIFFInput::spec(int subimage, int miplevel)
         // Index into the spec list by miplevel instead, because that's
         // what it really contains.
         s = miplevel;
+    } else {
+        // Not emulating MIP levels -> there are none
+        if (miplevel)
+            return ret;
     }
 
     lock_guard lock(*this);
@@ -937,6 +956,10 @@ TIFFInput::spec_dimensions(int subimage, int miplevel)
         // Index into the spec list by miplevel instead, because that's
         // what it really contains.
         s = miplevel;
+    } else {
+        // Not emulating MIP levels -> there are none
+        if (miplevel)
+            return ret;
     }
 
     lock_guard lock(*this);
@@ -1298,7 +1321,7 @@ TIFFInput::readspec(bool read_meta)
         }
         // TIFFReadEXIFDirectory seems to do something to the internal state
         // that requires a TIFFSetDirectory to set things straight again.
-        TIFFSetDirectory(m_tif, m_subimage);
+        TIFFSetDirectory(m_tif, m_actual_subimage);
     }
 
     // Search for IPTC metadata in IIM form -- but older versions of

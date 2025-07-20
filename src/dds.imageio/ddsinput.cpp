@@ -35,7 +35,7 @@ public:
     const char* format_name(void) const override { return "dds"; }
     int supports(string_view feature) const override
     {
-        return feature == "ioproxy";
+        return feature == "ioproxy" || feature == "mipmap";
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;

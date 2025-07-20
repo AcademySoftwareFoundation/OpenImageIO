@@ -115,9 +115,11 @@ bool
 ImageOutput::write_scanline(int y, TypeDesc format,
                             const image_span<const std::byte>& data)
 {
-    size_t sz = (format == TypeUnknown ? m_spec.pixel_bytes(true /*native*/)
-                                       : format.size() * m_spec.nchannels)
-                * size_t(m_spec.width);
+    if (y < 0 || y >= m_spec.height) {
+        errorfmt("write_scanlines: Invalid scanline index {}", y);
+        return false;
+    }
+    size_t sz = m_spec.scanline_bytes(format);
     if (sz != data.size_bytes()) {
         errorfmt(
             "write_scanline: Buffer size is incorrect ({} bytes vs {} needed)",
@@ -157,9 +159,11 @@ bool
 ImageOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
                              const image_span<const std::byte>& data)
 {
-    size_t sz = (format == TypeUnknown ? m_spec.pixel_bytes(true /*native*/)
-                                       : format.size() * m_spec.nchannels)
-                * size_t(yend - ybegin) * size_t(m_spec.width);
+    if (ybegin < 0 || yend > m_spec.height || ybegin >= yend) {
+        errorfmt("write_scanlines: Invalid scanline range {}-{}", ybegin, yend);
+        return false;
+    }
+    size_t sz = m_spec.scanline_bytes(format) * size_t(yend - ybegin);
     if (sz != data.size_bytes()) {
         errorfmt(
             "write_scanlines: Buffer size is incorrect ({} bytes vs {} needed)",
@@ -1123,24 +1127,6 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
                 m_spec.y = 0;
                 m_spec.z = 0;
             }
-        }
-        if (m_spec.x < range.xbegin || m_spec.x + m_spec.width > range.xend
-            || m_spec.y < range.ybegin || m_spec.y + m_spec.height > range.yend
-            || m_spec.z < range.zbegin
-            || m_spec.z + m_spec.depth > range.zend) {
-            if (m_spec.depth == 1)
-                errorfmt(
-                    "{} requested pixel data window [{}, {}) x [{}, {}) exceeds the allowable range of [{}, {}) x [{}, {})",
-                    format_name(), m_spec.x, m_spec.x + m_spec.width, m_spec.y,
-                    m_spec.y + m_spec.height, range.xbegin, range.xend,
-                    range.ybegin, range.yend);
-            else
-                errorfmt(
-                    "{} requested pixel data window [{}, {}) x [{}, {}) x [{}, {}) exceeds the allowable range of [{}, {}) x [{}, {}) x [{}, {})\n{} vs {}\n",
-                    format_name(), m_spec.x, m_spec.x + m_spec.width, m_spec.y,
-                    m_spec.y + m_spec.height, m_spec.z, m_spec.z + m_spec.depth,
-                    range.xbegin, range.xend, range.ybegin, range.yend,
-                    range.zbegin, range.zend);
         }
     }
 

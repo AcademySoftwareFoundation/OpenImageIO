@@ -106,7 +106,7 @@ for dict in tests:
                 # the original test image.
                 for algo in ['linear', 'MHC']:
 
-                    command += oiiotool (f"-i:type={type} testimage.exr -i:type={type} bayer_{pattern}{suffix}.exr --demosaic:algorithm={algo}:layout={pattern}:white_balance={WB_R},{WB_G1},{WB_B},{WB_G2} -o:type={type} result_{type}_{pattern}{suffix}-{algo}.{ext} ")
+                    command += oiiotool (f"-i:type={type} testimage.exr -i:type={type} bayer_{pattern}{suffix}.exr --demosaic:algorithm={algo}:layout={pattern}:white_balance_mode=manual:white_balance={WB_R},{WB_G1},{WB_B},{WB_G2} -o:type={type} result_{type}_{pattern}{suffix}-{algo}.{ext} ")
 
                     crop = 2
 

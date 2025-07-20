@@ -1032,6 +1032,12 @@ public:
     ///       (Note: this doesn't necessarily mean that the particular
     ///       file this ImageInput is reading has multiple subimages.)
     ///
+    ///  - `"mipmap"` :
+    ///       Does this format support multiple resolutions for an
+    ///       image/subimage? (Note: this doesn't necessarily mean that the
+    ///       particular file this ImageInput is reading is MIP-mapped.)
+    ///       This query was added in OpenImageIO 3.1.
+    ///
     ///  - `"noimage"` :
     ///        Does this format allow 0x0 sized images, i.e. an image file
     ///        with metadata only and no pixels?
@@ -1136,6 +1142,10 @@ public:
     /// `seek_subimage()`. It is thus not thread-safe, since the spec may
     /// change if another thread calls `seek_subimage`, or any of the
     /// `read_*()` functions that take explicit subimage/miplevel.
+    ///
+    /// This method should be considered deprecated, and we advise
+    /// always using the thread-safe `spec(subimage, miplevel)` method
+    /// instead.
     virtual const ImageSpec &spec (void) const { return m_spec; }
 
     /// Return a full copy of the ImageSpec of the designated subimage and
@@ -1144,7 +1154,9 @@ public:
     /// ImageSpec if there is lots of named metadata to allocate and copy.
     /// See also the less expensive `spec_dimensions()`. Errors (such as
     /// having requested a nonexistent subimage) are indicated by returning
-    /// an ImageSpec with `format==TypeUnknown`.
+    /// an ImageSpec with `format==TypeUnknown`, but does not call
+    /// errorfmt() to set an error message merely for being an out-of-range
+    /// subimage or miplevel.
     virtual ImageSpec spec (int subimage, int miplevel=0);
 
     /// Return a copy of the ImageSpec of the designated subimage and
@@ -1154,7 +1166,9 @@ public:
     /// a relatively inexpensive operation if you don't need that
     /// information. It is guaranteed to be thread-safe. Errors (such as
     /// having requested a nonexistent subimage) are indicated by returning
-    /// an ImageSpec with `format==TypeUnknown`.
+    /// an ImageSpec with `format==TypeUnknown`, but does not call
+    /// errorfmt() to set an error message merely for being an out-of-range
+    /// subimage or miplevel.
     virtual ImageSpec spec_dimensions (int subimage, int miplevel=0);
 
     /// Retrieve a reduced-resolution ("thumbnail") version of the given
@@ -1198,11 +1212,15 @@ public:
     /// Seek to the given subimage and MIP-map level within the open image
     /// file.  The first subimage of the file has index 0, the highest-
     /// resolution MIP level has index 0.  The new subimage's vital
-    /// statistics=may be retrieved by `this->spec()`.  The reader is
+    /// statistics may be retrieved by `this->spec()`.  The reader is
     /// expected to give the appearance of random access to subimages and
     /// MIP levels -- in other words, if it can't randomly seek to the given
     /// subimage/level, it should transparently close, reopen, and
     /// sequentially read through prior subimages and levels.
+    ///
+    /// Inability to seek to an out-of-range subimage or miplevel is indicated
+    /// by returning false, but it does not call errorfmt() to set an error
+    /// message unless it's the result of a damaged file.
     ///
     /// @returns
     ///         `true` upon success, or `false` upon failure. A failure may
@@ -2164,11 +2182,12 @@ protected:
     ///     The ImageSpec that we are validating.
     ///
     /// @param range
-    ///     An ROI that describes the allowable pixel coordinates and channel
-    ///     indices as half-open intervals.  For example, the default value
-    ///     `{0, 65535, 0, 65535, 0, 1, 0, 4}` means that pixel coordinates
-    ///     must be non-negative and the width and height be representable by
-    ///     a uint16 value, up to 4 channels are allowed, and volumes are not
+    ///     An ROI that describes the allowable resolution and channel count:
+    ///     the width, height, depth, and channel count of the ROI are the
+    ///     maximum allowed for the file type. For example, the default value
+    ///     `{0, 65535, 0, 65535, 0, 1, 0, 4}` means that pixel data width
+    ///     and height must be non-negative and representable by uint16
+    ///     values, up to 4 channels are allowed, and volumes are not
     ///     permitted (z coordinate may only be 0). File formats that can
     ///     handle larger resolutions, or volumes, or >4 channels must
     ///     override these limits!
@@ -3955,7 +3974,7 @@ inline bool attribute (string_view name, string_view val) {
 ///   List of library dependencieis (where known) and versions, separatd by
 ///   semicolons. (Added in OpenImageIO 2.5.8.)
 ///
-/// - `float resident_memory_used_MB`
+/// - `int resident_memory_used_MB`
 ///
 ///   This read-only attribute can be used for debugging purposes to report
 ///   the approximate process memory used (resident) by the application, in
