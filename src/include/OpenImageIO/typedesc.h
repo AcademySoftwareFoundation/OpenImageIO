@@ -429,6 +429,7 @@ template<> struct BaseTypeFromC<double> { static constexpr TypeDesc::BASETYPE va
 template<> struct BaseTypeFromC<const double> { static constexpr TypeDesc::BASETYPE value = TypeDesc::DOUBLE; };
 template<> struct BaseTypeFromC<char*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<const char*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<const char* const> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<std::string> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<const std::string> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<string_view> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
@@ -439,6 +440,8 @@ template<> struct BaseTypeFromC<const ustring> { static constexpr TypeDesc::BASE
 template<size_t S> struct BaseTypeFromC<char[S]> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<size_t S> struct BaseTypeFromC<const char[S]> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<typename P> struct BaseTypeFromC<P*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::PTR; };
+template<typename P> struct BaseTypeFromC<const P*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::PTR; };
+template<typename P> struct BaseTypeFromC<const P* const> { static constexpr TypeDesc::BASETYPE value = TypeDesc::PTR; };
 
 /// `BaseTypeFromC_v<T>` is shorthand for `BaseTypeFromC<T>::value()`.
 template<typename T>
@@ -461,10 +464,12 @@ template<> struct TypeDescFromC<half> { static const constexpr TypeDesc value() 
 template<> struct TypeDescFromC<double> { static const constexpr TypeDesc value() { return TypeDesc::DOUBLE; } };
 template<> struct TypeDescFromC<char*> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<> struct TypeDescFromC<const char*> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+template<> struct TypeDescFromC<const char* const> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<const char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<> struct TypeDescFromC<ustring> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<typename T> struct TypeDescFromC<T*> { static const constexpr TypeDesc value() { return TypeDesc::PTR; } };
+template<typename T> struct TypeDescFromC<const T*> { static const constexpr TypeDesc value() { return TypeDesc::PTR; } };
 #ifdef INCLUDED_IMATHVEC_H
 template<> struct TypeDescFromC<Imath::V3f> { static const constexpr TypeDesc value() { return TypeVector; } };
 template<> struct TypeDescFromC<Imath::V2f> { static const constexpr TypeDesc value() { return TypeVector2; } };
