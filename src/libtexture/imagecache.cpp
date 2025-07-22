@@ -4540,18 +4540,50 @@ ImageCache::destroy(std::shared_ptr<ImageCache>& cache, bool teardown)
 
 
 bool
-ImageCache::attribute(string_view name, TypeDesc type, const void* val)
+ImageCache::attribute(string_view name, TypeDesc type, cspan<std::byte> value)
 {
-    return m_impl->attribute(name, type, val);
+    if (value.size_bytes() != type.size()) {
+        errorfmt(
+            "ImageCache::attribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return m_impl->attribute(name, type, value.data());
 }
 
 
 
 bool
-ImageCache::getattribute(string_view name, TypeDesc type, void* val) const
+ImageCache::attribute(string_view name, TypeDesc type, const void* value)
 {
-    return m_impl->getattribute(name, type, val);
+    return m_impl->attribute(name, type, value);
 }
+
+
+
+bool
+ImageCache::getattribute(string_view name, TypeDesc type,
+                         span<std::byte> value) const
+{
+    if (value.size_bytes() != type.size()) {
+        errorfmt(
+            "ImageCache::getattribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return m_impl->getattribute(name, type, value.data());
+}
+
+
+
+bool
+ImageCache::getattribute(string_view name, TypeDesc type, void* value) const
+{
+    return m_impl->getattribute(name, type, value);
+}
+
 
 
 TypeDesc
