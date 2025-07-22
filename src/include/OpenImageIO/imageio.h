@@ -490,9 +490,34 @@ public:
     }
 
     /// Add a metadata attribute to `extra_attribs`, with the given name and
-    /// data type. The `value` pointer specifies the address of the data to
-    /// be copied.
-    void attribute (string_view name, TypeDesc type, const void *value);
+    /// data type. The `value` span specifies the data to be copied. The data
+    /// type and total size of `value` must match the `type` (if not, an
+    /// assertion will be thrown for debug builds).
+    ///
+    /// @version 3.1
+    template<typename T>
+    void attribute(string_view name, TypeDesc type, span<T> value) {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        attribute(name, type, OIIO::as_bytes(value));
+    }
+
+    /// A version of `attribute()` that takes its value from a span of untyped
+    /// bytes. The total size of `value` must match the `type` (if not, an
+    /// assertion will be thrown for debug builds of OIIO, an error will be
+    /// printed for release builds).
+    ///
+    /// @version 3.1
+    void attribute(string_view name, TypeDesc type, cspan<std::byte> value);
+
+    /// A version of `attribute()` where the `value` is only a pointer
+    /// specifying the beginning of the memory where the value should be copied
+    /// from. This is "unsafe" in the sense that there is no assurance that it
+    /// points to a sufficient amount of memory, so the span-based versions of
+    /// `attribute()` are preferred.
+    ///
+    /// This was added in version 2.1.
+    void attribute(string_view name, TypeDesc type, const void *value);
 
     /// Add an `unsigned int` attribute to `extra_attribs`.
     void attribute (string_view name, unsigned int value) {
@@ -609,10 +634,58 @@ public:
                                bool casesensitive = false) const;
 
     /// If the `ImageSpec` contains the named attribute and its type matches
-    /// `type`, copy the attribute value into the memory pointed to by `val`
-    /// (it is up to the caller to ensure there is enough space) and return
-    /// `true`. If no such attribute is found, or if it doesn't match the
-    /// type, return `false` and do not modify `val`.
+    /// `type`, copy the attribute value into the memory pointed to by the
+    /// span `value` and return `true`. If no such attribute is found, or if
+    /// it doesn't match the type, return `false` and do not modify `val`.
+    /// The data type and total size of `value` must match the `type` (if not,
+    /// an assertion will be thrown for debug builds).
+    ///
+    /// EXAMPLES:
+    ///
+    ///     ImageSpec spec;
+    ///     ...
+    ///     // Retrieving an integer attribute:
+    ///     int orientation = 0;
+    ///     spec.getattribute ("orientation", TypeInt, make_span(orientation));
+    ///
+    ///     // Retrieving a string attribute with a char*:
+    ///     const char* compression = nullptr;
+    ///     spec.getattribute ("compression", TypeString, make_span(compression));
+    ///
+    ///     // Alternately, retrieving a string with a ustring:
+    ///     ustring compression;
+    ///     spec.getattribute ("compression", TypeString, make_span(compression));
+    ///
+    /// Note that when retrieving a string, you need to pass a span of either
+    /// `const char*` or `ustring`, not a pointer to the first character of
+    /// the string.  The caller does not need to ever free the memory that
+    /// contains the characters.
+    ///
+    /// @version 3.1
+    template<typename T>
+    bool getattribute(string_view name, TypeDesc type, span<T> value,
+                      bool casesensitive = false) const
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        return getattribute(name, type, OIIO::as_writable_bytes(value),
+                            casesensitive);
+    }
+
+    /// A version of `getattribute()` that stores the value in a span of
+    /// untyped bytes. The total size of `value` must match the `type` (if
+    /// not, an assertion will be thrown for debug OIIO builds, an error will
+    /// be printed for release builds).
+    ///
+    /// @version 3.1
+    bool getattribute(string_view name, TypeDesc type, span<std::byte> value,
+                      bool casesensitive = false) const;
+
+    /// A version of `getattribute()` where the `value` is only a pointer
+    /// specifying the beginning of the memory where the value should be
+    /// copied. This is "unsafe" in the sense that there is no assurance that
+    /// it points to a sufficient amount of memory, so the span-based versions
+    /// of `getattribute()` are preferred.
     ///
     /// EXAMPLES:
     ///
@@ -3615,7 +3688,7 @@ OIIO_API std::string geterror(bool clear = true);
 
 /// `OIIO::attribute()` sets a global attribute (i.e., a property or
 /// option) of OpenImageIO. The `name` designates the name of the attribute,
-/// `type` describes the type of data, and `val` is a pointer to memory
+/// `type` describes the type of data, and `value` is a pointer to memory
 /// containing the new value for the attribute.
 ///
 /// If the name is known, valid attribute that matches the type specified,
@@ -3842,26 +3915,51 @@ OIIO_API std::string geterror(bool clear = true);
 ///   further decode anything in the file. This may be a better choice to
 ///   enable globally in an environment where security is a higher priority
 ///   than being tolerant of partially broken image files.
-OIIO_API bool attribute(string_view name, TypeDesc type, const void* val);
+///
+/// @version 3.1
+template<typename T>
+inline bool attribute(string_view name, TypeDesc type, span<T> value)
+{
+    OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                 && type.size() == value.size_bytes());
+    return attribute(name, type, OIIO::as_bytes(value));
+}
+
+/// A version of `OIIO::attribute()` that takes its value from a span of
+/// untyped bytes. The total size of `value` must match the `type` (if not, an
+/// assertion will be thrown for debug builds of OIIO, an error will be
+/// printed for release builds).
+///
+/// @version 3.1
+OIIO_API bool attribute(string_view name, TypeDesc type, cspan<std::byte> value);
+
+/// A version of `OIIO::attribute()` where the `value` is only a pointer
+/// specifying the beginning of the memory where the value should be copied
+/// from. This is "unsafe" in the sense that there is no assurance that it
+/// points to a sufficient amount of memory, so the span-based versions of
+/// `attribute()` are preferred.
+///
+/// This was added in version 2.1.
+OIIO_API bool attribute(string_view name, TypeDesc type, const void* value);
 
 /// Shortcut attribute() for setting a single integer.
-inline bool attribute (string_view name, int val) {
-    return attribute (name, TypeInt, &val);
+inline bool attribute(string_view name, int value) {
+    return attribute(name, TypeInt, &value);
 }
 /// Shortcut attribute() for setting a single float.
-inline bool attribute (string_view name, float val) {
-    return attribute (name, TypeFloat, &val);
+inline bool attribute(string_view name, float value) {
+    return attribute(name, TypeFloat, &value);
 }
 /// Shortcut attribute() for setting a single string.
-inline bool attribute (string_view name, string_view val) {
-    std::string valstr = val;
+inline bool attribute(string_view name, string_view value) {
+    std::string valstr = value;
     const char *s = valstr.c_str();
-    return attribute (name, TypeString, &s);
+    return attribute(name, TypeString, &s);
 }
 
-/// Get the named global attribute of OpenImageIO, store it in `*val`.
+/// Get the named global attribute of OpenImageIO, store it in `value`.
 /// Return `true` if found and it was compatible with the type specified,
-/// otherwise return `false` and do not modify the contents of `*val`.  It
+/// otherwise return `false` and do not modify the contents of `value`.  It
 /// is up to the caller to ensure that `val` points to the right kind and
 /// size of storage for the given type.
 ///
@@ -3995,28 +4093,52 @@ inline bool attribute (string_view name, string_view val) {
 ///        IBA::resize                  20   0.24s   (avg  12.18ms)
 ///        IBA::zero                     8   0.66ms  (avg   0.08ms)
 ///
+///
+/// @version 3.1
+template<typename T>
+inline bool getattribute(string_view name, TypeDesc type, span<T> value)
+{
+    OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                 && type.size() == value.size_bytes());
+    return OIIO::getattribute(name, type, OIIO::as_writable_bytes(value));
+}
+
+/// A version of `getattribute()` that stores the value in a span of
+/// untyped bytes. The total size of `value` must match the `type` (if
+/// not, an assertion will be thrown for debug OIIO builds, an error will
+/// be printed for release builds).
+///
+/// @version 3.1
+OIIO_API bool getattribute(string_view name, TypeDesc type,
+                           span<std::byte> value);
+
+/// A version of `OIIO::getattribute()` where the `value` is only a pointer
+/// specifying the beginning of the memory where the value should be copied.
+/// This is "unsafe" in the sense that there is no assurance that it points to
+/// a sufficient amount of memory, so the span-based versions of `attribute()`
+/// are preferred.
 OIIO_API bool getattribute(string_view name, TypeDesc type, void* val);
 
-/// Shortcut getattribute() for retrieving a single integer.
-/// The value is placed in `val`, and the function returns `true` if the
-/// attribute was found and was legally convertible to an int.
-inline bool getattribute (string_view name, int &val) {
-    return getattribute (name, TypeInt, &val);
+/// Shortcut getattribute() for retrieving a single integer. The value is
+/// placed in `value`, and the function returns `true` if the attribute was
+/// found and was legally convertible to an int.
+inline bool getattribute (string_view name, int &value) {
+    return getattribute (name, TypeInt, &value);
 }
-/// Shortcut getattribute() for retrieving a single float.
-/// The value is placed in `val`, and the function returns `true` if the
-/// attribute was found and was legally convertible to a float.
-inline bool getattribute (string_view name, float &val) {
-    return getattribute (name, TypeFloat, &val);
+/// Shortcut getattribute() for retrieving a single float. The value is placed
+/// in `value`, and the function returns `true` if the attribute was found and
+/// was legally convertible to a float.
+inline bool getattribute (string_view name, float &value) {
+    return getattribute (name, TypeFloat, &value);
 }
-/// Shortcut getattribute() for retrieving a single string as a
-/// `std::string`. The value is placed in `val`, and the function returns
-/// `true` if the attribute was found.
-inline bool getattribute (string_view name, std::string &val) {
+/// Shortcut getattribute() for retrieving a single string as a `std::string`.
+/// The value is placed in `value`, and the function returns `true` if the
+/// attribute was found.
+inline bool getattribute (string_view name, std::string &value) {
     ustring s;
     bool ok = getattribute (name, TypeString, &s);
     if (ok)
-        val = s.string();
+        value = s.string();
     return ok;
 }
 /// Shortcut getattribute() for retrieving a single string as a `char*`.
