@@ -581,7 +581,7 @@ bool
 FFmpegInput::close(void)
 {
     if (m_codec_context)
-        avcodec_close(m_codec_context);
+        avcodec_free_context(&m_codec_context);
     if (m_format_context) {
         avformat_close_input(&m_format_context);
         av_free(m_format_context);  // will free m_codec and m_codec_context
