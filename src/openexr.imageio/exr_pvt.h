@@ -77,13 +77,38 @@ public:
             throw Iex::IoExc("Unexpected end of file.");
         return n;
     }
-    uint64_t tellg() override { return m_io->tell(); }
+
+    uint64_t tellg() override
+    {
+        OIIO_DASSERT(m_io);
+        return m_io->tell();
+    }
+
     void seekg(uint64_t pos) override
     {
+        OIIO_DASSERT(m_io);
         if (!m_io->seek(pos))
             throw Iex::IoExc("File input failed.");
     }
+
     void clear() override {}
+
+#if OPENEXR_CODED_VERSION >= 30300
+    int64_t size() override
+    {
+        OIIO_DASSERT(m_io);
+        return static_cast<int64_t>(m_io->size());
+    }
+
+    bool isStatelessRead() const override { return true; }
+
+    int64_t read(void* buf, uint64_t sz, uint64_t offset) override
+    {
+        OIIO_DASSERT(m_io);
+        return static_cast<int64_t>(
+            m_io->pread(buf, sz, static_cast<int64_t>(offset)));
+    }
+#endif
 
 private:
     Filesystem::IOProxy* m_io = nullptr;
