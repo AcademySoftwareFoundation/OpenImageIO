@@ -326,6 +326,21 @@ log_time(string_view key, const Timer& timer, int count)
 
 
 bool
+attribute(string_view name, TypeDesc type, cspan<std::byte> value)
+{
+    if (value.size_bytes() != type.size()) {
+        OIIO::errorfmt(
+            "OIIO::attribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return attribute(name, type, value.data());
+}
+
+
+
+bool
 attribute(string_view name, TypeDesc type, const void* val)
 {
     if (name == "options" && type == TypeDesc::STRING) {
@@ -441,6 +456,21 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
 
     return false;
+}
+
+
+
+bool
+getattribute(string_view name, TypeDesc type, span<std::byte> value)
+{
+    if (value.size_bytes() != type.size()) {
+        OIIO::errorfmt(
+            "OIIO::getattribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return getattribute(name, type, value.data());
 }
 
 

@@ -3588,10 +3588,10 @@ OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     float f3[3];
     float f4[4];
     if (Strutil::parse_values(str, "", f4, ",") && str.empty()) {
-        ParamValue pv("white_balance", TypeFloat, 4, f4);
+        ParamValue pv("white_balance", TypeFloat, 4, make_cspan(f4));
         list.push_back(pv);
     } else if (Strutil::parse_values(str, "", f3, ",") && str.empty()) {
-        ParamValue pv("white_balance", TypeFloat, 3, f3);
+        ParamValue pv("white_balance", TypeFloat, 3, make_cspan(f3));
         list.push_back(pv);
     }
 
