@@ -630,6 +630,13 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
         format = filename;
     }
 
+    // Mostly for backward compatibility, if we were not given an ioproxy,
+    // check if one was passed via the configuration hints.
+    if (!ioproxy && config) {
+        if (auto p = config->find_attribute("oiio:ioproxy", TypeDesc::PTR))
+            ioproxy = p->get<Filesystem::IOProxy*>();
+    }
+
     ImageInput::Creator create_function = nullptr;
     {  // scope the lock:
         std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
