@@ -7,7 +7,6 @@ Reading ../openexr-images/Chromaticities/Rec709_YC.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
@@ -23,7 +22,6 @@ Reading ../openexr-images/Chromaticities/XYZ_YC.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
@@ -39,7 +37,6 @@ Reading ../openexr-images/LuminanceChroma/CrissyField.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
@@ -54,7 +51,6 @@ Reading ../openexr-images/LuminanceChroma/Flowers.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
@@ -69,7 +65,6 @@ Reading ../openexr-images/LuminanceChroma/MtTamNorth.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
@@ -84,7 +79,6 @@ Reading ../openexr-images/LuminanceChroma/StarField.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
     openexr:luminancechroma: 1
