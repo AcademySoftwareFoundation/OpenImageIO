@@ -630,6 +630,13 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
         format = filename;
     }
 
+    // Mostly for backward compatibility, if we were not given an ioproxy,
+    // check if one was passed via the configuration hints.
+    if (!ioproxy && config) {
+        if (auto p = config->find_attribute("oiio:ioproxy", TypeDesc::PTR))
+            ioproxy = p->get<Filesystem::IOProxy*>();
+    }
+
     ImageInput::Creator create_function = nullptr;
     {  // scope the lock:
         std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
@@ -662,11 +669,15 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
         // deal with it robustly.
         formats_tried.push_back(create_function);
         in = std::unique_ptr<ImageInput>(create_function());
-        if (!do_open && in && in->valid_file(filename)) {
-            // Special case: we don't need to return the file
-            // already opened, and this ImageInput says that the
-            // file is the right type.
-            return in;
+        if (!do_open && in) {
+            // We created the ImageInput but we don't need a full open yet
+            if ((ioproxy && in->supports("ioproxy") && in->valid_file(ioproxy))
+                || (!ioproxy && !filename.empty() && in->valid_file(filename))) {
+                // Special case: we don't need to return the file
+                // already opened, and this ImageInput says that the
+                // file is the right type with a fast valid_file test.
+                return in;
+            }
         }
         ImageSpec tmpspec;
         bool ok = false;
@@ -730,16 +741,22 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
             }
             if (!in)
                 continue;
-            if (!do_open && !ioproxy && !in->valid_file(filename)) {
-                // Since we didn't need to open it, we just checked whether
-                // it was a valid file, and it's not.  Try the next one.
-                if (pvt::oiio_print_debug > 1)
-                    OIIO::debugfmt(
-                        "ImageInput::create: \"{}\" did not open using format \"{}\" {} [valid_file was false].\n",
-                        filename, plugin->first, in->format_name());
-                in.reset();
-                continue;
+            if (!do_open) {
+                if ((ioproxy && in->supports("ioproxy")
+                     && !in->valid_file(ioproxy))
+                    || (!ioproxy && !filename.empty()
+                        && !in->valid_file(filename))) {
+                    // Since we didn't need to open it, we just checked whether
+                    // it was a valid file, and it's not.  Try the next one.
+                    if (pvt::oiio_print_debug > 1)
+                        OIIO::debugfmt(
+                            "ImageInput::create: \"{}\" did not open using format \"{}\" {} [valid_file was false].\n",
+                            filename, plugin->first, in->format_name());
+                    in.reset();
+                    continue;
+                }
             }
+
             // We either need to open it, or we already know it appears
             // to be a file of the right type.
             in->set_ioproxy(ioproxy);
