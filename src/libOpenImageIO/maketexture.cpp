@@ -1244,27 +1244,6 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     stat_readtime += alltime.lap();
     STATUS(Strutil::fmt::format("read \"{}\"", src->name()), stat_readtime);
 
-    // Some things require knowing a bunch about the pixel statistics.
-    bool constant_color_detect = configspec.get_int_attribute(
-        "maketx:constant_color_detect");
-    bool opaque_detect = configspec.get_int_attribute("maketx:opaque_detect");
-    bool monochrome_detect = configspec.get_int_attribute(
-        "maketx:monochrome_detect");
-    bool compute_average_color
-        = configspec.get_int_attribute("maketx:compute_average", 1);
-    bool bumprange_auto = is_bumpslopes
-                          && Strutil::iequals(configspec.get_string_attribute(
-                                                  "maketx:bumprange", "auto"),
-                                              "auto");
-    ImageBufAlgo::PixelStats pixel_stats;
-    bool compute_stats = (constant_color_detect || opaque_detect
-                          || compute_average_color || monochrome_detect
-                          || bumprange_auto);
-    if (compute_stats) {
-        pixel_stats = ImageBufAlgo::computePixelStats(*src);
-    }
-    double stat_pixelstatstime = alltime.lap();
-    STATUS("pixelstats", stat_pixelstatstime);
 
     if (mode == ImageBufAlgo::MakeTxEnvLatlFromLightProbe) {
         ImageSpec newspec = src->spec();
@@ -1286,6 +1265,12 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     }
 
     if (is_bumpslopes) {
+        ImageBufAlgo::PixelStats src_pixel_stats;
+        if (Strutil::iequals(configspec.get_string_attribute("maketx:bumprange",
+                                                             "auto"),
+                             "auto"))
+            src_pixel_stats = ImageBufAlgo::computePixelStats(*src);
+
         ImageSpec newspec  = src->spec();
         newspec.tile_width = newspec.tile_height = 0;
         newspec.set_format(TypeDesc::FLOAT);
@@ -1301,7 +1286,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         bool ok;
         OIIO_DISPATCH_COMMON_TYPES(ok, "bump_to_bumpslopes", bump_to_bumpslopes,
                                    src->spec().format, *bumpslopes, *src,
-                                   configspec, pixel_stats, outstream);
+                                   configspec, src_pixel_stats, outstream);
         // bump_to_bumpslopes(*bumpslopes, *src);
         mode = ImageBufAlgo::MakeTxTexture;
         src  = bumpslopes;
@@ -1392,6 +1377,22 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     double misc_time_2 = alltime.lap();
     STATUS("misc2", misc_time_2);
 
+    // Some things require knowing a bunch about the pixel statistics.
+    bool constant_color_detect = configspec.get_int_attribute(
+        "maketx:constant_color_detect");
+    bool opaque_detect = configspec.get_int_attribute("maketx:opaque_detect");
+    bool monochrome_detect = configspec.get_int_attribute(
+        "maketx:monochrome_detect");
+    bool compute_average_color
+        = configspec.get_int_attribute("maketx:compute_average", 1);
+    ImageBufAlgo::PixelStats pixel_stats;
+    bool compute_stats = (constant_color_detect || opaque_detect
+                          || compute_average_color || monochrome_detect);
+    if (compute_stats) {
+        pixel_stats = ImageBufAlgo::computePixelStats(*src);
+    }
+    double stat_pixelstatstime = alltime.lap();
+    STATUS("pixelstats", stat_pixelstatstime);
 
     // If requested - and we're a constant color - make a tiny texture instead
     // Only safe if the full/display window is the same as the data window.
