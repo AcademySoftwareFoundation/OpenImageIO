@@ -332,15 +332,15 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     ap.arg("--bumpformat %s:NAME", &bumpformat)
       .help("Specify the interpretation of a 3-channel input image for --bumpslopes: \"height\", \"normal\" or \"auto\" (default).");
 //                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
-    ap.arg("--bumpscale", &bumpscale)
+    ap.arg("--bumpscale %f:N", &bumpscale)
       .help("Set the scale factor for the bump-slope map. The default is 1.0");
     ap.arg("--bumpinverts", &bumpinverts)
       .help("Invert the bump-slope map in the s (u) direction.");
     ap.arg("--bumpinvertt", &bumpinvertt)
       .help("Invert the bump-slope map in the t (v) direction.");
-    ap.arg("--slopefilter", &slopefilter)
+    ap.arg("--slopefilter %s:FILTER", &slopefilter)
       .help("Specify the filter used to calculate the slope of a height map:  \"sobel\" (default), \"centraldiff\" (matches txmake behavior).");
-    ap.arg("--bumprange", &bumprange)
+    ap.arg("--bumprange %s:RANGE", &bumprange)
       .help("Specify the expected range of values for the input normal map: \"centered\" from [-1,1], \"positive\" from [0,1] (traditional blue-ish normal map), \"auto\" will select this based off of the presence of negative values.");
     ap.arg("--handed %s:STRING", &handed)
       .help("Specify the handedness of a vector or normal map: \"left\", \"right\", or \"\" (default).");
