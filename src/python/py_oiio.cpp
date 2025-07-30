@@ -138,7 +138,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
                 xstride = pybuf.strides[0];
             else if (pybuf.shape[0] == height
                      && pybuf.shape[1] == int64_t(width) * int64_t(nchans)) {
-                ystride = pybuf.strides[0];
+                ystride = pybuf.strides[1];
                 xstride = pybuf.strides[0] * nchans;
             } else {
                 format = TypeUnknown;  // error
