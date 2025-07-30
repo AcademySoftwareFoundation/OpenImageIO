@@ -668,15 +668,11 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
 
-    // Try to figure out the color space
-    if (auto c = spec.find_attribute("colorInteropID", TypeString)) {
+    // Try to figure out the color space for some unambiguous cases
+    if (spec.get_int_attribute("acesImageContainerFlag") == 1) {
+        spec.set_colorspace("lin_ap0_scene");
+    } else if (auto c = spec.find_attribute("colorInteropID", TypeString)) {
         spec.set_colorspace(c->get_ustring());
-    } else {
-        string_view cs
-            = ColorConfig::default_colorconfig().getColorSpaceFromFilepath(
-                in->m_filename, "unknown");
-        if (cs.size() && cs != "unknown")
-            spec.set_colorspace(cs);
     }
 
     // Squash some problematic texture metadata if we suspect it's wrong

@@ -62,6 +62,7 @@ src/test.exr         :   64 x   64, 3 channel, half openexr
     Software: "OpenImageIO 1.8.5dev : oiiotool cropped-stripped-Isabella.0.exr -cut 64x64+0+0 -o test.exr"
     timecodeRate: 24
     Exif:ImageHistory: "oiiotool cropped-stripped-Isabella.0.exr -cut 64x64+0+0 -o test.exr"
+    oiio:ColorSpace: "lin_ap0_scene"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
     smpte:TimeCode: 01:18:19:06
