@@ -1900,6 +1900,9 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     }
     if (configspec.get_int_attribute("maketx:highlightcomp", 0))
         addlHashData << "highlightcomp=1 ";
+    
+    if (configspec.get_int_attribute("maketx:keepaspect", 0))
+        addlHashData << "keepaspect=1 ";
 
     const int sha1_blocksize = 256;
     std::string hash_digest

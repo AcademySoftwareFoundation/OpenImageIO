@@ -99,7 +99,7 @@ tahoe-resize.tx      :  512 x  512, 3 channel, uint8 tiff
     YResolution: 96
     oiio:AverageColor: "0.101931,0.216697,0.425473"
     oiio:BitsPerSample: 8
-    oiio:SHA-1: "3D73C0F0DC0A83547EF081A2ABCFAD69BE5DCCEA"
+    oiio:SHA-1: "799C1441E4B45378165DE450828109AF330A3F87"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
