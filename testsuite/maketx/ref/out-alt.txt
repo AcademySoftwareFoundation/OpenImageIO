@@ -77,14 +77,14 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     YResolution: 72
     oiio:AverageColor: "0.608983,0.608434,0.608728,1"
     oiio:BitsPerSample: 8
-    oiio:SHA-1: "DBEF1FBDC368B03CAFEB8BEC0ACAB6C6E552817F"
+    oiio:SHA-1: "2E23E9B4C6E707427A73B5433B23104D4183724E"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
 Reading tahoe-resize.tx
 tahoe-resize.tx      :  512 x  512, 3 channel, uint8 tiff
     MIP-map levels: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
-    SHA-1: 8CC027A700B9CC2CBD1558450A1B185B0F4F8714
+    SHA-1: B6A04E868C51C6ABB661C0F6BAA8AD974ECDFC5C
     channel list: R, G, B
     tile size: 64 x 64
     compression: "zip"
@@ -99,7 +99,7 @@ tahoe-resize.tx      :  512 x  512, 3 channel, uint8 tiff
     YResolution: 96
     oiio:AverageColor: "0.101931,0.216697,0.425473"
     oiio:BitsPerSample: 8
-    oiio:SHA-1: "5BC38DBDB4D5F62772D031B04084554B081EFD90"
+    oiio:SHA-1: "3D73C0F0DC0A83547EF081A2ABCFAD69BE5DCCEA"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
