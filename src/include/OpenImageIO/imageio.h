@@ -658,8 +658,9 @@ public:
     ///
     /// Note that when retrieving a string, you need to pass a span of either
     /// `const char*` or `ustring`, not a pointer to the first character of
-    /// the string.  The caller does not need to ever free the memory that
-    /// contains the characters.
+    /// the string.  Because the returned values are ustrings, the caller does
+    /// not need to ever free the memory that contains the characters, which
+    /// are owned by the internal ustring table.
     ///
     /// @version 3.1
     template<typename T>
