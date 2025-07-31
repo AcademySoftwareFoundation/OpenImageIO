@@ -1529,6 +1529,9 @@ Writing images
       `:resize=` *int*
         If nonzero, resize to a power of 2 before starting to create the
         MIPpmap levels. (default: 0)
+      `:keepaspect=` *int*
+        If nonzero, add metadata to maintain the image aspect ratio even when
+        `resize=1`. (default: 0)
       `:nomipmap=` *int*
         If nonzero, do not create MIP-map levels at all. (default: 0)
       `:updatemode=` *int*
@@ -1572,6 +1575,20 @@ Writing images
       `:uvslopes_scale=` *float*
         For `-obump` only, specifies the amount to scale the bump-map slopes
         by. (default: 0.0, meaning not to use this feature)
+      `:slopefilter=` *string*
+        For `-obump` only, specifies the filter to use for slope computation
+        when `bumpformat=height`. (default: sobel)
+      `:bumpinverts=` *int*
+        For `-obump` only, inverts slopes on the s/u/x direction. (default: 0)
+      `:bumpinvertt=` *int*
+        For `-obump` only, inverts slopes on the t/v/y direction. (default: 0)
+      `:bumpscale=` *float*
+        For `-obump` only, scales the strength of the resulting map. (default: 
+        1.0)
+      `:bumprange=` *string*
+        For `obump` only, specifies the normal data convention when 
+        `bumpformat=normal` as one of `centered`, `positive`, `auto`. 
+        (default: auto)
       `:cdf=` *int*
         If nonzero, will add to the texture metadata the forward and inverse
         Gaussian CDF, which can be used by shaders to implement
