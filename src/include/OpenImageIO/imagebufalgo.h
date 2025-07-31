@@ -2252,6 +2252,7 @@ enum MakeTextureMode {
 ///    - `maketx:verbose` (int) :   How much detail should go to outstream (0).
 ///    - `maketx:runstats` (int) :  If nonzero, print run stats to outstream (0).
 ///    - `maketx:resize` (int) :    If nonzero, resize to power of 2. (0)
+///    - `maketx:keepaspect` (int): If nonzero, save aspect ratio to metadata. (0)
 ///    - `maketx:nomipmap` (int) :  If nonzero, only output the top MIP level (0).
 ///    - `maketx:updatemode` (int) : If nonzero, write new output only if the
 ///                                  output file doesn't already exist, or is
@@ -2372,6 +2373,36 @@ enum MakeTextureMode {
 ///                           factor. The default is 0, disabling the
 ///                           feature. If you use this feature, a suggested
 ///                           value is 256.
+///    - `maketx:slopefilter` (string) :
+///                           When used in MakeTxBumpWithSlopes mode, this
+///                           sets the filter for computing the slopes when 
+///                           `--bumpformat` is set to "height". The default
+///                           value is "sobel". The option "centraldiff"
+///                           matches the behavior of `txmake` and is less
+///                           prone to ring-shaped artifacting. (sobel)
+///    - `maketx:bumpinverts` (int) :
+///                           When used in MakeTxBumpWithSlopes mode, a
+///                           non-zero value inverts the computed slopes on the
+///                           s/u/x direction. (0)
+///    - `maketx:bumpinvertt` (int) :
+///                           When used in MakeTxBumpWithSlopes mode, a
+///                           non-zero value inverts the computed slopes on the
+///                           t/v/y direction. (0)
+///    - `maketx:bumpscale` (float) :
+///                           When used in MakeTxBumpWithSlopes mode, this
+///                           scales the strength of the resulting bumpslopes 
+///                           map. (1.0)
+///    - `maketx:bumprange` (string) :
+///                           When used in MakeTxBumpWithSlopes mode, this
+///                           sets the convention used for normal map data when
+///                           `--bumpformat` is set to "normal". When set to 
+///                           "centered", the normals data is assumed to exist
+///                           on the range [-1,1]. When set to "positive", the 
+///                           normals data is assumed to exist on the range 
+///                           [0,1]. When set to "auto", the default value, the
+///                           range is inferred based on whether or not
+///                           negative values are present in the input image. 
+///                           (auto)
 ///    - `maketx:cdf` (int) :
 ///                           If nonzero, will write a Gaussian CDF and
 ///                           Inverse Gaussian CDF as per-channel metadata

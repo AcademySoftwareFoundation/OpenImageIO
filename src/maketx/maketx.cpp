@@ -165,7 +165,8 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     std::string wrap = "black";
     std::string swrap;
     std::string twrap;
-    bool doresize = false;
+    bool doresize   = false;
+    bool keepaspect = false;
     Imath::M44f Mcam(0.0f), Mscr(0.0f), MNDC(0.0f);  // Initialize to 0
     bool separate              = false;
     bool nomipmap              = false;
@@ -181,6 +182,9 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     bool unpremult             = false;
     bool sansattrib            = false;
     float sharpen              = 0.0f;
+    float bumpscale            = 1.0f;
+    bool bumpinverts           = false;
+    bool bumpinvertt           = false;
     float uvslopes_scale       = 0.0f;
     bool cdf                   = false;
     float cdfsigma             = 1.0f / 6;
@@ -196,7 +200,9 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     std::string outcolorspace;
     std::string colorconfigname;
     std::string channelnames;
-    std::string bumpformat = "auto";
+    std::string bumpformat  = "auto";
+    std::string slopefilter = "sobel";
+    std::string bumprange   = "auto";
     std::string handed;
     std::vector<std::string> string_attrib_names, string_attrib_values;
     std::vector<std::string> any_attrib_names, any_attrib_values;
@@ -244,6 +250,8 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
       .help("Specific t wrap mode separately");
     ap.arg("--resize", &doresize)
       .help("Resize textures to power of 2 (default: no)");
+    ap.arg("--keepaspect", &keepaspect)
+      .help("Keep the texture aspect ratio when resizing to power of 2");
     ap.arg("--filter %s:FILTERNAME", &filtername)
       .help(filter_help_string());
     ap.arg("--hicomp", &do_highlight_compensation)
@@ -324,6 +332,16 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     ap.arg("--bumpformat %s:NAME", &bumpformat)
       .help("Specify the interpretation of a 3-channel input image for --bumpslopes: \"height\", \"normal\" or \"auto\" (default).");
 //                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
+    ap.arg("--bumpscale %f:N", &bumpscale)
+      .help("Set the scale factor for the bump-slope map. The default is 1.0");
+    ap.arg("--bumpinverts", &bumpinverts)
+      .help("Invert the bump-slope map in the s (u) direction.");
+    ap.arg("--bumpinvertt", &bumpinvertt)
+      .help("Invert the bump-slope map in the t (v) direction.");
+    ap.arg("--slopefilter %s:FILTER", &slopefilter)
+      .help("Specify the filter used to calculate the slope of a height map:  \"sobel\" (default), \"centraldiff\" (matches txmake behavior).");
+    ap.arg("--bumprange %s:RANGE", &bumprange)
+      .help("Specify the expected range of values for the input normal map: \"centered\" from [-1,1], \"positive\" from [0,1] (traditional blue-ish normal map), \"auto\" will select this based off of the presence of negative values.");
     ap.arg("--handed %s:STRING", &handed)
       .help("Specify the handedness of a vector or normal map: \"left\", \"right\", or \"\" (default).");
 
@@ -423,6 +441,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     configspec.attribute("maketx:verbose", verbose);
     configspec.attribute("maketx:runstats", runstats);
     configspec.attribute("maketx:resize", doresize);
+    configspec.attribute("maketx:keepaspect", keepaspect);
     configspec.attribute("maketx:nomipmap", nomipmap);
     configspec.attribute("maketx:updatemode", updatemode);
     configspec.attribute("maketx:constant_color_detect", constant_color_detect);
@@ -450,8 +469,14 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     configspec.attribute("maketx:prman_options", prman);
     if (mipimages.size())
         configspec.attribute("maketx:mipimages", Strutil::join(mipimages, ";"));
-    if (bumpslopesmode)
+    if (bumpslopesmode) {
+        configspec.attribute("maketx:bumpscale", bumpscale);
+        configspec.attribute("maketx:bumpinverts", bumpinverts);
+        configspec.attribute("maketx:bumpinvertt", bumpinvertt);
+        configspec.attribute("maketx:slopefilter", slopefilter);
+        configspec.attribute("maketx:bumprange", bumprange);
         configspec.attribute("maketx:bumpformat", bumpformat);
+    }
     if (handed.size())
         configspec.attribute("handed", handed);
     configspec.attribute("maketx:cdf", cdf);

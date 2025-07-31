@@ -5421,6 +5421,8 @@ prep_texture_config(Oiiotool& ot, ImageSpec& configspec,
     configspec.attribute("maketx:verbose", ot.verbose);
     configspec.attribute("maketx:runstats", ot.runstats);
     configspec.attribute("maketx:resize", fileoptions.get_int("resize"));
+    configspec.attribute("maketx:keepaspect",
+                         fileoptions.get_int("keepaspect"));
     configspec.attribute("maketx:nomipmap", fileoptions.get_int("nomipmap"));
     configspec.attribute("maketx:updatemode",
                          fileoptions.get_int("updatemode"));
@@ -5461,6 +5463,16 @@ prep_texture_config(Oiiotool& ot, ImageSpec& configspec,
                              "prman_options", fileoptions.get_string("prman")));
     configspec.attribute("maketx:bumpformat",
                          fileoptions.get_string("bumpformat", "auto"));
+    configspec.attribute("maketx:bumpscale",
+                         fileoptions.get_float("bumpscale", 1.0f));
+    configspec.attribute("maketx:bumpinverts",
+                         fileoptions.get_int("bumpinverts"));
+    configspec.attribute("maketx:bumpinvertt",
+                         fileoptions.get_int("bumpinvertt"));
+    configspec.attribute("maketx:slopefilter",
+                         fileoptions.get_string("slopefilter", "sobel"));
+    configspec.attribute("maketx:bumprange",
+                         fileoptions.get_string("bumprange", "auto"));
     configspec.attribute("maketx:uvslopes_scale",
                          fileoptions.get_float("uvslopes_scale", 0.0f));
     if (fileoptions.contains("handed"))
@@ -6656,7 +6668,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Output the current image as a latlong env map")
       .OTACTION(output_file);
     ap.arg("-obump %s:FILENAME")
-      .help("Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto, uvslopes_scale=val>=0)")
+      .help("Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto, uvslopes_scale=val>=0, bumpscale=%f, bumpinverts=false, bumpinvertt=false, slopefilter=sobel|centraldiff, bumprange=centered|positive|auto)")
       .OTACTION(output_file);
 
     ap.separator("Options that affect subsequent image output:");
