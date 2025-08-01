@@ -626,6 +626,11 @@ macro (build_dependency_with_cmake pkgname)
         list(APPEND _pkg_CMAKE_ARGS "-DCMAKE_IGNORE_PATH=${CMAKE_IGNORE_PATH_ESCAPED}")
     endif()
 
+    # Pass along any CMAKE_MSVC_RUNTIME_LIBRARY
+    if (WIN32 AND CMAKE_MSVC_RUNTIME_LIBRARY)
+        list (APPEND _pkg_CMAKE_ARGS -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY})
+    endif ()
+
     execute_process (COMMAND
         ${CMAKE_COMMAND}
             # Put things in our special local build areas
