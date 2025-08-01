@@ -1,3 +1,9 @@
+Release 3.0.10.0 (Sep 1?, 2025) -- compared to 3.0.9.0
+-------------------------------------------------------
+
+
+
+
 Release 3.0.9.0 (Aug 1, 2025) -- compared to 3.0.8.1
 -----------------------------------------------------
   - *maketx*: Add flags to increase feature parity with txmake [#4841](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4841) (by Scott Milner)
