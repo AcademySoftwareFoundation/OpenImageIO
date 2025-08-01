@@ -143,6 +143,14 @@ that the number of thread should be the OIIO global default set by
 itself defaults to be the detected level of hardware concurrency (number
 of cores available).
 
+Specifying a negative number for `nthreads` will reserve `-nthreads`
+threads. In this case the actual number of threads used is the number of
+cores + `nthreads` + 1.  One thread is always reserved for the caller.
+For example, on a 32 core system specifying `nthreads` as -2 means the
+OpenImageIO will use 31 cores: 32 + `nthreads` + 1. If `-nthreads` is
+specified larger than the number of available cores only a single core will
+be used.
+
 Generally you can ignore this parameter (or pass 0), meaning to use all
 the cores available in order to perform the computation as quickly as
 possible.  The main reason to explicitly pass a different number
@@ -3279,4 +3287,3 @@ General functions that also work for deep images
     regardless of resolution), for each pixel merely copying the closest
     deep pixel of the source image (no true interpolation is done for deep
     images).
-
