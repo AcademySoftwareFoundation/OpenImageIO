@@ -19,6 +19,7 @@
 #include <OpenEXR/openexr.h>
 
 #include "imageio_pvt.h"
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
@@ -208,6 +209,7 @@ private:
     std::unique_ptr<Filesystem::IOProxy> m_local_io;
     int m_nsubimages;                   ///< How many subimages are there?
     std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
+    std::string m_filename;             // filename, if known
 
     void init()
     {
@@ -216,6 +218,7 @@ private:
         m_userdata.m_io  = nullptr;
         m_local_io.reset();
         m_missingcolor.clear();
+        m_filename.clear();
     }
 
     bool valid_file(const std::string& filename, Filesystem::IOProxy* io) const;
@@ -357,6 +360,8 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
     //KDTDISABLE }
 
     // Check any other configuration hints
+
+    m_filename = name;
 
     // "missingcolor" gives fill color for missing scanlines or tiles.
     if (const ParamValue* m = config.find_attribute("oiio:missingcolor")) {
@@ -526,14 +531,6 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 
     spec.deep = (storage == EXR_STORAGE_DEEP_TILED
                  || storage == EXR_STORAGE_DEEP_SCANLINE);
-
-    // Unless otherwise specified, exr files are assumed to be linear Rec709
-    // if the channels appear to be R, G, B.  I know this suspect, but I'm
-    // betting that this heuristic will guess the right thing that users want
-    // more often than if we pretending we have no idea what the color space
-    // is.
-    if (pvt::channels_are_rgb(spec))
-        spec.set_colorspace("lin_rec709");
 
     if (levelmode != EXR_TILE_ONE_LEVEL)
         spec.attribute("openexr:roundingmode", (int)roundingmode);
@@ -775,6 +772,13 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     }
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
+
+    // Try to figure out the color space for some unambiguous cases
+    if (spec.get_int_attribute("acesImageContainerFlag") == 1) {
+        spec.set_colorspace("lin_ap0_scene");
+    } else if (auto c = spec.find_attribute("colorInteropID", TypeString)) {
+        spec.set_colorspace(c->get_ustring());
+    }
 
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);

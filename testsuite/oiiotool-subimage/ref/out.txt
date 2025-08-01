@@ -10,7 +10,6 @@ gpgr.exr             :   64 x   64, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "layerA"
     oiio:subimages: 4
     openexr:chunkCount: 4
@@ -24,7 +23,6 @@ gpgr.exr             :   64 x   64, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "layerB"
     oiio:subimages: 4
     openexr:chunkCount: 4
@@ -38,7 +36,6 @@ gpgr.exr             :   64 x   64, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "layerC"
     oiio:subimages: 4
     openexr:chunkCount: 4
@@ -52,7 +49,6 @@ gpgr.exr             :   64 x   64, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "layerD"
     oiio:subimages: 4
     openexr:chunkCount: 4

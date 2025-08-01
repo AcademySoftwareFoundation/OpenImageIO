@@ -240,6 +240,8 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
 
     // Check any other configuration hints
 
+    m_filename = name;
+
     // "missingcolor" gives fill color for missing scanlines or tiles.
     if (const ParamValue* m = config.find_attribute("oiio:missingcolor")) {
         if (m->type().basetype == TypeDesc::STRING) {
@@ -391,14 +393,6 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         return false;
 
     spec.deep = Strutil::istarts_with(header->type(), "deep");
-
-    // Unless otherwise specified, exr files are assumed to be linear Rec709
-    // if the channels appear to be R, G, B.  I know this suspect, but I'm
-    // betting that this heuristic will guess the right thing that users want
-    // more often than if we pretending we have no idea what the color space
-    // is.
-    if (pvt::channels_are_rgb(spec))
-        spec.set_colorspace("lin_rec709");
 
     if (levelmode != Imf::ONE_LEVEL)
         spec.attribute("openexr:roundingmode", roundingmode);
@@ -673,6 +667,13 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         spec.attribute("oiio:subimagename", header->name());
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
+
+    // Try to figure out the color space for some unambiguous cases
+    if (spec.get_int_attribute("acesImageContainerFlag") == 1) {
+        spec.set_colorspace("lin_ap0_scene");
+    } else if (auto c = spec.find_attribute("colorInteropID", TypeString)) {
+        spec.set_colorspace(c->get_ustring());
+    }
 
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);

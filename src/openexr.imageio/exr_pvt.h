@@ -6,6 +6,7 @@
 
 
 #include <OpenImageIO/Imath.h>
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
@@ -228,6 +229,7 @@ private:
     int m_nsubimages;                   ///< How many subimages are there?
     int m_miplevel;                     ///< What MIP level are we looking at?
     std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
+    std::string m_filename;             // filename, if known
 
     void init()
     {
@@ -243,6 +245,7 @@ private:
         m_io                       = nullptr;
         m_local_io.reset();
         m_missingcolor.clear();
+        m_filename.clear();
     }
 
     bool read_native_scanlines_individually(int subimage, int miplevel,
