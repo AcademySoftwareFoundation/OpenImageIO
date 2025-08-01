@@ -351,6 +351,21 @@ ImageSpec::image_bytes(TypeDesc datatype) const noexcept
 
 
 void
+ImageSpec::attribute(string_view name, TypeDesc type, cspan<std::byte> value)
+{
+    if (value.size_bytes() != type.size()) {
+        OIIO::errorfmt(
+            "ImageSpec::attribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return;
+    }
+    attribute(name, type, value.data());
+}
+
+
+
+void
 ImageSpec::attribute(string_view name, TypeDesc type, const void* value)
 {
     if (name.empty())  // Guard against bogus empty names
@@ -566,6 +581,22 @@ ImageSpec::getattributetype(string_view name, bool casesensitive) const
     ParamValue pv;
     auto p = find_attribute(name, pv, TypeUnknown, casesensitive);
     return p ? p->type() : TypeUnknown;
+}
+
+
+
+bool
+ImageSpec::getattribute(string_view name, TypeDesc type, span<std::byte> value,
+                        bool casesensitive) const
+{
+    if (value.size_bytes() != type.size()) {
+        OIIO::errorfmt(
+            "ImageSpec::getattribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return getattribute(name, type, value.data(), casesensitive);
 }
 
 

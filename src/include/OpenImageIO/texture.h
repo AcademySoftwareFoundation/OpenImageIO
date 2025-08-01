@@ -559,16 +559,16 @@ public:
     ///     TextureSystem *ts;
     ///     ...
     ///     int maxfiles = 50;
-    ///     ts->attribute ("max_open_files", TypeDesc::INT, &maxfiles);
+    ///     ts->attribute ("max_open_files", TypeDesc::INT, make_cspan(maxfiles));
     ///
     ///     const char *path = "/my/path";
-    ///     ts->attribute ("searchpath", TypeDesc::STRING, &path);
+    ///     ts->attribute ("searchpath", TypeDesc::STRING, make_cspan(&path, 1));
     ///
     ///     // There are specialized versions for retrieving a single int,
     ///     // float, or string without needing types or pointers:
-    ///     ts->getattribute ("max_open_files", 50);
-    ///     ic->attribute ("max_memory_MB", 4000.0f);
-    ///     ic->attribute ("searchpath", "/my/path");
+    ///     ts->attribute ("max_open_files", 50);
+    ///     ts->attribute ("max_memory_MB", 4000.0f);
+    ///     ts->attribute ("searchpath", "/my/path");
     ///
     /// Note: When passing a string, you need to pass a pointer to the
     /// `char*`, not a pointer to the first character.  (Rationale: for an
@@ -578,33 +578,55 @@ public:
     ///
     /// @param  name    Name of the attribute to set.
     /// @param  type    TypeDesc describing the type of the attribute.
-    /// @param  val     Pointer to the value data.
+    /// @param  value   Pointer to the value data.
     /// @returns        `true` if the name and type were recognized and the
     ///                 attribute was set, or `false` upon failure
     ///                 (including it being an unrecognized attribute or not
     ///                 of the correct type).
     ///
-    bool attribute(string_view name, TypeDesc type, const void* val);
+    /// @version 3.1
+    template<typename T>
+    bool attribute(string_view name, TypeDesc type, span<T> value)
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        return attribute(name, type, OIIO::as_bytes(value));
+    }
+
+    /// A version of `attribute()` that takes its value from a span of untyped
+    /// bytes. The total size of `value` must match the `type` (if not, an
+    /// assertion will be thrown for debug builds of OIIO, an error will be
+    /// printed for release builds).
+    ///
+    /// @version 3.1
+    bool attribute(string_view name, TypeDesc type, cspan<std::byte> value);
+
+    /// A version of `attribute()` where the `value` is only a pointer
+    /// specifying the beginning of the memory where the value should be
+    /// copied from. This is "unsafe" in the sense that there is no assurance
+    /// that it points to a sufficient amount of memory, so the span-based
+    /// versions of `attribute()` preferred.
+    bool attribute(string_view name, TypeDesc type, const void* value);
 
     /// Specialized `attribute()` for setting a single `int` value.
-    bool attribute(string_view name, int val)
+    bool attribute(string_view name, int value)
     {
-        return attribute(name, TypeInt, &val);
+        return attribute(name, TypeInt, &value);
     }
     /// Specialized `attribute()` for setting a single `float` value.
-    bool attribute(string_view name, float val)
+    bool attribute(string_view name, float value)
     {
-        return attribute(name, TypeFloat, &val);
+        return attribute(name, TypeFloat, &value);
     }
-    bool attribute(string_view name, double val)
+    bool attribute(string_view name, double value)
     {
-        float f = (float)val;
+        float f = (float)value;
         return attribute(name, TypeFloat, &f);
     }
     /// Specialized `attribute()` for setting a single string value.
-    bool attribute(string_view name, string_view val)
+    bool attribute(string_view name, string_view value)
     {
-        std::string valstr(val);
+        std::string valstr(value);
         const char* s = valstr.c_str();
         return attribute(name, TypeDesc::STRING, &s);
     }
@@ -638,45 +660,67 @@ public:
     ///
     /// @param  name    Name of the attribute to retrieve.
     /// @param  type    TypeDesc describing the type of the attribute.
-    /// @param  val     Pointer where the attribute value should be stored.
+    /// @param  value   Pointer where the attribute value should be stored.
     /// @returns        `true` if the name and type were recognized and the
     ///                 attribute was retrieved, or `false` upon failure
     ///                 (including it being an unrecognized attribute or not
     ///                 of the correct type).
-    bool getattribute(string_view name, TypeDesc type, void* val) const;
+    template<typename T>
+    bool getattribute(string_view name, TypeDesc type, span<T> value) const
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        return getattribute(name, type, OIIO::as_writable_bytes(value));
+    }
+
+    /// A version of `getattribute()` that stores the value in a span of
+    /// untyped bytes. The total size of `value` must match the `type` (if
+    /// not, an assertion will be thrown for debug OIIO builds, an error will
+    /// be printed for release builds).
+    ///
+    /// @version 3.1
+    bool getattribute(string_view name, TypeDesc type,
+                      span<std::byte> value) const;
+
+    /// A version of `getattribute()` where the `value` is only a pointer
+    /// specifying the beginning of the memory where the value should be
+    /// copied. This is "unsafe" in the sense that there is no assurance that
+    /// it points to a sufficient amount of memory, so the span-based versions
+    /// of `getattribute()` preferred.
+    bool getattribute(string_view name, TypeDesc type, void* value) const;
 
     /// Specialized `attribute()` for retrieving a single `int` value.
-    bool getattribute(string_view name, int& val) const
+    bool getattribute(string_view name, int& value) const
     {
-        return getattribute(name, TypeInt, &val);
+        return getattribute(name, TypeInt, &value);
     }
     /// Specialized `attribute()` for retrieving a single `float` value.
-    bool getattribute(string_view name, float& val) const
+    bool getattribute(string_view name, float& value) const
     {
-        return getattribute(name, TypeFloat, &val);
+        return getattribute(name, TypeFloat, &value);
     }
-    bool getattribute(string_view name, double& val) const
+    bool getattribute(string_view name, double& value) const
     {
         float f;
         bool ok = getattribute(name, TypeFloat, &f);
         if (ok)
-            val = f;
+            value = f;
         return ok;
     }
     /// Specialized `attribute()` for retrieving a single `string` value
     /// as a `char*`.
-    bool getattribute(string_view name, char** val) const
+    bool getattribute(string_view name, char** value) const
     {
-        return getattribute(name, TypeString, val);
+        return getattribute(name, TypeString, value);
     }
     /// Specialized `attribute()` for retrieving a single `string` value
     /// as a `std::string`.
-    bool getattribute(string_view name, std::string& val) const
+    bool getattribute(string_view name, std::string& value) const
     {
         const char* s;
         bool ok = getattribute(name, TypeString, &s);
         if (ok)
-            val = s;
+            value = s;
         return ok;
     }
 
