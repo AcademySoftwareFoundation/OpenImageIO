@@ -15,7 +15,6 @@ Reading ../openexr-images/v2/Stereo/composited.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "rgba.left"
     oiio:subimages: 4
     openexr:chunkCount: 1078
@@ -50,7 +49,6 @@ Reading ../openexr-images/v2/Stereo/composited.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "rgba.right"
     oiio:subimages: 4
     openexr:chunkCount: 1078
@@ -101,7 +99,6 @@ Reading ../openexr-images/v2/Stereo/Balls.exr
     screenWindowWidth: 1
     version: 1
     view: "left"
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "rgba.left"
     oiio:subimages: 2
     openexr:chunkCount: 761
@@ -120,7 +117,6 @@ Reading ../openexr-images/v2/Stereo/Balls.exr
     screenWindowWidth: 1
     version: 1
     view: "right"
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "rgba.right"
     oiio:subimages: 2
     openexr:chunkCount: 761
@@ -162,7 +158,6 @@ Reading ../openexr-images/v2/Stereo/Leaves.exr
     screenWindowWidth: 1
     version: 1
     view: "left"
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "rgba.left"
     oiio:subimages: 2
     openexr:chunkCount: 1080
@@ -178,7 +173,6 @@ Reading ../openexr-images/v2/Stereo/Leaves.exr
     screenWindowWidth: 1
     version: 1
     view: "right"
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "rgba.right"
     oiio:subimages: 2
     openexr:chunkCount: 1080
@@ -221,7 +215,6 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "rgba_right"
     oiio:subimages: 10
     openexr:chunkCount: 876
@@ -286,7 +279,6 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "rgba_left"
     oiio:subimages: 10
     openexr:chunkCount: 876

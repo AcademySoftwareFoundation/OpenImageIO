@@ -147,7 +147,6 @@ src/tiny-az.exr :     screenWindowCenter: 0, 0
 src/tiny-az.exr :     screenWindowWidth: 1
 src/tiny-az.exr :     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
 src/tiny-az.exr :     Exif:ImageHistory: "oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
-src/tiny-az.exr :     oiio:ColorSpace: "lin_rec709"
 src/tiny-az.exr :     oiio:subimages: 1
 src/tiny-az.exr :     openexr:lineOrder: "increasingY"
 src/tiny-az.exr :     Stats Min: 0.250000 0.500000 0.750000 (float)
@@ -175,7 +174,6 @@ src/tiny-az.exr      :    4 x    4, 3 channel, float openexr
     screenWindowWidth: 1
     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
     Exif:ImageHistory: "oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
     Pixel (2, 2): 0.250000000 0.500000000 0.750000000
