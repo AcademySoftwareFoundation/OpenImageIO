@@ -59,15 +59,17 @@ OIIO_NAMESPACE_BEGIN
 ///
 ///     // Single int:
 ///     int my_int = 42;
-///     ParamValue A("foo", TypeDesc::INT, 1, &my_int);
+///     ParamValue A("foo", TypeDesc::INT, 1, make_cspan(my_int));
 ///     // Three int values (say, one per vertex of a triangle):
 ///     int my_int_array[3] = { 1, 2, 3 };
-///     ParamValue B("foo", TypeDesc::INT, 1, &my_int_array);
+///     ParamValue B("foo", TypeDesc::INT, 3, my_int_array);
 ///     // A single value which is an array of 3 ints:
-///     ParamValue C("foo", TypeDesc(TypeDesc::INT, 3), 1, &my_int_array);
+///     ParamValue C("foo", TypeDesc(TypeDesc::INT, 3), 1,
+///                  make_cspan(my_int_array, 3));
 ///     // A string -- note the trick about treating it as an array:
 ///     const char* my_string = "hello";
-///     ParamValue D("foo", TypeDesc::STRING, 1, &my_string);
+///     ParamValue D("foo", TypeDesc::STRING, 1,
+///                  make_cspan<const char*>(my_string));
 ///
 ///     // The most common cases also have simple "duck-typed" convenience
 ///     // constructors:
@@ -91,70 +93,105 @@ public:
 
     ParamValue() noexcept { m_data.ptr = nullptr; }
 
-    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               const void* _value, Copy _copy = Copy(true)) noexcept
+    /// Initialize a ParamValue with a typed span of data.
+    template<typename T, typename StringT>
+    ParamValue(const StringT& name, TypeDesc type, int nvalues, span<T> value,
+               Copy copy = Copy(true), Interp interp = INTERP_CONSTANT) noexcept
     {
-        init_noclear(_name, _type, _nvalues, _value, _copy);
-    }
-    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               Interp _interp, const void* _value,
-               Copy _copy = Copy(true)) noexcept
-    {
-        init_noclear(_name, _type, _nvalues, _interp, _value, _copy);
-    }
-    ParamValue(string_view _name, TypeDesc _type, int _nvalues,
-               const void* _value, Copy _copy = Copy(true)) noexcept
-    {
-        init_noclear(ustring(_name), _type, _nvalues, _value, _copy);
-    }
-    ParamValue(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-               const void* _value, Copy _copy = Copy(true)) noexcept
-    {
-        init_noclear(ustring(_name), _type, _nvalues, _interp, _value, _copy);
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() * size_t(nvalues) == value.size_bytes());
+        init_noclear(ustring(name), type, nvalues, interp,
+                     OIIO::as_bytes(value), copy);
     }
 
-    ParamValue(string_view _name, int value) noexcept
+    ParamValue(ustring name, TypeDesc type, int nvalues, cspan<std::byte> value,
+               Copy copy = Copy(true), Interp interp = INTERP_CONSTANT) noexcept
     {
-        init_noclear(ustring(_name), TypeDesc::INT, 1, &value);
+        init_noclear(name, type, nvalues, value, copy);
     }
-    ParamValue(string_view _name, float value) noexcept
+
+    ParamValue(string_view name, TypeDesc type, int nvalues,
+               cspan<std::byte> value, Copy copy = Copy(true),
+               Interp interp = INTERP_CONSTANT) noexcept
     {
-        init_noclear(ustring(_name), TypeDesc::FLOAT, 1, &value);
+        init_noclear(ustring(name), type, nvalues, value, copy);
     }
-    ParamValue(string_view _name, ustring value) noexcept
+
+    // Deprecated versions that take raw pointers ////////////////////////
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
+    ParamValue(const ustring& name, TypeDesc type, int nvalues,
+               const void* value, Copy copy = Copy(true)) noexcept
+        : ParamValue(name, type, nvalues, INTERP_CONSTANT, value, copy)
     {
-        init_noclear(ustring(_name), TypeDesc::STRING, 1, &value, Copy(true),
+    }
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
+    ParamValue(const ustring& name, TypeDesc type, int nvalues, Interp interp,
+               const void* value, Copy copy = Copy(true)) noexcept
+    {
+        init_noclear(name, type, nvalues, interp,
+                     make_cspan(reinterpret_cast<const std::byte*>(value),
+                                value ? size_t(nvalues) * type.size()
+                                      : size_t(0)),
+                     copy);
+    }
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
+    ParamValue(string_view name, TypeDesc type, int nvalues, const void* value,
+               Copy copy = Copy(true)) noexcept
+        : ParamValue(ustring(name), type, nvalues, INTERP_CONSTANT, value, copy)
+    {
+    }
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
+    ParamValue(string_view name, TypeDesc type, int nvalues, Interp interp,
+               const void* value, Copy copy = Copy(true)) noexcept
+        : ParamValue(ustring(name), type, nvalues, interp, value, copy)
+    {
+    }
+    ///////////////////////////////////////////////////////////////////////
+
+    // Convenience constructors for a single value of common types
+    ParamValue(string_view name, int value) noexcept
+        : ParamValue(ustring(name), TypeInt, 1, cspan<int>(value))
+    {
+    }
+    ParamValue(string_view name, float value) noexcept
+        : ParamValue(ustring(name), TypeFloat, 1, cspan<float>(value))
+    {
+    }
+    ParamValue(string_view name, ustring value) noexcept
+    {
+        init_noclear(ustring(name), TypeString, 1,
+                     OIIO::as_bytes(cspan<ustring>(value)), Copy(true),
                      FromUstring(true));
     }
-    ParamValue(string_view _name, string_view value) noexcept
-        : ParamValue(_name, ustring(value))
+    ParamValue(string_view name, string_view value) noexcept
+        : ParamValue(name, ustring(value))
     {
     }
-    ParamValue(string_view _name, ustringhash value) noexcept
+    ParamValue(string_view name, ustringhash value) noexcept
     {
-        init_noclear(ustring(_name), TypeDesc::USTRINGHASH, 1, &value,
-                     Copy(true));
+        init_noclear(ustring(name), TypeDesc::USTRINGHASH, 1,
+                     OIIO::as_bytes(cspan<ustringhash>(value)), Copy(true));
     }
 
     // Set from string -- parse
-    ParamValue(string_view _name, TypeDesc type, string_view value);
+    ParamValue(string_view name, TypeDesc type, string_view value);
 
     // Copy constructor
     ParamValue(const ParamValue& p) noexcept
     {
-        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+        init_noclear(p.uname(), p.type(), p.nvalues(), p.interp(), p.as_bytes(),
                      Copy(true), FromUstring(true));
     }
     ParamValue(const ParamValue& p, Copy _copy) noexcept
     {
-        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+        init_noclear(p.uname(), p.type(), p.nvalues(), p.interp(), p.as_bytes(),
                      _copy, FromUstring(true));
     }
 
     // Rvalue (move) constructor
     ParamValue(ParamValue&& p) noexcept
     {
-        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+        init_noclear(p.uname(), p.type(), p.nvalues(), p.interp(), p.as_bytes(),
                      Copy(false), FromUstring(true));
         m_copy       = p.m_copy;
         m_nonlocal   = p.m_nonlocal;
@@ -163,27 +200,45 @@ public:
 
     ~ParamValue() noexcept { clear_value(); }
 
-    void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, Copy _copy) noexcept
+    template<typename T, typename StringT>
+    void init(const StringT& name, TypeDesc type, int nvalues, Interp interp,
+              span<T> value, Copy copy = Copy(true)) noexcept
     {
         clear_value();
-        init_noclear(_name, _type, _nvalues, _interp, _value, _copy);
+        init_noclear(ustring(name), type, nvalues, interp, value, copy);
     }
-    void init(ustring _name, TypeDesc _type, int _nvalues, const void* _value,
-              Copy _copy = Copy(true)) noexcept
+
+    // Deprecated versions that take raw pointers ////////////////////////
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
+    void init(ustring name, TypeDesc type, int nvalues, Interp interp,
+              const void* value, Copy copy = Copy(true)) noexcept
     {
-        init(_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
+        clear_value();
+        init_noclear(name, type, nvalues, interp,
+                     make_cspan(reinterpret_cast<const std::byte*>(value),
+                                value ? size_t(nvalues) * type.size()
+                                      : size_t(0)),
+                     copy);
     }
-    void init(string_view _name, TypeDesc _type, int _nvalues,
-              const void* _value, Copy _copy = Copy(true)) noexcept
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
+    void init(ustring name, TypeDesc type, int nvalues, const void* value,
+              Copy copy = Copy(true)) noexcept
     {
-        init(ustring(_name), _type, _nvalues, _value, _copy);
+        init(name, type, nvalues, INTERP_CONSTANT, value, copy);
     }
-    void init(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, Copy _copy = Copy(true)) noexcept
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
+    void init(string_view name, TypeDesc type, int nvalues, const void* value,
+              Copy copy = Copy(true)) noexcept
     {
-        init(ustring(_name), _type, _nvalues, _interp, _value, _copy);
+        init(ustring(name), type, nvalues, value, copy);
     }
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
+    void init(string_view name, TypeDesc type, int nvalues, Interp _interp,
+              const void* value, Copy copy = Copy(true)) noexcept
+    {
+        init(ustring(name), type, nvalues, _interp, value, copy);
+    }
+    ///////////////////////////////////////////////////////////////////////
 
     // Assignment
     const ParamValue& operator=(const ParamValue& p) noexcept;
@@ -192,8 +247,8 @@ public:
     // FIXME -- some time in the future (after more cleanup), we should make
     // name() return a string_view, and use uname() for the rare time when
     // the caller truly requires the ustring.
-    const ustring& name() const noexcept { return m_name; }
-    const ustring& uname() const noexcept { return m_name; }
+    ustring name() const noexcept { return m_name; }
+    ustring uname() const noexcept { return m_name; }
     TypeDesc type() const noexcept { return m_type; }
     int nvalues() const noexcept { return m_nvalues; }
     const void* data() const noexcept
@@ -233,6 +288,20 @@ public:
                    ? make_span(reinterpret_cast<T*>(const_cast<void*>(data())),
                                size_t(m_nvalues * m_type.basevalues()))
                    : span<T>();
+    }
+
+    /// Return a `cspan<std::byte>` pointing to the bounded raw data.
+    cspan<std::byte> as_bytes() const noexcept
+    {
+        return { reinterpret_cast<const std::byte*>(data()),
+                 size_t(datasize()) };
+    }
+
+    /// Return a `span<std::byte>` pointing to the bounded data.
+    span<std::byte> as_writable_bytes() noexcept
+    {
+        return { reinterpret_cast<std::byte*>(const_cast<void*>(data())),
+                 size_t(datasize()) };
     }
 
     // Use with extreme caution! This is just doing a cast. You'd better
@@ -289,14 +358,15 @@ private:
     bool m_copy            = false;
     bool m_nonlocal        = false;
 
+    void clear_value() noexcept;
+
     void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                      const void* _value, Copy _copy = Copy(true),
+                      cspan<std::byte> _value, Copy _copy = Copy(true),
                       FromUstring _from_ustring = FromUstring(false)) noexcept;
     void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                      Interp _interp, const void* _value,
+                      Interp _interp, cspan<std::byte> _value,
                       Copy _copy                = Copy(true),
                       FromUstring _from_ustring = FromUstring(false)) noexcept;
-    void clear_value() noexcept;
 
     /// declare a friend heapsize definition
     template<typename T> friend size_t pvt::heapsize(const T&);
@@ -323,7 +393,7 @@ template<typename T>
 static ParamValue
 make_pv(string_view name, T* val)
 {
-    return ParamValue(name, BaseTypeFromC<T*>::value, 1, &val);
+    return ParamValue(name, BaseTypeFromC<T*>::value, 1, span(&val, 1));
 }
 
 
@@ -409,13 +479,23 @@ public:
     void add_or_replace(ParamValue&& pv, bool casesensitive = true);
 
     /// Add (or replace) a value in the list.
-    void attribute(string_view name, TypeDesc type, int nvalues,
-                   const void* value)
+    template<typename T>
+    void attribute(string_view name, TypeDesc type, int nvalues, span<T> value)
     {
         if (!name.empty())
             add_or_replace(ParamValue(name, type, nvalues, value));
     }
 
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
+    void attribute(string_view name, TypeDesc type, int nvalues,
+                   const void* value)
+    {
+        attribute(name, type, nvalues,
+                  make_cspan(reinterpret_cast<const std::byte*>(value),
+                             value ? size_t(nvalues) * type.size() : size_t(0)));
+    }
+
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
     void attribute(string_view name, TypeDesc type, const void* value)
     {
         attribute(name, type, 1, value);
@@ -431,20 +511,20 @@ public:
     // Shortcuts for single value of common types.
     void attribute(string_view name, int value)
     {
-        attribute(name, TypeInt, 1, &value);
+        attribute(name, TypeInt, 1, cspan<int>(value));
     }
     void attribute(string_view name, unsigned int value)
     {
-        attribute(name, TypeUInt, 1, &value);
+        attribute(name, TypeUInt, 1, cspan<unsigned int>(value));
     }
     void attribute(string_view name, float value)
     {
-        attribute(name, TypeFloat, 1, &value);
+        attribute(name, TypeFloat, 1, cspan<float>(value));
     }
     void attribute(string_view name, string_view value)
     {
         ustring v(value);
-        attribute(name, TypeString, 1, &v);
+        attribute(name, v);
     }
 
     void attribute(string_view name, ustring value)
@@ -463,8 +543,28 @@ public:
     }
 
     /// Retrieve from list: If found its data type is reasonably convertible
+    /// to `type`, copy/convert the value into `value[...]` and return true.
+    /// Otherwise, return false and don't modify what val points to.
+    template<typename T>
+    bool getattribute(string_view name, TypeDesc type, span<T> value,
+                      bool casesensitive = false) const
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        // Just call the untyped bytes version underneath.
+        return getattribute(name, type, as_writable_bytes(value),
+                            casesensitive);
+    }
+    /// Retrieve from list: If found its data type is reasonably convertible
+    /// to `type`, copy/convert the value into the buffer of untyped bytes.
+    /// and return true. Otherwise, return false and don't modify what val
+    /// points to.
+    bool getattribute(string_view name, TypeDesc type, span<std::byte> value,
+                      bool casesensitive = false) const;
+    /// Retrieve from list: If found its data type is reasonably convertible
     /// to `type`, copy/convert the value into val[...] and return true.
     /// Otherwise, return false and don't modify what val points to.
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
     bool getattribute(string_view name, TypeDesc type, void* value,
                       bool casesensitive = false) const;
     /// Shortcut for retrieving a single string via getattribute.
@@ -474,6 +574,24 @@ public:
     /// Retrieve from list: If found its data type is reasonably convertible
     /// to `type`, copy/convert the value into val[...] and return true.
     /// Otherwise, return false and don't modify what val points to.
+    template<typename T>
+    bool getattribute_indexed(string_view name, int index, TypeDesc type,
+                              span<T> value, bool casesensitive = false) const
+    {
+        // Just call the untyped bytes version underneath.
+        return getattribute_indexed(name, index, type, as_writable_bytes(value),
+                                    casesensitive);
+    }
+    /// Retrieve from list: If found its data type is reasonably convertible
+    /// to `type`, copy/convert the value into val[...] and return true.
+    /// Otherwise, return false and don't modify what val points to.
+    bool getattribute_indexed(string_view name, int index, TypeDesc type,
+                              span<std::byte> value,
+                              bool casesensitive = false) const;
+    /// Retrieve from list: If found its data type is reasonably convertible
+    /// to `type`, copy/convert the value into val[...] and return true.
+    /// Otherwise, return false and don't modify what val points to.
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
     bool getattribute_indexed(string_view name, int index, TypeDesc type,
                               void* value, bool casesensitive = false) const;
     /// Shortcut for retrieving a single string via getattribute.
@@ -660,6 +778,23 @@ public:
     /// Retrieve from list: If found and its data type is reasonably convertible
     /// to `type`, copy/convert the value into val[...] and return true.
     /// Otherwise, return false and don't modify what val points to.
+    template<typename T>
+    bool getattribute(string_view name, TypeDesc type, span<T> value,
+                      bool casesensitive = false) const
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        // Just call the untyped bytes version underneath.
+        return getattribute(name, type, as_writable_bytes(value),
+                            casesensitive);
+    }
+    bool getattribute(string_view name, TypeDesc type, span<std::byte> value,
+                      bool casesensitive = false) const;
+
+    /// Retrieve from list: If found and its data type is reasonably convertible
+    /// to `type`, copy/convert the value into val[...] and return true.
+    /// Otherwise, return false and don't modify what val points to.
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
     bool getattribute(string_view name, TypeDesc type, void* value,
                       bool casesensitive = false) const;
     /// Shortcut for retrieving a single string via getattribute.
@@ -669,6 +804,23 @@ public:
     /// Retrieve from list: If found its data type is reasonably convertible
     /// to `type`, copy/convert the value into val[...] and return true.
     /// Otherwise, return false and don't modify what val points to.
+    template<typename T>
+    bool getattribute_indexed(string_view name, int index, TypeDesc type,
+                              span<T> value, bool casesensitive = false) const
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        // Just call the untyped bytes version underneath.
+        return getattribute(name, type, as_writable_bytes(value),
+                            casesensitive);
+    }
+    bool getattribute_indexed(string_view name, int index, TypeDesc type,
+                              span<std::byte> value,
+                              bool casesensitive = false) const;
+    /// Retrieve from list: If found its data type is reasonably convertible
+    /// to `type`, copy/convert the value into val[...] and return true.
+    /// Otherwise, return false and don't modify what val points to.
+    // OIIO_DEPRECATED("Use the version that takes a span (3.1)")
     bool getattribute_indexed(string_view name, int index, TypeDesc type,
                               void* value, bool casesensitive = false) const;
     /// Shortcut for retrieving a single string via getattribute.

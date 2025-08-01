@@ -183,9 +183,25 @@ TextureSystem::destroy_thread_info(Perthread* threadinfo)
 
 
 bool
-TextureSystem::attribute(string_view name, TypeDesc type, const void* val)
+TextureSystem::attribute(string_view name, TypeDesc type,
+                         cspan<std::byte> value)
 {
-    return m_impl->attribute(name, type, val);
+    if (value.size_bytes() != type.size()) {
+        errorfmt(
+            "TextureSystem::attribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return m_impl->attribute(name, type, value.data());
+}
+
+
+
+bool
+TextureSystem::attribute(string_view name, TypeDesc type, const void* value)
+{
+    return m_impl->attribute(name, type, value);
 }
 
 
@@ -199,9 +215,25 @@ TextureSystem::getattributetype(string_view name) const
 
 
 bool
-TextureSystem::getattribute(string_view name, TypeDesc type, void* val) const
+TextureSystem::getattribute(string_view name, TypeDesc type,
+                            span<std::byte> value) const
 {
-    return m_impl->getattribute(name, type, val);
+    if (value.size_bytes() != type.size()) {
+        errorfmt(
+            "TextureSystem::getattribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return m_impl->getattribute(name, type, value.data());
+}
+
+
+
+bool
+TextureSystem::getattribute(string_view name, TypeDesc type, void* value) const
+{
+    return m_impl->getattribute(name, type, value);
 }
 
 
