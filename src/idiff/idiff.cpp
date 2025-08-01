@@ -22,7 +22,6 @@
 
 
 using namespace OIIO;
-using OIIO::Strutil::print;
 
 
 enum idiffErrors {
@@ -131,8 +130,8 @@ read_input(const std::string& filename, ImageBuf& img,
     if (img.read(subimage, miplevel, false, TypeFloat))
         return true;
 
-    print(stderr, "idiff ERROR: Could not read {}:\n\t{}\n", filename,
-          img.geterror());
+    OIIO::print(stderr, "idiff ERROR: Could not read {}:\n\t{}\n", filename,
+                img.geterror());
     return false;
 }
 
@@ -145,11 +144,11 @@ inline void
 safe_double_print(double val)
 {
     if (std::isnan(val))
-        print("nan\n");
+        OIIO::print("nan\n");
     else if (std::isinf(val))
-        print("inf\n");
+        OIIO::print("inf\n");
     else
-        print("{:g}\n", val);
+        OIIO::print("{:g}\n", val);
 }
 
 
@@ -158,15 +157,15 @@ inline void
 print_subimage(ImageBuf& img0, int subimage, int miplevel)
 {
     if (img0.nsubimages() > 1)
-        print("Subimage {} ", subimage);
+        OIIO::print("Subimage {} ", subimage);
     if (img0.nmiplevels() > 1)
-        print(" MIP level {} ", miplevel);
+        OIIO::print(" MIP level {} ", miplevel);
     if (img0.nsubimages() > 1 || img0.nmiplevels() > 1)
-        print(": ");
-    print("{} x {}", img0.spec().width, img0.spec().height);
+        OIIO::print(": ");
+    OIIO::print("{} x {}", img0.spec().width, img0.spec().height);
     if (img0.spec().depth > 1)
-        print(" x {}", img0.spec().depth);
-    print(", {} channels\n", img0.spec().nchannels);
+        OIIO::print(" x {}", img0.spec().depth);
+    OIIO::print(", {} channels\n", img0.spec().nchannels);
 }
 
 
@@ -203,8 +202,8 @@ main(int argc, char* argv[])
     if (filenames.size() == 2) {
         add_filename_to_directory(filenames[0], filenames[1]);
     } else {
-        print(stderr, "idiff: Must have two input filenames.\n");
-        print(stderr, "> {}\n", Strutil::join(filenames, ", "));
+        OIIO::print(stderr, "idiff: Must have two input filenames.\n");
+        OIIO::print(stderr, "> {}\n", Strutil::join(filenames, ", "));
         ap.usage();
         return EXIT_FAILURE;
     }
@@ -227,7 +226,8 @@ main(int argc, char* argv[])
     int allowfailures     = ap["allowfailures"].get<int>();
 
     if (!quiet) {
-        print("Comparing \"{}\" and \"{}\"\n", filenames[0], filenames[1]);
+        OIIO::print("Comparing \"{}\" and \"{}\"\n", filenames[0],
+                    filenames[1]);
         fflush(stdout);
     }
 
@@ -259,21 +259,23 @@ main(int argc, char* argv[])
 
         if (!read_input(filenames[0], img0, imagecache, subimage)
             || !read_input(filenames[1], img1, imagecache, subimage)) {
-            print(stderr, "Failed to read subimage {}\n", subimage);
+            OIIO::print(stderr, "Failed to read subimage {}\n", subimage);
             return ErrFile;
         }
 
         if (img0.nmiplevels() != img1.nmiplevels()) {
             if (!quiet)
-                print("Files do not match in their number of MIPmap levels\n");
+                OIIO::print(
+                    "Files do not match in their number of MIPmap levels\n");
         }
 
         for (int m = 0; m < img0.nmiplevels(); ++m) {
             if (m > 0 && !compareall)
                 break;
             if (m > 0 && img0.nmiplevels() != img1.nmiplevels()) {
-                print(stderr,
-                      "Files do not match in their number of MIPmap levels\n");
+                OIIO::print(
+                    stderr,
+                    "Files do not match in their number of MIPmap levels\n");
                 ret = ErrDifferentSize;
                 break;
             }
@@ -283,8 +285,9 @@ main(int argc, char* argv[])
                 return ErrFile;
 
             if (img0.deep() != img1.deep()) {
-                print(stderr,
-                      "One image contains deep data, the other does not\n");
+                OIIO::print(
+                    stderr,
+                    "One image contains deep data, the other does not\n");
                 ret = ErrDifferentSize;
                 break;
             }
@@ -324,50 +327,51 @@ main(int argc, char* argv[])
             if (verbose || (ret != ErrOK && !quiet)) {
                 if (compareall)
                     print_subimage(img0, subimage, m);
-                print("  Mean error = ");
+                OIIO::print("  Mean error = ");
                 safe_double_print(cr.meanerror);
-                print("  RMS error = ");
+                OIIO::print("  RMS error = ");
                 safe_double_print(cr.rms_error);
-                print("  Peak SNR = ");
+                OIIO::print("  Peak SNR = ");
                 safe_double_print(cr.PSNR);
-                print("  Max error  = {:g}", cr.maxerror);
+                OIIO::print("  Max error  = {:g}", cr.maxerror);
                 if (cr.maxerror != 0) {
-                    print(" @ ({}, {}", cr.maxx, cr.maxy);
+                    OIIO::print(" @ ({}, {}", cr.maxx, cr.maxy);
                     if (img0.spec().depth > 1)
-                        print(", {}", cr.maxz);
+                        OIIO::print(", {}", cr.maxz);
                     if (cr.maxc < (int)img0.spec().channelnames.size())
-                        print(", {})", img0.spec().channelnames[cr.maxc]);
+                        OIIO::print(", {})", img0.spec().channelnames[cr.maxc]);
                     else if (cr.maxc < (int)img1.spec().channelnames.size())
-                        print(", {})", img1.spec().channelnames[cr.maxc]);
+                        OIIO::print(", {})", img1.spec().channelnames[cr.maxc]);
                     else
-                        print(", channel {})", cr.maxc);
+                        OIIO::print(", channel {})", cr.maxc);
                     if (!img0.deep()) {
-                        print("  values are ");
+                        OIIO::print("  values are ");
                         for (int c = 0; c < img0.spec().nchannels; ++c)
-                            print("{}{}", (c ? ", " : ""),
-                                  img0.getchannel(cr.maxx, cr.maxy, 0, c));
+                            OIIO::print("{}{}", (c ? ", " : ""),
+                                        img0.getchannel(cr.maxx, cr.maxy, 0, c));
                         ;
-                        print(" vs ");
+                        OIIO::print(" vs ");
                         for (int c = 0; c < img1.spec().nchannels; ++c)
-                            print("{}{}", (c ? ", " : ""),
-                                  img1.getchannel(cr.maxx, cr.maxy, 0, c));
+                            OIIO::print("{}{}", (c ? ", " : ""),
+                                        img1.getchannel(cr.maxx, cr.maxy, 0, c));
                         ;
                     }
                 }
-                print("\n");
+                OIIO::print("\n");
 #if OIIO_MSVS_BEFORE_2015
                 // When older Visual Studio is used, float values in
                 // scientific format are printed with three digit exponent.
                 // We change this behaviour to fit Linux way.
                 _set_output_format(_TWO_DIGIT_EXPONENT);
 #endif
-                print("  {} pixels ({:1.3g}%) over {}\n", cr.nwarn,
-                      (100.0 * cr.nwarn / npels), warnthresh);
-                print("  {} pixels ({:1.3g}%) over {}\n", cr.nfail,
-                      (100.0 * cr.nfail / npels), failthresh);
+                OIIO::print("  {} pixels ({:1.3g}%) over {}\n", cr.nwarn,
+                            (100.0 * cr.nwarn / npels), warnthresh);
+                OIIO::print("  {} pixels ({:1.3g}%) over {}\n", cr.nfail,
+                            (100.0 * cr.nfail / npels), failthresh);
                 if (perceptual)
-                    print("  {} pixels ({:3g}%) failed the perceptual test\n",
-                          yee_failures, (100.0 * yee_failures / npels));
+                    OIIO::print(
+                        "  {} pixels ({:3g}%) failed the perceptual test\n",
+                        yee_failures, (100.0 * yee_failures / npels));
             }
 
             // If the user requested that a difference image be output,
@@ -393,29 +397,29 @@ main(int argc, char* argv[])
 
     if (compareall && img0.nsubimages() != img1.nsubimages()) {
         if (!quiet)
-            print(stderr,
-                  "Images had differing numbers of subimages ({} vs {})\n",
-                  img0.nsubimages(), img1.nsubimages());
+            OIIO::print(stderr,
+                        "Images had differing numbers of subimages ({} vs {})\n",
+                        img0.nsubimages(), img1.nsubimages());
         ret = ErrFail;
     }
     if (!compareall && (img0.nsubimages() > 1 || img1.nsubimages() > 1)) {
         if (!quiet)
-            print(
+            OIIO::print(
                 "Only compared the first subimage (of {} and {}, respectively)\n",
                 img0.nsubimages(), img1.nsubimages());
     }
 
     if (ret == ErrOK) {
         if (!quiet)
-            print("PASS\n");
+            OIIO::print("PASS\n");
     } else if (ret == ErrWarn) {
         if (!quiet)
-            print("WARNING\n");
+            OIIO::print("WARNING\n");
     } else if (ret) {
         if (quiet)
-            print(stderr, "FAILURE\n");
+            OIIO::print(stderr, "FAILURE\n");
         else
-            print("FAILURE\n");
+            OIIO::print("FAILURE\n");
     }
 
     imagecache->invalidate_all(true);

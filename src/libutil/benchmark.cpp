@@ -142,34 +142,34 @@ operator<<(std::ostream& out, const Benchmarker& bench)
     range *= scale;
 
     if (bench.indent())
-        print(out, "{}", std::string(bench.indent(), ' '));
+        OIIO::print(out, "{}", std::string(bench.indent(), ' '));
     if (unit == int(Benchmarker::Unit::s))
-        print(out, "{:16}: {}", bench.m_name,
-              Strutil::timeintervalformat(avg, 2));
+        OIIO::print(out, "{:16}: {}", bench.m_name,
+                    Strutil::timeintervalformat(avg, 2));
     else
-        print(out, "{:16}: {:6.1f} {} (+/- {:.1f}{}), ", bench.name(), avg,
-              unitname, stddev, unitname);
+        OIIO::print(out, "{:16}: {:6.1f} {} (+/- {:.1f}{}), ", bench.name(),
+                    avg, unitname, stddev, unitname);
     if (bench.avg() < 0.25e-9) {
         // Less than 1/4 ns iteration time is probably an error
-        print(out, "unreliable");
+        OIIO::print(out, "unreliable");
         return out;
     }
     if (bench.work() == 1)
-        print(out, "{:6.1f} {:c}/s", (1.0f / ratescale) / bench.avg(),
-              rateunit);
+        OIIO::print(out, "{:6.1f} {:c}/s", (1.0f / ratescale) / bench.avg(),
+                    rateunit);
     else
-        print(out, "{:6.1f} {:c}vals/s, {:.1} {:c}calls/s",
-              (bench.work() / ratescale) / bench.avg(), rateunit,
-              (1.0f / ratescale) / bench.avg(), rateunit);
+        OIIO::print(out, "{:6.1f} {:c}vals/s, {:.1} {:c}calls/s",
+                    (bench.work() / ratescale) / bench.avg(), rateunit,
+                    (1.0f / ratescale) / bench.avg(), rateunit);
     if (bench.verbose() >= 2)
-        print(out, " ({}x{}, rng={:.1}%, med={:.1})", bench.trials(),
-              bench.iterations(), unitname, (range / avg) * 100.0,
-              bench.median() * scale);
+        OIIO::print(out, " ({}x{}, rng={:.1}%, med={:.1})", bench.trials(),
+                    bench.iterations(), unitname, (range / avg) * 100.0,
+                    bench.median() * scale);
 #if 0
     if (range > avg/10.0) {
         for (auto v : bench.m_times)
-            print(out, "{} ", v*scale/bench.iterations());
-        print(out, "\n");
+            OIIO::print(out, "{} ", v*scale/bench.iterations());
+        OIIO::print(out, "\n");
     }
 #endif
     return out;

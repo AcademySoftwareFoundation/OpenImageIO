@@ -98,18 +98,18 @@ printImageCacheMemory(std::ostream& out, const ImageCacheImpl& ic)
     footprint(ic, data);
 
     // print image cache memory usage
-    print(out, "  Cache : {}\n", Strutil::memformat(data.ic_mem));
-    print(out, "    Strings : {}, count : {}\n",
-          Strutil::memformat(data.ic_str_mem), data.ic_str_count);
-    print(out, "    Thread info : {}, count : {}\n",
-          Strutil::memformat(data.ic_thdi_mem), data.ic_thdi_count);
-    print(out, "    Fingerprints : {}, count : {}\n",
-          Strutil::memformat(data.ic_fgpt_mem), data.ic_fgpt_count);
-    print(out, "    Tiles : {}, count : {}\n",
-          Strutil::memformat(data.ic_tile_mem), data.ic_tile_count);
-    print(out, "    Files : {}, count : {}\n",
-          Strutil::memformat(data.fmap[ImageCacheFootprint::utotal][kMem]),
-          data.fmap[ImageCacheFootprint::utotal][kCount]);
+    OIIO::print(out, "  Cache : {}\n", Strutil::memformat(data.ic_mem));
+    OIIO::print(out, "    Strings : {}, count : {}\n",
+                Strutil::memformat(data.ic_str_mem), data.ic_str_count);
+    OIIO::print(out, "    Thread info : {}, count : {}\n",
+                Strutil::memformat(data.ic_thdi_mem), data.ic_thdi_count);
+    OIIO::print(out, "    Fingerprints : {}, count : {}\n",
+                Strutil::memformat(data.ic_fgpt_mem), data.ic_fgpt_count);
+    OIIO::print(out, "    Tiles : {}, count : {}\n",
+                Strutil::memformat(data.ic_tile_mem), data.ic_tile_count);
+    OIIO::print(out, "    Files : {}, count : {}\n",
+                Strutil::memformat(data.fmap[ImageCacheFootprint::utotal][kMem]),
+                data.fmap[ImageCacheFootprint::utotal][kCount]);
 
     // print file formats memory usage
     for (FileFootprintMap::const_iterator t = data.fmap.begin(),
@@ -117,24 +117,24 @@ printImageCacheMemory(std::ostream& out, const ImageCacheImpl& ic)
          t != e; ++t) {
         if (t.key() == ImageCacheFootprint::utotal)
             continue;
-        print(out, "      Format '{}' : {}, count : {}\n", t->first,
-              Strutil::memformat(t.value()[kMem]), t.value()[kCount]);
+        OIIO::print(out, "      Format '{}' : {}, count : {}\n", t->first,
+                    Strutil::memformat(t.value()[kMem]), t.value()[kCount]);
         if (t.value()[kInputMem] > 0ul)
-            print(out, "        Image inputs : {}, count : {}\n",
-                  Strutil::memformat(t.value()[kInputMem]),
-                  t.value()[kInputCount]);
+            OIIO::print(out, "        Image inputs : {}, count : {}\n",
+                        Strutil::memformat(t.value()[kInputMem]),
+                        t.value()[kInputCount]);
         if (t.value()[kSpecMem] > 0ul)
-            print(out, "        Image specs : {}, count : {}\n",
-                  Strutil::memformat(t.value()[kSpecMem]),
-                  t.value()[kSpecCount]);
+            OIIO::print(out, "        Image specs : {}, count : {}\n",
+                        Strutil::memformat(t.value()[kSpecMem]),
+                        t.value()[kSpecCount]);
         if (t.value()[kSubImageMem] > 0ul)
-            print(out, "        Subimages : {}, count : {}\n",
-                  Strutil::memformat(t.value()[kSubImageMem]),
-                  t.value()[kSubImageCount]);
+            OIIO::print(out, "        Subimages : {}, count : {}\n",
+                        Strutil::memformat(t.value()[kSubImageMem]),
+                        t.value()[kSubImageCount]);
         if (t.value()[kLevelInfoMem] > 0ul)
-            print(out, "          Levels : {}, count : {}\n",
-                  Strutil::memformat(t.value()[kLevelInfoMem]),
-                  t.value()[kLevelInfoCount]);
+            OIIO::print(out, "          Levels : {}, count : {}\n",
+                        Strutil::memformat(t.value()[kLevelInfoMem]),
+                        t.value()[kLevelInfoCount]);
     }
 }
 

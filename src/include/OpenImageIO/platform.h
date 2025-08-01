@@ -139,6 +139,7 @@
 #endif
 
 // Tests for MSVS versions, always 0 if not MSVS at all.
+// https://learn.microsoft.com/en-us/cpp/overview/compiler-versions
 #if defined(_MSC_VER)
 #  define OIIO_MSVS_VERSION       _MSC_VER
 #  define OIIO_MSVS_AT_LEAST_2013 (_MSC_VER >= 1800)
@@ -186,12 +187,18 @@
 // package is compiling against OIIO and using these headers (OIIO may be
 // C++17 but the client package may be newer, or vice versa -- use these two
 // symbols to differentiate these cases, when important).
-#if (__cplusplus >= 202001L)
+#if (__cplusplus >= 202302L)
+#    define OIIO_CPLUSPLUS_VERSION 23
+#    define OIIO_CONSTEXPR20 constexpr
+#    define OIIO_CONSTEXPR23 constexpr
+#elif (__cplusplus >= 202001L)
 #    define OIIO_CPLUSPLUS_VERSION 20
 #    define OIIO_CONSTEXPR20 constexpr
+#    define OIIO_CONSTEXPR23 /* not constexpr before C++23 */
 #elif (__cplusplus >= 201703L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
 #    define OIIO_CPLUSPLUS_VERSION 17
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
+#    define OIIO_CONSTEXPR23 /* not constexpr before C++23 */
 #else
 #    error "This version of OIIO is meant to work only with C++17 and above"
 #endif

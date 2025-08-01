@@ -185,21 +185,23 @@ TermOutput::output()
         // special escape sequence that lets you transmit a base64-encoded
         // image file, so we convert to just a simple PPM and do so.
         std::ostringstream s;
-        print(s, "P3\n{} {}\n255\n", m_buf.spec().width, m_buf.spec().height);
+        OIIO::print(s, "P3\n{} {}\n255\n", m_buf.spec().width,
+                    m_buf.spec().height);
         for (int y = m_buf.ybegin(), ye = m_buf.yend(); y < ye; y += 1) {
             for (int x = m_buf.xbegin(), xe = m_buf.xend(); x < xe; ++x) {
                 uint8_t rgb[3];
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 1, 0, 1, 0, 3),
                                  make_span(rgb));
-                print(s, "{} {} {}\n", int(rgb[0]), int(rgb[1]), int(rgb[2]));
+                OIIO::print(s, "{} {} {}\n", int(rgb[0]), int(rgb[1]),
+                            int(rgb[2]));
             }
         }
-        print(outfile, "\033]1337;File=inline=1;width=auto:{}\007\n",
-              Strutil::base64_encode(s.str()));
+        OIIO::print(outfile, "\033]1337;File=inline=1;width=auto:{}\007\n",
+                    Strutil::base64_encode(s.str()));
     }
 
     else if (method == "24bit") {
-        // Print two vertical pixels per character cell using the Unicode
+        // OIIO::Print two vertical pixels per character cell using the Unicode
         // "upper half block" glyph U+2580, with fg color set to the 24 bit
         // RGB value of the upper pixel, and bg color set to the 24-bit RGB
         // value the lower pixel.
@@ -209,17 +211,17 @@ TermOutput::output()
                 uint8_t rgb[2][3];
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 2, z, z + 1, 0, 3),
                                  make_span((uint8_t*)rgb, 2 * 3));
-                print(outfile, "{}{}\x5C\x75\x32\x35\x38\x30",
-                      term.ansi_fgcolor(rgb[0][0], rgb[0][1], rgb[0][2]),
-                      term.ansi_bgcolor(rgb[1][0], rgb[1][1], rgb[1][2]));
+                OIIO::print(outfile, "{}{}\x5C\x75\x32\x35\x38\x30",
+                            term.ansi_fgcolor(rgb[0][0], rgb[0][1], rgb[0][2]),
+                            term.ansi_bgcolor(rgb[1][0], rgb[1][1], rgb[1][2]));
                 // the \x5C\x75\x32\x35\x38\x30 is utf8 encoding of "\u2580"
             }
-            print(outfile, "{}\n", term.ansi("default"));
+            OIIO::print(outfile, "{}\n", term.ansi("default"));
         }
     }
 
     else if (method == "24bit-space") {
-        // Print as space, with bg color set to the 24-bit RGB value of each
+        // OIIO::Print as space, with bg color set to the 24-bit RGB value of each
         // pixel.
         int z = m_buf.spec().z;
         for (int y = m_buf.ybegin(), ye = m_buf.yend(); y < ye; ++y) {
@@ -227,15 +229,15 @@ TermOutput::output()
                 uint8_t rgb[3];
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 1, z, z + 1, 0, 3),
                                  make_span(rgb));
-                print(outfile, "{} ",
-                      term.ansi_bgcolor(rgb[0], rgb[1], rgb[2]));
+                OIIO::print(outfile, "{} ",
+                            term.ansi_bgcolor(rgb[0], rgb[1], rgb[2]));
             }
-            print(outfile, "{}\n", term.ansi("default"));
+            OIIO::print(outfile, "{}\n", term.ansi("default"));
         }
     }
 
     else if (method == "dither") {
-        // Print as space, with bg color set to the 6x6x6 RGB value of each
+        // OIIO::Print as space, with bg color set to the 6x6x6 RGB value of each
         // pixels. Try to make it better with horizontal dithering. But...
         // it still looks bad. Room for future improvement?
         int z = m_buf.spec().z;
@@ -251,15 +253,15 @@ TermOutput::output()
                 OIIO_MAYBE_UNUSED simd::vfloat4 frac = floorfrac(rgb, &rgbi);
                 leftover = rgborig - 0.2f * simd::vfloat4(rgbi);
                 rgbi     = clamp(rgbi, simd::vint4(0), simd::vint4(5));
-                print(outfile, "\033[48;5;{}m ",
-                      (0x10 + 36 * rgbi[0] + 6 * rgbi[1] + rgbi[2]));
+                OIIO::print(outfile, "\033[48;5;{}m ",
+                            (0x10 + 36 * rgbi[0] + 6 * rgbi[1] + rgbi[2]));
             }
-            print(outfile, "{}\n", term.ansi("default"));
+            OIIO::print(outfile, "{}\n", term.ansi("default"));
         }
     }
 
     else {
-        // Print as space, with bg color set to the 6x6x6 RGB value of each
+        // OIIO::Print as space, with bg color set to the 6x6x6 RGB value of each
         // pixels. This looks awful!
         int z = m_buf.spec().z;
         for (int y = m_buf.ybegin(), ye = m_buf.yend(); y < ye; ++y) {
@@ -271,10 +273,10 @@ TermOutput::output()
                 simd::vint4 rgbi;
                 OIIO_MAYBE_UNUSED simd::vfloat4 frac = floorfrac(rgb, &rgbi);
                 rgbi = clamp(rgbi, simd::vint4(0), simd::vint4(5));
-                print(outfile, "\033[48;5;{}m ",
-                      (0x10 + 36 * rgbi[0] + 6 * rgbi[1] + rgbi[2]));
+                OIIO::print(outfile, "\033[48;5;{}m ",
+                            (0x10 + 36 * rgbi[0] + 6 * rgbi[1] + rgbi[2]));
             }
-            print(outfile, "{}\n", term.ansi("default"));
+            OIIO::print(outfile, "{}\n", term.ansi("default"));
         }
     }
 

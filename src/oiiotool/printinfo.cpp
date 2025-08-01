@@ -174,7 +174,7 @@ dump_data(std::ostream& out, ImageInput* input,
         // Special handling of deep data
         DeepData dd;
         if (!input->read_native_deep_image(subimage, 0, dd)) {
-            print(out, "    dump data: could not read image\n");
+            OIIO::print(out, "    dump data: could not read image\n");
             return;
         }
         int nc = spec.nchannels;
@@ -184,27 +184,28 @@ dump_data(std::ostream& out, ImageInput* input,
                     int nsamples = dd.samples(pixel);
                     if (nsamples == 0 && !opt.dumpdata_showempty)
                         continue;
-                    print(out, "    Pixel (");
+                    OIIO::print(out, "    Pixel (");
                     if (spec.depth > 1 || spec.z != 0)
-                        print(out, "{}, {}, {}", x + spec.x, y + spec.y,
-                              z + spec.z);
+                        OIIO::print(out, "{}, {}, {}", x + spec.x, y + spec.y,
+                                    z + spec.z);
                     else
-                        print(out, "{}, {}", x + spec.x, y + spec.y);
-                    print(out, "): {} samples {}", nsamples,
-                          nsamples ? ":" : "");
+                        OIIO::print(out, "{}, {}", x + spec.x, y + spec.y);
+                    OIIO::print(out, "): {} samples {}", nsamples,
+                                nsamples ? ":" : "");
                     for (int s = 0; s < nsamples; ++s) {
                         if (s)
-                            print(out, " / ");
+                            OIIO::print(out, " / ");
                         for (int c = 0; c < nc; ++c) {
-                            print(out, " {}=", spec.channel_name(c));
+                            OIIO::print(out, " {}=", spec.channel_name(c));
                             if (dd.channeltype(c) == TypeDesc::UINT)
-                                print(out, "{}",
-                                      dd.deep_value_uint(pixel, c, s));
+                                OIIO::print(out, "{}",
+                                            dd.deep_value_uint(pixel, c, s));
                             else
-                                print(out, "{}", dd.deep_value(pixel, c, s));
+                                OIIO::print(out, "{}",
+                                            dd.deep_value(pixel, c, s));
                         }
                     }
-                    print(out, "\n");
+                    OIIO::print(out, "\n");
                 }
             }
         }
