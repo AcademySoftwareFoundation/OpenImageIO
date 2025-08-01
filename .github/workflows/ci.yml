@@ -374,13 +374,15 @@ jobs:
           - desc: ABI check
             nametag: abi-check
             runner: ubuntu-latest
-            container: aswf/ci-osl:2024-clang17
+            container: aswf/ci-oiio:2025
             build_type: RelWithDebInfo
+            fmt_ver: 11.1.4
             python_ver: "3.11"
+            pybind11_ver: v3.0.0
             simd: "avx2,f16c"
             skip_tests: 1
             # abi_check: v3.1.3.0
-            abi_check: 488dfb240884fcb58c889f340c869c2226ca2a28
+            abi_check: e36031ce4e5e87bdc4dafc6cd611ef6f986882d2
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
 
