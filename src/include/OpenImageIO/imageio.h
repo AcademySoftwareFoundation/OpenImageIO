@@ -4191,6 +4191,7 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
 
+
 /// Are the two named color spaces equivalent, based on the default color
 /// config in effect?
 ///

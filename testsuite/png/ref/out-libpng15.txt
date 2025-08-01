@@ -94,11 +94,6 @@ cicp:
   16 x   16, 4 channel, float png
     channel list: R, G, B, A
     oiio:ColorSpace: "sRGB"
-modified_cicp:
-  16 x   16, 4 channel, float png
-    channel list: R, G, B, A
-    CICP: 0, 0, 0, 0
-    oiio:ColorSpace: "sRGB"
 removed_cicp:
   16 x   16, 4 channel, float png
     channel list: R, G, B, A
