@@ -1,5 +1,20 @@
-Release 3.0.9.0 (Aug 1?, 2025) -- compared to 3.0.8.1
+Release 3.0.9.0 (Aug 1, 2025) -- compared to 3.0.8.1
 -----------------------------------------------------
+  - *maketx*: Add flags to increase feature parity with txmake [#4841](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4841) (by Scott Milner)
+  - *perf*: Speed up `maketx --envlatl` when multithreaded by over 10x. [#4825](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4825)
+  - *perf*: Speed up OpenEXR non-core header read time [#4832](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4832)
+  - *oiiotool*: Allow thread control for --parallel-frames [#4818](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4818)
+  - *ImageInput*: Incorrect IOProxy logic related to valid_file [#4839](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4839)
+  - *python*: Got strides wrong passing 2D numpy pixel array [#4843](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4843)
+  - *ffmpeg*: Replace deprecated and soon removed avcodec_close with avcodec_free_context [#4837](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4837) (by Vlad Erium)
+  - *build/python*: For python stub generation, lock pybind11 to pre-3.0 [#4831](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4831)
+  - *build*: Fix typo related to finding ccache [#4833](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4833)
+  - *build*: PNG auto-build improvements [#4835](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4835)
+  - *build*: Propagate CMAKE_MSVC_RUNTIME_LIBRARY [#4842](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4842)
+  - *build*: Update jpeg2000input.cpp to include cstdarg [#4836](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4836) (by Peter Kovář)
+  - *ci*: Bump 'latest releases' tests to use pybind11 3.0.0 [#4828](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4828)
+  - *(docs)*: Correct docs and type of "resident_memory_used_MB" attribute [#4824](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4824)
+  - *(admin)*: Update SECURITY to reflect that 2.5 only gets critical fixes now [#4829](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4829)
 
 
 Release 3.0.8.1 (Jul 5, 2025) -- compared to 3.0.8.0
