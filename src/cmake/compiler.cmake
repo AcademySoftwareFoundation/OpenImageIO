@@ -663,6 +663,17 @@ endif ()
 
 
 ###########################################################################
+# Windows: which MSVC runtime library should we use (to override default)?
+# Note that all dependencies need the same choice. We leave this as the
+# default, but allow it to be set by the environment if not explicit, which
+# the built-in CMAKE_MSVC_RUNTIME_LIBRARY does not do on its own.
+#
+if (WIN32)
+    set_from_env (CMAKE_MSVC_RUNTIME_LIBRARY)
+endif ()
+
+
+###########################################################################
 # Any extra logic to be run only for CI builds goes here.
 # We expect our own CI runs to define env variable ${PROJECT_NAME}_CI
 #
