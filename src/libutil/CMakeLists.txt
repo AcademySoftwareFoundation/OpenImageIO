@@ -9,7 +9,7 @@ set (libOpenImageIO_Util_srcs argparse.cpp benchmark.cpp
                   strutil.cpp sysutil.cpp thread.cpp timer.cpp
                   typedesc.cpp ustring.cpp xxhash.cpp)
 
-if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 9.0)
+if (CMAKE_COMPILER_IS_GNUCC)
     set_property (SOURCE SHA1.cpp
                   APPEND PROPERTY COMPILE_OPTIONS -Wno-stringop-truncation)
 endif ()
