@@ -387,7 +387,9 @@ jobs:
             runner: ubuntu-latest
             container: aswf/ci-oiio:2024.2
             build_type: RelWithDebInfo
+            fmt_ver: 11.1.4
             python_ver: "3.11"
+            pybind11_ver: v3.0.0
             simd: "avx2,f16c"
             skip_tests: 1
             # abi_check: v2.6.2.0
