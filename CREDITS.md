@@ -209,6 +209,7 @@ lg@openimageio.org
 * Saket Jalan
 * Sam Richards
 * Samuel Nicholas
+* Scott Milner
 * Scott Wilson
 * Sebastian Elsner
 * SebTV
