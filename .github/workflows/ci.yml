@@ -47,36 +47,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: VP2021 gcc9/C++17 py3.7 exr3.1 ocio2.0
-            nametag: linux-vfx2021
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2021
-            vfxyear: 2021
-            old_node: 1
-            cxx_std: 17
-            openexr_ver: v3.1.13
-            python_ver: 3.7
-            simd: "avx2,f16c"
-            fmt_ver: 7.1.0
-            pybind11_ver: v2.7.0
-            setenvs: export PUGIXML_VERSION=v1.9 WEBP_VERSION=v1.1.0 USE_OPENVDB=0
-                            FREETYPE_VERSION=VER-2-10-0
-          - desc: VP2021 clang10/C++17 avx2 exr3.1 ocio2.0
-            nametag: linux-vfx2021.clang10.cpp14
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2021-clang10
-            vfxyear: 2021
-            old_node: 1
-            cc_compiler: clang
-            cxx_compiler: clang++
-            cxx_std: 17
-            openexr_ver: v3.1.13
-            pybind11_ver: v2.7.0
-            python_ver: 3.7
-            simd: "avx2,f16c"
-            fmt_ver: 8.1.1
-            setenvs: export USE_OPENVDB=0
-                            FREETYPE_VERSION=VER-2-11-0
           - desc: VP2022 gcc9/C++17 py39 exr3.1 ocio2.1
             nametag: linux-vfx2022
             runner: ubuntu-latest
@@ -103,39 +73,39 @@ jobs:
             fmt_ver: 9.1.0
             pybind11_ver: v2.8.1
             setenvs: export FREETYPE_VERSION=VER-2-12-0
-          - desc: oldest gcc9.3/C++17 py3.7 exr-3.1
+          - desc: oldest gcc9.3/C++17 py3.9 exr-3.1
             # Oldest versions of the dependencies that we support.
             nametag: linux-oldest
             runner: ubuntu-latest
-            container: aswf/ci-osl:2021
-            vfxyear: 2021
+            container: aswf/ci-osl:2022
+            vfxyear: 2022
             old_node: 1
             cxx_std: 17
             fmt_ver: 7.0.1
             opencolorio_ver: v2.2.1
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
-            python_ver: 3.7
+            python_ver: 3.9
             setenvs: export  CMAKE_VERSION=3.18.2
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              PUGIXML_VERSION=v1.8
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
-          - desc: hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse
+          - desc: hobbled gcc9.3/C++17 py3.9 exr-3.1 no-sse
             # Use the oldest supported versions of required dependencies, and
             # disable most optional dependencies and features (no SSE or
             # OpenCV, don't embed plugins).
             nametag: linux-disabled
             runner: ubuntu-latest
-            container: aswf/ci-osl:2021
-            vfxyear: 2021
+            container: aswf/ci-osl:2022
+            vfxyear: 2022
             old_node: 1
             cxx_std: 17
             fmt_ver: 7.0.1
             opencolorio_ver: v2.2.1
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
-            python_ver: 3.7
+            python_ver: 3.9
             simd: 0
             setenvs: export  EMBEDPLUGINS=0
                              CMAKE_VERSION=3.18.2
