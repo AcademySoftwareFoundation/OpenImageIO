@@ -49,7 +49,7 @@ oiiotool = "OpenImageIO:_command_line"
 build-backend = "scikit_build_core.build"
 requires = [
     "scikit-build-core>=0.10.6,<1",
-    "pybind11",
+    "pybind11>=2.13,<3",
 ]
 
 [tool.scikit-build]
@@ -123,3 +123,30 @@ SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
 [tool.cibuildwheel.windows.environment]
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
+
+[[tool.cibuildwheel.overrides]]
+# Trigger the build & validation of the python stubs for certain platforms.
+# The test command acts as a kind of "post-build" callback where it's possible
+# for the stub-generator to import the freshly-built wheel.
+# There are two entry-points which are designed to call generate_stubs.py through
+# this test command:
+# - `make pystubs` is called during local development to generate the
+#   stubs and copy them into the git repo to be committed and reviewed.
+# - in CI, the cibuildwheel action is used to validate that the stubs match what
+#   has been committed to the repo.
+test-requires = "mypy~=1.15.0 stubgenlib~=0.1.0"
+# Note: the python version here must be kept in sync with src/python/stubs/CMakeLists.txt
+select = "cp311-manylinux_*64"
+inherit.test-command = "append"
+test-command = [
+    "python {project}/src/python/stubs/generate_stubs.py --out-path '/output' --validate-path '{project}/src/python/stubs/OpenImageIO/__init__.pyi'",
+]
+
+[tool.mypy]
+files = [
+    "testsuite/python-*/src/",
+]
+mypy_path = [
+    "src/python/stubs",
+]
+check_untyped_defs = true

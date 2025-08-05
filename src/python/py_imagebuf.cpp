@@ -6,6 +6,7 @@
 
 #include <memory>
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/platform.h>
 
 
@@ -67,10 +68,11 @@ ImageBuf_from_buffer(const py::buffer& buffer)
     spec.depth      = depth;
     spec.full_depth = depth;
     ib.reset(spec, InitializePixels::No);
-    auto bufspan = cspan_from_buffer(info.ptr, format, nchans, width, height,
-                                     depth, xstride, ystride, zstride);
-    ib.set_pixels(get_roi(spec), format, bufspan, nullptr, xstride, ystride,
-                  zstride);
+    image_span<const std::byte> bufspan(reinterpret_cast<std::byte*>(info.ptr),
+                                        nchans, width, height, depth,
+                                        format.size(), xstride, ystride,
+                                        zstride, format.size());
+    ib.set_pixels(get_roi(spec), format, bufspan);
     return ib;
 }
 
@@ -250,6 +252,35 @@ ImageBuf_set_write_format(ImageBuf& self, const py::object& py_channelformats)
 
 
 
+py::bytes
+ImageBuf_repr_png(const ImageBuf& self)
+{
+    ImageSpec original_spec = self.spec();
+
+    if (original_spec.width < 1 || original_spec.height < 1) {
+        return py::bytes();
+    }
+
+    // Alter the spec to make sure it dithers when outputting to 8 bit PNG
+    ImageSpec altered_spec = original_spec;
+    altered_spec.attribute("oiio:dither", 1);
+
+    std::vector<unsigned char> file_buffer;         // bytes will go here
+    Filesystem::IOVecOutput file_vec(file_buffer);  // I/O proxy object
+
+    std::unique_ptr<ImageOutput> out = ImageOutput::create("temp.png",
+                                                           &file_vec);
+    out->open("temp.png", altered_spec);
+    self.write(out.get());
+    out->close();
+
+    // Cast to const char* and return as python bytes
+    const char* char_ptr = reinterpret_cast<const char*>(file_buffer.data());
+    return py::bytes(char_ptr, file_buffer.size());
+}
+
+
+
 void
 declare_imagebuf(py::module& m)
 {
@@ -310,7 +341,7 @@ declare_imagebuf(py::module& m)
             [](ImageBuf& self, std::string filename, int subimage,
                int miplevel) {
                 py::gil_scoped_release gil;
-                self.init_spec(filename, subimage, miplevel);
+                return self.init_spec(filename, subimage, miplevel);
             },
             "filename"_a, "subimage"_a = 0, "miplevel"_a = 0)
         .def(
@@ -491,6 +522,7 @@ declare_imagebuf(py::module& m)
         .def(
             "deepdata", [](ImageBuf& self) { return *self.deepdata(); },
             py::return_value_policy::reference_internal)
+        .def("_repr_png_", &ImageBuf_repr_png)
 
         // FIXME -- do we want to provide pixel iterators?
         ;

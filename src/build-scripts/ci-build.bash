@@ -37,7 +37,7 @@ cmake -S $OIIO_SRC_DIR -B $OIIO_BUILD_DIR -G "$CMAKE_GENERATOR" \
         -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
         -DCMAKE_INSTALL_PREFIX="$OpenImageIO_ROOT" \
         -DPYTHON_VERSION="$PYTHON_VERSION" \
-        -DCMAKE_INSTALL_LIBDIR="$OpenImageIO_ROOT/lib" \
+        -DCMAKE_INSTALL_LIBDIR="lib" \
         -DCMAKE_CXX_STANDARD="$CMAKE_CXX_STANDARD" \
         -DOIIO_DOWNLOAD_MISSING_TESTDATA=ON \
         -DEXTRA_CPP_ARGS="${OIIO_EXTRA_CPP_ARGS}" \
@@ -54,6 +54,7 @@ if [[ "$BUILDTARGET" != "none" ]] ; then
         echo "Using build wrapper '${OIIO_CMAKE_BUILD_WRAPPER}'"
     fi
     time ${OIIO_CMAKE_BUILD_WRAPPER} cmake --build ${OIIO_BUILD_DIR} --target ${BUILDTARGET} --config ${CMAKE_BUILD_TYPE}
+   ccache --show-stats || true
 fi
 # popd
 

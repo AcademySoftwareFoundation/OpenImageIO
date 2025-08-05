@@ -315,18 +315,20 @@ public:
     /// in some cases retrieve) options that control the overall behavior of
     /// the image cache:
 
-    /// Set a named attribute (i.e., a property or option) of the
-    /// ImageCache.
+    /// Set a named attribute (i.e., a property or option) of the ImageCache.
+    /// The `value` span specifies the data to be copied. The data type and
+    /// total size of `value` must match the `type` (if not, an assertion will
+    /// be thrown for debug builds).
     ///
     /// Example:
     ///
     ///     ImageCache *ic;
     ///     ...
     ///     int maxfiles = 50;
-    ///     ic->attribute ("max_open_files", TypeDesc::INT, &maxfiles);
+    ///     ic->attribute ("max_open_files", TypeInt, make_cspan(maxfiles));
     ///
     ///     const char *path = "/my/path";
-    ///     ic->attribute ("searchpath", TypeDesc::STRING, &path);
+    ///     ic->attribute ("searchpath", TypeString, make_cspan(&path, 1));
     ///
     ///     // There are specialized versions for setting a single int,
     ///     // float, or string without needing types or pointers:
@@ -342,13 +344,35 @@ public:
     ///
     /// @param  name    Name of the attribute to set.
     /// @param  type    TypeDesc describing the type of the attribute.
-    /// @param  val     Pointer to the value data.
+    /// @param  value   Span providing the value data.
     /// @returns        `true` if the name and type were recognized and the
     ///                 attribute was set, or `false` upon failure
     ///                 (including it being an unrecognized attribute or not
     ///                 of the correct type).
     ///
-    bool attribute(string_view name, TypeDesc type, const void* val);
+    /// @version 3.1
+    template<typename T>
+    bool attribute(string_view name, TypeDesc type, span<T> value)
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        return attribute(name, type, OIIO::as_bytes(value));
+    }
+
+    /// A version of `attribute()` that takes its value from a span of untyped
+    /// bytes. The total size of `value` must match the `type` (if not, an
+    /// assertion will be thrown for debug builds of OIIO, an error will be
+    /// printed for release builds).
+    ///
+    /// @version 3.1
+    bool attribute(string_view name, TypeDesc type, cspan<std::byte> value);
+
+    /// A version of `attribute()` where the `value` is only a pointer
+    /// specifying the beginning of the memory where the value should be
+    /// copied from. This is "unsafe" in the sense that there is no assurance
+    /// that it points to a sufficient amount of memory, so the span-based
+    /// versions of `attribute()` preferred.
+    bool attribute(string_view name, TypeDesc type, const void* value);
 
     /// Specialized `attribute()` for setting a single `int` value.
     bool attribute(string_view name, int val)
@@ -402,12 +426,34 @@ public:
     ///
     /// @param  name    Name of the attribute to retrieve.
     /// @param  type    TypeDesc describing the type of the attribute.
-    /// @param  val     Pointer where the attribute value should be stored.
+    /// @param  value   Pointer where the attribute value should be stored.
     /// @returns        `true` if the name and type were recognized and the
     ///                 attribute was retrieved, or `false` upon failure
     ///                 (including it being an unrecognized attribute or not
     ///                 of the correct type).
-    bool getattribute(string_view name, TypeDesc type, void* val) const;
+    template<typename T>
+    bool getattribute(string_view name, TypeDesc type, span<T> value) const
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        return getattribute(name, type, OIIO::as_writable_bytes(value));
+    }
+
+    /// A version of `getattribute()` that stores the value in a span of
+    /// untyped bytes. The total size of `value` must match the `type` (if
+    /// not, an assertion will be thrown for debug OIIO builds, an error will
+    /// be printed for release builds).
+    ///
+    /// @version 3.1
+    bool getattribute(string_view name, TypeDesc type,
+                      span<std::byte> value) const;
+
+    /// A version of `getattribute()` where the `value` is only a pointer
+    /// specifying the beginning of the memory where the value should be
+    /// copied. This is "unsafe" in the sense that there is no assurance that
+    /// it points to a sufficient amount of memory, so the span-based versions
+    /// of `getattribute()` preferred.
+    bool getattribute(string_view name, TypeDesc type, void* value) const;
 
     /// Specialized `attribute()` for retrieving a single `int` value.
     bool getattribute(string_view name, int& val) const
@@ -872,6 +918,139 @@ public:
     /// @{
     /// @name   Getting Pixels
 
+    /// For an image specified by name, retrieve the rectangle of pixels from
+    /// the designated subimage and MIP level, storing the pixel values in the
+    /// memory layout specified by `result`.  The pixel values will be
+    /// converted to the data type specified by `format`. The rectangular
+    /// region to be retrieved, specified by `roi`, includes `begin` but does
+    /// not include `end` (much like STL begin/end usage). Requested pixels
+    /// that are not part of the valid pixel data region of the image file
+    /// will be filled with zero values.
+    ///
+    /// @param  filename
+    ///             The name of the image, as a UTF-8 encoded ustring.
+    /// @param  subimage/miplevel
+    ///             The subimage and MIP level to retrieve pixels from.
+    /// @param  roi
+    ///             The range of pixels and channels to retrieve. The pixels
+    ///             retrieved include the begin values but not the end values
+    ///             (much like STL begin/end usage).
+    /// @param  format
+    ///             TypeDesc describing the data type of the values you want
+    ///             to retrieve into `result`. The pixel values will be
+    ///             converted to this type regardless of how they were
+    ///             stored in the cache.
+    /// @param  result
+    ///             An `image_span` describing the memory layout where the
+    ///             pixel values should be  stored, including bounds and
+    ///             strides for each dimension.
+    /// @param  cache_chbegin/cache_chend
+    ///             These parameters can be used to tell the ImageCache to
+    ///             read and cache a subset of channels (if not specified or
+    ///             if they denote a non-positive range, all the channels of
+    ///             the file will be stored in the cached tile).
+    /// @returns    `true` upon success, or `false` upon failure.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    ///
+    bool get_pixels(ustring filename, int subimage, int miplevel,
+                    const ROI& roi, TypeDesc format,
+                    const image_span<std::byte>& result, int cache_chbegin = 0,
+                    int cache_chend = -1);
+    /// A more efficient variety of `get_pixels()` for cases where you can use
+    /// an `ImageHandle*` to specify the image and optionally have a
+    /// `Perthread*` for the calling thread.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    bool get_pixels(ImageHandle* file, Perthread* thread_info, int subimage,
+                    int miplevel, const ROI& roi, TypeDesc format,
+                    const image_span<std::byte>& result, int cache_chbegin = 0,
+                    int cache_chend = -1);
+
+    /// A version of `get_pixels()` taking an `image_span<T>`, where the type
+    /// of the underlying data is `T`.  This is a convenience wrapper around
+    /// the `get_pixels()` that takes an `image_span<std::byte>`.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    template<typename T>
+    bool get_pixels(ustring filename, int subimage, int miplevel,
+                    const ROI& roi, const image_span<T>& result,
+                    int cache_chbegin = 0, int cache_chend = -1)
+    {
+        static_assert(!std::is_const_v<T>,
+                      "get_pixels() does not accept image_span<const T>");
+        return get_pixels(filename, subimage, miplevel, roi,
+                          TypeDescFromC<T>::value(),
+                          as_image_span_writable_bytes(result), cache_chbegin,
+                          cache_chend);
+    }
+    /// A more efficient variety of `get_pixels()` taking an `image_span<T>`,
+    /// for cases where you can use an `ImageHandle*` to specify the image and
+    /// optionally have a `Perthread*` for the calling thread.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    template<typename T>
+    bool get_pixels(ImageHandle* file, Perthread* thread_info, int subimage,
+                    int miplevel, const ROI& roi, const image_span<T>& result,
+                    int cache_chbegin = 0, int cache_chend = -1)
+    {
+        static_assert(!std::is_const_v<T>,
+                      "get_pixels() does not accept image_span<const T>");
+        return get_pixels(file, thread_info, subimage, miplevel, roi,
+                          TypeDescFromC<T>::value(),
+                          as_image_span_writable_bytes(result), cache_chbegin,
+                          cache_chend);
+    }
+
+    /// A version of `get_pixels()` taking a `span<T>`, which assumes
+    /// contiguous strides in all dimensions. This is a convenience wrapper
+    /// around the `get_pixels()` that takes an `image_span<T>`.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    template<typename T>
+    bool get_pixels(ImageHandle* file, Perthread* thread_info, int subimage,
+                    int miplevel, const ROI& roi, const span<T>& result,
+                    int cache_chbegin = 0, int cache_chend = -1)
+    {
+        static_assert(!std::is_const_v<T>,
+                      "get_pixels() does not accept span<const T>");
+        auto ispan = image_span<T>(result.data(), roi.nchannels(), roi.width(),
+                                   roi.height(), roi.depth());
+        OIIO_DASSERT(result.size_bytes() == ispan.size_bytes()
+                     && ispan.is_contiguous());
+        return get_pixels(file, thread_info, subimage, miplevel, roi,
+                          TypeDescFromC<T>::value(),
+                          as_image_span_writable_bytes(result), cache_chbegin,
+                          cache_chend);
+    }
+    /// A more efficient variety of `get_pixels()` taking a `span<T>`, for
+    /// cases where you can use an `ImageHandle*` to specify the image and
+    /// optionally have a `Perthread*` for the calling thread.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    template<typename T>
+    bool get_pixels(ustring filename, int subimage, int miplevel,
+                    const ROI& roi, const span<T>& result,
+                    int cache_chbegin = 0, int cache_chend = -1)
+    {
+        static_assert(!std::is_const_v<T>,
+                      "get_pixels() does not accept span<const T>");
+        auto ispan = image_span<T>(result.data(), roi.nchannels(), roi.width(),
+                                   roi.height(), roi.depth());
+        OIIO_DASSERT(result.size_bytes() == ispan.size_bytes()
+                     && ispan.is_contiguous());
+        return get_pixels(filename, subimage, miplevel, roi,
+                          TypeDescFromC<T>::value(),
+                          as_image_span_writable_bytes(result), cache_chbegin,
+                          cache_chend);
+    }
+
     /// For an image specified by name, retrieve the rectangle of pixels
     /// from the designated subimage and MIP level, storing the pixel values
     /// beginning at the address specified by `result` and with the given
@@ -880,6 +1059,10 @@ public:
     /// includes `begin` but does not include `end` (much like STL begin/end
     /// usage). Requested pixels that are not part of the valid pixel data
     /// region of the image file will be filled with zero values.
+    ///
+    /// These pointer-based versions are considered "soft-deprecated" in
+    /// OpenImageIO 3.1, will be marked/warned as deprecated in 3.2, and will
+    /// be removed in 4.0.
     ///
     /// @param  filename
     ///             The name of the image, as a UTF-8 encoded ustring.
@@ -926,6 +1109,10 @@ public:
     /// A more efficient variety of `get_pixels()` for cases where you can
     /// use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
+    ///
+    /// These pointer-based versions are considered "soft-deprecated" in
+    /// OpenImageIO 3.1, will be marked/warned as deprecated in 3.2, and will
+    /// be removed in 4.0.
     bool get_pixels(ImageHandle* file, Perthread* thread_info, int subimage,
                     int miplevel, int xbegin, int xend, int ybegin, int yend,
                     int zbegin, int zend, int chbegin, int chend,
@@ -937,15 +1124,24 @@ public:
 
     /// A simplified `get_pixels()` where all channels are retrieved,
     /// strides are assumed to be contiguous.
+    ///
+    /// These pointer-based versions are considered "soft-deprecated" in
+    /// OpenImageIO 3.1, will be marked/warned as deprecated in 3.2, and will
+    /// be removed in 4.0.
     bool get_pixels(ustring filename, int subimage, int miplevel, int xbegin,
                     int xend, int ybegin, int yend, int zbegin, int zend,
                     TypeDesc format, void* result);
     /// A more efficient variety of `get_pixels()` for cases where you can
     /// use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
+    ///
+    /// These pointer-based versions are considered "soft-deprecated" in
+    /// OpenImageIO 3.1, will be marked/warned as deprecated in 3.2, and will
+    /// be removed in 4.0.
     bool get_pixels(ImageHandle* file, Perthread* thread_info, int subimage,
                     int miplevel, int xbegin, int xend, int ybegin, int yend,
                     int zbegin, int zend, TypeDesc format, void* result);
+
     /// @}
 
     /// @{
@@ -1084,6 +1280,34 @@ public:
                   const void* buffer, stride_t xstride = AutoStride,
                   stride_t ystride = AutoStride, stride_t zstride = AutoStride,
                   bool copy = true);
+
+    /// Preemptively add a tile corresponding to the named image, at the given
+    /// subimage, MIP level, and channel range.  The tile added is the one
+    /// whose corner is (x,y,z), and buffer points to the pixels (in the given
+    /// format) which will be copied and inserted into the cache and made
+    /// available for future lookups. If chend < chbegin, it will add a tile
+    /// containing the full set of channels for the image. Note that if the
+    /// 'copy' flag is false, the data is assumed to be in some kind of
+    /// persistent storage and will not be copied, nor will its pixels take up
+    /// additional memory in the cache.
+    bool add_tile(ustring filename, int subimage, int miplevel, int x, int y,
+                  int z, int chbegin, int chend, TypeDesc format,
+                  const image_span<const std::byte>& buffer, bool copy = true);
+
+    /// A version of `add_tile()` taking an `image_span<T>`, where the type of
+    /// the underlying data is `T`.  This is a convenience wrapper around the
+    /// `add_tile()` that takes an `image_span<std::byte>`.
+    template<typename T>
+    bool add_tile(ustring filename, int subimage, int miplevel, int x, int y,
+                  int z, int chbegin, int chend, const image_span<T>& buffer,
+                  bool copy = true)
+    {
+        static_assert(!std::is_const_v<T>,
+                      "add_tile() does not accept image_span<const T>");
+        return add_tile(filename, subimage, miplevel, x, y, z, chbegin, chend,
+                        TypeDescFromC<T>::value(), as_image_span_bytes(buffer),
+                        copy);
+    }
 
     /// @}
 

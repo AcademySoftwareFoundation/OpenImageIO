@@ -19,18 +19,14 @@
 #    define FMT_EXCEPTIONS 0
 #endif
 
+#if OIIO_VERSION_LESS(3, 1, 2)
+/* DEPRECATED -- remove at next ABI compatibility boundary */
 OIIO_NAMESPACE_BEGIN
 namespace pvt {
 OIIO_UTIL_API void
 log_fmt_error(const char* message);
 };
 OIIO_NAMESPACE_END
-
-// Redefining FMT_THROW to print and log the error. This should only occur if
-// we've made a mistake and mismatched a format string and its arguments.
-// Hopefully this will help us track it down.
-#if !defined(FMT_THROW) && !FMT_EXCEPTIONS
-#    define FMT_THROW(x) OIIO::pvt::log_fmt_error((x).what())
 #endif
 
 // Use the grisu fast floating point formatting for old fmt versions
@@ -67,12 +63,6 @@ OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_CLANG_VERSION >= 180000
 #    pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
-#if OIIO_CLANG_VERSION || OIIO_APPLE_CLANG_VERSION
-#    pragma clang diagnostic ignored "-Winvalid-noreturn"
-#endif
-// #if OIIO_GNUC_VERSION
-// #    pragma gcc diagnostic ignored "-Winvalid-noreturn"
-// #endif
 
 #include <OpenImageIO/detail/fmt/format.h>
 #include <OpenImageIO/detail/fmt/ostream.h>

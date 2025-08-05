@@ -38,6 +38,7 @@ class ImageOutput::Impl {
 public:
     Impl()
         : m_id(++output_next_id)
+        , m_threads(pvt::oiio_threads)
     {
     }
 
@@ -111,6 +112,28 @@ ImageOutput::write_scanline(int /*y*/, int /*z*/, TypeDesc /*format*/,
 
 
 bool
+ImageOutput::write_scanline(int y, TypeDesc format,
+                            const image_span<const std::byte>& data)
+{
+    if (y < 0 || y >= m_spec.height) {
+        errorfmt("write_scanlines: Invalid scanline index {}", y);
+        return false;
+    }
+    size_t sz = m_spec.scanline_bytes(format);
+    if (sz != data.size_bytes()) {
+        errorfmt(
+            "write_scanline: Buffer size is incorrect ({} bytes vs {} needed)",
+            sz, data.size_bytes());
+        return false;
+    }
+
+    // Default implementation (for now): call the old pointer+stride
+    return write_scanline(y, 0, format, data.data(), data.xstride());
+}
+
+
+
+bool
 ImageOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                              const void* data, stride_t xstride,
                              stride_t ystride)
@@ -133,12 +156,56 @@ ImageOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
 
 bool
+ImageOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
+                             const image_span<const std::byte>& data)
+{
+    if (ybegin < 0 || yend > m_spec.height || ybegin >= yend) {
+        errorfmt("write_scanlines: Invalid scanline range {}-{}", ybegin, yend);
+        return false;
+    }
+    size_t sz = m_spec.scanline_bytes(format) * size_t(yend - ybegin);
+    if (sz != data.size_bytes()) {
+        errorfmt(
+            "write_scanlines: Buffer size is incorrect ({} bytes vs {} needed)",
+            sz, data.size_bytes());
+        return false;
+    }
+
+    // Default implementation (for now): call the old pointer+stride
+    return write_scanlines(ybegin, yend, 0, format, data.data(), data.xstride(),
+                           data.ystride());
+}
+
+
+
+bool
 ImageOutput::write_tile(int /*x*/, int /*y*/, int /*z*/, TypeDesc /*format*/,
                         const void* /*data*/, stride_t /*xstride*/,
                         stride_t /*ystride*/, stride_t /*zstride*/)
 {
     // Default implementation: don't know how to write tiles
     return false;
+}
+
+
+
+bool
+ImageOutput::write_tile(int x, int y, int z, TypeDesc format,
+                        const image_span<const std::byte>& data)
+{
+    size_t sz = format == TypeUnknown
+                    ? m_spec.pixel_bytes(true /*native*/)
+                    : m_spec.tile_pixels() * size_t(m_spec.nchannels)
+                          * format.size();
+    if (sz != data.size_bytes()) {
+        errorfmt("write_tile: Buffer size is incorrect ({} bytes vs {} needed)",
+                 sz, data.size_bytes());
+        return false;
+    }
+
+    // Default implementation (for now): call the old pointer+stride
+    return write_tile(x, y, z, format, data.data(), data.xstride(),
+                      data.ystride(), data.zstride());
 }
 
 
@@ -203,11 +270,35 @@ ImageOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 
 
 bool
+ImageOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                         int zend, TypeDesc format,
+                         const image_span<const std::byte>& data)
+{
+    // Default implementation (for now): call the old pointer+stride
+    return write_tiles(xbegin, xend, ybegin, yend, zbegin, zend, format,
+                       data.data(), data.xstride(), data.ystride(),
+                       data.zstride());
+}
+
+
+
+bool
 ImageOutput::write_rectangle(int /*xbegin*/, int /*xend*/, int /*ybegin*/,
                              int /*yend*/, int /*zbegin*/, int /*zend*/,
                              TypeDesc /*format*/, const void* /*data*/,
                              stride_t /*xstride*/, stride_t /*ystride*/,
                              stride_t /*zstride*/)
+{
+    return false;
+}
+
+
+
+bool
+ImageOutput::write_rectangle(int /*xbegin*/, int /*xend*/, int /*ybegin*/,
+                             int /*yend*/, int /*zbegin*/, int /*zend*/,
+                             TypeDesc /*format*/,
+                             const image_span<const std::byte>& /*data*/)
 {
     return false;
 }
@@ -481,6 +572,28 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
 
 
 
+cspan<std::byte>
+ImageOutput::to_native(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                       int zend, TypeDesc format,
+                       const image_span<const std::byte>& data,
+                       std::vector<unsigned char>& scratch, unsigned int dither,
+                       int xorigin, int yorigin, int zorigin)
+{
+    // Eventually, we will make a fully safe, span-native implementation of
+    // this function. For now, we will just call the old version for the
+    // heavy lifting.
+    auto ptr = ImageOutput::to_native_rectangle(xbegin, xend, ybegin, yend,
+                                                zbegin, zend, format,
+                                                data.data(), data.xstride(),
+                                                data.ystride(), data.zstride(),
+                                                scratch, dither, xorigin,
+                                                yorigin, zorigin);
+    return cspan<std::byte>(reinterpret_cast<const std::byte*>(ptr),
+                            m_spec.pixel_bytes(true) * data.npixels());
+}
+
+
+
 bool
 ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
                          stride_t ystride, stride_t zstride,
@@ -569,6 +682,24 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
         progress_callback(progress_callback_data, 1.0f);
 
     return ok;
+}
+
+
+
+bool
+ImageOutput::write_image(TypeDesc format,
+                         const image_span<const std::byte>& data)
+{
+    size_t sz = m_spec.image_bytes(/*native=*/format == TypeUnknown);
+    if (sz != data.size_bytes()) {
+        errorfmt("write_image: Buffer size is incorrect ({} bytes vs {} needed)",
+                 sz, data.size_bytes());
+        return false;
+    }
+
+    // Default implementation (for now): call the old pointer+stride
+    return write_image(format, data.data(), data.xstride(), data.ystride(),
+                       data.zstride());
 }
 
 
@@ -996,24 +1127,6 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
                 m_spec.y = 0;
                 m_spec.z = 0;
             }
-        }
-        if (m_spec.x < range.xbegin || m_spec.x + m_spec.width > range.xend
-            || m_spec.y < range.ybegin || m_spec.y + m_spec.height > range.yend
-            || m_spec.z < range.zbegin
-            || m_spec.z + m_spec.depth > range.zend) {
-            if (m_spec.depth == 1)
-                errorfmt(
-                    "{} requested pixel data window [{}, {}) x [{}, {}) exceeds the allowable range of [{}, {}) x [{}, {})",
-                    format_name(), m_spec.x, m_spec.x + m_spec.width, m_spec.y,
-                    m_spec.y + m_spec.height, range.xbegin, range.xend,
-                    range.ybegin, range.yend);
-            else
-                errorfmt(
-                    "{} requested pixel data window [{}, {}) x [{}, {}) x [{}, {}) exceeds the allowable range of [{}, {}) x [{}, {}) x [{}, {})\n{} vs {}\n",
-                    format_name(), m_spec.x, m_spec.x + m_spec.width, m_spec.y,
-                    m_spec.y + m_spec.height, m_spec.z, m_spec.z + m_spec.depth,
-                    range.xbegin, range.xend, range.ybegin, range.yend,
-                    range.zbegin, range.zend);
         }
     }
 

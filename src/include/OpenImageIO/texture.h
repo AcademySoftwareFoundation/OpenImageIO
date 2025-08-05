@@ -559,16 +559,16 @@ public:
     ///     TextureSystem *ts;
     ///     ...
     ///     int maxfiles = 50;
-    ///     ts->attribute ("max_open_files", TypeDesc::INT, &maxfiles);
+    ///     ts->attribute ("max_open_files", TypeDesc::INT, make_cspan(maxfiles));
     ///
     ///     const char *path = "/my/path";
-    ///     ts->attribute ("searchpath", TypeDesc::STRING, &path);
+    ///     ts->attribute ("searchpath", TypeDesc::STRING, make_cspan(&path, 1));
     ///
     ///     // There are specialized versions for retrieving a single int,
     ///     // float, or string without needing types or pointers:
-    ///     ts->getattribute ("max_open_files", 50);
-    ///     ic->attribute ("max_memory_MB", 4000.0f);
-    ///     ic->attribute ("searchpath", "/my/path");
+    ///     ts->attribute ("max_open_files", 50);
+    ///     ts->attribute ("max_memory_MB", 4000.0f);
+    ///     ts->attribute ("searchpath", "/my/path");
     ///
     /// Note: When passing a string, you need to pass a pointer to the
     /// `char*`, not a pointer to the first character.  (Rationale: for an
@@ -578,33 +578,55 @@ public:
     ///
     /// @param  name    Name of the attribute to set.
     /// @param  type    TypeDesc describing the type of the attribute.
-    /// @param  val     Pointer to the value data.
+    /// @param  value   Pointer to the value data.
     /// @returns        `true` if the name and type were recognized and the
     ///                 attribute was set, or `false` upon failure
     ///                 (including it being an unrecognized attribute or not
     ///                 of the correct type).
     ///
-    bool attribute(string_view name, TypeDesc type, const void* val);
+    /// @version 3.1
+    template<typename T>
+    bool attribute(string_view name, TypeDesc type, span<T> value)
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        return attribute(name, type, OIIO::as_bytes(value));
+    }
+
+    /// A version of `attribute()` that takes its value from a span of untyped
+    /// bytes. The total size of `value` must match the `type` (if not, an
+    /// assertion will be thrown for debug builds of OIIO, an error will be
+    /// printed for release builds).
+    ///
+    /// @version 3.1
+    bool attribute(string_view name, TypeDesc type, cspan<std::byte> value);
+
+    /// A version of `attribute()` where the `value` is only a pointer
+    /// specifying the beginning of the memory where the value should be
+    /// copied from. This is "unsafe" in the sense that there is no assurance
+    /// that it points to a sufficient amount of memory, so the span-based
+    /// versions of `attribute()` preferred.
+    bool attribute(string_view name, TypeDesc type, const void* value);
 
     /// Specialized `attribute()` for setting a single `int` value.
-    bool attribute(string_view name, int val)
+    bool attribute(string_view name, int value)
     {
-        return attribute(name, TypeInt, &val);
+        return attribute(name, TypeInt, &value);
     }
     /// Specialized `attribute()` for setting a single `float` value.
-    bool attribute(string_view name, float val)
+    bool attribute(string_view name, float value)
     {
-        return attribute(name, TypeFloat, &val);
+        return attribute(name, TypeFloat, &value);
     }
-    bool attribute(string_view name, double val)
+    bool attribute(string_view name, double value)
     {
-        float f = (float)val;
+        float f = (float)value;
         return attribute(name, TypeFloat, &f);
     }
     /// Specialized `attribute()` for setting a single string value.
-    bool attribute(string_view name, string_view val)
+    bool attribute(string_view name, string_view value)
     {
-        std::string valstr(val);
+        std::string valstr(value);
         const char* s = valstr.c_str();
         return attribute(name, TypeDesc::STRING, &s);
     }
@@ -638,45 +660,67 @@ public:
     ///
     /// @param  name    Name of the attribute to retrieve.
     /// @param  type    TypeDesc describing the type of the attribute.
-    /// @param  val     Pointer where the attribute value should be stored.
+    /// @param  value   Pointer where the attribute value should be stored.
     /// @returns        `true` if the name and type were recognized and the
     ///                 attribute was retrieved, or `false` upon failure
     ///                 (including it being an unrecognized attribute or not
     ///                 of the correct type).
-    bool getattribute(string_view name, TypeDesc type, void* val) const;
+    template<typename T>
+    bool getattribute(string_view name, TypeDesc type, span<T> value) const
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
+                     && type.size() == value.size_bytes());
+        return getattribute(name, type, OIIO::as_writable_bytes(value));
+    }
+
+    /// A version of `getattribute()` that stores the value in a span of
+    /// untyped bytes. The total size of `value` must match the `type` (if
+    /// not, an assertion will be thrown for debug OIIO builds, an error will
+    /// be printed for release builds).
+    ///
+    /// @version 3.1
+    bool getattribute(string_view name, TypeDesc type,
+                      span<std::byte> value) const;
+
+    /// A version of `getattribute()` where the `value` is only a pointer
+    /// specifying the beginning of the memory where the value should be
+    /// copied. This is "unsafe" in the sense that there is no assurance that
+    /// it points to a sufficient amount of memory, so the span-based versions
+    /// of `getattribute()` preferred.
+    bool getattribute(string_view name, TypeDesc type, void* value) const;
 
     /// Specialized `attribute()` for retrieving a single `int` value.
-    bool getattribute(string_view name, int& val) const
+    bool getattribute(string_view name, int& value) const
     {
-        return getattribute(name, TypeInt, &val);
+        return getattribute(name, TypeInt, &value);
     }
     /// Specialized `attribute()` for retrieving a single `float` value.
-    bool getattribute(string_view name, float& val) const
+    bool getattribute(string_view name, float& value) const
     {
-        return getattribute(name, TypeFloat, &val);
+        return getattribute(name, TypeFloat, &value);
     }
-    bool getattribute(string_view name, double& val) const
+    bool getattribute(string_view name, double& value) const
     {
         float f;
         bool ok = getattribute(name, TypeFloat, &f);
         if (ok)
-            val = f;
+            value = f;
         return ok;
     }
     /// Specialized `attribute()` for retrieving a single `string` value
     /// as a `char*`.
-    bool getattribute(string_view name, char** val) const
+    bool getattribute(string_view name, char** value) const
     {
-        return getattribute(name, TypeString, val);
+        return getattribute(name, TypeString, value);
     }
     /// Specialized `attribute()` for retrieving a single `string` value
     /// as a `std::string`.
-    bool getattribute(string_view name, std::string& val) const
+    bool getattribute(string_view name, std::string& value) const
     {
         const char* s;
         bool ok = getattribute(name, TypeString, &s);
         if (ok)
-            val = s;
+            value = s;
         return ok;
     }
 
@@ -1504,6 +1548,62 @@ public:
     /// pixel data region of the image file will be filled with zero values.
     /// Channels requested but not present in the file will get the
     /// `options.fill` value.
+    ///
+    /// @param  filename
+    ///             The name of the texture, as a UTF-8 encode ustring.
+    /// @param  options
+    ///             A TextureOpt describing access options, including wrap
+    ///             modes, fill value, and subimage, that will be used when
+    ///             retrieving pixels.
+    /// @param  miplevel
+    ///             The MIP level to retrieve pixels from (0 is the highest
+    ///             resolution level).
+    /// @param  roi
+    ///             The range of pixels and channels to retrieve. The pixels
+    ///             retrieved include the begin values but not the end values
+    ///             (much like STL begin/end usage).
+    /// @param  format
+    ///             TypeDesc describing the data type of the values you want
+    ///             to retrieve into `result`. The pixel values will be
+    ///             converted to this type regardless of how they were
+    ///             stored in the file or in the cache.
+    /// @param  result
+    ///             An `image_span` describing the memory layout where the
+    ///             pixel values should be  stored, including bounds and
+    ///             strides for each dimension.
+    /// @returns
+    ///             `true` for success, `false` for failure.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    ///
+    bool get_texels(ustring filename, TextureOpt& options, int miplevel,
+                    const ROI& roi, TypeDesc format,
+                    const image_span<std::byte>& result);
+    /// A more efficient variety of `get_texels()` for cases where you can
+    /// use a `TextureHandle*` to specify the image and optionally have a
+    /// `Perthread*` for the calling thread.
+    ///
+    /// Added in OIIO 3.1, this is the "safe" preferred alternative to
+    /// the version of read_scanlines that takes raw pointers.
+    bool get_texels(TextureHandle* texture_handle, Perthread* thread_info,
+                    TextureOpt& options, int miplevel, const ROI& roi,
+                    TypeDesc format, const image_span<std::byte>& result);
+
+    /// For a texture specified by name, retrieve the rectangle of raw
+    /// unfiltered texels from the subimage specified in `options` and at
+    /// the designated `miplevel`, storing the pixel values beginning at the
+    /// address specified by `result`.  The pixel values will be converted
+    /// to the data type specified by `format`. The rectangular region to be
+    /// retrieved includes `begin` but does not include `end` (much like STL
+    /// begin/end usage). Requested pixels that are not part of the valid
+    /// pixel data region of the image file will be filled with zero values.
+    /// Channels requested but not present in the file will get the
+    /// `options.fill` value.
+    ///
+    /// These pointer-based versions are considered "soft-deprecated" in
+    /// OpenImageIO 3.1, will be marked/warned as deprecated in 3.2, and will
+    /// be removed in 4.0.
     ///
     /// @param  filename
     ///             The name of the texture, as a UTF-8 encode ustring.

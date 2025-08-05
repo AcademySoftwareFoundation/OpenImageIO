@@ -165,6 +165,7 @@ contents of an expression may be any of:
     be printed with `oiiotool -stats`.
   * `IS_CONSTANT`: metadata to check if the image pixels are of constant color, returns 1 if true, and 0 if false.
   * `IS_BLACK`: metadata to check if the image pixels are all black, a subset of IS_CONSTANT. Also returns 1 if true, and 0 if false.
+  * `SUBIMAGES`: the number of subimages in the file.
   
 * *imagename.'metadata'*
 
@@ -932,6 +933,11 @@ output each one to a different file, with names `sub0001.tif`,
     Sets "no clobber" mode, in which existing images on disk will never be
     overridden, even if the `-o` command specifies that file.
 
+.. option:: --create-dir
+
+    Create output directories if it doesn't exists already 
+    during the `-o` output action.
+
 .. option:: --threads <n>
 
     Use *n* execution threads if it helps to speed up image operations. The
@@ -1180,8 +1186,13 @@ Reading images
 
     Optional appended modifiers include:
 
+      `:native=` *int*
+        If nonzero, read the image in as close as possible to its "native"
+        format, versus oiiotool's default of converting all images to float
+        internally. This also turns on "now". (Added in release 3.0.6.0.)
       `:now=` *int*
-        If 1, read the image now, before proceeding to the next command.
+        If nonzero, read the image now, before proceeding to the next command
+        (bypassing the ImageCache, even for big images).
       `:autocc=` *int*
         Enable or disable `--autocc` for this input image (the default is to use
         the global setting).
@@ -1518,6 +1529,9 @@ Writing images
       `:resize=` *int*
         If nonzero, resize to a power of 2 before starting to create the
         MIPpmap levels. (default: 0)
+      `:keepaspect=` *int*
+        If nonzero, add metadata to maintain the image aspect ratio even when
+        `resize=1`. (default: 0)
       `:nomipmap=` *int*
         If nonzero, do not create MIP-map levels at all. (default: 0)
       `:updatemode=` *int*
@@ -1561,6 +1575,20 @@ Writing images
       `:uvslopes_scale=` *float*
         For `-obump` only, specifies the amount to scale the bump-map slopes
         by. (default: 0.0, meaning not to use this feature)
+      `:slopefilter=` *string*
+        For `-obump` only, specifies the filter to use for slope computation
+        when `bumpformat=height`. (default: sobel)
+      `:bumpinverts=` *int*
+        For `-obump` only, inverts slopes on the s/u/x direction. (default: 0)
+      `:bumpinvertt=` *int*
+        For `-obump` only, inverts slopes on the t/v/y direction. (default: 0)
+      `:bumpscale=` *float*
+        For `-obump` only, scales the strength of the resulting map. (default: 
+        1.0)
+      `:bumprange=` *string*
+        For `obump` only, specifies the normal data convention when 
+        `bumpformat=normal` as one of `centered`, `positive`, `auto`. 
+        (default: auto)
       `:cdf=` *int*
         If nonzero, will add to the texture metadata the forward and inverse
         Gaussian CDF, which can be used by shaders to implement
@@ -2026,6 +2054,13 @@ current top image.
         Only included subimages will have the attribute changed. If subimages
         are not set, only the first subimage will be changed, or all subimages
         if the `-a` command line flag was used.
+      
+      `:fromfile=` *int*
+        When set to 1, the next argument will be interpreted as
+        the name of a file containing a list of patterns to erase, for example:
+        `--eraseattrib:fromfile=1 patterns.txt`,
+        The patterns will be case insensitive and one pattern per line of the file.
+        Default value is 0 (False).
 
     Examples::
 
@@ -2037,6 +2072,13 @@ current top image.
     
         # Remove all metadata
         oiiotool in.exr --eraseattrib:subimages=all ".*" -o no_metadata.exr
+
+        # Remove all attribute that match any regex in text file
+        oiiotool in.exr --eraseattrib:fromfile=1 no_gps_make.txt -o no_gps_make_metadata.exr
+
+        Example contents of file no_gps_make.txt:
+            Make
+            GPS:.*
 
 
 .. option:: --orientation <orient>
@@ -4256,20 +4298,41 @@ current top image.
     Optional appended modifiers include:
 
       `pattern=` *name*
-        sensor pattern. Currently supported patterns: "bayer", "xtrans".
+        sensor pattern. Currently supported patterns: "auto"(default), "bayer",
+        "xtrans". In the "auto" mode the pattern is deducted from the
+        "raw:FilterPattern" attribute of the source image buffer, defaulting to
+        "bayer" if absent.
       `layout=` *name*
-        photosite order of the specified pattern. The default value is "RGGB"
-        for Bayer, and "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans.
+        The order the color filter array elements are arranged in,
+        pattern-specific. The Bayer pattern sensors usually have 4 values in the
+        layout string, describing the 2x2 pixels region. The X-Trans pattern
+        sensors have 36 values in the layout string, describing the 6x6 pixels
+        region (with optional whitespaces separating the rows). When set to
+        "auto", OIIO will try to fetch the layout from the "raw:FilterPattern"
+        attribute of the source image buffer, falling back to "RGGB" for Bayer,
+        "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans if absent.
       `algorithm=` *name*
-        the name of the algorithm to use.
+        the name of the algorithm to use, defaults to "auto".
         The Bayer-pattern algorithms:
         - "linear"(simple bilinear demosaicing),
-        - "MHC"(Malvar-He-Cutler algorithm).
+        - "MHC"(Malvar-He-Cutler algorithm),
+        - "auto"(same as "MHC").
         The X-Trans-pattern algorithms:
-        - "linear"(simple bilinear demosaicing).
-      `white-balance=` *v1,v2,v3...*
+        - "linear"(simple bilinear demosaicing),
+        - "auto"(same as "linear").
+      `white_balance_mode=` *name*
+        white-balancing mode to use. The supported modes are:
+        - "auto"(OIIO will try to fetch the white balancing weights from the
+        "raw:WhiteBalance" attribute of the source image buffer, falling back to
+        {1.0, 1.0, 1.0, 1.0} if absent),
+        - "manual"(The white balancing weights will be taken from the attribute
+        "white-balance" (see below) if present, falling back to
+        {1.0, 1.0, 1.0, 1.0} if absent),
+        - "none"(no white balancing will be performed).
+      `white_balance=` *v1,v2,v3...*
         optional white balance weights, can contain either three (R,G,B) or four
-        (R,G1,B,G2) values. The order of the white balance multipliers is as
+        (R,G1,B,G2) values, only used when the white-balancing mode (see above)
+        is set to "manual". The order of the white balance multipliers is as
         specified, it does not depend on the matrix layout.
 
     Examples::
@@ -4278,7 +4341,7 @@ current top image.
             --output out.exr
 
          oiiotool --iconfig raw:Demosaic none --input test.cr3 \
-            --demosaic:pattern=bayer:layout=GRBG:algorithm=MHC:white_balance=2.0,0.8,1.2,1.5 \
+            --demosaic:pattern=bayer:layout=GRBG:algorithm=MHC:white_balance_mode=manual:white_balance=2.0,0.8,1.2,1.5 \
             --output out.exr
 
 
@@ -4760,7 +4823,3 @@ General commands that also work for deep images
     `NaN` or `Inf` values (hereafter referred to collectively as
     "nonfinite") are repaired.  The *strategy* may be either `black` or
     `error`.
-
-
-
-

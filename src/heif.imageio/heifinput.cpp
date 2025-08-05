@@ -385,8 +385,11 @@ HeifInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return false;
     if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
-
-    int ystride          = 0;
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 20, 0, 0)
+    size_t ystride = 0;
+#else
+    int ystride = 0;
+#endif
     const uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved,
                                               &ystride);
     if (!hdata) {

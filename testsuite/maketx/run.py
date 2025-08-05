@@ -27,6 +27,10 @@ command += maketx_command ("checker.tif", "checker.tx", "-u", showinfo=True)
 command += maketx_command ("../common/grid.tif", "grid-resize.tx",
                            "--resize", showinfo=True)
 
+# test --keepaspect
+command += maketx_command ("../common/tahoe-small.tif", "tahoe-resize.tx",
+                           "--resize --keepaspect", showinfo=True)
+
 # Test -d to set output data type
 command += maketx_command ("checker.tif", "checker-uint16.tx",
                            "-d uint16", showinfo=True)
@@ -136,7 +140,16 @@ outputs += [ "uffizi_latlong_env-128.exr" ]
 
 # Test --bumpslopes to export a 6 channels height map with gradients
 command += maketx_command ("noise.exr", "bumpslope.exr",
-                           "--bumpslopes -d half", showinfo=True)
+                           "--bumpslopes -d half",
+                           showinfo=True, showinfo_extra="--stats")
+
+command += maketx_command ("noise.exr", "bumpslope-central.exr",
+                           "--bumpslopes --slopefilter centraldiff -d half",
+                           showinfo=True, showinfo_extra="--stats")
+
+command += maketx_command ("src/normal.exr", "bumpslope-normal.exr",
+                           "--bumpslopes -d half",
+                           showinfo=True, showinfo_extra="--stats")
 
 # Test --cdf
 command += maketx_command ("noise.exr", "cdf.exr",

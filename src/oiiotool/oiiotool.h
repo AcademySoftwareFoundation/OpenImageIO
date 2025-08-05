@@ -82,18 +82,20 @@ public:
     bool skip_bad_frames = false;  // Just skip a bad frame, don't exit
     bool nostderr        = false;  // If true, use stdout for errors
     bool noerrexit       = false;  // Don't exit on error
+    bool create_dir      = false;
     std::string dumpdata_C_name;
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
     std::string printinfo_format;
     std::string missingfile_policy;
-    ImageSpec input_config;  // configuration options for reading
-    ImageSpec first_input_dimensions;
+    ImageSpec input_config;         // configuration options for reading
     std::string input_channel_set;  // Optional input channel set
     ParamValueList uservars;        // User-defined variables (with --set)
     ArgParse ap;                    // Command-line argument parser
     ErrorHandler eh;
+    // If this is a frame iteration child, retain a pointer to the parent
+    Oiiotool* parent_oiiotool = nullptr;
 
     struct ControlRec {
         std::string command;  // control command: "if", "while", etc.
@@ -156,11 +158,14 @@ public:
     int frame_number            = 0;
     bool enable_function_timing = true;
     bool input_config_set       = false;
-    bool printed_info           = false;  // printed info at some point
+    bool printed_info           = false;    // printed info at some point
+    bool m_in_parallel_frame_loop = false;  // True when in parallel frame loop
     // Remember the first input dataformats we encountered
     TypeDesc input_dataformat;
     int input_bitspersample = 0;
     std::map<std::string, std::string> input_channelformats;
+    ImageSpec m_first_input_dimensions;
+    mutable spin_mutex m_first_input_dimensions_mutex;
 
     // stat_mutex guards when we are merging another ot's stats into this one
     std::mutex m_stat_mutex;
@@ -371,6 +376,31 @@ public:
     void merge_stats(const Oiiotool& ot);
 
     ColorConfig& colorconfig();
+
+    // Copy the internal 'm_first_input_dimensions` to `dims`.
+    void get_first_input_dimensions(ImageSpec& dims) const
+    {
+        std::lock_guard lock(m_first_input_dimensions_mutex);
+        dims.copy_dimensions(m_first_input_dimensions);
+    }
+
+    bool first_input_dimensions_is_set() const
+    {
+        return m_first_input_dimensions.format.basetype != TypeDesc::UNKNOWN;
+    }
+
+    // If the internal 'm_first_input_dimensions` is not yet set, set it to
+    // the values in `dims`.
+    void set_first_input_dimensions(const ImageSpec& dims)
+    {
+        std::lock_guard lock(m_first_input_dimensions_mutex);
+        if (!first_input_dimensions_is_set())
+            m_first_input_dimensions.copy_dimensions(dims);
+    }
+
+    void begin_parallel_frame_loop(int nthreads);
+    void end_parallel_frame_loop();
+    bool in_parallel_frame_loop() const { return m_in_parallel_frame_loop; }
 
 private:
     CallbackFunction m_pending_callback;

@@ -6,8 +6,10 @@
 #include "imageviewer.h"
 
 #include <iostream>
+#include <limits>
 
 #include <QComboBox>
+#include <QFontDatabase>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QProgressBar>
@@ -19,6 +21,7 @@
 #include "ivutils.h"
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
+#include <cfloat>
 
 OIIO_PRAGMA_WARNING_PUSH
 #if defined(__APPLE__)
@@ -171,8 +174,8 @@ IvGL::create_textures(void)
     // Create another texture for the pixelview.
     glGenTextures(1, &m_pixelview_tex);
     glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, 4, closeuptexsize, closeuptexsize, 0,
-                 GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, closeup_texture_size,
+                 closeup_texture_size, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -189,19 +192,18 @@ IvGL::create_textures(void)
 const char*
 IvGL::color_func_shader_text()
 {
-    // clang-format off
-    return
-        "uniform float gain;\n"
-        "uniform float gamma;\n"
-        "\n"
-        "vec4 ColorFunc(vec4 C)\n"
-        "{\n"
-        "    C.xyz *= gain;\n"
-        "    float invgamma = 1.0/gamma;\n"
-        "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
-        "    return C;\n"
-        "}\n";
-    // clang-format on
+    return R"glsl(
+        uniform float gain;
+        uniform float gamma;
+
+        vec4 ColorFunc(vec4 C)
+        {
+            C.xyz *= gain;
+            float invgamma = 1.0/gamma;
+            C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));
+            return C;
+        }
+    )glsl";
 }
 
 void
@@ -233,15 +235,14 @@ IvGL::create_shaders(void)
     GLint status;
 
     if (!m_vertex_shader) {
-        // clang-format off
-        static const GLchar* vertex_source =
-            "varying vec2 vTexCoord;\n"
-            "void main ()\n"
-            "{\n"
-            "    vTexCoord = gl_MultiTexCoord0.xy;\n"
-            "    gl_Position = ftransform();\n"
-            "}\n";
-        // clang-format on
+        static const GLchar* vertex_source = R"glsl(
+            varying vec2 vTexCoord;
+            void main ()
+            {
+                vTexCoord = gl_MultiTexCoord0.xy;
+                gl_Position = ftransform();
+            }
+        )glsl";
 
         m_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(m_vertex_shader, 1, &vertex_source, NULL);
@@ -256,111 +257,118 @@ IvGL::create_shaders(void)
         }
     }
 
-    // clang-format off
-    static const GLchar* fragment_source =
-        "uniform sampler2D imgtex;\n"
-        "varying vec2 vTexCoord;\n"
-        "uniform int startchannel;\n"
-        "uniform int colormode;\n"
+    static const GLchar* fragment_source = R"glsl(
+        uniform sampler2D imgtex;
+        varying vec2 vTexCoord;
+        uniform int startchannel;
+        uniform int colormode;
         // Remember, if imgchannels == 2, second channel would be channel 4 (a).
-        "uniform int imgchannels;\n"
-        "uniform int pixelview;\n"
-        "uniform int linearinterp;\n"
-        "uniform int width;\n"
-        "uniform int height;\n"
-        "vec4 rgba_mode (vec4 C)\n"
-        "{\n"
-        "    if (imgchannels <= 2) {\n"
-        "        if (startchannel == 1)\n"
-        "           return vec4(C.aaa, 1.0);\n"
-        "        return C.rrra;\n"
-        "    }\n"
-        "    return C;\n"
-        "}\n"
-        "vec4 rgb_mode (vec4 C)\n"
-        "{\n"
-        "    if (imgchannels <= 2) {\n"
-        "        if (startchannel == 1)\n"
-        "           return vec4(C.aaa, 1.0);\n"
-        "        return vec4 (C.rrr, 1.0);\n"
-        "    }\n"
-        "    float C2[4];\n"
-        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-        "    return vec4 (C2[startchannel], C2[startchannel+1], C2[startchannel+2], 1.0);\n"
-        "}\n"
-        "vec4 singlechannel_mode (vec4 C)\n"
-        "{\n"
-        "    float C2[4];\n"
-        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-        "    if (startchannel > imgchannels)\n"
-        "        return vec4 (0.0,0.0,0.0,1.0);\n"
-        "    return vec4 (C2[startchannel], C2[startchannel], C2[startchannel], 1.0);\n"
-        "}\n"
-        "vec4 luminance_mode (vec4 C)\n"
-        "{\n"
-        "    if (imgchannels <= 2)\n"
-        "        return vec4 (C.rrr, C.a);\n"
-        "    float lum = dot (C.rgb, vec3(0.2126, 0.7152, 0.0722));\n"
-        "    return vec4 (lum, lum, lum, C.a);\n"
-        "}\n"
-        "float heat_red(float x)\n"
-        "{\n"
-        "    return clamp (mix(0.0, 1.0, (x-0.35)/(0.66-0.35)), 0.0, 1.0) -\n"
-        "           clamp (mix(0.0, 0.5, (x-0.89)/(1.0-0.89)), 0.0, 1.0);\n"
-        "}\n"
-        "float heat_green(float x)\n"
-        "{\n"
-        "    return clamp (mix(0.0, 1.0, (x-0.125)/(0.375-0.125)), 0.0, 1.0) -\n"
-        "           clamp (mix(0.0, 1.0, (x-0.64)/(0.91-0.64)), 0.0, 1.0);\n"
-        "}\n"
-        "vec4 heatmap_mode (vec4 C)\n"
-        "{\n"
-        "    float C2[4];\n"
-        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-        "    return vec4(heat_red(C2[startchannel]),\n"
-        "                heat_green(C2[startchannel]),\n"
-        "                heat_red(1.0-C2[startchannel]),\n"
-        "                1.0);\n"
-        "}\n"
-        "void main ()\n"
-        "{\n"
-        "    vec2 st = vTexCoord;\n"
-        "    float black = 0.0;\n"
-        "    if (pixelview != 0 || linearinterp == 0) {\n"
-        "        vec2 wh = vec2(width,height);\n"
-        "        vec2 onehalf = vec2(0.5,0.5);\n"
-        "        vec2 st_res = st * wh /* + onehalf */ ;\n"
-        "        vec2 st_pix = floor (st_res);\n"
-        "        vec2 st_rem = st_res - st_pix;\n"
-        "        st = (st_pix + onehalf) / wh;\n"
-        "        if (pixelview != 0) {\n"
-        "            if (st.x < 0.0 || st.x >= 1.0 || \n"
-        "                    st.y < 0.0 || st.y >= 1.0 || \n"
-        "                    st_rem.x < 0.05 || st_rem.x >= 0.95 || \n"
-        "                    st_rem.y < 0.05 || st_rem.y >= 0.95)\n"
-        "                black = 1.0;\n"
-        "        }\n"
-        "    }\n"
-        "    vec4 C = texture2D (imgtex, st);\n"
-        "    C = mix (C, vec4(0.05,0.05,0.05,1.0), black);\n"
-        "    if (startchannel < 0)\n"
-        "        C = vec4(0.0,0.0,0.0,1.0);\n"
-        "    else if (colormode == 0)\n" // RGBA
-        "        C = rgba_mode (C);\n"
-        "    else if (colormode == 1)\n" // RGB (i.e., ignore alpha).
-        "        C = rgb_mode (C);\n"
-        "    else if (colormode == 2)\n" // Single channel.
-        "        C = singlechannel_mode (C);\n"
-        "    else if (colormode == 3)\n" // Luminance.
-        "        C = luminance_mode (C);\n"
-        "    else if (colormode == 4)\n" // Heatmap.
-        "        C = heatmap_mode (C);\n"
-        "    if (pixelview != 0)\n"
-        "        C.a = 1.0;\n"
-        "    C = ColorFunc(C);\n"
-        "    gl_FragColor = C;\n"
-        "}\n";
-    // clang-format on
+        uniform int imgchannels;
+        uniform int pixelview;
+        uniform int linearinterp;
+        uniform int width;
+        uniform int height;
+
+        vec4 rgba_mode (vec4 C)
+        {
+            if (imgchannels <= 2) {
+                if (startchannel == 1)
+                return vec4(C.aaa, 1.0);
+                return C.rrra;
+            }
+            return C;
+        }
+
+        vec4 rgb_mode (vec4 C)
+        {
+            if (imgchannels <= 2) {
+                if (startchannel == 1)
+                return vec4(C.aaa, 1.0);
+                return vec4 (C.rrr, 1.0);
+            }
+            float C2[4];
+            C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;
+            return vec4 (C2[startchannel], C2[startchannel+1], C2[startchannel+2], 1.0);
+        }
+
+        vec4 singlechannel_mode (vec4 C)
+        {
+            float C2[4];
+            C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;
+            if (startchannel > imgchannels)
+                return vec4 (0.0,0.0,0.0,1.0);
+            return vec4 (C2[startchannel], C2[startchannel], C2[startchannel], 1.0);
+        }
+
+        vec4 luminance_mode (vec4 C)
+        {
+            if (imgchannels <= 2)
+                return vec4 (C.rrr, C.a);
+            float lum = dot (C.rgb, vec3(0.2126, 0.7152, 0.0722));
+            return vec4 (lum, lum, lum, C.a);
+        }
+
+        float heat_red(float x)
+        {
+            return clamp (mix(0.0, 1.0, (x-0.35)/(0.66-0.35)), 0.0, 1.0) -
+                clamp (mix(0.0, 0.5, (x-0.89)/(1.0-0.89)), 0.0, 1.0);
+        }
+
+        float heat_green(float x)
+        {
+            return clamp (mix(0.0, 1.0, (x-0.125)/(0.375-0.125)), 0.0, 1.0) -
+                clamp (mix(0.0, 1.0, (x-0.64)/(0.91-0.64)), 0.0, 1.0);
+        }
+
+        vec4 heatmap_mode (vec4 C)
+        {
+            float C2[4];
+            C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;
+            return vec4(heat_red(C2[startchannel]),
+                        heat_green(C2[startchannel]),
+                        heat_red(1.0-C2[startchannel]),
+                        1.0);
+        }
+
+        void main ()
+        {
+            vec2 st = vTexCoord;
+            float black = 0.0;
+            if (pixelview != 0 || linearinterp == 0) {
+                vec2 wh = vec2(width,height);
+                vec2 onehalf = vec2(0.5,0.5);
+                vec2 st_res = st * wh /* + onehalf */ ;
+                vec2 st_pix = floor (st_res);
+                vec2 st_rem = st_res - st_pix;
+                st = (st_pix + onehalf) / wh;
+                if (pixelview != 0) {
+                    if (st.x < 0.0 || st.x >= 1.0 || 
+                            st.y < 0.0 || st.y >= 1.0 || 
+                            st_rem.x < 0.05 || st_rem.x >= 0.95 || 
+                            st_rem.y < 0.05 || st_rem.y >= 0.95)
+                        black = 1.0;
+                }
+            }
+            vec4 C = texture2D (imgtex, st);
+            C = mix (C, vec4(0.05,0.05,0.05,1.0), black);
+            if (startchannel < 0)
+                C = vec4(0.0,0.0,0.0,1.0);
+            else if (colormode == 0) // RGBA
+                C = rgba_mode (C);
+            else if (colormode == 1) // RGB (i.e., ignore alpha).
+                C = rgb_mode (C);
+            else if (colormode == 2) // Single channel.
+                C = singlechannel_mode (C);
+            else if (colormode == 3) // Luminance.
+                C = luminance_mode (C);
+            else if (colormode == 4) // Heatmap.
+                C = heatmap_mode (C);
+            if (pixelview != 0)
+                C.a = 1.0;
+            C = ColorFunc(C);
+            gl_FragColor = C;
+        }
+    )glsl";
 
     const char* fragment_sources[] = { "#version 120\n", color_shader,
                                        fragment_source };
@@ -664,10 +672,49 @@ IvGL::paintGL()
         paint_windowguides();
     }
 
+    if (m_selecting) {
+        glPushMatrix();
+        glLoadIdentity();
+
+        glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+        glDisable(GL_TEXTURE_2D);
+        if (m_use_shaders) {
+            glUseProgram(0);
+        }
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glColor4f(0.2f, 0.5f, 1.0f, 0.3f);  // Light blue fill with transparency
+
+        int w = width();
+        int h = height();
+
+        float x1 = m_select_start.x() - w / 2.0f;
+        float y1 = -(m_select_start.y() - h / 2.0f);
+
+        float x2 = m_select_end.x() - w / 2.0f;
+        float y2 = -(m_select_end.y() - h / 2.0f);
+
+        int left   = std::min(x1, x2);
+        int right  = std::max(x1, x2);
+        int bottom = std::min(y1, y2);
+        int top    = std::max(y1, y2);
+
+        gl_rect(left, bottom, right, top, -0.1f);
+
+        glPopAttrib();
+        glPopMatrix();
+    }
     glPopMatrix();
 
     if (m_viewer.pixelviewOn()) {
         paint_pixelview();
+    }
+
+    if (m_viewer.probeviewOn()) {
+        paint_probeview();
+    } else {
+        m_area_probe_text.clear();
     }
 
     // Show the status info again.
@@ -684,21 +731,30 @@ IvGL::paintGL()
 
 void
 IvGL::shadowed_text(float x, float y, float /*z*/, const std::string& s,
-                    const QFont& font)
+                    const QColor& color)
 {
+    if (s.empty()) {
+        return;
+    }
+
     /*
      * Paint on intermediate QImage, AA text on QOpenGLWidget based
      * QPaintDevice requires MSAA
      */
-    QImage t(size(), QImage::Format_ARGB32_Premultiplied);
+    qreal dpr = devicePixelRatio();
+    QImage t(size() * dpr, QImage::Format_ARGB32_Premultiplied);
+    t.setDevicePixelRatio(dpr);
     t.fill(qRgba(0, 0, 0, 0));
     {
         QPainter painter(&t);
         painter.setRenderHint(QPainter::TextAntialiasing, true);
-
+        QFont font;
+        font.setFamilies({ "Monaco", "Menlo", "Consolas", "DejaVu Sans Mono",
+                           "Courier New" });
+        font.setFixedPitch(true);
+        font.setPointSize(11);
         painter.setFont(font);
-
-        painter.setPen(QPen(Qt::white, 1.0));
+        painter.setPen(QPen(color, 1.0));
         painter.drawText(QPointF(x, y), QString(s.c_str()));
     }
     QPainter painter(this);
@@ -723,21 +779,61 @@ num_channels(int current_channel, int nchannels,
     }
 }
 
+// Helper function to calculate min, max, and average for a given type and ROI
+template<typename T> struct ChannelStatsResult {
+    T min_val, max_val, avg_val;
+};
 
+template<typename T>
+ChannelStatsResult<T>
+calculate_channel_stats(const ImageBuf& img, const ROI& roi, int channel,
+                        bool is_inside_data_window)
+{
+    if (!is_inside_data_window) {
+        // Return zeros if not inside data window
+        return ChannelStatsResult<T> { T(0), T(0), T(0) };
+    }
+
+    int pixel_count = (roi.xend - roi.xbegin) * (roi.yend - roi.ybegin);
+    if (pixel_count <= 0) {
+        // ROI is empty or invalid, return zeros
+        return ChannelStatsResult<T> { T(0), T(0), T(0) };
+    }
+
+    T min_val  = std::numeric_limits<T>::max();
+    T max_val  = std::numeric_limits<T>::lowest();
+    double sum = 0.0;
+
+    ImageBuf::ConstIterator<T, T> it(img, roi);
+    for (; !it.done(); ++it) {
+        T val   = it[channel];
+        min_val = std::min(min_val, val);
+        max_val = std::max(max_val, val);
+        sum += val;
+    }
+
+    ChannelStatsResult<T> result;
+    result.min_val = min_val;
+    result.max_val = max_val;
+    result.avg_val = static_cast<T>(sum / pixel_count);
+    return result;
+}
 
 void
 IvGL::paint_pixelview()
 {
+    using Strutil::fmt::format;
+
     IvImage* img = m_current_image;
     const ImageSpec& spec(img->spec());
 
-    // (xw,yw) are the window coordinates of the mouse.
-    int xw, yw;
-    get_focus_window_pixel(xw, yw);
+    // (x_mouse_viewport,y_mouse_viewport) are the window coordinates of the mouse.
+    int x_mouse_viewport, y_mouse_viewport;
+    get_focus_window_pixel(x_mouse_viewport, y_mouse_viewport);
 
-    // (xp,yp) are the image-space [0..res-1] position of the mouse.
-    int xp, yp;
-    get_focus_image_pixel(xp, yp);
+    // (x_mouse_image,y_mouse_image) are the image-space [0..res-1] position of the mouse.
+    int x_mouse_image, y_mouse_image;
+    get_focus_image_pixel(x_mouse_image, y_mouse_image);
 
     glPushMatrix();
     glLoadIdentity();
@@ -748,43 +844,107 @@ IvGL::paint_pixelview()
     // Pushed away from the camera 1 unit.  This makes the pixel view
     // elements closer to the camera than the main view.
 
-    if (m_viewer.pixelviewFollowsMouse()) {
-        // Display closeup overtop mouse -- translate the coordinate system
-        // so that it is centered at the mouse position.
-        glTranslatef(xw - width() / 2 + closeupsize / 2 + 4,
-                     -yw + height() / 2 - closeupsize / 2 - 4, 0);
-    } else {
+    // n_closeup_pixels is the number of big pixels (in each direction)
+    // visible in our closeup window. Guaranteed to be an odd number
+    const int n_closeup_pixels = m_viewer.closeupPixels();
+
+    // n_closeup_avg_pixels is the number of pixels used to calculate the average color.
+    // it is guaranteed to be no bigger than n_closeup_pixels. Guaranteed to be an odd number
+    const int n_closeup_avg_pixels = m_viewer.closeupAvgPixels();
+
+    // number of pixels from the side of the closeup window to the average color window.
+    const int avg_window_offset = (n_closeup_pixels - n_closeup_avg_pixels) / 2;
+
+    // closeup_pixel_zoom is the size of single image pixel inside close up window
+    const float closeup_pixel_size = static_cast<float>(closeup_window_size)
+                                     / n_closeup_pixels;
+
+    // height of a single line of text in the closeup window
+    const int text_line_height = 18;
+
+    // number of pixels from the side of the closeup window to the mouse position when it is following the mouse
+    const int follow_mouse_offset = 15;
+
+    // total height of all text in the closeup window + padding
+    const int total_text_height = (spec.nchannels + 2) * text_line_height + 4;
+
+    // height of the status bar
+    const int status_bar_height = 15;  // TODO m_viewer.statusBar()->height();
+
+    // Calculate if closeup would go beyond viewport boundaries
+    bool should_show_on_left = (x_mouse_viewport + closeup_window_size
+                                + follow_mouse_offset)
+                               > width();
+    bool should_show_above = (y_mouse_viewport + closeup_window_size
+                              + follow_mouse_offset + total_text_height
+                              + status_bar_height)
+                             > height();
+
+    bool should_follow_mouse = m_viewer.pixelviewFollowsMouse();
+
+
+    // Use to translate OpenGL coordinate system to render closeup window
+    // at the correct position depending on user settings and mouse position
+    // OpenGL coordinate system has origin at the bottom left corner of the window
+    float x_gl_translate = 0;
+    float y_gl_translate = 0;
+
+    if (should_follow_mouse) {
+        // Display closeupview next to mouse cursor
+        // it is calculated dynamically such that closeup window is always visible
+        // even if mouse cursor is close to the edge of main window viewport
+        x_gl_translate = x_mouse_viewport - width() / 2
+                         + closeup_window_size / 2 + 4 + follow_mouse_offset;
+        y_gl_translate = -y_mouse_viewport + height() / 2
+                         - closeup_window_size / 2 - 4 - follow_mouse_offset;
+
+        if (should_show_on_left) {
+            x_gl_translate -= closeup_window_size + follow_mouse_offset * 2;
+        }
+
+        if (should_show_above) {
+            y_gl_translate += closeup_window_size + total_text_height
+                              + follow_mouse_offset * 2 + 8;
+        }
+
+    } else if (m_pixelview_left_corner) {
         // Display closeup in corner -- translate the coordinate system so that
         // it is centered near the corner of the window.
-        if (m_pixelview_left_corner) {
-            glTranslatef(closeupsize * 0.5f + 5 - width() / 2,
-                         -closeupsize * 0.5f - 5 + height() / 2, 0);
-            // If the mouse cursor is over the pixelview closeup when it's on
-            // the upper left, switch to the upper right
-            if ((xw < closeupsize + 5) && yw < (closeupsize + 5))
-                m_pixelview_left_corner = false;
-        } else {
-            glTranslatef(-closeupsize * 0.5f - 5 + width() / 2,
-                         -closeupsize * 0.5f - 5 + height() / 2, 0);
-            // If the mouse cursor is over the pixelview closeup when it's on
-            // the upper right, switch to the upper left
-            if (xw > (width() - closeupsize - 5) && yw < (closeupsize + 5))
-                m_pixelview_left_corner = true;
-        }
+        x_gl_translate = closeup_window_size * 0.5f + 5 - width() / 2;
+        y_gl_translate = -closeup_window_size * 0.5f - 5 + height() / 2;
+
+        // If the mouse cursor is over the pixelview closeup when it's on
+        // the upper left, switch to the upper right
+        if ((x_mouse_viewport < closeup_window_size + 5)
+            && y_mouse_viewport < (closeup_window_size + 5 + total_text_height))
+            m_pixelview_left_corner = false;
+
+    } else {
+        x_gl_translate = -closeup_window_size * 0.5f - 5 + width() / 2;
+        y_gl_translate = -closeup_window_size * 0.5f - 5 + height() / 2;
+
+        // If the mouse cursor is over the pixelview closeup when it's on
+        // the upper right, switch to the upper left
+        if (x_mouse_viewport > (width() - closeup_window_size - 5)
+            && y_mouse_viewport < (closeup_window_size + 5 + total_text_height))
+            m_pixelview_left_corner = true;
     }
+
+    glTranslatef(x_gl_translate, y_gl_translate, 0);
+
     // In either case, the GL coordinate system is now scaled to window
     // pixel units, and centered on the middle of where the closeup
     // window is going to appear.  All other coordinates from here on
     // (in this procedure) should be relative to the closeup window center.
 
     glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
-    useshader(closeuptexsize, closeuptexsize, true);
+    useshader(closeup_texture_size, closeup_texture_size, true);
 
     float scale_x  = 1.0f;
     float scale_y  = 1.0f;
     float rotate_z = 0.0f;
-    float real_xp  = xp;
-    float real_yp  = yp;
+    float real_xp  = x_mouse_image;
+    float real_yp  = y_mouse_image;
     handle_orientation(img->orientation(), spec.width, spec.height, scale_x,
                        scale_y, rotate_z, real_xp, real_yp, true);
 
@@ -792,25 +952,33 @@ IvGL::paint_pixelview()
     float tmin = 0;
     float smax = 1.0f;
     float tmax = 1.0f;
-    if (xp >= 0 && xp < img->oriented_width() && yp >= 0
-        && yp < img->oriented_height()) {
-        // Keep the view within ncloseuppixels pixels.
-        int xpp = clamp<int>(real_xp, ncloseuppixels / 2,
-                             spec.width - ncloseuppixels / 2 - 1);
-        int ypp = clamp<int>(real_yp, ncloseuppixels / 2,
-                             spec.height - ncloseuppixels / 2 - 1);
-        // Calculate patch of the image to use for the pixelview.
-        int xbegin = std::max(xpp - ncloseuppixels / 2, 0);
-        int ybegin = std::max(ypp - ncloseuppixels / 2, 0);
-        int xend   = std::min(xpp + ncloseuppixels / 2 + 1, spec.width);
-        int yend   = std::min(ypp + ncloseuppixels / 2 + 1, spec.height);
-        smin       = 0;
-        tmin       = 0;
-        smax       = float(xend - xbegin) / closeuptexsize;
-        tmax       = float(yend - ybegin) / closeuptexsize;
+    // Calculate patch of the image to use for the pixelview.
+    int xbegin = 0;
+    int ybegin = 0;
+    int xend   = 0;
+    int yend   = 0;
+
+    bool is_mouse_inside_image = x_mouse_image >= 0
+                                 && x_mouse_image < img->oriented_width()
+                                 && y_mouse_image >= 0
+                                 && y_mouse_image < img->oriented_height();
+    if (is_mouse_inside_image) {
+        // Keep the view within n_closeup_pixels pixels.
+        int xpp = clamp<int>(real_xp, n_closeup_pixels / 2,
+                             spec.width - n_closeup_pixels / 2 - 1);
+        int ypp = clamp<int>(real_yp, n_closeup_pixels / 2,
+                             spec.height - n_closeup_pixels / 2 - 1);
+        xbegin  = std::max(xpp - n_closeup_pixels / 2, 0);
+        ybegin  = std::max(ypp - n_closeup_pixels / 2, 0);
+        xend    = std::min(xpp + n_closeup_pixels / 2 + 1, spec.width);
+        yend    = std::min(ypp + n_closeup_pixels / 2 + 1, spec.height);
+        smin    = 0;
+        tmin    = 0;
+        smax    = float(xend - xbegin) / closeup_texture_size;
+        tmax    = float(yend - ybegin) / closeup_texture_size;
         //std::cerr << "img (" << xbegin << "," << ybegin << ") - (" << xend << "," << yend << ")\n";
         //std::cerr << "tex (" << smin << "," << tmin << ") - (" << smax << "," << tmax << ")\n";
-        //std::cerr << "center mouse (" << xp << "," << yp << "), real (" << real_xp << "," << real_yp << ")\n";
+        //std::cerr << "center mouse (" << x_mouse_image << "," << y_mouse_image << "), real (" << real_xp << "," << real_yp << ")\n";
 
         int nchannels = img->nchannels();
         // For simplicity, we don't support more than 4 channels without shaders
@@ -859,8 +1027,9 @@ IvGL::paint_pixelview()
     glRotatef(rotate_z, 0, 0, 1);
 
     // This square is the closeup window itself
-    gl_rect(-0.5f * closeupsize, -0.5f * closeupsize, 0.5f * closeupsize,
-            0.5f * closeupsize, 0, smin, tmin, smax, tmax);
+    gl_rect(-0.5f * closeup_window_size, -0.5f * closeup_window_size,
+            0.5f * closeup_window_size, 0.5f * closeup_window_size, 0, smin,
+            tmin, smax, tmax);
     glPopMatrix();
     glPopAttrib();
 
@@ -870,7 +1039,7 @@ IvGL::paint_pixelview()
     // extends slightly out from the closeup window (making it more
     // clearly visible), and also all the way down to cover the area
     // where the text will be printed, so it is very readable.
-    const int yspacing = 18;
+
 
     glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
     glDisable(GL_TEXTURE_2D);
@@ -878,58 +1047,453 @@ IvGL::paint_pixelview()
         // Disable shaders for this.
         glUseProgram(0);
     }
-    float extraspace = yspacing * (1 + spec.nchannels) + 4;
-    glColor4f(0.1f, 0.1f, 0.1f, 0.5f);
-    gl_rect(-0.5f * closeupsize - 2, 0.5f * closeupsize + 2,
-            0.5f * closeupsize + 2, -0.5f * closeupsize - extraspace, -0.1f);
 
-    if (1 /*xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()*/) {
-        // Now we print text giving the mouse coordinates and the numerical
-        // values of the pixel that the mouse is over.
-        QFont font;
-        font.setFixedPitch(true);
-        float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
-        int textx, texty;
-        if (m_viewer.pixelviewFollowsMouse()) {
-            textx = xw + 8;
-            texty = yw + closeupsize + yspacing;
+    glColor4f(0.1f, 0.1f, 0.1f, 0.7f);
+    gl_rect(-0.5f * closeup_window_size, -0.5f * closeup_window_size,
+            0.5f * closeup_window_size,
+            -0.5f * closeup_window_size - total_text_height, -0.1f);
+
+    // Colors for text and corner indicator of center pixel (Val) being measured
+    QColor center_pix_value_color(0, 255, 255, 125);
+    // Color for text and corner indicator of all pixels used for calculating average value
+    QColor avg_value_color(255, 255, 0, 125);
+
+    int pixel_x = (int)real_xp + spec.x;
+    int pixel_y = (int)real_yp + spec.y;
+
+    // array of channel values for pixel under mouse cursor
+    float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
+    img->getpixel(pixel_x, pixel_y, fpixel);
+
+    // String values to be printed in stats table for each channel
+    struct ChannelStats {
+        std::string name;
+        std::string centerValue;
+        std::string normalized;
+        std::string min;
+        std::string max;
+        std::string avg;
+    };
+    std::vector<ChannelStats> channels_stats;
+
+    // Maximum length of each string value in the stats table among all channels
+    struct MaxLengths {
+        int name        = 0;
+        int centerValue = 0;
+        int normalized  = 0;
+        int min         = 0;
+        int max         = 0;
+        int avg         = 0;
+    };
+    MaxLengths maxLengths;
+
+    const int MAX_NAME_LENGTH = 10;
+
+    bool is_inside_data_window = ybegin > 0 || yend > 0 || xbegin > 0
+                                 || xend > 0;
+
+    // Calculate the ROI for min/max/avg calculation
+    ROI avg_roi(spec.x + xbegin + avg_window_offset,
+                spec.x + xend - avg_window_offset,
+                spec.y + ybegin + avg_window_offset,
+                spec.y + yend - avg_window_offset);
+
+    // Lambda for smart float formatting (max 5 chars including decimal)
+    auto format_float = [](float value) -> std::string {
+        if (value < 10) {
+            return format("{:.3f}", value);
+        } else if (value < 100) {
+            return format("{:.2f}", value);
+        } else if (value < 1000) {
+            return format("{:.1f}", value);
         } else {
-            if (m_pixelview_left_corner) {
-                textx = 9;
-                texty = closeupsize + yspacing;
-            } else {
-                textx = width() - closeupsize - 1;
-                texty = closeupsize + yspacing;
-            }
+            return format("{:.0f}", value);
         }
-        std::string s = Strutil::fmt::format("({}, {})", (int)real_xp + spec.x,
-                                             (int)real_yp + spec.y);
-        shadowed_text(textx, texty, 0.0f, s, font);
-        texty += yspacing;
-        img->getpixel((int)real_xp + spec.x, (int)real_yp + spec.y, fpixel);
-        for (int i = 0; i < spec.nchannels; ++i) {
-            switch (spec.format.basetype) {
-            case TypeDesc::UINT8: {
-                ImageBuf::ConstIterator<unsigned char, unsigned char> p(
-                    *img, (int)real_xp + spec.x, (int)real_yp + spec.y);
-                s = Strutil::fmt::format("{}: {:3}  ({:5.3f})",
-                                         spec.channelnames[i], int(p[i]),
-                                         fpixel[i]);
-            } break;
-            case TypeDesc::UINT16: {
-                ImageBuf::ConstIterator<unsigned short, unsigned short> p(
-                    *img, (int)real_xp + spec.x, (int)real_yp + spec.y);
-                s = Strutil::fmt::format("{}: {:3}  ({:5.3f})",
-                                         spec.channelnames[i], int(p[i]),
-                                         fpixel[i]);
-            } break;
-            default:  // everything else, treat as float
-                s = Strutil::fmt::format("{}: {:5.3f}", spec.channelnames[i],
-                                         fpixel[i]);
-            }
-            shadowed_text(textx, texty, 0.0f, s, font);
-            texty += yspacing;
+    };
+
+    for (int channel = 0; channel < spec.nchannels; ++channel) {
+        std::string name = spec.channelnames[channel];
+        // Truncate channel name if longer than 10 characters
+        if (name.length() > MAX_NAME_LENGTH) {
+            name = format("{:.4}...{}", name, name.substr(name.length() - 3));
         }
+        std::string centerValue;
+        std::string normalized;
+        std::string min;
+        std::string max;
+        std::string avg;
+
+        /* 
+        For each channel we calculate:
+        - center value (value of pixel under mouse cursor)
+        - normalized value (value of pixel under mouse cursor divided by max value of all pixels in the closeup window)
+        - min, max and average value of all pixels in the averaging subset of pixels of closeup window
+
+        There are three almost identical cases for different pixel types.
+        */
+
+        switch (spec.format.basetype) {
+        case TypeDesc::UINT8: {
+            ImageBuf::ConstIterator<unsigned char, unsigned char> p(*img,
+                                                                    pixel_x,
+                                                                    pixel_y);
+            std::string center_value_separation_spaces(5, ' ');
+            auto stats
+                = calculate_channel_stats<unsigned char>(*img, avg_roi, channel,
+                                                         is_inside_data_window);
+
+            centerValue = format("{:<3}", int(p[channel]));
+            normalized  = format("{:3.3f}", fpixel[channel])
+                         + center_value_separation_spaces;
+            min = format("{:<3}", stats.min_val);
+            max = format("{:<3}", stats.max_val);
+            avg = format("{:<3}", stats.avg_val);
+            break;
+        }
+        case TypeDesc::UINT16: {
+            ImageBuf::ConstIterator<unsigned short, unsigned short> p(*img,
+                                                                      pixel_x,
+                                                                      pixel_y);
+            std::string center_value_separation_spaces(2, ' ');
+            auto stats = calculate_channel_stats<unsigned short>(
+                *img, avg_roi, channel, is_inside_data_window);
+
+            centerValue = format("{:<5}", int(p[channel]));
+            normalized  = format("{:3.3f}", fpixel[channel])
+                         + center_value_separation_spaces;
+            min = format("{:<5}", stats.min_val);
+            max = format("{:<5}", stats.max_val);
+            avg = format("{:<5}", stats.avg_val);
+            break;
+        }
+        case TypeDesc::HALF: {
+            auto stats = calculate_channel_stats<half>(*img, avg_roi, channel,
+                                                       is_inside_data_window);
+
+            centerValue = format_float(fpixel[channel]);
+            normalized  = "";  // No normalized value for float
+            min         = format_float(stats.min_val);
+            max         = format_float(stats.max_val);
+            avg         = format_float(stats.avg_val);
+            break;
+        }
+        default: {  // everything else, treat as float
+            auto stats = calculate_channel_stats<float>(*img, avg_roi, channel,
+                                                        is_inside_data_window);
+
+            centerValue = format_float(fpixel[channel]);
+            normalized  = "";  // No normalized value for float
+            min         = format_float(stats.min_val);
+            max         = format_float(stats.max_val);
+            avg         = format_float(stats.avg_val);
+            break;
+        }
+        }
+
+        maxLengths.name        = std::max(maxLengths.name, (int)name.length());
+        maxLengths.centerValue = std::max(maxLengths.centerValue,
+                                          (int)centerValue.length());
+        maxLengths.normalized  = std::max(maxLengths.normalized,
+                                          (int)normalized.length());
+        maxLengths.min         = std::max(maxLengths.min, (int)min.length());
+        maxLengths.max         = std::max(maxLengths.max, (int)max.length());
+        maxLengths.avg         = std::max(maxLengths.avg, (int)avg.length());
+
+        channels_stats.push_back(
+            { name, centerValue, normalized, min, max, avg });
+    }
+
+
+    // Now we print text giving the mouse coordinates and the numerical
+    // values of the pixel that the mouse is over.
+    int x_text, y_text;
+    if (should_follow_mouse) {
+        x_text = x_mouse_viewport + 8 + follow_mouse_offset;
+        y_text = y_mouse_viewport + closeup_window_size + text_line_height
+                 + follow_mouse_offset;
+
+        if (should_show_on_left) {
+            x_text -= closeup_window_size + follow_mouse_offset * 2;
+        }
+
+        if (should_show_above) {
+            y_text -= closeup_window_size + total_text_height
+                      + follow_mouse_offset * 2 + 8;
+        }
+    } else if (m_pixelview_left_corner) {
+        x_text = 9;
+        y_text = closeup_window_size + text_line_height;
+    } else {
+        x_text = width() - closeup_window_size - 1;
+        y_text = closeup_window_size + text_line_height;
+    }
+
+    QColor normal_text_color(200, 200, 200);
+    // Extra spaces to be added after value in case of float values. Depends on the length of the channel name.
+    std::string float_spaces_post_value_str(MAX_NAME_LENGTH - maxLengths.name,
+                                            ' ');
+
+    {
+        QColor center_pix_value_text_color = center_pix_value_color;
+        center_pix_value_text_color.setAlpha(200);
+
+        QColor avg_value_text_color = avg_value_color;
+        avg_value_text_color.setAlpha(200);
+
+        std::string mouse_pos = format("              ({:d},{:d})",
+                                       (int)real_xp, (int)real_yp);
+        shadowed_text(x_text, y_text, 0.0f, mouse_pos,
+                      center_pix_value_text_color);
+        y_text += text_line_height;
+
+        // TODO Find a nicer way of doing this.
+        // Next three blocks are a hacky way of rendering a table header with
+        // Val, Norm and Min, Max, Avg rendered in a different color from rest of the text.
+        // It is done by rendering three texts on top of another.
+
+        // Build the "Norm" column header conditionally
+        std::string normalized_header;
+        std::string empty_normalized_header;
+        if (maxLengths.normalized > 0) {
+            normalized_header       = format("{:<{}}  ", "Norm",
+                                             maxLengths.normalized);
+            empty_normalized_header = format("{:<{}}  ", "    ",
+                                             maxLengths.normalized);
+        } else {
+            normalized_header       = float_spaces_post_value_str;
+            empty_normalized_header = float_spaces_post_value_str;
+        }
+
+        // Print "Val" column headers with normal cyan color
+        std::string val_header
+            = format("{:<{}}  {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", " ",
+                     maxLengths.name, "Val", maxLengths.centerValue,
+                     normalized_header, "   ", maxLengths.min, "   ",
+                     maxLengths.max, "   ", maxLengths.avg);
+        shadowed_text(x_text, y_text, 0.0f, val_header,
+                      center_pix_value_text_color);
+
+        // Print "Avg" column header with normal yellow color
+        std::string avg_header
+            = format("{:<{}}  {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ", " ",
+                     maxLengths.name, "   ", maxLengths.centerValue,
+                     empty_normalized_header, "Min", maxLengths.min, "Max",
+                     maxLengths.max, "Avg", maxLengths.avg);
+        shadowed_text(x_text, y_text, 0.0f, avg_header, avg_value_text_color);
+
+        y_text += text_line_height;
+    }
+
+    for (const auto& stat : channels_stats) {
+        // Build the "Norm" column header conditionally
+        std::string normalized_col;
+        if (maxLengths.normalized > 0) {
+            normalized_col = format("{:<{}}  ", stat.normalized,
+                                    maxLengths.normalized);
+        } else {
+            normalized_col = float_spaces_post_value_str;
+        }
+
+        std::string line = format("{:<{}}: {:<{}}  {}{:<{}}  {:<{}}  {:<{}}  ",
+                                  stat.name, maxLengths.name, stat.centerValue,
+                                  maxLengths.centerValue, normalized_col,
+                                  stat.min, maxLengths.min, stat.max,
+                                  maxLengths.max, stat.avg, maxLengths.avg);
+
+        QColor channelColor;
+        if (stat.name[0] == 'R') {
+            channelColor = QColor(250, 94, 143);
+        } else if (stat.name[0] == 'G') {
+            channelColor = QColor(135, 203, 124);
+        } else if (stat.name[0] == 'B') {
+            channelColor = QColor(107, 188, 255);
+        } else {
+            channelColor = normal_text_color;
+        }
+
+        shadowed_text(x_text, y_text, 0.0f, line, channelColor);
+        y_text += text_line_height;
+    }
+
+    glPopAttrib();
+    glPopMatrix();
+
+    // Draw cyan corners around center pixel
+    if (is_mouse_inside_image) {
+        // Draw corner markers
+        auto draw_corners = [](QPainter& painter, float rect_x1, float rect_y1,
+                               float rect_x2, float rect_y2,
+                               const QColor& color) {
+            float corner_size = 4;  // Size of each corner marker
+            painter.setPen(QPen(color, 1.0));
+
+            // Top-left corner
+            painter.drawLine(rect_x1, rect_y1, rect_x1 + corner_size, rect_y1);
+            painter.drawLine(rect_x1, rect_y1, rect_x1, rect_y1 + corner_size);
+
+            // Top-right corner
+            painter.drawLine(rect_x2 - corner_size, rect_y1, rect_x2, rect_y1);
+            painter.drawLine(rect_x2, rect_y1, rect_x2, rect_y1 + corner_size);
+
+            // Bottom-left corner
+            painter.drawLine(rect_x1, rect_y2 - corner_size, rect_x1, rect_y2);
+            painter.drawLine(rect_x1, rect_y2, rect_x1 + corner_size, rect_y2);
+
+            // Bottom-right corner
+            painter.drawLine(rect_x2 - corner_size, rect_y2, rect_x2, rect_y2);
+            painter.drawLine(rect_x2, rect_y2 - corner_size, rect_x2, rect_y2);
+        };
+
+        // Size of each pixel in the view taking into account spacing between pixels
+        float pixel_size = closeup_pixel_size - 1;
+        // Top left corner for the rect around center pixel
+        float rect_x1;  // Left edge
+        float rect_y1;  // Top edge
+
+        float offset_from_closeup_window = closeup_window_size / 2
+                                           - pixel_size / 2 + 5;
+        if (should_follow_mouse) {
+            rect_x1 = x_mouse_viewport + offset_from_closeup_window
+                      + follow_mouse_offset;
+            rect_y1 = y_mouse_viewport + offset_from_closeup_window
+                      + follow_mouse_offset;
+
+            if (should_show_on_left) {
+                rect_x1 -= closeup_window_size + follow_mouse_offset * 2;
+            }
+
+            if (should_show_above) {
+                rect_y1 -= closeup_window_size + total_text_height
+                           + follow_mouse_offset * 2 + 8;
+            }
+        } else if (m_pixelview_left_corner) {
+            rect_x1 = offset_from_closeup_window + 1;
+            rect_y1 = offset_from_closeup_window + 1;
+        } else {
+            rect_x1 = width() - offset_from_closeup_window - pixel_size;
+            rect_y1 = offset_from_closeup_window + 1;
+        }
+
+        QPainter painter(this);
+        if (avg_window_offset > 0) {
+            // Drawing indicators of avg sub-section of the closeup window
+            // before adjusting center pixel position because avg is not shifted to the edges
+            short int center_to_avg_window_offset = n_closeup_pixels / 2
+                                                    - avg_window_offset;
+            float avg_x1 = rect_x1
+                           - center_to_avg_window_offset * closeup_pixel_size;
+            float avg_y1 = rect_y1
+                           - center_to_avg_window_offset * closeup_pixel_size;
+            float avg_x2 = rect_x1
+                           + (center_to_avg_window_offset + 1)
+                                 * closeup_pixel_size;
+            float avg_y2 = rect_y1
+                           + (center_to_avg_window_offset + 1)
+                                 * closeup_pixel_size;
+            draw_corners(painter, avg_x1, avg_y1, avg_x2, avg_y2,
+                         avg_value_color);
+        }
+
+        // Adjust x and y of measured pixel position to account for the fact that the
+        // center pixel is not at the center of the closeup window
+        // in situation when pixel mouse is hovering over is close to the edge of an image
+        float half_closeup_window_size = n_closeup_pixels / 2;
+        short int px_to_right_edge     = spec.width - pixel_x;
+        short int px_to_bottom_edge    = spec.height - pixel_y;
+
+        bool is_close_to_right_edge = px_to_right_edge
+                                      <= half_closeup_window_size;
+        bool is_close_to_bottom_edge = px_to_bottom_edge
+                                       <= half_closeup_window_size;
+        bool is_close_to_left_edge = pixel_x <= half_closeup_window_size;
+        bool is_close_to_top_edge  = pixel_y <= half_closeup_window_size;
+
+        if (is_close_to_right_edge) {
+            rect_x1 += +(half_closeup_window_size - px_to_right_edge + 1)
+                           * closeup_pixel_size
+                       + 1;
+        }
+
+        if (is_close_to_bottom_edge) {
+            rect_y1 += +(half_closeup_window_size - px_to_bottom_edge + 1)
+                           * closeup_pixel_size
+                       + 1;
+        }
+
+        if (is_close_to_left_edge) {
+            rect_x1 -= (half_closeup_window_size - pixel_x) * closeup_pixel_size
+                       + 1;
+        }
+        if (is_close_to_top_edge) {
+            rect_y1 -= (half_closeup_window_size - pixel_y) * closeup_pixel_size
+                       + 1;
+        }
+
+        float rect_x2 = rect_x1 + pixel_size;  // Right edge
+        float rect_y2 = rect_y1 + pixel_size;  // Bottom edge
+
+        draw_corners(painter, rect_x1, rect_y1, rect_x2, rect_y2,
+                     center_pix_value_color);
+    }
+}
+
+
+
+void
+IvGL::paint_probeview()
+{
+    if (!m_current_image)
+        return;
+    IvImage* img = m_current_image;
+    const ImageSpec& spec(img->spec());
+
+    int x_mouse_viewport, y_mouse_viewport;
+    get_focus_window_pixel(x_mouse_viewport, y_mouse_viewport);
+
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Set to window pixel units and center the origin
+    glTranslatef(0, 0, -1);  // Push into screen to draw on top
+
+    float closeup_width  = closeup_window_size * 1.3f;
+    float closeup_height = closeup_window_size * (0.06f * (spec.nchannels + 1));
+
+    // Position the close-up box
+    const float status_bar_offset = 35.0f;
+    glTranslatef(closeup_width * 0.5f + 5 - width() / 2,
+                 closeup_height * 0.5f + status_bar_offset - height() / 2, 0);
+
+    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+    glDisable(GL_TEXTURE_2D);
+    if (m_use_shaders)
+        glUseProgram(0);
+    float extraspace = 10 * (1 + spec.nchannels) + 4;
+    glColor4f(0.1f, 0.1f, 0.1f, 0.5f);
+    gl_rect(-0.5f * closeup_width - 2, 0.5f * closeup_height + 10 + 2,
+            0.5f * closeup_width + 2, -0.5f * closeup_height - extraspace,
+            -0.1f);
+    // Draw probe text
+    QFont font;
+
+    int x_text   = 9;
+    int y_text   = height() - closeup_height - 30;
+    int yspacing = 15;
+
+    if (m_area_probe_text.empty()) {
+        std::ostringstream oss;  // Output stream
+        oss << "Area Probe:\n";
+        for (int i = 0; i < spec.nchannels; ++i)
+            oss << spec.channel_name(i)
+                << ":   [min:  -----, max:  -----, avg:  -----]\n";
+        m_area_probe_text = oss.str();
+    }
+
+    std::istringstream iss(m_area_probe_text);
+    std::string line;
+    while (std::getline(iss, line)) {
+        shadowed_text(x_text, y_text, 0.0f, line);
+        y_text += yspacing;
     }
 
     glPopAttrib();
@@ -999,12 +1563,16 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
     update_uniforms(tex_width, tex_height, pixelview);
 }
 
+
+
 void
 IvGL::use_program(void)
 {
     glUseProgram(m_shader_program);
     print_error("After use program");
 }
+
+
 
 void
 IvGL::update_uniforms(int tex_width, int tex_height, bool pixelview)
@@ -1104,8 +1672,8 @@ IvGL::update()
 
     // Set the right type for the texture used for pixelview.
     glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, glinternalformat, closeuptexsize,
-                 closeuptexsize, 0, glformat, gltype, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, glinternalformat, closeup_texture_size,
+                 closeup_texture_size, 0, glformat, gltype, NULL);
     print_error("Setting up pixelview texture");
 
     // Resize the buffer at once, rather than create one each drawing.
@@ -1208,23 +1776,113 @@ IvGL::clamp_view_to_window()
 
 
 void
+IvGL::update_area_probe_text()
+{
+    IvImage* img = m_current_image;
+    const ImageSpec& spec(img->spec());
+    // (x_mouse_viewport,y_mouse_viewport) are the window coordinates of the mouse.
+    int x_mouse_viewport, y_mouse_viewport;
+    get_focus_window_pixel(x_mouse_viewport, y_mouse_viewport);
+
+    int x1, y1;
+    get_given_image_pixel(x1, y1, m_select_start.x(), m_select_start.y());
+
+    int x2, y2;
+    get_given_image_pixel(x2, y2, m_select_end.x(), m_select_end.y());
+
+    float scale_x  = 1.0f;
+    float scale_y  = 1.0f;
+    float rotate_z = 0.0f;
+    float x1_img   = x1;
+    float y1_img   = y1;
+    float x2_img   = x2;
+    float y2_img   = y2;
+
+    handle_orientation(img->orientation(), spec.width, spec.height, scale_x,
+                       scale_y, rotate_z, x1_img, y1_img, true);
+    handle_orientation(img->orientation(), spec.width, spec.height, scale_x,
+                       scale_y, rotate_z, x2_img, y2_img, true);
+
+    x1_img = clamp<int>(x1_img, 0, spec.width - 1);
+    x2_img = clamp<int>(x2_img, 0, spec.width - 1);
+    y1_img = clamp<int>(y1_img, 0, spec.height - 1);
+    y2_img = clamp<int>(y2_img, 0, spec.height - 1);
+
+    int xmin = std::min(x1_img, x2_img);
+    int xmax = std::max(x1_img, x2_img);
+    int ymin = std::min(y1_img, y2_img);
+    int ymax = std::max(y1_img, y2_img);
+
+    // Min and max
+    std::vector<float> min_vals(spec.nchannels,
+                                std::numeric_limits<float>::max());
+    std::vector<float> max_vals(spec.nchannels,
+                                std::numeric_limits<float>::lowest());
+    std::vector<double> sums(spec.nchannels, 0.0);
+    int count = 0;
+
+    // loop through each pixel
+    float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
+    for (int y = ymin; y <= ymax; ++y) {
+        for (int x = xmin; x <= xmax; ++x) {
+            img->getpixel(x + spec.x, y + spec.y, fpixel);
+            for (int c = 0; c < spec.nchannels; ++c) {
+                min_vals[c] = std::min(min_vals[c], fpixel[c]);
+                max_vals[c] = std::max(max_vals[c], fpixel[c]);
+                sums[c] += fpixel[c];
+            }
+            ++count;
+        }
+    }
+
+    QString result = "Area Probe:\n";
+    for (int c = 0; c < spec.nchannels; ++c) {
+        float avg = (count > 0) ? static_cast<float>(sums[c] / count) : 0.0f;
+        result += QString("%1: [min: %2  max: %3  avg: %4]\n")
+                      .arg(QString::fromStdString(spec.channel_name(c))
+                               .leftJustified(5))
+                      .arg(min_vals[c], 6, 'f', 3)
+                      .arg(max_vals[c], 6, 'f', 3)
+                      .arg(avg, 6, 'f', 3);
+    }
+
+    m_area_probe_text = result.toStdString();
+}
+
+
+
+void
 IvGL::mousePressEvent(QMouseEvent* event)
 {
     remember_mouse(event->pos());
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
+    bool areaMode = m_viewer.areaSampleMode();
     bool Alt      = (event->modifiers() & Qt::AltModifier);
     m_drag_button = event->button();
     if (!m_mouse_activation) {
         switch (event->button()) {
         case Qt::LeftButton:
-            if (mousemode == ImageViewer::MouseModeZoom && !Alt)
-                m_viewer.zoomIn();
-            else
+            if (areaMode) {
+                m_select_start = event->pos();
+                m_select_end   = m_select_start;
+                m_selecting    = true;
+                parent_t::update();
+            } else if (mousemode == ImageViewer::MouseModeSelect && !Alt
+                       && areaMode) {
+                std::cerr << areaMode;
+                m_select_start = event->pos();
+                m_select_end   = m_select_start;
+                m_selecting    = true;
+                parent_t::update();
+            } else if (mousemode == ImageViewer::MouseModeZoom && !Alt
+                       && !areaMode) {
+                m_viewer.zoomIn(true);  // Animated zoom for mouse clicks
+            } else
                 m_dragging = true;
             return;
         case Qt::RightButton:
-            if (mousemode == ImageViewer::MouseModeZoom && !Alt)
-                m_viewer.zoomOut();
+            if (mousemode == ImageViewer::MouseModeZoom && !Alt && !areaMode)
+                m_viewer.zoomOut(true);  // Animated zoom for mouse clicks
             else
                 m_dragging = true;
             return;
@@ -1251,6 +1909,14 @@ IvGL::mouseReleaseEvent(QMouseEvent* event)
     remember_mouse(event->pos());
     m_drag_button = Qt::NoButton;
     m_dragging    = false;
+    if (m_selecting) {
+        m_select_end = event->pos();
+        m_selecting  = false;
+        update_area_probe_text();
+        m_select_start = QPoint();
+        m_select_end   = QPoint();
+        parent_t::update();
+    }
     parent_t::mouseReleaseEvent(event);
 }
 
@@ -1260,6 +1926,20 @@ void
 IvGL::mouseMoveEvent(QMouseEvent* event)
 {
     QPoint pos = event->pos();
+
+    // Area probe override
+    if (m_viewer.areaSampleMode() && m_selecting) {
+        m_select_end = event->pos();
+        update_area_probe_text();
+        remember_mouse(pos);
+        parent_t::update();
+        if (m_viewer.pixelviewOn()) {
+            parent_t::update();
+        }
+        parent_t::mouseMoveEvent(event);
+        return;
+    }
+
     // FIXME - there's probably a better Qt way than tracking the button
     // myself.
     bool Alt      = (event->modifiers() & Qt::AltModifier);
@@ -1310,6 +1990,10 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     } else if (do_wipe) {
         // FIXME -- unimplemented
     } else if (do_select) {
+        if (m_selecting) {
+            m_select_end = event->pos();
+            parent_t::update();
+        }
         // FIXME -- unimplemented
     } else if (do_annotate) {
         // FIXME -- unimplemented
@@ -1321,6 +2005,7 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
 }
 
 
+
 void
 IvGL::wheelEvent(QWheelEvent* event)
 {
@@ -1328,9 +2013,11 @@ IvGL::wheelEvent(QWheelEvent* event)
     QPoint angdelta    = event->angleDelta() / 8;  // div by 8 to get degrees
     if (abs(angdelta.y()) > abs(angdelta.x())      // predominantly vertical
         && abs(angdelta.y()) > 2) {                // suppress tiny motions
-        float oldzoom = m_viewer.zoom();
-        float newzoom = (angdelta.y() > 0) ? ceil2f(oldzoom) : floor2f(oldzoom);
-        m_viewer.zoom(newzoom);
+        if (angdelta.y() > 0) {
+            m_viewer.zoomIn(false);
+        } else {
+            m_viewer.zoomOut(false);
+        }
         event->accept();
     }
     // TODO: Update this to keep the zoom centered on the event .x, .y
@@ -1351,6 +2038,33 @@ IvGL::get_focus_window_pixel(int& x, int& y)
 {
     x = m_mousex;
     y = m_mousey;
+}
+
+
+
+void
+IvGL::get_given_image_pixel(int& x, int& y, int mouseX, int mouseY)
+{
+    int w = width(), h = height();
+    float z = m_zoom;
+    // left,top,right,bottom are the borders of the visible window, in
+    // pixel coordinates
+    float left   = m_centerx - 0.5 * w / z;
+    float top    = m_centery - 0.5 * h / z;
+    float right  = m_centerx + 0.5 * w / z;
+    float bottom = m_centery + 0.5 * h / z;
+    // normx,normy are the position of the mouse, in normalized (i.e. [0..1])
+    // visible window coordinates.
+    float normx = (float)(mouseX + 0.5f) / w;
+    float normy = (float)(mouseY + 0.5f) / h;
+    // imgx,imgy are the position of the mouse, in pixel coordinates
+    float imgx = OIIO::lerp(left, right, normx);
+    float imgy = OIIO::lerp(top, bottom, normy);
+    // So finally x,y are the coordinates of the image pixel (on [0,res-1])
+    // underneath the mouse cursor.
+    //FIXME: Shouldn't this take image rotation into account?
+    x = (int)floorf(imgx);
+    y = (int)floorf(imgy);
 }
 
 
@@ -1391,6 +2105,7 @@ IvGL::get_focus_image_pixel(int& x, int& y)
     std::cerr << "    mouse pixel image coords " << x << ' ' << y << "\n";
 #endif
 }
+
 
 
 void
@@ -1639,11 +2354,15 @@ IvGL::is_too_big(float width, float height)
     return tiles > m_texbufs.size();
 }
 
+
+
 void
 IvGL::update_state(void)
 {
     create_shaders();
 }
+
+
 
 void
 IvGL::print_error(const char* msg)

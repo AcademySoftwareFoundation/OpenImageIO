@@ -9,3 +9,5 @@ libpng error: tEXt: Read error: hit end of file in png reader
 idiff ERROR: Could not read invalid_gray_alpha_sbit.png:
 	Invalid image file "invalid_gray_alpha_sbit.png": Read error: hit end of file in png reader
 PNG read error: tEXt: Read error: hit end of file in png reader
+Invalid image file "invalid_gray_alpha_sbit.png": Read error: hit end of file in png reader
+PNG read error: tEXt: Read error: hit end of file in png reader

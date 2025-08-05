@@ -14,7 +14,6 @@ Reading ../openexr-images/ScanLines/Blobbies.exr
     screenWindowWidth: 1
     utcOffset: 28800
     whiteLuminance: 50
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "decreasingY"
 Comparing "../openexr-images/ScanLines/Blobbies.exr" and "Blobbies.exr"
@@ -32,7 +31,6 @@ Reading ../openexr-images/ScanLines/CandleGlass.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/CandleGlass.exr" and "CandleGlass.exr"
@@ -46,7 +44,6 @@ Reading ../openexr-images/ScanLines/Cannon.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/Cannon.exr" and "Cannon.exr"
@@ -59,7 +56,6 @@ Reading ../openexr-images/ScanLines/Desk.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/Desk.exr" and "Desk.exr"
@@ -79,7 +75,6 @@ Reading ../openexr-images/ScanLines/MtTamWest.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     utcOffset: 25200
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/MtTamWest.exr" and "MtTamWest.exr"
@@ -97,7 +92,6 @@ Reading ../openexr-images/ScanLines/PrismsLenses.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/PrismsLenses.exr" and "PrismsLenses.exr"
@@ -113,7 +107,6 @@ Reading ../openexr-images/ScanLines/StillLife.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 0.45
     utcOffset: 25200
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/StillLife.exr" and "StillLife.exr"
@@ -132,7 +125,6 @@ Reading ../openexr-images/ScanLines/Tree.exr
     screenWindowWidth: 0.48
     utcOffset: 25200
     whiteLuminance: 621
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/Tree.exr" and "Tree.exr"
@@ -145,7 +137,6 @@ Reading ../openexr-images/TestImages/AllHalfValues.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/AllHalfValues.exr" and "AllHalfValues.exr"
@@ -158,7 +149,6 @@ Reading ../openexr-images/TestImages/BrightRings.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/BrightRings.exr" and "BrightRings.exr"
@@ -171,7 +161,6 @@ Reading ../openexr-images/TestImages/BrightRingsNanInf.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/BrightRingsNanInf.exr" and "BrightRingsNanInf.exr"
@@ -184,7 +173,6 @@ Reading ../openexr-images/TestImages/GammaChart.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/GammaChart.exr" and "GammaChart.exr"
@@ -221,7 +209,6 @@ Reading ../openexr-images/TestImages/RgbRampsDiagonal.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/RgbRampsDiagonal.exr" and "RgbRampsDiagonal.exr"
@@ -234,7 +221,6 @@ Reading ../openexr-images/TestImages/SquaresSwirls.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/SquaresSwirls.exr" and "SquaresSwirls.exr"
@@ -248,7 +234,6 @@ Reading ../openexr-images/TestImages/WideColorGamut.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/WideColorGamut.exr" and "WideColorGamut.exr"
@@ -285,7 +270,6 @@ Reading ../openexr-images/Tiles/GoldenGate.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1.15
     utcOffset: 28800
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/Tiles/GoldenGate.exr" and "GoldenGate.exr"
@@ -301,7 +285,6 @@ Reading ../openexr-images/Tiles/Ocean.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/Tiles/Ocean.exr" and "Ocean.exr"
@@ -323,7 +306,6 @@ Reading ../openexr-images/Tiles/Spirals.exr
     screenWindowWidth: 1
     utcOffset: 28800
     whiteLuminance: 90
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/Tiles/Spirals.exr" and "Spirals.exr"
@@ -341,9 +323,21 @@ Reading ../openexr-images/Beachball/singlepart.0001.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimagename: "rgba"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/Beachball/singlepart.0001.exr" and "singlepart.0001.exr"
 PASS
+Reading negoverscan.exr
+negoverscan.exr      :   64 x   64, 3 channel, half openexr
+    SHA-1: EBDD38B69CD5B9F2D00D273C981E16960FBBB4F7
+    channel list: R, G, B
+    pixel data origin: x=-16, y=-16
+    full/display size: 64 x 64
+    full/display origin: -16, -16
+    compression: "zip"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"

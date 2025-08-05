@@ -394,44 +394,63 @@ inline constexpr TypeDesc TypeUstringhash(TypeDesc::USTRINGHASH);
 ///
 template<typename T> struct BaseTypeFromC {};
 template<> struct BaseTypeFromC<unsigned char> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT8; };
+template<> struct BaseTypeFromC<const unsigned char> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT8; };
 template<> struct BaseTypeFromC<char> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT8; };
+template<> struct BaseTypeFromC<const char> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT8; };
 template<> struct BaseTypeFromC<uint16_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT16; };
+template<> struct BaseTypeFromC<const uint16_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT16; };
 template<> struct BaseTypeFromC<int16_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT16; };
+template<> struct BaseTypeFromC<const int16_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT16; };
 template<> struct BaseTypeFromC<uint32_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT; };
+template<> struct BaseTypeFromC<const uint32_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT; };
 template<> struct BaseTypeFromC<int32_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT; };
+template<> struct BaseTypeFromC<const int32_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT; };
 template<> struct BaseTypeFromC<uint64_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT64; };
+template<> struct BaseTypeFromC<const uint64_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT64; };
 template<> struct BaseTypeFromC<int64_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT64; };
+template<> struct BaseTypeFromC<const int64_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT64; };
 #if defined(__GNUC__) && __WORDSIZE == 64 && !(defined(__APPLE__) && defined(__MACH__))
 // Some platforms consider int64_t and long long to be different types, even
 // though they are actually the same size.
 static_assert(!std::is_same_v<unsigned long long, uint64_t>);
 static_assert(!std::is_same_v<long long, int64_t>);
 template<> struct BaseTypeFromC<unsigned long long> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT64; };
+template<> struct BaseTypeFromC<const unsigned long long> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT64; };
 template<> struct BaseTypeFromC<long long> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT64; };
+template<> struct BaseTypeFromC<const long long> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT64; };
 #endif
 #if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 template<> struct BaseTypeFromC<half> { static constexpr TypeDesc::BASETYPE value = TypeDesc::HALF; };
+template<> struct BaseTypeFromC<const half> { static constexpr TypeDesc::BASETYPE value = TypeDesc::HALF; };
 #endif
 template<> struct BaseTypeFromC<float> { static constexpr TypeDesc::BASETYPE value = TypeDesc::FLOAT; };
+template<> struct BaseTypeFromC<const float> { static constexpr TypeDesc::BASETYPE value = TypeDesc::FLOAT; };
 template<> struct BaseTypeFromC<double> { static constexpr TypeDesc::BASETYPE value = TypeDesc::DOUBLE; };
-template<> struct BaseTypeFromC<const char*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<const double> { static constexpr TypeDesc::BASETYPE value = TypeDesc::DOUBLE; };
 template<> struct BaseTypeFromC<char*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<const char*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<const char* const> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<std::string> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<const std::string> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<string_view> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<const string_view> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 class ustring;
 template<> struct BaseTypeFromC<ustring> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<const ustring> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<size_t S> struct BaseTypeFromC<char[S]> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<size_t S> struct BaseTypeFromC<const char[S]> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<typename P> struct BaseTypeFromC<P*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::PTR; };
+template<typename P> struct BaseTypeFromC<const P*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::PTR; };
+template<typename P> struct BaseTypeFromC<const P* const> { static constexpr TypeDesc::BASETYPE value = TypeDesc::PTR; };
 
 /// `BaseTypeFromC_v<T>` is shorthand for `BaseTypeFromC<T>::value()`.
 template<typename T>
-constexpr TypeDesc::BASETYPE BaseTypeFromC_v = BaseTypeFromC<std::remove_cv_t<T>>::value();
+constexpr TypeDesc::BASETYPE BaseTypeFromC_v = BaseTypeFromC<std::remove_cv_t<T>>::value;
 
 /// A template mechanism for getting the TypeDesc from a C type.
 /// The default for simple types is just the TypeDesc based on BaseTypeFromC.
 /// But we can specialize more complex types.
-template<typename T> struct TypeDescFromC { static const constexpr TypeDesc value() { return TypeDesc(BaseTypeFromC<T>::value); } };
+template<typename T> struct TypeDescFromC { static const constexpr TypeDesc value() { return TypeDesc(BaseTypeFromC_v<T>); } };
 template<> struct TypeDescFromC<int32_t> { static const constexpr TypeDesc value() { return TypeDesc::INT32; } };
 template<> struct TypeDescFromC<uint32_t> { static const constexpr TypeDesc value() { return TypeDesc::UINT32; } };
 template<> struct TypeDescFromC<int16_t> { static const constexpr TypeDesc value() { return TypeDesc::INT16; } };
@@ -445,10 +464,12 @@ template<> struct TypeDescFromC<half> { static const constexpr TypeDesc value() 
 template<> struct TypeDescFromC<double> { static const constexpr TypeDesc value() { return TypeDesc::DOUBLE; } };
 template<> struct TypeDescFromC<char*> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<> struct TypeDescFromC<const char*> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+template<> struct TypeDescFromC<const char* const> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<const char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<> struct TypeDescFromC<ustring> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<typename T> struct TypeDescFromC<T*> { static const constexpr TypeDesc value() { return TypeDesc::PTR; } };
+template<typename T> struct TypeDescFromC<const T*> { static const constexpr TypeDesc value() { return TypeDesc::PTR; } };
 #ifdef INCLUDED_IMATHVEC_H
 template<> struct TypeDescFromC<Imath::V3f> { static const constexpr TypeDesc value() { return TypeVector; } };
 template<> struct TypeDescFromC<Imath::V2f> { static const constexpr TypeDesc value() { return TypeVector2; } };
@@ -600,6 +621,9 @@ struct formatter<OIIO::TypeDesc> {
     {
         // Get the presentation type, if any. Required to be 's'.
         auto it = ctx.begin(), end = ctx.end();
+        // Skip any width specifier. Remember that this is only for old
+        // versions of fmt, so just don't sweat it.
+        while (it != end && isdigit(*it)) ++it;
         if (it != end && (*it == 's')) ++it;
         // Check if reached the end of the range:
         if (it != end && *it != '}')

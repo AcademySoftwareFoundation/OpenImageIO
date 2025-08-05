@@ -339,6 +339,8 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                     // Not even constant color case -> We don't want those to count as black frames.
                     result = "0";
                 }
+            } else if (metadata == "SUBIMAGES") {
+                result = Strutil::to_string(img->subimages());
 
             } else if (using_bracket) {
                 // For the TOP[meta] syntax, if the metadata doesn't exist,

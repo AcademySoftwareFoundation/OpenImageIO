@@ -45,6 +45,8 @@ macro (find_python)
     checked_find_package (Python3 ${PYTHON_VERSION}
                           ${_req}
                           VERSION_MIN 3.7
+                          RECOMMEND_MIN 3.9
+                          RECOMMEND_MIN_REASON "We don't test or support older than 3.9"
                           COMPONENTS ${_py_components}
                           PRINT Python3_VERSION Python3_EXECUTABLE
                                 Python3_LIBRARIES
@@ -156,7 +158,8 @@ macro (setup_python_module)
              RUNTIME DESTINATION ${PYTHON_SITE_DIR} COMPONENT user
              LIBRARY DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
-    install(FILES __init__.py DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+    install (FILES __init__.py stubs/OpenImageIO/__init__.pyi stubs/OpenImageIO/py.typed
+             DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
 endmacro ()
 

@@ -1133,18 +1133,20 @@ bit_pack(cspan<T> data, void* out, int outbits)
 /// will be stored in a successive out[i].
 template<typename T>
 inline void
-bit_unpack(int n, const unsigned char* in, int inbits, T* out)
+bit_unpack(cspan<unsigned char> in, int inbits, span<T> out)
 {
     static_assert(std::is_same<T,uint8_t>::value ||
                   std::is_same<T,uint16_t>::value ||
                   std::is_same<T,uint32_t>::value,
                   "bit_unpack must be unsigned int 8/16/32");
+    OIIO_DASSERT(in.size() * 8 >= inbits * out.size());
     OIIO_DASSERT(inbits >= 1 && inbits < 32);  // surely bugs if not
     // int highest = (1 << inbits) - 1;
+    size_t n = out.size();
     int B = 0, b = 0;
     // Invariant:
     // So far, we have used in[0..B-1] and the high b bits of in[B].
-    for (int i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
         long long val = 0;
         int valbits   = 0;  // bits so far we've accumulated in val
         while (valbits < inbits) {
@@ -1175,6 +1177,23 @@ bit_unpack(int n, const unsigned char* in, int inbits, T* out)
         }
         out[i] = val; //T((val * 0xff) / highest);
     }
+}
+
+
+
+/// Decode n packed inbits-bits values from in[...] into normal uint8,
+/// uint16, or uint32 representation of `T out[0..n-1]`. In other words,
+/// each successive `inbits` of `in` (allowing spanning of byte boundaries)
+/// will be stored in a successive out[i].
+/// Note that this is the "unsafe" raw pointer version, and we recommend
+/// instead using the span-based version.
+template<typename T>
+OIIO_DEPRECATED("Use span-based version")
+inline void
+bit_unpack(int n, const unsigned char* in, int inbits, T* out)
+{
+    return bit_unpack(cspan<unsigned char>(in, (n * inbits + 7) / 8),
+                      inbits, span<T>(out, n));
 }
 
 

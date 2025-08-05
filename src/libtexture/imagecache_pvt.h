@@ -22,7 +22,6 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/unordered_map_concurrent.h>
 
-
 OIIO_NAMESPACE_BEGIN
 
 
@@ -175,20 +174,21 @@ public:
     int subimages() const { return (int)m_subimages.size(); }
     int miplevels(int subimage) const
     {
-        return (int)m_subimages[subimage].levels.size();
+        return subimageinfo(subimage).miplevels();
     }
-    const ImageSpec& spec(int subimage, int miplevel) const
+
+    void get_cache_dimensions(int subimage, int miplevel, ImageSpec& spec) const
     {
-        return levelinfo(subimage, miplevel).spec();
+        subimageinfo(subimage).get_cache_dimensions(miplevel, spec);
     }
-    ImageSpec& spec(int subimage, int miplevel)
+
+    ImageSpec& spec(int subimage) { return subimageinfo(subimage).spec(); }
+
+    const ImageSpec& spec(int subimage) const
     {
-        return levelinfo(subimage, miplevel).spec();
+        return subimageinfo(subimage).spec();
     }
-    const ImageSpec& nativespec(int subimage, int miplevel) const
-    {
-        return levelinfo(subimage, miplevel).nativespec;
-    }
+
     ustring filename(void) const { return m_filename; }
     ustring fileformat(void) const { return m_fileformat; }
     TexFormat textureformat() const { return m_texformat; }
@@ -262,30 +262,85 @@ public:
     // success, false on failure.
     bool get_average_color(float* avg, int subimage, int chbegin, int chend);
 
+    /// ImageDims is a minified ImageSpec that only store the fields
+    /// that can change per mip map level.
+    /// It is used as standalone container or can be used as a view
+    /// over the same fields of ImageSpec via the ImageDims::convert() function.
+    struct ImageDims {
+        int x;            ///< origin (upper left corner) of pixel data
+        int y;            ///< origin (upper left corner) of pixel data
+        int z;            ///< origin (upper left corner) of pixel data
+        int width;        ///< width of the pixel data window
+        int height;       ///< height of the pixel data window
+        int depth;        ///< depth of pixel data, >1 indicates a "volume"
+        int full_x;       ///< origin of the full (display) window
+        int full_y;       ///< origin of the full (display) window
+        int full_z;       ///< origin of the full (display) window
+        int full_width;   ///< width of the full (display) window
+        int full_height;  ///< height of the full (display) window
+        int full_depth;   ///< depth of the full (display) window
+        int tile_width;   ///< tile width (0 for a non-tiled image)
+        int tile_height;  ///< tile height (0 for a non-tiled image)
+        int tile_depth;   ///< tile depth (0 for a non-tiled image,
+                          ///<             1 for a non-volume image)
+        int nchannels;    ///< number of image channels, e.g., 4 for RGBA
+
+        static const ImageDims& convert(const ImageSpec& s)
+        {
+            return *((ImageDims*)&s.x);
+        }
+
+        static ImageDims& convert(ImageSpec& s) { return *((ImageDims*)&s.x); }
+    };
+
+    /// Sanity checks for ImageSpec <-> ImageDims structures alignment.
+    OIIO_STATIC_ASSERT(alignof(ImageSpec) >= alignof(ImageDims));
+    OIIO_STATIC_ASSERT(sizeof(ImageDims) == offsetof(ImageSpec, format));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, x) == offsetof(ImageSpec, x));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, y) == offsetof(ImageSpec, y));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, z) == offsetof(ImageSpec, z));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, width)
+                       == offsetof(ImageSpec, width));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, height)
+                       == offsetof(ImageSpec, height));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, depth)
+                       == offsetof(ImageSpec, depth));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_x)
+                       == offsetof(ImageSpec, full_x));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_y)
+                       == offsetof(ImageSpec, full_y));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_z)
+                       == offsetof(ImageSpec, full_z));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_width)
+                       == offsetof(ImageSpec, full_width));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_height)
+                       == offsetof(ImageSpec, full_height));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, full_depth)
+                       == offsetof(ImageSpec, full_depth));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, tile_width)
+                       == offsetof(ImageSpec, tile_width));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, tile_height)
+                       == offsetof(ImageSpec, tile_height));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, tile_depth)
+                       == offsetof(ImageSpec, tile_depth));
+    OIIO_STATIC_ASSERT(offsetof(ImageDims, nchannels)
+                       == offsetof(ImageSpec, nchannels));
+
     /// Info for each MIP level that isn't in the ImageSpec, or that we
     /// precompute.
     struct LevelInfo {
-        std::unique_ptr<ImageSpec> m_spec;  ///< ImageSpec for the mip level,
-            // only specified if different from nativespec
-        ImageSpec nativespec;  ///< Native ImageSpec for the mip level
-        mutable std::unique_ptr<float[]> polecolor;  ///< Pole colors
+        ImageDims* m_dims;                   ///< Level dimensions
+        std::unique_ptr<float[]> polecolor;  ///< Pole colors
         atomic_ll* tiles_read;  ///< Bitfield for tiles read at least once
         int nxtiles, nytiles, nztiles;  ///< Number of tiles in each dimension
-        bool full_pixel_range;  ///< pixel data window matches image window
-        bool onetile;           ///< Whole level fits on one tile
-        mutable bool polecolorcomputed;  ///< Pole color was computed
+        uint16_t nchannels;             ///< Number of channels in the image
+        bool full_pixel_range : 1;   ///< pixel data window matches image window
+        bool onetile : 1;            ///< Whole level fits on one tile
+        bool polecolorcomputed : 1;  ///< Pole color was computed
 
-        LevelInfo(std::unique_ptr<ImageSpec> spec,
-                  const ImageSpec& nativespec);  ///< Initialize based on spec
-        LevelInfo(const ImageSpec& nativespec)
-            : LevelInfo(nullptr, nativespec)
-        {
-        }
+        LevelInfo(ImageSpec* spec, ImageDims* dims = nullptr);
         LevelInfo(const LevelInfo& src);  // needed for vector<LevelInfo>
         ~LevelInfo() { delete[] tiles_read; }
-
-        ImageSpec& spec() { return m_spec ? *m_spec : nativespec; }
-        const ImageSpec& spec() const { return m_spec ? *m_spec : nativespec; }
     };
 
     /// Info for each subimage
@@ -314,37 +369,79 @@ public:
         int min_mip_level = 0;         // Start with this MIP
         std::unique_ptr<int[]> minwh;  // min(width,height) for each MIP level
         ustring subimagename;
+        ImageSpec* m_spec;
 
         SubimageInfo() {}
-        void init(ImageCacheFile& icfile, const ImageSpec& spec,
-                  bool forcefloat);
-        ImageSpec& spec(int m) { return levels[m].spec(); }
-        const ImageSpec& spec(int m) const { return levels[m].spec(); }
-        const ImageSpec& nativespec(int m) const
-        {
-            return levels[m].nativespec;
-        }
+        void init(ImageCacheFile& icfile, ImageSpec* spec, bool forcefloat);
         int miplevels() const { return (int)levels.size(); }
+
+        void get_cache_dimensions(int m, ImageSpec& s) const
+        {
+            const ImageDims& dims = leveldims(m);
+            ImageDims& output     = ImageDims::convert(s);
+            output                = dims;
+        }
+
+        ImageSpec& spec()
+        {
+            OIIO_DASSERT(m_spec);
+            return *m_spec;
+        }
+        const ImageSpec& spec() const
+        {
+            OIIO_DASSERT(m_spec);
+            return *m_spec;
+        }
+
+        const LevelInfo& levelinfo(int miplevel) const
+        {
+            OIIO_DASSERT(miplevels() > miplevel);
+            return levels[miplevel];
+        }
+
+        LevelInfo& levelinfo(int miplevel)
+        {
+            OIIO_DASSERT(miplevels() > miplevel);
+            return levels[miplevel];
+        }
+
+        const ImageDims& leveldims(int miplevel) const
+        {
+            const LevelInfo& lvl = levelinfo(miplevel);
+            return lvl.m_dims ? *lvl.m_dims : ImageDims::convert(spec());
+        }
+
+        //! The following methods are similar to the ones from ImageSpec.
+        //! Underlying evaluation is from either the subimage spec
+        //! or the level specific dimensions if they exist.
+        imagesize_t get_tile_pixels(int m) const;
+        size_t get_pixel_bytes() const;
+        imagesize_t get_tile_bytes(int m) const;
+        imagesize_t get_scanline_bytes(int m) const;
+        imagesize_t get_image_pixels(int m) const;
+        imagesize_t get_image_bytes(int m) const;
     };
 
     const SubimageInfo& subimageinfo(int subimage) const
     {
+        OIIO_DASSERT((int)m_subimages.size() > subimage);
         return m_subimages[subimage];
     }
 
-    SubimageInfo& subimageinfo(int subimage) { return m_subimages[subimage]; }
+    SubimageInfo& subimageinfo(int subimage)
+    {
+        OIIO_DASSERT((int)m_subimages.size() > subimage);
+        return m_subimages[subimage];
+    }
 
     const LevelInfo& levelinfo(int subimage, int miplevel) const
     {
-        OIIO_DASSERT((int)m_subimages.size() > subimage);
-        OIIO_DASSERT((int)m_subimages[subimage].levels.size() > miplevel);
-        return m_subimages[subimage].levels[miplevel];
+        return subimageinfo(subimage).levelinfo(miplevel);
     }
+
     LevelInfo& levelinfo(int subimage, int miplevel)
     {
-        OIIO_DASSERT((int)m_subimages.size() > subimage);
-        OIIO_DASSERT((int)m_subimages[subimage].levels.size() > miplevel);
-        return m_subimages[subimage].levels[miplevel];
+        return subimageinfo(subimage).levelinfo(miplevel);
     }
 
     /// Do we currently have a valid spec?
@@ -360,6 +457,8 @@ public:
     {
         m_validspec = false;
         m_subimages.clear();
+        m_pool_specs.clear();
+        m_pool_dims.clear();
     }
 
     /// Should we print an error message? Keeps track of whether the
@@ -394,17 +493,24 @@ private:
     std::atomic<std::shared_ptr<ImageInput>> m_input;
 #else
     std::shared_ptr<ImageInput> m_input;  ///< Open ImageInput, NULL if closed
-        // Note that m_input, the shared pointer itself, is NOT safe to
-        // access directly. ALWAYS retrieve its value with get_imageinput
-        // (it's thread-safe to use that result) and set its value with
-        // set_imageinput -- those are guaranteed thread-safe.
+    // Note that m_input, the shared pointer itself, is NOT safe to
+    // access directly. ALWAYS retrieve its value with get_imageinput
+    // (it's thread-safe to use that result) and set its value with
+    // set_imageinput -- those are guaranteed thread-safe.
 #endif
     std::vector<SubimageInfo> m_subimages;  ///< Info on each subimage
-    TexFormat m_texformat;                  ///< Which texture format
-    TextureOpt::Wrap m_swrap;               ///< Default wrap modes
-    TextureOpt::Wrap m_twrap;               ///< Default wrap modes
-    TextureOpt::Wrap m_rwrap;               ///< Default wrap modes
-    EnvLayout m_envlayout;                  ///< env map: which layout?
+    std::vector<std::unique_ptr<ImageSpec>> m_pool_specs;  ///< Pool of ImageSpec
+    std::vector<std::unique_ptr<ImageDims>> m_pool_dims;  ///< Pool of ImageDims
+    static constexpr bool enable_specs_reuse
+        = true;  ///< Indicates to share ImageSpec across subimages
+    static constexpr bool enable_dims_reuse
+        = true;  ///< Indicates to share ImageDims across subimages and miplevels
+
+    TexFormat m_texformat;        ///< Which texture format
+    TextureOpt::Wrap m_swrap;     ///< Default wrap modes
+    TextureOpt::Wrap m_twrap;     ///< Default wrap modes
+    TextureOpt::Wrap m_rwrap;     ///< Default wrap modes
+    EnvLayout m_envlayout;        ///< env map: which layout?
     bool m_y_up;                  ///< latlong: is y "up"? (else z is up)
     bool m_sample_border;         ///< are edge samples exactly on the border?
     short m_udim_nutiles;         ///< Number of u tiles (0 if not a udim)
@@ -470,6 +576,21 @@ private:
     bool read_unmipped(ImageCachePerThreadInfo* thread_info, const TileID& id,
                        void* data);
 
+    /// helpers for ImageCacheFile::open(...):
+    /// search for a matching ImageSpec within the existing subimages
+    ImageSpec* find_spec(int subimage, const ImageSpec& spec);
+    /// returns a pointer to an existing or a newly allocated ImageSpec that matches `spec`
+    ImageSpec* find_or_create_spec(int subimage, const ImageSpec& spec);
+    /// search for a similar ImageDims within the existing subimages at the specified miplevel
+    ImageDims* find_dims(int subimage, int miplevel, const ImageDims& spec);
+    /// returns a pointer to an existing or a newly allocated ImageDims that matches the dimensions from `spec`
+    ImageDims* find_or_create_dims(int subimage, int miplevel,
+                                   const ImageSpec& spec);
+    /// read and init the texture format of this ImageCacheFile from the given ImageSpec
+    /// returns a pointer in case the texture dimensions need to be sanitized
+    /// FIXME -- this should really be per-subimage
+    bool init_texture_format(const ImageSpec& spec);
+
     // Initialize a bunch of fields based on the ImageSpec.
     // FIXME -- this is actually deeply flawed, many of these things only
     // make sense if they are per subimage, not one value for the whole
@@ -522,7 +643,7 @@ struct TileID {
         , m_file(&file)
     {
         if (chend < chbegin) {
-            int nc  = file.spec(subimage, miplevel).nchannels;
+            int nc  = file.spec(subimage).nchannels;
             m_chend = nc;
         }
     }
@@ -944,6 +1065,15 @@ public:
                        ImageBuf& thumbnail, int subimage = 0);
 
     // Retrieve a rectangle of raw unfiltered pixels.
+    bool get_pixels(ustring filename, int subimage, int miplevel,
+                    const ROI& roi, TypeDesc format,
+                    const image_span<std::byte>& result, int cache_chbegin = 0,
+                    int cache_chend = -1);
+    bool get_pixels(ImageHandle* file, Perthread* thread_info, int subimage,
+                    int miplevel, const ROI& roi, TypeDesc format,
+                    const image_span<std::byte>& result, int cache_chbegin = 0,
+                    int cache_chend = -1);
+
     bool get_pixels(ustring filename, int subimage, int miplevel, int xbegin,
                     int xend, int ybegin, int yend, int zbegin, int zend,
                     TypeDesc format, void* result);
@@ -1066,6 +1196,9 @@ public:
                   int z, int chbegin, int chend, TypeDesc format,
                   const void* buffer, stride_t xstride, stride_t ystride,
                   stride_t zstride, bool copy);
+    bool add_tile(ustring filename, int subimage, int miplevel, int x, int y,
+                  int z, int chbegin, int chend, TypeDesc format,
+                  const image_span<const std::byte>& buffer, bool copy);
 
     /// Return the numerical subimage index for the given subimage name,
     /// as stored in the "oiio:subimagename" metadata.  Return -1 if no

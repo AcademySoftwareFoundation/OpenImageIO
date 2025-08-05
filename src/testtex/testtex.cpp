@@ -2010,7 +2010,7 @@ main(int argc, const char* argv[])
         Strutil::print("{}\n", TypeDesc(TypeDesc::STRING, total_files));
         texsys->getattribute("all_filenames",
                              TypeDesc(TypeDesc::STRING, total_files),
-                             &all_filenames[0]);
+                             make_span(all_filenames));
         for (int i = 0; i < total_files; ++i) {
             int timesopened   = 0;
             int64_t bytesread = 0;

@@ -2162,28 +2162,45 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 /// The `options` list contains optional ParamValue's that may control the reconstruction.
 /// The following options are recognized:
 ///
-///   - "pattern" : string (default: "bayer")
+///   - "pattern" : string (default: "auto")
 ///
 ///     The type of image sensor color filter array. Currently suported patterns:
 ///     - `bayer` - Bayer-pattern image.
 ///     - `xtrans` - X-Trans-pattern image.
+///     - `auto` - the pattern is deducted from the "raw:FilterPattern" attribute of the source image buffer.
 ///
-///   - "algorithm" : string (default: "linear")
+///   - "algorithm" : string (default: "auto")
 ///
 ///     The demosaicing algorithm, pattern-specific.
 ///     The following algorithms are supported for Bayer-pattern images:
 ///     - `linear` - simple bilinear demosaicing. Fast, but can produce artefacts along sharp edges.
 ///     - `MHC` - Malvar-He-Cutler linear demosaicing algorithm. Slower than `linear`, but produces 
 ///       significantly better results.
+///     - `auto` - same as "MHC"
 ///
 ///     The following algorithms are supported for X-Trans-pattern images:
 ///     - `linear` - simple linear demosaicing. Fast, but can produce artefacts along sharp edges.
+///     - `auto` - same as "linear"
 ///
-///   - "layout" : string (default: "RGGB" for Bayer, "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans)
+///   - "layout" : string (default: "auto")
 ///
-///     The order the color filter array elements are arranged in, pattern-specific.
+///     The order the color filter array elements are arranged in, pattern-specific. The Bayer pattern sensors
+///     usually have 4 values in the layout string, describing the 2x2 pixels region. The X-Trans pattern
+///     sensors have 36 values in the layout string, describing the 6x6 pixels region (with optional
+///     whitespaces separating the rows). When set to "auto", OIIO will try to fetch the layout from the
+///     "raw:FilterPattern" attribute of the source image buffer, falling back to "RGGB" for Bayer,
+///     "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans if absent.
 ///
-///   - "white-balance" : float[3] or float[4], (default: {1.0, 1.0, 1.0, 1.0})
+///   - "white_balance_mode" : string (default: "auto")
+///
+///     White-balancing mode. The following modes are supported:
+///     - `auto` - OIIO will try to fetch the white balancing weights from the "raw:WhiteBalance"
+///     attribute of the source image buffer, falling back to {1.0, 1.0, 1.0, 1.0} if absent.
+///     - `manual` - The white balancing weights will be taken from the attribute `white_balance` (see below)
+///     if present, falling back to {1.0, 1.0, 1.0, 1.0} if absent.
+///     - `none` - no white balancing will be performed.
+///
+///   - "white_balance" : float[3] or float[4]
 ///
 ///     Optional white-balancing weights. Can contain either three (R,G,B), or four (R,G1,B,G2) values.
 ///     The order of the white balance multipliers does not depend on the matrix layout.
@@ -2235,6 +2252,7 @@ enum MakeTextureMode {
 ///    - `maketx:verbose` (int) :   How much detail should go to outstream (0).
 ///    - `maketx:runstats` (int) :  If nonzero, print run stats to outstream (0).
 ///    - `maketx:resize` (int) :    If nonzero, resize to power of 2. (0)
+///    - `maketx:keepaspect` (int): If nonzero, save aspect ratio to metadata. (0)
 ///    - `maketx:nomipmap` (int) :  If nonzero, only output the top MIP level (0).
 ///    - `maketx:updatemode` (int) : If nonzero, write new output only if the
 ///                                  output file doesn't already exist, or is
@@ -2355,6 +2373,36 @@ enum MakeTextureMode {
 ///                           factor. The default is 0, disabling the
 ///                           feature. If you use this feature, a suggested
 ///                           value is 256.
+///    - `maketx:slopefilter` (string) :
+///                           When used in MakeTxBumpWithSlopes mode, this
+///                           sets the filter for computing the slopes when 
+///                           `--bumpformat` is set to "height". The default
+///                           value is "sobel". The option "centraldiff"
+///                           matches the behavior of `txmake` and is less
+///                           prone to ring-shaped artifacting. (sobel)
+///    - `maketx:bumpinverts` (int) :
+///                           When used in MakeTxBumpWithSlopes mode, a
+///                           non-zero value inverts the computed slopes on the
+///                           s/u/x direction. (0)
+///    - `maketx:bumpinvertt` (int) :
+///                           When used in MakeTxBumpWithSlopes mode, a
+///                           non-zero value inverts the computed slopes on the
+///                           t/v/y direction. (0)
+///    - `maketx:bumpscale` (float) :
+///                           When used in MakeTxBumpWithSlopes mode, this
+///                           scales the strength of the resulting bumpslopes 
+///                           map. (1.0)
+///    - `maketx:bumprange` (string) :
+///                           When used in MakeTxBumpWithSlopes mode, this
+///                           sets the convention used for normal map data when
+///                           `--bumpformat` is set to "normal". When set to 
+///                           "centered", the normals data is assumed to exist
+///                           on the range [-1,1]. When set to "positive", the 
+///                           normals data is assumed to exist on the range 
+///                           [0,1]. When set to "auto", the default value, the
+///                           range is inferred based on whether or not
+///                           negative values are present in the input image. 
+///                           (auto)
 ///    - `maketx:cdf` (int) :
 ///                           If nonzero, will write a Gaussian CDF and
 ///                           Inverse Gaussian CDF as per-channel metadata

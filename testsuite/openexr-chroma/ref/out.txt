@@ -7,7 +7,6 @@ Reading ../openexr-images/Chromaticities/Rec709.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/Chromaticities/Rec709.exr" and "Rec709.exr"
@@ -22,7 +21,6 @@ Reading ../openexr-images/Chromaticities/XYZ.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/Chromaticities/XYZ.exr" and "XYZ.exr"

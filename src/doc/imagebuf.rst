@@ -62,6 +62,9 @@ Constructing a writable ImageBuf
 Constructing an ImageBuf that "wraps" an application buffer
 -------------------------------------------------------------
 
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec &spec, const image_span<T>&)
+.. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec &spec, const image_span<T>&)
+
 .. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec &spec, void *buffer, stride_t xstride = AutoStride, stride_t ystride = AutoStride, stride_t zstride = AutoStride)
 .. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec &spec, void *buffer, stride_t xstride = AutoStride, stride_t ystride = AutoStride, stride_t zstride = AutoStride)
 
@@ -175,6 +178,18 @@ Getting and setting pixel values
 |
 
 **Getting and setting regions of pixels -- fast**
+
+.. doxygenfunction:: OIIO::ImageBuf::get_pixels(ROI, const image_span<T>&) const
+.. doxygenfunction:: OIIO::ImageBuf::get_pixels(ROI, TypeDesc, const image_span<std::byte>&) const
+.. doxygenfunction:: OIIO::ImageBuf::set_pixels(ROI, const image_span<T>&)
+.. doxygenfunction:: OIIO::ImageBuf::set_pixels(ROI, TypeDesc, const image_span<std::byte>&)
+
+|
+
+**Getting and setting regions of pixels -- deprecated**
+
+These raw pointer versions of `get_pixels()` and `set_pixels()` should be
+converted to the `span` and `image_span` based versions.
 
 .. doxygenfunction:: OIIO::ImageBuf::get_pixels(ROI, span<T>, stride_t, stride_t, stride_t) const
 .. doxygenfunction:: OIIO::ImageBuf::get_pixels(ROI, span<T>, T*, stride_t, stride_t, stride_t) const

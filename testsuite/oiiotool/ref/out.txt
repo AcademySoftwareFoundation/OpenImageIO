@@ -40,7 +40,6 @@ add_rgb_rgba.exr     :   64 x   64, 4 channel, float openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 dumpdata:
@@ -58,6 +57,11 @@ half data[2][2][3] =
   { /* (0, 1): */ { 0.000000000, 0.000000000, 0.000000000 },
     /* (1, 1): */ { 1.000000000, 1.000000000, 0.000000000 } },
 };
+oiiotool ERROR: -o : Non-existent output directory: folder1/folder2
+	--create-dir to create missing output directories
+Full command line was:
+> oiiotool --create 2x2 1 -o folder1/folder2/out.tif
+folder1/folder2/out.tif :    2 x    2, 1 channel, float tiff
 Comparing "filled.tif" and "ref/filled.tif"
 PASS
 Comparing "autotrim.tif" and "ref/autotrim.tif"

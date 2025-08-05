@@ -70,7 +70,6 @@ public:
         // Validations:
         // - an image_span<byte> can have any chansize, but any other T must
         //   have the chansize equal to the data type size.
-        OIIO_DASSERT(nchannels > 0 && width > 0 && height > 0 && depth > 0);
         OIIO_DASSERT((std::is_same<std::remove_const_t<T>, std::byte>::value)
                      || chansize == sizeof(T));
 
@@ -98,7 +97,7 @@ public:
     // clang-format off
     /* clang_format gets confused by this */
 
-    /// Copy constructor from image_span<T> to image_span<const T>.
+    /// Copy constructor from `image_span<T>` to `image_span<const T>`.
     template<typename U, size_t R,
              OIIO_ENABLE_IF((std::is_same_v<std::remove_const_t<T>, U>)
                             && std::is_const_v<T> && !std::is_const_v<U>
@@ -112,7 +111,7 @@ public:
     }
     // clang-format on
 
-    /// Construct from span<T> and dimensions, assume contiguous strides.
+    /// Construct from `span<T>` and dimensions, assume contiguous strides.
     image_span(span<T> data, uint32_t nchannels, uint32_t width,
                uint32_t height, uint32_t depth = 1)
         : image_span(data.data(), nchannels, width, height, depth)
@@ -126,7 +125,7 @@ public:
     /// same strided data as the operand.
     image_span& operator=(const image_span& copy) = default;
 
-    /// image_span(x,y,z) returns a strided_ptr<T,1> for the pixel (x,y,z).
+    /// image_span(x,y,z) returns a `strided_ptr<T,1>` for the pixel (x,y,z).
     /// The z can be omitted for 2D images.  Note that the resulting
     /// strided_ptr can then have individual channels accessed with
     /// operator[]. This particular strided pointer has stride multiplier 1,
@@ -212,8 +211,8 @@ public:
                                            ystride(), zstride(), m_chansize);
     }
 
-    /// Convert an image_span<T> to an image_span<std::byte> representing the
-    /// same sized and strided memory pattern represented un-typed memory.
+    /// Convert an `image_span<T>` to an image_span<std::byte> representing
+    /// the same sized and strided memory pattern represented un-typed memory.
     /// Note that this will not work (be a compiler error) if T a const type.
     image_span<std::byte> as_writable_bytes_image_span() const noexcept
     {
@@ -365,7 +364,7 @@ template<typename T> using image1d_span = image_span<T, 2>;
 /// covering the same range of memory.
 template<typename T, size_t Rank>
 image_span<const std::byte>
-as_image_span_bytes(image_span<T, Rank> src) noexcept
+as_image_span_bytes(const image_span<T, Rank>& src) noexcept
 {
     return image_span<const std::byte>(
         reinterpret_cast<const std::byte*>(src.data()), src.nchannels(),
@@ -374,11 +373,11 @@ as_image_span_bytes(image_span<T, Rank> src) noexcept
 }
 
 
-/// Convert an image_span of any type to a mutable span of bytes covering
-/// the same range of memory.
+/// Convert an image_span of any nonconst type to a mutable span of bytes
+/// covering the same range of memory.
 template<typename T, size_t Rank>
 image_span<std::byte>
-as_image_span_writable_bytes(image_span<T, Rank> src) noexcept
+as_image_span_writable_bytes(const image_span<T, Rank>& src) noexcept
 {
     return image_span<std::byte>(reinterpret_cast<std::byte*>(src.data()),
                                  src.nchannels(), src.width(), src.height(),
@@ -386,6 +385,21 @@ as_image_span_writable_bytes(image_span<T, Rank> src) noexcept
                                  src.ystride(), src.zstride(), src.chansize());
 }
 
+/// Verify that the image_span has all its contents lying within the
+/// contiguous span.
+OIIO_API bool
+image_span_within_span(const image_span<const std::byte>& ispan,
+                       span<const std::byte> contiguous) noexcept;
 
+/// image_span_within_span() for generic span types. Just reduce to
+/// const byte versions.
+template<typename T, size_t Trank, typename S>
+bool
+image_span_within_span(const image_span<T, Trank>& ispan,
+                       span<S> contiguous) noexcept
+{
+    return image_span_within_span(as_image_span_bytes(ispan),
+                                  as_bytes(contiguous));
+}
 
 OIIO_NAMESPACE_END

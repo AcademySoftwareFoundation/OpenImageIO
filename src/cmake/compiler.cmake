@@ -224,9 +224,6 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     add_compile_options ("-fno-math-errno")
 endif ()
 
-# We will use this for ccache and timing
-set (MY_RULE_LAUNCH "")
-
 
 ###########################################################################
 # Use ccache if found
@@ -236,12 +233,18 @@ set (MY_RULE_LAUNCH "")
 # logic here makes it work even if the user is unaware of ccache. If it's
 # not found on the system, it will simply be silently not used.
 option (USE_CCACHE "Use ccache if found" ON)
-find_program (CCACHE_FOUND ccache)
-if (CCACHE_FOUND AND USE_CCACHE)
+find_program (CCACHE_EXE ccache)
+if (CCACHE_EXE AND USE_CCACHE)
     if (CMAKE_COMPILER_IS_CLANG AND USE_QT AND (NOT DEFINED ENV{CCACHE_CPP2}))
         message (STATUS "Ignoring ccache because clang + Qt + env CCACHE_CPP2 is not set")
     else ()
-        set (MY_RULE_LAUNCH ccache)
+        if (NOT ${CXX_COMPILER_LAUNCHER} MATCHES "ccache")
+            set (CXX_COMPILER_LAUNCHER ${CCACHE_EXE} ${CXX_COMPILER_LAUNCHER})
+        endif ()
+        if (NOT ${C_COMPILER_LAUNCHER} MATCHES "ccache")
+            set (C_COMPILER_LAUNCHER ${CCACHE_EXE} ${C_COMPILER_LAUNCHER})
+        endif ()
+        message (STATUS "ccache enabled: ${CCACHE_EXE}")
     endif ()
 endif ()
 
@@ -254,14 +257,8 @@ endif ()
 # set `-j 1` or CMAKE_BUILD_PARALLEL_LEVEL to 1.
 option (TIME_COMMANDS "Time each compile and link command" OFF)
 if (TIME_COMMANDS)
-    set (MY_RULE_LAUNCH "${CMAKE_COMMAND} -E time ${MY_RULE_LAUNCH}")
-endif ()
-
-
-# Note: This must be after any option that alters MY_RULE_LAUNCH
-if (MY_RULE_LAUNCH)
-    set_property (GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${MY_RULE_LAUNCH})
-    set_property (GLOBAL PROPERTY RULE_LAUNCH_LINK ${MY_RULE_LAUNCH})
+    set (CXX_COMPILER_LAUNCHER ${CMAKE_COMMAND} -E time ${CXX_COMPILER_LAUNCHER})
+    set (C_COMPILER_LAUNCHER ${CMAKE_COMMAND} -E time ${C_COMPILER_LAUNCHER})
 endif ()
 
 
@@ -654,6 +651,17 @@ if (LINKSTATIC)
     else ()
         set (CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
     endif ()
+endif ()
+
+
+###########################################################################
+# Windows: which MSVC runtime library should we use (to override default)?
+# Note that all dependencies need the same choice. We leave this as the
+# default, but allow it to be set by the environment if not explicit, which
+# the built-in CMAKE_MSVC_RUNTIME_LIBRARY does not do on its own.
+#
+if (WIN32)
+    set_from_env (CMAKE_MSVC_RUNTIME_LIBRARY)
 endif ()
 
 

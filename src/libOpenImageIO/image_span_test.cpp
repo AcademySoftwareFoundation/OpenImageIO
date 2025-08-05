@@ -349,6 +349,201 @@ test_image_span_convert_image()
 
 
 
+// Sum all values in an image using a pass-by-value image_span
+float
+sum_image_span_val(image_span<const float> img)
+{
+    float sum = 0;
+    for (uint32_t z = 0; z < img.depth(); ++z) {
+        for (uint32_t y = 0; y < img.height(); ++y) {
+            for (uint32_t x = 0; x < img.width(); ++x) {
+                for (uint32_t c = 0; c < img.nchannels(); ++c) {
+                    sum += img.get(c, x, y, z);
+                }
+            }
+        }
+    }
+    return sum;
+}
+
+
+// Sum all values in an image using a pass-by-reference image_span
+float
+sum_image_span_ref(const image_span<const float>& img)
+{
+    float sum = 0;
+    for (uint32_t z = 0; z < img.depth(); ++z) {
+        for (uint32_t y = 0; y < img.height(); ++y) {
+            for (uint32_t x = 0; x < img.width(); ++x) {
+                for (uint32_t c = 0; c < img.nchannels(); ++c) {
+                    sum += img.get(c, x, y, z);
+                }
+            }
+        }
+    }
+    return sum;
+}
+
+
+// Sum all values in an image using raw pointers, sizes, strides
+float
+sum_image_span_ptr(const float* ptr, uint32_t chans, uint32_t width,
+                   uint32_t height, uint32_t depth, int64_t chstride,
+                   int64_t xstride, int64_t ystride, int64_t zstride)
+{
+    float sum = 0;
+    for (uint32_t z = 0; z < depth; ++z) {
+        for (uint32_t y = 0; y < height; ++y) {
+            for (uint32_t x = 0; x < width; ++x) {
+                for (uint32_t c = 0; c < chans; ++c) {
+                    const float* p = reinterpret_cast<const float*>(
+                        (const char*)ptr + c * chstride + x * xstride
+                        + y * ystride + z * zstride);
+                    sum += *p;
+                }
+            }
+        }
+    }
+    return sum;
+}
+
+
+
+void
+benchmark_image_span_passing()
+{
+    print("\nbenchmark_image_span_passing\n");
+    const int xres = 2048, yres = 1536, nchans = 4;
+    std::vector<float> sbuf(xres * yres * nchans, 1.0f);
+    image_span<const float> ispan(sbuf.data(), nchans, xres, yres, 1);
+
+    Benchmarker bench;
+    bench.units(Benchmarker::Unit::us);
+    float sum = 0.0f;
+
+    bench("  pass by value     (big)",
+          [=, &sum]() { sum += sum_image_span_val(ispan); });
+    bench("  pass by value imm (big)", [=, &sum]() {
+        sum += sum_image_span_val(
+            image_span<const float>(sbuf.data(), nchans, xres, yres, 1));
+    });
+    bench("  pass by ref       (big)",
+          [=, &sum]() { sum += sum_image_span_ref(ispan); });
+    bench("  pass by ref imm   (big)", [=, &sum]() {
+        sum += sum_image_span_ref(
+            image_span<const float>(sbuf.data(), nchans, xres, yres, 1));
+    });
+    bench("  pass by ptr       (big)", [=, &sum]() {
+        sum += sum_image_span_ptr(sbuf.data(), nchans, xres, yres, 1,
+                                  sizeof(float), nchans * sizeof(float),
+                                  nchans * sizeof(float) * xres,
+                                  nchans * sizeof(float) * xres * yres);
+    });
+
+    // Do it all again for a SMALL image
+    bench.units(Benchmarker::Unit::ns);
+    int small = 16;
+    image_span<const float> smispan(sbuf.data(), nchans, small, small, 1);
+    bench("  pass by value     (small)",
+          [=, &sum]() { sum += sum_image_span_val(smispan); });
+    bench("  pass by value imm (small)", [=, &sum]() {
+        sum += sum_image_span_val(
+            image_span<const float>(sbuf.data(), nchans, small, small, 1));
+    });
+    bench("  pass by ref       (small)",
+          [=, &sum]() { sum += sum_image_span_ref(smispan); });
+    bench("  pass by ref imm   (small)", [=, &sum]() {
+        sum += sum_image_span_ref(
+            image_span<const float>(sbuf.data(), nchans, small, small, 1));
+    });
+    bench("  pass by ptr       (small)", [=, &sum]() {
+        sum += sum_image_span_ptr(sbuf.data(), nchans, small, small, 1,
+                                  sizeof(float), nchans * sizeof(float),
+                                  nchans * sizeof(float) * small,
+                                  nchans * sizeof(float) * small * small);
+    });
+    print("  [sum={}]\n", sum);  // seems necessary to not optimize away
+}
+
+
+
+void
+test_image_span_within_span()
+{
+    print("\ntest_image_span_within_span\n");
+
+    const int nchans = 3, xres = 5, yres = 7, zres = 11;
+    const int chstride = sizeof(float), xstride = chstride * nchans,
+              ystride = xstride * xres, zstride = ystride * yres;
+    float array[nchans * xres * yres * zres];
+    cspan<float> aspan(array);
+    // It better worrk with the same origin and default strides
+    OIIO_CHECK_ASSERT(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride, ystride, zstride),
+                               aspan));
+    // Make sure too big are recognized
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride + 1, xstride, ystride,
+                                          zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride + 1, ystride,
+                                          zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride, ystride + 1,
+                                          zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride, ystride,
+                                          zstride + 1),
+                               aspan));
+    // Make sure negagive strides used CORRECTLY are recognized
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          -chstride, xstride, ystride, zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, -xstride, ystride, zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride, -ystride, zstride),
+                               aspan));
+    OIIO_CHECK_FALSE(
+        image_span_within_span(image_span(array, nchans, xres, yres, zres,
+                                          chstride, xstride, ystride, -zstride),
+                               aspan));
+    // Make sure negagive strides used CORRECTLY are recognized
+    OIIO_CHECK_ASSERT(
+        image_span_within_span(image_span(array + nchans - 1, nchans, xres,
+                                          yres, zres, -chstride, xstride,
+                                          ystride, zstride),
+                               aspan));
+    OIIO_CHECK_ASSERT(
+        image_span_within_span(image_span(array + (xres - 1) * nchans, nchans,
+                                          xres, yres, zres, chstride, -xstride,
+                                          ystride, zstride),
+                               aspan));
+    OIIO_CHECK_ASSERT(
+        image_span_within_span(image_span(array + (yres - 1) * xres * nchans,
+                                          nchans, xres, yres, zres, chstride,
+                                          xstride, -ystride, zstride),
+                               aspan));
+    OIIO_CHECK_ASSERT(image_span_within_span(
+        image_span(array + (zres - 1) * xres * yres * nchans, nchans, xres,
+                   yres, zres, chstride, xstride, ystride, -zstride),
+        aspan));
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -377,6 +572,10 @@ main(int /*argc*/, char* /*argv*/[])
     test_image_span_convert_image<uint8_t, uint16_t>();
     test_image_span_convert_image<uint16_t, half>();
     test_image_span_convert_image<half, uint16_t>();
+
+    test_image_span_within_span();
+
+    benchmark_image_span_passing();
 
     return unit_test_failures;
 }

@@ -13,6 +13,13 @@ export PATH=/usr/local/bin/_ccache:/usr/lib/ccache:$PATH
 export USE_CCACHE=${USE_CCACHE:=1}
 export CCACHE_CPP2=
 export CCACHE_DIR=$HOME/.ccache
+export CCACHE_COMPRESSION=yes
+if [[ "$(which ccache)" != "" ]] ; then
+    # Try to coax dependency building into also using ccache
+    export CMAKE_CXX_COMPILER_LAUNCHER="ccache"
+    export CMAKE_C_COMPILER_LAUNCHER="ccache"
+    ccache -z
+fi
 mkdir -p $CCACHE_DIR
 
 export OpenImageIO_ROOT=$PWD/dist

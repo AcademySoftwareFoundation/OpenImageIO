@@ -215,6 +215,12 @@ public:
                     TextureOpt& options, int miplevel, int xbegin, int xend,
                     int ybegin, int yend, int zbegin, int zend, int chbegin,
                     int chend, TypeDesc format, void* result);
+    bool get_texels(ustring filename, TextureOpt& options, int miplevel,
+                    const ROI& roi, TypeDesc format,
+                    const image_span<std::byte>& result);
+    bool get_texels(TextureHandle* texture_handle, Perthread* thread_info,
+                    TextureOpt& options, int miplevel, const ROI& roi,
+                    TypeDesc format, const image_span<std::byte>& result);
 
     bool is_udim(ustring filename);
     bool is_udim(TextureHandle* udimfile);
@@ -401,8 +407,8 @@ public:
     /// portion of the way to the next texel to the right or down,
     /// respectively.
     void st_to_texel(float s, float t, TextureFile& texturefile,
-                     const ImageSpec& spec, int& i, int& j, float& ifrac,
-                     float& jfrac);
+                     const TextureFile::ImageDims& dims, int& i, int& j,
+                     float& ifrac, float& jfrac);
 
     /// Called when the requested texture is missing, fills in the
     /// results.
@@ -422,10 +428,8 @@ public:
     /// pixel that's the average of all of row y.  This will only be
     /// called for levels where the whole mipmap level fits on one tile.
     const float* pole_color(TextureFile& texturefile,
-                            PerThreadInfo* thread_info,
-                            const ImageCacheFile::LevelInfo& levelinfo,
-                            TileRef& tile, int subimage, int miplevel,
-                            int pole);
+                            PerThreadInfo* thread_info, TileRef& tile,
+                            int subimage, int miplevel, int pole);
     /// Helper function for lat-long environment maps: called near pole
     /// regions, this figures out the average pole color and fades to it
     /// right at the pole, and also adjusts weight so that the regular
@@ -433,7 +437,6 @@ public:
     /// This should only be called on the edge texels.
     void fade_to_pole(float t, float* accum, float& weight,
                       TextureFile& texturefile, PerThreadInfo* thread_info,
-                      const ImageCacheFile::LevelInfo& levelinfo,
                       TextureOpt& options, int miplevel, int nchannels);
 
     /// Perform short unit tests.
@@ -526,20 +529,20 @@ TextureSystemImpl::anisotropic_aspect(float& majorlength, float& minorlength,
 
 inline void
 TextureSystemImpl::st_to_texel(float s, float t, TextureFile& texturefile,
-                               const ImageSpec& spec, int& i, int& j,
-                               float& ifrac, float& jfrac)
+                               const TextureFile::ImageDims& dims, int& i,
+                               int& j, float& ifrac, float& jfrac)
 {
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
     // Note that we have two modes, depending on the m_sample_border.
     if (texturefile.m_sample_border == 0) {
         // texel samples are at 0.5/res, 1.5/res, ..., (res-0.5)/res,
-        s = s * spec.width + spec.x - 0.5f;
-        t = t * spec.height + spec.y - 0.5f;
+        s = s * dims.width + dims.x - 0.5f;
+        t = t * dims.height + dims.y - 0.5f;
     } else {
         // first and last rows/columns are *exactly* on the boundary,
         // so samples are at 0, 1/(res-1), ..., 1.
-        s = s * (spec.width - 1) + spec.x;
-        t = t * (spec.height - 1) + spec.y;
+        s = s * (dims.width - 1) + dims.x;
+        t = t * (dims.height - 1) + dims.y;
     }
     ifrac = floorfrac(s, &i);
     jfrac = floorfrac(t, &j);

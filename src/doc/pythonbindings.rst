@@ -3718,17 +3718,24 @@ Color manipulation
         ImageBufAlgo.unpremult (A, A)
 
 
-.. py:method:: ImageBuf ImageBufAlgo.demosaic (src, pattern="", algorithm="", layout="", white_balance=py::none(), roi=ROI.All, nthreads=0)
-                bool ImageBufAlgo.demosaic (dst, src, pattern="", algorithm="", layout="", white_balance=py::none(), roi=ROI.All, nthreads=0)
+.. py:method:: ImageBuf ImageBufAlgo.demosaic (src, pattern="", algorithm="", layout="", white_balance_mode="", white_balance=py::none(), roi=ROI.All, nthreads=0)
+                bool ImageBufAlgo.demosaic (dst, src, pattern="", algorithm="", layout="", white_balance_mode="", white_balance=py::none(), roi=ROI.All, nthreads=0)
     Demosaic a raw digital camera image.
 
     `demosaic` can currently process Bayer-pattern images (pattern="bayer")
     using two algorithms: "linear" (simple bilinear demosaicing), and "MHC"
     (Malvar-He-Cutler algorithm); or X-Trans-pattern images (pattern="xtrans")
-    using "linear" algorithm. The optional white_balance parameter can take
-    a tuple of three (R,G,B), or four (R,G1,B,G2) values. The order of the
-    white balance multipliers is as specified, it does not depend on the matrix
-    layout.
+    using "linear" algorithm. When "layout" or "pattern" are absent or set to
+    "auto" OIIO will attempt to deduct their value from the  "raw:FilterPattern"
+    attribute of the source image buffer. White-balancing mode can be se to
+    "auto" (OIIO will try to fetch the white balancing weights from the
+    "raw:WhiteBalance" attribute of the source image buffer, falling back to
+    {1.0, 1.0, 1.0, 1.0} if absent), "manual" (The white balancing weights will
+    be taken from the attribute "white_balance" (see below) if present, falling
+    back to {1.0, 1.0, 1.0, 1.0} if absent), "none" (no white balancing will be
+    performed). The optional "white_balance" parameter can take a tuple of three
+    (R,G,B), or four (R,G1,B,G2) values. The order of the white balance
+    multipliers is as specified, it does not depend on the matrix layout.
 
     Example:
 
@@ -3737,7 +3744,7 @@ Color manipulation
         Src = ImageBuf("test.cr3", 0, 0, hint)
         WB_RGBG = (2.0, 0.8, 1.5, 1.2)
         Dst = OpenImageIO.ImageBufAlgo.demosaic(Src, layout="GRBG",
-            white_balance = WB_RGBG)
+            white_balance_mode = "manual", "white_balance = WB_RGBG)
 
 
 
@@ -4260,3 +4267,39 @@ add an alpha channel that is 1 everywhere**
             out.open ("multipart.exr", specs[s], "AppendSubimage")
         bufs[s].write (out)
     out.close ()
+
+
+
+|
+
+**Running OpenImageIO in Jupyter Notebooks and displaying ImageBuf**
+
+
+Like any other Python package, OpenImageIO can be used in `Jupyter notebooks <https://jupyter.org/install>`_. 
+The ImageBuf objects support getting displayed inline within notebooks.
+
+.. image:: figures/imagebuf-notebook-demo.png
+
+.. warning::
+    
+    Currently, ImageBuf objects get displayed as **uint8 PNGs** inside of notebooks.
+    ImageBuf objects that store images with higher bit depths get dithered to account for this.
+    Keep in mind that directly saving the inline image to disk will not preserve the original image within the ImageBuf.
+
+
+Running a Local Jupyter Notebook:
+
+If you want to run a local Jupyter notebook with OpenImageIO, you can do so from within the Python environment in which you have installed OpenImageIO.
+
+.. code-block:: bash
+
+    pip install jupyterlab
+    jupyter lab
+
+Alternatively, if you prefer using `uv <https://github.com/astral-sh/uv>`_, you can run the following command:
+
+.. code-block:: bash
+
+    uv run --with jupyter jupyter lab
+
+

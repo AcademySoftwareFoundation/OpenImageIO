@@ -1,0 +1,801 @@
+Reading grid.tx
+grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
+    MIP-map levels: 1000x1000 500x500 250x250 125x125 62x62 31x31 15x15 7x7 3x3 1x1
+    SHA-1: 97D6548FF9E9BFD21424B773B1D84FACDF0C1797
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    DocumentName: "g.tif"
+    fovcot: 1
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    XResolution: 72
+    YResolution: 72
+    oiio:AverageColor: "0.608983,0.608434,0.608728,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "9B24D4CC05313A43973AC384718D81D19183B691"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading checker.tx
+checker.tx           :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+maketx: no update required for "checker.tx"
+Reading checker.tx
+checker.tx           :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading grid-resize.tx
+grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
+    MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1DAB274639828223059FDBC0E30BD569C07B66C0
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    DocumentName: "g.tif"
+    fovcot: 1
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    XResolution: 72
+    YResolution: 72
+    oiio:AverageColor: "0.608983,0.608434,0.608728,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "2E23E9B4C6E707427A73B5433B23104D4183724E"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading tahoe-resize.tx
+tahoe-resize.tx      :  512 x  512, 3 channel, uint8 tiff
+    MIP-map levels: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: B6A04E868C51C6ABB661C0F6BAA8AD974ECDFC5C
+    channel list: R, G, B
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1.33333
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1.33333
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    XResolution: 72
+    YResolution: 96
+    oiio:AverageColor: "0.101931,0.216697,0.425473"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "799C1441E4B45378165DE450828109AF330A3F87"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading checker-uint16.tx
+checker-uint16.tx    :  128 x  128, 4 channel, uint16 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 75BCACCE72A4275AD11FAF4A5D328C624DFF69AB
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 16
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading checker-1chan.tx
+checker-1chan.tx     :  128 x  128, 1 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: F7DAC8772B7C6BFABDA884D61ABC84844C949AF1
+    channel list: Y
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "1D0A2254373A69C054C08672041FC7DE3BAE5179"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 1
+    tiff:PlanarConfiguration: 1
+Reading checker-16x32tile.tx
+checker-16x32tile.tx :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 16 x 32
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading checker-seplzw.tx
+checker-seplzw.tx    :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "lzw"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "separate"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 5
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+Reading checker-clamp.tx
+checker-clamp.tx     :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "clamp,clamp"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading checker-permir.tx
+checker-permir.tx    :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "periodic,mirror"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading checker-nomip.tx
+checker-nomip.tx     :  128 x  128, 4 channel, uint8 tiff
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading checker-camera.tx
+checker-camera.tx    :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    worldtocamera: 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1
+    worldtoscreen: 3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 1, 2, 3, 1
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading checker-opaque.tx
+checker-opaque.tx    :  128 x  128, 3 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 6827D9ED3A5674C1FAB56F96E5D7D06796D43144
+    channel list: R, G, B
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "2BE3743A64D4309645F94CA7B37D0CD08AF0B38E"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading gray-mono.tx
+gray-mono.tx         :  256 x  256, 1 channel, uint8 tiff
+    MIP-map levels: 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: F5C1F9FA963006D501B14542F5E941AEDB4C5907
+    channel list: Y
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.25098"
+    oiio:BitsPerSample: 8
+    oiio:ConstantColor: "0.25098"
+    oiio:SHA-1: "24049CDF337F17E162291C7B626E0588A9D71160"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 1
+    tiff:PlanarConfiguration: 1
+Reading pink-mono.tx
+pink-mono.tx         :  256 x  256, 3 channel, uint8 tiff
+    MIP-map levels: 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: D781FABF7CF958AE9D9429255C8591C77BAA9917
+    channel list: R, G, B
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.25098,0.2,0.14902"
+    oiio:BitsPerSample: 8
+    oiio:ConstantColor: "0.25098,0.2,0.14902"
+    oiio:SHA-1: "41B1A0D1C1EBB4CEEBC7BCEE2CAB2AAAB4139724"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading checker-prman.tx
+checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: DE42A8468161DA333BABF1BEB60811EA0FEF6534
+    channel list: R, G, B, A
+    tile size: 64 x 32
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "separate"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 16
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+make_texture ERROR: maketx ERROR: Nan/Inf at 2 pixels
+make_texture ERROR: maketx ERROR: Nan/Inf at 2 pixels
+Reading nan.exr
+nan.exr              :   64 x   64, 3 channel, half openexr
+    SHA-1: 47A8E8F3E8B2C3B6B032FCC8C39D3C5FC1AAA390
+    channel list: R, G, B
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5"
+    oiio:SHA-1: "44B96A7C3AFBF8D7621E7C6453266E5DD1962D36"
+    oiio:subimages: 1
+    openexr:levelmode: 0
+    openexr:lineOrder: "increasingY"
+    Stats Min: 0.000000 0.000000 0.000000 (float)
+    Stats Max: 1.000000 1.000000 1.000000 (float)
+    Stats Avg: 0.500000 0.500000 0.500000 (float)
+    Stats StdDev: 0.500000 0.500000 0.500000 (float)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 4096 4096 4096 
+    Constant: No
+    Monochrome: Yes
+Reading checker-exr.pdq
+checker-exr.pdq      :  128 x  128, 4 channel, half openexr
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: FA921281D5C8AF14FC50885DD54E2E17509202EC
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
+    openexr:roundingmode: 0
+Reading small.tif
+small.tif            :   64 x   64, 3 channel, uint8 tiff
+    SHA-1: BE1D5EA24E907A4C4B3FB3C28EAC872A20F5B414
+    channel list: R, G, B
+    compression: "zip"
+    ImageDescription: "foo ConstantColor=[0.0,0,-0.0] bar"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    oiio:BitsPerSample: 8
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
+Reading small.tx
+small.tx             :   64 x   64, 3 channel, uint8 tiff
+    MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: BE1D5EA24E907A4C4B3FB3C28EAC872A20F5B414
+    channel list: R, G, B
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    ImageDescription: "foo bar "
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "1,0,0"
+    oiio:BitsPerSample: 8
+    oiio:ConstantColor: "1,0,0"
+    oiio:SHA-1: "1DD1CB3C76F9A491B115F85A6DAC1B1A8DD2D3CB"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Reading grid.tx
+    oiio:SHA-1: "9B24D4CC05313A43973AC384718D81D19183B691"
+Reading grid-lanczos3.tx
+    oiio:SHA-1: "D6C3DEE1A567726FB962FE39F0FE94A3E94530CF"
+Reading grid-lanczos3-hicomp.tx
+    oiio:SHA-1: "3994E2C39E040A372BA1894E805382E5D470790F"
+whiteenv.exr         :    4 x    2, 3 channel, half openexr (+mipmap)
+    MIP 0 of 3 (4 x 2):
+      Stats Min: 1.000000 1.000000 1.000000 (float)
+      Stats Max: 1.000000 1.000000 1.000000 (float)
+      Stats Avg: 1.000000 1.000000 1.000000 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 8 8 8 
+      Constant: Yes
+      Constant Color: 1.000000 1.000000 1.000000 (float)
+      Monochrome: Yes
+    MIP 1 of 3 (2 x 1):
+      Stats Min: 1.000000 1.000000 1.000000 (float)
+      Stats Max: 1.000000 1.000000 1.000000 (float)
+      Stats Avg: 1.000000 1.000000 1.000000 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 2 2 2 
+      Constant: Yes
+      Constant Color: 1.000000 1.000000 1.000000 (float)
+      Monochrome: Yes
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 1.000000 1.000000 1.000000 (float)
+      Stats Max: 1.000000 1.000000 1.000000 (float)
+      Stats Avg: 1.000000 1.000000 1.000000 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 1.000000 1.000000 1.000000 (float)
+      Monochrome: Yes
+Reading bumpslope.exr
+bumpslope.exr        :   64 x   64, 6 channel, half openexr
+    MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 8A309ED5DD4C7ADC8B752735651BAEE9FA326B82
+    channel list: b0_h, b1_dhds, b2_dhdt, b3_dhds2, b4_dhdt2, b5_dh2dsdt
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    uvslopes_scale: 0
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
+    oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
+    openexr:roundingmode: 0
+    MIP 0 of 7 (64 x 64):
+      Stats Min: 0.131714 -0.154419 -0.147949 0.000000 0.000000 -0.013084 (float)
+      Stats Max: 0.823730 0.157471 0.165771 0.024780 0.027481 0.011482 (float)
+      Stats Avg: 0.499779 -0.000458 -0.000042 0.001971 0.001789 0.000035 (float)
+      Stats StdDev: 0.099583 0.044395 0.042296 0.002727 0.002597 0.001806 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 4096 4096 4096 4096 4096 4096 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 7 (32 x 32):
+      Stats Min: 0.353027 -0.084045 -0.111511 0.000016 0.000022 -0.006004 (float)
+      Stats Max: 0.648438 0.089783 0.089478 0.012108 0.012772 0.004528 (float)
+      Stats Avg: 0.499778 -0.000458 -0.000042 0.001971 0.001789 0.000035 (float)
+      Stats StdDev: 0.051041 0.027848 0.028019 0.001675 0.001653 0.000985 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 1024 1024 1024 1024 1024 1024 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 7 (16 x 16):
+      Stats Min: 0.408203 -0.036224 -0.035797 0.000372 0.000212 -0.001590 (float)
+      Stats Max: 0.571777 0.025070 0.038147 0.006088 0.007252 0.001852 (float)
+      Stats Avg: 0.499782 -0.000458 -0.000042 0.001971 0.001789 0.000035 (float)
+      Stats StdDev: 0.025250 0.011677 0.012831 0.001030 0.001042 0.000522 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 256 256 256 256 256 256 
+      Constant: No
+      Monochrome: No
+    MIP 3 of 7 (8 x 8):
+      Stats Min: 0.476562 -0.008881 -0.008530 0.000738 0.000785 -0.000559 (float)
+      Stats Max: 0.521973 0.007755 0.008484 0.003994 0.002920 0.000860 (float)
+      Stats Avg: 0.499767 -0.000458 -0.000042 0.001971 0.001789 0.000035 (float)
+      Stats StdDev: 0.011861 0.003779 0.004230 0.000654 0.000485 0.000289 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 64 64 64 64 64 64 
+      Constant: No
+      Monochrome: No
+    MIP 4 of 7 (4 x 4):
+      Stats Min: 0.493896 -0.003515 -0.003843 0.001540 0.001336 -0.000275 (float)
+      Stats Max: 0.506836 0.003309 0.003777 0.002357 0.002382 0.000297 (float)
+      Stats Avg: 0.499771 -0.000458 -0.000042 0.001971 0.001789 0.000035 (float)
+      Stats StdDev: 0.003707 0.001690 0.002319 0.000262 0.000282 0.000150 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 16 16 16 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 5 of 7 (2 x 2):
+      Stats Min: 0.497070 -0.001317 -0.000958 0.001850 0.001672 -0.000017 (float)
+      Stats Max: 0.501953 0.000820 0.000466 0.002174 0.001898 0.000156 (float)
+      Stats Avg: 0.499756 -0.000458 -0.000042 0.001971 0.001789 0.000035 (float)
+      Stats StdDev: 0.002028 0.000785 0.000576 0.000123 0.000084 0.000071 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 4 4 4 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 6 of 7 (1 x 1):
+      Stats Min: 0.499756 -0.000458 -0.000042 0.001970 0.001789 0.000035 (float)
+      Stats Max: 0.499756 -0.000458 -0.000042 0.001970 0.001789 0.000035 (float)
+      Stats Avg: 0.499756 -0.000458 -0.000042 0.001970 0.001789 0.000035 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 1 1 1 1 1 1 
+      Constant: Yes
+      Constant Color: 0.499756 -0.000458 -0.000042 0.001970 0.001789 0.000035 (float)
+      Monochrome: No
+Reading bumpslope-central.exr
+bumpslope-central.exr :   64 x   64, 6 channel, half openexr
+    MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 6A80B791A5DA4923D2A61ACC797675228386B64E
+    channel list: b0_h, b1_dhds, b2_dhdt, b3_dhds2, b4_dhdt2, b5_dh2dsdt
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    uvslopes_scale: 0
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00487623,0.00476811,-1.36547e-05"
+    oiio:SHA-1: "E332A489C2BCDE63C2DB6A68E847CF396642F0A6"
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
+    openexr:roundingmode: 0
+    MIP 0 of 7 (64 x 64):
+      Stats Min: 0.131714 -0.261475 -0.244385 0.000000 0.000000 -0.030502 (float)
+      Stats Max: 0.823730 0.236328 0.233765 0.068359 0.059753 0.034912 (float)
+      Stats Avg: 0.499779 -0.000458 -0.000042 0.004876 0.004768 -0.000014 (float)
+      Stats StdDev: 0.099583 0.069828 0.069051 0.006553 0.006607 0.004686 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 4096 4096 4096 4096 4096 4096 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 7 (32 x 32):
+      Stats Min: 0.353027 -0.103577 -0.127563 0.000058 0.000046 -0.011887 (float)
+      Stats Max: 0.648438 0.101379 0.107178 0.020309 0.018127 0.009590 (float)
+      Stats Avg: 0.499778 -0.000458 -0.000042 0.004876 0.004768 -0.000014 (float)
+      Stats StdDev: 0.051041 0.035026 0.035099 0.003196 0.003366 0.002658 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 1024 1024 1024 1024 1024 1024 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 7 (16 x 16):
+      Stats Min: 0.408203 -0.035583 -0.041870 0.000865 0.001112 -0.004601 (float)
+      Stats Max: 0.571777 0.030853 0.042297 0.010414 0.010582 0.004707 (float)
+      Stats Avg: 0.499782 -0.000458 -0.000042 0.004876 0.004768 -0.000014 (float)
+      Stats StdDev: 0.025250 0.012919 0.013973 0.001692 0.001859 0.001445 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 256 256 256 256 256 256 
+      Constant: No
+      Monochrome: No
+    MIP 3 of 7 (8 x 8):
+      Stats Min: 0.476562 -0.009361 -0.009010 0.002705 0.003054 -0.001788 (float)
+      Stats Max: 0.521973 0.008621 0.007851 0.006950 0.007339 0.001926 (float)
+      Stats Avg: 0.499767 -0.000458 -0.000042 0.004876 0.004768 -0.000014 (float)
+      Stats StdDev: 0.011861 0.004088 0.004325 0.000915 0.000874 0.000827 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 64 64 64 64 64 64 
+      Constant: No
+      Monochrome: No
+    MIP 4 of 7 (4 x 4):
+      Stats Min: 0.493896 -0.003578 -0.003738 0.003668 0.003828 -0.000752 (float)
+      Stats Max: 0.506836 0.003597 0.003590 0.005554 0.005314 0.000950 (float)
+      Stats Avg: 0.499771 -0.000458 -0.000042 0.004876 0.004768 -0.000014 (float)
+      Stats StdDev: 0.003707 0.001743 0.002356 0.000471 0.000375 0.000491 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 16 16 16 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 5 of 7 (2 x 2):
+      Stats Min: 0.497070 -0.001377 -0.000869 0.004608 0.004406 -0.000250 (float)
+      Stats Max: 0.501953 0.000844 0.000495 0.005104 0.004951 0.000434 (float)
+      Stats Avg: 0.499756 -0.000458 -0.000042 0.004875 0.004768 -0.000014 (float)
+      Stats StdDev: 0.002028 0.000808 0.000532 0.000176 0.000213 0.000264 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 4 4 4 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 6 of 7 (1 x 1):
+      Stats Min: 0.499756 -0.000458 -0.000042 0.004875 0.004768 -0.000014 (float)
+      Stats Max: 0.499756 -0.000458 -0.000042 0.004875 0.004768 -0.000014 (float)
+      Stats Avg: 0.499756 -0.000458 -0.000042 0.004875 0.004768 -0.000014 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 1 1 1 1 1 1 
+      Constant: Yes
+      Constant Color: 0.499756 -0.000458 -0.000042 0.004875 0.004768 -0.000014 (float)
+      Monochrome: No
+Reading bumpslope-normal.exr
+bumpslope-normal.exr :  128 x  128, 6 channel, half openexr
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 739787FD248804BFE13B7CA5D86404D6B0084395
+    channel list: b0_h, b1_dhds, b2_dhdt, b3_dhds2, b4_dhdt2, b5_dh2dsdt
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    nuke/full_layer_names: 0
+    nuke/node_hash: "297a20bbf504f40b"
+    nuke/version: "14.1v5"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    uvslopes_scale: 0
+    version: 1
+    wrapmodes: "black,black"
+    oiio:AverageColor: "-1,-5.0059e-05,5.46902e-05,0.00489737,0.00494693,4.87366e-05"
+    oiio:SHA-1: "BC210B60E71DDBBA147EAD3C638ACC908C11CF6C"
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
+    openexr:roundingmode: 0
+    MIP 0 of 8 (128 x 128):
+      Stats Min: -1.000000 -0.261230 -0.278076 0.000000 0.000000 -0.030380 (float)
+      Stats Max: -1.000000 0.313477 0.290039 0.098267 0.084167 0.046570 (float)
+      Stats Avg: -1.000000 -0.000050 0.000055 0.004897 0.004947 0.000049 (float)
+      Stats StdDev: 0.000000 0.069981 0.070334 0.006810 0.006922 0.004849 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 16384 16384 16384 16384 16384 16384 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 8 (64 x 64):
+      Stats Min: -1.000000 -0.159058 -0.127563 0.000057 0.000046 -0.012695 (float)
+      Stats Max: -1.000000 0.155151 0.140381 0.035004 0.029022 0.017715 (float)
+      Stats Avg: -1.000000 -0.000050 0.000055 0.004897 0.004947 0.000049 (float)
+      Stats StdDev: 0.000000 0.034850 0.035138 0.003450 0.003486 0.002725 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 4096 4096 4096 4096 4096 4096 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 8 (32 x 32):
+      Stats Min: -1.000000 -0.040466 -0.041748 0.000652 0.000993 -0.005112 (float)
+      Stats Max: -1.000000 0.039612 0.038971 0.012085 0.013824 0.005825 (float)
+      Stats Avg: -1.000000 -0.000050 0.000055 0.004897 0.004947 0.000049 (float)
+      Stats StdDev: 0.000000 0.012983 0.013034 0.001899 0.001915 0.001461 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 1024 1024 1024 1024 1024 1024 
+      Constant: No
+      Monochrome: No
+    MIP 3 of 8 (16 x 16):
+      Stats Min: -1.000000 -0.011620 -0.012039 0.002705 0.002645 -0.001916 (float)
+      Stats Max: -1.000000 0.012146 0.012619 0.008560 0.008415 0.001927 (float)
+      Stats Avg: -1.000000 -0.000050 0.000055 0.004897 0.004947 0.000049 (float)
+      Stats StdDev: 0.000000 0.004560 0.004209 0.000992 0.000953 0.000753 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 256 256 256 256 256 256 
+      Constant: No
+      Monochrome: No
+    MIP 4 of 8 (8 x 8):
+      Stats Min: -1.000000 -0.006001 -0.004135 0.003664 0.003765 -0.000823 (float)
+      Stats Max: -1.000000 0.006027 0.003471 0.006516 0.006592 0.000979 (float)
+      Stats Avg: -1.000000 -0.000050 0.000055 0.004897 0.004947 0.000049 (float)
+      Stats StdDev: 0.000000 0.001907 0.001611 0.000550 0.000490 0.000416 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 64 64 64 64 64 64 
+      Constant: No
+      Monochrome: No
+    MIP 5 of 8 (4 x 4):
+      Stats Min: -1.000000 -0.001141 -0.000866 0.004356 0.004429 -0.000250 (float)
+      Stats Max: -1.000000 0.001290 0.001075 0.005409 0.005497 0.000413 (float)
+      Stats Avg: -1.000000 -0.000050 0.000055 0.004897 0.004947 0.000049 (float)
+      Stats StdDev: 0.000000 0.000711 0.000484 0.000232 0.000292 0.000205 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 16 16 16 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 6 of 8 (2 x 2):
+      Stats Min: -1.000000 -0.000418 -0.000045 0.004795 0.004749 -0.000015 (float)
+      Stats Max: -1.000000 0.000680 0.000115 0.005039 0.005207 0.000195 (float)
+      Stats Avg: -1.000000 -0.000050 0.000055 0.004897 0.004947 0.000049 (float)
+      Stats StdDev: 0.000000 0.000443 0.000062 0.000090 0.000189 0.000085 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 4 4 4 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 7 of 8 (1 x 1):
+      Stats Min: -1.000000 -0.000050 0.000055 0.004898 0.004948 0.000049 (float)
+      Stats Max: -1.000000 -0.000050 0.000055 0.004898 0.004948 0.000049 (float)
+      Stats Avg: -1.000000 -0.000050 0.000055 0.004898 0.004948 0.000049 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 1 1 1 1 1 1 
+      Constant: Yes
+      Constant Color: -1.000000 -0.000050 0.000055 0.004898 0.004948 0.000049 (float)
+      Monochrome: No
+Reading cdf.exr
+cdf.exr              :   64 x   64, 1 channel, half openexr
+    MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 4125BD6CDB6F869433A2C4A3DF5A16AF92EC9641
+    channel list: Y
+    tile size: 64 x 64
+    CDF_0: 0.129412, 0.129412, 0.129412, 0.152941, 0.152941, 0.192157, 0.196078, 0.196078, 0.203922, 0.207843, 0.219608, 0.219608, 0.219608, 0.223529, 0.227451, 0.231373, ... [256 x float]
+    CDF_bits: 8
+    compression: "zip"
+    fovcot: 1
+    invCDF_0: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.499779"
+    oiio:SHA-1: "00DFB31D0260CC466CDCF9FE42446D4896E655FE"
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
+    openexr:roundingmode: 0
+Reading bumpslope-cdf.exr
+bumpslope-cdf.exr    :   64 x   64, 6 channel, half openexr
+    MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 8A309ED5DD4C7ADC8B752735651BAEE9FA326B82
+    channel list: b0_h, b1_dhds, b2_dhdt, b3_dhds2, b4_dhdt2, b5_dh2dsdt
+    tile size: 64 x 64
+    CDF_0: 0.129412, 0.129412, 0.129412, 0.152941, 0.152941, 0.192157, 0.196078, 0.196078, 0.203922, 0.207843, 0.219608, 0.219608, 0.219608, 0.223529, 0.227451, 0.231373, ... [256 x float]
+    CDF_1: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    CDF_2: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    CDF_3: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    CDF_4: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    CDF_5: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    CDF_bits: 8
+    compression: "zip"
+    fovcot: 1
+    invCDF_0: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    invCDF_1: 0.517528, 0.53162, 0.546259, 0.56181, 0.577352, 0.592173, 0.60564, 0.618653, 0.631182, 0.646287, 0.659294, 0.671961, 0.688381, 0.702118, 0.715025, 0.729895, ... [256 x float]
+    invCDF_2: 0.51671, 0.531827, 0.547741, 0.563119, 0.578032, 0.594433, 0.607763, 0.62409, 0.638233, 0.654072, 0.668873, 0.685519, 0.701694, 0.717385, 0.731219, 0.749014, ... [256 x float]
+    invCDF_3: 0.662209, 0.775653, 0.862829, 0.93215, 0.961514, 0.977621, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ... [256 x float]
+    invCDF_4: 0.680135, 0.789335, 0.863924, 0.929282, 0.966413, 0.991524, 0.991524, 1, 1, 1, 1, 1, 1, 1, 1, 1, ... [256 x float]
+    invCDF_5: 0.813865, 0.952769, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ... [256 x float]
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    uvslopes_scale: 0
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
+    oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
+    openexr:roundingmode: 0
+Reading checker-attribs.tx
+checker-attribs.tx   :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Comparing "uffizi_latlong_env-128.exr" and "ref/uffizi_latlong_env-128.exr"
+PASS

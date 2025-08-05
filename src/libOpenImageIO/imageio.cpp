@@ -326,6 +326,21 @@ log_time(string_view key, const Timer& timer, int count)
 
 
 bool
+attribute(string_view name, TypeDesc type, cspan<std::byte> value)
+{
+    if (value.size_bytes() != type.size()) {
+        OIIO::errorfmt(
+            "OIIO::attribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return attribute(name, type, value.data());
+}
+
+
+
+bool
 attribute(string_view name, TypeDesc type, const void* val)
 {
     if (name == "options" && type == TypeDesc::STRING) {
@@ -441,6 +456,21 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
 
     return false;
+}
+
+
+
+bool
+getattribute(string_view name, TypeDesc type, span<std::byte> value)
+{
+    if (value.size_bytes() != type.size()) {
+        OIIO::errorfmt(
+            "OIIO::getattribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return getattribute(name, type, value.data());
 }
 
 
@@ -634,6 +664,10 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(int*)val = int(Sysutil::memory_used(true) >> 20);
         return true;
     }
+    if (name == "resident_memory_used_MB" && type == TypeFloat) {
+        *(float*)val = float(Sysutil::memory_used(true) >> 20);
+        return true;
+    }
     if (name == "missingcolor" && type.basetype == TypeDesc::FLOAT
         && oiio_missingcolor.size()) {
         // missingcolor as float array
@@ -734,7 +768,7 @@ _contiguize(const T* src, int nchannels, stride_t xstride, stride_t ystride,
 
 
 span<const std::byte>
-pvt::contiguize(image_span<const std::byte> src, span<std::byte> dst)
+pvt::contiguize(const image_span<const std::byte>& src, span<std::byte> dst)
 {
     // Contiguized result must fit in dst
     OIIO_DASSERT(src.size_bytes() <= dst.size_bytes());
@@ -1053,7 +1087,8 @@ copy_image(int nchannels, int width, int height, int depth, const void* src,
 
 template<typename T>
 void
-aligned_copy_image(image_span<std::byte> dst, image_span<const std::byte> src)
+aligned_copy_image(const image_span<std::byte>& dst,
+                   const image_span<const std::byte>& src)
 {
     size_t systride  = src.ystride();
     size_t dystride  = dst.ystride();
@@ -1081,7 +1116,8 @@ aligned_copy_image(image_span<std::byte> dst, image_span<const std::byte> src)
 
 
 bool
-copy_image(image_span<std::byte> dst, image_span<const std::byte> src)
+copy_image(const image_span<std::byte>& dst,
+           const image_span<const std::byte>& src)
 {
     OIIO_DASSERT(src.width() == dst.width() && src.height() == dst.height()
                  && src.depth() == dst.depth()
@@ -1351,6 +1387,47 @@ wrap_mirror(int& coord, int origin, int width)
                      "width=%d, origin=%d, result=%d", width, origin, coord);
     coord += origin;
     return true;
+}
+
+
+
+/// Verify that the image_span has all its contents lying within the
+/// contiguous span.
+bool
+image_span_within_span(const image_span<const std::byte>& ispan,
+                       span<const std::byte> contiguous) noexcept
+{
+    // Start with first,last being the first byte of pixel 0, channel 0
+    const std::byte* first = ispan.data();  // first byte of ispan
+    const std::byte* last  = ispan.data();  // last byte of ispan
+    // Extend them to the start of the first pixel of the first and last image
+    // plane.
+    if (ispan.zstride() > 0)
+        last += ispan.zstride() * (ispan.depth() - 1);
+    else
+        first += ispan.zstride() * (ispan.depth() - 1);  // neg stride
+    // Extend them to the start of the first pixel of the first and last
+    // scanline of the first and last image plane.
+    if (ispan.ystride() > 0)
+        last += ispan.ystride() * (ispan.height() - 1);
+    else
+        first += ispan.ystride() * (ispan.height() - 1);  // neg stride
+    // Extend them to the start of the first pixel of the first and last
+    // column of the first and last scanline of the first and last image
+    // plane.
+    if (ispan.xstride() > 0)
+        last += ispan.xstride() * (ispan.width() - 1);
+    else
+        first += ispan.xstride() * (ispan.width() - 1);  // neg stride
+    // Make sure they cover the whole of those extreme pixels
+    if (ispan.chanstride() > 0)
+        last += ispan.chanstride() * (ispan.nchannels() - 1);
+    else
+        first += ispan.chanstride() * (ispan.nchannels() - 1);  // neg stride
+    // Make sure last covers the whole data type
+    last += ispan.chansize() - 1;
+    return (first >= contiguous.data()
+            && last < contiguous.data() + contiguous.size());
 }
 
 
