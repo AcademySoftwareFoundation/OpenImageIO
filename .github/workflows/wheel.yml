@@ -88,10 +88,6 @@ jobs:
           # -------------------------------------------------------------------
           # CPython 64 bits manylinux_2_28
           # -------------------------------------------------------------------
-          - build: CPython 3.8 64 bits manylinux_2_28
-            manylinux: manylinux_2_28
-            python: cp38-manylinux_x86_64
-            arch: x86_64
           - build: CPython 3.9 64 bits manylinux_2_28
             manylinux: manylinux_2_28
             python: cp39-manylinux_x86_64
@@ -115,10 +111,6 @@ jobs:
           # -------------------------------------------------------------------
           # CPython 64 bits manylinux2014
           # -------------------------------------------------------------------
-          - build: CPython 3.8 64 bits manylinux2014
-            manylinux: manylinux2014
-            python: cp38-manylinux_x86_64
-            arch: x86_64
           - build: CPython 3.9 64 bits manylinux2014
             manylinux: manylinux2014
             python: cp39-manylinux_x86_64
@@ -185,10 +177,6 @@ jobs:
             # -------------------------------------------------------------------
             # CPython ARM 64 bits manylinux2014
             # -------------------------------------------------------------------
-            - build: CPython 3.8 ARM 64 bits manylinux2014
-              manylinux: manylinux2014
-              python: cp38-manylinux_aarch64
-              arch: aarch64
             - build: CPython 3.9 ARM 64 bits manylinux2014
               manylinux: manylinux2014
               python: cp39-manylinux_aarch64
@@ -251,9 +239,6 @@ jobs:
           # -------------------------------------------------------------------
           # CPython 64 bits
           # -------------------------------------------------------------------
-          - build: CPython 3.8 64 bits
-            python: cp38-macosx_x86_64
-            arch: x86_64
           - build: CPython 3.9 64 bits
             python: cp39-macosx_x86_64
             arch: x86_64
@@ -310,9 +295,6 @@ jobs:
           # -------------------------------------------------------------------
           # CPython ARM 64 bits
           # -------------------------------------------------------------------
-          - build: CPython 3.8 ARM 64 bits
-            python: cp38-macosx_arm64
-            arch: arm64
           - build: CPython 3.9 ARM 64 bits
             python: cp39-macosx_arm64
             arch: arm64
@@ -368,9 +350,6 @@ jobs:
           # -------------------------------------------------------------------
           # CPython 64 bits
           # -------------------------------------------------------------------
-          - build: CPython 3.8 64 bits
-            python: cp38-win_amd64
-            arch: AMD64
           - build: CPython 3.9 64 bits
             python: cp39-win_amd64
             arch: AMD64
