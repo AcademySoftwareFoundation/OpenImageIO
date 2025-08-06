@@ -118,9 +118,10 @@ public:
             double time         = item.second.first;
             double percall      = time / ncalls;
             bool use_ms_percall = (percall < 0.1);
-            print(out, "{:25s}{:6d} {:7.3f}s  (avg {:6.2f}{})\n", item.first,
-                  ncalls, time, percall * (use_ms_percall ? 1000.0 : 1.0),
-                  use_ms_percall ? "ms" : "s");
+            OIIO::print(out, "{:25s}{:6d} {:7.3f}s  (avg {:6.2f}{})\n",
+                        item.first, ncalls, time,
+                        percall * (use_ms_percall ? 1000.0 : 1.0),
+                        use_ms_percall ? "ms" : "s");
         }
         return out.str();
     }

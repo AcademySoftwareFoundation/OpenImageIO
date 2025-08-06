@@ -1060,50 +1060,50 @@ ImageSpec::serialize(SerialFormat fmt, SerialVerbose verbose) const
     std::stringstream out;
 
     if (depth > 1)
-        print(out, "{:4} x {:4} x {:4}", width, height, depth);
+        OIIO::print(out, "{:4} x {:4} x {:4}", width, height, depth);
     else
-        print(out, "{:4} x {:4}", width, height);
-    print(out, ", {} channel, {}{}", nchannels, deep ? "deep " : "",
-          depth > 1 ? "volume " : "");
+        OIIO::print(out, "{:4} x {:4}", width, height);
+    OIIO::print(out, ", {} channel, {}{}", nchannels, deep ? "deep " : "",
+                depth > 1 ? "volume " : "");
     if (channelformats.size()) {
         for (size_t c = 0; c < channelformats.size(); ++c)
-            print(out, "{}{}", c ? "/" : "", channelformats[c]);
+            OIIO::print(out, "{}{}", c ? "/" : "", channelformats[c]);
     } else {
         int bits = get_int_attribute("oiio:BitsPerSample", 0);
-        print(out, "{}", extended_format_name(this->format, bits));
+        OIIO::print(out, "{}", extended_format_name(this->format, bits));
     }
-    print(out, "\n");
+    OIIO::print(out, "\n");
 
     if (verbose >= SerialDetailed) {
-        print(out, "    channel list: ");
+        OIIO::print(out, "    channel list: ");
         for (int i = 0; i < nchannels; ++i) {
             if (i < (int)channelnames.size())
-                print(out, "{}", channelnames[i]);
+                OIIO::print(out, "{}", channelnames[i]);
             else
-                print(out, "unknown");
+                OIIO::print(out, "unknown");
             if (i < (int)channelformats.size())
-                print(out, " ({})", channelformats[i]);
+                OIIO::print(out, " ({})", channelformats[i]);
             if (i < nchannels - 1)
-                print(out, ", ");
+                OIIO::print(out, ", ");
         }
-        print(out, "\n");
+        OIIO::print(out, "\n");
         if (x || y || z) {
-            print(out, "    pixel data origin: {}\n",
-                  ((depth > 1) ? format("x={}, y={}, z={}", x, y, z)
-                               : format("x={}, y={}", x, y)));
+            OIIO::print(out, "    pixel data origin: {}\n",
+                        ((depth > 1) ? format("x={}, y={}, z={}", x, y, z)
+                                     : format("x={}, y={}", x, y)));
         }
         if (full_x || full_y || full_z
             || (full_width != width && full_width != 0)
             || (full_height != height && full_height != 0)
             || (full_depth != depth && full_depth != 0)) {
-            print(out, "    full/display size: {}\n",
-                  format_res(*this, full_width, full_height, full_depth));
-            print(out, "    full/display origin: {}\n",
-                  format_offset(*this, full_x, full_y, full_z));
+            OIIO::print(out, "    full/display size: {}\n",
+                        format_res(*this, full_width, full_height, full_depth));
+            OIIO::print(out, "    full/display origin: {}\n",
+                        format_offset(*this, full_x, full_y, full_z));
         }
         if (tile_width) {
-            print(out, "    tile size: {}\n",
-                  format_res(*this, tile_width, tile_height, tile_depth));
+            OIIO::print(out, "    tile size: {}\n",
+                        format_res(*this, tile_width, tile_height, tile_depth));
         }
 
         // Sort the metadata alphabetically, case-insensitive, but making
@@ -1113,11 +1113,11 @@ ImageSpec::serialize(SerialFormat fmt, SerialVerbose verbose) const
         attribs.sort(false /* sort case-insensitively */);
 
         for (auto&& p : attribs) {
-            print(out, "    {}: ", p.name());
+            OIIO::print(out, "    {}: ", p.name());
             std::string s = metadata_val(p, verbose == SerialDetailedHuman);
             if (s == "1.#INF")
                 s = "inf";
-            print(out, "{}\n", s);
+            OIIO::print(out, "{}\n", s);
         }
     }
 

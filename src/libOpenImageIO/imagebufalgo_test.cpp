@@ -1037,10 +1037,10 @@ void
 benchmark_parallel_image(int res, int iters)
 {
     using namespace ImageBufAlgo;
-    print("\nTime old parallel_image for {}x{}\n", res, res);
+    OIIO::print("\nTime old parallel_image for {}x{}\n", res, res);
 
-    print("  threads time    rate   (best of {})\n", ntrials);
-    print("  ------- ------- -------\n");
+    OIIO::print("  threads time    rate   (best of {})\n", ntrials);
+    OIIO::print("  ------- ------- -------\n");
     ImageSpec spec(res, res, 3, TypeDesc::FLOAT);
     ImageBuf X(spec), Y(spec);
     ImageBufAlgo::zero(Y);
@@ -1064,16 +1064,16 @@ benchmark_parallel_image(int res, int iters)
         };
         double range;
         double t = time_trial(func, ntrials, iters, &range) / iters;
-        print("  {:4}   {:7.3f} ms  {:5.1f} Mpels/s\n", nt, t * 1000,
-              double(res * res) / t / 1.0e6);
+        OIIO::print("  {:4}   {:7.3f} ms  {:5.1f} Mpels/s\n", nt, t * 1000,
+                    double(res * res) / t / 1.0e6);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }
 
-    print("\nTime new parallel_image for {}x{}\n", res, res);
+    OIIO::print("\nTime new parallel_image for {}x{}\n", res, res);
 
-    print("  threads time    rate   (best of {})\n", ntrials);
-    print("  ------- ------- -------\n");
+    OIIO::print("  threads time    rate   (best of {})\n", ntrials);
+    OIIO::print("  ------- ------- -------\n");
     for (int i = 0; threadcounts[i] <= numthreads; ++i) {
         int nt = wedge ? threadcounts[i] : numthreads;
         // default_thread_pool()->resize (nt);
@@ -1081,8 +1081,8 @@ benchmark_parallel_image(int res, int iters)
         auto func = [&]() { parallel_image(Y.roi(), nt, exercise); };
         double range;
         double t = time_trial(func, ntrials, iters, &range) / iters;
-        print("  {:4}   {:6.2f} ms  {:5.1f} Mpels/s\n", nt, t * 1000,
-              double(res * res) / t / 1.0e6);
+        OIIO::print("  {:4}   {:6.2f} ms  {:5.1f} Mpels/s\n", nt, t * 1000,
+                    double(res * res) / t / 1.0e6);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }
@@ -1176,7 +1176,7 @@ test_color_management()
 static void
 test_yee()
 {
-    print("Testing Yee comparison\n");
+    OIIO::print("Testing Yee comparison\n");
     ImageSpec spec(1, 1, 3, TypeDesc::FLOAT);
     ImageBuf img1(spec);
     ImageBufAlgo::fill(img1, { 0.1f, 0.1f, 0.1f });
@@ -1219,9 +1219,9 @@ static void
 test_simple_perpixel()
 {
     TypeDesc td = TypeDescFromC<T>::value();
-    print("test_simple_perpixel {}\n", td);
+    OIIO::print("test_simple_perpixel {}\n", td);
     {
-        print("  unary op\n");
+        OIIO::print("  unary op\n");
         ImageBuf src = filled_image({ 0.25f, 0.5f, 0.75f, 1.0f }, 4, 4, td);
         ImageBuf result;
         // Test with raw function pointer
@@ -1259,7 +1259,7 @@ test_simple_perpixel()
         }
     }
     {
-        print("  binary op\n");
+        OIIO::print("  binary op\n");
         ImageBuf srcA   = filled_image({ 0.25f, 0.5f, 0.75f, 1.0f }, 4, 4, td);
         ImageBuf srcB   = filled_image({ 1.0f, 2.0f, 3.0f, 4.0f }, 4, 4, td);
         ImageBuf result = ImageBufAlgo::perpixel_op(
@@ -1444,7 +1444,7 @@ test_demosaic(const DemosaicTestConfig& config, const DemosaicTestAlgo* algos,
 static void
 test_demosaic()
 {
-    print("Testing Demosaicing\n");
+    OIIO::print("Testing Demosaicing\n");
 
     ImageSpec src_spec(256, 256, 3, TypeDesc::FLOAT);
     ImageBuf src_image(src_spec);
