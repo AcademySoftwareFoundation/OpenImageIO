@@ -172,8 +172,8 @@ test_read(const std::string& explanation, void (*func)(), int autotile = 64,
     imagecache->attribute("autoscanline", autoscanline);
     double t    = time_trial(func, ntrials);
     double rate = double(total_image_pixels) / t;
-    print("  {}: {} = {:5.1f} Mpel/s\n", explanation,
-          Strutil::timeintervalformat(t, 2), rate / 1.0e6);
+    OIIO::print("  {}: {} = {:5.1f} Mpel/s\n", explanation,
+                Strutil::timeintervalformat(t, 2), rate / 1.0e6);
 }
 
 
@@ -297,8 +297,8 @@ test_write(const std::string& explanation, void (*func)(), int tilesize = 0)
     outspec.tile_depth  = 1;
     double t            = time_trial(func, ntrials);
     double rate         = double(total_image_pixels) / t;
-    print("  {}: {} = {:5.1f} Mpel/s\n", explanation,
-          Strutil::timeintervalformat(t, 2), rate / 1.0e6);
+    OIIO::print("  {}: {} = {:5.1f} Mpel/s\n", explanation,
+                Strutil::timeintervalformat(t, 2), rate / 1.0e6);
 }
 
 
@@ -444,8 +444,8 @@ test_pixel_iteration(const std::string& explanation,
     ib.read(0, 0, preload, TypeFloat);
     double t    = time_trial(std::bind(func, std::ref(ib), iters), ntrials);
     double rate = double(ib.spec().image_pixels()) / (t / iters);
-    print("  {}: {} = {:5.1f} Mpel/s\n", explanation,
-          Strutil::timeintervalformat(t / iters, 3), rate / 1.0e6);
+    OIIO::print("  {}: {} = {:5.1f} Mpel/s\n", explanation,
+                Strutil::timeintervalformat(t / iters, 3), rate / 1.0e6);
 }
 
 
