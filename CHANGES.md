@@ -1,7 +1,7 @@
-Release 3.0.10.0 (Sep 1?, 2025) -- compared to 3.0.9.0
--------------------------------------------------------
-
-
+Release 3.0.9.1 (Aug 7, 2025) -- compared to 3.0.9.0
+-----------------------------------------------------
+  - *deps*: C++23 support [#4844](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4844)
+  - *deps*: Adapt to libheif 1.20.2 [#4851](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4851) (by toge)
 
 
 Release 3.0.9.0 (Aug 1, 2025) -- compared to 3.0.8.1
