@@ -152,47 +152,47 @@ print_stats_summary(std::ostream& out, string_view indent,
 {
     unsigned int maxval = (unsigned int)get_intsample_maxval(spec);
 
-    print(out, "{}Stats Min: ", indent);
+    OIIO::print(out, "{}Stats Min: ", indent);
     for (unsigned int i = 0; i < stats.min.size(); ++i) {
         Strutil::print(out, "{} ", stats_num(stats.min[i], maxval, true));
     }
     Strutil::print(out, "{}\n", stats_footer(maxval));
 
-    print(out, "{}Stats Max: ", indent);
+    OIIO::print(out, "{}Stats Max: ", indent);
     for (unsigned int i = 0; i < stats.max.size(); ++i) {
         Strutil::print(out, "{} ", stats_num(stats.max[i], maxval, true));
     }
-    print(out, "{}\n", stats_footer(maxval));
+    OIIO::print(out, "{}\n", stats_footer(maxval));
 
-    print(out, "{}Stats Avg: ", indent);
+    OIIO::print(out, "{}Stats Avg: ", indent);
     for (unsigned int i = 0; i < stats.avg.size(); ++i) {
-        print(out, "{} ", stats_num(stats.avg[i], maxval, false));
+        OIIO::print(out, "{} ", stats_num(stats.avg[i], maxval, false));
     }
-    print(out, "{}\n", stats_footer(maxval));
+    OIIO::print(out, "{}\n", stats_footer(maxval));
 
-    print(out, "{}Stats StdDev: ", indent);
+    OIIO::print(out, "{}Stats StdDev: ", indent);
     for (unsigned int i = 0; i < stats.stddev.size(); ++i) {
-        print(out, "{} ", stats_num(stats.stddev[i], maxval, false));
+        OIIO::print(out, "{} ", stats_num(stats.stddev[i], maxval, false));
     }
-    print(out, "{}\n", stats_footer(maxval));
+    OIIO::print(out, "{}\n", stats_footer(maxval));
 
-    print(out, "{}Stats NanCount: ", indent);
+    OIIO::print(out, "{}Stats NanCount: ", indent);
     for (unsigned int i = 0; i < stats.nancount.size(); ++i) {
-        print(out, "{} ", (unsigned long long)stats.nancount[i]);
+        OIIO::print(out, "{} ", (unsigned long long)stats.nancount[i]);
     }
-    print(out, "\n");
+    OIIO::print(out, "\n");
 
-    print(out, "{}Stats InfCount: ", indent);
+    OIIO::print(out, "{}Stats InfCount: ", indent);
     for (unsigned int i = 0; i < stats.infcount.size(); ++i) {
-        print(out, "{} ", (unsigned long long)stats.infcount[i]);
+        OIIO::print(out, "{} ", (unsigned long long)stats.infcount[i]);
     }
-    print(out, "\n");
+    OIIO::print(out, "\n");
 
-    print(out, "{}Stats FiniteCount: ", indent);
+    OIIO::print(out, "{}Stats FiniteCount: ", indent);
     for (unsigned int i = 0; i < stats.finitecount.size(); ++i) {
-        print(out, "{} ", (unsigned long long)stats.finitecount[i]);
+        OIIO::print(out, "{} ", (unsigned long long)stats.finitecount[i]);
     }
-    print(out, "\n");
+    OIIO::print(out, "\n");
 }
 
 
@@ -267,20 +267,23 @@ print_deep_stats(std::ostream& out, string_view indent, const ImageBuf& input,
             }
         }
     }
-    print(out, "{}Min deep samples in any pixel : {}\n", indent, minsamples);
-    print(out, "{}Max deep samples in any pixel : {}\n", indent, maxsamples);
-    print(out,
-          "{}{} pixel{} had the max of {} samples, including (x={}, y={})\n",
-          indent, maxsamples_npixels, maxsamples_npixels > 1 ? "s" : "",
-          maxsamples, maxsamples_pixel.x, maxsamples_pixel.y);
-    print(out, "{}Average deep samples per pixel: {:.2f}\n", indent,
-          double(totalsamples) / double(npixels));
-    print(out, "{}Total deep samples in all pixels: {}\n", indent,
-          totalsamples);
-    print(out, "{}Pixels with deep samples   : {}\n", indent,
-          (npixels - emptypixels));
-    print(out, "{}Pixels with no deep samples: {}\n", indent, emptypixels);
-    print(out, "{}Samples/pixel histogram:\n", indent);
+    OIIO::print(out, "{}Min deep samples in any pixel : {}\n", indent,
+                minsamples);
+    OIIO::print(out, "{}Max deep samples in any pixel : {}\n", indent,
+                maxsamples);
+    OIIO::print(
+        out, "{}{} pixel{} had the max of {} samples, including (x={}, y={})\n",
+        indent, maxsamples_npixels, maxsamples_npixels > 1 ? "s" : "",
+        maxsamples, maxsamples_pixel.x, maxsamples_pixel.y);
+    OIIO::print(out, "{}Average deep samples per pixel: {:.2f}\n", indent,
+                double(totalsamples) / double(npixels));
+    OIIO::print(out, "{}Total deep samples in all pixels: {}\n", indent,
+                totalsamples);
+    OIIO::print(out, "{}Pixels with deep samples   : {}\n", indent,
+                (npixels - emptypixels));
+    OIIO::print(out, "{}Pixels with no deep samples: {}\n", indent,
+                emptypixels);
+    OIIO::print(out, "{}Samples/pixel histogram:\n", indent);
     size_t grandtotal = 0;
     for (size_t i = 0, e = nsamples_histogram.size(); i < e; ++i)
         grandtotal += nsamples_histogram[i];
@@ -290,23 +293,23 @@ print_deep_stats(std::ostream& out, string_view indent, const ImageBuf& input,
         if (i < 8 || i == (e - 1) || OIIO::ispow2(i + 1)) {
             // batch by powers of 2, unless it's a small number
             if (i == binstart)
-                print(out, "{}  {:3}    ", indent, i);
+                OIIO::print(out, "{}  {:3}    ", indent, i);
             else
-                print(out, "{}  {:3}-{:3}", indent, binstart, i);
-            print(out, " : {:8} ({:4.1f}%)\n", bintotal,
-                  (100.0 * bintotal) / grandtotal);
+                OIIO::print(out, "{}  {:3}-{:3}", indent, binstart, i);
+            OIIO::print(out, " : {:8} ({:4.1f}%)\n", bintotal,
+                        (100.0 * bintotal) / grandtotal);
             binstart = i + 1;
             bintotal = 0;
         }
     }
     if (depthchannel >= 0) {
-        print(out, "{}Minimum depth was {:g} at ({}, {})\n", indent, mindepth,
-              mindepth_pixel.x, mindepth_pixel.y);
-        print(out, "{}Maximum depth was {:g} at ({}, {})\n", indent, maxdepth,
-              maxdepth_pixel.x, maxdepth_pixel.y);
+        OIIO::print(out, "{}Minimum depth was {:g} at ({}, {})\n", indent,
+                    mindepth, mindepth_pixel.x, mindepth_pixel.y);
+        OIIO::print(out, "{}Maximum depth was {:g} at ({}, {})\n", indent,
+                    maxdepth, maxdepth_pixel.x, maxdepth_pixel.y);
     }
     if (nonfinites > 0) {
-        print(
+        OIIO::print(
             out,
             "{}Nonfinite values: {}, including (x={}, y={}, chan={}, samp={})\n",
             indent, nonfinites, nonfinite_pixel.x, nonfinite_pixel.y,
@@ -341,20 +344,21 @@ print_stats(std::ostream& out, string_view indent, const ImageBuf& input,
     } else {
         std::vector<float> constantValues(input.spec().nchannels);
         if (isConstantColor(input, 0.0f, constantValues)) {
-            print(out, "{}Constant: Yes\n", indent);
-            print(out, "{}Constant Color: ", indent);
+            OIIO::print(out, "{}Constant: Yes\n", indent);
+            OIIO::print(out, "{}Constant Color: ", indent);
             for (unsigned int i = 0; i < constantValues.size(); ++i) {
-                print(out, "{} ", stats_num(constantValues[i], maxval, false));
+                OIIO::print(out, "{} ",
+                            stats_num(constantValues[i], maxval, false));
             }
-            print(out, "{}\n", stats_footer(maxval));
+            OIIO::print(out, "{}\n", stats_footer(maxval));
         } else {
-            print(out, "{}Constant: No\n", indent);
+            OIIO::print(out, "{}Constant: No\n", indent);
         }
 
         if (isMonochrome(input)) {
-            print(out, "{}Monochrome: Yes\n", indent);
+            OIIO::print(out, "{}Monochrome: Yes\n", indent);
         } else {
-            print(out, "{}Monochrome: No\n", indent);
+            OIIO::print(out, "{}Monochrome: No\n", indent);
         }
     }
     return true;

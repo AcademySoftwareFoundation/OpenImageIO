@@ -228,7 +228,7 @@ Oiiotool::colorconfig()
     std::lock_guard lock(colorconfig_mutex);
     if (!m_colorconfig) {
         if (debug)
-            print("oiiotool Creating ColorConfig\n");
+            OIIO::print("oiiotool Creating ColorConfig\n");
         m_colorconfig.reset(new ColorConfig);
     }
     return *m_colorconfig.get();
@@ -1044,7 +1044,7 @@ DateTime_to_time_t(string_view datetime, time_t& timet)
     int year, month, day, hour, min, sec;
     if (!Strutil::scan_datetime(datetime, year, month, day, hour, min, sec))
         return false;
-    // print("{}:{}:{} {}:{}:{}\n", year, month, day, hour, min, sec);
+    // OIIO::print("{}:{}:{} {}:{}:{}\n", year, month, day, hour, min, sec);
     struct tm tmtime;
     time_t now;
     Sysutil::get_local_time(&now, &tmtime);  // fill in defaults
@@ -4323,17 +4323,18 @@ public:
 
         if (ot.debug) {
             std::string filtername = options("filter");
-            print("  Resizing input {} full {}\n"
-                  "   -> output {} full {}\n"
-                  "     mapping {} to {}\n"
-                  "     using {} filter\n",
-                  Aspec.roi_full(), Aspec.roi(), newspec.roi(),
-                  newspec.roi_full(),
-                  format_resolution(from_w, from_h, from_x, from_y),
-                  format_resolution(to_w, to_h, to_x, to_y),
-                  (filtername.size() ? filtername.c_str() : "default"));
-            print("  M = {}\n", M);
-            print("  implementing with {}\n", do_warp ? "warp" : "resize");
+            OIIO::print("  Resizing input {} full {}\n"
+                        "   -> output {} full {}\n"
+                        "     mapping {} to {}\n"
+                        "     using {} filter\n",
+                        Aspec.roi_full(), Aspec.roi(), newspec.roi(),
+                        newspec.roi_full(),
+                        format_resolution(from_w, from_h, from_x, from_y),
+                        format_resolution(to_w, to_h, to_x, to_y),
+                        (filtername.size() ? filtername.c_str() : "default"));
+            OIIO::print("  M = {}\n", M);
+            OIIO::print("  implementing with {}\n",
+                        do_warp ? "warp" : "resize");
         }
         return do_warp;
     }
@@ -5366,15 +5367,16 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
             std::string colorspace(
                 ot.colorconfig().getColorSpaceFromFilepath(filename, "", true));
             if (colorspace.size() && ot.debug)
-                print("  From {}, we deduce color space \"{}\"\n", filename,
-                      colorspace);
+                OIIO::print("  From {}, we deduce color space \"{}\"\n",
+                            filename, colorspace);
             if (colorspace.empty()) {
                 ot.read();
                 colorspace = ot.curimg->spec()->get_string_attribute(
                     "oiio:ColorSpace");
                 if (ot.debug)
-                    print("  Metadata of {} indicates color space \"{}\"\n",
-                          colorspace, filename);
+                    OIIO::print(
+                        "  Metadata of {} indicates color space \"{}\"\n",
+                        colorspace, filename);
             }
             std::string linearspace = ot.colorconfig().resolve("scene_linear");
             if (colorspace.size()
@@ -5385,12 +5387,12 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                 const char* argv[] = { cmd.c_str(), colorspace.c_str(),
                                        linearspace.c_str() };
                 if (ot.debug)
-                    print("  Converting {} from {} to {}\n", filename,
-                          colorspace, linearspace);
+                    OIIO::print("  Converting {} from {} to {}\n", filename,
+                                colorspace, linearspace);
                 action_colorconvert(ot, argv);
             } else if (ot.debug) {
-                print("  no auto conversion necessary for {}->{}\n", colorspace,
-                      linearspace);
+                OIIO::print("  no auto conversion necessary for {}->{}\n",
+                            colorspace, linearspace);
             }
         }
 
@@ -6246,20 +6248,20 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
 
     int roles = colorconfig.getNumRoles();
     if (roles) {
-        print(out, "Known roles:\n");
+        OIIO::print(out, "Known roles:\n");
         for (int i = 0; i < roles; ++i) {
             const char* r = colorconfig.getRoleByIndex(i);
-            print(out, "    - {} -> {}\n", quote_if_spaces(r),
-                  quote_if_spaces(colorconfig.getColorSpaceNameByRole(r)));
+            OIIO::print(out, "    - {} -> {}\n", quote_if_spaces(r),
+                        quote_if_spaces(colorconfig.getColorSpaceNameByRole(r)));
         }
     }
 
     int nlooks = colorconfig.getNumLooks();
     if (nlooks) {
-        print(out, "Known looks:\n");
+        OIIO::print(out, "Known looks:\n");
         for (int i = 0; i < nlooks; ++i)
-            print(out, "    - {}\n",
-                  quote_if_spaces(colorconfig.getLookNameByIndex(i)));
+            OIIO::print(out, "    - {}\n",
+                        quote_if_spaces(colorconfig.getLookNameByIndex(i)));
     }
 
     const char* default_display = colorconfig.getDefaultDisplayName();
@@ -6313,23 +6315,24 @@ print_build_info(Oiiotool& ot, std::ostream& out)
 
     auto platform = format("OIIO {} | {}", OIIO_VERSION_STRING,
                            OIIO::get_string_attribute("build:platform"));
-    print(out, "{}\n", Strutil::wordwrap(platform, columns, 4));
+    OIIO::print(out, "{}\n", Strutil::wordwrap(platform, columns, 4));
 
     auto buildinfo = format("    Build compiler: {} | C++{}/{}",
                             OIIO::get_string_attribute("build:compiler"),
                             OIIO_CPLUSPLUS_VERSION, __cplusplus);
-    print(out, "{}\n", Strutil::wordwrap(buildinfo, columns, 4));
+    OIIO::print(out, "{}\n", Strutil::wordwrap(buildinfo, columns, 4));
 
     auto hwbuildfeats
         = format("    HW features enabled at build: {}",
                  OIIO::get_string_attribute("build:simd", "no SIMD"));
-    print(out, "{}\n", Strutil::wordwrap(hwbuildfeats, columns, 4));
+    OIIO::print(out, "{}\n", Strutil::wordwrap(hwbuildfeats, columns, 4));
 #ifdef OIIO_USE_CUDA
     int cudaver = OIIO::get_int_attribute("cuda:build_version");
-    print(out, "    CUDA {}.{}.{} support enabled at build time\n",
-          cudaver / 10000, (cudaver / 100) % 100, cudaver % 100);
+    OIIO::print(out, "    CUDA {}.{}.{} support enabled at build time\n",
+                cudaver / 10000, (cudaver / 100) % 100, cudaver % 100);
 #else
-    print(out, "    No CUDA support (disabled / unavailable at build time)\n");
+    OIIO::print(out,
+                "    No CUDA support (disabled / unavailable at build time)\n");
 #endif
 
     std::string libs = OIIO::get_string_attribute("build:dependencies");
@@ -6339,9 +6342,10 @@ print_build_info(Oiiotool& ot, std::ostream& out)
             size_t pos = lib.find(':');
             lib.remove_prefix(pos + 1);
         }
-        print(out, "{}\n",
-              Strutil::wordwrap("Dependencies: " + Strutil::join(libvec, ", "),
-                                columns, 4));
+        OIIO::print(out, "{}\n",
+                    Strutil::wordwrap("Dependencies: "
+                                          + Strutil::join(libvec, ", "),
+                                      columns, 4));
     }
 }
 
@@ -6350,27 +6354,28 @@ print_build_info(Oiiotool& ot, std::ostream& out)
 static void
 print_help_end(Oiiotool& ot, std::ostream& out)
 {
-    print(out, "\n");
+    OIIO::print(out, "\n");
     int columns = Sysutil::terminal_columns() - 2;
 
     out << formatted_format_list("Input", "input_format_list") << "\n";
     out << formatted_format_list("Output", "output_format_list") << "\n";
 
     if (int ociover = ot.colorconfig().OpenColorIO_version_hex())
-        print(out, "OpenColorIO {}.{}.{}\n", (ociover >> 24),
-              ((ociover >> 16) & 0xff), ((ociover >> 8) & 0xff));
+        OIIO::print(out, "OpenColorIO {}.{}.{}\n", (ociover >> 24),
+                    ((ociover >> 16) & 0xff), ((ociover >> 8) & 0xff));
     else
-        print(out, "No OpenColorIO\n");
-    print(out, "    Color config: {}\n", ot.colorconfig().configname());
-    print(out, "    Run `oiiotool --colorconfiginfo` for a "
-               "full color management inventory.\n");
+        OIIO::print(out, "No OpenColorIO\n");
+    OIIO::print(out, "    Color config: {}\n", ot.colorconfig().configname());
+    OIIO::print(out, "    Run `oiiotool --colorconfiginfo` for a "
+                     "full color management inventory.\n");
 
-    print(out, "{}\n",
-          Strutil::wordwrap("Filters available: "
-                                + Strutil::replace(OIIO::get_string_attribute(
-                                                       "filter_list"),
-                                                   ";", ", ", true),
-                            columns, 4));
+    OIIO::print(
+        out, "{}\n",
+        Strutil::wordwrap("Filters available: "
+                              + Strutil::replace(OIIO::get_string_attribute(
+                                                     "filter_list"),
+                                                 ";", ", ", true),
+                          columns, 4));
 
     print_build_info(ot, out);
 
@@ -6380,7 +6385,7 @@ print_help_end(Oiiotool& ot, std::ostream& out)
                                        Sysutil::physical_memory()
                                            / float(1 << 30),
                                        OIIO::get_string_attribute("hw:simd"));
-    print(out, "{}\n", Strutil::wordwrap(hwinfo, columns, 4, " ", ","));
+    OIIO::print(out, "{}\n", Strutil::wordwrap(hwinfo, columns, 4, " ", ","));
     if (OIIO::get_int_attribute("cuda:devices_found")
         /*pvt::compute_device() == pvt::ComputeDevice::CUDA*/) {
         auto compinfo = Strutil::fmt::format(
@@ -6393,16 +6398,17 @@ print_help_end(Oiiotool& ot, std::ostream& out)
             OIIO::get_int_attribute("cuda:runtime_version"),
             OIIO::get_int_attribute("cuda:compatibility"),
             OIIO::get_int_attribute("cuda:total_memory_MB") / 1024.0);
-        print(out, "{}\n", Strutil::wordwrap(compinfo, columns, 4, " ", ","));
+        OIIO::print(out, "{}\n",
+                    Strutil::wordwrap(compinfo, columns, 4, " ", ","));
     } else {
-        print(out, "    No compute specific hardware enabled.\n");
+        OIIO::print(out, "    No compute specific hardware enabled.\n");
     }
 
     // Print the path to the docs. If found, use the one installed in the
     // same area is this executable, otherwise just point to the copy on
     // GitHub corresponding to our version of the softare.
-    print(out, "Full OIIO documentation can be found at\n");
-    print(out, "    https://docs.openimageio.org\n");
+    OIIO::print(out, "Full OIIO documentation can be found at\n");
+    OIIO::print(out, "    https://docs.openimageio.org\n");
 }
 
 
@@ -6437,13 +6443,13 @@ oiiotool_unit_tests(Oiiotool& ot)
 {
 #ifdef OIIO_UNIT_TESTS
     using Strutil::print;
-    print("Running unit tests...\n");
+    OIIO::print("Running unit tests...\n");
     auto e       = ot.noerrexit;
     ot.noerrexit = true;
     unit_test_scan_box();
     unit_test_adjust_geometry(ot);
     ot.noerrexit = e;
-    print("...end of unit tests\n");
+    OIIO::print("...end of unit tests\n");
 #endif
 }
 
@@ -6641,7 +6647,7 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--test-bad-format")
       .hidden()
       .action([&](cspan<const char*>){
-                  print("{}\n", Strutil::fmt::format("hey hey {:d} {}",
+                  OIIO::print("{}\n", Strutil::fmt::format("hey hey {:d} {}",
                                                      "foo", "bar", "oops"));
               });
 
@@ -7232,14 +7238,14 @@ one_sequence_iteration(Oiiotool& otmain, size_t i, int frame_number,
         return;
 
     if (otmain.debug)
-        print("Begin sequence iteration {}\n", i);
+        OIIO::print("Begin sequence iteration {}\n", i);
 
     // Prepare the arguments for this iteration
     std::vector<const char*> seq_argv(argv_main.begin(), argv_main.end());
     for (size_t a : sequence_args) {
         seq_argv[a] = filenames[a][i].c_str();
         if (otmain.debug)
-            print("  {} -> {}\n", argv_main[a], seq_argv[a]);
+            OIIO::print("  {} -> {}\n", argv_main[a], seq_argv[a]);
     }
 
     Oiiotool otit;  // Oiiotool for this iteration
@@ -7282,12 +7288,12 @@ one_sequence_iteration(Oiiotool& otmain, size_t i, int frame_number,
     if (otit.runstats) {
         std::lock_guard<std::mutex> lock(otmain.m_stat_mutex);
         otmain.runstats = true;
-        print("End sequence iteration {}: {} (total {}) mem {}\n\n", i,
-              Strutil::timeintervalformat(otit.total_runtime(), 2),
-              Strutil::timeintervalformat(otmain.total_runtime(), 2),
-              Strutil::memformat(Sysutil::memory_used()));
+        OIIO::print("End sequence iteration {}: {} (total {}) mem {}\n\n", i,
+                    Strutil::timeintervalformat(otit.total_runtime(), 2),
+                    Strutil::timeintervalformat(otmain.total_runtime(), 2),
+                    Strutil::memformat(Sysutil::memory_used()));
     } else if (otmain.debug) {
-        print("\n");
+        OIIO::print("\n");
     }
 }
 
@@ -7466,8 +7472,8 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
         // If --parframes was used, run the iterations in parallel, but
         // each iteration should itself not try to internally parallelize.
         if (ot.debug)
-            print("Running {} frames in parallel with {} threads\n", nfilenames,
-                  parallel_frame_threads);
+            OIIO::print("Running {} frames in parallel with {} threads\n",
+                        nfilenames, parallel_frame_threads);
         ot.begin_parallel_frame_loop(parallel_frame_threads);
         parallel_for(
             uint64_t(0), uint64_t(nfilenames),
@@ -7590,10 +7596,11 @@ main(int argc, char* argv[])
     if (ot.runstats) {
         double total_time  = ot.total_runtime();
         double unaccounted = total_time;
-        print("\n");
-        print("Threads: {}\n", OIIO::get_int_attribute("threads"));
-        print("oiiotool runtime statistics:\n");
-        print("  Total time: {}\n", Strutil::timeintervalformat(total_time, 2));
+        OIIO::print("\n");
+        OIIO::print("Threads: {}\n", OIIO::get_int_attribute("threads"));
+        OIIO::print("oiiotool runtime statistics:\n");
+        OIIO::print("  Total time: {}\n",
+                    Strutil::timeintervalformat(total_time, 2));
         for (auto& func : ot.function_times) {
             double t = func.second;
             if (t > 0.0) {
@@ -7605,23 +7612,24 @@ main(int argc, char* argv[])
             Strutil::print("      {:<12} : {:5.2f}\n", "unaccounted",
                            unaccounted);
         ot.check_peak_memory();
-        print("  Peak memory:    {}\n", Strutil::memformat(ot.peak_memory));
-        print("  Current memory: {}\n",
-              Strutil::memformat(Sysutil::memory_used()));
+        OIIO::print("  Peak memory:    {}\n",
+                    Strutil::memformat(ot.peak_memory));
+        OIIO::print("  Current memory: {}\n",
+                    Strutil::memformat(Sysutil::memory_used()));
         {
             int64_t current = 0, peak = 0;
             OIIO::getattribute("IB_local_mem_current", TypeInt64, &current);
             OIIO::getattribute("IB_local_mem_peak", TypeInt64, &peak);
-            print("\nImageBuf local memory: current {}, peak {}\n",
-                  Strutil::memformat(current), Strutil::memformat(peak));
+            OIIO::print("\nImageBuf local memory: current {}, peak {}\n",
+                        Strutil::memformat(current), Strutil::memformat(peak));
             float opentime = OIIO::get_float_attribute("IB_total_open_time");
             float readtime = OIIO::get_float_attribute(
                 "IB_total_image_read_time");
-            print("ImageBuf direct read time: {}, open time {}\n",
-                  Strutil::timeintervalformat(readtime, 2),
-                  Strutil::timeintervalformat(opentime, 2));
+            OIIO::print("ImageBuf direct read time: {}, open time {}\n",
+                        Strutil::timeintervalformat(readtime, 2),
+                        Strutil::timeintervalformat(opentime, 2));
         }
-        print("\n{}\n", ot.imagecache->getstats(2));
+        OIIO::print("\n{}\n", ot.imagecache->getstats(2));
     }
 
     // Release references of images that might hold onto a shared

@@ -397,12 +397,12 @@ jobs:
                             WEBP_VERSION=v1.5.0
                             FREETYPE_VERSION=VER-2-13-3
                             USE_OPENVDB=0
-          - desc: bleeding edge gcc14 C++20 py3.12 OCIO/libtiff/exr-main avx2
+          - desc: bleeding edge gcc14 C++23 py3.12 OCIO/libtiff/exr-main avx2
             nametag: linux-bleeding-edge
             runner: ubuntu-24.04
             cc_compiler: gcc-14
             cxx_compiler: g++-14
-            cxx_std: 20
+            cxx_std: 23
             fmt_ver: master
             opencolorio_ver: main
             openexr_ver: main
