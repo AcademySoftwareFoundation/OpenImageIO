@@ -392,7 +392,7 @@ HeifInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 #endif
 #if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 20, 2, 0)
     const uint8_t* hdata = m_himage.get_plane2(heif_channel_interleaved,
-                                              &ystride);
+                                               &ystride);
 #else
     const uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved,
                                               &ystride);
