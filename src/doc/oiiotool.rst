@@ -891,7 +891,7 @@ output each one to a different file, with names `sub0001.tif`,
 
 .. option:: -q
 
-    Quet mode --- print out less information about what :program:`oiiotool`
+    Quiet mode --- print out less information about what :program:`oiiotool`
     is doing (only errors).
 
 .. option:: -n
