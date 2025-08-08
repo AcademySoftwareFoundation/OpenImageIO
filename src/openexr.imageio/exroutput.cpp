@@ -748,7 +748,7 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     // that 5 is a great tradeoff between size and speed, so that is our
     // default.
     if (Strutil::istarts_with(comp, "zstd")) {
-        header.zstdCompressionLevel() = (qual >= 1 && qual <= 22) ? qual : 5;
+        header.zstdCompressionLevel() = (qual >= 1 && qual <= 9) ? qual : 5;
     }
 #endif
     if (Strutil::istarts_with(comp, "dwa") && qual > 0) {
