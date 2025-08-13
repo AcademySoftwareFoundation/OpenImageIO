@@ -21,6 +21,8 @@
 
 #include "imageio_pvt.h"
 
+using namespace std;
+
 OIIO_NAMESPACE_BEGIN
 
 

@@ -78,9 +78,9 @@ stats_num(float val, int maxval, bool round)
     // Ensure uniform printing of NaN and Inf on all platforms
     using Strutil::fmt::format;
     std::string result;
-    if (isnan(val))
+    if (std::isnan(val))
         result = "nan";
-    else if (isinf(val))
+    else if (std::isinf(val))
         result = "inf";
     else if (maxval == 0) {
         result = format("{:f}", val);
@@ -245,7 +245,7 @@ print_deep_stats(std::ostream& out, string_view indent, const ImageBuf& input,
                 for (unsigned int s = 0; s < samples; ++s) {
                     for (int c = 0; c < nchannels; ++c) {
                         float d = input.deep_value(x, y, z, c, s);
-                        if (!isfinite(d)) {
+                        if (!std::isfinite(d)) {
                             if (nonfinites++ == 0) {
                                 nonfinite_pixel.setValue(x, y, z);
                                 nonfinite_pixel_samp = s;
