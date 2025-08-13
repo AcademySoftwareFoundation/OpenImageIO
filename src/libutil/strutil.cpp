@@ -527,12 +527,12 @@ strcasecmp(const char* a, const char* b)
 #elif defined(_WIN32)
     return _stricmp_l(a, b, c_loc);
 #elif defined(__NetBSD__)
-    const unsigned char *us1 = (const unsigned char *)a,
-                    *us2 = (const unsigned char *)b;
+    const unsigned char *us1 = (const unsigned char*)a,
+                        *us2 = (const unsigned char*)b;
 
     while (tolower_l(*us1, c_loc) == tolower_l(*us2++, c_loc))
-            if (*us1++ == '\0')
-                    return (0);
+        if (*us1++ == '\0')
+            return (0);
     return (tolower_l(*us1, c_loc) - tolower_l(*--us2, c_loc));
 #else
 #    error("need equivalent of strcasecmp_l on this platform");
@@ -551,15 +551,15 @@ strncasecmp(const char* a, const char* b, size_t size)
     return _strnicmp_l(a, b, size, c_loc);
 #elif defined(__NetBSD__)
     if (size != 0) {
-            const unsigned char *us1 = (const unsigned char *)a,
-                            *us2 = (const unsigned char *)b;
+        const unsigned char *us1 = (const unsigned char*)a,
+                            *us2 = (const unsigned char*)b;
 
-            do {
-                    if (tolower_l(*us1, c_loc) != tolower_l(*us2++, c_loc))
-                            return (tolower_l(*us1, c_loc) - tolower_l(*--us2, c_loc));
-                    if (*us1++ == '\0')
-                            break;
-            } while (--size != 0);
+        do {
+            if (tolower_l(*us1, c_loc) != tolower_l(*us2++, c_loc))
+                return (tolower_l(*us1, c_loc) - tolower_l(*--us2, c_loc));
+            if (*us1++ == '\0')
+                break;
+        } while (--size != 0);
     }
     return (0);
 #else
