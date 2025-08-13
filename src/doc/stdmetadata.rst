@@ -144,29 +144,24 @@ Color information
     - `"scene_linear"` :  Color pixel values are known to be scene-linear and
       using facility-default color primaries as defined by the OpenColorIO
       configuration.
-    - `"lin_srgb"`, `"lin_rec709"` :  Color pixel values are known to be
-      linear and using sRGB/Rec709 color primaries. Note that `"linear"` is
-      treated as a synonym.
-    - `"sRGB"` :  Using standard sRGB response and primaries.
+    - `"lin_rec709_scene"`,  :  Color pixel values are known to be linear
+      scene-referred and using sRGB/Rec709 color primaries. Note that
+      `"lin_rec709"` is treated as a synonym.
+    - `"lin_ap1_scene"`, `"ACEScg"` :  ACEScg color space encoding.
+    - `"lin_ap0_scene"` :  ACES.
+    - `"srgb_rec709_scene"` : Using standard sRGB response and primaries.
+       The token `"sRGB"` is treated as a synonym.
+    - `"g24_rec709_scene"` : Rec709/sRGB primaries, but using a response curve
+      corresponding to gamma 2.4.
+    - `"g22_rec709_scene"` : Rec709/sRGB primaries, but using a response curve
+      corresponding to gamma 2.2.
+    - `"g18_rec709_scene"` : Rec709/sRGB primaries, but using a response curve
+      corresponding to gamma 1.8.
     - `"Rec709"` :  Using standard Rec709 response and primaries.
-    - `"ACEScg"` :  ACEScg color space encoding.
     - `"AdobeRGB"` :  Adobe RGB color space.
     - `"KodakLog"` :  Kodak logarithmic color space.
-    - `"g22_rec709"` : Rec709/sRGB primaries, but using a response curve
-      corresponding to gamma 2.2.
-    - `"g18_rec709"` : Rec709/sRGB primaries, but using a response curve
-      corresponding to gamma 1.8.
-    - `"GammaX.Y"` :  Color values have been gamma corrected
-      (raised to the power :math:`1/\gamma`). The `X.Y` is the numeric value
-      of the gamma exponent.
-    - *arbitrary* :  The name of any color space known to OpenColorIO (if
-      OCIO support is present).
-
-.. option:: "oiio:Gamma" : float
-
-    If the color space is "GammaX.Y", this value is the gamma exponent.
-    (Optional/deprecated; if present, it should match the suffix of the color
-    space.)
+    - *arbitrary* :  The name of any documented Color Interop Forum standard
+      token, or any color space known to OpenColorIO.
 
 .. option:: "oiio:BorderColor" : float[nchannels]
 

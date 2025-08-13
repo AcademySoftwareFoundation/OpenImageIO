@@ -41,14 +41,14 @@ Reading ../oiio-images/dds/dds_bc6hu.dds
     channel list: R, G, B
     compression: "BC6HU"
     textureformat: "Plain Texture"
-    oiio:ColorSpace: "lin_rec709"
+    oiio:ColorSpace: "lin_rec709_scene"
 Reading ../oiio-images/dds/dds_bc6hu_hdr.dds
 ../oiio-images/dds/dds_bc6hu_hdr.dds :  128 x   64, 3 channel, half dds
     SHA-1: 86FE86288649F5375DB51CDF19C91C3651992726
     channel list: R, G, B
     compression: "BC6HU"
     textureformat: "Plain Texture"
-    oiio:ColorSpace: "lin_rec709"
+    oiio:ColorSpace: "lin_rec709_scene"
 Reading ../oiio-images/dds/dds_bc7.dds
 ../oiio-images/dds/dds_bc7.dds :   16 x    8, 4 channel, uint8 dds
     SHA-1: 18D1977AD74C3C19E5B30459D212EBC8C7F8BC54
@@ -184,49 +184,49 @@ Reading ../oiio-images/dds/dds_dxgi_bc1_srgb.dds
     channel list: R, G, B, A
     compression: "DXT1"
     textureformat: "Plain Texture"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/dds/dds_dxgi_bc2_srgb.dds
 ../oiio-images/dds/dds_dxgi_bc2_srgb.dds :   16 x    8, 4 channel, uint8 dds
     SHA-1: D99494018941ADCA11EAE469D8C6E598DA37A8BF
     channel list: R, G, B, A
     compression: "DXT3"
     textureformat: "Plain Texture"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/dds/dds_dxgi_bc3_srgb.dds
 ../oiio-images/dds/dds_dxgi_bc3_srgb.dds :   16 x    8, 4 channel, uint8 dds
     SHA-1: 75F9FCD1920A00966F2FE13DF40F4FB0A6CD8DED
     channel list: R, G, B, A
     compression: "DXT5"
     textureformat: "Plain Texture"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/dds/dds_dxgi_bc7_srgb.dds
 ../oiio-images/dds/dds_dxgi_bc7_srgb.dds :   16 x    8, 4 channel, uint8 dds
     SHA-1: 91DBAC0E5ED54D5BBEECA4C48AB704FA9F7FE317
     channel list: R, G, B, A
     compression: "BC7"
     textureformat: "Plain Texture"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/dds/dds_dxgi_rgba8_srgb.dds
 ../oiio-images/dds/dds_dxgi_rgba8_srgb.dds :   16 x    8, 4 channel, uint8 dds
     SHA-1: 61986C7E2D4F402B4A268AE5187AAFAF1647C0E6
     channel list: R, G, B, A
     textureformat: "Plain Texture"
     oiio:BitsPerSample: 32
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/dds/dds_dxgi_bgra8_srgb.dds
 ../oiio-images/dds/dds_dxgi_bgra8_srgb.dds :   16 x    8, 4 channel, uint8 dds
     SHA-1: 61986C7E2D4F402B4A268AE5187AAFAF1647C0E6
     channel list: R, G, B, A
     textureformat: "Plain Texture"
     oiio:BitsPerSample: 32
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/dds/dds_dxgi_bgrx8_srgb.dds
 ../oiio-images/dds/dds_dxgi_bgrx8_srgb.dds :   16 x    8, 3 channel, uint8 dds
     SHA-1: 6BF57CCCCF14021926285CE97D25AEC150324476
     channel list: R, G, B
     textureformat: "Plain Texture"
     oiio:BitsPerSample: 32
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/dds/dds_dxgi_rgb10a2.dds
 ../oiio-images/dds/dds_dxgi_rgb10a2.dds :   16 x    8, 4 channel, uint8 dds
     SHA-1: F38B31F89991752DAB792DC9FF29F7F7DE0E7911

@@ -7,7 +7,7 @@ Reading ../oiio-images/png/oiio-logo-no-alpha.png
     ResolutionUnit: "inch"
     XResolution: 72
     YResolution: 72
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/png/oiio-logo-no-alpha.png" and "oiio-logo-no-alpha.png"
 PASS
 Reading ../oiio-images/png/oiio-logo-with-alpha.png
@@ -19,14 +19,14 @@ Reading ../oiio-images/png/oiio-logo-with-alpha.png
     ResolutionUnit: "inch"
     XResolution: 72
     YResolution: 72
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/png/oiio-logo-with-alpha.png" and "oiio-logo-with-alpha.png"
 PASS
 Reading exif.png
 exif.png             :   64 x   64, 3 channel, uint8 png
     SHA-1: 7CB41FEA50720B48BE0C145E1473982B23E9AB77
     channel list: R, G, B
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 alphagamma:
    1 x    1, 4 channel, float png
     channel list: R, G, B, A
@@ -74,7 +74,7 @@ gimp_gradient:
     ICCProfile:profile_size: 672
     ICCProfile:profile_version: "4.4.0"
     ICCProfile:rendering_intent: "Perceptual"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     Stats Min: 0 0 0 0 (of 255)
     Stats Max: 255 255 0 255 (of 255)
     Stats Avg: 142.37 105.72 0.00 154.72 (of 255)
