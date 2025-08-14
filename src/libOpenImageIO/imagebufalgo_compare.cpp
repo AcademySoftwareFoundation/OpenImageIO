@@ -218,7 +218,8 @@ compare_value(ImageBuf::ConstIterator<BUFT, float>& a, int chan, VALT aval,
               float failrelative, float warnrelative)
 {
     if (!std::isfinite(aval) || !std::isfinite(bval)) {
-        if (std::isnan(aval) == std::isnan(bval) && std::isinf(aval) == std::isinf(bval))
+        if (std::isnan(aval) == std::isnan(bval)
+            && std::isinf(aval) == std::isinf(bval))
             return;  // NaN may match NaN, Inf may match Inf
         if (std::isfinite(result.maxerror)) {
             // non-finite errors trump finite ones
