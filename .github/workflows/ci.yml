@@ -253,12 +253,12 @@ jobs:
           - desc: VFX2023 gcc11/C++17 py3.10 exr3.1 ocio2.2
             nametag: linux-vfx2023
             runner: ubuntu-latest
-            container: aswftesting/ci-osl:2023-clang15
+            container: aswf/ci-osl:2023-clang15
             python_ver: "3.10"
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
-            setenvs: PUGIXML_VERSION=v1.13
+            setenvs: export PUGIXML_VERSION=v1.13
           - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2023.icc
             runner: ubuntu-latest
@@ -294,17 +294,17 @@ jobs:
           - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
-            container: aswftesting/ci-osl:2024-clang17
+            container: aswf/ci-oiio:2024
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
             benchmark: 1
-            setenvs: PUGIXML_VERSION=v1.14
+            setenvs: export PUGIXML_VERSION=v1.14
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024.clang
             runner: ubuntu-latest
-            container: aswftesting/ci-osl:2024-clang17
+            container: aswf/ci-oiio:2024
             cc_compiler: clang
             cxx_compiler: clang++
             python_ver: "3.11"
@@ -312,21 +312,32 @@ jobs:
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
             benchmark: 1
-            setenvs: PUGIXML_VERSION=v1.14
+            setenvs: export PUGIXML_VERSION=v1.14
           - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025
             runner: ubuntu-latest
-            container: aswftesting/ci-oiio:2025
+            container: aswf/ci-oiio:2025
+            cxx_std: 17
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 11.1.4
             pybind11_ver: v2.13.6
             benchmark: 1
-            setenvs: PUGIXML_VERSION=v1.15
+            setenvs: export PUGIXML_VERSION=v1.15
+          - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.4
+            nametag: linux-vfx2026
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2026
+            cxx_std: 20
+            python_ver: "3.13"
+            simd: "avx2,f16c"
+            pybind11_ver: v3.0.0
+            benchmark: 1
+            # setenvs: export 
           - desc: Sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
-            container: aswf/ci-osl:2024-clang17
+            container: aswf/ci-oiio:2024
             cc_compiler: clang
             cxx_compiler: clang++
             build_type: Debug
