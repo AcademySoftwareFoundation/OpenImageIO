@@ -347,7 +347,7 @@ check_nan_block(const ImageBuf& src, ROI roi, int& found_nonfinite)
         for (int x = x0; x < x1; ++x) {
             src.getpixel(x, y, pel);
             for (int c = 0; c < spec.nchannels; ++c) {
-                if (!isfinite(pel[c])) {
+                if (!std::isfinite(pel[c])) {
                     spin_lock lock(maketx_mutex);
                     // if (found_nonfinite < 3)
                     //     std::cerr << "maketx ERROR: Found " << pel[c]

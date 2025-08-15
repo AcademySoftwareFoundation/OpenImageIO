@@ -1557,7 +1557,7 @@ do_tex_thread_workout(int iterations, int mythread)
     }
     // Force the compiler to not optimize away the "other work"
     for (int c = 0; c < nchannels; ++c)
-        OIIO_ASSERT(!isnan(result[c]));
+        OIIO_ASSERT(!std::isnan(result[c]));
 }
 
 

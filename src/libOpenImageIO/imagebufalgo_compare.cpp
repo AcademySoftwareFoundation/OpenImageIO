@@ -80,11 +80,11 @@ ImageBufAlgo::PixelStats::operator=(PixelStats&& other)
 inline void
 val(ImageBufAlgo::PixelStats& p, int c, float value)
 {
-    if (isnan(value)) {
+    if (std::isnan(value)) {
         ++p.nancount[c];
         return;
     }
-    if (isinf(value)) {
+    if (std::isinf(value)) {
         ++p.infcount[c];
         return;
     }
@@ -217,10 +217,11 @@ compare_value(ImageBuf::ConstIterator<BUFT, float>& a, int chan, VALT aval,
               bool& warned, float failthresh, float warnthresh,
               float failrelative, float warnrelative)
 {
-    if (!isfinite(aval) || !isfinite(bval)) {
-        if (isnan(aval) == isnan(bval) && isinf(aval) == isinf(bval))
+    if (!std::isfinite(aval) || !std::isfinite(bval)) {
+        if (std::isnan(aval) == std::isnan(bval)
+            && std::isinf(aval) == std::isinf(bval))
             return;  // NaN may match NaN, Inf may match Inf
-        if (isfinite(result.maxerror)) {
+        if (std::isfinite(result.maxerror)) {
             // non-finite errors trump finite ones
             result.maxerror = std::numeric_limits<float>::infinity();
             result.maxx     = a.x();
