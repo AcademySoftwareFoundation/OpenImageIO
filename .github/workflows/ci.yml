@@ -294,7 +294,7 @@ jobs:
           - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2024
+            container: aswf/ci-oiio:2024.2
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
@@ -304,7 +304,7 @@ jobs:
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024.clang
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2024
+            container: aswf/ci-oiio:2024.2
             cc_compiler: clang
             cxx_compiler: clang++
             python_ver: "3.11"
@@ -337,7 +337,7 @@ jobs:
           - desc: Sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2024
+            container: aswf/ci-oiio:2024.2
             cc_compiler: clang
             cxx_compiler: clang++
             build_type: Debug
