@@ -17,11 +17,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++17 or higher (also builds with C++20 and C++23)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: gcc 9.3 - 14.2, clang 5 - 19, MSVS 2017 - 2022 (v19.14
+ * Compilers: gcc 9.3 - 14.2, clang 5 - 20, MSVS 2017 - 2022 (v19.14
    and up), Intel icc 19+, Intel OneAPI C++ compiler 2022+.
- * CMake >= 3.18.2 (tested through 4.0)
- * Imath >= 3.1 (tested through 3.1.x and main)
- * OpenEXR >= 3.1 (tested through 3.3 and main)
+ * CMake >= 3.18.2 (tested through 4.1)
+ * Imath >= 3.1 (tested through 3.2 and main)
+ * OpenEXR >= 3.1 (tested through 3.4 and main)
  * libTIFF >= 4.0 (tested through 4.7 and master)
  * OpenColorIO >= 2.2 (tested through 2.4 and main)
  * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
@@ -49,12 +49,12 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for camera "RAW" formats:
      * LibRaw >= 0.20 (tested though 0.21.4 and master)
  * If you want support for a wide variety of video formats:
-     * ffmpeg >= 4.0 (tested through 7.0)
+     * ffmpeg >= 4.0 (tested through 7.1)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 2.0 (tested through 2.5.3; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 9.0 (tested through 12.0).
+     * OpenVDB >= 9.0 (tested through 12.1).
  * If you want to use TBB as the thread pool:
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
@@ -69,7 +69,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.9)
  * If you want support for WebP images:
-     * WebP >= 1.1 (tested through 1.5)
+     * WebP >= 1.1 (tested through 1.6)
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.4.3)
  * If you want to be able to do font rendering into images:
