@@ -387,7 +387,7 @@ jobs:
                             EXTRA_DEP_PACKAGES="clang-format-17"
                             CLANG_FORMAT_EXE=clang-format-17
 
-          - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.3 ocio2.4
+          - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.4 ocio2.4
             nametag: linux-latest-releases
             runner: ubuntu-24.04
             cc_compiler: gcc-13
@@ -395,7 +395,7 @@ jobs:
             cxx_std: 20
             fmt_ver: 11.2.0
             opencolorio_ver: v2.4.2
-            openexr_ver: v3.3.4
+            openexr_ver: v3.4-alpha
             pybind11_ver: v3.0.0
             python_ver: "3.12"
             simd: avx2,f16c
@@ -405,7 +405,7 @@ jobs:
                             OPENJPEG_VERSION=v2.5.3
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
-                            WEBP_VERSION=v1.5.0
+                            WEBP_VERSION=v1.6.0
                             FREETYPE_VERSION=VER-2-13-3
                             USE_OPENVDB=0
           - desc: bleeding edge gcc14 C++23 py3.12 OCIO/libtiff/exr-main avx2
