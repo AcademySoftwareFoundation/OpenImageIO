@@ -387,7 +387,7 @@ jobs:
                             EXTRA_DEP_PACKAGES="clang-format-17"
                             CLANG_FORMAT_EXE=clang-format-17
 
-          - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.3 ocio2.4
+          - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.4 ocio2.4
             nametag: linux-latest-releases
             runner: ubuntu-24.04
             cc_compiler: gcc-13
