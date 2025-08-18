@@ -728,7 +728,6 @@ ColorConfig::Impl::identify_builtin_equivalents()
 {
     if (disable_builtin_configs)
         return;
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     Timer timer;
     if (auto n = IdentifyBuiltinColorSpace("srgb_tx")) {
         if (CSInfo* cs = find(n)) {
@@ -760,7 +759,6 @@ ColorConfig::Impl::identify_builtin_equivalents()
         DBG("No config space identified as acescg\n");
     }
     DBG("identify_builtin_equivalents acescg took {:0.2f}s\n", timer.lap());
-#endif
 }
 
 
@@ -768,7 +766,6 @@ ColorConfig::Impl::identify_builtin_equivalents()
 const char*
 ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
 {
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     if (!config_ || disable_builtin_configs)
         return nullptr;
     try {
@@ -776,7 +773,6 @@ ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
                                                        name);
     } catch (...) {
     }
-#endif
     return nullptr;
 }
 
@@ -835,11 +831,9 @@ ColorConfig::Impl::init(string_view filename)
     inventory();
     // NOTE: inventory already does classify_by_name
 
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     DBG("\nIDENTIFY BUILTIN EQUIVALENTS\n");
     identify_builtin_equivalents();  // OCIO 2.3+ only
     DBG("OCIO 2.3+ builtin equivalents in {:0.2f} seconds\n", timer.lap());
-#endif
 
 #if 1
     for (auto&& cs : colorspaces) {

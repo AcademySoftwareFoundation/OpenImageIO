@@ -137,7 +137,7 @@ checked_find_package (Freetype
                       DEFINITIONS USE_FREETYPE=1 )
 
 checked_find_package (OpenColorIO REQUIRED
-                      VERSION_MIN 2.2
+                      VERSION_MIN 2.3
                       VERSION_MAX 2.9
                      )
 if (NOT OPENCOLORIO_INCLUDES)

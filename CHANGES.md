@@ -5,8 +5,8 @@ Release 3.1 (target: Sept 2025?) -- compared to 3.0
 - Anticipated supported release: Sep 15, 2025
 
 ### New minimum dependencies and compatibility changes:
-
-- Anticipated raising of Python minimum to 3.9.
+* *Python*: 3.9 minimum (from 3.7) [#4830](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4830) (3.1.4.0)
+* *OpenColorIO*: 2.3 minimum (from 2.2)
 
 ### ⛰️  New features and public API changes:
 * *New image file format support:*
