@@ -139,29 +139,24 @@ Color information
 
 .. option:: "oiio:ColorSpace" : string
 
-    The name of the color space of the color channels.  Values include:
+    The name of the color space of the color channels. This can be the name of
+    any documented Color Interop Forum standard token, or any color space,
+    alias, or role known to OpenColorIO. Common values include:
     
-    - `"scene_linear"` :  Color pixel values are known to be scene-linear and
-      using facility-default color primaries as defined by the OpenColorIO
-      configuration.
     - `"lin_rec709_scene"`,  :  Color pixel values are known to be linear
       scene-referred and using sRGB/Rec709 color primaries. Note that
       `"lin_rec709"` is treated as a synonym.
     - `"lin_ap1_scene"`, `"ACEScg"` :  ACEScg color space encoding.
-    - `"lin_ap0_scene"` :  ACES2065-1, the recommended ACES space for interchange and archiving.
-    - `"srgb_rec709_scene"` : Using standard (piecewise) sRGB response and primaries.
-       The token `"sRGB"` is treated as a synonym.
-    - `"g24_rec709_scene"` : Rec709/sRGB primaries, but using a response curve
-      corresponding to gamma 2.4.
+    - `"lin_ap0_scene"` :  ACES2065-1, the recommended ACES space for
+      interchange and archiving.
+    - `"srgb_rec709_scene"` : Using standard (piecewise) sRGB response and
+      primaries. The token `"sRGB"` is treated as a synonym.
     - `"g22_rec709_scene"` : Rec709/sRGB primaries, but using a response curve
       corresponding to gamma 2.2.
-    - `"g18_rec709_scene"` : Rec709/sRGB primaries, but using a response curve
-      corresponding to gamma 1.8.
-    - `"Rec709"` :  Using standard Rec709 response and primaries.
-    - `"AdobeRGB"` :  Adobe RGB color space.
-    - `"KodakLog"` :  Kodak logarithmic color space.
-    - *arbitrary* :  The name of any documented Color Interop Forum standard
-      token, or any color space known to OpenColorIO.
+
+    Additionally, `"scene_linear"` is a role that is appropriate for color
+    pixel values are known to be scene-linear and using facility-default color
+    primaries as defined by the OpenColorIO configuration.
 
 .. option:: "oiio:BorderColor" : float[nchannels]
 
