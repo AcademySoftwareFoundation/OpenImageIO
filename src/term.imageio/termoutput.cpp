@@ -140,7 +140,7 @@ TermOutput::output()
 {
     // Color convert in place to sRGB, or it won't look right
     std::string cspace = m_buf.spec()["oiio:ColorSpace"].get();
-    ImageBufAlgo::colorconvert(m_buf, m_buf, cspace, "sRGB");
+    ImageBufAlgo::colorconvert(m_buf, m_buf, cspace, "srgb_rec709_scene");
 
     string_view method(m_method);
     if (method.empty()) {

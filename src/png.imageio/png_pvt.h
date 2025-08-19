@@ -224,7 +224,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     int srgb_intent;
     double gamma = 0.0;
     if (png_get_sRGB(sp, ip, &srgb_intent)) {
-        spec.set_colorspace("sRGB");
+        spec.set_colorspace("srgb_rec709_scene");
     } else if (png_get_gAMA(sp, ip, &gamma) && gamma > 0.0) {
         // Round gamma to the nearest hundredth to prevent stupid
         // precision choices and make it easier for apps to make
@@ -235,7 +235,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         set_colorspace_rec709_gamma(spec, g);
     } else {
         // If there's no info at all, assume sRGB.
-        set_colorspace(spec, "sRGB");
+        set_colorspace(spec, "srgb_rec709_scene");
     }
 
     if (png_get_valid(sp, ip, PNG_INFO_iCCP)) {
@@ -595,17 +595,32 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     convert_alpha = spec.alpha_channel != -1
                     && !spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
 
-    gamma = spec.get_float_attribute("oiio:Gamma", 1.0);
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace",
+                                                       "srgb_rec709_scene");
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    srgb = false;
+    if (colorconfig.equivalent(colorspace, "srgb_rec709_scene")) {
+        srgb  = true;
+        gamma = 1.0f;
+    } else if (colorconfig.equivalent(colorspace, "g22_rec709_scene")) {
+        gamma = 2.2f;
+    } else if (colorconfig.equivalent(colorspace, "g24_rec709_scene")) {
+        gamma = 2.4f;
+    } else if (colorconfig.equivalent(colorspace, "g18_rec709_scene")) {
+        gamma = 1.8f;
+    } else {
+        gamma = spec.get_float_attribute("oiio:Gamma", 1.0f);
+        // obsolete "oiio:Gamma" attrib for back compatibility
+    }
 
-    const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
-    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
     if (colorconfig.equivalent(colorspace, "scene_linear")
-        || colorconfig.equivalent(colorspace, "lin_rec709")) {
+        || colorconfig.equivalent(colorspace, "lin_rec709_scene")) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0);
         srgb = false;
     } else if (Strutil::istarts_with(colorspace, "Gamma")) {
+        // Back compatible, this is DEPRECATED(3.1)
         Strutil::parse_word(colorspace);
         float g = Strutil::from_string<float>(colorspace);
         if (g >= 0.01f && g <= 10.0f /* sanity check */)
@@ -614,19 +629,19 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
         srgb = false;
-    } else if (colorconfig.equivalent(colorspace, "g22_rec709")) {
+    } else if (colorconfig.equivalent(colorspace, "g22_rec709_scene")) {
         gamma = 2.2f;
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
         srgb = false;
-    } else if (colorconfig.equivalent(colorspace, "g18_rec709")) {
+    } else if (colorconfig.equivalent(colorspace, "g18_rec709_scene")) {
         gamma = 1.8f;
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
         srgb = false;
-    } else if (colorconfig.equivalent(colorspace, "sRGB")) {
+    } else if (colorconfig.equivalent(colorspace, "srgb_rec709_scene")) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA and cHRM chunk";
         png_set_sRGB_gAMA_and_cHRM(sp, ip, PNG_sRGB_INTENT_ABSOLUTE);

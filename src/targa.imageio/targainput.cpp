@@ -524,7 +524,7 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
         // the thumbnail is in the same format as the main image but
         // uncompressed.
         ImageSpec thumbspec(res[0], res[1], m_spec.nchannels, TypeUInt8);
-        thumbspec.set_colorspace("sRGB");
+        thumbspec.set_colorspace("srgb_rec709_scene");
         thumb.reset(thumbspec);
         int bytespp    = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
         int palbytespp = (m_tga.cmap_size == 15) ? 2 : (m_tga.cmap_size / 8);

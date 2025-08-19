@@ -688,9 +688,6 @@ preferred except when legacy file access is required.
      - string
      - Color space (see Section :ref:`sec-metadata-color`). We currently
        assume that any RGBE files encountered are linear with sRGB primaries.
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction specified in the RGBE header (if it's gamma corrected).
    * - ``heif:Orientation``
      - int
      - If the configuration option ``heif:reorient`` is nonzero and
@@ -1771,9 +1768,6 @@ files use the file extension :file:`.png`.
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction value (if specified).
    * - ``ICCProfile``
      - uint8[]
      - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
@@ -2370,9 +2364,6 @@ software developed at Wavefront.  RLA files commonly use the file extension
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction value (if specified).
 
 **Configuration settings for RLA input**
 
@@ -2611,9 +2602,6 @@ http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction value (if specified).
 
 If the TGA file contains a thumbnail, its dimensions will be stored in the
 attributes ``"thumbnail_width"``, ``"thumbnail_height"``, and
