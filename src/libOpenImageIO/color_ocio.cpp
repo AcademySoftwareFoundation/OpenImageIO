@@ -622,7 +622,7 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
     if (cs.flags() & CSInfo::is_srgb)
         cs.canonical = "srgb_rec709_scene";
     else if (cs.flags() & CSInfo::is_lin_srgb)
-        cs.canonical = "lin_rec709scene";
+        cs.canonical = "lin_rec709_scene";
     else if (cs.flags() & CSInfo::is_ACEScg)
         cs.canonical = "lin_ap1_scene";
     else if (cs.flags() & CSInfo::is_Rec709)
