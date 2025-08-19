@@ -148,7 +148,7 @@ Color information
       scene-referred and using sRGB/Rec709 color primaries. Note that
       `"lin_rec709"` is treated as a synonym.
     - `"lin_ap1_scene"`, `"ACEScg"` :  ACEScg color space encoding.
-    - `"lin_ap0_scene"` :  ACES.
+    - `"lin_ap0_scene"` :  ACES2065-1, the recommended ACES space for interchange and archiving.
     - `"srgb_rec709_scene"` : Using standard sRGB response and primaries.
        The token `"sRGB"` is treated as a synonym.
     - `"g24_rec709_scene"` : Rec709/sRGB primaries, but using a response curve
