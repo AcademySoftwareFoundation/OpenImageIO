@@ -5729,7 +5729,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
                 || Strutil::iends_with(filename, ".jpeg")
                 || Strutil::iends_with(filename, ".gif")
                 || Strutil::iends_with(filename, ".webp")))
-            outcolorspace = string_view("sRGB");
+            outcolorspace = string_view("srgb_rec709_scene");
         if (outcolorspace.empty()
             && (Strutil::iends_with(filename, ".ppm")
                 || Strutil::iends_with(filename, ".pnm")))

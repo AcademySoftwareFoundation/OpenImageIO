@@ -423,7 +423,7 @@ private:
 
 
 // ColorConfig utility to take inventory of the color spaces available.
-// It sets up knowledge of "linear", "sRGB", "Rec709", etc,
+// It sets up knowledge of "linear", "srgb_rec709_scene", "Rec709", etc,
 // even if the underlying OCIO configuration lacks them.
 void
 ColorConfig::Impl::inventory()
@@ -463,7 +463,10 @@ ColorConfig::Impl::inventory()
     add("default", 0, linflags);
     add("rgb", 0, linflags);
     add("RGB", 0, linflags);
+    add("lin_rec709_scene", 0, linflags);
     add("lin_srgb", 0, linflags);
+    add("lin_rec709", 0, linflags);
+    add("srgb_rec709_scene", 1, CSInfo::is_srgb);
     add("sRGB", 1, CSInfo::is_srgb);
     add("Rec709", 2, CSInfo::is_Rec709);
 
@@ -578,24 +581,28 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
     // General heuristics based on the names -- for a few canonical names,
     // believe them! Woe be unto the poor soul who names a color space "sRGB"
     // or "ACEScg" and it's really something entirely different.
-    if (Strutil::iequals(cs.name, "sRGB")
+    if (Strutil::iequals(cs.name, "srgb_rec709_scene")
         || Strutil::iequals(cs.name, "srgb_tx")
         || Strutil::iequals(cs.name, "srgb_texture")
         || Strutil::iequals(cs.name, "srgb texture")
-        || Strutil::iequals(cs.name, "sRGB - Texture")) {
+        || Strutil::iequals(cs.name, "srgb_rec709_scene")
+        || Strutil::iequals(cs.name, "sRGB - Texture")
+        || Strutil::iequals(cs.name, "sRGB")) {
         cs.setflag(CSInfo::is_srgb, srgb_alias);
-    } else if (Strutil::iequals(cs.name, "Rec709")) {
-        cs.setflag(CSInfo::is_Rec709, Rec709_alias);
-    } else if (Strutil::iequals(cs.name, "lin_srgb")
+    } else if (Strutil::iequals(cs.name, "lin_rec709_scene")
                || Strutil::iequals(cs.name, "lin_rec709")
                || Strutil::iequals(cs.name, "Linear Rec.709 (sRGB)")
+               || Strutil::iequals(cs.name, "lin_srgb")
                || Strutil::iequals(cs.name, "linear")) {
         cs.setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
                    lin_srgb_alias);
     } else if (Strutil::iequals(cs.name, "ACEScg")
+               || Strutil::iequals(cs.name, "lin_ap1_scene")
                || Strutil::iequals(cs.name, "lin_ap1")) {
         cs.setflag(CSInfo::is_ACEScg | CSInfo::is_linear_response,
                    ACEScg_alias);
+    } else if (Strutil::iequals(cs.name, "Rec709")) {
+        cs.setflag(CSInfo::is_Rec709, Rec709_alias);
     }
 #ifdef OIIO_SITE_spi
     // Ugly SPI-specific hacks, so sorry
@@ -613,13 +620,13 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
 
     // Set up some canonical names
     if (cs.flags() & CSInfo::is_srgb)
-        cs.canonical = "sRGB";
+        cs.canonical = "srgb_rec709_scene";
+    else if (cs.flags() & CSInfo::is_lin_srgb)
+        cs.canonical = "lin_rec709_scene";
+    else if (cs.flags() & CSInfo::is_ACEScg)
+        cs.canonical = "lin_ap1_scene";
     else if (cs.flags() & CSInfo::is_Rec709)
         cs.canonical = "Rec709";
-    else if (cs.flags() & CSInfo::is_lin_srgb)
-        cs.canonical = "lin_srgb";
-    else if (cs.flags() & CSInfo::is_ACEScg)
-        cs.canonical = "ACEScg";
     if (cs.canonical.size()) {
         DBG("classify by name identified '{}' as canonical {}\n", cs.name,
             cs.canonical);
@@ -673,13 +680,13 @@ ColorConfig::Impl::classify_by_conversions(CSInfo& cs)
 
     // Set up some canonical names
     if (cs.flags() & CSInfo::is_srgb)
-        cs.canonical = "sRGB";
+        cs.canonical = "srgb_rec709_scene";
+    else if (cs.flags() & CSInfo::is_lin_srgb)
+        cs.canonical = "lin_rec709_scene";
+    else if (cs.flags() & CSInfo::is_ACEScg)
+        cs.canonical = "lin_ap1_scene";
     else if (cs.flags() & CSInfo::is_Rec709)
         cs.canonical = "Rec709";
-    else if (cs.flags() & CSInfo::is_lin_srgb)
-        cs.canonical = "lin_srgb";
-    else if (cs.flags() & CSInfo::is_ACEScg)
-        cs.canonical = "ACEScg";
 }
 
 
@@ -726,7 +733,8 @@ ColorConfig::Impl::identify_builtin_equivalents()
     if (auto n = IdentifyBuiltinColorSpace("srgb_tx")) {
         if (CSInfo* cs = find(n)) {
             cs->setflag(CSInfo::is_srgb, srgb_alias);
-            DBG("Identified {} = builtin '{}'\n", "srgb", cs->name);
+            DBG("Identified {} = builtin '{}'\n", "srgb_rec709_scene",
+                cs->name);
         }
     } else {
         DBG("No config space identified as srgb\n");
@@ -736,7 +744,7 @@ ColorConfig::Impl::identify_builtin_equivalents()
         if (CSInfo* cs = find(n)) {
             cs->setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
                         lin_srgb_alias);
-            DBG("Identified {} = builtin '{}'\n", "lin_srgb", cs->name);
+            DBG("Identified {} = builtin '{}'\n", "lin_rec709_scene", cs->name);
         }
     } else {
         DBG("No config space identified as lin_srgb\n");
@@ -1344,14 +1352,19 @@ ColorConfig::Impl::resolve(string_view name) const
 
     // Maybe it's an informal alias of common names?
     spin_rw_write_lock lock(m_mutex);
-    if (Strutil::iequals(name, "sRGB") && !srgb_alias.empty())
+    if ((Strutil::iequals(name, "sRGB")
+         || Strutil::iequals(name, "srgb_rec709_scene"))
+        && !srgb_alias.empty())
         return srgb_alias;
     if ((Strutil::iequals(name, "lin_srgb")
          || Strutil::iequals(name, "lin_rec709")
+         || Strutil::iequals(name, "lin_rec709_scene")
          || Strutil::iequals(name, "linear"))
         && lin_srgb_alias.size())
         return lin_srgb_alias;
-    if (Strutil::iequals(name, "ACEScg") && !ACEScg_alias.empty())
+    if ((Strutil::iequals(name, "ACEScg")
+         || Strutil::iequals(name, "lin_ap1_scene"))
+        && !ACEScg_alias.empty())
         return ACEScg_alias;
     if (Strutil::iequals(name, "scene_linear") && !scene_linear_alias.empty()) {
         return scene_linear_alias;
@@ -2808,7 +2821,7 @@ ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
     // including some format-specific things that we don't want to propagate
     // from input to output if we know that color space transformations have
     // occurred.
-    if (!equivalent(colorspace, "sRGB"))
+    if (!equivalent(colorspace, "srgb_rec709_scene"))
         spec.erase_attribute("Exif:ColorSpace");
     spec.erase_attribute("tiff:ColorSpace");
     spec.erase_attribute("tiff:PhotometricInterpretation");
@@ -2822,16 +2835,19 @@ ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
 {
     gamma = std::round(gamma * 100.0f) / 100.0f;
     if (fabsf(gamma - 1.0f) <= 0.01f) {
-        set_colorspace(spec, "lin_srgb");
-        // Presume that Targa files are sRGB primaries
+        set_colorspace(spec, "lin_rec709_scene");
     } else if (fabsf(gamma - 1.8f) <= 0.01f) {
-        set_colorspace(spec, "g18_rec709");
+        set_colorspace(spec, "g18_rec709_scene");
         spec.attribute("oiio:Gamma", 1.8f);
     } else if (fabsf(gamma - 2.2f) <= 0.01f) {
-        set_colorspace(spec, "g22_rec709");
+        set_colorspace(spec, "g22_rec709_scene");
         spec.attribute("oiio:Gamma", 2.2f);
+    } else if (fabsf(gamma - 2.4f) <= 0.01f) {
+        set_colorspace(spec, "g24_rec709_scene");
+        spec.attribute("oiio:Gamma", 2.4f);
     } else {
-        set_colorspace(spec, Strutil::fmt::format("Gamma{:.2}", gamma));
+        set_colorspace(spec, Strutil::fmt::format("g{}_rec709_scene",
+                                                  std::lround(gamma * 10.0f)));
         spec.attribute("oiio:Gamma", gamma);
     }
 }
