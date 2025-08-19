@@ -744,7 +744,7 @@ ColorConfig::Impl::identify_builtin_equivalents()
         if (CSInfo* cs = find(n)) {
             cs->setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
                         lin_srgb_alias);
-            DBG("Identified {} = builtin '{}'\n", "lin_rec709scene", cs->name);
+            DBG("Identified {} = builtin '{}'\n", "lin_rec709_scene", cs->name);
         }
     } else {
         DBG("No config space identified as lin_srgb\n");
