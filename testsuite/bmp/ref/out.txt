@@ -4,7 +4,7 @@ Reading ../oiio-images/bmpsuite/g01bg.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 1
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g01bg.bmp" and "g01bg.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g01bw.bmp
@@ -13,7 +13,7 @@ Reading ../oiio-images/bmpsuite/g01bw.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 1
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g01bw.bmp" and "g01bw.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g01p1.bmp
@@ -22,7 +22,7 @@ Reading ../oiio-images/bmpsuite/g01p1.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 1
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g01p1.bmp" and "g01p1.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g01wb.bmp
@@ -31,7 +31,7 @@ Reading ../oiio-images/bmpsuite/g01wb.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 1
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g01wb.bmp" and "g01wb.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g04.bmp
@@ -40,7 +40,7 @@ Reading ../oiio-images/bmpsuite/g04.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 4
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g04.bmp" and "g04.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g04p4.bmp
@@ -49,7 +49,7 @@ Reading ../oiio-images/bmpsuite/g04p4.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 4
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g04p4.bmp" and "g04p4.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g04rle.bmp
@@ -59,7 +59,7 @@ Reading ../oiio-images/bmpsuite/g04rle.bmp
     compression: "rle4"
     bmp:bitsperpixel: 4
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g04rle.bmp" and "g04rle.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08.bmp
@@ -68,7 +68,7 @@ Reading ../oiio-images/bmpsuite/g08.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08.bmp" and "g08.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08os2.bmp
@@ -77,7 +77,7 @@ Reading ../oiio-images/bmpsuite/g08os2.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 1
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08os2.bmp" and "g08os2.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08p64.bmp
@@ -86,7 +86,7 @@ Reading ../oiio-images/bmpsuite/g08p64.bmp
     channel list: Y
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08p64.bmp" and "g08p64.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08p256.bmp
@@ -95,7 +95,7 @@ Reading ../oiio-images/bmpsuite/g08p256.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08p256.bmp" and "g08p256.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08pi64.bmp
@@ -104,7 +104,7 @@ Reading ../oiio-images/bmpsuite/g08pi64.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08pi64.bmp" and "g08pi64.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08pi256.bmp
@@ -113,7 +113,7 @@ Reading ../oiio-images/bmpsuite/g08pi256.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08pi256.bmp" and "g08pi256.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08res11.bmp
@@ -125,7 +125,7 @@ Reading ../oiio-images/bmpsuite/g08res11.bmp
     YResolution: 3937
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08res11.bmp" and "g08res11.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08res21.bmp
@@ -137,7 +137,7 @@ Reading ../oiio-images/bmpsuite/g08res21.bmp
     YResolution: 3937
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08res21.bmp" and "g08res21.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08res22.bmp
@@ -149,7 +149,7 @@ Reading ../oiio-images/bmpsuite/g08res22.bmp
     YResolution: 7874
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08res22.bmp" and "g08res22.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08s0.bmp
@@ -158,7 +158,7 @@ Reading ../oiio-images/bmpsuite/g08s0.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08s0.bmp" and "g08s0.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08w124.bmp
@@ -167,7 +167,7 @@ Reading ../oiio-images/bmpsuite/g08w124.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08w124.bmp" and "g08w124.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08w125.bmp
@@ -176,7 +176,7 @@ Reading ../oiio-images/bmpsuite/g08w125.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08w125.bmp" and "g08w125.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08w126.bmp
@@ -185,7 +185,7 @@ Reading ../oiio-images/bmpsuite/g08w126.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08w126.bmp" and "g08w126.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08rle.bmp
@@ -195,7 +195,7 @@ Reading ../oiio-images/bmpsuite/g08rle.bmp
     compression: "rle8"
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08rle.bmp" and "g08rle.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g08offs.bmp
@@ -204,7 +204,7 @@ Reading ../oiio-images/bmpsuite/g08offs.bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g08offs.bmp" and "g08offs.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g24.bmp
@@ -212,7 +212,7 @@ Reading ../oiio-images/bmpsuite/g24.bmp
     SHA-1: B1FB63649469F31D02D7AD065D3128EE04CC662E
     channel list: R, G, B
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g24.bmp" and "g24.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g32bf.bmp
@@ -220,7 +220,7 @@ Reading ../oiio-images/bmpsuite/g32bf.bmp
     SHA-1: D8807C680B17C70CB33B43AC072E0A9121C551B4
     channel list: R, G, B, A
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g32bf.bmp" and "g32bf.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g32def.bmp
@@ -228,7 +228,7 @@ Reading ../oiio-images/bmpsuite/g32def.bmp
     SHA-1: D8807C680B17C70CB33B43AC072E0A9121C551B4
     channel list: R, G, B, A
     bmp:version: 3
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g32def.bmp" and "g32def.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g16bf555.bmp
@@ -238,7 +238,7 @@ Reading ../oiio-images/bmpsuite/g16bf555.bmp
     bmp:bitsperpixel: 16
     bmp:version: 3
     oiio:BitsPerSample: 5
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g16bf555.bmp" and "g16bf555.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g16bf565.bmp
@@ -248,7 +248,7 @@ Reading ../oiio-images/bmpsuite/g16bf565.bmp
     bmp:bitsperpixel: 16
     bmp:version: 3
     oiio:BitsPerSample: 5
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g16bf565.bmp" and "g16bf565.bmp"
 PASS
 Reading ../oiio-images/bmpsuite/g16def555.bmp
@@ -258,7 +258,7 @@ Reading ../oiio-images/bmpsuite/g16def555.bmp
     bmp:bitsperpixel: 16
     bmp:version: 3
     oiio:BitsPerSample: 5
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmpsuite/g16def555.bmp" and "g16def555.bmp"
 PASS
 Reading src/g01bg2-v5.bmp
@@ -269,7 +269,7 @@ src/g01bg2-v5.bmp    :  127 x   64, 3 channel, uint8 bmp
     XResolution: 2835
     YResolution: 2835
     bmp:version: 5
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "src/g01bg2-v5.bmp" and "g01bg2-v5.bmp"
 PASS
 Reading src/PRINTER.BMP
@@ -278,7 +278,7 @@ src/PRINTER.BMP      :  160 x  120, 3 channel, uint8 bmp
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 1
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "src/PRINTER.BMP" and "PRINTER.BMP"
 PASS
 Reading ../oiio-images/bmp/gracehopper.bmp
@@ -288,7 +288,7 @@ Reading ../oiio-images/bmp/gracehopper.bmp
     ResolutionUnit: "m"
     XResolution: 2835
     YResolution: 2835
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/bmp/gracehopper.bmp" and "gracehopper.bmp"
 PASS
 oiiotool ERROR: read : "src/decodecolormap-corrupt.bmp": Possible corrupted header, invalid palette size
