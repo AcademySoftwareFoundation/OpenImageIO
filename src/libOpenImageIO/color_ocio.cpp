@@ -728,7 +728,6 @@ ColorConfig::Impl::identify_builtin_equivalents()
 {
     if (disable_builtin_configs)
         return;
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     Timer timer;
     if (auto n = IdentifyBuiltinColorSpace("srgb_tx")) {
         if (CSInfo* cs = find(n)) {
@@ -760,7 +759,6 @@ ColorConfig::Impl::identify_builtin_equivalents()
         DBG("No config space identified as acescg\n");
     }
     DBG("identify_builtin_equivalents acescg took {:0.2f}s\n", timer.lap());
-#endif
 }
 
 
@@ -768,7 +766,6 @@ ColorConfig::Impl::identify_builtin_equivalents()
 const char*
 ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
 {
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     if (!config_ || disable_builtin_configs)
         return nullptr;
     try {
@@ -776,7 +773,6 @@ ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
                                                        name);
     } catch (...) {
     }
-#endif
     return nullptr;
 }
 
@@ -835,11 +831,9 @@ ColorConfig::Impl::init(string_view filename)
     inventory();
     // NOTE: inventory already does classify_by_name
 
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     DBG("\nIDENTIFY BUILTIN EQUIVALENTS\n");
     identify_builtin_equivalents();  // OCIO 2.3+ only
     DBG("OCIO 2.3+ builtin equivalents in {:0.2f} seconds\n", timer.lap());
-#endif
 
 #if 1
     for (auto&& cs : colorspaces) {
@@ -1475,197 +1469,6 @@ private:
     OCIO::ConstProcessorRcPtr m_p;
     OCIO::ConstCPUProcessorRcPtr m_cpuproc;
 };
-
-
-
-#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 2, 0)
-// For version 2.2 and later, missing OCIO config will always fall back on
-// built-in configs, so we don't need any of these secondary fallback
-// heuristics.
-
-// ColorProcessor that hard-codes sRGB-to-linear
-class ColorProcessor_sRGB_to_linear final : public ColorProcessor {
-public:
-    ColorProcessor_sRGB_to_linear()
-        : ColorProcessor() {};
-    ~ColorProcessor_sRGB_to_linear() override {}
-
-    void apply(float* data, int width, int height, int channels,
-               stride_t chanstride, stride_t xstride,
-               stride_t ystride) const override
-    {
-        if (channels > 3)
-            channels = 3;
-        if (channels == 3 && chanstride == sizeof(float)) {
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    simd::vfloat4 r;
-                    r.load((float*)d, 3);
-                    r = sRGB_to_linear(r);
-                    r.store((float*)d, 3);
-                }
-            }
-        } else {
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    char* dc = d;
-                    for (int c = 0; c < channels; ++c, dc += chanstride)
-                        ((float*)dc)[c] = sRGB_to_linear(((float*)dc)[c]);
-                }
-            }
-        }
-    }
-};
-
-
-// ColorProcessor that hard-codes linear-to-sRGB
-class ColorProcessor_linear_to_sRGB final : public ColorProcessor {
-public:
-    ColorProcessor_linear_to_sRGB()
-        : ColorProcessor() {};
-    ~ColorProcessor_linear_to_sRGB() override {}
-
-    void apply(float* data, int width, int height, int channels,
-               stride_t chanstride, stride_t xstride,
-               stride_t ystride) const override
-    {
-        if (channels > 3)
-            channels = 3;
-        if (channels == 3 && chanstride == sizeof(float)) {
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    simd::vfloat4 r;
-                    r.load((float*)d, 3);
-                    r = linear_to_sRGB(r);
-                    r.store((float*)d, 3);
-                }
-            }
-        } else {
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    char* dc = d;
-                    for (int c = 0; c < channels; ++c, dc += chanstride)
-                        ((float*)dc)[c] = linear_to_sRGB(((float*)dc)[c]);
-                }
-            }
-        }
-    }
-};
-
-
-
-// ColorProcessor that hard-codes Rec709-to-linear
-class ColorProcessor_Rec709_to_linear final : public ColorProcessor {
-public:
-    ColorProcessor_Rec709_to_linear()
-        : ColorProcessor() {};
-    ~ColorProcessor_Rec709_to_linear() override {}
-
-    void apply(float* data, int width, int height, int channels,
-               stride_t chanstride, stride_t xstride,
-               stride_t ystride) const override
-    {
-        if (channels > 3)
-            channels = 3;
-        for (int y = 0; y < height; ++y) {
-            char* d = (char*)data + y * ystride;
-            for (int x = 0; x < width; ++x, d += xstride) {
-                char* dc = d;
-                for (int c = 0; c < channels; ++c, dc += chanstride)
-                    ((float*)d)[c] = Rec709_to_linear(((float*)d)[c]);
-            }
-        }
-    }
-};
-
-
-// ColorProcessor that hard-codes linear-to-Rec709
-class ColorProcessor_linear_to_Rec709 final : public ColorProcessor {
-public:
-    ColorProcessor_linear_to_Rec709()
-        : ColorProcessor() {};
-    ~ColorProcessor_linear_to_Rec709() override {}
-
-    void apply(float* data, int width, int height, int channels,
-               stride_t chanstride, stride_t xstride,
-               stride_t ystride) const override
-    {
-        if (channels > 3)
-            channels = 3;
-        for (int y = 0; y < height; ++y) {
-            char* d = (char*)data + y * ystride;
-            for (int x = 0; x < width; ++x, d += xstride) {
-                char* dc = d;
-                for (int c = 0; c < channels; ++c, dc += chanstride)
-                    ((float*)d)[c] = linear_to_Rec709(((float*)d)[c]);
-            }
-        }
-    }
-};
-
-
-
-// ColorProcessor that performs gamma correction
-class ColorProcessor_gamma final : public ColorProcessor {
-public:
-    ColorProcessor_gamma(float gamma)
-        : ColorProcessor()
-        , m_gamma(gamma) {};
-    ~ColorProcessor_gamma() override {}
-
-    void apply(float* data, int width, int height, int channels,
-               stride_t chanstride, stride_t xstride,
-               stride_t ystride) const override
-    {
-        if (channels > 3)
-            channels = 3;
-        if (channels == 3 && chanstride == sizeof(float)) {
-            simd::vfloat4 g = m_gamma;
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    simd::vfloat4 r;
-                    r.load((float*)d, 3);
-                    r = fast_pow_pos(r, g);
-                    r.store((float*)d, 3);
-                }
-            }
-        } else {
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    char* dc = d;
-                    for (int c = 0; c < channels; ++c, dc += chanstride)
-                        ((float*)d)[c] = powf(((float*)d)[c], m_gamma);
-                }
-            }
-        }
-    }
-
-private:
-    float m_gamma;
-};
-
-
-// ColorProcessor that does nothing (identity transform)
-class ColorProcessor_Ident final : public ColorProcessor {
-public:
-    ColorProcessor_Ident()
-        : ColorProcessor()
-    {
-    }
-    ~ColorProcessor_Ident() override {}
-    void apply(float* /*data*/, int /*width*/, int /*height*/, int /*channels*/,
-               stride_t /*chanstride*/, stride_t /*xstride*/,
-               stride_t /*ystride*/) const override
-    {
-    }
-};
-#endif
 
 
 
