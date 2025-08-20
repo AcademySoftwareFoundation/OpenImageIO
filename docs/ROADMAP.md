@@ -98,6 +98,6 @@ bring it up at a TSC meeting, or on the mail list or Slack channel.
 ## Parking
 
 Here is where we will put things that definitely should be on the roadmap, but
-that need not be completed in time for the fall 2024 release of OIIO 3.0.
+that need not be completed in time for the fall 2026 release of OIIO 3.2.
 
 ...
