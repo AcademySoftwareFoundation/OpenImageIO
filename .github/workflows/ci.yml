@@ -47,7 +47,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: VP2022 gcc9/C++17 py39 exr3.1 ocio2.1
+          - desc: VP2022 gcc9/C++17 py39 exr3.1 ocio2.3
             nametag: linux-vfx2022
             runner: ubuntu-latest
             container: aswf/ci-osl:2022-clang11
@@ -57,9 +57,10 @@ jobs:
             python_ver: 3.9
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
+            opencolorio_ver: v2.3.0
             pybind11_ver: v2.9.0
             setenvs: export FREETYPE_VERSION=VER-2-12-0
-          - desc: VP2022 clang13/C++17 py39 avx2 exr3.1 ocio2.1
+          - desc: VP2022 clang13/C++17 py39 avx2 exr3.1 ocio2.3
             nametag: linux-vfx2022.clang13
             runner: ubuntu-latest
             container: aswf/ci-osl:2022-clang13
@@ -68,12 +69,13 @@ jobs:
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
+            opencolorio_ver: v2.3.2
+            pybind11_ver: v2.8.1
             python_ver: 3.9
             simd: "avx2,f16c"
             fmt_ver: 9.1.0
-            pybind11_ver: v2.8.1
             setenvs: export FREETYPE_VERSION=VER-2-12-0
-          - desc: oldest gcc9.3/C++17 py3.9 exr-3.1
+          - desc: oldest gcc9.3/C++17 py3.9 exr3.1 ocio2.3
             # Oldest versions of the dependencies that we support.
             nametag: linux-oldest
             runner: ubuntu-latest
@@ -82,7 +84,7 @@ jobs:
             old_node: 1
             cxx_std: 17
             fmt_ver: 7.0.1
-            opencolorio_ver: v2.2.1
+            opencolorio_ver: v2.3.0
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
             python_ver: 3.9
@@ -102,7 +104,7 @@ jobs:
             old_node: 1
             cxx_std: 17
             fmt_ver: 7.0.1
-            opencolorio_ver: v2.2.1
+            opencolorio_ver: v2.3.0
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
             python_ver: 3.9
@@ -250,20 +252,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: VFX2023 gcc11/C++17 py3.10 exr3.1 ocio2.2
+          - desc: VFX2023 gcc11/C++17 py3.10 exr3.1 ocio2.3
             nametag: linux-vfx2023
             runner: ubuntu-latest
             container: aswf/ci-osl:2023-clang15
+            opencolorio_ver: v2.3.0
             python_ver: "3.10"
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
             setenvs: export PUGIXML_VERSION=v1.13
-          - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.1 qt5.15
+          - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.3 qt5.15
             nametag: linux-vfx2023.icc
             runner: ubuntu-latest
             container: aswf/ci-osl:2023
-            opencolorio_ver: v2.2.1
+            opencolorio_ver: v2.3.0
             python_ver: "3.10"
             # simd: "avx2,f16c"
             fmt_ver: 7.1.3
@@ -275,18 +278,18 @@ jobs:
                             DISABLE_libuhdr=1
             # For icc, use fp-model precise to eliminate needless LSB errors
             # that make test results differ from other platforms.
-          - desc: VFX2023 icx/C++17 py3.10 exr3.1 ocio2.2 qt5.15
+          - desc: VFX2023 icx/C++17 py3.10 exr3.1 ocio2.3 qt5.15
             nametag: linux-vfx2023.icx
             runner: ubuntu-latest
             container: aswf/ci-osl:2023
             cc_compiler: icx
             cxx_compiler: icpx
+            opencolorio_ver: v2.3.0
             python_ver: "3.10"
             pybind11_ver: v2.10.0
             simd: "avx2,f16c"
             benchmark: 1
             setenvs: export USE_OPENVDB=0
-                            xOPENCOLORIO_CXX=g++
                             UHDR_CMAKE_C_COMPILER=gcc
                             UHDR_CMAKE_CXX_COMPILER=g++
             # Building libuhdr with icx results in test failures
@@ -295,6 +298,7 @@ jobs:
             nametag: linux-vfx2024
             runner: ubuntu-latest
             container: aswf/ci-oiio:2024.2
+            opencolorio_ver: v2.3.2
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
@@ -307,6 +311,7 @@ jobs:
             container: aswf/ci-oiio:2024.2
             cc_compiler: clang
             cxx_compiler: clang++
+            opencolorio_ver: v2.3.2
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
@@ -341,7 +346,7 @@ jobs:
             cc_compiler: clang
             cxx_compiler: clang++
             build_type: Debug
-            opencolorio_ver: v2.3.2
+            opencolorio_ver: v2.4.2
             python_ver: "3.11"
             ctest_test_timeout: "1200"
             setenvs: export SANITIZE=address,undefined
@@ -450,14 +455,14 @@ jobs:
                             PUGIXML_VERSION=v1.14
                             WEBP_VERSION=v1.4.0
 
-          - desc: clang15 C++17 avx2 exr3.1 ocio2.2
+          - desc: clang15 C++17 avx2 exr3.1 ocio2.3
             nametag: linux-clang15
             runner: ubuntu-22.04
             cxx_compiler: clang++-15
             cc_compiler: clang-15
             cxx_std: 17
             fmt_ver: 10.1.1
-            opencolorio_ver: v2.2.1
+            opencolorio_ver: v2.3.0
             openexr_ver: v3.1.13
             pybind11_ver: v2.12.0
             python_ver: "3.10"
