@@ -157,9 +157,16 @@ jobs:
           name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
           path: |
             ./wheelhouse/*.whl
+
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: stubs-${{ matrix.python }}-${{ matrix.manylinux }}
+          path: |
             ./wheelhouse/OpenImageIO/__init__.pyi
-        # if stub validation fails we want to upload the stubs for users to review
-        if: success() || failure()
+        # if stub validation fails we want to upload the stubs for users to review.
+        # keep the python build in sync with the version specified in tool.cibuildwheel.overrides 
+        # section of pyproject.toml
+        if: always() && contains(matrix.python, 'cp311-manylinux')
 
   # ---------------------------------------------------------------------------
   # Linux ARM Wheels
@@ -219,9 +226,16 @@ jobs:
             name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
             path: |
               ./wheelhouse/*.whl
+        
+        - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+          with:
+            name: stubs-${{ matrix.python }}-${{ matrix.manylinux }}
+            path: |
               ./wheelhouse/OpenImageIO/__init__.pyi
-          # if stub validation fails we want to upload the stubs for users to review
-          if: success() || failure()
+          # if stub validation fails we want to upload the stubs for users to review.
+          # keep the python build in sync with the version specified in tool.cibuildwheel.overrides 
+          # section of pyproject.toml
+          if: always() && contains(matrix.python, 'cp311-manylinux')
 
   # ---------------------------------------------------------------------------
   # macOS Wheels
@@ -317,9 +331,8 @@ jobs:
         
       - name: Install Python
         uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        # https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
         with:
-          python-version: '3.8'
+          python-version: '3.9'
         
 
       - name: Build wheels
