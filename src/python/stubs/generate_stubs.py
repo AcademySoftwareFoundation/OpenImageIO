@@ -157,8 +157,6 @@ def main() -> None:
     import os
     import sys
 
-    _is_in_github_actions_env = os.environ.get("GITHUB_ACTIONS", "false").lower() == "true"
-    
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--out-path",
@@ -173,11 +171,6 @@ def main() -> None:
     )
     args = parser.parse_args()
     out_path = pathlib.Path(args.out_path)
-
-    if _is_in_github_actions_env:
-        print("Running in GitHub Actions environment, using current working directory for output.")
-        out_path = pathlib.Path.cwd()
-
     print(f"Stub output directory: {out_path}")
 
     # perform import so we can see the traceback if it fails.
@@ -201,7 +194,7 @@ def main() -> None:
     ) + new_text
     dest_path.write_text(new_text)
 
-    if args.validate_path and _is_in_github_actions_env:
+    if args.validate_path and os.environ.get("GITHUB_ACTIONS", "false").lower() == "true":
         # in CI, validate that what has been committed to the repo is what we expect.
         validate_path = pathlib.Path(args.validate_path)
 
