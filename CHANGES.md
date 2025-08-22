@@ -1,6 +1,6 @@
 Release 3.1 (target: Sept 2025?) -- compared to 3.0
 ---------------------------------------------------
-- Anticipated beta: Aug 15, 2025
+- Beta 1: Aug 22, 2025
 - Anticipated release candidate: Sep 1, 2025
 - Anticipated supported release: Sep 15, 2025
 
@@ -13,16 +13,15 @@ ABI compatibility, but we do expect some behavior changes.
   - oiiotool new commands: `--layersplit`, `--pastemeta`, `--demosaic`,
     `create-dir` and new expression expansion tokens: `IS_CONSTANT`,
     `IS_BLACK`, `SUBIMAGES`.
-  - New IBA image processing functions: `scale()`, `demosaic`.
+  - New IBA image processing functions: `scale()`, `demosaic()`.
   - New 2-level namespace scheme that we hope will make it possible in the
     future for our annual releases to NOT need to break backward ABI
     compatibility.
   - Support in Python for `ImageBuf._repr_png_` method allows use of OIIO
     inside [Jupyter Notebooks](https://jupyter.org/) to display computed
     images.
-  - Color management improvements (some TBD, not landed yet) to conform to
-    Color Interchange Forum and OpenEXR new conventions for naming and
-    specifying color spaces.
+  - Color management improvements to conform to Color Interchange Forum and
+    OpenEXR new conventions for naming and specifying color spaces.
 
 ### New minimum dependencies and compatibility changes:
 * *Python*: 3.9 minimum (from 3.7) [#4830](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4830) (3.1.4.0)
@@ -72,6 +71,7 @@ ABI compatibility, but we do expect some behavior changes.
     - *api*: Add new ImageInput::supports() query: "mipmap" [#4800](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4800) (3.1.3.0)
 * Color management changes
     - *color mgmt*: Don't assume unlabeled OpenEXR files are lin_rec709 [#4840](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4840) (3.1.4.0)
+    - *color mgmt*: Color space renaming to adhere to CIF conventions [#4860](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4860) (3.1.4.0)
 
 
 ### 🚀  Performance improvements:
@@ -200,7 +200,8 @@ ABI compatibility, but we do expect some behavior changes.
     - *windows*: Include Windows version information on produced binaries [#4696](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4696) (by Jesse Yurkovich) (3.1.3.0)
     - windows + ARM64*: Add arm_neon.h include on Windows ARM64 with clang-cl [#4691](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4691) (by Anthony Roberts)
     - *build/windows*: Propagate CMAKE_MSVC_RUNTIME_LIBRARY [#4842](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4842) (3.1.4.0)
-    * *deps*: Raise OpenColorIO minimum to 2.3 (from 2.2) [#4865](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4865) (3.1.4.0)
+    - *deps*: Raise OpenColorIO minimum to 2.3 (from 2.2) [#4865](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4865) (3.1.4.0)
+    - *NetBSD*: Fix build on NetBSD [#4857](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4857) (by Thomas Klausner) (3.1.4.0)
 * Testing and Continuous integration (CI) systems:
     - *tests*: Improve Ptex testing [#4573](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4573) (3.1.1.0)
     - *tests*: Better testing coverage of null image reader/writer [#4578](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4578) (3.1.1.0)
@@ -245,6 +246,8 @@ ABI compatibility, but we do expect some behavior changes.
     - *ci*: Bump 'latest releases' tests to use pybind11 3.0.0 [#4828](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4828) (3.1.4.0)
     - *ci*: For python stub generation, lock pybind11 to pre-3.0 [#4831](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4831) (3.1.4.0)
     - *ci*: Add a VFX Platform 2026 CI job [#4856](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4856) (3.1.4.0)
+    - *ci*: Lock down to ci-oiio container with correct llvm components [#4859](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4859) (3.1.4.0)
+    - *ci*: Bump webp and openexr for "latest versions" test [#4861](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4861) (3.1.4.0)
 
 ### 📚  Notable documentation changes:
   - *docs*: Clarify 'copy_image' example [#4522](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4522) (3.1.0.0/3.0.1.0)
@@ -268,6 +271,7 @@ ABI compatibility, but we do expect some behavior changes.
   - *admin*: Add ".vs" to .gitignore [#4645](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4645) (3.1.1.0)
   - *admin*: Set up .gitattributes file [#4648](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4648) (3.1.1.0)
   - *admin*: Update SECURITY to reflect that 2.5 only gets critical fixes now [#4829](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4829)
+
 
 
 ---
