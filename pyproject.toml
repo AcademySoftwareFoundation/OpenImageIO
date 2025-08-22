@@ -95,6 +95,8 @@ if.platform-system = "darwin"
 if.platform-machine  = "x86_64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
+cmake.define.CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH = "OFF"
+cmake.define.CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH = "OFF"
 
 [tool.cibuildwheel]
 build-verbosity = 1
