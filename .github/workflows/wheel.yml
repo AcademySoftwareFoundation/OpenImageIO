@@ -108,10 +108,6 @@ jobs:
             manylinux: manylinux_2_28
             python: cp313-manylinux_x86_64
             arch: x86_64
-          - build: CPython 3.14 64 bits manylinux_2_28
-            manylinux: manylinux_2_28
-            python: cp314-manylinux_x86_64
-            arch: x86_64
           # -------------------------------------------------------------------
           # CPython 64 bits manylinux2014
           # -------------------------------------------------------------------
@@ -134,10 +130,6 @@ jobs:
           - build: CPython 3.13 64 bits manylinux2014
             manylinux: manylinux2014
             python: cp313-manylinux_x86_64
-            arch: x86_64
-          - build: CPython 3.14 64 bits manylinux2014
-            manylinux: manylinux2014
-            python: cp314-manylinux_x86_64
             arch: x86_64
 
     steps:
@@ -212,10 +204,6 @@ jobs:
               manylinux: manylinux2014
               python: cp313-manylinux_aarch64
               arch: aarch64
-            - build: CPython 3.14 ARM 64 bits manylinux2014
-              manylinux: manylinux2014
-              python: cp314-manylinux_aarch64
-              arch: aarch64
 
       steps:
         - name: Checkout repo
@@ -280,9 +268,6 @@ jobs:
           - build: CPython 3.13 64 bits
             python: cp313-macosx_x86_64
             arch: x86_64
-          - build: CPython 3.14 64 bits
-            python: cp314-macosx_x86_64
-            arch: x86_64
 
     steps:
       - name: Checkout repo
@@ -339,9 +324,6 @@ jobs:
           - build: CPython 3.13 ARM 64 bits
             python: cp313-macosx_arm64
             arch: arm64
-          - build: CPython 3.14 ARM 64 bits
-            python: cp314-macosx_arm64
-            arch: arm64
 
     steps:
       - name: Checkout repo
@@ -395,9 +377,6 @@ jobs:
             arch: AMD64
           - build: CPython 3.13 64 bits
             python: cp313-win_amd64
-            arch: AMD64
-          - build: CPython 3.14 64 bits
-            python: cp314-win_amd64
             arch: AMD64
 
     steps:
