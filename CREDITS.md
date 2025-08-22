@@ -224,6 +224,7 @@ lg@openimageio.org
 * Stefan Stavrev
 * Thiago Ize
 * Thomas Dinges
+* Thomas Klausner
 * Thomas Mansencal
 * Till Dechent
 * Tim D. Smith
