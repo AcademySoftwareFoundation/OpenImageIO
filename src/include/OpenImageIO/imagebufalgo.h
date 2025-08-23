@@ -18,6 +18,7 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/parallel.h>
+#include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/vecparam.h>
 
@@ -25,11 +26,6 @@
 
 
 OIIO_NAMESPACE_BEGIN
-
-// forward declarations
-class ColorConfig;
-class ColorProcessor;
-class Filter2D;
 
 
 /// @defgroup ImageBufAlgo_intro (ImageBufAlgo common principles)

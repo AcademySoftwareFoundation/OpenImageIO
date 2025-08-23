@@ -25,8 +25,6 @@
 #include <string>
 
 
-OIIO_NAMESPACE_BEGIN
-
 // Feature tests
 #define OIIO_USTRING_HAS_USTRINGHASH 1
 #define OIIO_USTRING_HAS_CTR_FROM_USTRINGHASH 1
@@ -34,8 +32,7 @@ OIIO_NAMESPACE_BEGIN
 #define OIIO_HAS_USTRINGHASH_FORMATTER 1
 
 
-class ustringhash;  // forward declaration
-
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// A ustring is an alternative to char* or std::string for storing
@@ -1008,7 +1005,11 @@ inline ustring::ustring(ustringhash hash)
 }
 #endif
 
+OIIO_NAMESPACE_3_1_END
 
+
+
+OIIO_NAMESPACE_BEGIN
 
 /// ustring string literal operator
 inline ustring
@@ -1070,7 +1071,9 @@ iequals(const std::string& a, ustring b)
     return Strutil::iequals(a, b.string());
 }
 
+OIIO_NAMESPACE_END
 
+OIIO_NAMESPACE_3_1_BEGIN
 
 // ustring variant stof from OpenImageIO/strutil.h
 namespace Strutil {
@@ -1101,7 +1104,7 @@ to_string(const ustringhash& value)
 
 }  // end namespace Strutil
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
 
 
 namespace std {  // not necessary in C++17, then we can just say std::hash

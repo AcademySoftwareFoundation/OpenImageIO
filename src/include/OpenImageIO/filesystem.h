@@ -44,19 +44,29 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
-
+OIIO_NAMESPACE_3_1_BEGIN
 #if OIIO_FILESYSTEM_USE_STDIO_FILEBUF
 // MingW uses GCC to build, but does not support having a wchar_t* passed as argument
 // of ifstream::open or ofstream::open. To properly support UTF-8 encoding on MingW we must
 // use the __gnu_cxx::stdio_filebuf GNU extension that can be used with _wfsopen and returned
 // into a istream which share the same API as ifsteam. The same reasoning holds for ofstream.
-typedef basic_ifstream<char> ifstream;
-typedef basic_ofstream<char> ofstream;
+using ifstream = basic_ifstream<char>;
+using ofstream = basic_ofstream<char>;
 #else
-typedef std::ifstream ifstream;
-typedef std::ofstream ofstream;
+using ifstream = std::ifstream;
+using ofstream = std::ofstream;
 #endif
+OIIO_NAMESPACE_3_1_END
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+using ifstream = v3_1::ifstream;
+using ofstream = v3_1::ofstream;
+OIIO_NAMESPACE_END
+
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// @namespace Filesystem
 ///
@@ -243,12 +253,12 @@ OIIO_UTIL_API std::string current_path ();
 
 /// Version of std::ifstream.open that can handle UTF-8 paths
 ///
-OIIO_UTIL_API void open (OIIO::ifstream &stream, string_view path,
+OIIO_UTIL_API void open (ifstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::in);
 
 /// Version of std::ofstream.open that can handle UTF-8 paths
 ///
-OIIO_UTIL_API void open (OIIO::ofstream &stream, string_view path,
+OIIO_UTIL_API void open (ofstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::out);
 
 /// Version of C open() that can handle UTF-8 paths, returning an integer
@@ -584,4 +594,13 @@ protected:
 
 };  // namespace Filesystem
 
+OIIO_NAMESPACE_3_1_END
+
+// Compatibility
+#ifndef OIIO_DOXYGEN
+OIIO_NAMESPACE_BEGIN
+namespace Filesystem {
+using namespace OIIO::v3_1::Filesystem;
+};  // namespace Filesystem
 OIIO_NAMESPACE_END
+#endif

@@ -39,11 +39,24 @@
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/memory.h>
 
+
+OIIO_NAMESPACE_3_1_BEGIN
+// Forward declaration of IOProxy
+namespace Filesystem {
+    class IOProxy;
+}
+OIIO_NAMESPACE_3_1_END
+
+
+
 OIIO_NAMESPACE_BEGIN
 
 class DeepData;
 class ImageBuf;
-class Timer;
+namespace Filesystem {
+    using v3_1::Filesystem::IOProxy;
+}
+
 
 #ifndef OIIO_STRIDE_T_DEFINED
 #    define OIIO_STRIDE_T_DEFINED
@@ -73,12 +86,6 @@ inline constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
 /// bool, which if 'true' will STOP the read or write.
 typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
-
-
-// Forward declaration of IOProxy
-namespace Filesystem {
-    class IOProxy;
-}
 
 
 /// ROI is a small helper struct describing a rectangular region of interest

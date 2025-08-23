@@ -12,8 +12,6 @@
 
 OIIO_NAMESPACE_BEGIN
 
-
-struct TypeDesc;
 class ImageSpec;
 
 

@@ -59,6 +59,18 @@ OIIO_PRAGMA_WARNING_POP
 
 
 OIIO_NAMESPACE_BEGIN
+namespace pvt {
+static const char* oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
+#ifdef NDEBUG
+OIIO_UTIL_API int
+    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 0);
+#else
+OIIO_UTIL_API int
+    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
+#endif
+OIIO_UTIL_API int oiio_print_uncaught_errors(1);
+}  // namespace pvt
+
 
 
 namespace {
@@ -75,6 +87,7 @@ static _locale_t c_loc = _create_locale(LC_ALL, "C");
 
 };  // namespace
 
+OIIO_NAMESPACE_END
 
 
 // Locale-independent quickie ASCII digit and alphanum tests, good enough
@@ -101,6 +114,7 @@ isdigit(char c)
 }
 
 
+OIIO_NAMESPACE_3_1_BEGIN
 
 OIIO_NO_SANITIZE_ADDRESS const char*
 c_str(string_view str)
@@ -163,20 +177,6 @@ Strutil::sync_output(std::ostream& file, string_view str, bool flush)
             file.flush();
     }
 }
-
-
-
-namespace pvt {
-static const char* oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
-#ifdef NDEBUG
-OIIO_UTIL_API int
-    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 0);
-#else
-OIIO_UTIL_API int
-    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
-#endif
-OIIO_UTIL_API int oiio_print_uncaught_errors(1);
-}  // namespace pvt
 
 
 
@@ -2008,4 +2008,5 @@ Strutil::eval_as_bool(string_view value)
     }
 }
 
-OIIO_NAMESPACE_END
+
+OIIO_NAMESPACE_3_1_END

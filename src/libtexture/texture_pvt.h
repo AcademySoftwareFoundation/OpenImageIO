@@ -15,9 +15,7 @@
 
 OIIO_NAMESPACE_BEGIN
 
-class ImageCache;
 class TextureSystemImpl;
-class Filter1D;
 
 #ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
 class ImageCacheFile;

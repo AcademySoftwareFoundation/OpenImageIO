@@ -30,7 +30,7 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// @namespace  Sysutil
 ///
@@ -186,4 +186,12 @@ private:
 
 }  // namespace Sysutil
 
+OIIO_NAMESPACE_3_1_END
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+namespace Sysutil {
+using namespace OIIO::v3_1::Sysutil;
+}
 OIIO_NAMESPACE_END
