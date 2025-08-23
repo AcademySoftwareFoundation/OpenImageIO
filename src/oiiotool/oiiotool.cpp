@@ -3424,7 +3424,7 @@ ImageBufAlgox::cryptomatte_colors(ImageBuf& dst, const ImageBuf& src,
                                   span<const int> channelset, ROI roi,
                                   int nthreads)
 {
-    // pvt::LoggedTimer logtime("IBA::cryptomatte_colors");
+    // OIIO::pvt::LoggedTimer logtime("IBA::cryptomatte_colors");
     if (!roi.defined())
         roi = get_roi(src.spec());
     roi.chend = std::min(roi.chend, src.nchannels());
@@ -7535,7 +7535,7 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
             OIIO::print("Running {} frames in parallel with {} threads\n",
                         nfilenames, parallel_frame_threads);
         ot.begin_parallel_frame_loop(parallel_frame_threads);
-        parallel_for(
+        OIIO::parallel_for(
             uint64_t(0), uint64_t(nfilenames),
             [&](uint64_t i) {
                 one_sequence_iteration(ot, i, frame_numbers[0][i],

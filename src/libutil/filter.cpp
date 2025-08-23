@@ -30,7 +30,7 @@
 #include <OpenImageIO/fmath.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 // Below are the implementations of several 2D filters.  They all
 // inherit their interface from Filter2D.  Each must redefine two
@@ -1047,4 +1047,4 @@ Filter2D::destroy(Filter2D* filt)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

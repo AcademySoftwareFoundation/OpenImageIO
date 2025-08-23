@@ -25,8 +25,9 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 using namespace pvt;
+using namespace OIIO::pvt;
 
 
 // store an error message per thread, for a specific ImageInput
@@ -38,7 +39,7 @@ class ImageOutput::Impl {
 public:
     Impl()
         : m_id(++output_next_id)
-        , m_threads(pvt::oiio_threads)
+        , m_threads(OIIO::pvt::oiio_threads)
     {
     }
 
@@ -600,7 +601,7 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
                          ProgressCallback progress_callback,
                          void* progress_callback_data)
 {
-    pvt::LoggedTimer logtime("ImageOutput::write image");
+    OIIO::pvt::LoggedTimer logtime("ImageOutput::write image");
     bool native          = (format == TypeDesc::UNKNOWN);
     stride_t pixel_bytes = native ? (stride_t)m_spec.pixel_bytes(native)
                                   : format.size() * m_spec.nchannels;
@@ -1140,20 +1141,11 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
 
 
 
-template<>
-inline size_t
-pvt::heapsize<ImageOutput::Impl>(const ImageOutput::Impl& impl)
-{
-    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
-}
-
-
-
 size_t
 ImageOutput::heapsize() const
 {
-    size_t size = pvt::heapsize(m_impl);
-    size += pvt::heapsize(m_spec);
+    size_t size = OIIO::pvt::heapsize(m_impl);
+    size += OIIO::pvt::heapsize(m_spec);
     return size;
 }
 
@@ -1163,6 +1155,15 @@ size_t
 ImageOutput::footprint() const
 {
     return sizeof(ImageOutput) + heapsize();
+}
+
+
+
+template<>
+inline size_t
+pvt::heapsize<ImageOutput::Impl>(const ImageOutput::Impl& impl)
+{
+    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
 }
 
 
@@ -1183,6 +1184,4 @@ pvt::footprint<ImageOutput>(const ImageOutput& output)
     return output.footprint();
 }
 
-
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

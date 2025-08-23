@@ -10,11 +10,11 @@
 #include <OpenImageIO/thread.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace pvt {
 
-void OIIO_API
+void OIIO_UTIL_API
 #if __has_attribute(__optnone__)
     __attribute__((__optnone__))
 #endif
@@ -27,7 +27,7 @@ void OIIO_API
 
 // Implementation of clobber_ptr is trivial, but the code in other modules
 // doesn't know that.
-void OIIO_API
+void OIIO_UTIL_API
 #if __has_attribute(__optnone__)
     __attribute__((__optnone__))
 #endif
@@ -110,7 +110,7 @@ Benchmarker::compute_stats(std::vector<double>& times, size_t iterations)
 
 
 
-OIIO_API
+OIIO_UTIL_API
 std::ostream&
 operator<<(std::ostream& out, const Benchmarker& bench)
 {
@@ -144,7 +144,7 @@ operator<<(std::ostream& out, const Benchmarker& bench)
     if (bench.indent())
         OIIO::print(out, "{}", std::string(bench.indent(), ' '));
     if (unit == int(Benchmarker::Unit::s))
-        OIIO::print(out, "{:16}: {}", bench.m_name,
+        OIIO::print(out, "{:16}: {}", bench.name(),
                     Strutil::timeintervalformat(avg, 2));
     else
         OIIO::print(out, "{:16}: {:6.1f} {} (+/- {:.1f}{}), ", bench.name(),
@@ -175,9 +175,14 @@ operator<<(std::ostream& out, const Benchmarker& bench)
     return out;
 }
 
+OIIO_NAMESPACE_END
 
 
-OIIO_API std::vector<double>
+
+OIIO_NAMESPACE_3_1_BEGIN
+
+
+OIIO_UTIL_API std::vector<double>
 timed_thread_wedge(function_view<void(int)> task, function_view<void()> pretask,
                    function_view<void()> posttask, std::ostream* out,
                    int maxthreads, int total_iterations, int ntrials,
@@ -220,7 +225,7 @@ timed_thread_wedge(function_view<void(int)> task, function_view<void()> pretask,
 
 
 
-OIIO_API void
+OIIO_UTIL_API void
 timed_thread_wedge(function_view<void(int)> task, int maxthreads,
                    int total_iterations, int ntrials, cspan<int> threadcounts)
 {
@@ -229,4 +234,4 @@ timed_thread_wedge(function_view<void(int)> task, int maxthreads,
         ntrials, threadcounts);
 }
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

@@ -4,7 +4,7 @@
 
 
 /// \file
-/// Declarations for things that are used privately by ImageIO.
+/// Declarations for things that are used privately by OpenImageIO.
 
 
 #ifndef OPENIMAGEIO_IMAGEIO_PVT_H
@@ -17,11 +17,10 @@
 
 
 OIIO_NAMESPACE_BEGIN
-
-namespace ImageBufAlgo {
-struct PixelStats;
-}
-
+// Note: Everything in pvt namespace is expected to be local to the library
+// and does not appear in exported headers that client software will see.
+// Therefore, it should all stay in the current namespace except where
+// specifically noted.
 
 namespace pvt {
 

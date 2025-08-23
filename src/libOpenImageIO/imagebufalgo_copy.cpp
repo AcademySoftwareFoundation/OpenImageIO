@@ -16,7 +16,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 template<class D, class S>
@@ -105,7 +105,7 @@ bool
 ImageBufAlgo::paste(ImageBuf& dst, int xbegin, int ybegin, int zbegin,
                     int chbegin, const ImageBuf& src, ROI srcroi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::paste");
+    OIIO::pvt::LoggedTimer logtime("IBA::paste");
     if (!srcroi.defined())
         srcroi = get_roi(src.spec());
 
@@ -189,7 +189,7 @@ bool
 ImageBufAlgo::copy(ImageBuf& dst, const ImageBuf& src, TypeDesc convert,
                    ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::copy");
+    OIIO::pvt::LoggedTimer logtime("IBA::copy");
     if (&dst == &src)  // trivial copy to self
         return true;
 
@@ -253,7 +253,7 @@ ImageBufAlgo::copy(const ImageBuf& src, TypeDesc convert, ROI roi, int nthreads)
 bool
 ImageBufAlgo::crop(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::crop");
+    OIIO::pvt::LoggedTimer logtime("IBA::crop");
     dst.clear();
     roi.chend = std::min(roi.chend, src.nchannels());
     if (!IBAprep(roi, &dst, &src, IBAprep_SUPPORT_DEEP))
@@ -307,7 +307,7 @@ ImageBufAlgo::crop(const ImageBuf& src, ROI roi, int nthreads)
 bool
 ImageBufAlgo::cut(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
-    // pvt::LoggedTimer logtime("IBA::cut");
+    // OIIO::pvt::LoggedTimer logtime("IBA::cut");
     // Don't log, because all the work is inside crop, which already logs
     bool ok = crop(dst, src, roi, nthreads);
     if (!ok)
@@ -369,7 +369,7 @@ bool
 ImageBufAlgo::circular_shift(ImageBuf& dst, const ImageBuf& src, int xshift,
                              int yshift, int zshift, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::circular_shift");
+    OIIO::pvt::LoggedTimer logtime("IBA::circular_shift");
     if (!IBAprep(roi, &dst, &src))
         return false;
     bool ok;
@@ -395,4 +395,4 @@ ImageBufAlgo::circular_shift(const ImageBuf& src, int xshift, int yshift,
 
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

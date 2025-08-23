@@ -22,8 +22,9 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 using namespace pvt;
+using namespace OIIO::pvt;
 
 
 // store an error message per thread, for a specific ImageInput
@@ -35,7 +36,7 @@ class ImageInput::Impl {
 public:
     Impl()
         : m_id(++input_next_id)
-        , m_threads(pvt::oiio_threads)
+        , m_threads(OIIO::pvt::oiio_threads)
     {
     }
 
@@ -322,7 +323,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                            int z, int chbegin, int chend, TypeDesc format,
                            void* data, stride_t xstride, stride_t ystride)
 {
-    pvt::LoggedTimer logtime("II::read_scanlines");
+    OIIO::pvt::LoggedTimer logtime("II::read_scanlines");
     ImageSpec spec;
     int rps = 0;
     {
@@ -520,7 +521,7 @@ bool
 ImageInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                   int yend, span<std::byte> data)
 {
-    if (pvt::oiio_print_debug
+    if (OIIO::pvt::oiio_print_debug
 #ifndef NDEBUG
         || true
 #endif
@@ -544,7 +545,7 @@ ImageInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                   int yend, int chbegin, int chend,
                                   span<std::byte> data)
 {
-    if (pvt::oiio_print_debug
+    if (OIIO::pvt::oiio_print_debug
 #ifndef NDEBUG
         || true
 #endif
@@ -967,7 +968,7 @@ bool
 ImageInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                               int ybegin, int yend, span<std::byte> data)
 {
-    if (pvt::oiio_print_debug
+    if (OIIO::pvt::oiio_print_debug
 #ifndef NDEBUG
         || true
 #endif
@@ -991,7 +992,7 @@ ImageInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                               int ybegin, int yend, int chbegin, int chend,
                               span<std::byte> data)
 {
-    if (pvt::oiio_print_debug
+    if (OIIO::pvt::oiio_print_debug
 #ifndef NDEBUG
         || true
 #endif
@@ -1017,7 +1018,7 @@ ImageInput::read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
                                          int zbegin, int zend,
                                          span<std::byte> data)
 {
-    if (pvt::oiio_print_debug
+    if (OIIO::pvt::oiio_print_debug
 #ifndef NDEBUG
         || true
 #endif
@@ -1043,7 +1044,7 @@ ImageInput::read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
                                          int zbegin, int zend, int chbegin,
                                          int chend, span<std::byte> data)
 {
-    if (pvt::oiio_print_debug
+    if (OIIO::pvt::oiio_print_debug
 #ifndef NDEBUG
         || true
 #endif
@@ -1070,7 +1071,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
                        ProgressCallback progress_callback,
                        void* progress_callback_data)
 {
-    pvt::LoggedTimer logtime("II::read_image");
+    OIIO::pvt::LoggedTimer logtime("II::read_image");
     ImageSpec spec;
     int rps = 0;
     {
@@ -1181,7 +1182,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
     return read_image(subimage, miplevel, chbegin, chend, format, data.data(),
                       data.xstride(), data.ystride(), data.zstride());
 #else
-    pvt::LoggedTimer logtime("II::read_image");
+    OIIO::pvt::LoggedTimer logtime("II::read_image");
     ImageSpec spec;
     int rps = 0;
     {
@@ -1573,21 +1574,22 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
             format_name(), spec.nchannels);
         return false;
     }
-    if (pvt::limit_channels && spec.nchannels > pvt::limit_channels) {
+    if (OIIO::pvt::limit_channels
+        && spec.nchannels > OIIO::pvt::limit_channels) {
         errorfmt(
             "{} channels exceeds \"limits:channels\" = {}. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:channels\".",
-            spec.nchannels, pvt::limit_channels);
+            spec.nchannels, OIIO::pvt::limit_channels);
         return false;
     }
-    if (pvt::limit_imagesize_MB
+    if (OIIO::pvt::limit_imagesize_MB
         && spec.image_bytes(true)
-               > pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {
+               > OIIO::pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {
         errorfmt(
             "Uncompressed image size {:.1f} MB exceeds the {} MB limit.\n"
             "Image claimed to be {}x{}, {}-channel {}. Possible corrupt input?\n"
             "If this is a valid file, raise the OIIO attribute \"limits:imagesize_MB\".",
             float(m_spec.image_bytes(true)) / float(1024 * 1024),
-            pvt::limit_imagesize_MB, m_spec.width, m_spec.height,
+            OIIO::pvt::limit_imagesize_MB, m_spec.width, m_spec.height,
             m_spec.nchannels, m_spec.format);
         return false;
     }
@@ -1618,20 +1620,11 @@ ImageInput::valid_raw_span_size(cspan<std::byte> buf, const ImageSpec& spec,
 
 
 
-template<>
-inline size_t
-pvt::heapsize<ImageInput::Impl>(const ImageInput::Impl& impl)
-{
-    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
-}
-
-
-
 size_t
 ImageInput::heapsize() const
 {
-    size_t size = pvt::heapsize(m_impl);
-    size += pvt::heapsize(m_spec);
+    size_t size = OIIO::pvt::heapsize(m_impl);
+    size += OIIO::pvt::heapsize(m_spec);
     return size;
 }
 
@@ -1641,6 +1634,15 @@ size_t
 ImageInput::footprint() const
 {
     return sizeof(ImageInput) + heapsize();
+}
+
+
+
+template<>
+inline size_t
+pvt::heapsize<ImageInput::Impl>(const ImageInput::Impl& impl)
+{
+    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
 }
 
 
@@ -1661,6 +1663,4 @@ pvt::footprint<ImageInput>(const ImageInput& input)
     return input.footprint();
 }
 
-
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

@@ -12,7 +12,7 @@
 #include <OpenImageIO/ustring.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 void
@@ -99,25 +99,6 @@ ParamValue::operator=(ParamValue&& p) noexcept
     }
     return *this;
 }
-
-
-
-namespace Strutil {
-template<>
-inline short
-from_string<short>(string_view s)
-{
-    return static_cast<short>(Strutil::stoi(s));
-}
-
-
-template<>
-inline unsigned short
-from_string<unsigned short>(string_view s)
-{
-    return static_cast<unsigned short>(Strutil::stoi(s));
-}
-}  // namespace Strutil
 
 
 
@@ -375,17 +356,6 @@ ParamValue::clear_value() noexcept
     m_data.ptr = nullptr;
     m_copy     = false;
     m_nonlocal = false;
-}
-
-
-
-template<>
-size_t
-pvt::heapsize<ParamValue>(const ParamValue& pv)
-{
-    return (pv.m_nonlocal && pv.m_copy)
-               ? pv.m_nvalues * static_cast<int>(pv.m_type.size())
-               : 0;
 }
 
 
@@ -953,4 +923,13 @@ ParamValueSpan::getattribute_indexed(string_view name, int index,
 
 
 
-OIIO_NAMESPACE_END
+template<>
+size_t
+pvt::heapsize<ParamValue>(const ParamValue& pv)
+{
+    return (pv.m_nonlocal && pv.m_copy)
+               ? pv.m_nvalues * static_cast<int>(pv.m_type.size())
+               : 0;
+}
+
+OIIO_NAMESPACE_3_1_END
