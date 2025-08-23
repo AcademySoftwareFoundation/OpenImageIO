@@ -1540,16 +1540,17 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``compression``
      - string
      - one of: ``"none"``, ``"rle"``, ``"zip"``, ``"zips"``, ``"piz"``,
-       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"`` or ``"htj2k"``.
+       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"``, ``"htj2k"`` or ``"zstd"``.
        (``"htj2k"`` is only supported with OpenEXR 3.4 or later.)
+       (``"zstd"`` is only supported with OpenEXR 3.5 or later.)
        If the writer receives a request for a compression type it does not
        recognize or is not supported by the version of OpenEXR on the
        system, it will use ``"zip"`` by default. For ``"dwaa"`` and
        ``"dwab"``, the dwaCompressionLevel may be optionally appended to the
        compression name after a colon, like this: ``"dwaa:200"``. (The
-       default DWA compression value is 45.) For ``"zip"`` and ``"zips"``
+       default DWA compression value is 45.) For ``"zip"``, ``"zips"`` and ``"zstd"``
        compression, a level from 1 to 9 may be appended (the default is
-       ``"zip:4"``), but note that this is only honored when building
+       ``"zip:4"`` and ``"zstd:5"``), but note that this is only honored when building
        against OpenEXR 3.1.3 or later.
    * - ``textureformat``
      - string
