@@ -3317,7 +3317,7 @@ OIIO_FORCEINLINE const vbool4 vbool4::False () {
 OIIO_FORCEINLINE const vbool4 vbool4::True () {
     // Fastest way to fill with all 1 bits is to cmp any value to itself.
 #if OIIO_SIMD_SSE
-# if OIIO_SIMD_AVX && (OIIO_GNUC_VERSION > 50000)
+# if OIIO_SIMD_AVX
     __m128i anyval = _mm_undefined_si128();
 # else
     __m128i anyval = _mm_setzero_si128();
@@ -3676,7 +3676,7 @@ OIIO_FORCEINLINE const vbool8 vbool8::False () {
 
 OIIO_FORCEINLINE const vbool8 vbool8::True () {
 #if OIIO_SIMD_AVX
-# if OIIO_SIMD_AVX >= 2 && (OIIO_GNUC_VERSION > 50000)
+# if OIIO_SIMD_AVX >= 2
     // Fastest way to fill with all 1 bits is to cmp any value to itself.
     __m256i anyval = _mm256_undefined_si256();
     return _mm256_castsi256_ps (_mm256_cmpeq_epi8 (anyval, anyval));
@@ -4413,7 +4413,7 @@ OIIO_FORCEINLINE const vint4 vint4::NegOne () {
 #if OIIO_SIMD_SSE
     // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
     // any value to itself.
-# if OIIO_SIMD_AVX && (OIIO_GNUC_VERSION > 50000)
+# if OIIO_SIMD_AVX
     __m128i anyval = _mm_undefined_si128();
 # else
     __m128i anyval = _mm_setzero_si128();
