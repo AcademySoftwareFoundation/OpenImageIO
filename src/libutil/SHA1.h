@@ -219,7 +219,7 @@
 ///////////////////////////////////////////////////////////////////////////
 // Declare SHA-1 workspace
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 typedef union
 {
@@ -288,7 +288,7 @@ private:
 	SHA1_WORKSPACE_BLOCK* m_block; // SHA1 pointer to the byte array above
 };
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
 
 #ifndef DO_NOT_UNDEFINE_SHA1
 #undef TCHAR

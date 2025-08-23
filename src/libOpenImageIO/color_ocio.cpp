@@ -29,7 +29,7 @@
 namespace OCIO = OCIO_NAMESPACE;
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace {
 // Some test colors we use to interrogate transformations
@@ -806,7 +806,7 @@ ColorConfig::Impl::init(string_view filename)
         filename = Sysutil::getenv("OCIO");
     if (filename.empty() && !disable_builtin_configs)
         filename = "ocio://default";
-    if (filename.size() && !Filesystem::exists(filename)
+    if (filename.size() && !OIIO::Filesystem::exists(filename)
         && !Strutil::istarts_with(filename, "ocio://")) {
         error("Requested non-existent OCIO config \"{}\"", filename);
     } else {
@@ -867,7 +867,7 @@ ColorConfig::Impl::init(string_view filename)
 bool
 ColorConfig::reset(string_view filename)
 {
-    pvt::LoggedTimer logtime("ColorConfig::reset");
+    OIIO::pvt::LoggedTimer logtime("ColorConfig::reset");
     if (m_impl
         && (filename == getImpl()->configname()
             || (filename == ""
@@ -2010,7 +2010,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
                            const ColorConfig* colorconfig, ROI roi,
                            int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::colorconvert");
+    OIIO::pvt::LoggedTimer logtime("IBA::colorconvert");
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute("oiio:Colorspace",
                                                "scene_linear");
@@ -2071,7 +2071,7 @@ ImageBufAlgo::colormatrixtransform(ImageBuf& dst, const ImageBuf& src,
                                    M44fParam M, bool unpremult, ROI roi,
                                    int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::colormatrixtransform");
+    OIIO::pvt::LoggedTimer logtime("IBA::colormatrixtransform");
     ColorProcessorHandle processor
         = ColorConfig::default_colorconfig().createMatrixTransform(M);
     logtime.stop();  // transition to other colorconvert
@@ -2253,7 +2253,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src,
                            const ColorProcessor* processor, bool unpremult,
                            ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::colorconvert");
+    OIIO::pvt::LoggedTimer logtime("IBA::colorconvert");
     // If the processor is NULL, return false (error)
     if (!processor) {
         dst.errorfmt(
@@ -2318,7 +2318,7 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
                        bool inverse, string_view key, string_view value,
                        const ColorConfig* colorconfig, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::ociolook");
+    OIIO::pvt::LoggedTimer logtime("IBA::ociolook");
     if (from.empty() || from == "current") {
         auto linearspace = colorconfig->resolve("scene_linear");
         from = src.spec().get_string_attribute("oiio:Colorspace", linearspace);
@@ -2381,7 +2381,7 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
                           bool inverse, string_view key, string_view value,
                           const ColorConfig* colorconfig, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::ociodisplay");
+    OIIO::pvt::LoggedTimer logtime("IBA::ociodisplay");
     ColorProcessorHandle processor;
     {
         if (!colorconfig)
@@ -2453,7 +2453,7 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
                                 const ColorConfig* colorconfig, ROI roi,
                                 int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::ociofiletransform");
+    OIIO::pvt::LoggedTimer logtime("IBA::ociofiletransform");
     if (name.empty()) {
         dst.errorfmt("Unknown filetransform name");
         return false;
@@ -2512,7 +2512,7 @@ ImageBufAlgo::ocionamedtransform(ImageBuf& dst, const ImageBuf& src,
                                  const ColorConfig* colorconfig, ROI roi,
                                  int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::ocionamedtransform");
+    OIIO::pvt::LoggedTimer logtime("IBA::ocionamedtransform");
     ColorProcessorHandle processor;
     {
         if (!colorconfig)

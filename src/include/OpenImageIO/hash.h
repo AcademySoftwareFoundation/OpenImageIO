@@ -27,7 +27,7 @@
 #include <OpenImageIO/span.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 using std::hash;
 using std::unordered_map;
@@ -563,7 +563,7 @@ inline uint128_t Fingerprint128(const Str& s) {
 class CSHA1;  // opaque forward declaration
 
 
-/// Class that encapsulates SHA-1 hashing, a crypticographic-strength
+/// Class that encapsulates SHA-1 hashing, a cryptographic-strength
 /// 160-bit hash function.  It's not as fast as our other hashing
 /// methods, but has an extremely low chance of having collisions.
 class OIIO_API SHA1 {
@@ -616,4 +616,16 @@ private:
 };
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+// Replicate the hashing namespaces in v3_1:: inside OIIO::
+namespace fasthash { using namespace OIIO::v3_1::fasthash; }
+namespace xxhash { using namespace OIIO::v3_1::xxhash; }
+namespace bjhash { using namespace OIIO::v3_1::bjhash; }
+namespace murmur { using namespace OIIO::v3_1::murmur; }
+namespace farmhash { using namespace OIIO::v3_1::farmhash; }
+using v3_1::SHA1;
 OIIO_NAMESPACE_END

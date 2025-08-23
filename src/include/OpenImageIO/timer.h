@@ -30,7 +30,7 @@
 #define OIIO_TIMER_LINUX_USE_clock_gettime 1
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Simple timer class.
 ///
@@ -275,4 +275,4 @@ private:
 
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

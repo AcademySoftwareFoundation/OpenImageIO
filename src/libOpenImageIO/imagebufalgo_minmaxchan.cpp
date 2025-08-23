@@ -18,7 +18,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 template<class Rtype, class Atype>
@@ -43,7 +43,7 @@ minchan_impl(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
 bool
 ImageBufAlgo::minchan(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::minchan");
+    OIIO::pvt::LoggedTimer logtime("IBA::minchan");
     if (!roi.defined())
         roi = get_roi(src.spec());
     roi.chend      = std::min(roi.chend, src.nchannels());
@@ -95,7 +95,7 @@ maxchan_impl(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
 bool
 ImageBufAlgo::maxchan(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::maxchan");
+    OIIO::pvt::LoggedTimer logtime("IBA::maxchan");
     if (!roi.defined())
         roi = get_roi(src.spec());
     roi.chend      = std::min(roi.chend, src.nchannels());
@@ -124,4 +124,4 @@ ImageBufAlgo::maxchan(const ImageBuf& src, ROI roi, int nthreads)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

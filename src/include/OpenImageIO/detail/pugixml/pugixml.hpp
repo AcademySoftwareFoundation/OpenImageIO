@@ -134,13 +134,13 @@
 #endif
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 namespace pugi {}
-OIIO_NAMESPACE_END
-namespace pugi = OIIO::pugi;
+OIIO_NAMESPACE_3_1_END
+namespace pugi = OIIO::v3_1::pugi;
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 namespace pugi
 {
 	// Character type used for all internal storage and operations; depends on PUGIXML_WCHAR_MODE
@@ -1457,7 +1457,7 @@ namespace pugi
 	allocation_function PUGIXML_FUNCTION get_memory_allocation_function();
 	deallocation_function PUGIXML_FUNCTION get_memory_deallocation_function();
 }
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
 
 #if !defined(PUGIXML_NO_STL) && (defined(_MSC_VER) || defined(__ICC))
 namespace std

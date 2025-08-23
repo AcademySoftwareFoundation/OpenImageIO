@@ -95,7 +95,10 @@ static IIMtag iimtag[] = {
 
 }  // anonymous namespace
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 bool
 decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
@@ -234,4 +237,4 @@ encode_iptc_iim(const ImageSpec& spec, std::vector<char>& iptc)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
