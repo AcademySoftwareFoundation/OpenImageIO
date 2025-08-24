@@ -29,7 +29,7 @@
 namespace OCIO = OCIO_NAMESPACE;
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace {
 // Some test colors we use to interrogate transformations
@@ -806,7 +806,7 @@ ColorConfig::Impl::init(string_view filename)
         filename = Sysutil::getenv("OCIO");
     if (filename.empty() && !disable_builtin_configs)
         filename = "ocio://default";
-    if (filename.size() && !Filesystem::exists(filename)
+    if (filename.size() && !OIIO::Filesystem::exists(filename)
         && !Strutil::istarts_with(filename, "ocio://")) {
         error("Requested non-existent OCIO config \"{}\"", filename);
     } else {
@@ -1410,7 +1410,10 @@ ColorConfig::equivalent(string_view color_space1,
     return false;
 }
 
+OIIO_NAMESPACE_3_1_END
 
+
+OIIO_NAMESPACE_BEGIN
 
 bool
 equivalent_colorspace(string_view a, string_view b)
@@ -1419,6 +1422,10 @@ equivalent_colorspace(string_view a, string_view b)
 }
 
 
+OIIO_NAMESPACE_END
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 inline OCIO::BitDepth
 ocio_bitdepth(TypeDesc type)
@@ -1996,6 +2003,10 @@ ColorConfig::parseColorSpaceFromString(string_view str) const
     return string_view(ustring(rightMostColorspace));
 }
 
+OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -2603,7 +2614,10 @@ ImageBufAlgo::colorconvert(span<float> color, const ColorProcessor* processor,
     return true;
 }
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 void
 ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
@@ -2655,6 +2669,10 @@ ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
     }
 }
 
+OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
 
 void
 set_colorspace(ImageSpec& spec, string_view colorspace)

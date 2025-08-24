@@ -17,7 +17,7 @@
 #include <OpenImageIO/thread.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Split strategies
 /// DEPRECATED(2.4)
@@ -211,19 +211,19 @@ parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
 /// (to aid data coherence and minimize the amount of thread queue
 /// diddling). The chunk size is chosen automatically.
 OIIO_UTIL_API void
-parallel_for(int32_t begin, int32_t end, function_view<void(int32_t)> task,
+parallel_for(int32_t begin, int32_t end, function_view<void(int32_t)>&& task,
              paropt opt = 0);
 
 OIIO_UTIL_API void
-parallel_for(int64_t begin, int64_t end, function_view<void(int64_t)> task,
+parallel_for(int64_t begin, int64_t end, function_view<void(int64_t)>&& task,
              paropt opt = 0);
 
 OIIO_UTIL_API void
-parallel_for(uint32_t begin, uint32_t end, function_view<void(uint32_t)> task,
+parallel_for(uint32_t begin, uint32_t end, function_view<void(uint32_t)>&& task,
              paropt opt = 0);
 
 OIIO_UTIL_API void
-parallel_for(uint64_t begin, uint64_t end, function_view<void(uint64_t)> task,
+parallel_for(uint64_t begin, uint64_t end, function_view<void(uint64_t)>&& task,
              paropt opt = 0);
 
 
@@ -295,6 +295,20 @@ parallel_for_2D(int64_t xbegin, int64_t xend, int64_t ybegin, int64_t yend,
                 std::function<void(int64_t x, int64_t y)>&& task,
                 paropt opt = 0);
 
+OIIO_NAMESPACE_3_1_END
 
 
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::parallel_for;
+using v3_1::parallel_for_2D;
+using v3_1::parallel_for_chunked;
+using v3_1::parallel_for_chunked_2D;
+using v3_1::parallel_for_range;
+using v3_1::parallel_options;
+using v3_1::paropt;
+using v3_1::SplitDir;
+#endif
 OIIO_NAMESPACE_END

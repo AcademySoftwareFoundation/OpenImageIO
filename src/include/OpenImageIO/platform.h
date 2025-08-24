@@ -614,9 +614,16 @@ inline bool cpu_has_avx512cd() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<28)) 
 inline bool cpu_has_avx512bw() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<30)) != 0; }
 inline bool cpu_has_avx512vl() {int i[4]; cpuid(i,7,0); return (i[1] & (0x80000000 /*1<<31*/)) != 0; }
 
+OIIO_NAMESPACE_END
+
+
+OIIO_NAMESPACE_3_1_BEGIN
+
 // portable aligned malloc
-OIIO_API void* aligned_malloc(std::size_t size, std::size_t align);
-OIIO_API void  aligned_free(void* ptr);
+OIIO_UTIL_API void* aligned_malloc(std::size_t size, std::size_t align);
+OIIO_UTIL_API void  aligned_free(void* ptr);
+
+
 
 // basic wrappers to new/delete over-aligned types since this isn't guaranteed to be supported until C++17
 template <typename T, class... Args>
@@ -641,6 +648,9 @@ inline void aligned_delete(T* t) {
 // DEPRECATED(2.6)
 using std::enable_if_t;
 
+OIIO_NAMESPACE_3_1_END
+
+
 // An enable_if helper to be used in template parameters which results in
 // much shorter symbols: https://godbolt.org/z/sWw4vP
 // Borrowed from fmtlib.
@@ -648,4 +658,14 @@ using std::enable_if_t;
 #   define OIIO_ENABLE_IF(...) std::enable_if_t<(__VA_ARGS__), int> = 0
 #endif
 
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::aligned_delete;
+using v3_1::aligned_free;
+using v3_1::aligned_malloc;
+using v3_1::aligned_new;
+#endif
 OIIO_NAMESPACE_END

@@ -22,7 +22,7 @@
 #include <OpenImageIO/ustring.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// ParamValue holds a named parameter and typed data. Usually, it owns the
 /// data (holding it in the struct itself if small enough, dynamically
@@ -369,8 +369,13 @@ private:
                       FromUstring _from_ustring = FromUstring(false)) noexcept;
 
     /// declare a friend heapsize definition
-    template<typename T> friend size_t pvt::heapsize(const T&);
+    template<typename T> friend size_t OIIO::pvt::heapsize(const T&);
 };
+
+OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
 
 /// heapsize specialization for `ParamValue`
 template<>
@@ -396,7 +401,10 @@ make_pv(string_view name, T* val)
     return ParamValue(name, BaseTypeFromC<T*>::value, 1, span(&val, 1));
 }
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// A list of ParamValue entries, that can be iterated over or searched.
 /// It's really just a std::vector<ParamValue>, but with a few more handy
@@ -842,4 +850,4 @@ public:
 };
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

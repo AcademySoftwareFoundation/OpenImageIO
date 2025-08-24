@@ -34,7 +34,7 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /////////////////////////////////////////////////////////////////////////////
 /// A TypeDesc describes simple data types.
@@ -340,6 +340,11 @@ struct OIIO_UTIL_API TypeDesc {
     }
 };
 
+OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
+
 // Validate that TypeDesc can be used directly as POD in a C interface.
 static_assert(std::is_default_constructible<TypeDesc>(), "TypeDesc is not default constructable.");
 static_assert(std::is_trivially_copyable<TypeDesc>(), "TypeDesc is not trivially copyable.");
@@ -434,7 +439,6 @@ template<> struct BaseTypeFromC<std::string> { static constexpr TypeDesc::BASETY
 template<> struct BaseTypeFromC<const std::string> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<string_view> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<const string_view> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
-class ustring;
 template<> struct BaseTypeFromC<ustring> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<const ustring> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<size_t S> struct BaseTypeFromC<char[S]> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
@@ -497,8 +501,6 @@ template<> struct TypeDescFromC<Imath::Box3i> { static const constexpr TypeDesc 
 template<typename T>
 constexpr TypeDesc TypeDescFromC_v = TypeDescFromC<std::remove_cv_t<T>>::value();
 
-class ustringhash;  // forward declaration
-
 
 
 /// A template mechanism for getting C type of TypeDesc::BASETYPE.
@@ -519,7 +521,10 @@ template<> struct CType<(int)TypeDesc::FLOAT> { typedef float type; };
 template<> struct CType<(int)TypeDesc::DOUBLE> { typedef double type; };
 template<> struct CType<(int)TypeDesc::USTRINGHASH> { typedef ustringhash type; };
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Helper class for tostring() that contains a whole bunch of parameters
 /// that control exactly how all the data types that can be described as
@@ -573,6 +578,11 @@ struct OIIO_UTIL_API tostring_formatting {
         int flags = escape_strings);
 };
 
+OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
+using v3_1::tostring_formatting;
 
 
 /// Return a string containing the data values formatted according
@@ -594,7 +604,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
 /// * If dsttype is int32 or uint32: other integer types will do their best
 ///   (caveat emptor if you mix signed/unsigned). Also a source string will
 ///   convert to int if and only if its characters form a valid integer.
-/// * If dsttype is float: inteegers and other float types will do
+/// * If dsttype is float: integers and other float types will do
 ///   their best conversion; strings will convert if and only if their
 ///   characters form a valid float number.
 OIIO_UTIL_API bool
