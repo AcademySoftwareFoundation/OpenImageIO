@@ -263,9 +263,10 @@ static std::map<std::string, std::string> cexr_tag_to_oiio_std {
     { "pixelAspectRatio", "PixelAspectRatio" },
     { "xDensity", "XResolution" },
     { "expTime", "ExposureTime" },
+    { "isoSpeed", "ISOSpeed" },
+    { "aperture", "FNumber" },
     // Ones we don't rename -- OpenEXR convention matches ours
     { "wrapmodes", "wrapmodes" },
-    { "aperture", "FNumber" },
     // Ones to prefix with openexr:
     { "chunkCount", "openexr:chunkCount" },
     { "maxSamplesPerPixel", "openexr:maxSamplesPerPixel" },
