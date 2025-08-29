@@ -10,7 +10,7 @@
 #include <OpenImageIO/platform.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// Standards-compliant bit cast of two equally sized types. This is used
@@ -273,4 +273,19 @@ rotl64(uint64_t x, int k)
 
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::bitcast;
+using v3_1::bitcast_to_float;
+using v3_1::bitcast_to_int;
+using v3_1::byteswap;
+using v3_1::rotl;
+using v3_1::rotl32;
+using v3_1::rotl64;
+#endif
 OIIO_NAMESPACE_END

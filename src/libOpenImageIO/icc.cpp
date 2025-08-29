@@ -232,7 +232,10 @@ extract(cspan<uint8_t> iccdata, size_t& offset, ICCTag& result,
 
 }  // namespace
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 bool
 decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
@@ -397,4 +400,4 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
     return true;
 }
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

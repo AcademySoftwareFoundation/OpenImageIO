@@ -14,11 +14,6 @@
 #include <OpenImageIO/texture.h>
 
 OIIO_NAMESPACE_BEGIN
-
-class ImageCache;
-class TextureSystemImpl;
-class Filter1D;
-
 #ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
 class ImageCacheFile;
 class ImageCacheTile;
@@ -26,7 +21,10 @@ class ImageCacheTileRef;
 class ImageCacheTileID;
 class ImageCacheImpl;
 #endif
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// Working implementation of the abstract TextureSystem class.
@@ -554,6 +552,6 @@ TextureSystemImpl::st_to_texel(float s, float t, TextureFile& texturefile,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
 
 #endif  // OPENIMAGEIO_TEXTURE_PVT_H

@@ -18,7 +18,7 @@
 #include <memory>
 #include <vector>
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace pvt {
 
@@ -127,4 +127,15 @@ footprint(const std::vector<T>& vec)
 }  // namespace pvt
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+namespace pvt {
+using v3_1::pvt::footprint;
+using v3_1::pvt::heapsize;
+}  // namespace pvt
+#endif
 OIIO_NAMESPACE_END
