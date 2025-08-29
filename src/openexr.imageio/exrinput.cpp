@@ -431,8 +431,11 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         case Imf::B44A_COMPRESSION: comp = "b44a"; break;
         case Imf::DWAA_COMPRESSION: comp = "dwaa"; break;
         case Imf::DWAB_COMPRESSION: comp = "dwab"; break;
-#ifdef IMF_HTJ2K_COMPRESSION
-        case Imf::HTJ2K_COMPRESSION: comp = "htj2k"; break;
+#ifdef IMF_HTJ2K256_COMPRESSION
+        case EXR_COMPRESSION_HTJ2K256: comp = "htj2k256"; break;
+#endif
+#ifdef IMF_HTJ2K32_COMPRESSION
+        case EXR_COMPRESSION_HTJ2K32: comp = "htj2k32"; break;
 #endif
         default: break;
         }

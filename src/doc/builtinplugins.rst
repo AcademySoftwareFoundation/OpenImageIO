@@ -1540,8 +1540,8 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``compression``
      - string
      - one of: ``"none"``, ``"rle"``, ``"zip"``, ``"zips"``, ``"piz"``,
-       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"`` or ``"htj2k"``.
-       (``"htj2k"`` is only supported with OpenEXR 3.4 or later.)
+       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"``, ``"htj2k256"`` or ``"htj2k32"``.
+       (``"htj2k256"`` and ``"htj2k32"`` are only supported with OpenEXR 3.4 or later.)
        If the writer receives a request for a compression type it does not
        recognize or is not supported by the version of OpenEXR on the
        system, it will use ``"zip"`` by default. For ``"dwaa"`` and
