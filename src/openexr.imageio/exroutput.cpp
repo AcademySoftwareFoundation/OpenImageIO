@@ -961,9 +961,13 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                 header.compression() = Imf::DWAA_COMPRESSION;
             else if (Strutil::iequals(str, "dwab"))
                 header.compression() = Imf::DWAB_COMPRESSION;
-#ifdef IMF_HTJ2K_COMPRESSION
-            else if (Strutil::iequals(str, "htj2k"))
-                header.compression() = Imf::HTJ2K_COMPRESSION;
+#ifdef IMF_HTJ2K256_COMPRESSION
+            else if (Strutil::iequals(str, "htj2k256"))
+                header.compression() = Imf::HTJ2K256_COMPRESSION;
+#endif
+#ifdef IMF_HTJ2K32_COMPRESSION
+            else if (Strutil::iequals(str, "htj2k32"))
+                header.compression() = Imf::HTJ2K32_COMPRESSION;
 #endif
         }
         return true;
