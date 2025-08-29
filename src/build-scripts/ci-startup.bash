@@ -54,8 +54,8 @@ export TESTSUITE_CLEANUP_ON_SUCCESS=${TESTSUITE_CLEANUP_ON_SUCCESS:=1}
 export OpenImageIO_BUILD_MISSING_DEPS=${OpenImageIO_BUILD_MISSING_DEPS:=all}
 
 # Sonar
-export BUILD_WRAPPER_OUT_DIR="${PWD}/bw_output"
-export BW_OUTPUT_DIR="${PWD}/bw_output"
+export BUILD_WRAPPER_OUT_DIR="${PWD}/build/bw_output"
+export BW_OUTPUT_DIR="${PWD}/build/bw_output"
 
 # Parallel builds
 if [[ `uname -s` == "Linux" ]] ; then

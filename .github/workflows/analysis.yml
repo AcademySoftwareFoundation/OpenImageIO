@@ -14,7 +14,7 @@ on:
     # Run on pushes only to main or if the branch name contains "analysis"
     branches:
       - main
-      - dev-3.0
+      - dev-3.*
       - '*analysis*'
       - '*sonar*'
     paths:
@@ -90,18 +90,18 @@ jobs:
           - desc: sonar gcc11/C++17 py310 exr3.2 ocio2.3
             nametag: static-analysis-sonar
             os: ubuntu-latest
-            container: aswf/ci-osl:2024-clang17
-            cxx_std: 17
-            python_ver: "3.11"
+            container: aswf/ci-oiio:2026
+            cxx_std: 20
+            python_ver: "3.13"
             simd: "avx2,f16c"
-            fmt_ver: 10.1.1
-            pybind11_ver: v2.12.0
+            fmt_ver: 11.1.4
+            pybind11_ver: v3.0.0
             coverage: 1
             # skip_tests: 1
             sonar: 1
             setenvs: export SONAR_SERVER_URL="https://sonarcloud.io"
-                            BUILD_WRAPPER_OUT_DIR=/__w/OpenImageIO/OpenImageIO/bw_output
-                            OIIO_CMAKE_BUILD_WRAPPER="build-wrapper-linux-x86-64 --out-dir /__w/OpenImageIO/OpenImageIO/bw_output"
+                            BUILD_WRAPPER_OUT_DIR=/__w/OpenImageIO/OpenImageIO/build/bw_output
+                            OIIO_CMAKE_BUILD_WRAPPER="build-wrapper-linux-x86-64 --out-dir /__w/OpenImageIO/OpenImageIO/build/bw_output"
                             OIIO_CMAKE_BUILD_TYPE=Debug
                             CMAKE_UNITY_BUILD=OFF
                             CODECOV=1

@@ -17,6 +17,8 @@ on:
       - '!**/wheel.yml'
       - '!**.properties'
       - '!docs/**'
+    branches-ignore:
+      - '*sonar-only*'
   pull_request:
     paths:
       - '**'

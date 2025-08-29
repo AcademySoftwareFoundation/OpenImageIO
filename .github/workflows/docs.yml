@@ -18,6 +18,8 @@ on:
       - '**.cmake'
       - '**/CMakeLists.txt'
       - '**/run.py'
+    branches-ignore:
+      - '*sonar-only*'
   pull_request:
     paths-ignore:
       - '**/ci.yml'
