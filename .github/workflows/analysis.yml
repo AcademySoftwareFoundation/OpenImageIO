@@ -99,6 +99,7 @@ jobs:
             coverage: 1
             # skip_tests: 1
             sonar: 1
+            ctest_args: "-L unit"
             setenvs: export SONAR_SERVER_URL="https://sonarcloud.io"
                             BUILD_WRAPPER_OUT_DIR=/__w/OpenImageIO/OpenImageIO/build/bw_output
                             OIIO_CMAKE_BUILD_WRAPPER="build-wrapper-linux-x86-64 --out-dir /__w/OpenImageIO/OpenImageIO/build/bw_output"
