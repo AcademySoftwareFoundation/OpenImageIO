@@ -26,13 +26,19 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
 #
 # Usage:
 #   oiio_add_tests ( test1 [ test2 ... ]
+#                    [ COMMAND command_to_run ]
 #                    [ IMAGEDIR name_of_reference_image_directory ]
 #                    [ URL http://find.reference.cases.here.com ]
 #                    [ FOUNDVAR variable_name ... ]
 #                    [ ENABLEVAR variable_name ... ]
 #                    [ SUFFIX suffix ]
 #                    [ ENVIRONMENT "VAR=value" ... ]
+#                    [ LABELS label_name ... ]
 #                  )
+#
+# The optional COMMAND gives the command to invoke the test. If none is
+# supplied, it's assumed that we should run our "runtest.py" program from
+# within a testsuite subdirectory.
 #
 # The optional argument IMAGEDIR is used to check whether external test images
 # (not supplied with OIIO) are present, and to disable the test cases if
@@ -47,25 +53,27 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
 #
 # The optional SUFFIX is appended to the test name.
 #
-# The optinonal ENVIRONMENT is a list of environment variables to set for the
+# The optional ENVIRONMENT is a list of environment variables to set for the
 # test.
 #
+# The optional LABELS can assign labels to tests.
+#
 macro (oiio_add_tests)
-    cmake_parse_arguments (_ats "" "SUFFIX;TESTNAME" "URL;IMAGEDIR;LABEL;FOUNDVAR;ENABLEVAR;ENVIRONMENT" ${ARGN})
+    cmake_parse_arguments (_ats "" "COMMAND;SUFFIX;TESTNAME" "URL;IMAGEDIR;LABELS;FOUNDVAR;ENABLEVAR;ENVIRONMENT" ${ARGN})
        # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
     set (_ats_testdir "${OIIO_TESTSUITE_IMAGEDIR}/${_ats_IMAGEDIR}")
     # If there was a FOUNDVAR param specified and that variable name is
     # not defined, mark the test as broken.
     foreach (_var ${_ats_FOUNDVAR})
         if (NOT ${_var})
-            set (_ats_LABEL "broken")
+            list (APPEND _ats_LABELS "broken")
         endif ()
     endforeach ()
     set (_test_disabled 0)
     foreach (_var ${_ats_ENABLEVAR})
         if ((NOT "${${_var}}" STREQUAL "" AND NOT "${${_var}}") OR
             (NOT "$ENV{${_var}}" STREQUAL "" AND NOT "$ENV{${_var}}"))
-            set (_ats_LABEL "broken")
+            list (APPEND _ats_LABELS "broken")
             set (_test_disabled 1)
         endif ()
     endforeach ()
@@ -81,43 +89,53 @@ macro (oiio_add_tests)
         message (STATUS "  -> Will not run tests ${_ats_UNPARSED_ARGUMENTS}")
         message (STATUS "  -> You can find it at ${_ats_URL}\n")
     else ()
-        # Add the tests if all is well.
+        # Add the testsuite runtest-based tests if all is well.
         set (_has_generator_expr TRUE)
         set (_testsuite "${CMAKE_SOURCE_DIR}/testsuite")
         foreach (_testname ${_ats_UNPARSED_ARGUMENTS})
-            set (_testsrcdir "${_testsuite}/${_testname}")
-            set (_testdir "${CMAKE_BINARY_DIR}/testsuite/${_testname}${_ats_SUFFIX}")
             if (_ats_TESTNAME)
                 set (_testname "${_ats_TESTNAME}")
             endif ()
             if (_ats_SUFFIX)
                 set (_testname "${_testname}${_ats_SUFFIX}")
             endif ()
-            if (_ats_LABEL MATCHES "broken")
+            if (_ats_LABELS MATCHES "broken")
                 set (_testname "${_testname}-broken")
             endif ()
 
-            set (_runtest ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
-            if (MSVC_IDE)
-                set (_runtest ${_runtest} --devenv-config $<CONFIGURATION>
-                                          --solution-path "${CMAKE_BINARY_DIR}" )
+            if (_ats_COMMAND)
+                # A specific command was passed
+                set (_runtest ${_ats_COMMAND})
+            else ()
+                # Command is implicitly to run 'runtest.py' in a testsuite dir
+                set (_testdir "${CMAKE_BINARY_DIR}/testsuite/${_testname}${_ats_SUFFIX}")
+                file (MAKE_DIRECTORY "${_testdir}")
+                set (_runtest ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
+                if (MSVC_IDE)
+                    set (_runtest ${_runtest} --devenv-config $<CONFIGURATION>
+                                              --solution-path "${CMAKE_BINARY_DIR}" )
+                endif ()
             endif ()
 
-            file (MAKE_DIRECTORY "${_testdir}")
-
             add_test ( NAME ${_testname} COMMAND ${_runtest} )
-            set_property(TEST ${_testname} APPEND PROPERTY ENVIRONMENT
-                             "OIIO_TESTSUITE_ROOT=${_testsuite}"
-                             "OIIO_TESTSUITE_SRC=${_testsrcdir}"
-                             "OIIO_TESTSUITE_CUR=${_testdir}"
-                             ${_ats_ENVIRONMENT})
-            if (NOT ${_ats_testdir} STREQUAL "")
+            set_property (TEST ${_testname} APPEND PROPERTY LABELS ${_ats_LABELS})
+
+            if (NOT _ats_COMMAND)
+                # More setup for runtest.py based testsuite tests
+                set (_testsrcdir "${_testsuite}/${_testname}")
                 set_property(TEST ${_testname} APPEND PROPERTY ENVIRONMENT
-                             "OIIO_TESTSUITE_IMAGEDIR=${_ats_testdir}")
+                                 "OIIO_TESTSUITE_ROOT=${_testsuite}"
+                                 "OIIO_TESTSUITE_SRC=${_testsrcdir}"
+                                 "OIIO_TESTSUITE_CUR=${_testdir}"
+                                 ${_ats_ENVIRONMENT})
+                if (NOT ${_ats_testdir} STREQUAL "")
+                    set_property(TEST ${_testname} APPEND PROPERTY ENVIRONMENT
+                                 "OIIO_TESTSUITE_IMAGEDIR=${_ats_testdir}")
+                endif()
             endif()
 
         endforeach ()
-        message (VERBOSE "TESTS: ${_ats_UNPARSED_ARGUMENTS}")
+        message (VERBOSE "TESTS: ${_ats_UNPARSED_ARGUMENTS} (labels ${_ats_LABELS})")
     endif ()
 endmacro ()
 
@@ -186,18 +204,25 @@ macro (oiio_add_all_tests)
                     texture-env
                     texture-colorspace
                    )
-    oiio_add_tests (${all_texture_tests})
+    oiio_add_tests (${all_texture_tests}
+                    LABELS texture)
     # Duplicate texture tests with batch mode
     oiio_add_tests (${all_texture_tests}
                     SUFFIX ".batch"
-                    ENVIRONMENT TESTTEX_BATCH=1)
+                    ENVIRONMENT TESTTEX_BATCH=1
+                    LABELS texture batch)
 
     # Tests that require oiio-images:
     oiio_add_tests (gpsread
                     oiiotool-attribs
-                    texture-filtersize
+                    IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images"
+                   )
+
+    # Tests that require oiio-images:
+    oiio_add_tests (texture-filtersize
                     texture-filtersize-stochastic
                     texture-res texture-maxres
+                    LABELS texture
                     IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images"
                    )
 
@@ -220,11 +245,13 @@ macro (oiio_add_all_tests)
             python-texturesys
             python-typedesc
             filters
+            LABELS python
             )
         # These Python tests also need access to oiio-images
         oiio_add_tests (
             python-imageinput python-imagebufalgo
             IMAGEDIR oiio-images
+            LABELS python
             )
     endif ()
 
@@ -311,11 +338,13 @@ macro (oiio_add_all_tests)
     #                     URL http://github.com/AcademySoftwareFoundation/openexr-images)
     # endif ()
     oiio_add_tests (openvdb texture-texture3d
-                    FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
-    oiio_add_tests (openvdb texture-texture3d
+                    FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB
+                    LABELS texture)
+    oiio_add_tests (texture-texture3d
                     SUFFIX ".batch"
                     ENVIRONMENT TESTTEX_BATCH=1
-                    FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
+                    FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB
+                    LABELS texture batch)
     oiio_add_tests (png png-damaged
                     ENABLEVAR ENABLE_PNG
                     IMAGEDIR oiio-images/png)

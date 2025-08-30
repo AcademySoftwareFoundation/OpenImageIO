@@ -138,106 +138,126 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
     fancy_add_executable (NAME argparse_test SRC argparse_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_argparse ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/argparse_test)
+    oiio_add_tests (unit_argparse LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/argparse_test)
 
     fancy_add_executable (NAME atomic_test SRC atomic_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_atomic ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/atomic_test)
+    oiio_add_tests (unit_atomic LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/atomic_test)
 
     fancy_add_executable (NAME span_test SRC span_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_span ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/span_test)
+    oiio_add_tests (unit_span LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/span_test)
 
     fancy_add_executable (NAME spinlock_test SRC spinlock_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_spinlock ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/spinlock_test)
+    oiio_add_tests (unit_spinlock LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/spinlock_test)
 
     fancy_add_executable (NAME spin_rw_test SRC spin_rw_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_spin_rw ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/spin_rw_test)
+    oiio_add_tests (unit_spin_rw LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/spin_rw_test)
 
     fancy_add_executable (NAME ustring_test SRC ustring_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_ustring ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ustring_test)
+    oiio_add_tests (unit_ustring LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ustring_test)
 
     fancy_add_executable (NAME strutil_test SRC strutil_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_strutil ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/strutil_test)
+    oiio_add_tests (unit_strutil LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/strutil_test)
 
     fancy_add_executable (NAME fmath_test SRC fmath_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util
                                          ${OPENIMAGEIO_IMATH_TARGETS})
-    add_test (unit_fmath ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fmath_test)
+    oiio_add_tests (unit_fmath LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fmath_test)
 
     fancy_add_executable (NAME filesystem_test SRC filesystem_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_filesystem ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/filesystem_test)
+    oiio_add_tests (unit_filesystem LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/filesystem_test)
 
     fancy_add_executable (NAME optparser_test SRC optparser_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_optparser ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/optparser_test)
+    oiio_add_tests (unit_optparser LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/optparser_test)
 
     fancy_add_executable (NAME hash_test SRC hash_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_hash ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/hash_test)
+    oiio_add_tests (unit_hash LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/hash_test)
 
     fancy_add_executable (NAME parallel_test SRC parallel_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_parallel ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/parallel_test)
+    oiio_add_tests (unit_parallel LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/parallel_test)
 
     fancy_add_executable (NAME timer_test SRC timer_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_timer ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/timer_test)
+    oiio_add_tests (unit_timer LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/timer_test)
 
     fancy_add_executable (NAME thread_test SRC thread_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_thread ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/thread_test)
+    oiio_add_tests (unit_thread LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/thread_test)
 
     fancy_add_executable (NAME simd_test SRC simd_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO
                                          ${OPENIMAGEIO_IMATH_TARGETS})
-    add_test (unit_simd ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/simd_test)
+    oiio_add_tests (unit_simd LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/simd_test)
 
     fancy_add_executable (NAME filter_test SRC filter_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO)
-    add_test (unit_filter ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/filter_test)
+    oiio_add_tests (unit_filter LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/filter_test)
 
     fancy_add_executable (NAME paramlist_test SRC paramlist_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util
                                          ${OPENIMAGEIO_IMATH_TARGETS})
-    add_test (unit_paramlist ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/paramlist_test)
+    oiio_add_tests (unit_paramlist LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/paramlist_test)
 
     fancy_add_executable (NAME strongparam_test SRC strongparam_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util)
-    add_test (unit_strongparam ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/strongparam_test)
+    oiio_add_tests (unit_strongparam LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/strongparam_test)
 
     fancy_add_executable (NAME typedesc_test SRC typedesc_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util
                                          ${OPENIMAGEIO_OPENEXR_TARGETS})
-    add_test (unit_typedesc ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/typedesc_test)
+    oiio_add_tests (unit_typedesc LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/typedesc_test)
 
     fancy_add_executable (NAME type_traits_test SRC type_traits_test.cpp
                           NO_INSTALL  FOLDER "Unit Tests"
                           LINK_LIBRARIES OpenImageIO_Util
                                          ${OPENIMAGEIO_OPENEXR_TARGETS})
-    add_test (unit_type_traits ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/type_traits_test)
+    oiio_add_tests (unit_type_traits LABELS unit-libutil
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/type_traits_test)
 
 endif ()

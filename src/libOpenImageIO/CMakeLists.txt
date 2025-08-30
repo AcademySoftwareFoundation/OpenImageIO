@@ -246,22 +246,26 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
     fancy_add_executable (NAME color_test SRC color_test.cpp
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
-    add_test (unit_color ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_test)
+    oiio_add_tests (unit_color LABELS unit-libOpenImageIO
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_test)
 
     fancy_add_executable (NAME image_span_test SRC image_span_test.cpp
                           LINK_LIBRARIES OpenImageIO Imath::Imath
                           FOLDER "Unit Tests" NO_INSTALL)
-    add_test (unit_image_span ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/image_span_test)
+    oiio_add_tests (unit_image_span LABELS unit-libOpenImageIO
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/image_span_test)
 
     fancy_add_executable (NAME imagebuf_test SRC imagebuf_test.cpp
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
-    add_test (unit_imagebuf ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebuf_test)
+    oiio_add_tests (unit_imagebuf LABELS unit-libOpenImageIO
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebuf_test)
 
     fancy_add_executable (NAME imagecache_test SRC imagecache_test.cpp
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
-    add_test (unit_imagecache ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagecache_test)
+    oiio_add_tests (unit_imagecache LABELS unit-libOpenImageIO
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagecache_test)
 
     fancy_add_executable (NAME imagebufalgo_test SRC imagebufalgo_test.cpp
                           SYSTEM_INCLUDE_DIRS
@@ -271,33 +275,39 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                                          ${OpenCV_LIBRARIES}
                                          ${OPENIMAGEIO_IMATH_TARGETS}
                           FOLDER "Unit Tests" NO_INSTALL)
-    add_test (unit_imagebufalgo ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebufalgo_test)
+    oiio_add_tests (unit_imagebufalgo LABELS unit-libOpenImageIO
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebufalgo_test)
 
     fancy_add_executable (NAME imagespec_test SRC imagespec_test.cpp
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
-    add_test (unit_imagespec ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagespec_test)
+    oiio_add_tests (unit_imagespec LABELS unit-libOpenImageIO
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagespec_test)
 
     fancy_add_executable (NAME imageinout_test SRC imageinout_test.cpp
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
-    add_test (unit_imageinout ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imageinout_test)
+    oiio_add_tests (unit_imageinout LABELS unit-libOpenImageIO
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imageinout_test)
 
     if (NOT DEFINED ENV{OpenImageIO_CI})
         fancy_add_executable (NAME imagespeed_test SRC imagespeed_test.cpp
                               LINK_LIBRARIES OpenImageIO
                               FOLDER "Unit Tests" NO_INSTALL)
-        #add_test (imagespeed_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagespeed_test)
+        # oiio_add_tests (imagespeed_test LABELS unit-libOpenImageIO
+        #                COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagespeed_test)
     endif ()
 
     fancy_add_executable (NAME compute_test SRC compute_test.cpp
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
-    add_test (unit_compute ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/compute_test)
+    oiio_add_tests (unit_compute LABELS unit-libOpenImageIO
+                    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/compute_test)
 
     if (WIN32)
         set (version_string "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}.0")
-        add_test (NAME win32_versioning COMMAND powershell ${CMAKE_SOURCE_DIR}/testsuite/win32/version_check.ps1 "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/" ${version_string})
+        oiio_add_tests (NAME LABELS unit-libOpenImageIO
+                        COMMAND win32_versioning COMMAND powershell ${CMAKE_SOURCE_DIR}/testsuite/win32/version_check.ps1 "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/" ${version_string})
     endif ()
 
 endif ()
