@@ -16,7 +16,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 // Each pixel has a capacity (number of samples allocated) and a number of
@@ -32,6 +32,9 @@ OIIO_NAMESPACE_BEGIN
 
 
 class DeepData::Impl {  // holds all the nontrivial stuff
+    // NOTE: Because the definition of DeepData::Impl is not exposed
+    // externally, it can change at will even though it's inside the v3_1
+    // namespace.
     friend class DeepData;
 
 public:
@@ -1273,4 +1276,4 @@ DeepData::occlusion_cull(int64_t pixel)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

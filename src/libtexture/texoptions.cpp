@@ -11,7 +11,7 @@
 #include <OpenImageIO/ustring.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 namespace {  // anonymous
@@ -94,4 +94,4 @@ Tex::parse_wrapmodes(const char* wrapmodes, Tex::Wrap& swrapcode,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
