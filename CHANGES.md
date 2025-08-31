@@ -1,6 +1,9 @@
-Release 3.0.10.0 (Sep 1?, 2025) -- compared to 3.0.9.0
+Release 3.0.10.0 (Sep 1, 2025) -- compared to 3.0.9.0
 -------------------------------------------------------
-
+  - *exr*: Support for OpenEXR 3.4's new compression types for HTJ2K [#4871](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4871) (by Todica Ionut)
+  - *deps*: Ffmpeg 8 support [#4870](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4870)
+  - *ci*: Add a VFX Platform 2026 CI job [#4856](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4856)
+  - *ci*: Bump webp and openexr for "latest versions" test [#4861](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4861)
 
 
 Release 3.0.9.1 (Aug 7, 2025) -- compared to 3.0.9.0

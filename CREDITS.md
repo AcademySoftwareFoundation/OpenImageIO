@@ -29,6 +29,7 @@ lg@openimageio.org
 * Ankit Sinha
 * Anton Dukhovnikov
 * Anthony Nemoff
+* Anthony Roberts
 * Aras Pranckevičius
 * Arkady Shapkin
 * Basile Fraboni
@@ -200,6 +201,7 @@ lg@openimageio.org
 * Robert Matusewicz
 * Roeland Schoukens
 * Roman Zulak
+* Rui Chen
 * Rui Li
 * Russell Greene
 * Ryen
@@ -221,11 +223,13 @@ lg@openimageio.org
 * Stefan Stavrev
 * Thiago Ize
 * Thomas Dinges
+* Thomas Klausner
 * Thomas Mansencal
 * Till Dechent
 * Tim D. Smith
 * Tim Grant
 * Todica Ionut
+* toge
 * Tom Knowles
 * Troy James Sobotka
 * Vernal Chen
