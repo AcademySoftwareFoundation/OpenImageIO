@@ -41,4 +41,3 @@ command += oiiotool ("-echo cicp: test16.png --eraseattrib Software --printinfo"
 command += oiiotool ("-echo removed_cicp: test16.png --eraseattrib Software --cicp \"\" --printinfo")
 
 outputs = [ "test16.png", "out.txt" ]
-
