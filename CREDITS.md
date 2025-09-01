@@ -30,6 +30,7 @@ lg@openimageio.org
 * Ankit Sinha
 * Anton Dukhovnikov
 * Anthony Nemoff
+* Anthony Roberts
 * Aras Pranckevičius
 * Arkady Shapkin
 * Basile Fraboni
@@ -230,8 +231,10 @@ lg@openimageio.org
 * Tim D. Smith
 * Tim Grant
 * Todica Ionut
+* toge
 * Tom Knowles
 * Troy James Sobotka
+* Vernal Chen
 * Vic P
 * Vinod Khare
 * Vishal Agrawal
