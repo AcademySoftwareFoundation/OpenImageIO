@@ -279,14 +279,16 @@ declare_imagespec(py::module& m)
             },
             "name"_a)
         .def(
-            "set_cicp", [](ImageSpec& self, int pri, int trc,
-                int mtx, int vfr) {
+            "set_cicp",
+            [](ImageSpec& self, int pri, int trc, int mtx, int vfr) {
                 self.set_cicp(pri, trc, mtx, vfr);
             },
             "pri"_a, "trc"_a, "mtx"_a = 0, "vfr"_a = 1)
         .def(
             "set_cicp",
-            [](ImageSpec& self, const std::string& cicp) { self.set_cicp(cicp); },
+            [](ImageSpec& self, const std::string& cicp) {
+                self.set_cicp(cicp);
+            },
             "cicp"_a)
         // __getitem__ is the dict-like `ImageSpec[key]` lookup
         .def("__getitem__",
