@@ -8,7 +8,7 @@ Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
   alpha channel =  -1
   z channel =  -1
   deep =  False
-  oiio:ColorSpace = "sRGB"
+  oiio:ColorSpace = "srgb_rec709_scene"
   jpeg:subsampling = "4:2:0"
   Make = "HTC"
   Model = "T-Mobile G1"

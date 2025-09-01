@@ -173,10 +173,9 @@ namespace OIIO = @PROJ_NAMESPACE@;
 #define OIIO_NS_BEGIN(ver) namespace @PROJ_NAMESPACE@ { namespace ver {
 #define OIIO_NS_END } }
 
-// Specialty macro: Make something ABI compatible with 3.0
-#define OIIO_NAMESPACE_3_0 @PROJ_NAMESPACE@_v3_0
-#define OIIO_NAMESPACE_3_0_BEGIN namespace OIIO_NAMESPACE_3_0 {
-#define OIIO_NAMESPACE_3_0_END }
+// Specialty macro: Make something ABI compatible with 3.1
+#define OIIO_NAMESPACE_3_1_BEGIN OIIO_NS_BEGIN(v3_1)
+#define OIIO_NAMESPACE_3_1_END OIIO_NS_END
 
 // Macro to use names without explicit qualifier
 #define OIIO_NAMESPACE_USING using namespace @PROJ_NAMESPACE@::@PROJ_VERSION_NAMESPACE@;

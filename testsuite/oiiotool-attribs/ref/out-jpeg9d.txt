@@ -15,7 +15,7 @@ nomakegps.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
     Exif:WhiteBalance: 0 (auto)
     Exif:YCbCrPositioning: 1
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading nomake.jpg
 nomake.jpg           : 2048 x 1536, 3 channel, uint8 jpeg
     SHA-1: A74C7DF2B01825DCB6881407AE77C11DC56AB741
@@ -43,7 +43,7 @@ nomake.jpg           : 2048 x 1536, 3 channel, uint8 jpeg
     GPS:TimeStamp: 17, 56, 33
     GPS:VersionID: 2, 2, 0, 0
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading nogps.jpg
 nogps.jpg            : 2048 x 1536, 3 channel, uint8 jpeg
     SHA-1: A74C7DF2B01825DCB6881407AE77C11DC56AB741
@@ -62,13 +62,13 @@ nogps.jpg            : 2048 x 1536, 3 channel, uint8 jpeg
     Exif:WhiteBalance: 0 (auto)
     Exif:YCbCrPositioning: 1
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading noattribs.jpg
 noattribs.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
     SHA-1: A74C7DF2B01825DCB6881407AE77C11DC56AB741
     channel list: R, G, B
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 initial keywords=
 after adding, keywords=foo; bar
 after clearing, keywords=
@@ -156,4 +156,4 @@ tahoe-icc.jpg        :  128 x   96, 3 channel, uint8 jpeg
     ICCProfile:profile_version: "2.1.0"
     ICCProfile:rendering_intent: "Perceptual"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"

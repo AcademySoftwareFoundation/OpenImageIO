@@ -14,20 +14,20 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 
 ### Required dependencies -- OIIO will not build at all without these
 
- * **C++17 or higher** (also builds with C++20 and C++23)
+ * C++17 or higher (also builds with C++20 and C++23)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: **gcc 9.3** - 14.2, **clang 5** - 20, MSVS 2017 - 2019 (**v19.14
-   and up**), **Intel icc 19+**, Intel OneAPI C++ compiler 2022+.
- * **CMake >= 3.18.2** (tested through 4.1)
- * **Imath >= 3.1** (tested through 3.2 and main)
- * **OpenEXR >= 3.1** (tested through 3.4 and main)
- * **libTIFF >= 4.0** (tested through 4.7)
- * **OpenColorIO >= 2.2** (tested through 2.4 and main)
- * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
+ * Compilers: gcc 9.3 - 14.2, **clang 10** - 20, MSVS 2017 - 2022 (v19.14
+   and up), Intel icc 19+, Intel OneAPI C++ compiler 2022+.
+ * CMake >= 3.18.2 (tested through 4.1)
+ * Imath >= 3.1 (tested through 3.2 and main)
+ * OpenEXR >= 3.1 (tested through 3.4 and main)
+ * libTIFF >= 4.0 (tested through 4.7 and master)
+ * *OpenColorIO >= 2.3* (tested through 2.4 and main)
+ * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
    through 3.1)
  * zlib >= 1.2.7 (tested through 1.3.1)
- * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 11.1).
+ * [fmtlib](https://github.com/fmtlib/fmt) >= 7.0 (tested through 11.2 and master).
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
  * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
@@ -41,15 +41,15 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.9)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * **Python >= 3.7** (tested through 3.13)
-     * **pybind11 >= 2.7** (tested through 3.0)
+     * **Python >= 3.9** (tested through 3.13).
+     * pybind11 >= 2.7 (tested through 3.0)
      * NumPy (tested through 2.2.4)
  * If you want support for PNG files:
-     * **libPNG >= 1.6.0** (tested though 1.6.49)
+     * libPNG >= 1.6.0 (tested though 1.6.50)
  * If you want support for camera "RAW" formats:
-     * **LibRaw >= 0.20** (tested though 0.21.4 and master)
+     * LibRaw >= 0.20 (tested though 0.21.4 and master)
  * If you want support for a wide variety of video formats:
-     * **ffmpeg >= 4.0** (tested through 8.0)
+     * ffmpeg >= 4.0 (tested through 8.0)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 2.0 (tested through 2.5.3; we recommend 2.4 or higher
        for multithreading support)
@@ -63,17 +63,17 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for GIF images:
      * giflib >= 5.0 (tested through 5.2.2)
  * If you want support for HEIF/HEIC or AVIF images:
-     * **libheif >= 1.11** (1.16 required for correct orientation support,
-       tested through 1.20)
+     * libheif >= 1.11 (1.16 required for correct orientation support,
+       tested through 1.19.8)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.9)
  * If you want support for WebP images:
-     * **WebP >= 1.1** (tested through 1.6)
+     * WebP >= 1.1 (tested through 1.6)
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.4.3)
  * If you want to be able to do font rendering into images:
-     * **Freetype >= 2.10.0** (tested through 2.13)
+     * Freetype >= 2.10.0 (tested through 2.13)
  * If you want to be able to read "ultra-HDR" embedded in JPEG files:
      * libultrahdr >= 1.3 (tested through 1.4)
  * If you want support for JPEG XL images:

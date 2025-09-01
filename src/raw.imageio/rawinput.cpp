@@ -9,6 +9,7 @@
 
 #include <OpenImageIO/half.h>
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
@@ -16,14 +17,13 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/tiffutils.h>
 
-#if OIIO_GNUC_VERSION || OIIO_CLANG_VERSION >= 50000
+#if OIIO_GNUC_VERSION || OIIO_CLANG_VERSION
 // fix warnings in libraw headers: use of auto_ptr
 #    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-#if OIIO_CPLUSPLUS_VERSION >= 17                            \
-    && ((OIIO_CLANG_VERSION && OIIO_CLANG_VERSION < 110000) \
-        || OIIO_APPLE_CLANG_VERSION)
+#if (OIIO_CLANG_VERSION && OIIO_CLANG_VERSION < 110000) \
+    || OIIO_APPLE_CLANG_VERSION
 // libraw uses auto_ptr, which is not in C++17 at all for clang, though
 // it does seem to be for gcc. So for clang, alias it to unique_ptr.
 namespace std {
@@ -565,18 +565,22 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     // might request a particular color space, like "ACES". Note that a
     // request for "sRGB-linear" will give you sRGB primaries with a linear
     // response.
-    std::string cs = config.get_string_attribute("raw:ColorSpace", "sRGB");
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    std::string cs = config.get_string_attribute("raw:ColorSpace",
+                                                 "srgb_rec709_scene");
     if (Strutil::iequals(cs, "raw")) {
         // Values straight from the chip
         m_processor->imgdata.params.output_color = 0;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-    } else if (Strutil::iequals(cs, "sRGB")) {
+    } else if (colorconfig.equivalent(cs, "srgb_rec709_scene")
+               || Strutil::iequals(cs, "sRGB") /* Necessary? */) {
         // Request explicit sRGB, including usual sRGB response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0 / 2.4;
         m_processor->imgdata.params.gamm[1]      = 12.92;
-    } else if (Strutil::iequals(cs, "sRGB-linear")
+    } else if (colorconfig.equivalent(cs, "lin_rec709_scene")
+               || Strutil::iequals(cs, "sRGB-linear")
                || Strutil::iequals(cs, "lin_srgb")
                || Strutil::iequals(cs, "lin_rec709")
                || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
@@ -584,7 +588,7 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-        cs                                       = "lin_rec709";
+        cs                                       = "lin_rec709_scene";
     } else if (Strutil::iequals(cs, "Adobe")) {
         // Request Adobe color space with 2.2 gamma (no linear toe)
         m_processor->imgdata.params.output_color = 2;

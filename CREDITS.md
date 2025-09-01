@@ -141,7 +141,6 @@ lg@openimageio.org
 * Leonid Onokhov
 * Leszek Godlewski
 * Li Ji
-* Loïc Vital
 * Lucas Panian
 * Lucille Caillaud
 * Lukas Schrangl

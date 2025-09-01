@@ -7,7 +7,7 @@ src/corrupt-exif.jpg :  256 x  256, 3 channel, uint8 jpeg
     XResolution: 300
     YResolution: 300
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading src/corrupt-exif-1626.jpg
 src/corrupt-exif-1626.jpg :  256 x  256, 3 channel, uint8 jpeg
     SHA-1: 6CBB7DB602A67DB300AB28842F20F6DCA02B82B1
@@ -17,7 +17,7 @@ src/corrupt-exif-1626.jpg :  256 x  256, 3 channel, uint8 jpeg
     XResolution: 300
     YResolution: 300
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 corrupt-icc-4551.jpg
 DCT coefficient (lossy) or spatial difference (lossless) out of range
 Reading src/corrupt-icc-4552.jpg
@@ -43,4 +43,4 @@ src/corrupt-icc-4552.jpg : 1500 x 1000, 3 channel, uint8 jpeg
     ICCProfile:profile_version: "2.1.0"
     ICCProfile:rendering_intent: "Unknown"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"

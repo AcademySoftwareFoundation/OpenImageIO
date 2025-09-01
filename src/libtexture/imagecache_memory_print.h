@@ -132,22 +132,9 @@ printImageCacheMemory(std::ostream& out, const ImageCacheImpl& ic)
                         Strutil::memformat(t.value()[kSubImageMem]),
                         t.value()[kSubImageCount]);
         if (t.value()[kLevelInfoMem] > 0ul)
-            OIIO::print(out, "          Level infos : {}, count : {}\n",
+            OIIO::print(out, "          Levels : {}, count : {}\n",
                         Strutil::memformat(t.value()[kLevelInfoMem]),
                         t.value()[kLevelInfoCount]);
-        if (t.value()[kLevelInfoSpecMem] > 0ul)
-            OIIO::print(out, "            Image specs : {}, count : {}\n",
-                        Strutil::memformat(t.value()[kLevelInfoSpecMem]),
-                        t.value()[kLevelInfoCount] * 2);
-        if (t.value()[kLevelInfoSpecMembMem] > 0ul)
-            OIIO::print(out, "              Members : {}\n",
-                        Strutil::memformat(t.value()[kLevelInfoSpecMembMem]));
-        if (t.value()[kLevelInfoSpecParmsMem] > 0ul)
-            OIIO::print(out, "              Extra attributes : {}\n",
-                        Strutil::memformat(t.value()[kLevelInfoSpecParmsMem]));
-        if (t.value()[kLevelInfoSpecChanMem] > 0ul)
-            OIIO::print(out, "              Channel names : {}\n",
-                        Strutil::memformat(t.value()[kLevelInfoSpecChanMem]));
     }
 }
 

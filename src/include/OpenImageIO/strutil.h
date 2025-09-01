@@ -15,6 +15,7 @@
 #pragma once
 
 #include <cstdio>
+#include <cstdarg>
 #include <map>
 #include <sstream>
 #include <string>

@@ -291,7 +291,7 @@ HdrInput::RGBE_ReadHeader()
     if (!line.size())
         return false;
 
-    m_spec.set_colorspace("lin_rec709");
+    m_spec.set_colorspace("lin_rec709_scene");
     // presume linear w/ srgb primaries -- seems like the safest assumption
     // for this old file format.
 

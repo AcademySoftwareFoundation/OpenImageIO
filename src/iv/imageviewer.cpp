@@ -53,8 +53,8 @@ namespace {
 inline bool
 IsSpecSrgb(const ImageSpec& spec)
 {
-    return Strutil::iequals(spec.get_string_attribute("oiio:ColorSpace"),
-                            "sRGB");
+    return equivalent_colorspace(spec.get_string_attribute("oiio:ColorSpace"),
+                                 "srgb_rec709_scene");
 }
 
 }  // namespace

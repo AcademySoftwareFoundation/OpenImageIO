@@ -81,7 +81,7 @@ Reading ../oiio-images/libtiffpic/dscf0013.tif
     Exif:ShutterSpeedValue: 6.5 (1/90 s)
     Exif:YCbCrPositioning: 2
     oiio:BitsPerSample: 8
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     tiff:ColorSpace: "YCbCr"
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 6
@@ -251,7 +251,7 @@ Reading ../oiio-images/libtiffpic/pc260001.tif
     Exif:Sharpness: 2 (hard)
     Exif:WhiteBalance: 0 (auto)
     oiio:BitsPerSample: 8
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1

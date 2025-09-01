@@ -729,7 +729,7 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
     .. code-block:: python
 
         spec = ImageSpec(...)
-        spec.set_colorspace ("sRGB")
+        spec.set_colorspace ("srgb_rec709_scene")
 
 
 .. py:method:: ImageSpec.undefined ()
@@ -3961,12 +3961,12 @@ details.
     .. code-block:: python
 
         spec = oiio.ImageSpec()
-        oiio.set_colorspace (spec, "lin_rec709")
+        oiio.set_colorspace (spec, "lin_rec709_scene")
 
     This function was added in OpenImageIO 3.0.
 
 
-.. py:method:: set_colorspace_rec709_gamma (spec, name)
+.. py:method:: set_colorspace_rec709_gamma (spec, gamma)
 
     Set the metadata of the `spec` to reflect Rec709 color primaries and the
     given gamma.
@@ -3992,7 +3992,7 @@ details.
 
         # ib is an ImageBuf
         cs = ib.spec().get_string_attribute("oiio:ColorSpace")
-        if oiio.equivalent_colorspace(cs, "sRGB") :
+        if oiio.equivalent_colorspace(cs, "srgb_rec709_scene") :
             print ("The image is sRGB")
 
     This function was added in OpenImageIO 3.0.

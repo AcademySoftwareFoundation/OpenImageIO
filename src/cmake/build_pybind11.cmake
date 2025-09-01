@@ -6,7 +6,7 @@
 # pybind11 by hand!
 ######################################################################
 
-set_cache (pybind11_BUILD_VERSION 2.12.0 "pybind11 version for local builds")
+set_cache (pybind11_BUILD_VERSION 3.0.0 "pybind11 version for local builds")
 set (pybind11_GIT_REPOSITORY "https://github.com/pybind/pybind11")
 set (pybind11_GIT_TAG "v${pybind11_BUILD_VERSION}")
 set_cache (pybind11_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}

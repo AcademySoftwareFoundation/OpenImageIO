@@ -10,7 +10,7 @@ src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
     Blender:Scene: "Scene"
     Blender:Time: "00:00:00:01"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "src/blender-render.jpg" and "no-attribs.jpg"
 PASS
 Reading no-attribs.jpg
@@ -21,7 +21,7 @@ no-attribs.jpg       :  640 x  480, 3 channel, uint8 jpeg
     Exif:ExifVersion: "0230"
     Exif:FlashPixVersion: "0100"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading src/blender-render.jpg
 src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
     SHA-1: A60D05FC42FDEE2FC8907531E3641C17D7C1E3AB
@@ -34,7 +34,7 @@ src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
     Blender:Scene: "Scene"
     Blender:Time: "00:00:00:01"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "src/blender-render.jpg" and "with-attribs.jpg"
 PASS
 Reading with-attribs.jpg
@@ -52,7 +52,7 @@ with-attribs.jpg     :  640 x  480, 3 channel, uint8 jpeg
     Exif:ExifVersion: "0230"
     Exif:FlashPixVersion: "0100"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading src/blender-render.jpg
 src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
     SHA-1: A60D05FC42FDEE2FC8907531E3641C17D7C1E3AB
@@ -65,7 +65,7 @@ src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
     Blender:Scene: "Scene"
     Blender:Time: "00:00:00:01"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "src/blender-render.jpg" and "with-attribs-and-desc.jpg"
 PASS
 Reading with-attribs-and-desc.jpg
@@ -84,7 +84,7 @@ with-attribs-and-desc.jpg :  640 x  480, 3 channel, uint8 jpeg
     Exif:ExifVersion: "0230"
     Exif:FlashPixVersion: "0100"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading src/blender-render.jpg
 src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
     SHA-1: A60D05FC42FDEE2FC8907531E3641C17D7C1E3AB
@@ -97,7 +97,7 @@ src/blender-render.jpg :  640 x  480, 3 channel, uint8 jpeg
     Blender:Scene: "Scene"
     Blender:Time: "00:00:00:01"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "src/blender-render.jpg" and "with-colon-desc.jpg"
 PASS
 Reading with-colon-desc.jpg
@@ -109,4 +109,4 @@ with-colon-desc.jpg  :  640 x  480, 3 channel, uint8 jpeg
     Exif:ExifVersion: "0230"
     Exif:FlashPixVersion: "0100"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"

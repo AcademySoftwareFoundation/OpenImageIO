@@ -2198,8 +2198,9 @@ IvGL::typespec_to_opengl(const ImageSpec& spec, int nchannels, GLenum& gltype,
         break;
     }
 
-    bool issrgb = Strutil::iequals(spec.get_string_attribute("oiio:ColorSpace"),
-                                   "sRGB");
+    bool issrgb
+        = equivalent_colorspace(spec.get_string_attribute("oiio:ColorSpace"),
+                                "srgb_rec709_scene");
 
     glinternalformat = nchannels;
     if (nchannels == 1) {

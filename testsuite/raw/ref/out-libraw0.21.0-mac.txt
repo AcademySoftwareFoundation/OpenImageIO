@@ -73,7 +73,7 @@
     Exif:SubsecTimeDigitized: "00"
     Exif:SubsecTimeOriginal: "00"
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "lin_rec709"
+    oiio:ColorSpace: "lin_rec709_scene"
     oiio:MakerNoteOffset: 0
     raw:cam_mul: 2076, 1024, 1584, 1024
     raw:cam_xyz: 0.6844, -0.0996, -0.0856, -0.3876, 1.1761, 0.2396, -0.0593, 0.1772, 0.6198, 0, 0, 0
@@ -161,7 +161,7 @@
     Nikon:NEFCompression: 3
     Nikon:ShootingMode: 0
     Nikon:VRMode: 0
-    oiio:ColorSpace: "lin_rec709"
+    oiio:ColorSpace: "lin_rec709_scene"
     oiio:MakerNoteOffset: 0
     raw:cam_mul: 463, 256, 396, 256
     raw:cam_xyz: 0.7171, -0.1986, -0.0648, -0.8085, 1.5555, 0.2718, -0.217, 0.2512, 0.7457, 0, 0, 0
@@ -233,7 +233,7 @@
     Fujifilm:Rating: 0
     Fujifilm:ShutterType: 0
     Fujifilm:WB_Preset: 0
-    oiio:ColorSpace: "lin_rec709"
+    oiio:ColorSpace: "lin_rec709_scene"
     oiio:MakerNoteOffset: 0
     raw:cam_mul: 131, 80, 97, 80
     raw:cam_xyz: 1.0004, -0.3219, -0.1201, -0.7036, 1.5047, 0.2107, -0.1863, 0.2565, 0.7736, 0, 0, 0
@@ -321,7 +321,7 @@
     Nikon:NEFCompression: 3
     Nikon:ShootingMode: 0
     Nikon:VRMode: 0
-    oiio:ColorSpace: "lin_rec709"
+    oiio:ColorSpace: "lin_rec709_scene"
     oiio:MakerNoteOffset: 0
     raw:cam_mul: 463, 256, 396, 256
     raw:cam_xyz: 0.7171, -0.1986, -0.0648, -0.8085, 1.5555, 0.2718, -0.217, 0.2512, 0.7457, 0, 0, 0
@@ -368,7 +368,7 @@
     Exif:Sharpness: 1 (soft)
     Exif:ShutterSpeedValue: 8.32193 (1/319 s)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "lin_rec709"
+    oiio:ColorSpace: "lin_rec709_scene"
     oiio:MakerNoteOffset: 0
     Olympus:AFFineTune: 255
     Olympus:AFFineTuneAdj: -32768, -32768, -32768
@@ -429,7 +429,7 @@
     Exif:MaxApertureValue: 925/256 (3.61328)
     Exif:MeteringMode: 5 (pattern)
     Exif:ShutterSpeedValue: 8.64386 (1/399 s)
-    oiio:ColorSpace: "lin_rec709"
+    oiio:ColorSpace: "lin_rec709_scene"
     Panasonic:AFPoint: -1
     Panasonic:BlackLevel: 0, 0, 0, 0, 0, 0, 0, 0
     Panasonic:CameraFormat: 8
@@ -480,7 +480,7 @@
     Exif:ShutterSpeedValue: 7.96578 (1/249 s)
     Exif:SubjectDistanceRange: 3 (distant)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "lin_rec709"
+    oiio:ColorSpace: "lin_rec709_scene"
     oiio:MakerNoteOffset: 0
     Pentax:AFAdjustment: 0
     Pentax:AFPoint: -2
@@ -555,7 +555,7 @@
     Exif:Sharpness: 0 (normal)
     Exif:ShutterSpeedValue: 5.90689 (1/59 s)
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "lin_rec709"
+    oiio:ColorSpace: "lin_rec709_scene"
     oiio:MakerNoteOffset: 0
     raw:cam_mul: 1972, 1024, 1632, 1024
     raw:cam_xyz: 0.9847, -0.3091, -0.0928, -0.8485, 1.6345, 0.2225, -0.0715, 0.0595, 0.7103, 0, 0, 0

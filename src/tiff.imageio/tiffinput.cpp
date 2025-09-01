@@ -1314,7 +1314,7 @@ TIFFInput::readspec(bool read_meta)
             // Exif spec says that anything other than 0xffff==uncalibrated
             // should be interpreted to be sRGB.
             if (m_spec.get_int_attribute("Exif:ColorSpace") != 0xffff)
-                m_spec.attribute("oiio:ColorSpace", "sRGB");
+                m_spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
             // NOTE: We must set "oiio:ColorSpace" explicitly, not call
             // set_colorspace, or it will erase several other TIFF attribs we
             // need to preserve.

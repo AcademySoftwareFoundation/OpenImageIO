@@ -191,17 +191,14 @@
 #    define OIIO_CPLUSPLUS_VERSION 23
 #    define OIIO_CONSTEXPR20 constexpr
 #    define OIIO_CONSTEXPR23 constexpr
-#    define OIIO_INLINE_CONSTEXPR inline constexpr
 #elif (__cplusplus >= 202001L)
 #    define OIIO_CPLUSPLUS_VERSION 20
 #    define OIIO_CONSTEXPR20 constexpr
 #    define OIIO_CONSTEXPR23 /* not constexpr before C++23 */
-#    define OIIO_INLINE_CONSTEXPR inline constexpr
 #elif (__cplusplus >= 201703L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
 #    define OIIO_CPLUSPLUS_VERSION 17
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
 #    define OIIO_CONSTEXPR23 /* not constexpr before C++23 */
-#    define OIIO_INLINE_CONSTEXPR inline constexpr
 #else
 #    error "This version of OIIO is meant to work only with C++17 and above"
 #endif

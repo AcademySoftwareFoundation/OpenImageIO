@@ -13,6 +13,16 @@
 #include <OpenImageIO/ustring.h>
 
 
+//
+// Some general color management information materials to have handy:
+//   - CIF recommendations for scene referred color spaces for rendering and
+//     textures:
+//     https://github.com/AcademySoftwareFoundation/ColorInterop/blob/main/Recommendations/01_TextureAssetColorSpaces/TextureAssetColorSpaces.md
+//   - CIF recommendations for display referred color spaces:
+//     https://docs.google.com/document/d/1MmBG4a3Dr6S6EO781WjK-xZW7QdHpuo-zd7wtMvG1Rs
+//
+
+
 OIIO_NAMESPACE_BEGIN
 
 /// The ColorProcessor encapsulates a baked color transformation, suitable for

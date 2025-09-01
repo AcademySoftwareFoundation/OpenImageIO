@@ -1143,13 +1143,15 @@ void
 test_color_management()
 {
     ColorConfig config;
-    auto processor = config.createColorProcessor("lin_srgb", "srgb");
+    auto processor = config.createColorProcessor("lin_rec709_scene",
+                                                 "srgb_rec709_scene");
     // These color spaces might not be found if the site running this test
     // has a weirdo OCIO config that doesn't contain those names. If we fail,
     // try again using the built-in config (OCIO 2.2+) and hope for the best.
     if (!processor)
         processor = ColorConfig("ocio://default")
-                        .createColorProcessor("lin_srgb", "srgb");
+                        .createColorProcessor("lin_rec709_scene",
+                                              "srgb_rec709_scene");
     OIIO_CHECK_ASSERT(processor);
 
     // Test the IBA::colorconvert version that works on a color at a time

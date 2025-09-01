@@ -58,9 +58,9 @@ print_nums(std::ostream& out, int n, const T* val, string_view sep = " ",
             if (i)
                 Strutil::print(out, "{}", sep);
             float v = float(val[i]);
-            if (isnan(v))
+            if (std::isnan(v))
                 Strutil::print(out, "nan");
-            else if (isinf(v))
+            else if (std::isinf(v))
                 Strutil::print(out, "inf");
             else
                 Strutil::print(out, "{:.9f}", v);

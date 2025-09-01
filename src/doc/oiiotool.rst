@@ -709,13 +709,19 @@ Color convert an image
 ----------------------
 
 This command linearizes a JPEG assumed to be in sRGB, saving as an HDRI
-OpenEXR file::
+OpenEXR file in ACEScg color space::
 
-    oiiotool photo.jpg --colorconvert sRGB linear -o output.exr
+    oiiotool photo.jpg --colorconvert srgb acescg -o output.exr
 
 And the other direction::
 
-    oiiotool render.exr --colorconvert linear sRGB -o fortheweb.png
+    oiiotool render.exr --colorconvert acescg srgb -o fortheweb.png
+
+Above, we're using the short aliases "srgb" and "acescg", but it's also fine
+to use the canonical Color Interop Forum names::
+
+    oiiotool photo.jpg --colorconvert srgb_rec709_scene lin_ap1_scene -o output.exr
+    oiiotool render.exr --colorconvert lin_ap1_scene srgb_rec709_scene -o fortheweb.png
 
 This converts between two named color spaces (presumably defined by your
 facility's OpenColorIO configuration)::
@@ -1608,7 +1614,7 @@ Writing images
 
         oiiotool in.tif -otex out.tx
     
-        oiiotool in.jpg --colorconvert sRGB linear -d uint16 -otex out.tx
+        oiiotool in.jpg --colorconvert srgb_rec709_scene lin_rec709_scene -d uint16 -otex out.tx
     
         oiiotool --pattern:checker 512x512 3 -d uint8 -otex:wrap=periodic checker.tx
     
@@ -4352,15 +4358,12 @@ current top image.
 Many of the color management commands depend on an installation of
 OpenColorIO (http://opencolorio.org).
 
-If OIIO has been compiled with OpenColorIO support and the environment
-variable `$OCIO` is set to point to a valid OpenColorIO configuration file,
-you will have access to all the color spaces that are known by that OCIO
-configuration.  Alternately, you can use the `--colorconfig` option to
-explicitly point to a configuration file. If no  valid configuration file is
-found (either in `$OCIO` or specified by `--colorconfig}` or OIIO was not
-compiled with OCIO support, then the only color space transformats available
-are `linear` to `Rec709` (and vice versa) and `linear` to `sRGB` (and vice
-versa).
+If the environment variable `$OCIO` is set to point to a valid OpenColorIO
+configuration file, you will have access to all the color spaces that are
+known by that OCIO configuration.  Alternately, you can use the
+`--colorconfig` option to explicitly point to a configuration file. If no
+valid configuration file is found (either in `$OCIO` or specified by
+`--colorconfig`), then the built-in OCIO "default" config will be used.
 
 If you ask for :program:`oiiotool` help (`oiiotool --help`), at the very
 bottom you will see the list of all color spaces, looks, and displays that

@@ -29,7 +29,7 @@ Reading ../oiio-images/tahoe-gps.jpg
     GPS:TimeStamp: 17, 56, 33
     GPS:VersionID: 2, 2, 0, 0
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading tahoe-gps.jpg
 tahoe-gps.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
     SHA-1: 2623446988E34395C6B0A4AA4FC75107C708BF18
@@ -58,4 +58,4 @@ tahoe-gps.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
     GPS:TimeStamp: 17, 56, 33
     GPS:VersionID: 2, 2, 0, 0
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
