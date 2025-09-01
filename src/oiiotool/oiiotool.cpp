@@ -7228,7 +7228,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Add the contents of the file to the top image as its ICC profile")
       .OTACTION(icc_read);
     ap.arg("--cicp %s:CICP")
-       .help("Set or modifiy CICP metadata for supporting output formats (e.g., '12,16,0,1'); selectively persist existing values if not specified (e.g., ',,,0')")
+       .help("Set or modifiy CICP metadata for supporting output formats (e.g., \"12,16,0,1\"); selectively persist existing values if not specified (e.g., \",,,0\")")
        .OTACTION(action_cicp);
     // clang-format on
 
