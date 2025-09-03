@@ -868,11 +868,17 @@ Split a multi-image file into separate files
 --------------------------------------------
 
 Take a multi-image TIFF file, split into its constituent subimages and
-output each one to a different file, with names `sub0001.tif`,
-`sub0002.tif`, etc.::
+output each one to a different file, with names `sub.0001.tif`,
+`sub.0002.tif`, etc.::
 
-    oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
+    oiiotool multi.tif -sisplit -o:all=1 sub.%04d.tif
 
+Take a multi-image OpenEXR file (called "multi-part" in OpenEXR parlance),
+split into its constituent subimages and output each one to a different file,
+with names `sub.beauty.exr`, `sub.albedo.exr`, etc., using the name of each
+subimage according to its metadata::
+
+    oiiotool multi.exr -sisplit -o:all=1 "sub.{TOP.'oiio:subimagename'}.exr"
 
 
 |
@@ -1498,16 +1504,24 @@ Writing images
         Output all images currently on the stack using a pattern.
         See further explanation below.
 
-    The `all=n` option causes *all* images on the image stack to be output,
-    with the filename argument used as a pattern assumed to contain a `%d`,
-    which will be substituted with the index of the image (beginning with
-    *n*). For example, to take a multi-image TIFF and extract all the
-    subimages and save them as separate files::
+    The `all=n` option causes *all* images on the image stack to be output. If
+    the *filename* argument contains expression substitution notation, the
+    substitution will be re-evaluated for each image output. Also, if the
+    *filename* argument contains a `%d`, that will be substituted with the
+    index of the image (beginning with *n*). For example, to take a
+    multi-image TIFF and extract all the subimages and save them as separate
+    files::
     
         oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
     
     This will output the subimges as separate files `sub0001.tif`,
     `sub0002.tif`, and so on.
+
+    Expression substitution can be used to insert the subimage name
+    into each filename::
+    
+        oiiotool multi.tif -sisplit -o:all=1 "sub.{TOP.'oiio:subimagename'}.tif"
+    
 
 
 .. option:: -otex <filename>
