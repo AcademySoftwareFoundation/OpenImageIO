@@ -41,10 +41,8 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfDoubleAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
+#include <OpenEXR/ImfFloatVectorAttribute.h>
 #include <OpenEXR/ImfHeader.h>
-#if OPENEXR_HAS_FLOATVECTOR
-#    include <OpenEXR/ImfFloatVectorAttribute.h>
-#endif
 #include <OpenEXR/ImfInputPart.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
@@ -432,10 +430,10 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         case Imf::DWAA_COMPRESSION: comp = "dwaa"; break;
         case Imf::DWAB_COMPRESSION: comp = "dwab"; break;
 #ifdef IMF_HTJ2K256_COMPRESSION
-        case EXR_COMPRESSION_HTJ2K256: comp = "htj2k256"; break;
+        case Imf::HTJ2K256_COMPRESSION: comp = "htj2k256"; break;
 #endif
 #ifdef IMF_HTJ2K32_COMPRESSION
-        case EXR_COMPRESSION_HTJ2K32: comp = "htj2k32"; break;
+        case Imf::HTJ2K32_COMPRESSION: comp = "htj2k32"; break;
 #endif
         default: break;
         }
@@ -459,9 +457,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         const Imf::KeyCodeAttribute* kcattr;
         const Imf::ChromaticitiesAttribute* crattr;
         const Imf::RationalAttribute* rattr;
-#if OPENEXR_HAS_FLOATVECTOR
         const Imf::FloatVectorAttribute* fvattr;
-#endif
         const Imf::StringVectorAttribute* svattr;
         const Imf::DoubleAttribute* dattr;
         const Imf::V2dAttribute* v2dattr;
@@ -529,8 +525,6 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                 ustrvec[i] = strvec[i];
             TypeDesc sv(TypeDesc::STRING, ustrvec.size());
             spec.attribute(oname, sv, &ustrvec[0]);
-#if OPENEXR_HAS_FLOATVECTOR
-
         } else if (type == "floatvector"
                    && (fvattr
                        = header->findTypedAttribute<Imf::FloatVectorAttribute>(
@@ -538,7 +532,6 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
             std::vector<float> fvec = fvattr->value();
             TypeDesc fv(TypeDesc::FLOAT, fvec.size());
             spec.attribute(oname, fv, &fvec[0]);
-#endif
         } else if (type == "double"
                    && (dattr = header->findTypedAttribute<Imf::DoubleAttribute>(
                            name))) {
