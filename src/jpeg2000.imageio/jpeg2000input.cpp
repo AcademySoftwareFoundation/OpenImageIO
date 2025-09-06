@@ -278,7 +278,10 @@ public:
     ojph::si64 tell() { return ioproxy->tell(); };
     bool eof()
     {
-        return ioproxy->tell() == static_cast<int64_t>(ioproxy->size());
+        int64_t pos = ioproxy->tell();
+        if (pos < 0)
+            return false;  // Error condition, not EOF
+        return pos == static_cast<int64_t>(ioproxy->size());
     }
     void close()
     {
@@ -484,6 +487,8 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     jph_infile* jphinfile              = new jph_infile(ioproxy());
     ojph_reader                        = true;
     ojph::message_error* default_error = ojph::get_error();
+    // Disable the default OpenJPH error stream to prevent unwanted error output.
+    // Errors will be handled by the custom error handler (Oiio_Reader_Error_handler) configured below.
     ojph::set_error_stream(nullptr);
 
     try {
