@@ -18,7 +18,10 @@
 #ifdef USE_OPENJPH
 #    include <openjph/ojph_codestream.h>
 #    include <openjph/ojph_file.h>
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdelete-incomplete")
 #    include <openjph/ojph_mem.h>
+OIIO_PRAGMA_WARNING_POP
 #    include <openjph/ojph_message.h>
 #    include <openjph/ojph_params.h>
 #endif
@@ -273,7 +276,13 @@ public:
         return ioproxy->seek(offset, origin);
     }
     ojph::si64 tell() { return ioproxy->tell(); };
-    bool eof() { return ioproxy->tell() == ioproxy->size(); }
+    bool eof()
+    {
+        int64_t pos = ioproxy->tell();
+        if (pos < 0)
+            return false;  // Error condition, not EOF
+        return pos == static_cast<int64_t>(ioproxy->size());
+    }
     void close()
     {
         ioproxy->close();
@@ -385,17 +394,16 @@ Jpeg2000Input::ojph_read_image()
     // We are going to read the whole image into the buffer, since with openjph
     // its hard to easily grab part of the image.
     if (codestream.is_planar()) {
-        for (ojph::ui32 c = 0; c < ch; ++c)
-
-            for (ojph::ui32 i = 0; i < h; ++i) {
+        for (int c = 0; c < ch; ++c)
+            for (int i = 0; i < h; ++i) {
                 ojph::ui32 comp_num;
                 ojph::line_buf* line = codestream.pull(comp_num);
                 const ojph::si32* sp = line->i32;
-                assert(comp_num == c);
+                OIIO_DASSERT(int(comp_num) == c);
                 if (m_spec.format == TypeDesc::UCHAR) {
                     unsigned char* dout = &m_buf[i * w * ch];
                     dout += c;
-                    for (ojph::ui32 j = w; j > 0; j--, dout += ch) {
+                    for (int j = w; j > 0; j--, dout += ch) {
                         *dout = *sp++;
                     }
                 }
@@ -403,24 +411,23 @@ Jpeg2000Input::ojph_read_image()
                     unsigned short* dout
                         = (unsigned short*)&m_buf[buffer_bpp * (i * w * ch)];
                     dout += c;
-                    for (ojph::ui32 j = w; j > 0; j--, dout += ch) {
+                    for (int j = w; j > 0; j--, dout += ch) {
                         *dout = bit_range_convert(*sp++, file_bit_depth,
                                                   buffer_bpp * 8);
                     }
                 }
             }
-
     } else {
-        for (ojph::ui32 i = 0; i < h; ++i) {
-            for (ojph::ui32 c = 0; c < ch; ++c) {
+        for (int i = 0; i < h; ++i) {
+            for (int c = 0; c < ch; ++c) {
                 ojph::ui32 comp_num;
                 ojph::line_buf* line = codestream.pull(comp_num);
                 const ojph::si32* sp = line->i32;
-                assert(comp_num == c);
+                OIIO_DASSERT(int(comp_num) == c);
                 if (m_spec.format == TypeDesc::UCHAR) {
                     unsigned char* dout = &m_buf[i * w * ch];
                     dout += c;
-                    for (ojph::ui32 j = w; j > 0; j--, dout += ch) {
+                    for (int j = w; j > 0; j--, dout += ch) {
                         *dout = *sp++;
                     }
                 }
@@ -428,7 +435,7 @@ Jpeg2000Input::ojph_read_image()
                     unsigned short* dout
                         = (unsigned short*)&m_buf[buffer_bpp * (i * w * ch)];
                     dout += c;
-                    for (ojph::ui32 j = w; j > 0; j--, dout += ch) {
+                    for (int j = w; j > 0; j--, dout += ch) {
                         *dout = bit_range_convert(*sp++, file_bit_depth,
                                                   buffer_bpp * 8);
                     }
@@ -480,6 +487,9 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     jph_infile* jphinfile              = new jph_infile(ioproxy());
     ojph_reader                        = true;
     ojph::message_error* default_error = ojph::get_error();
+    // Disable the default OpenJPH error stream to prevent unwanted error output.
+    // Errors will be handled by the custom error handler (Oiio_Reader_Error_handler) configured below.
+    ojph::set_error_stream(nullptr);
 
     try {
         Oiio_Reader_Error_handler error_handler(default_error);
