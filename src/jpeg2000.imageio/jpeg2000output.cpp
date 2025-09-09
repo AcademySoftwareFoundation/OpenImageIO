@@ -23,6 +23,16 @@
 #    endif
 #endif
 
+#ifdef USE_OPENJPH
+#    include <openjph/ojph_arg.h>
+#    include <openjph/ojph_codestream.h>
+#    include <openjph/ojph_file.h>
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdelete-incomplete")
+#    include <openjph/ojph_mem.h>
+OIIO_PRAGMA_WARNING_POP
+#    include <openjph/ojph_params.h>
+#endif
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -562,5 +572,185 @@ Jpeg2000Output::get_progression_order(const std::string& progression_order)
         return OPJ_CPRL;
     return OPJ_PROG_UNKNOWN;
 }
+
+
+#ifdef USE_OPENJPH
+
+
+struct size_list_interpreter : public ojph::cli_interpreter::arg_inter_base {
+    size_list_interpreter(const int max_num_elements, int& num_elements,
+                          ojph::size* list)
+        : max_num_eles(max_num_elements)
+        , sizelist(list)
+        , num_eles(num_elements)
+    {
+    }
+
+    virtual void operate(const char* str)
+    {
+        const char* next_char = str;
+        num_eles              = 0;
+        do {
+            if (num_eles) {
+                if (*next_char != ',')  //separate sizes by a comma
+                    throw "sizes in a sizes list must be separated by a comma";
+                next_char++;
+            }
+
+            char* endptr;
+            sizelist[num_eles].w = (ojph::ui32)strtoul(next_char, &endptr, 10);
+            if (endptr == next_char)
+                throw "size number is improperly formatted";
+            next_char = endptr;
+            if (*next_char != ',')
+                throw "size must have a "
+                      ","
+                      " between the two numbers";
+            next_char++;
+            sizelist[num_eles].h = (ojph::ui32)strtoul(next_char, &endptr, 10);
+            if (endptr == next_char)
+                throw "number is improperly formatted";
+            next_char = endptr;
+
+
+            ++num_eles;
+        } while (*next_char == ',' && num_eles < max_num_eles);
+        if (num_eles < max_num_eles) {
+            if (*next_char)
+                throw "size elements must separated by a "
+                      ","
+                      "";
+        } else if (*next_char)
+            throw "there are too many elements in the size list";
+    }
+
+    const int max_num_eles;
+    ojph::size* sizelist;
+    int& num_eles;
+};
+
+
+
+void
+Jpeg2000Output::create_jph_image()
+{
+    m_jph_stream        = std::make_unique<ojph::codestream>();
+    ojph::param_siz siz = m_jph_stream->access_siz();
+    siz.set_image_extent(ojph::point(m_spec.width, m_spec.height));
+
+
+    // TODO
+    /*
+    OPJ_COLOR_SPACE color_space = OPJ_CLRSPC_SRGB;
+    if (m_spec.nchannels == 1)
+        color_space = OPJ_CLRSPC_GRAY;
+    */
+
+    int precision          = 16;
+    const ParamValue* prec = m_spec.find_attribute("oiio:BitsPerSample",
+                                                   TypeDesc::INT);
+    bool is_signed         = false;
+
+    if (prec)
+        precision = *(int*)prec->data();
+
+    switch (m_spec.format.basetype) {
+    case TypeDesc::INT8:
+    case TypeDesc::UINT8:
+        precision = 8;
+        is_signed = false;
+        break;
+    case TypeDesc::FLOAT:
+    case TypeDesc::HALF:
+    case TypeDesc::DOUBLE:
+        throw "OpenJPH::Write Double is not currently supported.";
+    default: break;
+    }
+
+    output_depth = m_spec.get_int_attribute("jph:bit_depth", precision);
+
+    siz.set_num_components(m_spec.nchannels);
+    ojph::point subsample(1, 1);  // Default subsample
+    for (int c = 0; c < m_spec.nchannels; ++c)
+        siz.set_component(static_cast<ojph::ui32>(c), subsample, output_depth,
+                          is_signed);
+
+    ojph::size tile_size(0, 0);
+    ojph::point tile_offset(0, 0);
+    ojph::point image_offset(0, 0);
+    siz.set_image_offset(image_offset);
+    siz.set_tile_size(tile_size);
+    siz.set_tile_offset(tile_offset);
+    ojph::param_cod cod = m_jph_stream->access_cod();
+
+    std::string block_args = m_spec.get_string_attribute("jph:block_size",
+                                                         "64,64");
+    std::stringstream ss(block_args);
+    char comma;
+    int block_size_x, block_size_y;
+    ss >> block_size_x >> comma >> block_size_y;
+
+    cod.set_block_dims(block_size_x, block_size_y);
+    cod.set_color_transform(true);
+
+    int num_precincts            = -1;
+    const int max_precinct_sizes = 33;  //maximum number of decompositions is 32
+    ojph::size precinct_size[max_precinct_sizes];
+    std::string precinct_size_args
+        = m_spec.get_string_attribute("jph:precincts", "undef");
+    if (precinct_size_args != "undef") {
+        size_list_interpreter sizelist(max_precinct_sizes, num_precincts,
+                                       precinct_size);
+        sizelist.operate(precinct_size_args.c_str());
+
+        if (num_precincts != -1)
+            cod.set_precinct_size(num_precincts, precinct_size);
+    }
+
+    std::string progression_order
+        = m_spec.get_string_attribute("jph:prog_order", "RPCL");
+
+    cod.set_progression_order(progression_order.c_str());
+
+    cod.set_reversible(true);
+
+    float qstep = m_spec.get_float_attribute("jph:qstep", -1);
+
+    if (qstep > 0) {
+        cod.set_reversible(false);
+        m_jph_stream->access_qcd().set_irrev_quant(qstep);
+    }
+
+    cod.set_num_decomposition(m_spec.get_int_attribute("jph:num_decomps", 5));
+    m_jph_stream->set_planar(false);
+    m_jph_image = std::make_unique<ojph::j2c_outfile>();
+    m_jph_image->open(m_filename.c_str());
+    m_jph_stream->write_headers(m_jph_image.get());  //, "test comment", 1);
+}
+
+
+
+template<typename T>
+void
+Jpeg2000Output::write_jph_scanline(int y, int /*z*/, const void* data)
+{
+    int bits                 = sizeof(T) * 8;
+    const T* scanline        = static_cast<const T*>(data);
+    ojph::ui32 next_comp     = 0;
+    ojph::line_buf* cur_line = m_jph_stream->exchange(NULL, next_comp);
+    for (int c = 0; c < m_spec.nchannels; ++c) {
+        assert(c == next_comp);
+        for (int i = 0, j = c; i < m_spec.width; i++) {
+            unsigned int val = scanline[j];
+            j += m_spec.nchannels;
+            if (bits != output_depth)
+                val = bit_range_convert(val, bits, output_depth);
+            cur_line->i32[i] = val;
+        }
+        cur_line = m_jph_stream->exchange(cur_line, next_comp);
+    }
+}
+
+#endif
 
 OIIO_PLUGIN_NAMESPACE_END

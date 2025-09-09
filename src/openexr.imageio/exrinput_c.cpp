@@ -632,7 +632,6 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
         case EXR_ATTR_FLOAT_VECTOR: {
             TypeDesc fv(TypeDesc::FLOAT, (size_t)attr->floatvector->length);
             spec.attribute(oname, fv, attr->floatvector->arr);
-
             break;
         }
 

@@ -1,0 +1,4 @@
+src/incomplete.exr: (EXR_ERR_BAD_CHUNK_LEADER) Preparing to read scanline 125 (chunk 125), found corrupt leader: packed size 220, file offset 12254, size 12288
+oiiotool ERROR: read : "src/incomplete.exr": Failed OpenEXR read: Unable to query scanline information
+Full command line was:
+> oiiotool src/incomplete.exr -o out.exr
