@@ -1,5 +1,13 @@
-Reading gpgr.exr
-gpgr.exr             :   64 x   64, 3 channel, half openexr
+subimage.layerA.exr  :   64 x   64, 3 channel, half openexr
+    SHA-1: 0C27059220A256F197900FB4EB8C7CF63349A26B
+subimage.layerB.exr  :   64 x   64, 3 channel, half openexr
+    SHA-1: 0E19BEFEF868E356A6A4C6450DA9A7B17DD11E12
+subimage.layerC.exr  :   64 x   64, 3 channel, half openexr
+    SHA-1: CFAF4AFC253320AC35B8E9014C6D750768354059
+subimage.layerD.exr  :   64 x   64, 3 channel, half openexr
+    SHA-1: 5FFA4616F46509627873D2C53744E47E2F492719
+Reading jpgr.exr
+jpgr.exr             :   64 x   64, 3 channel, half openexr
     4 subimages: 64x64 [h,h,h], 64x64 [h,h,h], 64x64 [h,h,h], 64x64 [h,h,h]
  subimage  0:   64 x   64, 3 channel, half openexr
     SHA-1: 0C27059220A256F197900FB4EB8C7CF63349A26B
