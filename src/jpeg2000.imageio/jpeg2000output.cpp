@@ -27,7 +27,10 @@
 #    include <openjph/ojph_arg.h>
 #    include <openjph/ojph_codestream.h>
 #    include <openjph/ojph_file.h>
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdelete-incomplete")
 #    include <openjph/ojph_mem.h>
+OIIO_PRAGMA_WARNING_POP
 #    include <openjph/ojph_params.h>
 #endif
 
@@ -760,8 +763,9 @@ Jpeg2000Output::create_jph_image()
 
     siz.set_num_components(m_spec.nchannels);
     ojph::point subsample(1, 1);  // Default subsample
-    for (ojph::ui32 c = 0; c < m_spec.nchannels; ++c)
-        siz.set_component(c, subsample, output_depth, is_signed);
+    for (int c = 0; c < m_spec.nchannels; ++c)
+        siz.set_component(static_cast<ojph::ui32>(c), subsample, output_depth,
+                          is_signed);
 
     ojph::size tile_size(0, 0);
     ojph::point tile_offset(0, 0);
