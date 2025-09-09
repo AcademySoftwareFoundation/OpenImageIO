@@ -5555,6 +5555,9 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         remove_all_cmd(newcmd);
         new_argv[0]              = newcmd.c_str();
         ImageRecRef saved_curimg = ot.curimg;  // because we'll overwrite it
+        // Revert back to the UN-expression-substituted filename. It will get
+        // expression substitution in the subsequent call to output_file.
+        filename = argv[1];
         for (int i = 0; i < nimages; ++i) {
             if (i < nimages - 1)
                 ot.curimg = ot.image_stack[i];
