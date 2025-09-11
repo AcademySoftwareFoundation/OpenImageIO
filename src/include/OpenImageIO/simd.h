@@ -281,7 +281,7 @@
 #endif
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace simd {
 
@@ -10284,41 +10284,37 @@ OIIO_FORCEINLINE vfloat16 nmsub (const simd::vfloat16& a, const simd::vfloat16& 
 
 } // end namespace simd
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
 
 
 /// Custom fmtlib formatters for our SIMD types.
 
-namespace fmt {
-template<> struct formatter<OIIO::simd::vfloat3>
+template<> struct fmt::formatter<OIIO::simd::vfloat3>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat3> {};
-template<> struct formatter<OIIO::simd::vfloat4>
+template<> struct fmt::formatter<OIIO::simd::vfloat4>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat4> {};
-template<> struct formatter<OIIO::simd::vfloat8>
+template<> struct fmt::formatter<OIIO::simd::vfloat8>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat8> {};
-template<> struct formatter<OIIO::simd::vfloat16>
+template<> struct fmt::formatter<OIIO::simd::vfloat16>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat16> {};
-template<> struct formatter<OIIO::simd::vint4>
+template<> struct fmt::formatter<OIIO::simd::vint4>
     : OIIO::pvt::index_formatter<OIIO::simd::vint4> {};
-template<> struct formatter<OIIO::simd::vint8>
+template<> struct fmt::formatter<OIIO::simd::vint8>
     : OIIO::pvt::index_formatter<OIIO::simd::vint8> {};
-template<> struct formatter<OIIO::simd::vint16>
+template<> struct fmt::formatter<OIIO::simd::vint16>
     : OIIO::pvt::index_formatter<OIIO::simd::vint16> {};
-template<> struct formatter<OIIO::simd::matrix44>
+template<> struct fmt::formatter<OIIO::simd::matrix44>
     : OIIO::pvt::array_formatter<OIIO::simd::matrix44, float, 16> {};
-} // namespace fmt
 
 
 // Allow C++ metaprogramming to understand that the simd types are trivially
 // copyable (i.e. memcpy to copy simd types is fine).
-namespace std {  // not necessary in C++17, just say std::is_trivially_copyable
 #if defined(__INTEL_COMPILER)
 // Necessary because we have to define the vint types copy constructors on icc
-template<> struct is_trivially_copyable<OIIO::simd::vint4> : std::true_type {};
-template<> struct is_trivially_copyable<OIIO::simd::vint8> : std::true_type {};
-template<> struct is_trivially_copyable<OIIO::simd::vint16> : std::true_type {};
+template<> struct std::is_trivially_copyable<OIIO::simd::vint4> : std::true_type {};
+template<> struct std::is_trivially_copyable<OIIO::simd::vint8> : std::true_type {};
+template<> struct std::is_trivially_copyable<OIIO::simd::vint16> : std::true_type {};
 #endif
-}  // namespace std
 
 
 #undef SIMD_DO

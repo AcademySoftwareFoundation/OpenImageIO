@@ -49,7 +49,7 @@
 #pragma warning(disable: 4127)
 #endif
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 SHA1::SHA1 (const void *data, size_t size)
 {
@@ -317,4 +317,4 @@ bool CSHA1::GetHash(UINT_8* pbDest20) const
 #pragma warning(pop)
 #endif
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

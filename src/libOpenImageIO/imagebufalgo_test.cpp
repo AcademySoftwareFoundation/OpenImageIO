@@ -1316,15 +1316,15 @@ test_simple_perpixel()
 
 template<class T>
 std::string
-mosaic(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-       const std::string& pattern, const float (&white_balance)[4],
-       int nthreads);
+do_mosaic(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+          const std::string& pattern, const float (&white_balance)[4],
+          int nthreads);
 
 template<>
 std::string
-mosaic<float>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-              const std::string& pattern, const float (&white_balance)[4],
-              int nthreads)
+do_mosaic<float>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+                 const std::string& pattern, const float (&white_balance)[4],
+                 int nthreads)
 {
     return ImageBufAlgo::mosaic_float(dst, src, x_offset, y_offset, pattern,
                                       white_balance, nthreads);
@@ -1332,9 +1332,9 @@ mosaic<float>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
 
 template<>
 std::string
-mosaic<half>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-             const std::string& pattern, const float (&white_balance)[4],
-             int nthreads)
+do_mosaic<half>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+                const std::string& pattern, const float (&white_balance)[4],
+                int nthreads)
 {
     return ImageBufAlgo::mosaic_half(dst, src, x_offset, y_offset, pattern,
                                      white_balance, nthreads);
@@ -1342,9 +1342,9 @@ mosaic<half>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
 
 template<>
 std::string
-mosaic<uint16_t>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-                 const std::string& pattern, const float (&white_balance)[4],
-                 int nthreads)
+do_mosaic<uint16_t>(ImageBuf& dst, const ImageBuf& src, int x_offset,
+                    int y_offset, const std::string& pattern,
+                    const float (&white_balance)[4], int nthreads)
 {
     return ImageBufAlgo::mosaic_uint16(dst, src, x_offset, y_offset, pattern,
                                        white_balance, nthreads);
@@ -1352,9 +1352,9 @@ mosaic<uint16_t>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
 
 template<>
 std::string
-mosaic<uint8_t>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-                const std::string& pattern, const float (&white_balance)[4],
-                int nthreads)
+do_mosaic<uint8_t>(ImageBuf& dst, const ImageBuf& src, int x_offset,
+                   int y_offset, const std::string& pattern,
+                   const float (&white_balance)[4], int nthreads)
 {
     return ImageBufAlgo::mosaic_uint8(dst, src, x_offset, y_offset, pattern,
                                       white_balance, nthreads);
@@ -1421,8 +1421,8 @@ test_demosaic(const DemosaicTestConfig& config, const ImageBuf& src_image,
             ImageSpec dst_spec(src_spec.width, src_spec.height, 1, type);
             ImageBuf mosaiced_image(dst_spec);
 
-            std::string layout = mosaic<T>(mosaiced_image, src_image, x, y,
-                                           config.pattern, wb, 0);
+            std::string layout = do_mosaic<T>(mosaiced_image, src_image, x, y,
+                                              config.pattern, wb, 0);
 
             mosaiced_image.specmod().attribute("raw:FilterPattern", layout);
             mosaiced_image.specmod().attribute("raw:WhiteBalance",

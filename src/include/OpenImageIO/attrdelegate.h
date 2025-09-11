@@ -14,7 +14,7 @@
 #include <OpenImageIO/ustring.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 namespace pvt {
@@ -229,4 +229,13 @@ protected:
 };
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::AttrDelegate;
+#endif
 OIIO_NAMESPACE_END
