@@ -434,7 +434,7 @@ jobs:
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-13-3
+                            FREETYPE_VERSION=VER-2-14-0
                             USE_OPENVDB=0
           - desc: bleeding edge gcc14 C++23 py3.12 OCIO/libtiff/exr-main avx2
             nametag: linux-bleeding-edge
@@ -531,8 +531,8 @@ jobs:
                             OPENJPEG_VERSION=v2.5.3
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
-                            WEBP_VERSION=v1.5.0
-                            FREETYPE_VERSION=VER-2-13-3
+                            WEBP_VERSION=v1.6.0
+                            FREETYPE_VERSION=VER-2-14-0
                             USE_OPENVDB=0
           - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.3 ocio2.4
             nametag: linux-latest-releases
@@ -551,8 +551,8 @@ jobs:
                             OPENJPEG_VERSION=v2.5.3
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
-                            WEBP_VERSION=v1.5.0
-                            FREETYPE_VERSION=VER-2-13-3
+                            WEBP_VERSION=v1.6.0
+                            FREETYPE_VERSION=VER-2-14-0
                             USE_OPENVDB=0
 
 
