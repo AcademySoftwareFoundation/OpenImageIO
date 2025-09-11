@@ -36,6 +36,7 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfChromaticitiesAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
 #include <OpenEXR/ImfDeepFrameBuffer.h>
+#include <OpenEXR/ImfDeepImageStateAttribute.h>
 #include <OpenEXR/ImfDeepScanLineInputPart.h>
 #include <OpenEXR/ImfDeepTiledInputPart.h>
 #include <OpenEXR/ImfDoubleAttribute.h>
@@ -43,6 +44,7 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfFloatAttribute.h>
 #include <OpenEXR/ImfFloatVectorAttribute.h>
 #include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfIDManifestAttribute.h>
 #include <OpenEXR/ImfInputPart.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
@@ -642,6 +644,44 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
             default: break;
             }
             spec.attribute("openexr:lineOrder", lineOrder);
+        } else if (type == "deepImageState") {
+            auto attr = header->findTypedAttribute<Imf::DeepImageStateAttribute>(
+                name);
+            if (attr) {
+                const char* val = "messy";
+                switch (attr->value()) {
+                case Imf::DIS_MESSY: val = "messy"; break;
+                case Imf::DIS_SORTED: val = "sorted"; break;
+                case Imf::DIS_NON_OVERLAPPING: val = "non_overlapping"; break;
+                case Imf::DIS_TIDY: val = "tidy"; break;
+                default: break;
+                }
+                spec.attribute("openexr:deepImageState", val);
+            }
+        } else if (type == "idmanifest") {
+            auto attr = header->findTypedAttribute<Imf::IDManifestAttribute>(
+                name);
+            if (attr) {
+                // print("CompressedIDManifest size {}\n",
+                //       attr->value()._compressedDataSize);
+                size_t csize(attr->value()._compressedDataSize);
+                // NOTE: The blob of bytes we're making consists of:
+                // Bytes 0-7: little endian uint64 giving the *uncompressed*
+                //            size that will be needed for the serialized IDM.
+                // Bytes 8-(csize-1): the zip-compressed serialized IDManifest.
+                size_t blobsize = csize + 8;
+                std::unique_ptr<std::byte[]> blob(new std::byte[blobsize]);
+                uint64_t usize = attr->value()._uncompressedDataSize;
+                if constexpr (bigendian())
+                    usize = byteswap(usize);
+                memcpy(blob.get(), &usize, sizeof(usize));
+                memcpy(blob.get() + 8, attr->value()._data, csize);
+                spec.attribute("openexr:compressedIDManifest",
+                               TypeDesc(TypeDesc::UINT8, blobsize), blob.get());
+            } else {
+                // print("idManifest found but not retrieved?\n");
+            }
+
         } else {
 #if 0
             print(std::cerr, "  unknown attribute '{}' name '{}'\n",
