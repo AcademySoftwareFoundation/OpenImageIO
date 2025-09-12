@@ -157,9 +157,16 @@ jobs:
           name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
           path: |
             ./wheelhouse/*.whl
+
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: stubs-${{ matrix.python }}-${{ matrix.manylinux }}
+          path: |
             ./wheelhouse/OpenImageIO/__init__.pyi
-        # if stub validation fails we want to upload the stubs for users to review
-        if: success() || failure()
+        # if stub validation fails we want to upload the stubs for users to review.
+        # keep the python build in sync with the version specified in tool.cibuildwheel.overrides 
+        # section of pyproject.toml
+        if: always() && contains(matrix.python, 'cp311-manylinux')
 
   # ---------------------------------------------------------------------------
   # Linux ARM Wheels
@@ -219,9 +226,16 @@ jobs:
             name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
             path: |
               ./wheelhouse/*.whl
+        
+        - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+          with:
+            name: stubs-${{ matrix.python }}-${{ matrix.manylinux }}
+            path: |
               ./wheelhouse/OpenImageIO/__init__.pyi
-          # if stub validation fails we want to upload the stubs for users to review
-          if: success() || failure()
+          # if stub validation fails we want to upload the stubs for users to review.
+          # keep the python build in sync with the version specified in tool.cibuildwheel.overrides 
+          # section of pyproject.toml
+          if: always() && contains(matrix.python, 'cp311-manylinux')
 
   # ---------------------------------------------------------------------------
   # macOS Wheels
@@ -269,7 +283,21 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
-          CMAKE_GENERATOR: "Unix Makefiles"
+          #CMAKE_GENERATOR: "Unix Makefiles"
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
+          CIBW_ENVIRONMENT: >
+            CMAKE_GENERATOR=Ninja
+            CMAKE_C_COMPILER=$(xcrun -find clang)
+            CMAKE_CXX_COMPILER=$(xcrun -find clang++)
+            # Add your extra CMake args below (e.g., OpenEXR/Imath pins)
+
+            CMAKE_ARGS="-DCMAKE_FIND_FRAMEWORK=NEVER
+                        -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON
+                        -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+                        -DIGNORE_HOMEBREWED_DEPS=ON
+                        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+                        -DOpenEXR_DIR=$PWD/deps/dist/lib/cmake/OpenEXR
+                        -DImath_DIR=$PWD/deps/dist/lib/cmake/Imath"
           # TODO: Re-enable HEIF when we provide a build recipe that does 
           # not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
@@ -317,7 +345,6 @@ jobs:
         
       - name: Install Python
         uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        # https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
         with:
           python-version: '3.9'
         

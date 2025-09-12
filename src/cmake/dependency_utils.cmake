@@ -40,7 +40,7 @@ endif ()
 
 # Search for regular libraries before searching for macOS frameworks.
 if (APPLE)
-    set_cache (CMAKE_FIND_FRAMEWORK LAST
+    set_cache (CMAKE_FIND_FRAMEWORK NEVER
                DOC "Set relative priority of finding frameworks vs. regular libraries" ADVANCED)
 endif ()
 
