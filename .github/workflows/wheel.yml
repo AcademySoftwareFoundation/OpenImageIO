@@ -284,15 +284,19 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
           #CMAKE_GENERATOR: "Unix Makefiles"
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
           CIBW_ENVIRONMENT: >
             CMAKE_GENERATOR=Ninja
             CMAKE_C_COMPILER=$(xcrun -find clang)
             CMAKE_CXX_COMPILER=$(xcrun -find clang++)
             # Add your extra CMake args below (e.g., OpenEXR/Imath pins)
+
             CMAKE_ARGS="-DCMAKE_FIND_FRAMEWORK=NEVER
                         -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON
                         -DOpenEXR_DIR=$PWD/deps/dist/lib/cmake/OpenEXR
                         -DImath_DIR=$PWD/deps/dist/lib/cmake/Imath"
+                        -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+                        -DIGNORE_HOMEBREWED_DEPS=ON
             # TODO: Re-enable HEIF when we provide a build recipe that does 
             # not include GPL-licensed dynamic libraries.
             USE_Libheif: 'OFF'
