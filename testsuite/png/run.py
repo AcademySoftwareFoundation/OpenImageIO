@@ -40,4 +40,7 @@ command += oiiotool ("-echo cicp: test16.png --eraseattrib Software --printinfo"
 # command += oiiotool ("-echo modified_cicp: test16.png --eraseattrib Software --cicp \",,,0\" --printinfo")
 command += oiiotool ("-echo removed_cicp: test16.png --eraseattrib Software --cicp \"\" --printinfo")
 
+# Test that "set_colorspace" removes CICP metadata
+command += oiiotool ("-echo remove_cicp_via_set_colorspace: test16.png --cicp 1,13 --iscolorspace g22_rec709_display --printinfo")
+
 outputs = [ "test16.png", "out.txt" ]

@@ -1295,6 +1295,8 @@ void
 ImageSpec::set_colorspace(string_view colorspace)
 {
     ColorConfig::default_colorconfig().set_colorspace(*this, colorspace);
+    // Invalidate potentially contradictory metadata
+    erase_attribute("CICP");
 }
 
 
