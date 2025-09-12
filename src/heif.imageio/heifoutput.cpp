@@ -26,7 +26,11 @@ public:
     const char* format_name(void) const override { return "heif"; }
     int supports(string_view feature) const override
     {
-        return feature == "alpha" || feature == "exif" || feature == "tiles";
+        return feature == "alpha" || feature == "exif" || feature == "tiles"
+#if LIBHEIF_HAVE_VERSION(1, 9, 0)
+               || feature == "cicp"
+#endif
+            ;
     }
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode) override;
@@ -234,8 +238,26 @@ HeifOutput::close()
         } else if (compqual.first == "none") {
             m_encoder.set_lossless(true);
         }
+        heif::Context::EncodingOptions options;
+#if LIBHEIF_HAVE_VERSION(1, 9, 0)
+        // Write CICP. we can only set output_nclx_profile with the C API.
+        std::unique_ptr<heif_color_profile_nclx,
+                        void (*)(heif_color_profile_nclx*)>
+            nclx(heif_nclx_color_profile_alloc(), heif_nclx_color_profile_free);
+        const ParamValue* p = m_spec.find_attribute("CICP",
+                                                    TypeDesc(TypeDesc::INT, 4));
+        if (p) {
+            const int* cicp                = static_cast<const int*>(p->data());
+            nclx->color_primaries          = heif_color_primaries(cicp[0]);
+            nclx->transfer_characteristics = heif_transfer_characteristics(
+                cicp[1]);
+            nclx->matrix_coefficients   = heif_matrix_coefficients(cicp[2]);
+            nclx->full_range_flag       = cicp[3];
+            options.output_nclx_profile = nclx.get();
+        }
+#endif
         encode_exif(m_spec, exifblob, endian::big);
-        m_ihandle = m_ctx->encode_image(m_himage, m_encoder);
+        m_ihandle = m_ctx->encode_image(m_himage, m_encoder, options);
         std::vector<char> head { 'E', 'x', 'i', 'f', 0, 0 };
         exifblob.insert(exifblob.begin(), head.begin(), head.end());
         try {

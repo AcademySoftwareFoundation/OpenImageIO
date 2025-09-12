@@ -36,7 +36,11 @@ public:
     const char* format_name(void) const override { return "heif"; }
     int supports(string_view feature) const override
     {
-        return feature == "exif";
+        return feature == "exif"
+#if LIBHEIF_HAVE_VERSION(1, 9, 0)
+               || feature == "cicp"
+#endif
+            ;
     }
     bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
@@ -263,6 +267,30 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         m_spec.attribute("oiio:BitsPerSample", m_bitdepth);
     }
     m_spec.set_colorspace("srgb_rec709_scene");
+
+#if LIBHEIF_HAVE_VERSION(1, 9, 0)
+    // Read CICP. Have to use the C API to get it from the image handle,
+    // the one on the decoded image is not what was written in the file.
+    enum heif_color_profile_type profile_type
+        = heif_image_handle_get_color_profile_type(
+            m_ihandle.get_raw_image_handle());
+    if (profile_type == heif_color_profile_type_nclx) {
+        heif_color_profile_nclx* nclx = nullptr;
+        const heif_error err = heif_image_handle_get_nclx_color_profile(
+            m_ihandle.get_raw_image_handle(), &nclx);
+
+        if (nclx) {
+            if (err.code == heif_error_Ok) {
+                const int cicp[4] = { int(nclx->color_primaries),
+                                      int(nclx->transfer_characteristics),
+                                      int(nclx->matrix_coefficients),
+                                      int(nclx->full_range_flag ? 1 : 0) };
+                m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+            }
+            heif_nclx_color_profile_free(nclx);
+        }
+    }
+#endif
 
 #if LIBHEIF_HAVE_VERSION(1, 12, 0)
     // Libheif >= 1.12 added API call to find out if the image is associated
