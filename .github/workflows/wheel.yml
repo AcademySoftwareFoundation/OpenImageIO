@@ -284,9 +284,18 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
           #CMAKE_GENERATOR: "Unix Makefiles"
-          # TODO: Re-enable HEIF when we provide a build recipe that does 
-          # not include GPL-licensed dynamic libraries.
-          USE_Libheif: 'OFF'
+          CIBW_ENVIRONMENT: >
+            CMAKE_GENERATOR=Ninja
+            CMAKE_C_COMPILER=$(xcrun -find clang)
+            CMAKE_CXX_COMPILER=$(xcrun -find clang++)
+            # Add your extra CMake args below (e.g., OpenEXR/Imath pins)
+            CMAKE_ARGS="-DCMAKE_FIND_FRAMEWORK=NEVER
+                        -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON
+                        -DOpenEXR_DIR=$PWD/deps/dist/lib/cmake/OpenEXR
+                        -DImath_DIR=$PWD/deps/dist/lib/cmake/Imath"
+            # TODO: Re-enable HEIF when we provide a build recipe that does 
+            # not include GPL-licensed dynamic libraries.
+            USE_Libheif: 'OFF'
 
       - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
