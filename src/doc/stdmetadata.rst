@@ -168,7 +168,7 @@ Color information
 
     The CICP color space information, as defined by
     `ITU-T H.273 <https://www.itu.int/rec/T-REC-H.273>`_.  This is an array
-    of four 8-bit integers, with the following meanings:
+    of four integers, with the following meanings:
 
     - `[0]` : color primaries
     - `[1]` : transfer characteristics
