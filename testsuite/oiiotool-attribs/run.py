@@ -51,10 +51,14 @@ command += info_command ("attrib0.exr", safematch=True)
 
 # Test adding and extracting ICC profiles
 command += oiiotool ("../common/tahoe-tiny.tif --iccread ref/test.icc -o tahoe-icc.jpg")
+command += oiiotool ("../common/tahoe-tiny.tif --iccread ref/test-webp.icc -o tahoe-icc.webp")
 command += info_command ("tahoe-icc.jpg", safematch=True)
+command += info_command ("tahoe-icc.webp", safematch=True)
 command += oiiotool ("tahoe-icc.jpg --iccwrite test.icc")
+command += oiiotool ("tahoe-icc.webp --iccwrite test-webp.icc")
 
 outputs = [
             "test.icc",
+            "test-webp.icc",
             "out.txt"
 ]
