@@ -216,6 +216,7 @@ WebpOutput::write_complete_data()
 
         ok = ioproxy()->write(assembly.bytes, assembly.size) == assembly.size;
 
+        WebPDataClear(&assembly);
         WebPMuxDelete(mux);
         WebPMemoryWriterClear(&wrt);
     }
