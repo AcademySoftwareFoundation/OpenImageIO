@@ -53,6 +53,7 @@ private:
     std::string m_filename;
     int m_subimage                 = -1;
     int m_num_subimages            = 0;
+    int m_bitdepth                 = 0;
     int m_has_alpha                = false;
     bool m_associated_alpha        = true;
     bool m_keep_unassociated_alpha = false;
@@ -203,11 +204,26 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         return false;
     }
 
-    auto id     = (subimage == 0) ? m_primary_id : m_item_ids[subimage - 1];
-    m_ihandle   = m_ctx->get_image_handle(id);
+    auto id   = (subimage == 0) ? m_primary_id : m_item_ids[subimage - 1];
+    m_ihandle = m_ctx->get_image_handle(id);
+
+    m_bitdepth = m_ihandle.get_luma_bits_per_pixel();
+    if (m_bitdepth < 0) {
+        errorfmt("Image has undefined bit depth");
+        m_ctx.reset();
+        return false;
+    } else if (!(m_bitdepth == 8 || m_bitdepth == 10 || m_bitdepth == 12)) {
+        errorfmt("Image has unsupported bit depth {}", m_bitdepth);
+        m_ctx.reset();
+        return false;
+    }
+
     m_has_alpha = m_ihandle.has_alpha_channel();
-    auto chroma = m_has_alpha ? heif_chroma_interleaved_RGBA
-                              : heif_chroma_interleaved_RGB;
+    auto chroma = m_has_alpha        ? (m_bitdepth > 8)
+                                           ? heif_chroma_interleaved_RRGGBBAA_LE
+                                           : heif_chroma_interleaved_RGBA
+                  : (m_bitdepth > 8) ? heif_chroma_interleaved_RRGGBB_LE
+                                     : heif_chroma_interleaved_RGB;
 #if 0
     try {
         m_himage = m_ihandle.decode_image(heif_colorspace_RGB, chroma);
@@ -238,11 +254,14 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     }
 #endif
 
-    int bits = m_himage.get_bits_per_pixel(heif_channel_interleaved);
-    m_spec   = ImageSpec(m_himage.get_width(heif_channel_interleaved),
-                         m_himage.get_height(heif_channel_interleaved), bits / 8,
-                         TypeUInt8);
+    m_spec = ImageSpec(m_himage.get_width(heif_channel_interleaved),
+                       m_himage.get_height(heif_channel_interleaved),
+                       m_has_alpha ? 4 : 3,
+                       (m_bitdepth > 8) ? TypeUInt16 : TypeUInt8);
 
+    if (m_bitdepth > 8) {
+        m_spec.attribute("oiio:BitsPerSample", m_bitdepth);
+    }
     m_spec.set_colorspace("srgb_rec709_scene");
 
 #if LIBHEIF_HAVE_VERSION(1, 12, 0)
@@ -402,7 +421,19 @@ HeifInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return false;
     }
     hdata += (y - m_spec.y) * ystride;
-    memcpy(data, hdata, m_spec.width * m_spec.pixel_bytes());
+    if (m_spec.format == TypeUInt16) {
+        // Convert from 10 or 12 bits to 16 bits. Read little endian
+        // zero padded bits, and shift to scale up.
+        const uint8_t* in       = hdata;
+        uint16_t* out           = static_cast<uint16_t*>(data);
+        const int bitshift      = 16 - m_bitdepth;
+        const size_t num_values = m_spec.width * m_spec.nchannels;
+        for (size_t i = 0; i < num_values; i++, out++, in += 2) {
+            *out = uint16_t((in[1] << 8) | in[0]) << bitshift;
+        }
+    } else {
+        memcpy(data, hdata, m_spec.width * m_spec.pixel_bytes());
+    }
     return true;
 }
 
