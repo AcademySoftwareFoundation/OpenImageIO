@@ -195,11 +195,20 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
     }
     if (m_demux_flags & ICCP_FLAG
         && WebPDemuxGetChunk(m_demux, "ICCP", 1, &chunk_iter)) {
-        // FIXME: This is where we would extract an ICC profile. Come back
-        // to this when I have found an example webp containing an ICC
-        // profile that I can use as a test case, otherwise I'm just
-        // guessing.
+        cspan<uint8_t> icc_span(chunk_iter.chunk.bytes, chunk_iter.chunk.size);
+        m_spec.attribute("ICCProfile",
+                         TypeDesc(TypeDesc::UINT8, icc_span.size_bytes()),
+                         icc_span.data());
+
+        std::string errormsg;
+        const bool ok = decode_icc_profile(icc_span, m_spec, errormsg);
         WebPDemuxReleaseChunkIterator(&chunk_iter);
+
+        if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
+                     errormsg);
+            return false;
+        }
     }
 
     // Make space for the decoded image
