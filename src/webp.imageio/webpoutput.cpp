@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include <webp/encode.h>
+#include <webp/mux.h>
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -44,6 +45,8 @@ private:
         m_scanline_size = 0;
         ioproxy_clear();
     }
+
+    bool write_complete_data();
 };
 
 
@@ -119,11 +122,9 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     // Lossless encoding (0=lossy(default), 1=lossless).
     m_webp_config.lossless = int(is_lossless);
 
-    m_webp_picture.use_argb   = m_webp_config.lossless;
-    m_webp_picture.width      = m_spec.width;
-    m_webp_picture.height     = m_spec.height;
-    m_webp_picture.writer     = WebpImageWriter;
-    m_webp_picture.custom_ptr = (void*)ioproxy();
+    m_webp_picture.use_argb = m_webp_config.lossless;
+    m_webp_picture.width    = m_spec.width;
+    m_webp_picture.height   = m_spec.height;
 
     // forcing UINT8 format
     m_spec.set_format(TypeDesc::UINT8);
@@ -135,6 +136,94 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_uncompressed_image.resize(m_spec.image_bytes(), 0);
     return true;
 }
+
+
+bool
+WebpOutput::write_complete_data()
+{
+    // Check if we have an optional ICC Profile to write.
+    const unsigned char* icc_data           = nullptr;
+    uint32_t icc_data_length                = 0;
+    bool has_icc_data                       = false;
+    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
+        "ICCProfile");
+    if (icc_profile_parameter != nullptr) {
+        icc_data        = (const unsigned char*)icc_profile_parameter->data();
+        icc_data_length = icc_profile_parameter->type().size();
+        has_icc_data    = (icc_data && icc_data_length > 0);
+    }
+
+    // If we have ICC data, encode to memory first. This is required in order
+    // to use the WebPMux assembly API below.
+    WebPMemoryWriter wrt;
+    if (has_icc_data) {
+        WebPMemoryWriterInit(&wrt);
+        m_webp_picture.writer     = WebPMemoryWrite;
+        m_webp_picture.custom_ptr = &wrt;
+    } else {
+        m_webp_picture.writer     = WebpImageWriter;
+        m_webp_picture.custom_ptr = (void*)ioproxy();
+    }
+
+    if (m_spec.nchannels == 4) {
+        if (m_convert_alpha) {
+            // WebP requires unassociated alpha, and it's sRGB.
+            // Handle this all by wrapping an IB around it.
+            ImageSpec specwrap(m_spec.width, m_spec.height, 4, TypeUInt8);
+            ImageBuf bufwrap(specwrap, cspan<uint8_t>(m_uncompressed_image));
+            ROI rgbroi(0, m_spec.width, 0, m_spec.height, 0, 1, 0, 3);
+            ImageBufAlgo::pow(bufwrap, bufwrap, 2.2f, rgbroi);
+            ImageBufAlgo::unpremult(bufwrap, bufwrap);
+            ImageBufAlgo::pow(bufwrap, bufwrap, 1.0f / 2.2f, rgbroi);
+        }
+
+        WebPPictureImportRGBA(&m_webp_picture, m_uncompressed_image.data(),
+                              m_scanline_size);
+    } else {
+        WebPPictureImportRGB(&m_webp_picture, m_uncompressed_image.data(),
+                             m_scanline_size);
+    }
+
+    if (!WebPEncode(&m_webp_config, &m_webp_picture)) {
+        errorfmt("Failed to encode {} as WebP image", m_filename);
+        if (has_icc_data) {
+            WebPMemoryWriterClear(&wrt);
+        }
+        close();
+        return false;
+    }
+
+    // If there's no ICC data to write, we are done at this point.
+    bool ok = true;
+
+    // Otherwise, assemble the final WebP package and write it out.
+    if (has_icc_data) {
+        WebPMux* mux = WebPMuxNew();
+
+        WebPData image_data = { wrt.mem, wrt.size };
+        WebPMuxSetImage(mux, &image_data, false);
+
+        WebPData icc_chunk = { icc_data, size_t(icc_data_length) };
+        WebPMuxSetChunk(mux, "ICCP", &icc_chunk, false);
+
+        WebPData assembly;
+        if (WebPMuxAssemble(mux, &assembly) != WEBP_MUX_OK) {
+            errorfmt("Failed to assemble {} as WebP image", m_filename);
+            WebPMuxDelete(mux);
+            WebPMemoryWriterClear(&wrt);
+            return false;
+        }
+
+        ok = ioproxy()->write(assembly.bytes, assembly.size) == assembly.size;
+
+        WebPDataClear(&assembly);
+        WebPMuxDelete(mux);
+        WebPMemoryWriterClear(&wrt);
+    }
+
+    return ok;
+}
+
 
 
 bool
@@ -150,32 +239,9 @@ WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     data = to_native_scanline(format, data, xstride, scratch, m_dither, y, z);
     memcpy(&m_uncompressed_image[y * m_scanline_size], data, m_scanline_size);
 
+    /* If this was the final scanline, we are done. */
     if (y == m_spec.height - 1) {
-        if (m_spec.nchannels == 4) {
-            if (m_convert_alpha) {
-                // WebP requires unassociated alpha, and it's sRGB.
-                // Handle this all by wrapping an IB around it.
-                ImageSpec specwrap(m_spec.width, m_spec.height, 4, TypeUInt8);
-                ImageBuf bufwrap(specwrap,
-                                 cspan<uint8_t>(m_uncompressed_image));
-                ROI rgbroi(0, m_spec.width, 0, m_spec.height, 0, 1, 0, 3);
-                ImageBufAlgo::pow(bufwrap, bufwrap, 2.2f, rgbroi);
-                ImageBufAlgo::unpremult(bufwrap, bufwrap);
-                ImageBufAlgo::pow(bufwrap, bufwrap, 1.0f / 2.2f, rgbroi);
-            }
-
-            WebPPictureImportRGBA(&m_webp_picture, m_uncompressed_image.data(),
-                                  m_scanline_size);
-        } else {
-            WebPPictureImportRGB(&m_webp_picture, m_uncompressed_image.data(),
-                                 m_scanline_size);
-        }
-
-        if (!WebPEncode(&m_webp_config, &m_webp_picture)) {
-            errorfmt("Failed to encode {} as WebP image", m_filename);
-            close();
-            return false;
-        }
+        return write_complete_data();
     }
     return true;
 }
