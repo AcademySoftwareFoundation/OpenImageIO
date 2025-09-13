@@ -1433,6 +1433,9 @@ Some special attributes are used for movie files:
    * - ``ffmpeg:TimeCode``
      - string
      - Start time timecode
+   * - ``CICP``
+     - int[4]
+     - Coding-independent code points to describe the color profile.
 
 
 

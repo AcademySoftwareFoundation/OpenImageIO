@@ -250,6 +250,9 @@ macro (oiio_add_all_tests)
                     ENABLEVAR ENABLE_FITS
                     IMAGEDIR fits-images
                     URL http://www.cv.nrao.edu/fits/data/tests/)
+    oiio_add_tests (ffmpeg
+                    ENABLEVAR ENABLE_FFMPEG
+                    FOUNDVAR FFmpeg_FOUND)
     oiio_add_tests (gif
                     FOUNDVAR GIF_FOUND ENABLEVAR ENABLE_GIF
                     IMAGEDIR oiio-images/gif URL "Recent checkout of OpenImageIO-images")
