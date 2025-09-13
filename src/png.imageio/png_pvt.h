@@ -235,7 +235,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         set_colorspace_rec709_gamma(spec, g);
     } else {
         // If there's no info at all, assume sRGB.
-        attribute("oiio:ColorSpace", "srgb_rec709_scene");
+        spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
     }
 
     if (png_get_valid(sp, ip, PNG_INFO_iCCP)) {
