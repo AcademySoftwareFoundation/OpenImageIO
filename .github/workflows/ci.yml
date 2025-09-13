@@ -377,7 +377,7 @@ jobs:
             setenvs: export SANITIZE=address,undefined
                             OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DOIIO_HARDENING=3 -DUSE_PYTHON=0"
                             CTEST_EXCLUSIONS="broken|png-damaged"
-                            LIBPNG_VERSION=v1.6.50
+                            OpenImageIO_BUILD_LOCAL_DEPS=PNG
 
           # Test ABI stability. `abi_check` is the version or commit that we
           # believe is the current standard against which we don't want to
