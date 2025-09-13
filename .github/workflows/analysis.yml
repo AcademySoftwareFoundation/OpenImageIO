@@ -87,13 +87,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: sonar gcc11/C++17 py310 exr3.2 ocio2.3
+          - desc: sonar gcc11/C++17 py311 exr3.2 ocio2.3
             nametag: static-analysis-sonar
             os: ubuntu-latest
-            container: aswf/ci-osl:2024-clang17
+            container: aswf/ci-oiio:2024.2
             cxx_std: 17
             python_ver: "3.11"
             simd: "avx2,f16c"
+            opencolorio_ver: v2.3.2
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
             coverage: 1
