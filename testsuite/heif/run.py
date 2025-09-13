@@ -5,9 +5,13 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 imagedir = "ref/"
-files = [ "IMG_7702_small.heic", "Chimera-AV1-8bit-162.avif" ]
+files = [ "IMG_7702_small.heic", "Chimera-AV1-8bit-162.avif", "test-10bit.avif" ]
 for f in files:
     command = command + info_command (os.path.join(imagedir, f))
+
+command += oiiotool (os.path.join(imagedir, "test-10bit.avif") +
+                     " -d uint10 --cicp \"9,16,9,1\" -o cicp_pq.avif" )
+command += info_command ("cicp_pq.avif")
 
 files = [ "greyhounds-looking-for-a-table.heic", "sewing-threads.heic" ]
 for f in files:
