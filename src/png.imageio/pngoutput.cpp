@@ -25,6 +25,9 @@ public:
 #ifdef PNG_eXIf_SUPPORTED
                 || feature == "exif"
 #endif
+#ifdef PNG_cICP_SUPPORTED
+                || feature == "cicp"
+#endif
         );
     }
     bool open(const std::string& name, const ImageSpec& spec,

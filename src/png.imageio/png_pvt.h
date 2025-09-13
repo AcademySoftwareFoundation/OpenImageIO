@@ -40,7 +40,7 @@ http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/00065
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #define ICC_PROFILE_ATTR "ICCProfile"
-
+#define CICP_ATTR "CICP"
 
 namespace PNG_pvt {
 
@@ -224,7 +224,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     int srgb_intent;
     double gamma = 0.0;
     if (png_get_sRGB(sp, ip, &srgb_intent)) {
-        spec.set_colorspace("srgb_rec709_scene");
+        spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
     } else if (png_get_gAMA(sp, ip, &gamma) && gamma > 0.0) {
         // Round gamma to the nearest hundredth to prevent stupid
         // precision choices and make it easier for apps to make
@@ -235,7 +235,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         set_colorspace_rec709_gamma(spec, g);
     } else {
         // If there's no info at all, assume sRGB.
-        set_colorspace(spec, "srgb_rec709_scene");
+        spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
     }
 
     if (png_get_valid(sp, ip, PNG_INFO_iCCP)) {
@@ -325,6 +325,16 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     }
 
     interlace_type = png_get_interlace_type(sp, ip);
+
+#ifdef PNG_cICP_SUPPORTED
+    {
+        png_byte pri = 0, trc = 0, mtx = 0, vfr = 0;
+        if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
+            int cicp[4] = { pri, trc, mtx, vfr };
+            spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::INT, 4), cicp);
+        }
+    }
+#endif
 
 #ifdef PNG_eXIf_SUPPORTED
     // Recent version of PNG and libpng (>= 1.6.32, I think) have direct
@@ -712,6 +722,21 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         png_set_pHYs(sp, ip, (png_uint_32)(xres * scale),
                      (png_uint_32)(yres * scale), unittype);
     }
+
+#ifdef PNG_cICP_SUPPORTED
+    const ParamValue* p = spec.find_attribute(CICP_ATTR,
+                                              TypeDesc(TypeDesc::INT, 4));
+    if (p) {
+        const int* int_vals = static_cast<const int*>(p->data());
+        png_byte vals[4];
+        for (int i = 0; i < 4; ++i)
+            vals[i] = static_cast<png_byte>(int_vals[i]);
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG cICP chunk";
+        // libpng will only write the chunk if the third byte is 0
+        png_set_cICP(sp, ip, vals[0], vals[1], (png_byte)0, vals[3]);
+    }
+#endif
 
 #ifdef PNG_eXIf_SUPPORTED
     std::vector<char> exifBlob;
