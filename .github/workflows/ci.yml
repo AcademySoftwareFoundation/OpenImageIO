@@ -60,6 +60,7 @@ jobs:
             opencolorio_ver: v2.3.0
             pybind11_ver: v2.9.0
             setenvs: export FREETYPE_VERSION=VER-2-12-0
+                            BUILD_PNG_VERSION=1.6.30
           - desc: VP2022 clang13/C++17 py39 avx2 exr3.1 ocio2.3
             nametag: linux-vfx2022.clang13
             runner: ubuntu-latest
@@ -75,6 +76,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 9.1.0
             setenvs: export FREETYPE_VERSION=VER-2-12-0
+                            BUILD_PNG_VERSION=1.6.30
           - desc: oldest gcc9.3/C++17 py3.9 exr3.1 ocio2.3
             # Oldest gcc and versions of the dependencies that we support.
             nametag: linux-oldest
@@ -92,6 +94,7 @@ jobs:
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              PUGIXML_VERSION=v1.8
+                             BUILD_PNG_VERSION=1.6.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
           - desc: oldest clang10/C++17 py3.9 exr3.1 ocio2.3
             # Oldest clang and versions of the dependencies that we support.
@@ -112,6 +115,7 @@ jobs:
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              PUGIXML_VERSION=v1.8
+                             BUILD_PNG_VERSION=1.6.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
           - desc: hobbled gcc9.3/C++17 py3.9 exr-3.1 no-sse
             # Use the oldest supported versions of required dependencies, and
@@ -137,6 +141,7 @@ jobs:
                              USE_OPENCV=0
                              FREETYPE_VERSION=VER-2-10-0
                              PUGIXML_VERSION=v1.8
+                             BUILD_PNG_VERSION=1.6.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
 
     runs-on: ${{ matrix.runner }}
@@ -372,6 +377,7 @@ jobs:
             setenvs: export SANITIZE=address,undefined
                             OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DOIIO_HARDENING=3 -DUSE_PYTHON=0"
                             CTEST_EXCLUSIONS="broken|png-damaged"
+                            LIBPNG_VERSION=v1.6.50
 
           # Test ABI stability. `abi_check` is the version or commit that we
           # believe is the current standard against which we don't want to
@@ -425,6 +431,7 @@ jobs:
             python_ver: "3.12"
             simd: avx2,f16c
             setenvs: export LIBJPEGTURBO_VERSION=3.1.1
+                            LIBPNG_VERSION=v1.6.50
                             LIBRAW_VERSION=0.21.4
                             LIBTIFF_VERSION=v4.7.0
                             OPENJPEG_VERSION=v2.5.3
@@ -447,6 +454,7 @@ jobs:
             simd: avx2,f16c
             benchmark: 1
             setenvs: export LIBJPEGTURBO_VERSION=main
+                            LIBPNG_VERSION=master
                             LIBRAW_VERSION=master
                             LIBTIFF_VERSION=master
                             OPENJPEG_VERSION=master
@@ -523,6 +531,7 @@ jobs:
             pybind11_ver: v3.0.0
             python_ver: "3.12"
             setenvs: export LIBJPEGTURBO_VERSION=3.1.1
+                            LIBPNG_VERSION=v1.6.50
                             LIBRAW_VERSION=0.21.4
                             LIBTIFF_VERSION=v4.7.0
                             OPENJPEG_VERSION=v2.5.3
@@ -543,6 +552,7 @@ jobs:
             pybind11_ver: v3.0.0
             python_ver: "3.12"
             setenvs: export LIBJPEGTURBO_VERSION=3.1.0
+                            LIBPNG_VERSION=v1.6.50
                             LIBRAW_VERSION=0.21.4
                             LIBTIFF_VERSION=v4.7.0
                             OPENJPEG_VERSION=v2.5.3

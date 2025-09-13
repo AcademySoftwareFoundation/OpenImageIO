@@ -6,7 +6,7 @@
 # PNG by hand!
 ######################################################################
 
-set_cache (PNG_BUILD_VERSION 1.6.47 "PNG version for local builds")
+set_cache (PNG_BUILD_VERSION 1.6.50 "PNG version for local builds")
 super_set (PNG_BUILD_GIT_REPOSITORY "https://github.com/pnggroup/libpng")
 super_set (PNG_BUILD_GIT_TAG "v${PNG_BUILD_VERSION}")
 super_set (PNG_BUILD_EXTRA_CMAKE_ARGS "")

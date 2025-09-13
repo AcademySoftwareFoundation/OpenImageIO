@@ -1771,6 +1771,11 @@ files use the file extension :file:`.png`.
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
+   * - ``CICP``
+     - int[4]
+     - CICP color space information (see Section :ref:`sec-metadata-color`).
+       Note that this attribute is only supported if OIIO was built against
+       libPNG 1.6.45 or newer.
    * - ``ICCProfile``
      - uint8[]
      - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
