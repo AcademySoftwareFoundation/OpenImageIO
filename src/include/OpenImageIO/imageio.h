@@ -1087,6 +1087,9 @@ public:
     /// - `"exif"` :
     ///       Can this format store Exif camera data?
     ///
+    /// - `"cicp"` :
+    ///       Does this format support embedding CICP metadata?
+    ///
     /// - `"ioproxy"` :
     ///       Does this format reader support reading from an `IOProxy`?
     ///
