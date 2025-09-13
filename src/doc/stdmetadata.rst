@@ -164,7 +164,7 @@ Color information
     window that are not overlapping the pixel data window.  If not supplied,
     the default is black (0 in all channels).
 
-.. option:: "CICP" : int8[4]
+.. option:: "CICP" : int[4]
 
     The CICP color space information, as defined by
     `ITU-T H.273 <https://www.itu.int/rec/T-REC-H.273>`_.  This is an array
