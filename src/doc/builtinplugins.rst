@@ -1433,6 +1433,9 @@ Some special attributes are used for movie files:
    * - ``ffmpeg:TimeCode``
      - string
      - Start time timecode
+   * - ``CICP``
+     - int[4]
+     - Coding-independent code points to describe the color profile.
 
 
 
@@ -3073,6 +3076,10 @@ open standard for lossy-compressed images for use on the web.
    * - ImageSpec Attribute
      - Type
      - WebP header data or explanation
+   * - ``ICCProfile``
+     - uint8[]
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
    * - ``oiio:Movie``
      - int
      - If nonzero, indicates that it's a multi-subimage file intended to
