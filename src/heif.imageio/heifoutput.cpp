@@ -45,6 +45,7 @@ private:
     heif::Encoder m_encoder { heif_compression_HEVC };
     std::vector<unsigned char> scratch;
     std::vector<unsigned char> m_tilebuffer;
+    int m_bitdepth = 0;
 };
 
 
@@ -104,19 +105,31 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
 
     m_filename = name;
 
-    m_spec.set_format(TypeUInt8);  // Only uint8 for now
+    m_bitdepth = m_spec.format.size() > TypeUInt8.size() ? 10 : 8;
+    m_bitdepth = m_spec.get_int_attribute("oiio:BitsPerSample", m_bitdepth);
+    if (m_bitdepth == 10 || m_bitdepth == 12) {
+        m_spec.set_format(TypeUInt16);
+    } else if (m_bitdepth == 8) {
+        m_spec.set_format(TypeUInt8);
+    } else {
+        errorfmt("Unsupported bit depth {}", m_bitdepth);
+        return false;
+    }
 
     try {
         m_ctx.reset(new heif::Context);
         m_himage = heif::Image();
         static heif_chroma chromas[/*nchannels*/]
             = { heif_chroma_undefined, heif_chroma_monochrome,
-                heif_chroma_undefined, heif_chroma_interleaved_RGB,
-                heif_chroma_interleaved_RGBA };
+                heif_chroma_undefined,
+                (m_bitdepth == 8) ? heif_chroma_interleaved_RGB
+                                  : heif_chroma_interleaved_RRGGBB_LE,
+                (m_bitdepth == 8) ? heif_chroma_interleaved_RGBA
+                                  : heif_chroma_interleaved_RRGGBBAA_LE };
         m_himage.create(newspec.width, newspec.height, heif_colorspace_RGB,
                         chromas[m_spec.nchannels]);
         m_himage.add_plane(heif_channel_interleaved, newspec.width,
-                           newspec.height, 8 * m_spec.nchannels /*bit depth*/);
+                           newspec.height, m_bitdepth);
 
         m_encoder      = heif::Encoder(heif_compression_HEVC);
         auto compqual  = m_spec.decode_compression_metadata("", 75);
@@ -161,7 +174,21 @@ HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
     uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved, &hystride);
 #endif
     hdata += hystride * (y - m_spec.y);
-    memcpy(hdata, data, hystride);
+    if (m_spec.format == TypeUInt16) {
+        // Convert from 16 bits to 10 or 12 bits. Shift to scale down and
+        // output zero padded little endian.
+        const uint16_t* in      = static_cast<const uint16_t*>(data);
+        uint8_t* out            = hdata;
+        const int bitshift      = 16 - m_bitdepth;
+        const size_t num_values = m_spec.width * m_spec.nchannels;
+        for (size_t i = 0; i < num_values; i++, out += 2, in++) {
+            const uint16_t v = *in >> bitshift;
+            out[0]           = (uint8_t)(v & 0xFF);
+            out[1]           = (uint8_t)(v >> 8);
+        }
+    } else {
+        memcpy(hdata, data, hystride);
+    }
     return true;
 }
 
