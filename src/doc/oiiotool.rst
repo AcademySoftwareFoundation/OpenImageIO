@@ -4690,6 +4690,15 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
     This was added to OpenImageIO 2.5.
 
+.. option:: --cicp <pri>,<trc>,<mtx>,<vfr>
+    
+    The `--cicp` command adds, modifies, or removes a `"CICP"` attribute 
+    belonging to the top image, stored as an array of four integers.  
+    The integers represent, in order, the color primaries, transfer 
+    function, color matrix (for YUV colorspaces), and 
+    video-full-range-flag.
+
+    This was added to OpenImageIO 3.1.
 
 |
 
