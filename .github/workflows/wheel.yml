@@ -290,11 +290,11 @@ jobs:
             CMAKE_CXX_COMPILER=$(xcrun -find clang++)
             # Add your extra CMake args below (e.g., OpenEXR/Imath pins)
 
-            CMAKE_ARGS="-DCMAKE_FIND_FRAMEWORK=NEVER
-                        -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON
-                        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-                        -DOpenEXR_DIR=$PWD/deps/dist/lib/cmake/OpenEXR
-                        -DImath_DIR=$PWD/deps/dist/lib/cmake/Imath"
+            # CMAKE_ARGS="-DCMAKE_FIND_FRAMEWORK=NEVER
+            #             -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON
+            #             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+            #             -DOpenEXR_DIR=$PWD/deps/dist/lib/cmake/OpenEXR
+            #             -DImath_DIR=$PWD/deps/dist/lib/cmake/Imath"
           # TODO: Re-enable HEIF when we provide a build recipe that does 
           # not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
