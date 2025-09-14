@@ -688,6 +688,12 @@ preferred except when legacy file access is required.
      - string
      - Color space (see Section :ref:`sec-metadata-color`). We currently
        assume that any RGBE files encountered are linear with sRGB primaries.
+   * - ``CICP``
+     - int[4]
+     - Coding-independent code points to describe the color profile.
+   * - ``oiio:BitsPerSample``
+     - int
+     - Bits per sample in the file: 8, 10 or 12.
    * - ``heif:Orientation``
      - int
      - If the configuration option ``heif:reorient`` is nonzero and
