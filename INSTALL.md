@@ -45,7 +45,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * LibRaw >= 0.18 (tested though 0.21.2; if
        building with C++17 or higher, LibRaw >= 0.20 is necessary)
  * If you want support for a wide variety of video formats:
-     * ffmpeg >= 3.0 (tested through 7.0)
+     * ffmpeg >= 3.0 (tested through 8.0)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
@@ -62,7 +62,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        stability and thread safety)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.3 (1.7 required for AVIF support, 1.16 required for
-       correct orientation support, tested through 1.17.6)
+       correct orientation support, tested through 1.20.2)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
      * Avoid libheif 1.10 on Mac, it is very broken. Libheif 1.11+ is fine.
  * If you want support for DICOM medical image files:
