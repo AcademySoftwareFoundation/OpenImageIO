@@ -24,7 +24,7 @@
 #endif
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// DoNotOptimize(val) is a helper function for timing benchmarks that fools
 /// the compiler into thinking the the location 'val' is used and will not
@@ -470,6 +470,7 @@ OIIO_FORCEINLINE void clobber_all_memory() { }
 
 #endif
 
+OIIO_UTIL_API std::ostream& operator<<(std::ostream& out,
+                                       const Benchmarker& bench);
 
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

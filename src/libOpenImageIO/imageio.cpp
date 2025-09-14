@@ -269,7 +269,10 @@ oiio_build_platform()
     return platform;
 }
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 void
 shutdown()
@@ -358,7 +361,7 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (Strutil::starts_with(name, "gpu:")
         || Strutil::starts_with(name, "cuda:")) {
-        return pvt::gpu_attribute(name, type, val);
+        return OIIO::pvt::gpu_attribute(name, type, val);
     }
 
     // Things below here need to buarded by the attrib_mutex
@@ -490,7 +493,7 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (Strutil::starts_with(name, "gpu:")
         || Strutil::starts_with(name, "cuda:")) {
-        return pvt::gpu_getattribute(name, type, val);
+        return OIIO::pvt::gpu_getattribute(name, type, val);
     }
 
     // Things below here need to buarded by the attrib_mutex
@@ -509,31 +512,31 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "format_list" && type == TypeString) {
         if (format_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
+            OIIO::pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(format_list);
         return true;
     }
     if (name == "input_format_list" && type == TypeString) {
         if (input_format_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
+            OIIO::pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(input_format_list);
         return true;
     }
     if (name == "output_format_list" && type == TypeString) {
         if (output_format_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
+            OIIO::pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(output_format_list);
         return true;
     }
     if (name == "extension_list" && type == TypeString) {
         if (extension_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
+            OIIO::pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(extension_list);
         return true;
     }
     if (name == "library_list" && type == TypeString) {
         if (library_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
+            OIIO::pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(library_list);
         return true;
     }
@@ -714,7 +717,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     return false;
 }
 
+OIIO_NAMESPACE_3_1_END
 
+
+OIIO_NAMESPACE_BEGIN
 
 namespace {
 
@@ -907,6 +913,10 @@ pvt::parallel_convert_from_float(const float* src, void* dst, size_t nvals,
     return dst;
 }
 
+OIIO_NAMESPACE_END
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 bool
@@ -921,7 +931,7 @@ convert_pixel_values(TypeDesc src_type, const void* src, TypeDesc dst_type,
 
     if (dst_type == TypeFloat) {
         // Special case -- converting non-float to float
-        pvt::convert_to_float(src, (float*)dst, n, src_type);
+        OIIO::pvt::convert_to_float(src, (float*)dst, n, src_type);
         return true;
     }
 
@@ -937,7 +947,7 @@ convert_pixel_values(TypeDesc src_type, const void* src, TypeDesc dst_type,
             tmp.reset(new float[n]);  // Freed when tmp exists its scope
             buf = tmp.get();
         }
-        pvt::convert_to_float(src, buf, n, src_type);
+        OIIO::pvt::convert_to_float(src, buf, n, src_type);
     }
 
     // Convert float to 'dst_type'
@@ -1219,10 +1229,9 @@ add_bluenoise(int nchannels, int width, int height, int depth, float* data,
                     int channel = c + chorigin;
                     if (channel == alpha_channel || channel == z_channel)
                         continue;
-                    float dither
-                        = pvt::bluenoise_4chan_ptr(x + xorigin, y + yorigin,
-                                                   z + zorigin, channel & (~3),
-                                                   ditherseed)[channel & 3];
+                    float dither = OIIO::pvt::bluenoise_4chan_ptr(
+                        x + xorigin, y + yorigin, z + zorigin, channel & (~3),
+                        ditherseed)[channel & 3];
                     *val += ditheramplitude * (dither - 0.5f);
                 }
             }
@@ -1432,4 +1441,4 @@ image_span_within_span(const image_span<const std::byte>& ispan,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

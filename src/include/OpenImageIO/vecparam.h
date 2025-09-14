@@ -11,7 +11,7 @@
 #include <OpenImageIO/platform.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 // NOTE: These interoperable type templates were copied from the
 // [Imath project](http://github.com/AcademySoftwareFoundation/imath),
@@ -388,4 +388,4 @@ using M33fParam = MatrixParam<float, 3>;
 using M44fParam = MatrixParam<float, 4>;
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

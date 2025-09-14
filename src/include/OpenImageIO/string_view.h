@@ -32,7 +32,7 @@
 #endif
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// A `string_view` is a non-owning, non-copying, non-allocating reference
@@ -509,11 +509,12 @@ OIIO_UTIL_API const char* c_str(string_view str);
 // DEPRECATED(3.0)
 template<> inline const char*
 basic_string_view<char>::c_str() const {
-    return OIIO::c_str(*this);
+    return OIIO::v3_1::c_str(*this);
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
+
 
 
 #if FMT_VERSION >= 100000

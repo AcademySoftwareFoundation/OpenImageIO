@@ -18,7 +18,7 @@
 #include <memory>
 #include <vector>
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace pvt {
 
@@ -127,4 +127,4 @@ footprint(const std::vector<T>& vec)
 }  // namespace pvt
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

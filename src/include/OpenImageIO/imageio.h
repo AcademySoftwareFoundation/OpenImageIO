@@ -39,14 +39,9 @@
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/memory.h>
 
-OIIO_NAMESPACE_BEGIN
 
-class DeepData;
-class ImageBuf;
-class Timer;
 
-#ifndef OIIO_STRIDE_T_DEFINED
-#    define OIIO_STRIDE_T_DEFINED
+OIIO_NAMESPACE_3_1_BEGIN
 /// Type we use to express how many pixels (or bytes) constitute an image,
 /// tile, or scanline.
 using imagesize_t = uint64_t;
@@ -58,7 +53,8 @@ using stride_t = int64_t;
 /// Special value to indicate a stride length that should be
 /// auto-computed.
 inline constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
-#endif
+
+
 
 // Signal that this version of ImageBuf has constructors from spans
 #define OIIO_IMAGEINPUT_IMAGE_SPAN_SUPPORT 1
@@ -74,11 +70,6 @@ inline constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
 typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
 
-
-// Forward declaration of IOProxy
-namespace Filesystem {
-    class IOProxy;
-}
 
 
 /// ROI is a small helper struct describing a rectangular region of interest
@@ -4107,7 +4098,7 @@ inline bool getattribute(string_view name, TypeDesc type, span<T> value)
 {
     OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
                  && type.size() == value.size_bytes());
-    return OIIO::getattribute(name, type, OIIO::as_writable_bytes(value));
+    return OIIO::v3_1::getattribute(name, type, OIIO::as_writable_bytes(value));
 }
 
 /// A version of `getattribute()` that stores the value in a span of
@@ -4222,12 +4213,12 @@ inline std::map<std::string, std::vector<std::string>>
 get_extension_map()
 {
     std::map<std::string, std::vector<std::string>> map;
-    auto all_extensions = OIIO::get_string_attribute("extension_list");
-    for (auto oneformat : OIIO::Strutil::splitsv(all_extensions, ";")) {
-        auto format_exts = OIIO::Strutil::splitsv(oneformat, ":", 2);
+    auto all_extensions = get_string_attribute("extension_list");
+    for (auto oneformat : Strutil::splitsv(all_extensions, ";")) {
+        auto format_exts = Strutil::splitsv(oneformat, ":", 2);
         if (format_exts.size() != 2)
             continue;   // something went wrong
-        map[format_exts[0]] = OIIO::Strutil::splits(format_exts[1], ",");
+        map[format_exts[0]] = Strutil::splits(format_exts[1], ",");
     }
     return map;
 }
@@ -4510,15 +4501,18 @@ OIIO_API void log_time(string_view key, const Timer& timer, int count = 1);
 // to force correct linkage on some systems
 OIIO_API void _ImageIO_force_link ();
 
+OIIO_NAMESPACE_3_1_END
+
 
 //////////////////////////////////////////////////////////////////////////
 // DEPRECATED things
 //
-// These are all hidden from ocumentation and internal use, and should trigger
-// deprecation warnings if used externally. They will most likely be removed
-// entirely before the final release of OIIO 3.0.
+// These are all hidden from documentation and internal use, and should
+// trigger deprecation warnings if used externally. They will most likely be
+// removed entirely before the final release of OIIO 3.0.
 //
 #if !defined(OIIO_INTERNAL) && !defined(OIIO_DOXYGEN)
+OIIO_NAMESPACE_BEGIN
 
 #if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 1, 0)
 // DEPRECATED(2.1): old name
@@ -4556,11 +4550,12 @@ inline void debug (const char* fmt, const T1& v1, const Args&... args)
 }
 #endif
 
+OIIO_NAMESPACE_END
 #endif
 //
 //////////////////////////////////////////////////////////////////////////
 
-OIIO_NAMESPACE_END
+
 
 
 #if FMT_VERSION >= 100000

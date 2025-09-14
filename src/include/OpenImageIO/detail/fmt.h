@@ -21,12 +21,12 @@
 
 #if OIIO_VERSION_LESS(3, 1, 2)
 /* DEPRECATED -- remove at next ABI compatibility boundary */
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 namespace pvt {
 OIIO_UTIL_API void
 log_fmt_error(const char* message);
 };
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
 #endif
 
 // Use the grisu fast floating point formatting for old fmt versions
@@ -78,7 +78,7 @@ OIIO_PRAGMA_WARNING_POP
 #endif
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 namespace pvt {
 
 
@@ -197,4 +197,4 @@ struct array_formatter : format_parser_with_separator {
 
 
 }  // namespace pvt
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

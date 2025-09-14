@@ -17,7 +17,7 @@
 #include <OpenImageIO/thread.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Split strategies
 /// DEPRECATED(2.4)
@@ -197,7 +197,6 @@ parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
                      paropt opt = paropt(0, paropt::SplitDir::Y, 1));
 
 
-
 /// Parallel "for" loop, for a task that takes a single integer index, run
 /// it on all indices on the range [begin,end):
 ///
@@ -225,6 +224,7 @@ parallel_for(uint32_t begin, uint32_t end, function_view<void(uint32_t)> task,
 OIIO_UTIL_API void
 parallel_for(uint64_t begin, uint64_t end, function_view<void(uint64_t)> task,
              paropt opt = 0);
+
 
 
 /// Parallel "for" loop, for a task that takes an integer range, run it
@@ -295,6 +295,4 @@ parallel_for_2D(int64_t xbegin, int64_t xend, int64_t ybegin, int64_t yend,
                 std::function<void(int64_t x, int64_t y)>&& task,
                 paropt opt = 0);
 
-
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

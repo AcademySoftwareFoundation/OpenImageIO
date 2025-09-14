@@ -19,11 +19,11 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 using std::atomic;
-typedef atomic<int> atomic_int;
-typedef atomic<long long> atomic_ll;
+using atomic_int = atomic<int>;
+using atomic_ll  = atomic<long long>;
 
 
 
@@ -79,5 +79,4 @@ atomic_fetch_add(atomic<double>& a, double f)
     } while (true);
 }
 
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

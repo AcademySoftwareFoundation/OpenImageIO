@@ -216,7 +216,7 @@ STATIC_INLINE void simpleSwap(T &a, T &b) {
 #define Hash128to64   OIIO::farmhash::Hash128to64
 
 // namespace NAMESPACE_FOR_HASH_FUNCTIONS {
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace farmhash {
 namespace inlined {
@@ -379,7 +379,8 @@ STATIC_INLINE uint64_t Rotate64(uint64_t val, int shift) {
 
 // }  // namespace NAMESPACE_FOR_HASH_FUNCTIONS
 } /*end namespace inlined */
-} /*end namespace farmhash*/ OIIO_NAMESPACE_END 
+} /*end namespace farmhash*/
+OIIO_NAMESPACE_3_1_END
 
 // FARMHASH PORTABILITY LAYER: debug mode or max speed?
 // One may use -DFARMHASH_DEBUG=1 or -DFARMHASH_DEBUG=0 to force the issue.
@@ -506,7 +507,7 @@ STATIC_INLINE uint64_t Rotate64(uint64_t val, int shift) {
 
 
 // namespace NAMESPACE_FOR_HASH_FUNCTIONS {
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 //using namespace OIIO::farmhash;
     namespace farmhash {
     namespace inlined {
@@ -2184,8 +2185,8 @@ STATIC_INLINE uint128_t Fingerprint128(const char* s, size_t len) {
 #undef Murk
 #undef Chunk
 
-OIIO_NAMESPACE_END
-
 #undef STATIC_INLINE
+
+OIIO_NAMESPACE_3_1_END
 
 

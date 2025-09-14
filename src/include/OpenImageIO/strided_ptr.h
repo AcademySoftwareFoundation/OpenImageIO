@@ -11,7 +11,7 @@
 #include <OpenImageIO/platform.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// strided_ptr<T> looks like a 'T*', but it incorporates a stride, so
@@ -133,5 +133,4 @@ private:
 };
 
 
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

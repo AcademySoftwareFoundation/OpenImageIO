@@ -26,8 +26,6 @@
 //   https://github.com/tcbrindle/span/blob/master/include/tcb/span.hpp
 
 
-OIIO_NAMESPACE_BEGIN
-
 // Our pre-3.0 implementation had span::size() as a signed value, because we
 // wrote it at a time that the draft of std::span said it should be signed.
 // The final C++20 std::span ended up with an unsigned size, like all the
@@ -38,8 +36,10 @@ OIIO_NAMESPACE_BEGIN
 #    define OIIO_SPAN_SIZE_IS_UNSIGNED
 #endif
 
+OIIO_NAMESPACE_3_1_BEGIN
+
 using span_size_t = size_t;
-using oiio_span_size_type = OIIO::span_size_t;  // back-compat alias
+using oiio_span_size_type = span_size_t;  // back-compat alias
 
 inline constexpr span_size_t dynamic_extent
     = std::numeric_limits<span_size_t>::max();
@@ -263,6 +263,30 @@ public:
         return const_reverse_iterator(m_data - 1);
     }
 
+    /// Compare all elements of two spans for equality
+    template <class U, span_size_t Y>
+    constexpr bool operator==(span<U,Y> r) {
+#if OIIO_CPLUSPLUS_VERSION >= 20
+        return std::equal (begin(), end(), r.begin(), r.end());
+#else
+        auto lsize = size();
+        bool same = (lsize == r.size());
+        if (lsize != r.size())
+            return false;
+        for (span_size_t i = 0; i < lsize; ++i)
+            same &= (m_data[i] == r.m_data[i]);
+        // Note: If they're not the same size, the body of the loop won't run,
+        // so there can't be a buffer overrun here.
+        return same;
+#endif
+    }
+
+    /// Compare all elements of two spans for inequality
+    template <class U, span_size_t Y>
+    constexpr bool operator!= (span<U,Y> r) {
+        return !((*this) == r);
+    }
+
 private:
     pointer     m_data = nullptr;
     size_type   m_size = 0;
@@ -274,27 +298,6 @@ private:
 template <typename T, span_size_t Extent = dynamic_extent>
 using cspan = span<const T, Extent>;
 
-
-
-/// Compare all elements of two spans for equality
-template <class T, span_size_t X, class U, span_size_t Y>
-constexpr bool operator== (span<T,X> l, span<U,Y> r) {
-#if OIIO_CPLUSPLUS_VERSION >= 20
-    return std::equal (l.begin(), l.end(), r.begin(), r.end());
-#else
-    auto lsize = l.size();
-    bool same = (lsize == r.size());
-    for (span_size_t i = 0; same && i < lsize; ++i)
-        same &= (l[i] == r[i]);
-    return same;
-#endif
-}
-
-/// Compare all elements of two spans for inequality
-template <class T, span_size_t X, class U, span_size_t Y>
-constexpr bool operator!= (span<T,X> l, span<U,Y> r) {
-    return !(l == r);
-}
 
 
 
@@ -385,6 +388,26 @@ public:
     constexpr reference back() const noexcept { return (*this)[size()-1]; }
     constexpr pointer data() const noexcept { return m_data; }
 
+    /// Compare all elements of two spans for equality
+    template <class U, span_size_t Y>
+    constexpr bool operator== (span_strided<U,Y> r) {
+        auto lsize = size();
+        if (lsize != r.size())
+            return false;
+        for (span_size_t i = 0; i < lsize; ++i)
+            if ((*this)[i] != r[i])
+                return false;
+        // Note: If they're not the same size, the body of the loop won't run,
+        // so there can't be a buffer overrun here.
+        return true;
+    }
+
+    /// Compare all elements of two spans for inequality
+    template <class U, span_size_t Y>
+    constexpr bool operator!= (span_strided<U,Y> r) {
+        return !((*this) == r);
+    }
+
 private:
     pointer       m_data   = nullptr;
     size_type     m_size   = 0;
@@ -397,25 +420,6 @@ private:
 template <typename T, span_size_t Extent = dynamic_extent>
 using cspan_strided = span_strided<const T, Extent>;
 
-
-
-/// Compare all elements of two spans for equality
-template <class T, span_size_t X, class U, span_size_t Y>
-constexpr bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
-    auto lsize = l.size();
-    if (lsize != r.size())
-        return false;
-    for (span_size_t i = 0; i < lsize; ++i)
-        if (l[i] != r[i])
-            return false;
-    return true;
-}
-
-/// Compare all elements of two spans for inequality
-template <class T, span_size_t X, class U, span_size_t Y>
-constexpr bool operator!= (span_strided<T,X> l, span_strided<U,Y> r) {
-    return !(l == r);
-}
 
 
 // clang-format on
@@ -712,14 +716,13 @@ check_span(span<SpanType> s, const PtrType* ptr, size_t len = 1)
 }
 
 
+OIIO_NAMESPACE_3_1_END
+
 
 /// OIIO_ALLOCASPAN is used to allocate smallish amount of memory on the
 /// stack, equivalent of C99 type var_name[size], and then return a span
 /// encompassing it.
 #define OIIO_ALLOCA_SPAN(type, size) span<type>(OIIO_ALLOCA(type, size), size)
-
-
-OIIO_NAMESPACE_END
 
 
 

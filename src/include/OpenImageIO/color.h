@@ -12,6 +12,9 @@
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
 
+// Preprocessor symbol to allow conditional compilation depending on
+// whether the ColorProcessor class is exposed (it was not prior to OIIO 1.9).
+#define OIIO_HAS_COLORPROCESSOR 1
 
 //
 // Some general color management information materials to have handy:
@@ -23,7 +26,12 @@
 //
 
 
-OIIO_NAMESPACE_BEGIN
+// Preprocessor symbol to allow conditional compilation depending on
+// whether the ColorConfig returns ColorProcessor shared pointers or raw.
+#define OIIO_COLORCONFIG_USES_SHARED_PTR 1
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// The ColorProcessor encapsulates a baked color transformation, suitable for
 /// application to raw pixels, or ImageBuf(s). These are generated using
@@ -50,17 +58,9 @@ public:
     }
 };
 
-// Preprocessor symbol to allow conditional compilation depending on
-// whether the ColorProcessor class is exposed (it was not prior to OIIO 1.9).
-#define OIIO_HAS_COLORPROCESSOR 1
 
 
-
-typedef std::shared_ptr<ColorProcessor> ColorProcessorHandle;
-
-// Preprocessor symbol to allow conditional compilation depending on
-// whether the ColorConfig returns ColorProcessor shared pointers or raw.
-#define OIIO_COLORCONFIG_USES_SHARED_PTR 1
+using ColorProcessorHandle = std::shared_ptr<ColorProcessor>;
 
 
 
@@ -515,4 +515,4 @@ linear_to_Rec709(float x)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

@@ -44,23 +44,7 @@
     OIIO_CONCAT_VERSION(TextureOptBatch_v, OIIO_TEXTUREOPTBATCH_VERSION)
 
 
-#ifndef INCLUDED_IMATHVEC_H
-// Placeholder declaration for Imath::V3f if no Imath headers have been
-// included.
-namespace Imath {
-template <class T> class Vec3;
-using V3f = Vec3<float>;
-}
-#endif
-
-
-OIIO_NAMESPACE_BEGIN
-
-// Forward declarations
-
-class ImageCache;
-class TextureSystemImpl;
-
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace pvt {
 
@@ -289,7 +273,7 @@ private:
 };
 
 
-using TextureOpt = TextureOpt_current;
+using TextureOpt = TextureOpt_v2;
 
 
 
@@ -1782,5 +1766,4 @@ private:
     // Always use TextureSystem::create() and TextureSystem::destroy().
 };
 
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

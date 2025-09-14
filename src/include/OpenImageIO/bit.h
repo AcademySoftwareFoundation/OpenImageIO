@@ -10,7 +10,7 @@
 #include <OpenImageIO/platform.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// Standards-compliant bit cast of two equally sized types. This is used
@@ -273,4 +273,4 @@ rotl64(uint64_t x, int k)
 
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

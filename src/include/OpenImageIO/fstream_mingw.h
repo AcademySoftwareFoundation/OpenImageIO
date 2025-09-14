@@ -24,7 +24,7 @@
 #    include <sys/stat.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 template<class _CharT, class _Traits = std::char_traits<_CharT>>
@@ -309,7 +309,8 @@ basic_ofstream<_CharT, _Traits>::close()
 }
 // basic_fstream
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
+
 
 
 #endif  // #if defined(_WIN32) && defined(__GLIBCXX__)

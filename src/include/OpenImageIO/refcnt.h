@@ -19,7 +19,7 @@
 #include <OpenImageIO/memory.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 
@@ -254,4 +254,4 @@ footprint(const intrusive_ptr<T>& ref)
 }  // namespace pvt
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

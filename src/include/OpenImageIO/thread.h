@@ -54,8 +54,7 @@
 //    http://en.cppreference.com/w/cpp/atomic
 
 
-
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Null mutex that can be substituted for a real one to test how much
 /// overhead is associated with a particular mutex.
@@ -82,9 +81,9 @@ public:
 using std::mutex;
 using std::recursive_mutex;
 using std::thread;
-typedef std::lock_guard<mutex> lock_guard;
-typedef std::lock_guard<recursive_mutex> recursive_lock_guard;
-typedef std::lock_guard<std::recursive_timed_mutex> recursive_timed_lock_guard;
+using lock_guard = std::lock_guard<mutex>;
+using recursive_lock_guard = std::lock_guard<recursive_mutex>;
+using recursive_timed_lock_guard = std::lock_guard<std::recursive_timed_mutex>;
 
 
 
@@ -270,128 +269,9 @@ private:
 };
 
 
-typedef spin_mutex::lock_guard spin_lock;
+using spin_lock = spin_mutex::lock_guard;
 
 
-
-#if 0
-
-// OLD CODE vvvvvvvv
-
-
-/// Spinning reader/writer mutex.  This is just like spin_mutex, except
-/// that there are separate locking mechanisms for "writers" (exclusive
-/// holders of the lock, presumably because they are modifying whatever
-/// the lock is protecting) and "readers" (non-exclusive, non-modifying
-/// tasks that may access the protectee simultaneously).
-class spin_rw_mutex {
-public:
-    /// Default constructor -- initialize to unlocked.
-    ///
-    spin_rw_mutex (void) { m_readers = 0; }
-
-    ~spin_rw_mutex (void) { }
-
-    /// Copy constructor -- initialize to unlocked.
-    ///
-    spin_rw_mutex (const spin_rw_mutex &) { m_readers = 0; }
-
-    /// Assignment does not do anything, since lockedness should not
-    /// transfer.
-    const spin_rw_mutex& operator= (const spin_rw_mutex&) { return *this; }
-
-    /// Acquire the reader lock.
-    ///
-    void read_lock () {
-        // Spin until there are no writers active
-        m_locked.lock();
-        // Register ourself as a reader
-        ++m_readers;
-        // Release the lock, to let other readers work
-        m_locked.unlock();
-    }
-
-    /// Release the reader lock.
-    ///
-    void read_unlock () {
-        --m_readers;  // it's atomic, no need to lock to release
-    }
-
-    /// Acquire the writer lock.
-    ///
-    void write_lock () {
-        // Make sure no new readers (or writers) can start
-        m_locked.lock();
-        // Spin until the last reader is done, at which point we will be
-        // the sole owners and nobody else (reader or writer) can acquire
-        // the resource until we release it.
-#if OIIO_THREAD_ALLOW_DCLP
-        while (*(volatile int *)&m_readers > 0)
-                ;
-#else
-        while (m_readers > 0)
-                ;
-#endif
-    }
-
-    /// Release the writer lock.
-    ///
-    void write_unlock () {
-        // Let other readers or writers get the lock
-        m_locked.unlock ();
-    }
-
-    /// Acquire an exclusive ("writer") lock.
-    void lock () { write_lock(); }
-
-    /// Release an exclusive ("writer") lock.
-    void unlock () { write_unlock(); }
-
-    /// Acquire a shared ("reader") lock.
-    void lock_shared () { read_lock(); }
-
-    /// Release a shared ("reader") lock.
-    void unlock_shared () { read_unlock(); }
-
-    /// Helper class: scoped read lock for a spin_rw_mutex -- grabs the
-    /// read lock upon construction, releases the lock when it exits scope.
-    class read_lock_guard {
-    public:
-        read_lock_guard (spin_rw_mutex &fm) : m_fm(fm) { m_fm.read_lock(); }
-        ~read_lock_guard () { m_fm.read_unlock(); }
-    private:
-        read_lock_guard(); // Do not implement
-        read_lock_guard(const read_lock_guard& other); // Do not implement
-        read_lock_guard& operator = (const read_lock_guard& other); // Do not implement
-        spin_rw_mutex & m_fm;
-    };
-
-    /// Helper class: scoped write lock for a spin_rw_mutex -- grabs the
-    /// read lock upon construction, releases the lock when it exits scope.
-    class write_lock_guard {
-    public:
-        write_lock_guard (spin_rw_mutex &fm) : m_fm(fm) { m_fm.write_lock(); }
-        ~write_lock_guard () { m_fm.write_unlock(); }
-    private:
-        write_lock_guard(); // Do not implement
-        write_lock_guard(const write_lock_guard& other); // Do not implement
-        write_lock_guard& operator = (const write_lock_guard& other); // Do not implement
-        spin_rw_mutex & m_fm;
-    };
-
-private:
-    OIIO_CACHE_ALIGN
-    spin_mutex m_locked;   // write lock
-    char pad1_[OIIO_CACHE_LINE_SIZE-sizeof(spin_mutex)];
-    OIIO_CACHE_ALIGN
-    atomic_int m_readers;  // number of readers
-    char pad2_[OIIO_CACHE_LINE_SIZE-sizeof(atomic_int)];
-};
-
-
-#else
-
-// vvv New spin rw lock Oct 2017
 
 /// Spinning reader/writer mutex.  This is just like spin_mutex, except
 /// that there are separate locking mechanisms for "writers" (exclusive
@@ -511,11 +391,10 @@ private:
     std::atomic<int> m_bits { 0 };
 };
 
-#endif
 
 
-typedef spin_rw_mutex::read_lock_guard spin_rw_read_lock;
-typedef spin_rw_mutex::write_lock_guard spin_rw_write_lock;
+using spin_rw_read_lock = spin_rw_mutex::read_lock_guard;
+using spin_rw_write_lock = spin_rw_mutex::write_lock_guard;
 
 
 
@@ -859,4 +738,4 @@ private:
 };
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
