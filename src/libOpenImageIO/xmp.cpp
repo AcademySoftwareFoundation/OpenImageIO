@@ -513,7 +513,10 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
 
 }  // anonymous namespace
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 bool
 decode_xmp(cspan<uint8_t> xml, ImageSpec& spec)
@@ -857,4 +860,4 @@ encode_xmp(const ImageSpec& spec, bool minimal)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

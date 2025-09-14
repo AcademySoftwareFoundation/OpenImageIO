@@ -20,8 +20,12 @@
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/strutil.h>
 
+// Define symbols that let client applications determine if newly added
+// features are supported.
+#define OIIO_ARGPARSE_SUPPORTS_BRIEFUSAGE 1
+#define OIIO_ARGPARSE_SUPPORTS_HUMAN_PARAMNAME 1
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -173,7 +177,7 @@ OIIO_NAMESPACE_BEGIN
 
 class OIIO_UTIL_API ArgParse {
 public:
-    class Arg;  // Forward declarion of Arg
+    class Arg;  // Forward declaration of Arg
 
     // ------------------------------------------------------------------
     /// @defgroup Setting up an ArgParse
@@ -782,11 +786,4 @@ public:
     void usage() const { print_help(); }
 };
 
-
-
-// Define symbols that let client applications determine if newly added
-// features are supported.
-#define OIIO_ARGPARSE_SUPPORTS_BRIEFUSAGE 1
-#define OIIO_ARGPARSE_SUPPORTS_HUMAN_PARAMNAME 1
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

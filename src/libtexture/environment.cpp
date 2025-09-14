@@ -199,7 +199,7 @@ convention is dictated by OpenEXR.
 */
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 using namespace pvt;
 using namespace simd;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
@@ -643,4 +643,4 @@ TextureSystemImpl::environment(ustring filename, TextureOptBatch& options,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

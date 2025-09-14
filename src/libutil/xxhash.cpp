@@ -140,7 +140,7 @@ typedef unsigned long long U64;
 #endif
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 namespace xxhash {
 
 
@@ -952,4 +952,4 @@ unsigned long long XXH64_digest (const XXH64_state_t* state_in)
 
 
 } // namespace xxhash
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
