@@ -21,7 +21,7 @@
 
 #include "imageio_pvt.h"
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 void
@@ -187,7 +187,7 @@ computePixelStats_(const ImageBuf& src, ImageBufAlgo::PixelStats& stats,
 ImageBufAlgo::PixelStats
 ImageBufAlgo::computePixelStats(const ImageBuf& src, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtimer("IBA::computePixelStats");
+    OIIO::pvt::LoggedTimer logtimer("IBA::computePixelStats");
     ImageBufAlgo::PixelStats stats;
     if (!roi.defined())
         roi = get_roi(src.spec());
@@ -347,7 +347,7 @@ ImageBufAlgo::compare(const ImageBuf& A, const ImageBuf& B, float failthresh,
                       float warnthresh, float failrelative, float warnrelative,
                       ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtimer("IBA::compare");
+    OIIO::pvt::LoggedTimer logtimer("IBA::compare");
     ImageBufAlgo::CompareResults result;
     result.error = true;
 
@@ -463,7 +463,7 @@ bool
 ImageBufAlgo::isConstantColor(const ImageBuf& src, float threshold,
                               span<float> color, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtimer("IBA::isConstantColor");
+    OIIO::pvt::LoggedTimer logtimer("IBA::isConstantColor");
     // If no ROI is defined, use the data window of src.
     if (!roi.defined())
         roi = get_roi(src.spec());
@@ -519,7 +519,7 @@ bool
 ImageBufAlgo::isConstantChannel(const ImageBuf& src, int channel, float val,
                                 float threshold, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtimer("IBA::isConstantChannel");
+    OIIO::pvt::LoggedTimer logtimer("IBA::isConstantChannel");
     // If no ROI is defined, use the data window of src.
     if (!roi.defined())
         roi = get_roi(src.spec());
@@ -580,7 +580,7 @@ bool
 ImageBufAlgo::isMonochrome(const ImageBuf& src, float threshold, ROI roi,
                            int nthreads)
 {
-    pvt::LoggedTimer logtimer("IBA::isMonochrome");
+    OIIO::pvt::LoggedTimer logtimer("IBA::isMonochrome");
     // If no ROI is defined, use the data window of src.
     if (!roi.defined())
         roi = get_roi(src.spec());
@@ -632,7 +632,7 @@ ImageBufAlgo::color_count(const ImageBuf& src, imagesize_t* count, int ncolors,
                           cspan<float> color, cspan<float> eps, ROI roi,
                           int nthreads)
 {
-    pvt::LoggedTimer logtimer("IBA::color_count");
+    OIIO::pvt::LoggedTimer logtimer("IBA::color_count");
     // If no ROI is defined, use the data window of src.
     if (!roi.defined())
         roi = get_roi(src.spec());
@@ -698,7 +698,7 @@ ImageBufAlgo::color_range_check(const ImageBuf& src, imagesize_t* lowcount,
                                 imagesize_t* inrangecount, cspan<float> low,
                                 cspan<float> high, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtimer("IBA::color_range_check");
+    OIIO::pvt::LoggedTimer logtimer("IBA::color_range_check");
     // If no ROI is defined, use the data window of src.
     if (!roi.defined())
         roi = get_roi(src.spec());
@@ -753,7 +753,7 @@ deep_nonempty_region(const ImageBuf& src, ROI roi)
 ROI
 ImageBufAlgo::nonzero_region(const ImageBuf& src, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtimer("IBA::nonzero_region");
+    OIIO::pvt::LoggedTimer logtimer("IBA::nonzero_region");
     roi = roi_intersection(roi, src.roi());
 
     if (src.deep()) {
@@ -860,7 +860,7 @@ std::string
 ImageBufAlgo::computePixelHashSHA1(const ImageBuf& src, string_view extrainfo,
                                    ROI roi, int blocksize, int nthreads)
 {
-    pvt::LoggedTimer logtimer("IBA::computePixelHashSHA1");
+    OIIO::pvt::LoggedTimer logtimer("IBA::computePixelHashSHA1");
     if (!roi.defined())
         roi = get_roi(src.spec());
 
@@ -941,7 +941,7 @@ std::vector<imagesize_t>
 ImageBufAlgo::histogram(const ImageBuf& src, int channel, int bins, float min,
                         float max, bool ignore_empty, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtimer("IBA::histogram");
+    OIIO::pvt::LoggedTimer logtimer("IBA::histogram");
     std::vector<imagesize_t> h;
 
     // Sanity checks
@@ -979,4 +979,4 @@ ImageBufAlgo::histogram(const ImageBuf& src, int channel, int bins, float min,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

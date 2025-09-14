@@ -140,7 +140,10 @@ declare_imageio_format_locked(const std::string& format_name,
     }
 }
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Register the input and output 'create' routine and list of file
 /// extensions for a particular format.
@@ -151,7 +154,7 @@ declare_imageio_format(const std::string& format_name,
                        ImageOutput::Creator output_creator,
                        const char** output_extensions, const char* lib_version)
 {
-    std::lock_guard<std::recursive_mutex> lock(pvt::imageio_mutex);
+    std::lock_guard<std::recursive_mutex> lock(OIIO::pvt::imageio_mutex);
     declare_imageio_format_locked(format_name, input_creator, input_extensions,
                                   output_creator, output_extensions,
                                   lib_version);
@@ -169,7 +172,7 @@ is_imageio_format_name(string_view name)
     if (!format_list_vector.size()) {
         lock.unlock();
         // catalog_all_plugins() will lock imageio_mutex.
-        pvt::catalog_all_plugins(pvt::plugin_searchpath.string());
+        OIIO::pvt::catalog_all_plugins(OIIO::pvt::plugin_searchpath.string());
         lock.lock();
     }
     for (const auto& n : format_list_vector)
@@ -178,7 +181,11 @@ is_imageio_format_name(string_view name)
     return false;
 }
 
+OIIO_NAMESPACE_3_1_END
 
+
+
+OIIO_NAMESPACE_BEGIN
 
 static void
 catalog_plugin(const std::string& format_name,
@@ -518,6 +525,10 @@ pvt::is_procedural_plugin(const std::string& name)
     return procedural_plugins.find(name) != procedural_plugins.end();
 }
 
+OIIO_NAMESPACE_END
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 std::unique_ptr<ImageOutput>
@@ -548,9 +559,10 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
         if (found == output_formats.end()) {
             lock.unlock();
             // catalog_all_plugins() will lock imageio_mutex
-            catalog_all_plugins(plugin_searchpath.size()
-                                    ? plugin_searchpath
-                                    : string_view(pvt::plugin_searchpath));
+            catalog_all_plugins(
+                plugin_searchpath.size()
+                    ? plugin_searchpath
+                    : string_view(OIIO::pvt::plugin_searchpath));
             lock.lock();
             found = output_formats.find(format);
         }
@@ -647,7 +659,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
         InputPluginMap::const_iterator found = input_formats.find(format);
         if (found == input_formats.end()) {
             if (plugin_searchpath.empty())
-                plugin_searchpath = pvt::plugin_searchpath;
+                plugin_searchpath = OIIO::pvt::plugin_searchpath;
             lock.unlock();
             // catalog_all_plugins() will lock imageio_mutex.
             catalog_all_plugins(plugin_searchpath);
@@ -700,7 +712,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
             create_function = nullptr;
             if (in) {
                 specific_error = in->geterror();
-                if (pvt::oiio_print_debug > 1)
+                if (OIIO::pvt::oiio_print_debug > 1)
                     OIIO::debugfmt(
                         "ImageInput::create: \"{}\" did not open using format \"{}\".\n",
                         filename, in->format_name());
@@ -709,7 +721,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
         }
     }
 
-    if (!create_function && pvt::oiio_try_all_readers) {
+    if (!create_function && OIIO::pvt::oiio_try_all_readers) {
         // If a plugin can't be found that was explicitly designated for
         // this extension, then just try every one we find and see if
         // any will open the file.  Add a configuration request that
@@ -748,7 +760,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
                         && !in->valid_file(filename))) {
                     // Since we didn't need to open it, we just checked whether
                     // it was a valid file, and it's not.  Try the next one.
-                    if (pvt::oiio_print_debug > 1)
+                    if (OIIO::pvt::oiio_print_debug > 1)
                         OIIO::debugfmt(
                             "ImageInput::create: \"{}\" did not open using format \"{}\" {} [valid_file was false].\n",
                             filename, plugin->first, in->format_name());
@@ -764,13 +776,13 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
             if (ok) {
                 if (!do_open)
                     in->close();
-                if (pvt::oiio_print_debug > 1)
+                if (OIIO::pvt::oiio_print_debug > 1)
                     OIIO::debugfmt(
                         "ImageInput::create: \"{}\" succeeded using format \"{}\".\n",
                         filename, plugin->first);
                 return in;
             }
-            if (pvt::oiio_print_debug > 1)
+            if (OIIO::pvt::oiio_print_debug > 1)
                 OIIO::debugfmt(
                     "ImageInput::create: \"{}\" did not open using format \"{}\" {}.\n",
                     filename, plugin->first, in->format_name());
@@ -809,4 +821,4 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

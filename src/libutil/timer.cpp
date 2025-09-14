@@ -12,7 +12,7 @@
 #endif
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 double Timer::seconds_per_tick;
 Timer::ticks_t Timer::ticks_per_second;
@@ -68,4 +68,4 @@ Timer::now(void) const
 }
 #endif
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

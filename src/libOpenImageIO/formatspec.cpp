@@ -97,6 +97,10 @@ pvt::get_default_quantize(TypeDesc format, long long& quant_min,
     }
 }
 
+OIIO_NAMESPACE_END
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 ImageSpec::ImageSpec(TypeDesc format) noexcept
@@ -659,7 +663,10 @@ ImageSpec::channelindex(string_view name) const
     return -1;
 }
 
+OIIO_NAMESPACE_3_1_END
 
+
+OIIO_NAMESPACE_BEGIN
 
 std::string
 pvt::explain_justprint(const ParamValue& p, const void* extradata)
@@ -910,7 +917,10 @@ static ExplanationTableEntry explanation[] = {
 
 }  // namespace
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 std::string
 ImageSpec::metadata_val(const ParamValue& p, bool human)
@@ -1263,6 +1273,76 @@ ImageSpec::decode_compression_metadata(string_view defaultcomp,
 
 
 
+void
+ImageSpec::set_colorspace(string_view colorspace)
+{
+    ColorConfig::default_colorconfig().set_colorspace(*this, colorspace);
+    // Invalidate potentially contradictory metadata
+    erase_attribute("CICP");
+}
+
+
+
+ROI
+get_roi(const ImageSpec& spec)
+{
+    return ROI(spec.x, spec.x + spec.width, spec.y, spec.y + spec.height,
+               spec.z, spec.z + spec.depth, 0, spec.nchannels);
+}
+
+
+
+ROI
+get_roi_full(const ImageSpec& spec)
+{
+    return ROI(spec.full_x, spec.full_x + spec.full_width, spec.full_y,
+               spec.full_y + spec.full_height, spec.full_z,
+               spec.full_z + spec.full_depth, 0, spec.nchannels);
+}
+
+
+
+void
+set_roi(ImageSpec& spec, const ROI& newroi)
+{
+    spec.x      = newroi.xbegin;
+    spec.y      = newroi.ybegin;
+    spec.z      = newroi.zbegin;
+    spec.width  = newroi.width();
+    spec.height = newroi.height();
+    spec.depth  = newroi.depth();
+}
+
+
+
+void
+set_roi_full(ImageSpec& spec, const ROI& newroi)
+{
+    spec.full_x      = newroi.xbegin;
+    spec.full_y      = newroi.ybegin;
+    spec.full_z      = newroi.zbegin;
+    spec.full_width  = newroi.width();
+    spec.full_height = newroi.height();
+    spec.full_depth  = newroi.depth();
+}
+
+
+
+template<>
+size_t
+pvt::heapsize<ImageSpec>(const ImageSpec& is)
+{
+    size_t size = pvt::heapsize(is.channelformats);
+    size += pvt::heapsize(is.channelnames);
+    size += pvt::heapsize(is.extra_attribs);
+    return size;
+}
+
+OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
+
 bool
 pvt::check_texture_metadata_sanity(ImageSpec& spec)
 {
@@ -1288,29 +1368,6 @@ pvt::check_texture_metadata_sanity(ImageSpec& spec)
     }
     return false;
 }
-
-
-
-void
-ImageSpec::set_colorspace(string_view colorspace)
-{
-    ColorConfig::default_colorconfig().set_colorspace(*this, colorspace);
-    // Invalidate potentially contradictory metadata
-    erase_attribute("CICP");
-}
-
-
-
-template<>
-size_t
-pvt::heapsize<ImageSpec>(const ImageSpec& is)
-{
-    size_t size = pvt::heapsize(is.channelformats);
-    size += pvt::heapsize(is.channelnames);
-    size += pvt::heapsize(is.extra_attribs);
-    return size;
-}
-
 
 
 OIIO_NAMESPACE_END

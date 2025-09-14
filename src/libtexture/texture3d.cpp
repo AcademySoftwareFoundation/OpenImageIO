@@ -22,7 +22,7 @@
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 using namespace pvt;
 using LevelInfo    = ImageCacheFile::LevelInfo;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
@@ -766,4 +766,4 @@ TextureSystemImpl::texture3d(ustring filename, TextureOptBatch& options,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

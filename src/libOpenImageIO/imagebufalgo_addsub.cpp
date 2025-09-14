@@ -21,7 +21,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 template<class Rtype, class Atype, class Btype>
@@ -88,7 +88,7 @@ bool
 ImageBufAlgo::add(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
                   int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::add");
+    OIIO::pvt::LoggedTimer logtime("IBA::add");
     if (A_.is_img() && B_.is_img()) {
         const ImageBuf &A(A_.img()), &B(B_.img());
         if (!IBAprep(roi, &dst, &A, &B))
@@ -175,7 +175,7 @@ bool
 ImageBufAlgo::sub(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
                   int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::sub");
+    OIIO::pvt::LoggedTimer logtime("IBA::sub");
     if (A_.is_img() && B_.is_img()) {
         const ImageBuf &A(A_.img()), &B(B_.img());
         if (!IBAprep(roi, &dst, &A, &B))
@@ -245,4 +245,4 @@ ImageBufAlgo::sub(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
