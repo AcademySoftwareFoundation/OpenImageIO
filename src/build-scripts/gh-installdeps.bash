@@ -108,8 +108,8 @@ else
     # Nonstandard python versions
     if [[ "${PYTHON_VERSION}" == "3.9" ]] ; then
         time sudo apt-get -q install -y python3.9-dev python3-numpy
-    elif [[ "$PYTHON_VERSION" == "2.7" ]] ; then
-        time sudo apt-get -q install -y python2-dev python2-numpy
+    # elif [[ "$PYTHON_VERSION" == "2.7" ]] ; then
+    #     time sudo apt-get -q install -y python2-dev python2-numpy
     fi
     if [[ "${PIP_INSTALLS:=numpy}" != "none" ]] ; then
         time pip3 install ${PIP_INSTALLS}

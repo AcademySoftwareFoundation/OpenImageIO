@@ -454,54 +454,58 @@ jobs:
             runner: ubuntu-22.04
             cxx_compiler: clang++
             cc_compiler: clang
-            cxx_std: 20
+            cxx_std: 17
             fmt_ver: 10.1.1
             openexr_ver: v3.1.11
             pybind11_ver: v2.9.2
-            python_ver: 3.8
+            python_ver: "3.10"
             simd: avx2,f16c
             setenvs: export LLVM_VERSION=14.0.0
-                            OPENCOLORIO_VERSION=v2.1.2
+                            xOPENCOLORIO_VERSION=v2.1.3
                             USE_OPENVDB=0
                             QT_VERSION=6
                             # The installed OpenVDB has a TLS conflict with Python 3.8
-          - desc: debug gcc7/C++14, sse4.2, exr2.4
-            nametag: linux-gcc7-cpp14-debug
+          - desc: debug gcc9/C++14, sse4.2, exr2.4
+            nametag: linux-gcc9-cpp14-debug
             runner: ubuntu-22.04
             container:
               image: ubuntu-18.04
-            cxx_compiler: g++-7
+            cxx_compiler: g++-9
             cxx_std: 14
-            python_ver: 2.7
+            python_ver: "3.10"
             simd: sse4.2
             openexr_ver: v2.4.3
-            pybind11_ver: v2.6.2
+            pybind11_ver: v2.9.2
             setenvs: export CMAKE_BUILD_TYPE=Debug
                             PUGIXML_VERSION=v1.9
                             CTEST_TEST_TIMEOUT=1200
-
-          - desc: gcc8 C++17 avx exr2.5
+                            USE_OPENVDB=0
+          - desc: gcc9 C++17 avx exr2.5
             nametag: linux-gcc8
             runner: ubuntu-22.04
             container:
               image: ubuntu-18.04
-            cc_compiler: gcc-8
-            cxx_compiler: g++-8
+            cc_compiler: gcc-9
+            cxx_compiler: g++-9
             cxx_std: 17
             openexr_ver: v2.5.8
             pybind11_ver: v2.5.0
+            python_ver: "3.10"
             simd: avx
             setenvs: export EXTRA_DEP_PACKAGES=libjpeg-turbo8-dev
-          - desc: static libs gcc7 C++14 exr2.4
+                            USE_OPENVDB=0
+          - desc: static libs gcc9 C++14 exr2.4
             nametag: linux-static
             runner: ubuntu-22.04
             container:
               image: ubuntu-18.04
-            cxx_compiler: g++-7
+            cxx_compiler: g++-9
             cxx_std: 14
             openexr_ver: v2.4.3
             pybind11_ver: v2.6.2
+            python_ver: "3.10"
             setenvs: export BUILD_SHARED_LIBS=OFF
+                            USE_OPENVDB=0
             depcmds: |
               sudo rm -rf /usr/local/include/OpenEXR
               sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
