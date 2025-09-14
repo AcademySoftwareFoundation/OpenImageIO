@@ -283,16 +283,15 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
+          MACOSX_DEPLOYMENT_TARGET: 10.15
           #CMAKE_GENERATOR: "Unix Makefiles"
           CIBW_ENVIRONMENT: >
-            CMAKE_GENERATOR=Ninja
             CMAKE_C_COMPILER=$(xcrun -find clang)
             CMAKE_CXX_COMPILER=$(xcrun -find clang++)
             # Add your extra CMake args below (e.g., OpenEXR/Imath pins)
 
             CMAKE_ARGS="-DCMAKE_FIND_FRAMEWORK=NEVER
                         -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON
-                        -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
                         -DIGNORE_HOMEBREWED_DEPS=ON
                         -DCMAKE_POLICY_VERSION_MINIMUM=3.5
                         -DOpenEXR_DIR=$PWD/deps/dist/lib/cmake/OpenEXR
