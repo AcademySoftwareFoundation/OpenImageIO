@@ -292,7 +292,6 @@ jobs:
 
             CMAKE_ARGS="-DCMAKE_FIND_FRAMEWORK=NEVER
                         -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON
-                        -DIGNORE_HOMEBREWED_DEPS=ON
                         -DCMAKE_POLICY_VERSION_MINIMUM=3.5
                         -DOpenEXR_DIR=$PWD/deps/dist/lib/cmake/OpenEXR
                         -DImath_DIR=$PWD/deps/dist/lib/cmake/Imath"
