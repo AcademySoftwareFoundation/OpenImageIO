@@ -284,7 +284,7 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
           MACOSX_DEPLOYMENT_TARGET: 10.15
-          CMAKE_GENERATOR: "Unix Makefiles"
+          #CMAKE_GENERATOR: "Unix Makefiles"
           # TODO: Re-enable HEIF when we provide a build recipe that does 
           # not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
