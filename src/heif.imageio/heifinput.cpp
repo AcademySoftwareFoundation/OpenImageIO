@@ -3,7 +3,9 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/tiffutils.h>
 
 #include <libheif/heif_cxx.h>
@@ -224,9 +226,13 @@ HeifInput::seek_subimage(int subimage, int miplevel)
 
     m_has_alpha = m_ihandle.has_alpha_channel();
     auto chroma = m_has_alpha        ? (m_bitdepth > 8)
-                                           ? heif_chroma_interleaved_RRGGBBAA_LE
+                                           ? littleendian()
+                                                 ? heif_chroma_interleaved_RRGGBBAA_LE
+                                                 : heif_chroma_interleaved_RRGGBBAA_BE
                                            : heif_chroma_interleaved_RGBA
-                  : (m_bitdepth > 8) ? heif_chroma_interleaved_RRGGBB_LE
+                  : (m_bitdepth > 8) ? littleendian()
+                                           ? heif_chroma_interleaved_RRGGBB_LE
+                                           : heif_chroma_interleaved_RRGGBB_BE
                                      : heif_chroma_interleaved_RGB;
 #if 0
     try {
@@ -449,15 +455,18 @@ HeifInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return false;
     }
     hdata += (y - m_spec.y) * ystride;
-    if (m_spec.format == TypeUInt16) {
-        // Convert from 10 or 12 bits to 16 bits. Read little endian
-        // zero padded bits, and shift to scale up.
-        const uint8_t* in       = hdata;
-        uint16_t* out           = static_cast<uint16_t*>(data);
-        const int bitshift      = 16 - m_bitdepth;
+    if (m_bitdepth == 10 || m_bitdepth == 12) {
         const size_t num_values = m_spec.width * m_spec.nchannels;
-        for (size_t i = 0; i < num_values; i++, out++, in += 2) {
-            *out = uint16_t((in[1] << 8) | in[0]) << bitshift;
+        const uint16_t* hdata16 = reinterpret_cast<const uint16_t*>(hdata);
+        uint16_t* data16        = static_cast<uint16_t*>(data);
+        if (m_bitdepth == 10) {
+            for (size_t i = 0; i < num_values; ++i) {
+                data16[i] = bit_range_convert<10, 16>(hdata16[i]);
+            }
+        } else {
+            for (size_t i = 0; i < num_values; ++i) {
+                data16[i] = bit_range_convert<12, 16>(hdata16[i]);
+            }
         }
     } else {
         memcpy(data, hdata, m_spec.width * m_spec.pixel_bytes());

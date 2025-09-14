@@ -4,7 +4,9 @@
 
 
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/tiffutils.h>
 
 #include <libheif/heif_cxx.h>
@@ -127,9 +129,11 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
             = { heif_chroma_undefined, heif_chroma_monochrome,
                 heif_chroma_undefined,
                 (m_bitdepth == 8) ? heif_chroma_interleaved_RGB
-                                  : heif_chroma_interleaved_RRGGBB_LE,
+                : littleendian()  ? heif_chroma_interleaved_RRGGBB_LE
+                                  : heif_chroma_interleaved_RRGGBB_BE,
                 (m_bitdepth == 8) ? heif_chroma_interleaved_RGBA
-                                  : heif_chroma_interleaved_RRGGBBAA_LE };
+                : littleendian()  ? heif_chroma_interleaved_RRGGBBAA_LE
+                                  : heif_chroma_interleaved_RRGGBBAA_BE };
         m_himage.create(newspec.width, newspec.height, heif_colorspace_RGB,
                         chromas[m_spec.nchannels]);
         m_himage.add_plane(heif_channel_interleaved, newspec.width,
@@ -178,17 +182,18 @@ HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
     uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved, &hystride);
 #endif
     hdata += hystride * (y - m_spec.y);
-    if (m_spec.format == TypeUInt16) {
-        // Convert from 16 bits to 10 or 12 bits. Shift to scale down and
-        // output zero padded little endian.
-        const uint16_t* in      = static_cast<const uint16_t*>(data);
-        uint8_t* out            = hdata;
-        const int bitshift      = 16 - m_bitdepth;
+    if (m_bitdepth == 10 || m_bitdepth == 12) {
+        const uint16_t* data16  = static_cast<const uint16_t*>(data);
+        uint16_t* hdata16       = reinterpret_cast<uint16_t*>(hdata);
         const size_t num_values = m_spec.width * m_spec.nchannels;
-        for (size_t i = 0; i < num_values; i++, out += 2, in++) {
-            const uint16_t v = *in >> bitshift;
-            out[0]           = (uint8_t)(v & 0xFF);
-            out[1]           = (uint8_t)(v >> 8);
+        if (m_bitdepth == 10) {
+            for (size_t i = 0; i < num_values; ++i) {
+                hdata16[i] = bit_range_convert<16, 10>(data16[i]);
+            }
+        } else {
+            for (size_t i = 0; i < num_values; ++i) {
+                hdata16[i] = bit_range_convert<16, 12>(data16[i]);
+            }
         }
     } else {
         memcpy(hdata, data, hystride);
