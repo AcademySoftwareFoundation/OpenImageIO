@@ -259,6 +259,10 @@ HeifOutput::close()
             nclx->matrix_coefficients   = heif_matrix_coefficients(cicp[2]);
             nclx->full_range_flag       = cicp[3];
             options.output_nclx_profile = nclx.get();
+            // Chroma subsampling is incompatible with RGB.
+            if (nclx->matrix_coefficients == heif_matrix_coefficients_RGB_GBR) {
+                m_encoder.set_string_parameter("chroma", "444");
+            }
         }
 #endif
         encode_exif(m_spec, exifblob, endian::big);
