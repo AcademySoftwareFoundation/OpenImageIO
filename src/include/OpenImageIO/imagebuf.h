@@ -37,13 +37,7 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
-
-class ImageBuf;
-class ImageBufImpl;  // Opaque type for the unique_ptr.
-class ImageCache;
-class ImageCacheTile;
-
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// Return pixel data window for this ImageSpec as a ROI.
@@ -2042,4 +2036,14 @@ protected:
 };
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+using v3_1::get_roi;
+using v3_1::get_roi_full;
+using v3_1::InitializePixels;
+using v3_1::set_roi;
+using v3_1::set_roi_full;
 OIIO_NAMESPACE_END

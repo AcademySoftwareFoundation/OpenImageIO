@@ -21,7 +21,9 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
+// All of ArgParse is still in the v3_1 namespace until it needs to break ABI
+// compatibility.
 
 class ArgOption final : public ArgParse::Arg {
 public:
@@ -151,7 +153,7 @@ public:
         : m_argparse(parent)
         , m_argc(argc)
         , m_argv(argv)
-        , m_prog(Filesystem::filename(Sysutil::this_program_path()))
+        , m_prog(OIIO::Filesystem::filename(Sysutil::this_program_path()))
     {
     }
 
@@ -1195,4 +1197,4 @@ ArgParse::set_next_arg(int nextarg)
     m_impl->m_next_arg = nextarg;
 }
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

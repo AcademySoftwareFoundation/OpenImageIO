@@ -10,12 +10,7 @@
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/string_view.h>
 
-OIIO_NAMESPACE_BEGIN
-
-
-struct TypeDesc;
-class ImageSpec;
-
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// A `DeepData` holds the contents of an image of ``deep'' pixels (multiple
@@ -209,4 +204,4 @@ private:
 };
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

@@ -20,7 +20,7 @@
 #include <OpenImageIO/oiioversion.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace Plugin {
 
@@ -74,4 +74,15 @@ geterror(bool clear = true);
 
 }  // namespace Plugin
 
+OIIO_NAMESPACE_3_1_END
+
+
+
+// Compatibility: inherit everything from v3_1::Plugin
+#ifndef OIIO_DOXYGEN
+OIIO_NAMESPACE_BEGIN
+namespace Plugin {
+using namespace OIIO::v3_1::Plugin;
+}
 OIIO_NAMESPACE_END
+#endif

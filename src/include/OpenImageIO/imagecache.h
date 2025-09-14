@@ -25,16 +25,7 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
-
-// Forward declarations
-class TextureOpt_v2;
-
-class ImageCachePerThreadInfo;
-class ImageCacheFile;
-class ImageCacheTile;
-class ImageCacheImpl;
-
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// Define an API to an abstract class that manages image files,
@@ -1343,8 +1334,8 @@ public:
     ~ImageCache();
 
 private:
-    friend class TextureSystem;
-    friend class TextureSystemImpl;
+    friend class OIIO::TextureSystem;
+    friend class OIIO::TextureSystemImpl;
 
     // PIMPL idiom
     using Impl = ImageCacheImpl;
@@ -1356,4 +1347,4 @@ private:
 };
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

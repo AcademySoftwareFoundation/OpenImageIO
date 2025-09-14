@@ -12,7 +12,7 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 
@@ -58,4 +58,4 @@ ErrorHandler::operator()(int errcode, const std::string& msg)
     fflush(stderr);
 }
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

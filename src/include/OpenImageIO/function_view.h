@@ -47,7 +47,7 @@
 #include <OpenImageIO/platform.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// function_view<R(T...)> is a lightweight non-owning generic callable
@@ -105,4 +105,10 @@ public:
 };
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+using v3_1::function_view;
 OIIO_NAMESPACE_END

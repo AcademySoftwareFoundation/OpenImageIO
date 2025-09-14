@@ -15,8 +15,6 @@
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
 
-OIIO_NAMESPACE_BEGIN
-
 
 // An enable_if helper to be used in template parameters which results in
 // much shorter symbols: https://godbolt.org/z/sWw4vP
@@ -25,6 +23,8 @@ OIIO_NAMESPACE_BEGIN
 #    define OIIO_ENABLE_IF(...) std::enable_if_t<(__VA_ARGS__), int> = 0
 #endif
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// has_size_method<T>::value is true if T has a size() method and it returns
 /// an integral type.
@@ -45,6 +45,14 @@ template<class T>
 struct has_subscript<T, std::void_t<decltype(std::declval<T&>()[0])>>
     : std::true_type { };
 
+OIIO_NAMESPACE_3_1_END
 
 
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::has_size_method;
+using v3_1::has_subscript;
+#endif
 OIIO_NAMESPACE_END
