@@ -284,7 +284,6 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
           #CMAKE_GENERATOR: "Unix Makefiles"
-          MACOSX_DEPLOYMENT_TARGET: "10.13"
           CIBW_ENVIRONMENT: >
             CMAKE_GENERATOR=Ninja
             CMAKE_C_COMPILER=$(xcrun -find clang)
@@ -293,7 +292,7 @@ jobs:
 
             CMAKE_ARGS="-DCMAKE_FIND_FRAMEWORK=NEVER
                         -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON
-                        -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+                        -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
                         -DIGNORE_HOMEBREWED_DEPS=ON
                         -DCMAKE_POLICY_VERSION_MINIMUM=3.5
                         -DOpenEXR_DIR=$PWD/deps/dist/lib/cmake/OpenEXR

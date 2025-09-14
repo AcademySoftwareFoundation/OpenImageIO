@@ -49,7 +49,7 @@ oiiotool = "OpenImageIO:_command_line"
 build-backend = "scikit_build_core.build"
 requires = [
     "scikit-build-core>=0.10.6,<1",
-    "pybind11>=2.13,<3",
+    "pybind11>=2.9,<3"
 ]
 
 [tool.scikit-build]
@@ -89,14 +89,14 @@ if.platform-system = "darwin"
 if.platform-machine  = "arm64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "arm64"
-cmake.define.MACOSX_DEPLOYMENT_TARGET = "11"
+cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "11"
 
 [[tool.scikit-build.overrides]]
 if.platform-system = "darwin"
 if.platform-machine  = "x86_64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
-cmake.define.MACOSX_DEPLOYMENT_TARGET = "10.13"
+cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "10.15"
 #cmake.define.CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH = "OFF"
 #cmake.define.CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH = "OFF"
 
