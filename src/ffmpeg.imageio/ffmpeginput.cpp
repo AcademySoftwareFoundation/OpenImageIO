@@ -30,6 +30,7 @@ extern "C" {  // ffmpeg is a C api
 #endif
 
 #include <libavutil/imgutils.h>
+#include <libavutil/pixdesc.h>
 }
 
 
@@ -528,8 +529,19 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     m_spec.attribute("FramesPerSecond", TypeRational, &rat);
     m_spec.attribute("oiio:Movie", true);
     m_spec.attribute("oiio:subimages", int(m_frames));
-    m_spec.attribute("oiio:BitsPerSample",
-                     m_codec_context->bits_per_raw_sample);
+    if (m_codec_context->bits_per_raw_sample) {
+        m_spec.attribute("oiio:BitsPerSample",
+                         m_codec_context->bits_per_raw_sample);
+    } else {
+        // If bits_per_raw_sample is not provided, the bit depth of the
+        // luma channel is the closest equivalent to a single bit depth.
+        const AVPixFmtDescriptor* pix_format_desc = av_pix_fmt_desc_get(
+            src_pix_format);
+        if (pix_format_desc && pix_format_desc->nb_components > 0) {
+            m_spec.attribute("oiio:BitsPerSample",
+                             pix_format_desc->comp[0].depth);
+        }
+    }
     m_spec.attribute("ffmpeg:codec_name", m_codec_context->codec->long_name);
     /* The ffmpeg enums are documented to match CICP values, except the color range. */
     const int cicp[4]

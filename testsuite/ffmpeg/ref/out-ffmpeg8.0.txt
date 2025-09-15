@@ -10,7 +10,7 @@ ref/vp9_display_p3.mkv :  192 x  108, 3 channel, uint8 FFmpeg movie
     FramesPerSecond: 24/1 (24)
     SCENE: "Scene"
     ffmpeg:codec_name: "Google VP9"
-    oiio:BitsPerSample: 0
+    oiio:BitsPerSample: 8
     oiio:Movie: 1
     oiio:subimages: 7
  subimage  1:  192 x  108, 3 channel, uint8 FFmpeg movie
@@ -22,7 +22,7 @@ ref/vp9_display_p3.mkv :  192 x  108, 3 channel, uint8 FFmpeg movie
     FramesPerSecond: 24/1 (24)
     SCENE: "Scene"
     ffmpeg:codec_name: "Google VP9"
-    oiio:BitsPerSample: 0
+    oiio:BitsPerSample: 8
     oiio:Movie: 1
     oiio:subimages: 7
  subimage  2:  192 x  108, 3 channel, uint8 FFmpeg movie
@@ -34,7 +34,7 @@ ref/vp9_display_p3.mkv :  192 x  108, 3 channel, uint8 FFmpeg movie
     FramesPerSecond: 24/1 (24)
     SCENE: "Scene"
     ffmpeg:codec_name: "Google VP9"
-    oiio:BitsPerSample: 0
+    oiio:BitsPerSample: 8
     oiio:Movie: 1
     oiio:subimages: 7
  subimage  3:  192 x  108, 3 channel, uint8 FFmpeg movie
@@ -46,7 +46,7 @@ ref/vp9_display_p3.mkv :  192 x  108, 3 channel, uint8 FFmpeg movie
     FramesPerSecond: 24/1 (24)
     SCENE: "Scene"
     ffmpeg:codec_name: "Google VP9"
-    oiio:BitsPerSample: 0
+    oiio:BitsPerSample: 8
     oiio:Movie: 1
     oiio:subimages: 7
  subimage  4:  192 x  108, 3 channel, uint8 FFmpeg movie
@@ -58,7 +58,7 @@ ref/vp9_display_p3.mkv :  192 x  108, 3 channel, uint8 FFmpeg movie
     FramesPerSecond: 24/1 (24)
     SCENE: "Scene"
     ffmpeg:codec_name: "Google VP9"
-    oiio:BitsPerSample: 0
+    oiio:BitsPerSample: 8
     oiio:Movie: 1
     oiio:subimages: 7
  subimage  5:  192 x  108, 3 channel, uint8 FFmpeg movie
@@ -70,7 +70,7 @@ ref/vp9_display_p3.mkv :  192 x  108, 3 channel, uint8 FFmpeg movie
     FramesPerSecond: 24/1 (24)
     SCENE: "Scene"
     ffmpeg:codec_name: "Google VP9"
-    oiio:BitsPerSample: 0
+    oiio:BitsPerSample: 8
     oiio:Movie: 1
     oiio:subimages: 7
  subimage  6:  192 x  108, 3 channel, uint8 FFmpeg movie
@@ -82,6 +82,6 @@ ref/vp9_display_p3.mkv :  192 x  108, 3 channel, uint8 FFmpeg movie
     FramesPerSecond: 24/1 (24)
     SCENE: "Scene"
     ffmpeg:codec_name: "Google VP9"
-    oiio:BitsPerSample: 0
+    oiio:BitsPerSample: 8
     oiio:Movie: 1
     oiio:subimages: 7
