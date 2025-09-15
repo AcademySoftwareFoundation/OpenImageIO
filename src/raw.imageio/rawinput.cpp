@@ -1710,7 +1710,7 @@ void
 _errorfmt(const RawInput* input, int subimage, const char* format,
           const Args&... args)
 {
-    std::string fmt = "Failed to unpack thumbnail at index "
+    std::string fmt = "Failed to extract thumbnail at index "
                       + std::to_string(subimage) + ": " + format + ".";
     input->errorfmt(fmt.c_str(), args...);
 }
@@ -1764,7 +1764,8 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
     }
 
     if (image_type.empty()) {
-        _errorfmt(this, subimage, "unknown image type %i", mem_thumb->type);
+        _errorfmt(this, subimage, "unknown image type %i",
+                  static_cast<int>(mem_thumb->type));
         return false;
     }
 
