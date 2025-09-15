@@ -11,24 +11,8 @@
 #include <OpenImageIO/strided_ptr.h>
 
 
-OIIO_NAMESPACE_BEGIN
 
-#ifndef OIIO_STRIDE_T_DEFINED
-#    define OIIO_STRIDE_T_DEFINED
-/// Type we use to express how many pixels (or bytes) constitute an image,
-/// tile, or scanline.
-using imagesize_t = uint64_t;
-
-/// Type we use for stride lengths between pixels, scanlines, or image
-/// planes.
-using stride_t = int64_t;
-
-/// Special value to indicate a stride length that should be
-/// auto-computed.
-inline constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
-#endif
-
-
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// image_span : a non-owning reference to an image-like n-D array having
 /// between 2 and 4 dimensions representing channel, x, y, z with each
@@ -51,6 +35,8 @@ public:
     using stride_t        = int64_t;
     using stride_type     = int64_t;
     using size_type       = uint32_t;
+
+    static constexpr stride_t AutoStride = std::numeric_limits<stride_t>::min();
 
     /// Default ctr -- points to nothing
     image_span() = default;
@@ -385,6 +371,8 @@ as_image_span_writable_bytes(const image_span<T, Rank>& src) noexcept
                                  src.ystride(), src.zstride(), src.chansize());
 }
 
+
+
 /// Verify that the image_span has all its contents lying within the
 /// contiguous span.
 OIIO_API bool
@@ -402,4 +390,17 @@ image_span_within_span(const image_span<T, Trank>& ispan,
                                   as_bytes(contiguous));
 }
 
+OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::as_image_span_bytes;
+using v3_1::as_image_span_writable_bytes;
+using v3_1::image1d_span;
+using v3_1::image2d_span;
+using v3_1::image3d_span;
+using v3_1::image_span;
+using v3_1::image_span_within_span;
+#endif
 OIIO_NAMESPACE_END

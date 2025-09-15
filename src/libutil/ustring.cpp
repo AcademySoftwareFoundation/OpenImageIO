@@ -12,7 +12,7 @@
 #include <OpenImageIO/unordered_map_concurrent.h>
 #include <OpenImageIO/ustring.h>
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 // Use rw spin locks
 typedef spin_rw_mutex ustring_mutex_t;
@@ -662,4 +662,4 @@ ustring::memory()
     return table.get_memory_usage();
 }
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

@@ -2248,6 +2248,60 @@ icc_read(Oiiotool& ot, cspan<const char*> argv)
 }
 
 
+// Set, modify, or remove the top image's CICP (ITU-T H.273) metadata.
+class OpSetCICP final : public OiiotoolOp {
+public:
+    OpSetCICP(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
+    {
+        inplace(true);  // This action operates in-place
+        cicp = args(1);
+    }
+    OpSetCICP(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+        : OpSetCICP(ot, opname, { argv, span_size_t(argc) })
+    {
+    }
+    bool setup() override
+    {
+        ir(0)->metadata_modified(true);
+        return true;
+    }
+    bool impl(span<ImageBuf*> img) override
+    {
+        // Because this is an in-place operation, img[0] is the same as
+        // img[1].
+        if (cicp.empty()) {
+            img[0]->specmod().erase_attribute("CICP");
+            return true;
+        }
+        std::vector<int> vals { 0, 0, 0, 1 };
+        auto p = img[0]->spec().find_attribute("CICP",
+                                               TypeDesc(TypeDesc::INT, 4));
+        if (p) {
+            const int* existing = static_cast<const int*>(p->data());
+            for (int i = 0; i < 4; ++i)
+                vals[i] = existing[i];
+        }
+        Strutil::extract_from_list_string<int>(vals, cicp);
+        img[0]->specmod().attribute("CICP", TypeDesc(TypeDesc::INT, 4),
+                                    vals.data());
+        return true;
+    }
+
+private:
+    string_view cicp;
+};
+
+
+// --cicp
+static void
+action_cicp(Oiiotool& ot, cspan<const char*> argv)
+{
+    OpSetCICP op(ot, "cicp", argv);
+    op();
+}
+
+
 
 // --colorconfig
 static void
@@ -3370,7 +3424,7 @@ ImageBufAlgox::cryptomatte_colors(ImageBuf& dst, const ImageBuf& src,
                                   span<const int> channelset, ROI roi,
                                   int nthreads)
 {
-    // pvt::LoggedTimer logtime("IBA::cryptomatte_colors");
+    // OIIO::pvt::LoggedTimer logtime("IBA::cryptomatte_colors");
     if (!roi.defined())
         roi = get_roi(src.spec());
     roi.chend = std::min(roi.chend, src.nchannels());
@@ -7176,6 +7230,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--iccread %s:FILENAME")
       .help("Add the contents of the file to the top image as its ICC profile")
       .OTACTION(icc_read);
+    ap.arg("--cicp %s:CICP")
+       .help("Set or modifiy CICP metadata for supporting output formats (e.g., \"12,16,0,1\")") //; selectively persist existing values if not specified (e.g., \",,,0\")")
+       .OTACTION(action_cicp);
     // clang-format on
 
     if (ap.parse_args(argc, (const char**)argv) < 0) {
@@ -7478,7 +7535,7 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
             OIIO::print("Running {} frames in parallel with {} threads\n",
                         nfilenames, parallel_frame_threads);
         ot.begin_parallel_frame_loop(parallel_frame_threads);
-        parallel_for(
+        OIIO::parallel_for(
             uint64_t(0), uint64_t(nfilenames),
             [&](uint64_t i) {
                 one_sequence_iteration(ot, i, frame_numbers[0][i],

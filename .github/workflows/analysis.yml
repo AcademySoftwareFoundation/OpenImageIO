@@ -87,7 +87,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: sonar gcc11/C++17 py310 exr3.2 ocio2.3
+          - desc: sonar gcc11/C++17 py311 exr3.2 ocio2.3
             nametag: static-analysis-sonar
             os: ubuntu-latest
             container: aswf/ci-oiio:2024.2

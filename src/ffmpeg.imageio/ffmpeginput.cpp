@@ -30,6 +30,7 @@ extern "C" {  // ffmpeg is a C api
 #endif
 
 #include <libavutil/imgutils.h>
+#include <libavutil/pixdesc.h>
 }
 
 
@@ -180,9 +181,9 @@ ffmpeg_input_imageio_create()
 // QuickTime / MOV
 // raw MPEG-4 video
 // MPEG-1 Systems / MPEG program stream
-OIIO_EXPORT const char* ffmpeg_input_extensions[] = {
-    "avi", "mov", "qt", "mp4", "m4a", "3gp", "3g2", "mj2", "m4v", "mpg", nullptr
-};
+OIIO_EXPORT const char* ffmpeg_input_extensions[]
+    = { "avi", "mov", "qt",  "mp4", "m4a", "3gp",
+        "3g2", "mj2", "m4v", "mpg", "mkv", nullptr };
 
 
 OIIO_PLUGIN_EXPORTS_END
@@ -528,9 +529,26 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     m_spec.attribute("FramesPerSecond", TypeRational, &rat);
     m_spec.attribute("oiio:Movie", true);
     m_spec.attribute("oiio:subimages", int(m_frames));
-    m_spec.attribute("oiio:BitsPerSample",
-                     m_codec_context->bits_per_raw_sample);
+    if (m_codec_context->bits_per_raw_sample) {
+        m_spec.attribute("oiio:BitsPerSample",
+                         m_codec_context->bits_per_raw_sample);
+    } else {
+        // If bits_per_raw_sample is not provided, the bit depth of the
+        // luma channel is the closest equivalent to a single bit depth.
+        const AVPixFmtDescriptor* pix_format_desc = av_pix_fmt_desc_get(
+            src_pix_format);
+        if (pix_format_desc && pix_format_desc->nb_components > 0) {
+            m_spec.attribute("oiio:BitsPerSample",
+                             pix_format_desc->comp[0].depth);
+        }
+    }
     m_spec.attribute("ffmpeg:codec_name", m_codec_context->codec->long_name);
+    /* The ffmpeg enums are documented to match CICP values, except the color range. */
+    const int cicp[4]
+        = { m_codec_context->color_primaries, m_codec_context->color_trc,
+            m_codec_context->colorspace,
+            m_codec_context->color_range == AVCOL_RANGE_MPEG ? 0 : 1 };
+    m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
     m_nsubimages = m_frames;
     spec         = m_spec;
     m_filename   = name;

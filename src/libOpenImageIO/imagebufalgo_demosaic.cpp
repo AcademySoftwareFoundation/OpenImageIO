@@ -12,7 +12,7 @@
 #include "imagebufalgo_demosaic_prv.h"
 #include "imageio_pvt.h"
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace {
 
@@ -966,7 +966,7 @@ demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
          int nthreads)
 {
     bool ok = false;
-    pvt::LoggedTimer logtime("IBA::demosaic");
+    OIIO::pvt::LoggedTimer logtime("IBA::demosaic");
 
     std::string pattern;
     std::string algorithm;
@@ -1234,4 +1234,4 @@ mosaic_uint8(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
 
 }  // namespace ImageBufAlgo
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

@@ -130,7 +130,10 @@ enum TIFFTAG {
     EXIF_GAMMA                      = 42240,
 };
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Given a TIFF data type code (defined in tiff.h) and a count, return the
 /// equivalent TypeDesc where one exists. Return TypeUnknown if there is no
@@ -250,5 +253,25 @@ OIIO_API const TagInfo* tag_lookup (string_view domain, int tag);
 OIIO_API const TagInfo* tag_lookup (string_view domain, string_view tagname);
 
 
+OIIO_NAMESPACE_3_1_END
 
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::decode_exif;
+using v3_1::decode_icc_profile;
+using v3_1::decode_iptc_iim;
+using v3_1::decode_xmp;
+using v3_1::encode_iptc_iim;
+using v3_1::encode_xmp;
+using v3_1::exif_tag_lookup;
+using v3_1::tag_lookup;
+using v3_1::tag_table;
+using v3_1::TagInfo;
+using v3_1::tiff_data_size;
+using v3_1::tiff_datatype_to_typedesc;
+using v3_1::tiff_dir_data;
+#endif
 OIIO_NAMESPACE_END

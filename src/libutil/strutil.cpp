@@ -59,6 +59,18 @@ OIIO_PRAGMA_WARNING_POP
 
 
 OIIO_NAMESPACE_BEGIN
+namespace pvt {
+static const char* oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
+#ifdef NDEBUG
+OIIO_UTIL_API int
+    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 0);
+#else
+OIIO_UTIL_API int
+    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
+#endif
+OIIO_UTIL_API int oiio_print_uncaught_errors(1);
+}  // namespace pvt
+
 
 
 namespace {
@@ -75,6 +87,18 @@ static _locale_t c_loc = _create_locale(LC_ALL, "C");
 
 };  // namespace
 
+
+
+#if OIIO_VERSION_LESS(3, 1, 2) /* remove at next ABI compatibility boundary */
+void
+pvt::log_fmt_error(const char* message)
+{
+    print("fmt exception: {}\n", message);
+    Strutil::pvt::append_error(std::string("fmt exception: ") + message);
+}
+#endif
+
+OIIO_NAMESPACE_END
 
 
 // Locale-independent quickie ASCII digit and alphanum tests, good enough
@@ -101,6 +125,7 @@ isdigit(char c)
 }
 
 
+OIIO_NAMESPACE_3_1_BEGIN
 
 OIIO_NO_SANITIZE_ADDRESS const char*
 c_str(string_view str)
@@ -166,20 +191,6 @@ Strutil::sync_output(std::ostream& file, string_view str, bool flush)
 
 
 
-namespace pvt {
-static const char* oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
-#ifdef NDEBUG
-OIIO_UTIL_API int
-    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 0);
-#else
-OIIO_UTIL_API int
-    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
-#endif
-OIIO_UTIL_API int oiio_print_uncaught_errors(1);
-}  // namespace pvt
-
-
-
 // ErrorHolder houses a string, with the addition that when it is destroyed,
 // it will disgorge any un-retrieved error messages, in an effort to help
 // beginning users diagnose their problems if they have forgotten to call
@@ -189,7 +200,7 @@ struct ErrorHolder {
 
     ~ErrorHolder()
     {
-        if (!error_msg.empty() && pvt::oiio_print_uncaught_errors) {
+        if (!error_msg.empty() && OIIO::pvt::oiio_print_uncaught_errors) {
             OIIO::print(
                 "OpenImageIO exited with a pending error message that was never\n"
                 "retrieved via OIIO::geterror(). This was the error message:\n{}\n",
@@ -244,17 +255,6 @@ Strutil::pvt::geterror(bool clear)
         error_msg.clear();
     return e;
 }
-
-
-#if OIIO_VERSION_LESS(3, 1, 2) /* remove at next ABI compatibility boundary */
-void
-pvt::log_fmt_error(const char* message)
-{
-    print("fmt exception: {}\n", message);
-    Strutil::pvt::append_error(std::string("fmt exception: ") + message);
-}
-#endif
-
 
 
 void
@@ -2008,4 +2008,5 @@ Strutil::eval_as_bool(string_view value)
     }
 }
 
-OIIO_NAMESPACE_END
+
+OIIO_NAMESPACE_3_1_END

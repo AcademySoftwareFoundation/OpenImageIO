@@ -34,13 +34,15 @@
 
 #define TEX_FAST_MATH 1
 
+using namespace OIIO::simd;
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 using namespace pvt;
-using namespace simd;
+using namespace OIIO::pvt;
 using LevelInfo    = ImageCacheFile::LevelInfo;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
 using ImageDims    = ImageCacheFile::ImageDims;
+
 
 namespace {  // anonymous
 
@@ -3642,4 +3644,4 @@ TextureSystem::unit_test_hash()
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

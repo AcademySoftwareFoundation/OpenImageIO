@@ -22,7 +22,7 @@
 #include <OpenImageIO/ustring.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// ParamValue holds a named parameter and typed data. Usually, it owns the
 /// data (holding it in the struct itself if small enough, dynamically
@@ -372,15 +372,19 @@ private:
     template<typename T> friend size_t pvt::heapsize(const T&);
 };
 
+
+
 /// heapsize specialization for `ParamValue`
 template<>
 OIIO_API size_t
 pvt::heapsize<ParamValue>(const ParamValue&);
 
+
+
 /// Factory for a ParamValue that holds a single value of any type supported
 /// by a corresponding ParamValue constructor (such as int, float, string).
 template<typename T>
-static ParamValue
+inline ParamValue
 make_pv(string_view name, const T& val)
 {
     return ParamValue(name, val);
@@ -390,7 +394,7 @@ make_pv(string_view name, const T& val)
 /// will be interpreted as a C string (TypeString), but all other pointer
 /// types will just get stored as an opaque pointer (TypePointer).
 template<typename T>
-static ParamValue
+inline ParamValue
 make_pv(string_view name, T* val)
 {
     return ParamValue(name, BaseTypeFromC<T*>::value, 1, span(&val, 1));
@@ -842,4 +846,15 @@ public:
 };
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::make_pv;
+using v3_1::ParamValue;
+using v3_1::ParamValueList;
+#endif
 OIIO_NAMESPACE_END

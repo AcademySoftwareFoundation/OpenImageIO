@@ -18,7 +18,14 @@ public:
     const char* format_name(void) const override { return "png"; }
     int supports(string_view feature) const override
     {
-        return (feature == "ioproxy" || feature == "exif");
+        return (feature == "ioproxy"
+#ifdef PNG_eXIf_SUPPORTED
+                || feature == "exif"
+#endif
+#ifdef PNG_cICP_SUPPORTED
+                || feature == "cicp"
+#endif
+        );
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;

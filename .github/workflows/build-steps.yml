@@ -203,7 +203,7 @@ jobs:
             time make sphinx
       - name: Upload testsuite debugging artifacts
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
-        if: ${{ failure() || inputs.build_docs == '1' || inputs.benchmark == '1' }}
+        if: ${{ failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '' }}
         with:
           name: oiio-${{github.job}}-${{inputs.nametag}}
           path: |

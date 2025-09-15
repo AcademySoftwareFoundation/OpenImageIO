@@ -688,6 +688,12 @@ preferred except when legacy file access is required.
      - string
      - Color space (see Section :ref:`sec-metadata-color`). We currently
        assume that any RGBE files encountered are linear with sRGB primaries.
+   * - ``CICP``
+     - int[4]
+     - Coding-independent code points to describe the color profile.
+   * - ``oiio:BitsPerSample``
+     - int
+     - Bits per sample in the file: 8, 10 or 12.
    * - ``heif:Orientation``
      - int
      - If the configuration option ``heif:reorient`` is nonzero and
@@ -1433,6 +1439,9 @@ Some special attributes are used for movie files:
    * - ``ffmpeg:TimeCode``
      - string
      - Start time timecode
+   * - ``CICP``
+     - int[4]
+     - Coding-independent code points to describe the color profile.
 
 
 
@@ -1768,6 +1777,11 @@ files use the file extension :file:`.png`.
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
+   * - ``CICP``
+     - int[4]
+     - CICP color space information (see Section :ref:`sec-metadata-color`).
+       Note that this attribute is only supported if OIIO was built against
+       libPNG 1.6.45 or newer.
    * - ``ICCProfile``
      - uint8[]
      - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
@@ -3073,6 +3087,10 @@ open standard for lossy-compressed images for use on the web.
    * - ImageSpec Attribute
      - Type
      - WebP header data or explanation
+   * - ``ICCProfile``
+     - uint8[]
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
    * - ``oiio:Movie``
      - int
      - If nonzero, indicates that it's a multi-subimage file intended to
