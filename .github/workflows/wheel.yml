@@ -282,6 +282,15 @@ jobs:
         run: |
             brew list --versions | grep -E 'openexr|imath' || echo "No brew OpenEXR/Imath"
             pkg-config --list-all | grep -E 'OpenEXR|Imath' || true
+
+      - name: Remove brew OpenEXR/Imath
+        run: |
+            brew uninstall --ignore-dependencies openexr imath || true
+
+      - name: List possible OpenEXR installs after brew uninstall
+        run: |
+            brew list --versions | grep -E 'openexr|imath' || echo "No brew OpenEXR/Imath"
+            pkg-config --list-all | grep -E 'OpenEXR|Imath' || true
         
       - name: Build wheels
         uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
