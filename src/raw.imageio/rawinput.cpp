@@ -1718,6 +1718,12 @@ _errorfmt(const RawInput* input, int subimage, const char* format,
 bool
 RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
 {
+    if (m_processor == nullptr) {
+        _errorfmt(this, subimage,
+                  "ImageInput hasn't been initialised properly");
+        return false;
+    }
+
 #if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
     if (subimage > 0) {
         // Older versions of Libraw supported a single thumbnail per image.
@@ -1726,7 +1732,7 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
     }
     int errcode = m_processor->unpack_thumb();
     if (errcode != 0) {
-        if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_THUMBNAIL)
+        if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_IMAGE)
             _errorfmt(this, subimage, "unpack_thumb error");
         return false;
     }
@@ -1764,7 +1770,7 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
     }
 
     if (image_type.empty()) {
-        _errorfmt(this, subimage, "unknown image type %i",
+        _errorfmt(this, subimage, "unknown image type {}",
                   static_cast<int>(mem_thumb->type));
         return false;
     }
@@ -1782,8 +1788,8 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
     } else {
         auto image_input = OIIO::ImageInput::create(image_type, false);
         if (image_input == nullptr) {
-            _errorfmt(this, subimage, "OIIO::ImageInput::create(\"%s\") error",
-                      image_type.c_str());
+            _errorfmt(this, subimage, "OIIO::ImageInput::create(\{}\") error",
+                      image_type);
             return false;
         }
 
@@ -1791,8 +1797,8 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
         bool result = image_input->valid_file(&proxy);
         if (!result) {
             _errorfmt(this, subimage,
-                      "the thumbnail is not a valid image of type \"%s\"",
-                      image_type.c_str());
+                      "the thumbnail is not a valid image of type \"{}\"",
+                      image_type);
             return false;
         }
 
@@ -1815,8 +1821,8 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
         if (!result) {
             _errorfmt(
                 this, subimage,
-                "failed to initialise an ImageInput object of type \"%s\" with the thumbnail data",
-                image_type.c_str());
+                "failed to initialise an ImageInput object of type \"{}\" with the thumbnail data",
+                image_type);
             return false;
         }
     }
