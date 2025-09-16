@@ -408,7 +408,7 @@ jobs:
 
 
   upload_pypi:
-    needs: [sdist, linux, linux-arm, macos-arm, windows]
+    needs: [sdist, linux, linux-arm, macos, macos-arm, windows]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
