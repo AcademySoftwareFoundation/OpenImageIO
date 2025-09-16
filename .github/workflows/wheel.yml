@@ -288,6 +288,21 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_ENVIRONMENT: >
+            CMAKE_C_COMPILER=$(xcrun -find clang)
+            CMAKE_CXX_COMPILER=$(xcrun -find clang++)
+            CMAKE_GENERATOR='Unix Makefiles'
+            MACOSX_DEPLOYMENT_TARGET=11
+            USE_Libheif='OFF'
+            CMAKE_ARGS="-DCMAKE_FIND_FRAMEWORK=NEVER
+                        -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON
+                        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+                        -DLINKSTATIC=1
+                        -DIGNORE_HOMEBREWED_DEPS=1
+                        -DCMAKE_FIND_FRAMEWORK=NEVER
+                        -DOpenEXR_DIR=$PWD/deps/dist/lib/cmake/OpenEXR
+                        -DImath_DIR=$PWD/deps/dist/lib/cmake/Imath"
+
           MACOSX_DEPLOYMENT_TARGET: 11
           CMAKE_GENERATOR: "Unix Makefiles"
           # TODO: Re-enable HEIF when we provide a build recipe that does 
