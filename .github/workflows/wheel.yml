@@ -277,7 +277,7 @@ jobs:
         uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: '3.9'
-          
+
       - name: List possible OpenEXR installs
         run: |
             brew list --versions | grep -E 'openexr|imath' || echo "No brew OpenEXR/Imath"
@@ -289,7 +289,7 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
           MACOSX_DEPLOYMENT_TARGET: 10.15
-          #CMAKE_GENERATOR: "Unix Makefiles"
+          CMAKE_GENERATOR: "Unix Makefiles"
           # TODO: Re-enable HEIF when we provide a build recipe that does 
           # not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
