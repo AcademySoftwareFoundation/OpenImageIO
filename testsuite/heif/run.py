@@ -11,7 +11,7 @@ for f in files:
 
 command += oiiotool (os.path.join(imagedir, "test-10bit.avif") +
                      " -d uint10 --cicp \"9,16,9,1\" -o cicp_pq.avif" )
-command += info_command ("cicp_pq.avif")
+command += info_command ("cicp_pq.avif", safematch=True)
 
 files = [ "greyhounds-looking-for-a-table.heic", "sewing-threads.heic" ]
 for f in files:
