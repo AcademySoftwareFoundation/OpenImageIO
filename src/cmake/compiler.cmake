@@ -682,7 +682,7 @@ if (DEFINED ENV{${PROJECT_NAME}_CI})
     if (APPLE)
         # Keep Mono framework from being incorrectly searched for include
         # files on GitHub Actions CI.
-        set(CMAKE_FIND_FRAMEWORK LAST)
+        set(CMAKE_FIND_FRAMEWORK NEVER)
     endif ()
 endif ()
 
