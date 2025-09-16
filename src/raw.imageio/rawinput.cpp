@@ -10,7 +10,9 @@
 #include <OpenImageIO/half.h>
 
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/strutil.h>
@@ -61,7 +63,7 @@ public:
     const char* format_name(void) const override { return "raw"; }
     int supports(string_view feature) const override
     {
-        return (feature == "exif"
+        return (feature == "exif" || feature == "thumbnail"
                 /* not yet? || feature == "iptc"*/);
     }
     bool open(const std::string& name, ImageSpec& newspec) override;
@@ -70,6 +72,7 @@ public:
     bool close() override;
     bool read_native_scanline(int subimage, int miplevel, int y, int z,
                               void* data) override;
+    bool get_thumbnail(ImageBuf& thumb, int subimage) override;
 
 private:
     bool m_process  = true;
@@ -1699,6 +1702,131 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         };
         std::transform(dst, dst + length, dst, scale_func);
     }
+    return true;
+}
+
+template<typename... Args>
+void
+_errorfmt(const RawInput* input, int subimage, const char* format,
+          const Args&... args)
+{
+    std::string fmt = "Failed to extract thumbnail at index "
+                      + std::to_string(subimage) + ": " + format + ".";
+    input->errorfmt(fmt.c_str(), args...);
+}
+
+bool
+RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
+{
+    if (m_processor == nullptr) {
+        _errorfmt(this, subimage,
+                  "ImageInput hasn't been initialised properly");
+        return false;
+    }
+
+#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
+    if (subimage > 0) {
+        // Older versions of Libraw supported a single thumbnail per image.
+        // No error here.
+        return false;
+    }
+    int errcode = m_processor->unpack_thumb();
+    if (errcode != 0) {
+        if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_IMAGE)
+            _errorfmt(this, subimage, "unpack_thumb error");
+        return false;
+    }
+#else
+    int errcode = m_processor->unpack_thumb_ex(subimage);
+    if (errcode != 0) {
+        if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_THUMBNAIL)
+            _errorfmt(this, subimage, "unpack_thumb_ex error");
+        return false;
+    }
+#endif
+
+    libraw_processed_image_t* mem_thumb = m_processor->dcraw_make_mem_thumb(
+        &errcode);
+    if (mem_thumb == nullptr) {
+        _errorfmt(this, subimage, "dcraw_make_mem_thumb error");
+        return false;
+    }
+
+    std::string image_type;
+    if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_JPEG)
+        image_type = "jpeg";
+    else if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_BITMAP)
+        image_type = "bmp";
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 22, 0)
+    else if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_JPEGXL)
+        image_type = "jpegxl";
+    else if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_H265)
+        image_type = "h265";
+#endif
+
+    if (image_type == "h265") {
+        _errorfmt(this, subimage, "h265 thumbnails are not supported yet");
+        return false;
+    }
+
+    if (image_type.empty()) {
+        _errorfmt(this, subimage, "unknown image type {}",
+                  static_cast<int>(mem_thumb->type));
+        return false;
+    }
+
+    if (image_type == "bmp") {
+        size_t data_size = mem_thumb->width * mem_thumb->height
+                           * mem_thumb->colors;
+        if (data_size != mem_thumb->data_size)
+            return false;
+
+        ImageSpec image_spec(mem_thumb->width, mem_thumb->height,
+                             mem_thumb->colors, TypeDesc::UCHAR);
+        thumb.reset(image_spec);
+        thumb.set_pixels(thumb.roi_full(), TypeDesc::UCHAR, mem_thumb->data);
+    } else {
+        auto image_input = OIIO::ImageInput::create(image_type, false);
+        if (image_input == nullptr) {
+            _errorfmt(this, subimage, "OIIO::ImageInput::create(\{}\") error",
+                      image_type);
+            return false;
+        }
+
+        Filesystem::IOMemReader proxy(mem_thumb->data, mem_thumb->data_size);
+        bool result = image_input->valid_file(&proxy);
+        if (!result) {
+            _errorfmt(this, subimage,
+                      "the thumbnail is not a valid image of type \"{}\"",
+                      image_type);
+            return false;
+        }
+
+        ImageSpec temp_spec, image_spec;
+        Filesystem::IOProxy* pp = &proxy;
+        temp_spec.attribute("oiio:ioproxy", TypeDesc::PTR, &pp);
+
+        result = image_input->open("", image_spec, temp_spec);
+        if (!result) {
+            _errorfmt(
+                this, subimage,
+                "failed to initialise an ImageInput object with the thumbnail data");
+            return false;
+        }
+
+        thumb.reset(image_spec);
+        result = image_input->read_image(0, 0, 0, image_spec.nchannels,
+                                         image_spec.format,
+                                         thumb.localpixels());
+        if (!result) {
+            _errorfmt(
+                this, subimage,
+                "failed to initialise an ImageInput object of type \"{}\" with the thumbnail data",
+                image_type);
+            return false;
+        }
+    }
+
     return true;
 }
 
