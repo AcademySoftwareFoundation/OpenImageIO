@@ -80,8 +80,8 @@ jobs:
     name: Build wheels on Linux
     runs-on: ubuntu-latest
     if: |
-      github.event_name != 'schedule' ||
-      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      0 && github.event_name != 'schedule' ||
+      0 && github.repository == 'AcademySoftwareFoundation/OpenImageIO'
     strategy:
       matrix:
         include:
@@ -176,8 +176,8 @@ jobs:
       name: Build wheels on Linux ARM
       runs-on: ubuntu-24.04-arm
       if: |
-        github.event_name != 'schedule' ||
-        github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+        0 && github.event_name != 'schedule' ||
+        0 && github.repository == 'AcademySoftwareFoundation/OpenImageIO'
       strategy:
         matrix:
           include:
@@ -308,8 +308,8 @@ jobs:
     name: Build wheels on macOS ARM
     runs-on: macos-14
     if: |
-      github.event_name != 'schedule' ||
-      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      0 && github.event_name != 'schedule' ||
+      0 && github.repository == 'AcademySoftwareFoundation/OpenImageIO'
     strategy:
       matrix:
         include:
@@ -362,8 +362,8 @@ jobs:
     name: Build wheels on Windows
     runs-on: windows-2022
     if: |
-      github.event_name != 'schedule' ||
-      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      0 && github.event_name != 'schedule' ||
+      0 && github.repository == 'AcademySoftwareFoundation/OpenImageIO'
     strategy:
       matrix:
         include:
