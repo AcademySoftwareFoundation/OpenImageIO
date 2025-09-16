@@ -95,7 +95,7 @@ if.platform-system = "darwin"
 if.platform-machine  = "x86_64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
-cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "11"
+cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "10.15"
 #cmake.define.CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH = "OFF"
 #cmake.define.CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH = "OFF"
 
@@ -112,7 +112,7 @@ skip = [
 test-command = "oiiotool --buildinfo"
 
 [tool.cibuildwheel.macos.environment]
-SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1; -DCMAKE_FIND_FRAMEWORK=NEVER"
+SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1"
 # Optimize for size (not speed).
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
