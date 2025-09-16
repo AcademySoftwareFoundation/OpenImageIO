@@ -60,10 +60,8 @@ cicp_pq.avif         :   16 x   16, 4 channel, uint10 heif
     SHA-1: 0F3CAB52D479BC23E9C981DBADDFEF1F792E5540
     channel list: R, G, B, A
     CICP: 9, 16, 9, 1
-    Software: "OpenImageIO 3.2.0.0dev : A50DC799B2B4CA667217608C0F82302455E5D32A"
     Exif:ExifVersion: "0230"
     Exif:FlashPixVersion: "0100"
-    Exif:ImageHistory: "oiiotool --pattern fill:topleft=1,0,0,1:topright=0,1,0,1:bottomleft=0,0,1,1:bottomright=1,1,1,1 16x16 4 -d uint16 -o test16.png"
     heif:UnassociatedAlpha: 1
     oiio:BitsPerSample: 10
     oiio:ColorSpace: "srgb_rec709_scene"
