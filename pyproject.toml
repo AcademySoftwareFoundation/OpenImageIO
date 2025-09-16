@@ -113,7 +113,7 @@ skip = [
 test-command = "oiiotool --buildinfo"
 
 [tool.cibuildwheel.macos.environment]
-SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1"
+SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1; -DCMAKE_FIND_FRAMEWORK=NEVER"
 # Optimize for size (not speed).
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
