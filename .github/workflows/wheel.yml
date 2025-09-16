@@ -277,6 +277,10 @@ jobs:
         uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: '3.9'
+
+      - name: Remove brew OpenEXR/Imath
+        run: |
+            brew uninstall --ignore-dependencies openexr imath || true
         
       - name: Build wheels
         uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
@@ -293,6 +297,7 @@ jobs:
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
+
 
   # ---------------------------------------------------------------------------
   # macOS ARM Wheels
