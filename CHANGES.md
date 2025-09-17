@@ -1,3 +1,9 @@
+Release 3.0.10.1 (Sep 16, 2025) -- compared to 3.0.10.0
+-------------------------------------------------------
+  - *ci*: Fix broken python wheel building [#4886](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4886) [#4855](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4855) (by Zach Lewis)
+  - *deps*: Several fixes to build against OpenEXR 3.4 and OpenJPH build related fixes [#4875](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4875)
+
+
 Release 3.0.10.0 (Sep 1, 2025) -- compared to 3.0.9.0
 -------------------------------------------------------
   - *exr*: Support for OpenEXR 3.4's new compression types for HTJ2K [#4871](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4871) (by Todica Ionut)

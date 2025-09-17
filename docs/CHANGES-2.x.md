@@ -6,6 +6,14 @@ For the full release notes of all versions, see:
 
 
 
+Release 2.5.19.1 (Sep 15 2025) -- compared to 2.5.19.0
+--------------------------------------------------------
+- *ffmpeg*: Replace deprecated and soon removed avcodec_close with avcodec_free_context [#4837](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4837) (by Vlad Erium)
+- *heic*: Use get_plane2 introduced by libheif 1.20.2 [#4851](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4851) (by toge)
+- *ci*: Various fixes to repair CI that had rusted away in the last few
+  months due to changes on the runners or to dependencies.
+
+
 Release 2.5.19.0 (July 5 2025) -- compared to 2.5.18.0
 --------------------------------------------------------
 - *build*: Fixes to build against libheif 1.20 [#4822](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4822) (by Rui Chen)
