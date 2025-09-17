@@ -88,12 +88,14 @@ if.platform-system = "darwin"
 if.platform-machine  = "arm64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "arm64"
+cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "11"
 
 [[tool.scikit-build.overrides]]
 if.platform-system = "darwin"
 if.platform-machine  = "x86_64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
+cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "10.15"
 
 [tool.cibuildwheel]
 build-verbosity = 1
@@ -109,8 +111,6 @@ test-command = "oiiotool --buildinfo"
 
 [tool.cibuildwheel.macos.environment]
 SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1"
-# C++17 - std::filesystem is only available in macOS 10.15 and later; ARM compatibility introduced in 11.
-MACOSX_DEPLOYMENT_TARGET = "11"
 # Optimize for size (not speed).
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
