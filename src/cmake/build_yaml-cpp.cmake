@@ -25,6 +25,7 @@ build_dependency_with_cmake(yaml-cpp
         -D YAML_CPP_BUILD_CONTRIB=OFF
         -D YAML_BUILD_SHARED_LIBS=${yaml-cpp_BUILD_SHARED_LIBS}
         -D CMAKE_INSTALL_LIBDIR=lib
+        -D CMAKE_POLICY_VERSION_MINIMUM=3.5
     )
 
 set (yaml-cpp_ROOT ${yaml-cpp_LOCAL_INSTALL_DIR})
