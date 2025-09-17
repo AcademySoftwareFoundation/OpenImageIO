@@ -191,7 +191,9 @@ if (IGNORE_HOMEBREWED_DEPS)
     # Define the list of prefixes to ignore
     set (HOMEBREW_PREFIXES
          /opt/homebrew
+         /opt/homebrew/Cellar
          /usr/local
+         /usr/local/Cellar
          /usr/X11
          /usr/X11R6
          /opt/X11
