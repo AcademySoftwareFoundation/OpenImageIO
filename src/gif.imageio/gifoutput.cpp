@@ -155,10 +155,10 @@ GIFOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
     m_subimage   = 0;
     m_nsubimages = subimages;
     m_subimagespecs.assign(specs, specs + subimages);
-    float fps = m_spec.get_float_attribute("FramesPerSecond", 1.0f);
+    float fps = specs[0].get_float_attribute("FramesPerSecond", 1.0f);
     m_delay   = (fps == 0.0f ? 0 : (int)(100.0f / fps));
 
-    ioproxy_retrieve_from_config(m_spec);
+    ioproxy_retrieve_from_config(specs[0]);
     if (!ioproxy_use_or_open(name))
         return false;
 
