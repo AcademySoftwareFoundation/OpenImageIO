@@ -8,10 +8,7 @@ if (OPENJPEG_FOUND)
     set(_jpeg2000_libs ${OPENJPEG_LIBRARIES})
     set(_jpeg2000_defs "USE_OPENJPEG")
 
-    if (OPENJPH_FOUND)
-        list(APPEND _jpeg2000_includes ${OPENJPH_INCLUDES})
-        list(APPEND _jpeg2000_lib_dirs ${OPENJPH_LIBRARY_DIRS})
-        list(APPEND _jpeg2000_libs ${OPENJPH_LIBRARIES})
+    if (openjph_FOUND)
         list(APPEND _jpeg2000_defs "USE_OPENJPH")
     endif()
 
@@ -19,6 +16,7 @@ if (OPENJPEG_FOUND)
         INCLUDE_DIRS ${_jpeg2000_includes}
         LINK_DIRECTORIES ${_jpeg2000_lib_dirs}
         LINK_LIBRARIES ${_jpeg2000_libs}
+                       $<TARGET_NAME_IF_EXISTS:openjph>
         DEFINITIONS ${_jpeg2000_defs}
     )
 else()
