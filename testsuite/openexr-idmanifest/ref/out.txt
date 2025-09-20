@@ -1,0 +1,28 @@
+Reading src/manifest.exr
+src/manifest.exr     :   16 x   16, 8 channel, deep half/half/half/half/half/uint/uint/uint openexr
+    SHA-1: 526B00A9E52F6EF667E02168CF20772957ACA451
+    channel list: R (half), G (half), B (half), A (half), Z (half), materialid (uint), modelid (uint), particleid (uint)
+    compression: "zips"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    version: 1
+    oiio:subimages: 1
+    openexr:chunkCount: 16
+    openexr:compressedIDManifest: 55, 1, 0, 0, 0, 0, 0, 0, 120, 94, 99, 0, 2, 110, 32, 230, ... [250 x uint8]
+    openexr:deepImageState: "tidy"
+    openexr:lineOrder: "increasingY"
+Reading manifest.exr
+manifest.exr         :   16 x   16, 8 channel, deep half/half/half/half/half/uint/uint/uint openexr
+    SHA-1: 526B00A9E52F6EF667E02168CF20772957ACA451
+    channel list: R (half), G (half), B (half), A (half), Z (half), materialid (uint), modelid (uint), particleid (uint)
+    compression: "zips"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    version: 1
+    oiio:subimages: 1
+    openexr:chunkCount: 16
+    openexr:compressedIDManifest: 55, 1, 0, 0, 0, 0, 0, 0, 120, 94, 99, 0, 2, 110, 32, 230, ... [250 x uint8]
+    openexr:deepImageState: "tidy"
+    openexr:lineOrder: "increasingY"
