@@ -17,22 +17,28 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
 
     #ls /etc/yum.repos.d
 
-    if [[ "$ASWF_VFXPLATFORM_VERSION" == "2021" || "$ASWF_VFXPLATFORM_VERSION" == "2022" ]] ; then
-        # CentOS 7 based containers need the now-nonexistant centos repo to be
+    # time sudo dnf upgrade --refresh || true
+    time sudo dnf install --nogpgcheck https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm -y || true
+
+    if [[ "$ASWF_VFXPLATFORM_VERSION" == "2022" ]] ; then
+        # CentOS 7 based containers need the now-nonexistent centos repo to be
         # excluded or all the subsequent yum install commands will fail.
         yum-config-manager --disable centos-sclo-rh || true
         sed -i 's,^mirrorlist=,#,; s,^#baseurl=http://mirror\.centos\.org/centos/$releasever,baseurl=https://vault.centos.org/7.9.2009,' /etc/yum.repos.d/CentOS-Base.repo
     fi
 
-    sudo yum install -y giflib giflib-devel || true
+    time time sudo yum install -y giflib giflib-devel || true
     if [[ "${USE_OPENCV}" != "0" ]] ; then
-        sudo yum install -y opencv opencv-devel || true
+        time sudo yum install -y opencv opencv-devel || true
     fi
     if [[ "${USE_FFMPEG}" != "0" ]] ; then
-        sudo yum install -y ffmpeg ffmpeg-devel || true
+        time sudo dnf install -y ffmpeg ffmpeg-devel || true
     fi
     if [[ "${USE_FREETYPE:-1}" != "0" ]] ; then
-        sudo yum install -y freetype freetype-devel || true
+        time sudo yum install -y freetype freetype-devel || true
+    fi
+    if [[ "${USE_LIBRAW:-0}" != "0" ]] ; then
+        time sudo yum install -y LibRaw LibRaw-devel || true
     fi
     if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
         time sudo yum install -y ${EXTRA_DEP_PACKAGES} || true
