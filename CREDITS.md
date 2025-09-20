@@ -11,6 +11,7 @@ lg@openimageio.org
 * Alejandro Conty
 * Alejandro Aguirre
 * Aleksandr Motsjonov
+* Alex Fuller
 * Alex Guirre
 * Alex Hughes
 * Alex Schworer
@@ -232,6 +233,7 @@ lg@openimageio.org
 * Todica Ionut
 * Tom Knowles
 * Troy James Sobotka
+* Vanessa Valderrama
 * Vic P
 * Vinod Khare
 * Vishal Agrawal

@@ -10,6 +10,7 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
 * *ImageCache/TextureSystem*:
 * New global attribute queries via OIIO::getattribute():
 * Miscellaneous API changes:
+    - *api*: Versioned namespace to preserve ABI compatibility between minor releases [#4869](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4869) (3.2.0.0)
 ### 🚀  Performance improvements
 ### 🐛  Fixes and feature enhancements
 ### 🔧  Internals and developer goodies
@@ -24,11 +25,31 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
 ---
 ---
 
-Release 3.1 (target: Sept 2025?) -- compared to 3.0
----------------------------------------------------
+Release 3.1 (target: Oct 1 2025?) -- compared to 3.0
+----------------------------------------------------
 - Beta 1: Aug 22, 2025
-- Anticipated release candidate: Sep 1, 2025
-- Anticipated supported release: Sep 15, 2025
+- Beta 2: Sep 19, 2025
+- Anticipated release candidate: Sep 24, 2025
+- Anticipated supported release: Oct 1, 2025
+
+**Change highlights in beta 2**
+  - *oiiotool*: Allow easy splitting of subimages by name [#4874](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4874) (3.1.5.0)
+  - *ffmpeg*: Add ability to read CICP metadata [#4882](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4882) (by Brecht Van Lommel) (3.1.5.0)
+  - *ffmpeg*: FFmpeg incorrectly set zero oiio:BitsPerSample [#4885](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4885) (by Brecht Van Lommel) (3.1.5.0)
+  - *gif*: Gif output didn't handle FramesPerSecond attribute correctly [#4890](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4890) (3.1.5.0)
+  - *heic*: Read and write of CICP and support for bit depth 10 and 12 [#4880](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4880) (by Brecht Van Lommel) (3.1.5.0)
+  - *png*: CICP metadata support for PNG [#4746](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4746) (by Zach Lewis) (3.1.5.0)
+  - *raw*: Add thumbnail support to the raw input plugin [#4887](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4887) (by Anton Dukhovnikov) (3.1.5.0)
+  - *webp*: Support reading/writing the ICCProfile attribute [#4878](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4878) (by Jesse Yurkovich) (3.1.5.0)
+  - *api*: Versioned namespace to preserve ABI compatibility between minor releases [#4869](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4869) (3.1.5.0)
+  - *deps(freetype)*: Test freetype 2.14 and document that it works [#4876](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4876) (3.1.5.0)
+  - *deps(ffmpeg)*: Ffmpeg 8 support [#4870](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4870) (3.1.5.0)
+  - *deps(openvdb)*: Look for boost headers for OpenVDBs older than 12 [#4873](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4873) (by Alex Fuller) (3.1.5.0)
+  - *deps(openexr)*: OpenEXR 3.4 supports two compression types for HTJ2K [#4871](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4871) (by Todica Ionut) (3.1.5.0)
+  - *deps(openexr)*: Several OpenEXR and OpenJPH build related fixes [#4875](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4875) (3.1.5.0)
+  - *deps(openjph)*: Fix openjph target use [#4894](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4894) (3.1.5.0)
+  - *ci*: Fix broken python wheel building [#4855](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4855) (by Zach Lewis) (3.1.5.0)
+
 
 **NOTE:** We anticipate some additional changes to color management to be
 rolled out during the beta period. It will not include any breaks to API or
@@ -46,8 +67,9 @@ ABI compatibility, but we do expect some behavior changes.
   - Support in Python for `ImageBuf._repr_png_` method allows use of OIIO
     inside [Jupyter Notebooks](https://jupyter.org/) to display computed
     images.
-  - Color management improvements to conform to Color Interchange Forum and
-    OpenEXR new conventions for naming and specifying color spaces.
+  - Color management improvements: Conform to Color Interchange Forum and
+    OpenEXR new conventions for naming and specifying color spaces. PNG,
+    HEIC, and ffmpeg/video files now support reading CICP metadata.
 
 ### New minimum dependencies and compatibility changes:
 * *Python*: 3.9 minimum (from 3.7) [#4830](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4830) (3.1.4.0)
@@ -67,6 +89,7 @@ ABI compatibility, but we do expect some behavior changes.
       if they doesn't already exist [#4762](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4762) (by Dharshan Vishwanatha) (3.1.3.0)
     - `--eraseattrib` new modifier `:fromfile=1` reads from a file
       to get a list of patterns to specify the attributes to erase. [#4763](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4763) (by Lydia Zheng) (3.1.3.0)
+    - *oiiotool*: Allow easy splitting of subimages by name [#4874](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4874) (3.1.5.0)
 * *Command line utilities*:
     - *iv*: Implement files drag and drop into an iv window [#4774](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4774) (by Aleksandr Motsjonov) (3.1.3.0)
     - *iv*: Area probe [#4767](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4767) (by Danielle Imogu) (3.1.3.0)
@@ -89,7 +112,7 @@ ABI compatibility, but we do expect some behavior changes.
     - Added queries for available font families and styles [#4523](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4523) (by peterhorvath111) (3.1.0.0/3.0.1.0)
     - *api*: Add global attribute `imageinput:strict` [#4560](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4560) (3.1.0.0)
 * Miscellaneous API changes:
-    - *api*: Make a 2-level namespace scheme [#4567](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4567) (by Larry Gritz) [#4603](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4603) (by Brecht Van Lommel) (3.1.1.0)
+    - *api*: Make a 2-level namespace scheme [#4567](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4567) (by Larry Gritz) [#4603](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4603) (by Brecht Van Lommel) (3.1.1.0) [#4869](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4869) (3.1.5.0)
     - *api*: ImageSpec::scanline_bytes, tile_bytes, image_bytes [#4631](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4631) (3.1.1.0)
     - *python*: ImageBuf `_repr_png_` method added, which allows use of
       ImageBuf in [Jupyter Notebooks](https://jupyter.org/) as a displayable object. [#4753](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4753) (by Oktay Comu) (3.1.3.0)
@@ -98,6 +121,7 @@ ABI compatibility, but we do expect some behavior changes.
 * Color management changes
     - *color mgmt*: Don't assume unlabeled OpenEXR files are lin_rec709 [#4840](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4840) (3.1.4.0)
     - *color mgmt*: Color space renaming to adhere to CIF conventions [#4860](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4860) (3.1.4.0)
+    - Ability to read CICP metadata from PNG [#4746](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4746) (by Zach Lewis) (3.1.5.0), HEIC [#4880](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4880) (by Brecht Van Lommel) (3.1.5.0), and video files/ffmpeg [#4882](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4882) (by Brecht Van Lommel) (3.1.5.0).
 
 
 ### 🚀  Performance improvements:
@@ -137,12 +161,17 @@ ABI compatibility, but we do expect some behavior changes.
   - *exr*: Fill in OpenEXR lineOrder attribute when reading [#4628](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4628) (by vernalchen) (3.1.1.0)
   - *exr*: Did not properly allocate 'missingcolor' vector [#4751](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4751) (3.1.3.0)
   - *exr*: Not honoring 'missingcolor' for scanline files [#4757](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4757) (3.1.3.0)
+  - *ffmpeg*: FFmpeg incorrectly set zero oiio:BitsPerSample [#4885](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4885) (by Brecht Van Lommel) (3.1.5.0)
+  - *ffmpeg*: Add ability to read CICP metadata [#4882](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4882) (by Brecht Van Lommel) (3.1.5.0)
+  - *gif*: Gif output didn't handle FramesPerSecond attribute correctly [#4890](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4890) (3.1.5.0)
+  - *heic*: Read and write of CICP and support for bit depth 10 and 12 [#4880](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4880) (by Brecht Van Lommel) (3.1.5.0)
   - *ico*: More robust to corrupted ICO files [#4625](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4625) (3.1.1.0)
   - *iff*: Improved IFF support reading and writing z buffers [#4673](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4673) (by Mikael Sundell) (3.1.3.0)
   - *jpeg*: Support encoding/decoding arbitrary metadata as comments [#4430](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4430) (by Lukas Stockner) (3.1.0.0/3.0.1.0)
   - *jpeg-2000*: Write .j2c by adding HTJ2K Encoding using the OpenJPH library. [#4699](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4699) (by Sam Richards) (3.1.3.0)
   - *png*: Alpha premultiplication adjustment and attribute [#4585](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4585) (3.1.1.0)
   - *png*: Increase allowed width/height limit [#4655](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4655) (by Jesse Yurkovich) (3.1.1.0)
+  - *png*: CICP metadata support for PNG [#4746](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4746) (by Zach Lewis) (3.1.5.0)
   - *pnm*: Broken pgm having memory access error [#4559](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4559) (3.1.0.0)
   - *psd*: Perform endian byteswap on correct buffer area for PSD RLE [#4600](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4600) (by Jesse Yurkovich) (3.1.1.0)
   - *psd*: ICC profile reading improvements, especially for PSD [#4644](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4644) (3.1.1.0)
@@ -150,11 +179,13 @@ ABI compatibility, but we do expect some behavior changes.
   - *raw*: Fix channel layout [#4516](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4516) (by Anton Dukhovnikov) (3.1.0.0/3.0.1.0)
   - *raw*: Add black level and BPS metadata [#4601](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4601) (by Anton Dukhovnikov) (3.1.1.0)
   - *raw*: Add `raw:ForceLoad` ImageInput configuration hint [#4704](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4704) (by Anton Dukhovnikov) (3.1.3.0)
+  - *raw*: Add thumbnail support to the raw input plugin [#4887](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4887) (by Anton Dukhovnikov) (3.1.5.0)
   - *rla*: More robust to corrupted RLA files that could overrun buffers [#4624](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4624) (3.1.1.0)
   - *sgi*: Fix valid_file to properly swap bytes on little-endian platforms [#4697](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4697) (by Jesse Yurkovich) (3.1.3.0)
   - *tiff*: The default value for bitspersample should be 1 [#4670](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4670) (by vernalchen) (3.1.1.0)
   - *webp*: Respect the `oiio:UnassociatedAlpha` attribute [#4770](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4770) (by Jesse Yurkovich) (3.1.3.0)
   - *webp*: Allow finer grained control over WEBP compression settings [#4772](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4772) (by Jesse Yurkovich) (3.1.3.0)
+  - *webp*: Support reading/writing the ICCProfile attribute [#4878](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4878) (by Jesse Yurkovich) (3.1.5.0)
   - *various formats*: Detect invalid ICC profile tags [#4557](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4557) [#4561](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4561) (3.1.0.0)
   - *various formats*: IPTC fields have length limits [#4568](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4568) (3.1.0.0)
 
@@ -207,26 +238,32 @@ ABI compatibility, but we do expect some behavior changes.
     - *build/python*: Wheel upload_pypi step should only run from main repo [#4820](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4820) (3.1.3.0)
     - *build*: Fix typo related to finding ccache [#4833](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4833) (3.1.4.0)
     - *build*: C++23 support [#4844](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4844) (3.1.4.0)
+    - *build*: Clean up obsolete logic for old compilers [#4849](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4849) (3.1.5.0)
 * Dependency and platform support:
-    - *deps*: Support static OCIO self-builds [#4517](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4517) (by zachlewis) (3.1.0.0/3.0.1.0)
-    - *deps*: Add new ref output for libheif updates [#4525](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4525) (3.1.0.0/3.0.1.0)
-    - *build*: Add build recipe for PNG [#4423](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4423) (by zachlewis) (3.1.0.0/3.0.1.0)
-    - *deps*: Fix build_cmake.bash script for aarch64, bump its default version [#4581](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4581) (3.1.1.0)
-    - *deps*: Fix libraw definitions (again) [#4588](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4588) (3.1.1.0)
-    - *deps*: Detect libultrahdr version and enforce minimum of 1.3 [#4729](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4729) (3.1.3.0)
-    - *deps*: Fix fmt throwing behavior warnings [#4730](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4730) (3.1.3.0)
-    - *deps*: Fix failed test with old fmt [#4758](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4758) (3.1.3.0)
-    - *deps*: Fix new dcmtk 3.6.9 vs C++ warning [#4698](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4698) (3.1.3.0)
-    - *build*: PNG auto-build improvements [#4835](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4835) (3.1.4.0)
-    - *tests*: Update ref image for slightly changed freetype accents [#4765](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4765) (3.1.3.0)
-    - *deps/ffmpeg*: Replace deprecated and soon removed avcodec_close with avcodec_free_context [#4837](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4837) (by Vlad Erium) (3.1.4.0)
-    - *build/jpeg2000*: Update jpeg2000input.cpp to include cstdarg [#4836](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4836) (by Peter Kovář) (3.1.4.0)
-    - *deps*: Raise minimum supported Python from 3.7 to 3.9 [#4830](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4830) (3.1.4.0)
-    - *deps*: Use get_plane2 introduced by libheif 1.20.2 [#4851](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4851) (by toge) (3.1.4.0)
+    - *build(OCIO)*: Support static OCIO self-builds [#4517](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4517) (by zachlewis) (3.1.0.0/3.0.1.0)
+    - *build(PNG)*: Add build recipe for PNG [#4423](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4423) (by zachlewis) (3.1.0.0/3.0.1.0); PNG auto-build improvements [#4835](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4835) (3.1.4.0)
+    - *deps(cmake)*: Fix build_cmake.bash script for aarch64, bump its default version [#4581](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4581) (3.1.1.0)
+    - *deps(dcmtk)*: Fix new dcmtk 3.6.9 vs C++ warning [#4698](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4698) (3.1.3.0)
+    - *deps(ffmpeg)*: Ffmpeg 8 support [#4870](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4870) (3.1.5.0)
+    - *deps(ffmpeg)*: Replace deprecated and soon removed avcodec_close with avcodec_free_context [#4837](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4837) (by Vlad Erium) (3.1.4.0)
+    - *deps(fmt)*: Fix failed test with old fmt [#4758](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4758) (3.1.3.0)
+    - *deps(fmt)*: Fix fmt throwing behavior warnings [#4730](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4730) (3.1.3.0)
+    - *deps(freetype)*: Test freetype 2.14 and document that it works [#4876](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4876) (3.1.5.0)
+    - *deps(freetype)*: Update ref image for slightly changed freetype accents [#4765](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4765) (3.1.3.0)
+    - *deps(jpeg2000)*: Update jpeg2000input.cpp to include cstdarg [#4836](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4836) (by Peter Kovář) (3.1.4.0)
+    - *deps(libheif)*: Add new ref output for libheif updates [#4525](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4525) (3.1.0.0/3.0.1.0)
+    - *deps(libheif)*: Use get_plane2 introduced by libheif 1.20.2 [#4851](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4851) (by toge) (3.1.4.0)
+    - *deps(libraw)*: Fix libraw definitions (again) [#4588](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4588) (3.1.1.0)
+    - *deps(libultrahdr)*: Detect libultrahdr version and enforce minimum of 1.3 [#4729](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4729) (3.1.3.0)
+    - *deps(OCIO)*: Raise OpenColorIO minimum to 2.3 (from 2.2) [#4865](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4865) (3.1.4.0)
+    - *deps(openexr)*: OpenEXR 3.4 supports two compression types for HTJ2K [#4871](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4871) (by Todica Ionut) (3.1.5.0)
+    - *deps(openexr)*: Several OpenEXR and OpenJPH build related fixes [#4875](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4875) (3.1.5.0)
+    - *deps(openjph)*: Fix openjph target use [#4894](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4894) (3.1.5.0)
+    - *deps(openvdb)*: Look for boost headers for OpenVDBs older than 12 [#4873](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4873) (by Alex Fuller) (3.1.5.0)
+    - *deps(python)*: Raise minimum supported Python from 3.7 to 3.9 [#4830](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4830) (3.1.4.0)
     - *windows*: Include Windows version information on produced binaries [#4696](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4696) (by Jesse Yurkovich) (3.1.3.0)
-    - windows + ARM64*: Add arm_neon.h include on Windows ARM64 with clang-cl [#4691](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4691) (by Anthony Roberts)
-    - *build/windows*: Propagate CMAKE_MSVC_RUNTIME_LIBRARY [#4842](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4842) (3.1.4.0)
-    - *deps*: Raise OpenColorIO minimum to 2.3 (from 2.2) [#4865](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4865) (3.1.4.0)
+    - *windows*: Propagate CMAKE_MSVC_RUNTIME_LIBRARY [#4842](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4842) (3.1.4.0)
+    - *windows + ARM64*: Add arm_neon.h include on Windows ARM64 with clang-cl [#4691](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4691) (by Anthony Roberts)
     - *NetBSD*: Fix build on NetBSD [#4857](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4857) (by Thomas Klausner) (3.1.4.0)
 * Testing and Continuous integration (CI) systems:
     - *tests*: Improve Ptex testing [#4573](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4573) (3.1.1.0)
@@ -274,6 +311,11 @@ ABI compatibility, but we do expect some behavior changes.
     - *ci*: Add a VFX Platform 2026 CI job [#4856](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4856) (3.1.4.0)
     - *ci*: Lock down to ci-oiio container with correct llvm components [#4859](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4859) (3.1.4.0)
     - *ci*: Bump webp and openexr for "latest versions" test [#4861](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4861) (3.1.4.0)
+    - *ci*: Switch to compile-commands for sonar [#4879](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4879) (by vvalderrv) (3.1.5.0)
+    - *ci*: Fix analysis workflow configuration [#4881](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4881) (3.1.5.0)
+    - *ci*: Better spread of libpng versions we test against [#4883](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4883) (3.1.5.0)
+    - *ci*: Fix broken python wheel building [#4855](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4855) (by Zach Lewis) (3.1.5.0)
+    - *ci*: Some more minor wheel workflow changes after the py 3.9 bump [#4867](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4867) (3.1.5.0)
 
 ### 📚  Notable documentation changes:
   - *docs*: Clarify 'copy_image' example [#4522](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4522) (3.1.0.0/3.0.1.0)
@@ -297,11 +339,32 @@ ABI compatibility, but we do expect some behavior changes.
   - *admin*: Add ".vs" to .gitignore [#4645](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4645) (3.1.1.0)
   - *admin*: Set up .gitattributes file [#4648](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4648) (3.1.1.0)
   - *admin*: Update SECURITY to reflect that 2.5 only gets critical fixes now [#4829](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4829)
+  - *admin*: Adjust license notices of A2-only source [#4884](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4884) (3.1.5.0)
 
 
 
 ---
 ---
+
+Release 3.0.10.1 (Sep 16, 2025) -- compared to 3.0.10.0
+-------------------------------------------------------
+  - *ci*: Fix broken python wheel building [#4886](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4886) [#4855](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4855) (by Zach Lewis)
+  - *deps*: Several fixes to build against OpenEXR 3.4 and OpenJPH build related fixes [#4875](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4875)
+
+
+Release 3.0.10.0 (Sep 1, 2025) -- compared to 3.0.9.0
+-------------------------------------------------------
+  - *exr*: Support for OpenEXR 3.4's new compression types for HTJ2K [#4871](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4871) (by Todica Ionut)
+  - *deps*: Ffmpeg 8 support [#4870](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4870)
+  - *ci*: Add a VFX Platform 2026 CI job [#4856](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4856)
+  - *ci*: Bump webp and openexr for "latest versions" test [#4861](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4861)
+
+
+Release 3.0.9.1 (Aug 7, 2025) -- compared to 3.0.9.0
+-----------------------------------------------------
+  - *deps*: C++23 support [#4844](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4844)
+  - *deps*: Adapt to libheif 1.20.2 [#4851](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4851) (by toge)
+
 
 Release 3.0.9.0 (Aug 1, 2025) -- compared to 3.0.8.1
 -----------------------------------------------------
