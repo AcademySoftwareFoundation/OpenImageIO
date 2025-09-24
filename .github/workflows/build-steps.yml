@@ -177,7 +177,7 @@ jobs:
         if: inputs.coverage == '1'
         run: src/build-scripts/ci-coverage.bash
       - name: Sonar-scanner
-        if: inputs.sonar == 1
+        if: inputs.sonar == '1'
         env:
           GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.PASSED_SONAR_TOKEN }}
