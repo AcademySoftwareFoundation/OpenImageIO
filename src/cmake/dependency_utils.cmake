@@ -76,7 +76,7 @@ function (dump_matching_variables pattern)
 endfunction ()
 
 
-# Helper: Print a report about missing dependencies and give insructions on
+# Helper: Print a report about missing dependencies and give instructions on
 # how to turn on automatic local dependency building.
 function (print_package_notfound_report)
     message (STATUS)
@@ -286,7 +286,7 @@ macro (checked_find_package pkgname)
     #
     cmake_parse_arguments(_pkg   # prefix
         # noValueKeywords:
-        "REQUIRED;CONFIG;PREFER_CONFIG;DEBUG;NO_RECORD_NOTFOUND;NO_FP_RANGE_CHECK"
+        "REQUIRED;OPTIONAL;CONFIG;PREFER_CONFIG;DEBUG;NO_RECORD_NOTFOUND;NO_FP_RANGE_CHECK"
         # singleValueKeywords:
         "ENABLE;ISDEPOF;VERSION_MIN;VERSION_MAX;RECOMMEND_MIN;RECOMMEND_MIN_REASON;BUILD_LOCAL"
         # multiValueKeywords:
@@ -303,17 +303,24 @@ macro (checked_find_package pkgname)
         set (${pkgname}_FIND_QUIETLY true)
         set (${pkgname_upper}_FIND_QUIETLY true)
     endif ()
-    if ("${pkgname}" IN_LIST ${PROJECT_NAME}_REQUIRED_DEPS OR "ALL" IN_LIST ${PROJECT_NAME}_REQUIRED_DEPS)
+    if ("${pkgname}" IN_LIST ${PROJECT_NAME}_REQUIRED_DEPS
+        OR "ALL" IN_LIST ${PROJECT_NAME}_REQUIRED_DEPS
+        OR "all" IN_LIST ${PROJECT_NAME}_REQUIRED_DEPS)
         set (_pkg_REQUIRED 1)
     endif ()
-    if ("${pkgname}" IN_LIST ${PROJECT_NAME}_OPTIONAL_DEPS OR "ALL" IN_LIST ${PROJECT_NAME}_OPTIONAL_DEPS)
+    if ("${pkgname}" IN_LIST ${PROJECT_NAME}_OPTIONAL_DEPS
+        OR "ALL" IN_LIST ${PROJECT_NAME}_OPTIONAL_DEPS
+        OR "all" IN_LIST ${PROJECT_NAME}_OPTIONAL_DEPS)
         set (_pkg_REQUIRED 0)
+        set (_pkg_OPTIONAL 1)
     endif ()
     # string (TOLOWER "${_pkg_BUILD_LOCAL}" _pkg_BUILD_LOCAL)
     if ("${pkgname}" IN_LIST ${PROJECT_NAME}_BUILD_LOCAL_DEPS
+        OR ${PROJECT_NAME}_BUILD_LOCAL_DEPS STREQUAL "ALL"
         OR ${PROJECT_NAME}_BUILD_LOCAL_DEPS STREQUAL "all")
         set (_pkg_BUILD_LOCAL "always")
     elseif ("${pkgname}" IN_LIST ${PROJECT_NAME}_BUILD_MISSING_DEPS
+            OR ${PROJECT_NAME}_BUILD_MISSING_DEPS STREQUAL "ALL"
             OR ${PROJECT_NAME}_BUILD_MISSING_DEPS STREQUAL "all")
         set_if_not (_pkg_BUILD_LOCAL "missing")
     endif ()
@@ -341,6 +348,11 @@ macro (checked_find_package pkgname)
             set (_quietskip true)
         endif ()
     endif ()
+    if (NOT _enable)
+        set (_pkg_OPTIONAL 1)
+        set (_pkg_REQUIRED 0)
+        message(STATUS "Forcing optional of disabled ${pkgname}")
+    endif ()
     set (_config_status "")
     unset (_${pkgname}_version_range)
     if (_pkg_BUILD_LOCAL AND NOT _pkg_NO_FP_RANGE_CHECK)
@@ -361,7 +373,7 @@ macro (checked_find_package pkgname)
     #
     set (${pkgname}_FOUND FALSE)
     set (${pkgname}_LOCAL_BUILD FALSE)
-    if (_enable OR _pkg_REQUIRED)
+    if (_enable OR (_pkg_REQUIRED AND NOT _pkg_OPTIONAL))
         # Unless instructed not to, try to find the package externally
         # installed.
         if (${pkgname}_FOUND OR ${pkgname_upper}_FOUND OR _pkg_BUILD_LOCAL STREQUAL "always")

@@ -239,9 +239,9 @@ jobs:
 
 
   #
-  # Linux Tests
+  # Linux Tests using ASWF-docker containers
   #
-  linux:
+  linux-aswf:
     if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
@@ -273,6 +273,10 @@ jobs:
       ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
       coverage: ${{ matrix.coverage || 0 }}
       sonar: ${{ matrix.sonar || 0 }}
+      # Override required_deps to be 'all' and explicitly list as optional
+      # only the ones we are intentionally not testing for those jobs.
+      required_deps: ${{ matrix.required_deps || 'all' }}
+      optional_deps: ${{ matrix.optional_deps || 'DCMTK;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
     strategy:
       fail-fast: false
       matrix:
@@ -287,6 +291,7 @@ jobs:
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
             setenvs: export PUGIXML_VERSION=v1.13
+            optional_deps_append: 'LibRaw;Ptex;Qt6'
           - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.3 qt5.15
             nametag: linux-vfx2023.icc
             runner: ubuntu-latest
@@ -303,6 +308,7 @@ jobs:
                             DISABLE_libuhdr=1
             # For icc, use fp-model precise to eliminate needless LSB errors
             # that make test results differ from other platforms.
+            optional_deps_append: "LibRaw;Ptex;Qt6"
           - desc: VFX2023 icx/C++17 py3.10 exr3.1 ocio2.3 qt5.15
             nametag: linux-vfx2023.icx
             runner: ubuntu-latest
@@ -319,6 +325,7 @@ jobs:
                             UHDR_CMAKE_CXX_COMPILER=g++
             # Building libuhdr with icx results in test failures
             # so we force using gcc/g++.
+            optional_deps_append: "LibRaw;Ptex;Qt6"
           - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
@@ -330,6 +337,7 @@ jobs:
             pybind11_ver: v2.12.0
             benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.14
+            optional_deps_append: "LibRaw"
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024.clang
             runner: ubuntu-latest
@@ -343,6 +351,7 @@ jobs:
             pybind11_ver: v2.12.0
             benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.14
+            optional_deps_append: "LibRaw"
           - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025
             runner: ubuntu-latest
@@ -354,6 +363,7 @@ jobs:
             pybind11_ver: v2.13.6
             benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.15
+            optional_deps_append: "openjph;Qt6"
           - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.4
             nametag: linux-vfx2026
             runner: ubuntu-latest
@@ -364,6 +374,7 @@ jobs:
             pybind11_ver: v3.0.0
             benchmark: 1
             # setenvs: export 
+            optional_deps_append: "Qt5;Qt6"
           - desc: Sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
@@ -378,6 +389,7 @@ jobs:
                             OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DOIIO_HARDENING=3 -DUSE_PYTHON=0"
                             CTEST_EXCLUSIONS="broken|png-damaged"
                             OpenImageIO_BUILD_LOCAL_DEPS=PNG
+            optional_deps_append: "LibRaw"
 
           # Test ABI stability. `abi_check` is the version or commit that we
           # believe is the current standard against which we don't want to
@@ -397,7 +409,52 @@ jobs:
             abi_check: 9bfcce725a3806a3f70c7e838d9d98d6d95c917a
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
+            optional_deps_append: "openjph;Qt6"
 
+
+  #
+  # Linux Tests using GHA Ubuntu runners directly
+  #
+  linux-ubuntu:
+    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
+    name: "${{matrix.desc}}"
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      nametag: ${{ matrix.nametag || 'unnamed!' }}
+      runner: ${{ matrix.runner || 'ubuntu-latest' }}
+      container: ${{ matrix.container }}
+      cc_compiler: ${{ matrix.cc_compiler }}
+      cxx_compiler: ${{ matrix.cxx_compiler }}
+      cxx_std: ${{ matrix.cxx_std || '17' }}
+      build_type: ${{ matrix.build_type || 'Release' }}
+      depcmds: ${{ matrix.depcmds }}
+      extra_artifacts: ${{ matrix.extra_artifacts }}
+      fmt_ver: ${{ matrix.fmt_ver }}
+      opencolorio_ver: ${{ matrix.opencolorio_ver }}
+      openexr_ver: ${{ matrix.openexr_ver }}
+      pybind11_ver: ${{ matrix.pybind11_ver }}
+      python_ver: ${{ matrix.python_ver }}
+      setenvs: ${{ matrix.setenvs }}
+      simd: ${{ matrix.simd }}
+      skip_build: ${{ matrix.skip_build }}
+      skip_tests: ${{ matrix.skip_tests }}
+      abi_check: ${{ matrix.abi_check }}
+      benchmark: ${{ matrix.benchmark }}
+      build_docs: ${{ matrix.build_docs }}
+      clang_format: ${{ matrix.clang_format }}
+      generator: ${{ matrix.generator }}
+      ctest_args: ${{ matrix.ctest_args }}
+      ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
+      coverage: ${{ matrix.coverage || 0 }}
+      sonar: ${{ matrix.sonar || 0 }}
+      # Override required_deps to be 'all' and explicitly list as optional
+      # only the ones we are intentionally not testing for those jobs.
+      required_deps: ${{ matrix.required_deps || 'all' }}
+      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;JXL;Nuke;OpenGL;openjph;OpenVDB;Ptex;pystring;Qt5;R3DSDK;' }}${{matrix.optional_deps_append}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           # Test formatting. This test entry doesn't build at all, it
           # just runs clang-format on everything, and passes if nothing is
           # misformatted. Upon failure, the build artifact will be the full
@@ -440,6 +497,10 @@ jobs:
                             WEBP_VERSION=v1.6.0
                             FREETYPE_VERSION=VER-2-14-0
                             USE_OPENVDB=0
+            # Ensure we are testing all the deps we think we are. We would
+            # like this test to have minimal missing dependencies.
+            required_deps: all
+            optional_deps: 'CUDAToolkit;DCMTK;JXL;Nuke;OpenCV;OpenGL;OpenVDB;R3DSDK'
           - desc: bleeding edge gcc14 C++23 py3.12 OCIO/libtiff/exr-main avx2
             nametag: linux-bleeding-edge
             runner: ubuntu-24.04
@@ -467,6 +528,10 @@ jobs:
                             FREETYPE_VERSION=master
                             QT_VERSION=0 INSTALL_OPENCV=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
+            # Ensure we are testing all the deps we think we are. We would
+            # like this test to have minimal missing dependencies.
+            required_deps: all
+            optional_deps: 'CUDAToolkit;DCMTK;JXL;Nuke;OpenCV;OpenGL;OpenVDB;R3DSDK'
           - desc: all local builds gcc12 C++17 avx2 exr3.2 ocio2.3
             nametag: linux-local-builds
             runner: ubuntu-22.04
@@ -482,7 +547,6 @@ jobs:
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
                             WEBP_VERSION=v1.4.0
-
           - desc: clang15 C++17 avx2 exr3.1 ocio2.3
             nametag: linux-clang15
             runner: ubuntu-22.04
@@ -597,6 +661,11 @@ jobs:
       ctest_test_timeout: ${{ matrix.ctest_test_timeout || '800' }}
       coverage: ${{ matrix.coverage || 0 }}
       sonar: ${{ matrix.sonar || 0 }}
+      # We're able to use Homebrew to install ALMOST every dependency, so the
+      # only optional ones in our Mac CI tests are commercial things we can't
+      # test in GHA CI.
+      required_deps: ${{ matrix.required_deps || 'all' }}
+      optional_deps: ${{ matrix.optional_deps || 'Nuke;R3DSDK;' }}${{matrix.optional_deps_append}}
     strategy:
       fail-fast: false
       matrix:
@@ -663,6 +732,11 @@ jobs:
       ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
       coverage: ${{ matrix.coverage || 0 }}
       sonar: ${{ matrix.sonar || 0 }}
+      # Windows is a PITA, so we expect very few dependencies to be present or
+      # built. But we would like to add more dependencies and reduce this list
+      # of exceptions in the future.
+      required_deps: ${{ matrix.required_deps || 'all' }}
+      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;openjph;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
     strategy:
       fail-fast: false
       matrix:

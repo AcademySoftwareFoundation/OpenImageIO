@@ -3,11 +3,11 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
-set_option (OIIO_USE_CUDA "Include Cuda support if found" OFF)
+set_option (OIIO_USE_CUDA "Include CUDA support if found" OFF)
 set_cache (CUDA_TARGET_ARCH "sm_60" "CUDA GPU architecture (e.g. sm_60)")
 set_cache (CUDAToolkit_ROOT "" "Path to CUDA toolkit")
 
-if (OIIO_USE_CUDA)
+if (OIIO_USE_CUDA AND NOT APPLE)
     set (CUDA_PROPAGATE_HOST_FLAGS ON)
     set (CUDA_VERBOSE_BUILD ${VERBOSE})
     checked_find_package(CUDAToolkit
