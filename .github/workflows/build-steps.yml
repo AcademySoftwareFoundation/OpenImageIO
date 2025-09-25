@@ -68,6 +68,10 @@ on:
         type: string
       nametag:
         type: string
+      required_deps:
+        type: string
+      optional_deps:
+        type: string
     secrets:
         PASSED_GITHUB_TOKEN:
           required: false
@@ -102,6 +106,12 @@ jobs:
       ABI_CHECK: ${{inputs.abi_check}}
       ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      # For CI, sometimes we want to require all dependencies to be present,
+      # except for a select few listed explicitly. This ensures that we don't
+      # accidentally have a situation in which we think we are building
+      # against and testing an optional dependency, but in fact are not.
+      OpenImageIO_REQUIRED_DEPS: ${{inputs.required_deps}}
+      OpenImageIO_OPTIONAL_DEPS: ${{inputs.optional_deps}}
 
     steps:
       - name: Checkout repo
