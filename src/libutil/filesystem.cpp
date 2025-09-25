@@ -911,7 +911,7 @@ Filesystem::parse_pattern(const char* pattern_, int framepadding_override,
 
     // std::cout << "Format: '" << fmt << "'\n";
 
-    normalized_pattern = prefix + fmt + suffix;
+    normalized_pattern = Filesystem::generic_filepath(prefix + fmt + suffix);
     framespec          = thesequence;
 
     return true;
