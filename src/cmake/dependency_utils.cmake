@@ -587,7 +587,7 @@ macro (build_dependency_with_cmake pkgname)
         # noValueKeywords:
         "NOINSTALL"
         # singleValueKeywords:
-        "GIT_REPOSITORY;GIT_TAG;VERSION;SOURCE_SUBDIR"
+        "GIT_REPOSITORY;GIT_TAG;GIT_COMMIT;VERSION;SOURCE_SUBDIR;GIT_SHALLOW;QUIET"
         # multiValueKeywords:
         "CMAKE_ARGS"
         # argsToParse:
@@ -600,22 +600,42 @@ macro (build_dependency_with_cmake pkgname)
     set (${pkgname}_LOCAL_INSTALL_DIR "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/dist")
     message (STATUS "Downloading local ${_pkg_GIT_REPOSITORY}")
 
-    set (_pkg_quiet OUTPUT_QUIET)
+    unset (${pkgname}_GIT_CLONE_ARGS)
+    unset (_pkg_exec_quiet)
+    if (_pkg_GIT_SHALLOW OR "${_pkg_GIT_SHALLOW}" STREQUAL "")
+        list (APPEND ${pkgname}_GIT_CLONE_ARGS --depth 1)
+    endif ()
+    if (_pkg_QUIET OR "${_pkg_QUIET}" STREQUAL "")
+        list (APPEND ${pkgname}_GIT_CLONE_ARGS -q)
+        set (_pkg_exec_quiet OUTPUT_QUIET)
+    endif ()
 
     # Clone the repo if we don't already have it
     find_package (Git REQUIRED)
     if (NOT IS_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
+        message (STATUS "COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY} "
+                                "-b ${_pkg_GIT_TAG} "
+                                "${${pkgname}_LOCAL_SOURCE_DIR} "
+                                "${${pkgname}_GIT_CLONE_ARGS} "
+                        "${_pkg_exec_quiet}")
         execute_process(COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY}
-                                -b ${_pkg_GIT_TAG} --depth 1 -q
+                                -b ${_pkg_GIT_TAG}
                                 ${${pkgname}_LOCAL_SOURCE_DIR}
-                        ${_pkg_quiet})
+                                ${${pkgname}_GIT_CLONE_ARGS}
+                        ${_pkg_exec_quiet})
         if (NOT IS_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
             message (FATAL_ERROR "Could not download ${_pkg_GIT_REPOSITORY}")
         endif ()
     endif ()
-    execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_TAG}
-                    WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
-                    ${_pkg_quiet})
+    if ("${_pkg_GIT_COMMIT}" STREQUAL "")
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_TAG}
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        ${_pkg_exec_quiet})
+    else ()
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_COMMIT}
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        ${_pkg_exec_quiet})
+    endif ()
 
     # Configure the package
     if (${PROJECT_NAME}_DEPENDENCY_BUILD_VERBOSE)
@@ -657,14 +677,14 @@ macro (build_dependency_with_cmake pkgname)
                 ${_pkg_cmake_verbose}
             # Build args passed by caller
                 ${_pkg_CMAKE_ARGS}
-        ${pkg_quiet}
+        ${_pkg_exec_quiet}
         )
 
     # Build the package
     execute_process (COMMAND ${CMAKE_COMMAND}
                         --build ${${pkgname}_LOCAL_BUILD_DIR}
                         --config ${${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE}
-                     ${pkg_quiet}
+                     ${_pkg_exec_quiet}
                     )
 
     # Install the project, unless instructed not to do so
@@ -673,7 +693,7 @@ macro (build_dependency_with_cmake pkgname)
                             --build ${${pkgname}_LOCAL_BUILD_DIR}
                             --config ${${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE}
                             --target install
-                         ${pkg_quiet}
+                         ${_pkg_exec_quiet}
                         )
         set (${pkgname}_ROOT ${${pkgname}_LOCAL_INSTALL_DIR})
         list (APPEND CMAKE_PREFIX_PATH ${${pkgname}_LOCAL_INSTALL_DIR})
