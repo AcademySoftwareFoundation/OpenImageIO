@@ -332,6 +332,29 @@ is_aces_container_compliant(const OIIO::ImageSpec& spec)
 
 
 
+bool
+process_aces_container(OIIO::ImageSpec& spec, std::string mode)
+{
+    bool is_compliant = is_aces_container_compliant(spec);
+
+    if (!is_compliant) {
+        std::cerr << "WARNING: Image spec is not ACES Container compliant\n";
+
+        // early out and return true iff in "relaxed" mode
+        // to indicate that the output can continue without
+        // throwing an error
+        return mode == "relaxed";
+    }
+
+    spec.attribute("chromaticities", OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
+                   ACES_AP0_chromaticities);
+    spec.attribute("acesImageContainerFlag", 1);
+
+    return true;
+}
+
+
+
 OpenEXROutput::OpenEXROutput()
 {
     pvt::set_exr_threads();
@@ -858,22 +881,14 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     std::string aces_mode = spec.get_string_attribute("oiio:ACESContainer",
                                                       "none");
     if (aces_mode == "strict" || aces_mode == "relaxed") {
-        bool is_compliant = is_aces_container_compliant(spec);
+        bool should_panic = !process_aces_container(spec, aces_mode);
 
-        if (!is_compliant) {
+        if (should_panic) {
             const char* non_compliance_message
-                = "Image spec is not ACES Container compliant.";
+                = "Cannot output non-compliant ACES Container in 'strict' mode.";
             errorfmt(non_compliance_message);
-
-            // early out if in "strict" mode
-            if (aces_mode == "strict")
-                return false;
+            return false;
         }
-
-        spec.attribute("chromaticities",
-                       OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
-                       ACES_AP0_chromaticities);
-        spec.attribute("acesImageContainerFlag", 1);
     }
 
     // Deal with all other params
