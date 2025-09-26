@@ -1,0 +1,15 @@
+name: Sonar Token Check
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show token owner
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y jq
+          curl -fsS -u "${SONAR_TOKEN}:" https://sonarcloud.io/api/users/current \
+            | jq -r '.login,.name,.organizations'
