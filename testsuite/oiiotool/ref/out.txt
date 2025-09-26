@@ -68,7 +68,11 @@ Comparing "autotrim.tif" and "ref/autotrim.tif"
 PASS
 Comparing "trim.tif" and "ref/trim.tif"
 PASS
+Comparing "trimempty.tif" and "ref/trimempty.tif"
+PASS
 Comparing "trimsubimages.tif" and "ref/trimsubimages.tif"
+PASS
+Comparing "trimemptysubimages.tif" and "ref/trimemptysubimages.tif"
 PASS
 Comparing "add.exr" and "ref/add.exr"
 PASS
