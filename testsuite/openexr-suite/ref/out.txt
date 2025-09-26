@@ -341,3 +341,35 @@ negoverscan.exr      :   64 x   64, 3 channel, half openexr
     screenWindowWidth: 1
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
+1
+WARNING: Image spec is not ACES Container compliant
+
+WARNING: Image spec is not ACES Container compliant
+
+WARNING: Image spec is not ACES Container compliant
+
+Reading strict-out.exr
+strict-out.exr       :    4 x    4, 3 channel, half openexr
+    SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5
+    channel list: R, G, B
+    acesImageContainerFlag: 1
+    chromaticities: 0.7347, 0.2653, 0, 1, 0.0001, -0.077, 0.32168, 0.33767
+    compression: "none"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap0_scene"
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
+WARNING: Image spec is not ACES Container compliant
+oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
+Full command line was:
+> oiiotool --create 4x4 3 -d half --compression none --ch R,G,B -sattrib oiio:ACESContainer strict -o strict-fail.exr
+WARNING: Image spec is not ACES Container compliant
+oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
+Full command line was:
+> oiiotool --create 4x4 3 -d half --compression zip --ch B,G,R -sattrib oiio:ACESContainer strict -o strict-fail.exr
+WARNING: Image spec is not ACES Container compliant
+oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
+Full command line was:
+> oiiotool --create 4x4 3 -d float --compression none --ch B,G,R -sattrib oiio:ACESContainer strict -o strict-fail.exr
