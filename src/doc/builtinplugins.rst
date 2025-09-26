@@ -1643,6 +1643,18 @@ control aspects of the writing itself:
    * - Output Configuration Attribute
      - Type
      - Meaning
+   * - ``oiio:ACESContainer``
+     - string
+     - One of `none` (default), `strict`, or `relaxed`.
+       If not `none`, the spec will be checked to see if it is compliant
+       with the ACES Container format defined in `ST 2065-4`_. If it is,
+       `chromaticities` will be set to the ACES AP0 ones, and the
+       `acesImageContainerFlag` attribute will be set to 1.
+       In `strict` mode, if the spec is non-compliant, the output will
+       throw an error and avoid writing the image.
+       While in `relaxed` mode, if the spec in non-compliant, only a
+       warning will be printed and the attributes mentioned above will
+       *not* be written to the spec.
    * - ``oiio:RawColor``
      - int
      - If nonzero, writing images with non-RGB color models (such as YCbCr)
@@ -1654,6 +1666,7 @@ control aspects of the writing itself:
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
 
+.. _ST 2065-4: https://pub.smpte.org/doc/st2065-4/20130510-pub/st2065-4-2013.pdf
 
 **Custom I/O Overrides**
 
