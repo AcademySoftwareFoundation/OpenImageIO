@@ -1,15 +1,35 @@
 name: Sonar Token Check
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - chore/sonar-token-check
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Show token owner
+      - name: Show token owner (login only)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          sudo apt-get update -y && sudo apt-get install -y jq
           curl -fsS -u "${SONAR_TOKEN}:" https://sonarcloud.io/api/users/current \
-            | jq -r '.login,.name,.organizations'
+            | jq -r '.login'
+
+      - name: Check org visibility
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          ORG: academysoftwarefoundation
+        run: |
+          curl -fsS -u "${SONAR_TOKEN}:" \
+            "https://sonarcloud.io/api/organizations/search?query=${ORG}" \
+            | jq -r '.organizations[].key'
+
+      - name: Check project access
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PROJECT_KEY: AcademySoftwareFoundation_OpenImageIO
+        run: |
+          curl -fsS -u "${SONAR_TOKEN}:" \
+            "https://sonarcloud.io/api/projects/search?projects=${PROJECT_KEY}" \
+            | jq -r '.components[].key'
