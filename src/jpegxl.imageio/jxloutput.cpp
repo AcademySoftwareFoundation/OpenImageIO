@@ -18,7 +18,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#define ICC_PROFILE_ATTR "ICCProfile"
 #define DBG if (0)
 
 class JxlOutput final : public ImageOutput {
@@ -541,18 +540,19 @@ JxlOutput::save_image(const void* data)
 
     // Write the ICC profile, if available
     const ParamValue* icc_profile_parameter = m_spec.find_attribute(
-        ICC_PROFILE_ATTR);
-    if (icc_profile_parameter != NULL) {
+        "ICCProfile");
+    if (icc_profile_parameter != nullptr) {
         unsigned char* icc_profile
             = (unsigned char*)icc_profile_parameter->data();
         uint32_t length = icc_profile_parameter->type().size();
         if (icc_profile && length) {
             if (JXL_ENC_SUCCESS 
-                == JxlEncoderSetICCProfile(m_encoder.get(),
+                != JxlEncoderSetICCProfile(m_encoder.get(),
                                            icc_profile,
-                                           length)) {}
+                                           length)) {
                 errorfmt("JxlEncoderSetICCProfile failed\n");
             }
+        }
     }
 
     // No more image frames nor metadata boxes to add

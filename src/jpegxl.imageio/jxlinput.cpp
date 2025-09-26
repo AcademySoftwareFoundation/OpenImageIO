@@ -28,8 +28,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#define ICC_PROFILE_ATTR "ICCProfile"
-
 #define DBG if (0)
 
 class JxlInput final : public ImageInput {
@@ -351,7 +349,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     m_spec = ImageSpec(info.xsize, info.ysize, m_channels, m_data_type);
 
     if (m_icc_profile.size() && m_icc_profile.data()) {
-        m_spec.attribute(ICC_PROFILE_ATTR,
+        m_spec.attribute("ICCProfile",
                          TypeDesc(TypeDesc::UINT8, m_icc_profile.size()), m_icc_profile.data());
         std::string errormsg;
 
