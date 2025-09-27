@@ -290,7 +290,7 @@ set_exr_threads()
 
 
 
-constexpr float ACES_AP0_chromaticities[8] = {
+static constexpr float ACES_AP0_chromaticities[8] = {
     0.7347f,  0.2653f,  // red
     0.0f,     1.0f,     // green
     0.0001f,  -0.077f,  // blue
