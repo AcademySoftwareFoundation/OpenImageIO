@@ -4077,14 +4077,17 @@ nonzero_region_all_subimages(ImageRecRef A)
     ROI nonzero_region;
     for (int s = 0; s < A->subimages(); ++s) {
         ROI roi = ImageBufAlgo::nonzero_region((*A)(s));
-        if (roi.npixels() == 0) {
-            // Special case -- all zero; but doctor to make it 1 zero pixel
-            roi      = (*A)(s).roi();
-            roi.xend = roi.xbegin + 1;
-            roi.yend = roi.ybegin + 1;
-            roi.zend = roi.zbegin + 1;
+        if (roi.npixels() != 0) {
+            nonzero_region = roi_union(nonzero_region, roi);
         }
-        nonzero_region = roi_union(nonzero_region, roi);
+    }
+    if (!nonzero_region.defined()) {
+        // Special case -- all zero
+        // fallback to 1st subimage ROI, but doctor to make it 1 zero pixel
+        nonzero_region      = (*A)(0).roi();
+        nonzero_region.xend = nonzero_region.xbegin + 1;
+        nonzero_region.yend = nonzero_region.ybegin + 1;
+        nonzero_region.zend = nonzero_region.zbegin + 1;
     }
     return nonzero_region;
 }
