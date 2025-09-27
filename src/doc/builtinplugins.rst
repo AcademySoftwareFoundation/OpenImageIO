@@ -1599,6 +1599,19 @@ The official OpenEXR site is http://www.openexr.com/.
      - If nonzero, indicates whether the image is a luminance-chroma image.
        Upon reading, the subsampled Y/BY/RY(/A) channels of luminance-chroma
        images are automatically converted to RGB(A) channels.
+   * - ``openexr::deepImageState``
+     - string
+     - If present in a deep file, reveals the deep image state, one of:
+       ``"messy"``, ``"sorted"``, ``"non_overlapping"``, or ``"tidy"``.
+       See the OpenEXR documentation for explanations. This metadata was
+       added in OpenImageIO 3.1.
+   * - ``openexr::compressedIDManifest``
+     - uint8[]
+     - A byte array whose first 8 bytes are the uncompressed size of the
+       manifest, as a little-endian uint64. Then beginning at byte 8,
+       the remainder is the zip-compressed serialized manifest.
+       This metadata was added in OpenImageIO 3.1, and is only supported when
+       OIIO is built against OpenEXR 3.1 or newer.
    * - *other*
      - 
      - All other attributes will be added to the ImageSpec by their name and
