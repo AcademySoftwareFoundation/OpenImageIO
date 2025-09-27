@@ -360,16 +360,17 @@ strict-out.exr       :    4 x    4, 3 channel, half openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_ap0_scene"
     oiio:subimages: 1
+    openexr:ACESContainer: "strict"
     openexr:lineOrder: "increasingY"
 WARNING: Image spec is not ACES Container compliant
 oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
 Full command line was:
-> oiiotool --create 4x4 3 -d half --compression none --ch R,G,B -sattrib oiio:ACESContainer strict -o strict-fail.exr
+> oiiotool --create 4x4 3 -d half --compression none --ch R,G,B -sattrib openexr:ACESContainer strict -o strict-fail.exr
 WARNING: Image spec is not ACES Container compliant
 oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
 Full command line was:
-> oiiotool --create 4x4 3 -d half --compression zip --ch B,G,R -sattrib oiio:ACESContainer strict -o strict-fail.exr
+> oiiotool --create 4x4 3 -d half --compression zip --ch B,G,R -sattrib openexr:ACESContainer strict -o strict-fail.exr
 WARNING: Image spec is not ACES Container compliant
 oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
 Full command line was:
-> oiiotool --create 4x4 3 -d float --compression none --ch B,G,R -sattrib oiio:ACESContainer strict -o strict-fail.exr
+> oiiotool --create 4x4 3 -d float --compression none --ch B,G,R -sattrib openexr:ACESContainer strict -o strict-fail.exr

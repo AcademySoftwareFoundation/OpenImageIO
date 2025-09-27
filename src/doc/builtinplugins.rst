@@ -1643,7 +1643,7 @@ control aspects of the writing itself:
    * - Output Configuration Attribute
      - Type
      - Meaning
-   * - ``oiio:ACESContainer``
+   * - ``openexr:ACESContainer``
      - string
      - One of `none` (default), `strict`, or `relaxed`.
        If not `none`, the spec will be checked to see if it is compliant
