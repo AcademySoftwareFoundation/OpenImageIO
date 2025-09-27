@@ -537,7 +537,7 @@ main(int argc, char* argv[])
     getargs(argc, argv);
 
     if (enable_fpe) {
-#if defined(__linux__)
+#if defined(__GLIBC__)
         fprintf(stderr, "Enable floating point exceptions.\n");
         feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #else
