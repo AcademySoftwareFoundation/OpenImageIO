@@ -1,9 +1,18 @@
-Release 3.1 (target: Sept 2025?) -- compared to 3.0
----------------------------------------------------
+Release 3.1 (target: Oct 1 2025?) -- compared to 3.0
+----------------------------------------------------
 - Beta 1: Aug 22, 2025
 - Beta 2: Sep 19, 2025
-- Anticipated release candidate: Sep 24, 2025
-- Anticipated supported release: Oct 1, 2025
+- Release candidate 1: Sep 27, 2025
+- Anticipated supported release: Oct 1, 2025 (-ish)
+
+**Change highlights in RC1**
+  - *oiiotool*: Use normalized path when creating wildcard path pattern [#4904](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4904) (by Jesse Yurkovich) (3.1.6.0)
+  - *oiiotool*: Ignore empty subimage(s) when calculating non-zero region [#4909](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4909) (by Carine Touraille) (3.1.6.0)
+  - *docs/python*: Add type hints to Python docs [#4908](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4908) (by Connie Chang) (3.1.6.0)
+  - *build*: Fix some build issues encountered on a musl libc system [#4903](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4903) (by omcaif) (3.1.6.0)
+  - *ci*: Sonar scan guard [#4902](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4902) (by vvalderrv) (3.1.6.0)
+  - *ci*: Add more exceptions to when we test docs building [#4899](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4899) (3.1.6.0)
+  - *ci*: Require all dependencies, with explicit exceptions [#4898](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4898) (3.1.6.0)
 
 **Change highlights in beta 2**
   - *oiiotool*: Allow easy splitting of subimages by name [#4874](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4874) (3.1.5.0)
@@ -107,10 +116,12 @@ ABI compatibility, but we do expect some behavior changes.
 
 ### 🐛  Fixes and feature enhancements:
   - *oiiotool*: Better handling of wildcards that match no files [#4627](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4627) (3.1.1.0)
-  - *oiotool*: Invalid loop bound when appending mipmap textures using oiiotool [#4671](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4671) (by Basile Fraboni) (3.1.1.0)
+  - *oiiotool*: Invalid loop bound when appending mipmap textures using oiiotool [#4671](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4671) (by Basile Fraboni) (3.1.1.0)
   - *oiiotool*: -i:native=1, fix --native behavior, fix convert datatype [#4708](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4708) (3.1.3.0)
   - *oiiotool*: Fixes to --missingfile behavior [#4803](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4803) (3.1.3.0)
   - *oiiotool*: Allow thread control for --parallel-frames [#4818](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4818) (3.1.3.0)
+  - *oiiotool*: Use normalized path when creating wildcard path pattern [#4904](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4904) (by Jesse Yurkovich) (3.1.6.0)
+  - *oiiotool*: Ignore empty subimage(s) when calculating non-zero region [#4909](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4909) (by Carine Touraille) (3.1.6.0)
   - *color mgmt*: Support OCIO Viewing Rules, other OCIO-related improvements [#4780](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4780) (by zachlewis) (3.1.3.0)
   - *iv*: Fix crash on .DS_Store; fix uppercase extensions [#4764](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4764) (by Anton Dukhovnikov) (3.1.3.0)
   - *iv*: Do not resize on open and other zoom fixes [#4766](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4766) (by Aleksandr Motsjonov) (3.1.3.0)
@@ -238,6 +249,7 @@ ABI compatibility, but we do expect some behavior changes.
     - *windows*: Propagate CMAKE_MSVC_RUNTIME_LIBRARY [#4842](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4842) (3.1.4.0)
     - *windows + ARM64*: Add arm_neon.h include on Windows ARM64 with clang-cl [#4691](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4691) (by Anthony Roberts)
     - *NetBSD*: Fix build on NetBSD [#4857](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4857) (by Thomas Klausner) (3.1.4.0)
+    - *build*: Fix some build issues encountered on a musl libc system [#4903](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4903) (by omcaif) (3.1.6.0)
 * Testing and Continuous integration (CI) systems:
     - *tests*: Improve Ptex testing [#4573](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4573) (3.1.1.0)
     - *tests*: Better testing coverage of null image reader/writer [#4578](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4578) (3.1.1.0)
@@ -284,11 +296,14 @@ ABI compatibility, but we do expect some behavior changes.
     - *ci*: Add a VFX Platform 2026 CI job [#4856](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4856) (3.1.4.0)
     - *ci*: Lock down to ci-oiio container with correct llvm components [#4859](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4859) (3.1.4.0)
     - *ci*: Bump webp and openexr for "latest versions" test [#4861](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4861) (3.1.4.0)
-    - *ci*: Switch to compile-commands for sonar [#4879](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4879) (by vvalderrv) (3.1.5.0)
+    - *ci*: Try to fix Sonar workflow by switching to compile-commands for sonar [#4879](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4879) (by vvalderrv) (3.1.5.0)
     - *ci*: Fix analysis workflow configuration [#4881](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4881) (3.1.5.0)
     - *ci*: Better spread of libpng versions we test against [#4883](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4883) (3.1.5.0)
     - *ci*: Fix broken python wheel building [#4855](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4855) (by Zach Lewis) (3.1.5.0)
     - *ci*: Some more minor wheel workflow changes after the py 3.9 bump [#4867](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4867) (3.1.5.0)
+    - *ci*: More Sonar scan workflow fixes [#4902](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4902) (by vvalderrv) (3.1.6.0)
+    - *ci*: Add more exceptions to when we test docs building [#4899](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4899) (3.1.6.0)
+    - *ci*: Require all dependencies, with explicit exceptions [#4898](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4898) (3.1.6.0)
 
 ### 📚  Notable documentation changes:
   - *docs*: Clarify 'copy_image' example [#4522](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4522) (3.1.0.0/3.0.1.0)
@@ -303,6 +318,7 @@ ABI compatibility, but we do expect some behavior changes.
   - *docs*: Online docs improvements, mostly formatting [#4736](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4736) (3.1.3.0)
   - *docs*: Update Windows build instructions to rely on deps auto-build [#4769](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4769) (3.1.3.0)
   - *docs*: Correct docs and type of "resident_memory_used_MB" attribute [#4824](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4824) (3.1.4.0)
+  - *docs/python*: Add type hints to Python docs and tests [#4908](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4908) (by Connie Chang) (3.1.6.0)
 
 ### 🏢  Project Administration
   - *admin*: Code review guidelines and tips [#4532](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4532) (3.1.0.0/3.0.1.0)

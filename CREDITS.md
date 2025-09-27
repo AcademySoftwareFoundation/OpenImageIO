@@ -48,6 +48,7 @@ lg@openimageio.org
 * Brian Hall
 * Brice Gros
 * Campbell Barton
+* Carine Touraille
 * Carl Rand
 * Cassian Andrei
 * Chad Dombrova
@@ -61,6 +62,7 @@ lg@openimageio.org
 * Christoph Willing
 * Clément Champetier
 * Cliff Stein
+* Connie Chang
 * Curtis Black
 * D-Spirits
 * Dalai Felinto
@@ -180,6 +182,7 @@ lg@openimageio.org
 * Nuno Cardoso
 * Oktay Comu
 * Ole Gulbrandsen
+* omcaif
 * Ott Tinn
 * Pascal Lecocq
 * Patrick Hodoul
