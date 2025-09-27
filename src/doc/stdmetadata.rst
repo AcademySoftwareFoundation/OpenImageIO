@@ -290,6 +290,10 @@ The following metadata items are specific to photos or captured images.
 
     The exposure time (in seconds) of the captured image.
 
+.. option:: "ISOSpeed" : float
+
+    The ISO speed of the camera when it captured the image.
+
 .. option:: "FNumber" : float
 
     The f/stop of the camera when it captured the image.
