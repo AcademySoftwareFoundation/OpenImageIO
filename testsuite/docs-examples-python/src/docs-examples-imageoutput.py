@@ -18,7 +18,7 @@
 import OpenImageIO as oiio
 import numpy as np
 
-def example1() :
+def example1() -> None:
     #
     # Example code fragment from the docs goes here.
     #
@@ -40,7 +40,7 @@ def example1() :
 import OpenImageIO as oiio
 import numpy as np
 
-def simple_write() :
+def simple_write() -> None:
     filename = "simple.tif"
     xres = 320
     yres = 240
@@ -56,7 +56,7 @@ def simple_write() :
 # END-imageoutput-simple
 
 
-def scanlines_write() :
+def scanlines_write() -> None:
     filename = "scanlines.tif"
     xres = 320
     yres = 240
@@ -77,7 +77,7 @@ def scanlines_write() :
         # END-imageoutput-scanlines
 
 
-def tiles_write() :
+def tiles_write() -> None:
     filename = "tiles.tif"
     xres = 320
     yres = 240

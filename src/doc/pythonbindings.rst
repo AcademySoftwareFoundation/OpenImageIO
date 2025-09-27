@@ -72,7 +72,7 @@ described in detail in Section :ref:`sec-typedesc`, is replicated for Python.
     These names are also exported to the `OpenImageIO` namespace.
 
 
-.. py::method:: TypeDesc.TypeDesc(typename='unknown')
+.. py:method:: TypeDesc.TypeDesc(typename='unknown')
 
     Construct a `TypeDesc` object the easy way: from a string description.
     If the type name is omitted, it will default to`UNKNOWN`.
@@ -97,7 +97,7 @@ described in detail in Section :ref:`sec-typedesc`, is replicated for Python.
 
 
 
-.. py::method:: TypeDesc.TypeDesc(basetype=oiio.UNKNOWN, aggregate=oiio.SCALAR, vecsemantics=NOSEMANTICS, arraylen=0)
+.. py:method:: TypeDesc.TypeDesc(basetype=oiio.UNKNOWN, aggregate=oiio.SCALAR, vecsemantics=NOSEMANTICS, arraylen=0)
 
     Construct a `TypeDesc` object the hard way: from individual enum tokens
     describing the base type, aggregate class, semantic hints, and array length.
@@ -751,7 +751,7 @@ function that opens a file and prints all the relevant header information:
     from OpenImageIO import ImageInput
 
     # Print the contents of an ImageSpec
-    def print_imagespec (spec, subimage=0, mip=0) :
+    def print_imagespec (spec: ImageSpec, subimage: int=0, mip: int=0) :
         if spec.depth <= 1 :
             print ("  resolution %dx%d%+d%+d" % (spec.width, spec.height, spec.x, spec.y))
         else :
@@ -787,7 +787,7 @@ function that opens a file and prints all the relevant header information:
                 print (" ", i.name, "=", i.value)
 
 
-    def poor_mans_iinfo (filename) :
+    def poor_mans_iinfo (filename: str) :
         input = ImageInput.open (filename)
         if not input :
             print ('Could not open "' + filename + '"')
@@ -1243,7 +1243,7 @@ Example: Reading pixel values from a file to find min/max
     #!/usr/bin/env python 
     import OpenImageIO as oiio
     
-    def find_min_max (filename) :
+    def find_min_max (filename: str) :
         input = ImageInput.open (filename)
         if not input :
             print ('Could not open "' + filename + '"')
@@ -4041,8 +4041,8 @@ following boilerplate:
     # Create an ImageBuf holding a n image of constant color, given the
     # resolution, data format (defaulting to UINT8), fill value, and image
     # origin.
-    def make_constimage (xres, yres, chans=3, format=oiio.UINT8, value=(0,0,0),
-                         xoffset=0, yoffset=0) :
+    def make_constimage (xres: int, yres: int, chans: int=3, format: TypeDesc=oiio.UINT8, value: tuple[int, int, int]=(0,0,0),
+                         xoffset: int=0, yoffset: int=0) -> ImageBuf:
         spec = ImageSpec (xres,yres,chans,format)
         spec.x = xoffset
         spec.y = yoffset
@@ -4062,7 +4062,7 @@ what to do with it next.
 
     # Save an ImageBuf to a given file name, with optional forced image format
     # and error handling.
-    def write_image (image, filename, format=oiio.UNKNOWN) :
+    def write_image (image: ImageBuf, filename: str, format: TypeDesc=oiio.UNKNOWN) :
         if not image.has_error :
             image.write (filename, format)
         if image.has_error :

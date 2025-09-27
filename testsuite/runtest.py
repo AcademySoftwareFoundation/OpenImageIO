@@ -48,7 +48,7 @@ tmpdir = os.path.abspath (tmpdir)
 redirect = " >> out.txt "
 wrapper_cmd = ""
 
-def make_relpath (path, start=os.curdir):
+def make_relpath (path: str, start: str=os.curdir) -> str:
     "Wrapper around os.path.relpath which always uses '/' as the separator."
     p = os.path.relpath (path, start)
     return p if platform.system() != 'Windows' else p.replace ('\\', '/')
@@ -82,7 +82,7 @@ if str(mytest).endswith('.batch') :
 test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
                             os.path.join(OIIO_TESTSUITE_ROOT, mytest))
 
-def oiio_app (app):
+def oiio_app (app: str) -> str:
     if (platform.system () != 'Windows' or options.devenv_config == ""):
         cmd = os.path.join(OIIO_BUILD_ROOT, "bin", app) + " "
     else:
@@ -145,7 +145,7 @@ if platform.system() == 'Windows' :
     # if not os.path.exists("../common") :
     #     shutil.copytree ("../../testsuite/common", "..")
 else :
-    def newsymlink(src, dst):
+    def newsymlink(src: str, dst: str):
         print("newsymlink", src, dst)
         # os.path.exists returns False for broken symlinks, so remove if thats the case
         if os.path.islink(dst):
@@ -176,7 +176,7 @@ else :
 # a non-zero value and writes the differences to "diff_file".
 # Based on the command-line interface to difflib example from the Python
 # documentation
-def text_diff (fromfile, tofile, diff_file=None):
+def text_diff (fromfile: str, tofile: str, diff_file: str=None) -> int:
     import time
     try:
         fromdate = time.ctime (os.stat (fromfile).st_mtime)
@@ -208,7 +208,7 @@ def text_diff (fromfile, tofile, diff_file=None):
     return 1
 
 
-def run_app(app, silent=False, concat=True):
+def run_app(app: str, silent: bool=False, concat: bool=True) -> str:
     command = app
     if not silent:
         command += redirect
@@ -220,9 +220,9 @@ def run_app(app, silent=False, concat=True):
 # Construct a command that will print info for an image, appending output to
 # the file "out.txt".  If 'safematch' is nonzero, it will exclude printing
 # of fields that tend to change from run to run or release to release.
-def info_command (file, extraargs="", safematch=False, hash=True,
-                  verbose=True, silent=False, concat=True, failureok=False,
-                  info_program="oiiotool") :
+def info_command (file: str, extraargs: str="", safematch: bool=False, hash: bool=True,
+                  verbose: bool=True, silent: bool=False, concat: bool=True, failureok: bool=False,
+                  info_program: str="oiiotool") -> str:
     args = ""
     if info_program == "oiiotool" :
         args += " --info"
@@ -247,7 +247,7 @@ def info_command (file, extraargs="", safematch=False, hash=True,
 # the file "out.txt".  We allow a small number of pixels to have up to
 # 1 LSB (8 bit) error, it's very hard to make different platforms and
 # compilers always match to every last floating point bit.
-def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
+def diff_command (fileA: str, fileB: str, extraargs: str="", silent: bool=False, concat: bool=True) -> str :
     command = (oiio_app("idiff") + "-a"
                + " -fail " + str(failthresh)
                + " -failpercent " + str(failpercent)
@@ -266,9 +266,9 @@ def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
 
 # Construct a command that will create a texture, appending console
 # output to the file "out.txt".
-def maketx_command (infile, outfile, extraargs="",
-                    showinfo=False, showinfo_extra="",
-                    silent=False, concat=True) :
+def maketx_command (infile: str, outfile: str, extraargs: str="",
+                    showinfo: bool=False, showinfo_extra: str="",
+                    silent: str=False, concat: str=True) -> str :
     command = (oiio_app("maketx")
                + " " + make_relpath(infile,tmpdir)
                + " " + extraargs
@@ -289,9 +289,9 @@ def maketx_command (infile, outfile, extraargs="",
 # correctly).  If testwrite is nonzero, also iconvert the file to make a
 # copy (tests writing that format), and then idiff to make sure it
 # matches the original.
-def rw_command (dir, filename, testwrite=True, use_oiiotool=False, extraargs="",
-                preargs="", idiffextraargs="", output_filename="",
-                safematch=False, printinfo=True) :
+def rw_command (dir: str, filename: str, testwrite: bool=True, use_oiiotool: bool=False, extraargs: str="",
+                preargs: str="", idiffextraargs: str="", output_filename: str="",
+                safematch: bool=False, printinfo: bool=True) -> str:
     fn = make_relpath (dir + "/" + filename, tmpdir)
     if printinfo :
         cmd = info_command (fn, safematch=safematch)
@@ -317,7 +317,7 @@ def rw_command (dir, filename, testwrite=True, use_oiiotool=False, extraargs="",
 
 
 # Construct a command that will testtex
-def testtex_command (file, extraargs="", silent=False, concat=True) :
+def testtex_command (file: str, extraargs: str="", silent: bool=False, concat: bool=True) -> str:
     cmd = oiio_app("testtex") + " " + file + " " + extraargs + " "
     if not silent :
         cmd += redirect
@@ -327,7 +327,7 @@ def testtex_command (file, extraargs="", silent=False, concat=True) :
 
 
 # Construct a command that will run iconvert and append its output to out.txt
-def iconvert (args, silent=False, concat=True, failureok=False) :
+def iconvert (args: str, silent: bool=False, concat: bool=True, failureok: bool=False) -> str:
     cmd = (oiio_app("iconvert") + " " + args)
     if not silent :
         cmd += redirect
@@ -339,7 +339,7 @@ def iconvert (args, silent=False, concat=True, failureok=False) :
 
 
 # Construct a command that will run oiiotool and append its output to out.txt
-def oiiotool (args, silent=False, concat=True, failureok=False) :
+def oiiotool (args: str, silent: bool=False, concat: bool=True, failureok: bool=False) -> str:
     cmd = (oiio_app("oiiotool") + " " + args)
     if not silent :
         cmd += redirect
@@ -356,7 +356,7 @@ def oiiotool (args, silent=False, concat=True, failureok=False) :
 # the identical name, and if that fails, it will look for alternatives of
 # the form "basename-*.ext" (or ANY match in the ref directory, if anymatch
 # is True).
-def checkref (name, refdirlist) :
+def checkref (name: str, refdirlist: list[str]) -> tuple[bool, str]:
     # Break the output into prefix+extension
     (prefix, extension) = os.path.splitext(name)
     ok = 0
@@ -398,7 +398,7 @@ def checkref (name, refdirlist) :
 # in 'ref/'.  If all outputs match their reference copies, return 0
 # to pass.  If any outputs do not match their references return 1 to
 # fail.
-def runtest (command, outputs, failureok=0) :
+def runtest (command: str, outputs: list[str], failureok: int=0) -> int :
     err = 0
 #    print ("working dir = " + tmpdir)
     os.chdir (srcdir)

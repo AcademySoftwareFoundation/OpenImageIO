@@ -18,7 +18,7 @@
 import OpenImageIO as oiio
 import numpy as np
 
-def example1() :
+def example1() -> None:
     #
     # Example code fragment from the docs goes here.
     #
@@ -37,7 +37,7 @@ def example1() :
 
 # BEGIN-imageinput-simple
 import OpenImageIO as oiio
-def simple_read():
+def simple_read() -> None:
     filename = "tahoe.tif"
 
     inp = oiio.ImageInput.open(filename)
@@ -51,7 +51,7 @@ def simple_read():
 # END-imageinput-simple
 
 
-def scanlines_read() :
+def scanlines_read() -> None:
     filename = "scanlines.tif"
 
     # BEGIN-imageinput-scanlines
@@ -66,7 +66,7 @@ def scanlines_read() :
     inp.close ()
     # END-imageinput-scanlines
 
-def tiles_read() :
+def tiles_read() -> None:
     filename = "tiled.tif"
 
      # BEGIN-imageinput-tiles
@@ -86,7 +86,7 @@ def tiles_read() :
     # END-imageinput-tiles
 
 
-def unassociated_alpha():
+def unassociated_alpha() -> None:
     filename = "unpremult.tif"
 
     # BEGIN-imageinput-unassociatedalpha
@@ -104,7 +104,7 @@ def unassociated_alpha():
         print("pixels holds associated alpha")
     # END-imageinput-unassociatedalpha
 
-def error_checking():
+def error_checking() -> None:
 # BEGIN-imageinput-errorchecking
     import OpenImageIO as oiio
     import numpy as np
