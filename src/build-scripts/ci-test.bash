@@ -18,8 +18,12 @@ fi
 # Try a few command line options to test them and also get some important
 # debugging info in the CI logs.
 #
+echo ; echo "Results of ls bin dir:"
+ls -la $OpenImageIO_ROOT/bin/
+
 echo ; echo "Results of oiiotool --version:"
 $OpenImageIO_ROOT/bin/oiiotool --version
+
 echo ; echo "Results of oiiotool brief help:"
 $OpenImageIO_ROOT/bin/oiiotool || true
 echo ; echo "Results of oiiotool full --help:"
