@@ -543,7 +543,6 @@ jobs:
             setenvs: export OpenImageIO_BUILD_LOCAL_DEPS=all
                             LIBJPEGTURBO_VERSION=3.0.4
                             LIBRAW_VERSION=0.21.3
-                            OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
                             WEBP_VERSION=v1.4.0
