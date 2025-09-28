@@ -5,8 +5,9 @@
 set_cache (OpenJPEG_BUILD_VERSION 2.5.4 "OpenJPEG version for local builds")
 set (OpenJPEG_GIT_REPOSITORY "https://github.com/uclouvain/openjpeg.git")
 set (OpenJPEG_GIT_TAG "v${OpenJPEG_BUILD_VERSION}")
-set_cache (OpenJPEG_BUILD_SHARED_LIBS OFF #${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
+set_cache (OpenJPEG_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local OpenJPEG build, if necessary, build shared libraries" ADVANCED)
+
 
 string (MAKE_C_IDENTIFIER ${OpenJPEG_BUILD_VERSION} OpenJPEG_VERSION_IDENT)
 
