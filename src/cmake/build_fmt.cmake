@@ -6,7 +6,7 @@
 # fmt by hand!
 ######################################################################
 
-set_cache (fmt_BUILD_VERSION 10.2.1 "fmt version for local builds")
+set_cache (fmt_BUILD_VERSION 12.0.0 "fmt version for local builds")
 set (fmt_GIT_REPOSITORY "https://github.com/fmtlib/fmt")
 set (fmt_GIT_TAG "${fmt_BUILD_VERSION}")
 # Note: fmt doesn't put "v" in front of version for its git tags
