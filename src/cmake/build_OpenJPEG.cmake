@@ -16,7 +16,7 @@ build_dependency_with_cmake(OpenJPEG
     GIT_REPOSITORY  ${OpenJPEG_GIT_REPOSITORY}
     GIT_TAG         ${OpenJPEG_GIT_TAG}
     CMAKE_ARGS
-        -DBUILD_CODEC=OFF 
+        -D BUILD_CODEC=OFF 
 
 
     )
