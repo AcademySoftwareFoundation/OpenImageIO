@@ -19,9 +19,7 @@ fi
 # debugging info in the CI logs.
 #
 echo ; echo "Results of oiiotool --version:"
-output=`$OpenImageIO_ROOT/bin/oiiotool --version || true`
-echo "Output: $output"
-
+$OpenImageIO_ROOT/bin/oiiotool --version
 echo ; echo "Results of oiiotool brief help:"
 $OpenImageIO_ROOT/bin/oiiotool || true
 echo ; echo "Results of oiiotool full --help:"
