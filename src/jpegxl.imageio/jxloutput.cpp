@@ -547,8 +547,7 @@ JxlOutput::save_image(const void* data)
         uint32_t length = icc_profile_parameter->type().size();
         if (icc_profile && length) {
             if (JXL_ENC_SUCCESS 
-                != JxlEncoderSetICCProfile(m_encoder.get(),
-                                           icc_profile,
+                != JxlEncoderSetICCProfile(m_encoder.get(), icc_profile,
                                            length)) {
                 errorfmt("JxlEncoderSetICCProfile failed\n");
             }

@@ -179,24 +179,3 @@ tahoe-icc.webp       :  128 x   96, 3 channel, uint8 webp
     ICCProfile:profile_version: "2.1.0"
     ICCProfile:rendering_intent: "Perceptual"
     oiio:ColorSpace: "srgb_rec709_scene"
-Reading tahoe-icc.jxl
-tahoe-icc.jxl        :  128 x   96, 3 channel, uint8 jpegxl
-    SHA-1: 069F1A3E5567349C2D34E535B29913029EF1B09C
-    channel list: R, G, B
-    ICCProfile: 0, 0, 2, 48, 65, 68, 66, 69, 2, 16, 0, 0, 109, 110, 116, 114, ... [560 x uint8]
-    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
-    ICCProfile:cmm_type: 1094992453
-    ICCProfile:color_space: "RGB"
-    ICCProfile:copyright: "Copyright 1999 Adobe Systems Incorporated"
-    ICCProfile:creation_date: "1999:06:03 00:00:00"
-    ICCProfile:creator_signature: "41444245"
-    ICCProfile:device_class: "Display device profile"
-    ICCProfile:flags: "Not Embedded, Independent"
-    ICCProfile:manufacturer: "6e6f6e65"
-    ICCProfile:model: "0"
-    ICCProfile:platform_signature: "Apple Computer, Inc."
-    ICCProfile:profile_connection_space: "XYZ"
-    ICCProfile:profile_description: "Adobe RGB (1998)"
-    ICCProfile:profile_size: 560
-    ICCProfile:profile_version: "2.1.0"
-    ICCProfile:rendering_intent: "Perceptual"
