@@ -27,7 +27,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
    through 3.1)
  * zlib >= 1.2.7 (tested through 1.3.1)
- * [fmtlib](https://github.com/fmtlib/fmt) >= 7.0 (tested through 11.2 and master).
+ * [fmtlib](https://github.com/fmtlib/fmt) >= 7.0 (tested through 12.0 and master).
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
  * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
@@ -51,7 +51,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 4.0 (tested through 8.0)
  * If you want support for jpeg 2000 images:
-     * OpenJpeg >= 2.0 (tested through 2.5.3; we recommend 2.4 or higher
+     * OpenJpeg >= 2.0 (tested through 2.5.4; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
      * OpenVDB >= 9.0 (tested through 12.1).
@@ -59,12 +59,12 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * OpenCV 4.x (tested through 4.11)
+     * OpenCV 4.x (tested through 4.12)
  * If you want support for GIF images:
      * giflib >= 5.0 (tested through 5.2.2)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.11 (1.16 required for correct orientation support,
-       tested through 1.19.8)
+       tested through 1.20.2)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.9)
@@ -78,10 +78,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * libultrahdr >= 1.3 (tested through 1.4)
  * If you want support for JPEG XL images:
      * libjxl >= 0.10.1 (tested through 0.11.1)
- * If you want support for "Ultra HDR" inside JPEG images:
-     * libuhdr >= 1.3 (tested through 1.4)
  * If you want support for j2c files:
-     * OpenJPH >= 0.21.2 (tested through 0.22)
+     * OpenJPH >= 0.21.2 (tested through 0.23)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against

@@ -6,7 +6,7 @@
 # WebP by hand!
 ######################################################################
 
-set_cache (WebP_BUILD_VERSION 1.4.0 "WebP version for local builds")
+set_cache (WebP_BUILD_VERSION 1.6.0 "WebP version for local builds")
 set (WebP_GIT_REPOSITORY "https://github.com/webmproject/libwebp.git")
 set (WebP_GIT_TAG "v${WebP_BUILD_VERSION}")
 
