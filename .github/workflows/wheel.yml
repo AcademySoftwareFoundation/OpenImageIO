@@ -39,6 +39,12 @@ on:
   workflow_dispatch:
     # This allows manual triggering of the workflow from the web
 
+# Allow subsequent pushes to the same PR or REF to cancel any previous jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
 jobs:
   # Linux jobs run in Docker containers (manylinux), so the latest OS version
   # is OK. macOS and Windows jobs need to be locked to specific virtual
@@ -141,6 +147,18 @@ jobs:
         with:
           python-version: '3.9'
 
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        shell: bash
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
+      - name: ccache-restore
+        id: ccache-restore
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.ccache
+          key: wheel-${{runner.os}}-${{steps.ccache_cache_keys.outputs.date}}
+          restore-keys: wheel-${{runner.os}}
+
       - name: Build wheels
         # Note: the version of cibuildwheel should be kept in sync with src/python/stubs/CMakeLists.txt
         uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
@@ -148,9 +166,17 @@ jobs:
           # pass GITHUB_ACTIONS through to the build container so that custom
           # processes can tell they are running in CI.
           CIBW_ENVIRONMENT_PASS_LINUX: GITHUB_ACTIONS
+          CIBW_BEFORE_BUILD: "yum makecache && yum install -y ccache || true; which ccache"
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux }}
+
+      - name: ccache-save
+        id: ccache-save
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.ccache
+          key: wheel-${{runner.os}}-${{steps.ccache_cache_keys.outputs.date}}
 
       - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
