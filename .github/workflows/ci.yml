@@ -61,6 +61,7 @@ jobs:
             pybind11_ver: v2.9.0
             setenvs: export FREETYPE_VERSION=VER-2-12-0
                             BUILD_PNG_VERSION=1.6.30
+                            WebP_BUILD_VERSION=1.5.0
           - desc: VP2022 clang13/C++17 py39 avx2 exr3.1 ocio2.3
             nametag: linux-vfx2022.clang13
             runner: ubuntu-latest
@@ -359,7 +360,7 @@ jobs:
             cxx_std: 17
             python_ver: "3.11"
             simd: "avx2,f16c"
-            fmt_ver: 11.1.4
+            fmt_ver: 11.2.0
             pybind11_ver: v2.13.6
             benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.15
@@ -481,17 +482,17 @@ jobs:
             cc_compiler: gcc-13
             cxx_compiler: g++-13
             cxx_std: 20
-            fmt_ver: 11.2.0
+            fmt_ver: 12.0.0
             opencolorio_ver: v2.4.2
             openexr_ver: v3.4.0
-            pybind11_ver: v3.0.0
+            pybind11_ver: v3.0.1
             python_ver: "3.12"
             simd: avx2,f16c
-            setenvs: export LIBJPEGTURBO_VERSION=3.1.1
+            setenvs: export LIBJPEGTURBO_VERSION=3.1.2
                             LIBPNG_VERSION=v1.6.50
                             LIBRAW_VERSION=0.21.4
-                            LIBTIFF_VERSION=v4.7.0
-                            OPENJPEG_VERSION=v2.5.3
+                            LIBTIFF_VERSION=v4.7.1
+                            OPENJPEG_VERSION=v2.5.4
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
@@ -541,9 +542,9 @@ jobs:
             python_ver: "3.10"
             simd: avx2,f16c
             setenvs: export OpenImageIO_BUILD_LOCAL_DEPS=all
-                            LIBJPEGTURBO_VERSION=3.0.4
-                            LIBRAW_VERSION=0.21.3
-                            OPENJPEG_VERSION=v2.4.0
+                            OpenImageIO_DEPENDENCY_BUILD_VERBOSE=ON
+                            LIBRAW_VERSION=0.21.4
+                            OPENJPEG_VERSION=v2.5.4
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
                             WEBP_VERSION=v1.4.0
@@ -589,16 +590,16 @@ jobs:
             cc_compiler: gcc-14
             cxx_compiler: g++-14
             cxx_std: 20
-            fmt_ver: 11.2.0
+            fmt_ver: 12.0.0
             opencolorio_ver: v2.4.2
             openexr_ver: v3.4.0
-            pybind11_ver: v3.0.0
+            pybind11_ver: v3.0.1
             python_ver: "3.12"
-            setenvs: export LIBJPEGTURBO_VERSION=3.1.1
+            setenvs: export LIBJPEGTURBO_VERSION=3.1.2
                             LIBPNG_VERSION=v1.6.50
                             LIBRAW_VERSION=0.21.4
-                            LIBTIFF_VERSION=v4.7.0
-                            OPENJPEG_VERSION=v2.5.3
+                            LIBTIFF_VERSION=v4.7.1
+                            OPENJPEG_VERSION=v2.5.4
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
@@ -610,16 +611,16 @@ jobs:
             cc_compiler: clang-18
             cxx_compiler: clang++-18
             cxx_std: 20
-            fmt_ver: 11.2.0
+            fmt_ver: 12.0.0
             opencolorio_ver: v2.4.2
             openexr_ver: v3.4.0
-            pybind11_ver: v3.0.0
+            pybind11_ver: v3.0.1
             python_ver: "3.12"
-            setenvs: export LIBJPEGTURBO_VERSION=3.1.0
+            setenvs: export LIBJPEGTURBO_VERSION=3.1.2
                             LIBPNG_VERSION=v1.6.50
                             LIBRAW_VERSION=0.21.4
-                            LIBTIFF_VERSION=v4.7.0
-                            OPENJPEG_VERSION=v2.5.3
+                            LIBTIFF_VERSION=v4.7.1
+                            OPENJPEG_VERSION=v2.5.4
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0

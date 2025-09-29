@@ -34,6 +34,10 @@ $OpenImageIO_ROOT/bin/oiiotool --unittest --list-formats --threads 0 \
 echo ; echo "Try unknown command:"
 $OpenImageIO_ROOT/bin/oiiotool -q --unknown || true
 
+if [[ `uname -s` == "Linux" ]] ; then
+    echo ; echo "ldd oiiotool:"
+    ldd $OpenImageIO_ROOT/bin/oiiotool
+fi
 
 #
 # Full test suite

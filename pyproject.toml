@@ -119,6 +119,8 @@ SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1"
 # Suppress warnings that cause linux cibuildwheel build to fail
 CXXFLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
+# FIXME: Getting build problems when using WebP 1.6.0, so hold it back
+WebP_BUILD_VERSION = "1.5.0"
 
 [tool.cibuildwheel.windows.environment]
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
