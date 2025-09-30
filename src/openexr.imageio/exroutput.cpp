@@ -338,7 +338,8 @@ process_aces_container(OIIO::ImageSpec& spec, std::string mode)
     bool is_compliant = is_aces_container_compliant(spec);
 
     if (!is_compliant) {
-        std::cerr << "WARNING: Image spec is not ACES Container compliant\n";
+        // TODO: When we have a way to report warnings, report one here
+        // to indicate that the given image spec is not compliant
 
         // early out and return true iff in "relaxed" mode
         // to indicate that the output can continue without
@@ -884,9 +885,8 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         bool should_panic = !process_aces_container(spec, aces_mode);
 
         if (should_panic) {
-            const char* non_compliance_message
-                = "Cannot output non-compliant ACES Container in 'strict' mode.";
-            errorfmt(non_compliance_message);
+            errorfmt(
+                "Cannot output non-compliant ACES Container in 'strict' mode.");
             return false;
         }
     }
