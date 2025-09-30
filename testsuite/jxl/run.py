@@ -4,8 +4,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-# Test oiiotool's ability to add and delete attributes
-
 
 # Test adding and extracting ICC profiles
 command += oiiotool ("../common/tahoe-tiny.tif --iccread ref/test-jxl.icc -o tahoe-icc.jxl")
