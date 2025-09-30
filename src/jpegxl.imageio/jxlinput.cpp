@@ -350,11 +350,11 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
 
     if (m_icc_profile.size() && m_icc_profile.data()) {
         m_spec.attribute("ICCProfile",
-                         TypeDesc(TypeDesc::UINT8, m_icc_profile.size()), 
+                         TypeDesc(TypeDesc::UINT8, m_icc_profile.size()),
                          m_icc_profile.data());
         std::string errormsg;
 
-        bool ok = decode_icc_profile(cspan<uint8_t>(m_icc_profile.data(), 
+        bool ok = decode_icc_profile(cspan<uint8_t>(m_icc_profile.data(),
                                                     m_icc_profile.size()),
                                      m_spec, errormsg);
 
