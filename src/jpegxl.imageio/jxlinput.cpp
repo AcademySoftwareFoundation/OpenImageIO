@@ -21,6 +21,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include <jxl/color_encoding.h>
 #include <jxl/decode.h>
 #include <jxl/decode_cxx.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
@@ -53,6 +54,7 @@ private:
     std::string m_filename;
     int m_next_scanline;  // Which scanline is the next to read?
     uint32_t m_channels;
+    JxlColorEncoding m_color_encoding;
     JxlDecoderPtr m_decoder;
     JxlResizableParallelRunnerPtr m_runner;
     std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
@@ -345,6 +347,23 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     m_spec = ImageSpec(info.xsize, info.ysize, m_channels, m_data_type);
+
+    if (m_icc_profile.size() && m_icc_profile.data()) {
+        m_spec.attribute("ICCProfile",
+                         TypeDesc(TypeDesc::UINT8, m_icc_profile.size()),
+                         m_icc_profile.data());
+        std::string errormsg;
+
+        bool ok = decode_icc_profile(cspan<uint8_t>(m_icc_profile.data(),
+                                                    m_icc_profile.size()),
+                                     m_spec, errormsg);
+
+        if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
+                     errormsg);
+            return false;
+        }
+    }
 
     newspec = m_spec;
     return true;
