@@ -538,6 +538,21 @@ JxlOutput::save_image(const void* data)
         return false;
     }
 
+    // Write the ICC profile, if available
+    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
+        "ICCProfile");
+    if (icc_profile_parameter != nullptr) {
+        unsigned char* icc_profile
+            = (unsigned char*)icc_profile_parameter->data();
+        uint32_t length = icc_profile_parameter->type().size();
+        if (icc_profile && length) {
+            if (JXL_ENC_SUCCESS
+                != JxlEncoderSetICCProfile(m_encoder.get(), icc_profile,
+                                           length)) {
+                errorfmt("JxlEncoderSetICCProfile failed\n");
+            }
+        }
+    }
 
     // No more image frames nor metadata boxes to add
     DBG std::cout << "calling JxlEncoderCloseInput()\n";
