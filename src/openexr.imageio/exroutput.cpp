@@ -335,6 +335,9 @@ is_aces_container_compliant(const OIIO::ImageSpec& spec)
 bool
 process_aces_container(OIIO::ImageSpec& spec, std::string mode)
 {
+    spec.attribute("chromaticities", OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
+                   ACES_AP0_chromaticities);
+
     bool is_compliant = is_aces_container_compliant(spec);
 
     if (!is_compliant) {
@@ -347,8 +350,6 @@ process_aces_container(OIIO::ImageSpec& spec, std::string mode)
         return mode == "relaxed";
     }
 
-    spec.attribute("chromaticities", OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
-                   ACES_AP0_chromaticities);
     spec.attribute("acesImageContainerFlag", 1);
 
     return true;
