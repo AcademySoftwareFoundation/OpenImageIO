@@ -1666,7 +1666,7 @@ control aspects of the writing itself:
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
 
-.. _ST 2065-4: https://pub.smpte.org/doc/st2065-4/20130510-pub/st2065-4-2013.pdf
+.. _ST 2065-4: https://pub.smpte.org/pub/st2065-4/
 
 **Custom I/O Overrides**
 
