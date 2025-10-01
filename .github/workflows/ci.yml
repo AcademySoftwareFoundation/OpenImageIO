@@ -483,7 +483,7 @@ jobs:
             cxx_compiler: g++-13
             cxx_std: 20
             fmt_ver: 12.0.0
-            opencolorio_ver: v2.4.2
+            opencolorio_ver: v2.5.0
             openexr_ver: v3.4.0
             pybind11_ver: v3.0.1
             python_ver: "3.12"
@@ -591,7 +591,7 @@ jobs:
             cxx_compiler: g++-14
             cxx_std: 20
             fmt_ver: 12.0.0
-            opencolorio_ver: v2.4.2
+            opencolorio_ver: v2.5.0
             openexr_ver: v3.4.0
             pybind11_ver: v3.0.1
             python_ver: "3.12"
