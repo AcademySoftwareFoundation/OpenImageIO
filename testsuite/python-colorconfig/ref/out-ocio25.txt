@@ -1,0 +1,44 @@
+getNumColorSpaces = 25
+getColorSpaceNames = ['sRGB - Display', 'Gamma 2.2 Rec.709 - Display', 'Display P3 - Display', 'Display P3 HDR - Display', 'P3-D65 - Display', 'Rec.1886 Rec.709 - Display', 'Rec.2100-PQ - Display', 'ST2084-P3-D65 - Display', 'ACES2065-1', 'ACEScc', 'ACEScct', 'ACEScg', 'sRGB Encoded Rec.709 (sRGB)', 'Gamma 1.8 Encoded Rec.709', 'Gamma 2.2 Encoded Rec.709', 'Gamma 2.4 Encoded Rec.709', 'sRGB Encoded P3-D65', 'Gamma 2.2 Encoded AdobeRGB', 'sRGB Encoded AP1', 'Gamma 2.2 Encoded AP1', 'Linear AdobeRGB', 'Linear P3-D65', 'Linear Rec.2020', 'Linear Rec.709 (sRGB)', 'Raw']
+Index of 'lin_srgb' = 23
+Index of 'unknown' = -1
+Name of color space 2 = Display P3 - Display
+getNumLooks = 1
+getLookNames = ['ACES 1.3 Reference Gamut Compression']
+getNumDisplays = 8
+getDisplayNames = ['sRGB - Display', 'Display P3 - Display', 'Display P3 HDR - Display', 'Gamma 2.2 Rec.709 - Display', 'P3-D65 - Display', 'Rec.1886 Rec.709 - Display', 'Rec.2100-PQ - Display', 'ST2084-P3-D65 - Display']
+getDefaultDisplayName = sRGB - Display
+getNumViews = 4
+getViewNames = ['ACES 2.0 - SDR 100 nits (Rec.709)', 'Un-tone-mapped', 'Video (colorimetric)', 'Raw']
+getDefaultViewName = ACES 2.0 - SDR 100 nits (Rec.709)
+getNumRoles = 9
+getRoles = ['aces_interchange', 'cie_xyz_d65_interchange', 'color_picking', 'color_timing', 'compositing_log', 'data', 'matte_paint', 'scene_linear', 'texture_paint']
+aliases of 'scene_linear' are ['ACES - ACEScg', 'lin_ap1', 'lin_ap1_scene']
+resolve('foo'): foo
+resolve('linear'): Linear Rec.709 (sRGB)
+resolve('scene_linear'): ACEScg
+resolve('lin_srgb'): Linear Rec.709 (sRGB)
+resolve('srgb'): sRGB Encoded Rec.709 (sRGB)
+resolve('ACEScg'): ACEScg
+equivalent('lin_srgb', 'srgb'): False
+equivalent('scene_linear', 'srgb'): False
+equivalent('linear', 'lin_srgb'): False
+equivalent('scene_linear', 'lin_srgb'): False
+equivalent('ACEScg', 'scene_linear'): True
+equivalent('lnf', 'scene_linear'): False
+
+Loaded test OCIO config: oiio_test_v0.9.2.ocio
+Parsed color space for filepath 'foo_lin_ap1.exr': ACEScg
+Default color space: lin_rec709
+Default display: sRGB (~2.22) - Display
+Default view for sRGB (~2.22) - Display (from lin_rec709): ACES 1.0 - SDR Video
+Default view for sRGB (~2.22) - Display (from 'srgb_tx'): Colorimetry
+Color space name from DisplayView transform referencing Shared View: sRGB (~2.22) - Display
+Test buffer -- initial values:                      [[[0.1 0.5 0.9]]]                 (ACEScg)
+ociodisplay #1 (apply default display/view):        [[[-2.123   0.671   0.8037]]]     (sRGB (~2.22) - Display)
+ociodisplay #2 (apply default display/view again):  [[[-2.123   0.671   0.8037]]]     (sRGB (~2.22) - Display)
+ociodisplay #3 (inverse look):                      [[[-2.252   0.6714  0.8037]]]     (sRGB (~2.22) - Display)
+ociodisplay #4 (forwards look):                     [[[-2.123   0.671   0.8037]]]     (sRGB (~2.22) - Display)
+ociodisplay #5 (inverse look + forwards look):      [[[-2.123   0.671   0.8037]]]     (sRGB (~2.22) - Display)
+
+Done.
