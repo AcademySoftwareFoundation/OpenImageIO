@@ -5,6 +5,7 @@ Release 3.0.11.0 (Oct 1, 2025) -- compared to 3.0.10.1
   - *gif*: GIF output didn't handle FramesPerSecond attribute correctly [#4890](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4890)
   - *deps*: Test freetype 2.14 and document that it works [#4876](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4876)
   - *deps*: Look for boost headers for OpenVDBs older than 12 [#4873](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4873) (by Alex Fuller)
+  - *deps*: Support for OpenColorIO 2.5 [#4916](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4916)
 
 
 Release 3.0.10.1 (Sep 16, 2025) -- compared to 3.0.10.0
