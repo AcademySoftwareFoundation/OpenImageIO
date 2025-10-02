@@ -1,4 +1,4 @@
-Release 3.1 (target: Oct 2 2025) -- compared to 3.0.x
+Release 3.1 (Oct 2, 2025) -- compared to 3.0.x
 -----------------------------------------------------
 - Beta 1: Aug 22, 2025
 - Beta 2: Sep 19, 2025
@@ -96,12 +96,11 @@ Release 3.1 (target: Oct 2 2025) -- compared to 3.0.x
   - *iv*: Bug fix for iv window losing focus on mac on startup [#4773](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4773) (by Aleksandr Motsjonov) (3.1.3.0)
   - *iv*: Use screen pixel ratio to render sharp text in pixel view tool [#4768](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4768) (by Aleksandr Motsjonov) (3.1.3.0)
   - *IBA*: IBA:demosaic add white balancing [#4499](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4499) (by Anton Dukhovnikov) (3.1.0.0/3.0.1.0)
-  - *IBA*: IBA:demosaic add white balancing [#4499](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4499) (by Anton Dukhovnikov) (3.1.0.0/3.0.1.0)
   - *IBA*: IBA::demosaic - fix roi channels [#4602](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4602) (by Anton Dukhovnikov) (3.1.1.0)
   - *IBA*: Add 'auto' value for all options of `IBA::demosaic()` [#4786](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4786) (by Anton Dukhovnikov) (3.1.3.0)
   - *ImageBuf*: IB::pixeltype() did not always return the right value [#4614](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4614) (3.1.1.0)
   - *ImageBuf*: Fix bug in ImageBuf construction from ptr + neg strides [#4630](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4630) (3.1.1.0)
-  - *ImageBuf*: Better errors for nonexistant subimages/mips [#4801](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4801) (3.1.3.0)
+  - *ImageBuf*: Better errors for nonexistent subimages/mips [#4801](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4801) (3.1.3.0)
   - *ImageInput*: Incorrect IOProxy logic related to valid_file [#4839](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4839) (3.1.4.0)
   - *python*: Disable loading Python DLLs from PATH by default on Windows [#4590](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4590) (by zachlewis) (3.1.1.0)
   - *python*: Fix handle leak [#4685](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4685) (3.1.3.0)
@@ -149,7 +148,7 @@ Release 3.1 (target: Oct 2 2025) -- compared to 3.0.x
   - *int*: Switch to spans for some exif manipulation, fixing warnings [#4689](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4689) (3.1.1.0)
   - *int*: Rearrange initialize_cuda() for better err check, no warn [#4726](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4726) (3.1.3.0)
   - *int*: Experimental default_init_allocator and default_init_vector [#4677](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4677) (3.1.3.0)
-  - *int*: Address some nickpick sonar warnings about TileID initialization [#4722](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4722) (3.1.3.0)
+  - *int*: Address some nitpick sonar warnings about TileID initialization [#4722](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4722) (3.1.3.0)
   - *int*: Address safety warnings in pvt::append_tiff_dir_entry [#4737](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4737) (3.1.3.0)
   - *int*: ImageInput/ImageOutput did not set per-file threads correctly [#4750](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4750) (3.1.3.0)
   - *int/iv*: Add raw string syntax modifier for VSCode and Cursor to understand its glsl [#4796](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4796) (by Aleksandr Motsjonov) (3.1.3.0)
@@ -300,6 +299,28 @@ Release 3.1 (target: Oct 2 2025) -- compared to 3.0.x
   - *admin*: Update SECURITY to reflect that 2.5 only gets critical fixes now [#4829](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4829)
   - *admin*: Adjust license notices of A2-only source [#4884](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4884) (3.1.5.0)
 
+### :handshake: Contributors
+
+During the course of development of 3.1 (since splitting from the 3.0 branch),
+OpenImageIO has had 40 unique contributors, of which 15 (indicated by an
+asterisk) had not previously contributed to the project.
+
+|                         |                     |                      |
+| ----------------------- | ------------------- | -------------------- |
+| Aleksandr Motsjonov (*) | Alex Fuller (*)     | Anthony Roberts (*)  |
+| Anton Dukhovnikov       | Aras Pranckevičius  | Basile Fraboni       |
+| Brecht Van Lommel       | Campbell Barton (*) | Carine Touraille (*) |
+| Chad Dombrova           | Connie Chang (*)    | Danielle Imogu (*)   |
+| Dharshan Vishwanatha    | Don Olmstead (*)    | Jesse Yurkovich      |
+| Joachim Reichel         | Jonathan Brown      | kaarrot              |
+| Larry Gritz             | LI JI (*)           | Loïc Vital           |
+| Lukas Stockner          | Lydia Zheng         | Mikael Sundell       |
+| Oktay Comu (*)          | omcaif (*)          | Peter Kovář          |
+| Peter Horvath           | pfranz              | Rui Chen (*)         |
+| Sam Richards            | Scott Milner (*)    | Scott Wilson         |
+| Thomas Klausner (*)     | Todica Ionut        | toge                 |
+| Vanessa Valderrama (*)  | Vernal Chen         | Vlad (Kuzmin) Erium  |
+| Zach Lewis              |                     |                      |
 
 
 ---
