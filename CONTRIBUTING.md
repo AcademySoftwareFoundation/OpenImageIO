@@ -1,37 +1,29 @@
 Contributing to OpenImageIO
 ===========================
 
-> NOTE: This is the proposed post-ASWF-move version of CONTRIBUTING. After the
-> project is legally transferred and moved to the new repo, this file will
-> replace the one at the project root.
->
-> TO DO:
->
-> - [X] Update the mail list sign-up page after the mail list moves.
-> - [ ] Update the repo URL
-> - [ ] Double check the security and info email addresses.
->
-
-Code contributions to OpenImageIO are always welcome, and [nearly 200
+Code contributions to OpenImageIO are always welcome, and [nearly 250
 people](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/CREDITS.md) have done
 so over the years.  Please review this document to get a briefing on our
 process.
 
 
+General Tips for Open Source Development
+----------------------------------------
+
+* GitHub's [Open Source Guides](https://opensource.guide/)
+  - Especially the guide on [How to Contribute to Open Source](https://opensource.guide/how-to-contribute/)
+
+
 Mail List and Slack
 -------------------
-
-Contributors should be reading the oiio-dev mail list:
 
 * [oiio-dev](https://lists.aswf.io/g/oiio-dev)
 For developers of the OpenImageIO code itself, or users who are really
 interested in the OIIO internals. This is where we mostly discuss the code
 (including bug reports), but are also happy to answer user questions about
-use or working of OIIO.
+use or working of OIIO. You can sign up for the mail list on your own using the link above.
 
-You can sign up for the mail list on your own using the link above.
-
-The [ASWF Slack](https://slack.aswf.io/) has an `openimageio` channel. Sign up
+* [ASWF Slack](https://slack.aswf.io/) has an `openimageio` channel. Sign up
 for the Slack on your own, then under "channels", select "browse channels" and
 you should see the openimageio channel (among those of the other projects and
 working groups).
@@ -55,7 +47,7 @@ enhancements: https://github.com/AcademySoftwareFoundation/OpenImageIO/issues
 
 **If you are merely asking a question ("how do I...")**, please do not file an
 issue, but instead ask the question on the [oiio-dev mailing
-list](https://lists.aswf.io/g/oiio-dev).
+list](https://lists.aswf.io/g/oiio-dev) or on the Slack channel.
 
 If you are submitting a bug report, please be sure to note which version of
 OIIO you are using, on what platform (OS/version, which compiler you used,
@@ -215,7 +207,7 @@ under `fix:`, because that appears first in the list).
 It is also encouraged, when it makes sense to do so, to put a subcategory in
 parenthesis after the prefix, like `fix(exr):` or `feat(IBA):`. It's ok to use
 obvious abbreviations for major classes or subsections: IB=ImageBuf,
-IBA=ImageBufAlgo, IC=ImageCace, TS=TextureSystem, etc. If there is no clear
+IBA=ImageBufAlgo, IC=ImageCache, TS=TextureSystem, etc. If there is no clear
 single format or class that is the man focus of the patch, then you can omit
 the subcategory.
 

@@ -325,7 +325,7 @@ The following are the steps for making the release:
     > The API is now frozen -- we promise that subsequent 3.1.x releases
     > (which should happen monthly) will not break back-compatibility of API,
     > ABI, or linkage, compared to this release. Please note that this release
-    > is *not* ABI or link compatible with 2.5 or older releases.
+    > is *not* ABI or link compatible with 3.0 or older releases.
     > 
     > Release notes for 3.1 outlining all the changes since last year's
     > release can be found at *LINK TO THE GITHUB RELEASE PAGE.*
@@ -347,15 +347,15 @@ The following are the steps for making the release:
     > releases to the 3.1 family roughly monthly, which will contain bug fixes
     > and non-breaking enhancements.
     > 
-    > The older 2.5 series of releases is now considered obsolete. We will
-    > continue for now to make 2.4 patch releases, but over time, these will
+    > The older 3.0 series of releases is now considered obsolete. We will
+    > continue for now to make 3.0 patch releases, but over time, these will
     > become less frequent and be reserved for only the most critical bug
     > fixes.
     > 
-    > The "main" branch is now progressing toward an eventual 3.1 release next
+    > The "main" branch is now progressing toward an eventual 3.2 release next
     > fall. As usual, you are welcome to use main for real work, but we do
     > not make any compatibility guarantees and don't guarantee continuing API
-    > compatibility in main.
+    > compatibility within main.
     >
     > (Paste the full set of 3.1 changes here, just copy the appropriate
     > part of CHANGES.md)
