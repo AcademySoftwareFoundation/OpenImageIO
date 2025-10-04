@@ -355,13 +355,26 @@ public:
         : ImageSpec(roi, TypeDesc(fmt)) {}
 
     /// Set the data format, and clear any per-channel format information
-    /// in `channelformats`.
+    /// in `channelformats`. Any existing "oiio:BitsPerSample" metadata
+    /// hints are also cleared and assumed to be the full bits implied by
+    /// the format.
     void set_format (TypeDesc fmt) noexcept;
+
+    /// Set the data format, and clear any per-channel format information in
+    /// `channelformats`.  If the optional `bits` is supplied, set the
+    /// "oiio:BitsPerSample" metadata hint, otherwise it is assumed that it is
+    /// the same as implied by the format and cleared.
+    void set_format (TypeDesc fmt, int bits) noexcept;
 
     /// Set the data format, and clear any per-channel format information
     /// in `channelformats`. The `fmt` may be a string such as `"uint8"`,
     /// or any other type name recognized by the TypeDesc constructor.
-    void set_format (string_view fmt) noexcept { set_format(TypeDesc(fmt)); }
+    /// If the optional `bits` is supplied, set the "oiio:BitsPerSample"
+    /// metadata hint, otherwise it is assumed that it is the same as implied
+    /// by the format.
+    void set_format (string_view fmt, int bits = 0) noexcept {
+        set_format(TypeDesc(fmt), bits);
+    }
 
     /// Sets the `channelnames` to reasonable defaults for the number of
     /// channels.  Specifically, channel names are set to "R", "G", "B,"

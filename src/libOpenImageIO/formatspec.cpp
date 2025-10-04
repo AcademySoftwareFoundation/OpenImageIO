@@ -186,8 +186,33 @@ ImageSpec::ImageSpec(const ROI& roi, TypeDesc format) noexcept
 void
 ImageSpec::set_format(TypeDesc fmt) noexcept
 {
+#if 1
+    set_format(fmt, 0);
+#else
+    // Note: this would preserve backward behavioral compatibility -- no
+    // opinion on the "oiio:BitsPerSample" hint.
     format = fmt;
     channelformats.clear();
+#endif
+}
+
+
+
+void
+ImageSpec::set_format(TypeDesc fmt, int bits) noexcept
+{
+    format = fmt;
+    channelformats.clear();
+    if (bits > 0 && bits < int(fmt.size()) * 8) {
+        // If bits is nonzero, and not already set to the "full" bit width for
+        // `fmt`, and valid (must be positive and less than the number of bits
+        // available), set the "oiio:BitsPerSample" metadata.
+        attribute("oiio:BitsPerSample", bits);
+    } else {
+        // No valid bits, or it's not needed -- clear any existing bps
+        // metadata.
+        erase_attribute("oiio:BitsPerSample");
+    }
 }
 
 
