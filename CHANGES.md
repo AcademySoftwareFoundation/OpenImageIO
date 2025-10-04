@@ -1,3 +1,8 @@
+Release 3.1.6.2 (Oct 3, 2025) -- compared to 3.1.6.1
+----------------------------------------------------
+  - *oiioversion.h*: Restore definition of `OIIO_NAMESPACE_USING` macro [#4920](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4920)
+
+
 Release 3.1 (Oct 2, 2025) -- compared to 3.0.x
 -----------------------------------------------------
 - Beta 1: Aug 22, 2025
