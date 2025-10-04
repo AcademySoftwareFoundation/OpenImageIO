@@ -290,6 +290,73 @@ set_exr_threads()
 
 
 
+static constexpr float ACES_AP0_chromaticities[8] = {
+    0.7347f,  0.2653f,  // red
+    0.0f,     1.0f,     // green
+    0.0001f,  -0.077f,  // blue
+    0.32168f, 0.33767f  // white
+};
+
+
+
+bool
+is_aces_container_compliant(const OIIO::ImageSpec& spec)
+{
+    // Check channels
+    std::vector<std::string> allowed_sets
+        = { "B,G,R",
+            "A,B,G,R"
+            "B,G,R,left.B,left.G,left.R",
+            "A,B,G,R,left.A,left.B,left.G,left.R" };
+    std::string channels;
+    for (int c = 0; c < spec.nchannels; ++c) {
+        if (c > 0)
+            channels += ",";
+        channels += spec.channelnames[c];
+    }
+    if (std::find(allowed_sets.begin(), allowed_sets.end(), channels)
+        == allowed_sets.end())
+        return false;
+
+    // Check data type
+    if (spec.format != OIIO::TypeDesc::HALF)
+        return false;
+
+    // Check compression
+    std::string compression = spec.get_string_attribute("compression", "zip");
+    if (compression != "none")
+        return false;
+
+    return true;
+}
+
+
+
+bool
+process_aces_container(OIIO::ImageSpec& spec, std::string mode)
+{
+    spec.attribute("chromaticities", OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
+                   ACES_AP0_chromaticities);
+
+    bool is_compliant = is_aces_container_compliant(spec);
+
+    if (!is_compliant) {
+        // TODO: When we have a way to report warnings, report one here
+        // to indicate that the given image spec is not compliant
+
+        // early out and return true iff in "relaxed" mode
+        // to indicate that the output can continue without
+        // throwing an error
+        return mode == "relaxed";
+    }
+
+    spec.attribute("acesImageContainerFlag", 1);
+
+    return true;
+}
+
+
+
 OpenEXROutput::OpenEXROutput()
 {
     pvt::set_exr_threads();
@@ -811,6 +878,19 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
             Imf::TileDescription(spec.tile_width, spec.tile_height,
                                  Imf::LevelMode(m_levelmode),
                                  Imf::LevelRoundingMode(m_roundingmode)));
+
+    // Check ACES Container hint
+    std::string aces_mode = spec.get_string_attribute("openexr:ACESContainer",
+                                                      "none");
+    if (aces_mode == "strict" || aces_mode == "relaxed") {
+        bool should_panic = !process_aces_container(spec, aces_mode);
+
+        if (should_panic) {
+            errorfmt(
+                "Cannot output non-compliant ACES Container in 'strict' mode.");
+            return false;
+        }
+    }
 
     // Deal with all other params
     for (const auto& p : spec.extra_attribs)
