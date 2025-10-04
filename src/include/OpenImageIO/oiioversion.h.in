@@ -144,6 +144,7 @@ namespace OIIO = @PROJ_NAMESPACE@;
 // Macros to declare things in the current version's inline namespace.
 #define OIIO_NAMESPACE_BEGIN namespace @PROJ_NAMESPACE@ { inline namespace @PROJ_VERSION_NAMESPACE@ {
 #define OIIO_NAMESPACE_END } }
+#define OIIO_NAMESPACE_USING using namespace OIIO;
 #define OIIO_CURRENT_NAMESPACE @PROJ_NAMESPACE@::@PROJ_VERSION_NAMESPACE@
 
 #include <OpenImageIO/nsversions.h>
