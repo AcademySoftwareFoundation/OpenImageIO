@@ -300,22 +300,35 @@ static constexpr float ACES_AP0_chromaticities[8] = {
 
 
 bool
+is_spec_aces_container_channels_only(const OIIO::ImageSpec& spec)
+{
+    // Allowed channel sets
+    std::vector<std::set<std::string>> allowed_sets
+        = { { "B", "G", "R" },
+            { "A", "B", "G", "R" },
+            { "B", "G", "R", "left.B", "left.G", "left.R" },
+            { "A", "B", "G", "R", "left.A", "left.B", "left.G", "left.R" } };
+
+    // Gather channel set from spec
+    std::set<std::string> channels(spec.channelnames.begin(),
+                                   spec.channelnames.end());
+
+    // Compare to allowed sets (unordered)
+    for (const auto& allowed : allowed_sets) {
+        if (channels == allowed) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+
+bool
 is_aces_container_compliant(const OIIO::ImageSpec& spec)
 {
-    // Check channels
-    std::vector<std::string> allowed_sets
-        = { "B,G,R",
-            "A,B,G,R"
-            "B,G,R,left.B,left.G,left.R",
-            "A,B,G,R,left.A,left.B,left.G,left.R" };
-    std::string channels;
-    for (int c = 0; c < spec.nchannels; ++c) {
-        if (c > 0)
-            channels += ",";
-        channels += spec.channelnames[c];
-    }
-    if (std::find(allowed_sets.begin(), allowed_sets.end(), channels)
-        == allowed_sets.end())
+    if (!is_spec_aces_container_channels_only(spec))
         return false;
 
     // Check data type

@@ -361,10 +361,10 @@ strict-out.exr       :    4 x    4, 3 channel, half openexr
     openexr:lineOrder: "increasingY"
 oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
 Full command line was:
-> oiiotool --create 4x4 3 -d half --compression none --ch R,G,B -sattrib openexr:ACESContainer strict -o strict-fail.exr
+> oiiotool --create 4x4 3 -d half --compression none --ch left.R=R,G,B -sattrib openexr:ACESContainer strict -o strict-fail.exr
 oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
 Full command line was:
-> oiiotool --create 4x4 3 -d half --compression zip --ch B,G,R -sattrib openexr:ACESContainer strict -o strict-fail.exr
+> oiiotool --create 4x4 3 -d half --compression zip -sattrib openexr:ACESContainer strict -o strict-fail.exr
 oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
 Full command line was:
-> oiiotool --create 4x4 3 -d float --compression none --ch B,G,R -sattrib openexr:ACESContainer strict -o strict-fail.exr
+> oiiotool --create 4x4 3 -d float --compression none -sattrib openexr:ACESContainer strict -o strict-fail.exr

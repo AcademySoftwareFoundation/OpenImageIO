@@ -52,18 +52,34 @@ command += oiiotool("--create 64x64-16-16 3 -d half -o negoverscan.exr")
 command += info_command("negoverscan.exr", safematch=True)
 
 # Check ACES Container output for relaxed mode
-command += oiiotool("--create 4x4 3 -d half --compression none --ch B,G,R -sattrib openexr:ACESContainer relaxed -o relaxed-out.exr")
+#
+# Valid ACES Container
+command += oiiotool("--create 4x4 3 -d half --compression none -sattrib openexr:ACESContainer relaxed -o relaxed-out.exr")
 command += oiiotool("relaxed-out.exr --echo {TOP[acesImageContainerFlag]}", failureok=True) # should give 1
-command += oiiotool("--create 4x4 3 -d half --compression none --ch R,G,B -sattrib openexr:ACESContainer relaxed -o fail.exr")
+
+# Invalid channel name set
+command += oiiotool("--create 4x4 3 -d half --compression none --ch left.R=R,G,B -sattrib openexr:ACESContainer relaxed -o fail.exr")
 command += oiiotool("fail.exr --echo {TOP[acesImageContainerFlag]}", failureok=True) # should be empty
-command += oiiotool("--create 4x4 3 -d half --compression zip --ch B,G,R -sattrib openexr:ACESContainer relaxed -o fail.exr")
+
+# Invalid compression
+command += oiiotool("--create 4x4 3 -d half --compression zip -sattrib openexr:ACESContainer relaxed -o fail.exr")
 command += oiiotool("fail.exr --echo {TOP[acesImageContainerFlag]}", failureok=True) # should be empty
-command += oiiotool("--create 4x4 3 -d float --compression none --ch B,G,R -sattrib openexr:ACESContainer relaxed -o fail.exr")
+
+# Invalid data type
+command += oiiotool("--create 4x4 3 -d float --compression none -sattrib openexr:ACESContainer relaxed -o fail.exr")
 command += oiiotool("fail.exr --echo {TOP[acesImageContainerFlag]}", failureok=True) # should be empty
 
 # Check ACES Container output for strict mode
-command += oiiotool("--create 4x4 3 -d half --compression none --ch B,G,R -sattrib openexr:ACESContainer strict -o strict-out.exr")
+#
+# Valid ACES Container
+command += oiiotool("--create 4x4 3 -d half --compression none -sattrib openexr:ACESContainer strict -o strict-out.exr")
 command += info_command("strict-out.exr", safematch=True)
-command += oiiotool("--create 4x4 3 -d half --compression none --ch R,G,B -sattrib openexr:ACESContainer strict -o strict-fail.exr", failureok=True)
-command += oiiotool("--create 4x4 3 -d half --compression zip --ch B,G,R -sattrib openexr:ACESContainer strict -o strict-fail.exr", failureok=True)
-command += oiiotool("--create 4x4 3 -d float --compression none --ch B,G,R -sattrib openexr:ACESContainer strict -o strict-fail.exr", failureok=True)
+
+# Invalid channel name set
+command += oiiotool("--create 4x4 3 -d half --compression none --ch left.R=R,G,B -sattrib openexr:ACESContainer strict -o strict-fail.exr", failureok=True)
+
+# Invalid compression
+command += oiiotool("--create 4x4 3 -d half --compression zip -sattrib openexr:ACESContainer strict -o strict-fail.exr", failureok=True)
+
+# Invalid data type
+command += oiiotool("--create 4x4 3 -d float --compression none -sattrib openexr:ACESContainer strict -o strict-fail.exr", failureok=True)
