@@ -341,10 +341,10 @@ negoverscan.exr      :   64 x   64, 3 channel, half openexr
     screenWindowWidth: 1
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
-1
-
-
-
+acesImageContainerFlag for relaxed-out.exr is 1
+acesImageContainerFlag for fail.exr is 
+acesImageContainerFlag for fail.exr is 
+acesImageContainerFlag for fail.exr is 
 Reading strict-out.exr
 strict-out.exr       :    4 x    4, 3 channel, half openexr
     SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5

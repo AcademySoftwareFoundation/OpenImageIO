@@ -55,19 +55,19 @@ command += info_command("negoverscan.exr", safematch=True)
 #
 # Valid ACES Container
 command += oiiotool("--create 4x4 3 -d half --compression none -sattrib openexr:ACESContainer relaxed -o relaxed-out.exr")
-command += oiiotool("relaxed-out.exr --echo {TOP[acesImageContainerFlag]}", failureok=True) # should give 1
+command += oiiotool("relaxed-out.exr --echo 'acesImageContainerFlag for {TOP.filename} is {TOP[acesImageContainerFlag]}'", failureok=True) # should give 1
 
 # Invalid channel name set
 command += oiiotool("--create 4x4 3 -d half --compression none --ch left.R=R,G,B -sattrib openexr:ACESContainer relaxed -o fail.exr")
-command += oiiotool("fail.exr --echo {TOP[acesImageContainerFlag]}", failureok=True) # should be empty
+command += oiiotool("fail.exr --echo 'acesImageContainerFlag for {TOP.filename} is {TOP[acesImageContainerFlag]}'", failureok=True) # should be empty
 
 # Invalid compression
 command += oiiotool("--create 4x4 3 -d half --compression zip -sattrib openexr:ACESContainer relaxed -o fail.exr")
-command += oiiotool("fail.exr --echo {TOP[acesImageContainerFlag]}", failureok=True) # should be empty
+command += oiiotool("fail.exr --echo 'acesImageContainerFlag for {TOP.filename} is {TOP[acesImageContainerFlag]}'", failureok=True) # should be empty
 
 # Invalid data type
 command += oiiotool("--create 4x4 3 -d float --compression none -sattrib openexr:ACESContainer relaxed -o fail.exr")
-command += oiiotool("fail.exr --echo {TOP[acesImageContainerFlag]}", failureok=True) # should be empty
+command += oiiotool("fail.exr --echo 'acesImageContainerFlag for {TOP.filename} is {TOP[acesImageContainerFlag]}'", failureok=True) # should be empty
 
 # Check ACES Container output for strict mode
 #
