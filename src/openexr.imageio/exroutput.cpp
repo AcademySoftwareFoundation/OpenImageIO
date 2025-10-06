@@ -306,7 +306,7 @@ is_spec_aces_container_channels_only(const OIIO::ImageSpec& spec)
     // doesn't matter.
 
     // Allowed channel sets
-    std::vector<std::set<std::string>> allowed_sets
+    static const std::vector<std::set<std::string>> allowed_sets
         = { { "B", "G", "R" },
             { "A", "B", "G", "R" },
             { "B", "G", "R", "left.B", "left.G", "left.R" },
