@@ -594,6 +594,10 @@ macro (build_dependency_with_cmake pkgname)
         ${ARGN})
 
     message (STATUS "Building local ${pkgname} ${_pkg_VERSION} from ${_pkg_GIT_REPOSITORY}")
+    
+    if(DEFINED ${pkgname}_CMAKELISTS_TEMPLATE_PATH AND ${pkgname}_CMAKELISTS_TEMPLATE_PATH)
+            message (STATUS "cmakelist template provided on: ${${pkgname}_CMAKELISTS_TEMPLATE_PATH}")
+    endif()
 
     set (${pkgname}_LOCAL_SOURCE_DIR "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/${pkgname}")
     set (${pkgname}_LOCAL_BUILD_DIR "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/${pkgname}-build")
@@ -650,6 +654,16 @@ macro (build_dependency_with_cmake pkgname)
                                 -Wno-dev
                                 )
     endif ()
+
+    
+    # if a CMakeLists.txt path is specified, add it to the repository. This will replace existing ones
+    # this should be set before calling the macro
+    if(DEFINED ${pkgname}_CMAKELISTS_TEMPLATE_PATH AND NOT "${${pkgname}_CMAKELISTS_TEMPLATE_PATH}" STREQUAL "")
+        message(STATUS "Adding custom CMakeLists.txt for ${pkgname}")
+        configure_file("${${pkgname}_CMAKELISTS_TEMPLATE_PATH}" 
+                      "${${pkgname}_LOCAL_SOURCE_DIR}/${_pkg_SOURCE_SUBDIR}/CMakeLists.txt"
+                      @ONLY)
+    endif()
 
     # Make sure to inherit CMAKE_IGNORE_PATH
     set(_pkg_CMAKE_ARGS ${_pkg_CMAKE_ARGS} ${_pkg_CMAKE_ARGS})
