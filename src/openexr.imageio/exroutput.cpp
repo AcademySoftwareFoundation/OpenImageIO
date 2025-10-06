@@ -302,6 +302,9 @@ static constexpr float ACES_AP0_chromaticities[8] = {
 bool
 is_spec_aces_container_channels_only(const OIIO::ImageSpec& spec)
 {
+    // Note: this is constructing and comparing sets, so that channel order
+    // doesn't matter.
+
     // Allowed channel sets
     std::vector<std::set<std::string>> allowed_sets
         = { { "B", "G", "R" },
