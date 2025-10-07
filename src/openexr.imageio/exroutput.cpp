@@ -398,12 +398,15 @@ is_aces_container_compliant(const OIIO::ImageSpec& spec)
 
     // Check chromaticities
     float chromaticities[8] = { 0., 0., 0., 0., 0., 0., 0., 0. };
-    bool found              = spec.getattribute("chromaticities",
-                                                OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
-                                                chromaticities);
-    if (found
-        && !std::equal(std::begin(chromaticities), std::end(chromaticities),
-                       std::begin(ACES_AP0_chromaticities)))
+    bool chroms_found
+        = spec.getattribute("chromaticities",
+                            OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
+                            chromaticities);
+    bool chroms_equal = std::equal(std::begin(chromaticities),
+                                   std::end(chromaticities),
+                                   std::begin(ACES_AP0_chromaticities));
+
+    if (chroms_found && !chroms_equal)
         return false;
 
     return true;
