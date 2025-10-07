@@ -329,6 +329,46 @@ is_spec_aces_container_channels_only(const OIIO::ImageSpec& spec)
 
 
 bool
+is_aces_container_attributes_non_empty(const OIIO::ImageSpec& spec)
+{
+    // attributes in this list should NOT be empty if they exist
+    static const std::vector<std::string> nonEmptyAttribs = {
+        "cameraFirmwareVersion",
+        "cameraIdentifier",
+        "cameraLabel",
+        "cameraMake",
+        "cameraModel",
+        "cameraSerialNumber",
+        "comments",
+        "creator",
+        "lensAttributes",
+        "lensFirmwareVersion",
+        "lensMake",
+        "lensModel",
+        "lensSerialNumber",
+        "owner",
+        "recorderFirmwareVersion",
+        "recorderMake",
+        "recorderModel",
+        "recorderSerialNumber",
+        "reelName",
+        "storageMediaSerialNumber",
+    };
+
+    for (const auto& label : nonEmptyAttribs) {
+        const ParamValue* value = spec.find_attribute(label,
+                                                      OIIO::TypeDesc::STRING);
+        if (value && value->get<std::string>().empty()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+
+bool
 is_aces_container_compliant(const OIIO::ImageSpec& spec)
 {
     if (!is_spec_aces_container_channels_only(spec))
@@ -341,6 +381,10 @@ is_aces_container_compliant(const OIIO::ImageSpec& spec)
     // Check compression
     std::string compression = spec.get_string_attribute("compression", "zip");
     if (compression != "none")
+        return false;
+
+    // Check non-empty attributes
+    if (!is_aces_container_attributes_non_empty(spec))
         return false;
 
     return true;
