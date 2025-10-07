@@ -962,7 +962,7 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
                                  Imf::LevelRoundingMode(m_roundingmode)));
 
     // Check ACES Container hint
-    std::string aces_mode = spec.get_string_attribute("openexr:ACESContainer",
+    std::string aces_mode = spec.get_string_attribute("openexr:ACESContainerPolicy",
                                                       "none");
     if (aces_mode == "strict" || aces_mode == "relaxed") {
         bool should_panic = !process_aces_container(spec, aces_mode);
