@@ -414,25 +414,37 @@ is_aces_container_compliant(const OIIO::ImageSpec& spec)
 
 
 
-bool
-process_aces_container(OIIO::ImageSpec& spec, std::string mode)
+void
+set_aces_container_attributes(OIIO::ImageSpec& spec)
 {
     spec.attribute("chromaticities", OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
                    ACES_AP0_chromaticities);
+    spec.attribute("colorInteropId", ACES_AP0_colorInteropId);
+    spec.attribute("acesImageContainerFlag", 1);
+}
 
-    bool is_compliant = is_aces_container_compliant(spec);
 
-    if (!is_compliant) {
-        // TODO: When we have a way to report warnings, report one here
-        // to indicate that the given image spec is not compliant
 
-        // early out and return true iff in "relaxed" mode
-        // to indicate that the output can continue without
-        // throwing an error
-        return mode == "relaxed";
+bool
+process_aces_container(OIIO::ImageSpec& spec, std::string policy, int flag)
+{
+    bool treat_as_aces_container = policy == "strict" || flag == 1;
+    bool is_compliant            = is_aces_container_compliant(spec);
+
+    if (treat_as_aces_container && !is_compliant) {
+        return false;
     }
 
-    spec.attribute("acesImageContainerFlag", 1);
+    set_aces_container_attributes(spec);
+
+    if (policy == "relaxed" && !is_compliant) {
+        // When image is not compliant in relaxed mode, we should avoid
+        // setting the flag, and we should print a warning
+
+        // TODO: When we have a way to report warnings, report one here
+        // to indicate that the given image spec is not compliant
+        spec.erase_attribute("acesImageContainerFlag");
+    }
 
     return true;
 }
@@ -962,10 +974,14 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
                                  Imf::LevelRoundingMode(m_roundingmode)));
 
     // Check ACES Container hint
-    std::string aces_mode
+    int aces_container_flag = spec.get_int_attribute("acesImageContainerFlag",
+                                                     0);
+    std::string aces_container_policy
         = spec.get_string_attribute("openexr:ACESContainerPolicy", "none");
-    if (aces_mode == "strict" || aces_mode == "relaxed") {
-        bool should_panic = !process_aces_container(spec, aces_mode);
+
+    if (aces_container_policy != "none" || aces_container_flag == 1) {
+        bool should_panic = !process_aces_container(spec, aces_container_policy,
+                                                    aces_container_flag);
 
         if (should_panic) {
             errorfmt(
