@@ -31,6 +31,7 @@ private:
     std::string m_filename;
     iff_pvt::IffFileHeader m_header;
     std::vector<uint8_t> m_buf;
+    cspan<uint8_t> m_bufspan;
 
     uint32_t m_tbmp_start;
 
@@ -40,6 +41,7 @@ private:
         ioproxy_clear();
         m_filename.clear();
         m_buf.clear();
+        m_bufspan = cspan<uint8_t>();
     }
 
     // Reads information about IFF file. If errors are encountereed,
@@ -505,17 +507,24 @@ bool
 IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
                            void* data)
 {
-    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 
-    if (m_buf.empty()) {
-        if (!readimg()) {
-            return false;
+    {
+        lock_guard lock(*this);
+
+        if (m_buf.empty()) {
+            if (!readimg())
+                return false;
         }
     }
 
-    // tile size
+    // Offset vs the image data origin
+    x -= m_spec.x;
+    y -= m_spec.y;
+
+    // tile size that we're reading -- consider if the tile overlaps the image
+    // boundary.
     int w  = m_header.width;
     int tw = std::min(x + static_cast<int>(m_header.tile_width),
                       static_cast<int>(m_header.width))
@@ -525,16 +534,13 @@ IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
              - y;
 
     // tile data
-    int oy = 0;
-    for (int iy = y; iy < y + th; iy++) {
-        // in
-        uint8_t* in_p = m_buf.data() + (iy * w + x) * m_header.pixel_bytes();
-        // out
-        uint8_t* out_p = reinterpret_cast<uint8_t*>(data)
-                         + (oy * m_header.tile_width) * m_header.pixel_bytes();
-        // copy
-        memcpy(out_p, in_p, tw * m_header.pixel_bytes());
-        oy++;
+    span<uint8_t> dataspan(static_cast<uint8_t*>(data),
+                           m_header.tile_width * m_header.tile_height
+                               * m_header.pixel_bytes());
+    for (int oy = 0, iy = y; oy < th; ++oy, ++iy) {
+        spancpy(dataspan, (oy * m_header.tile_width) * m_header.pixel_bytes(),
+                m_bufspan, (iy * w + x) * m_header.pixel_bytes(),
+                tw * m_header.pixel_bytes());
     }
     return true;
 }
@@ -563,6 +569,7 @@ IffInput::readimg()
 
     // resize buffer
     m_buf.resize(m_header.image_bytes());
+    m_bufspan = cspan<uint8_t>(m_buf);
 
     while ((rgbatiles < m_header.tiles && m_header.rgba_count > 0)
            || (ztiles < m_header.tiles && m_header.zbuffer > 0)) {
