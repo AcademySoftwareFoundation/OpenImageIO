@@ -204,6 +204,8 @@ if (MSVC)
     add_compile_definitions (_CRT_NONSTDC_NO_WARNINGS)
     add_compile_definitions (_SCL_SECURE_NO_WARNINGS)
     add_compile_definitions (JAS_WIN_MSVC_BUILD)
+    # https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4641#issuecomment-2725013661
+    add_compile_definitions (_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 endif (MSVC)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD"
