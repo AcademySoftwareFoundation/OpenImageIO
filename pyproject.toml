@@ -1,3 +1,6 @@
+# See docs at https://cibuildwheel.pypa.io/en/stable/options
+# for description of all the options in this file.
+
 [project]
 name = "OpenImageIO"
 # The build backend ascertains the version from the CMakeLists.txt file.

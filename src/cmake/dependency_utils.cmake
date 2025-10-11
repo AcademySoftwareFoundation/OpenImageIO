@@ -110,7 +110,7 @@ function (print_package_notfound_report)
         list (REMOVE_DUPLICATES CFP_ALL_BUILD_DEPS_NOTFOUND)
         foreach (_pkg IN LISTS CFP_ALL_BUILD_DEPS_NOTFOUND)
             if (_pkg IN_LIST CFP_LOCALLY_BUILT_DEPS)
-                message (STATUS "    ${_pkg} ${_${_pkg}_version_range} ${${_pkg}_NOT_FOUND_EXPLANATION} ${ColorMagenta}(${${_pkg}_VERSION} BUILT LOCALLY)${ColorReset}")
+                message (STATUS "    ${_pkg} ${_${_pkg}_version_range} ${${_pkg}_NOT_FOUND_EXPLANATION} ${ColorMagenta}(${${_pkg}_VERSION} BUILT LOCALLY in ${${_pkg}_build_elapsed_time}s)${ColorReset}")
             else ()
                 message (STATUS "    ${_pkg} ${_${_pkg}_version_range} ${${_pkg}_NOT_FOUND_EXPLANATION}")
             endif ()
@@ -594,9 +594,10 @@ macro (build_dependency_with_cmake pkgname)
         ${ARGN})
 
     message (STATUS "Building local ${pkgname} ${_pkg_VERSION} from ${_pkg_GIT_REPOSITORY}")
-    
+    string (TIMESTAMP ${pkgname}_build_start_time "%s")
+
     if(DEFINED ${pkgname}_CMAKELISTS_TEMPLATE_PATH AND ${pkgname}_CMAKELISTS_TEMPLATE_PATH)
-            message (STATUS "cmakelist template provided on: ${${pkgname}_CMAKELISTS_TEMPLATE_PATH}")
+        message (STATUS "cmakelist template provided on: ${${pkgname}_CMAKELISTS_TEMPLATE_PATH}")
     endif()
 
     set (${pkgname}_LOCAL_SOURCE_DIR "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/${pkgname}")
@@ -685,6 +686,8 @@ macro (build_dependency_with_cmake pkgname)
                 -DCMAKE_INSTALL_PREFIX=${${pkgname}_LOCAL_INSTALL_DIR}
             # Same build type as us
                 -DCMAKE_BUILD_TYPE=${${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE}
+                -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
+                -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
             # Shhhh
                 -DCMAKE_MESSAGE_INDENT="        "
                 -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
@@ -712,6 +715,9 @@ macro (build_dependency_with_cmake pkgname)
         set (${pkgname}_ROOT ${${pkgname}_LOCAL_INSTALL_DIR})
         list (APPEND CMAKE_PREFIX_PATH ${${pkgname}_LOCAL_INSTALL_DIR})
     endif ()
+    string (TIMESTAMP ${pkgname}_build_end_time "%s")
+    math (EXPR ${pkgname}_build_elapsed_time "${${pkgname}_build_end_time} - ${${pkgname}_build_start_time}")
+    # message (STATUS "Build time of ${${pkgname}_build_elapsed_time}s")
 endmacro ()
 
 
