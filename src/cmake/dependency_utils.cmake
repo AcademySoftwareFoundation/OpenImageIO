@@ -11,7 +11,7 @@ set_option (${PROJECT_NAME}_ALWAYS_PREFER_CONFIG
             "Prefer a dependency's exported config file if it's available" OFF)
 
 set_cache (${PROJECT_NAME}_BUILD_MISSING_DEPS ""
-     "Try to download and build any of these missing dependencies (or 'all')")
+     "Try to download and build any of these missing dependencies (or 'all' or 'required')")
 set_cache (${PROJECT_NAME}_BUILD_LOCAL_DEPS ""
      "Force local builds of these dependencies if possible (or 'all')")
 
@@ -123,6 +123,8 @@ function (print_package_notfound_report)
             message (STATUS "    ${_pkg}")
         endforeach ()
         message (STATUS "${ColorBoldWhite}To build them automatically if not found, build again with option:${ColorReset}")
+        message (STATUS "    ${ColorBoldGreen}-D${PROJECT_NAME}_BUILD_MISSING_DEPS=required${ColorReset}")
+        message (STATUS "  or")
         message (STATUS "    ${ColorBoldGreen}-D${PROJECT_NAME}_BUILD_MISSING_DEPS=all${ColorReset}")
     endif ()
     message (STATUS)
@@ -321,7 +323,9 @@ macro (checked_find_package pkgname)
         set (_pkg_BUILD_LOCAL "always")
     elseif ("${pkgname}" IN_LIST ${PROJECT_NAME}_BUILD_MISSING_DEPS
             OR ${PROJECT_NAME}_BUILD_MISSING_DEPS STREQUAL "ALL"
-            OR ${PROJECT_NAME}_BUILD_MISSING_DEPS STREQUAL "all")
+            OR ${PROJECT_NAME}_BUILD_MISSING_DEPS STREQUAL "all"
+            OR ("required" IN_LIST ${PROJECT_NAME}_BUILD_MISSING_DEPS
+                AND _pkg_REQUIRED))
         set_if_not (_pkg_BUILD_LOCAL "missing")
     endif ()
     set (${pkgname}_local_build_script "${PROJECT_SOURCE_DIR}/src/cmake/build_${pkgname}.cmake")
@@ -611,7 +615,7 @@ macro (build_dependency_with_cmake pkgname)
         list (APPEND ${pkgname}_GIT_CLONE_ARGS --depth 1)
     endif ()
     if (_pkg_QUIET OR "${_pkg_QUIET}" STREQUAL "")
-        list (APPEND ${pkgname}_GIT_CLONE_ARGS -q)
+        list (APPEND ${pkgname}_GIT_CLONE_ARGS -q ERROR_VARIABLE ${pkgname}_clone_errors)
         set (_pkg_exec_quiet OUTPUT_QUIET)
     endif ()
 
