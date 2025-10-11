@@ -330,7 +330,8 @@ is_spec_aces_container_channels_only(const OIIO::ImageSpec& spec)
 
 
 bool
-is_aces_container_attributes_non_empty(const OIIO::ImageSpec& spec)
+is_aces_container_attributes_non_empty(const OIIO::ImageSpec& spec,
+                                       std::string& non_compliant_attr)
 {
     // attributes in this list should NOT be empty if they exist
     static const std::vector<std::string> nonEmptyAttribs = {
@@ -360,6 +361,7 @@ is_aces_container_attributes_non_empty(const OIIO::ImageSpec& spec)
         const ParamValue* value = spec.find_attribute(label,
                                                       OIIO::TypeDesc::STRING);
         if (value && value->get<std::string>().empty()) {
+            non_compliant_attr = label;
             return false;
         }
     }
@@ -370,31 +372,52 @@ is_aces_container_attributes_non_empty(const OIIO::ImageSpec& spec)
 
 
 bool
-is_aces_container_compliant(const OIIO::ImageSpec& spec)
+is_aces_container_compliant(const OIIO::ImageSpec& spec, std::string& reason)
 {
-    if (!is_spec_aces_container_channels_only(spec))
+    if (!is_spec_aces_container_channels_only(spec)) {
+        reason
+            = "Spec channel names do not match those required for an ACES Container.";
         return false;
+    }
 
     // Check data type
-    if (spec.format != OIIO::TypeDesc::HALF)
+    if (spec.format != OIIO::TypeDesc::HALF) {
+        reason
+            = "EXR data type is not 'HALF' as required for an ACES Container.";
         return false;
+    }
 
     // Check compression
     std::string compression = spec.get_string_attribute("compression", "zip");
-    if (compression != "none")
+    if (compression != "none") {
+        reason = "Compression is not 'none' as required for an ACES Container.";
         return false;
+    }
 
     // Check non-empty attributes
-    if (!is_aces_container_attributes_non_empty(spec))
+    std::string non_compliant_attr = "";
+    if (!is_aces_container_attributes_non_empty(spec, non_compliant_attr)) {
+        reason = "Spec contains an empty string attribute (";
+        reason += non_compliant_attr;
+        reason += ") that is required to be non-empty in an ACES Container.";
         return false;
+    }
 
     // Check attributes with exact values if they exist
     if (spec.get_string_attribute("oiio:ColorSpace", ACES_AP0_colorInteropId)
             != ACES_AP0_colorInteropId
         || spec.get_string_attribute("colorInteropId", ACES_AP0_colorInteropId)
-               != ACES_AP0_colorInteropId
-        || spec.get_int_attribute("acesImageContainerFlag", 1) != 1)
+               != ACES_AP0_colorInteropId) {
+        reason
+            = "Color space is not lin_ap0_scene as required for an ACES Container.";
         return false;
+    }
+
+    if (spec.get_int_attribute("acesImageContainerFlag", 1) != 1) {
+        reason
+            = "acesImageContainerFlag is not set to '1' as required for an ACES Container.";
+        return false;
+    }
 
     // Check chromaticities
     float chromaticities[8] = { 0., 0., 0., 0., 0., 0., 0., 0. };
@@ -406,8 +429,11 @@ is_aces_container_compliant(const OIIO::ImageSpec& spec)
                                    std::end(chromaticities),
                                    std::begin(ACES_AP0_chromaticities));
 
-    if (chroms_found && !chroms_equal)
+    if (chroms_found && !chroms_equal) {
+        reason
+            = "Chromaticities are not set to AP0 chromaticities as required for an ACES Container.";
         return false;
+    }
 
     return true;
 }
@@ -426,10 +452,12 @@ set_aces_container_attributes(OIIO::ImageSpec& spec)
 
 
 bool
-process_aces_container(OIIO::ImageSpec& spec, std::string policy, int flag)
+process_aces_container(OIIO::ImageSpec& spec, std::string policy, int flag,
+                       std::string& non_compliance_reason)
 {
     bool treat_as_aces_container = policy == "strict" || flag == 1;
-    bool is_compliant            = is_aces_container_compliant(spec);
+    bool is_compliant            = is_aces_container_compliant(spec,
+                                                               non_compliance_reason);
 
     if (treat_as_aces_container && !is_compliant) {
         return false;
@@ -980,12 +1008,15 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         = spec.get_string_attribute("openexr:ACESContainerPolicy", "none");
 
     if (aces_container_policy != "none" || aces_container_flag == 1) {
+        std::string non_compliance_reason = "";
         bool should_panic = !process_aces_container(spec, aces_container_policy,
-                                                    aces_container_flag);
+                                                    aces_container_flag,
+                                                    non_compliance_reason);
 
         if (should_panic) {
             errorfmt(
-                "Cannot output non-compliant ACES Container in 'strict' mode.");
+                "Cannot output non-compliant ACES Container in 'strict' mode. REASON: {}",
+                non_compliance_reason);
             return false;
         }
     }

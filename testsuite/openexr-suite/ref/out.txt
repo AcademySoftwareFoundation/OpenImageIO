@@ -360,12 +360,12 @@ strict-out.exr       :    4 x    4, 3 channel, half openexr
     oiio:subimages: 1
     openexr:ACESContainerPolicy: "strict"
     openexr:lineOrder: "increasingY"
-oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
+oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode. REASON: Spec channel names do not match those required for an ACES Container.
 Full command line was:
 > oiiotool --create 4x4 3 -d half --compression none --ch left.R=R,G,B -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr
-oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
+oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode. REASON: Compression is not 'none' as required for an ACES Container.
 Full command line was:
 > oiiotool --create 4x4 3 -d half --compression zip -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr
-oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode.
+oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode. REASON: EXR data type is not 'HALF' as required for an ACES Container.
 Full command line was:
 > oiiotool --create 4x4 3 -d float --compression none -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr
