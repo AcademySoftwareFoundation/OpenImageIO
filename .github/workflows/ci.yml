@@ -544,7 +544,6 @@ jobs:
             setenvs: export OpenImageIO_BUILD_LOCAL_DEPS=all
                             OpenImageIO_DEPENDENCY_BUILD_VERBOSE=ON
                             LIBRAW_VERSION=0.21.4
-                            OPENJPEG_VERSION=v2.5.4
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
                             WEBP_VERSION=v1.4.0
