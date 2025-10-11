@@ -1094,7 +1094,7 @@ public:
     ///             Return true if the operation could be completed,
     ///             otherwise return false.
     ///
-    template<typename T> bool set_pixels(ROI roi, const image_span<T> buffer)
+    template<typename T> bool set_pixels(ROI roi, const image_span<T>& buffer)
     {
         return set_pixels(roi, TypeDescFromC<T>::value(),
                           as_image_span_bytes(buffer));
