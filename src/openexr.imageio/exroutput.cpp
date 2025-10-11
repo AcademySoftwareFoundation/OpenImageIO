@@ -290,6 +290,167 @@ set_exr_threads()
 
 
 
+static constexpr float ACES_AP0_chromaticities[8] = {
+    0.7347f,  0.2653f,  // red
+    0.0f,     1.0f,     // green
+    0.0001f,  -0.077f,  // blue
+    0.32168f, 0.33767f  // white
+};
+
+static const std::string ACES_AP0_colorInteropId = "lin_ap0_scene";
+
+
+bool
+is_spec_aces_container_channels_only(const OIIO::ImageSpec& spec)
+{
+    // Note: this is constructing and comparing sets, so that channel order
+    // doesn't matter.
+
+    // Allowed channel sets
+    static const std::vector<std::set<std::string>> allowed_sets
+        = { { "B", "G", "R" },
+            { "A", "B", "G", "R" },
+            { "B", "G", "R", "left.B", "left.G", "left.R" },
+            { "A", "B", "G", "R", "left.A", "left.B", "left.G", "left.R" } };
+
+    // Gather channel set from spec
+    std::set<std::string> channels(spec.channelnames.begin(),
+                                   spec.channelnames.end());
+
+    // Compare to allowed sets (unordered)
+    for (const auto& allowed : allowed_sets) {
+        if (channels == allowed) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+
+bool
+is_aces_container_attributes_non_empty(const OIIO::ImageSpec& spec)
+{
+    // attributes in this list should NOT be empty if they exist
+    static const std::vector<std::string> nonEmptyAttribs = {
+        "cameraFirmwareVersion",
+        "cameraIdentifier",
+        "cameraLabel",
+        "cameraMake",
+        "cameraModel",
+        "cameraSerialNumber",
+        "comments",
+        "creator",
+        "lensAttributes",
+        "lensFirmwareVersion",
+        "lensMake",
+        "lensModel",
+        "lensSerialNumber",
+        "owner",
+        "recorderFirmwareVersion",
+        "recorderMake",
+        "recorderModel",
+        "recorderSerialNumber",
+        "reelName",
+        "storageMediaSerialNumber",
+    };
+
+    for (const auto& label : nonEmptyAttribs) {
+        const ParamValue* value = spec.find_attribute(label,
+                                                      OIIO::TypeDesc::STRING);
+        if (value && value->get<std::string>().empty()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+
+bool
+is_aces_container_compliant(const OIIO::ImageSpec& spec)
+{
+    if (!is_spec_aces_container_channels_only(spec))
+        return false;
+
+    // Check data type
+    if (spec.format != OIIO::TypeDesc::HALF)
+        return false;
+
+    // Check compression
+    std::string compression = spec.get_string_attribute("compression", "zip");
+    if (compression != "none")
+        return false;
+
+    // Check non-empty attributes
+    if (!is_aces_container_attributes_non_empty(spec))
+        return false;
+
+    // Check attributes with exact values if they exist
+    if (spec.get_string_attribute("oiio:ColorSpace", ACES_AP0_colorInteropId)
+            != ACES_AP0_colorInteropId
+        || spec.get_string_attribute("colorInteropId", ACES_AP0_colorInteropId)
+               != ACES_AP0_colorInteropId
+        || spec.get_int_attribute("acesImageContainerFlag", 1) != 1)
+        return false;
+
+    // Check chromaticities
+    float chromaticities[8] = { 0., 0., 0., 0., 0., 0., 0., 0. };
+    bool chroms_found
+        = spec.getattribute("chromaticities",
+                            OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
+                            chromaticities);
+    bool chroms_equal = std::equal(std::begin(chromaticities),
+                                   std::end(chromaticities),
+                                   std::begin(ACES_AP0_chromaticities));
+
+    if (chroms_found && !chroms_equal)
+        return false;
+
+    return true;
+}
+
+
+
+void
+set_aces_container_attributes(OIIO::ImageSpec& spec)
+{
+    spec.attribute("chromaticities", OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
+                   ACES_AP0_chromaticities);
+    spec.attribute("colorInteropId", ACES_AP0_colorInteropId);
+    spec.attribute("acesImageContainerFlag", 1);
+}
+
+
+
+bool
+process_aces_container(OIIO::ImageSpec& spec, std::string policy, int flag)
+{
+    bool treat_as_aces_container = policy == "strict" || flag == 1;
+    bool is_compliant            = is_aces_container_compliant(spec);
+
+    if (treat_as_aces_container && !is_compliant) {
+        return false;
+    }
+
+    set_aces_container_attributes(spec);
+
+    if (policy == "relaxed" && !is_compliant) {
+        // When image is not compliant in relaxed mode, we should avoid
+        // setting the flag, and we should print a warning
+
+        // TODO: When we have a way to report warnings, report one here
+        // to indicate that the given image spec is not compliant
+        spec.erase_attribute("acesImageContainerFlag");
+    }
+
+    return true;
+}
+
+
+
 OpenEXROutput::OpenEXROutput()
 {
     pvt::set_exr_threads();
@@ -811,6 +972,23 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
             Imf::TileDescription(spec.tile_width, spec.tile_height,
                                  Imf::LevelMode(m_levelmode),
                                  Imf::LevelRoundingMode(m_roundingmode)));
+
+    // Check ACES Container hint
+    int aces_container_flag = spec.get_int_attribute("acesImageContainerFlag",
+                                                     0);
+    std::string aces_container_policy
+        = spec.get_string_attribute("openexr:ACESContainerPolicy", "none");
+
+    if (aces_container_policy != "none" || aces_container_flag == 1) {
+        bool should_panic = !process_aces_container(spec, aces_container_policy,
+                                                    aces_container_flag);
+
+        if (should_panic) {
+            errorfmt(
+                "Cannot output non-compliant ACES Container in 'strict' mode.");
+            return false;
+        }
+    }
 
     // Deal with all other params
     for (const auto& p : spec.extra_attribs)
