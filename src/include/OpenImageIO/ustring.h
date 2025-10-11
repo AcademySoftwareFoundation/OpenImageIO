@@ -30,6 +30,7 @@
 #define OIIO_USTRING_HAS_CTR_FROM_USTRINGHASH 1
 #define OIIO_USTRING_HAS_STDHASH 1
 #define OIIO_HAS_USTRINGHASH_FORMATTER 1
+#define OIIO_USTRING_SAFE_HASH 1
 
 
 OIIO_NAMESPACE_3_1_BEGIN
@@ -120,6 +121,16 @@ OIIO_NAMESPACE_3_1_BEGIN
 ///   - if you don't need to do a lot of string assignment or equality
 ///     testing, but lots of more complex string manipulation.
 ///
+/// The ustring implementation guarantees that no two ustrings return the same
+/// value for hash() (despite the slim probability that two strings could
+/// numerically hash to the same value).  For the first ustring added with a
+/// given hash, u.hash() will be the same value as ustring::strhash(chars),
+/// and will deterministically be the same on every execution. In the very
+/// improbable case of a hash collision, subsequent ustrings with the same
+/// numeric hash will use an alternate hash based on the character address,
+/// which is both not the same as ustring::strhash(chars), nor is it expected
+/// to be the same constant on every program execution.
+
 class OIIO_UTIL_API ustring {
 public:
     using rep_t      = const char*;  ///< The underlying representation type
@@ -285,11 +296,7 @@ public:
     /// Return a C++ std::string representation of a ustring.
     const std::string& string() const noexcept
     {
-        if (m_chars) {
-            const TableRep* rep = (const TableRep*)m_chars - 1;
-            return rep->str;
-        } else
-            return empty_std_string;
+        return m_chars ? rep()->str : empty_std_string;
     }
 
     /// Reset to an empty string.
@@ -300,17 +307,27 @@ public:
     {
         if (!m_chars)
             return 0;
-        const TableRep* rep = ((const TableRep*)m_chars) - 1;
-        return rep->length;
+        return rep()->length;
     }
 
-    /// Return a hashed version of the string
+    /// ustring::strhash() uses Strutil::strhash but clears the MSB.
+    static OIIO_HOSTDEVICE constexpr hash_t strhash(string_view str)
+    {
+        return Strutil::strhash(str) & hash_mask;
+    }
+
+    /// Return a hashed version of the string. To guarantee unique hashes,
+    /// we check if the "duplicate bit" of the hash is set. If not, then
+    /// we just return the hash which we know is unique. But if that bit
+    /// is set, we utilize the unique character address.
     hash_t hash() const noexcept
     {
         if (!m_chars)
             return 0;
-        const TableRep* rep = ((const TableRep*)m_chars) - 1;
-        return rep->hashed;
+        hash_t h = rep()->hashed;
+        return OIIO_LIKELY((h & duplicate_bit) == 0)
+                   ? h
+                   : hash_t(m_chars) | duplicate_bit;
     }
 
     /// Return a hashed version of the string
@@ -736,6 +753,8 @@ public:
     // if you know the rep, the chars are at (char *)(rep+1), and if you
     // know the chars, the rep is at ((TableRep *)chars - 1).
     struct TableRep {
+        // hashed has the MSB set if and only if this is the second or
+        // greater ustring to have the same hash.
         hash_t hashed;    // precomputed Hash value
         std::string str;  // String representation
         size_t length;    // Length of the string; must be right before cap
@@ -744,10 +763,29 @@ public:
         TableRep(string_view strref, hash_t hash);
         ~TableRep();
         const char* c_str() const noexcept { return (const char*)(this + 1); }
+        constexpr bool unique_hash() const
+        {
+            return (hashed & duplicate_bit) == 0;
+        }
     };
+
+    // duplicate_bit is a 1 in the MSB, which if set indicates a hash that
+    // is a duplicate.
+    static constexpr hash_t duplicate_bit = hash_t(1) << 63;
+    // hash_mask is what you `&` with hashed to get the real hash (clearing
+    // the duplicate bit).
+#if 1
+    static constexpr hash_t hash_mask = ~duplicate_bit;
+#else
+    // Alternate to force lots of hash collisions for testing purposes:
+    static constexpr hash_t hash_mask = ~duplicate_bit & 0xffff;
+#endif
+    bool has_unique_hash() const { return rep()->unique_hash(); }
 
 private:
     static std::string empty_std_string;
+
+    const TableRep* rep() const { return ((const TableRep*)m_chars) - 1; }
 };
 
 
@@ -798,7 +836,7 @@ public:
     OIIO_DEVICE_CONSTEXPR explicit ustringhash(const char* str)
 #ifdef __CUDA_ARCH__
         // GPU: just compute the hash. This can be constexpr!
-        : m_hash(Strutil::strhash(str))
+        : m_hash(ustring::strhash(str))
 #else
         // CPU: make ustring, get its hash. Note that ustring ctr can't be
         // constexpr because it has to modify the internal ustring table.
@@ -810,7 +848,7 @@ public:
     OIIO_DEVICE_CONSTEXPR explicit ustringhash(const char* str, size_t len)
 #ifdef __CUDA_ARCH__
         // GPU: just compute the hash. This can be constexpr!
-        : m_hash(Strutil::strhash(len, str))
+        : m_hash(ustring::strhash(len, str))
 #else
         // CPU: make ustring, get its hash. Note that ustring ctr can't be
         // constexpr because it has to modify the internal ustring table.
@@ -824,7 +862,7 @@ public:
     OIIO_DEVICE_CONSTEXPR explicit ustringhash(string_view str)
 #ifdef __CUDA_ARCH__
         // GPU: just compute the hash. This can be constexpr!
-        : m_hash(Strutil::strhash(str))
+        : m_hash(ustring::strhash(str))
 #else
         // CPU: make ustring, get its hash. Note that ustring ctr can't be
         // constexpr because it has to modify the internal ustring table.
@@ -918,13 +956,13 @@ public:
     /// Test for equality with a char*.
     constexpr bool operator==(const char* str) const noexcept
     {
-        return m_hash == Strutil::strhash(str);
+        return m_hash == ustring::strhash(str);
     }
 
     /// Test for inequality with a char*.
     constexpr bool operator!=(const char* str) const noexcept
     {
-        return m_hash != Strutil::strhash(str);
+        return m_hash != ustring::strhash(str);
     }
 
 #ifndef __CUDA_ARCH__
