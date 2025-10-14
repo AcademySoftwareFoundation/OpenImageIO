@@ -26,6 +26,7 @@ set (OpenJPEG_ROOT ${OpenJPEG_LOCAL_INSTALL_DIR})
 # Signal to caller that we need to find again at the installed location
 set (OpenJPEG_REFIND TRUE)
 set (OpenJPEG_REFIND_ARGS CONFIG)
+set_invert (OpenJPEG_LINKSTATIC ${OpenJPEG_BUILD_SHARED_LIBS})
 
 if (OpenJPEG_BUILD_SHARED_LIBS)
     install_local_dependency_libs (OpenJPEG openjp2)

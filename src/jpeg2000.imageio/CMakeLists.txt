@@ -3,7 +3,8 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 if (OPENJPEG_FOUND)
-    if (TARGET openjp2_static AND (LINKSTATIC OR NOT TARGET openjp2))
+    if (TARGET openjp2_static AND (NOT TARGET openjp2 OR
+                                   LINKSTATIC OR OpenJPEG_LINKSTATIC))
         # Use static OpenJPEG library for LINKSTATIC situations, or if
         # no dynamic library is available.
         set (OPENJPEG_TARGET openjp2_static)
@@ -14,6 +15,7 @@ if (OPENJPEG_FOUND)
         set(_jpeg2000_lib_dirs ${OPENJPEG_LIBRARY_DIRS})
         set(_jpeg2000_libs ${OPENJPEG_LIBRARIES})
     endif ()
+    message (VERBOSE "OPENJPEG_TARGET=${OPENJPEG_TARGET}")
     set(_jpeg2000_defs "USE_OPENJPEG")
 
     if (openjph_FOUND)
