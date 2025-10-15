@@ -174,6 +174,15 @@ if (OPENJPEG_FOUND)
   foreach (tmplib ${OpenJpeg_libvars})
     list (APPEND OPENJPEG_LIBRARIES ${${tmplib}})
   endforeach ()
+
+  if (NOT TARGET openjp2)
+      add_library(openjp2 UNKNOWN IMPORTED)
+      set_target_properties(openjp2 PROPERTIES
+          INTERFACE_INCLUDE_DIRECTORIES "${OPENJPEG_INCLUDES}")
+      set_property(TARGET openjp2 APPEND PROPERTY
+                   IMPORTED_LOCATION "${OPENJPEG_LIBRARIES}")
+  endif()
+
   if (NOT OpenJpeg_FIND_QUIETLY)
     FIND_PACKAGE_MESSAGE (OPENJPEG
       "Found OpenJpeg: v${OPENJPEG_VERSION} ${OPENJPEG_LIBRARIES}"

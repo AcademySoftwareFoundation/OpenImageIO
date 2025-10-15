@@ -45,6 +45,8 @@ if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
                -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${OPENJPEG_INSTALL_DIR} \
                -DBUILD_CODEC=OFF \
+               -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+               -DBUILD_SHARED_LIBS=${OPENJPEG_BUILD_SHARED_LIBS:-ON} \
                ${OPENJPEG_CONFIG_OPTS}
     time cmake --build ${OPENJPEG_BUILD_DIR} --config Release --target install
 fi
