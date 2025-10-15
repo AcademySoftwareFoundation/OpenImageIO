@@ -172,7 +172,8 @@ checked_find_package (LibRaw
 
 checked_find_package (OpenJPEG VERSION_MIN 2.0
                       RECOMMEND_MIN 2.2
-                      RECOMMEND_MIN_REASON "for multithreading support")
+                      RECOMMEND_MIN_REASON "for multithreading support"
+                      PREFER_CONFIG)
 # Note: Recent OpenJPEG versions have exported cmake configs, but we don't
 # find them reliable at all, so we stick to our FindOpenJPEG.cmake module.
 
