@@ -18,6 +18,9 @@ on:
         type: string
       container:
         type: string
+      container_volumes:
+        type: string
+        default: '[]'
       cc_compiler:
         type: string
       cxx_compiler:
@@ -66,6 +69,9 @@ on:
         type: string
       sonar:
         type: string
+      old_node:
+        type: string
+        default: 0
       nametag:
         type: string
       required_deps:
@@ -88,7 +94,7 @@ jobs:
     runs-on: ${{ inputs.runner }}
     container:
       image: ${{ inputs.container }}
-
+      volumes: ${{ fromJson( inputs.container_volumes ) }}
     env:
       CXX: ${{inputs.cxx_compiler}}
       CC: ${{inputs.cc_compiler}}
@@ -114,6 +120,10 @@ jobs:
       OpenImageIO_OPTIONAL_DEPS: ${{inputs.optional_deps}}
 
     steps:
+      - name: install nodejs20glibc2.17
+        if: inputs.old_node == 1
+        run: |
+          curl --silent https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.xz | tar -xJ --strip-components 1 -C /node20217 -f -
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Build setup
