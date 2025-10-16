@@ -521,6 +521,11 @@ IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
     x -= m_spec.x;
     y -= m_spec.y;
 
+    if (x < 0 || x >= m_spec.width || y < 0 || y >= m_spec.height) {
+        errorfmt("Tile coordinate is not within the valid pixel data window");
+        return false;
+    }
+
     // tile size that we're reading -- consider if the tile overlaps the image
     // boundary.
     int w  = m_header.width;
