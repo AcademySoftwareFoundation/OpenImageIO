@@ -341,3 +341,31 @@ negoverscan.exr      :   64 x   64, 3 channel, half openexr
     screenWindowWidth: 1
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
+acesImageContainerFlag for relaxed-out.exr is (1)
+acesImageContainerFlag for fail.exr is ()
+acesImageContainerFlag for fail.exr is ()
+acesImageContainerFlag for fail.exr is ()
+Reading strict-out.exr
+strict-out.exr       :    4 x    4, 3 channel, half openexr
+    SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5
+    channel list: R, G, B
+    acesImageContainerFlag: 1
+    chromaticities: 0.7347, 0.2653, 0, 1, 0.0001, -0.077, 0.32168, 0.33767
+    colorInteropId: "lin_ap0_scene"
+    compression: "none"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap0_scene"
+    oiio:subimages: 1
+    openexr:ACESContainerPolicy: "strict"
+    openexr:lineOrder: "increasingY"
+oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode. REASON: Spec channel names do not match those required for an ACES Container.
+Full command line was:
+> oiiotool --create 4x4 3 -d half --compression none --ch left.R=R,G,B -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr
+oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode. REASON: Compression is not 'none' as required for an ACES Container.
+Full command line was:
+> oiiotool --create 4x4 3 -d half --compression zip -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr
+oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode. REASON: EXR data type is not 'HALF' as required for an ACES Container.
+Full command line was:
+> oiiotool --create 4x4 3 -d float --compression none -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr
