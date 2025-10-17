@@ -228,9 +228,9 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
                 lossless = true;
             } else {
                 m_basic_info.uses_original_profile = JXL_FALSE;
-                JxlEncoderSetFrameDistance(
-                    m_frame_settings,
-                    1.0f / static_cast<float>(compqual.second));
+                const float distance = JxlEncoderDistanceFromQuality(
+                    compqual.second);
+                JxlEncoderSetFrameDistance(m_frame_settings, distance);
                 JxlEncoderSetFrameLossless(m_frame_settings, JXL_FALSE);
             }
         } else {  // default to lossless
