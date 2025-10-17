@@ -594,13 +594,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: MacOS-13-Intel aclang14/C++17/py3.11
-            runner: macos-13
-            nametag: macos13-py311
+          - desc: MacOS-15-Intel aclang17/C++17/py3.13
+            runner: macos-15-intel
+            nametag: MacOS-15-Intel
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
-            python_ver: "3.11"
+            python_ver: "3.13"
             simd: sse4.2,avx2
             ctest_test_timeout: 1200
             setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
