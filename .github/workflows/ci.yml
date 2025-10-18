@@ -162,6 +162,7 @@ jobs:
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}
       ABI_CHECK: ${{matrix.abi_check}}
+      USE_FFMPEG: 0
     steps:
       # Install nodejs 20 with glibc 2.17, to work around the face that the
       # GHA runners are insisting on a node version that is too new for the

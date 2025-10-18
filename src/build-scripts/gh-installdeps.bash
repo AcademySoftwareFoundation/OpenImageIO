@@ -31,8 +31,8 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
     if [[ "${USE_OPENCV}" != "0" ]] ; then
         time sudo yum install -y opencv opencv-devel || true
     fi
-    if [[ "${USE_FFMPEG}" != "0" ]] ; then
-        time sudo dnf install -y ffmpeg ffmpeg-devel || true
+    if [[ "${USE_FFMPEG:-1}" != "0" ]] ; then
+        time sudo dnf install -y ffmpeg ffmpeg-devel || (sleep 10 && echo "try 2" && time sudo dnf install -y ffmpeg ffmpeg-devel)
     fi
     if [[ "${USE_FREETYPE:-1}" != "0" ]] ; then
         time sudo yum install -y freetype freetype-devel || true
