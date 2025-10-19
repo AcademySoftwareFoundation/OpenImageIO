@@ -334,7 +334,7 @@ is_aces_container_attributes_non_empty(const OIIO::ImageSpec& spec,
                                        std::string& non_compliant_attr)
 {
     // attributes in this list should NOT be empty if they exist
-    static const std::vector<std::string> nonEmptyAttribs = {
+    static const std::string nonEmptyAttribs[] = {
         "cameraFirmwareVersion",
         "cameraIdentifier",
         "cameraLabel",
