@@ -85,3 +85,26 @@ ref/vp9_display_p3.mkv :  192 x  108, 3 channel, uint8 FFmpeg movie
     oiio:BitsPerSample: 8
     oiio:Movie: 1
     oiio:subimages: 7
+Reading ref/vp9_rec2100_pq.mkv
+ref/vp9_rec2100_pq.mkv :  384 x  216, 3 channel, uint10 FFmpeg movie
+    2 subimages: 384x216 [u10,u10,u10]
+ subimage  0:  384 x  216, 3 channel, uint10 FFmpeg movie
+    SHA-1: 87BB7BBE57131F08F0336964256F2C190FE26A69
+    channel list: R, G, B
+    CICP: 9, 16, 9, 1
+    ENCODER: "Lavf62.3.100"
+    FramesPerSecond: 24/1 (24)
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 10
+    oiio:Movie: 1
+    oiio:subimages: 2
+ subimage  1:  384 x  216, 3 channel, uint10 FFmpeg movie
+    SHA-1: 3820BE456CC3F4ADD3425E0C9397C83678A5BA8A
+    channel list: R, G, B
+    CICP: 9, 16, 9, 1
+    ENCODER: "Lavf62.3.100"
+    FramesPerSecond: 24/1 (24)
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 10
+    oiio:Movie: 1
+    oiio:subimages: 2
