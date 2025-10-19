@@ -277,7 +277,7 @@ jobs:
       # Override required_deps to be 'all' and explicitly list as optional
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'DCMTK;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
+      optional_deps: ${{ matrix.optional_deps || 'DCMTK;FFmpeg;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
     strategy:
       fail-fast: false
       matrix:
