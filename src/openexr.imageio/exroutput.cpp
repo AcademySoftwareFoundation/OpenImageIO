@@ -360,7 +360,8 @@ is_aces_container_attributes_non_empty(const OIIO::ImageSpec& spec,
     for (const auto& label : nonEmptyAttribs) {
         const ParamValue* found = spec.find_attribute(label,
                                                       OIIO::TypeDesc::STRING);
-        if (found && (found->type() != TypeString || found->get_string(1).empty())) {
+        if (found
+            && (found->type() != TypeString || found->get_string(1).empty())) {
             non_compliant_attr = label;
             return false;
         }
@@ -452,12 +453,14 @@ set_aces_container_attributes(OIIO::ImageSpec& spec)
 
 
 bool
-process_aces_container(OIIO::ImageSpec& spec, std::string policy, int flag,
+process_aces_container(OIIO::ImageSpec& spec, std::string policy,
+                       int acesImageContainerFlag,
                        std::string& non_compliance_reason)
 {
-    bool treat_as_aces_container = policy == "strict" || flag == 1;
-    bool is_compliant            = is_aces_container_compliant(spec,
-                                                               non_compliance_reason);
+    bool treat_as_aces_container = policy == "strict"
+                                   || acesImageContainerFlag == 1;
+    bool is_compliant = is_aces_container_compliant(spec,
+                                                    non_compliance_reason);
 
     if (treat_as_aces_container && !is_compliant) {
         return false;
