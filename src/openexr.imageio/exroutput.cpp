@@ -360,9 +360,7 @@ is_aces_container_attributes_non_empty(const OIIO::ImageSpec& spec,
     for (const auto& label : nonEmptyAttribs) {
         const ParamValue* found = spec.find_attribute(label,
                                                       OIIO::TypeDesc::STRING);
-        auto value              = spec.get_string_attribute(label, "");
-
-        if (found && value.empty()) {
+        if (found && (found->type() != TypeString || found->get_string(1).empty())) {
             non_compliant_attr = label;
             return false;
         }
