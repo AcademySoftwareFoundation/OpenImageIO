@@ -270,6 +270,7 @@ static std::map<std::string, std::string> cexr_tag_to_oiio_std {
     { "chunkCount", "openexr:chunkCount" },
     { "maxSamplesPerPixel", "openexr:maxSamplesPerPixel" },
     { "dwaCompressionLevel", "openexr:dwaCompressionLevel" },
+    { "idManifest", "openexr:compressedIDManifest" },
     // Ones to skip because we handle specially or consider them irrelevant
     { "channels", "" },
     { "compression", "" },
@@ -742,8 +743,42 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
             break;
         }
 
+#if OPENEXR_CODED_VERSION >= 30300
+        case EXR_ATTR_DEEP_IMAGE_STATE: {
+            const char* val = "messy";
+            switch (attr->uc) {
+            case EXR_DIS_MESSY: val = "messy"; break;
+            case EXR_DIS_SORTED: val = "sorted"; break;
+            case EXR_DIS_NON_OVERLAPPING: val = "non_overlapping"; break;
+            case EXR_DIS_TIDY: val = "tidy"; break;
+            default: break;
+            }
+            spec.attribute("openexr:deepImageState", val);
+            break;
+        }
+#endif
+
+#if OPENEXR_CODED_VERSION >= 30400
+        case EXR_ATTR_BYTES: {
+            spec.attribute(oname, TypeDesc(TypeDesc::UINT8, attr->bytes->size),
+                           make_span(attr->bytes->data, attr->bytes->size));
+            break;
+        }
+#endif
+
+        case EXR_ATTR_OPAQUE: {
+            if (Strutil::iequals(oname, "idManifest"))
+                oname = "openexr:compressedIDManifeset";  // our name for this
+            spec.attribute(oname, TypeDesc(TypeDesc::UINT8, attr->opaque->size),
+                           attr->opaque->packed_data);
+            // NOTE: The blob of bytes we're making consists of:
+            // Bytes 0-7: little endian uint64 giving the *uncompressed*
+            //            size that will be needed for the serialized IDM.
+            // Bytes 8-(size-1): the zip-compressed serialized IDManifest.
+            break;
+        }
+
         case EXR_ATTR_PREVIEW:
-        case EXR_ATTR_OPAQUE:
         case EXR_ATTR_ENVMAP:
         case EXR_ATTR_COMPRESSION:
         case EXR_ATTR_CHLIST:
