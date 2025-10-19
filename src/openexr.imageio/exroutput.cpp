@@ -33,10 +33,12 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfCRgbaFile.h>  // JUST to get symbols to figure out version!
 #include <OpenEXR/ImfChromaticitiesAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
+#include <OpenEXR/ImfDeepImageStateAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
 #include <OpenEXR/ImfFloatVectorAttribute.h>
 #include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfIDManifestAttribute.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
@@ -937,7 +939,7 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
 
     // Special cases
     if (Strutil::iequals(xname, "Compression") && type == TypeString) {
-        const char* str      = *(char**)data;
+        const char* str      = *(const char**)data;
         header.compression() = Imf::ZIP_COMPRESSION;  // Default
         if (str) {
             if (Strutil::iequals(str, "none"))
@@ -974,7 +976,7 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
     }
 
     if (Strutil::iequals(xname, "openexr:lineOrder") && type == TypeString) {
-        const char* str    = *(char**)data;
+        const char* str    = *(const char**)data;
         header.lineOrder() = Imf::INCREASING_Y;  // Default
         if (str) {
             if (Strutil::iequals(str, "randomY")
@@ -984,6 +986,36 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
             else if (Strutil::iequals(str, "decreasingY"))
                 header.lineOrder() = Imf::DECREASING_Y;
         }
+        return true;
+    }
+
+    if (Strutil::iequals(xname, "openexr:deepImageState")
+        && type == TypeString) {
+        const char* str         = *(const char**)data;
+        Imf::DeepImageState val = Imf::DeepImageState::DIS_MESSY;
+        if (!strcmp(str, "sorted"))
+            val = Imf::DeepImageState::DIS_SORTED;
+        else if (!strcmp(str, "non_overlapping"))
+            val = Imf::DeepImageState::DIS_NON_OVERLAPPING;
+        else if (!strcmp(str, "tidy"))
+            val = Imf::DeepImageState::DIS_TIDY;
+        header.insert(xname.c_str(), Imf::DeepImageStateAttribute(val));
+        return true;
+    }
+
+    if (Strutil::iequals(xname, "openexr:compressedIDManifest")
+        && type.basetype == TypeDesc::UINT8 && type.arraylen > 8) {
+        const unsigned char* bdata = (const unsigned char*)data;
+        uint64_t usize             = 0;
+        memcpy(&usize, bdata, sizeof(usize));
+        if constexpr (bigendian())
+            usize = byteswap(usize);
+        Imf::CompressedIDManifest idm;
+        idm._compressedDataSize   = static_cast<int>(type.size() - 8);
+        idm._uncompressedDataSize = usize;
+        idm._data                 = const_cast<unsigned char*>(bdata + 8);
+        header.insert("idManifest", Imf::IDManifestAttribute(idm));
+        idm._data = nullptr;
         return true;
     }
 
@@ -1052,27 +1084,28 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
             if (type.aggregate == TypeDesc::SCALAR) {
                 if (type == TypeDesc::INT || type == TypeDesc::UINT) {
                     header.insert(xname.c_str(),
-                                  Imf::IntAttribute(*(int*)data));
+                                  Imf::IntAttribute(*(const int*)data));
                     return true;
                 }
                 if (type == TypeDesc::INT16) {
                     header.insert(xname.c_str(),
-                                  Imf::IntAttribute(*(short*)data));
+                                  Imf::IntAttribute(*(const short*)data));
                     return true;
                 }
                 if (type == TypeDesc::UINT16) {
                     header.insert(xname.c_str(),
-                                  Imf::IntAttribute(*(unsigned short*)data));
+                                  Imf::IntAttribute(
+                                      *(const unsigned short*)data));
                     return true;
                 }
                 if (type == TypeDesc::FLOAT) {
                     header.insert(xname.c_str(),
-                                  Imf::FloatAttribute(*(float*)data));
+                                  Imf::FloatAttribute(*(const float*)data));
                     return true;
                 }
                 if (type == TypeDesc::HALF) {
-                    header.insert(xname.c_str(),
-                                  Imf::FloatAttribute((float)*(half*)data));
+                    header.insert(xname.c_str(), Imf::FloatAttribute((float)*(
+                                                     const half*)data));
                     return true;
                 }
                 if (type == TypeString && !((const ustring*)data)->empty()) {
@@ -1083,7 +1116,7 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                 }
                 if (type == TypeDesc::DOUBLE) {
                     header.insert(xname.c_str(),
-                                  Imf::DoubleAttribute(*(double*)data));
+                                  Imf::DoubleAttribute(*(const double*)data));
                     return true;
                 }
             }
