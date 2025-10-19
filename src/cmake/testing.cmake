@@ -295,6 +295,10 @@ macro (oiio_add_all_tests)
         # properly supported all compression types (DWA in particular).
         list (APPEND all_openexr_tests openexr-compression)
     endif ()
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.3)
+        # OpenEXR 3.3 is when IDManifest was introduced
+        list (APPEND all_openexr_tests openexr-idmanifest)
+    endif ()
     # Run all OpenEXR tests without core library
     oiio_add_tests (${all_openexr_tests} openexr-luminance-chroma
                     ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=0
