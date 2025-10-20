@@ -338,7 +338,7 @@ jobs:
         
       - name: Brew uninstall problematic dependencies
         run: |
-            brew uninstall --ignore-dependencies openexr imath minizip-ng expat cmake || true
+            brew uninstall -f --ignore-dependencies openexr imath expat cmake || true
         
       - name: Build wheels
         uses: pypa/cibuildwheel@9c00cb4f6b517705a3794b22395aedc36257242c # v3.2.1
