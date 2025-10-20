@@ -1656,6 +1656,19 @@ control aspects of the writing itself:
    * - Output Configuration Attribute
      - Type
      - Meaning
+   * - ``openexr:ACESContainerPolicy``
+     - string
+     - One of `none` (default), `strict`, or `relaxed`.
+       If not `none`, the spec will be checked to see if it is compliant
+       with the ACES Container format defined in `ST 2065-4`_. If it is,
+       `chromaticities` will be set to the ACES AP0 ones, `colorInteropId`
+       will be set to 'lin_ap0_scene' and the `acesImageContainerFlag`
+       attribute will be set to 1.
+       In `strict` mode, if the spec is non-compliant, the output will
+       throw an error and avoid writing the image.
+       While in `relaxed` mode, if the spec is non-compliant, `chromaticities`
+       and `colorInteropId` will be set, but `acesImageContainerFlag`
+       will NOT.
    * - ``oiio:RawColor``
      - int
      - If nonzero, writing images with non-RGB color models (such as YCbCr)
@@ -1667,6 +1680,7 @@ control aspects of the writing itself:
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
 
+.. _ST 2065-4: https://pub.smpte.org/pub/st2065-4/
 
 **Custom I/O Overrides**
 

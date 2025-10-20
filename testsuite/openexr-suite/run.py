@@ -50,3 +50,36 @@ for f in files:
 # Check writing overscan and negative range
 command += oiiotool("--create 64x64-16-16 3 -d half -o negoverscan.exr")
 command += info_command("negoverscan.exr", safematch=True)
+
+# Check ACES Container output for relaxed mode
+#
+# Valid ACES Container
+command += oiiotool("--create 4x4 3 -d half --compression none -sattrib openexr:ACESContainerPolicy relaxed -o relaxed-out.exr")
+command += oiiotool("relaxed-out.exr --echo \"acesImageContainerFlag for {TOP.filename} is ({TOP[acesImageContainerFlag]})\"", failureok=True) # should give 1
+
+# Invalid channel name set
+command += oiiotool("--create 4x4 3 -d half --compression none --ch left.R=R,G,B -sattrib openexr:ACESContainerPolicy relaxed -o fail.exr")
+command += oiiotool("fail.exr --echo \"acesImageContainerFlag for {TOP.filename} is ({TOP[acesImageContainerFlag]})\"", failureok=True) # should be empty
+
+# Invalid compression
+command += oiiotool("--create 4x4 3 -d half --compression zip -sattrib openexr:ACESContainerPolicy relaxed -o fail.exr")
+command += oiiotool("fail.exr --echo \"acesImageContainerFlag for {TOP.filename} is ({TOP[acesImageContainerFlag]})\"", failureok=True) # should be empty
+
+# Invalid data type
+command += oiiotool("--create 4x4 3 -d float --compression none -sattrib openexr:ACESContainerPolicy relaxed -o fail.exr")
+command += oiiotool("fail.exr --echo \"acesImageContainerFlag for {TOP.filename} is ({TOP[acesImageContainerFlag]})\"", failureok=True) # should be empty
+
+# Check ACES Container output for strict mode
+#
+# Valid ACES Container
+command += oiiotool("--create 4x4 3 -d half --compression none -sattrib openexr:ACESContainerPolicy strict -o strict-out.exr")
+command += info_command("strict-out.exr", safematch=True)
+
+# Invalid channel name set
+command += oiiotool("--create 4x4 3 -d half --compression none --ch left.R=R,G,B -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr", failureok=True)
+
+# Invalid compression
+command += oiiotool("--create 4x4 3 -d half --compression zip -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr", failureok=True)
+
+# Invalid data type
+command += oiiotool("--create 4x4 3 -d float --compression none -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr", failureok=True)
