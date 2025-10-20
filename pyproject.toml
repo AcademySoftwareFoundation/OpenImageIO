@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: Apache Software License",
     "Topic :: Multimedia :: Graphics",
     "Topic :: Multimedia :: Video",
@@ -32,7 +33,7 @@ classifiers = [
 ]
 requires-python = ">= 3.9"
 dependencies = [
-    "numpy>=1.19",
+    "numpy>=2.0,<3",
 ]
 
 [project.urls]
@@ -51,7 +52,7 @@ oiiotool = "OpenImageIO:_command_line"
 build-backend = "scikit_build_core.build"
 requires = [
     "scikit-build-core>=0.10.6,<1",
-    "pybind11>=2.13,<3",
+    "pybind11>=2.13,<4",
 ]
 
 [tool.scikit-build]
@@ -109,6 +110,8 @@ skip = [
     # Building with musl seems to work, but the repair-wheel step seems to fail...
     # This may be a bug in repairwheel (or auditwheel)?
     "*musllinux*",  
+    # Skip free-threading builds
+    "cp3??t-*",
 ]
 test-command = "oiiotool --buildinfo"
 

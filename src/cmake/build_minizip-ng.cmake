@@ -7,7 +7,7 @@
 ######################################################################
 
 
-set_cache (minizip-ng_BUILD_VERSION 4.0.7 "minizip-ng version for local builds")
+set_cache (minizip-ng_BUILD_VERSION 4.0.10 "minizip-ng version for local builds")
 set (minizip-ng_GIT_REPOSITORY "https://github.com/zlib-ng/minizip-ng")
 set (minizip-ng_GIT_TAG "${minizip-ng_BUILD_VERSION}") 
 
