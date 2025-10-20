@@ -16,7 +16,7 @@ echo "HOME=$HOME"
 echo "PWD=$PWD"
 echo "ARCH=$ARCH"
 
-CCACHE_PREBULT=${CCACHE_PREBULT:=1}
+CCACHE_PREBUILT=${CCACHE_PREBUILT:=1}
 
 # Repo and branch/tag/commit of ccache to download if we don't have it yet
 CCACHE_REPO=${CCACHE_REPO:=https://github.com/ccache/ccache}
