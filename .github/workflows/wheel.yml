@@ -352,7 +352,6 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
           MACOSX_DEPLOYMENT_TARGET: 10.15
-          CMAKE_GENERATOR: "Unix Makefiles"
           # TODO: Re-enable HEIF when we provide a build recipe that does 
           # not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
@@ -436,7 +435,6 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
-          CMAKE_GENERATOR: "Unix Makefiles"
           CMAKE_BUILD_PARALLEL_LEVEL: 6
           CTEST_PARALLEL_LEVEL: 6
           SKBUILD_BUILD_DIR: "/Users/runner/work/OpenImageIO/OpenImageIO/build"
