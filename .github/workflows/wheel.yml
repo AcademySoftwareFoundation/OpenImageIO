@@ -148,7 +148,7 @@ jobs:
           CIBW_ENVIRONMENT: >
               CCACHE_DIR=/host//home/runner/.ccache
               CCACHE_COMPRESSION=yes
-              CCACHE_PREBUILT=0
+              CCACHE_PREBUILT=1
               CMAKE_BUILD_PARALLEL_LEVEL=4
               CTEST_PARALLEL_LEVEL=4
               SKBUILD_CMAKE_ARGS="-DLINKSTATIC=1"
