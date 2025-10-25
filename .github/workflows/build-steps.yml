@@ -121,7 +121,7 @@ jobs:
 
     steps:
       - name: install nodejs20glibc2.17
-        if: inputs.old_node == 1
+        if: inputs.old_node == '1'
         run: |
           curl --silent https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.xz | tar -xJ --strip-components 1 -C /node20217 -f -
       - name: Checkout repo
