@@ -118,9 +118,10 @@ public:
             double time         = item.second.first;
             double percall      = time / ncalls;
             bool use_ms_percall = (percall < 0.1);
-            print(out, "{:25s}{:6d} {:7.3f}s  (avg {:6.2f}{})\n", item.first,
-                  ncalls, time, percall * (use_ms_percall ? 1000.0 : 1.0),
-                  use_ms_percall ? "ms" : "s");
+            OIIO::print(out, "{:25s}{:6d} {:7.3f}s  (avg {:6.2f}{})\n",
+                        item.first, ncalls, time,
+                        percall * (use_ms_percall ? 1000.0 : 1.0),
+                        use_ms_percall ? "ms" : "s");
         }
         return out.str();
     }
@@ -268,7 +269,10 @@ oiio_build_platform()
     return platform;
 }
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 void
 shutdown()
@@ -326,6 +330,21 @@ log_time(string_view key, const Timer& timer, int count)
 
 
 bool
+attribute(string_view name, TypeDesc type, cspan<std::byte> value)
+{
+    if (value.size_bytes() != type.size()) {
+        OIIO::errorfmt(
+            "OIIO::attribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return attribute(name, type, value.data());
+}
+
+
+
+bool
 attribute(string_view name, TypeDesc type, const void* val)
 {
     if (name == "options" && type == TypeDesc::STRING) {
@@ -342,7 +361,7 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (Strutil::starts_with(name, "gpu:")
         || Strutil::starts_with(name, "cuda:")) {
-        return pvt::gpu_attribute(name, type, val);
+        return OIIO::pvt::gpu_attribute(name, type, val);
     }
 
     // Things below here need to buarded by the attrib_mutex
@@ -446,6 +465,21 @@ attribute(string_view name, TypeDesc type, const void* val)
 
 
 bool
+getattribute(string_view name, TypeDesc type, span<std::byte> value)
+{
+    if (value.size_bytes() != type.size()) {
+        OIIO::errorfmt(
+            "OIIO::getattribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return getattribute(name, type, value.data());
+}
+
+
+
+bool
 getattribute(string_view name, TypeDesc type, void* val)
 {
     using Strutil::fmt::format;
@@ -459,7 +493,7 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (Strutil::starts_with(name, "gpu:")
         || Strutil::starts_with(name, "cuda:")) {
-        return pvt::gpu_getattribute(name, type, val);
+        return OIIO::pvt::gpu_getattribute(name, type, val);
     }
 
     // Things below here need to buarded by the attrib_mutex
@@ -478,31 +512,31 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "format_list" && type == TypeString) {
         if (format_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
+            OIIO::pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(format_list);
         return true;
     }
     if (name == "input_format_list" && type == TypeString) {
         if (input_format_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
+            OIIO::pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(input_format_list);
         return true;
     }
     if (name == "output_format_list" && type == TypeString) {
         if (output_format_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
+            OIIO::pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(output_format_list);
         return true;
     }
     if (name == "extension_list" && type == TypeString) {
         if (extension_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
+            OIIO::pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(extension_list);
         return true;
     }
     if (name == "library_list" && type == TypeString) {
         if (library_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
+            OIIO::pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(library_list);
         return true;
     }
@@ -634,6 +668,10 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(int*)val = int(Sysutil::memory_used(true) >> 20);
         return true;
     }
+    if (name == "resident_memory_used_MB" && type == TypeFloat) {
+        *(float*)val = float(Sysutil::memory_used(true) >> 20);
+        return true;
+    }
     if (name == "missingcolor" && type.basetype == TypeDesc::FLOAT
         && oiio_missingcolor.size()) {
         // missingcolor as float array
@@ -679,7 +717,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     return false;
 }
 
+OIIO_NAMESPACE_3_1_END
 
+
+OIIO_NAMESPACE_BEGIN
 
 namespace {
 
@@ -872,6 +913,10 @@ pvt::parallel_convert_from_float(const float* src, void* dst, size_t nvals,
     return dst;
 }
 
+OIIO_NAMESPACE_END
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 bool
@@ -886,7 +931,7 @@ convert_pixel_values(TypeDesc src_type, const void* src, TypeDesc dst_type,
 
     if (dst_type == TypeFloat) {
         // Special case -- converting non-float to float
-        pvt::convert_to_float(src, (float*)dst, n, src_type);
+        OIIO::pvt::convert_to_float(src, (float*)dst, n, src_type);
         return true;
     }
 
@@ -902,7 +947,7 @@ convert_pixel_values(TypeDesc src_type, const void* src, TypeDesc dst_type,
             tmp.reset(new float[n]);  // Freed when tmp exists its scope
             buf = tmp.get();
         }
-        pvt::convert_to_float(src, buf, n, src_type);
+        OIIO::pvt::convert_to_float(src, buf, n, src_type);
     }
 
     // Convert float to 'dst_type'
@@ -1184,10 +1229,9 @@ add_bluenoise(int nchannels, int width, int height, int depth, float* data,
                     int channel = c + chorigin;
                     if (channel == alpha_channel || channel == z_channel)
                         continue;
-                    float dither
-                        = pvt::bluenoise_4chan_ptr(x + xorigin, y + yorigin,
-                                                   z + zorigin, channel & (~3),
-                                                   ditherseed)[channel & 3];
+                    float dither = OIIO::pvt::bluenoise_4chan_ptr(
+                        x + xorigin, y + yorigin, z + zorigin, channel & (~3),
+                        ditherseed)[channel & 3];
                     *val += ditheramplitude * (dither - 0.5f);
                 }
             }
@@ -1356,4 +1400,45 @@ wrap_mirror(int& coord, int origin, int width)
 }
 
 
-OIIO_NAMESPACE_END
+
+/// Verify that the image_span has all its contents lying within the
+/// contiguous span.
+bool
+image_span_within_span(const image_span<const std::byte>& ispan,
+                       span<const std::byte> contiguous) noexcept
+{
+    // Start with first,last being the first byte of pixel 0, channel 0
+    const std::byte* first = ispan.data();  // first byte of ispan
+    const std::byte* last  = ispan.data();  // last byte of ispan
+    // Extend them to the start of the first pixel of the first and last image
+    // plane.
+    if (ispan.zstride() > 0)
+        last += ispan.zstride() * (ispan.depth() - 1);
+    else
+        first += ispan.zstride() * (ispan.depth() - 1);  // neg stride
+    // Extend them to the start of the first pixel of the first and last
+    // scanline of the first and last image plane.
+    if (ispan.ystride() > 0)
+        last += ispan.ystride() * (ispan.height() - 1);
+    else
+        first += ispan.ystride() * (ispan.height() - 1);  // neg stride
+    // Extend them to the start of the first pixel of the first and last
+    // column of the first and last scanline of the first and last image
+    // plane.
+    if (ispan.xstride() > 0)
+        last += ispan.xstride() * (ispan.width() - 1);
+    else
+        first += ispan.xstride() * (ispan.width() - 1);  // neg stride
+    // Make sure they cover the whole of those extreme pixels
+    if (ispan.chanstride() > 0)
+        last += ispan.chanstride() * (ispan.nchannels() - 1);
+    else
+        first += ispan.chanstride() * (ispan.nchannels() - 1);  // neg stride
+    // Make sure last covers the whole data type
+    last += ispan.chansize() - 1;
+    return (first >= contiguous.data()
+            && last < contiguous.data() + contiguous.size());
+}
+
+
+OIIO_NAMESPACE_3_1_END

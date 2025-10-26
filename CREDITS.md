@@ -10,6 +10,8 @@ lg@openimageio.org
 * Alan Jones
 * Alejandro Conty
 * Alejandro Aguirre
+* Aleksandr Motsjonov
+* Alex Fuller
 * Alex Guirre
 * Alex Hughes
 * Alex Schworer
@@ -23,6 +25,7 @@ lg@openimageio.org
 * Ananth Garre
 * Anders Langlands
 * Andy Chan
+* Anthony Roberts
 * AngryLoki
 * Angus Davis
 * Ankit Sinha
@@ -44,6 +47,8 @@ lg@openimageio.org
 * Brent Davis
 * Brian Hall
 * Brice Gros
+* Campbell Barton
+* Carine Touraille
 * Carl Rand
 * Cassian Andrei
 * Chad Dombrova
@@ -57,6 +62,7 @@ lg@openimageio.org
 * Christoph Willing
 * Clément Champetier
 * Cliff Stein
+* Connie Chang
 * Curtis Black
 * D-Spirits
 * Dalai Felinto
@@ -64,6 +70,7 @@ lg@openimageio.org
 * Daniel Dresser
 * Daniel Flehner Heen
 * Daniel Wyatt
+* Danielle Imogu
 * Danny Greenstein
 * Darby Johnston
 * Dharshan Vishwanatha
@@ -76,6 +83,7 @@ lg@openimageio.org
 * Dinko Galetik
 * Dominik Bartkiewicz
 * Dominik Wójt
+* Don Olmstead
 * Duncan Chan
 * Dustin Rodrigues
 * Edgar Velazquez-Armendariz
@@ -172,7 +180,9 @@ lg@openimageio.org
 * Noah Rahm (designer of our logo!)
 * Northon Patrick
 * Nuno Cardoso
+* Oktay Comu
 * Ole Gulbrandsen
+* omcaif
 * Ott Tinn
 * Pascal Lecocq
 * Patrick Hodoul
@@ -196,12 +206,14 @@ lg@openimageio.org
 * Robert Matusewicz
 * Roeland Schoukens
 * Roman Zulak
+* Rui Chen
 * Rui Li
 * Russell Greene
 * Ryen
 * Saket Jalan
 * Sam Richards
 * Samuel Nicholas
+* Scott Milner
 * Scott Wilson
 * Sebastian Elsner
 * SebTV
@@ -216,6 +228,7 @@ lg@openimageio.org
 * Stefan Stavrev
 * Thiago Ize
 * Thomas Dinges
+* Thomas Klausner
 * Thomas Mansencal
 * Till Dechent
 * Tim D. Smith
@@ -223,6 +236,7 @@ lg@openimageio.org
 * Todica Ionut
 * Tom Knowles
 * Troy James Sobotka
+* Vanessa Valderrama
 * Vic P
 * Vinod Khare
 * Vishal Agrawal

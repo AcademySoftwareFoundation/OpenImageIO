@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -38,52 +38,10 @@ std::atomic<float> IB_total_open_time(0.0f);
 std::atomic<float> IB_total_image_read_time(0.0f);
 }  // namespace pvt
 
+OIIO_NAMESPACE_END
 
 
-ROI
-get_roi(const ImageSpec& spec)
-{
-    return ROI(spec.x, spec.x + spec.width, spec.y, spec.y + spec.height,
-               spec.z, spec.z + spec.depth, 0, spec.nchannels);
-}
-
-
-
-ROI
-get_roi_full(const ImageSpec& spec)
-{
-    return ROI(spec.full_x, spec.full_x + spec.full_width, spec.full_y,
-               spec.full_y + spec.full_height, spec.full_z,
-               spec.full_z + spec.full_depth, 0, spec.nchannels);
-}
-
-
-
-void
-set_roi(ImageSpec& spec, const ROI& newroi)
-{
-    spec.x      = newroi.xbegin;
-    spec.y      = newroi.ybegin;
-    spec.z      = newroi.zbegin;
-    spec.width  = newroi.width();
-    spec.height = newroi.height();
-    spec.depth  = newroi.depth();
-}
-
-
-
-void
-set_roi_full(ImageSpec& spec, const ROI& newroi)
-{
-    spec.full_x      = newroi.xbegin;
-    spec.full_y      = newroi.ybegin;
-    spec.full_z      = newroi.zbegin;
-    spec.full_width  = newroi.width();
-    spec.full_height = newroi.height();
-    spec.full_depth  = newroi.depth();
-}
-
-
+OIIO_NAMESPACE_3_1_BEGIN
 
 span<std::byte>
 span_from_buffer(void* data, TypeDesc format, int nchannels, int width,
@@ -133,15 +91,36 @@ cspan_from_buffer(const void* data, TypeDesc format, int nchannels, int width,
 
 
 
+// Unsafe version of as_image_span_writable_bytes with a const_cast. Keep out
+// of the public APIs, just used as necessary utility here in imagebuf
+// internals.
+template<typename T, size_t Rank>
+image_span<std::byte>
+force_as_image_span_writable_bytes(const image_span<T, Rank>& src) noexcept
+{
+    return image_span<std::byte>(
+        const_cast<std::byte*>(reinterpret_cast<const std::byte*>(src.data())),
+        src.nchannels(), src.width(), src.height(), src.depth(),
+        src.chanstride(), src.xstride(), src.ystride(), src.zstride(),
+        src.chansize());
+}
+
+
+
 // Expansion of the opaque type that hides all the ImageBuf implementation
 // detail.
 class ImageBufImpl {
 public:
     ImageBufImpl(string_view filename, int subimage, int miplevel,
                  std::shared_ptr<ImageCache> imagecache = {},
-                 const ImageSpec* spec = nullptr, span<std::byte> bufspan = {},
-                 const void* buforigin = nullptr, bool readonly = false,
-                 const ImageSpec* config      = nullptr,
+                 const ImageSpec* spec                  = nullptr,
+                 const image_span<std::byte>& bufspan   = {},
+                 bool readonly = false, const ImageSpec* config = nullptr,
+                 Filesystem::IOProxy* ioproxy = nullptr);
+    ImageBufImpl(string_view filename, int subimage, int miplevel,
+                 std::shared_ptr<ImageCache> imagecache, const ImageSpec* spec,
+                 span<std::byte> bufspan, const void* buforigin = nullptr,
+                 bool readonly = false, const ImageSpec* config = nullptr,
                  Filesystem::IOProxy* ioproxy = nullptr,
                  stride_t xstride = AutoStride, stride_t ystride = AutoStride,
                  stride_t zstride = AutoStride);
@@ -156,12 +135,27 @@ public:
     // supplied, use it for the "native" spec, otherwise make the nativespec
     // just copy the regular spec.
     void reset(string_view name, const ImageSpec& spec,
-               const ImageSpec* nativespec = nullptr,
-               span<std::byte> bufspan = {}, const void* buforigin = {},
-               bool readonly = false, stride_t xstride = AutoStride,
-               stride_t ystride = AutoStride, stride_t zstride = AutoStride);
+               const ImageSpec* nativespec          = nullptr,
+               const image_span<std::byte>& bufspan = {},
+               bool readonly                        = false);
+    // alloc() resets the internal spec and nativespec, does some sanity
+    // checks on the image sizes, and calls realloc.
     void alloc(const ImageSpec& spec, const ImageSpec* nativespec = nullptr);
+    // realloc() calls new_pixels to allocate private owned memory to hold local
+    // pixels, then sets up all the strides, storage class, etc. It also sets
+    // up m_bufspan.
     void realloc();
+
+    void set_bufspan(void* data, stride_t xstride = AutoStride,
+                     stride_t ystride = AutoStride,
+                     stride_t zstride = AutoStride)
+    {
+        m_bufspan = image_span(reinterpret_cast<std::byte*>(data),
+                               m_spec.nchannels, m_spec.width, m_spec.height,
+                               m_spec.depth, m_spec.format.size(), xstride,
+                               ystride, zstride);
+    }
+
     bool init_spec(string_view filename, int subimage, int miplevel,
                    DoLock do_lock);
     bool read(int subimage, int miplevel, int chbegin = 0, int chend = -1,
@@ -173,14 +167,17 @@ public:
     void merge_metadata(const ImageBufImpl& src, bool override = false,
                         string_view pattern = {});
 
-    // At least one of bufspan or buforigin is supplied. Set this->m_bufspan
-    // and this->m_localpixels appropriately.
-    void set_bufspan_localpixels(span<std::byte> bufspan,
-                                 const void* buforigin);
-
     // Note: Uses std::format syntax
     template<typename... Args>
     void error(const char* fmt, const Args&... args) const
+    {
+        error(Strutil::fmt::format(fmt, args...));
+    }
+
+    // Another alias for error so we don't get mixed up with the global
+    // OIIO::errorfmt.
+    template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const
     {
         error(Strutil::fmt::format(fmt, args...));
     }
@@ -210,6 +207,7 @@ public:
         return m_spec_valid && m_storage != ImageBuf::UNINITIALIZED;
     }
     bool cachedpixels() const { return m_storage == ImageBuf::IMAGECACHE; }
+    void* localpixels() const { return m_bufspan.data(); }
 
     const void* pixeladdr(int x, int y, int z, int ch) const;
     void* pixeladdr(int x, int y, int z, int ch);
@@ -320,12 +318,10 @@ public:
 
     void eval_contiguous()
     {
-        m_contiguous = m_localpixels
+        m_contiguous = m_bufspan.data() != nullptr
                        && (m_storage == ImageBuf::LOCALBUFFER
                            || m_storage == ImageBuf::APPBUFFER)
-                       && m_xstride == m_spec.nchannels * m_channel_stride
-                       && m_ystride == m_xstride * m_spec.width
-                       && m_zstride == m_ystride * m_spec.height;
+                       && m_bufspan.is_contiguous();
     }
 
     bool has_thumbnail(DoLock do_lock = DoLock(true)) const;
@@ -334,53 +330,51 @@ public:
     std::shared_ptr<ImageBuf> get_thumbnail(DoLock do_lock = DoLock(true)) const;
 
 private:
-    ImageBuf::IBStorage m_storage;  ///< Pixel storage class
-    ustring m_name;                 ///< Filename of the image
-    ustring m_fileformat;           ///< File format name
-    int m_nsubimages;               ///< How many subimages are there?
-    int m_current_subimage;         ///< Current subimage we're viewing
-    int m_current_miplevel;         ///< Current miplevel we're viewing
-    int m_nmiplevels;               ///< # of MIP levels in the current subimage
-    mutable int m_threads;          ///< thread policy for this image
-    ImageSpec m_spec;               ///< Describes the image (size, etc)
-    ImageSpec m_nativespec;         ///< Describes the true native image
-    std::unique_ptr<char[]> m_pixels;  ///< Pixel data, if local and we own it
-    char* m_localpixels;               ///< Pointer to local pixels
-    span<std::byte> m_bufspan;         ///< Bounded buffer for local pixels
+    ImageBuf::IBStorage m_storage
+        = ImageBuf::UNINITIALIZED;  // Pixel storage class
+    ustring m_name;                 // Filename of the image
+    ustring m_fileformat;           // File format name
+    int m_nsubimages       = 0;     // How many subimages are there?
+    int m_current_subimage = 0;     // Current subimage we're viewing
+    int m_current_miplevel = 0;     // Current miplevel we're viewing
+    int m_nmiplevels       = 0;     // # of MIP levels in the current subimage
+    mutable int m_threads  = 0;     // thread policy for this image
+    ImageSpec m_spec;               // Describes the image (size, etc)
+    ImageSpec m_nativespec;         // Describes the true native image
+    std::unique_ptr<char[]> m_pixels;  // Pixel data, if local and we own it
+    image_span<std::byte> m_bufspan;   // Bounded buffer for local pixels
     typedef std::recursive_mutex mutex_t;
     typedef std::unique_lock<mutex_t> lock_t;
-    mutable mutex_t m_mutex;      ///< Thread safety for this ImageBuf
-    mutable bool m_spec_valid;    ///< Is the spec valid
-    mutable bool m_pixels_valid;  ///< Image is valid
-    mutable bool m_pixels_read;   ///< Is file already in the local pixels?
-    bool m_readonly;              ///< The bufspan is read-only
-    bool m_badfile;               ///< File not found
-    float m_pixelaspect;          ///< Pixel aspect ratio of the image
-    stride_t m_xstride;
-    stride_t m_ystride;
-    stride_t m_zstride;
-    stride_t m_channel_stride;
-    bool m_contiguous;
-    std::shared_ptr<ImageCache> m_imagecache;  ///< ImageCache to use
-    TypeDesc m_cachedpixeltype;            ///< Data type stored in the cache
-    DeepData m_deepdata;                   ///< Deep data
-    size_t m_allocated_size;               ///< How much memory we've allocated
-    std::vector<char> m_blackpixel;        ///< Pixel-sized zero bytes
-    std::vector<TypeDesc> m_write_format;  /// Pixel data format to use for write()
-    int m_write_tile_width;
-    int m_write_tile_height;
-    int m_write_tile_depth;
+    mutable mutex_t m_mutex;              // Thread safety for this ImageBuf
+    mutable bool m_spec_valid   = false;  // Is the spec valid
+    mutable bool m_pixels_valid = false;  // Image is valid
+    mutable bool m_pixels_read = false;  // Is file already in the local pixels?
+    bool m_readonly            = true;   // The bufspan is read-only
+    bool m_badfile             = false;  // File not found
+    float m_pixelaspect        = 1.0f;   // Pixel aspect ratio of the image
+    bool m_contiguous          = false;
+    std::shared_ptr<ImageCache> m_imagecache;  // ImageCache to use
+    TypeDesc m_cachedpixeltype;                // Data type stored in the cache
+    DeepData m_deepdata;                       // Deep data
+    size_t m_allocated_size = 0;           // How much memory we've allocated
+    std::vector<char> m_blackpixel;        // Pixel-sized zero bytes
+    std::vector<TypeDesc> m_write_format;  // Pixel data format to use for write()
+    int m_write_tile_width  = 0;
+    int m_write_tile_height = 0;
+    int m_write_tile_depth  = 1;
     std::unique_ptr<ImageSpec> m_configspec;  // Configuration spec
     Filesystem::IOProxy* m_rioproxy = nullptr;
     Filesystem::IOProxy* m_wioproxy = nullptr;
-    mutable std::string m_err;  ///< Last error message
+    mutable std::string m_err;  // Last error message
     bool m_has_thumbnail = false;
     std::shared_ptr<ImageBuf> m_thumbnail;
 
-    // Private reset m_pixels to new allocation of new size, copy if
-    // data is not nullptr. Return nullptr if an allocation of that size
-    // was not possible.
-    char* new_pixels(size_t size, const void* data = nullptr);
+    // Private reset m_pixels to new allocation for a size implied by the
+    // m_spec, copy if data is not nullptr. Return nullptr if an allocation of
+    // that size was not possible. This also sets the m_bufspan, and the
+    // strides.
+    char* new_pixels(ImageBuf::IBStorage storage, size_t size,
+                     const void* data = nullptr);
     // Private release of m_pixels.
     void free_pixels();
 
@@ -412,6 +406,50 @@ ImageBuf::impl_deleter(ImageBufImpl* todel)
 
 ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
                            std::shared_ptr<ImageCache> imagecache,
+                           const ImageSpec* spec,
+                           const image_span<std::byte>& bufspan, bool readonly,
+                           const ImageSpec* config,
+                           Filesystem::IOProxy* ioproxy)
+    : m_storage(ImageBuf::UNINITIALIZED)
+    , m_name(filename)
+    , m_current_subimage(subimage)
+    , m_current_miplevel(miplevel)
+    , m_readonly(readonly)
+    , m_imagecache(imagecache)
+{
+    if (spec) {
+        // spec != nullptr means we're constructing an ImageBuf that either
+        // wraps a buffer or owns its own memory.
+        m_spec       = *spec;
+        m_nativespec = *spec;
+        if (bufspan.data()) {
+            m_bufspan      = bufspan;
+            m_storage      = ImageBuf::APPBUFFER;
+            m_pixels_valid = true;
+        } else {
+            m_storage  = ImageBuf::LOCALBUFFER;
+            m_readonly = false;
+            this->alloc(*spec);
+        }
+        m_spec_valid = true;
+        m_blackpixel.resize(
+            round_to_multiple(spec->pixel_bytes(), OIIO_SIMD_MAX_SIZE_BYTES));
+        // NB make it big enough for SSE
+    } else if (filename.length() > 0) {
+        // filename being nonempty means this ImageBuf refers to a file.
+        OIIO_DASSERT(bufspan.data() == nullptr);
+        reset(filename, subimage, miplevel, std::move(imagecache), config,
+              ioproxy);
+    } else {
+        OIIO_DASSERT(bufspan.data() == nullptr);
+    }
+    eval_contiguous();
+}
+
+
+
+ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
+                           std::shared_ptr<ImageCache> imagecache,
                            const ImageSpec* spec, span<std::byte> bufspan,
                            const void* buforigin, bool readonly,
                            const ImageSpec* config,
@@ -419,52 +457,32 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
                            stride_t ystride, stride_t zstride)
     : m_storage(ImageBuf::UNINITIALIZED)
     , m_name(filename)
-    , m_nsubimages(0)
     , m_current_subimage(subimage)
     , m_current_miplevel(miplevel)
-    , m_nmiplevels(0)
-    , m_threads(0)
-    , m_localpixels(NULL)
-    , m_spec_valid(false)
-    , m_pixels_valid(false)
-    , m_pixels_read(false)
     , m_readonly(readonly)
-    , m_badfile(false)
-    , m_pixelaspect(1)
-    , m_xstride(0)
-    , m_ystride(0)
-    , m_zstride(0)
-    , m_channel_stride(0)
     , m_contiguous(false)
     , m_imagecache(imagecache)
-    , m_allocated_size(0)
-    , m_write_tile_width(0)
-    , m_write_tile_height(0)
-    , m_write_tile_depth(1)
 {
     if (spec) {
         // spec != nullptr means we're constructing an ImageBuf that either
         // wraps a buffer or owns its own memory.
-        m_spec           = *spec;
-        m_nativespec     = *spec;
-        m_channel_stride = stride_t(spec->format.size());
-        m_xstride        = xstride;
-        m_ystride        = ystride;
-        m_zstride        = zstride;
-        ImageSpec::auto_stride(m_xstride, m_ystride, m_zstride, m_spec.format,
-                               m_spec.nchannels, m_spec.width, m_spec.height);
-        m_blackpixel.resize(round_to_multiple(spec->pixel_bytes(),
-                                              OIIO_SIMD_MAX_SIZE_BYTES),
-                            0);
-        // NB make it big enough for SSE
+        m_spec       = *spec;
+        m_nativespec = *spec;
         if (buforigin || bufspan.size()) {
-            set_bufspan_localpixels(bufspan, buforigin);
+            if (!buforigin)
+                buforigin = static_cast<const void*>(bufspan.data());
+            set_bufspan((char*)buforigin, xstride, ystride, zstride);
             m_storage      = ImageBuf::APPBUFFER;
             m_pixels_valid = true;
         } else {
-            m_storage = ImageBuf::LOCALBUFFER;
+            m_storage  = ImageBuf::LOCALBUFFER;
+            m_readonly = false;
+            this->alloc(*spec);
         }
         m_spec_valid = true;
+        m_blackpixel.resize(
+            round_to_multiple(spec->pixel_bytes(), OIIO_SIMD_MAX_SIZE_BYTES));
+        // NB make it big enough for SSE
     } else if (filename.length() > 0) {
         // filename being nonempty means this ImageBuf refers to a file.
         OIIO_DASSERT(buforigin == nullptr);
@@ -494,10 +512,6 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
     , m_readonly(src.m_readonly)
     , m_badfile(src.m_badfile)
     , m_pixelaspect(src.m_pixelaspect)
-    , m_xstride(src.m_xstride)
-    , m_ystride(src.m_ystride)
-    , m_zstride(src.m_zstride)
-    , m_channel_stride(src.m_channel_stride)
     , m_contiguous(src.m_contiguous)
     , m_imagecache(src.m_imagecache)
     , m_cachedpixeltype(src.m_cachedpixeltype)
@@ -514,24 +528,22 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
     m_spec_valid   = src.m_spec_valid;
     m_pixels_valid = src.m_pixels_valid;
     m_pixels_read  = src.m_pixels_read;
-    if (src.m_localpixels) {
+    if (src.localpixels()) {
         // Source had the image fully in memory (no cache)
         if (m_storage == ImageBuf::APPBUFFER) {
             // Source just wrapped the client app's pixels, we do the same
-            m_localpixels = src.m_localpixels;
-            m_bufspan     = src.m_bufspan;
+            m_bufspan = src.m_bufspan;
         } else {
             // We own our pixels -- copy from source
-            new_pixels(src.m_spec.image_bytes(), src.m_pixels.get());
+            new_pixels(m_storage, src.m_spec.image_bytes(), src.m_pixels.get());
             // N.B. new_pixels will set m_bufspan
         }
     } else {
         // Source was cache-based or deep
         // nothing else to do
-        m_localpixels = nullptr;
-        m_bufspan     = span<std::byte>();
+        m_bufspan = {};
     }
-    if (m_localpixels || m_spec.deep) {
+    if (localpixels() || m_spec.deep) {
         // A copied ImageBuf is no longer a direct file reference, so clear
         // some of the fields that are only meaningful for file references.
         m_fileformat.clear();
@@ -561,7 +573,7 @@ ImageBufImpl::~ImageBufImpl()
     // Upon destruction, print uncaught errors to help users who don't know
     // how to properly check for errors.
     if (!m_err.empty() /* Note: safe becausethis is the dtr */
-        && pvt::imagebuf_print_uncaught_errors) {
+        && OIIO::pvt::imagebuf_print_uncaught_errors) {
         OIIO::print(
             "An ImageBuf was destroyed with a pending error message that was never\n"
             "retrieved via ImageBuf::geterror(). This was the error message:\n{}\n",
@@ -608,6 +620,28 @@ ImageBuf::ImageBuf(const ImageSpec& spec, void* buffer, stride_t xstride,
                               {} /*bufspan*/, buffer /*buforigin*/,
                               false /*readonly*/, nullptr /*config*/,
                               nullptr /*ioproxy*/, xstride, ystride, zstride),
+             &impl_deleter)
+{
+}
+
+
+
+ImageBuf::ImageBuf(const ImageSpec& spec,
+                   const image_span<const std::byte>& buffer)
+    : m_impl(new ImageBufImpl("", 0, 0, nullptr /*imagecache*/, &spec,
+                              force_as_image_span_writable_bytes(buffer),
+                              true /*readonly*/, nullptr /*config*/,
+                              nullptr /*ioproxy*/),
+             &impl_deleter)
+{
+}
+
+
+
+ImageBuf::ImageBuf(const ImageSpec& spec, const image_span<std::byte>& buffer)
+    : m_impl(new ImageBufImpl("", 0, 0, nullptr /*imagecache*/, &spec, buffer,
+                              true /*readonly*/, nullptr /*config*/,
+                              nullptr /*ioproxy*/),
              &impl_deleter)
 {
 }
@@ -677,38 +711,47 @@ ImageBuf::operator=(ImageBuf&& src)
 
 
 char*
-ImageBufImpl::new_pixels(size_t size, const void* data)
+ImageBufImpl::new_pixels(ImageBuf::IBStorage storage, size_t size,
+                         const void* data)
 {
-    if (m_allocated_size)
-        free_pixels();
-    try {
-        m_pixels.reset(size ? new char[size] : nullptr);
-        // Set bufspan to the allocated memory
-        m_bufspan = { reinterpret_cast<std::byte*>(m_pixels.get()), size };
-    } catch (const std::exception& e) {
-        // Could not allocate enough memory. So don't allocate anything,
-        // consider this an uninitialized ImageBuf, issue an error, and hope
-        // it's handled well downstream.
-        m_pixels.reset();
-        m_bufspan = make_span<std::byte>(nullptr, 0);
-        OIIO::debugfmt("ImageBuf unable to allocate {} bytes ({})\n", size,
-                       e.what());
-        error("ImageBuf unable to allocate {} bytes ({})\n", size, e.what());
-        size      = 0;
-        m_bufspan = {};
+    m_storage = storage;
+    if (storage == ImageBuf::LOCALBUFFER && !m_spec.deep)
+        OIIO_ASSERT(size == m_spec.image_bytes());
+    size = (storage == ImageBuf::LOCALBUFFER && !m_spec.deep)
+               ? m_spec.image_bytes()
+               : 0;
+    if (m_allocated_size != size) {
+        if (m_allocated_size)
+            free_pixels();
+        try {
+            m_pixels.reset(size ? new char[size] : nullptr);
+            // Set m_bufspan to the allocated memory
+            set_bufspan(m_pixels.get());
+        } catch (const std::exception& e) {
+            // Could not allocate enough memory. So don't allocate anything,
+            // consider this an uninitialized ImageBuf, issue an error, and
+            // hope it's handled well downstream.
+            m_pixels.reset();
+            OIIO::debugfmt("ImageBuf unable to allocate {} bytes ({})\n", size,
+                           e.what());
+            error("ImageBuf unable to allocate {} bytes ({})\n", size,
+                  e.what());
+            size      = 0;
+            m_bufspan = {};
+        }
+        m_allocated_size = size;
+        OIIO::pvt::IB_local_mem_current += m_allocated_size;
+        atomic_max(OIIO::pvt::IB_local_mem_peak,
+                   static_cast<long long>(OIIO::pvt::IB_local_mem_current));
     }
-    m_allocated_size = size;
-    pvt::IB_local_mem_current += m_allocated_size;
-    atomic_max(pvt::IB_local_mem_peak, (long long)pvt::IB_local_mem_current);
+
     if (data && size)
         memcpy(m_pixels.get(), data, size);
-    m_localpixels = m_pixels.get();
-    m_storage     = size ? ImageBuf::LOCALBUFFER : ImageBuf::UNINITIALIZED;
-    if (pvt::oiio_print_debug > 1)
+    if (OIIO::pvt::oiio_print_debug > 1)
         OIIO::debugfmt("IB allocated {} MB, global IB memory now {} MB\n",
-                       size >> 20, pvt::IB_local_mem_current >> 20);
+                       size >> 20, OIIO::pvt::IB_local_mem_current >> 20);
     eval_contiguous();
-    return m_localpixels;
+    return m_pixels.get();
 }
 
 
@@ -716,16 +759,16 @@ void
 ImageBufImpl::free_pixels()
 {
     if (m_allocated_size) {
-        if (pvt::oiio_print_debug > 1)
+        if (OIIO::pvt::oiio_print_debug > 1)
             OIIO::debugfmt("IB freed {} MB, global IB memory now {} MB\n",
                            m_allocated_size >> 20,
-                           pvt::IB_local_mem_current >> 20);
-        pvt::IB_local_mem_current -= m_allocated_size;
+                           OIIO::pvt::IB_local_mem_current >> 20);
+        OIIO::pvt::IB_local_mem_current -= m_allocated_size;
         m_allocated_size = 0;
     }
     m_pixels.reset();
     // print("IB Freed pixels of length {}\n", m_bufspan.size());
-    m_bufspan = make_span<std::byte>(nullptr, 0);
+    m_bufspan = {};
     m_deepdata.free();
     m_storage = ImageBuf::UNINITIALIZED;
     m_blackpixel.clear();
@@ -812,18 +855,13 @@ ImageBufImpl::clear()
     m_spec             = ImageSpec();
     m_nativespec       = ImageSpec();
     m_pixels.reset();
-    m_bufspan        = make_span<std::byte>(nullptr, 0);
-    m_localpixels    = nullptr;
-    m_spec_valid     = false;
-    m_pixels_valid   = false;
-    m_badfile        = false;
-    m_pixels_read    = false;
-    m_pixelaspect    = 1;
-    m_xstride        = 0;
-    m_ystride        = 0;
-    m_zstride        = 0;
-    m_channel_stride = 0;
-    m_contiguous     = false;
+    m_bufspan      = {};
+    m_spec_valid   = false;
+    m_pixels_valid = false;
+    m_badfile      = false;
+    m_pixels_read  = false;
+    m_pixelaspect  = 1;
+    m_contiguous   = false;
     m_imagecache.reset();
     m_deepdata.free();
     m_blackpixel.clear();
@@ -854,7 +892,7 @@ ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
 {
     clear();
     m_name = ustring(filename);
-    if (m_imagecache || pvt::imagebuf_use_imagecache) {
+    if (m_imagecache || OIIO::pvt::imagebuf_use_imagecache) {
         // Invalidate the image in cache. Do so unconditionally if there's a
         // chance that configuration hints may have changed.
         invalidate(m_name, config || m_configspec);
@@ -895,32 +933,13 @@ ImageBuf::reset(string_view filename, int subimage, int miplevel,
 
 
 void
-ImageBufImpl::set_bufspan_localpixels(span<std::byte> bufspan,
-                                      const void* buforigin)
-{
-    if (bufspan.size() && !buforigin) {
-        buforigin = bufspan.data();
-    } else if (buforigin && (!bufspan.data() || bufspan.empty())) {
-        bufspan = span_from_buffer(const_cast<void*>(buforigin), m_spec.format,
-                                   m_spec.nchannels, m_spec.width,
-                                   m_spec.height, m_spec.depth, m_xstride,
-                                   m_ystride, m_zstride);
-    }
-    m_bufspan     = bufspan;
-    m_localpixels = (char*)buforigin;
-    OIIO_ASSERT(check_span(m_bufspan, m_localpixels, spec().format));
-}
-
-
-
-void
 ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
-                    const ImageSpec* nativespec, span<std::byte> bufspan,
-                    const void* buforigin, bool readonly, stride_t xstride,
-                    stride_t ystride, stride_t zstride)
+                    const ImageSpec* nativespec,
+                    const image_span<std::byte>& bufspan, bool readonly)
 {
     clear();
     if (!spec.image_bytes()) {
+        free_pixels();
         m_storage = ImageBuf::UNINITIALIZED;
         error(
             "Could not initialize ImageBuf: the provided ImageSpec needs a valid width, height, depth, nchannels, format.");
@@ -929,26 +948,20 @@ ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
     m_name             = ustring(filename);
     m_current_subimage = 0;
     m_current_miplevel = 0;
-    if (buforigin || bufspan.size()) {
-        m_spec           = spec;
-        m_nativespec     = nativespec ? *nativespec : spec;
-        m_channel_stride = stride_t(spec.format.size());
-        m_xstride        = xstride;
-        m_ystride        = ystride;
-        m_zstride        = zstride;
-        m_readonly       = readonly;
-        ImageSpec::auto_stride(m_xstride, m_ystride, m_zstride, m_spec.format,
-                               m_spec.nchannels, m_spec.width, m_spec.height);
+    if (bufspan.data()) {
+        m_spec         = spec;
+        m_nativespec   = nativespec ? *nativespec : spec;
+        m_readonly     = readonly;
+        m_bufspan      = bufspan;
+        m_storage      = ImageBuf::APPBUFFER;
+        m_pixels_valid = true;
         m_blackpixel.resize(round_to_multiple(spec.pixel_bytes(),
                                               OIIO_SIMD_MAX_SIZE_BYTES),
                             0);
-        set_bufspan_localpixels(bufspan, buforigin);
-        m_storage      = ImageBuf::APPBUFFER;
-        m_pixels_valid = true;
     } else {
         m_storage  = ImageBuf::LOCALBUFFER;
         m_readonly = false;
-        alloc(spec);
+        this->alloc(spec);
         // N.B. alloc sets m_bufspan
     }
     if (nativespec)
@@ -971,7 +984,28 @@ void
 ImageBuf::reset(const ImageSpec& spec, void* buffer, stride_t xstride,
                 stride_t ystride, stride_t zstride)
 {
-    m_impl->reset("", spec, nullptr, {}, buffer, xstride, ystride, zstride);
+    image_span ispan((std::byte*)buffer, spec.nchannels, spec.width,
+                     spec.height, spec.depth, spec.format.size(), xstride,
+                     ystride, zstride);
+    m_impl->reset("", spec, nullptr, ispan, false /*readonly*/);
+}
+
+
+
+void
+ImageBuf::reset(const ImageSpec& spec,
+                const image_span<const std::byte>& buffer)
+{
+    m_impl->reset("", spec, nullptr, force_as_image_span_writable_bytes(buffer),
+                  true /*readonly*/);
+}
+
+
+
+void
+ImageBuf::reset(const ImageSpec& spec, const image_span<std::byte>& buffer)
+{
+    m_impl->reset("", spec, nullptr, buffer, false /*readonly*/);
 }
 
 
@@ -981,9 +1015,13 @@ ImageBuf::reset(const ImageSpec& spec, cspan<std::byte> buffer,
                 const void* buforigin, stride_t xstride, stride_t ystride,
                 stride_t zstride)
 {
-    m_impl->reset("", spec, nullptr,
-                  { const_cast<std::byte*>(buffer.data()), buffer.size() },
-                  buforigin, true /*readonly*/, xstride, ystride, zstride);
+    if (!buforigin)
+        buforigin = buffer.data();
+    image_span ispan((std::byte*)buforigin, spec.nchannels, spec.width,
+                     spec.height, spec.depth, spec.format.size(), xstride,
+                     ystride, zstride);
+    OIIO_ASSERT(image_span_within_span(ispan, buffer));
+    m_impl->reset("", spec, nullptr, ispan, true /*readonly*/);
 }
 
 
@@ -993,8 +1031,13 @@ ImageBuf::reset(const ImageSpec& spec, span<std::byte> buffer,
                 const void* buforigin, stride_t xstride, stride_t ystride,
                 stride_t zstride)
 {
-    m_impl->reset("", spec, nullptr, buffer, buforigin, false /*readonly*/,
-                  xstride, ystride, zstride);
+    if (!buforigin)
+        buforigin = buffer.data();
+    image_span ispan((std::byte*)buforigin, spec.nchannels, spec.width,
+                     spec.height, spec.depth, spec.format.size(), xstride,
+                     ystride, zstride);
+    OIIO_ASSERT(image_span_within_span(ispan, buffer));
+    m_impl->reset("", spec, nullptr, ispan, false /*readonly*/);
 }
 
 
@@ -1002,15 +1045,11 @@ ImageBuf::reset(const ImageSpec& spec, span<std::byte> buffer,
 void
 ImageBufImpl::realloc()
 {
-    new_pixels(m_spec.deep ? size_t(0) : m_spec.image_bytes());
+    new_pixels(ImageBuf::LOCALBUFFER,
+               m_spec.deep ? size_t(0) : m_spec.image_bytes());
     // N.B. new_pixels will set m_bufspan
-    m_channel_stride = m_spec.format.size();
-    m_xstride        = AutoStride;
-    m_ystride        = AutoStride;
-    m_zstride        = AutoStride;
-    ImageSpec::auto_stride(m_xstride, m_ystride, m_zstride, m_spec.format,
-                           m_spec.nchannels, m_spec.width, m_spec.height);
-    m_blackpixel.resize(round_to_multiple(m_xstride, OIIO_SIMD_MAX_SIZE_BYTES),
+    m_blackpixel.resize(round_to_multiple(m_spec.pixel_bytes(),
+                                          OIIO_SIMD_MAX_SIZE_BYTES),
                         0);
     // NB make it big enough for SSE
     if (m_allocated_size) {
@@ -1020,6 +1059,8 @@ ImageBufImpl::realloc()
     if (m_spec.deep) {
         m_deepdata.init(m_spec);
         m_storage = ImageBuf::LOCALBUFFER;
+        // FIXME -- I think we should have a separate storage tag for
+        // deep data.
     }
     m_readonly    = false;
     m_pixels_read = false;
@@ -1063,13 +1104,13 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         && m_current_subimage == subimage && m_current_miplevel == miplevel)
         return true;  // Already done
 
-    pvt::LoggedTimer logtime("IB::init_spec");
+    OIIO::pvt::LoggedTimer logtime("IB::init_spec");
 
     m_name = filename;
 
     // If we weren't given an imagecache but "imagebuf:use_imagecache"
     // attribute was set, use a shared IC.
-    if (!m_imagecache && pvt::imagebuf_use_imagecache)
+    if (!m_imagecache && OIIO::pvt::imagebuf_use_imagecache)
         m_imagecache = ImageCache::create(true);
 
     if (m_imagecache) {
@@ -1088,24 +1129,54 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
             // If no configspec, just do a regular soft invalidate
             invalidate(m_name, false);
         }
-        m_imagecache->get_image_info(m_name, subimage, miplevel, s_subimages,
-                                     TypeInt, &m_nsubimages);
-        m_imagecache->get_image_info(m_name, subimage, miplevel, s_miplevels,
-                                     TypeInt, &m_nmiplevels);
         const char* fmt = NULL;
-        m_imagecache->get_image_info(m_name, subimage, miplevel, s_fileformat,
-                                     TypeString, &fmt);
+        if (!(m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                           s_subimages, TypeInt, &m_nsubimages)
+              && m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                              s_miplevels, TypeInt,
+                                              &m_nmiplevels)
+              && m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                              s_fileformat, TypeString, &fmt))) {
+            std::string err = m_imagecache->geterror();
+            error(err.size()
+                      ? err
+                      : Strutil::format("trouble reading from {}", m_name));
+            m_spec       = ImageSpec();
+            m_nativespec = m_spec;
+            return false;
+        }
         m_fileformat = ustring(fmt);
 
-        m_imagecache->get_imagespec(m_name, m_nativespec, subimage);
-        m_spec = m_nativespec;
-        m_imagecache->get_cache_dimensions(m_name, m_spec, subimage, miplevel);
+        if (subimage < 0 || subimage >= m_nsubimages) {
+            error("Invalid subimage {} requested (of {} subimages)", subimage,
+                  m_nsubimages);
+            m_spec       = ImageSpec();
+            m_nativespec = m_spec;
+            return false;
+        }
+        if (miplevel < 0 || miplevel >= m_nmiplevels) {
+            error(
+                "Invalid MIP level {} requested for subimage {} (of {} levels)",
+                miplevel, subimage, m_nmiplevels);
+            m_spec       = ImageSpec();
+            m_nativespec = m_spec;
+            return false;
+        }
+        bool ok = m_imagecache->get_imagespec(m_name, m_nativespec, subimage);
+        m_spec  = m_nativespec;
+        ok &= m_imagecache->get_cache_dimensions(m_name, m_spec, subimage,
+                                                 miplevel);
+        if (!ok || m_nativespec.format == TypeUnknown) {
+            std::string cacheerr = m_imagecache->geterror();
+            error("Unable to find subimage={}, miplevel={}{}{}",
+                  cacheerr.size() ? ": " : "", cacheerr);
+            return false;
+        }
 
-        m_xstride = m_spec.pixel_bytes();
-        m_ystride = m_spec.scanline_bytes();
-        m_zstride = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);
-        m_channel_stride = m_spec.format.size();
-        m_blackpixel.resize(round_to_multiple(m_xstride,
+        m_bufspan = image_span<std::byte>(nullptr, m_spec.nchannels,
+                                          m_spec.width, m_spec.height,
+                                          m_spec.depth, m_spec.format.size());
+        m_blackpixel.resize(round_to_multiple(m_spec.pixel_bytes(),
                                               OIIO_SIMD_MAX_SIZE_BYTES),
                             0);
         // ^^^ NB make it big enough for SIMD
@@ -1165,26 +1236,32 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_current_miplevel = -1;
         auto input = ImageInput::open(filename, m_configspec.get(), m_rioproxy);
         if (!input) {
-            m_err = OIIO::geterror();
-            atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+            error("Could not open file: {}", OIIO::geterror());
+            atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
             return false;
         }
-        m_spec = input->spec(subimage, miplevel);
+        m_spec       = input->spec(subimage, miplevel);
+        m_nativespec = m_spec;
         if (input->has_error()) {
-            m_err = input->geterror();
-            atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+            errorfmt("Error reading: {}", input->geterror());
+            atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
+            return false;
+        }
+        if (m_spec.format == TypeUnknown) {
+            errorfmt("Could not seek to subimage={} miplevel={}", subimage,
+                     miplevel);
+            atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
             return false;
         }
         m_badfile    = false;
         m_spec_valid = true;
         m_fileformat = ustring(input->format_name());
         m_nativespec = m_spec;
-        m_xstride    = m_spec.pixel_bytes();
-        m_ystride    = m_spec.scanline_bytes();
-        m_zstride    = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);
-        m_channel_stride = m_spec.format.size();
+        m_bufspan    = image_span<std::byte>(nullptr, m_spec.nchannels,
+                                          m_spec.width, m_spec.height,
+                                          m_spec.depth, m_spec.format.size());
         m_blackpixel.resize(
-            round_to_multiple(m_xstride, OIIO_SIMD_MAX_SIZE_BYTES));
+            round_to_multiple(m_spec.pixel_bytes(), OIIO_SIMD_MAX_SIZE_BYTES));
         // ^^^ NB make it big enough for SIMD
         m_nsubimages = input->supports("multiimage")
                            ? m_spec.get_int_attribute("oiio:subimages")
@@ -1201,7 +1278,7 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_current_subimage = subimage;
         m_current_miplevel = miplevel;
         m_pixelaspect = m_spec.get_float_attribute("pixelaspectratio", 1.0f);
-        atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+        atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
     }
     return !m_badfile;
 }
@@ -1255,7 +1332,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         return false;
     }
 
-    pvt::LoggedTimer logtime("IB::read");
+    OIIO::pvt::LoggedTimer logtime("IB::read");
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
     if (chend < 0 || chend > nativespec().nchannels)
@@ -1280,7 +1357,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         } else {
             error(input->geterror());
         }
-        atomic_fetch_add(pvt::IB_total_image_read_time, float(timer()));
+        atomic_fetch_add(OIIO::pvt::IB_total_image_read_time, float(timer()));
         return ok;
     }
 
@@ -1295,15 +1372,15 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
                                      ustring("cachedpixeltype"), TypeInt,
                                      &peltype);
         m_cachedpixeltype = TypeDesc((TypeDesc::BASETYPE)peltype);
-        if (!m_localpixels && !force && !use_channel_subset
+        if (!localpixels() && !force && !use_channel_subset
             && (convert == m_cachedpixeltype || convert == TypeDesc::UNKNOWN)) {
             m_spec.format = m_cachedpixeltype;
-            m_xstride     = m_spec.pixel_bytes();
-            m_ystride     = m_spec.scanline_bytes();
-            m_zstride = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);
-            m_blackpixel.resize(round_to_multiple(m_xstride,
-                                                  OIIO_SIMD_MAX_SIZE_BYTES),
-                                0);
+            m_bufspan     = image_span<std::byte>(nullptr, m_spec.nchannels,
+                                              m_spec.width, m_spec.height,
+                                              m_spec.depth,
+                                              m_spec.format.size());
+            m_blackpixel.resize(round_to_multiple(m_spec.pixel_bytes(),
+                                                  OIIO_SIMD_MAX_SIZE_BYTES));
             // NB make it big enough for SSE
             m_pixels_valid = true;
             m_storage      = ImageBuf::IMAGECACHE;
@@ -1377,7 +1454,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         if (in) {
             in->threads(threads());  // Pass on our thread policy
             bool ok = in->read_image(subimage, miplevel, chbegin, chend,
-                                     m_spec.format, m_localpixels, AutoStride,
+                                     m_spec.format, localpixels(), AutoStride,
                                      AutoStride, AutoStride, progress_callback,
                                      progress_callback_data);
             in->close();
@@ -1392,7 +1469,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
             m_pixels_valid = false;
             error(OIIO::geterror());
         }
-        atomic_fetch_add(pvt::IB_total_image_read_time, float(timer()));
+        atomic_fetch_add(OIIO::pvt::IB_total_image_read_time, float(timer()));
         // Since we have read in the entire image now, if we are using an
         // IOProxy, we invalidate any cache entry to avoid lifetime issues
         // related to the IOProxy. This helps to eliminate trouble emerging
@@ -1422,7 +1499,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
                                  m_spec.x + m_spec.width, m_spec.y,
                                  m_spec.y + m_spec.height, m_spec.z,
                                  m_spec.z + m_spec.depth, chbegin, chend,
-                                 m_spec.format, m_localpixels)) {
+                                 m_spec.format, localpixels())) {
         m_imagecache->close(m_name);
         m_pixels_valid = true;
     } else {
@@ -1504,7 +1581,7 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
     }
     bool ok = true;
     ok &= m_impl->validate_pixels();
-    pvt::LoggedTimer logtime("IB::write inner");
+    OIIO::pvt::LoggedTimer logtime("IB::write inner");
     if (out->supports("thumbnail") && has_thumbnail()) {
         auto thumb = get_thumbnail();
         // Strutil::print("IB::write: has thumbnail ROI {}\n", thumb->roi());
@@ -1513,9 +1590,9 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
     const ImageSpec& bufspec(m_impl->m_spec);
     const ImageSpec& outspec(out->spec());
     TypeDesc bufformat = spec().format;
-    if (m_impl->m_localpixels) {
+    if (m_impl->localpixels()) {
         // In-core pixel buffer for the whole image
-        ok = out->write_image(bufformat, m_impl->m_localpixels, pixel_stride(),
+        ok = out->write_image(bufformat, m_impl->localpixels(), pixel_stride(),
                               scanline_stride(), z_stride(), progress_callback,
                               progress_callback_data);
     } else if (deep()) {
@@ -1570,7 +1647,6 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
             int chunk = clamp(round_to_multiple(int(budget / slsize), 64), 1,
                               1024);
             std::unique_ptr<std::byte[]> tmp(new std::byte[chunk * slsize]);
-            auto tmpspan = make_span(tmp.get(), chunk * slsize);
 
             // Special handling for flipped vertical scanline order. Right now, OpenEXR
             // is the only format that allows it, so we special case it by name. For
@@ -1586,26 +1662,36 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
             const int yDelta     = isDecreasingY ? -chunk : chunk;
             const int yLoopEnd   = yLoopStart + numChunks * yDelta;
 
-            for (int z = 0; z < outspec.depth; ++z) {
-                for (int y = yLoopStart; y != yLoopEnd && ok; y += yDelta) {
-                    int yend = std::min(y + outspec.y + chunk,
-                                        outspec.y + outspec.height);
-                    ok &= get_pixels(ROI(outspec.x, outspec.x + outspec.width,
-                                         outspec.y + y, yend, outspec.z,
-                                         outspec.z + outspec.depth),
-                                     bufformat, tmpspan);
-                    ok &= out->write_scanlines(y + outspec.y, yend,
-                                               z + outspec.z, bufformat,
-                                               &tmp[0]);
-                    if (progress_callback
-                        && progress_callback(
-                            progress_callback_data,
-                            (float)(z * outspec.height
-                                    + (isDecreasingY ? (outspec.height - 1 - y)
-                                                     : y))
-                                / (outspec.height * outspec.depth)))
-                        return ok;
+            OIIO_ASSERT(outspec.depth == 1
+                        && "scanline output is only for 2D images");
+            for (int y = yLoopStart; y != yLoopEnd && ok; y += yDelta) {
+                int ybegin = y + outspec.y;
+                int yend = std::min(ybegin + chunk, outspec.y + outspec.height);
+                auto tmpspan = image_span(tmp.get(), bufspec.nchannels,
+                                          bufspec.width, yend - ybegin, 1,
+                                          bufspec.format.size(), AutoStride,
+                                          AutoStride, AutoStride,
+                                          bufspec.format.size());
+
+                size_t sz = bufspec.scanline_bytes() * size_t(yend - ybegin);
+                if (sz != tmpspan.size_bytes()) {
+                    errorfmt(
+                        "write_scanlines: Buffer size is incorrect ({} bytes vs {} needed) slb={} sls={} fmt={} w={} ch={}, buffer w={}, nc={}, chansize={}",
+                        sz, tmpspan.size_bytes(), bufspec.scanline_bytes(),
+                        yend - ybegin, bufspec.format, bufspec.width,
+                        bufspec.nchannels, tmpspan.width(), tmpspan.nchannels(),
+                        tmpspan.chansize());
                 }
+                ok &= get_pixels(ROI(outspec.x, outspec.x + outspec.width,
+                                     ybegin, yend, 0, 1, 0, outspec.nchannels),
+                                 bufformat, tmpspan);
+                ok &= out->write_scanlines(ybegin, yend, bufformat, tmpspan);
+                if (progress_callback
+                    && progress_callback(
+                        progress_callback_data,
+                        (float)(isDecreasingY ? (outspec.height - 1 - y) : y)
+                            / (outspec.height * outspec.depth)))
+                    return ok;
             }
         }
     }
@@ -1621,7 +1707,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
                 ProgressCallback progress_callback,
                 void* progress_callback_data) const
 {
-    pvt::LoggedTimer logtime("IB::write");
+    OIIO::pvt::LoggedTimer logtime("IB::write");
     string_view filename   = _filename.size() ? _filename : string_view(name());
     string_view fileformat = _fileformat.size() ? _fileformat : filename;
     if (filename.size() == 0) {
@@ -2048,7 +2134,7 @@ void*
 ImageBuf::localpixels()
 {
     m_impl->validate_pixels();
-    return m_impl->m_localpixels;
+    return m_impl->localpixels();
 }
 
 
@@ -2057,7 +2143,7 @@ const void*
 ImageBuf::localpixels() const
 {
     m_impl->validate_pixels();
-    return m_impl->m_localpixels;
+    return m_impl->localpixels();
 }
 
 
@@ -2065,7 +2151,7 @@ ImageBuf::localpixels() const
 stride_t
 ImageBuf::pixel_stride() const
 {
-    return m_impl->m_xstride;
+    return m_impl->m_bufspan.xstride();
 }
 
 
@@ -2073,7 +2159,7 @@ ImageBuf::pixel_stride() const
 stride_t
 ImageBuf::scanline_stride() const
 {
-    return m_impl->m_ystride;
+    return m_impl->m_bufspan.ystride();
 }
 
 
@@ -2081,7 +2167,7 @@ ImageBuf::scanline_stride() const
 stride_t
 ImageBuf::z_stride() const
 {
-    return m_impl->m_zstride;
+    return m_impl->m_bufspan.zstride();
 }
 
 
@@ -2554,6 +2640,17 @@ get_pixels_(const ImageBuf& buf, const ImageBuf& /*dummy*/, ROI whole_roi,
 
 
 bool
+ImageBuf::get_pixels(ROI roi, TypeDesc format,
+                     const image_span<std::byte>& buffer) const
+{
+    // FIXME: for now, just wrap the pointer based one
+    return get_pixels(roi, format, buffer.data(), buffer.xstride(),
+                      buffer.ystride(), buffer.zstride());
+}
+
+
+
+bool
 ImageBuf::get_pixels(ROI roi, TypeDesc format, span<std::byte> buffer,
                      void* buforigin, stride_t xstride, stride_t ystride,
                      stride_t zstride) const
@@ -2634,8 +2731,8 @@ set_pixels_(ImageBuf& buf, ROI roi, const void* data_, stride_t xstride,
 
 
 bool
-ImageBuf::set_pixels(ROI roi, TypeDesc format, const void* data,
-                     stride_t xstride, stride_t ystride, stride_t zstride)
+ImageBuf::set_pixels(ROI roi, TypeDesc format,
+                     const image_span<const std::byte>& buffer)
 {
     if (!initialized()) {
         errorfmt("Cannot set_pixels() on an uninitialized ImageBuf");
@@ -2645,13 +2742,38 @@ ImageBuf::set_pixels(ROI roi, TypeDesc format, const void* data,
         roi = this->roi();
     roi.chend = std::min(roi.chend, nchannels());
 
-    ImageSpec::auto_stride(xstride, ystride, zstride, format.size(),
-                           roi.nchannels(), roi.width(), roi.height());
+    if (buffer.chanstride() != stride_t(format.size())) {
+        errorfmt(
+            "set_pixels does not currently support image_span source with non-contiguous channels");
+        return false;
+    }
+    if (size_t(roi.nchannels()) > buffer.nchannels()
+        || size_t(roi.width()) > buffer.width()
+        || size_t(roi.height()) > buffer.height()
+        || size_t(roi.depth()) > buffer.depth()) {
+        errorfmt(
+            "set_pixels source image_span was not big enough for the specified ROI.");
+        return false;
+    }
 
     bool ok;
     OIIO_DISPATCH_TYPES2(ok, "set_pixels", set_pixels_, spec().format, format,
-                         *this, roi, data, xstride, ystride, zstride);
+                         *this, roi, buffer.data(), buffer.xstride(),
+                         buffer.ystride(), buffer.zstride());
     return ok;
+}
+
+
+
+bool
+ImageBuf::set_pixels(ROI roi, TypeDesc format, const void* data,
+                     stride_t xstride, stride_t ystride, stride_t zstride)
+{
+    image_span<const std::byte> s(reinterpret_cast<const std::byte*>(data),
+                                  roi.nchannels(), roi.width(), roi.height(),
+                                  roi.depth(), format.size(), xstride, ystride,
+                                  zstride);
+    return set_pixels(roi, format, s);
 }
 
 
@@ -2822,7 +2944,8 @@ ImageBuf::xbegin() const
 int
 ImageBuf::xend() const
 {
-    return spec().x + spec().width;
+    const ImageSpec& spec(m_impl->spec());
+    return spec.x + spec.width;
 }
 
 
@@ -2838,7 +2961,8 @@ ImageBuf::ybegin() const
 int
 ImageBuf::yend() const
 {
-    return spec().y + spec().height;
+    const ImageSpec& spec(m_impl->spec());
+    return spec.y + spec.height;
 }
 
 
@@ -2854,7 +2978,8 @@ ImageBuf::zbegin() const
 int
 ImageBuf::zend() const
 {
-    return spec().z + std::max(spec().depth, 1);
+    const ImageSpec& spec(m_impl->spec());
+    return spec.z + std::max(spec.depth, 1);
 }
 
 
@@ -2870,7 +2995,8 @@ ImageBuf::xmin() const
 int
 ImageBuf::xmax() const
 {
-    return spec().x + spec().width - 1;
+    const ImageSpec& spec(m_impl->spec());
+    return spec.x + spec.width - 1;
 }
 
 
@@ -2886,7 +3012,8 @@ ImageBuf::ymin() const
 int
 ImageBuf::ymax() const
 {
-    return spec().y + spec().height - 1;
+    const ImageSpec& spec(m_impl->spec());
+    return spec.y + spec.height - 1;
 }
 
 
@@ -2902,7 +3029,8 @@ ImageBuf::zmin() const
 int
 ImageBuf::zmax() const
 {
-    return spec().z + std::max(spec().depth, 1) - 1;
+    const ImageSpec& spec(m_impl->spec());
+    return spec.z + std::max(spec.depth, 1) - 1;
 }
 
 
@@ -3045,12 +3173,7 @@ ImageBufImpl::pixeladdr(int x, int y, int z, int ch) const
     if (cachedpixels())
         return nullptr;
     validate_pixels();
-    x -= m_spec.x;
-    y -= m_spec.y;
-    z -= m_spec.z;
-    stride_t p = y * m_ystride + x * m_xstride + z * m_zstride
-                 + ch * m_channel_stride;
-    return &(m_localpixels[p]);
+    return m_bufspan.getptr(ch, x - m_spec.x, y - m_spec.y, z - m_spec.z);
 }
 
 
@@ -3061,12 +3184,7 @@ ImageBufImpl::pixeladdr(int x, int y, int z, int ch)
     validate_pixels();
     if (cachedpixels())
         return nullptr;
-    x -= m_spec.x;
-    y -= m_spec.y;
-    z -= m_spec.z;
-    size_t p = y * m_ystride + x * m_xstride + z * m_zstride
-               + ch * m_channel_stride;
-    return &(m_localpixels[p]);
+    return m_bufspan.getptr(ch, x - m_spec.x, y - m_spec.y, z - m_spec.z);
 }
 
 
@@ -3246,9 +3364,10 @@ ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
     size_t offset = ((z - tilezbegin) * (size_t)th + (y - tileybegin))
                         * (size_t)tw
                     + (x - tilexbegin);
-    offset *= m_spec.pixel_bytes();
-    OIIO_DASSERT_MSG(m_spec.pixel_bytes() == size_t(m_xstride), "%d vs %d",
-                     (int)m_spec.pixel_bytes(), (int)m_xstride);
+    offset *= m_bufspan.xstride();
+    OIIO_DASSERT_MSG(m_spec.pixel_bytes() == size_t(m_bufspan.xstride()),
+                     "%d vs %d", (int)m_spec.pixel_bytes(),
+                     (int)m_bufspan.xstride());
 
     TypeDesc format;
     const void* pixeldata = m_imagecache->tile_pixels(tile, format);
@@ -3539,4 +3658,4 @@ ImageBuf::unlock() const
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

@@ -688,9 +688,12 @@ preferred except when legacy file access is required.
      - string
      - Color space (see Section :ref:`sec-metadata-color`). We currently
        assume that any RGBE files encountered are linear with sRGB primaries.
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction specified in the RGBE header (if it's gamma corrected).
+   * - ``CICP``
+     - int[4]
+     - Coding-independent code points to describe the color profile.
+   * - ``oiio:BitsPerSample``
+     - int
+     - Bits per sample in the file: 8, 10 or 12.
    * - ``heif:Orientation``
      - int
      - If the configuration option ``heif:reorient`` is nonzero and
@@ -1143,6 +1146,11 @@ JPEG-2000 is not yet widely used, so OpenImageIO's support of it is
 preliminary.  In particular, we are not yet very good at handling the
 metadata robustly.
 
+Optionally this plugin can be built with OpenJPH support, which is a
+JPEG-2000 encoder/decoder that is faster than OpenJPEG, and supports the
+High Throughput JPEG2000 (HTJ2K) format (Jpeg2000 Part 15). If OpenJPH is not available, the
+OpenJPEG library will be used instead but only for decoding. OpenJPH is available at  https://github.com/aous72/OpenJPH .
+
 **Attributes**
 
 .. list-table::
@@ -1186,6 +1194,9 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+  
+If OpenJPH is installed, the reader will attempt to read the file first with 
+the OpenJPH library, and if that fails, it will fall back to the OpenJPEG library.
 
 **Configuration settings for JPEG-2000 output**
 
@@ -1215,14 +1226,52 @@ control aspects of the writing itself:
        for output rather than being assumed to be associated and get automatic
        un-association to store in the file.
 
+If OpenJPH is installed, and the file extension is :file:`.j2c`, or if the -``compression`` flag is set to ``"htj2k"``, the
+writer will attempt to write the file with the OpenJPH library, and the following flags will be available:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``jph:bit_depth``
+     - int
+     - The output bitdepth of the file.
+   * - ``jph:num_decomps``
+     - int
+     - (5) number of decompositions.
+   * - ``jph:block_size``
+     - string
+     - The output block size, defaults to 64,64   
+   * - ``jph:prog_order``
+     - string
+     - (RPCL) is the progression order, and can be one of:
+               LRCP, RLCP, RPCL, PCRL, CPRL. These determine the sequence in which the image data is processed and transmitted. The letters stand for:
+        R: Resolution
+        P: position
+        C: component
+        L: Layer
+        RPCL is common for applications where resolution scalability is important.
+   * - ``jph:precincts``
+     - string
+     -   x,y,x,y,...,x,y where x,y is the precinct size
+               starting from the coarsest resolution; the last precinct
+               is repeated for all finer resolutions
+   * - ``jph:qstep``
+     - float
+     - If supplied, is the quantization step size for lossy compression; 
+       quantization steps size for all subbands are derived from this value. Valid values can be from 0.00001 to 0.5.
+       If not used, the encoder will be lossless.
+
+
 **Custom I/O Overrides**
 
 JPEG-2000 input and output both support the "custom I/O" feature via the
 special ``"oiio:ioproxy"`` attributes (see Sections
 :ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
-
-
 |
 
 .. _sec-bundledplugins-jpegxl:
@@ -1299,11 +1348,11 @@ control aspects of the writing itself:
        For lossy, higher effort should more accurately reach the target quality.
    * - ``jpegxl:speed``
      - int
-     - Sets the encoding speed tier for the provided options. Minimum is 0
-       (slowest to encode, best quality/density), and maximum is 4 (fastest to
-       encode, at the cost of some quality/density). Default is 0.
-       (Note: in libjxl it named JXL_ENC_FRAME_SETTING_DECODING_SPEED. But it
-       is about encoding speed and compression quality, not decoding speed.)
+     - Sets the decoding speed tier. Values 1 to 4 offer progressively
+       faster decoding speed but lower compression ratio.
+       Encoding speed is variable between levels, but still moderated
+       with the effort setting. Default value is 0 for highest compression
+       ratio/quality but slowest decoding.
    * - ``jpegxl:photon_noise_iso``
      - float
      - (ISO_FILM_SPEED) Adds noise to the image emulating photographic film or
@@ -1390,6 +1439,9 @@ Some special attributes are used for movie files:
    * - ``ffmpeg:TimeCode``
      - string
      - Start time timecode
+   * - ``CICP``
+     - int[4]
+     - Coding-independent code points to describe the color profile.
 
 
 
@@ -1497,8 +1549,9 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``compression``
      - string
      - one of: ``"none"``, ``"rle"``, ``"zip"``, ``"zips"``, ``"piz"``,
-       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, or ``"dwab"``.  If
-       the writer receives a request for a compression type it does not
+       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"``, ``"htj2k256"`` or ``"htj2k32"``.
+       (``"htj2k256"`` and ``"htj2k32"`` are only supported with OpenEXR 3.4 or later.)
+       If the writer receives a request for a compression type it does not
        recognize or is not supported by the version of OpenEXR on the
        system, it will use ``"zip"`` by default. For ``"dwaa"`` and
        ``"dwab"``, the dwaCompressionLevel may be optionally appended to the
@@ -1546,6 +1599,19 @@ The official OpenEXR site is http://www.openexr.com/.
      - If nonzero, indicates whether the image is a luminance-chroma image.
        Upon reading, the subsampled Y/BY/RY(/A) channels of luminance-chroma
        images are automatically converted to RGB(A) channels.
+   * - ``openexr::deepImageState``
+     - string
+     - If present in a deep file, reveals the deep image state, one of:
+       ``"messy"``, ``"sorted"``, ``"non_overlapping"``, or ``"tidy"``.
+       See the OpenEXR documentation for explanations. This metadata was
+       added in OpenImageIO 3.1.
+   * - ``openexr::compressedIDManifest``
+     - uint8[]
+     - A byte array whose first 8 bytes are the uncompressed size of the
+       manifest, as a little-endian uint64. Then beginning at byte 8,
+       the remainder is the zip-compressed serialized manifest.
+       This metadata was added in OpenImageIO 3.1, and is only supported when
+       OIIO is built against OpenEXR 3.1 or newer.
    * - *other*
      - 
      - All other attributes will be added to the ImageSpec by their name and
@@ -1590,6 +1656,19 @@ control aspects of the writing itself:
    * - Output Configuration Attribute
      - Type
      - Meaning
+   * - ``openexr:ACESContainerPolicy``
+     - string
+     - One of `none` (default), `strict`, or `relaxed`.
+       If not `none`, the spec will be checked to see if it is compliant
+       with the ACES Container format defined in `ST 2065-4`_. If it is,
+       `chromaticities` will be set to the ACES AP0 ones, `colorInteropId`
+       will be set to 'lin_ap0_scene' and the `acesImageContainerFlag`
+       attribute will be set to 1.
+       In `strict` mode, if the spec is non-compliant, the output will
+       throw an error and avoid writing the image.
+       While in `relaxed` mode, if the spec is non-compliant, `chromaticities`
+       and `colorInteropId` will be set, but `acesImageContainerFlag`
+       will NOT.
    * - ``oiio:RawColor``
      - int
      - If nonzero, writing images with non-RGB color models (such as YCbCr)
@@ -1601,6 +1680,7 @@ control aspects of the writing itself:
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
 
+.. _ST 2065-4: https://pub.smpte.org/pub/st2065-4/
 
 **Custom I/O Overrides**
 
@@ -1724,9 +1804,11 @@ files use the file extension :file:`.png`.
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction value (if specified).
+   * - ``CICP``
+     - int[4]
+     - CICP color space information (see Section :ref:`sec-metadata-color`).
+       Note that this attribute is only supported if OIIO was built against
+       libPNG 1.6.45 or newer.
    * - ``ICCProfile``
      - uint8[]
      - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
@@ -2323,9 +2405,6 @@ software developed at Wavefront.  RLA files commonly use the file extension
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction value (if specified).
 
 **Configuration settings for RLA input**
 
@@ -2564,9 +2643,6 @@ http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction value (if specified).
 
 If the TGA file contains a thumbnail, its dimensions will be stored in the
 attributes ``"thumbnail_width"``, ``"thumbnail_height"``, and
@@ -3038,6 +3114,10 @@ open standard for lossy-compressed images for use on the web.
    * - ImageSpec Attribute
      - Type
      - WebP header data or explanation
+   * - ``ICCProfile``
+     - uint8[]
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
    * - ``oiio:Movie``
      - int
      - If nonzero, indicates that it's a multi-subimage file intended to

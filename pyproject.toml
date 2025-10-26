@@ -1,3 +1,6 @@
+# See docs at https://cibuildwheel.pypa.io/en/stable/options
+# for description of all the options in this file.
+
 [project]
 name = "OpenImageIO"
 # The build backend ascertains the version from the CMakeLists.txt file.
@@ -16,21 +19,21 @@ classifiers = [
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: Apache Software License",
     "Topic :: Multimedia :: Graphics",
     "Topic :: Multimedia :: Video",
     "Topic :: Multimedia :: Video :: Display",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">= 3.8"
+requires-python = ">= 3.9"
 dependencies = [
-    "numpy>=1.19",
+    "numpy>=2.0,<3",
 ]
 
 [project.urls]
@@ -49,7 +52,7 @@ oiiotool = "OpenImageIO:_command_line"
 build-backend = "scikit_build_core.build"
 requires = [
     "scikit-build-core>=0.10.6,<1",
-    "pybind11",
+    "pybind11>=2.13,<4",
 ]
 
 [tool.scikit-build]
@@ -89,12 +92,14 @@ if.platform-system = "darwin"
 if.platform-machine  = "arm64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "arm64"
+cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "11"
 
 [[tool.scikit-build.overrides]]
 if.platform-system = "darwin"
 if.platform-machine  = "x86_64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
+cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "10.15"
 
 [tool.cibuildwheel]
 build-verbosity = 1
@@ -105,13 +110,13 @@ skip = [
     # Building with musl seems to work, but the repair-wheel step seems to fail...
     # This may be a bug in repairwheel (or auditwheel)?
     "*musllinux*",  
+    # Skip free-threading builds
+    "cp3??t-*",
 ]
 test-command = "oiiotool --buildinfo"
 
 [tool.cibuildwheel.macos.environment]
 SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1"
-# C++17 - std::filesystem is only available in macOS 10.15 and later; ARM compatibility introduced in 11.
-MACOSX_DEPLOYMENT_TARGET = "11"
 # Optimize for size (not speed).
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
@@ -120,6 +125,8 @@ SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1"
 # Suppress warnings that cause linux cibuildwheel build to fail
 CXXFLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
+# FIXME: Getting build problems when using WebP 1.6.0, so hold it back
+WebP_BUILD_VERSION = "1.5.0"
 
 [tool.cibuildwheel.windows.environment]
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"

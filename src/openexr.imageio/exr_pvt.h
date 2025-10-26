@@ -6,6 +6,7 @@
 
 
 #include <OpenImageIO/Imath.h>
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
@@ -77,13 +78,38 @@ public:
             throw Iex::IoExc("Unexpected end of file.");
         return n;
     }
-    uint64_t tellg() override { return m_io->tell(); }
+
+    uint64_t tellg() override
+    {
+        OIIO_DASSERT(m_io);
+        return m_io->tell();
+    }
+
     void seekg(uint64_t pos) override
     {
+        OIIO_DASSERT(m_io);
         if (!m_io->seek(pos))
             throw Iex::IoExc("File input failed.");
     }
+
     void clear() override {}
+
+#if OPENEXR_CODED_VERSION >= 30300
+    int64_t size() override
+    {
+        OIIO_DASSERT(m_io);
+        return static_cast<int64_t>(m_io->size());
+    }
+
+    bool isStatelessRead() const override { return true; }
+
+    int64_t read(void* buf, uint64_t sz, uint64_t offset) override
+    {
+        OIIO_DASSERT(m_io);
+        return static_cast<int64_t>(
+            m_io->pread(buf, sz, static_cast<int64_t>(offset)));
+    }
+#endif
 
 private:
     Filesystem::IOProxy* m_io = nullptr;
@@ -102,7 +128,7 @@ public:
                 || feature == "exif"  // Because of arbitrary_metadata
                 || feature == "ioproxy"
                 || feature == "iptc"  // Because of arbitrary_metadata
-                || feature == "multiimage");
+                || feature == "multiimage" || feature == "mipmap");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec,
@@ -203,6 +229,7 @@ private:
     int m_nsubimages;                   ///< How many subimages are there?
     int m_miplevel;                     ///< What MIP level are we looking at?
     std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
+    std::string m_filename;             // filename, if known
 
     void init()
     {
@@ -218,8 +245,13 @@ private:
         m_io                       = nullptr;
         m_local_io.reset();
         m_missingcolor.clear();
+        m_filename.clear();
     }
 
+    bool read_native_scanlines_individually(int subimage, int miplevel,
+                                            int ybegin, int yend, int z,
+                                            int chbegin, int chend, void* data,
+                                            stride_t ystride);
     bool read_native_tiles_individually(int subimage, int miplevel, int xbegin,
                                         int xend, int ybegin, int yend,
                                         int zbegin, int zend, int chbegin,

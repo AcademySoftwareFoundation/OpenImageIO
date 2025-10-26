@@ -3,7 +3,9 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/tiffutils.h>
 
 #include <libheif/heif_cxx.h>
@@ -36,7 +38,11 @@ public:
     const char* format_name(void) const override { return "heif"; }
     int supports(string_view feature) const override
     {
-        return feature == "exif";
+        return feature == "exif"
+#if LIBHEIF_HAVE_VERSION(1, 9, 0)
+               || feature == "cicp"
+#endif
+            ;
     }
     bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
@@ -53,6 +59,7 @@ private:
     std::string m_filename;
     int m_subimage                 = -1;
     int m_num_subimages            = 0;
+    int m_bitdepth                 = 0;
     int m_has_alpha                = false;
     bool m_associated_alpha        = true;
     bool m_keep_unassociated_alpha = false;
@@ -203,11 +210,30 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         return false;
     }
 
-    auto id     = (subimage == 0) ? m_primary_id : m_item_ids[subimage - 1];
-    m_ihandle   = m_ctx->get_image_handle(id);
+    auto id   = (subimage == 0) ? m_primary_id : m_item_ids[subimage - 1];
+    m_ihandle = m_ctx->get_image_handle(id);
+
+    m_bitdepth = m_ihandle.get_luma_bits_per_pixel();
+    if (m_bitdepth < 0) {
+        errorfmt("Image has undefined bit depth");
+        m_ctx.reset();
+        return false;
+    } else if (!(m_bitdepth == 8 || m_bitdepth == 10 || m_bitdepth == 12)) {
+        errorfmt("Image has unsupported bit depth {}", m_bitdepth);
+        m_ctx.reset();
+        return false;
+    }
+
     m_has_alpha = m_ihandle.has_alpha_channel();
-    auto chroma = m_has_alpha ? heif_chroma_interleaved_RGBA
-                              : heif_chroma_interleaved_RGB;
+    auto chroma = m_has_alpha        ? (m_bitdepth > 8)
+                                           ? littleendian()
+                                                 ? heif_chroma_interleaved_RRGGBBAA_LE
+                                                 : heif_chroma_interleaved_RRGGBBAA_BE
+                                           : heif_chroma_interleaved_RGBA
+                  : (m_bitdepth > 8) ? littleendian()
+                                           ? heif_chroma_interleaved_RRGGBB_LE
+                                           : heif_chroma_interleaved_RRGGBB_BE
+                                     : heif_chroma_interleaved_RGB;
 #if 0
     try {
         m_himage = m_ihandle.decode_image(heif_colorspace_RGB, chroma);
@@ -238,12 +264,39 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     }
 #endif
 
-    int bits = m_himage.get_bits_per_pixel(heif_channel_interleaved);
-    m_spec   = ImageSpec(m_himage.get_width(heif_channel_interleaved),
-                         m_himage.get_height(heif_channel_interleaved), bits / 8,
-                         TypeUInt8);
+    m_spec = ImageSpec(m_himage.get_width(heif_channel_interleaved),
+                       m_himage.get_height(heif_channel_interleaved),
+                       m_has_alpha ? 4 : 3,
+                       (m_bitdepth > 8) ? TypeUInt16 : TypeUInt8);
 
-    m_spec.set_colorspace("sRGB");
+    if (m_bitdepth > 8) {
+        m_spec.attribute("oiio:BitsPerSample", m_bitdepth);
+    }
+    m_spec.set_colorspace("srgb_rec709_scene");
+
+#if LIBHEIF_HAVE_VERSION(1, 9, 0)
+    // Read CICP. Have to use the C API to get it from the image handle,
+    // the one on the decoded image is not what was written in the file.
+    enum heif_color_profile_type profile_type
+        = heif_image_handle_get_color_profile_type(
+            m_ihandle.get_raw_image_handle());
+    if (profile_type == heif_color_profile_type_nclx) {
+        heif_color_profile_nclx* nclx = nullptr;
+        const heif_error err = heif_image_handle_get_nclx_color_profile(
+            m_ihandle.get_raw_image_handle(), &nclx);
+
+        if (nclx) {
+            if (err.code == heif_error_Ok) {
+                const int cicp[4] = { int(nclx->color_primaries),
+                                      int(nclx->transfer_characteristics),
+                                      int(nclx->matrix_coefficients),
+                                      int(nclx->full_range_flag ? 1 : 0) };
+                m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+            }
+            heif_nclx_color_profile_free(nclx);
+        }
+    }
+#endif
 
 #if LIBHEIF_HAVE_VERSION(1, 12, 0)
     // Libheif >= 1.12 added API call to find out if the image is associated
@@ -385,16 +438,39 @@ HeifInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return false;
     if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
-
-    int ystride          = 0;
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 20, 0, 0)
+    size_t ystride = 0;
+#else
+    int ystride = 0;
+#endif
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 20, 2, 0)
+    const uint8_t* hdata = m_himage.get_plane2(heif_channel_interleaved,
+                                               &ystride);
+#else
     const uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved,
                                               &ystride);
+#endif
     if (!hdata) {
         errorfmt("Unknown read error");
         return false;
     }
     hdata += (y - m_spec.y) * ystride;
-    memcpy(data, hdata, m_spec.width * m_spec.pixel_bytes());
+    if (m_bitdepth == 10 || m_bitdepth == 12) {
+        const size_t num_values = m_spec.width * m_spec.nchannels;
+        const uint16_t* hdata16 = reinterpret_cast<const uint16_t*>(hdata);
+        uint16_t* data16        = static_cast<uint16_t*>(data);
+        if (m_bitdepth == 10) {
+            for (size_t i = 0; i < num_values; ++i) {
+                data16[i] = bit_range_convert<10, 16>(hdata16[i]);
+            }
+        } else {
+            for (size_t i = 0; i < num_values; ++i) {
+                data16[i] = bit_range_convert<12, 16>(hdata16[i]);
+            }
+        }
+    } else {
+        memcpy(data, hdata, m_spec.width * m_spec.pixel_bytes());
+    }
     return true;
 }
 

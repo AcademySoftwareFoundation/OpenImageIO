@@ -162,6 +162,12 @@ Command-line arguments are:
     images that are compatible with both OIIO and other texturing systems
     that require power-of-2 textures.
 
+.. option:: --keepaspect
+
+   Sets the `PixelAspectRatio` metadata to the input image aspect ratio,
+   allowing compatible viewers to display the output in the original aspect
+   ratio even if `--resize` is used.
+
 .. option:: --filter <name>
 
     By default, the resizing step that generates successive MIP levels uses
@@ -344,13 +350,13 @@ Command-line arguments are:
     settings on the command line or in the input texture.
     
     Specifically, this option sets the tile size (to 64x64 for 8 bit, 64x32
-    for 16 bit integer, and 32x32 for float or `half` images), uses
+    for 16 bit integer, and 32x32 for `float` or `half` images), uses
     "separate" planar configuration (`--separate`), and sets PRMan-specific
     metadata (`--prman-metadata`).  It also outputs sint16 textures if
     uint16 is requested (because PRMan for some reason does not accept true
     uint16 textures), and in the case of TIFF files will omit the Exif
     directory block which will not be recognized by the older version of
-    libtiff used by PRMan.
+    libtiff used by PRMan versions <= 26.
     
     OpenImageIO will happily accept textures that conform to PRMan's
     expectations, but not vice versa.  But OpenImageIO's TextureSystem has
@@ -470,6 +476,38 @@ Command-line arguments are:
    a suggested value is 256.
 
    (This option was added for OpenImageIO 2.3.)
+
+.. option:: --slopefilter <filtername>
+
+   Used in conjunction with `--bumpslopes`, this sets the filter for computing
+   the slopes when `--bumpformat` is set to "height". The default value is
+   "sobel". The option "centraldiff" matches the behavior of `txmake` and is
+   less prone to ring-shaped artifacting.
+
+.. option:: --bumpinverts
+
+   Used in conjunction with `--bumpslopes`, this inverts the computed slopes 
+   on the s/u/x direction.
+
+.. option:: --bumpinvertt
+
+   Used in conjunction with `--bumpslopes`, this inverts the computed slopes 
+   on the t/u/y direction.
+
+.. option:: --bumpscale <strength>
+
+   Used in conjunction with `--bumpslopes`, this scales the strength of the 
+   resulting bumpslopes map.
+
+.. option:: --bumprange <brange>
+
+   Used in conjunction with `--bumpslopes`, this sets the convention used for 
+   normal map data when `--bumpformat` is set to "normal". When set to 
+   "centered", the normals data is assumed to exist on the range 
+   :math:`[-1,1]`. When set to "positive", the normals data is assumed to 
+   exist on the range :math:`[0,1]`. When set to "auto", the default value, 
+   the range is inferred based on whether or not negative values are present
+   in the input image.
 
 .. option:: --cdf
             --cdfsigma <SIGMA>

@@ -27,4 +27,18 @@ equivalent('scene_linear', 'lin_srgb'): False
 equivalent('ACEScg', 'scene_linear'): True
 equivalent('lnf', 'scene_linear'): False
 
+Loaded test OCIO config: oiio_test_v0.9.2.ocio
+Parsed color space for filepath 'foo_lin_ap1.exr': ACEScg
+Default color space: lin_rec709
+Default display: sRGB (~2.22) - Display
+Default view for sRGB (~2.22) - Display (from lin_rec709): ACES 1.0 - SDR Video
+Default view for sRGB (~2.22) - Display (from 'srgb_tx'): Colorimetry
+Color space name from DisplayView transform referencing Shared View: sRGB (~2.22) - Display
+Test buffer -- initial values:                      [[[0.1 0.5 0.9]]]                 (ACEScg)
+ociodisplay #1 (apply default display/view):        [[[-2.123   0.671   0.8037]]]     (sRGB (~2.22) - Display)
+ociodisplay #2 (apply default display/view again):  [[[-2.123   0.671   0.8037]]]     (sRGB (~2.22) - Display)
+ociodisplay #3 (inverse look):                      [[[-2.252   0.6714  0.8037]]]     (sRGB (~2.22) - Display)
+ociodisplay #4 (forwards look):                     [[[-2.123   0.671   0.8037]]]     (sRGB (~2.22) - Display)
+ociodisplay #5 (inverse look + forwards look):      [[[-2.123   0.671   0.8037]]]     (sRGB (~2.22) - Display)
+
 Done.

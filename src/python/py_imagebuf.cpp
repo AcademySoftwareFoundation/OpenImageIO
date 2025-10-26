@@ -68,10 +68,11 @@ ImageBuf_from_buffer(const py::buffer& buffer)
     spec.depth      = depth;
     spec.full_depth = depth;
     ib.reset(spec, InitializePixels::No);
-    auto bufspan = cspan_from_buffer(info.ptr, format, nchans, width, height,
-                                     depth, xstride, ystride, zstride);
-    ib.set_pixels(get_roi(spec), format, bufspan, nullptr, xstride, ystride,
-                  zstride);
+    image_span<const std::byte> bufspan(reinterpret_cast<std::byte*>(info.ptr),
+                                        nchans, width, height, depth,
+                                        format.size(), xstride, ystride,
+                                        zstride, format.size());
+    ib.set_pixels(get_roi(spec), format, bufspan);
     return ib;
 }
 
@@ -340,7 +341,7 @@ declare_imagebuf(py::module& m)
             [](ImageBuf& self, std::string filename, int subimage,
                int miplevel) {
                 py::gil_scoped_release gil;
-                self.init_spec(filename, subimage, miplevel);
+                return self.init_spec(filename, subimage, miplevel);
             },
             "filename"_a, "subimage"_a = 0, "miplevel"_a = 0)
         .def(

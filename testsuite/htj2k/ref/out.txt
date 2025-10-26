@@ -1,0 +1,6 @@
+Comparing "../oiio-images/tahoe-gps.jpg" and "test.j2c"
+PASS
+Comparing "../oiio-images/dpx/dpx_nuke_10bits_rgb.dpx" and "testdpx.j2c"
+PASS
+Comparing "../oiio-images/tahoe-gps.jpg" and "testcompress.j2c"
+PASS

@@ -89,6 +89,16 @@ if (OpenVDB_FOUND)
         set_property(TARGET OpenVDB::openvdb APPEND PROPERTY
             IMPORTED_LOCATION "${OPENVDB_LIBRARIES}")
     endif ()
+
+    # Note: OpenVDB older than 12 needs Boost headers.
+    if (OpenVDB_VERSION VERSION_LESS 12)
+        find_package (Boost)
+        if (Boost_FOUND)
+            list(APPEND OPENVDB_INCLUDES ${Boost_INCLUDE_DIRS})
+        else()
+            unset(OpenVDB_FOUND)
+        endif()
+    endif()
 endif ()
 
 MARK_AS_ADVANCED(

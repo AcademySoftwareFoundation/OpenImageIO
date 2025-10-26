@@ -20,7 +20,7 @@ from OpenImageIO import *
 import numpy as np
 
 
-def example1():
+def example1() -> None:
     print("example1")
     #
     # Example code fragment from the docs goes here.
@@ -40,7 +40,7 @@ def example1():
 
 # Section: ImageBufAlgo common principles
 
-def example_output_error1():
+def example_output_error1() -> None:
     print("example_output_error1")
     fg = ImageBuf()
     bg = ImageBuf()
@@ -53,7 +53,7 @@ def example_output_error1():
     # END-imagebufalgo-output-error1
 
 
-def example_output_error2():
+def example_output_error2() -> None:
     print("example_output_error2")
     fg = ImageBuf()
     bg = ImageBuf()
@@ -69,7 +69,7 @@ def example_output_error2():
 
 # Section: Pattern Generation
 
-def example_zero():
+def example_zero() -> None:
     print("example_zero")
     A = ImageBuf("grid.exr")
     B = ImageBuf("grid.exr")
@@ -98,7 +98,7 @@ def example_zero():
     C.write("zero4.exr", "half")
 
 
-def example_fill():
+def example_fill() -> None:
     print("example_fill")
     # BEGIN-imagebufalgo-fill
     # Create a new 640x480 RGB image, with a top-to-bottom gradient
@@ -115,7 +115,7 @@ def example_fill():
     A.write("fill.exr", "half")
 
 
-def example_checker():
+def example_checker() -> None:
     print("example_checker")
     # BEGIN-imagebufalgo-checker
     # Create a new 640x480 RGB image, fill it with a two-toned gray
@@ -130,7 +130,7 @@ def example_checker():
     A.write("checker.exr", "half")
 
 
-def example_noise1():
+def example_noise1() -> None:
     print("example_noise1")
     # BEGIN-imagebufalgo-noise1
     # Create a new 256x256 field of grayscale white noise on [0,1)
@@ -156,7 +156,7 @@ def example_noise1():
     D.write("noise4.exr", "half")
 
 
-def example_noise2():
+def example_noise2() -> None:
     print("example_noise2")
     # BEGIN-imagebufalgo-noise2
     A = ImageBufAlgo.bluenoise_image()
@@ -165,7 +165,7 @@ def example_noise2():
     A.write("blue-noise.exr", "half")
 
 
-def example_point():
+def example_point() -> None:
     print("example_point")
     # BEGIN-imagebufalgo-point
     A = ImageBuf(ImageSpec(640, 480, 4, "float"))
@@ -176,7 +176,7 @@ def example_point():
     A.write("point.exr", "half")
 
 
-def example_lines():
+def example_lines() -> None:
     print("example_lines")
     # BEGIN-imagebufalgo-lines
     A = ImageBuf(ImageSpec(640, 480, 4, "float"))
@@ -188,7 +188,7 @@ def example_lines():
     A.write("lines.exr", "half")
 
 
-def example_box():
+def example_box() -> None:
     print("example_box")
     # BEGIN-imagebufalgo-box
     A = ImageBuf(ImageSpec(640, 480, 4, "float"))
@@ -201,7 +201,7 @@ def example_box():
     A.write("box.exr", "half")
 
 
-def example_text1():
+def example_text1() -> None:
     print("example_text1")
     ImgA = ImageBufAlgo.zero(ROI(0, 640, 0, 480, 0, 1, 0, 3))
     ImgB = ImageBufAlgo.zero(ROI(0, 640, 0, 480, 0, 1, 0, 3))
@@ -222,7 +222,7 @@ def example_text1():
     ImgB.write("text2.exr", "half")
 
 
-def example_text2():
+def example_text2() -> None:
     print("example_text2")
     # BEGIN-imagebufalgo-text2
     # Render text centered in the image, using text_size to find out
@@ -239,7 +239,7 @@ def example_text2():
 
 # Section: Image transformation and data movement
 
-def example_channels():
+def example_channels() -> None:
     print("example_channels")
     RGBA = ImageBuf("grid.exr")
     BRGA = ImageBuf()
@@ -270,7 +270,7 @@ def example_channels():
     BRGA.write("channels-brga.exr", "half")
 
 
-def example_channel_append():
+def example_channel_append() -> None:
     print("example_channel_append")
     Z = ImageBuf(ImageSpec(640, 480, 1, "float"))
 
@@ -282,7 +282,7 @@ def example_channel_append():
     RGBAZ.write("channel-append.exr", "half")
 
 
-def example_copy():
+def example_copy() -> None:
     print("example_copy")
     # BEGIN-imagebufalgo-copy
     # Set B to be a copy of A, but converted to float
@@ -293,7 +293,7 @@ def example_copy():
     B.write("copy.exr", "half")
 
 
-def example_crop():
+def example_crop() -> None:
     print("example_crop")
     # BEGIN-imagebufalgo-crop
     # Set B to be a 200x100 region of A starting at (50,50), trimming
@@ -305,7 +305,7 @@ def example_crop():
     B.write("crop.exr", "half")
 
 
-def example_cut():
+def example_cut() -> None:
     print("example_cut")
     # BEGIN-imagebufalgo-cut
     # Set B to be a 200x100 region of A starting at (50,50), but
@@ -317,7 +317,7 @@ def example_cut():
     B.write("cut.exr", "half")
 
 
-def example_paste():
+def example_paste() -> None:
     print("example_paste")
     # BEGIN-imagebufalgo-paste
     # Paste Fg on top of Bg, offset by (100,100)
@@ -329,7 +329,7 @@ def example_paste():
     Bg.write("paste.exr", "half")
 
 
-def example_rotate_n():
+def example_rotate_n() -> None:
     print("example_rotate_n")
     # BEGIN-imagebufalgo-rotate-n
     A = ImageBuf("grid.exr")
@@ -343,7 +343,7 @@ def example_rotate_n():
     R270.write("rotate-270.exr", "half")
 
 
-def example_flip_flop_transpose():
+def example_flip_flop_transpose() -> None:
     print("example_flip_flop_transpose")
     # BEGIN-imagebufalgo-flip-flop-transpose
     A = ImageBuf("grid.exr")
@@ -357,7 +357,7 @@ def example_flip_flop_transpose():
     B3.write("transpose.exr", "half")
 
 
-def example_reorient():
+def example_reorient() -> None:
     print("example_reorient")
     tmp = ImageBuf("grid.exr")
     tmp.specmod().attribute("Orientation", 8)
@@ -371,7 +371,7 @@ def example_reorient():
     A.write("reorient.exr", "half")
 
 
-def example_circular_shift():
+def example_circular_shift() -> None:
     print("example_circular_shift")
     # BEGIN-imagebufalgo-cshift
     A = ImageBuf("grid.exr")
@@ -380,7 +380,7 @@ def example_circular_shift():
     B.write("cshift.exr", "half")
 
 
-def example_rotate():
+def example_rotate() -> None:
     print("example_rotate")
     # BEGIN-imagebufalgo-rotate-angle
     Src = ImageBuf("grid.exr")
@@ -389,7 +389,7 @@ def example_rotate():
     Dst.write("rotate-45.tif", "uint8")
 
 
-def example_resize():
+def example_resize() -> None:
     print("example_resize")
     # BEGIN-imagebufalgo-resize
     # Resize the image to 640x480, using the default filter
@@ -400,7 +400,7 @@ def example_resize():
     Dst.write("resize.tif", "uint8")
 
 
-def example_resample():
+def example_resample() -> None:
     print("example_resample")
 
     # BEGIN-imagebufalgo-resample
@@ -412,7 +412,7 @@ def example_resample():
     Dst.write("resample.exr", "half")
 
 
-def example_fit():
+def example_fit() -> None:
     print("example_fit")
     # BEGIN-imagebufalgo-fit
     # Resize to fit into a max of 640x480, preserving the aspect ratio
@@ -423,7 +423,7 @@ def example_fit():
     Dst.write("fit.tif", "uint8")
 
 
-def example_warp():
+def example_warp() -> None:
     print("example_warp")
     # BEGIN-imagebufalgo-warp
     M = (0.7071068,  0.7071068, 0,
@@ -434,18 +434,18 @@ def example_warp():
     # END-imagebufalgo-warp
     Dst.write("warp.exr", "half")
 
-def example_demosaic():
+def example_demosaic() -> None:
     print("example_demosaic")
     # BEGIN-imagebufalgo-demosaic
     Src = ImageBuf("bayer.png")
     WB_RGBG = (2.0, 1.0, 1.5, 1.0)
-    Dst = ImageBufAlgo.demosaic(Src, layout="BGGR",
+    Dst = ImageBufAlgo.demosaic(Src, layout="BGGR", white_balance_mode="manual",
       white_balance = WB_RGBG)
     # END-imagebufalgo-demosaic
     Dst.write("demosaic.png")
 
 # Section: Image Arithmetic
-def example_add():
+def example_add() -> None:
     print("example_add")
     # BEGIN-imagebufalgo-add
     # Add images A and B
@@ -459,7 +459,7 @@ def example_add():
     Sum.write("add.exr", "half")
     Sum_cspan.write("add_cspan.exr", "half")
 
-def example_sub():
+def example_sub() -> None:
     print("example_sub")
     # BEGIN-imagebufalgo-sub
     A = ImageBuf("A.exr")
@@ -468,7 +468,7 @@ def example_sub():
     # END-imagebufalgo-sub
     Diff.write("sub.exr", "half")
 
-def example_absdiff():
+def example_absdiff() -> None:
     print("example_absdiff")
     # BEGIN-imagebufalgo-absdiff
     A = ImageBuf("A.exr")
@@ -477,7 +477,7 @@ def example_absdiff():
     # END-imagebufalgo-absdiff
     Diff.write("absdiff.exr", "half")
 
-def example_abs():
+def example_abs() -> None:
     print("example_abs")
     # BEGIN-imagebufalgo-absolute
     A = ImageBuf("grid.exr")
@@ -485,7 +485,7 @@ def example_abs():
     # END-imagebufalgo-absolute
     Abs.write("abs.exr", "half")
 
-def example_scale():
+def example_scale() -> None:
     print("example_scale")
     # BEGIN-imagebufalgo-scale
     # Pixel-by-pixel multiplication of all channels of one image A by the single channel of the other image
@@ -495,7 +495,7 @@ def example_scale():
     #END-imagebufalgo-scale
     Product.write("scale.exr", "half")
 
-def example_mul():
+def example_mul() -> None:
     print("example_mul")
     # BEGIN-imagebufalgo-mul
     # Pixel-by-pixel, channel-by-channel multiplication of A and B
@@ -508,7 +508,7 @@ def example_mul():
     # END-imagebufalgo-mul
     Product.write("mul.exr", "half")
 
-def example_div():
+def example_div() -> None:
     print("example_div")
     # BEGIN-imagebufalgo-div
     # Pixel-by-pixel, channel-by-channel division of A by B
@@ -531,7 +531,7 @@ def example_div():
 
 # Section: Image enhancement / restoration
 
-def example_fixNonFinite():
+def example_fixNonFinite() -> None:
     print("example_fixNonFinite")
     # BEGIN-imagebufalgo-fixNonFinite
     Src = ImageBuf("with_nans.tif")
@@ -541,7 +541,7 @@ def example_fixNonFinite():
     # fixing the nans seems nondeterministic - so not writing out the image
     # Src.write("with_nans_fixed.tif")
 
-def example_fillholes_pushpull():
+def example_fillholes_pushpull() -> None:
     print("example_fillholes_pushpull")
     # BEGIN-imagebufalgo-fillholes_pushpull
     Src = ImageBuf("checker_with_alpha.exr")
@@ -550,7 +550,7 @@ def example_fillholes_pushpull():
     Filled.write("checker_with_alpha_filled.exr")
 
 
-def example_median_filter():
+def example_median_filter() -> None:
     print("example_median_filter")
     # BEGIN-imagebufalgo-median_filter
     Noisy = ImageBuf("tahoe.tif")
@@ -559,7 +559,7 @@ def example_median_filter():
     Clean.write("tahoe_median_filter.tif")
 
 
-def example_unsharp_mask():
+def example_unsharp_mask() -> None:
     print("example_unsharp_mask")
     # BEGIN-imagebufalgo-unsharp_mask
     Blurry = ImageBuf("tahoe.tif")
@@ -575,7 +575,7 @@ def example_unsharp_mask():
 
 # Section: Import / export
 
-def example_make_texture():
+def example_make_texture() -> None:
     print("example_make_texture")
     # BEGIN-imagebufalgo-make-texture
     Input = ImageBuf("grid.exr")

@@ -30,7 +30,7 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// @namespace  Sysutil
 ///
@@ -186,4 +186,4 @@ private:
 
 }  // namespace Sysutil
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

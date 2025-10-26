@@ -76,9 +76,7 @@
 OIIO_INTEL_PRAGMA(warning disable 2196)
 
 
-OIIO_NAMESPACE_BEGIN
-
-using namespace Sysutil;
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 size_t
@@ -369,9 +367,6 @@ isatty(int fd)
 #endif
 
 
-Term::Term(FILE* file) { m_is_console = isatty(fileno((file))); }
-
-
 
 #ifdef _WIN32
 // from https://msdn.microsoft.com/fr-fr/library/windows/desktop/mt638032%28v=vs.85%29.aspx
@@ -402,6 +397,11 @@ enableVTMode()
 }
 #endif
 
+
+
+namespace Sysutil {
+
+Term::Term(FILE* file) { m_is_console = isatty(fileno((file))); }
 
 
 Term::Term(const std::ostream& stream)
@@ -525,6 +525,10 @@ Term::ansi_bgcolor(int r, int g, int b)
     return ret;
 }
 
+}  // end namespace Sysutil
+
+
+
 bool
 Sysutil::put_in_background()
 {
@@ -547,7 +551,7 @@ Sysutil::put_in_background()
     posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSID);
     char** argv    = *_NSGetArgv();
     char** environ = *_NSGetEnviron();
-    int status     = posix_spawn(&pid, argv[0], nullptr, &attr, argv, environ);
+    int status     = posix_spawnp(&pid, argv[0], nullptr, &attr, argv, environ);
     posix_spawnattr_destroy(&attr);
     if (status == 0)
         exit(0);
@@ -562,6 +566,7 @@ Sysutil::put_in_background()
     return false;
 #endif
 }
+
 
 
 bool
@@ -595,7 +600,8 @@ Sysutil::max_open_files()
 
 
 
-void*
+// Backward link compatibility
+OIIO_UTIL_API void*
 aligned_malloc(std::size_t size, std::size_t align)
 {
 #if defined(_WIN32)
@@ -606,9 +612,8 @@ aligned_malloc(std::size_t size, std::size_t align)
 #endif
 }
 
-
-
-void
+// Backward link compatibility
+OIIO_UTIL_API void
 aligned_free(void* ptr)
 {
 #if defined(_WIN32)
@@ -682,4 +687,4 @@ Sysutil::setup_crash_stacktrace(string_view filename)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

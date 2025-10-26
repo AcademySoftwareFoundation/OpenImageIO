@@ -29,8 +29,7 @@
 
 #include "imageio_pvt.h"
 
-using namespace OIIO;
-
+OIIO_NAMESPACE_BEGIN
 
 static spin_mutex maketx_mutex;  // for anything that needs locking
 
@@ -69,7 +68,8 @@ setup_filter(const ImageSpec& dstspec, const ImageSpec& srcspec,
 
 
 static TypeDesc
-set_prman_options(TypeDesc out_dataformat, ImageSpec& configspec)
+set_prman_options(TypeDesc out_dataformat, ImageSpec& configspec,
+                  bool is_bumpslopes)
 {
     // Force separate planar image handling, and also emit prman metadata
     configspec.attribute("planarconfig", "separate");
@@ -97,6 +97,8 @@ set_prman_options(TypeDesc out_dataformat, ImageSpec& configspec)
     // In prman's txmake (last tested in 15.0)
     // specifying -half or -float make 32x32 tile size
     if (out_dataformat == TypeDesc::DOUBLE)
+        out_dataformat = TypeDesc::FLOAT;
+    if (is_bumpslopes && !out_dataformat.is_floating_point())
         out_dataformat = TypeDesc::FLOAT;
     if (out_dataformat == TypeDesc::HALF || out_dataformat == TypeDesc::FLOAT) {
         configspec.tile_width  = 32;
@@ -138,17 +140,19 @@ datestring(time_t t)
 
 template<class SRCTYPE>
 static void
-interppixel_NDC_clamped(const ImageBuf& buf, float x, float y,
-                        span<float> pixel, bool envlatlmode)
+interppixel_NDC(const ImageBuf& buf, float x, float y, span<float> pixel,
+                bool envlatlmode, ImageBuf::ConstIterator<SRCTYPE>& it,
+                ImageBuf::WrapMode wrapmode)
 {
-    int fx = buf.spec().full_x;
-    int fy = buf.spec().full_y;
-    int fw = buf.spec().full_width;
-    int fh = buf.spec().full_height;
+    const ImageSpec& spec(buf.spec());
+    int fx = spec.full_x;
+    int fy = spec.full_y;
+    int fw = spec.full_width;
+    int fh = spec.full_height;
     x      = static_cast<float>(fx) + x * static_cast<float>(fw);
     y      = static_cast<float>(fy) + y * static_cast<float>(fh);
 
-    int n     = buf.spec().nchannels;
+    int n     = spec.nchannels;
     float *p0 = OIIO_ALLOCA(float, 4 * n), *p1 = p0 + n, *p2 = p1 + n,
           *p3 = p2 + n;
 
@@ -160,8 +164,7 @@ interppixel_NDC_clamped(const ImageBuf& buf, float x, float y,
     yfrac = floorfrac(y, &ytexel);
 
     // Get the four texels
-    ImageBuf::ConstIterator<SRCTYPE> it(
-        buf, ROI(xtexel, xtexel + 2, ytexel, ytexel + 2), ImageBuf::WrapClamp);
+    it.rerange(xtexel, xtexel + 2, ytexel, ytexel + 2, 0, 1, wrapmode);
     for (int c = 0; c < n; ++c)
         p0[c] = it[c];
     ++it;
@@ -181,8 +184,10 @@ interppixel_NDC_clamped(const ImageBuf& buf, float x, float y,
         // wrong will tend to over-represent the high latitudes in
         // low-res MIP levels.  We fold the area weighting into our
         // linear interpolation by adjusting yfrac.
-        int ynext = OIIO::clamp(ytexel + 1, buf.ymin(), buf.ymax());
-        ytexel    = OIIO::clamp(ytexel, buf.ymin(), buf.ymax());
+        int ymin  = spec.y;
+        int ymax  = ymin + spec.height - 1;
+        int ynext = OIIO::clamp(ytexel + 1, ymin, ymax);
+        ytexel    = OIIO::clamp(ytexel, ymin, ymax);
         float w0  = (1.0f - yfrac)
                    * sinf((float)M_PI * (ytexel + 0.5f) / (float)fh);
         float w1 = yfrac * sinf((float)M_PI * (ynext + 0.5f) / (float)fh);
@@ -218,15 +223,16 @@ resize_block_(ImageBuf& dst, const ImageBuf& src, ROI roi, bool envlatlmode)
     float yscale    = 1.0f / (float)dstspec.full_height;
     int nchannels   = dst.nchannels();
     OIIO_DASSERT(dst.spec().format == TypeFloat);
+    ImageBuf::WrapMode wrapmode = src_is_crop ? ImageBuf::WrapBlack
+                                              : ImageBuf::WrapClamp;
+    ImageBuf::ConstIterator<SRCTYPE> srcit(src);
     ImageBuf::Iterator<float> d(dst, roi);
     for (int y = y0; y < y1; ++y) {
         float t = (y + 0.5f) * yscale + yoffset;
         for (int x = x0; x < x1; ++x, ++d) {
             float s = (x + 0.5f) * xscale + xoffset;
-            if (src_is_crop)
-                src.interppixel_NDC(s, t, pel);
-            else
-                interppixel_NDC_clamped<SRCTYPE>(src, s, t, pel, envlatlmode);
+            interppixel_NDC<SRCTYPE>(src, s, t, pel, envlatlmode, srcit,
+                                     wrapmode);
             for (int c = 0; c < nchannels; ++c)
                 d[c] = pel[c];
         }
@@ -311,7 +317,7 @@ resize_block(ImageBuf& dst, const ImageBuf& src, ROI roi, bool envlatlmode,
         !envlatlmode &&                          // not latlong wrap mode
         roi.xbegin == 0 &&                       // Region x at origin
         dstspec.width == roi.width() &&          // Full width ROI
-        dstspec.width == (srcspec.width / 2) &&  // Src is 2x resize
+        (2 * dstspec.width) == srcspec.width &&  // Src is 2x resize
         dstspec.format == srcspec.format &&      // Same formats
         dstspec.x == 0 && dstspec.y == 0 &&      // Not a crop or overscan
         srcspec.x == 0 && srcspec.y == 0) {
@@ -340,7 +346,7 @@ check_nan_block(const ImageBuf& src, ROI roi, int& found_nonfinite)
         for (int x = x0; x < x1; ++x) {
             src.getpixel(x, y, pel);
             for (int c = 0; c < spec.nchannels; ++c) {
-                if (!isfinite(pel[c])) {
+                if (!std::isfinite(pel[c])) {
                     spin_lock lock(maketx_mutex);
                     // if (found_nonfinite < 3)
                     //     std::cerr << "maketx ERROR: Found " << pel[c]
@@ -387,6 +393,7 @@ lightprobe_to_envlatl(ImageBuf& dst, const ImageBuf& src, bool y_is_up,
 
         span<float> pixel = OIIO_ALLOCA_SPAN(float, nchannels);
         float dw = dstspec.width, dh = dstspec.height;
+        ImageBuf::ConstIterator<SRCTYPE> srcit(src);
         for (ImageBuf::Iterator<float> d(dst, roi); !d.done(); ++d) {
             Imath::V3f V = latlong_to_dir((d.x() + 0.5f) / dw,
                                           (dh - 1.0f - d.y() + 0.5f) / dh,
@@ -394,8 +401,8 @@ lightprobe_to_envlatl(ImageBuf& dst, const ImageBuf& src, bool y_is_up,
             float r      = M_1_PI * acosf(V[2]) / hypotf(V[0], V[1]);
             float u      = (V[0] * r + 1.0f) * 0.5f;
             float v      = (V[1] * r + 1.0f) * 0.5f;
-            interppixel_NDC_clamped<SRCTYPE>(src, float(u), float(v), pixel,
-                                             false);
+            interppixel_NDC<SRCTYPE>(src, float(u), float(v), pixel, false,
+                                     srcit, ImageBuf::WrapClamp);
             for (int c = roi.chbegin; c < roi.chend; ++c)
                 d[c] = pixel[c];
         }
@@ -406,39 +413,53 @@ lightprobe_to_envlatl(ImageBuf& dst, const ImageBuf& src, bool y_is_up,
 
 
 
+struct SlopeFilter {
+    float ds[9];
+    float dt[9];
+    float total;
+};
+
+static constexpr SlopeFilter sobel {
+    { -1.0f, 0.0f, 1.0f, -2.0f, 0.0f, 2.0f, -1.0f, 0.0f, 1.0f },
+    { -1.0f, -2.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f },
+    8.0f
+};
+
+static constexpr SlopeFilter centraldiff {
+    { 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f },
+    { 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f },
+    2.0f
+};
+
 // compute slopes in pixel space using a Sobel gradient filter
-template<class SRCTYPE>
+template<class SRCTYPE, SlopeFilter const& filter>
 static void
-sobel_gradient(const ImageBuf& src, const ImageBuf::Iterator<float>& dstpix,
+slope_gradient(const ImageBuf& src, const ImageBuf::Iterator<float>& dstpix,
                float* h, float* dh_ds, float* dh_dt)
 {
-    static const float sobelweight_ds[9] = { -1.0f, 0.0f,  1.0f, -2.0f, 0.0f,
-                                             2.0f,  -1.0f, 0.0f, 1.0f };
-    static const float sobelweight_dt[9] = { -1.0f, -2.0f, -1.0f, 0.0f, 0.0f,
-                                             0.0f,  1.0f,  2.0f,  1.0f };
-
     *dh_ds = *dh_dt = 0.0f;
 
     ImageBuf::ConstIterator<SRCTYPE> srcpix(src, dstpix.x() - 1, dstpix.x() + 2,
                                             dstpix.y() - 1, dstpix.y() + 2, 0,
                                             1, ImageBuf::WrapClamp);
     for (int i = 0; !srcpix.done(); ++srcpix, ++i) {
-        // accumulate to dh_ds and dh_dt using corresponding sobel 3x3 weights
+        // accumulate to dh_ds and dh_dt using corresponding 3x3 gradient weights
         float srcval = srcpix[0];
-        *dh_ds += sobelweight_ds[i] * srcval;
-        *dh_dt += sobelweight_dt[i] * srcval;
+        *dh_ds += filter.ds[i] * srcval;
+        *dh_dt += filter.dt[i] * srcval;
         if (i == 4)
             *h = srcval;
     }
 
-    *dh_ds = *dh_ds / 8.0f;  // sobel normalization
-    *dh_dt = *dh_dt / 8.0f;
+    *dh_ds = *dh_ds / filter.total;  // normalization
+    *dh_dt = *dh_dt / filter.total;
 }
 
 
 
 // compute slopes from normal in s,t space
 // Note: because we use getpixel(), it works for all src pixel types.
+template<bool is_centered>
 static void
 normal_gradient(const ImageBuf& src, const ImageBuf::Iterator<float>& dstpix,
                 float* h, float* dh_ds, float* dh_dt)
@@ -446,6 +467,13 @@ normal_gradient(const ImageBuf& src, const ImageBuf::Iterator<float>& dstpix,
     // assume a normal defined in the tangent space
     float n[3];
     src.getpixel(dstpix.x(), dstpix.y(), make_span(n));
+
+    if (!is_centered) {  // pixel data is on [0,1] instead of [-1,1]
+        n[0] -= 0.5f;
+        n[1] -= 0.5f;
+        n[2] -= 0.5f;
+    }
+
     *h     = -1.0f;
     *dh_ds = -n[0] / n[2];
     *dh_dt = -n[1] / n[2];
@@ -456,8 +484,10 @@ normal_gradient(const ImageBuf& src, const ImageBuf::Iterator<float>& dstpix,
 template<class SRCTYPE>
 static bool
 bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
-                   const ImageSpec& configspec, std::ostream& outstream,
-                   ROI roi = ROI::All(), int nthreads = 0)
+                   const ImageSpec& configspec,
+                   const ImageBufAlgo::PixelStats& pixel_stats,
+                   std::ostream& outstream, ROI roi = ROI::All(),
+                   int nthreads = 0)
 {
     if (!dst.initialized() || dst.nchannels() != 6
         || dst.spec().format != TypeDesc::FLOAT)
@@ -467,42 +497,80 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
     void (*bump_filter)(const ImageBuf&, const ImageBuf::Iterator<float>&,
                         float*, float*, float*);
 
-    bump_filter = &sobel_gradient<SRCTYPE>;
-
-    float res_x = 1.0f;
-    float res_y = 1.0f;
-
     string_view bumpformat = configspec.get_string_attribute(
         "maketx:bumpformat");
 
+    bool is_height;  // true => height, false => normal
     if (Strutil::iequals(bumpformat, "height"))
-        bump_filter = &sobel_gradient<
-            SRCTYPE>;  // default one considering height value in channel 0
+        is_height = true;
     else if (Strutil::iequals(bumpformat, "normal")) {
         if (src.spec().nchannels < 3) {
             outstream
                 << "maketx ERROR: normal map requires 3 channels input map.\n";
             return false;
         }
-        bump_filter = &normal_gradient;
+        is_height = false;
     } else if (Strutil::iequals(
                    bumpformat,
                    "auto")) {  // guess input bump format by analyzing channel count and component
         if (src.spec().nchannels > 2
             && !ImageBufAlgo::isMonochrome(src))  // maybe it's a normal map?
-            bump_filter = &normal_gradient;
+            is_height = false;
+        else
+            is_height = true;
     } else {
         outstream << "maketx ERROR: Unknown input bump format " << bumpformat
                   << ". Valid formats are height, normal or auto\n";
         return false;
     }
 
-    float uv_scale = configspec.get_float_attribute(
+    string_view slopefilter = configspec.get_string_attribute(
+        "maketx:slopefilter");
+    string_view bumprange = configspec.get_string_attribute("maketx:bumprange");
+
+    if (is_height) {
+        if (Strutil::iequals(slopefilter, "sobel"))  // default
+            bump_filter = &slope_gradient<SRCTYPE, sobel>;
+        else if (Strutil::iequals(slopefilter, "centraldiff"))
+            bump_filter = &slope_gradient<SRCTYPE, centraldiff>;
+        else {
+            outstream << "maketx ERROR: Unknown input slope kernel "
+                      << slopefilter
+                      << ". Valid kernels are sobel, centraldiff\n";
+            return false;
+        }
+    } else {  // is normal map
+        if (Strutil::iequals(bumprange, "centered"))
+            bump_filter = &normal_gradient<true>;
+        else if (Strutil::iequals(bumprange, "positive"))
+            bump_filter = &normal_gradient<false>;
+        else if (Strutil::iequals(bumprange, "auto")) {
+            if (!src.spec().format.is_signed())
+                bump_filter = &normal_gradient<false>;
+            else {  // check if there are negative values in the image
+                float min_val = *std::min_element(std::begin(pixel_stats.min),
+                                                  std::end(pixel_stats.min));
+                if (min_val < 0.0f)
+                    bump_filter = &normal_gradient<true>;
+                else
+                    bump_filter = &normal_gradient<false>;
+            }
+        } else {
+            outstream << "maketx ERROR: Unknown input bump range " << bumprange
+                      << ". Valid ranges are centered, positive, auto\n";
+            return false;
+        }
+    }
+
+    float res_x = 1.0f;
+    float res_y = 1.0f;
+
+    const float uv_scale = configspec.get_float_attribute(
         "maketx:uvslopes_scale",
         configspec.get_float_attribute("uvslopes_scale"));
 
     // If the input is an height map, does the derivatives needs to be UV normalized and scaled?
-    if (bump_filter == &sobel_gradient<SRCTYPE> && uv_scale != 0) {
+    if (is_height && uv_scale != 0) {
         if (uv_scale < 0) {
             outstream
                 << "maketx ERROR: Invalid uvslopes_scale value. The value must be >=0.\n";
@@ -514,6 +582,13 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
         res_y = (float)src.spec().height / uv_scale;
     }
 
+    const float scale  = configspec.get_float_attribute("maketx:bumpscale",
+                                                        1.0f);
+    const bool inverts = configspec.get_int_attribute("maketx:bumpinverts")
+                         != 0;
+    const bool invertt = configspec.get_int_attribute("maketx:bumpinvertt")
+                         != 0;
+
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         // iterate on destination image
         for (ImageBuf::Iterator<float> d(dst, roi); !d.done(); ++d) {
@@ -521,6 +596,11 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
             float dhds;
             float dhdt;
             bump_filter(src, d, &h, &dhds, &dhdt);
+
+            // scale/invert
+            dhds *= scale * (inverts ? -1.0f : 1.0f);
+            dhdt *= scale * (invertt ? -1.0f : 1.0f);
+
             // h = height or h = -1.0f if a normal map
             d[0] = h;
             // first moments
@@ -695,10 +775,10 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
 
     // Write out the image
     if (verbose) {
-        print(outstream, "  Writing file: {}\n", outputfilename);
-        print(outstream, "  Filter \"{}\"\n", filtername);
-        print(outstream, "  Top level is {}x{}\n", outspec.width,
-              outspec.height);
+        OIIO::print(outstream, "  Writing file: {}\n", outputfilename);
+        OIIO::print(outstream, "  Filter \"{}\"\n", filtername);
+        OIIO::print(outstream, "  Top level is {}x{}\n", outspec.width,
+                    outspec.height);
     }
 
     if (clamp_half) {
@@ -719,13 +799,14 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     if (verbose) {
         size_t mem = Sysutil::memory_used(true);
         peak_mem   = std::max(peak_mem, mem);
-        print(outstream, "    {:15s} ({})  write {}\n", formatres(outspec),
-              Strutil::memformat(mem), Strutil::timeintervalformat(wtime, 2));
+        OIIO::print(outstream, "    {:15s} ({})  write {}\n",
+                    formatres(outspec), Strutil::memformat(mem),
+                    Strutil::timeintervalformat(wtime, 2));
     }
 
     if (mipmap) {  // Mipmap levels:
         if (verbose)
-            print(outstream, "  Mipmapping...\n");
+            OIIO::print(outstream, "  Mipmapping...\n");
         std::vector<std::string> mipimages;
         std::string mipimages_unsplit = configspec.get_string_attribute(
             "maketx:mipimages");
@@ -808,16 +889,16 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                         return false;
                     }
                     if (verbose) {
-                        print(outstream,
-                              "  Downsampling filter \"{}\" width = {}",
-                              filter->name(), filter->width());
+                        OIIO::print(outstream,
+                                    "  Downsampling filter \"{}\" width = {}",
+                                    filter->name(), filter->width());
                         if (sharpen > 0.0f)
-                            print(
+                            OIIO::print(
                                 outstream,
                                 ", sharpening {} with {} unsharp mask {} the resize",
                                 sharpen, sharpenfilt,
                                 (sharpen_first ? "before" : "after"));
-                        print(outstream, "\n");
+                        OIIO::print(outstream, "\n");
                     }
                     if (do_highlight_compensation)
                         ImageBufAlgo::rangecompress(*img, *img);
@@ -884,18 +965,18 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
             if (verbose) {
                 size_t mem = Sysutil::memory_used(true);
                 peak_mem   = std::max(peak_mem, mem);
-                print(outstream, "    {:15s} ({})  downres {} write {}\n",
-                      formatres(smallspec), Strutil::memformat(mem),
-                      Strutil::timeintervalformat(this_miptime, 2),
-                      Strutil::timeintervalformat(wtime, 2));
+                OIIO::print(outstream, "    {:15s} ({})  downres {} write {}\n",
+                            formatres(smallspec), Strutil::memformat(mem),
+                            Strutil::timeintervalformat(this_miptime, 2),
+                            Strutil::timeintervalformat(wtime, 2));
             }
             std::swap(img, small);
         }
     }
 
     if (verbose)
-        print(outstream, "  Wrote file: {}  ({})\n", outputfilename,
-              Strutil::memformat(Sysutil::memory_used(true)));
+        OIIO::print(outstream, "  Wrote file: {}  ({})\n", outputfilename,
+                    Strutil::memformat(Sysutil::memory_used(true)));
     writetimer.reset();
     writetimer.start();
     if (!out->close()) {
@@ -992,14 +1073,14 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     size_t peak_mem              = 0;
     Timer alltime;
 
-#define STATUS(task, timer)                                \
-    {                                                      \
-        size_t mem = Sysutil::memory_used(true);           \
-        peak_mem   = std::max(peak_mem, mem);              \
-        if (verbose)                                       \
-            print(outstream, "  {:25s} {}   ({})\n", task, \
-                  Strutil::timeintervalformat(timer, 2),   \
-                  Strutil::memformat(mem));                \
+#define STATUS(task, timer)                                      \
+    {                                                            \
+        size_t mem = Sysutil::memory_used(true);                 \
+        peak_mem   = std::max(peak_mem, mem);                    \
+        if (verbose)                                             \
+            OIIO::print(outstream, "  {:25s} {}   ({})\n", task, \
+                        Strutil::timeintervalformat(timer, 2),   \
+                        Strutil::memformat(mem));                \
     }
 
     ImageSpec configspec = _configspec;
@@ -1130,11 +1211,14 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     if (configspec.format != TypeDesc::UNKNOWN)
         out_dataformat = configspec.format;
 
+    const bool is_bumpslopes = (mode == ImageBufAlgo::MakeTxBumpWithSlopes);
+
     // We cannot compute the prman / oiio options until after out_dataformat
     // has been determined, as it's required (and can potentially change
     // out_dataformat too!)
     if (configspec.get_int_attribute("maketx:prman_options"))
-        out_dataformat = set_prman_options(out_dataformat, configspec);
+        out_dataformat = set_prman_options(out_dataformat, configspec,
+                                           is_bumpslopes);
     else if (configspec.get_int_attribute("maketx:oiio_options"))
         out_dataformat = set_oiio_options(out_dataformat, configspec);
 
@@ -1160,6 +1244,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     stat_readtime += alltime.lap();
     STATUS(Strutil::fmt::format("read \"{}\"", src->name()), stat_readtime);
 
+
     if (mode == ImageBufAlgo::MakeTxEnvLatlFromLightProbe) {
         ImageSpec newspec = src->spec();
         newspec.width = newspec.full_width = src->spec().width;
@@ -1179,8 +1264,13 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         src  = latlong;
     }
 
-    const bool is_bumpslopes = (mode == ImageBufAlgo::MakeTxBumpWithSlopes);
     if (is_bumpslopes) {
+        ImageBufAlgo::PixelStats src_pixel_stats;
+        if (Strutil::iequals(configspec.get_string_attribute("maketx:bumprange",
+                                                             "auto"),
+                             "auto"))
+            src_pixel_stats = ImageBufAlgo::computePixelStats(*src);
+
         ImageSpec newspec  = src->spec();
         newspec.tile_width = newspec.tile_height = 0;
         newspec.set_format(TypeDesc::FLOAT);
@@ -1196,7 +1286,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         bool ok;
         OIIO_DISPATCH_COMMON_TYPES(ok, "bump_to_bumpslopes", bump_to_bumpslopes,
                                    src->spec().format, *bumpslopes, *src,
-                                   configspec, outstream);
+                                   configspec, src_pixel_stats, outstream);
         // bump_to_bumpslopes(*bumpslopes, *src);
         mode = ImageBufAlgo::MakeTxTexture;
         src  = bumpslopes;
@@ -1367,7 +1457,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         && pixel_stats.avg[0] == pixel_stats.avg[2]
         && ImageBufAlgo::isMonochrome(*src)) {
         if (verbose)
-            print(
+            OIIO::print(
                 outstream,
                 "  Monochrome image detected. Converting to single channel texture.\n");
         std::shared_ptr<ImageBuf> newsrc(new ImageBuf(src->spec()));
@@ -1732,15 +1822,16 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     } else if (!do_resize) {
         // Need format conversion, but no resize -- just copy the pixels
         if (verbose)
-            print(outstream, "  Copying for format conversion from {} to {}\n",
-                  src->spec().format, dstspec.format);
+            OIIO::print(outstream,
+                        "  Copying for format conversion from {} to {}\n",
+                        src->spec().format, dstspec.format);
         toplevel.reset(new ImageBuf(dstspec));
         toplevel->copy_pixels(*src);
     } else {
         // Resize
         if (verbose)
-            print(outstream, "  Resizing image to {} x {}\n", dstspec.width,
-                  dstspec.height);
+            OIIO::print(outstream, "  Resizing image to {} x {}\n",
+                        dstspec.width, dstspec.height);
         string_view resize_filter(filtername);
         if (Strutil::istarts_with(resize_filter, "unsharp-"))
             resize_filter = "lanczos3";
@@ -1810,6 +1901,9 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     }
     if (configspec.get_int_attribute("maketx:highlightcomp", 0))
         addlHashData << "highlightcomp=1 ";
+
+    if (configspec.get_int_attribute("maketx:keepaspect", 0))
+        addlHashData << "keepaspect=1 ";
 
     const int sha1_blocksize = 256;
     std::string hash_digest
@@ -1881,9 +1975,14 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         dstspec.attribute("ImageDescription", desc);
     }
 
+    float aspect_ratio = float(srcspec.full_width) / float(srcspec.full_height);
+
     if (configspec.get_float_attribute("fovcot") == 0.0f) {
-        configspec.attribute("fovcot", float(srcspec.full_width)
-                                           / float(srcspec.full_height));
+        configspec.attribute("fovcot", aspect_ratio);
+    }
+
+    if (configspec.get_int_attribute("maketx:keepaspect")) {
+        configspec.attribute("PixelAspectRatio", aspect_ratio);
     }
 
     maketx_merge_spec(dstspec, configspec);
@@ -1918,36 +2017,42 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     if (verbose || configspec.get_int_attribute("maketx:runstats")
         || configspec.get_int_attribute("maketx:stats")) {
         double all = alltime();
-        print(outstream, "maketx run time (seconds): {:5.2f}\n", all);
-        print(outstream, "  file read:       {:5.2f}\n", stat_readtime);
-        print(outstream, "  file write:      {:5.2f}\n", stat_writetime);
-        print(outstream, "  initial resize:  {:5.2f}\n", stat_resizetime);
-        print(outstream, "  hash:            {:5.2f}\n", stat_hashtime);
-        print(outstream, "  pixelstats:      {:5.2f}\n", stat_pixelstatstime);
-        print(outstream, "  mip computation: {:5.2f}\n", stat_miptime);
-        print(outstream, "  color convert:   {:5.2f}\n", stat_colorconverttime);
-        print(
+        OIIO::print(outstream, "maketx run time (seconds): {:5.2f}\n", all);
+        OIIO::print(outstream, "  file read:       {:5.2f}\n", stat_readtime);
+        OIIO::print(outstream, "  file write:      {:5.2f}\n", stat_writetime);
+        OIIO::print(outstream, "  initial resize:  {:5.2f}\n", stat_resizetime);
+        OIIO::print(outstream, "  hash:            {:5.2f}\n", stat_hashtime);
+        OIIO::print(outstream, "  pixelstats:      {:5.2f}\n",
+                    stat_pixelstatstime);
+        OIIO::print(outstream, "  mip computation: {:5.2f}\n", stat_miptime);
+        OIIO::print(outstream, "  color convert:   {:5.2f}\n",
+                    stat_colorconverttime);
+        OIIO::print(
             outstream,
             "  unaccounted:     {:5.2f}  ({:5.2f} {:5.2f} {:5.2f} {:5.2f} {:5.2f})\n",
             all - stat_readtime - stat_writetime - stat_resizetime
                 - stat_hashtime - stat_miptime,
             misc_time_1, misc_time_2, misc_time_3, misc_time_4, misc_time_5);
-        print(outstream, "maketx peak memory used: {}\n",
-              Strutil::memformat(peak_mem));
+        OIIO::print(outstream, "maketx peak memory used: {}\n",
+                    Strutil::memformat(peak_mem));
     }
 
 #undef STATUS
     return ok;
 }
 
+OIIO_NAMESPACE_END
 
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 bool
 ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
                            string_view filename, string_view outputfilename,
                            const ImageSpec& configspec, std::ostream* outstream)
 {
-    pvt::LoggedTimer logtime("IBA::make_texture");
+    OIIO::pvt::LoggedTimer logtime("IBA::make_texture");
     bool ok = make_texture_impl(mode, NULL, filename, outputfilename,
                                 configspec, outstream);
     if (!ok && outstream && OIIO::has_error()) {
@@ -1965,7 +2070,7 @@ ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
                            string_view outputfilename,
                            const ImageSpec& configspec, std::ostream* outstream)
 {
-    pvt::LoggedTimer logtime("IBA::make_texture");
+    OIIO::pvt::LoggedTimer logtime("IBA::make_texture");
     bool ok = make_texture_impl(mode, NULL, filenames[0], outputfilename,
                                 configspec, outstream);
     if (!ok && outstream && OIIO::has_error()) {
@@ -1982,7 +2087,7 @@ ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
                            const ImageBuf& input, string_view outputfilename,
                            const ImageSpec& configspec, std::ostream* outstream)
 {
-    pvt::LoggedTimer logtime("IBA::make_texture");
+    OIIO::pvt::LoggedTimer logtime("IBA::make_texture");
     bool ok = make_texture_impl(mode, &input, "", outputfilename, configspec,
                                 outstream);
     if (!ok && outstream && OIIO::has_error()) {
@@ -1991,3 +2096,5 @@ ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
     }
     return ok;
 }
+
+OIIO_NAMESPACE_3_1_END

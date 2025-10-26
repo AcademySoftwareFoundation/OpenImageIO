@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.18.2...4.0)
 
-set (OpenImageIO_VERSION "3.1.3.0")
+set (OpenImageIO_VERSION "3.2.0.0")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
      "Version override (use with caution)!")
 mark_as_advanced (OpenImageIO_VERSION_OVERRIDE)
@@ -40,7 +40,7 @@ if (CMAKE_VERSION VERSION_LESS 3.21)
     endif ()
 endif ()
 
-# Set up module path for our own cmake modules and add some esential ones
+# Set up module path for our own cmake modules and add some essential ones
 list (APPEND CMAKE_MODULE_PATH
       "${PROJECT_SOURCE_DIR}/src/cmake/modules"
       "${PROJECT_SOURCE_DIR}/src/cmake")
@@ -191,7 +191,9 @@ if (IGNORE_HOMEBREWED_DEPS)
     # Define the list of prefixes to ignore
     set (HOMEBREW_PREFIXES
          /opt/homebrew
+         /opt/homebrew/Cellar
          /usr/local
+         /usr/local/Cellar
          /usr/X11
          /usr/X11R6
          /opt/X11

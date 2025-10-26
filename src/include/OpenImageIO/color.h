@@ -12,8 +12,26 @@
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
 
+// Preprocessor symbol to allow conditional compilation depending on
+// whether the ColorProcessor class is exposed (it was not prior to OIIO 1.9).
+#define OIIO_HAS_COLORPROCESSOR 1
 
-OIIO_NAMESPACE_BEGIN
+//
+// Some general color management information materials to have handy:
+//   - CIF recommendations for scene referred color spaces for rendering and
+//     textures:
+//     https://github.com/AcademySoftwareFoundation/ColorInterop/blob/main/Recommendations/01_TextureAssetColorSpaces/TextureAssetColorSpaces.md
+//   - CIF recommendations for display referred color spaces:
+//     https://docs.google.com/document/d/1MmBG4a3Dr6S6EO781WjK-xZW7QdHpuo-zd7wtMvG1Rs
+//
+
+
+// Preprocessor symbol to allow conditional compilation depending on
+// whether the ColorConfig returns ColorProcessor shared pointers or raw.
+#define OIIO_COLORCONFIG_USES_SHARED_PTR 1
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// The ColorProcessor encapsulates a baked color transformation, suitable for
 /// application to raw pixels, or ImageBuf(s). These are generated using
@@ -40,17 +58,9 @@ public:
     }
 };
 
-// Preprocessor symbol to allow conditional compilation depending on
-// whether the ColorProcessor class is exposed (it was not prior to OIIO 1.9).
-#define OIIO_HAS_COLORPROCESSOR 1
 
 
-
-typedef std::shared_ptr<ColorProcessor> ColorProcessorHandle;
-
-// Preprocessor symbol to allow conditional compilation depending on
-// whether the ColorConfig returns ColorProcessor shared pointers or raw.
-#define OIIO_COLORCONFIG_USES_SHARED_PTR 1
+using ColorProcessorHandle = std::shared_ptr<ColorProcessor>;
 
 
 
@@ -236,7 +246,15 @@ public:
 
     /// Query the name of the default view for the specified display. If the
     /// display is empty or not specified, the default display will be used.
+    /// This version does not consider the input color space.
     const char* getDefaultViewName(string_view display = "") const;
+
+    /// Query the name of the default view for the specified display, given
+    /// the input color space. If `display` is "default" or an empty string,
+    /// the default display will be used. The input color space is used to
+    /// determine the most appropriate default view for the given display.
+    const char* getDefaultViewName(string_view display,
+                                   string_view inputColorSpace) const;
 
     /// Returns the colorspace attribute of the (display, view) pair. (Note
     /// that this may be either a color space or a display color space.)
@@ -351,8 +369,24 @@ public:
     /// Given a filepath, ask OCIO what color space it thinks the file
     /// should be, based on how the name matches file naming rules in the
     /// OCIO config.  (This is mostly a wrapper around OCIO's
-    /// ColorConfig::getColorSpaceFromSFilepath.)
+    /// ColorConfig::getColorSpaceFromFilepath.)
     string_view getColorSpaceFromFilepath(string_view str) const;
+
+    /// Given a filepath, ask OCIO what color space it thinks the file
+    /// should be, based on how the name matches file naming rules in the
+    /// OCIO config. If no match is found, return `default_cs` instead of
+    /// the OCIO config's default color space. If `cs_name_match` is
+    /// true, additionally attempt to match the color space name in the
+    /// filename, if the OCIO config heuristics fail to find a match.
+    string_view getColorSpaceFromFilepath(string_view str,
+                                          string_view default_cs,
+                                          bool cs_name_match = false) const;
+
+    /// Given a filepath, returns whether the result of
+    /// getColorSpaceFromFilepath() is the failover condition, due
+    /// to the OCIO config's file rules not otherwise finding a match
+    /// for the filepath.
+    bool filepathOnlyMatchesDefaultRule(string_view str) const;
 
     /// Given a string (like a filename), look for the longest, right-most
     /// colorspace substring that appears. Returns "" if no such color space
@@ -411,7 +445,18 @@ private:
     Impl* getImpl() const { return m_impl.get(); }
 };
 
+OIIO_NAMESPACE_3_1_END
 
+
+// Compatibility
+#ifndef OIIO_DOXYGEN
+OIIO_NAMESPACE_BEGIN
+using v3_1::ColorProcessorHandle;
+OIIO_NAMESPACE_END
+#endif
+
+
+OIIO_NAMESPACE_BEGIN
 
 /// Utility -- convert sRGB value to linear transfer function, without
 /// any change in color primaries.

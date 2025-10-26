@@ -22,7 +22,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 template<class Rtype, class Atype, class Btype>
@@ -63,7 +63,7 @@ bool
 ImageBufAlgo::min(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
                   int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::min");
+    OIIO::pvt::LoggedTimer logtime("IBA::min");
     if (A_.is_img() && B_.is_img()) {
         const ImageBuf &A(A_.img()), &B(B_.img());
         if (!IBAprep(roi, &dst, &A, &B))
@@ -160,7 +160,7 @@ bool
 ImageBufAlgo::max(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
                   int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::max");
+    OIIO::pvt::LoggedTimer logtime("IBA::max");
     if (A_.is_img() && B_.is_img()) {
         const ImageBuf &A(A_.img()), &B(B_.img());
         if (!IBAprep(roi, &dst, &A, &B))
@@ -245,7 +245,7 @@ bool
 ImageBufAlgo::clamp(ImageBuf& dst, const ImageBuf& src, cspan<float> min,
                     cspan<float> max, bool clampalpha01, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::clamp");
+    OIIO::pvt::LoggedTimer logtime("IBA::clamp");
     if (!IBAprep(roi, &dst, &src))
         return false;
     const float big = std::numeric_limits<float>::max();
@@ -313,7 +313,7 @@ bool
 ImageBufAlgo::absdiff(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_,
                       ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::absdiff");
+    OIIO::pvt::LoggedTimer logtime("IBA::absdiff");
     if (!IBAprep(roi, &dst, A_.imgptr(), B_.imgptr(), nullptr,
                  IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
@@ -412,7 +412,7 @@ bool
 ImageBufAlgo::pow(ImageBuf& dst, const ImageBuf& A, cspan<float> b, ROI roi,
                   int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::pow");
+    OIIO::pvt::LoggedTimer logtime("IBA::pow");
     if (!IBAprep(roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     IBA_FIX_PERCHAN_LEN_DEF(b, dst.nchannels());
@@ -524,7 +524,7 @@ bool
 ImageBufAlgo::channel_sum(ImageBuf& dst, const ImageBuf& src,
                           cspan<float> weights, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::channel_sum");
+    OIIO::pvt::LoggedTimer logtime("IBA::channel_sum");
     if (!roi.defined())
         roi = get_roi(src.spec());
     roi.chend      = std::min(roi.chend, src.nchannels());
@@ -742,7 +742,7 @@ bool
 ImageBufAlgo::rangecompress(ImageBuf& dst, const ImageBuf& src, bool useluma,
                             ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::rangecompress");
+    OIIO::pvt::LoggedTimer logtime("IBA::rangecompress");
     if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
@@ -758,7 +758,7 @@ bool
 ImageBufAlgo::rangeexpand(ImageBuf& dst, const ImageBuf& src, bool useluma,
                           ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::rangeexpand");
+    OIIO::pvt::LoggedTimer logtime("IBA::rangeexpand");
     if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
@@ -838,7 +838,7 @@ bool
 ImageBufAlgo::unpremult(ImageBuf& dst, const ImageBuf& src, ROI roi,
                         int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::unpremult");
+    OIIO::pvt::LoggedTimer logtime("IBA::unpremult");
     if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     if (src.spec().alpha_channel < 0
@@ -917,7 +917,7 @@ premult_(ImageBuf& R, const ImageBuf& A, bool preserve_alpha0, ROI roi,
 bool
 ImageBufAlgo::premult(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::premult");
+    OIIO::pvt::LoggedTimer logtime("IBA::premult");
     if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     if (src.spec().alpha_channel < 0) {
@@ -953,7 +953,7 @@ bool
 ImageBufAlgo::repremult(ImageBuf& dst, const ImageBuf& src, ROI roi,
                         int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::repremult");
+    OIIO::pvt::LoggedTimer logtime("IBA::repremult");
     if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     if (src.spec().alpha_channel < 0) {
@@ -1074,7 +1074,7 @@ ImageBufAlgo::contrast_remap(ImageBuf& dst, const ImageBuf& src,
                              cspan<float> scontrast, cspan<float> sthresh,
                              ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::contrast_remap");
+    OIIO::pvt::LoggedTimer logtime("IBA::contrast_remap");
     if (!IBAprep(roi, &dst, &src))
         return false;
     // Force all the input spans to have values for all channels.
@@ -1148,7 +1148,7 @@ bool
 ImageBufAlgo::saturate(ImageBuf& dst, const ImageBuf& src, float scale,
                        int firstchannel, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::saturate");
+    OIIO::pvt::LoggedTimer logtime("IBA::saturate");
     if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
 
@@ -1230,7 +1230,7 @@ ImageBufAlgo::color_map(ImageBuf& dst, const ImageBuf& src, int srcchannel,
                         int nknots, int channels, cspan<float> knots, ROI roi,
                         int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::color_map");
+    OIIO::pvt::LoggedTimer logtime("IBA::color_map");
     if (srcchannel >= src.nchannels()) {
         dst.errorfmt("invalid source channel selected");
         return false;
@@ -1358,7 +1358,7 @@ bool
 ImageBufAlgo::color_map(ImageBuf& dst, const ImageBuf& src, int srcchannel,
                         string_view mapname, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::color_map");
+    OIIO::pvt::LoggedTimer logtime("IBA::color_map");
     if (srcchannel >= src.nchannels()) {
         dst.errorfmt("invalid source channel selected");
         return false;
@@ -1565,7 +1565,7 @@ ImageBufAlgo::fixNonFinite(ImageBuf& dst, const ImageBuf& src,
                            NonFiniteFixMode mode, int* pixelsFixed, ROI roi,
                            int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::fixNonFinite");
+    OIIO::pvt::LoggedTimer logtime("IBA::fixNonFinite");
     if (mode != ImageBufAlgo::NONFINITE_NONE
         && mode != ImageBufAlgo::NONFINITE_BLACK
         && mode != ImageBufAlgo::NONFINITE_BOX3
@@ -1750,7 +1750,7 @@ bool
 ImageBufAlgo::over(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B, ROI roi,
                    int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::over");
+    OIIO::pvt::LoggedTimer logtime("IBA::over");
     if (!IBAprep(roi, &dst, &A, &B, NULL,
                  IBAprep_REQUIRE_ALPHA | IBAprep_REQUIRE_SAME_NCHANNELS))
         return false;
@@ -1793,7 +1793,7 @@ bool
 ImageBufAlgo::zover(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
                     bool z_zeroisinf, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::zover");
+    OIIO::pvt::LoggedTimer logtime("IBA::zover");
     if (!IBAprep(roi, &dst, &A, &B, NULL,
                  IBAprep_REQUIRE_ALPHA | IBAprep_REQUIRE_Z
                      | IBAprep_REQUIRE_SAME_NCHANNELS))
@@ -1819,4 +1819,4 @@ ImageBufAlgo::zover(const ImageBuf& A, const ImageBuf& B, bool z_zeroisinf,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

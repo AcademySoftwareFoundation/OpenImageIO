@@ -18,7 +18,7 @@
 import OpenImageIO as oiio
 import numpy as np
 
-def example1() :
+def example1() -> None:
     #
     # Example code fragment from the docs goes here.
     #

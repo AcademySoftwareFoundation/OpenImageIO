@@ -3,10 +3,33 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 if (OPENJPEG_FOUND)
-    add_oiio_plugin (jpeg2000input.cpp jpeg2000output.cpp
-                     INCLUDE_DIRS ${OPENJPEG_INCLUDES}
-                     LINK_LIBRARIES ${OPENJPEG_LIBRARIES}
-                     DEFINITIONS "USE_OPENJPEG")
+    if (TARGET openjp2_static AND (NOT TARGET openjp2 OR
+                                   LINKSTATIC OR OpenJPEG_LINKSTATIC))
+        # Use static OpenJPEG library for LINKSTATIC situations, or if
+        # no dynamic library is available.
+        set (OPENJPEG_TARGET openjp2_static)
+    elseif (TARGET openjp2)
+        set (OPENJPEG_TARGET openjp2)
+    else ()
+        set(_jpeg2000_includes ${OPENJPEG_INCLUDES})
+        set(_jpeg2000_lib_dirs ${OPENJPEG_LIBRARY_DIRS})
+        set(_jpeg2000_libs ${OPENJPEG_LIBRARIES})
+    endif ()
+    message (VERBOSE "OPENJPEG_TARGET=${OPENJPEG_TARGET}")
+    set(_jpeg2000_defs "USE_OPENJPEG")
+
+    if (openjph_FOUND)
+        list(APPEND _jpeg2000_defs "USE_OPENJPH")
+    endif()
+
+    add_oiio_plugin(jpeg2000input.cpp jpeg2000output.cpp
+        INCLUDE_DIRS ${_jpeg2000_includes}
+        LINK_DIRECTORIES ${_jpeg2000_lib_dirs}
+        LINK_LIBRARIES ${_jpeg2000_libs}
+                       ${OPENJPEG_TARGET}
+                       $<TARGET_NAME_IF_EXISTS:openjph>
+        DEFINITIONS ${_jpeg2000_defs}
+    )
 else()
     message (WARNING "Jpeg-2000 plugin will not be built")
 endif()

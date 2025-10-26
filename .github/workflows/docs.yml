@@ -18,6 +18,8 @@ on:
       - '**.cmake'
       - '**/CMakeLists.txt'
       - '**/run.py'
+      - 'src/build-scripts/**'
+      - './*.md'
   pull_request:
     paths-ignore:
       - '**/ci.yml'
@@ -29,6 +31,8 @@ on:
       - '**.cmake'
       - '**/CMakeLists.txt'
       - '**/run.py'
+      - 'src/build-scripts/**'
+      - './*.md'
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"

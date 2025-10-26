@@ -17,6 +17,46 @@ include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
 include (SelectLibraryConfigurations)
 
+
+
+if(DEFINED OPENJPEG_ROOT)
+    set(_openjpeg_pkgconfig_path "${OPENJPEG_ROOT}/lib/pkgconfig")
+    if(EXISTS "${_openjpeg_pkgconfig_path}")
+        set(ENV{PKG_CONFIG_PATH} "${_openjpeg_pkgconfig_path}:$ENV{PKG_CONFIG_PATH}")
+    endif()
+endif()
+
+
+find_package(PkgConfig QUIET)
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(OPENJPEG_PC QUIET openjpeg)
+endif()
+
+if(OPENJPEG_PC_FOUND)
+    set(OPENJPEG_FOUND TRUE)
+    set(OPENJPEG_VERSION ${OPENJPEG_PC_VERSION})
+    set(OPENJPEG_INCLUDES ${OPENJPEG_PC_INCLUDE_DIRS})
+    set(OPENJPEG_LIBRARIES ${OPENJPEG_PC_LIBRARIES})
+    if(NOT OPENJPEG_FIND_QUIETLY)
+        FIND_PACKAGE_MESSAGE(OPENJPEG
+            "Found OPENJPEG via pkg-config: v${OPENJPEG_VERSION} ${OPENJPEG_LIBRARIES}"
+            "[${OPENJPEG_INCLUDES}][${OPENJPEG_LIBRARIES}]"
+        )
+    endif()
+else()
+    set(OPENJPEG_FOUND FALSE)
+    set(OPENJPEG_VERSION 0.0.0)
+    set(OPENJPEG_INCLUDES "")
+    set(OPENJPEG_LIBRARIES "")
+    if(NOT OPENJPEG_FIND_QUIETLY)
+        FIND_PACKAGE_MESSAGE(OPENJPEG
+            "Could not find OPENJPEG via pkg-config"
+            "[${OPENJPEG_INCLUDES}][${OPENJPEG_LIBRARIES}]"
+        )
+    endif()
+endif()
+
+
 macro (PREFIX_FIND_INCLUDE_DIR prefix includefile libpath_var)
   string (TOUPPER ${prefix}_INCLUDE_DIR tmp_varname)
   find_path(${tmp_varname} ${includefile}
@@ -134,6 +174,15 @@ if (OPENJPEG_FOUND)
   foreach (tmplib ${OpenJpeg_libvars})
     list (APPEND OPENJPEG_LIBRARIES ${${tmplib}})
   endforeach ()
+
+  if (NOT TARGET openjp2)
+      add_library(openjp2 UNKNOWN IMPORTED)
+      set_target_properties(openjp2 PROPERTIES
+          INTERFACE_INCLUDE_DIRECTORIES "${OPENJPEG_INCLUDES}")
+      set_property(TARGET openjp2 APPEND PROPERTY
+                   IMPORTED_LOCATION "${OPENJPEG_LIBRARIES}")
+  endif()
+
   if (NOT OpenJpeg_FIND_QUIETLY)
     FIND_PACKAGE_MESSAGE (OPENJPEG
       "Found OpenJpeg: v${OPENJPEG_VERSION} ${OPENJPEG_LIBRARIES}"

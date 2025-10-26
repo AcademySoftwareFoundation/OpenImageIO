@@ -38,12 +38,33 @@ ref/IMG_7702_small.heic :  512 x  300, 3 channel, uint8 heif
     Exif:SubsecTimeDigitized: "006"
     Exif:SubsecTimeOriginal: "006"
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading ref/Chimera-AV1-8bit-162.avif
 ref/Chimera-AV1-8bit-162.avif :  480 x  270, 3 channel, uint8 heif
     SHA-1: F8FDAF1BD56A21E3AF99CF8EE7FA45434D2826C7
     channel list: R, G, B
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ref/test-10bit.avif
+ref/test-10bit.avif  :   16 x   16, 4 channel, uint10 heif
+    SHA-1: A217653C4E10FEBF080E26F9FC78F572184B1FDA
+    channel list: R, G, B, A
+    Software: "OpenImageIO 3.2.0.0dev : B4BD496D92983E84F1FD621682CAB821C1E2126C"
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    Exif:ImageHistory: "oiiotool --pattern fill:topleft=1,0,0,1:topright=0,1,0,1:bottomleft=0,0,1,1:bottomright=1,1,1,1 16x16 4 -d uint16 -o test16.png"
+    heif:UnassociatedAlpha: 1
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading cicp_pq.avif
+cicp_pq.avif         :   16 x   16, 4 channel, uint10 heif
+    SHA-1: 0F3CAB52D479BC23E9C981DBADDFEF1F792E5540
+    channel list: R, G, B, A
+    CICP: 9, 16, 9, 1
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    heif:UnassociatedAlpha: 1
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
 ../oiio-images/heif/greyhounds-looking-for-a-table.heic : 3024 x 4032, 3 channel, uint8 heif
     SHA-1: 8064B23A1A995B0D6525AFB5248EEC6C730BBB6C
@@ -100,7 +121,7 @@ Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
     GPS:LongitudeRef: "E"
     GPS:Speed: 0.171966
     GPS:SpeedRef: "K" (km/hour)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:OriginalOrientation: 6
 Reading ../oiio-images/heif/sewing-threads.heic
 ../oiio-images/heif/sewing-threads.heic : 4000 x 3000, 3 channel, uint8 heif
@@ -149,4 +170,4 @@ Reading ../oiio-images/heif/sewing-threads.heic
     GPS:LatitudeRef: "N"
     GPS:Longitude: 1, 49, 34.0187
     GPS:LongitudeRef: "E"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"

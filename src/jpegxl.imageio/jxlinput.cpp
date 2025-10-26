@@ -21,6 +21,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include <jxl/color_encoding.h>
 #include <jxl/decode.h>
 #include <jxl/decode_cxx.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
@@ -53,6 +54,7 @@ private:
     std::string m_filename;
     int m_next_scanline;  // Which scanline is the next to read?
     uint32_t m_channels;
+    JxlColorEncoding m_color_encoding;
     JxlDecoderPtr m_decoder;
     JxlResizableParallelRunnerPtr m_runner;
     std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
@@ -221,6 +223,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     JxlPixelFormat format;
     JxlDataType jxl_data_type;
     TypeDesc m_data_type;
+    uint32_t bits = 0;
 
     for (;;) {
         JxlDecoderStatus status = JxlDecoderProcessInput(m_decoder.get());
@@ -249,20 +252,21 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             // Need to check how we can support bfloat16 if jpegxl supports it
             bool is_float = info.exponent_bits_per_sample > 0;
 
-            switch (info.bits_per_sample) {
-            case 8:
+            if (info.bits_per_sample <= 8) {
                 jxl_data_type = JXL_TYPE_UINT8;
                 m_data_type   = TypeDesc::UINT8;
-                break;
-            case 16:
+                bits          = 8;
+            } else if (info.bits_per_sample <= 16) {
                 jxl_data_type = is_float ? JXL_TYPE_FLOAT16 : JXL_TYPE_UINT16;
                 m_data_type   = is_float ? TypeDesc::HALF : TypeDesc::UINT16;
-                break;
-            case 32:
+                bits          = 16;
+            } else if (info.bits_per_sample <= 32) {
                 jxl_data_type = JXL_TYPE_FLOAT;
                 m_data_type   = TypeDesc::FLOAT;
-                break;
-            default: errorfmt("Unsupported bits per sample\n"); return false;
+                bits          = 32;
+            } else {
+                errorfmt("Unsupported bits per sample\n");
+                return false;
             }
 
             format = { m_channels, jxl_data_type, JXL_NATIVE_ENDIAN, 0 };
@@ -307,11 +311,9 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 return false;
             }
             if (buffer_size
-                != info.xsize * info.ysize * m_channels * info.bits_per_sample
-                       / 8) {
+                != info.xsize * info.ysize * m_channels * bits / 8) {
                 errorfmt("Invalid out buffer size {} {}\n", buffer_size,
-                         info.xsize * info.ysize * m_channels
-                             * info.bits_per_sample / 8);
+                         info.xsize * info.ysize * m_channels * bits / 8);
                 return false;
             }
 
@@ -345,6 +347,23 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     m_spec = ImageSpec(info.xsize, info.ysize, m_channels, m_data_type);
+
+    if (m_icc_profile.size() && m_icc_profile.data()) {
+        m_spec.attribute("ICCProfile",
+                         TypeDesc(TypeDesc::UINT8, m_icc_profile.size()),
+                         m_icc_profile.data());
+        std::string errormsg;
+
+        bool ok = decode_icc_profile(cspan<uint8_t>(m_icc_profile.data(),
+                                                    m_icc_profile.size()),
+                                     m_spec, errormsg);
+
+        if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
+                     errormsg);
+            return false;
+        }
+    }
 
     newspec = m_spec;
     return true;

@@ -40,7 +40,7 @@ using std::error_code;
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 inline filesystem::path
@@ -571,7 +571,7 @@ Filesystem::getline(FILE* file, size_t maxlen)
 
 
 void
-Filesystem::open(OIIO::ifstream& stream, string_view path,
+Filesystem::open(ifstream& stream, string_view path,
                  std::ios_base::openmode mode)
 {
 #ifdef _WIN32
@@ -588,7 +588,7 @@ Filesystem::open(OIIO::ifstream& stream, string_view path,
 
 
 void
-Filesystem::open(OIIO::ofstream& stream, string_view path,
+Filesystem::open(ofstream& stream, string_view path,
                  std::ios_base::openmode mode)
 {
 #ifdef _WIN32
@@ -911,7 +911,7 @@ Filesystem::parse_pattern(const char* pattern_, int framepadding_override,
 
     // std::cout << "Format: '" << fmt << "'\n";
 
-    normalized_pattern = prefix + fmt + suffix;
+    normalized_pattern = Filesystem::generic_filepath(prefix + fmt + suffix);
     framespec          = thesequence;
 
     return true;
@@ -1195,7 +1195,8 @@ Filesystem::IOFile::IOFile(string_view filename, Mode mode)
 {
     // Call Filesystem::fopen since it handles UTF-8 file paths on Windows,
     // which std fopen does not.
-    m_file = Filesystem::fopen(m_filename, m_mode == Write ? "w+b" : "rb");
+    m_file = OIIO::Filesystem::fopen(m_filename,
+                                     m_mode == Write ? "w+b" : "rb");
     if (!m_file) {
         m_mode          = Closed;
         int e           = errno;
@@ -1204,7 +1205,7 @@ Filesystem::IOFile::IOFile(string_view filename, Mode mode)
     }
     m_auto_close = true;
     if (m_mode == Read)
-        m_size = Filesystem::file_size(filename);
+        m_size = OIIO::Filesystem::file_size(filename);
 }
 
 Filesystem::IOFile::IOFile(FILE* file, Mode mode)
@@ -1212,10 +1213,12 @@ Filesystem::IOFile::IOFile(FILE* file, Mode mode)
     , m_file(file)
 {
     if (m_mode == Read) {
-        m_pos = Filesystem::ftell(m_file);           // save old position
-        Filesystem::fseek(m_file, 0, SEEK_END);      // seek to end
-        m_size = size_t(Filesystem::ftell(m_file));  // size is end position
-        Filesystem::fseek(m_file, m_pos, SEEK_SET);  // restore old position
+        m_pos = OIIO::Filesystem::ftell(m_file);       // save old position
+        OIIO::Filesystem::fseek(m_file, 0, SEEK_END);  // seek to end
+        m_size = size_t(
+            OIIO::Filesystem::ftell(m_file));  // size is end position
+        OIIO::Filesystem::fseek(m_file, m_pos,
+                                SEEK_SET);  // restore old position
     }
 }
 
@@ -1241,7 +1244,7 @@ Filesystem::IOFile::seek(int64_t offset)
     if (!m_file)
         return false;
     m_pos = offset;
-    return Filesystem::fseek(m_file, offset, SEEK_SET) == 0;
+    return OIIO::Filesystem::fseek(m_file, offset, SEEK_SET) == 0;
 }
 
 size_t
@@ -1404,5 +1407,4 @@ Filesystem::IOMemReader::pread(void* buf, size_t size, int64_t offset)
     return size;
 }
 
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

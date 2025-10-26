@@ -21,7 +21,7 @@
 
 #include <Imath/ImathBox.h>
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 namespace {
@@ -378,7 +378,7 @@ warp_impl(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
           const Filter2D* filter, bool recompute_roi, ImageBuf::WrapMode wrap,
           bool edgeclamp, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::warp");
+    OIIO::pvt::LoggedTimer logtime("IBA::warp");
     ROI src_roi_full = src.roi_full();
     ROI dst_roi, dst_roi_full;
     if (dst.initialized()) {
@@ -860,7 +860,7 @@ bool
 ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, KWArgs options,
                      ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::resize");
+    OIIO::pvt::LoggedTimer logtime("IBA::resize");
 
     static const ustring recognized[] = {
         filtername_us,
@@ -929,7 +929,7 @@ bool
 ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
                   int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::fit");
+    OIIO::pvt::LoggedTimer logtime("IBA::fit");
 
     static const ustring recognized[] = {
         filtername_us,
@@ -1148,7 +1148,7 @@ bool
 ImageBufAlgo::resample(ImageBuf& dst, const ImageBuf& src, bool interpolate,
                        ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::resample");
+    OIIO::pvt::LoggedTimer logtime("IBA::resample");
     if (!IBAprep(roi, &dst, &src,
                  IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL
                      | IBAprep_SUPPORT_DEEP))
@@ -1459,7 +1459,7 @@ ImageBufAlgo::st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
                       const Filter2D* filter, int chan_s, int chan_t,
                       bool flip_s, bool flip_t, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::st_warp");
+    OIIO::pvt::LoggedTimer logtime("IBA::st_warp");
 
     if (!check_st_warp_args(dst, src, stbuf, chan_s, chan_t, roi)) {
         return false;
@@ -1534,4 +1534,4 @@ ImageBufAlgo::st_warp(const ImageBuf& src, const ImageBuf& stbuf,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

@@ -36,15 +36,15 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfChromaticitiesAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
 #include <OpenEXR/ImfDeepFrameBuffer.h>
+#include <OpenEXR/ImfDeepImageStateAttribute.h>
 #include <OpenEXR/ImfDeepScanLineInputPart.h>
 #include <OpenEXR/ImfDeepTiledInputPart.h>
 #include <OpenEXR/ImfDoubleAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
+#include <OpenEXR/ImfFloatVectorAttribute.h>
 #include <OpenEXR/ImfHeader.h>
-#if OPENEXR_HAS_FLOATVECTOR
-#    include <OpenEXR/ImfFloatVectorAttribute.h>
-#endif
+#include <OpenEXR/ImfIDManifestAttribute.h>
 #include <OpenEXR/ImfInputPart.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
@@ -240,6 +240,8 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
 
     // Check any other configuration hints
 
+    m_filename = name;
+
     // "missingcolor" gives fill color for missing scanlines or tiles.
     if (const ParamValue* m = config.find_attribute("oiio:missingcolor")) {
         if (m->type().basetype == TypeDesc::STRING) {
@@ -392,14 +394,6 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 
     spec.deep = Strutil::istarts_with(header->type(), "deep");
 
-    // Unless otherwise specified, exr files are assumed to be linear Rec709
-    // if the channels appear to be R, G, B.  I know this suspect, but I'm
-    // betting that this heuristic will guess the right thing that users want
-    // more often than if we pretending we have no idea what the color space
-    // is.
-    if (pvt::channels_are_rgb(spec))
-        spec.set_colorspace("lin_rec709");
-
     if (levelmode != Imf::ONE_LEVEL)
         spec.attribute("openexr:roundingmode", roundingmode);
 
@@ -437,6 +431,12 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         case Imf::B44A_COMPRESSION: comp = "b44a"; break;
         case Imf::DWAA_COMPRESSION: comp = "dwaa"; break;
         case Imf::DWAB_COMPRESSION: comp = "dwab"; break;
+#ifdef IMF_HTJ2K256_COMPRESSION
+        case Imf::HTJ2K256_COMPRESSION: comp = "htj2k256"; break;
+#endif
+#ifdef IMF_HTJ2K32_COMPRESSION
+        case Imf::HTJ2K32_COMPRESSION: comp = "htj2k32"; break;
+#endif
         default: break;
         }
         if (comp)
@@ -459,9 +459,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         const Imf::KeyCodeAttribute* kcattr;
         const Imf::ChromaticitiesAttribute* crattr;
         const Imf::RationalAttribute* rattr;
-#if OPENEXR_HAS_FLOATVECTOR
         const Imf::FloatVectorAttribute* fvattr;
-#endif
         const Imf::StringVectorAttribute* svattr;
         const Imf::DoubleAttribute* dattr;
         const Imf::V2dAttribute* v2dattr;
@@ -529,8 +527,6 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                 ustrvec[i] = strvec[i];
             TypeDesc sv(TypeDesc::STRING, ustrvec.size());
             spec.attribute(oname, sv, &ustrvec[0]);
-#if OPENEXR_HAS_FLOATVECTOR
-
         } else if (type == "floatvector"
                    && (fvattr
                        = header->findTypedAttribute<Imf::FloatVectorAttribute>(
@@ -538,7 +534,6 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
             std::vector<float> fvec = fvattr->value();
             TypeDesc fv(TypeDesc::FLOAT, fvec.size());
             spec.attribute(oname, fv, &fvec[0]);
-#endif
         } else if (type == "double"
                    && (dattr = header->findTypedAttribute<Imf::DoubleAttribute>(
                            name))) {
@@ -649,6 +644,44 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
             default: break;
             }
             spec.attribute("openexr:lineOrder", lineOrder);
+        } else if (type == "deepImageState") {
+            auto attr = header->findTypedAttribute<Imf::DeepImageStateAttribute>(
+                name);
+            if (attr) {
+                const char* val = "messy";
+                switch (attr->value()) {
+                case Imf::DIS_MESSY: val = "messy"; break;
+                case Imf::DIS_SORTED: val = "sorted"; break;
+                case Imf::DIS_NON_OVERLAPPING: val = "non_overlapping"; break;
+                case Imf::DIS_TIDY: val = "tidy"; break;
+                default: break;
+                }
+                spec.attribute("openexr:deepImageState", val);
+            }
+        } else if (type == "idmanifest") {
+            auto attr = header->findTypedAttribute<Imf::IDManifestAttribute>(
+                name);
+            if (attr) {
+                // print("CompressedIDManifest size {}\n",
+                //       attr->value()._compressedDataSize);
+                size_t csize(attr->value()._compressedDataSize);
+                // NOTE: The blob of bytes we're making consists of:
+                // Bytes 0-7: little endian uint64 giving the *uncompressed*
+                //            size that will be needed for the serialized IDM.
+                // Bytes 8-(csize-1): the zip-compressed serialized IDManifest.
+                size_t blobsize = csize + 8;
+                std::unique_ptr<std::byte[]> blob(new std::byte[blobsize]);
+                uint64_t usize = attr->value()._uncompressedDataSize;
+                if constexpr (bigendian())
+                    usize = byteswap(usize);
+                memcpy(blob.get(), &usize, sizeof(usize));
+                memcpy(blob.get() + 8, attr->value()._data, csize);
+                spec.attribute("openexr:compressedIDManifest",
+                               TypeDesc(TypeDesc::UINT8, blobsize), blob.get());
+            } else {
+                // print("idManifest found but not retrieved?\n");
+            }
+
         } else {
 #if 0
             print(std::cerr, "  unknown attribute '{}' name '{}'\n",
@@ -670,6 +703,13 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         spec.attribute("oiio:subimagename", header->name());
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
+
+    // Try to figure out the color space for some unambiguous cases
+    if (spec.get_int_attribute("acesImageContainerFlag") == 1) {
+        spec.set_colorspace("lin_ap0_scene");
+    } else if (auto c = spec.find_attribute("colorInteropID", TypeString)) {
+        spec.set_colorspace(c->get_ustring());
+    }
 
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);
@@ -1008,8 +1048,11 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
         const Imf::Header* header = NULL;
         if (m_input_multipart)
             header = &(m_input_multipart->header(subimage));
-        if (!part.parse_header(this, header))
+        if (!part.parse_header(this, header)) {
+            errorfmt("Could not seek to subimage={}: unable to parse header",
+                     subimage, miplevel);
             return false;
+        }
         part.initialized = true;
     }
 
@@ -1076,6 +1119,11 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
 
     m_miplevel = miplevel;
     m_spec     = part.spec;
+
+    //! Add the number of miplevels as an attribute for the first miplevel.
+    //! TOFIX: adding the following attribute breaks unit tests
+    // if (m_miplevel == 0 && part.nmiplevels > 1)
+    //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 12 }))
         return false;
@@ -1178,7 +1226,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
 bool
 OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                    int yend, int /*z*/, int chbegin, int chend,
+                                    int yend, int z, int chbegin, int chend,
                                     void* data)
 {
     lock_guard lock(*this);
@@ -1263,8 +1311,31 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             return false;
         }
     } catch (const std::exception& e) {
-        errorfmt("Failed OpenEXR read: {}", e.what());
-        return false;
+        std::string err = e.what();
+        if (m_missingcolor.size()) {
+            // User said not to fail for bad or missing scanlines. If we
+            // failed reading a single scanline, use the fill pattern. If we
+            // failed reading many scanlines, we don't know which ones, so go
+            // back and read them individually for a second chance.
+            DBGEXR("Handling missingcolor case for {}-{}: {}\n", ybegin, yend,
+                   err);
+            if (yend - ybegin == 1) {
+                // Read of one tile -- use the fill pattern
+                fill_missing(m_spec.x, m_spec.x + m_spec.width, ybegin, yend, 0,
+                             1, chbegin, chend, data, pixelbytes,
+                             scanlinebytes);
+            } else {
+                // Read of many tiles -- don't know which failed, so try
+                // again to read them all individually.
+                return read_native_scanlines_individually(subimage, miplevel,
+                                                          ybegin, yend, z,
+                                                          chbegin, chend, data,
+                                                          scanlinebytes);
+            }
+        } else {
+            errorfmt("Failed OpenEXR read: {}", err);
+            return false;
+        }
     } catch (...) {  // catch-all for edge cases or compiler bugs
         errorfmt("Failed OpenEXR read: unknown exception");
         return false;
@@ -1351,8 +1422,8 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
         tmpbuf.resize(nxtiles * nytiles * m_spec.tile_bytes(true));
         data = tmpbuf.data();
     }
-    char* buf = (char*)data - xbegin * pixelbytes
-                - ybegin * pixelbytes * m_spec.tile_width * nxtiles;
+    char* buf = (char*)data - ptrdiff_t(xbegin * pixelbytes)
+                - ptrdiff_t(ybegin * pixelbytes * m_spec.tile_width * nxtiles);
 
     try {
         Imf::FrameBuffer frameBuffer;
@@ -1415,6 +1486,25 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     }
 
     return true;
+}
+
+
+
+bool
+OpenEXRInput::read_native_scanlines_individually(int subimage, int miplevel,
+                                                 int ybegin, int yend, int z,
+                                                 int chbegin, int chend,
+                                                 void* data, stride_t ystride)
+{
+    // Note: this is only called by read_native_scanlines, which still holds
+    // the mutex, so it's safe to directly access m_spec.
+    bool ok = true;
+    for (int y = ybegin; y < yend; ++y) {
+        char* d = (char*)data + (y - ybegin) * ystride;
+        ok &= read_native_scanlines(subimage, miplevel, y, y + 1, z, chbegin,
+                                    chend, d);
+    }
+    return ok;
 }
 
 

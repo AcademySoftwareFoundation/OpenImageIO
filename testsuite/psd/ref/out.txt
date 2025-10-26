@@ -42,7 +42,7 @@ Reading ../oiio-images/psd/psd_123.psd
     IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     photoshop:LayerName: 1, 2, 3
@@ -91,7 +91,7 @@ Reading ../oiio-images/psd/psd_123.psd
     IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "1"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -141,7 +141,7 @@ Reading ../oiio-images/psd/psd_123.psd
     IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "2"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -191,7 +191,7 @@ Reading ../oiio-images/psd/psd_123.psd
     IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "3"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -246,7 +246,7 @@ Reading ../oiio-images/psd/psd_123_nomaxcompat.psd
     IPTC:MetadataDate: "2011-08-29T12:10:28-04:00"
     IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     photoshop:LayerName: 1, 2, 3
@@ -296,7 +296,7 @@ Reading ../oiio-images/psd/psd_123_nomaxcompat.psd
     IPTC:MetadataDate: "2011-08-29T12:10:28-04:00"
     IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "1"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -347,7 +347,7 @@ Reading ../oiio-images/psd/psd_123_nomaxcompat.psd
     IPTC:MetadataDate: "2011-08-29T12:10:28-04:00"
     IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "2"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -398,7 +398,7 @@ Reading ../oiio-images/psd/psd_123_nomaxcompat.psd
     IPTC:MetadataDate: "2011-08-29T12:10:28-04:00"
     IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "3"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -555,7 +555,7 @@ Reading ../oiio-images/psd/psd_indexed_trans.psd
     IPTC:MetadataDate: "2011-08-29T11:54:09-04:00"
     IPTC:ModifyDate: "2011-08-29T11:54:09-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     photoshop:ColorMode: 2
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
@@ -645,7 +645,7 @@ Reading ../oiio-images/psd/psd_rgb_8.psd
     IPTC:MetadataDate: "2011-08-25T17:40-04:00"
     IPTC:ModifyDate: "2011-08-25T17:40-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
@@ -735,7 +735,7 @@ Reading ../oiio-images/psd/psd_rgb_16.psd
     IPTC:MetadataDate: "2011-08-25T17:39:49-04:00"
     IPTC:ModifyDate: "2011-08-25T17:39:49-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
@@ -878,7 +878,7 @@ Reading ../oiio-images/psd/psd_rgba_8.psd
     IPTC:MetadataDate: "2011-08-25T17:39:28-04:00"
     IPTC:ModifyDate: "2011-08-25T17:39:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
@@ -925,7 +925,7 @@ Reading ../oiio-images/psd/psd_rgba_8.psd
     IPTC:MetadataDate: "2011-08-25T17:39:28-04:00"
     IPTC:ModifyDate: "2011-08-25T17:39:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "Layer 1"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -1025,7 +1025,7 @@ Reading ../oiio-images/psd/psd_123.psd
     IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:UnassociatedAlpha: 1
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -1075,7 +1075,7 @@ Reading ../oiio-images/psd/psd_123.psd
     IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "1"
     oiio:UnassociatedAlpha: 1
     photoshop:ColorMode: 3
@@ -1126,7 +1126,7 @@ Reading ../oiio-images/psd/psd_123.psd
     IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "2"
     oiio:UnassociatedAlpha: 1
     photoshop:ColorMode: 3
@@ -1177,7 +1177,7 @@ Reading ../oiio-images/psd/psd_123.psd
     IPTC:MetadataDate: "2011-08-22T22:14:43-04:00"
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "3"
     oiio:UnassociatedAlpha: 1
     photoshop:ColorMode: 3
@@ -1230,7 +1230,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
     IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
@@ -1277,7 +1277,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
     IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "Layer 0"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -1326,7 +1326,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
     IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "line1"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -1375,7 +1375,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
     IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "line2"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -1522,7 +1522,7 @@ src/Layers_8bit_RGB.psd :   48 x   27, 3 channel, uint8 psd
     IPTC:MetadataDate: "2024-04-01T19:35:40+02:00"
     IPTC:ModifyDate: "2024-04-01T19:35:40+02:00"
     IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
@@ -1573,7 +1573,7 @@ src/Layers_8bit_RGB.psd :   48 x   27, 3 channel, uint8 psd
     IPTC:MetadataDate: "2024-04-01T19:35:40+02:00"
     IPTC:ModifyDate: "2024-04-01T19:35:40+02:00"
     IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "Blue_Lagoon"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -1625,7 +1625,7 @@ src/Layers_8bit_RGB.psd :   48 x   27, 3 channel, uint8 psd
     IPTC:MetadataDate: "2024-04-01T19:35:40+02:00"
     IPTC:ModifyDate: "2024-04-01T19:35:40+02:00"
     IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "Layer"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -1677,7 +1677,7 @@ src/Layers_8bit_RGB.psd :   48 x   27, 3 channel, uint8 psd
     IPTC:MetadataDate: "2024-04-01T19:35:40+02:00"
     IPTC:ModifyDate: "2024-04-01T19:35:40+02:00"
     IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "Layer2"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -1735,7 +1735,7 @@ src/Layers_16bit_RGB.psd :   48 x   27, 3 channel, uint16 psd
     IPTC:MetadataDate: "2024-04-01T19:35:30+02:00"
     IPTC:ModifyDate: "2024-04-01T19:35:30+02:00"
     IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
@@ -1786,7 +1786,7 @@ src/Layers_16bit_RGB.psd :   48 x   27, 3 channel, uint16 psd
     IPTC:MetadataDate: "2024-04-01T19:35:30+02:00"
     IPTC:ModifyDate: "2024-04-01T19:35:30+02:00"
     IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "Blue_Lagoon"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -1838,7 +1838,7 @@ src/Layers_16bit_RGB.psd :   48 x   27, 3 channel, uint16 psd
     IPTC:MetadataDate: "2024-04-01T19:35:30+02:00"
     IPTC:ModifyDate: "2024-04-01T19:35:30+02:00"
     IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "Layer"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -1890,7 +1890,7 @@ src/Layers_16bit_RGB.psd :   48 x   27, 3 channel, uint16 psd
     IPTC:MetadataDate: "2024-04-01T19:35:30+02:00"
     IPTC:ModifyDate: "2024-04-01T19:35:30+02:00"
     IPTC:OriginalDocumentID: "xmp.did:68fcb000-4377-c148-974d-bdd193ca024d"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:subimagename: "Layer2"
     photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"

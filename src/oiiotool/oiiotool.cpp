@@ -28,6 +28,7 @@
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/filter.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -174,8 +175,8 @@ Oiiotool::clear_options()
     printinfo_nometamatch.clear();
     printinfo_verbose = false;
     clear_input_config();
-    first_input_dimensions = ImageSpec();
-    output_dataformat      = TypeDesc::UNKNOWN;
+    m_first_input_dimensions = ImageSpec();
+    output_dataformat        = TypeDesc::UNKNOWN;
     output_channelformats.clear();
     output_bitspersample      = 0;
     output_scanline           = false;
@@ -227,7 +228,7 @@ Oiiotool::colorconfig()
     std::lock_guard lock(colorconfig_mutex);
     if (!m_colorconfig) {
         if (debug)
-            print("oiiotool Creating ColorConfig\n");
+            OIIO::print("oiiotool Creating ColorConfig\n");
         m_colorconfig.reset(new ColorConfig);
     }
     return *m_colorconfig.get();
@@ -616,9 +617,11 @@ Oiiotool::extract_options(string_view command)
 
 // --threads
 static void
-set_threads(Oiiotool&, cspan<const char*> argv)
+set_threads(Oiiotool& ot, cspan<const char*> argv)
 {
     OIIO_DASSERT(argv.size() == 2);
+    if (ot.in_parallel_frame_loop())
+        return;
     int nthreads = Strutil::stoi(argv[1]);
     OIIO::attribute("threads", nthreads);
     OIIO::attribute("exr_threads", nthreads);
@@ -1041,7 +1044,7 @@ DateTime_to_time_t(string_view datetime, time_t& timet)
     int year, month, day, hour, min, sec;
     if (!Strutil::scan_datetime(datetime, year, month, day, hour, min, sec))
         return false;
-    // print("{}:{}:{} {}:{}:{}\n", year, month, day, hour, min, sec);
+    // OIIO::print("{}:{}:{} {}:{}:{}\n", year, month, day, hour, min, sec);
     struct tm tmtime;
     time_t now;
     Sysutil::get_local_time(&now, &tmtime);  // fill in defaults
@@ -2245,6 +2248,60 @@ icc_read(Oiiotool& ot, cspan<const char*> argv)
 }
 
 
+// Set, modify, or remove the top image's CICP (ITU-T H.273) metadata.
+class OpSetCICP final : public OiiotoolOp {
+public:
+    OpSetCICP(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
+    {
+        inplace(true);  // This action operates in-place
+        cicp = args(1);
+    }
+    OpSetCICP(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+        : OpSetCICP(ot, opname, { argv, span_size_t(argc) })
+    {
+    }
+    bool setup() override
+    {
+        ir(0)->metadata_modified(true);
+        return true;
+    }
+    bool impl(span<ImageBuf*> img) override
+    {
+        // Because this is an in-place operation, img[0] is the same as
+        // img[1].
+        if (cicp.empty()) {
+            img[0]->specmod().erase_attribute("CICP");
+            return true;
+        }
+        std::vector<int> vals { 0, 0, 0, 1 };
+        auto p = img[0]->spec().find_attribute("CICP",
+                                               TypeDesc(TypeDesc::INT, 4));
+        if (p) {
+            const int* existing = static_cast<const int*>(p->data());
+            for (int i = 0; i < 4; ++i)
+                vals[i] = existing[i];
+        }
+        Strutil::extract_from_list_string<int>(vals, cicp);
+        img[0]->specmod().attribute("CICP", TypeDesc(TypeDesc::INT, 4),
+                                    vals.data());
+        return true;
+    }
+
+private:
+    string_view cicp;
+};
+
+
+// --cicp
+static void
+action_cicp(Oiiotool& ot, cspan<const char*> argv)
+{
+    OpSetCICP op(ot, "cicp", argv);
+    op();
+}
+
+
 
 // --colorconfig
 static void
@@ -3367,7 +3424,7 @@ ImageBufAlgox::cryptomatte_colors(ImageBuf& dst, const ImageBuf& src,
                                   span<const int> channelset, ROI roi,
                                   int nthreads)
 {
-    // pvt::LoggedTimer logtime("IBA::cryptomatte_colors");
+    // OIIO::pvt::LoggedTimer logtime("IBA::cryptomatte_colors");
     if (!roi.defined())
         roi = get_roi(src.spec());
     roi.chend = std::min(roi.chend, src.nchannels());
@@ -3571,7 +3628,8 @@ OIIOTOOL_OP(warp, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 // --demosaic
 OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     ParamValueList list;
-    const std::vector<std::string> keys = { "pattern", "algorithm", "layout" };
+    const std::vector<std::string> keys = { "pattern", "algorithm", "layout",
+                                            "white_balance_mode" };
     for (const auto& key : keys) {
         auto iter = op.options().find(key);
         if (iter != op.options().cend()) {
@@ -3584,10 +3642,10 @@ OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     float f3[3];
     float f4[4];
     if (Strutil::parse_values(str, "", f4, ",") && str.empty()) {
-        ParamValue pv("white_balance", TypeFloat, 4, f4);
+        ParamValue pv("white_balance", TypeFloat, 4, make_cspan(f4));
         list.push_back(pv);
     } else if (Strutil::parse_values(str, "", f3, ",") && str.empty()) {
-        ParamValue pv("white_balance", TypeFloat, 3, f3);
+        ParamValue pv("white_balance", TypeFloat, 3, make_cspan(f3));
         list.push_back(pv);
     }
 
@@ -4019,14 +4077,17 @@ nonzero_region_all_subimages(ImageRecRef A)
     ROI nonzero_region;
     for (int s = 0; s < A->subimages(); ++s) {
         ROI roi = ImageBufAlgo::nonzero_region((*A)(s));
-        if (roi.npixels() == 0) {
-            // Special case -- all zero; but doctor to make it 1 zero pixel
-            roi      = (*A)(s).roi();
-            roi.xend = roi.xbegin + 1;
-            roi.yend = roi.ybegin + 1;
-            roi.zend = roi.zbegin + 1;
+        if (roi.npixels() != 0) {
+            nonzero_region = roi_union(nonzero_region, roi);
         }
-        nonzero_region = roi_union(nonzero_region, roi);
+    }
+    if (!nonzero_region.defined()) {
+        // Special case -- all zero
+        // fallback to 1st subimage ROI, but doctor to make it 1 zero pixel
+        nonzero_region      = (*A)(0).roi();
+        nonzero_region.xend = nonzero_region.xbegin + 1;
+        nonzero_region.yend = nonzero_region.ybegin + 1;
+        nonzero_region.zend = nonzero_region.zbegin + 1;
     }
     return nonzero_region;
 }
@@ -4319,17 +4380,18 @@ public:
 
         if (ot.debug) {
             std::string filtername = options("filter");
-            print("  Resizing input {} full {}\n"
-                  "   -> output {} full {}\n"
-                  "     mapping {} to {}\n"
-                  "     using {} filter\n",
-                  Aspec.roi_full(), Aspec.roi(), newspec.roi(),
-                  newspec.roi_full(),
-                  format_resolution(from_w, from_h, from_x, from_y),
-                  format_resolution(to_w, to_h, to_x, to_y),
-                  (filtername.size() ? filtername.c_str() : "default"));
-            print("  M = {}\n", M);
-            print("  implementing with {}\n", do_warp ? "warp" : "resize");
+            OIIO::print("  Resizing input {} full {}\n"
+                        "   -> output {} full {}\n"
+                        "     mapping {} to {}\n"
+                        "     using {} filter\n",
+                        Aspec.roi_full(), Aspec.roi(), newspec.roi(),
+                        newspec.roi_full(),
+                        format_resolution(from_w, from_h, from_x, from_y),
+                        format_resolution(to_w, to_h, to_x, to_y),
+                        (filtername.size() ? filtername.c_str() : "default"));
+            OIIO::print("  M = {}\n", M);
+            OIIO::print("  implementing with {}\n",
+                        do_warp ? "warp" : "resize");
         }
         return do_warp;
     }
@@ -5239,12 +5301,14 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         if (!ot.imagecache->get_image_info(ustring(filename), 0, 0,
                                            ustring("exists"), TypeInt, &exists))
             exists = 0;
-        // If the image doesn't appear t exist, but it's a procedural image
-        // generator, then that's ok.
+        // N.B. ImageCache "exists" really means "can be opened and read."
         if (!exists) {
             auto input = ImageInput::create(filename);
-            if (input && input->supports("procedural"))
+            if (input && input->supports("procedural")) {
+                // If the image doesn't appear to exist, but it's a procedural
+                // image generator, then that's ok.
                 exists = 1;
+            }
             if (!input) {
                 // If the create call failed, eat any stray global errors it
                 // may have issued.
@@ -5253,36 +5317,49 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         }
         ImageBufRef substitute;  // possible substitute for missing image
         if (!exists) {
-            // Try to get a more precise error message to report
-            if (!Filesystem::exists(filename))
-                ot.errorfmt("read", "File does not exist: \"{}\"", filename);
-            else {
+            // It neither can be opened nor is it a procedural.
+            std::string errmsg;
+            if (!Filesystem::exists(filename)) {
+                // It literally is a nonexistant file.
+                errmsg = Strutil::format("File does not exist: \"{}\"",
+                                         filename);
+            } else {
+                // The file exists, but it can't be opened as an image.
+                // Try to get a more precise error message to report.
                 auto in         = ImageInput::open(filename);
                 std::string err = in ? in->geterror() : OIIO::geterror();
-                ot.error("read", ot.format_read_error(filename, err));
+                errmsg = Strutil::format(ot.format_read_error(filename, err));
             }
             // Second chances: do we have a substitute image policy?
+            ImageSpec substitute_spec;
+            if (ot.first_input_dimensions_is_set())
+                ot.get_first_input_dimensions(substitute_spec);
+            else if (ot.parent_oiiotool
+                     && ot.parent_oiiotool->first_input_dimensions_is_set())
+                ot.parent_oiiotool->get_first_input_dimensions(substitute_spec);
+            else {
+                // How big to make the substitute image if we haven't yet read
+                // any image successfully? Punt and guess HD res RGBA.
+                substitute_spec = ImageSpec(1920, 1080, 4);
+            }
             if (ot.missingfile_policy == "black") {
-                ImageSpec substitute_spec = ot.first_input_dimensions;
-                if (substitute_spec.format == TypeUnknown
-                    || !substitute_spec.width || !substitute_spec.height
-                    || !substitute_spec.nchannels)
-                    substitute_spec = ImageSpec(1920, 1080, 4);
                 substitute.reset(
                     new ImageBuf(substitute_spec, InitializePixels::Yes));
             } else if (ot.missingfile_policy == "checker") {
-                ImageSpec substitute_spec = ot.first_input_dimensions;
-                if (substitute_spec.format == TypeUnknown
-                    || !substitute_spec.width || !substitute_spec.height
-                    || !substitute_spec.nchannels)
-                    substitute_spec = ImageSpec(1920, 1080, 4);
                 substitute.reset(new ImageBuf(substitute_spec));
                 ImageBufAlgo::checker(*substitute, 64, 64, 1,
                                       { 0.0f, 0.0f, 0.0f, 1.0f },
                                       { 1.0f, 1.0f, 1.0f, 1.0f });
             }
-            if (!substitute)
-                break;
+            if (!exists) {
+                if (substitute) {
+                    ot.warningfmt("read", "{}, Substituting {}", errmsg,
+                                  ot.missingfile_policy);
+                } else {
+                    ot.error("read", errmsg);
+                    break;
+                }
+            }
         }
         if (channel_set.size()) {
             ot.input_channel_set = channel_set;
@@ -5306,11 +5383,15 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                 ot.read(policy, channel_set);
             } else
                 ot.read_nativespec();
-            if (ot.first_input_dimensions.format == TypeUnknown) {
-                ot.first_input_dimensions.copy_dimensions(
-                    *ot.curimg->nativespec());
-                ot.first_input_dimensions.channelnames
+            if (!ot.first_input_dimensions_is_set()) {
+                ImageSpec new_first_dims;
+                new_first_dims.copy_dimensions(*ot.curimg->nativespec());
+                new_first_dims.channelnames
                     = ot.curimg->nativespec()->channelnames;
+                ot.set_first_input_dimensions(new_first_dims);
+                if (ot.parent_oiiotool)
+                    ot.parent_oiiotool->set_first_input_dimensions(
+                        new_first_dims);
             }
         }
         if ((printinfo || ot.printstats || ot.dumpdata || ot.hash)
@@ -5341,17 +5422,18 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         if (autocc) {
             // Try to deduce the color space it's in
             std::string colorspace(
-                ot.colorconfig().getColorSpaceFromFilepath(filename));
+                ot.colorconfig().getColorSpaceFromFilepath(filename, "", true));
             if (colorspace.size() && ot.debug)
-                print("  From {}, we deduce color space \"{}\"\n", filename,
-                      colorspace);
+                OIIO::print("  From {}, we deduce color space \"{}\"\n",
+                            filename, colorspace);
             if (colorspace.empty()) {
                 ot.read();
                 colorspace = ot.curimg->spec()->get_string_attribute(
                     "oiio:ColorSpace");
                 if (ot.debug)
-                    print("  Metadata of {} indicates color space \"{}\"\n",
-                          colorspace, filename);
+                    OIIO::print(
+                        "  Metadata of {} indicates color space \"{}\"\n",
+                        colorspace, filename);
             }
             std::string linearspace = ot.colorconfig().resolve("scene_linear");
             if (colorspace.size()
@@ -5362,12 +5444,12 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                 const char* argv[] = { cmd.c_str(), colorspace.c_str(),
                                        linearspace.c_str() };
                 if (ot.debug)
-                    print("  Converting {} from {} to {}\n", filename,
-                          colorspace, linearspace);
+                    OIIO::print("  Converting {} from {} to {}\n", filename,
+                                colorspace, linearspace);
                 action_colorconvert(ot, argv);
             } else if (ot.debug) {
-                print("  no auto conversion necessary for {}->{}\n", colorspace,
-                      linearspace);
+                OIIO::print("  no auto conversion necessary for {}->{}\n",
+                            colorspace, linearspace);
             }
         }
 
@@ -5398,6 +5480,8 @@ prep_texture_config(Oiiotool& ot, ImageSpec& configspec,
     configspec.attribute("maketx:verbose", ot.verbose);
     configspec.attribute("maketx:runstats", ot.runstats);
     configspec.attribute("maketx:resize", fileoptions.get_int("resize"));
+    configspec.attribute("maketx:keepaspect",
+                         fileoptions.get_int("keepaspect"));
     configspec.attribute("maketx:nomipmap", fileoptions.get_int("nomipmap"));
     configspec.attribute("maketx:updatemode",
                          fileoptions.get_int("updatemode"));
@@ -5438,6 +5522,16 @@ prep_texture_config(Oiiotool& ot, ImageSpec& configspec,
                              "prman_options", fileoptions.get_string("prman")));
     configspec.attribute("maketx:bumpformat",
                          fileoptions.get_string("bumpformat", "auto"));
+    configspec.attribute("maketx:bumpscale",
+                         fileoptions.get_float("bumpscale", 1.0f));
+    configspec.attribute("maketx:bumpinverts",
+                         fileoptions.get_int("bumpinverts"));
+    configspec.attribute("maketx:bumpinvertt",
+                         fileoptions.get_int("bumpinvertt"));
+    configspec.attribute("maketx:slopefilter",
+                         fileoptions.get_string("slopefilter", "sobel"));
+    configspec.attribute("maketx:bumprange",
+                         fileoptions.get_string("bumprange", "auto"));
     configspec.attribute("maketx:uvslopes_scale",
                          fileoptions.get_float("uvslopes_scale", 0.0f));
     if (fileoptions.contains("handed"))
@@ -5519,6 +5613,9 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         remove_all_cmd(newcmd);
         new_argv[0]              = newcmd.c_str();
         ImageRecRef saved_curimg = ot.curimg;  // because we'll overwrite it
+        // Revert back to the UN-expression-substituted filename. It will get
+        // expression substitution in the subsequent call to output_file.
+        filename = argv[1];
         for (int i = 0; i < nimages; ++i) {
             if (i < nimages - 1)
                 ot.curimg = ot.image_stack[i];
@@ -5659,8 +5756,8 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     // automatically set -d based on the name if --autocc is used.
     bool autocc          = fileoptions.get_int("autocc", ot.autocc);
     bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
-    std::string outcolorspace = ot.colorconfig().getColorSpaceFromFilepath(
-        filename);
+    std::string outcolorspace
+        = ot.colorconfig().getColorSpaceFromFilepath(filename, "", true);
     if (autocc && outcolorspace.size()) {
         TypeDesc type;
         int bits;
@@ -5692,7 +5789,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
                 || Strutil::iends_with(filename, ".jpeg")
                 || Strutil::iends_with(filename, ".gif")
                 || Strutil::iends_with(filename, ".webp")))
-            outcolorspace = string_view("sRGB");
+            outcolorspace = string_view("srgb_rec709_scene");
         if (outcolorspace.empty()
             && (Strutil::iends_with(filename, ".ppm")
                 || Strutil::iends_with(filename, ".pnm")))
@@ -6211,20 +6308,20 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
 
     int roles = colorconfig.getNumRoles();
     if (roles) {
-        print(out, "Known roles:\n");
+        OIIO::print(out, "Known roles:\n");
         for (int i = 0; i < roles; ++i) {
             const char* r = colorconfig.getRoleByIndex(i);
-            print(out, "    - {} -> {}\n", quote_if_spaces(r),
-                  quote_if_spaces(colorconfig.getColorSpaceNameByRole(r)));
+            OIIO::print(out, "    - {} -> {}\n", quote_if_spaces(r),
+                        quote_if_spaces(colorconfig.getColorSpaceNameByRole(r)));
         }
     }
 
     int nlooks = colorconfig.getNumLooks();
     if (nlooks) {
-        print(out, "Known looks:\n");
+        OIIO::print(out, "Known looks:\n");
         for (int i = 0; i < nlooks; ++i)
-            print(out, "    - {}\n",
-                  quote_if_spaces(colorconfig.getLookNameByIndex(i)));
+            OIIO::print(out, "    - {}\n",
+                        quote_if_spaces(colorconfig.getLookNameByIndex(i)));
     }
 
     const char* default_display = colorconfig.getDefaultDisplayName();
@@ -6278,23 +6375,24 @@ print_build_info(Oiiotool& ot, std::ostream& out)
 
     auto platform = format("OIIO {} | {}", OIIO_VERSION_STRING,
                            OIIO::get_string_attribute("build:platform"));
-    print(out, "{}\n", Strutil::wordwrap(platform, columns, 4));
+    OIIO::print(out, "{}\n", Strutil::wordwrap(platform, columns, 4));
 
     auto buildinfo = format("    Build compiler: {} | C++{}/{}",
                             OIIO::get_string_attribute("build:compiler"),
                             OIIO_CPLUSPLUS_VERSION, __cplusplus);
-    print(out, "{}\n", Strutil::wordwrap(buildinfo, columns, 4));
+    OIIO::print(out, "{}\n", Strutil::wordwrap(buildinfo, columns, 4));
 
     auto hwbuildfeats
         = format("    HW features enabled at build: {}",
                  OIIO::get_string_attribute("build:simd", "no SIMD"));
-    print(out, "{}\n", Strutil::wordwrap(hwbuildfeats, columns, 4));
+    OIIO::print(out, "{}\n", Strutil::wordwrap(hwbuildfeats, columns, 4));
 #ifdef OIIO_USE_CUDA
     int cudaver = OIIO::get_int_attribute("cuda:build_version");
-    print(out, "    CUDA {}.{}.{} support enabled at build time\n",
-          cudaver / 10000, (cudaver / 100) % 100, cudaver % 100);
+    OIIO::print(out, "    CUDA {}.{}.{} support enabled at build time\n",
+                cudaver / 10000, (cudaver / 100) % 100, cudaver % 100);
 #else
-    print(out, "    No CUDA support (disabled / unavailable at build time)\n");
+    OIIO::print(out,
+                "    No CUDA support (disabled / unavailable at build time)\n");
 #endif
 
     std::string libs = OIIO::get_string_attribute("build:dependencies");
@@ -6304,9 +6402,10 @@ print_build_info(Oiiotool& ot, std::ostream& out)
             size_t pos = lib.find(':');
             lib.remove_prefix(pos + 1);
         }
-        print(out, "{}\n",
-              Strutil::wordwrap("Dependencies: " + Strutil::join(libvec, ", "),
-                                columns, 4));
+        OIIO::print(out, "{}\n",
+                    Strutil::wordwrap("Dependencies: "
+                                          + Strutil::join(libvec, ", "),
+                                      columns, 4));
     }
 }
 
@@ -6315,27 +6414,28 @@ print_build_info(Oiiotool& ot, std::ostream& out)
 static void
 print_help_end(Oiiotool& ot, std::ostream& out)
 {
-    print(out, "\n");
+    OIIO::print(out, "\n");
     int columns = Sysutil::terminal_columns() - 2;
 
     out << formatted_format_list("Input", "input_format_list") << "\n";
     out << formatted_format_list("Output", "output_format_list") << "\n";
 
     if (int ociover = ot.colorconfig().OpenColorIO_version_hex())
-        print(out, "OpenColorIO {}.{}.{}\n", (ociover >> 24),
-              ((ociover >> 16) & 0xff), ((ociover >> 8) & 0xff));
+        OIIO::print(out, "OpenColorIO {}.{}.{}\n", (ociover >> 24),
+                    ((ociover >> 16) & 0xff), ((ociover >> 8) & 0xff));
     else
-        print(out, "No OpenColorIO\n");
-    print(out, "    Color config: {}\n", ot.colorconfig().configname());
-    print(out, "    Run `oiiotool --colorconfiginfo` for a "
-               "full color management inventory.\n");
+        OIIO::print(out, "No OpenColorIO\n");
+    OIIO::print(out, "    Color config: {}\n", ot.colorconfig().configname());
+    OIIO::print(out, "    Run `oiiotool --colorconfiginfo` for a "
+                     "full color management inventory.\n");
 
-    print(out, "{}\n",
-          Strutil::wordwrap("Filters available: "
-                                + Strutil::replace(OIIO::get_string_attribute(
-                                                       "filter_list"),
-                                                   ";", ", ", true),
-                            columns, 4));
+    OIIO::print(
+        out, "{}\n",
+        Strutil::wordwrap("Filters available: "
+                              + Strutil::replace(OIIO::get_string_attribute(
+                                                     "filter_list"),
+                                                 ";", ", ", true),
+                          columns, 4));
 
     print_build_info(ot, out);
 
@@ -6345,7 +6445,7 @@ print_help_end(Oiiotool& ot, std::ostream& out)
                                        Sysutil::physical_memory()
                                            / float(1 << 30),
                                        OIIO::get_string_attribute("hw:simd"));
-    print(out, "{}\n", Strutil::wordwrap(hwinfo, columns, 4, " ", ","));
+    OIIO::print(out, "{}\n", Strutil::wordwrap(hwinfo, columns, 4, " ", ","));
     if (OIIO::get_int_attribute("cuda:devices_found")
         /*pvt::compute_device() == pvt::ComputeDevice::CUDA*/) {
         auto compinfo = Strutil::fmt::format(
@@ -6358,16 +6458,17 @@ print_help_end(Oiiotool& ot, std::ostream& out)
             OIIO::get_int_attribute("cuda:runtime_version"),
             OIIO::get_int_attribute("cuda:compatibility"),
             OIIO::get_int_attribute("cuda:total_memory_MB") / 1024.0);
-        print(out, "{}\n", Strutil::wordwrap(compinfo, columns, 4, " ", ","));
+        OIIO::print(out, "{}\n",
+                    Strutil::wordwrap(compinfo, columns, 4, " ", ","));
     } else {
-        print(out, "    No compute specific hardware enabled.\n");
+        OIIO::print(out, "    No compute specific hardware enabled.\n");
     }
 
     // Print the path to the docs. If found, use the one installed in the
     // same area is this executable, otherwise just point to the copy on
     // GitHub corresponding to our version of the softare.
-    print(out, "Full OIIO documentation can be found at\n");
-    print(out, "    https://docs.openimageio.org\n");
+    OIIO::print(out, "Full OIIO documentation can be found at\n");
+    OIIO::print(out, "    https://docs.openimageio.org\n");
 }
 
 
@@ -6402,13 +6503,13 @@ oiiotool_unit_tests(Oiiotool& ot)
 {
 #ifdef OIIO_UNIT_TESTS
     using Strutil::print;
-    print("Running unit tests...\n");
+    OIIO::print("Running unit tests...\n");
     auto e       = ot.noerrexit;
     ot.noerrexit = true;
     unit_test_scan_box();
     unit_test_adjust_geometry(ot);
     ot.noerrexit = e;
-    print("...end of unit tests\n");
+    OIIO::print("...end of unit tests\n");
 #endif
 }
 
@@ -6606,7 +6707,7 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--test-bad-format")
       .hidden()
       .action([&](cspan<const char*>){
-                  print("{}\n", Strutil::fmt::format("hey hey {:d} {}",
+                  OIIO::print("{}\n", Strutil::fmt::format("hey hey {:d} {}",
                                                      "foo", "bar", "oops"));
               });
 
@@ -6633,7 +6734,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Output the current image as a latlong env map")
       .OTACTION(output_file);
     ap.arg("-obump %s:FILENAME")
-      .help("Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto, uvslopes_scale=val>=0)")
+      .help("Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto, uvslopes_scale=val>=0, bumpscale=%f, bumpinverts=false, bumpinvertt=false, slopefilter=sobel|centraldiff, bumprange=centered|positive|auto)")
       .OTACTION(output_file);
 
     ap.separator("Options that affect subsequent image output:");
@@ -7132,6 +7233,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--iccread %s:FILENAME")
       .help("Add the contents of the file to the top image as its ICC profile")
       .OTACTION(icc_read);
+    ap.arg("--cicp %s:CICP")
+       .help("Set or modifiy CICP metadata for supporting output formats (e.g., \"12,16,0,1\")") //; selectively persist existing values if not specified (e.g., \",,,0\")")
+       .OTACTION(action_cicp);
     // clang-format on
 
     if (ap.parse_args(argc, (const char**)argv) < 0) {
@@ -7197,19 +7301,21 @@ one_sequence_iteration(Oiiotool& otmain, size_t i, int frame_number,
         return;
 
     if (otmain.debug)
-        print("Begin sequence iteration {}\n", i);
+        OIIO::print("Begin sequence iteration {}\n", i);
 
     // Prepare the arguments for this iteration
     std::vector<const char*> seq_argv(argv_main.begin(), argv_main.end());
     for (size_t a : sequence_args) {
         seq_argv[a] = filenames[a][i].c_str();
         if (otmain.debug)
-            print("  {} -> {}\n", argv_main[a], seq_argv[a]);
+            OIIO::print("  {} -> {}\n", argv_main[a], seq_argv[a]);
     }
 
     Oiiotool otit;  // Oiiotool for this iteration
-    otit.imagecache   = otmain.imagecache;
-    otit.frame_number = frame_number;
+    otit.imagecache               = otmain.imagecache;
+    otit.frame_number             = frame_number;
+    otit.parent_oiiotool          = &otmain;
+    otit.m_in_parallel_frame_loop = otmain.in_parallel_frame_loop();
     otit.getargs((int)seq_argv.size(), (char**)&seq_argv[0]);
 
     if (otit.ap.aborted()) {
@@ -7245,12 +7351,12 @@ one_sequence_iteration(Oiiotool& otmain, size_t i, int frame_number,
     if (otit.runstats) {
         std::lock_guard<std::mutex> lock(otmain.m_stat_mutex);
         otmain.runstats = true;
-        print("End sequence iteration {}: {} (total {}) mem {}\n\n", i,
-              Strutil::timeintervalformat(otit.total_runtime(), 2),
-              Strutil::timeintervalformat(otmain.total_runtime(), 2),
-              Strutil::memformat(Sysutil::memory_used()));
+        OIIO::print("End sequence iteration {}: {} (total {}) mem {}\n\n", i,
+                    Strutil::timeintervalformat(otit.total_runtime(), 2),
+                    Strutil::timeintervalformat(otmain.total_runtime(), 2),
+                    Strutil::memformat(Sysutil::memory_used()));
     } else if (otmain.debug) {
-        print("\n");
+        OIIO::print("\n");
     }
 }
 
@@ -7284,8 +7390,9 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
     int framepadding = 0;
     std::vector<int> sequence_args;  // Args with sequence numbers
     std::vector<bool> sequence_is_output;
-    bool is_sequence = false;
-    bool wildcard_on = true;
+    int parallel_frame_threads = OIIO::get_int_attribute("threads");
+    bool is_sequence           = false;
+    bool wildcard_on           = true;
     for (int a = 1; a < argc; ++a) {
         bool is_output     = false;
         bool is_output_all = false;
@@ -7315,6 +7422,11 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
         } else if ((strarg == "--views" || strarg == "-views")
                    && a < argc - 1) {
             Strutil::split(argv[++a], views, ",");
+        } else if ((strarg == "--threads" || strarg == "-threads")
+                   && a < argc - 1) {
+            int t = Strutil::stoi(argv[++a]);
+            t     = OIIO::clamp(t, 0, int(Sysutil::hardware_concurrency()));
+            parallel_frame_threads = t;
         } else if (strarg == "--wildcardoff" || strarg == "-wildcardoff") {
             wildcard_on = false;
         } else if (strarg == "--parallel-frames"
@@ -7420,17 +7532,21 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
     // every time.
     // Note: nfilenames really means, number of frame number iterations.
     if (ot.parallel_frames) {
-        // If --parframes was used, run the iterations in parallel.
+        // If --parframes was used, run the iterations in parallel, but
+        // each iteration should itself not try to internally parallelize.
         if (ot.debug)
-            print("Running {} frames in parallel\n", nfilenames);
-        parallel_for(
+            OIIO::print("Running {} frames in parallel with {} threads\n",
+                        nfilenames, parallel_frame_threads);
+        ot.begin_parallel_frame_loop(parallel_frame_threads);
+        OIIO::parallel_for(
             uint64_t(0), uint64_t(nfilenames),
             [&](uint64_t i) {
                 one_sequence_iteration(ot, i, frame_numbers[0][i],
                                        sequence_args, filenames,
                                        { argv, argv + argc });
             },
-            paropt().minitems(1));
+            paropt().minitems(1).maxthreads(parallel_frame_threads));
+        ot.end_parallel_frame_loop();
     } else {
         // Fully serialized over the frame range, multithreaded for each frame
         // individually.
@@ -7440,6 +7556,24 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
         }
     }
     return true;
+}
+
+
+
+void
+Oiiotool::begin_parallel_frame_loop(int nthreads)
+{
+    OIIO::attribute("threads", nthreads);
+    OIIO::attribute("exr_threads", 1);
+    m_in_parallel_frame_loop = true;
+}
+
+
+
+void
+Oiiotool::end_parallel_frame_loop()
+{
+    m_in_parallel_frame_loop = false;
 }
 
 
@@ -7525,10 +7659,11 @@ main(int argc, char* argv[])
     if (ot.runstats) {
         double total_time  = ot.total_runtime();
         double unaccounted = total_time;
-        print("\n");
-        print("Threads: {}\n", OIIO::get_int_attribute("threads"));
-        print("oiiotool runtime statistics:\n");
-        print("  Total time: {}\n", Strutil::timeintervalformat(total_time, 2));
+        OIIO::print("\n");
+        OIIO::print("Threads: {}\n", OIIO::get_int_attribute("threads"));
+        OIIO::print("oiiotool runtime statistics:\n");
+        OIIO::print("  Total time: {}\n",
+                    Strutil::timeintervalformat(total_time, 2));
         for (auto& func : ot.function_times) {
             double t = func.second;
             if (t > 0.0) {
@@ -7540,23 +7675,24 @@ main(int argc, char* argv[])
             Strutil::print("      {:<12} : {:5.2f}\n", "unaccounted",
                            unaccounted);
         ot.check_peak_memory();
-        print("  Peak memory:    {}\n", Strutil::memformat(ot.peak_memory));
-        print("  Current memory: {}\n",
-              Strutil::memformat(Sysutil::memory_used()));
+        OIIO::print("  Peak memory:    {}\n",
+                    Strutil::memformat(ot.peak_memory));
+        OIIO::print("  Current memory: {}\n",
+                    Strutil::memformat(Sysutil::memory_used()));
         {
             int64_t current = 0, peak = 0;
             OIIO::getattribute("IB_local_mem_current", TypeInt64, &current);
             OIIO::getattribute("IB_local_mem_peak", TypeInt64, &peak);
-            print("\nImageBuf local memory: current {}, peak {}\n",
-                  Strutil::memformat(current), Strutil::memformat(peak));
+            OIIO::print("\nImageBuf local memory: current {}, peak {}\n",
+                        Strutil::memformat(current), Strutil::memformat(peak));
             float opentime = OIIO::get_float_attribute("IB_total_open_time");
             float readtime = OIIO::get_float_attribute(
                 "IB_total_image_read_time");
-            print("ImageBuf direct read time: {}, open time {}\n",
-                  Strutil::timeintervalformat(readtime, 2),
-                  Strutil::timeintervalformat(opentime, 2));
+            OIIO::print("ImageBuf direct read time: {}, open time {}\n",
+                        Strutil::timeintervalformat(readtime, 2),
+                        Strutil::timeintervalformat(opentime, 2));
         }
-        print("\n{}\n", ot.imagecache->getstats(2));
+        OIIO::print("\n{}\n", ot.imagecache->getstats(2));
     }
 
     // Release references of images that might hold onto a shared

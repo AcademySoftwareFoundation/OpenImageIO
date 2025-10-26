@@ -23,8 +23,9 @@ public:
     int supports(string_view feature) const override
     {
         return (feature == "arbitrary_metadata"
-                || feature == "exif"    // Because of arbitrary_metadata
-                || feature == "iptc");  // Because of arbitrary_metadata
+                || feature == "exif"  // Because of arbitrary_metadata
+                || feature == "iptc"  // Because of arbitrary_metadata
+                || feature == "multiimage" || feature == "mipmap");
     }
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool close() override;
@@ -195,12 +196,19 @@ PtexInput::seek_subimage(int subimage, int miplevel)
     // Add the arbitrary metadata. For Ptex, we only add full metadata to the
     // first MIP level of the first subimage. The PTex format doesn't permit
     // metadata to differ per-face anyway.
+    // Add the number of subimages as an attribute for the first spec.
     if (subimage == 0 && miplevel == 0) {
         if (PtexMetaData* pmeta = m_ptex->getMetaData()) {
             get_ptex_metadata(pmeta);
             pmeta->release();
         }
+
+        m_spec.attribute("oiio:subimages", m_numFaces);
     }
+
+    // Add the number of miplevels as an attribute for the first miplevel.
+    if (miplevel == 0 && nmiplevels > 1)
+        m_spec.attribute("oiio:miplevels", nmiplevels);
 
     facedata->release();
     return true;

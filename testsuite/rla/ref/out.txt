@@ -90,7 +90,7 @@ Reading ../oiio-images/rla/imgmake_rgba_nc10.rla
     compression: "rle"
     HostComputer: "hawk073.spimageworks.com"
     oiio:BitsPerSample: 10
-    oiio:ColorSpace: "lin_srgb"
+    oiio:ColorSpace: "lin_rec709_scene"
     rla:Aspect: " 1.333"
     rla:BlueChroma: 0.14, 0.14, 0.08
     rla:ColorChannel: "rgb"
@@ -193,7 +193,7 @@ Reading ../oiio-images/rla/imgmake_rgba_nc16.rla
     compression: "rle"
     HostComputer: "hawk073.spimageworks.com"
     oiio:BitsPerSample: 16
-    oiio:ColorSpace: "lin_srgb"
+    oiio:ColorSpace: "lin_rec709_scene"
     rla:Aspect: " 1.333"
     rla:BlueChroma: 0.14, 0.14, 0.08
     rla:ColorChannel: "rgb"
@@ -296,7 +296,7 @@ Reading ../oiio-images/rla/imgmake_rgba_nc8.rla
     compression: "rle"
     HostComputer: "hawk073.spimageworks.com"
     oiio:BitsPerSample: 8
-    oiio:ColorSpace: "lin_srgb"
+    oiio:ColorSpace: "lin_rec709_scene"
     rla:Aspect: " 1.333"
     rla:BlueChroma: 0.14, 0.14, 0.08
     rla:ColorChannel: "rgb"

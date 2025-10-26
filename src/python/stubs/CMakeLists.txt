@@ -8,7 +8,7 @@ set (_stub_file "${CMAKE_SOURCE_DIR}/src/python/stubs/OpenImageIO/__init__.pyi")
 # the version of python that OpenImageIO is being built against.
 # Note: the version of cibuildwheel should be kept in sync with .github/workflows/wheel.yml
 add_custom_command (COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/src/python/stubs/generate_stubs_local.py
-                        --repo-root ${CMAKE_SOURCE_DIR} --python-version="3.11" --cibuildwheel-version="2.21.1"
+                        --repo-root ${CMAKE_SOURCE_DIR} --python-version="3.11" --cibuildwheel-version="3.2.1"
                         --output-dir "${CMAKE_BINARY_DIR}/wheelhouse"
                     OUTPUT "${CMAKE_BINARY_DIR}/wheelhouse/OpenImageIO/__init__.pyi"
                     DEPENDS "${CMAKE_SOURCE_DIR}/src/python/stubs/generate_stubs.py"

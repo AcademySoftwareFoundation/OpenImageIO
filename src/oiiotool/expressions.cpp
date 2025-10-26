@@ -49,7 +49,7 @@ bool
 Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                              std::string& result)
 {
-    // print(" Entering express_parse_atom, s='{}'\n", s);
+    // OIIO::print(" Entering express_parse_atom, s='{}'\n", s);
 
     string_view orig = s;
     float floatval;
@@ -339,6 +339,8 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                     // Not even constant color case -> We don't want those to count as black frames.
                     result = "0";
                 }
+            } else if (metadata == "SUBIMAGES") {
+                result = Strutil::to_string(img->subimages());
 
             } else if (using_bracket) {
                 // For the TOP[meta] syntax, if the metadata doesn't exist,
@@ -388,7 +390,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
     if (invert)
         result = Strutil::eval_as_bool(result) ? "0" : "1";
 
-    // print(" Exiting express_parse_atom, result='{}'\n", result);
+    // OIIO::print(" Exiting express_parse_atom, result='{}'\n", result);
 
     return true;
 }
@@ -399,7 +401,7 @@ bool
 Oiiotool::express_parse_factors(const string_view expr, string_view& s,
                                 std::string& result)
 {
-    // print(" Entering express_parse_factrors, s='{}'\n", s);
+    // OIIO::print(" Entering express_parse_factrors, s='{}'\n", s);
 
     string_view orig = s;
     std::string atom;
@@ -469,7 +471,7 @@ Oiiotool::express_parse_factors(const string_view expr, string_view& s,
         result = atom;
     }
 
-    // print(" Exiting express_parse_factors, result='{}'\n", result);
+    // OIIO::print(" Exiting express_parse_factors, result='{}'\n", result);
 
     return true;
 }
@@ -480,7 +482,7 @@ bool
 Oiiotool::express_parse_summands(const string_view expr, string_view& s,
                                  std::string& result)
 {
-    // print(" Entering express_parse_summands, s='{}'\n", s);
+    // OIIO::print(" Entering express_parse_summands, s='{}'\n", s);
 
     string_view orig = s;
     std::string atom;
@@ -553,7 +555,7 @@ Oiiotool::express_parse_summands(const string_view expr, string_view& s,
         result = atom;
     }
 
-    // print(" Exiting express_parse_summands, result='{}'\n", result);
+    // OIIO::print(" Exiting express_parse_summands, result='{}'\n", result);
 
     return true;
 }
@@ -601,6 +603,6 @@ Oiiotool::express(string_view str)
     ustring result = ustring::fmtformat("{}{}{}", prefix, express_impl(expr),
                                         express(s));
     if (debug)
-        print("Expanding expression \"{}\" -> \"{}\"\n", str, result);
+        OIIO::print("Expanding expression \"{}\" -> \"{}\"\n", str, result);
     return result;
 }

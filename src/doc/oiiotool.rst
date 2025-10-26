@@ -165,6 +165,7 @@ contents of an expression may be any of:
     be printed with `oiiotool -stats`.
   * `IS_CONSTANT`: metadata to check if the image pixels are of constant color, returns 1 if true, and 0 if false.
   * `IS_BLACK`: metadata to check if the image pixels are all black, a subset of IS_CONSTANT. Also returns 1 if true, and 0 if false.
+  * `SUBIMAGES`: the number of subimages in the file.
   
 * *imagename.'metadata'*
 
@@ -708,13 +709,19 @@ Color convert an image
 ----------------------
 
 This command linearizes a JPEG assumed to be in sRGB, saving as an HDRI
-OpenEXR file::
+OpenEXR file in ACEScg color space::
 
-    oiiotool photo.jpg --colorconvert sRGB linear -o output.exr
+    oiiotool photo.jpg --colorconvert srgb acescg -o output.exr
 
 And the other direction::
 
-    oiiotool render.exr --colorconvert linear sRGB -o fortheweb.png
+    oiiotool render.exr --colorconvert acescg srgb -o fortheweb.png
+
+Above, we're using the short aliases "srgb" and "acescg", but it's also fine
+to use the canonical Color Interop Forum names::
+
+    oiiotool photo.jpg --colorconvert srgb_rec709_scene lin_ap1_scene -o output.exr
+    oiiotool render.exr --colorconvert lin_ap1_scene srgb_rec709_scene -o fortheweb.png
 
 This converts between two named color spaces (presumably defined by your
 facility's OpenColorIO configuration)::
@@ -861,11 +868,17 @@ Split a multi-image file into separate files
 --------------------------------------------
 
 Take a multi-image TIFF file, split into its constituent subimages and
-output each one to a different file, with names `sub0001.tif`,
-`sub0002.tif`, etc.::
+output each one to a different file, with names `sub.0001.tif`,
+`sub.0002.tif`, etc.::
 
-    oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
+    oiiotool multi.tif -sisplit -o:all=1 sub.%04d.tif
 
+Take a multi-image OpenEXR file (called "multi-part" in OpenEXR parlance),
+split into its constituent subimages and output each one to a different file,
+with names `sub.beauty.exr`, `sub.albedo.exr`, etc., using the name of each
+subimage according to its metadata::
+
+    oiiotool multi.exr -sisplit -o:all=1 "sub.{TOP.'oiio:subimagename'}.exr"
 
 
 |
@@ -890,7 +903,7 @@ output each one to a different file, with names `sub0001.tif`,
 
 .. option:: -q
 
-    Quet mode --- print out less information about what :program:`oiiotool`
+    Quiet mode --- print out less information about what :program:`oiiotool`
     is doing (only errors).
 
 .. option:: -n
@@ -1491,16 +1504,24 @@ Writing images
         Output all images currently on the stack using a pattern.
         See further explanation below.
 
-    The `all=n` option causes *all* images on the image stack to be output,
-    with the filename argument used as a pattern assumed to contain a `%d`,
-    which will be substituted with the index of the image (beginning with
-    *n*). For example, to take a multi-image TIFF and extract all the
-    subimages and save them as separate files::
+    The `all=n` option causes *all* images on the image stack to be output. If
+    the *filename* argument contains expression substitution notation, the
+    substitution will be re-evaluated for each image output. Also, if the
+    *filename* argument contains a `%d`, that will be substituted with the
+    index of the image (beginning with *n*). For example, to take a
+    multi-image TIFF and extract all the subimages and save them as separate
+    files::
     
         oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
     
     This will output the subimges as separate files `sub0001.tif`,
     `sub0002.tif`, and so on.
+
+    Expression substitution can be used to insert the subimage name
+    into each filename::
+    
+        oiiotool multi.tif -sisplit -o:all=1 "sub.{TOP.'oiio:subimagename'}.tif"
+    
 
 
 .. option:: -otex <filename>
@@ -1528,6 +1549,9 @@ Writing images
       `:resize=` *int*
         If nonzero, resize to a power of 2 before starting to create the
         MIPpmap levels. (default: 0)
+      `:keepaspect=` *int*
+        If nonzero, add metadata to maintain the image aspect ratio even when
+        `resize=1`. (default: 0)
       `:nomipmap=` *int*
         If nonzero, do not create MIP-map levels at all. (default: 0)
       `:updatemode=` *int*
@@ -1571,6 +1595,20 @@ Writing images
       `:uvslopes_scale=` *float*
         For `-obump` only, specifies the amount to scale the bump-map slopes
         by. (default: 0.0, meaning not to use this feature)
+      `:slopefilter=` *string*
+        For `-obump` only, specifies the filter to use for slope computation
+        when `bumpformat=height`. (default: sobel)
+      `:bumpinverts=` *int*
+        For `-obump` only, inverts slopes on the s/u/x direction. (default: 0)
+      `:bumpinvertt=` *int*
+        For `-obump` only, inverts slopes on the t/v/y direction. (default: 0)
+      `:bumpscale=` *float*
+        For `-obump` only, scales the strength of the resulting map. (default: 
+        1.0)
+      `:bumprange=` *string*
+        For `obump` only, specifies the normal data convention when 
+        `bumpformat=normal` as one of `centered`, `positive`, `auto`. 
+        (default: auto)
       `:cdf=` *int*
         If nonzero, will add to the texture metadata the forward and inverse
         Gaussian CDF, which can be used by shaders to implement
@@ -1590,7 +1628,7 @@ Writing images
 
         oiiotool in.tif -otex out.tx
     
-        oiiotool in.jpg --colorconvert sRGB linear -d uint16 -otex out.tx
+        oiiotool in.jpg --colorconvert srgb_rec709_scene lin_rec709_scene -d uint16 -otex out.tx
     
         oiiotool --pattern:checker 512x512 3 -d uint8 -otex:wrap=periodic checker.tx
     
@@ -4280,20 +4318,41 @@ current top image.
     Optional appended modifiers include:
 
       `pattern=` *name*
-        sensor pattern. Currently supported patterns: "bayer", "xtrans".
+        sensor pattern. Currently supported patterns: "auto"(default), "bayer",
+        "xtrans". In the "auto" mode the pattern is deducted from the
+        "raw:FilterPattern" attribute of the source image buffer, defaulting to
+        "bayer" if absent.
       `layout=` *name*
-        photosite order of the specified pattern. The default value is "RGGB"
-        for Bayer, and "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans.
+        The order the color filter array elements are arranged in,
+        pattern-specific. The Bayer pattern sensors usually have 4 values in the
+        layout string, describing the 2x2 pixels region. The X-Trans pattern
+        sensors have 36 values in the layout string, describing the 6x6 pixels
+        region (with optional whitespaces separating the rows). When set to
+        "auto", OIIO will try to fetch the layout from the "raw:FilterPattern"
+        attribute of the source image buffer, falling back to "RGGB" for Bayer,
+        "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans if absent.
       `algorithm=` *name*
-        the name of the algorithm to use.
+        the name of the algorithm to use, defaults to "auto".
         The Bayer-pattern algorithms:
         - "linear"(simple bilinear demosaicing),
-        - "MHC"(Malvar-He-Cutler algorithm).
+        - "MHC"(Malvar-He-Cutler algorithm),
+        - "auto"(same as "MHC").
         The X-Trans-pattern algorithms:
-        - "linear"(simple bilinear demosaicing).
-      `white-balance=` *v1,v2,v3...*
+        - "linear"(simple bilinear demosaicing),
+        - "auto"(same as "linear").
+      `white_balance_mode=` *name*
+        white-balancing mode to use. The supported modes are:
+        - "auto"(OIIO will try to fetch the white balancing weights from the
+        "raw:WhiteBalance" attribute of the source image buffer, falling back to
+        {1.0, 1.0, 1.0, 1.0} if absent),
+        - "manual"(The white balancing weights will be taken from the attribute
+        "white-balance" (see below) if present, falling back to
+        {1.0, 1.0, 1.0, 1.0} if absent),
+        - "none"(no white balancing will be performed).
+      `white_balance=` *v1,v2,v3...*
         optional white balance weights, can contain either three (R,G,B) or four
-        (R,G1,B,G2) values. The order of the white balance multipliers is as
+        (R,G1,B,G2) values, only used when the white-balancing mode (see above)
+        is set to "manual". The order of the white balance multipliers is as
         specified, it does not depend on the matrix layout.
 
     Examples::
@@ -4302,7 +4361,7 @@ current top image.
             --output out.exr
 
          oiiotool --iconfig raw:Demosaic none --input test.cr3 \
-            --demosaic:pattern=bayer:layout=GRBG:algorithm=MHC:white_balance=2.0,0.8,1.2,1.5 \
+            --demosaic:pattern=bayer:layout=GRBG:algorithm=MHC:white_balance_mode=manual:white_balance=2.0,0.8,1.2,1.5 \
             --output out.exr
 
 
@@ -4313,15 +4372,12 @@ current top image.
 Many of the color management commands depend on an installation of
 OpenColorIO (http://opencolorio.org).
 
-If OIIO has been compiled with OpenColorIO support and the environment
-variable `$OCIO` is set to point to a valid OpenColorIO configuration file,
-you will have access to all the color spaces that are known by that OCIO
-configuration.  Alternately, you can use the `--colorconfig` option to
-explicitly point to a configuration file. If no  valid configuration file is
-found (either in `$OCIO` or specified by `--colorconfig}` or OIIO was not
-compiled with OCIO support, then the only color space transformats available
-are `linear` to `Rec709` (and vice versa) and `linear` to `sRGB` (and vice
-versa).
+If the environment variable `$OCIO` is set to point to a valid OpenColorIO
+configuration file, you will have access to all the color spaces that are
+known by that OCIO configuration.  Alternately, you can use the
+`--colorconfig` option to explicitly point to a configuration file. If no
+valid configuration file is found (either in `$OCIO` or specified by
+`--colorconfig`), then the built-in OCIO "default" config will be used.
 
 If you ask for :program:`oiiotool` help (`oiiotool --help`), at the very
 bottom you will see the list of all color spaces, looks, and displays that
@@ -4634,6 +4690,15 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
     This was added to OpenImageIO 2.5.
 
+.. option:: --cicp <pri>,<trc>,<mtx>,<vfr>
+    
+    The `--cicp` command adds, modifies, or removes a `"CICP"` attribute 
+    belonging to the top image, stored as an array of four integers.  
+    The integers represent, in order, the color primaries, transfer 
+    function, color matrix (for YUV colorspaces), and 
+    video-full-range-flag.
+
+    This was added to OpenImageIO 3.1.
 
 |
 

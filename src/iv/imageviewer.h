@@ -26,6 +26,7 @@
 #include <QDialog>
 #include <QMainWindow>
 #include <QMimeData>
+#include <QSpinBox>
 
 #if OIIO_QT_MAJOR < 6
 #    include <QGLWidget>
@@ -50,7 +51,6 @@ class QMenu;
 class QMenuBar;
 class QProgressBar;
 class QPushButton;
-class QSpinBox;
 class QScrollArea;
 class QStatusBar;
 class QVBoxLayout;
@@ -224,6 +224,11 @@ public:
         return showPixelviewWindowAct && showPixelviewWindowAct->isChecked();
     }
 
+    bool probeviewOn(void) const
+    {
+        return toggleAreaSampleAct && toggleAreaSampleAct->isChecked();
+    }
+
     bool windowguidesOn(void) const
     {
         return toggleWindowGuidesAct && toggleWindowGuidesAct->isChecked();
@@ -240,6 +245,16 @@ public:
         return linearInterpolationBox && linearInterpolationBox->isChecked();
     }
 
+    int closeupPixels(void) const
+    {
+        return closeupPixelsBox ? closeupPixelsBox->value() : 13;
+    }
+
+    int closeupAvgPixels(void) const
+    {
+        return closeupAvgPixelsBox ? closeupAvgPixelsBox->value() : 11;
+    }
+
     bool darkPalette(void) const
     {
         return darkPaletteBox ? darkPaletteBox->isChecked() : m_darkPalette;
@@ -249,6 +264,7 @@ public:
 
     void rawcolor(bool val) { m_rawcolor = val; }
     bool rawcolor() const { return m_rawcolor; }
+    bool areaSampleMode() const;
 
     bool useOCIO() { return m_useOCIO; }
     const std::string& ocioColorSpace() { return m_ocioColourSpace; }
@@ -316,6 +332,7 @@ private slots:
     void showInfoWindow();       ///< View extended info on image
     void showPixelviewWindow();  ///< View closeup pixel view
     void editPreferences();      ///< Edit viewer preferences
+    void toggleAreaSample();     ///< Use area probe
 
     void useOCIOAction(bool checked);
     void ocioColorSpaceAction();
@@ -385,6 +402,7 @@ private:
     QAction* showInfoWindowAct;
     QAction* editPreferencesAct;
     QAction* showPixelviewWindowAct;
+    QAction* toggleAreaSampleAct;
     QAction* toggleWindowGuidesAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu,
         *helpMenu;
@@ -408,6 +426,10 @@ private:
     QSpinBox* maxMemoryIC;
     QLabel* slideShowDurationLabel;
     QSpinBox* slideShowDuration;
+    QLabel* closeupPixelsLabel;
+    QSpinBox* closeupPixelsBox;
+    QLabel* closeupAvgPixelsLabel;
+    QSpinBox* closeupAvgPixelsBox;
 
     std::vector<IvImage*> m_images;  // List of images
     int m_current_image;             // Index of current image, -1 if none
@@ -420,7 +442,8 @@ private:
     float m_default_gamma;                    // Default gamma of the display
     QPalette m_palette;                       // Custom palette
     bool m_darkPalette;                       // Use dark palette?
-    bool m_rawcolor = false;                  // Use raw color mode
+    bool m_rawcolor       = false;            // Use raw color mode
+    bool m_areaSampleMode = false;            // Use area sample mode
 
     // The default width and height of the window:
     static const int m_default_width  = 640;
