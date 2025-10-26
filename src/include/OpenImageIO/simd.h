@@ -281,7 +281,7 @@
 #endif
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace simd {
 
@@ -3317,7 +3317,7 @@ OIIO_FORCEINLINE const vbool4 vbool4::False () {
 OIIO_FORCEINLINE const vbool4 vbool4::True () {
     // Fastest way to fill with all 1 bits is to cmp any value to itself.
 #if OIIO_SIMD_SSE
-# if OIIO_SIMD_AVX && (OIIO_GNUC_VERSION > 50000)
+# if OIIO_SIMD_AVX
     __m128i anyval = _mm_undefined_si128();
 # else
     __m128i anyval = _mm_setzero_si128();
@@ -3676,7 +3676,7 @@ OIIO_FORCEINLINE const vbool8 vbool8::False () {
 
 OIIO_FORCEINLINE const vbool8 vbool8::True () {
 #if OIIO_SIMD_AVX
-# if OIIO_SIMD_AVX >= 2 && (OIIO_GNUC_VERSION > 50000)
+# if OIIO_SIMD_AVX >= 2
     // Fastest way to fill with all 1 bits is to cmp any value to itself.
     __m256i anyval = _mm256_undefined_si256();
     return _mm256_castsi256_ps (_mm256_cmpeq_epi8 (anyval, anyval));
@@ -4413,7 +4413,7 @@ OIIO_FORCEINLINE const vint4 vint4::NegOne () {
 #if OIIO_SIMD_SSE
     // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
     // any value to itself.
-# if OIIO_SIMD_AVX && (OIIO_GNUC_VERSION > 50000)
+# if OIIO_SIMD_AVX
     __m128i anyval = _mm_undefined_si128();
 # else
     __m128i anyval = _mm_setzero_si128();
@@ -10284,41 +10284,37 @@ OIIO_FORCEINLINE vfloat16 nmsub (const simd::vfloat16& a, const simd::vfloat16& 
 
 } // end namespace simd
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
 
 
 /// Custom fmtlib formatters for our SIMD types.
 
-namespace fmt {
-template<> struct formatter<OIIO::simd::vfloat3>
+template<> struct fmt::formatter<OIIO::simd::vfloat3>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat3> {};
-template<> struct formatter<OIIO::simd::vfloat4>
+template<> struct fmt::formatter<OIIO::simd::vfloat4>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat4> {};
-template<> struct formatter<OIIO::simd::vfloat8>
+template<> struct fmt::formatter<OIIO::simd::vfloat8>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat8> {};
-template<> struct formatter<OIIO::simd::vfloat16>
+template<> struct fmt::formatter<OIIO::simd::vfloat16>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat16> {};
-template<> struct formatter<OIIO::simd::vint4>
+template<> struct fmt::formatter<OIIO::simd::vint4>
     : OIIO::pvt::index_formatter<OIIO::simd::vint4> {};
-template<> struct formatter<OIIO::simd::vint8>
+template<> struct fmt::formatter<OIIO::simd::vint8>
     : OIIO::pvt::index_formatter<OIIO::simd::vint8> {};
-template<> struct formatter<OIIO::simd::vint16>
+template<> struct fmt::formatter<OIIO::simd::vint16>
     : OIIO::pvt::index_formatter<OIIO::simd::vint16> {};
-template<> struct formatter<OIIO::simd::matrix44>
+template<> struct fmt::formatter<OIIO::simd::matrix44>
     : OIIO::pvt::array_formatter<OIIO::simd::matrix44, float, 16> {};
-} // namespace fmt
 
 
 // Allow C++ metaprogramming to understand that the simd types are trivially
 // copyable (i.e. memcpy to copy simd types is fine).
-namespace std {  // not necessary in C++17, just say std::is_trivially_copyable
 #if defined(__INTEL_COMPILER)
 // Necessary because we have to define the vint types copy constructors on icc
-template<> struct is_trivially_copyable<OIIO::simd::vint4> : std::true_type {};
-template<> struct is_trivially_copyable<OIIO::simd::vint8> : std::true_type {};
-template<> struct is_trivially_copyable<OIIO::simd::vint16> : std::true_type {};
+template<> struct std::is_trivially_copyable<OIIO::simd::vint4> : std::true_type {};
+template<> struct std::is_trivially_copyable<OIIO::simd::vint8> : std::true_type {};
+template<> struct std::is_trivially_copyable<OIIO::simd::vint16> : std::true_type {};
 #endif
-}  // namespace std
 
 
 #undef SIMD_DO

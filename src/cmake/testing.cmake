@@ -250,6 +250,9 @@ macro (oiio_add_all_tests)
                     ENABLEVAR ENABLE_FITS
                     IMAGEDIR fits-images
                     URL http://www.cv.nrao.edu/fits/data/tests/)
+    oiio_add_tests (ffmpeg
+                    ENABLEVAR ENABLE_FFMPEG
+                    FOUNDVAR FFmpeg_FOUND)
     oiio_add_tests (gif
                     FOUNDVAR GIF_FOUND ENABLEVAR ENABLE_GIF
                     IMAGEDIR oiio-images/gif URL "Recent checkout of OpenImageIO-images")
@@ -275,12 +278,14 @@ macro (oiio_add_all_tests)
                     FOUNDVAR OPENJPEG_FOUND
                     IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (htj2k
-                    FOUNDVAR OPENJPH_FOUND
+                    FOUNDVAR openjph_FOUND
                     IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (jpeg2000-j2kp4files
                     FOUNDVAR OPENJPEG_FOUND
                     IMAGEDIR j2kp4files_v1_5
                     URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
+    oiio_add_tests (jxl
+                    FOUNDVAR JXL_FOUND)
     set (all_openexr_tests
          openexr-suite openexr-multires openexr-chroma openexr-decreasingy
          openexr-v2 openexr-window perchannel oiiotool-deep)
@@ -291,6 +296,10 @@ macro (oiio_add_all_tests)
         # OpenEXR 3.1.10 is the first release where the exr core library
         # properly supported all compression types (DWA in particular).
         list (APPEND all_openexr_tests openexr-compression)
+    endif ()
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.3)
+        # OpenEXR 3.3 is when IDManifest was introduced
+        list (APPEND all_openexr_tests openexr-idmanifest)
     endif ()
     # Run all OpenEXR tests without core library
     oiio_add_tests (${all_openexr_tests} openexr-luminance-chroma

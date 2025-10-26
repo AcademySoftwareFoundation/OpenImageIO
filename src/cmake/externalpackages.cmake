@@ -137,7 +137,7 @@ checked_find_package (Freetype
                       DEFINITIONS USE_FREETYPE=1 )
 
 checked_find_package (OpenColorIO REQUIRED
-                      VERSION_MIN 2.2
+                      VERSION_MIN 2.3
                       VERSION_MAX 2.9
                      )
 if (NOT OPENCOLORIO_INCLUDES)
@@ -172,11 +172,12 @@ checked_find_package (LibRaw
 
 checked_find_package (OpenJPEG VERSION_MIN 2.0
                       RECOMMEND_MIN 2.2
-                      RECOMMEND_MIN_REASON "for multithreading support")
+                      RECOMMEND_MIN_REASON "for multithreading support"
+                      PREFER_CONFIG)
 # Note: Recent OpenJPEG versions have exported cmake configs, but we don't
 # find them reliable at all, so we stick to our FindOpenJPEG.cmake module.
 
-checked_find_package (OpenJPH VERSION_MIN 0.21)
+checked_find_package (openjph VERSION_MIN 0.21.2)
 
 checked_find_package (OpenVDB
                       VERSION_MIN  9.0

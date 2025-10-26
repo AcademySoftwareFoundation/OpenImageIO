@@ -22,7 +22,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 template<class Rtype, class Atype, class Btype>
@@ -47,7 +47,7 @@ bool
 ImageBufAlgo::scale(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
                     KWArgs options, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::scale");
+    OIIO::pvt::LoggedTimer logtime("IBA::scale");
     bool ok = false;
     if (B.nchannels() == 1) {
         if (IBAprep(roi, &dst, &A, &B))
@@ -147,7 +147,7 @@ bool
 ImageBufAlgo::mul(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
                   int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::mul");
+    OIIO::pvt::LoggedTimer logtime("IBA::mul");
     if (A_.is_img() && B_.is_img()) {
         const ImageBuf &A(A_.img()), &B(B_.img());
         if (!IBAprep(roi, &dst, &A, &B, IBAprep_CLAMP_MUTUAL_NCHANNELS))
@@ -220,7 +220,7 @@ bool
 ImageBufAlgo::div(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
                   int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::div");
+    OIIO::pvt::LoggedTimer logtime("IBA::div");
     if (A_.is_img() && B_.is_img()) {
         const ImageBuf &A(A_.img()), &B(B_.img());
         if (!IBAprep(roi, &dst, &A, &B, IBAprep_CLAMP_MUTUAL_NCHANNELS))
@@ -276,4 +276,4 @@ ImageBufAlgo::div(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

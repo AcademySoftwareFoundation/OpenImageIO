@@ -119,7 +119,10 @@ TagMap::mapname() const
     return m_impl->m_mapname;
 }
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 const TagInfo*
 tag_lookup(string_view domain, int tag)
@@ -229,7 +232,10 @@ tiff_dir_data(const TIFFDirEntry& td, cspan<uint8_t> data)
     return cspan<uint8_t>(data.data() + begin, len);
 }
 
+OIIO_NAMESPACE_3_1_END
 
+
+OIIO_NAMESPACE_BEGIN
 
 #if DEBUG_EXIF_READ || DEBUG_EXIF_WRITE
 static bool
@@ -247,26 +253,26 @@ print_dir_entry(std::ostream& out, const TagMap& tagmap,
         return false;  // bogus! overruns the buffer
     mydata += offset_adjustment;
     const char* name = tagmap.name(dir.tdir_tag);
-    print(out,
-          "  Tag {}/0x{} ({}) type={} ({}) count={} offset={} = ", dir.tdir_tag,
-          dir.tdir_tag, (name ? name : "unknown"), dir.tdir_type,
-          tiff_datatype_to_typedesc(dir), dir.tdir_count, dir.tdir_offset);
+    OIIO::print(out, "  Tag {}/0x{} ({}) type={} ({}) count={} offset={} = ",
+                dir.tdir_tag, dir.tdir_tag, (name ? name : "unknown"),
+                dir.tdir_type, tiff_datatype_to_typedesc(dir), dir.tdir_count,
+                dir.tdir_offset);
 
     switch (dir.tdir_type) {
     case TIFF_ASCII:
-        print(out, "'{}'", string_view(mydata, dir.tdir_count));
+        OIIO::print(out, "'{}'", string_view(mydata, dir.tdir_count));
         break;
     case TIFF_RATIONAL: {
         const unsigned int* u = (unsigned int*)mydata;
         for (size_t i = 0; i < dir.tdir_count; ++i)
-            print(out, "{}/{} = {} ", u[2 * i], << u[2 * i + 1],
-                  (double)u[2 * i] / (double)u[2 * i + 1]);
+            OIIO::print(out, "{}/{} = {} ", u[2 * i], << u[2 * i + 1],
+                        (double)u[2 * i] / (double)u[2 * i + 1]);
     } break;
     case TIFF_SRATIONAL: {
         const int* u = (int*)mydata;
         for (size_t i = 0; i < dir.tdir_count; ++i)
-            print(out, "{}/{} = {} ", u[2 * i], u[2 * i + 1],
-                  (double)u[2 * i] / (double)u[2 * i + 1]);
+            OIIO::print(out, "{}/{} = {} ", u[2 * i], u[2 * i + 1],
+                        (double)u[2 * i] / (double)u[2 * i + 1]);
     } break;
     case TIFF_SHORT: out << ((unsigned short*)mydata)[0]; break;
     case TIFF_LONG: out << ((unsigned int*)mydata)[0]; break;
@@ -276,14 +282,15 @@ print_dir_entry(std::ostream& out, const TagMap& tagmap,
     default:
         if (len <= 4 && dir.tdir_count > 4) {
             // Request more data than is stored.
-            print(out, "Ignoring buffer with too much count of short data.\n");
+            OIIO::print(out,
+                        "Ignoring buffer with too much count of short data.\n");
             return false;
         }
         for (size_t i = 0; i < dir.tdir_count; ++i)
-            print(out, "{} ", (int)((unsigned char*)mydata)[i]);
+            OIIO::print(out, "{} ", (int)((unsigned char*)mydata)[i]);
         break;
     }
-    print(out, "\n");
+    OIIO::print(out, "\n");
     return true;
 }
 
@@ -299,11 +306,12 @@ dumpdata(cspan<uint8_t> blob, cspan<size_t> ifdoffsets, size_t start,
         bool at_ifd = (std::find(ifdoffsets.cbegin(), ifdoffsets.cend(), pos)
                        != ifdoffsets.end());
         if (pos == 0 || pos == start || at_ifd || (pos % 10) == 0) {
-            print(out, "\n@{}: ", pos);
+            OIIO::print(out, "\n@{}: ", pos);
             if (at_ifd) {
                 uint16_t n = *(uint16_t*)&blob[pos];
-                print(out, "\nNew IFD: {} tags:  [offset_adjustment={}]\n", n,
-                      offset_adjustment);
+                OIIO::print(out,
+                            "\nNew IFD: {} tags:  [offset_adjustment={}]\n", n,
+                            offset_adjustment);
                 TIFFDirEntry* td = (TIFFDirEntry*)&blob[pos + 2];
                 for (int i = 0; i < n; ++i, ++td)
                     print_dir_entry(out, tiff_tagmap_ref(), *td, blob,
@@ -312,10 +320,10 @@ dumpdata(cspan<uint8_t> blob, cspan<size_t> ifdoffsets, size_t start,
         }
         unsigned char c = (unsigned char)blob[pos];
         if (c >= ' ' && c < 127)
-            print(out, "{:c} ", c);
-        print(out, "({:d}) ", int(c));
+            OIIO::print(out, "{:c} ", c);
+        OIIO::print(out, "({:d}) ", int(c));
     }
-    print(out, "\n");
+    OIIO::print(out, "\n");
     return out.str();
 }
 #endif
@@ -611,7 +619,10 @@ pvt::gps_tagmap_ref()
     return T;
 }
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 cspan<TagInfo>
 tag_table(string_view tablename)
@@ -624,6 +635,10 @@ tag_table(string_view tablename)
     return cspan<TagInfo>(tiff_tag_table);
 }
 
+OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
 
 
 /// Add one EXIF directory entry's data to spec under the given 'name'.
@@ -924,7 +939,7 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
                                       offset_adjustment);
         } else {
 #if DEBUG_EXIF_READ || DEBUG_EXIF_UNHANDLED
-            print(
+            OIIO::print(
                 stderr,
                 "read_exif_tag: Unhandled {} tag={} (0x{:x}), type={} count={} ({}), offset={}\n",
                 tagmap.mapname(), dir.tdir_tag, dir.tdir_tag, dir.tdir_type,
@@ -1150,6 +1165,10 @@ pvt::append_tiff_dir_entry(std::vector<TIFFDirEntry>& dirs,
 }
 
 
+OIIO_NAMESPACE_END
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 bool
 decode_exif(string_view exif, ImageSpec& spec)
@@ -1224,7 +1243,7 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
         // Exif spec says that anything other than 0xffff==uncalibrated
         // should be interpreted to be sRGB.
         if (cs != 0xffff)
-            spec.set_colorspace("sRGB");
+            spec.set_colorspace("srgb_rec709_scene");
     }
 
     // Look for a maker note offset, now that we have seen all the metadata
@@ -1234,8 +1253,8 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
     if (makernote_offset > 0) {
         if (Strutil::iequals(spec.get_string_attribute("Make"), "Canon")) {
             if (!decode_ifd(exif, makernote_offset, spec,
-                            pvt::canon_maker_tagmap_ref(), ifd_offsets_seen,
-                            swab))
+                            OIIO::pvt::canon_maker_tagmap_ref(),
+                            ifd_offsets_seen, swab))
                 return false;
         }
         // Now we can erase the attrib we used to pass the message about
@@ -1358,7 +1377,7 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
     // If we're a canon camera, construct the dirs for the Makernote,
     // with the data adding to the main blob.
     if (Strutil::iequals(spec.get_string_attribute("Make"), "Canon"))
-        pvt::encode_canon_makernote(blob, makerdirs, spec, tiffstart);
+        OIIO::pvt::encode_canon_makernote(blob, makerdirs, spec, tiffstart);
 
 #if DEBUG_EXIF_WRITE
     std::cerr << "Blob header size " << blob.size() << "\n";
@@ -1524,5 +1543,4 @@ exif_tag_lookup(string_view name, int& tag, int& tifftype, int& count)
     return true;
 }
 
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

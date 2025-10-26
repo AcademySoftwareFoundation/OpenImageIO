@@ -11,6 +11,7 @@ lg@openimageio.org
 * Alejandro Conty
 * Alejandro Aguirre
 * Aleksandr Motsjonov
+* Alex Fuller
 * Alex Guirre
 * Alex Hughes
 * Alex Schworer
@@ -47,6 +48,7 @@ lg@openimageio.org
 * Brian Hall
 * Brice Gros
 * Campbell Barton
+* Carine Touraille
 * Carl Rand
 * Cassian Andrei
 * Chad Dombrova
@@ -60,6 +62,7 @@ lg@openimageio.org
 * Christoph Willing
 * Clément Champetier
 * Cliff Stein
+* Connie Chang
 * Curtis Black
 * D-Spirits
 * Dalai Felinto
@@ -179,6 +182,7 @@ lg@openimageio.org
 * Nuno Cardoso
 * Oktay Comu
 * Ole Gulbrandsen
+* omcaif
 * Ott Tinn
 * Pascal Lecocq
 * Patrick Hodoul
@@ -209,6 +213,7 @@ lg@openimageio.org
 * Saket Jalan
 * Sam Richards
 * Samuel Nicholas
+* Scott Milner
 * Scott Wilson
 * Sebastian Elsner
 * SebTV
@@ -223,6 +228,7 @@ lg@openimageio.org
 * Stefan Stavrev
 * Thiago Ize
 * Thomas Dinges
+* Thomas Klausner
 * Thomas Mansencal
 * Till Dechent
 * Tim D. Smith
@@ -230,6 +236,7 @@ lg@openimageio.org
 * Todica Ionut
 * Tom Knowles
 * Troy James Sobotka
+* Vanessa Valderrama
 * Vic P
 * Vinod Khare
 * Vishal Agrawal

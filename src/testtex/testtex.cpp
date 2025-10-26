@@ -1557,7 +1557,7 @@ do_tex_thread_workout(int iterations, int mythread)
     }
     // Force the compiler to not optimize away the "other work"
     for (int c = 0; c < nchannels; ++c)
-        OIIO_ASSERT(!isnan(result[c]));
+        OIIO_ASSERT(!std::isnan(result[c]));
 }
 
 
@@ -2010,7 +2010,7 @@ main(int argc, const char* argv[])
         Strutil::print("{}\n", TypeDesc(TypeDesc::STRING, total_files));
         texsys->getattribute("all_filenames",
                              TypeDesc(TypeDesc::STRING, total_files),
-                             &all_filenames[0]);
+                             make_span(all_filenames));
         for (int i = 0; i < total_files; ++i) {
             int timesopened   = 0;
             int64_t bytesread = 0;

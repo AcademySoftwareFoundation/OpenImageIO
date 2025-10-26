@@ -30,6 +30,7 @@ extern "C" {  // ffmpeg is a C api
 #endif
 
 #include <libavutil/imgutils.h>
+#include <libavutil/pixdesc.h>
 }
 
 
@@ -180,9 +181,9 @@ ffmpeg_input_imageio_create()
 // QuickTime / MOV
 // raw MPEG-4 video
 // MPEG-1 Systems / MPEG program stream
-OIIO_EXPORT const char* ffmpeg_input_extensions[] = {
-    "avi", "mov", "qt", "mp4", "m4a", "3gp", "3g2", "mj2", "m4v", "mpg", nullptr
-};
+OIIO_EXPORT const char* ffmpeg_input_extensions[]
+    = { "avi", "mov", "qt",  "mp4", "m4a", "3gp",
+        "3g2", "mj2", "m4v", "mpg", "mkv", nullptr };
 
 
 OIIO_PLUGIN_EXPORTS_END
@@ -397,8 +398,10 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     case AV_PIX_FMT_GBRAP12LE:
     case AV_PIX_FMT_P016LE:
     case AV_PIX_FMT_P016BE:
-        datatype         = TypeUInt16;
-        m_dst_pix_format = AV_PIX_FMT_RGB48;
+        datatype = TypeUInt16;
+        // Must use planar format because swscale does not handle
+        // interleaved correctly for 16 bit.
+        m_dst_pix_format = AV_PIX_FMT_GBRP16;
         break;
     // Grayscale 8 bit
     case AV_PIX_FMT_GRAY8:
@@ -455,29 +458,27 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     case AV_PIX_FMT_YUVA444P16BE:
     case AV_PIX_FMT_YUVA444P16LE:
     case AV_PIX_FMT_GBRAP16:
-        nchannels        = 4;
-        datatype         = TypeUInt16;
-        m_dst_pix_format = AV_PIX_FMT_RGBA64;
+        nchannels = 4;
+        datatype  = TypeUInt16;
+        // Must use planar format because swscale does not handle
+        // interleaved correctly for 16 bit.
+        m_dst_pix_format = AV_PIX_FMT_GBRAP16;
         break;
     // RGB float
     case AV_PIX_FMT_GBRPF32BE:
     case AV_PIX_FMT_GBRPF32LE:
-        nchannels        = 3;
-        datatype         = TypeFloat;
-        m_dst_pix_format = AV_PIX_FMT_RGB48;  // ? AV_PIX_FMT_GBRPF32
-        // FIXME: They don't have a type for RGB float, only GBR float.
-        // Yuck. Punt for now and save as uint16 RGB. If people care, we
-        // can return and ask for GBR float and swap order.
+        nchannels = 3;
+        datatype  = TypeFloat;
+        // Must use planar format as there is no interleaved 32 bit float.
+        m_dst_pix_format = AV_PIX_FMT_GBRPF32;
         break;
     // RGBA float
     case AV_PIX_FMT_GBRAPF32BE:
     case AV_PIX_FMT_GBRAPF32LE:
-        nchannels        = 4;
-        datatype         = TypeFloat;
-        m_dst_pix_format = AV_PIX_FMT_RGBA64;  // ? AV_PIX_FMT_GBRAPF32
-        // FIXME: They don't have a type for RGBA float, only GBRA float.
-        // Yuck. Punt for now and save as uint16 RGB. If people care, we
-        // can return and ask for GBRA float and swap order.
+        nchannels = 4;
+        datatype  = TypeFloat;
+        // Must use planar format as there is no interleaved 32 bit float.
+        m_dst_pix_format = AV_PIX_FMT_GBRAPF32;
         break;
 
     // Everything else is regular 8 bit RGB
@@ -528,9 +529,26 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     m_spec.attribute("FramesPerSecond", TypeRational, &rat);
     m_spec.attribute("oiio:Movie", true);
     m_spec.attribute("oiio:subimages", int(m_frames));
-    m_spec.attribute("oiio:BitsPerSample",
-                     m_codec_context->bits_per_raw_sample);
+    if (m_codec_context->bits_per_raw_sample) {
+        m_spec.attribute("oiio:BitsPerSample",
+                         m_codec_context->bits_per_raw_sample);
+    } else {
+        // If bits_per_raw_sample is not provided, the bit depth of the
+        // luma channel is the closest equivalent to a single bit depth.
+        const AVPixFmtDescriptor* pix_format_desc = av_pix_fmt_desc_get(
+            src_pix_format);
+        if (pix_format_desc && pix_format_desc->nb_components > 0) {
+            m_spec.attribute("oiio:BitsPerSample",
+                             pix_format_desc->comp[0].depth);
+        }
+    }
     m_spec.attribute("ffmpeg:codec_name", m_codec_context->codec->long_name);
+    /* The ffmpeg enums are documented to match CICP values, except the color range. */
+    const int cicp[4]
+        = { m_codec_context->color_primaries, m_codec_context->color_trc,
+            m_codec_context->colorspace,
+            m_codec_context->color_range == AVCOL_RANGE_MPEG ? 0 : 1 };
+    m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
     m_nsubimages = m_frames;
     spec         = m_spec;
     m_filename   = name;
@@ -553,7 +571,31 @@ FFmpegInput::seek_subimage(int subimage, int miplevel)
     return true;
 }
 
+template<typename T, int nchannels>
+static bool
+read_planar_scanline(void* data, int y, int width, AVFrame* rgb_frame)
+{
+    static_assert(nchannels == 3 || nchannels == 4);
 
+    const T* in_planes[nchannels];
+    const int swizzle[4] = { 1, 2, 0, 3 };  // GBR to RGB
+    for (int channel = 0; channel < nchannels; ++channel) {
+        if (rgb_frame->data[channel] == nullptr) {
+            return false;
+        }
+        in_planes[swizzle[channel]] = reinterpret_cast<const T*>(
+            rgb_frame->data[channel] + y * rgb_frame->linesize[channel]);
+    }
+
+    T* out = static_cast<T*>(data);
+    for (int x = 0; x < width; ++x) {
+        for (int channel = 0; channel < nchannels; ++channel) {
+            out[channel] = in_planes[channel][x];
+        }
+        out += nchannels;
+    }
+    return true;
+}
 
 bool
 FFmpegInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
@@ -565,14 +607,39 @@ FFmpegInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (!m_read_frame) {
         read_frame(m_subimage);
     }
-    if (m_rgb_frame->data[0]) {
-        memcpy(data, m_rgb_frame->data[0] + y * m_rgb_frame->linesize[0],
-               m_stride);
-        return true;
-    } else {
-        errorfmt("Error reading frame");
-        return false;
+    if (m_spec.format == TypeUInt8 || m_spec.nchannels == 1) {
+        if (m_rgb_frame->data[0]) {
+            memcpy(data, m_rgb_frame->data[0] + y * m_rgb_frame->linesize[0],
+                   m_stride);
+            return true;
+        }
+    } else if (m_spec.format == TypeUInt16) {
+        if (m_spec.nchannels == 3) {
+            if (read_planar_scanline<uint16_t, 3>(data, y, m_spec.width,
+                                                  m_rgb_frame)) {
+                return true;
+            }
+        } else if (m_spec.nchannels == 4) {
+            if (read_planar_scanline<uint16_t, 4>(data, y, m_spec.width,
+                                                  m_rgb_frame)) {
+                return true;
+            }
+        }
+    } else if (m_spec.format == TypeFloat) {
+        if (m_spec.nchannels == 3) {
+            if (read_planar_scanline<float, 3>(data, y, m_spec.width,
+                                               m_rgb_frame)) {
+                return true;
+            }
+        } else if (m_spec.nchannels == 4) {
+            if (read_planar_scanline<float, 4>(data, y, m_spec.width,
+                                               m_rgb_frame)) {
+                return true;
+            }
+        }
     }
+    errorfmt("Error reading frame");
+    return false;
 }
 
 

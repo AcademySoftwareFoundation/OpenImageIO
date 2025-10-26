@@ -6,10 +6,10 @@
 # OpenColorIO by hand!
 ######################################################################
 
-set_cache (OpenColorIO_BUILD_VERSION 2.4.1 "OpenColorIO version for local builds")
+set_cache (OpenColorIO_BUILD_VERSION 2.4.2 "OpenColorIO version for local builds")
 set (OpenColorIO_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/OpenColorIO")
 set (OpenColorIO_GIT_TAG "v${OpenColorIO_BUILD_VERSION}")
-set_cache (OpenColorIO_BUILD_SHARED_LIBS  OFF #ON
+set_cache (OpenColorIO_BUILD_SHARED_LIBS  OFF
            DOC "Should a local OpenColorIO build, if necessary, build shared libraries" ADVANCED)
 # We would prefer to build a static OCIO, but haven't figured out how to make
 # it all work with the static dependencies, it just makes things complicated
@@ -24,9 +24,9 @@ unset (OPENCOLORIO_VERSION_MINOR)
 unset (OpenColorIO_DIR)
 
 checked_find_package(pystring VERSION_MIN 1.1.3)
-checked_find_package(expat REQUIRED VERSION_MIN 2.5)
-checked_find_package(yaml-cpp REQUIRED VERSION_MIN 0.6.0)
-checked_find_package(minizip-ng REQUIRED VERSION_MIN 3.0.0)
+checked_find_package(expat REQUIRED VERSION_MIN 2.6)
+checked_find_package(yaml-cpp REQUIRED VERSION_MIN 0.8.0)
+checked_find_package(minizip-ng REQUIRED VERSION_MIN 4.0.10)
 
 string (MAKE_C_IDENTIFIER ${OpenColorIO_BUILD_VERSION} OpenColorIO_VERSION_IDENT)
 

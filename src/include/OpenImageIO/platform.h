@@ -139,6 +139,7 @@
 #endif
 
 // Tests for MSVS versions, always 0 if not MSVS at all.
+// https://learn.microsoft.com/en-us/cpp/overview/compiler-versions
 #if defined(_MSC_VER)
 #  define OIIO_MSVS_VERSION       _MSC_VER
 #  define OIIO_MSVS_AT_LEAST_2013 (_MSC_VER >= 1800)
@@ -186,12 +187,18 @@
 // package is compiling against OIIO and using these headers (OIIO may be
 // C++17 but the client package may be newer, or vice versa -- use these two
 // symbols to differentiate these cases, when important).
-#if (__cplusplus >= 202001L)
+#if (__cplusplus >= 202302L)
+#    define OIIO_CPLUSPLUS_VERSION 23
+#    define OIIO_CONSTEXPR20 constexpr
+#    define OIIO_CONSTEXPR23 constexpr
+#elif (__cplusplus >= 202001L)
 #    define OIIO_CPLUSPLUS_VERSION 20
 #    define OIIO_CONSTEXPR20 constexpr
+#    define OIIO_CONSTEXPR23 /* not constexpr before C++23 */
 #elif (__cplusplus >= 201703L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
 #    define OIIO_CPLUSPLUS_VERSION 17
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
+#    define OIIO_CONSTEXPR23 /* not constexpr before C++23 */
 #else
 #    error "This version of OIIO is meant to work only with C++17 and above"
 #endif
@@ -524,7 +531,7 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Class for describing endianness. Test for endianness as
 /// `if (endian::native == endian::little)` or
@@ -608,8 +615,8 @@ inline bool cpu_has_avx512bw() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<30)) 
 inline bool cpu_has_avx512vl() {int i[4]; cpuid(i,7,0); return (i[1] & (0x80000000 /*1<<31*/)) != 0; }
 
 // portable aligned malloc
-OIIO_API void* aligned_malloc(std::size_t size, std::size_t align);
-OIIO_API void  aligned_free(void* ptr);
+OIIO_UTIL_API void* aligned_malloc(std::size_t size, std::size_t align);
+OIIO_UTIL_API void  aligned_free(void* ptr);
 
 // basic wrappers to new/delete over-aligned types since this isn't guaranteed to be supported until C++17
 template <typename T, class... Args>
@@ -634,6 +641,9 @@ inline void aligned_delete(T* t) {
 // DEPRECATED(2.6)
 using std::enable_if_t;
 
+OIIO_NAMESPACE_3_1_END
+
+
 // An enable_if helper to be used in template parameters which results in
 // much shorter symbols: https://godbolt.org/z/sWw4vP
 // Borrowed from fmtlib.
@@ -641,4 +651,37 @@ using std::enable_if_t;
 #   define OIIO_ENABLE_IF(...) std::enable_if_t<(__VA_ARGS__), int> = 0
 #endif
 
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::endian;
+using v3_1::littleendian;
+using v3_1::bigendian;
+using v3_1::aligned_delete;
+using v3_1::aligned_free;
+using v3_1::aligned_malloc;
+using v3_1::aligned_new;
+using v3_1::cpuid;
+using v3_1::cpu_has_sse2;
+using v3_1::cpu_has_sse3;
+using v3_1::cpu_has_ssse3;
+using v3_1::cpu_has_fma;
+using v3_1::cpu_has_sse41;
+using v3_1::cpu_has_sse42;
+using v3_1::cpu_has_popcnt;
+using v3_1::cpu_has_avx;
+using v3_1::cpu_has_f16c;
+using v3_1::cpu_has_rdrand;
+using v3_1::cpu_has_avx2;
+using v3_1::cpu_has_avx512f;
+using v3_1::cpu_has_avx512dq;
+using v3_1::cpu_has_avx512ifma;
+using v3_1::cpu_has_avx512pf;
+using v3_1::cpu_has_avx512er;
+using v3_1::cpu_has_avx512cd;
+using v3_1::cpu_has_avx512bw;
+using v3_1::cpu_has_avx512vl;
+#endif
 OIIO_NAMESPACE_END

@@ -53,6 +53,9 @@ if (CMAKE_COMPILER_IS_GNUCC)
                      OUTPUT_VARIABLE GCC_VERSION
                      OUTPUT_STRIP_TRAILING_WHITESPACE)
     message (VERBOSE "Using gcc ${GCC_VERSION} as the compiler")
+    if (GCC_VERSION VERSION_LESS 9.0)
+        message (ERROR "gcc minimum version is 9.0")
+    endif ()
 else ()
     set (GCC_VERSION 0)
 endif ()
@@ -71,6 +74,11 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER MATCHES "[Cc]lan
         string (REGEX REPLACE ".* version ([0-9]+\\.[0-9]+).*" "\\1" APPLECLANG_VERSION_STRING ${clang_full_version_string})
         set (ANY_CLANG_VERSION_STRING ${APPLECLANG_VERSION_STRING})
         message (VERBOSE "The compiler is Clang: ${CMAKE_CXX_COMPILER_ID} version ${APPLECLANG_VERSION_STRING}")
+        if (APPLECLANG_VERSION_STRING VERSION_LESS 5.0)
+            message (ERROR "Apple clang minimum version is 5.0")
+        elseif (APPLECLANG_VERSION_STRING VERSION_LESS 10.0)
+            message (WARNING "Apple clang minimum version is 10.0. Older versions might work, but we don't test or support them.")
+        endif ()
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
         set (CMAKE_COMPILER_IS_INTELCLANG 1)
         string (REGEX MATCH "[0-9]+(\\.[0-9]+)+" INTELCLANG_VERSION_STRING ${clang_full_version_string})
@@ -81,6 +89,11 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER MATCHES "[Cc]lan
         string (REGEX REPLACE ".* version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
         set (ANY_CLANG_VERSION_STRING ${CLANG_VERSION_STRING})
         message (VERBOSE "The compiler is Clang: ${CMAKE_CXX_COMPILER_ID} version ${CLANG_VERSION_STRING}")
+        if (CLANG_VERSION_STRING VERSION_LESS 5.0)
+            message (ERROR "clang minimum version is 5.0")
+        elseif (CLANG_VERSION_STRING VERSION_LESS 10.0)
+            message (WARNING "clang minimum version is 10.0. Older versions might work, but we don't test or support them.")
+        endif ()
     endif ()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
     set (CMAKE_COMPILER_IS_INTEL 1)
@@ -157,11 +170,10 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
     add_compile_options ("-Qunused-arguments")
     # Don't warn if we ask it not to warn about warnings it doesn't know
     add_compile_options ("-Wunknown-warning-option")
-    if (CLANG_VERSION_STRING VERSION_GREATER_EQUAL 3.6 OR
-        APPLECLANG_VERSION_STRING VERSION_GREATER 6.1)
+    if (CLANG_VERSION_STRING OR APPLECLANG_VERSION_STRING VERSION_GREATER 6.1)
         add_compile_options ("-Wno-unused-local-typedefs")
     endif ()
-    if (CLANG_VERSION_STRING VERSION_GREATER_EQUAL 3.9)
+    if (CLANG_VERSION_STRING)
         # Don't warn about using unknown preprocessor symbols in `#if`
         add_compile_options ("-Wno-expansion-to-defined")
     endif ()
@@ -174,10 +186,8 @@ if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_I
     # gcc specific options
     add_compile_options ("-Wno-unused-local-typedefs")
     add_compile_options ("-Wno-unused-result")
-    if (NOT ${GCC_VERSION} VERSION_LESS 7.0)
-        add_compile_options ("-Wno-aligned-new")
-        add_compile_options ("-Wno-noexcept-type")
-    endif ()
+    add_compile_options ("-Wno-aligned-new")
+    add_compile_options ("-Wno-noexcept-type")
 endif ()
 
 if (INTELCLANG_VERSION_STRING VERSION_GREATER_EQUAL 2022.1.0)
@@ -194,6 +204,8 @@ if (MSVC)
     add_compile_definitions (_CRT_NONSTDC_NO_WARNINGS)
     add_compile_definitions (_SCL_SECURE_NO_WARNINGS)
     add_compile_definitions (JAS_WIN_MSVC_BUILD)
+    # https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4641#issuecomment-2725013661
+    add_compile_definitions (_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 endif (MSVC)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD"
@@ -233,18 +245,31 @@ endif ()
 # logic here makes it work even if the user is unaware of ccache. If it's
 # not found on the system, it will simply be silently not used.
 option (USE_CCACHE "Use ccache if found" ON)
-find_program (CCACHE_EXE ccache)
-if (CCACHE_EXE AND USE_CCACHE)
-    if (CMAKE_COMPILER_IS_CLANG AND USE_QT AND (NOT DEFINED ENV{CCACHE_CPP2}))
-        message (STATUS "Ignoring ccache because clang + Qt + env CCACHE_CPP2 is not set")
+if (USE_CCACHE)
+    find_program (CCACHE_EXE ccache
+                  PATHS "${PROJECT_SOURCE_DIR}/ext/dist/"
+                        "${PROJECT_SOURCE_DIR}/ext/dist/bin")
+    if (CCACHE_EXE)
+        if (CMAKE_COMPILER_IS_CLANG AND USE_QT AND (NOT DEFINED ENV{CCACHE_CPP2}))
+            message (STATUS "Ignoring ccache because clang + Qt + env CCACHE_CPP2 is not set")
+        else ()
+            message (STATUS "CMAKE_CXX_COMPILER_LAUNCHER: ${CMAKE_CXX_COMPILER_LAUNCHER}")
+            
+            if (NOT CMAKE_CXX_COMPILER_LAUNCHER MATCHES "ccache")
+                set (CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_EXE})
+                message (STATUS "first if CMAKE_CXX_COMPILER_LAUNCHER: ${CMAKE_CXX_COMPILER_LAUNCHER}")
+            else ()
+                message (STATUS "first else CMAKE_CXX_COMPILER_LAUNCHER: '${CMAKE_CXX_COMPILER_LAUNCHER}'")
+            endif ()
+            if (NOT CMAKE_C_COMPILER_LAUNCHER MATCHES "ccache")
+                set (CMAKE_C_COMPILER_LAUNCHER ${CCACHE_EXE})
+            endif ()
+            message (STATUS "ccache enabled: ${CCACHE_EXE}")
+            message (STATUS "CCACHE_DIR env: $ENV{CCACHE_DIR}")
+            message (STATUS "CMAKE_CXX_COMPILER_LAUNCHER: ${CMAKE_CXX_COMPILER_LAUNCHER}")
+        endif ()
     else ()
-        if (NOT ${CXX_COMPILER_LAUNCHER} MATCHES "ccache")
-            set (CXX_COMPILER_LAUNCHER ${CCACHE_EXE} ${CXX_COMPILER_LAUNCHER})
-        endif ()
-        if (NOT ${C_COMPILER_LAUNCHER} MATCHES "ccache")
-            set (C_COMPILER_LAUNCHER ${CCACHE_EXE} ${C_COMPILER_LAUNCHER})
-        endif ()
-        message (STATUS "ccache enabled: ${CCACHE_EXE}")
+        message (STATUS "ccache not found")
     endif ()
 endif ()
 
@@ -257,8 +282,8 @@ endif ()
 # set `-j 1` or CMAKE_BUILD_PARALLEL_LEVEL to 1.
 option (TIME_COMMANDS "Time each compile and link command" OFF)
 if (TIME_COMMANDS)
-    set (CXX_COMPILER_LAUNCHER ${CMAKE_COMMAND} -E time ${CXX_COMPILER_LAUNCHER})
-    set (C_COMPILER_LAUNCHER ${CMAKE_COMMAND} -E time ${C_COMPILER_LAUNCHER})
+    set (CMAKE_CXX_COMPILER_LAUNCHER ${CMAKE_COMMAND} -E time ${CMAKE_CXX_COMPILER_LAUNCHER})
+    set (CMAKE_C_COMPILER_LAUNCHER ${CMAKE_COMMAND} -E time ${CMAKE_C_COMPILER_LAUNCHER})
 endif ()
 
 
@@ -284,10 +309,8 @@ endif ()
 # legit problem later.
 #
 set (GLIBCXX_USE_CXX11_ABI "" CACHE STRING "For gcc, use the new C++11 library ABI (0|1)")
-if (CMAKE_COMPILER_IS_GNUCC AND ${GCC_VERSION} VERSION_GREATER_EQUAL 5.0)
-    if (NOT ${GLIBCXX_USE_CXX11_ABI} STREQUAL "")
-        add_compile_definitions (_GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI})
-    endif ()
+if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GLIBCXX_USE_CXX11_ABI} STREQUAL "")
+    add_compile_definitions (_GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI})
 endif ()
 
 
@@ -651,6 +674,17 @@ if (LINKSTATIC)
     else ()
         set (CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
     endif ()
+endif ()
+
+
+###########################################################################
+# Windows: which MSVC runtime library should we use (to override default)?
+# Note that all dependencies need the same choice. We leave this as the
+# default, but allow it to be set by the environment if not explicit, which
+# the built-in CMAKE_MSVC_RUNTIME_LIBRARY does not do on its own.
+#
+if (WIN32)
+    set_from_env (CMAKE_MSVC_RUNTIME_LIBRARY)
 endif ()
 
 

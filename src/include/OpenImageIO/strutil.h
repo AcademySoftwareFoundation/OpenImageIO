@@ -15,6 +15,7 @@
 #pragma once
 
 #include <cstdio>
+#include <cstdarg>
 #include <map>
 #include <sstream>
 #include <string>
@@ -55,7 +56,8 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
+
 /// @namespace Strutil
 ///
 /// @brief     String-related utilities.
@@ -689,6 +691,14 @@ template<> inline uint64_t from_string<uint64_t>(string_view s) {
     auto r = strtoull(std::string(s).c_str(), nullptr, 10);
     return static_cast<uint64_t>(r);
 }
+
+template<> inline short from_string<short>(string_view s) {
+    return static_cast<short>(Strutil::stoi(s));
+}
+
+template<> inline unsigned short from_string<unsigned short>(string_view s) {
+    return static_cast<unsigned short>(Strutil::stoi(s));
+}
 #endif
 
 
@@ -1162,7 +1172,11 @@ eval_as_bool(string_view value);
 }  // namespace Strutil
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
 // Bring the ever-useful Strutil::print into the OIIO namespace.
 using Strutil::print;
-
 OIIO_NAMESPACE_END

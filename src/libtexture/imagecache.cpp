@@ -36,7 +36,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 using namespace pvt;
 using ImageDims    = ImageCacheFile::ImageDims;
 using LevelInfo    = ImageCacheFile::LevelInfo;
@@ -1048,7 +1048,7 @@ ImageCacheFile::init_from_spec()
     }
 
     // Squash some problematic texture metadata if we suspect it's wrong
-    pvt::check_texture_metadata_sanity(this->spec(0));
+    OIIO::pvt::check_texture_metadata_sanity(this->spec(0));
 
     // See if there's a SHA-1 hash in the image description
     string_view fing = spec.get_string_attribute("oiio:SHA-1");
@@ -1139,7 +1139,7 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info,
         m_bytesread += b;
         ++m_tilesread;
         if (id.colortransformid() > 0) {
-            // print("CONVERT id {} {},{} to cs {}\n", filename(), id.x(), id.y(),
+            // OIIO::print("CONVERT id {} {},{} to cs {}\n", filename(), id.x(), id.y(),
             //       id.colortransformid());
             ImageSpec tilespec(dims.tile_width, dims.tile_height,
                                dims.nchannels, format);
@@ -2062,35 +2062,35 @@ ImageCacheImpl::onefile_stat_line(const ImageCacheFileRef& file, int i,
     default: break;
     }
     if (i >= 0)
-        print(out, "{:7} ", i);
+        OIIO::print(out, "{:7} ", i);
     if (includestats) {
         unsigned long long redund_tiles = file->redundant_tiles();
         if (redund_tiles)
-            print(out, "{:4}  {:7}   {:8.1f}   ({:5} {:6.1f}) {:9}  ",
-                  file->timesopened(), file->tilesread(),
-                  file->bytesread() / 1024.0 / 1024.0, redund_tiles,
-                  file->redundant_bytesread() / 1024.0 / 1024.0,
-                  Strutil::timeintervalformat(file->iotime()));
+            OIIO::print(out, "{:4}  {:7}   {:8.1f}   ({:5} {:6.1f}) {:9}  ",
+                        file->timesopened(), file->tilesread(),
+                        file->bytesread() / 1024.0 / 1024.0, redund_tiles,
+                        file->redundant_bytesread() / 1024.0 / 1024.0,
+                        Strutil::timeintervalformat(file->iotime()));
         else
-            print(out, "{:4}  {:7}   {:8.1f}                  {:9}  ",
-                  file->timesopened(), file->tilesread(),
-                  file->bytesread() / 1024.0 / 1024.0,
-                  Strutil::timeintervalformat(file->iotime()));
+            OIIO::print(out, "{:4}  {:7}   {:8.1f}                  {:9}  ",
+                        file->timesopened(), file->tilesread(),
+                        file->bytesread() / 1024.0 / 1024.0,
+                        Strutil::timeintervalformat(file->iotime()));
     }
     if (file->subimages() > 1)
-        print(out, "{:3} face x{}.{}", file->subimages(), spec.nchannels,
-              formatcode);
+        OIIO::print(out, "{:3} face x{}.{}", file->subimages(), spec.nchannels,
+                    formatcode);
     else
-        print(out, "{:4}x{:4}x{}.{}", spec.width, spec.height, spec.nchannels,
-              formatcode);
-    print(out, "  {} ", file->filename());
+        OIIO::print(out, "{:4}x{:4}x{}.{}", spec.width, spec.height,
+                    spec.nchannels, formatcode);
+    OIIO::print(out, "  {} ", file->filename());
     if (file->duplicate()) {
-        print(out, " DUPLICATES {}", file->duplicate()->filename());
+        OIIO::print(out, " DUPLICATES {}", file->duplicate()->filename());
         return out.str();
     }
     for (int s = 0; s < file->subimages(); ++s)
         if (file->subimageinfo(s).untiled) {
-            print(out, " UNTILED");
+            OIIO::print(out, " UNTILED");
             break;
         }
     if (automip()) {
@@ -2098,23 +2098,23 @@ ImageCacheImpl::onefile_stat_line(const ImageCacheFileRef& file, int i,
         // this file.  This is a little inexact.
         for (int s = 0; s < file->subimages(); ++s)
             if (file->subimageinfo(s).unmipped) {
-                print(out, " UNMIPPED");
+                OIIO::print(out, " UNMIPPED");
                 break;
             }
     }
     if (!file->mipused()) {
         for (int s = 0; s < file->subimages(); ++s)
             if (!file->subimageinfo(s).unmipped) {
-                print(out, " MIP-UNUSED");
+                OIIO::print(out, " MIP-UNUSED");
                 break;
             }
     }
     if (file->mipreadcount().size() > 1) {
-        print(out, " MIP-COUNT[");
+        OIIO::print(out, " MIP-COUNT[");
         int nmip = (int)file->mipreadcount().size();
         for (int c = 0; c < nmip; c++)
-            print(out, "{}{}", (c ? "," : ""), file->mipreadcount()[c]);
-        print(out, "]");
+            OIIO::print(out, "{}{}", (c ? "," : ""), file->mipreadcount()[c]);
+        OIIO::print(out, "]");
     }
 
     return out.str();
@@ -2210,90 +2210,97 @@ ImageCacheImpl::getstats(int level) const
 #undef BOOLOPT
 #undef INTOPT
 #undef STROPT
-        print(out, "  Options:  {}\n", Strutil::wordwrap(opt, 75, 12));
+        OIIO::print(out, "  Options:  {}\n", Strutil::wordwrap(opt, 75, 12));
 
         if (stats.unique_files) {
-            print(out, "  Images : {} unique\n", stats.unique_files);
-            print(out, "    ImageInputs : {} created, {} current, {} peak\n",
-                  int(m_stat_open_files_created),
-                  int(m_stat_open_files_current), int(m_stat_open_files_peak));
-            print(out,
-                  "    Total pixel data size of all images referenced : {}\n",
-                  Strutil::memformat(stats.files_totalsize));
-            print(out,
-                  "    Total actual file size of all images referenced : {}\n",
-                  Strutil::memformat(stats.files_totalsize_ondisk));
-            print(out, "    Pixel data read : {}\n",
-                  Strutil::memformat(stats.bytes_read));
+            OIIO::print(out, "  Images : {} unique\n", stats.unique_files);
+            OIIO::print(out,
+                        "    ImageInputs : {} created, {} current, {} peak\n",
+                        int(m_stat_open_files_created),
+                        int(m_stat_open_files_current),
+                        int(m_stat_open_files_peak));
+            OIIO::print(
+                out,
+                "    Total pixel data size of all images referenced : {}\n",
+                Strutil::memformat(stats.files_totalsize));
+            OIIO::print(
+                out,
+                "    Total actual file size of all images referenced : {}\n",
+                Strutil::memformat(stats.files_totalsize_ondisk));
+            OIIO::print(out, "    Pixel data read : {}\n",
+                        Strutil::memformat(stats.bytes_read));
         } else {
-            print(out, "  No images opened\n");
+            OIIO::print(out, "  No images opened\n");
         }
         if (stats.find_file_time > 0.001 || level > 2)
-            print(out, "    Find file time : {}\n",
-                  Strutil::timeintervalformat(stats.find_file_time));
+            OIIO::print(out, "    Find file time : {}\n",
+                        Strutil::timeintervalformat(stats.find_file_time));
         if (stats.fileio_time > 0.001 || level > 2) {
-            print(out, "    File I/O time : {}",
-                  Strutil::timeintervalformat(stats.fileio_time));
+            OIIO::print(out, "    File I/O time : {}",
+                        Strutil::timeintervalformat(stats.fileio_time));
             {
                 spin_lock lock(m_perthread_info_mutex);
                 size_t nthreads = m_all_perthread_info.size();
                 if (nthreads > 1 || level > 2) {
                     double perthreadtime = stats.fileio_time
                                            / std::max(size_t(1), nthreads);
-                    print(out, " ({} average per thread, for {} threads)",
-                          Strutil::timeintervalformat(perthreadtime), nthreads);
+                    OIIO::print(out, " ({} average per thread, for {} threads)",
+                                Strutil::timeintervalformat(perthreadtime),
+                                nthreads);
                 }
             }
-            print(out, "\n");
-            print(out, "    File open time only : {}\n",
-                  Strutil::timeintervalformat(stats.fileopen_time));
+            OIIO::print(out, "\n");
+            OIIO::print(out, "    File open time only : {}\n",
+                        Strutil::timeintervalformat(stats.fileopen_time));
         }
         if (stats.file_locking_time > 0.001 || level > 2)
-            print(out, "    File mutex locking time : {}\n",
-                  Strutil::timeintervalformat(stats.file_locking_time));
+            OIIO::print(out, "    File mutex locking time : {}\n",
+                        Strutil::timeintervalformat(stats.file_locking_time));
         if (total_input_mutex_wait_time > 0.001 || level > 2)
-            print(out, "    ImageInput mutex locking time : {}\n",
-                  Strutil::timeintervalformat(total_input_mutex_wait_time));
+            OIIO::print(out, "    ImageInput mutex locking time : {}\n",
+                        Strutil::timeintervalformat(
+                            total_input_mutex_wait_time));
         if (m_stat_tiles_created > 0 || level > 2) {
-            print(out, "  Tiles: {} created, {} current, {} peak\n",
-                  int(m_stat_tiles_created), int(m_stat_tiles_current),
-                  int(m_stat_tiles_peak));
-            print(out, "    total tile requests : {}\n", stats.find_tile_calls);
+            OIIO::print(out, "  Tiles: {} created, {} current, {} peak\n",
+                        int(m_stat_tiles_created), int(m_stat_tiles_current),
+                        int(m_stat_tiles_peak));
+            OIIO::print(out, "    total tile requests : {}\n",
+                        stats.find_tile_calls);
             if (stats.find_tile_microcache_misses)
-                print(out, "    micro-cache misses : {} ({:.1f}%)\n",
-                      stats.find_tile_microcache_misses,
-                      100.0 * stats.find_tile_microcache_misses
-                          / (double)stats.find_tile_calls);
+                OIIO::print(out, "    micro-cache misses : {} ({:.1f}%)\n",
+                            stats.find_tile_microcache_misses,
+                            100.0 * stats.find_tile_microcache_misses
+                                / (double)stats.find_tile_calls);
             if (stats.find_tile_cache_misses)
-                print(out, "    main cache misses : {} ({:.1f}%)\n",
-                      stats.find_tile_cache_misses,
-                      100.0 * stats.find_tile_cache_misses
-                          / (double)stats.find_tile_calls);
-            print(out, "    redundant reads: {} tiles, {}\n",
-                  total_redundant_tiles,
-                  Strutil::memformat(total_redundant_bytes));
+                OIIO::print(out, "    main cache misses : {} ({:.1f}%)\n",
+                            stats.find_tile_cache_misses,
+                            100.0 * stats.find_tile_cache_misses
+                                / (double)stats.find_tile_calls);
+            OIIO::print(out, "    redundant reads: {} tiles, {}\n",
+                        total_redundant_tiles,
+                        Strutil::memformat(total_redundant_bytes));
         }
-        print(out, "    Peak cache memory : {}\n",
-              Strutil::memformat(m_mem_used));
+        OIIO::print(out, "    Peak cache memory : {}\n",
+                    Strutil::memformat(m_mem_used));
         if (stats.tile_locking_time > 0.001 || level > 2)
-            print(out, "    Tile mutex locking time : {}\n",
-                  Strutil::timeintervalformat(stats.tile_locking_time));
+            OIIO::print(out, "    Tile mutex locking time : {}\n",
+                        Strutil::timeintervalformat(stats.tile_locking_time));
         if (stats.find_tile_time > 0.001 || level > 2)
-            print(out, "    Find tile time : {}\n",
-                  Strutil::timeintervalformat(stats.find_tile_time));
+            OIIO::print(out, "    Find tile time : {}\n",
+                        Strutil::timeintervalformat(stats.find_tile_time));
         if (stats.file_retry_success || stats.tile_retry_success)
-            print(out,
-                  "    Failure reads followed by unexplained success:"
-                  " {} files, {} tiles\n",
-                  stats.file_retry_success, stats.tile_retry_success);
+            OIIO::print(out,
+                        "    Failure reads followed by unexplained success:"
+                        " {} files, {} tiles\n",
+                        stats.file_retry_success, stats.tile_retry_success);
 
         printImageCacheMemory(out, *this);
     }
 
     if (level >= 2 && files.size()) {
-        print(out, "  Image file statistics:\n");
-        print(out, "        opens   tiles    MB read   --redundant--   "
-                   "I/O time  res              File\n");
+        OIIO::print(out, "  Image file statistics:\n");
+        OIIO::print(out, "        opens   tiles    MB read   --redundant--   "
+                         "I/O time  res              File\n");
         std::sort(files.begin(), files.end(), filename_compare);
         for (size_t i = 0; i < files.size(); ++i) {
             const ImageCacheFileRef& file(files[i]);
@@ -2301,70 +2308,72 @@ ImageCacheImpl::getstats(int level) const
             if (file->is_udim())
                 continue;
             if (file->broken() || file->subimages() == 0) {
-                print(out, "  {:76}{}\n", "BROKEN", file->filename());
+                OIIO::print(out, "  {:76}{}\n", "BROKEN", file->filename());
                 continue;
             }
-            print(out, "{}\n", onefile_stat_line(file, i + 1));
+            OIIO::print(out, "{}\n", onefile_stat_line(file, i + 1));
         }
-        print(out, "\n  Tot:  {:4}  {:7}   {:8.1f}   ({:5} {:6.1f}) {:9}\n",
-              total_opens, total_tiles, total_bytes / 1024.0 / 1024.0,
-              total_redundant_tiles, total_redundant_bytes / 1024.0 / 1024.0,
-              Strutil::timeintervalformat(total_iotime));
+        OIIO::print(out,
+                    "\n  Tot:  {:4}  {:7}   {:8.1f}   ({:5} {:6.1f}) {:9}\n",
+                    total_opens, total_tiles, total_bytes / 1024.0 / 1024.0,
+                    total_redundant_tiles,
+                    total_redundant_bytes / 1024.0 / 1024.0,
+                    Strutil::timeintervalformat(total_iotime));
     }
 
     // Try to point out hot spots
     if (level > 0) {
         if (total_duplicates || level > 2)
-            print(out, "  {} were exact duplicates of other images\n",
-                  total_duplicates);
+            OIIO::print(out, "  {} were exact duplicates of other images\n",
+                        total_duplicates);
         if (total_untiled || (total_unmipped && automip()) || level > 2) {
-            print(out, "  {} not tiled, {} not MIP-mapped\n", total_untiled,
-                  total_unmipped);
+            OIIO::print(out, "  {} not tiled, {} not MIP-mapped\n",
+                        total_untiled, total_unmipped);
 #if 0
             if (files.size() >= 50) {
-                print(out, "  Untiled/unmipped files were:\n");
+                OIIO::print(out, "  Untiled/unmipped files were:\n");
                 for (size_t i = 0;  i < files.size();  ++i) {
                     const ImageCacheFileRef &file (files[i]);
                     if (file->untiled() || (file->unmipped() && automip()))
-                        print(out, "{}\n", onefile_stat_line (file, -1));
+                        OIIO::print(out, "{}\n", onefile_stat_line (file, -1));
                 }
             }
 #endif
         }
         if (total_constant || level > 2)
-            print(out, "  {} {} constant-valued in all pixels\n",
-                  total_constant, (total_constant == 1 ? "was" : "were"));
+            OIIO::print(out, "  {} {} constant-valued in all pixels\n",
+                        total_constant, (total_constant == 1 ? "was" : "were"));
         if (files.size() >= 50 || level > 2) {
             const int topN = 3;
             int nprinted;
             std::sort(files.begin(), files.end(), bytesread_compare);
-            print(out, "  Top files by bytes read:\n");
+            OIIO::print(out, "  Top files by bytes read:\n");
             nprinted = 0;
             for (const ImageCacheFileRef& file : files) {
                 if (file->broken() || !file->validspec())
                     continue;
                 if (nprinted++ >= topN)
                     break;
-                print(out, "    {}   {:6.1f} MB ({:4.1f}%)  {}\n", nprinted,
-                      file->bytesread() / 1024.0 / 1024.0,
-                      100.0 * file->bytesread() / (double)total_bytes,
-                      onefile_stat_line(file, -1, false));
+                OIIO::print(out, "    {}   {:6.1f} MB ({:4.1f}%)  {}\n",
+                            nprinted, file->bytesread() / 1024.0 / 1024.0,
+                            100.0 * file->bytesread() / (double)total_bytes,
+                            onefile_stat_line(file, -1, false));
             }
             std::sort(files.begin(), files.end(), iotime_compare);
-            print(out, "  Top files by I/O time:\n");
+            OIIO::print(out, "  Top files by I/O time:\n");
             nprinted = 0;
             for (const ImageCacheFileRef& file : files) {
                 if (file->broken() || !file->validspec())
                     continue;
                 if (nprinted++ >= topN)
                     break;
-                print(out, "    {}   {:9} ({:4.1f}%)   {}\n", nprinted,
-                      Strutil::timeintervalformat(file->iotime()),
-                      100.0 * file->iotime() / total_iotime,
-                      onefile_stat_line(file, -1, false));
+                OIIO::print(out, "    {}   {:9} ({:4.1f}%)   {}\n", nprinted,
+                            Strutil::timeintervalformat(file->iotime()),
+                            100.0 * file->iotime() / total_iotime,
+                            onefile_stat_line(file, -1, false));
             }
             std::sort(files.begin(), files.end(), iorate_compare);
-            print(out, "  Files with slowest I/O rates:\n");
+            OIIO::print(out, "  Files with slowest I/O rates:\n");
             nprinted = 0;
             for (const ImageCacheFileRef& file : files) {
                 if (file->broken() || !file->validspec())
@@ -2375,31 +2384,33 @@ ImageCacheImpl::getstats(int level) const
                     break;
                 double mb = file->bytesread() / (1024.0 * 1024.0);
                 double r  = mb / file->iotime();
-                print(out, "    {}   {:6.2f} MB/s ({:.2f}MB/{:.2f}s)   {}\n",
-                      nprinted, r, mb, file->iotime(),
-                      onefile_stat_line(file, -1, false));
+                OIIO::print(out,
+                            "    {}   {:6.2f} MB/s ({:.2f}MB/{:.2f}s)   {}\n",
+                            nprinted, r, mb, file->iotime(),
+                            onefile_stat_line(file, -1, false));
             }
             if (nprinted == 0) {
-                print(out, "    (nothing took more than 0.25s)\n");
+                OIIO::print(out, "    (nothing took more than 0.25s)\n");
             } else {
                 double fast = files.back()->bytesread() / (1024.0 * 1024.0)
                               / files.back()->iotime();
-                print(out, "    (fastest was {:.1f} MB/s)\n", fast);
+                OIIO::print(out, "    (fastest was {:.1f} MB/s)\n", fast);
             }
             if (total_redundant_tiles > 0) {
                 std::sort(files.begin(), files.end(), redundantbytes_compare);
-                print(out, "  Top files by redundant I/O:\n");
+                OIIO::print(out, "  Top files by redundant I/O:\n");
                 nprinted = 0;
                 for (const ImageCacheFileRef& file : files) {
                     if (file->broken() || !file->validspec())
                         continue;
                     if (nprinted++ >= topN)
                         break;
-                    print(out, "    {}   {:6.1f} MB ({:4.1f}%)  {}\n", nprinted,
-                          file->redundant_bytesread() / 1024.0 / 1024.0,
-                          100.0 * file->redundant_bytesread()
-                              / (double)total_redundant_bytes,
-                          onefile_stat_line(file, -1, false));
+                    OIIO::print(out, "    {}   {:6.1f} MB ({:4.1f}%)  {}\n",
+                                nprinted,
+                                file->redundant_bytesread() / 1024.0 / 1024.0,
+                                100.0 * file->redundant_bytesread()
+                                    / (double)total_redundant_bytes,
+                                onefile_stat_line(file, -1, false));
                 }
             }
         }
@@ -2408,14 +2419,15 @@ ImageCacheImpl::getstats(int level) const
             if (file->broken())
                 ++nbroken;
         }
-        print(out, "  Broken or invalid files: {}\n", nbroken);
+        OIIO::print(out, "  Broken or invalid files: {}\n", nbroken);
         if (nbroken) {
             std::sort(files.begin(), files.end(), filename_compare);
             int nprinted = 0;
             for (const ImageCacheFileRef& file : files) {
                 if (file->broken()) {
                     ++nprinted;
-                    print(out, "   {:4}  {}\n", nprinted, file->filename());
+                    OIIO::print(out, "   {:4}  {}\n", nprinted,
+                                file->filename());
                 }
             }
         }
@@ -2979,8 +2991,9 @@ ImageCacheImpl::resolve_filename(const std::string& filename) const
 {
     // Ask if the format can generate imagery procedurally. If so, don't
     // go looking for a file.
-    if (pvt::is_procedural_plugin(filename)
-        || pvt::is_procedural_plugin(Filesystem::extension(filename, false)))
+    if (OIIO::pvt::is_procedural_plugin(filename)
+        || OIIO::pvt::is_procedural_plugin(
+            Filesystem::extension(filename, false)))
         return filename;
     if (m_searchdirs.empty() || Filesystem::path_is_absolute(filename, true)) {
         // Don't bother with the searchpath_find call since it will do an
@@ -4063,7 +4076,7 @@ ImageCacheImpl::invalidate_all(bool force)
 
     // Now, invalidate all the files in our "needs invalidation" list
     for (auto f : all_files) {
-        // print(stderr, "Invalidating {}\n", f);
+        // OIIO::print(stderr, "Invalidating {}\n", f);
         invalidate(f, true);
     }
 
@@ -4378,8 +4391,8 @@ ImageCacheImpl::append_error(string_view message) const
 size_t
 ImageCacheImpl::heapsize() const
 {
-    using OIIO::pvt::footprint;
-    using OIIO::pvt::heapsize;
+    using pvt::footprint;
+    using pvt::heapsize;
 
     size_t size = 0;
     // strings
@@ -4407,8 +4420,8 @@ ImageCacheImpl::heapsize() const
 size_t
 ImageCacheImpl::footprint(ImageCacheFootprint& output) const
 {
-    using OIIO::pvt::footprint;
-    using OIIO::pvt::heapsize;
+    using pvt::footprint;
+    using pvt::heapsize;
 
     // strings
     output.ic_str_count = m_searchdirs.size() + 2;
@@ -4540,18 +4553,50 @@ ImageCache::destroy(std::shared_ptr<ImageCache>& cache, bool teardown)
 
 
 bool
-ImageCache::attribute(string_view name, TypeDesc type, const void* val)
+ImageCache::attribute(string_view name, TypeDesc type, cspan<std::byte> value)
 {
-    return m_impl->attribute(name, type, val);
+    if (value.size_bytes() != type.size()) {
+        errorfmt(
+            "ImageCache::attribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return m_impl->attribute(name, type, value.data());
 }
 
 
 
 bool
-ImageCache::getattribute(string_view name, TypeDesc type, void* val) const
+ImageCache::attribute(string_view name, TypeDesc type, const void* value)
 {
-    return m_impl->getattribute(name, type, val);
+    return m_impl->attribute(name, type, value);
 }
+
+
+
+bool
+ImageCache::getattribute(string_view name, TypeDesc type,
+                         span<std::byte> value) const
+{
+    if (value.size_bytes() != type.size()) {
+        errorfmt(
+            "ImageCache::getattribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return m_impl->getattribute(name, type, value.data());
+}
+
+
+
+bool
+ImageCache::getattribute(string_view name, TypeDesc type, void* value) const
+{
+    return m_impl->getattribute(name, type, value);
+}
+
 
 
 TypeDesc
@@ -4906,4 +4951,4 @@ ImageCache::reset_stats()
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

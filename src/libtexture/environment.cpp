@@ -199,7 +199,7 @@ convention is dictated by OpenEXR.
 */
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 using namespace pvt;
 using namespace simd;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
@@ -268,9 +268,9 @@ vector_to_latlong(const Imath::V3f& R, bool y_is_up, float& s, float& t)
         t = 0.5f - atan2f(R.z, hypotf(R.x, R.y)) / (float)M_PI;
     }
     // learned from experience, beware NaNs
-    if (isnan(s))
+    if (std::isnan(s))
         s = 0.0f;
-    if (isnan(t))
+    if (std::isnan(t))
         t = 0.0f;
 }
 
@@ -643,4 +643,4 @@ TextureSystemImpl::environment(ustring filename, TextureOptBatch& options,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

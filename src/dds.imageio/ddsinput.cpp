@@ -838,14 +838,16 @@ DDSInput::seek_subimage(int subimage, int miplevel)
         case DDS_FORMAT_BC7_UNORM_SRGB:
         case DDS_FORMAT_R8G8B8A8_UNORM_SRGB:
         case DDS_FORMAT_B8G8R8A8_UNORM_SRGB:
-        case DDS_FORMAT_B8G8R8X8_UNORM_SRGB: colorspace = "sRGB"; break;
+        case DDS_FORMAT_B8G8R8X8_UNORM_SRGB:
+            colorspace = "srgb_rec709_scene";
+            break;
         }
     }
 
     // linear color space for HDR-ish images
     if (colorspace == nullptr
         && (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT))
-        colorspace = "lin_rec709";
+        colorspace = "lin_rec709_scene";
 
     m_spec.set_colorspace(colorspace);
 

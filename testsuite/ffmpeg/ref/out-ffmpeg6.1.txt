@@ -1,0 +1,110 @@
+Reading ref/vp9_display_p3.mkv
+ref/vp9_display_p3.mkv :  192 x  108, 3 channel, uint8 FFmpeg movie
+    7 subimages: 192x108 [u8,u8,u8]
+ subimage  0:  192 x  108, 3 channel, uint8 FFmpeg movie
+    SHA-1: E65FAFBDA14543571188F8A84F75E1567E13148C
+    channel list: R, G, B
+    CICP: 12, 1, 1, 1
+    DATE: "2025/09/13 21:58:33"
+    ENCODER: "Lavf61.7.100"
+    FramesPerSecond: 24/1 (24)
+    SCENE: "Scene"
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 8
+    oiio:Movie: 1
+    oiio:subimages: 7
+ subimage  1:  192 x  108, 3 channel, uint8 FFmpeg movie
+    SHA-1: 8D54A542C4E6A47A4F8829993001786BA62288DF
+    channel list: R, G, B
+    CICP: 12, 1, 1, 1
+    DATE: "2025/09/13 21:58:33"
+    ENCODER: "Lavf61.7.100"
+    FramesPerSecond: 24/1 (24)
+    SCENE: "Scene"
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 8
+    oiio:Movie: 1
+    oiio:subimages: 7
+ subimage  2:  192 x  108, 3 channel, uint8 FFmpeg movie
+    SHA-1: 8D54A542C4E6A47A4F8829993001786BA62288DF
+    channel list: R, G, B
+    CICP: 12, 1, 1, 1
+    DATE: "2025/09/13 21:58:33"
+    ENCODER: "Lavf61.7.100"
+    FramesPerSecond: 24/1 (24)
+    SCENE: "Scene"
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 8
+    oiio:Movie: 1
+    oiio:subimages: 7
+ subimage  3:  192 x  108, 3 channel, uint8 FFmpeg movie
+    SHA-1: 8D54A542C4E6A47A4F8829993001786BA62288DF
+    channel list: R, G, B
+    CICP: 12, 1, 1, 1
+    DATE: "2025/09/13 21:58:33"
+    ENCODER: "Lavf61.7.100"
+    FramesPerSecond: 24/1 (24)
+    SCENE: "Scene"
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 8
+    oiio:Movie: 1
+    oiio:subimages: 7
+ subimage  4:  192 x  108, 3 channel, uint8 FFmpeg movie
+    SHA-1: D9B0B8782048AEE24C4DF767E2B0969EBAB9D36B
+    channel list: R, G, B
+    CICP: 12, 1, 1, 1
+    DATE: "2025/09/13 21:58:33"
+    ENCODER: "Lavf61.7.100"
+    FramesPerSecond: 24/1 (24)
+    SCENE: "Scene"
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 8
+    oiio:Movie: 1
+    oiio:subimages: 7
+ subimage  5:  192 x  108, 3 channel, uint8 FFmpeg movie
+    SHA-1: C6B5666BB0A937A59762B8FE846BF50FED40889E
+    channel list: R, G, B
+    CICP: 12, 1, 1, 1
+    DATE: "2025/09/13 21:58:33"
+    ENCODER: "Lavf61.7.100"
+    FramesPerSecond: 24/1 (24)
+    SCENE: "Scene"
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 8
+    oiio:Movie: 1
+    oiio:subimages: 7
+ subimage  6:  192 x  108, 3 channel, uint8 FFmpeg movie
+    SHA-1: 63516D95A1BB56E9E9483F9BCFC4305851A8BC54
+    channel list: R, G, B
+    CICP: 12, 1, 1, 1
+    DATE: "2025/09/13 21:58:33"
+    ENCODER: "Lavf61.7.100"
+    FramesPerSecond: 24/1 (24)
+    SCENE: "Scene"
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 8
+    oiio:Movie: 1
+    oiio:subimages: 7
+Reading ref/vp9_rec2100_pq.mkv
+ref/vp9_rec2100_pq.mkv :  384 x  216, 3 channel, uint10 FFmpeg movie
+    2 subimages: 384x216 [u10,u10,u10]
+ subimage  0:  384 x  216, 3 channel, uint10 FFmpeg movie
+    SHA-1: 87BB7BBE57131F08F0336964256F2C190FE26A69
+    channel list: R, G, B
+    CICP: 9, 16, 9, 1
+    ENCODER: "Lavf62.3.100"
+    FramesPerSecond: 24/1 (24)
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 10
+    oiio:Movie: 1
+    oiio:subimages: 2
+ subimage  1:  384 x  216, 3 channel, uint10 FFmpeg movie
+    SHA-1: 3820BE456CC3F4ADD3425E0C9397C83678A5BA8A
+    channel list: R, G, B
+    CICP: 9, 16, 9, 1
+    ENCODER: "Lavf62.3.100"
+    FramesPerSecond: 24/1 (24)
+    ffmpeg:codec_name: "Google VP9"
+    oiio:BitsPerSample: 10
+    oiio:Movie: 1
+    oiio:subimages: 2

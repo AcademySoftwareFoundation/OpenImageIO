@@ -34,7 +34,7 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /////////////////////////////////////////////////////////////////////////////
 /// A TypeDesc describes simple data types.
@@ -409,7 +409,7 @@ template<> struct BaseTypeFromC<uint64_t> { static constexpr TypeDesc::BASETYPE 
 template<> struct BaseTypeFromC<const uint64_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT64; };
 template<> struct BaseTypeFromC<int64_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT64; };
 template<> struct BaseTypeFromC<const int64_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT64; };
-#if defined(__GNUC__) && __WORDSIZE == 64 && !(defined(__APPLE__) && defined(__MACH__))
+#if defined(__GNUC__) && (ULONG_MAX == 0xffffffffffffffff) && !(defined(__APPLE__) && defined(__MACH__)) || defined(__NetBSD__)
 // Some platforms consider int64_t and long long to be different types, even
 // though they are actually the same size.
 static_assert(!std::is_same_v<unsigned long long, uint64_t>);
@@ -429,16 +429,18 @@ template<> struct BaseTypeFromC<double> { static constexpr TypeDesc::BASETYPE va
 template<> struct BaseTypeFromC<const double> { static constexpr TypeDesc::BASETYPE value = TypeDesc::DOUBLE; };
 template<> struct BaseTypeFromC<char*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<const char*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<const char* const> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<std::string> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<const std::string> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<string_view> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<const string_view> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
-class ustring;
 template<> struct BaseTypeFromC<ustring> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<> struct BaseTypeFromC<const ustring> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<size_t S> struct BaseTypeFromC<char[S]> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<size_t S> struct BaseTypeFromC<const char[S]> { static constexpr TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<typename P> struct BaseTypeFromC<P*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::PTR; };
+template<typename P> struct BaseTypeFromC<const P*> { static constexpr TypeDesc::BASETYPE value = TypeDesc::PTR; };
+template<typename P> struct BaseTypeFromC<const P* const> { static constexpr TypeDesc::BASETYPE value = TypeDesc::PTR; };
 
 /// `BaseTypeFromC_v<T>` is shorthand for `BaseTypeFromC<T>::value()`.
 template<typename T>
@@ -461,10 +463,12 @@ template<> struct TypeDescFromC<half> { static const constexpr TypeDesc value() 
 template<> struct TypeDescFromC<double> { static const constexpr TypeDesc value() { return TypeDesc::DOUBLE; } };
 template<> struct TypeDescFromC<char*> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<> struct TypeDescFromC<const char*> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+template<> struct TypeDescFromC<const char* const> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<const char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<> struct TypeDescFromC<ustring> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<typename T> struct TypeDescFromC<T*> { static const constexpr TypeDesc value() { return TypeDesc::PTR; } };
+template<typename T> struct TypeDescFromC<const T*> { static const constexpr TypeDesc value() { return TypeDesc::PTR; } };
 #ifdef INCLUDED_IMATHVEC_H
 template<> struct TypeDescFromC<Imath::V3f> { static const constexpr TypeDesc value() { return TypeVector; } };
 template<> struct TypeDescFromC<Imath::V2f> { static const constexpr TypeDesc value() { return TypeVector2; } };
@@ -491,8 +495,6 @@ template<> struct TypeDescFromC<Imath::Box3i> { static const constexpr TypeDesc 
 /// `TypeDescFromC_v<T>` is shorthand for `TypeDescFromC<T>::value()`.
 template<typename T>
 constexpr TypeDesc TypeDescFromC_v = TypeDescFromC<std::remove_cv_t<T>>::value();
-
-class ustringhash;  // forward declaration
 
 
 
@@ -589,7 +591,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
 /// * If dsttype is int32 or uint32: other integer types will do their best
 ///   (caveat emptor if you mix signed/unsigned). Also a source string will
 ///   convert to int if and only if its characters form a valid integer.
-/// * If dsttype is float: inteegers and other float types will do
+/// * If dsttype is float: integers and other float types will do
 ///   their best conversion; strings will convert if and only if their
 ///   characters form a valid float number.
 OIIO_UTIL_API bool
@@ -597,19 +599,68 @@ convert_type(TypeDesc srctype, const void* src,
              TypeDesc dsttype, void* dst, int n = 1);
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::tostring_formatting;
+using v3_1::tostring;
+using v3_1::convert_type;
+using v3_1::BaseTypeFromC;
+using v3_1::BaseTypeFromC_v;
+using v3_1::TypeDescFromC;
+using v3_1::TypeDescFromC_v;
+using v3_1::CType;
+
+using v3_1::TypeUnknown;
+using v3_1::TypeFloat;
+using v3_1::TypeColor;
+using v3_1::TypePoint;
+using v3_1::TypeVector;
+using v3_1::TypeNormal;
+using v3_1::TypeMatrix33;
+using v3_1::TypeMatrix44;
+using v3_1::TypeMatrix;
+using v3_1::TypeFloat2;
+using v3_1::TypeVector2;
+using v3_1::TypeFloat4;
+using v3_1::TypeVector4;
+using v3_1::TypeString;
+using v3_1::TypeInt;
+using v3_1::TypeUInt;
+using v3_1::TypeInt32;
+using v3_1::TypeUInt32;
+using v3_1::TypeInt16;
+using v3_1::TypeUInt16;
+using v3_1::TypeInt8;
+using v3_1::TypeUInt8;
+using v3_1::TypeInt64;
+using v3_1::TypeUInt64;
+using v3_1::TypeVector2i;
+using v3_1::TypeVector3i;
+using v3_1::TypeBox2;
+using v3_1::TypeBox3;
+using v3_1::TypeBox2i;
+using v3_1::TypeBox3i;
+using v3_1::TypeHalf;
+using v3_1::TypeTimeCode;
+using v3_1::TypeKeyCode;
+using v3_1::TypeRational;
+using v3_1::TypePointer;
+using v3_1::TypeUstringhash;
+#endif
 OIIO_NAMESPACE_END
 
 
 
 // Supply a fmtlib compatible custom formatter for TypeDesc.
 #if FMT_VERSION >= 100000
-FMT_BEGIN_NAMESPACE
-template<> struct formatter<OIIO::TypeDesc> : ostream_formatter {};
-FMT_END_NAMESPACE
+template<> struct fmt::formatter<OIIO::TypeDesc> : ostream_formatter {};
 #else
-FMT_BEGIN_NAMESPACE
 template <>
-struct formatter<OIIO::TypeDesc> {
+struct fmt::formatter<OIIO::TypeDesc> {
     // Parses format specification
     // C++14: constexpr auto parse(format_parse_context& ctx) const {
     auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) // c++11
@@ -635,5 +686,4 @@ struct formatter<OIIO::TypeDesc> {
         return format_to(ctx.out(), "{}", t.c_str());
     }
 };
-FMT_END_NAMESPACE
 #endif

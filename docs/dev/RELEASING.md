@@ -178,7 +178,7 @@ have a heading added at the top for the *next* version.
      minor releases, so it's ok/encouraged to make a deprecated function from
      linked to inline, for example (which might allow it to be removed later
      without an ABI change).
-   - Major releases (a.b.c.d -> A+1.b.c.d): API compatibility breaks are
+   - Major releases (a.b.c.d -> A+1.0.0.0): API compatibility breaks are
      allowed here, so this is the time to completely remove any functions that
      have already had a full minor release where they had been given
      deprecation warning macros.
@@ -312,22 +312,22 @@ The following are the steps for making the release:
 
    For a monthly patch release:
 
-    > We have tagged v3.0.1.2 as the latest production release and moved the
+    > We have tagged v3.1.0.0 as the latest production release and moved the
     > "release" branch marker to that point.  This is guaranteed to be API,
-    > ABI, and link back-compatible with prior 3.0 releases. Release notes
+    > ABI, and link back-compatible with prior 3.1 releases. Release notes
     > can be found at *LINK TO THE GITHUB RELEASE PAGE.*
 
    For an annual major/minor release:
 
-    > OpenImageIO version 3.0 has been released! Officially tagged as
-    > "v3.0.0.0", we have also moved the "release" branch tag to this
-    > position. Henceforth, 3.0 is the supported production release family.
-    > The API is now frozen -- we promise that subsequent 3.0.x releases
+    > OpenImageIO version 3.1 has been released! Officially tagged as
+    > "v3.1.0.0", we have also moved the "release" branch tag to this
+    > position. Henceforth, 3.1 is the supported production release family.
+    > The API is now frozen -- we promise that subsequent 3.1.x releases
     > (which should happen monthly) will not break back-compatibility of API,
     > ABI, or linkage, compared to this release. Please note that this release
-    > is *not* ABI or link compatible with 2.5 or older releases.
+    > is *not* ABI or link compatible with 3.0 or older releases.
     > 
-    > Release notes for 3.0 outlining all the changes since last year's
+    > Release notes for 3.1 outlining all the changes since last year's
     > release can be found at *LINK TO THE GITHUB RELEASE PAGE.*
     > (Optionally, you can include a brief summary of the most important
     > changes in this email.)
@@ -344,35 +344,35 @@ The following are the steps for making the release:
     > backward-compatible with prior versions, warn about that here.)
     > 
     > Enjoy, and please report any problems. We will continue to make patch
-    > releases to the 3.0 family roughly monthly, which will contain bug fixes
+    > releases to the 3.1 family roughly monthly, which will contain bug fixes
     > and non-breaking enhancements.
     > 
-    > The older 2.5 series of releases is now considered obsolete. We will
-    > continue for now to make 2.4 patch releases, but over time, these will
+    > The older 3.0 series of releases is now considered obsolete. We will
+    > continue for now to make 3.0 patch releases, but over time, these will
     > become less frequent and be reserved for only the most critical bug
     > fixes.
     > 
-    > The "main" branch is now progressing toward an eventual 3.1 release next
+    > The "main" branch is now progressing toward an eventual 3.2 release next
     > fall. As usual, you are welcome to use main for real work, but we do
     > not make any compatibility guarantees and don't guarantee continuing API
-    > compatibility in main.
+    > compatibility within main.
     >
-    > (Paste the full set of 3.0 changes here, just copy the appropriate
+    > (Paste the full set of 3.1 changes here, just copy the appropriate
     > part of CHANGES.md)
 
    For a beta leading up to the annual major/minor release:
 
-    > OpenImageIO version 3.0 is now in beta, tagged as "v3.0.0.0-beta". We
+    > OpenImageIO version 3.1 is now in beta, tagged as "v3.1.0.0-beta". We
     > will try very hard not to make any further API or ABI changes between
     > now and the final release (unless it is absolutely necessary to fix
-    > an important problem identified during beta testing). The final 3.0
+    > an important problem identified during beta testing). The final 3.1
     > release is scheduled for [DATE GOES HERE], so please try building and
     > testing the beta so we are sure to find any problems.
     > 
-    > Release notes for 3.0 outlining all the changes since last year's
+    > Release notes for 3.1 outlining all the changes since last year's
     > release are below.
     > 
-    > (Paste the full set of 3.0 changes here, just copy the appropriate
+    > (Paste the full set of 3.1 changes here, just copy the appropriate
     > part of CHANGES.md)
 
 
@@ -414,9 +414,9 @@ notes process be simpler and more automated.
 We have been using the [git-cliff](https://github.com/orhun/git-cliff) tool
 as the starting point for release notes. The command we use is:
 
-    git cliff -c src/doc/cliff.toml v1.2.3.4..HEAD > cliff.out.md
+    git cliff -c src/doc/cliff.toml v3.1.2.3..HEAD > cliff.out.md
 
-where v1.2.3.4 in this example is the tag of the last release. You could also
+where v3.1.2.3 in this example is the tag of the last release. You could also
 use commit hashes to denote the range of changes you want to document.
 
 **For monthly patch releases**

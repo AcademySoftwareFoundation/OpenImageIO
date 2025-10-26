@@ -22,9 +22,6 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/unordered_map_concurrent.h>
 
-OIIO_NAMESPACE_BEGIN
-
-
 #ifndef NDEBUG
 #    define IMAGECACHE_TIME_STATS 1
 #else
@@ -39,19 +36,22 @@ OIIO_NAMESPACE_BEGIN
 #define TILE_CACHE_SHARDS 128
 
 
-
-struct TileID;
-class ImageCacheImpl;
+OIIO_NAMESPACE_BEGIN
 struct ImageCacheFootprint;
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 namespace pvt {
-
 const char*
 texture_format_name(TexFormat f);
 const char*
 texture_type_name(TexFormat f);
-
 }  // namespace pvt
+
+
+
+struct TileID;
 
 
 
@@ -158,8 +158,8 @@ struct UdimInfo {
 /// thread-specific IC data including microcache and statistics.
 ///
 class OIIO_API ImageCacheFile final : public RefCnt {
-    using TexFormat = pvt::TexFormat;
-    using EnvLayout = pvt::EnvLayout;
+    using TexFormat = v3_1::pvt::TexFormat;
+    using EnvLayout = v3_1::pvt::EnvLayout;
     using UdimInfo  = pvt::UdimInfo;
 
 public:
@@ -1397,7 +1397,7 @@ private:
 };
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
 
 
 #endif  // OPENIMAGEIO_IMAGECACHE_PVT_H

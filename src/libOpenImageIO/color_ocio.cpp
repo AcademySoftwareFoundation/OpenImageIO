@@ -29,7 +29,7 @@
 namespace OCIO = OCIO_NAMESPACE;
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace {
 // Some test colors we use to interrogate transformations
@@ -423,7 +423,7 @@ private:
 
 
 // ColorConfig utility to take inventory of the color spaces available.
-// It sets up knowledge of "linear", "sRGB", "Rec709", etc,
+// It sets up knowledge of "linear", "srgb_rec709_scene", "Rec709", etc,
 // even if the underlying OCIO configuration lacks them.
 void
 ColorConfig::Impl::inventory()
@@ -463,7 +463,10 @@ ColorConfig::Impl::inventory()
     add("default", 0, linflags);
     add("rgb", 0, linflags);
     add("RGB", 0, linflags);
+    add("lin_rec709_scene", 0, linflags);
     add("lin_srgb", 0, linflags);
+    add("lin_rec709", 0, linflags);
+    add("srgb_rec709_scene", 1, CSInfo::is_srgb);
     add("sRGB", 1, CSInfo::is_srgb);
     add("Rec709", 2, CSInfo::is_Rec709);
 
@@ -578,24 +581,28 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
     // General heuristics based on the names -- for a few canonical names,
     // believe them! Woe be unto the poor soul who names a color space "sRGB"
     // or "ACEScg" and it's really something entirely different.
-    if (Strutil::iequals(cs.name, "sRGB")
+    if (Strutil::iequals(cs.name, "srgb_rec709_scene")
         || Strutil::iequals(cs.name, "srgb_tx")
         || Strutil::iequals(cs.name, "srgb_texture")
         || Strutil::iequals(cs.name, "srgb texture")
-        || Strutil::iequals(cs.name, "sRGB - Texture")) {
+        || Strutil::iequals(cs.name, "srgb_rec709_scene")
+        || Strutil::iequals(cs.name, "sRGB - Texture")
+        || Strutil::iequals(cs.name, "sRGB")) {
         cs.setflag(CSInfo::is_srgb, srgb_alias);
-    } else if (Strutil::iequals(cs.name, "Rec709")) {
-        cs.setflag(CSInfo::is_Rec709, Rec709_alias);
-    } else if (Strutil::iequals(cs.name, "lin_srgb")
+    } else if (Strutil::iequals(cs.name, "lin_rec709_scene")
                || Strutil::iequals(cs.name, "lin_rec709")
                || Strutil::iequals(cs.name, "Linear Rec.709 (sRGB)")
+               || Strutil::iequals(cs.name, "lin_srgb")
                || Strutil::iequals(cs.name, "linear")) {
         cs.setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
                    lin_srgb_alias);
     } else if (Strutil::iequals(cs.name, "ACEScg")
+               || Strutil::iequals(cs.name, "lin_ap1_scene")
                || Strutil::iequals(cs.name, "lin_ap1")) {
         cs.setflag(CSInfo::is_ACEScg | CSInfo::is_linear_response,
                    ACEScg_alias);
+    } else if (Strutil::iequals(cs.name, "Rec709")) {
+        cs.setflag(CSInfo::is_Rec709, Rec709_alias);
     }
 #ifdef OIIO_SITE_spi
     // Ugly SPI-specific hacks, so sorry
@@ -613,13 +620,13 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
 
     // Set up some canonical names
     if (cs.flags() & CSInfo::is_srgb)
-        cs.canonical = "sRGB";
+        cs.canonical = "srgb_rec709_scene";
+    else if (cs.flags() & CSInfo::is_lin_srgb)
+        cs.canonical = "lin_rec709_scene";
+    else if (cs.flags() & CSInfo::is_ACEScg)
+        cs.canonical = "lin_ap1_scene";
     else if (cs.flags() & CSInfo::is_Rec709)
         cs.canonical = "Rec709";
-    else if (cs.flags() & CSInfo::is_lin_srgb)
-        cs.canonical = "lin_srgb";
-    else if (cs.flags() & CSInfo::is_ACEScg)
-        cs.canonical = "ACEScg";
     if (cs.canonical.size()) {
         DBG("classify by name identified '{}' as canonical {}\n", cs.name,
             cs.canonical);
@@ -673,13 +680,13 @@ ColorConfig::Impl::classify_by_conversions(CSInfo& cs)
 
     // Set up some canonical names
     if (cs.flags() & CSInfo::is_srgb)
-        cs.canonical = "sRGB";
+        cs.canonical = "srgb_rec709_scene";
+    else if (cs.flags() & CSInfo::is_lin_srgb)
+        cs.canonical = "lin_rec709_scene";
+    else if (cs.flags() & CSInfo::is_ACEScg)
+        cs.canonical = "lin_ap1_scene";
     else if (cs.flags() & CSInfo::is_Rec709)
         cs.canonical = "Rec709";
-    else if (cs.flags() & CSInfo::is_lin_srgb)
-        cs.canonical = "lin_srgb";
-    else if (cs.flags() & CSInfo::is_ACEScg)
-        cs.canonical = "ACEScg";
 }
 
 
@@ -721,12 +728,12 @@ ColorConfig::Impl::identify_builtin_equivalents()
 {
     if (disable_builtin_configs)
         return;
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     Timer timer;
     if (auto n = IdentifyBuiltinColorSpace("srgb_tx")) {
         if (CSInfo* cs = find(n)) {
             cs->setflag(CSInfo::is_srgb, srgb_alias);
-            DBG("Identified {} = builtin '{}'\n", "srgb", cs->name);
+            DBG("Identified {} = builtin '{}'\n", "srgb_rec709_scene",
+                cs->name);
         }
     } else {
         DBG("No config space identified as srgb\n");
@@ -736,7 +743,7 @@ ColorConfig::Impl::identify_builtin_equivalents()
         if (CSInfo* cs = find(n)) {
             cs->setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
                         lin_srgb_alias);
-            DBG("Identified {} = builtin '{}'\n", "lin_srgb", cs->name);
+            DBG("Identified {} = builtin '{}'\n", "lin_rec709_scene", cs->name);
         }
     } else {
         DBG("No config space identified as lin_srgb\n");
@@ -752,7 +759,6 @@ ColorConfig::Impl::identify_builtin_equivalents()
         DBG("No config space identified as acescg\n");
     }
     DBG("identify_builtin_equivalents acescg took {:0.2f}s\n", timer.lap());
-#endif
 }
 
 
@@ -760,7 +766,6 @@ ColorConfig::Impl::identify_builtin_equivalents()
 const char*
 ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
 {
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     if (!config_ || disable_builtin_configs)
         return nullptr;
     try {
@@ -768,7 +773,6 @@ ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
                                                        name);
     } catch (...) {
     }
-#endif
     return nullptr;
 }
 
@@ -802,7 +806,7 @@ ColorConfig::Impl::init(string_view filename)
         filename = Sysutil::getenv("OCIO");
     if (filename.empty() && !disable_builtin_configs)
         filename = "ocio://default";
-    if (filename.size() && !Filesystem::exists(filename)
+    if (filename.size() && !OIIO::Filesystem::exists(filename)
         && !Strutil::istarts_with(filename, "ocio://")) {
         error("Requested non-existent OCIO config \"{}\"", filename);
     } else {
@@ -827,11 +831,9 @@ ColorConfig::Impl::init(string_view filename)
     inventory();
     // NOTE: inventory already does classify_by_name
 
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     DBG("\nIDENTIFY BUILTIN EQUIVALENTS\n");
     identify_builtin_equivalents();  // OCIO 2.3+ only
     DBG("OCIO 2.3+ builtin equivalents in {:0.2f} seconds\n", timer.lap());
-#endif
 
 #if 1
     for (auto&& cs : colorspaces) {
@@ -865,7 +867,7 @@ ColorConfig::Impl::init(string_view filename)
 bool
 ColorConfig::reset(string_view filename)
 {
-    pvt::LoggedTimer logtime("ColorConfig::reset");
+    OIIO::pvt::LoggedTimer logtime("ColorConfig::reset");
     if (m_impl
         && (filename == getImpl()->configname()
             || (filename == ""
@@ -1344,14 +1346,19 @@ ColorConfig::Impl::resolve(string_view name) const
 
     // Maybe it's an informal alias of common names?
     spin_rw_write_lock lock(m_mutex);
-    if (Strutil::iequals(name, "sRGB") && !srgb_alias.empty())
+    if ((Strutil::iequals(name, "sRGB")
+         || Strutil::iequals(name, "srgb_rec709_scene"))
+        && !srgb_alias.empty())
         return srgb_alias;
     if ((Strutil::iequals(name, "lin_srgb")
          || Strutil::iequals(name, "lin_rec709")
+         || Strutil::iequals(name, "lin_rec709_scene")
          || Strutil::iequals(name, "linear"))
         && lin_srgb_alias.size())
         return lin_srgb_alias;
-    if (Strutil::iequals(name, "ACEScg") && !ACEScg_alias.empty())
+    if ((Strutil::iequals(name, "ACEScg")
+         || Strutil::iequals(name, "lin_ap1_scene"))
+        && !ACEScg_alias.empty())
         return ACEScg_alias;
     if (Strutil::iequals(name, "scene_linear") && !scene_linear_alias.empty()) {
         return scene_linear_alias;
@@ -1462,197 +1469,6 @@ private:
     OCIO::ConstProcessorRcPtr m_p;
     OCIO::ConstCPUProcessorRcPtr m_cpuproc;
 };
-
-
-
-#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 2, 0)
-// For version 2.2 and later, missing OCIO config will always fall back on
-// built-in configs, so we don't need any of these secondary fallback
-// heuristics.
-
-// ColorProcessor that hard-codes sRGB-to-linear
-class ColorProcessor_sRGB_to_linear final : public ColorProcessor {
-public:
-    ColorProcessor_sRGB_to_linear()
-        : ColorProcessor() {};
-    ~ColorProcessor_sRGB_to_linear() override {}
-
-    void apply(float* data, int width, int height, int channels,
-               stride_t chanstride, stride_t xstride,
-               stride_t ystride) const override
-    {
-        if (channels > 3)
-            channels = 3;
-        if (channels == 3 && chanstride == sizeof(float)) {
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    simd::vfloat4 r;
-                    r.load((float*)d, 3);
-                    r = sRGB_to_linear(r);
-                    r.store((float*)d, 3);
-                }
-            }
-        } else {
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    char* dc = d;
-                    for (int c = 0; c < channels; ++c, dc += chanstride)
-                        ((float*)dc)[c] = sRGB_to_linear(((float*)dc)[c]);
-                }
-            }
-        }
-    }
-};
-
-
-// ColorProcessor that hard-codes linear-to-sRGB
-class ColorProcessor_linear_to_sRGB final : public ColorProcessor {
-public:
-    ColorProcessor_linear_to_sRGB()
-        : ColorProcessor() {};
-    ~ColorProcessor_linear_to_sRGB() override {}
-
-    void apply(float* data, int width, int height, int channels,
-               stride_t chanstride, stride_t xstride,
-               stride_t ystride) const override
-    {
-        if (channels > 3)
-            channels = 3;
-        if (channels == 3 && chanstride == sizeof(float)) {
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    simd::vfloat4 r;
-                    r.load((float*)d, 3);
-                    r = linear_to_sRGB(r);
-                    r.store((float*)d, 3);
-                }
-            }
-        } else {
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    char* dc = d;
-                    for (int c = 0; c < channels; ++c, dc += chanstride)
-                        ((float*)dc)[c] = linear_to_sRGB(((float*)dc)[c]);
-                }
-            }
-        }
-    }
-};
-
-
-
-// ColorProcessor that hard-codes Rec709-to-linear
-class ColorProcessor_Rec709_to_linear final : public ColorProcessor {
-public:
-    ColorProcessor_Rec709_to_linear()
-        : ColorProcessor() {};
-    ~ColorProcessor_Rec709_to_linear() override {}
-
-    void apply(float* data, int width, int height, int channels,
-               stride_t chanstride, stride_t xstride,
-               stride_t ystride) const override
-    {
-        if (channels > 3)
-            channels = 3;
-        for (int y = 0; y < height; ++y) {
-            char* d = (char*)data + y * ystride;
-            for (int x = 0; x < width; ++x, d += xstride) {
-                char* dc = d;
-                for (int c = 0; c < channels; ++c, dc += chanstride)
-                    ((float*)d)[c] = Rec709_to_linear(((float*)d)[c]);
-            }
-        }
-    }
-};
-
-
-// ColorProcessor that hard-codes linear-to-Rec709
-class ColorProcessor_linear_to_Rec709 final : public ColorProcessor {
-public:
-    ColorProcessor_linear_to_Rec709()
-        : ColorProcessor() {};
-    ~ColorProcessor_linear_to_Rec709() override {}
-
-    void apply(float* data, int width, int height, int channels,
-               stride_t chanstride, stride_t xstride,
-               stride_t ystride) const override
-    {
-        if (channels > 3)
-            channels = 3;
-        for (int y = 0; y < height; ++y) {
-            char* d = (char*)data + y * ystride;
-            for (int x = 0; x < width; ++x, d += xstride) {
-                char* dc = d;
-                for (int c = 0; c < channels; ++c, dc += chanstride)
-                    ((float*)d)[c] = linear_to_Rec709(((float*)d)[c]);
-            }
-        }
-    }
-};
-
-
-
-// ColorProcessor that performs gamma correction
-class ColorProcessor_gamma final : public ColorProcessor {
-public:
-    ColorProcessor_gamma(float gamma)
-        : ColorProcessor()
-        , m_gamma(gamma) {};
-    ~ColorProcessor_gamma() override {}
-
-    void apply(float* data, int width, int height, int channels,
-               stride_t chanstride, stride_t xstride,
-               stride_t ystride) const override
-    {
-        if (channels > 3)
-            channels = 3;
-        if (channels == 3 && chanstride == sizeof(float)) {
-            simd::vfloat4 g = m_gamma;
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    simd::vfloat4 r;
-                    r.load((float*)d, 3);
-                    r = fast_pow_pos(r, g);
-                    r.store((float*)d, 3);
-                }
-            }
-        } else {
-            for (int y = 0; y < height; ++y) {
-                char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride) {
-                    char* dc = d;
-                    for (int c = 0; c < channels; ++c, dc += chanstride)
-                        ((float*)d)[c] = powf(((float*)d)[c], m_gamma);
-                }
-            }
-        }
-    }
-
-private:
-    float m_gamma;
-};
-
-
-// ColorProcessor that does nothing (identity transform)
-class ColorProcessor_Ident final : public ColorProcessor {
-public:
-    ColorProcessor_Ident()
-        : ColorProcessor()
-    {
-    }
-    ~ColorProcessor_Ident() override {}
-    void apply(float* /*data*/, int /*width*/, int /*height*/, int /*channels*/,
-               stride_t /*chanstride*/, stride_t /*xstride*/,
-               stride_t /*ystride*/) const override
-    {
-    }
-};
-#endif
 
 
 
@@ -2194,7 +2010,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
                            const ColorConfig* colorconfig, ROI roi,
                            int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::colorconvert");
+    OIIO::pvt::LoggedTimer logtime("IBA::colorconvert");
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute("oiio:Colorspace",
                                                "scene_linear");
@@ -2255,7 +2071,7 @@ ImageBufAlgo::colormatrixtransform(ImageBuf& dst, const ImageBuf& src,
                                    M44fParam M, bool unpremult, ROI roi,
                                    int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::colormatrixtransform");
+    OIIO::pvt::LoggedTimer logtime("IBA::colormatrixtransform");
     ColorProcessorHandle processor
         = ColorConfig::default_colorconfig().createMatrixTransform(M);
     logtime.stop();  // transition to other colorconvert
@@ -2437,7 +2253,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src,
                            const ColorProcessor* processor, bool unpremult,
                            ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::colorconvert");
+    OIIO::pvt::LoggedTimer logtime("IBA::colorconvert");
     // If the processor is NULL, return false (error)
     if (!processor) {
         dst.errorfmt(
@@ -2502,7 +2318,7 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
                        bool inverse, string_view key, string_view value,
                        const ColorConfig* colorconfig, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::ociolook");
+    OIIO::pvt::LoggedTimer logtime("IBA::ociolook");
     if (from.empty() || from == "current") {
         auto linearspace = colorconfig->resolve("scene_linear");
         from = src.spec().get_string_attribute("oiio:Colorspace", linearspace);
@@ -2565,7 +2381,7 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
                           bool inverse, string_view key, string_view value,
                           const ColorConfig* colorconfig, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::ociodisplay");
+    OIIO::pvt::LoggedTimer logtime("IBA::ociodisplay");
     ColorProcessorHandle processor;
     {
         if (!colorconfig)
@@ -2637,7 +2453,7 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
                                 const ColorConfig* colorconfig, ROI roi,
                                 int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::ociofiletransform");
+    OIIO::pvt::LoggedTimer logtime("IBA::ociofiletransform");
     if (name.empty()) {
         dst.errorfmt("Unknown filetransform name");
         return false;
@@ -2696,7 +2512,7 @@ ImageBufAlgo::ocionamedtransform(ImageBuf& dst, const ImageBuf& src,
                                  const ColorConfig* colorconfig, ROI roi,
                                  int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::ocionamedtransform");
+    OIIO::pvt::LoggedTimer logtime("IBA::ocionamedtransform");
     ColorProcessorHandle processor;
     {
         if (!colorconfig)
@@ -2808,7 +2624,7 @@ ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
     // including some format-specific things that we don't want to propagate
     // from input to output if we know that color space transformations have
     // occurred.
-    if (!equivalent(colorspace, "sRGB"))
+    if (!equivalent(colorspace, "srgb_rec709_scene"))
         spec.erase_attribute("Exif:ColorSpace");
     spec.erase_attribute("tiff:ColorSpace");
     spec.erase_attribute("tiff:PhotometricInterpretation");
@@ -2822,16 +2638,19 @@ ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
 {
     gamma = std::round(gamma * 100.0f) / 100.0f;
     if (fabsf(gamma - 1.0f) <= 0.01f) {
-        set_colorspace(spec, "lin_srgb");
-        // Presume that Targa files are sRGB primaries
+        set_colorspace(spec, "lin_rec709_scene");
     } else if (fabsf(gamma - 1.8f) <= 0.01f) {
-        set_colorspace(spec, "g18_rec709");
+        set_colorspace(spec, "g18_rec709_scene");
         spec.attribute("oiio:Gamma", 1.8f);
     } else if (fabsf(gamma - 2.2f) <= 0.01f) {
-        set_colorspace(spec, "g22_rec709");
+        set_colorspace(spec, "g22_rec709_scene");
         spec.attribute("oiio:Gamma", 2.2f);
+    } else if (fabsf(gamma - 2.4f) <= 0.01f) {
+        set_colorspace(spec, "g24_rec709_scene");
+        spec.attribute("oiio:Gamma", 2.4f);
     } else {
-        set_colorspace(spec, Strutil::fmt::format("Gamma{:.2}", gamma));
+        set_colorspace(spec, Strutil::fmt::format("g{}_rec709_scene",
+                                                  std::lround(gamma * 10.0f)));
         spec.attribute("oiio:Gamma", gamma);
     }
 }

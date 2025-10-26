@@ -33,10 +33,12 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfCRgbaFile.h>  // JUST to get symbols to figure out version!
 #include <OpenEXR/ImfChromaticitiesAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
+#include <OpenEXR/ImfDeepImageStateAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
 #include <OpenEXR/ImfFloatVectorAttribute.h>
 #include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfIDManifestAttribute.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
@@ -287,6 +289,198 @@ set_exr_threads()
 }
 
 }  // namespace pvt
+
+
+
+static constexpr float ACES_AP0_chromaticities[8] = {
+    0.7347f,  0.2653f,  // red
+    0.0f,     1.0f,     // green
+    0.0001f,  -0.077f,  // blue
+    0.32168f, 0.33767f  // white
+};
+
+static const std::string ACES_AP0_colorInteropId = "lin_ap0_scene";
+
+
+bool
+is_spec_aces_container_channels_only(const OIIO::ImageSpec& spec)
+{
+    // Note: this is constructing and comparing sets, so that channel order
+    // doesn't matter.
+
+    // Allowed channel sets
+    static const std::vector<std::set<std::string>> allowed_sets
+        = { { "B", "G", "R" },
+            { "A", "B", "G", "R" },
+            { "B", "G", "R", "left.B", "left.G", "left.R" },
+            { "A", "B", "G", "R", "left.A", "left.B", "left.G", "left.R" } };
+
+    // Gather channel set from spec
+    std::set<std::string> channels(spec.channelnames.begin(),
+                                   spec.channelnames.end());
+
+    // Compare to allowed sets (unordered)
+    for (const auto& allowed : allowed_sets) {
+        if (channels == allowed) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+
+bool
+is_aces_container_attributes_non_empty(const OIIO::ImageSpec& spec,
+                                       std::string& non_compliant_attr)
+{
+    // attributes in this list should NOT be empty if they exist
+    static const std::string nonEmptyAttribs[] = {
+        "cameraFirmwareVersion",
+        "cameraIdentifier",
+        "cameraLabel",
+        "cameraMake",
+        "cameraModel",
+        "cameraSerialNumber",
+        "comments",
+        "creator",
+        "lensAttributes",
+        "lensFirmwareVersion",
+        "lensMake",
+        "lensModel",
+        "lensSerialNumber",
+        "owner",
+        "recorderFirmwareVersion",
+        "recorderMake",
+        "recorderModel",
+        "recorderSerialNumber",
+        "reelName",
+        "storageMediaSerialNumber",
+    };
+
+    for (const auto& label : nonEmptyAttribs) {
+        const ParamValue* found = spec.find_attribute(label,
+                                                      OIIO::TypeDesc::STRING);
+        if (found
+            && (found->type() != TypeString || found->get_string(1).empty())) {
+            non_compliant_attr = label;
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+
+bool
+is_aces_container_compliant(const OIIO::ImageSpec& spec, std::string& reason)
+{
+    if (!is_spec_aces_container_channels_only(spec)) {
+        reason
+            = "Spec channel names do not match those required for an ACES Container.";
+        return false;
+    }
+
+    // Check data type
+    if (spec.format != OIIO::TypeDesc::HALF) {
+        reason
+            = "EXR data type is not 'HALF' as required for an ACES Container.";
+        return false;
+    }
+
+    // Check compression
+    std::string compression = spec.get_string_attribute("compression", "zip");
+    if (compression != "none") {
+        reason = "Compression is not 'none' as required for an ACES Container.";
+        return false;
+    }
+
+    // Check non-empty attributes
+    std::string non_compliant_attr = "";
+    if (!is_aces_container_attributes_non_empty(spec, non_compliant_attr)) {
+        reason = "Spec contains an empty string attribute (";
+        reason += non_compliant_attr;
+        reason += ") that is required to be non-empty in an ACES Container.";
+        return false;
+    }
+
+    // Check attributes with exact values if they exist
+    if (spec.get_string_attribute("oiio:ColorSpace", ACES_AP0_colorInteropId)
+            != ACES_AP0_colorInteropId
+        || spec.get_string_attribute("colorInteropId", ACES_AP0_colorInteropId)
+               != ACES_AP0_colorInteropId) {
+        reason
+            = "Color space is not lin_ap0_scene as required for an ACES Container.";
+        return false;
+    }
+
+    if (spec.get_int_attribute("acesImageContainerFlag", 1) != 1) {
+        reason
+            = "acesImageContainerFlag is not set to '1' as required for an ACES Container.";
+        return false;
+    }
+
+    // Check chromaticities
+    float chromaticities[8] = { 0., 0., 0., 0., 0., 0., 0., 0. };
+    bool chroms_found
+        = spec.getattribute("chromaticities",
+                            OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
+                            chromaticities);
+    bool chroms_equal = std::equal(std::begin(chromaticities),
+                                   std::end(chromaticities),
+                                   std::begin(ACES_AP0_chromaticities));
+
+    if (chroms_found && !chroms_equal) {
+        reason
+            = "Chromaticities are not set to AP0 chromaticities as required for an ACES Container.";
+        return false;
+    }
+
+    return true;
+}
+
+
+
+void
+set_aces_container_attributes(OIIO::ImageSpec& spec)
+{
+    spec.attribute("chromaticities", OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
+                   ACES_AP0_chromaticities);
+    spec.attribute("colorInteropId", ACES_AP0_colorInteropId);
+    spec.attribute("acesImageContainerFlag", 1);
+}
+
+
+
+bool
+process_aces_container(OIIO::ImageSpec& spec, std::string policy,
+                       int acesImageContainerFlag,
+                       std::string& non_compliance_reason)
+{
+    bool treat_as_aces_container = policy == "strict"
+                                   || acesImageContainerFlag == 1;
+    bool is_compliant = is_aces_container_compliant(spec,
+                                                    non_compliance_reason);
+
+    if (treat_as_aces_container && !is_compliant) {
+        return false;
+    }
+
+    set_aces_container_attributes(spec);
+
+    if (policy == "relaxed" && !is_compliant) {
+        // When image is not compliant in relaxed mode, we should avoid
+        // setting the flag, and we should print a warning
+
+        // TODO: When we have a way to report warnings, report one here
+        // to indicate that the given image spec is not compliant
+        spec.erase_attribute("acesImageContainerFlag");
+    }
+
+    return true;
+}
 
 
 
@@ -812,6 +1006,26 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
                                  Imf::LevelMode(m_levelmode),
                                  Imf::LevelRoundingMode(m_roundingmode)));
 
+    // Check ACES Container hint
+    int aces_container_flag = spec.get_int_attribute("acesImageContainerFlag",
+                                                     0);
+    std::string aces_container_policy
+        = spec.get_string_attribute("openexr:ACESContainerPolicy", "none");
+
+    if (aces_container_policy != "none" || aces_container_flag == 1) {
+        std::string non_compliance_reason = "";
+        bool should_panic = !process_aces_container(spec, aces_container_policy,
+                                                    aces_container_flag,
+                                                    non_compliance_reason);
+
+        if (should_panic) {
+            errorfmt(
+                "Cannot output non-compliant ACES Container in 'strict' mode. REASON: {}",
+                non_compliance_reason);
+            return false;
+        }
+    }
+
     // Deal with all other params
     for (const auto& p : spec.extra_attribs)
         put_parameter(p.name().string(), p.type(), p.data(), header);
@@ -937,7 +1151,7 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
 
     // Special cases
     if (Strutil::iequals(xname, "Compression") && type == TypeString) {
-        const char* str      = *(char**)data;
+        const char* str      = *(const char**)data;
         header.compression() = Imf::ZIP_COMPRESSION;  // Default
         if (str) {
             if (Strutil::iequals(str, "none"))
@@ -961,16 +1175,20 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                 header.compression() = Imf::DWAA_COMPRESSION;
             else if (Strutil::iequals(str, "dwab"))
                 header.compression() = Imf::DWAB_COMPRESSION;
-#ifdef IMF_HTJ2K_COMPRESSION
-            else if (Strutil::iequals(str, "htj2k"))
-                header.compression() = Imf::HTJ2K_COMPRESSION;
+#ifdef IMF_HTJ2K256_COMPRESSION
+            else if (Strutil::iequals(str, "htj2k256"))
+                header.compression() = Imf::HTJ2K256_COMPRESSION;
+#endif
+#ifdef IMF_HTJ2K32_COMPRESSION
+            else if (Strutil::iequals(str, "htj2k32"))
+                header.compression() = Imf::HTJ2K32_COMPRESSION;
 #endif
         }
         return true;
     }
 
     if (Strutil::iequals(xname, "openexr:lineOrder") && type == TypeString) {
-        const char* str    = *(char**)data;
+        const char* str    = *(const char**)data;
         header.lineOrder() = Imf::INCREASING_Y;  // Default
         if (str) {
             if (Strutil::iequals(str, "randomY")
@@ -980,6 +1198,36 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
             else if (Strutil::iequals(str, "decreasingY"))
                 header.lineOrder() = Imf::DECREASING_Y;
         }
+        return true;
+    }
+
+    if (Strutil::iequals(xname, "openexr:deepImageState")
+        && type == TypeString) {
+        const char* str         = *(const char**)data;
+        Imf::DeepImageState val = Imf::DeepImageState::DIS_MESSY;
+        if (!strcmp(str, "sorted"))
+            val = Imf::DeepImageState::DIS_SORTED;
+        else if (!strcmp(str, "non_overlapping"))
+            val = Imf::DeepImageState::DIS_NON_OVERLAPPING;
+        else if (!strcmp(str, "tidy"))
+            val = Imf::DeepImageState::DIS_TIDY;
+        header.insert(xname.c_str(), Imf::DeepImageStateAttribute(val));
+        return true;
+    }
+
+    if (Strutil::iequals(xname, "openexr:compressedIDManifest")
+        && type.basetype == TypeDesc::UINT8 && type.arraylen > 8) {
+        const unsigned char* bdata = (const unsigned char*)data;
+        uint64_t usize             = 0;
+        memcpy(&usize, bdata, sizeof(usize));
+        if constexpr (bigendian())
+            usize = byteswap(usize);
+        Imf::CompressedIDManifest idm;
+        idm._compressedDataSize   = static_cast<int>(type.size() - 8);
+        idm._uncompressedDataSize = usize;
+        idm._data                 = const_cast<unsigned char*>(bdata + 8);
+        header.insert("idManifest", Imf::IDManifestAttribute(idm));
+        idm._data = nullptr;
         return true;
     }
 
@@ -1048,27 +1296,28 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
             if (type.aggregate == TypeDesc::SCALAR) {
                 if (type == TypeDesc::INT || type == TypeDesc::UINT) {
                     header.insert(xname.c_str(),
-                                  Imf::IntAttribute(*(int*)data));
+                                  Imf::IntAttribute(*(const int*)data));
                     return true;
                 }
                 if (type == TypeDesc::INT16) {
                     header.insert(xname.c_str(),
-                                  Imf::IntAttribute(*(short*)data));
+                                  Imf::IntAttribute(*(const short*)data));
                     return true;
                 }
                 if (type == TypeDesc::UINT16) {
                     header.insert(xname.c_str(),
-                                  Imf::IntAttribute(*(unsigned short*)data));
+                                  Imf::IntAttribute(
+                                      *(const unsigned short*)data));
                     return true;
                 }
                 if (type == TypeDesc::FLOAT) {
                     header.insert(xname.c_str(),
-                                  Imf::FloatAttribute(*(float*)data));
+                                  Imf::FloatAttribute(*(const float*)data));
                     return true;
                 }
                 if (type == TypeDesc::HALF) {
-                    header.insert(xname.c_str(),
-                                  Imf::FloatAttribute((float)*(half*)data));
+                    header.insert(xname.c_str(), Imf::FloatAttribute((float)*(
+                                                     const half*)data));
                     return true;
                 }
                 if (type == TypeString && !((const ustring*)data)->empty()) {
@@ -1079,7 +1328,7 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                 }
                 if (type == TypeDesc::DOUBLE) {
                     header.insert(xname.c_str(),
-                                  Imf::DoubleAttribute(*(double*)data));
+                                  Imf::DoubleAttribute(*(const double*)data));
                     return true;
                 }
             }

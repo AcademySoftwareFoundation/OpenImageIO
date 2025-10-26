@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -37,13 +37,7 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
-
-class ImageBuf;
-class ImageBufImpl;  // Opaque type for the unique_ptr.
-class ImageCache;
-class ImageCacheTile;
-
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// Return pixel data window for this ImageSpec as a ROI.
@@ -1100,7 +1094,7 @@ public:
     ///             Return true if the operation could be completed,
     ///             otherwise return false.
     ///
-    template<typename T> bool set_pixels(ROI roi, const image_span<T> buffer)
+    template<typename T> bool set_pixels(ROI roi, const image_span<T>& buffer)
     {
         return set_pixels(roi, TypeDescFromC<T>::value(),
                           as_image_span_bytes(buffer));
@@ -2042,4 +2036,14 @@ protected:
 };
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+using v3_1::get_roi;
+using v3_1::get_roi_full;
+using v3_1::InitializePixels;
+using v3_1::set_roi;
+using v3_1::set_roi_full;
 OIIO_NAMESPACE_END

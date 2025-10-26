@@ -688,9 +688,12 @@ preferred except when legacy file access is required.
      - string
      - Color space (see Section :ref:`sec-metadata-color`). We currently
        assume that any RGBE files encountered are linear with sRGB primaries.
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction specified in the RGBE header (if it's gamma corrected).
+   * - ``CICP``
+     - int[4]
+     - Coding-independent code points to describe the color profile.
+   * - ``oiio:BitsPerSample``
+     - int
+     - Bits per sample in the file: 8, 10 or 12.
    * - ``heif:Orientation``
      - int
      - If the configuration option ``heif:reorient`` is nonzero and
@@ -1436,6 +1439,9 @@ Some special attributes are used for movie files:
    * - ``ffmpeg:TimeCode``
      - string
      - Start time timecode
+   * - ``CICP``
+     - int[4]
+     - Coding-independent code points to describe the color profile.
 
 
 
@@ -1543,8 +1549,8 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``compression``
      - string
      - one of: ``"none"``, ``"rle"``, ``"zip"``, ``"zips"``, ``"piz"``,
-       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"`` or ``"htj2k"``.
-       (``"htj2k"`` is only supported with OpenEXR 3.4 or later.)
+       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"``, ``"htj2k256"`` or ``"htj2k32"``.
+       (``"htj2k256"`` and ``"htj2k32"`` are only supported with OpenEXR 3.4 or later.)
        If the writer receives a request for a compression type it does not
        recognize or is not supported by the version of OpenEXR on the
        system, it will use ``"zip"`` by default. For ``"dwaa"`` and
@@ -1593,6 +1599,19 @@ The official OpenEXR site is http://www.openexr.com/.
      - If nonzero, indicates whether the image is a luminance-chroma image.
        Upon reading, the subsampled Y/BY/RY(/A) channels of luminance-chroma
        images are automatically converted to RGB(A) channels.
+   * - ``openexr::deepImageState``
+     - string
+     - If present in a deep file, reveals the deep image state, one of:
+       ``"messy"``, ``"sorted"``, ``"non_overlapping"``, or ``"tidy"``.
+       See the OpenEXR documentation for explanations. This metadata was
+       added in OpenImageIO 3.1.
+   * - ``openexr::compressedIDManifest``
+     - uint8[]
+     - A byte array whose first 8 bytes are the uncompressed size of the
+       manifest, as a little-endian uint64. Then beginning at byte 8,
+       the remainder is the zip-compressed serialized manifest.
+       This metadata was added in OpenImageIO 3.1, and is only supported when
+       OIIO is built against OpenEXR 3.1 or newer.
    * - *other*
      - 
      - All other attributes will be added to the ImageSpec by their name and
@@ -1637,6 +1656,19 @@ control aspects of the writing itself:
    * - Output Configuration Attribute
      - Type
      - Meaning
+   * - ``openexr:ACESContainerPolicy``
+     - string
+     - One of `none` (default), `strict`, or `relaxed`.
+       If not `none`, the spec will be checked to see if it is compliant
+       with the ACES Container format defined in `ST 2065-4`_. If it is,
+       `chromaticities` will be set to the ACES AP0 ones, `colorInteropId`
+       will be set to 'lin_ap0_scene' and the `acesImageContainerFlag`
+       attribute will be set to 1.
+       In `strict` mode, if the spec is non-compliant, the output will
+       throw an error and avoid writing the image.
+       While in `relaxed` mode, if the spec is non-compliant, `chromaticities`
+       and `colorInteropId` will be set, but `acesImageContainerFlag`
+       will NOT.
    * - ``oiio:RawColor``
      - int
      - If nonzero, writing images with non-RGB color models (such as YCbCr)
@@ -1648,6 +1680,7 @@ control aspects of the writing itself:
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
 
+.. _ST 2065-4: https://pub.smpte.org/pub/st2065-4/
 
 **Custom I/O Overrides**
 
@@ -1771,9 +1804,11 @@ files use the file extension :file:`.png`.
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction value (if specified).
+   * - ``CICP``
+     - int[4]
+     - CICP color space information (see Section :ref:`sec-metadata-color`).
+       Note that this attribute is only supported if OIIO was built against
+       libPNG 1.6.45 or newer.
    * - ``ICCProfile``
      - uint8[]
      - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
@@ -2370,9 +2405,6 @@ software developed at Wavefront.  RLA files commonly use the file extension
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction value (if specified).
 
 **Configuration settings for RLA input**
 
@@ -2611,9 +2643,6 @@ http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
-   * - ``oiio:Gamma``
-     - float
-     - the gamma correction value (if specified).
 
 If the TGA file contains a thumbnail, its dimensions will be stored in the
 attributes ``"thumbnail_width"``, ``"thumbnail_height"``, and
@@ -3085,6 +3114,10 @@ open standard for lossy-compressed images for use on the web.
    * - ImageSpec Attribute
      - Type
      - WebP header data or explanation
+   * - ``ICCProfile``
+     - uint8[]
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
    * - ``oiio:Movie``
      - int
      - If nonzero, indicates that it's a multi-subimage file intended to
