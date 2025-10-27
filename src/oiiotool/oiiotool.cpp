@@ -1046,7 +1046,7 @@ DateTime_to_time_t(string_view datetime, time_t& timet)
         return false;
     // OIIO::print("{}:{}:{} {}:{}:{}\n", year, month, day, hour, min, sec);
     struct tm tmtime;
-    time_t now;
+    time_t now = time(nullptr);
     Sysutil::get_local_time(&now, &tmtime);  // fill in defaults
     tmtime.tm_sec  = sec;
     tmtime.tm_min  = min;
