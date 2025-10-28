@@ -94,7 +94,7 @@ jobs:
       CTEST_ARGS: ${{inputs.ctest_args}}
       CTEST_TEST_TIMEOUT: ${{inputs.ctest_test_timeout}}
       USE_SIMD: ${{inputs.simd}}
-      FMT_VERSION: ${{inputs.fmt_ver}}
+      fmt_BUILD_VERSION: ${{inputs.fmt_ver}}
       OPENCOLORIO_VERSION: ${{inputs.opencolorio_ver}}
       OPENEXR_VERSION: ${{inputs.openexr_ver}}
       PYBIND11_VERSION: ${{inputs.pybind11_ver}}
