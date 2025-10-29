@@ -43,6 +43,41 @@ jobs:
   aswf-old:
     if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "(old) ${{matrix.desc}}"
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      nametag: ${{ matrix.nametag || 'unnamed!' }}
+      runner: ${{ matrix.runner || 'ubuntu-latest' }}
+      container: ${{ matrix.container }}
+      container_volumes: '["/node20217:/node20217:rw,rshared", "/node20217:/__e/node20:ro,rshared]"]'
+      cc_compiler: ${{ matrix.cc_compiler }}
+      cxx_compiler: ${{ matrix.cxx_compiler }}
+      cxx_std: ${{ matrix.cxx_std || '17' }}
+      build_type: ${{ matrix.build_type || 'Release' }}
+      depcmds: ${{ matrix.depcmds }}
+      extra_artifacts: ${{ matrix.extra_artifacts }}
+      fmt_ver: ${{ matrix.fmt_ver }}
+      opencolorio_ver: ${{ matrix.opencolorio_ver }}
+      openexr_ver: ${{ matrix.openexr_ver }}
+      pybind11_ver: ${{ matrix.pybind11_ver }}
+      python_ver: ${{ matrix.python_ver }}
+      setenvs: ${{ matrix.setenvs }}
+      simd: ${{ matrix.simd }}
+      skip_build: ${{ matrix.skip_build }}
+      skip_tests: ${{ matrix.skip_tests }}
+      abi_check: ${{ matrix.abi_check }}
+      benchmark: ${{ matrix.benchmark }}
+      build_docs: ${{ matrix.build_docs }}
+      clang_format: ${{ matrix.clang_format }}
+      generator: ${{ matrix.generator }}
+      ctest_args: ${{ matrix.ctest_args }}
+      ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
+      coverage: ${{ matrix.coverage || 0 }}
+      sonar: ${{ matrix.sonar || 0 }}
+      old_node: ${{ matrix.old_node || 0 }}
+      # Override required_deps to be 'all' and explicitly list as optional
+      # only the ones we are intentionally not testing for those jobs.
+      required_deps: ${{ matrix.required_deps || 'all' }}
+      optional_deps: ${{ matrix.optional_deps || 'DCMTK;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
     strategy:
       fail-fast: false
       matrix:
@@ -62,6 +97,7 @@ jobs:
             setenvs: export FREETYPE_VERSION=VER-2-12-0
                             BUILD_PNG_VERSION=1.6.30
                             WebP_BUILD_VERSION=1.5.0
+            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
           - desc: VP2022 clang13/C++17 py39 avx2 exr3.1 ocio2.3
             nametag: linux-vfx2022.clang13
             runner: ubuntu-latest
@@ -78,6 +114,7 @@ jobs:
             fmt_ver: 9.1.0
             setenvs: export FREETYPE_VERSION=VER-2-12-0
                             BUILD_PNG_VERSION=1.6.30
+            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
           - desc: oldest gcc9.3/C++17 py3.9 exr3.1 ocio2.3
             # Oldest gcc and versions of the dependencies that we support.
             nametag: linux-oldest
@@ -97,6 +134,7 @@ jobs:
                              PUGIXML_VERSION=v1.8
                              BUILD_PNG_VERSION=1.6.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
+            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
           - desc: oldest clang10/C++17 py3.9 exr3.1 ocio2.3
             # Oldest clang and versions of the dependencies that we support.
             nametag: linux-oldest-clang
@@ -118,6 +156,7 @@ jobs:
                              PUGIXML_VERSION=v1.8
                              BUILD_PNG_VERSION=1.6.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
+            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
           - desc: hobbled gcc9.3/C++17 py3.9 exr-3.1 no-sse
             # Use the oldest supported versions of required dependencies, and
             # disable most optional dependencies and features (no SSE or
@@ -144,99 +183,7 @@ jobs:
                              PUGIXML_VERSION=v1.8
                              BUILD_PNG_VERSION=1.6.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
-
-    runs-on: ${{ matrix.runner }}
-    container:
-      image: ${{ matrix.container }}
-      volumes:
-        - /node20217:/node20217:rw,rshared
-        - /node20217:/__e/node20:ro,rshared
-    env:
-      CXX: ${{matrix.cxx_compiler}}
-      CC: ${{matrix.cc_compiler}}
-      CMAKE_CXX_STANDARD: ${{matrix.cxx_std}}
-      USE_SIMD: ${{matrix.simd}}
-      FMT_VERSION: ${{matrix.fmt_ver}}
-      OPENCOLORIO_VERSION: ${{matrix.opencolorio_ver}}
-      OPENEXR_VERSION: ${{matrix.openexr_ver}}
-      PYBIND11_VERSION: ${{matrix.pybind11_ver}}
-      PYTHON_VERSION: ${{matrix.python_ver}}
-      ABI_CHECK: ${{matrix.abi_check}}
-    steps:
-      # Install nodejs 20 with glibc 2.17, to work around the face that the
-      # GHA runners are insisting on a node version that is too new for the
-      # glibc in the ASWF containers prior to 2023.
-      - name: install nodejs20glibc2.17
-        if: matrix.old_node == '1'
-        run: |
-          curl --silent https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.xz | tar -xJ --strip-components 1 -C /node20217 -f -
-      # We would like to use harden-runner, but it flags too many false
-      # positives, every time we download a dependency. We should use it only
-      # on CI runs where we are producing artifacts that users might rely on.
-      # - name: Harden Runner
-      #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
-      #   with:
-      #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-      - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Build setup
-        run: |
-            ${{matrix.setenvs}}
-            src/build-scripts/ci-startup.bash
-      - name: Prepare ccache timestamp
-        id: ccache_cache_keys
-        shell: bash
-        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
-      - name: ccache-restore
-        id: ccache-restore
-        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          # path: ./ccache
-          key: ${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
-          restore-keys: ${{matrix.nametag}}
-      - name: Dependencies
-        run: |
-            ${{matrix.depcmds}}
-            src/build-scripts/gh-installdeps.bash
-      - name: Build
-        if: matrix.skip_build != '1'
-        run: src/build-scripts/ci-build.bash
-      - name: ccache-save
-        id: ccache-save
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
-      - name: Testsuite
-        if: matrix.skip_tests != '1'
-        run: src/build-scripts/ci-test.bash
-      - name: Benchmarks
-        if: matrix.benchmark == '1'
-        shell: bash
-        run: src/build-scripts/ci-benchmark.bash
-      - name: Build Docs
-        if: matrix.build_docs == '1'
-        run: |
-            cd src/doc
-            time make doxygen
-            time make sphinx
-      - name: Upload testsuite debugging artifacts
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
-        if: ${{ failure() || matrix.build_docs == '1'}}
-        with:
-          name: oiio-${{github.job}}-${{matrix.nametag}}
-          path: |
-            build/cmake-save
-            build/compat_reports
-            build/sphinx
-            build/benchmarks
-            build/testsuite/*/*.*
-            !build/testsuite/oiio-images
-            !build/testsuite/openexr-images
-            !build/testsuite/fits-images
-            !build/testsuite/j2kp4files_v1_5
-
+            required_deps: none
 
 
   #
@@ -250,6 +197,7 @@ jobs:
       nametag: ${{ matrix.nametag || 'unnamed!' }}
       runner: ${{ matrix.runner || 'ubuntu-latest' }}
       container: ${{ matrix.container }}
+      container_volumes: ${{ matrix.container_volumes || '[]' }}
       cc_compiler: ${{ matrix.cc_compiler }}
       cxx_compiler: ${{ matrix.cxx_compiler }}
       cxx_std: ${{ matrix.cxx_std || '17' }}
@@ -277,7 +225,7 @@ jobs:
       # Override required_deps to be 'all' and explicitly list as optional
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'DCMTK;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
+      optional_deps: ${{ matrix.optional_deps || 'DCMTK;FFmpeg;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
     strategy:
       fail-fast: false
       matrix:
