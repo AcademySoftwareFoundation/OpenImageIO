@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-**PLEASE DO NOT REPORT BUILD TROUBLES AS GITHUB "ISSUES" UNLESS YOU ARE RALLY SURE IT'S A BUG**
+**PLEASE DO NOT REPORT BUILD TROUBLES AS GITHUB "ISSUES" UNLESS YOU ARE REALLY SURE IT'S A BUG**
 
 The best way to get help with your build problems is to ask a question on the
 [oiio-dev developer mail list](https://lists.aswf.io/g/oiio-dev).
