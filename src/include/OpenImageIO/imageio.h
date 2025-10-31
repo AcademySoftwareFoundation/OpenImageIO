@@ -3825,8 +3825,8 @@ OIIO_API std::string geterror(bool clear = true);
 ///
 /// - `int openexr:core`
 ///
-///    When nonzero, use the new "OpenEXR core C library" when available,
-///    for OpenEXR >= 3.1. This is experimental, and currently defaults to 0.
+///    When nonzero, use the new "OpenEXR core C library" when available.
+///    The default is 1 for OpenEXR >= 3.1.10, 0 for older OpenEXR releases.
 ///
 /// - `int jpeg:com_attributes`
 ///

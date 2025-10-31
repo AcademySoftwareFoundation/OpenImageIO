@@ -307,7 +307,7 @@ bool OIIO_API render_line (ImageBuf &dst, int x1, int y1, int x2, int y2,
 /// as many values as `roi.chend-1`. The ROI can be used to limit the pixel
 /// area or channels that are modified, and default to the entirety of
 /// `dst`. If `fill` is `true`, the box will be completely filled in,
-/// otherwise only its outlien will be drawn.
+/// otherwise only its outline will be drawn.
 bool OIIO_API render_box (ImageBuf &dst, int x1, int y1, int x2, int y2,
                           cspan<float> color=1.0f, bool fill = false,
                           ROI roi={}, int nthreads=0);
@@ -542,7 +542,7 @@ bool OIIO_API transpose (ImageBuf &dst, const ImageBuf &src,
 /// @}
 
 
-/// Return (or store into `dst`) a copy of `src`, but with whatever seties
+/// Return (or store into `dst`) a copy of `src`, but with whatever series
 /// of rotations, flips, or flops are necessary to transform the pixels into
 /// the configuration suggested by the "Orientation" metadata of the image
 /// (and the "Orientation" metadata is then set to 1, ordinary orientation).
@@ -1246,7 +1246,7 @@ OIIO_API bool contrast_remap (ImageBuf &dst, const ImageBuf &src,
 /// `src` within the ROI, and in the process adjusts the color saturation of
 /// the three consecutive channels starting with `firstchannel` based on the
 /// `scale` parameter: 0.0 fully desaturates to a greyscale image of
-/// percaptually equivalent luminance, 1.0 leaves the colors unchanged,
+/// perceptually equivalent luminance, 1.0 leaves the colors unchanged,
 /// `scale` values inside this range interpolate between them, and `scale` > 1
 /// would increase apparent color saturation.
 ///
@@ -2117,14 +2117,14 @@ bool OIIO_API ocionamedtransform (ImageBuf &dst, const ImageBuf &src,
 /// `src` within the ROI, and in the process divides all color channels
 /// (those not alpha or z) by the alpha value, to "un-premultiply" them.
 /// This presumes that the image starts of as "associated alpha" a.k.a.
-/// "premultipled," and you are converting to "unassociated alpha." For
+/// "premultiplied," and you are converting to "unassociated alpha." For
 /// pixels with alpha == 0, the color values are not modified.
 ///
 /// The `premult` operation returns (or copies into `dst`) the pixels of
 /// `src` within the ROI, and in the process multiplies all color channels
 /// (those not alpha or z) by the alpha value, to "premultiply" them.  This
 /// presumes that the image starts of as "unassociated alpha" a.k.a.
-/// "non-premultipled" and converts it to "associated alpha / premultipled."
+/// "non-premultiplied" and converts it to "associated alpha / premultiplied."
 ///
 /// The `repremult` operation is like `premult`, but preserves the color
 /// values of pixels whose alpha is 0. This is intended for cases where you
@@ -2531,7 +2531,7 @@ bool OIIO_API deep_merge (ImageBuf &dst, const ImageBuf &A,
 /// Return the samples of deep image `src` that are closer than the opaque
 /// frontier of deep image holdout, returning true upon success and false
 /// for any failures. Samples of `src` that are farther than the first
-/// opaque sample of holdout (for the corresponding pixel)will not be copied
+/// opaque sample of holdout (for the corresponding pixel) will not be copied
 /// to `dst`. Image holdout is only used as the depth threshold; no sample
 /// values from holdout are themselves copied to `dst`.
 ImageBuf OIIO_API deep_holdout (const ImageBuf &src, const ImageBuf &holdout,
