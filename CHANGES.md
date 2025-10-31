@@ -1,3 +1,14 @@
+Release 3.0.12.0 (Nov 1, 2025) -- compared to 3.0.11.0
+-------------------------------------------------------
+  - *iff*: Handle non-zero origin, protect against buffer overflows [#4925](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4925)
+  - *jpeg-xl*: Correctly set Quality for JPEG XL [#4933](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4933)
+  - *win*: Address Windows crashes from issue 4641 [#4914](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4914)
+  - *fix*: Uninitialized value revealed by clang-21 warning [#4940](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4940)
+  - *ci*: For python wheel generation, use ccache [#4924](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4924)
+  - *ci*: Drop deprecated macos-13 (intel) platform, add macos-15-intel [#4930](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4930)
+  - *ci*: We were not correctly setting fmt version from job options [#4939](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4939)
+
+
 Release 3.0.11.0 (Oct 1, 2025) -- compared to 3.0.10.1
 -------------------------------------------------------
   - *oiiotool*: Allow easy splitting output of subimages by name [#4874](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4874)
