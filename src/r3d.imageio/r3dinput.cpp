@@ -5,7 +5,7 @@
 // R3D SDK can be downloaded from the following site:
 // https://www.red.com/download/r3d-sdk
 //
-// The code has been tested with the version 9.1.1 installed in
+// The code has been tested with the version 9.1.2 installed in
 // /opt/R3DSDKv9_1_2 directory and setting up the variable
 // export R3DSDK_ROOT="/opt/R3DSDKv9_1_2"
 
