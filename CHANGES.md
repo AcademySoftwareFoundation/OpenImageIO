@@ -1,4 +1,4 @@
-Release 3.1.7.0 (Nov 1, 2025) -- compared to 3.1.7.0
+Release 3.1.7.0 (Nov 1, 2025) -- compared to 3.1.6.1
 ----------------------------------------------------
   - *openexr*: Support for idManifest and deepImageState (experimental) [#4877](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4877) (3.1.7.0)
   - *openexr*: ACES Container hint for exr outputs [#4907](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4907) (by Oktay Comu) (3.1.7.0)
