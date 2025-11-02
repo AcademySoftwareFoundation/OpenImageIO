@@ -1143,7 +1143,7 @@ R3dInput::close()
             GPU_DECODER = nullptr;
         }
     }
-#endif  // GPU
+#endif        // GPU
     reset();  // Reset to initial state
     return true;
 }
