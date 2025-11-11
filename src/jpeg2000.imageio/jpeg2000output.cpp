@@ -831,7 +831,7 @@ Jpeg2000Output::write_jph_scanline(int y, int /*z*/, const void* data)
     ojph::ui32 next_comp     = 0;
     ojph::line_buf* cur_line = m_jph_stream->exchange(NULL, next_comp);
     for (int c = 0; c < m_spec.nchannels; ++c) {
-        assert(c == next_comp);
+        OIIO_ASSERT(ojph::ui32(c) == next_comp);
         for (int i = 0, j = c; i < m_spec.width; i++) {
             unsigned int val = scanline[j];
             j += m_spec.nchannels;
