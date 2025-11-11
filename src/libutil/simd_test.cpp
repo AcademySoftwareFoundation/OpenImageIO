@@ -43,8 +43,10 @@ getargs(int argc, char* argv[])
              OIIO_INTRO_STRING)
       .usage("simd_test [options]");
 
-    ap.arg("--iterations %d", &iterations)
+    ap.arg("--iters %d", &iterations)
       .help(Strutil::fmt::format("Number of iterations (default: {})", iterations));
+    ap.arg("--iterations %d", &iterations)
+      .hidden();  // obsolete synonym for --iters
     ap.arg("--trials %d", &ntrials)
       .help("Number of trials");
 
