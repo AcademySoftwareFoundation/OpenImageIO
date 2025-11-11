@@ -19,8 +19,7 @@
 using namespace OIIO;
 
 
-static int iterations = 0;  // 1000000;
-static int ntrials    = 5;
+static int ntrials = 5;
 
 
 
@@ -562,9 +561,9 @@ getargs(int argc, char* argv[])
           "image_span_test -- unit test and benchmarks for OpenImageIO/image_span.h\n" OIIO_INTRO_STRING)
         .usage("image_span_test [options]");
 
-    ap.arg("--iterations %d", &iterations)
-        .help(Strutil::fmt::format("Number of iterations (default: {})",
-                                   iterations));
+    // ap.arg("--iterations %d", &iterations)
+    //     .help(Strutil::fmt::format("Number of iterations (default: {})",
+    //                                iterations));
     ap.arg("--trials %d", &ntrials).help("Number of trials");
 
     ap.parse_args(argc, (const char**)argv);
@@ -577,9 +576,8 @@ main(int argc, char* argv[])
 {
 #if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
     // For the sake of test time, reduce the default iterations for DEBUG,
-    // CI, and code coverage builds. Explicit use of --iters or --trials
+    // CI, and code coverage builds. Explicit use of --trials
     // will override this, since it comes before the getargs() call.
-    iterations /= 10;
     ntrials = 1;
 #endif
 
