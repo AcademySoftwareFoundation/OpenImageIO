@@ -5,6 +5,7 @@
 
 #include <OpenImageIO/half.h>
 
+#include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -16,6 +17,9 @@
 #include <iostream>
 
 using namespace OIIO;
+
+
+static int ntrials = 5;
 
 
 
@@ -195,6 +199,7 @@ test_image_span_copy_image()
 
         // Benchmark old (ptr) versus new (span) copy_image functions
         Benchmarker bench;
+        bench.trials(ntrials);
         bench.units(Benchmarker::Unit::us);
 
         bench(Strutil::format("    copy_image image_span {}", label),
@@ -266,6 +271,7 @@ test_image_span_contiguize()
 
         // Benchmark old (ptr) versus new (span) contiguize functions
         Benchmarker bench;
+        bench.trials(ntrials);
         bench.units(Benchmarker::Unit::us);
 
         bench(Strutil::format("    contiguize image_span {}", label), [&]() {
@@ -332,6 +338,7 @@ test_image_span_convert_image()
 
         // Benchmark old (ptr) versus new (span) contiguize functions
         Benchmarker bench;
+        bench.trials(ntrials);
         bench.units(Benchmarker::Unit::ms);
 
         bench(Strutil::format("    convert_image image_span {}", label),
@@ -418,6 +425,7 @@ benchmark_image_span_passing()
     image_span<const float> ispan(sbuf.data(), nchans, xres, yres, 1);
 
     Benchmarker bench;
+    bench.trials(ntrials);
     bench.units(Benchmarker::Unit::us);
     float sum = 0.0f;
 
@@ -442,6 +450,7 @@ benchmark_image_span_passing()
 
     // Do it all again for a SMALL image
     bench.units(Benchmarker::Unit::ns);
+    bench.trials(ntrials);
     int small = 16;
     image_span<const float> smispan(sbuf.data(), nchans, small, small, 1);
     bench("  pass by value     (small)",
@@ -544,9 +553,36 @@ test_image_span_within_span()
 
 
 
-int
-main(int /*argc*/, char* /*argv*/[])
+static void
+getargs(int argc, char* argv[])
 {
+    ArgParse ap;
+    ap.intro(
+          "image_span_test -- unit test and benchmarks for OpenImageIO/image_span.h\n" OIIO_INTRO_STRING)
+        .usage("image_span_test [options]");
+
+    // ap.arg("--iterations %d", &iterations)
+    //     .help(Strutil::fmt::format("Number of iterations (default: {})",
+    //                                iterations));
+    ap.arg("--trials %d", &ntrials).help("Number of trials");
+
+    ap.parse_args(argc, (const char**)argv);
+}
+
+
+
+int
+main(int argc, char* argv[])
+{
+#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
+    // For the sake of test time, reduce the default iterations for DEBUG,
+    // CI, and code coverage builds. Explicit use of --trials
+    // will override this, since it comes before the getargs() call.
+    ntrials = 1;
+#endif
+
+    getargs(argc, argv);
+
     test_image_span<float>();
     test_image_span<const float>();
     test_image_span<uint16_t>();
