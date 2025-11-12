@@ -284,7 +284,6 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
-            benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.14
             optional_deps_append: "LibRaw"
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
@@ -298,7 +297,6 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
-            benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.14
             optional_deps_append: "LibRaw"
           - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
@@ -313,6 +311,31 @@ jobs:
             benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.15
             optional_deps_append: "openjph;Qt6"
+          - desc: VFX2025 Debug gcc11/C++17 py3.11 exr3.3 ocio2.4
+            nametag: linux-vfx2025-debug
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2025
+            cxx_std: 17
+            build_type: Debug
+            python_ver: "3.11"
+            simd: "avx2,f16c"
+            fmt_ver: 11.2.0
+            pybind11_ver: v2.13.6
+            setenvs: export PUGIXML_VERSION=v1.15
+            optional_deps_append: "openjph;Qt6"
+          # - desc: VFX2025 Static gcc11/C++17 py3.11 exr3.3 ocio2.4
+          #   nametag: linux-vfx2025-static
+          #   runner: ubuntu-latest
+          #   container: aswf/ci-oiio:2025
+          #   cxx_std: 17
+          #   python_ver: "3.11"
+          #   simd: "avx2,f16c"
+          #   fmt_ver: 11.2.0
+          #   pybind11_ver: v2.13.6
+          #   benchmark: 1
+          #   setenvs: export PUGIXML_VERSION=v1.15
+          #                   BUILD_SHARED_LIBS=OFF
+          #   optional_deps_append: "openjph;Qt6"
           - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.4
             nametag: linux-vfx2026
             runner: ubuntu-latest
@@ -430,9 +453,9 @@ jobs:
             cc_compiler: gcc-13
             cxx_compiler: g++-13
             cxx_std: 20
-            fmt_ver: 12.0.0
+            fmt_ver: 12.1.0
             opencolorio_ver: v2.5.0
-            openexr_ver: v3.4.0
+            openexr_ver: v3.4.3
             pybind11_ver: v3.0.1
             python_ver: "3.12"
             simd: avx2,f16c
@@ -507,39 +530,15 @@ jobs:
             pybind11_ver: v2.12.0
             python_ver: "3.10"
             simd: avx2,f16c
-          - desc: debug gcc9/C++17, sse4.2, exr3.1
-            nametag: linux-gcc9-cpp17-debug
-            runner: ubuntu-22.04
-            cxx_compiler: g++-9
-            cxx_std: 17
-            build_type: Debug
-            python_ver: "3.10"
-            simd: sse4.2
-            openexr_ver: v3.1.13
-            pybind11_ver: v2.7.0
-            ctest_test_timeout: 1200
-            setenvs: export PUGIXML_VERSION=v1.9
-          - desc: static libs gcc9 C++17 exr3.1
-            nametag: linux-static
-            runner: ubuntu-22.04
-            cxx_compiler: g++-9
-            cxx_std: 17
-            openexr_ver: v3.1.13
-            python_ver: "3.10"
-            pybind11_ver: v2.7.0
-            setenvs: export BUILD_SHARED_LIBS=OFF
-            depcmds: |
-              sudo rm -rf /usr/local/include/OpenEXR
-              sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
           - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.4 ocio2.4
             nametag: linux-arm-latest-releases
             runner: ubuntu-24.04-arm
             cc_compiler: gcc-14
             cxx_compiler: g++-14
             cxx_std: 20
-            fmt_ver: 12.0.0
+            fmt_ver: 12.1.0
             opencolorio_ver: v2.5.0
-            openexr_ver: v3.4.0
+            openexr_ver: v3.4.3
             pybind11_ver: v3.0.1
             python_ver: "3.12"
             setenvs: export LIBJPEGTURBO_VERSION=3.1.2
@@ -558,9 +557,9 @@ jobs:
             cc_compiler: clang-18
             cxx_compiler: clang++-18
             cxx_std: 20
-            fmt_ver: 12.0.0
-            opencolorio_ver: v2.4.2
-            openexr_ver: v3.4.0
+            fmt_ver: 12.1.0
+            opencolorio_ver: v2.5.0
+            openexr_ver: v3.4.3
             pybind11_ver: v3.0.1
             python_ver: "3.12"
             setenvs: export LIBJPEGTURBO_VERSION=3.1.2
