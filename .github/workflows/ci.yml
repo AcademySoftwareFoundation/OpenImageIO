@@ -284,7 +284,6 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
-            benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.14
             optional_deps_append: "LibRaw"
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
@@ -298,7 +297,6 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
-            benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.14
             optional_deps_append: "LibRaw"
           - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
@@ -323,7 +321,6 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 11.2.0
             pybind11_ver: v2.13.6
-            benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.15
             optional_deps_append: "openjph;Qt6"
           # - desc: VFX2025 Static gcc11/C++17 py3.11 exr3.3 ocio2.4
