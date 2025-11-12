@@ -655,7 +655,7 @@ message(VERBOSE "Setting SOVERSION to: ${SOVERSION}")
 # BUILD_SHARED_LIBS, if turned off, will disable building of .so/.dll
 # dynamic libraries and instead only build static libraries.
 #
-option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static libs)" ON)
+set_option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static libs)" ON)
 if (NOT BUILD_SHARED_LIBS)
     add_compile_definitions (${PROJ_NAME}_STATIC_DEFINE=1)
 endif ()
