@@ -679,3 +679,7 @@ Initial developer release 0.1 (1 Sep 2008):
 * maketx
 * API docs for ImageInput, ImageOutput, writing plugins
 * Linux and OSX
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->

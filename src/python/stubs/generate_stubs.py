@@ -1,3 +1,7 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
 """
 Script to generate pyi stubs by patching and calling mypy's stubgen tool.
 
