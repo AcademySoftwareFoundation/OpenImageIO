@@ -44,6 +44,7 @@ build_dependency_with_cmake(TIFF
         -D lzma=OFF
         -D zstd=OFF
         -D jbig=OFF
+        -D lerc=OFF
         ${MORE_TIFF_CMAKE_ARGS}
     )
 
