@@ -1515,6 +1515,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 */
+// SPDX-License-Identifier: MIT
 
 #define UTF8_ACCEPT 0
 #define UTF8_REJECT 12
@@ -1592,6 +1593,7 @@ Strutil::utf8_to_unicode(string_view str, std::vector<uint32_t>& uvec)
 
    René Nyffenegger rene.nyffenegger@adp-gmbh.ch
 */
+// SPDX-License-Identifier: Zlib
 std::string
 Strutil::base64_encode(string_view str)
 {

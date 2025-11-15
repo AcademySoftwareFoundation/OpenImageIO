@@ -197,3 +197,7 @@ image- and file-oriented classes described above. The most important ones are:
   sequence point to the same character memory. In addition to saving memory,
   this makes string assignment and equality comparison as inexpensive as
   integer operations.
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->
