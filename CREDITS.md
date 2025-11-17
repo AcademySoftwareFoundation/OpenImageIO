@@ -255,3 +255,7 @@ lg@openimageio.org
 * Zach Lewis
 * Ziad Khouri
 * zomgrolf
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->

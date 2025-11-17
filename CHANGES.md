@@ -1152,3 +1152,7 @@ For older release notes, see:
 * [CHANGES-2.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/CHANGES-2.x.md).
 * [CHANGES-1.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/CHANGES-1.x.md).
 * [CHANGES-0.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/CHANGES-0.x.md).
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->
