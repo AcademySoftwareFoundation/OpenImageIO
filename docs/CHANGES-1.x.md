@@ -4039,3 +4039,7 @@ Developer goodies:
 
 For older release notes, see:
 * [CHANGES-0.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/CHANGES-0.x.md).
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->

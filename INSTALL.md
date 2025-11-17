@@ -449,3 +449,7 @@ You do not need any of these packages in order to build or use
 OpenImageIO. But if you are going to contribute to OpenImageIO
 development, you probably want them, since it is required for executing
 OpenImageIO's test suite (when you run "make test").
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->
