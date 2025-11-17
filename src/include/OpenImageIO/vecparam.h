@@ -13,11 +13,6 @@
 
 OIIO_NAMESPACE_3_1_BEGIN
 
-// NOTE: These interoperable type templates were copied from the
-// [Imath project](http://github.com/AcademySoftwareFoundation/imath),
-// licensed under the same BSD-3-clause license as OpenImageIO.
-
-
 /// @{
 /// @name Detecting interoperable linear algebra types.
 ///
