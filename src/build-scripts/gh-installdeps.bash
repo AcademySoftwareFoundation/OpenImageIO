@@ -7,6 +7,7 @@
 
 
 set -ex
+df -h
 
 
 #
@@ -17,14 +18,31 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
 
     #ls /etc/yum.repos.d
 
+    # This will show how much space is taken by each installed package, sorted
+    # by size in KB.
+    # rpm -qa --queryformat '%10{size} - %-25{name} \t %{version}\n' | sort -n
+
+    # I would like this to free space by removing packages we don't need.
+    # BUT IT DOESN'T, because uninstalling a package just ends is visibility
+    # to the runtime, it doesn't remove it from the static container image
+    # that's taking up the disk space. So this is pointless. But leaving it
+    # here to remind myself not to waste time trying it again.
+    # time sudo yum remove -y nsight-compute-2022.3.0 libcublas-devel-11-8 libcublas-11-8 libcusparse-devel-11-8 libnpp-devel-11-8 libnpp-11-8 libcurand-devel-11-8 libcurand-11-8 || true
+    # time sudo yum remove -y nsight-compute-2024.3.1 libcublas-devel-12-6 libcublas-12-6 libcusparse-devel-12-6 libnpp-devel-12-6 libnpp-12-6 libcurand-devel-12-6 libcurand-12-6 || true
+
+    # time sudo dnf upgrade --refresh || true
+    if [[ "${DO_RPMFUSION_REPO:-0}" != "0" ]] ; then
+        time sudo dnf install --nogpgcheck https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm -y || true
+    fi
+
     if [[ "$ASWF_VFXPLATFORM_VERSION" == "2021" || "$ASWF_VFXPLATFORM_VERSION" == "2022" ]] ; then
-        # CentOS 7 based containers need the now-nonexistant centos repo to be
+        # CentOS 7 based containers need the now-nonexistent centos repo to be
         # excluded or all the subsequent yum install commands will fail.
         yum-config-manager --disable centos-sclo-rh || true
         sed -i 's,^mirrorlist=,#,; s,^#baseurl=http://mirror\.centos\.org/centos/$releasever,baseurl=https://vault.centos.org/7.9.2009,' /etc/yum.repos.d/CentOS-Base.repo
     fi
 
-    sudo yum install -y giflib giflib-devel || true
+    # time time sudo yum install -y giflib giflib-devel || true
     if [[ "${USE_OPENCV}" != "0" ]] ; then
         sudo yum install -y opencv opencv-devel || true
     fi
@@ -68,12 +86,10 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
         sudo /usr/bin/yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2022.1.0.x86_64
         set +e; source /opt/intel/oneapi/setvars.sh --config oneapi_2022.1.0.cfg; set -e
     elif [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$CXX" == "icpx" || "$CC" == "icx" || "$USE_ICX" != "" ]] ; then
-        # Lock down icx to 2023.1 because newer versions hosted on the Intel
-        # repo require a libstd++ too new for the ASWF containers we run CI on
-        # because their default install of gcc 9 based toolchain.
         sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
-        sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2023.1.0.x86_64
-        # sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        # If we needed to lock down to a particular version, we could:
+        # sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2023.1.0.x86_64
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         echo "Verifying installation of Intel(r) oneAPI DPC++/C++ Compiler:"
         icpx --version
@@ -214,6 +230,8 @@ if [[ "$USE_ICC" != "" ]] ; then
     export CXX=icpc
     export CC=icc
 fi
+
+df -h
 
 # Save the env for use by other stages
 src/build-scripts/save-env.bash
