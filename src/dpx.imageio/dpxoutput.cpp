@@ -12,6 +12,7 @@
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
@@ -435,14 +436,18 @@ DPXOutput::prep_subimage(int s, bool allocate)
     m_desc = get_image_descriptor();
 
     // transfer function
+    const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
     std::string colorspace = spec_s.get_string_attribute("oiio:ColorSpace", "");
-    if (Strutil::iequals(colorspace, "Linear"))
+    if (colorconfig.equivalent(colorspace, "lin_rec709_scene"))
         m_transfer = dpx::kLinear;
-    else if (Strutil::istarts_with(colorspace, "Gamma"))
-        m_transfer = dpx::kUserDefined;
-    else if (Strutil::iequals(colorspace, "Rec709"))
+    else if (colorconfig.equivalent(colorspace, "srgb_rec709_scene"))
         m_transfer = dpx::kITUR709;
-    else if (Strutil::iequals(colorspace, "KodakLog"))
+    else if (colorconfig.equivalent(colorspace, "g22_rec709_scene")
+             || colorconfig.equivalent(colorspace, "g24_rec709_scene")
+             || colorconfig.equivalent(colorspace, "g18_rec709_scene")
+             || Strutil::istarts_with(colorspace, "Gamma"))
+        m_transfer = dpx::kUserDefined;
+    else if (colorconfig.equivalent(colorspace, "KodakLog"))
         m_transfer = dpx::kLogarithmic;
     else {
         std::string dpxtransfer = spec_s.get_string_attribute("dpx:Transfer",
