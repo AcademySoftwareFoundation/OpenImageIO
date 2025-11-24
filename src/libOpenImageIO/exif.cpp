@@ -254,6 +254,7 @@ print_dir_entry(std::ostream& out, const TagMap& tagmap,
 
     switch (dir.tdir_type) {
     case TIFF_ASCII:
+    case EXIF_TIFF_UTF8:
         OIIO::print(out, "'{}'", string_view(mydata, dir.tdir_count));
         break;
     case TIFF_RATIONAL: {
@@ -516,7 +517,18 @@ static const TagInfo exif_tag_table[] = {
     { EXIF_LENSMAKE,  "Exif:LensMake",         TIFF_ASCII, 0 },
     { EXIF_LENSMODEL,  "Exif:LensModel",        TIFF_ASCII, 0 },
     { EXIF_LENSSERIALNUMBER,  "Exif:LensSerialNumber", TIFF_ASCII, 0 },
-    { EXIF_GAMMA,  "Exif:Gamma", TIFF_RATIONAL, 0 }
+    { EXIF_GAMMA,  "Exif:Gamma", TIFF_RATIONAL, 0 },
+    // Exif 3.0 additions follow
+    { EXIF_IMAGETITLE, "Exif:ImageTitle", TIFF_ASCII, 0 },
+    { EXIF_PHOTOGRAPHER, "Exif:Photographer", TIFF_ASCII, 0 },
+    { EXIF_IMAGEEDTOR, "Exif:ImageEdtor", TIFF_ASCII, 0 },
+    { EXIF_CAMERAFIRMWARE, "Exif:CameraFirmware", TIFF_ASCII, 0 },
+    { EXIF_RAWDEVELOPINGSOFTWARE, "Exif:RAWDevelopingSoftware", TIFF_ASCII, 0 },
+    { EXIF_IMAGEEDITINGSOFTWARE, "Exif:ImageEditingSoftware", TIFF_ASCII, 0 },
+    { EXIF_METADATAEDITINGSOFTWARE, "Exif:MetadataEditingSoftware", TIFF_ASCII, 0 },
+    { EXIF_COMPOSITEIMAGE, "Exif:CompositeImage", TIFF_SHORT, 1 },
+    { EXIF_SOURCEIMAGENUMBEROFCOMPOSITEIMAGE, "Exif:SourceImageNumberOfCompositeImage", TIFF_SHORT, 2 },
+    { EXIF_SOURCEIMAGEEXPOSURETIMESOFCOMPOSITEIMAGE, "Exif:SourceImageExposureTimesOfCompositeImage", TIFF_NOTYPE, 0 },
     // clang-format on
 };
 
@@ -729,7 +741,7 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
             spec.attribute(name, TypeDesc(TypeDesc::FLOAT, int(count)), f);
         return;
     }
-    if (dirp->tdir_type == TIFF_ASCII) {
+    if (dirp->tdir_type == TIFF_ASCII || dirp->tdir_type == EXIF_UTF8_TYPE) {
         size_t len           = tiff_data_size(*dirp);
         cspan<uint8_t> dspan = pvt::dataspan<char>(*dirp, buf,
                                                    offset_adjustment, len);
@@ -1376,6 +1388,8 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
         // Add some required Exif tags that wouldn't be in the spec
         append_tiff_dir_entry(exifdirs, blob, EXIF_EXIFVERSION, TIFF_UNDEFINED,
                               4, as_bytes("0230", 4), tiffstart, 0, endianreq);
+        // NOTE: We are still saying we write Exif 2.3 even though we support
+        // the additional 3.0 tags.
         append_tiff_dir_entry(exifdirs, blob, EXIF_FLASHPIXVERSION,
                               TIFF_UNDEFINED, 4, as_bytes("0100", 4), tiffstart,
                               0, endianreq);

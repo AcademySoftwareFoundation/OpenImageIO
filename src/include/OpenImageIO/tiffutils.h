@@ -45,6 +45,14 @@ struct TIFFDirEntry {
 
 OIIO_NAMESPACE_BEGIN
 
+// Exif spec extends TIFFDataType beyond what TIFF or litiff define in
+// TIFFDataType.
+enum TIFFDataType_Exif3_Extensions {
+    EXIF_UTF8_TYPE = 129
+};
+
+
+
 // Define EXIF constants
 enum TIFFTAG {
     EXIF_EXPOSURETIME               = 33434,
@@ -128,6 +136,17 @@ enum TIFFTAG {
     EXIF_LENSMODEL                  = 42036,
     EXIF_LENSSERIALNUMBER           = 42037,
     EXIF_GAMMA                      = 42240,
+    // Exif 3.0 additions follow
+    EXIF_IMAGETITLE                 = 42038,
+    EXIF_PHOTOGRAPHER               = 42039,
+    EXIF_IMAGEEDTOR                 = 42040,
+    EXIF_CAMERAFIRMWARE             = 42041,
+    EXIF_RAWDEVELOPINGSOFTWARE      = 42042,
+    EXIF_IMAGEEDITINGSOFTWARE       = 42043,
+    EXIF_METADATAEDITINGSOFTWARE    = 42044,
+    EXIF_COMPOSITEIMAGE             = 42080,
+    EXIF_SOURCEIMAGENUMBEROFCOMPOSITEIMAGE        = 42081,
+    EXIF_SOURCEIMAGEEXPOSURETIMESOFCOMPOSITEIMAGE = 42082,
 };
 
 
