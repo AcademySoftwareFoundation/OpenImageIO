@@ -22,6 +22,9 @@
 #define DEBUG_EXIF_UNHANDLED 0
 
 
+// Exif Documentation:
+//   - https://archive.org/details/exif-specs-3.0-dc-008-translation-2023-e
+
 
 OIIO_NAMESPACE_BEGIN
 namespace pvt {
