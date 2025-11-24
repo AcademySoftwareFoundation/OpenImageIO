@@ -317,7 +317,7 @@ add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
                  && count == 1) {
             oiiotype = TypeDesc::FLOAT;
             special  = Rational;
-        } else if (tifftype == TIFF_ASCII)
+        } else if (tifftype == TIFF_ASCII || tifftype == EXIF_UTF8_TYPE)
             oiiotype = TypeDesc::STRING;
         else if (tifftype == TIFF_BYTE && count == 1)
             oiiotype = TypeDesc::INT;

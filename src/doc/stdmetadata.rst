@@ -760,6 +760,59 @@ A sum of:
     A unique identifier for the image, as 16 ASCII hexadecimal digits
     representing a 128-bit number.
 
+.. option:: "Exif:ImageTitle" : string
+
+    Title of the image.
+
+.. option:: "Exif:Photographer" : string
+
+    The name of the photographer. This may be different from the "Artist"
+    field.
+
+.. option:: "Exif:ImageEdtor" : string
+
+    The name of the main person who edited the image.
+
+.. option:: "Exif:CameraFirmware" : string
+
+    The name and version of the firmware of the camera that captured the image.
+
+.. option:: "Exif:RAWDevelopingSoftware" : string
+
+    The name and version of the software that developed the RAW image.
+
+.. option:: "Exif:ImageEditingSoftware" : string
+
+    The name and version of any image editing software that was used to
+    process or edit the image.
+
+.. option:: "Exif:MetadataEditingSoftware" : string
+
+    The name and version of any image editing software that was used to
+    edit the image metadata but not the pixels.
+
+.. option:: "Exif:CompositeImage" : int
+
+    Indicates whether the recorded image is a composite image (generated
+    from capturing multiple, tentatively recorded, source images).
+
+    ===  ==============================================================
+     0   unknown
+     1   non-composite image
+     2   general composite image
+     3   composite image captured when shooting
+    ===  ==============================================================
+
+.. option:: "Exif:SourceImageNumberOfCompositeImage" : ushort[2]
+
+    If a composite image, the first value is the number of source images
+    captured (at least 2) and the second value is the number of those
+    source images ultimately used in the comopsite image.
+
+.. option:: "Exif:SourceImageExposureTimesOfCompositeImage"
+
+    This is currently unsupported by OpenImageIO.
+
 
 
 GPS Exif metadata
