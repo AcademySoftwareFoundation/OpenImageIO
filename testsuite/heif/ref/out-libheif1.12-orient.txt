@@ -82,6 +82,7 @@ Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
     Exif:ApertureValue: 2.52607 (f/2.4)
     Exif:BrightnessValue: 2.7506
     Exif:ColorSpace: 65535
+    Exif:CompositeImage: 2
     Exif:DateTimeDigitized: "2023:09:28 09:44:03"
     Exif:DateTimeOriginal: "2023:09:28 09:44:03"
     Exif:DigitalZoomRatio: 1.3057
