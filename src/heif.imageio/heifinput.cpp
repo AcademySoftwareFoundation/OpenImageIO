@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -291,7 +292,9 @@ HeifInput::seek_subimage(int subimage, int miplevel)
                                       int(nclx->transfer_characteristics),
                                       int(nclx->matrix_coefficients),
                                       int(nclx->full_range_flag ? 1 : 0) };
-                m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+                const ColorConfig& colorconfig(
+                    ColorConfig::default_colorconfig());
+                colorconfig.set_colorspace_cicp(m_spec, cicp);
             }
             heif_nclx_color_profile_free(nclx);
         }

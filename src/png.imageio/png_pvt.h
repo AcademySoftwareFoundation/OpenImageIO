@@ -40,7 +40,6 @@ http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/00065
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #define ICC_PROFILE_ATTR "ICCProfile"
-#define CICP_ATTR "CICP"
 
 namespace PNG_pvt {
 
@@ -330,8 +329,9 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     {
         png_byte pri = 0, trc = 0, mtx = 0, vfr = 0;
         if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
-            int cicp[4] = { pri, trc, mtx, vfr };
-            spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::INT, 4), cicp);
+            const int cicp[4] = { pri, trc, mtx, vfr };
+            const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+            colorconfig.set_colorspace_cicp(spec, cicp);
         }
     }
 #endif
@@ -608,7 +608,8 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     string_view colorspace = spec.get_string_attribute("oiio:ColorSpace",
                                                        "srgb_rec709_scene");
     const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-    srgb = false;
+    bool wrote_colorspace = false;
+    srgb                  = false;
     if (colorconfig.equivalent(colorspace, "srgb_rec709_scene")) {
         srgb  = true;
         gamma = 1.0f;
@@ -628,7 +629,8 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0);
-        srgb = false;
+        srgb             = false;
+        wrote_colorspace = true;
     } else if (Strutil::istarts_with(colorspace, "Gamma")) {
         // Back compatible, this is DEPRECATED(3.1)
         Strutil::parse_word(colorspace);
@@ -638,24 +640,28 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
-        srgb = false;
+        srgb             = false;
+        wrote_colorspace = true;
     } else if (colorconfig.equivalent(colorspace, "g22_rec709_scene")) {
         gamma = 2.2f;
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
-        srgb = false;
+        srgb             = false;
+        wrote_colorspace = true;
     } else if (colorconfig.equivalent(colorspace, "g18_rec709_scene")) {
         gamma = 1.8f;
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
-        srgb = false;
+        srgb             = false;
+        wrote_colorspace = true;
     } else if (colorconfig.equivalent(colorspace, "srgb_rec709_scene")) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA and cHRM chunk";
         png_set_sRGB_gAMA_and_cHRM(sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
-        srgb = true;
+        srgb             = true;
+        wrote_colorspace = true;
     }
 
     // Write ICC profile, if we have anything
@@ -667,8 +673,10 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
             return "Could not set PNG iCCP chunk";
         unsigned char* icc_profile
             = (unsigned char*)icc_profile_parameter->data();
-        if (icc_profile && length)
+        if (icc_profile && length) {
             png_set_iCCP(sp, ip, "Embedded Profile", 0, icc_profile, length);
+            wrote_colorspace = true;
+        }
     }
 
     if (false && !spec.find_attribute("DateTime")) {
@@ -724,13 +732,16 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     }
 
 #ifdef PNG_cICP_SUPPORTED
-    const ParamValue* p = spec.find_attribute(CICP_ATTR,
-                                              TypeDesc(TypeDesc::INT, 4));
-    if (p) {
-        const int* int_vals = static_cast<const int*>(p->data());
+    // Only automatically determine CICP from oiio::ColorSpace if we didn't
+    // write colorspace metadata yet.
+    const bool auto_cicp = !wrote_colorspace;
+    int cicp[4];
+    if (colorconfig.get_colorspace_cicp(spec, auto_cicp, cicp)) {
+        // Matrix must be RGB according to PNG spec v3
+        cicp[2] = 0;
         png_byte vals[4];
         for (int i = 0; i < 4; ++i)
-            vals[i] = static_cast<png_byte>(int_vals[i]);
+            vals[i] = static_cast<png_byte>(cicp[i]);
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG cICP chunk";
         // libpng will only write the chunk if the third byte is 0

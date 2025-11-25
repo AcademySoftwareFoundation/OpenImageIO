@@ -2655,6 +2655,140 @@ ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
     }
 }
 
+namespace {
+// Primaries
+static const int cicp_primaries_rec709  = 1;
+static const int cicp_primaries_rec2020 = 9;
+static const int cicp_primaries_xyzd65  = 10;
+static const int cicp_primaries_p3d65   = 12;
+// Transfer functions
+static const int cicp_transfer_bt709  = 1;
+static const int cicp_transfer_g22    = 4;
+static const int cicp_transfer_linear = 8;
+static const int cicp_transfer_srgb   = 13;
+static const int cicp_transfer_pq     = 16;
+static const int cicp_transfer_g26    = 17;
+static const int cicp_transfer_hlg    = 18;
+// Matrix
+static const int cicp_matrix_bt709       = 1;
+static const int cicp_matrix_unspecified = 2;
+static const int cicp_matrix_rec2020_ncl = 9;
+static const int cicp_matrix_rec2020_cl  = 10;
+// Range
+static const int cicp_range_full = 1;
+
+// Mapping between color interop ID and CICP, based on Color Interop Forum
+// recommendations.
+struct ColorSpaceCICP {
+    const char* interop_id;
+    int cicp[4];
+};
+
+static const ColorSpaceCICP color_space_cicp[] = {
+    // Scene referred interop IDs first so they are the default in automatic
+    // conversion from CICP to interop ID.
+    { "srgb_rec709_scene",
+      { cicp_primaries_rec709, cicp_transfer_srgb, cicp_matrix_bt709,
+        cicp_range_full } },
+    { "srgb_rec709_scene",
+      { cicp_primaries_rec709, cicp_transfer_srgb, cicp_matrix_bt709,
+        cicp_range_full } },
+    { "srgb_p3d65_scene",
+      { cicp_primaries_p3d65, cicp_transfer_srgb, cicp_matrix_bt709,
+        cicp_range_full } },
+    // These are not display color spaces at all, but can be represented by CICP.
+    { "lin_rec709_scene",
+      { cicp_primaries_rec709, cicp_transfer_linear, cicp_matrix_bt709,
+        cicp_range_full } },
+    { "lin_p3d65_scene",
+      { cicp_primaries_p3d65, cicp_transfer_linear, cicp_matrix_bt709,
+        cicp_range_full } },
+    { "lin_rec2020_scene",
+      { cicp_primaries_rec2020, cicp_transfer_linear, cicp_matrix_rec2020_cl,
+        cicp_range_full } },
+    { "lin_ciexyzd65_scene",
+      { cicp_primaries_xyzd65, cicp_transfer_linear, cicp_matrix_unspecified,
+        cicp_range_full } },
+
+    // Display referred interop IDs.
+    { "srgb_rec709_display",
+      { cicp_primaries_rec709, cicp_transfer_srgb, cicp_matrix_bt709,
+        cicp_range_full } },
+    { "g24_rec709_display",
+      { cicp_primaries_rec709, cicp_transfer_bt709, cicp_matrix_bt709,
+        cicp_range_full } },
+    { "srgb_p3d65_display",
+      { cicp_primaries_p3d65, cicp_transfer_srgb, cicp_matrix_bt709,
+        cicp_range_full } },
+    { "srgbe_p3d65_display",
+      { cicp_primaries_p3d65, cicp_transfer_srgb, cicp_matrix_bt709,
+        cicp_range_full } },
+    { "pq_p3d65_display",
+      { cicp_primaries_p3d65, cicp_transfer_pq, cicp_matrix_rec2020_ncl,
+        cicp_range_full } },
+    { "pq_rec2020_display",
+      { cicp_primaries_rec2020, cicp_transfer_pq, cicp_matrix_rec2020_ncl,
+        cicp_range_full } },
+    { "hlg_rec2020_display",
+      { cicp_primaries_rec2020, cicp_transfer_hlg, cicp_matrix_rec2020_ncl,
+        cicp_range_full } },
+    { "g22_rec709_display",
+      { cicp_primaries_rec709, cicp_transfer_g22, cicp_matrix_bt709,
+        cicp_range_full } },
+    // No CICP code for Adobe RGB primaries.
+    // { "g22_adobergb_display" }
+    { "g26_p3d65_display",
+      { cicp_primaries_p3d65, cicp_transfer_g26, cicp_matrix_bt709,
+        cicp_range_full } },
+    { "g26_xyzd65_display",
+      { cicp_primaries_xyzd65, cicp_transfer_g26, cicp_matrix_unspecified,
+        cicp_range_full } },
+    { "pq_xyzd65_display",
+      { cicp_primaries_xyzd65, cicp_transfer_pq, cicp_matrix_unspecified,
+        cicp_range_full } },
+};
+}  // namespace
+
+void
+ColorConfig::set_colorspace_cicp(ImageSpec& spec, const int cicp[4]) const
+{
+    spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+
+    for (const ColorSpaceCICP& space : color_space_cicp) {
+        if (space.cicp[0] == cicp[0] && space.cicp[1] == cicp[1]) {
+            set_colorspace(spec, space.interop_id);
+            return;
+        }
+    }
+}
+
+bool
+ColorConfig::get_colorspace_cicp(ImageSpec& spec, bool auto_cicp,
+                                 int cicp[4]) const
+{
+    const ParamValue* p = spec.find_attribute("CICP",
+                                              TypeDesc(TypeDesc::INT, 4));
+    if (p) {
+        std::copy_n(static_cast<const int*>(p->data()), 4, cicp);
+        return true;
+    }
+
+    if (!auto_cicp) {
+        return false;
+    }
+
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
+    if (!colorspace.empty()) {
+        for (const ColorSpaceCICP& space : color_space_cicp) {
+            if (equivalent(colorspace, space.interop_id)) {
+                std::copy_n(space.cicp, 4, cicp);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
 
 void
 set_colorspace(ImageSpec& spec, string_view colorspace)

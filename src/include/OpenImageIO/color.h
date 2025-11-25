@@ -422,6 +422,23 @@ public:
     /// @version 3.0
     void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const;
 
+    /// Set the "CICP" attribute in the spec. If a corresponding colorspace
+    /// is found, automatically set "oiio:ColorSpace" as well. It also removes
+    /// or alters several other attributes that may hint color space in ways
+    /// that might be contradictory or no longer true.
+    ///
+    /// @version 3.1
+    void set_colorspace_cicp(ImageSpec& spec, const int cicp[4]) const;
+
+    /// Get the CICP code corresponding from the "CICP" attribute. If there
+    /// is not such attribute and auto_cicp is true, atempt to determine a CICP
+    /// code from the "oiio:ColorSpace" attribute.
+    /// Returns false if no CICP code could be determined.
+    ///
+    /// @version 3.1
+    bool get_colorspace_cicp(ImageSpec& spec, bool auto_colorspace,
+                             int cicp[4]) const;
+
     /// Return if OpenImageIO was built with OCIO support
     static bool supportsOpenColorIO();
 
