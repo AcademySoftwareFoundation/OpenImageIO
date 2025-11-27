@@ -125,6 +125,7 @@ lg@openimageio.org
 * John Burnett
 * John Fea
 * John Haddon
+* Jonathan Brown
 * Jonathan Hearn
 * Jonathan Scruggs
 * Joris Nijs
@@ -221,6 +222,7 @@ lg@openimageio.org
 * Sergey Sharybin
 * Sergio Rojas
 * Shane Ambler
+* Shane Smith
 * Simon Boorer
 * Solomon Boulos
 * SRHMorris
@@ -236,6 +238,7 @@ lg@openimageio.org
 * Todica Ionut
 * Tom Knowles
 * Troy James Sobotka
+* Valery Angelique
 * Vanessa Valderrama
 * Vic P
 * Vinod Khare
@@ -252,3 +255,7 @@ lg@openimageio.org
 * Zach Lewis
 * Ziad Khouri
 * zomgrolf
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->

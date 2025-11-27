@@ -1140,8 +1140,7 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
     TypeDesc exrtype  = TypeUnknown;
 
     for (const auto& e : exr_meta_translation) {
-        if (Strutil::iequals(xname, e.oiioname)
-            || (e.exrname && Strutil::iequals(xname, e.exrname))) {
+        if (xname == e.oiioname || (e.exrname && xname == e.exrname)) {
             xname   = std::string(e.exrname ? e.exrname : "");
             exrtype = e.exrtype;
             // std::cerr << "exr put '" << name << "' -> '" << xname << "'\n";
@@ -1267,6 +1266,7 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
     // OpenEXR expects, and we can make a good guess about how to translate.
     float tmpfloat;
     int tmpint;
+    ustring tmpstring;
     if (exrtype == TypeFloat && type == TypeInt) {
         tmpfloat = float(*(const int*)data);
         data     = &tmpfloat;
@@ -1278,10 +1278,19 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
     } else if (exrtype == TypeMatrix && type == TypeDesc(TypeDesc::FLOAT, 16)) {
         // Automatically translate float[16] to Matrix when expected
         type = TypeMatrix;
+    } else if (exrtype == TypeString && type == TypeFloat) {
+        tmpstring = ustring::fmtformat("{}", *(const float*)data);
+        data      = &tmpstring;
+        type      = TypeString;
+    } else if (exrtype == TypeString && type == TypeInt) {
+        tmpstring = ustring::fmtformat("{}", *(const int*)data);
+        data      = &tmpstring;
+        type      = TypeString;
     }
 
     // Now if we still don't match a specific type OpenEXR is looking for,
-    // skip it.
+    // skip it. If we ever support warnings for ImageOutput, we should make
+    // this a warning.
     if (exrtype != TypeDesc() && !exrtype.equivalent(type)) {
         OIIO::debugfmt(
             "OpenEXR output metadata \"{}\" type mismatch: expected {}, got {}\n",

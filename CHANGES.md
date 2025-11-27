@@ -13,19 +13,59 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
     - *api*: Versioned namespace to preserve ABI compatibility between minor releases [#4869](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4869) (3.2.0.0)
 ### 🚀  Performance improvements
 ### 🐛  Fixes and feature enhancements
-    - *jpeg-xl*: ICC read and write for JPEG-XL files (issue 4649) [#4905](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4905) (by shanesmith-dwa) (3.2.0.0)
+  - *ffmpeg*: 10 bit video had wrong green channel [#4935](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4935) (by Brecht Van Lommel) (3.1.7.0, 3.2.0.0)
+  - *iff*: Handle non-zero origin, protect against buffer overflows [#4925](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4925) (3.1.7.0, 3.2.0.0)
+  - *jpeg-xl*: ICC read and write for JPEG-XL files (issue 4649) [#4905](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4905) (by shanesmith-dwa) (3.2.0.0)
+  - *jpeg-xl*: Correctly set Quality for JPEG XL [#4933](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4933) (3.1.7.0, 3.2.0.0)
+  - *openexr*: Support for idManifest and deepImageState (experimental) [#4877](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4877) (3.1.7.0, 3.2.0.0)
+  - *openexr*: ACES Container hint for exr outputs [#4907](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4907) (by Oktay Comu) (3.1.7.0, 3.2.0.0)
 ### 🔧  Internals and developer goodies
 ### 🏗  Build/test/CI and platform ports
 * OIIO's CMake build system and scripts:
+    - *build*: Allow auto-build of just required packages by setting `OpenImageIO_BUILD_MISSING_DEPS` to `required`. [#4927](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4927) (3.1.7.0, 3.2.0.0)
+    - *build*: Make dependency report more clear about what was required [#4929](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4929) (3.1.7.0, 3.2.0.0)
 * Dependency and platform support:
+    - *build/deps*: Additional auto-build capabilities for dependencies that are not found: GIF library [#4921](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4921) (by Valery Angelique), OpenJPEG [#4911](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4911) (by Danny Greenstein) (3.1.7.0, 3.2.0.0)
 * Testing and Continuous integration (CI) systems:
+    - *ci*: Python wheel building improvements: use ccache [#4924](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4924) (by Larry Gritz), unbreak wheel release + other enhancements pt 1 [#4937](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4937) (by Zach Lewis) (3.1.7.0, 3.2.0.0)
+    - *ci*: Simplify ci workflow by using build-steps for old aswf containers, too [#4932](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4932) (3.1.7.0, 3.2.0.0)
+    - *ci*: We were not correctly setting fmt version from job options [#4939](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4939) (3.1.7.0, 3.2.0.0)
 ### 📚  Notable documentation changes
+  - *docs*: Update/correct explanation of "openexr:core" attribute, and typo fixes [#4943](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4943) (3.1.7.0, 3.2.0.0)
 ### 🏢  Project Administration
 ### 🤝  Contributors
 
+---
+---
 
----
----
+
+
+Release 3.1.7.0 (Nov 1, 2025) -- compared to 3.1.7.0
+----------------------------------------------------
+  - *openexr*: Support for idManifest and deepImageState (experimental) [#4877](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4877) (3.1.7.0)
+  - *openexr*: ACES Container hint for exr outputs [#4907](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4907) (by Oktay Comu) (3.1.7.0)
+  - *ffmpeg*: 10 bit video had wrong green channel [#4935](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4935) (by Brecht Van Lommel) (3.1.7.0)
+  - *iff*: Handle non-zero origin, protect against buffer overflows [#4925](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4925) (3.1.7.0)
+  - *jpeg-xl*: Correctly set Quality for JPEG XL [#4933](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4933) (3.1.7.0)
+  - *api/docs*: Fix IBA::set_pixels declaration and docs [#4926](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4926) (3.1.7.0)
+  - *win*: Address Windows crashes from issue 4641 [#4914](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4914) (3.1.7.0)
+  - *fix*: Uninitialized value revealed by clang-21 warning [#4940](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4940) (3.1.7.0)
+  - *build/deps*: Additional auto-build capabilities for dependencies that are not found: GIF library [#4921](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4921) (by Valery Angelique), OpenJPEG [#4911](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4911) (by Danny Greenstein) (3.1.7.0)
+  - *build*: Allow auto-build of just required packages [#4927](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4927) (3.1.7.0)
+  - *build*: Make dependency report more clear about what was required [#4929](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4929) (3.1.7.0)
+  - *ci*: Python wheel building improvements: use ccache [#4924](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4924) (by Larry Gritz), unbreak wheel release + other enhancements pt 1 [#4937](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4937) (by Zach Lewis) (3.1.7.0)
+  - *ci*: Drop deprecated macos-13 (intel) platform, add macos-15-intel [#4930](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4930) (3.1.7.0)
+  - *ci*: Try to avoid ffmpeg install failures [#4936](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4936) (3.1.7.0)
+  - *ci*: Simplify ci workflow by using build-steps for old aswf containers, too [#4932](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4932) (3.1.7.0)
+  - *ci*: We were not correctly setting fmt version from job options [#4939](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4939) (3.1.7.0)
+  - *tests*: Update ref images for heif [#4941](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4941) (3.1.7.0)
+  - *docs*: Update/correct explanation of "openexr:core" attribute, and typo fixes [#4943](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4943) (3.1.7.0)
+
+
+Release 3.1.6.2 (Oct 3, 2025) -- compared to 3.1.6.1
+----------------------------------------------------
+  - *oiioversion.h*: Restore definition of `OIIO_NAMESPACE_USING` macro [#4920](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4920)
+
 
 Release 3.1 (Oct 2 2025) -- compared to 3.0.x
 -----------------------------------------------------
@@ -197,13 +237,13 @@ Release 3.1 (Oct 2 2025) -- compared to 3.0.x
 
 ### 🏗  Build/test/CI and platform ports:
 * CMake build system and scripts:
+    - *build*: Python wheel building workflow [#4428](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4428) (by zachlewis) (3.1.1.0), [#4633](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4633) (3.1.1.0), [#4820](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4820) (3.1.3.0), [#4617](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4617) (3.1.1.0), [#4668](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4668) (3.1.1.0), [#4675](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4675) (3.1.1.0), [#4855](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4855) (by Zach Lewis) (3.1.5.0), [#4867](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4867) (3.1.5.0)
+    - *build*: C++23 support [#4844](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4844) (3.1.4.0)
     - *build*: Add hardening options [#4538](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4538) (3.1.0.0/3.0.1.0)
     - *build*: Use target_compile_options (fixes a LibRaw build issue) [#4556](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4556) (by Don Olmstead) (3.1.0.0)
-    - *build*: Python wheels workflow and build backend [#4428](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4428) (by zachlewis) (3.1.1.0)
     - *build*: Recent change broke when using non-Apple clang on Apple [#4596](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4596) (3.1.1.0)
     - *build*: Fix recently broken rpath setting [#4618](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4618) (3.1.1.0)
     - *build*: Improve OpenJpeg version detection. [#4665](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4665) (by jreichel-nvidia) (3.1.1.0)
-    - *build*: Fix recently broken rpath to restore python wheel building [#4633](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4633) (3.1.1.0)
     - *build*: Ensure python-based builds use maj.min.patch SO versioning [#4634](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4634) (by zachlewis) (3.1.1.0)
     - *build*: Better disabling of work when USE_PYTHON=0 [#4657](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4657) (3.1.1.0)
     - *build*: Bump auto-build libdeflate to 1.23 to avoid AVX512 not available errors [#4679](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4679) (by LI JI) (3.1.1.0)
@@ -215,9 +255,7 @@ Release 3.1 (Oct 2 2025) -- compared to 3.0.x
     - *build*: Address compiler warnings [#4724](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4724) (3.1.3.0)
     - *build*: Fix furo requirement after recently breaking docs [#4743](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4743) (3.1.3.0)
     - *build*: Clean up Windows compilation warnings [#4706](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4706) (3.1.3.0)
-    - *build/python*: Wheel upload_pypi step should only run from main repo [#4820](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4820) (3.1.3.0)
     - *build*: Fix typo related to finding ccache [#4833](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4833) (3.1.4.0)
-    - *build*: C++23 support [#4844](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4844) (3.1.4.0)
     - *build*: Clean up obsolete logic for old compilers [#4849](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4849) (3.1.5.0)
     - *build*: Update autobuild defaults for some dependencies [#4910](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4910) (3.1.6.1)
 * Dependency and platform support:
@@ -262,23 +300,17 @@ Release 3.1 (Oct 2 2025) -- compared to 3.0.x
     - *ci*: Test and document support for WebP 1.5 and fmt 11.1 [#4574](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4574) (3.1.1.0)
     - *ci*: Only pass build-steps the secrets it needs [#4576](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4576) (3.1.1.0)
     - *ci*: Fix Windows 2019 CI -- make python version match the runner [#4592](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4592) (3.1.1.0)
-    - *ci*: Raise 'latest' tests to use new fmt 11.1.2 [#4593](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4593) (3.1.1.0)
-    - *ci*: Adjust some pugixml versions [#4594](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4594) (3.1.1.0)
+    - *ci*: CI testing of new dependency releases: fmt 11.1.2 [#4593](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4593), various [#4683](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4683) (3.1.1.0), pugixml versions [#4594](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4594) (3.1.1.0), pybind11 3.0.0 [#4828](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4828) (3.1.4.0), webp and openexr [#4861](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4861) (3.1.4.0)
     - *ci*: Allow special branch names to prune CI jobs [#4604](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4604) (3.1.1.0)
-    - *ci*: Unbreak the scorecard workflow [#4605](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4605) (3.1.1.0)
+    - *ci*: Unbreak broken CI (mostly broken by random GH runner changes): scorecard workflow [#4605](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4605) (3.1.1.0)
     - *ci*: Switch to using ARM-native linux runners [#4616](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4616) (by zachlewis) (3.1.1.0)
-    - *ci*: Run wheel workflow on certain pushes [#4617](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4617) (3.1.1.0)
     - *ci*: Add `numpy` as a runtime requirement [#4638](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4638) (by zachlewis) (3.1.1.0)
     - *ci*: Move away from soon-to-be-deprecated ubuntu-20.04 GHA runner [#4636](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4636) (3.1.1.0)
     - *ci*: For docs workflow, lock down versions and speed up [#4646](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4646) (3.1.1.0)
     - *ci*: Improved clang-format CI task [#4647](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4647) (3.1.1.0)
     - *ci*: Add numpy as a runtime requirement [#4654](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4654) (by zachlewis) (3.1.1.0)
-    - *ci*: Fix wheel building on Mac [#4668](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4668) (3.1.1.0)
     - *ci*: Update libPNG address and version for ci & autobuild [#4659](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4659) (3.1.1.0)
-    - *ci*: Step naming adustments [#4658](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4658) (3.1.1.0)
-    - *ci*: Fix wheel building on Mac ARM (continuation of #4668) [#4675](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4675) (3.1.1.0)
-    - *ci*: Bump dependencies for "latest versions" CI test [#4683](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4683) (3.1.1.0)
-    - *ci*: Update ABI standard after PR 4669 [#4687](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4687) (3.1.1.0)
+    - *ci*: Step naming adjustments [#4658](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4658) (3.1.1.0)
     - *ci*: Save time by not checking out entire project history [#4731](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4731) (3.1.3.0)
     - *ci*: New variants for VFXP 2025, Windows 2025 [#4744](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4744) (3.1.3.0)
     - *ci*: Bump abi_check standard after ImageOutput changes [#4747](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4747) (3.1.3.0)
@@ -286,19 +318,14 @@ Release 3.1 (Oct 2 2025) -- compared to 3.0.x
     - *ci*: Update ref output to compensate for GitHub windows drive changes [#4761](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4761) (3.1.3.0)
     - *ci*: Pkg config libdir fix [#4775](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4775) (by Scott Wilson) (3.1.3.0)
     - *ci*: Add facility for benchmarking as part of CI [#4745](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4745) (3.1.3.0)
-    - *ci*: Adjust ABI standard commit after ABI-breaking change of PR 4748 [#4778](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4778) (3.1.3.0)
     - *ci*: Add Linux ARM test [#4749](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4749) (3.1.3.0)
     - *ci*: Update linux arm clang reference output [#4782](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4782) (3.1.3.0)
-    - *ci*: Bump 'latest releases' tests to use pybind11 3.0.0 [#4828](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4828) (3.1.4.0)
     - *ci*: For python stub generation, lock pybind11 to pre-3.0 [#4831](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4831) (3.1.4.0)
     - *ci*: Add a VFX Platform 2026 CI job [#4856](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4856) (3.1.4.0)
     - *ci*: Lock down to ci-oiio container with correct llvm components [#4859](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4859) (3.1.4.0)
-    - *ci*: Bump webp and openexr for "latest versions" test [#4861](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4861) (3.1.4.0)
     - *ci*: Try to fix Sonar workflow by switching to compile-commands for sonar [#4879](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4879) (by vvalderrv) (3.1.5.0)
     - *ci*: Fix analysis workflow configuration [#4881](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4881) (3.1.5.0)
     - *ci*: Better spread of libpng versions we test against [#4883](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4883) (3.1.5.0)
-    - *ci*: Fix broken python wheel building [#4855](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4855) (by Zach Lewis) (3.1.5.0)
-    - *ci*: Some more minor wheel workflow changes after the py 3.9 bump [#4867](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4867) (3.1.5.0)
     - *ci*: More Sonar scan workflow fixes [#4902](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4902) (by vvalderrv) (3.1.6.0)
     - *ci*: Add more exceptions to when we test docs building [#4899](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4899) (3.1.6.0)
     - *ci*: Require all dependencies, with explicit exceptions [#4898](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4898) (3.1.6.0)
@@ -355,6 +382,18 @@ asterisk) had not previously contributed to the project.
 ---
 ---
 
+
+Release 3.0.12.0 (Nov 1, 2025) -- compared to 3.0.11.0
+-------------------------------------------------------
+  - *iff*: Handle non-zero origin, protect against buffer overflows [#4925](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4925)
+  - *jpeg-xl*: Correctly set Quality for JPEG XL [#4933](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4933)
+  - *win*: Address Windows crashes from issue 4641 [#4914](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4914)
+  - *fix*: Uninitialized value revealed by clang-21 warning [#4940](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4940)
+  - *ci*: For python wheel generation, use ccache [#4924](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4924)
+  - *ci*: Drop deprecated macos-13 (intel) platform, add macos-15-intel [#4930](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4930)
+  - *ci*: We were not correctly setting fmt version from job options [#4939](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4939)
+
+
 Release 3.0.11.0 (Oct 1, 2025) -- compared to 3.0.10.1
 -------------------------------------------------------
   - *oiiotool*: Allow easy splitting output of subimages by name [#4874](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4874)
@@ -362,6 +401,7 @@ Release 3.0.11.0 (Oct 1, 2025) -- compared to 3.0.10.1
   - *gif*: GIF output didn't handle FramesPerSecond attribute correctly [#4890](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4890)
   - *deps*: Test freetype 2.14 and document that it works [#4876](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4876)
   - *deps*: Look for boost headers for OpenVDBs older than 12 [#4873](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4873) (by Alex Fuller)
+  - *deps*: Support for OpenColorIO 2.5 [#4916](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4916)
 
 
 Release 3.0.10.1 (Sep 16, 2025) -- compared to 3.0.10.0
@@ -1112,3 +1152,7 @@ For older release notes, see:
 * [CHANGES-2.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/CHANGES-2.x.md).
 * [CHANGES-1.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/CHANGES-1.x.md).
 * [CHANGES-0.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/CHANGES-0.x.md).
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->

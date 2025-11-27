@@ -92,3 +92,7 @@ output.write_image(pixels)
 This is just a simple example to give you a flavor of the different major
 interfaces. For more advanced usage, you may want to explore the
 [documentation](https://docs.openimageio.org).
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->

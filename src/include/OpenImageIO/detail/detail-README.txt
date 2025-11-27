@@ -9,3 +9,7 @@ anything in those headers or in the pvt or detail namespaces.
 Therefore, anything in this directory may be changed arbitrarily as part of
 a minor version release (but not part of a patch version release, since
 changes here may well change the ABI/linkage).
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->

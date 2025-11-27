@@ -2769,6 +2769,9 @@ bool
 ImageBuf::set_pixels(ROI roi, TypeDesc format, const void* data,
                      stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (!roi.defined())
+        roi = this->roi();
+    roi.chend = std::min(roi.chend, nchannels());
     image_span<const std::byte> s(reinterpret_cast<const std::byte*>(data),
                                   roi.nchannels(), roi.width(), roi.height(),
                                   roi.depth(), format.size(), xstride, ystride,

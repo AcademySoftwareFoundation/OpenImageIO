@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->
+
 New code entering the OpenImageIO repository from July 1 2023 onward is
 subject to the [Apache 2.0 license](LICENSE.md).
 
