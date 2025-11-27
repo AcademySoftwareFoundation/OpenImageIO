@@ -1,3 +1,11 @@
+Release 3.0.13.0 (Dec 1, 2025) -- compared to 3.0.12.0
+-------------------------------------------------------
+  - *exif*: Support EXIF 3.0 tags [#4961](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4961)
+  - *build*: Disable LERC in libTIFF local build script [#4957](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4957) (by LI JI)
+  - *ci*: Fix broken ci, debug and static cases, bump some latest [#4954](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4954)
+  - *ci*: Unbreak icc/icx CI [#4958](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4958)
+
+
 Release 3.0.12.0 (Nov 1, 2025) -- compared to 3.0.11.0
 -------------------------------------------------------
   - *iff*: Handle non-zero origin, protect against buffer overflows [#4925](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4925)
