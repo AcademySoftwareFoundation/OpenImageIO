@@ -532,22 +532,24 @@ JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
 
 
 
+template<typename Tcmyk, typename Trgb>
 static void
-cmyk_to_rgb(int n, const unsigned char* cmyk, size_t cmyk_stride,
-            unsigned char* rgb, size_t rgb_stride)
+cmyk_to_rgb(cspan<Tcmyk> cmyk, span<Trgb> rgb)
 {
-    for (; n; --n, cmyk += cmyk_stride, rgb += rgb_stride) {
+    size_t n = cmyk.size() / 4;
+    OIIO_ASSERT(rgb.size() == n * 3);
+    for (size_t i = 0; i < n; ++i) {
         // JPEG seems to store CMYK as 1-x
-        float C = convert_type<unsigned char, float>(cmyk[0]);
-        float M = convert_type<unsigned char, float>(cmyk[1]);
-        float Y = convert_type<unsigned char, float>(cmyk[2]);
-        float K = convert_type<unsigned char, float>(cmyk[3]);
-        float R = C * K;
-        float G = M * K;
-        float B = Y * K;
-        rgb[0]  = convert_type<float, unsigned char>(R);
-        rgb[1]  = convert_type<float, unsigned char>(G);
-        rgb[2]  = convert_type<float, unsigned char>(B);
+        float C        = convert_type<Tcmyk, float>(cmyk[4 * i + 0]);
+        float M        = convert_type<Tcmyk, float>(cmyk[4 * i + 1]);
+        float Y        = convert_type<Tcmyk, float>(cmyk[4 * i + 2]);
+        float K        = convert_type<Tcmyk, float>(cmyk[4 * i + 3]);
+        float R        = C * K;
+        float G        = M * K;
+        float B        = Y * K;
+        rgb[3 * i + 0] = convert_type<float, Trgb>(R);
+        rgb[3 * i + 1] = convert_type<float, Trgb>(G);
+        rgb[3 * i + 2] = convert_type<float, Trgb>(B);
     }
 }
 
@@ -682,10 +684,12 @@ JpgInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     }
     m_next_scanline = yend;
 
-    if (m_cmyk)
-        cmyk_to_rgb(m_spec.width * nscanlines,
-                    reinterpret_cast<unsigned char*>(readdata), 4,
-                    reinterpret_cast<unsigned char*>(data.data()), 3);
+    if (m_cmyk) {
+        for (int i = 0; i < nscanlines; ++i)
+            cmyk_to_rgb(make_cspan(readdata[i], m_spec.width * 4),
+                        span_cast<unsigned char>(data).subspan(
+                            m_spec.width * 3 * i, m_spec.width * 3));
+    }
 
     return true;
 }
