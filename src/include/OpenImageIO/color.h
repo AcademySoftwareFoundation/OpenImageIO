@@ -431,12 +431,12 @@ public:
     void set_colorspace_cicp(ImageSpec& spec, const int cicp[4]) const;
 
     /// Get the CICP code corresponding from the "CICP" attribute. If there
-    /// is not such attribute and auto_cicp is true, atempt to determine a CICP
+    /// is no such attribute and auto_cicp is true, attempt to determine a CICP
     /// code from the "oiio:ColorSpace" attribute.
     /// Returns false if no CICP code could be determined.
     ///
     /// @version 3.1
-    bool get_colorspace_cicp(ImageSpec& spec, bool auto_colorspace,
+    bool get_colorspace_cicp(ImageSpec& spec, bool auto_cicp,
                              int cicp[4]) const;
 
     /// Return if OpenImageIO was built with OCIO support
