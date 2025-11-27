@@ -149,7 +149,7 @@ macro (oiio_add_all_tests)
                     oiiotool-xform
                     diff
                     dither dup-channels
-                    jpeg-corrupt jpeg-metadata
+                    jpeg jpeg-corrupt jpeg-metadata
                     maketx oiiotool-maketx
                     misnamed-file
                     missingcolor
