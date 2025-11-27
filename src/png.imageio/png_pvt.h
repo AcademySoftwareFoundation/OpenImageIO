@@ -608,8 +608,8 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     string_view colorspace = spec.get_string_attribute("oiio:ColorSpace",
                                                        "srgb_rec709_scene");
     const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-    bool wrote_colorspace = false;
-    srgb                  = false;
+    OIIO_MAYBE_UNUSED bool wrote_colorspace = false;
+    srgb                                    = false;
     if (colorconfig.equivalent(colorspace, "srgb_rec709_scene")) {
         srgb  = true;
         gamma = 1.0f;
