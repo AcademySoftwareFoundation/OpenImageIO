@@ -292,9 +292,12 @@ HeifInput::seek_subimage(int subimage, int miplevel)
                                       int(nclx->transfer_characteristics),
                                       int(nclx->matrix_coefficients),
                                       int(nclx->full_range_flag ? 1 : 0) };
+                m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
                 const ColorConfig& colorconfig(
                     ColorConfig::default_colorconfig());
-                colorconfig.set_colorspace_cicp(m_spec, cicp);
+                string_view interop_id = colorconfig.getColorInteropID(cicp);
+                if (!interop_id.empty())
+                    m_spec.attribute("oiio:ColorSpace", interop_id);
             }
             heif_nclx_color_profile_free(nclx);
         }

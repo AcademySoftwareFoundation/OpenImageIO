@@ -549,7 +549,11 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         = { m_codec_context->color_primaries, m_codec_context->color_trc,
             m_codec_context->colorspace,
             m_codec_context->color_range == AVCOL_RANGE_MPEG ? 0 : 1 };
-    ColorConfig::default_colorconfig().set_colorspace_cicp(m_spec, cicp);
+    m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view interop_id = colorconfig.getColorInteropID(cicp);
+    if (!interop_id.empty())
+        m_spec.attribute("oiio:ColorSpace", interop_id);
 
     m_nsubimages = m_frames;
     spec         = m_spec;

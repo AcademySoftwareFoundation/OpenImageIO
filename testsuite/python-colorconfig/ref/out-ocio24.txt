@@ -26,6 +26,9 @@ equivalent('linear', 'lin_srgb'): False
 equivalent('scene_linear', 'lin_srgb'): False
 equivalent('ACEScg', 'scene_linear'): True
 equivalent('lnf', 'scene_linear'): False
+getColorInteropID([1, 13, 1, 1]) =  srgb_rec709_scene
+getCICP('pq_rec2020_display') =  [9, 16, 9, 1]
+getCICP('unknown_interop_id') =  None
 
 Loaded test OCIO config: oiio_test_v0.9.2.ocio
 Parsed color space for filepath 'foo_lin_ap1.exr': ACEScg

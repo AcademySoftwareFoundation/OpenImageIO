@@ -402,6 +402,18 @@ public:
     bool equivalent(string_view color_space,
                     string_view other_color_space) const;
 
+    /// Find CICP code corresponding to the colorspace.
+    /// Returns pointer to int[4], and nullptr if not found.
+    ///
+    /// @version 3.1
+    const int* getCICP(string_view colorspace) const;
+
+    /// Find color interop ID corresponding to the CICP code.
+    /// Returns empty string if not found.
+    ///
+    /// @version 3.1
+    string_view getColorInteropID(const int cicp[4]) const;
+
     /// Return a filename or other identifier for the config we're using.
     std::string configname() const;
 
@@ -421,23 +433,6 @@ public:
     ///
     /// @version 3.0
     void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const;
-
-    /// Set the "CICP" attribute in the spec. If a corresponding colorspace
-    /// is found, automatically set "oiio:ColorSpace" as well. It also removes
-    /// or alters several other attributes that may hint color space in ways
-    /// that might be contradictory or no longer true.
-    ///
-    /// @version 3.1
-    void set_colorspace_cicp(ImageSpec& spec, const int cicp[4]) const;
-
-    /// Get the CICP code corresponding from the "CICP" attribute. If there
-    /// is no such attribute and auto_cicp is true, attempt to determine a CICP
-    /// code from the "oiio:ColorSpace" attribute.
-    /// Returns false if no CICP code could be determined.
-    ///
-    /// @version 3.1
-    bool get_colorspace_cicp(ImageSpec& spec, bool auto_cicp,
-                             int cicp[4]) const;
 
     /// Return if OpenImageIO was built with OCIO support
     static bool supportsOpenColorIO();

@@ -40,6 +40,7 @@ http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/00065
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #define ICC_PROFILE_ATTR "ICCProfile"
+#define CICP_ATTR "CICP"
 
 namespace PNG_pvt {
 
@@ -330,8 +331,11 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         png_byte pri = 0, trc = 0, mtx = 0, vfr = 0;
         if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
             const int cicp[4] = { pri, trc, mtx, vfr };
+            spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::INT, 4), cicp);
             const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-            colorconfig.set_colorspace_cicp(spec, cicp);
+            string_view interop_id = colorconfig.getColorInteropID(cicp);
+            if (!interop_id.empty())
+                spec.attribute("oiio:ColorSpace", interop_id);
         }
     }
 #endif
@@ -734,11 +738,12 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 #ifdef PNG_cICP_SUPPORTED
     // Only automatically determine CICP from oiio::ColorSpace if we didn't
     // write colorspace metadata yet.
-    const bool auto_cicp = !wrote_colorspace;
-    int cicp[4];
-    if (colorconfig.get_colorspace_cicp(spec, auto_cicp, cicp)) {
-        // Matrix must be RGB according to PNG spec v3
-        cicp[2] = 0;
+    const ParamValue* p = spec.find_attribute(CICP_ATTR,
+                                              TypeDesc(TypeDesc::INT, 4));
+    const int* cicp     = (p) ? static_cast<const int*>(p->data())
+                          : (!wrote_colorspace) ? colorconfig.getCICP(colorspace)
+                                                : nullptr;
+    if (cicp) {
         png_byte vals[4];
         for (int i = 0; i < 4; ++i)
             vals[i] = static_cast<png_byte>(cicp[i]);

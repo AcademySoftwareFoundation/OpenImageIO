@@ -251,9 +251,12 @@ HeifOutput::close()
                         void (*)(heif_color_profile_nclx*)>
             nclx(heif_nclx_color_profile_alloc(), heif_nclx_color_profile_free);
         const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-        const bool auto_cicp = true;
-        int cicp[4];
-        if (colorconfig.get_colorspace_cicp(m_spec, auto_cicp, cicp)) {
+        const ParamValue* p    = m_spec.find_attribute("CICP",
+                                                       TypeDesc(TypeDesc::INT, 4));
+        string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
+        const int* cicp        = (p) ? static_cast<const int*>(p->data())
+                                     : colorconfig.getCICP(colorspace);
+        if (cicp) {
             nclx->color_primaries          = heif_color_primaries(cicp[0]);
             nclx->transfer_characteristics = heif_transfer_characteristics(
                 cicp[1]);
