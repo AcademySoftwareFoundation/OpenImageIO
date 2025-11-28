@@ -299,7 +299,7 @@ static constexpr float ACES_AP0_chromaticities[8] = {
     0.32168f, 0.33767f  // white
 };
 
-static const std::string ACES_AP0_colorInteropId = "lin_ap0_scene";
+static const std::string ACES_AP0_colorInteropID = "lin_ap0_scene";
 
 
 bool
@@ -407,10 +407,10 @@ is_aces_container_compliant(const OIIO::ImageSpec& spec, std::string& reason)
     }
 
     // Check attributes with exact values if they exist
-    if (spec.get_string_attribute("oiio:ColorSpace", ACES_AP0_colorInteropId)
-            != ACES_AP0_colorInteropId
-        || spec.get_string_attribute("colorInteropId", ACES_AP0_colorInteropId)
-               != ACES_AP0_colorInteropId) {
+    if (spec.get_string_attribute("oiio:ColorSpace", ACES_AP0_colorInteropID)
+            != ACES_AP0_colorInteropID
+        || spec.get_string_attribute("colorInteropID", ACES_AP0_colorInteropID)
+               != ACES_AP0_colorInteropID) {
         reason
             = "Color space is not lin_ap0_scene as required for an ACES Container.";
         return false;
@@ -448,7 +448,7 @@ set_aces_container_attributes(OIIO::ImageSpec& spec)
 {
     spec.attribute("chromaticities", OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
                    ACES_AP0_chromaticities);
-    spec.attribute("colorInteropId", ACES_AP0_colorInteropId);
+    spec.attribute("colorInteropID", ACES_AP0_colorInteropID);
     spec.attribute("acesImageContainerFlag", 1);
 }
 
