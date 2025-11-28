@@ -1,3 +1,19 @@
+Release 3.1.8.0 (Dec 1, 2025) -- compared to 3.1.7.0
+----------------------------------------------------
+  - *exif*: Support EXIF 3.0 tags [#4961](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4961)
+  - *jpeg*: Fix wrong pointers/crashing when decodng CMYK jpeg files [#4963](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4963)
+  - *openexr*: Improve attribute translation rules [#4946](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4946)
+  - *openexr*: ACES container writes colorInteropId instead of colorInteropID [#4966](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4966) (by Brecht Van Lommel)
+  - *color mgmt*: Fix some legacy 'Linear' color references [#4959](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4959)
+  - *imagebuf*: Fix `ImageBuf::set_pixels()` bug, didn't consider roi = All [#4949](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4949)
+  - *tests*: Image_span_test reduce benchmark load for debug and CI renders [#4951](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4951)
+  - *build*: Type warning in assertion in jpeg2000output.cpp [#4952](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4952)
+  - *build*: Disable LERC in libTIFF local build script [#4957](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4957) (by LI JI)
+  - *ci*: Fix broken ci, debug and static cases, bump some latest [#4954](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4954)
+  - *ci*: Unbreak icc/icx CI [#4958](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4958)
+  - *admin*: Update some license notices [#4955](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4955)
+
+
 Release 3.1.7.0 (Nov 1, 2025) -- compared to 3.1.6.1
 ----------------------------------------------------
   - *openexr*: Support for idManifest and deepImageState (experimental) [#4877](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4877) (3.1.7.0)
@@ -339,6 +355,14 @@ asterisk) had not previously contributed to the project.
 
 ---
 ---
+
+
+Release 3.0.13.0 (Dec 1, 2025) -- compared to 3.0.12.0
+-------------------------------------------------------
+  - *exif*: Support EXIF 3.0 tags [#4961](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4961)
+  - *build*: Disable LERC in libTIFF local build script [#4957](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4957) (by LI JI)
+  - *ci*: Fix broken ci, debug and static cases, bump some latest [#4954](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4954)
+  - *ci*: Unbreak icc/icx CI [#4958](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4958)
 
 
 Release 3.0.12.0 (Nov 1, 2025) -- compared to 3.0.11.0
