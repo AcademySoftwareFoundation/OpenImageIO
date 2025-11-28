@@ -1661,13 +1661,13 @@ control aspects of the writing itself:
      - One of `none` (default), `strict`, or `relaxed`.
        If not `none`, the spec will be checked to see if it is compliant
        with the ACES Container format defined in `ST 2065-4`_. If it is,
-       `chromaticities` will be set to the ACES AP0 ones, `colorInteropId`
+       `chromaticities` will be set to the ACES AP0 ones, `colorInteropID`
        will be set to 'lin_ap0_scene' and the `acesImageContainerFlag`
        attribute will be set to 1.
        In `strict` mode, if the spec is non-compliant, the output will
        throw an error and avoid writing the image.
        While in `relaxed` mode, if the spec is non-compliant, `chromaticities`
-       and `colorInteropId` will be set, but `acesImageContainerFlag`
+       and `colorInteropID` will be set, but `acesImageContainerFlag`
        will NOT.
    * - ``oiio:RawColor``
      - int
