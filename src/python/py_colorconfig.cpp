@@ -161,15 +161,15 @@ declare_colorconfig(py::module& m)
                 return self.equivalent(color_space, other_color_space);
             },
             "color_space"_a, "other_color_space"_a)
-        .def("getColorInteropID",
+        .def("get_color_interop_id",
              [](const ColorConfig& self, const std::array<int, 4> cicp) {
-                 return std::string(self.getColorInteropID(cicp.data()));
+                 return std::string(self.get_color_interop_id(cicp.data()));
              })
-        .def("getCICP",
+        .def("get_cicp",
              [](const ColorConfig& self, const std::string& colorspace)
                  -> std::optional<std::array<int, 4>> {
-                 const int* cicp = self.getCICP(colorspace);
-                 if (cicp) {
+                 cspan<int> cicp = self.get_cicp(colorspace);
+                 if (!cicp.empty()) {
                      return std::array<int, 4>(
                          { cicp[0], cicp[1], cicp[2], cicp[3] });
                  }

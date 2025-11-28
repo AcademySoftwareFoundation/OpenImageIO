@@ -403,16 +403,16 @@ public:
                     string_view other_color_space) const;
 
     /// Find CICP code corresponding to the colorspace.
-    /// Returns pointer to int[4], and nullptr if not found.
+    /// Return a cspan of 4 ints, or an empty span if not found.
     ///
     /// @version 3.1
-    const int* getCICP(string_view colorspace) const;
+    cspan<int> get_cicp(string_view colorspace) const;
 
     /// Find color interop ID corresponding to the CICP code.
     /// Returns empty string if not found.
     ///
     /// @version 3.1
-    string_view getColorInteropID(const int cicp[4]) const;
+    string_view get_color_interop_id(const int cicp[4]) const;
 
     /// Return a filename or other identifier for the config we're using.
     std::string configname() const;

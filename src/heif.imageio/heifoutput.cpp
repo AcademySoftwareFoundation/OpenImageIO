@@ -254,9 +254,9 @@ HeifOutput::close()
         const ParamValue* p    = m_spec.find_attribute("CICP",
                                                        TypeDesc(TypeDesc::INT, 4));
         string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
-        const int* cicp        = (p) ? static_cast<const int*>(p->data())
-                                     : colorconfig.getCICP(colorspace);
-        if (cicp) {
+        cspan<int> cicp        = (p) ? p->as_cspan<int>()
+                                     : colorconfig.get_cicp(colorspace);
+        if (!cicp.empty()) {
             nclx->color_primaries          = heif_color_primaries(cicp[0]);
             nclx->transfer_characteristics = heif_transfer_characteristics(
                 cicp[1]);

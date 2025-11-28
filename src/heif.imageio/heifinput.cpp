@@ -295,7 +295,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
                 m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
                 const ColorConfig& colorconfig(
                     ColorConfig::default_colorconfig());
-                string_view interop_id = colorconfig.getColorInteropID(cicp);
+                string_view interop_id = colorconfig.get_color_interop_id(cicp);
                 if (!interop_id.empty())
                     m_spec.attribute("oiio:ColorSpace", interop_id);
             }

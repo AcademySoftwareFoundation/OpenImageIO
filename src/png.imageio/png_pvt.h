@@ -333,7 +333,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
             const int cicp[4] = { pri, trc, mtx, vfr };
             spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::INT, 4), cicp);
             const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-            string_view interop_id = colorconfig.getColorInteropID(cicp);
+            string_view interop_id = colorconfig.get_color_interop_id(cicp);
             if (!interop_id.empty())
                 spec.attribute("oiio:ColorSpace", interop_id);
         }
@@ -740,10 +740,10 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     // write colorspace metadata yet.
     const ParamValue* p = spec.find_attribute(CICP_ATTR,
                                               TypeDesc(TypeDesc::INT, 4));
-    const int* cicp     = (p) ? static_cast<const int*>(p->data())
-                          : (!wrote_colorspace) ? colorconfig.getCICP(colorspace)
-                                                : nullptr;
-    if (cicp) {
+    cspan<int> cicp     = (p) ? p->as_cspan<int>()
+                          : (!wrote_colorspace) ? colorconfig.get_cicp(colorspace)
+                                                : cspan<int>();
+    if (!cicp.empty()) {
         png_byte vals[4];
         for (int i = 0; i < 4; ++i)
             vals[i] = static_cast<png_byte>(cicp[i]);

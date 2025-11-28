@@ -2095,7 +2095,7 @@ constexpr ColorInteropID color_interop_ids[] = {
 }  // namespace
 
 string_view
-ColorConfig::getColorInteropID(const int cicp[4]) const
+ColorConfig::get_color_interop_id(const int cicp[4]) const
 {
     for (const ColorInteropID& interop : color_interop_ids) {
         if (interop.cicp[0] == cicp[0] && interop.cicp[1] == cicp[1]) {
@@ -2105,17 +2105,17 @@ ColorConfig::getColorInteropID(const int cicp[4]) const
     return "";
 }
 
-const int*
-ColorConfig::getCICP(string_view colorspace) const
+cspan<int>
+ColorConfig::get_cicp(string_view colorspace) const
 {
     if (!colorspace.empty()) {
         for (const ColorInteropID& interop : color_interop_ids) {
             if (equivalent(colorspace, interop.interop_id)) {
-                return interop.cicp.data();
+                return interop.cicp;
             }
         }
     }
-    return nullptr;
+    return cspan<int>();
 }
 
 
@@ -2775,6 +2775,7 @@ ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
         spec.attribute("oiio:Gamma", gamma);
     }
 }
+
 
 void
 set_colorspace(ImageSpec& spec, string_view colorspace)
