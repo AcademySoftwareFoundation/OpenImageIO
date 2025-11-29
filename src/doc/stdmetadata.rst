@@ -149,9 +149,11 @@ Color information
     - `"lin_ap1_scene"`, `"ACEScg"` :  ACEScg color space encoding.
     - `"lin_ap0_scene"` :  ACES2065-1, the recommended ACES space for
       interchange and archiving.
-    - `"srgb_rec709_scene"` : Using standard (piecewise) sRGB response and
+    - `"srgb_rec709_display"` : Using standard (piecewise) sRGB response and
       primaries. The token `"sRGB"` is treated as a synonym.
-    - `"g22_rec709_scene"` : Rec709/sRGB primaries, but using a response curve
+    - `"srgb_rec709_scene"` : Same response and primaries as
+      `"srgb_rec709_display"` but for scene referred images.
+    - `"g22_rec709_display"` : Rec709/sRGB primaries, but using a response curve
       corresponding to gamma 2.2.
 
     Additionally, `"scene_linear"` is a role that is appropriate for color

@@ -15,7 +15,7 @@ nomakegps.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
     Exif:WhiteBalance: 0 (auto)
     Exif:YCbCrPositioning: 1
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:ColorSpace: "srgb_rec709_display"
 Reading nomake.jpg
 nomake.jpg           : 2048 x 1536, 3 channel, uint8 jpeg
     SHA-1: 2623446988E34395C6B0A4AA4FC75107C708BF18
@@ -43,7 +43,7 @@ nomake.jpg           : 2048 x 1536, 3 channel, uint8 jpeg
     GPS:TimeStamp: 17, 56, 33
     GPS:VersionID: 2, 2, 0, 0
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:ColorSpace: "srgb_rec709_display"
 Reading nogps.jpg
 nogps.jpg            : 2048 x 1536, 3 channel, uint8 jpeg
     SHA-1: 2623446988E34395C6B0A4AA4FC75107C708BF18
@@ -62,13 +62,13 @@ nogps.jpg            : 2048 x 1536, 3 channel, uint8 jpeg
     Exif:WhiteBalance: 0 (auto)
     Exif:YCbCrPositioning: 1
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:ColorSpace: "srgb_rec709_display"
 Reading noattribs.jpg
 noattribs.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
     SHA-1: 2623446988E34395C6B0A4AA4FC75107C708BF18
     channel list: R, G, B
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:ColorSpace: "srgb_rec709_display"
 initial keywords=
 after adding, keywords=foo; bar
 after clearing, keywords=
@@ -156,7 +156,7 @@ tahoe-icc.jpg        :  128 x   96, 3 channel, uint8 jpeg
     ICCProfile:profile_version: "2.1.0"
     ICCProfile:rendering_intent: "Perceptual"
     jpeg:subsampling: "4:2:0"
-    oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:ColorSpace: "srgb_rec709_display"
 Reading tahoe-icc.webp
 tahoe-icc.webp       :  128 x   96, 3 channel, uint8 webp
     SHA-1: 407D97F3D62F90C7F9A78AF85989ED3C06C59523
@@ -178,4 +178,4 @@ tahoe-icc.webp       :  128 x   96, 3 channel, uint8 webp
     ICCProfile:profile_size: 560
     ICCProfile:profile_version: "2.1.0"
     ICCProfile:rendering_intent: "Perceptual"
-    oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:ColorSpace: "srgb_rec709_display"
