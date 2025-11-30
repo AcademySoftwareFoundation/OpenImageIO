@@ -156,7 +156,7 @@ jobs:
             fi
       - name:  Install sonar-scanner and build-wrapper
         if: inputs.sonar == '1'
-        uses: sonarsource/sonarcloud-github-c-cpp@e4882e1621ad2fb48dddfa48287411bed34789b1 # v2.0.2
+        uses: sonarsource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
       - name: Build
         if: inputs.skip_build != '1'
         shell: bash
