@@ -2033,16 +2033,19 @@ enum class CICPRange : int {
 };
 
 struct ColorInteropID {
-    constexpr ColorInteropID(const char* interop_id)
+    constexpr ColorInteropID(const char* interop_id, const char* legacy_alias)
         : interop_id(interop_id)
+        , legacy_alias(legacy_alias)
         , cicp({ 0, 0, 0, 0 })
         , has_cicp(false)
     {
     }
 
-    constexpr ColorInteropID(const char* interop_id, CICPPrimaries primaries,
-                             CICPTransfer transfer, CICPMatrix matrix)
+    constexpr ColorInteropID(const char* interop_id, const char* legacy_alias,
+                             CICPPrimaries primaries, CICPTransfer transfer,
+                             CICPMatrix matrix)
         : interop_id(interop_id)
+        , legacy_alias(legacy_alias)
         , cicp({ int(primaries), int(transfer), int(matrix),
                  int(CICPRange::Full) })
         , has_cicp(true)
@@ -2050,67 +2053,68 @@ struct ColorInteropID {
     }
 
     const char* interop_id;
+    const char* legacy_alias;
     std::array<int, 4> cicp;
     bool has_cicp;
 };
 
 // Mapping between color interop ID and CICP, based on Color Interop Forum
-// recommendations.
+// recommendations. The legacy aliases are for older ACES configs.
 constexpr ColorInteropID color_interop_ids[] = {
     // Scene referred interop IDs first so they are the default in automatic
     // conversion from CICP to interop ID. Some are not display color spaces
     // at all, but can be represented by CICP anyway.
-    { "lin_ap1_scene" },
-    { "lin_ap0_scene" },
-    { "lin_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::Linear,
-      CICPMatrix::BT709 },
-    { "lin_p3d65_scene", CICPPrimaries::P3D65, CICPTransfer::Linear,
-      CICPMatrix::BT709 },
-    { "lin_rec2020_scene", CICPPrimaries::Rec2020, CICPTransfer::Linear,
-      CICPMatrix::Rec2020_CL },
-    { "lin_adobergb_scene" },
-    { "lin_ciexyzd65_scene", CICPPrimaries::XYZD65, CICPTransfer::Linear,
-      CICPMatrix::Unspecified },
-    { "srgb_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "g22_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::Gamma22,
-      CICPMatrix::BT709 },
-    { "g18_rec709_scene" },
-    { "srgb_ap1_scene" },
-    { "g22_ap1_scene" },
-    { "srgb_p3d65_scene", CICPPrimaries::P3D65, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "g22_adobergb_scene" },
-    { "data" },
-    { "unknown" },
+    { "lin_ap1_scene", "lin_ap1" },
+    { "lin_ap0_scene", "lin_ap0" },
+    { "lin_rec709_scene", "lin_rec709", CICPPrimaries::Rec709,
+      CICPTransfer::Linear, CICPMatrix::BT709 },
+    { "lin_p3d65_scene", "lin_p3d65", CICPPrimaries::P3D65,
+      CICPTransfer::Linear, CICPMatrix::BT709 },
+    { "lin_rec2020_scene", "lin_rec2020", CICPPrimaries::Rec2020,
+      CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
+    { "lin_adobergb_scene", "lin_adobergb" },
+    { "lin_ciexyzd65_scene", "cie_xyz_d65", CICPPrimaries::XYZD65,
+      CICPTransfer::Linear, CICPMatrix::Unspecified },
+    { "srgb_rec709_scene", "srgb_texture", CICPPrimaries::Rec709,
+      CICPTransfer::sRGB, CICPMatrix::BT709 },
+    { "g22_rec709_scene", "g22_rec709", CICPPrimaries::Rec709,
+      CICPTransfer::Gamma22, CICPMatrix::BT709 },
+    { "g18_rec709_scene", "g18_rec709" },
+    { "srgb_ap1_scene", "srgb_ap1" },
+    { "g22_ap1_scene", "g22_ap1" },
+    { "srgb_p3d65_scene", "srgb_p3d65", CICPPrimaries::P3D65,
+      CICPTransfer::sRGB, CICPMatrix::BT709 },
+    { "g22_adobergb_scene", nullptr },
+    { "data", nullptr },
+    { "unknown", nullptr },
 
     // Display referred interop IDs.
-    { "srgb_rec709_display", CICPPrimaries::Rec709, CICPTransfer::sRGB,
+    { "srgb_rec709_display", "srgb_display", CICPPrimaries::Rec709,
+      CICPTransfer::sRGB, CICPMatrix::BT709 },
+    { "g24_rec709_display", "rec1886_rec709_display", CICPPrimaries::Rec709,
+      CICPTransfer::BT709, CICPMatrix::BT709 },
+    { "srgb_p3d65_display", "p3d65_display", CICPPrimaries::P3D65,
+      CICPTransfer::sRGB, CICPMatrix::BT709 },
+    { "srgbe_p3d65_display", nullptr, CICPPrimaries::P3D65, CICPTransfer::sRGB,
       CICPMatrix::BT709 },
-    { "g24_rec709_display", CICPPrimaries::Rec709, CICPTransfer::BT709,
-      CICPMatrix::BT709 },
-    { "srgb_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "srgbe_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "pq_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::PQ,
-      CICPMatrix::Rec2020_NCL },
-    { "pq_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::PQ,
-      CICPMatrix::Rec2020_NCL },
-    { "hlg_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::HLG,
-      CICPMatrix::Rec2020_NCL },
+    { "pq_p3d65_display", "st2084_p3d65_display", CICPPrimaries::P3D65,
+      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
+    { "pq_rec2020_display", "rec2100_pq_display", CICPPrimaries::Rec2020,
+      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
+    { "hlg_rec2020_display", "rec2100_hlg_display", CICPPrimaries::Rec2020,
+      CICPTransfer::HLG, CICPMatrix::Rec2020_NCL },
     // No CICP mapping to keep previous behavior unchanged, as Gamma 2.2
     // display is more likely meant to be written as sRGB. On read the
     // scene referred interop ID will be used.
-    { "g22_rec709_display",
+    { "g22_rec709_display", nullptr
       /* CICPPrimaries::Rec709, CICPTransfer::Gamma22, CICPMatrix::BT709 */ },
     // No CICP code for Adobe RGB primaries.
-    { "g22_adobergb_display" },
-    { "g26_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::Gamma26,
-      CICPMatrix::BT709 },
-    { "g26_xyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::Gamma26,
-      CICPMatrix::Unspecified },
-    { "pq_xyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::PQ,
+    { "g22_adobergb_display", nullptr },
+    { "g26_p3d65_display", "p3_dci_display", CICPPrimaries::P3D65,
+      CICPTransfer::Gamma26, CICPMatrix::BT709 },
+    { "g26_xyzd65_display", nullptr, CICPPrimaries::XYZD65,
+      CICPTransfer::Gamma26, CICPMatrix::Unspecified },
+    { "pq_xyzd65_display", nullptr, CICPPrimaries::XYZD65, CICPTransfer::PQ,
       CICPMatrix::Unspecified },
 };
 }  // namespace
@@ -2131,7 +2135,9 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
     }
 #endif
     for (const ColorInteropID& interop : color_interop_ids) {
-        if (equivalent(colorspace, interop.interop_id)) {
+        if (equivalent(colorspace, interop.interop_id)
+            || (interop.legacy_alias
+                && equivalent(colorspace, interop.legacy_alias))) {
             return interop.interop_id;
         }
     }
