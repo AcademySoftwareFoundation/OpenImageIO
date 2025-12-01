@@ -2153,10 +2153,10 @@ ColorConfig::get_color_interop_id(const int cicp[4]) const
 cspan<int>
 ColorConfig::get_cicp(string_view colorspace) const
 {
-    if (!colorspace.empty()) {
+    string_view interop_id = get_color_interop_id(colorspace);
+    if (!interop_id.empty()) {
         for (const ColorInteropID& interop : color_interop_ids) {
-            if (interop.has_cicp
-                && equivalent(colorspace, interop.interop_id)) {
+            if (interop.has_cicp && interop_id == interop.interop_id) {
                 return interop.cicp;
             }
         }
