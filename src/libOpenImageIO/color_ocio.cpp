@@ -2099,8 +2099,11 @@ constexpr ColorInteropID color_interop_ids[] = {
       CICPMatrix::Rec2020_NCL },
     { "hlg_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::HLG,
       CICPMatrix::Rec2020_NCL },
-    { "g22_rec709_display", CICPPrimaries::Rec709, CICPTransfer::Gamma22,
-      CICPMatrix::BT709 },
+    // No CICP mapping to keep previous behavior unchanged, as Gamma 2.2
+    // display is more likely meant to be written as sRGB. On read the
+    // scene referred interop ID will be used.
+    { "g22_rec709_display",
+      /* CICPPrimaries::Rec709, CICPTransfer::Gamma22, CICPMatrix::BT709 */ },
     // No CICP code for Adobe RGB primaries.
     { "g22_adobergb_display" },
     { "g26_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::Gamma26,
