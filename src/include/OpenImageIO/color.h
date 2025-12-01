@@ -408,6 +408,12 @@ public:
     /// @version 3.1
     cspan<int> get_cicp(string_view colorspace) const;
 
+    /// Find color interop ID for the given colorspace.
+    /// Returns empty string if not found.
+    ///
+    /// @version 3.1
+    string_view get_color_interop_id(string_view colorspace) const;
+
     /// Find color interop ID corresponding to the CICP code.
     /// Returns empty string if not found.
     ///

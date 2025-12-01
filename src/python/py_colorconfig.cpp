@@ -162,6 +162,10 @@ declare_colorconfig(py::module& m)
             },
             "color_space"_a, "other_color_space"_a)
         .def("get_color_interop_id",
+             [](const ColorConfig& self, const std::string& colorspace) {
+                 return std::string(self.get_color_interop_id(colorspace));
+             })
+        .def("get_color_interop_id",
              [](const ColorConfig& self, const std::array<int, 4> cicp) {
                  return std::string(self.get_color_interop_id(cicp.data()));
              })
