@@ -3888,6 +3888,73 @@ sections) work with deep inputs::
 
 |
 
+.. _sec-pythoncolorconfig:
+
+
+ColorConfig
+===========
+
+The `ColorConfig` class that represents the set of color transformations that
+are allowed.
+
+If OpenColorIO is enabled at build time, this configuration is loaded at
+runtime, allowing the user to have complete control of all color transformation
+math. See the
+`OpenColorIO documentation <https://opencolorio.readthedocs.io>`_ for details.
+
+If OpenColorIO is not enabled at build time, a generic color configuration
+is provided for minimal color support.
+
+..
+  TODO: The documentation for this class is incomplete.
+
+.. py:method:: get_cicp (colorspace)
+
+    Find CICP code corresponding to the colorspace.
+    Return a sequence of 4 ints, or None if not found.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        cicp = colorconfig.get_cicp("pq_rec2020_display")
+        if cicp:
+            primaries, transfer, matrix, color_range = cicp
+
+    This function was added in OpenImageIO 3.1.
+
+
+.. py:method:: get_color_interop_id (colorspace)
+
+    Find color interop ID for the given colorspace.
+    Returns empty string if not found.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        interop_id = colorconfig.get_color_interop_id("Rec.2100-PQ - Display")
+
+    This function was added in OpenImageIO 3.1.
+
+
+.. py:method:: get_color_interop_id (cicp)
+
+    Find color interop ID corresponding to the CICP code.
+    Returns empty string if not found.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        interop_id = colorconfig.get_color_interop_id([9, 16, 9, 1])
+
+    This function was added in OpenImageIO 3.1.
+
+
 .. _sec-pythonmiscapi:
 
 Miscellaneous Utilities
