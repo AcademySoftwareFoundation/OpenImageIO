@@ -18,6 +18,8 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
+#include "imageio_pvt.h"
+
 
 using namespace OIIO;
 
@@ -224,7 +226,7 @@ adjust_spec(ImageInput* in, ImageOutput* out, const ImageSpec& inspec,
     if (gammaval != 1.0f)
         outspec.attribute("oiio:Gamma", gammaval);
     if (sRGB) {
-        outspec.set_colorspace("srgb_rec709_scene");
+        pvt::set_colorspace_srgb(outspec);
         if (!strcmp(in->format_name(), "jpeg")
             || outspec.find_attribute("Exif:ColorSpace"))
             outspec.attribute("Exif:ColorSpace", 1);

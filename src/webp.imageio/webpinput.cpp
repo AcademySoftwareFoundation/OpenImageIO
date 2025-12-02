@@ -7,6 +7,8 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "imageio_pvt.h"
+
 #include <webp/decode.h>
 #include <webp/demux.h>
 
@@ -162,7 +164,7 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
 
     m_spec = ImageSpec(w, h, (m_demux_flags & ALPHA_FLAG) ? 4 : 3, TypeUInt8);
     m_scanline_size = m_spec.scanline_bytes();
-    m_spec.set_colorspace("srgb_rec709_scene");  // webp is always sRGB
+    pvt::set_colorspace_srgb(m_spec);  // webp is always sRGB
     if (m_demux_flags & ANIMATION_FLAG) {
         m_spec.attribute("oiio:Movie", 1);
         m_frame_count       = (int)WebPDemuxGetI(m_demux, WEBP_FF_FRAME_COUNT);

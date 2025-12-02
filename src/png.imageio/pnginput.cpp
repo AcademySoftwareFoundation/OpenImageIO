@@ -177,22 +177,15 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
-                                                         "srgb_rec709_scene");
-    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-    m_srgb = false;
-    if (colorconfig.equivalent(colorspace, "srgb_rec709_scene")) {
+    if (pvt::is_colorspace_srgb(m_spec)) {
         m_srgb  = true;
         m_gamma = 1.0f;
-    } else if (colorconfig.equivalent(colorspace, "g22_rec709_scene")) {
-        m_gamma = 2.2f;
-    } else if (colorconfig.equivalent(colorspace, "g24_rec709_scene")) {
-        m_gamma = 2.4f;
-    } else if (colorconfig.equivalent(colorspace, "g18_rec709_scene")) {
-        m_gamma = 1.8f;
     } else {
-        m_gamma = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
-        // obsolete "oiio:Gamma" attrib for back compatibility
+        m_srgb  = false;
+        m_gamma = pvt::get_colorspace_rec709_gamma(m_spec);
+        if (m_gamma == 0.0f) {
+            m_gamma = 1.0f;
+        }
     }
 
     newspec         = spec();

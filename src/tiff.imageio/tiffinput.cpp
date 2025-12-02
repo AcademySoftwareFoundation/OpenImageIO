@@ -1313,11 +1313,12 @@ TIFFInput::readspec(bool read_meta)
             }
             // Exif spec says that anything other than 0xffff==uncalibrated
             // should be interpreted to be sRGB.
-            if (m_spec.get_int_attribute("Exif:ColorSpace") != 0xffff)
-                m_spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
-            // NOTE: We must set "oiio:ColorSpace" explicitly, not call
-            // set_colorspace, or it will erase several other TIFF attribs we
-            // need to preserve.
+            if (m_spec.get_int_attribute("Exif:ColorSpace") != 0xffff) {
+                // NOTE: We do not erase other attributes as we want to
+                // preserve TIFF attributes.
+                const bool erase_other_attributes = false;
+                pvt::set_colorspace_srgb(m_spec, erase_other_attributes);
+            }
         }
         // TIFFReadEXIFDirectory seems to do something to the internal state
         // that requires a TIFFSetDirectory to set things straight again.

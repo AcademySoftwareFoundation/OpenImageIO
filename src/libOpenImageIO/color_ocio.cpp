@@ -2835,5 +2835,97 @@ set_colorspace_rec709_gamma(ImageSpec& spec, float gamma)
     ColorConfig::default_colorconfig().set_colorspace_rec709_gamma(spec, gamma);
 }
 
+OIIO_NAMESPACE_3_1_END
+
+OIIO_NAMESPACE_BEGIN
+
+void
+pvt::set_colorspace_srgb(ImageSpec& spec, bool erase_other_attributes)
+{
+    if (erase_other_attributes) {
+        spec.set_colorspace("srgb_rec709_scene");
+    } else {
+        spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
+    }
+}
+
+bool
+pvt::is_colorspace_srgb(const ImageSpec& spec, bool default_to_srgb)
+{
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
+    if (default_to_srgb && colorspace.empty()) {
+        return true;
+    }
+
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view interop_id = colorconfig.get_color_interop_id(colorspace);
+    return interop_id == "srgb_rec709_scene";
+}
+
+float
+pvt::get_colorspace_rec709_gamma(const ImageSpec& spec)
+{
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
+    string_view interop_id = colorconfig.get_color_interop_id(colorspace);
+
+    // scene_linear is not guaranteed to be Rec709, here for back compatibility
+    if (colorconfig.equivalent(colorspace, "linear")
+        || colorconfig.equivalent(colorspace, "scene_linear")
+        || interop_id == "lin_rec709_scene")
+        return 1.0f;
+    else if (interop_id == "g22_rec709_scene")
+        return 2.2f;
+    // Note g24_rec709_scene is not a standard interop ID
+    else if (colorconfig.equivalent(colorspace, "g24_rec709_scene"))
+        return 2.4f;
+    else if (interop_id == "g18_rec709_scene")
+        return 1.8f;
+    // Back compatible, this is DEPRECATED(3.1)
+    else if (Strutil::istarts_with(colorspace, "Gamma")) {
+        Strutil::parse_word(colorspace);
+        float g = Strutil::from_string<float>(colorspace);
+        if (g >= 0.01f && g <= 10.0f /* sanity check */)
+            return g;
+    }
+
+    // Obsolete "oiio:Gamma" attrib for back compatibility
+    return spec.get_float_attribute("oiio:Gamma", 0.0f);
+}
+
+std::vector<uint8_t>
+pvt::get_colorspace_icc_profile(const ImageSpec& spec, bool /*from_colorspace*/)
+{
+    std::vector<uint8_t> icc_profile;
+    const ParamValue* p = spec.find_attribute("ICCProfile");
+    if (p) {
+        cspan<uint8_t> icc_profile_span = p->as_cspan<uint8_t>();
+        icc_profile.assign(icc_profile_span.begin(), icc_profile_span.end());
+    }
+    return icc_profile;
+}
+
+void
+pvt::set_colorspace_cicp(ImageSpec& spec, const int cicp[4])
+{
+    spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view interop_id = colorconfig.get_color_interop_id(cicp);
+    if (!interop_id.empty())
+        spec.attribute("oiio:ColorSpace", interop_id);
+}
+
+cspan<int>
+pvt::get_colorspace_cicp(const ImageSpec& spec, bool from_colorspace)
+{
+    const ParamValue* p = spec.find_attribute("CICP",
+                                              TypeDesc(TypeDesc::INT, 4));
+    if (p)
+        return p->as_cspan<int>();
+    if (!from_colorspace)
+        return cspan<int>();
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    return colorconfig.get_cicp(spec.get_string_attribute("oiio:ColorSpace"));
+}
 
 OIIO_NAMESPACE_END

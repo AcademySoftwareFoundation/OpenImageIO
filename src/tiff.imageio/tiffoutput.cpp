@@ -393,9 +393,6 @@ TIFFOutput::supports(string_view feature) const
 }
 
 
-#define ICC_PROFILE_ATTR "ICCProfile"
-
-
 // Do all elements of vector d have value v?
 template<typename T>
 inline bool
@@ -871,18 +868,13 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     }
 
     // Write ICC profile, if we have anything
-    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
-        ICC_PROFILE_ATTR);
-    if (icc_profile_parameter != NULL) {
-        unsigned char* icc_profile
-            = (unsigned char*)icc_profile_parameter->data();
-        uint32_t length = icc_profile_parameter->type().size();
-        if (icc_profile && length)
-            TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, length, icc_profile);
+    std::vector<uint8_t> icc_profile = pvt::get_colorspace_icc_profile(m_spec);
+    if (icc_profile.size()) {
+        TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, icc_profile.size(),
+                     icc_profile.data());
     }
 
-    if (equivalent_colorspace(m_spec.get_string_attribute("oiio:ColorSpace"),
-                              "srgb_rec709_scene"))
+    if (pvt::is_colorspace_srgb(m_spec, false))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Deal with missing XResolution or YResolution, or a PixelAspectRatio

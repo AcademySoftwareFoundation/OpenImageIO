@@ -8,6 +8,8 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 
+#include "imageio_pvt.h"
+
 #include "bmp_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -262,7 +264,8 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     // Default presumption is that a BMP file is meant to look reasonable on a
     // display, so assume it's sRGB. This is not really correct -- see the
     // comments below.
-    m_spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
+    const bool erase_other_attributes = false;
+    pvt::set_colorspace_srgb(m_spec, erase_other_attributes);
 #if 0
     if (m_dib_header.size >= WINDOWS_V4
         && m_dib_header.cs_type == CSType::CalibratedRGB) {

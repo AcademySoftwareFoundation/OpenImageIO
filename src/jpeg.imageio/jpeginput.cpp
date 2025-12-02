@@ -12,6 +12,8 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "imageio_pvt.h"
+
 #include "jpeg_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -258,7 +260,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         return false;
 
     // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
-    m_spec.set_colorspace("srgb_rec709_scene");
+    pvt::set_colorspace_srgb(m_spec);
 
     if (m_cinfo.jpeg_color_space == JCS_CMYK)
         m_spec.attribute("jpeg:ColorSpace", "CMYK");
