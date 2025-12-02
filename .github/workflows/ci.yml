@@ -627,13 +627,13 @@ jobs:
             ctest_test_timeout: 1200
             setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
             benchmark: 1
-          - desc: MacOS-14-ARM aclang15/C++20/py3.12
+          - desc: MacOS-14-ARM aclang15/C++20/py3.13
             runner: macos-14
-            nametag: macos14-arm-py312
+            nametag: macos14-arm-py313
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 20
-            python_ver: "3.12"
+            python_ver: "3.13"
           - desc: MacOS-15-ARM aclang16/C++20/py3.13
             runner: macos-15
             nametag: macos15-arm-py313
