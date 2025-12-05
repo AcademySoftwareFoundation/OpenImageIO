@@ -9,14 +9,12 @@
 set -ex
 
 # Make extra space on the runners
-if [[ -e /host/root ]] ; then
-    df -h .
-    : ${CRUFT_TO_REMOVE:="/host/root/usr/share/dotnet /host/root/usr/local/lib/android /host/root/usr/local/.ghcup"}
-    time rm -rf $CRUFT_TO_REMOVE &
-    sleep 3
-    # rather than block, delete in background, but give it a few secs to start
-    # clearing things out before moving on.
-fi
+df -h .
+time rm -rf /usr/local/lib/android /host/root/usr/local/lib/android &
+sleep 3
+# rather than block, delete in background, but give it a few secs to start
+# clearing things out before moving on.
+# Other candidates, if we need it: /usr/share/dotnet /usr/local/.ghcup
 
 
 #
@@ -229,6 +227,7 @@ if [[ "$USE_ICC" != "" ]] ; then
 fi
 
 df -h .
+df -h /host/root || true
 
 # Save the env for use by other stages
 src/build-scripts/save-env.bash
