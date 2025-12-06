@@ -252,6 +252,7 @@ jobs:
       nametag: ${{ matrix.nametag || 'unnamed!' }}
       runner: ${{ matrix.runner || 'ubuntu-latest' }}
       container: ${{ matrix.container }}
+      container_volumes: ${{ matrix.container_volumes || '[]' }}
       cc_compiler: ${{ matrix.cc_compiler }}
       cxx_compiler: ${{ matrix.cxx_compiler }}
       cxx_std: ${{ matrix.cxx_std || '17' }}
