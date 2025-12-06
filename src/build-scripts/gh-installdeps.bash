@@ -7,7 +7,14 @@
 
 
 set -ex
-df -h
+
+# Make extra space on the runners
+df -h .
+time rm -rf /usr/local/lib/android /host/root/usr/local/lib/android &
+sleep 3
+# rather than block, delete in background, but give it a few secs to start
+# clearing things out before moving on.
+# Other candidates, if we need it: /usr/share/dotnet /usr/local/.ghcup
 
 
 #
@@ -219,7 +226,8 @@ if [[ "$USE_ICC" != "" ]] ; then
     export CC=icc
 fi
 
-df -h
+df -h .
+df -h /host/root || true
 
 # Save the env for use by other stages
 src/build-scripts/save-env.bash
