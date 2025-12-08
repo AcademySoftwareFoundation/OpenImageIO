@@ -238,11 +238,6 @@ WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     std::vector<uint8_t> scratch;
     data = to_native_scanline(format, data, xstride, scratch, m_dither, y, z);
     memcpy(&m_uncompressed_image[y * m_scanline_size], data, m_scanline_size);
-
-    /* If this was the final scanline, we are done. */
-    if (y == m_spec.height - 1) {
-        return write_complete_data();
-    }
     return true;
 }
 
@@ -271,9 +266,15 @@ WebpOutput::close()
         OIIO_DASSERT(m_uncompressed_image.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_uncompressed_image[0]);
-        std::vector<uint8_t>().swap(m_uncompressed_image);
     }
 
+    // Write the complete image data on close, not during write_scanline.
+    // This allows scanlines to be written in any order.
+    if (ok && m_uncompressed_image.size()) {
+        ok = write_complete_data();
+    }
+
+    std::vector<uint8_t>().swap(m_uncompressed_image);
     WebPPictureFree(&m_webp_picture);
     init();
     return ok;
