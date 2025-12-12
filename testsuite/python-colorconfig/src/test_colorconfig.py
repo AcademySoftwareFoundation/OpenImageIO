@@ -48,6 +48,11 @@ try:
     print ("equivalent('scene_linear', 'lin_srgb'):", config.equivalent("scene_linear", "lin_srgb"))
     print ("equivalent('ACEScg', 'scene_linear'):", config.equivalent("ACEScg", "scene_linear"))
     print ("equivalent('lnf', 'scene_linear'):", config.equivalent("lnf", "scene_linear"))
+    print ("get_color_interop_id('ACEScg') = ", config.get_color_interop_id("ACEScg"))
+    print ("get_color_interop_id('lin_srgb') = ", config.get_color_interop_id("lin_srgb"))
+    print ("get_color_interop_id([1, 13, 1, 1]) = ", config.get_color_interop_id([1, 13, 1, 1]))
+    print ("get_cicp('pq_rec2020_display') = ", config.get_cicp("pq_rec2020_display"))
+    print ("get_cicp('unknown_interop_id') = ", config.get_cicp("unknown_interop_id"))
     print ("")
 
     config = oiio.ColorConfig(str(TEST_CONFIG_PATH))

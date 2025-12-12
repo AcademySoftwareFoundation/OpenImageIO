@@ -96,6 +96,7 @@ ref/vp9_rec2100_pq.mkv :  384 x  216, 3 channel, uint10 FFmpeg movie
     FramesPerSecond: 24/1 (24)
     ffmpeg:codec_name: "Google VP9"
     oiio:BitsPerSample: 10
+    oiio:ColorSpace: "pq_rec2020_display"
     oiio:Movie: 1
     oiio:subimages: 2
  subimage  1:  384 x  216, 3 channel, uint10 FFmpeg movie
@@ -106,5 +107,6 @@ ref/vp9_rec2100_pq.mkv :  384 x  216, 3 channel, uint10 FFmpeg movie
     FramesPerSecond: 24/1 (24)
     ffmpeg:codec_name: "Google VP9"
     oiio:BitsPerSample: 10
+    oiio:ColorSpace: "pq_rec2020_display"
     oiio:Movie: 1
     oiio:subimages: 2

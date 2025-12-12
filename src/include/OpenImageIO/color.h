@@ -402,6 +402,24 @@ public:
     bool equivalent(string_view color_space,
                     string_view other_color_space) const;
 
+    /// Find CICP code corresponding to the colorspace.
+    /// Return a cspan of 4 ints, or an empty span if not found.
+    ///
+    /// @version 3.1
+    cspan<int> get_cicp(string_view colorspace) const;
+
+    /// Find color interop ID for the given colorspace.
+    /// Returns empty string if not found.
+    ///
+    /// @version 3.1
+    string_view get_color_interop_id(string_view colorspace) const;
+
+    /// Find color interop ID corresponding to the CICP code.
+    /// Returns empty string if not found.
+    ///
+    /// @version 3.1
+    string_view get_color_interop_id(const int cicp[4]) const;
+
     /// Return a filename or other identifier for the config we're using.
     std::string configname() const;
 
