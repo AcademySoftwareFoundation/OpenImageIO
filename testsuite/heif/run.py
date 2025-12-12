@@ -13,6 +13,11 @@ command += oiiotool (os.path.join(imagedir, "test-10bit.avif") +
                      " -d uint10 --cicp \"9,16,9,1\" -o cicp_pq.avif" )
 command += info_command ("cicp_pq.avif", safematch=True)
 
+
+command += oiiotool (os.path.join(imagedir, "test-10bit.avif") +
+                     " -d uint10 --attrib oiio:ColorSpace hlg_rec2020_display -o colorspace_hlg.avif" )
+command += info_command ("colorspace_hlg.avif", safematch=True)
+
 files = [ "greyhounds-looking-for-a-table.heic", "sewing-threads.heic" ]
 for f in files:
     command = command + info_command (os.path.join(OIIO_TESTSUITE_IMAGEDIR, f))

@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -249,10 +250,13 @@ HeifOutput::close()
         std::unique_ptr<heif_color_profile_nclx,
                         void (*)(heif_color_profile_nclx*)>
             nclx(heif_nclx_color_profile_alloc(), heif_nclx_color_profile_free);
-        const ParamValue* p = m_spec.find_attribute("CICP",
-                                                    TypeDesc(TypeDesc::INT, 4));
-        if (p) {
-            const int* cicp                = static_cast<const int*>(p->data());
+        const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+        const ParamValue* p    = m_spec.find_attribute("CICP",
+                                                       TypeDesc(TypeDesc::INT, 4));
+        string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
+        cspan<int> cicp        = (p) ? p->as_cspan<int>()
+                                     : colorconfig.get_cicp(colorspace);
+        if (!cicp.empty()) {
             nclx->color_primaries          = heif_color_primaries(cicp[0]);
             nclx->transfer_characteristics = heif_transfer_characteristics(
                 cicp[1]);
