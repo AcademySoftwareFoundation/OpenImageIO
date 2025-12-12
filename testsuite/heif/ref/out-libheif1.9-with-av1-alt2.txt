@@ -64,7 +64,17 @@ cicp_pq.avif         :   16 x   16, 4 channel, uint10 heif
     Exif:FlashPixVersion: "0100"
     heif:UnassociatedAlpha: 1
     oiio:BitsPerSample: 10
-    oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:ColorSpace: "pq_rec2020_display"
+Reading colorspace_hlg.avif
+colorspace_hlg.avif  :   16 x   16, 4 channel, uint10 heif
+    SHA-1: 0F3CAB52D479BC23E9C981DBADDFEF1F792E5540
+    channel list: R, G, B, A
+    CICP: 9, 18, 9, 1
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    heif:UnassociatedAlpha: 1
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "hlg_rec2020_display"
 Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
 ../oiio-images/heif/greyhounds-looking-for-a-table.heic : 3024 x 4032, 3 channel, uint8 heif
     SHA-1: 8064B23A1A995B0D6525AFB5248EEC6C730BBB6C
