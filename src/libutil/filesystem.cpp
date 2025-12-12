@@ -330,8 +330,15 @@ Filesystem::path_is_absolute(string_view path, bool dot_is_absolute)
 bool
 Filesystem::exists(string_view path) noexcept
 {
+#ifdef _WIN32
+    // filesystem::exists is slow on Windows for network paths, so use the
+    // WinAPI directly
+    return INVALID_FILE_ATTRIBUTES
+           != GetFileAttributesW(Strutil::utf8_to_utf16wstring(path).c_str());
+#else
     error_code ec;
     return filesystem::exists(u8path(path), ec);
+#endif
 }
 
 
