@@ -1997,6 +1997,173 @@ ColorConfig::parseColorSpaceFromString(string_view str) const
 }
 
 
+//////////////////////////////////////////////////////////////////////////
+//
+// Color Interop ID
+
+namespace {
+enum class CICPPrimaries : int {
+    Rec709  = 1,
+    Rec2020 = 9,
+    XYZD65  = 10,
+    P3D65   = 12,
+};
+
+enum class CICPTransfer : int {
+    BT709   = 1,
+    Gamma22 = 4,
+    Linear  = 8,
+    sRGB    = 13,
+    PQ      = 16,
+    Gamma26 = 17,
+    HLG     = 18,
+};
+
+enum class CICPMatrix : int {
+    RGB         = 0,
+    BT709       = 1,
+    Unspecified = 2,
+    Rec2020_NCL = 9,
+    Rec2020_CL  = 10,
+};
+
+enum class CICPRange : int {
+    Narrow = 0,
+    Full   = 1,
+};
+
+struct ColorInteropID {
+    constexpr ColorInteropID(const char* interop_id)
+        : interop_id(interop_id)
+        , cicp({ 0, 0, 0, 0 })
+        , has_cicp(false)
+    {
+    }
+
+    constexpr ColorInteropID(const char* interop_id, CICPPrimaries primaries,
+                             CICPTransfer transfer, CICPMatrix matrix)
+        : interop_id(interop_id)
+        , cicp({ int(primaries), int(transfer), int(matrix),
+                 int(CICPRange::Full) })
+        , has_cicp(true)
+    {
+    }
+
+    const char* interop_id;
+    std::array<int, 4> cicp;
+    bool has_cicp;
+};
+
+// Mapping between color interop ID and CICP, based on Color Interop Forum
+// recommendations.
+constexpr ColorInteropID color_interop_ids[] = {
+    // Scene referred interop IDs first so they are the default in automatic
+    // conversion from CICP to interop ID. Some are not display color spaces
+    // at all, but can be represented by CICP anyway.
+    { "lin_ap1_scene" },
+    { "lin_ap0_scene" },
+    { "lin_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::Linear,
+      CICPMatrix::BT709 },
+    { "lin_p3d65_scene", CICPPrimaries::P3D65, CICPTransfer::Linear,
+      CICPMatrix::BT709 },
+    { "lin_rec2020_scene", CICPPrimaries::Rec2020, CICPTransfer::Linear,
+      CICPMatrix::Rec2020_CL },
+    { "lin_adobergb_scene" },
+    { "lin_ciexyzd65_scene", CICPPrimaries::XYZD65, CICPTransfer::Linear,
+      CICPMatrix::Unspecified },
+    { "srgb_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::sRGB,
+      CICPMatrix::BT709 },
+    { "g22_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::Gamma22,
+      CICPMatrix::BT709 },
+    { "g18_rec709_scene" },
+    { "srgb_ap1_scene" },
+    { "g22_ap1_scene" },
+    { "srgb_p3d65_scene", CICPPrimaries::P3D65, CICPTransfer::sRGB,
+      CICPMatrix::BT709 },
+    { "g22_adobergb_scene" },
+    { "data" },
+    { "unknown" },
+
+    // Display referred interop IDs.
+    { "srgb_rec709_display", CICPPrimaries::Rec709, CICPTransfer::sRGB,
+      CICPMatrix::BT709 },
+    { "g24_rec709_display", CICPPrimaries::Rec709, CICPTransfer::BT709,
+      CICPMatrix::BT709 },
+    { "srgb_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
+      CICPMatrix::BT709 },
+    { "srgbe_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
+      CICPMatrix::BT709 },
+    { "pq_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::PQ,
+      CICPMatrix::Rec2020_NCL },
+    { "pq_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::PQ,
+      CICPMatrix::Rec2020_NCL },
+    { "hlg_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::HLG,
+      CICPMatrix::Rec2020_NCL },
+    // No CICP mapping to keep previous behavior unchanged, as Gamma 2.2
+    // display is more likely meant to be written as sRGB. On read the
+    // scene referred interop ID will be used.
+    { "g22_rec709_display",
+      /* CICPPrimaries::Rec709, CICPTransfer::Gamma22, CICPMatrix::BT709 */ },
+    // No CICP code for Adobe RGB primaries.
+    { "g22_adobergb_display" },
+    { "g26_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::Gamma26,
+      CICPMatrix::BT709 },
+    { "g26_xyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::Gamma26,
+      CICPMatrix::Unspecified },
+    { "pq_xyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::PQ,
+      CICPMatrix::Unspecified },
+};
+}  // namespace
+
+string_view
+ColorConfig::get_color_interop_id(string_view colorspace) const
+{
+    if (colorspace.empty())
+        return "";
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+    if (getImpl()->config_ && !disable_ocio) {
+        OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
+            std::string(resolve(colorspace)).c_str());
+        const char* interop_id = (c) ? c->getInteropID() : nullptr;
+        if (interop_id) {
+            return interop_id;
+        }
+    }
+#endif
+    for (const ColorInteropID& interop : color_interop_ids) {
+        if (equivalent(colorspace, interop.interop_id)) {
+            return interop.interop_id;
+        }
+    }
+    return "";
+}
+
+string_view
+ColorConfig::get_color_interop_id(const int cicp[4]) const
+{
+    for (const ColorInteropID& interop : color_interop_ids) {
+        if (interop.has_cicp && interop.cicp[0] == cicp[0]
+            && interop.cicp[1] == cicp[1]) {
+            return interop.interop_id;
+        }
+    }
+    return "";
+}
+
+cspan<int>
+ColorConfig::get_cicp(string_view colorspace) const
+{
+    string_view interop_id = get_color_interop_id(colorspace);
+    if (!interop_id.empty()) {
+        for (const ColorInteropID& interop : color_interop_ids) {
+            if (interop.has_cicp && interop_id == interop.interop_id) {
+                return interop.cicp;
+            }
+        }
+    }
+    return cspan<int>();
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 //

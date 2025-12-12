@@ -4,6 +4,7 @@
 
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
+#include <optional>
 #include <utility>
 
 namespace PyOpenImageIO {
@@ -160,6 +161,24 @@ declare_colorconfig(py::module& m)
                 return self.equivalent(color_space, other_color_space);
             },
             "color_space"_a, "other_color_space"_a)
+        .def("get_color_interop_id",
+             [](const ColorConfig& self, const std::string& colorspace) {
+                 return std::string(self.get_color_interop_id(colorspace));
+             })
+        .def("get_color_interop_id",
+             [](const ColorConfig& self, const std::array<int, 4> cicp) {
+                 return std::string(self.get_color_interop_id(cicp.data()));
+             })
+        .def("get_cicp",
+             [](const ColorConfig& self, const std::string& colorspace)
+                 -> std::optional<std::array<int, 4>> {
+                 cspan<int> cicp = self.get_cicp(colorspace);
+                 if (!cicp.empty()) {
+                     return std::array<int, 4>(
+                         { cicp[0], cicp[1], cicp[2], cicp[3] });
+                 }
+                 return std::nullopt;
+             })
         .def("configname", &ColorConfig::configname)
         .def_static("default_colorconfig", []() -> const ColorConfig& {
             return ColorConfig::default_colorconfig();
