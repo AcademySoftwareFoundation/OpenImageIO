@@ -71,6 +71,7 @@ receive_frame(AVCodecContext* avctx, AVFrame* picture, AVPacket* avpkt)
 
 
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/imageio.h>
 #include <iostream>
 #include <mutex>
@@ -549,6 +550,11 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
             m_codec_context->colorspace,
             m_codec_context->color_range == AVCOL_RANGE_MPEG ? 0 : 1 };
     m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view interop_id = colorconfig.get_color_interop_id(cicp);
+    if (!interop_id.empty())
+        m_spec.attribute("oiio:ColorSpace", interop_id);
+
     m_nsubimages = m_frames;
     spec         = m_spec;
     m_filename   = name;
