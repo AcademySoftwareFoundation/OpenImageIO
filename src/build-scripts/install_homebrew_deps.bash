@@ -19,6 +19,7 @@ if [[ `which brew` == "" ]] ; then
     exit 1
 fi
 
+set -ex
 
 if [[ "${DO_BREW_UPDATE:=0}" != "0" ]] ; then
     brew update >/dev/null
@@ -27,41 +28,37 @@ echo ""
 echo "Before my brew installs:"
 brew list --versions
 
-# All cases except for clang-format target, we need the dependencies.
-brew install --display-times -q gcc ccache cmake ninja || true
-brew link --overwrite gcc
-brew install --display-times -q python@${PYTHON_VERSION} || true
-brew unlink python@3.8 || true
-brew unlink python@3.9 || true
-brew unlink python@3.10 || true
-brew link --overwrite --force python@${PYTHON_VERSION} || true
-#brew upgrade --display-times -q cmake || true
-#brew install --display-times -q libtiff
-brew install --display-times -q imath openexr opencolorio
-#brew install --display-times -q libpng giflib webp
-brew install --display-times -q jpeg-turbo openjpeg libultrahdr
-brew install --display-times -q freetype libraw dcmtk pybind11 numpy || true
-brew install --display-times -q ffmpeg libheif ptex || true
-brew install --display-times -q tbb || true
-brew install --display-times -q openvdb || true
-brew install --display-times -q robin-map || true
-if [[ "${USE_OPENCV}" != "0" ]] && [[ "${INSTALL_OPENCV:=1}" != "0" ]] ; then
-    brew install --display-times -q opencv || true
+if [[ "$OIIO_BREW_INSTALL_PACKAGES" == "" ]] ; then
+    OIIO_BREW_INSTALL_PACKAGES=" \
+        ccache \
+        dcmtk \
+        ffmpeg \
+        imath \
+        libheif \
+        libraw \
+        libultrahdr \
+        numpy \
+        opencolorio \
+        openexr \
+        openjpeg \
+        openvdb \
+        ptex \
+        pybind11 \
+        robin-map \
+        tbb \
+        "
+    if [[ "${USE_OPENCV}" != "0" ]] && [[ "${INSTALL_OPENCV:=1}" != "0" ]] ; then
+        OIIO_BREW_INSTALL_PACKAGES+=" opencv"
+    fi
+    if [[ "${USE_QT:=1}" != "0" ]] && [[ "${INSTALL_QT:=1}" != "0" ]] ; then
+        OIIO_BREW_INSTALL_PACKAGES+=" qt${QT_VERSION}"
+    fi
 fi
-if [[ "${USE_QT:=1}" != "0" ]] && [[ "${INSTALL_QT:=1}" != "0" ]] ; then
-    brew install --display-times -q qt${QT_VERSION}
-fi
-if [[ "${USE_LLVM:=0}" != "0" ]] || [[ "${LLVMBREWVER}" != "" ]]; then
-    brew install --display-times -q llvm${LLVMBREWVER}
-    export PATH=/usr/local/opt/llvm/bin:$PATH
-fi
+brew install --display-times -q $OIIO_BREW_INSTALL_PACKAGES $OIIO_BREW_EXTRA_INSTALL_PACKAGES || true
 
 echo ""
 echo "After brew installs:"
 brew list --versions
-
-# Needed on some systems
-pip${PYTHON_VERSION} install numpy
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
