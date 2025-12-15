@@ -483,7 +483,7 @@ ColorConfig::Impl::inventory()
     add("lin_rec709", 0, linflags);
     add("srgb_rec709_display", 1, CSInfo::is_srgb_display);
     add("srgb_rec709_scene", 1, CSInfo::is_srgb_scene);
-    add("sRGB", 1, CSInfo::is_srgb_display);
+    add("sRGB", 1, CSInfo::is_srgb_scene);
     add("Rec709", 2, CSInfo::is_Rec709);
 
     for (auto&& cs : colorspaces)
@@ -600,14 +600,14 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
     //
     if (Strutil::iequals(cs.name, "srgb_rec709_display")
         || Strutil::iequals(cs.name, "srgb_display")
-        || Strutil::iequals(cs.name, "sRGB - Display")
-        || Strutil::iequals(cs.name, "sRGB")) {
+        || Strutil::iequals(cs.name, "sRGB - Display")) {
         cs.setflag(CSInfo::is_srgb_display, srgb_display_alias);
     } else if (Strutil::iequals(cs.name, "srgb_rec709_scene")
                || Strutil::iequals(cs.name, "srgb_tx")
                || Strutil::iequals(cs.name, "srgb_texture")
                || Strutil::iequals(cs.name, "srgb texture")
-               || Strutil::iequals(cs.name, "sRGB - Texture")) {
+               || Strutil::iequals(cs.name, "sRGB - Texture")
+               || Strutil::iequals(cs.name, "sRGB")) {
         cs.setflag(CSInfo::is_srgb_scene, srgb_scene_alias);
     } else if (Strutil::iequals(cs.name, "lin_rec709_scene")
                || Strutil::iequals(cs.name, "lin_rec709")
@@ -1386,12 +1386,12 @@ ColorConfig::Impl::resolve(string_view name) const
     // Maybe it's an informal alias of common names?
     spin_rw_write_lock lock(m_mutex);
     if ((Strutil::iequals(name, "sRGB")
-         || Strutil::iequals(name, "srgb_rec709_display"))
-        && !srgb_display_alias.empty())
-        return srgb_display_alias;
-    if (Strutil::iequals(name, "srgb_rec709_scene")
+         || Strutil::iequals(name, "srgb_rec709_scene"))
         && !srgb_scene_alias.empty())
         return srgb_scene_alias;
+    if (Strutil::iequals(name, "srgb_rec709_display")
+        && !srgb_display_alias.empty())
+        return srgb_display_alias;
     if ((Strutil::iequals(name, "lin_srgb")
          || Strutil::iequals(name, "lin_rec709")
          || Strutil::iequals(name, "lin_rec709_scene")

@@ -18,7 +18,7 @@ resolve('foo'): foo
 resolve('linear'): Linear Rec.709 (sRGB)
 resolve('scene_linear'): ACEScg
 resolve('lin_srgb'): Linear Rec.709 (sRGB)
-resolve('srgb'): sRGB - Display
+resolve('srgb'): sRGB Encoded Rec.709 (sRGB)
 resolve('ACEScg'): ACEScg
 equivalent('lin_srgb', 'srgb'): False
 equivalent('scene_linear', 'srgb'): False
