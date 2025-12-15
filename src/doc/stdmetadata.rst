@@ -150,7 +150,8 @@ Color information
     - `"lin_ap0_scene"` :  ACES2065-1, the recommended ACES space for
       interchange and archiving.
     - `"srgb_rec709_display"` : Using standard (piecewise) sRGB response and
-      primaries. The token `"sRGB"` is treated as a synonym.
+      primaries. The token `"sRGB"` is treated as a synonym, but it is
+      recommended to use the more specific interop ID.
     - `"srgb_rec709_scene"` : Same response and primaries as
       `"srgb_rec709_display"` but for scene referred images.
     - `"g22_rec709_display"` : Rec709/sRGB primaries, but using a response curve

@@ -912,10 +912,10 @@ public:
     /// 1. Assigning to the delegate adds a metadata attribute:
     ///
     ///        ImageSpec spec;
-    ///        spec["foo"] = 42;                   // int
-    ///        spec["pi"] = float(M_PI);           // float
-    ///        spec["oiio:ColorSpace"] = "sRGB";   // string
-    ///        spec["cameratoworld"] = Imath::Matrix44(...);  // matrix
+    ///        spec["foo"] = 42;                                  // int
+    ///        spec["pi"] = float(M_PI);                          // float
+    ///        spec["oiio:ColorSpace"] = "srgb_rec709_display";   // string
+    ///        spec["cameratoworld"] = Imath::Matrix44(...);      // matrix
     ///
     ///    Be very careful, the attribute's type will be implied by the C++
     ///    type of what you assign.

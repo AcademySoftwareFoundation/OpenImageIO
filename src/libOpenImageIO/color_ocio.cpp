@@ -2100,7 +2100,8 @@ struct ColorInteropID {
 // Mapping between color interop ID and CICP, based on Color Interop Forum
 // recommendations.
 constexpr ColorInteropID color_interop_ids[] = {
-    // Display referred interop IDs.
+    // Display referred interop IDs first so they are the default in automatic.
+    // conversion from CICP to interop ID.
     { "srgb_rec709_display", CICPPrimaries::Rec709, CICPTransfer::sRGB,
       CICPMatrix::BT709 },
     // Not all software interprets this CICP the same, see the
@@ -2137,9 +2138,9 @@ constexpr ColorInteropID color_interop_ids[] = {
     { "ocio:lin_ciexyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::Linear,
       CICPMatrix::Unspecified },
 
-    // Scene referred interop IDs first so they are the default in automatic
-    // conversion from CICP to interop ID. Some are not display color spaces
-    // at all, but can be represented by CICP anyway.
+    // Scene referred interop IDs. These have CICPs even if it can be argued
+    // those are only meant for display color spaces. It still improves interop
+    // with other software that does not care about the distinction.
     { "lin_ap1_scene" },
     { "lin_ap0_scene" },
     { "lin_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::Linear,
@@ -2199,7 +2200,7 @@ string_view
 ColorConfig::get_color_interop_id(const int cicp[4],
                                   const string_view prefer_image_state) const
 {
-    string_view other_interop_id;
+    string_view other_interop_id = "";
     for (const ColorInteropID& interop : color_interop_ids) {
         if (interop.has_cicp && interop.cicp[0] == cicp[0]
             && interop.cicp[1] == cicp[1]) {

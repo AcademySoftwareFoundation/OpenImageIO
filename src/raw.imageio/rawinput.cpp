@@ -578,8 +578,7 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
     } else if (cs.empty() || colorconfig.equivalent(cs, "srgb_rec709_display")
-               || colorconfig.equivalent(cs, "srgb_rec709_scene")
-               || Strutil::iequals(cs, "sRGB") /* Necessary? */) {
+               || colorconfig.equivalent(cs, "srgb_rec709_scene")) {
         // Request explicit sRGB, including usual sRGB response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0 / 2.4;
@@ -589,7 +588,7 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
                || Strutil::iequals(cs, "lin_srgb")
                || Strutil::iequals(cs, "lin_rec709")
                || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
-        // Request "sRGB" primaries, linear response
+        // Request sRGB primaries, linear response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
