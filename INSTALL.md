@@ -71,7 +71,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for WebP images:
      * WebP >= 1.1 (tested through 1.6)
  * If you want support for Ptex:
-     * Ptex >= 2.3.1 (probably works for older; tested through 2.4.3)
+     * Ptex >= 2.3.1 (probably works for older; tested through 2.5)
  * If you want to be able to do font rendering into images:
      * Freetype >= 2.10.0 (tested through 2.14)
  * If you want to be able to read "ultra-HDR" embedded in JPEG files:

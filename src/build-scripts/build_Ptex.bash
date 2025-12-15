@@ -33,6 +33,7 @@ git checkout ${PTEX_VERSION} --force
 
 time cmake -S . -B ${PTEX_BUILD_DIR} -DCMAKE_BUILD_TYPE=Release \
            -DCMAKE_INSTALL_PREFIX=${PTEX_INSTALL_DIR} \
+           -DCMAKE_CXX_STANDARD=17 \
            ${PTEX_CONFIG_OPTS}
 time cmake --build ${PTEX_BUILD_DIR} --config Release --target install
 
