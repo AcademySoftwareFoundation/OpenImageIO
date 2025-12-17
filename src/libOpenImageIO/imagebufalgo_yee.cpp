@@ -52,7 +52,7 @@ public:
         if (lev >= PYRAMID_MAX_LEVELS)
             return 0.0f;
         else
-            return level[lev].getchannel(x, y, 0, 1);
+            return level[lev].getchannel(x, y, 0, 0);
     }
 
 #if 0 /* unused */
@@ -65,7 +65,7 @@ public:
     float operator()(int x, int y, int lev) const
     {
         OIIO_DASSERT(lev < PYRAMID_MAX_LEVELS);
-        return level[lev].getchannel(x, y, 0, 1);
+        return level[lev].getchannel(x, y, 0, 0);
     }
 #endif
 
