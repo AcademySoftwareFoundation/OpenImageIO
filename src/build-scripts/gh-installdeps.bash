@@ -96,14 +96,17 @@ else
     if [[ "${SKIP_SYSTEM_DEPS_INSTALL}" != "1" ]] ; then
         time sudo apt-get -q install -y --fix-missing \
             git cmake ninja-build ccache g++ \
-            libilmbase-dev libopenexr-dev \
-            libtiff-dev libgif-dev libpng-dev \
+            libtiff-dev libgif-dev libpng-dev libjpeg-dev \
             libraw-dev libwebp-dev \
             libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
             dcmtk libopenvdb-dev \
             libfreetype6-dev \
             libopencolorio-dev \
-            libtbb-dev || true
+            libtbb-dev \
+            libdeflate-dev bzip2
+        # Iffy ones get the "|| true" treatment so failure is ok
+        time sudo apt-get -q install -y --fix-missing \
+            libjxl-dev || true
     fi
     if [[ "${USE_OPENCV}" != "0" ]] && [[ "${INSTALL_OPENCV}" != "0" ]] ; then
         sudo apt-get -q install -y --fix-missing libopencv-dev || true
@@ -131,6 +134,10 @@ else
        time sudo apt-get -q install -y libheif-plugin-aomdec \
             libheif-plugin-aomenc libheif-plugin-libde265 \
             libheif-plugin-x265 libheif-dev || true
+    fi
+
+    if [[ "${USE_FFMPEG}" != "0" ]] ; then
+        time sudo apt-get -q install -y ffmpeg || true
     fi
 
     export CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
