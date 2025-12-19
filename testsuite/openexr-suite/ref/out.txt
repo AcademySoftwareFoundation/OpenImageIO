@@ -369,3 +369,37 @@ Full command line was:
 oiiotool ERROR: -o : Cannot output non-compliant ACES Container in 'strict' mode. REASON: EXR data type is not 'HALF' as required for an ACES Container.
 Full command line was:
 > oiiotool --create 4x4 3 -d float --compression none -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr
+Reading color_interop_id_scene_linear.exr
+color_interop_id_scene_linear.exr :    4 x    4, 3 channel, float openexr
+    SHA-1: D7699308C38CD04EEB732577A82D31D04E05A339
+    channel list: R, G, B
+    colorInteropID: "lin_ap1_scene"
+    compression: "zip"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap1_scene"
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
+Reading color_interop_id_linear_adobergb.exr
+color_interop_id_linear_adobergb.exr :    4 x    4, 3 channel, float openexr
+    SHA-1: D7699308C38CD04EEB732577A82D31D04E05A339
+    channel list: R, G, B
+    colorInteropID: "lin_adobergb_scene"
+    compression: "zip"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_adobergb_scene"
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
+Reading color_interop_id_unknown.exr
+color_interop_id_unknown.exr :    4 x    4, 3 channel, float openexr
+    SHA-1: D7699308C38CD04EEB732577A82D31D04E05A339
+    channel list: R, G, B
+    compression: "zip"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:subimages: 1
+    openexr:lineOrder: "increasingY"

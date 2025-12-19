@@ -13,6 +13,7 @@
 #include <numeric>
 
 #include <OpenImageIO/Imath.h>
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/platform.h>
 
 #include <OpenEXR/IlmThreadPool.h>
@@ -1024,6 +1025,15 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
                 non_compliance_reason);
             return false;
         }
+    }
+
+    // Set color interop ID from colorspace
+    if (spec.get_string_attribute("colorInteropID").empty()) {
+        const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+        string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
+        string_view interop_id = colorconfig.get_color_interop_id(colorspace);
+        if (!interop_id.empty())
+            spec.attribute("colorInteropID", interop_id);
     }
 
     // Deal with all other params
