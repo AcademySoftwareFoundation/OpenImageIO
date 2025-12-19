@@ -575,8 +575,6 @@ put_parameter(png_structp& sp, png_infop& ip, const std::string& _name,
     // prefix of "oiio:" or the name of any other file format.
     auto colonpos = name.find(':');
     if (colonpos != std::string::npos) {
-        auto parts = Strutil::splitsv(name, ":", 2);
-        OIIO_DASSERT(parts.size() == 2);
         std::string prefix = Strutil::lower(name.substr(0, colonpos));
         if (prefix != "png" && is_imageio_format_name(prefix))
             return false;
