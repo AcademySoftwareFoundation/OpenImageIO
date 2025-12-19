@@ -1,11 +1,14 @@
 ---
 name: Feature request
 about: I have a concrete idea about how to improve OpenImageIO.
-title: "[FEATURE REQUEST]"
+title: "feat:"
 labels: ''
 assignees: ''
 
 ---
+
+<!-- THESE ARE JUST SUGGESTIONS. FEEL FREE TO DELETE ALL OF THIS AND -->
+<!-- WRITE YOUR OWN THOROUGH FEATURE REQUEST.                        -->
 
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
