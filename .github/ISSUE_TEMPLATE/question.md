@@ -1,7 +1,7 @@
 ---
 name: Question
 about: How do I...  I need help with...
-title: "[HELP]"
+title: "help:"
 labels: ''
 assignees: ''
 
@@ -18,8 +18,8 @@ But if you are just asking a question:
 * Am I doing something wrong?
 * I can't build OpenImageIO
 
-For anything of this nature, the best way to get help using OpenImageIO is
-to ask a question on the [oiio-dev developer mail list](https://lists.aswf.io/g/oiio-dev).
+For anything of this nature, the best way to get help using OpenImageIO is to
+ask a question on the [oiio-dev developer mail list](https://lists.aswf.io/g/oiio-dev) or the [ASWF Slack](https://slack.aswf.io) `#openimageio` channel.
 
 The [documentation](https://docs.openimageio.org)
 is pretty comprehensive, so please check there first; you may find the answer

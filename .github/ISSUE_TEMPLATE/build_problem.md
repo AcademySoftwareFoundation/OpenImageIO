@@ -1,7 +1,7 @@
 ---
 name: Build problems
 about: I'm having trouble building OIIO. Help!
-title: "[BUILD]"
+title: "build:"
 labels: ''
 assignees: ''
 
@@ -10,7 +10,8 @@ assignees: ''
 **PLEASE DO NOT REPORT BUILD TROUBLES AS GITHUB "ISSUES" UNLESS YOU ARE REALLY SURE IT'S A BUG**
 
 The best way to get help with your build problems is to ask a question on the
-[oiio-dev developer mail list](https://lists.aswf.io/g/oiio-dev).
+[oiio-dev developer mail list](https://lists.aswf.io/g/oiio-dev) or on the
+[ASWF Slack](https://slack.aswf.io) `#openimageio` channel.
 
 When you email about this, please attach one or both of the following:
 1. The full verbose build log, which you can create like this:
