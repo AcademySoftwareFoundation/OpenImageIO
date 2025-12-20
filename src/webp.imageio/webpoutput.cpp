@@ -11,6 +11,8 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
 
+#include "imageio_pvt.h"
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace webp_pvt {
@@ -142,16 +144,8 @@ bool
 WebpOutput::write_complete_data()
 {
     // Check if we have an optional ICC Profile to write.
-    const unsigned char* icc_data           = nullptr;
-    uint32_t icc_data_length                = 0;
-    bool has_icc_data                       = false;
-    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
-        "ICCProfile");
-    if (icc_profile_parameter != nullptr) {
-        icc_data        = (const unsigned char*)icc_profile_parameter->data();
-        icc_data_length = icc_profile_parameter->type().size();
-        has_icc_data    = (icc_data && icc_data_length > 0);
-    }
+    std::vector<uint8_t> icc_profile = pvt::get_colorspace_icc_profile(m_spec);
+    const bool has_icc_data          = icc_profile.size() > 0;
 
     // If we have ICC data, encode to memory first. This is required in order
     // to use the WebPMux assembly API below.
@@ -203,7 +197,7 @@ WebpOutput::write_complete_data()
         WebPData image_data = { wrt.mem, wrt.size };
         WebPMuxSetImage(mux, &image_data, false);
 
-        WebPData icc_chunk = { icc_data, size_t(icc_data_length) };
+        WebPData icc_chunk = { icc_profile.data(), icc_profile.size() };
         WebPMuxSetChunk(mux, "ICCP", &icc_chunk, false);
 
         WebPData assembly;

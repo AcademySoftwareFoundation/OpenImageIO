@@ -15,6 +15,8 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "imageio_pvt.h"
+
 #ifdef USE_OPENJPH
 #    include <openjph/ojph_codestream.h>
 #    include <openjph/ojph_file.h>
@@ -369,7 +371,7 @@ Jpeg2000Input::ojph_read_header()
     m_spec = ImageSpec(w, h, ch, dtype);
     m_spec.default_channel_names();
     m_spec.attribute("oiio:BitsPerSample", siz.get_bit_depth(0));
-    m_spec.set_colorspace("srgb_rec709_scene");
+    pvt::set_colorspace_srgb(m_spec);
 
     return true;
 }
@@ -617,7 +619,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     m_spec.full_height = m_image->y1;
 
     m_spec.attribute("oiio:BitsPerSample", maxPrecision);
-    m_spec.set_colorspace("srgb_rec709_scene");
+    pvt::set_colorspace_srgb(m_spec);
 
     if (m_image->icc_profile_len && m_image->icc_profile_buf) {
         m_spec.attribute("ICCProfile",

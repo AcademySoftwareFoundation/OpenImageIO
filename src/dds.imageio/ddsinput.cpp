@@ -15,6 +15,8 @@
 #include <OpenImageIO/parallel.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "imageio_pvt.h"
+
 #include "dds_pvt.h"
 #define BCDEC_IMPLEMENTATION
 #include "bcdec.h"
@@ -828,7 +830,7 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     if (bpp != 0)
         m_spec.attribute("oiio:BitsPerSample", bpp);
 
-    const char* colorspace = nullptr;
+    bool is_srgb = false;
 
     if (m_dds.fmt.fourCC == DDS_4CC_DX10) {
         switch (m_dx10.dxgiFormat) {
@@ -838,18 +840,17 @@ DDSInput::seek_subimage(int subimage, int miplevel)
         case DDS_FORMAT_BC7_UNORM_SRGB:
         case DDS_FORMAT_R8G8B8A8_UNORM_SRGB:
         case DDS_FORMAT_B8G8R8A8_UNORM_SRGB:
-        case DDS_FORMAT_B8G8R8X8_UNORM_SRGB:
-            colorspace = "srgb_rec709_scene";
-            break;
+        case DDS_FORMAT_B8G8R8X8_UNORM_SRGB: is_srgb = true; break;
         }
     }
 
-    // linear color space for HDR-ish images
-    if (colorspace == nullptr
-        && (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT))
-        colorspace = "lin_rec709_scene";
-
-    m_spec.set_colorspace(colorspace);
+    if (is_srgb) {
+        pvt::set_colorspace_srgb(m_spec);
+    } else if (!is_srgb
+               && (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT)) {
+        // linear color space for HDR-ish images
+        m_spec.set_colorspace("lin_rec709_scene");
+    }
 
     m_spec.default_channel_names();
     // Special case: if a 2-channel DDS RG or YA?

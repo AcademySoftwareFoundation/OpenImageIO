@@ -60,7 +60,8 @@ tiles.
      - Version of the BMP file format
    * - ``oiio:ColorSpace``
      - string
-     - currently, it is always ``"sRGB"`` (we presume all BMP files are sRGB)
+     - currently, it is always ``"srgb_rec709_display"`` or
+       ``"srgb_rec709_scene"`` (we presume all BMP files are sRGB)
 
 **Configuration settings for BMP input**
 

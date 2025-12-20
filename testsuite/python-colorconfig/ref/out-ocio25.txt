@@ -1,8 +1,8 @@
-getNumColorSpaces = 25
-getColorSpaceNames = ['sRGB - Display', 'Gamma 2.2 Rec.709 - Display', 'Display P3 - Display', 'Display P3 HDR - Display', 'P3-D65 - Display', 'Rec.1886 Rec.709 - Display', 'Rec.2100-PQ - Display', 'ST2084-P3-D65 - Display', 'ACES2065-1', 'ACEScc', 'ACEScct', 'ACEScg', 'sRGB Encoded Rec.709 (sRGB)', 'Gamma 1.8 Encoded Rec.709', 'Gamma 2.2 Encoded Rec.709', 'Gamma 2.4 Encoded Rec.709', 'sRGB Encoded P3-D65', 'Gamma 2.2 Encoded AdobeRGB', 'sRGB Encoded AP1', 'Gamma 2.2 Encoded AP1', 'Linear AdobeRGB', 'Linear P3-D65', 'Linear Rec.2020', 'Linear Rec.709 (sRGB)', 'Raw']
-Index of 'lin_srgb' = 23
+getNumColorSpaces = 27
+getColorSpaceNames = ['CIE XYZ-D65 - Display-referred', 'sRGB - Display', 'Gamma 2.2 Rec.709 - Display', 'Display P3 - Display', 'Display P3 HDR - Display', 'P3-D65 - Display', 'Rec.1886 Rec.709 - Display', 'Rec.2100-PQ - Display', 'ST2084-P3-D65 - Display', 'ACES2065-1', 'ACEScc', 'ACEScct', 'ACEScg', 'sRGB Encoded Rec.709 (sRGB)', 'Gamma 1.8 Encoded Rec.709', 'Gamma 2.2 Encoded Rec.709', 'Gamma 2.4 Encoded Rec.709', 'sRGB Encoded P3-D65', 'Gamma 2.2 Encoded AdobeRGB', 'sRGB Encoded AP1', 'Gamma 2.2 Encoded AP1', 'CIE XYZ-D65 - Scene-referred', 'Linear AdobeRGB', 'Linear P3-D65', 'Linear Rec.2020', 'Linear Rec.709 (sRGB)', 'Raw']
+Index of 'lin_srgb' = 25
 Index of 'unknown' = -1
-Name of color space 2 = Display P3 - Display
+Name of color space 2 = Gamma 2.2 Rec.709 - Display
 getNumLooks = 1
 getLookNames = ['ACES 1.3 Reference Gamut Compression']
 getNumDisplays = 8
@@ -28,7 +28,7 @@ equivalent('ACEScg', 'scene_linear'): True
 equivalent('lnf', 'scene_linear'): False
 get_color_interop_id('ACEScg') =  lin_ap1_scene
 get_color_interop_id('lin_srgb') =  lin_rec709_scene
-get_color_interop_id([1, 13, 1, 1]) =  srgb_rec709_scene
+get_color_interop_id([1, 13, 1, 1]) =  srgb_rec709_display
 get_cicp('pq_rec2020_display') =  [9, 16, 9, 1]
 get_cicp('unknown_interop_id') =  None
 

@@ -18,6 +18,8 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "imageio_pvt.h"
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
@@ -436,18 +438,14 @@ DPXOutput::prep_subimage(int s, bool allocate)
     m_desc = get_image_descriptor();
 
     // transfer function
-    const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
-    std::string colorspace = spec_s.get_string_attribute("oiio:ColorSpace", "");
-    if (colorconfig.equivalent(colorspace, "lin_rec709_scene"))
-        m_transfer = dpx::kLinear;
-    else if (colorconfig.equivalent(colorspace, "srgb_rec709_scene"))
+    const float gamma = pvt::get_colorspace_rec709_gamma(spec_s);
+    if (pvt::is_colorspace_srgb(spec_s, false))
         m_transfer = dpx::kITUR709;
-    else if (colorconfig.equivalent(colorspace, "g22_rec709_scene")
-             || colorconfig.equivalent(colorspace, "g24_rec709_scene")
-             || colorconfig.equivalent(colorspace, "g18_rec709_scene")
-             || Strutil::istarts_with(colorspace, "Gamma"))
+    else if (gamma == 1.0f)
+        m_transfer = dpx::kLinear;
+    else if (gamma != 0.0f)
         m_transfer = dpx::kUserDefined;
-    else if (colorconfig.equivalent(colorspace, "KodakLog"))
+    else if (spec_s.get_string_attribute("oiio:ColorSpace") == "KodakLog")
         m_transfer = dpx::kLogarithmic;
     else {
         std::string dpxtransfer = spec_s.get_string_attribute("dpx:Transfer",
