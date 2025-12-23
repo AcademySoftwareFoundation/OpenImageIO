@@ -19,3 +19,26 @@ tahoe-icc.jxl        :  128 x   96, 3 channel, uint8 jpegxl
     ICCProfile:profile_size: 560
     ICCProfile:profile_version: "2.1.0"
     ICCProfile:rendering_intent: "Perceptual"
+Reading tahoe-cicp-pq.jxl
+tahoe-cicp-pq.jxl    :  128 x   96, 3 channel, uint8 jpegxl
+    SHA-1: 069F1A3E5567349C2D34E535B29913029EF1B09C
+    channel list: R, G, B
+    CICP: 9, 16, 0, 1
+    ICCProfile: 0, 0, 16, 248, 106, 120, 108, 32, 4, 64, 0, 0, 109, 110, 116, 114, ... [4344 x uint8]
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1786276896
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "CC0"
+    ICCProfile:creation_date: "2019:12:01 00:00:00"
+    ICCProfile:creator_signature: "6a786c20"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "0"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Apple Computer, Inc."
+    ICCProfile:profile_connection_space: "CIELAB"
+    ICCProfile:profile_description: "RGB_D65_202_Per_PeQ"
+    ICCProfile:profile_size: 4344
+    ICCProfile:profile_version: "4.4.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    oiio:ColorSpace: "pq_rec2020_display"
