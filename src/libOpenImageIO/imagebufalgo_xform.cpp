@@ -1152,15 +1152,16 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
              int nthreads)
 {
     namespace hn = hwy::HWY_NAMESPACE;
-    using D      = hn::ScalableTag<float>;
-    using Rebind = hn::Rebind<int32_t, D>;
+    using SimdType = std::conditional_t<std::is_same_v<DSTTYPE, double>, double, float>;
+    using D        = hn::ScalableTag<SimdType>;
+    using Rebind   = hn::Rebind<int32_t, D>;
 
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& srcspec(src.spec());
         const ImageSpec& dstspec(dst.spec());
         int nchannels = src.nchannels();
 
-        // Local copies of the source image window, converted to float
+        // Local copies of the source image window, converted to SimdType
         float srcfx = srcspec.full_x;
         float srcfy = srcspec.full_y;
         float srcfw = srcspec.full_width;
@@ -1189,7 +1190,7 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
             float t      = (y - dstfy + 0.5f) * dstpixelheight;
             float src_yf = srcfy + t * srcfh;
             int src_y    = ifloor(src_yf);
-            float fy     = src_yf - src_y;
+            SimdType fy  = (SimdType)(src_yf - src_y);
 
             // Clamp Y to valid range
             int src_y_clamped = clamp(src_y, src.ybegin(), src.yend() - 1);
@@ -1217,13 +1218,13 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                 // Mask for active lanes
                 auto mask = hn::FirstN(d, n);
 
-                auto x_float = hn::ConvertTo(d, idx_i32);
+                auto x_simd = hn::ConvertTo(d, idx_i32);
                 auto s = hn::Mul(
-                    hn::Sub(hn::Add(x_float, hn::Set(d, 0.5f)),
-                            hn::Set(d, dstfx)),
-                    hn::Set(d, dstpixelwidth));
-                auto src_xf_vec = hn::MulAdd(s, hn::Set(d, srcfw),
-                                             hn::Set(d, srcfx));
+                    hn::Sub(hn::Add(x_simd, hn::Set(d, (SimdType)0.5f)),
+                            hn::Set(d, (SimdType)dstfx)),
+                    hn::Set(d, (SimdType)dstpixelwidth));
+                auto src_xf_vec = hn::MulAdd(s, hn::Set(d, (SimdType)srcfw),
+                                             hn::Set(d, (SimdType)srcfx));
 
                 auto src_x_vec = hn::Floor(src_xf_vec);
                 auto fx        = hn::Sub(src_xf_vec, src_x_vec);
@@ -1243,7 +1244,7 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                 // Loop over channels
                 for (int c = roi.chbegin; c < roi.chend; ++c) {
                     // Manual gather loop for now to be safe with types and offsets
-                    float v00_arr[16], v01_arr[16], v10_arr[16], v11_arr[16];
+                    SimdType v00_arr[16], v01_arr[16], v10_arr[16], v11_arr[16];
                     int32_t x0_arr[16], x1_arr[16];
                     hn::Store(x_offset, d_i32, x0_arr);
                     hn::Store(x1_offset, d_i32, x1_arr);
@@ -1252,8 +1253,8 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                         size_t off0 = (size_t)x0_arr[i] * src_pixel_bytes + (size_t)c * sizeof(SRCTYPE);
                         size_t off1 = (size_t)x1_arr[i] * src_pixel_bytes + (size_t)c * sizeof(SRCTYPE);
                         
-                        auto load_val = [](const uint8_t* ptr) -> float {
-                            return (float)(*(const SRCTYPE*)ptr);
+                        auto load_val = [](const uint8_t* ptr) -> SimdType {
+                            return (SimdType)(*(const SRCTYPE*)ptr);
                         };
                         
                         v00_arr[i] = load_val(row0 + off0);
@@ -1268,7 +1269,7 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                     auto val11 = hn::Load(d, v11_arr);
 
                     // Bilinear Interpolation
-                    auto one = hn::Set(d, 1.0f);
+                    auto one = hn::Set(d, (SimdType)1.0f);
                     auto w00 = hn::Mul(hn::Sub(one, fx), hn::Sub(one, hn::Set(d, fy)));
                     auto w01 = hn::Mul(fx, hn::Sub(one, hn::Set(d, fy)));
                     auto w10 = hn::Mul(hn::Sub(one, fx), hn::Set(d, fy));
@@ -1279,14 +1280,8 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                     res = hn::Add(res, hn::Mul(val10, w10));
                     res = hn::Add(res, hn::Mul(val11, w11));
 
-                    if (!interpolate) {
-                        // For nearest neighbor, we just use val00 if we rounded src_xf earlier.
-                        // But since we are inside 'interpolate' check or logic, we handle accordingly.
-                        // The original scalar code had separate branches.
-                    }
-
                     // Store
-                    float res_arr[16];
+                    SimdType res_arr[16];
                     hn::Store(res, d, res_arr);
                     for(int i=0; i<n; ++i) {
                         DSTTYPE* dptr = (DSTTYPE*)(dst_row + (size_t)(x - roi.xbegin + i) * dst_pixel_bytes + (size_t)c * sizeof(DSTTYPE));

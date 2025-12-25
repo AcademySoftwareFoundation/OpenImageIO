@@ -18,6 +18,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/simd.h>
+#include <hwy/highway.h>
 
 #include "imageio_pvt.h"
 
@@ -396,7 +397,7 @@ ImageBufAlgo::abs(const ImageBuf& A, ROI roi, int nthreads)
 
 template<class Rtype, class Atype>
 static bool
-pow_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+pow_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::ConstIterator<Atype> a(A, roi);
@@ -405,6 +406,52 @@ pow_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
                 r[c] = pow(a[c], b[c]);
     });
     return true;
+}
+
+
+
+template<class Rtype, class Atype>
+static bool
+pow_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+{
+    using SimdType = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
+    // Fast pointer-based implementation
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& Rspec = R.spec();
+        const ImageSpec& Aspec = A.spec();
+        size_t r_pixel_bytes = Rspec.pixel_bytes();
+        size_t a_pixel_bytes = Aspec.pixel_bytes();
+        size_t r_scanline_bytes = Rspec.scanline_bytes();
+        size_t a_scanline_bytes = Aspec.scanline_bytes();
+
+        char* r_base = (char*)R.localpixels();
+        const char* a_base = (const char*)A.localpixels();
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes;
+            
+            for (int x = roi.xbegin; x < roi.xend; ++x) {
+                Rtype* r_ptr = (Rtype*)(r_row + (x - R.xbegin()) * r_pixel_bytes);
+                const Atype* a_ptr = (const Atype*)(a_row + (x - A.xbegin()) * a_pixel_bytes);
+                
+                for (int c = roi.chbegin; c < roi.chend; ++c) {
+                    // Uses std::pow (scalar) but bypasses iterators
+                    r_ptr[c] = (Rtype)pow((SimdType)a_ptr[c], (SimdType)b[c]);
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype>
+static bool
+pow_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+{
+    if (R.localpixels() && A.localpixels())
+        return pow_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
+    return pow_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
 }
 
 
