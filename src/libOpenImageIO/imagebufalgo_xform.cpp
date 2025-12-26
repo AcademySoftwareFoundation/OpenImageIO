@@ -934,11 +934,7 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
     OIIO::pvt::LoggedTimer logtime("IBA::fit");
 
     static const ustring recognized[] = {
-        filtername_us,
-        filterwidth_us,
-        filterptr_us,
-        fillmode_us,
-        exact_us,
+        filtername_us, filterwidth_us, filterptr_us, fillmode_us, exact_us,
 #if 0 /* Not currently recognized */
         wrap_us,
         edgeclamp_us,
@@ -1075,7 +1071,7 @@ ImageBufAlgo::fit(const ImageBuf& src, KWArgs options, ROI roi, int nthreads)
 template<typename DSTTYPE, typename SRCTYPE>
 static bool
 resample_scalar(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
-          int nthreads)
+                int nthreads)
 {
     OIIO_ASSERT(src.deep() == dst.deep());
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
@@ -1152,9 +1148,10 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
              int nthreads)
 {
     namespace hn = hwy::HWY_NAMESPACE;
-    using SimdType = std::conditional_t<std::is_same_v<DSTTYPE, double>, double, float>;
-    using D        = hn::ScalableTag<SimdType>;
-    using Rebind   = hn::Rebind<int32_t, D>;
+    using SimdType
+        = std::conditional_t<std::is_same_v<DSTTYPE, double>, double, float>;
+    using D      = hn::ScalableTag<SimdType>;
+    using Rebind = hn::Rebind<int32_t, D>;
 
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& srcspec(src.spec());
@@ -1218,11 +1215,11 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                 // Mask for active lanes
                 auto mask = hn::FirstN(d, n);
 
-                auto x_simd = hn::ConvertTo(d, idx_i32);
-                auto s = hn::Mul(
-                    hn::Sub(hn::Add(x_simd, hn::Set(d, (SimdType)0.5f)),
-                            hn::Set(d, (SimdType)dstfx)),
-                    hn::Set(d, (SimdType)dstpixelwidth));
+                auto x_simd     = hn::ConvertTo(d, idx_i32);
+                auto s          = hn::Mul(hn::Sub(hn::Add(x_simd,
+                                                          hn::Set(d, (SimdType)0.5f)),
+                                                  hn::Set(d, (SimdType)dstfx)),
+                                          hn::Set(d, (SimdType)dstpixelwidth));
                 auto src_xf_vec = hn::MulAdd(s, hn::Set(d, (SimdType)srcfw),
                                              hn::Set(d, (SimdType)srcfx));
 
@@ -1234,11 +1231,12 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                 auto min_x = hn::Set(d_i32, src.xbegin());
                 auto max_x = hn::Set(d_i32, src.xend() - 1);
                 auto ix0   = hn::Min(hn::Max(ix, min_x), max_x);
-                auto ix1 = hn::Min(hn::Max(hn::Add(ix, hn::Set(d_i32, 1)), min_x),
-                                   max_x);
+                auto ix1
+                    = hn::Min(hn::Max(hn::Add(ix, hn::Set(d_i32, 1)), min_x),
+                              max_x);
 
                 // Adjust to 0-based offset from buffer start
-                auto x_offset = hn::Sub(ix0, min_x);
+                auto x_offset  = hn::Sub(ix0, min_x);
                 auto x1_offset = hn::Sub(ix1, min_x);
 
                 // Loop over channels
@@ -1248,21 +1246,23 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                     int32_t x0_arr[16], x1_arr[16];
                     hn::Store(x_offset, d_i32, x0_arr);
                     hn::Store(x1_offset, d_i32, x1_arr);
-                    
-                    for (int i=0; i<n; ++i) {
-                        size_t off0 = (size_t)x0_arr[i] * src_pixel_bytes + (size_t)c * sizeof(SRCTYPE);
-                        size_t off1 = (size_t)x1_arr[i] * src_pixel_bytes + (size_t)c * sizeof(SRCTYPE);
-                        
+
+                    for (int i = 0; i < n; ++i) {
+                        size_t off0 = (size_t)x0_arr[i] * src_pixel_bytes
+                                      + (size_t)c * sizeof(SRCTYPE);
+                        size_t off1 = (size_t)x1_arr[i] * src_pixel_bytes
+                                      + (size_t)c * sizeof(SRCTYPE);
+
                         auto load_val = [](const uint8_t* ptr) -> SimdType {
                             return (SimdType)(*(const SRCTYPE*)ptr);
                         };
-                        
+
                         v00_arr[i] = load_val(row0 + off0);
                         v01_arr[i] = load_val(row0 + off1);
                         v10_arr[i] = load_val(row1 + off0);
                         v11_arr[i] = load_val(row1 + off1);
                     }
-                    
+
                     auto val00 = hn::Load(d, v00_arr);
                     auto val01 = hn::Load(d, v01_arr);
                     auto val10 = hn::Load(d, v10_arr);
@@ -1270,21 +1270,26 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
 
                     // Bilinear Interpolation
                     auto one = hn::Set(d, (SimdType)1.0f);
-                    auto w00 = hn::Mul(hn::Sub(one, fx), hn::Sub(one, hn::Set(d, fy)));
+                    auto w00 = hn::Mul(hn::Sub(one, fx),
+                                       hn::Sub(one, hn::Set(d, fy)));
                     auto w01 = hn::Mul(fx, hn::Sub(one, hn::Set(d, fy)));
                     auto w10 = hn::Mul(hn::Sub(one, fx), hn::Set(d, fy));
                     auto w11 = hn::Mul(fx, hn::Set(d, fy));
 
                     auto res = hn::Mul(val00, w00);
-                    res = hn::Add(res, hn::Mul(val01, w01));
-                    res = hn::Add(res, hn::Mul(val10, w10));
-                    res = hn::Add(res, hn::Mul(val11, w11));
+                    res      = hn::Add(res, hn::Mul(val01, w01));
+                    res      = hn::Add(res, hn::Mul(val10, w10));
+                    res      = hn::Add(res, hn::Mul(val11, w11));
 
                     // Store
                     SimdType res_arr[16];
                     hn::Store(res, d, res_arr);
-                    for(int i=0; i<n; ++i) {
-                        DSTTYPE* dptr = (DSTTYPE*)(dst_row + (size_t)(x - roi.xbegin + i) * dst_pixel_bytes + (size_t)c * sizeof(DSTTYPE));
+                    for (int i = 0; i < n; ++i) {
+                        DSTTYPE* dptr
+                            = (DSTTYPE*)(dst_row
+                                         + (size_t)(x - roi.xbegin + i)
+                                               * dst_pixel_bytes
+                                         + (size_t)c * sizeof(DSTTYPE));
                         *dptr = (DSTTYPE)res_arr[i];
                     }
                 }
