@@ -21,7 +21,7 @@
 
 #include <Imath/ImathBox.h>
 
-#include <hwy/highway.h>
+#include "imagebufalgo_hwy_pvt.h"
 
 OIIO_NAMESPACE_3_1_BEGIN
 
@@ -1147,7 +1147,6 @@ static bool
 resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
              int nthreads)
 {
-    namespace hn = hwy::HWY_NAMESPACE;
     using SimdType
         = std::conditional_t<std::is_same_v<DSTTYPE, double>, double, float>;
     using D      = hn::ScalableTag<SimdType>;
@@ -1156,7 +1155,6 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& srcspec(src.spec());
         const ImageSpec& dstspec(dst.spec());
-        int nchannels = src.nchannels();
 
         // Local copies of the source image window, converted to SimdType
         float srcfx = srcspec.full_x;
@@ -1212,8 +1210,6 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
 
                 // Compute src_xf for N pixels
                 auto idx_i32 = hn::Iota(d_i32, (float)x);
-                // Mask for active lanes
-                auto mask = hn::FirstN(d, n);
 
                 auto x_simd     = hn::ConvertTo(d, idx_i32);
                 auto s          = hn::Mul(hn::Sub(hn::Add(x_simd,
@@ -1276,10 +1272,11 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                     auto w10 = hn::Mul(hn::Sub(one, fx), hn::Set(d, fy));
                     auto w11 = hn::Mul(fx, hn::Set(d, fy));
 
+                    // Use FMA (Fused Multiply-Add) for better performance
                     auto res = hn::Mul(val00, w00);
-                    res      = hn::Add(res, hn::Mul(val01, w01));
-                    res      = hn::Add(res, hn::Mul(val10, w10));
-                    res      = hn::Add(res, hn::Mul(val11, w11));
+                    res      = hn::MulAdd(val01, w01, res);  // res = res + val01 * w01
+                    res      = hn::MulAdd(val10, w10, res);  // res = res + val10 * w10
+                    res      = hn::MulAdd(val11, w11, res);  // res = res + val11 * w11
 
                     // Store
                     SimdType res_arr[16];

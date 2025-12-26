@@ -101,23 +101,24 @@ add_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 
             if (contig) {
                 // Process whole line as one vector stream
-                size_t n = (size_t)roi.width() * nchannels;
+                size_t n = static_cast<size_t>(roi.width()) * nchannels;
                 RunHwyCmd<Rtype, Atype, Btype>(
-                    (Rtype*)r_row, (const Atype*)a_row, (const Btype*)b_row, n,
+                    reinterpret_cast<Rtype*>(r_row),
+                    reinterpret_cast<const Atype*>(a_row),
+                    reinterpret_cast<const Btype*>(b_row), n,
                     [](auto d, auto a, auto b) { return hn::Add(a, b); });
             } else {
                 // Process pixel by pixel (scalar fallback for strided channels)
                 for (int x = 0; x < roi.width(); ++x) {
-                    Rtype* r_ptr = (Rtype*)r_row
+                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
                                    + x * r_pixel_bytes / sizeof(Rtype);
-                    const Atype* a_ptr = (const Atype*)a_row
+                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row)
                                          + x * a_pixel_bytes / sizeof(Atype);
-                    const Btype* b_ptr = (const Btype*)b_row
+                    const Btype* b_ptr = reinterpret_cast<const Btype*>(b_row)
                                          + x * b_pixel_bytes / sizeof(Btype);
                     for (int c = 0; c < nchannels; ++c) {
-                        // TODO: Use single-pixel vector load?
-                        // For now scalar cast is fine for gaps
-                        r_ptr[c] = (Rtype)((float)a_ptr[c] + (float)b_ptr[c]);
+                        r_ptr[c] = static_cast<Rtype>(static_cast<float>(a_ptr[c]) +
+                                                       static_cast<float>(b_ptr[c]));
                     }
                 }
             }
@@ -219,20 +220,23 @@ sub_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
             b_row += roi.chbegin * sizeof(Btype);
 
             if (contig) {
-                size_t n = (size_t)roi.width() * nchannels;
+                size_t n = static_cast<size_t>(roi.width()) * nchannels;
                 RunHwyCmd<Rtype, Atype, Btype>(
-                    (Rtype*)r_row, (const Atype*)a_row, (const Btype*)b_row, n,
+                    reinterpret_cast<Rtype*>(r_row),
+                    reinterpret_cast<const Atype*>(a_row),
+                    reinterpret_cast<const Btype*>(b_row), n,
                     [](auto d, auto a, auto b) { return hn::Sub(a, b); });
             } else {
                 for (int x = 0; x < roi.width(); ++x) {
-                    Rtype* r_ptr = (Rtype*)r_row
+                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
                                    + x * r_pixel_bytes / sizeof(Rtype);
-                    const Atype* a_ptr = (const Atype*)a_row
+                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row)
                                          + x * a_pixel_bytes / sizeof(Atype);
-                    const Btype* b_ptr = (const Btype*)b_row
+                    const Btype* b_ptr = reinterpret_cast<const Btype*>(b_row)
                                          + x * b_pixel_bytes / sizeof(Btype);
                     for (int c = 0; c < nchannels; ++c) {
-                        r_ptr[c] = (Rtype)((float)a_ptr[c] - (float)b_ptr[c]);
+                        r_ptr[c] = static_cast<Rtype>(static_cast<float>(a_ptr[c]) -
+                                                       static_cast<float>(b_ptr[c]));
                     }
                 }
             }

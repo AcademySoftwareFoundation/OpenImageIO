@@ -18,8 +18,8 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/simd.h>
-#include <hwy/highway.h>
 
+#include "imagebufalgo_hwy_pvt.h"
 #include "imageio_pvt.h"
 
 
@@ -414,7 +414,11 @@ template<class Rtype, class Atype>
 static bool
 pow_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 {
-    using SimdType = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
+    using MathT = std::conditional_t<std::is_same_v<Rtype, double> || std::is_same_v<Rtype, uint32_t>, double, float>;
+
+    bool scalar_pow = (b.size() == 1);
+    float p_val = b[0];
+
     // Fast pointer-based implementation
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& Rspec = R.spec();
@@ -427,17 +431,36 @@ pow_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthrea
         char* r_base = (char*)R.localpixels();
         const char* a_base = (const char*)A.localpixels();
 
+        int nchannels = roi.chend - roi.chbegin;
+        bool contig = (nchannels * sizeof(Rtype) == r_pixel_bytes) &&
+                      (nchannels * sizeof(Atype) == a_pixel_bytes);
+
         for (int y = roi.ybegin; y < roi.yend; ++y) {
-            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes;
-            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes;
+            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
             
-            for (int x = roi.xbegin; x < roi.xend; ++x) {
-                Rtype* r_ptr = (Rtype*)(r_row + (x - R.xbegin()) * r_pixel_bytes);
-                const Atype* a_ptr = (const Atype*)(a_row + (x - A.xbegin()) * a_pixel_bytes);
-                
-                for (int c = roi.chbegin; c < roi.chend; ++c) {
-                    // Uses std::pow (scalar) but bypasses iterators
-                    r_ptr[c] = (Rtype)pow((SimdType)a_ptr[c], (SimdType)b[c]);
+            r_row += roi.chbegin * sizeof(Rtype);
+            a_row += roi.chbegin * sizeof(Atype);
+
+            if (contig && scalar_pow) {
+                size_t n = static_cast<size_t>(roi.width()) * nchannels;
+                RunHwyUnaryCmd<Rtype, Atype>(reinterpret_cast<Rtype*>(r_row),
+                                              reinterpret_cast<const Atype*>(a_row), n,
+                    [p_val](auto d, auto va) {
+                        auto vpow = hn::Set(d, static_cast<MathT>(p_val));
+                        // result = exp(p * log(va))
+                        return hn::Exp(d, hn::Mul(vpow, hn::Log(d, va)));
+                    }
+                );
+            } else {
+                for (int x = 0; x < roi.width(); ++x) {
+                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row) + x * r_pixel_bytes / sizeof(Rtype);
+                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row) + x * a_pixel_bytes / sizeof(Atype);
+                    for (int c = 0; c < nchannels; ++c) {
+                        using SimdType = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
+                        r_ptr[c] = static_cast<Rtype>(pow(static_cast<SimdType>(a_ptr[c]),
+                                                           static_cast<SimdType>(b[c])));
+                    }
                 }
             }
         }
