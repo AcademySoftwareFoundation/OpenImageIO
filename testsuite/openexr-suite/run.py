@@ -83,3 +83,11 @@ command += oiiotool("--create 4x4 3 -d half --compression zip -sattrib openexr:A
 
 # Invalid data type
 command += oiiotool("--create 4x4 3 -d float --compression none -sattrib openexr:ACESContainerPolicy strict -o strict-fail.exr", failureok=True)
+
+# Check color interop ID output
+command += oiiotool("--create 4x4 3 --attrib oiio:ColorSpace scene_linear -o color_interop_id_scene_linear.exr")
+command += info_command("color_interop_id_scene_linear.exr", safematch=True)
+command += oiiotool("--create 4x4 3 --attrib oiio:ColorSpace lin_adobergb_scene -o color_interop_id_linear_adobergb.exr")
+command += info_command("color_interop_id_linear_adobergb.exr", safematch=True)
+command += oiiotool("--create 4x4 3 --attrib oiio:ColorSpace unknown_interop_id -o color_interop_id_unknown.exr")
+command += info_command("color_interop_id_unknown.exr", safematch=True)
