@@ -11,7 +11,7 @@ set -ex
 
 # Which LibRaw to retrieve, how to build it
 LIBRAW_REPO=${LIBRAW_REPO:=https://github.com/LibRaw/LibRaw.git}
-LIBRAW_VERSION=${LIBRAW_VERSION:=0.21.4}
+LIBRAW_VERSION=${LIBRAW_VERSION:=0.21.5}
 
 # Where to install the final results
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
