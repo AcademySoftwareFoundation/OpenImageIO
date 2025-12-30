@@ -215,49 +215,12 @@ These helper functions are not part of any other OpenImageIO class, they
 just exist in the OpenImageIO namespace as general utilities. (See
 :ref:`sec-pythonmiscapi` for the corresponding Python bindings.)
 
-.. doxygenfunction:: OIIO::attribute(string_view, TypeDesc, const void *)
-
-.. cpp:function:: bool OIIO::attribute(string_view name, int val)
-                  bool OIIO::attribute(string_view name, float val)
-                  bool OIIO::attribute(string_view name, string_view val)
-
-    Shortcuts for setting an attribute to a single int, float, or string.
+.. doxygengroup:: OIIO_attribute
+..
 
 
-.. doxygenfunction:: OIIO::getattribute(string_view, TypeDesc, void *)
-
-
-.. cpp:function:: bool getattribute (string_view name, int &val)
-                  bool getattribute (string_view name, float &val)
-                  bool getattribute (string_view name, char **val)
-                  bool getattribute (string_view name, std::string& val)
-
-    Specialized versions of `getattribute()` in which the data type is
-    implied by the type of the argument (for single int, float, or string).
-    Two string versions exist: one that retrieves it as a `std::string` and
-    another that retrieves it as a `char *`. In all cases, the return value
-    is `true` if the attribute is found and the requested data type
-    conversion was legal.
-
-    EXAMPLES::
-
-        int threads;
-        OIIO::getattribute ("threads", &threads);
-        std::string path;
-        OIIO::getattribute ("plugin_searchpath", path);
-
-.. cpp:function:: int get_int_attribute (string_view name, int defaultvalue=0)
-                  float get_float_attribute (string_view name, float defaultvalue=0)
-                  string_view get_string_attribute (string_view name, string_view defaultvalue="")
-
-    Specialized versions of `getattribute()` for common types, in which the
-    data is returned directly, and a supplied default value is returned if
-    the attribute was not found.
-
-    EXAMPLES::
-
-        int threads = OIIO::get_int_attribute ("threads", 0);
-        string_view path = OIIO::get_string_attribute ("plugin_searchpath");
+.. doxygengroup:: OIIO_getattribute
+..
 
 
 
