@@ -1,3 +1,10 @@
+Release 3.0.14.0 (Jan 1, 2026) -- compared to 3.0.13.0
+-------------------------------------------------------
+  - *fix(IBA)*: IBA::compare_Yee() accessed the wrong channel [#4976](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4976) (by Pavan Madduri)
+  - *ci*: Test against libraw 0.21.5 [#4988](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4988)
+  - *ci*: Address tight disk space on GHA runners [#4974](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4974)
+
+
 Release 3.0.13.0 (Dec 1, 2025) -- compared to 3.0.12.0
 -------------------------------------------------------
   - *exif*: Support EXIF 3.0 tags [#4961](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4961)
