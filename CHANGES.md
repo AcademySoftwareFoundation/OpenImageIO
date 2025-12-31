@@ -1,3 +1,23 @@
+Release 3.1.9.0 (Jan 1, 2026) -- compared to 3.1.8.0
+----------------------------------------------------
+  - Color management improvements:
+      - Auto convert between oiio:ColorSpace and CICP attributes in I/O [#4964](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4964) (by Brecht Van Lommel)
+      - *exr*: Write OpenEXR colorInteropID metadata based on oiio:ColorSpace [#4967](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4967) (by Brecht Van Lommel)
+      - *jpeg-xl*: CICP read and write support for JPEG-XL [#4968](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4968) (by Brecht Van Lommel)
+      - *jpeg-xl*: ICC read and write for JPEG-XL files (issue 4649) [#4905](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4905) (by shanesmith-dwa)
+  - *png*: We were not correctly suppressing hint metadata [#4983](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4983)
+  - *sgi*: Implement RLE encoding support for output [#4990](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4990) (by Jesse Yurkovich)
+  - *webp*: Allow out-of-order scanlines when writing webp [#4973](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4973) (by Pavan Madduri)
+  - *fix/IBA*: IBA::compare_Yee() accessed the wrong channel [#4976](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4976) (by Pavan Madduri)
+  - *perf/filesystem.h*: Speedup to detect the existence of files on Windows [#4977](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4977) (by JacksonSun-adsk)
+  - *ci*: Address tight disk space on GHA runners [#4974](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4974)
+  - *ci*: Optimize install_homebrew_deps by coalescing installs [#4975](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4975)
+  - *ci*: Build_Ptex.bash should build Ptex using C++17 [#4978](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4978)
+  - *ci*: Unbreak CI by adjusting Ubuntu installs [#4981](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4981)
+  - *ci*: Test against libraw 0.21.5 [#4988](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4988)
+  - *docs*: Fix missing docs for `OIIO:attribute()` and `OIIO::getattribute()` [#4987](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4987)
+
+
 Release 3.1.8.0 (Dec 1, 2025) -- compared to 3.1.7.0
 ----------------------------------------------------
   - *exif*: Support EXIF 3.0 tags [#4961](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4961)
@@ -355,6 +375,13 @@ asterisk) had not previously contributed to the project.
 
 ---
 ---
+
+
+Release 3.0.14.0 (Jan 1, 2026) -- compared to 3.0.13.0
+-------------------------------------------------------
+  - *fix(IBA)*: IBA::compare_Yee() accessed the wrong channel [#4976](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4976) (by Pavan Madduri)
+  - *ci*: Test against libraw 0.21.5 [#4988](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4988)
+  - *ci*: Address tight disk space on GHA runners [#4974](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4974)
 
 
 Release 3.0.13.0 (Dec 1, 2025) -- compared to 3.0.12.0
