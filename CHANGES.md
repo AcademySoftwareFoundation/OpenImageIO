@@ -10,29 +10,54 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
 * *ImageCache/TextureSystem*:
 * New global attribute queries via OIIO::getattribute():
 * Miscellaneous API changes:
-    - *api*: Versioned namespace to preserve ABI compatibility between minor releases [#4869](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4869) (3.2.0.0)
+  - *api*: Versioned namespace to preserve ABI compatibility between minor releases [#4869](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4869) (3.2.0.0)
+* Color management improvements:
+  - Fix some legacy 'Linear' color references [#4959](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4959) (3.2.0.0)
+  - Auto convert between oiio:ColorSpace and CICP attributes in I/O [#4964](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4964) (by Brecht Van Lommel) (3.0.14.0, 3.2.0.0)
+  - *openexr*: Write OpenEXR colorInteropID metadata based on oiio:ColorSpace [#4967](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4967) (by Brecht Van Lommel) (3.0.14.0, 3.2.0.0)
+  - *jpeg-xl*: CICP read and write support for JPEG-XL [#4968](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4968) (by Brecht Van Lommel) (3.2.0.0, 3.1.9.0)
+  - *jpeg-xl*: ICC read and write for JPEG-XL files (issue 4649) [#4905](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4905) (by shanesmith-dwa) (3.0.14.0, 3.2.0.0)
 ### 🚀  Performance improvements
 ### 🐛  Fixes and feature enhancements
-  - *ffmpeg*: 10 bit video had wrong green channel [#4935](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4935) (by Brecht Van Lommel) (3.1.7.0, 3.2.0.0)
-  - *iff*: Handle non-zero origin, protect against buffer overflows [#4925](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4925) (3.1.7.0, 3.2.0.0)
+  - *IBA*: IBA::compare_Yee() accessed the wrong channel [#4976](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4976) (by Pavan Madduri) (3.2.0.0)
+  - *exif*: Support EXIF 3.0 tags [#4961](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4961) (3.2.0.0)
+  - *imagebuf*: Fix set_pixels bug, didn't consider roi = All [#4949](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4949) (3.2.0.0)
+  - *ffmpeg*: 10 bit video had wrong green channel [#4935](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4935) (by Brecht Van Lommel) (3.2.0.0, 3.1.7.0)
+  - *iff*: Handle non-zero origin, protect against buffer overflows [#4925](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4925) (3.2.0.0, 3.1.7.0)
+  - *jpeg*: Fix wrong pointers/crashing when decoding CMYK jpeg files [#4963](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4963) (3.2.0.0)
+  - *jpeg-2000*: Type warning in assertion in jpeg2000output.cpp [#4952](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4952) (3.2.0.0)
   - *jpeg-xl*: ICC read and write for JPEG-XL files (issue 4649) [#4905](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4905) (by shanesmith-dwa) (3.2.0.0)
-  - *jpeg-xl*: Correctly set Quality for JPEG XL [#4933](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4933) (3.1.7.0, 3.2.0.0)
-  - *openexr*: Support for idManifest and deepImageState (experimental) [#4877](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4877) (3.1.7.0, 3.2.0.0)
-  - *openexr*: ACES Container hint for exr outputs [#4907](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4907) (by Oktay Comu) (3.1.7.0, 3.2.0.0)
+  - *jpeg-xl*: Correctly set Quality for JPEG XL [#4933](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4933) (3.2.0.0, 3.1.7.0)
+  - *jpeg-xl*: CICP read and write support for JPEG XL [#4968](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4968) (by Brecht Van Lommel) (3.2.0.0, 3.1.9.0)
+  - *openexr*: Support for idManifest and deepImageState (experimental) [#4877](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4877) (3.2.0.0, 3.1.7.0)
+  - *openexr*: ACES Container hint for exr outputs [#4907](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4907) (by Oktay Comu) (3.2.0.0, 3.1.7.0)
+  - *openexr*: Write OpenEXR colorInteropID metadata based on oiio:ColorSpace [#4967](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4967) (by Brecht Van Lommel) (3.0.14.0, 3.2.0.0)
+  - *openexr*: Improve attribute translation rules [#4946](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4946) (3.2.0.0)
+  - *openexr*: ACES container writes colorInteropId instead of colorInteropID [#4966](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4966) (by Brecht Van Lommel) (3.2.0.0)
+  - *png*: We were not correctly suppressing hint metadata [#4983](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4983) (3.2.0.0)
+  - *sgi*: Implement RLE encoding support for output [#4990](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4990) (by Jesse Yurkovich) (3.2.0.0)
+  - *webp*: Allow out-of-order scanlines when writing webp [#4973](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4973) (by Pavan Madduri) (3.2.0.0)
 ### 🔧  Internals and developer goodies
+  - *filesystem.h*: Speedup to detect the existence of files on Windows [#4977](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4977) (by JacksonSun-adsk) (3.2.0.0)
 ### 🏗  Build/test/CI and platform ports
 * OIIO's CMake build system and scripts:
-    - *build*: Allow auto-build of just required packages by setting `OpenImageIO_BUILD_MISSING_DEPS` to `required`. [#4927](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4927) (3.1.7.0, 3.2.0.0)
-    - *build*: Make dependency report more clear about what was required [#4929](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4929) (3.1.7.0, 3.2.0.0)
+  - *build*: Allow auto-build of just required packages by setting `OpenImageIO_BUILD_MISSING_DEPS` to `required`. [#4927](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4927) (3.2.0.0, 3.1.7.0)
+  - *build*: Make dependency report more clear about what was required [#4929](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4929) (3.2.0.0, 3.1.7.0)
 * Dependency and platform support:
-    - *build/deps*: Additional auto-build capabilities for dependencies that are not found: GIF library [#4921](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4921) (by Valery Angelique), OpenJPEG [#4911](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4911) (by Danny Greenstein) (3.1.7.0, 3.2.0.0)
+  - *deps*: Additional auto-build capabilities for dependencies that are not found: GIF library [#4921](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4921) (by Valery Angelique), OpenJPEG [#4911](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4911) (by Danny Greenstein) (3.2.0.0, 3.1.7.0)
+  - *deps*: Disable LERC in libTIFF local build script [#4957](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4957) (by LI JI) (3.2.0.0, 3.1.8.0)
+  - *deps*: Test against libraw 0.21.5 [#4988](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4988) (3.2.0.0, 3.1.9.0)
 * Testing and Continuous integration (CI) systems:
-    - *ci*: Python wheel building improvements: use ccache [#4924](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4924) (by Larry Gritz), unbreak wheel release + other enhancements pt 1 [#4937](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4937) (by Zach Lewis) (3.1.7.0, 3.2.0.0)
-    - *ci*: Simplify ci workflow by using build-steps for old aswf containers, too [#4932](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4932) (3.1.7.0, 3.2.0.0)
-    - *ci*: We were not correctly setting fmt version from job options [#4939](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4939) (3.1.7.0, 3.2.0.0)
+  - *tests*: Image_span_test reduce benchmark load for debug and CI renders [#4951](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4951) (3.2.0.0, 3.1.8.0)
+  - *ci*: Python wheel building improvements: use ccache [#4924](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4924) (by Larry Gritz), unbreak wheel release + other enhancements pt 1 [#4937](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4937) (by Zach Lewis) (3.2.0.0, 3.1.7.0)
+  - *ci*: Simplify ci workflow by using build-steps for old aswf containers, too [#4932](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4932) (3.2.0.0, 3.1.7.0)
+  - *ci*: We were not correctly setting fmt version from job options [#4939](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4939) (3.2.0.0, 3.1.7.0)
+  - *ci*: Emergency fix change deprecated sonarqube action [#4969](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4969) (3.2.0.0)
+  - *ci*: Try python 3.13 to fix Mac breakage on CI [#4970](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4970) (3.2.0.0)
 ### 📚  Notable documentation changes
-  - *docs*: Update/correct explanation of "openexr:core" attribute, and typo fixes [#4943](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4943) (3.1.7.0, 3.2.0.0)
+  - *docs*: Update/correct explanation of "openexr:core" attribute, and typo fixes [#4943](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4943) (3.2.0.0, 3.1.7.0)
 ### 🏢  Project Administration
+  - *admin*: Minor rewording in the issue and PR templates [#4982](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4982) (3.2.0.0)
 ### 🤝  Contributors
 
 ---
@@ -40,7 +65,43 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
 
 
 
-Release 3.1.7.0 (Nov 1, 2025) -- compared to 3.1.7.0
+Release 3.1.9.0 (Jan 1, 2026) -- compared to 3.1.8.0
+----------------------------------------------------
+  - Color management improvements:
+      - Auto convert between oiio:ColorSpace and CICP attributes in I/O [#4964](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4964) (by Brecht Van Lommel)
+      - *exr*: Write OpenEXR colorInteropID metadata based on oiio:ColorSpace [#4967](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4967) (by Brecht Van Lommel)
+      - *jpeg-xl*: CICP read and write support for JPEG-XL [#4968](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4968) (by Brecht Van Lommel)
+      - *jpeg-xl*: ICC read and write for JPEG-XL files (issue 4649) [#4905](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4905) (by shanesmith-dwa)
+  - *png*: We were not correctly suppressing hint metadata [#4983](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4983)
+  - *sgi*: Implement RLE encoding support for output [#4990](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4990) (by Jesse Yurkovich)
+  - *webp*: Allow out-of-order scanlines when writing webp [#4973](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4973) (by Pavan Madduri)
+  - *fix/IBA*: IBA::compare_Yee() accessed the wrong channel [#4976](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4976) (by Pavan Madduri)
+  - *perf/filesystem.h*: Speedup to detect the existence of files on Windows [#4977](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4977) (by JacksonSun-adsk)
+  - *ci*: Address tight disk space on GHA runners [#4974](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4974)
+  - *ci*: Optimize install_homebrew_deps by coalescing installs [#4975](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4975)
+  - *ci*: Build_Ptex.bash should build Ptex using C++17 [#4978](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4978)
+  - *ci*: Unbreak CI by adjusting Ubuntu installs [#4981](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4981)
+  - *ci*: Test against libraw 0.21.5 [#4988](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4988)
+  - *docs*: Fix missing docs for `OIIO:attribute()` and `OIIO::getattribute()` [#4987](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4987)
+
+
+Release 3.1.8.0 (Dec 1, 2025) -- compared to 3.1.7.0
+----------------------------------------------------
+  - *exif*: Support EXIF 3.0 tags [#4961](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4961)
+  - *jpeg*: Fix wrong pointers/crashing when decoding CMYK jpeg files [#4963](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4963)
+  - *openexr*: Improve attribute translation rules [#4946](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4946)
+  - *openexr*: ACES container writes colorInteropId instead of colorInteropID [#4966](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4966) (by Brecht Van Lommel)
+  - *color mgmt*: Fix some legacy 'Linear' color references [#4959](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4959)
+  - *imagebuf*: Fix `ImageBuf::set_pixels()` bug, didn't consider roi = All [#4949](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4949)
+  - *tests*: Image_span_test reduce benchmark load for debug and CI renders [#4951](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4951)
+  - *build*: Type warning in assertion in jpeg2000output.cpp [#4952](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4952)
+  - *build*: Disable LERC in libTIFF local build script [#4957](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4957) (by LI JI)
+  - *ci*: Fix broken ci, debug and static cases, bump some latest [#4954](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4954)
+  - *ci*: Unbreak icc/icx CI [#4958](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4958)
+  - *admin*: Update some license notices [#4955](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4955)
+
+
+Release 3.1.7.0 (Nov 1, 2025) -- compared to 3.1.6.1
 ----------------------------------------------------
   - *openexr*: Support for idManifest and deepImageState (experimental) [#4877](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4877) (3.1.7.0)
   - *openexr*: ACES Container hint for exr outputs [#4907](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4907) (by Oktay Comu) (3.1.7.0)
@@ -67,7 +128,7 @@ Release 3.1.6.2 (Oct 3, 2025) -- compared to 3.1.6.1
   - *oiioversion.h*: Restore definition of `OIIO_NAMESPACE_USING` macro [#4920](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4920)
 
 
-Release 3.1 (Oct 2 2025) -- compared to 3.0.x
+Release 3.1 (Oct 2, 2025) -- compared to 3.0.x
 -----------------------------------------------------
 - Beta 1: Aug 22, 2025
 - Beta 2: Sep 19, 2025
@@ -381,6 +442,21 @@ asterisk) had not previously contributed to the project.
 
 ---
 ---
+
+
+Release 3.0.14.0 (Jan 1, 2026) -- compared to 3.0.13.0
+-------------------------------------------------------
+  - *fix(IBA)*: IBA::compare_Yee() accessed the wrong channel [#4976](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4976) (by Pavan Madduri)
+  - *ci*: Test against libraw 0.21.5 [#4988](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4988)
+  - *ci*: Address tight disk space on GHA runners [#4974](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4974)
+
+
+Release 3.0.13.0 (Dec 1, 2025) -- compared to 3.0.12.0
+-------------------------------------------------------
+  - *exif*: Support EXIF 3.0 tags [#4961](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4961)
+  - *build*: Disable LERC in libTIFF local build script [#4957](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4957) (by LI JI)
+  - *ci*: Fix broken ci, debug and static cases, bump some latest [#4954](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4954)
+  - *ci*: Unbreak icc/icx CI [#4958](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4958)
 
 
 Release 3.0.12.0 (Nov 1, 2025) -- compared to 3.0.11.0
