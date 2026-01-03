@@ -330,4 +330,211 @@ inline void RunHwyCmd(Rtype* r, const Atype* a, const Btype* b, size_t n, OpFunc
     }
 }
 
+// -----------------------------------------------------------------------
+// Interleaved Channel Load/Store Helpers
+// -----------------------------------------------------------------------
+
+/// Load 4 interleaved channels (RGBA) with type promotion.
+/// For matching types, uses Highway's native LoadInterleaved4.
+/// For type promotion, loads and manually deinterleaves.
+/// @param d Highway descriptor tag for the target SIMD type
+/// @param ptr Pointer to interleaved RGBA data (R0,G0,B0,A0,R1,G1,B1,A1,...)
+/// @return Tuple of (R, G, B, A) SIMD vectors in promoted type
+template<class D, typename SrcT>
+inline auto
+LoadInterleaved4Promote(D d, const SrcT* ptr)
+{
+    using MathT = typename D::T;
+    using Vec   = hn::Vec<D>;
+
+    if constexpr (std::is_same_v<SrcT, MathT>) {
+        // No promotion needed - use Highway's optimized LoadInterleaved4
+        Vec r, g, b, a;
+        hn::LoadInterleaved4(d, ptr, r, g, b, a);
+        return std::make_tuple(r, g, b, a);
+    } else if constexpr (std::is_same_v<SrcT, half>) {
+        // Special handling for half type - convert through hwy::float16_t
+        using T16 = hwy::float16_t;
+        auto d16  = hn::Rebind<T16, D>();
+
+        // Load interleaved half data as float16_t
+        hn::Vec<decltype(d16)> r16, g16, b16, a16;
+        hn::LoadInterleaved4(d16, (const T16*)ptr, r16, g16, b16, a16);
+
+        // Promote to computation type
+        Vec r_vec = hn::PromoteTo(d, r16);
+        Vec g_vec = hn::PromoteTo(d, g16);
+        Vec b_vec = hn::PromoteTo(d, b16);
+        Vec a_vec = hn::PromoteTo(d, a16);
+
+        return std::make_tuple(r_vec, g_vec, b_vec, a_vec);
+    } else {
+        // Generic type promotion - deinterleave manually
+        const size_t N = hn::Lanes(d);
+        MathT r_scalar[hn::MaxLanes(d)];
+        MathT g_scalar[hn::MaxLanes(d)];
+        MathT b_scalar[hn::MaxLanes(d)];
+        MathT a_scalar[hn::MaxLanes(d)];
+
+        for (size_t i = 0; i < N; ++i) {
+            r_scalar[i] = static_cast<MathT>(ptr[i * 4 + 0]);
+            g_scalar[i] = static_cast<MathT>(ptr[i * 4 + 1]);
+            b_scalar[i] = static_cast<MathT>(ptr[i * 4 + 2]);
+            a_scalar[i] = static_cast<MathT>(ptr[i * 4 + 3]);
+        }
+
+        Vec r_vec = hn::Load(d, r_scalar);
+        Vec g_vec = hn::Load(d, g_scalar);
+        Vec b_vec = hn::Load(d, b_scalar);
+        Vec a_vec = hn::Load(d, a_scalar);
+
+        return std::make_tuple(r_vec, g_vec, b_vec, a_vec);
+    }
+}
+
+/// Store 4 interleaved channels (RGBA) with type demotion.
+/// For matching types, uses Highway's native StoreInterleaved4.
+/// For type demotion, manually interleaves and stores.
+/// @param d Highway descriptor tag for the source SIMD type
+/// @param ptr Pointer to destination interleaved RGBA data
+/// @param r Red channel SIMD vector
+/// @param g Green channel SIMD vector
+/// @param b Blue channel SIMD vector
+/// @param a Alpha channel SIMD vector
+template<class D, typename DstT, typename VecT>
+inline void
+StoreInterleaved4Demote(D d, DstT* ptr, VecT r, VecT g, VecT b, VecT a)
+{
+    using MathT = typename D::T;
+
+    if constexpr (std::is_same_v<DstT, MathT>) {
+        // No demotion needed - use Highway's optimized StoreInterleaved4
+        hn::StoreInterleaved4(r, g, b, a, d, ptr);
+    } else if constexpr (std::is_same_v<DstT, half>) {
+        // Special handling for half type - convert through hwy::float16_t
+        using T16 = hwy::float16_t;
+        auto d16  = hn::Rebind<T16, D>();
+
+        // Demote to float16_t
+        auto r16 = hn::DemoteTo(d16, r);
+        auto g16 = hn::DemoteTo(d16, g);
+        auto b16 = hn::DemoteTo(d16, b);
+        auto a16 = hn::DemoteTo(d16, a);
+
+        // Store interleaved float16_t data
+        hn::StoreInterleaved4(r16, g16, b16, a16, d16, (T16*)ptr);
+    } else {
+        // Generic type demotion - demote and interleave manually
+        const size_t N = hn::Lanes(d);
+
+        // Store to temporary arrays with demotion
+        MathT r_scalar[hn::MaxLanes(d)];
+        MathT g_scalar[hn::MaxLanes(d)];
+        MathT b_scalar[hn::MaxLanes(d)];
+        MathT a_scalar[hn::MaxLanes(d)];
+
+        hn::Store(r, d, r_scalar);
+        hn::Store(g, d, g_scalar);
+        hn::Store(b, d, b_scalar);
+        hn::Store(a, d, a_scalar);
+
+        // Interleave and demote
+        for (size_t i = 0; i < N; ++i) {
+            ptr[i * 4 + 0] = static_cast<DstT>(r_scalar[i]);
+            ptr[i * 4 + 1] = static_cast<DstT>(g_scalar[i]);
+            ptr[i * 4 + 2] = static_cast<DstT>(b_scalar[i]);
+            ptr[i * 4 + 3] = static_cast<DstT>(a_scalar[i]);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------
+// Rangecompress/Rangeexpand SIMD Kernels
+// -----------------------------------------------------------------------
+
+/// Apply rangecompress formula to a SIMD vector.
+/// Formula (courtesy Sony Pictures Imageworks):
+///   if (|x| <= 0.18) return x
+///   else return copysign(a + b * log(c * |x| + 1), x)
+/// where a = -0.545768857, b = 0.183516696, c = 284.357788
+/// @param d Highway descriptor tag
+/// @param x Input SIMD vector
+/// @return Compressed SIMD vector
+template<class D, typename VecT>
+inline auto
+rangecompress_simd(D d, VecT x)
+{
+    using T = typename D::T;
+
+    // Constants from Sony Pictures Imageworks
+    constexpr T x1 = static_cast<T>(0.18);
+    constexpr T a  = static_cast<T>(-0.54576885700225830078);
+    constexpr T b  = static_cast<T>(0.18351669609546661377);
+    constexpr T c  = static_cast<T>(284.3577880859375);
+
+    auto abs_x            = hn::Abs(x);
+    auto mask_passthrough = hn::Le(abs_x, hn::Set(d, x1));
+
+    // compressed = a + b * log(c * |x| + 1.0)
+    auto c_vec = hn::Set(d, c);
+    auto one   = hn::Set(d, static_cast<T>(1.0));
+    auto temp  = hn::MulAdd(c_vec, abs_x, one);  // c * |x| + 1.0
+    auto log_val     = hn::Log(d, temp);
+    auto b_vec       = hn::Set(d, b);
+    auto a_vec       = hn::Set(d, a);
+    auto compressed  = hn::MulAdd(b_vec, log_val, a_vec);  // a + b * log
+
+    // Apply sign of original x
+    auto result = hn::CopySign(compressed, x);
+
+    // If |x| <= x1, return x; else return compressed
+    return hn::IfThenElse(mask_passthrough, x, result);
+}
+
+/// Apply rangeexpand formula to a SIMD vector (inverse of rangecompress).
+/// Formula:
+///   if (|y| <= 0.18) return y
+///   else x = exp((|y| - a) / b); x = (x - 1) / c
+///        if x < 0.18 then x = (-x_intermediate - 1) / c
+///        return copysign(x, y)
+/// @param d Highway descriptor tag
+/// @param y Input SIMD vector (compressed values)
+/// @return Expanded SIMD vector
+template<class D, typename VecT>
+inline auto
+rangeexpand_simd(D d, VecT y)
+{
+    using T = typename D::T;
+
+    // Constants (same as rangecompress)
+    constexpr T x1 = static_cast<T>(0.18);
+    constexpr T a  = static_cast<T>(-0.54576885700225830078);
+    constexpr T b  = static_cast<T>(0.18351669609546661377);
+    constexpr T c  = static_cast<T>(284.3577880859375);
+
+    auto abs_y            = hn::Abs(y);
+    auto mask_passthrough = hn::Le(abs_y, hn::Set(d, x1));
+
+    // x_intermediate = exp((|y| - a) / b)
+    auto a_vec        = hn::Set(d, a);
+    auto b_vec        = hn::Set(d, b);
+    auto intermediate = hn::Div(hn::Sub(abs_y, a_vec), b_vec);  // (|y| - a) / b
+    auto x_intermediate = hn::Exp(d, intermediate);
+
+    // x = (x_intermediate - 1.0) / c
+    auto one   = hn::Set(d, static_cast<T>(1.0));
+    auto c_vec = hn::Set(d, c);
+    auto x     = hn::Div(hn::Sub(x_intermediate, one), c_vec);
+
+    // If x < x1, use alternate solution: (-x_intermediate - 1.0) / c
+    auto mask_alternate = hn::Lt(x, hn::Set(d, x1));
+    auto x_alternate    = hn::Div(hn::Sub(hn::Neg(x_intermediate), one), c_vec);
+    x                   = hn::IfThenElse(mask_alternate, x_alternate, x);
+
+    // Apply sign of input y
+    auto result = hn::CopySign(x, y);
+
+    return hn::IfThenElse(mask_passthrough, y, result);
+}
+
 OIIO_NAMESPACE_END
