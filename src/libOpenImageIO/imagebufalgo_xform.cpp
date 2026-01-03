@@ -1305,7 +1305,7 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
         return resample_scalar<DSTTYPE, SRCTYPE>(dst, src, interpolate, roi,
                                                  nthreads);
 
-    if (dst.localpixels() && src.localpixels())
+    if (OIIO::pvt::enable_hwy && dst.localpixels() && src.localpixels())
         return resample_hwy<DSTTYPE, SRCTYPE>(dst, src, interpolate, roi,
                                               nthreads);
 

@@ -472,7 +472,7 @@ template<class Rtype, class Atype>
 static bool
 pow_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 {
-    if (R.localpixels() && A.localpixels())
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
         return pow_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
     return pow_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
 }
@@ -839,8 +839,8 @@ static bool
 rangecompress_(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
                int nthreads)
 {
-    // Use SIMD fast path if buffers are in local memory
-    if (R.localpixels() && A.localpixels()) {
+    // Use SIMD fast path if Highway enabled and buffers are in local memory
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()) {
         return rangecompress_hwy<Rtype, Atype>(R, A, useluma, roi, nthreads);
     }
 
@@ -1073,8 +1073,8 @@ static bool
 rangeexpand_(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
              int nthreads)
 {
-    // Use SIMD fast path if buffers are in local memory
-    if (R.localpixels() && A.localpixels()) {
+    // Use SIMD fast path if Highway enabled and buffers are in local memory
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()) {
         return rangeexpand_hwy<Rtype, Atype>(R, A, useluma, roi, nthreads);
     }
 
@@ -1202,8 +1202,8 @@ template<class Rtype, class Atype>
 static bool
 unpremult_(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
 {
-    // Use SIMD fast path if buffers are in local memory
-    if (R.localpixels() && A.localpixels()) {
+    // Use SIMD fast path if Highway enabled and buffers are in local memory
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()) {
         return unpremult_hwy<Rtype, Atype>(R, A, roi, nthreads);
     }
 
@@ -1550,8 +1550,8 @@ static bool
 premult_(ImageBuf& R, const ImageBuf& A, bool preserve_alpha0, ROI roi,
          int nthreads)
 {
-    // Use SIMD fast path if buffers are in local memory
-    if (R.localpixels() && A.localpixels()) {
+    // Use SIMD fast path if Highway enabled and buffers are in local memory
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()) {
         return premult_hwy<Rtype, Atype>(R, A, preserve_alpha0, roi, nthreads);
     }
 

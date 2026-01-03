@@ -225,7 +225,8 @@ static bool
 mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
          int nthreads)
 {
-    if (R.localpixels() && A.localpixels() && B.localpixels())
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels())
         return mul_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
     return mul_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
 }
@@ -234,7 +235,7 @@ template<class Rtype, class Atype>
 static bool
 mul_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 {
-    if (R.localpixels() && A.localpixels())
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
         return mul_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
     return mul_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
 }

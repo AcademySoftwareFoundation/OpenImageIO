@@ -168,7 +168,8 @@ static bool
 add_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
          int nthreads)
 {
-    if (R.localpixels() && A.localpixels() && B.localpixels())
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels())
         return add_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
     return add_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
 }
@@ -177,7 +178,7 @@ template<class Rtype, class Atype>
 static bool
 add_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 {
-    if (R.localpixels() && A.localpixels())
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
         return add_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
     return add_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
 }
@@ -250,7 +251,8 @@ static bool
 sub_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
          int nthreads)
 {
-    if (R.localpixels() && A.localpixels() && B.localpixels())
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels())
         return sub_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
     return sub_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
 }
