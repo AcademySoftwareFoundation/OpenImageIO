@@ -53,6 +53,7 @@ int png_linear_premult(0);
 int tiff_half(0);
 int tiff_multithread(1);
 int dds_bc5normal(0);
+int enable_hwy(1);  // Enable Google Highway SIMD optimizations by default
 int limit_channels(1024);
 int limit_imagesize_MB(std::min(32 * 1024,
                                 int(Sysutil::physical_memory() >> 20)));
@@ -406,6 +407,10 @@ attribute(string_view name, TypeDesc type, const void* val)
         dds_bc5normal = *(const int*)val;
         return true;
     }
+    if (name == "enable_hwy" && type == TypeInt) {
+        enable_hwy = *(const int*)val;
+        return true;
+    }
     if (name == "limits:channels" && type == TypeInt) {
         limit_channels = *(const int*)val;
         return true;
@@ -610,6 +615,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "dds:bc5normal" && type == TypeInt) {
         *(int*)val = dds_bc5normal;
+        return true;
+    }
+    if (name == "enable_hwy" && type == TypeInt) {
+        *(int*)val = enable_hwy;
         return true;
     }
     if (name == "oiio:print_uncaught_errors" && type == TypeInt) {

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{0fee9843-a0b7-45d2-8491-d4cdf96df31b}</ProjectGuid>
+    <RootNamespace>hwy</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ExternalIncludePath>e:\DVS\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);JXL_STATIC_DEFINE=1;OPJ_STATIC;LIBDE265_STATIC_BUILD;KVZ_STATIC_LIB;LIBHEIF_STATIC_BUILD;NDEBUG;OIIO_INTERNAL=1;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;JAS_WIN_MSVC_BUILD;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;OIIO_STATIC_DEFINE=1;USE_JPEG_TURBO=1;USE_JXL=1;USE_EXTERNAL_PUGIXML=1;USE_FREETYPE=1;_FILE_OFFSET_BITS=64;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>E:\GH\OpenImageIO\build\include\OpenImageIO;E:\GH\OpenImageIO\build\include;E:\GH\OpenImageIO\build\src\include;E:\GH\OpenImageIO\src\include;E:\GH\OpenImageIO\build\deps\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "E:/DVS/include" /external:I "e:/DVS/include" /external:I "E:/DVS/include/OpenEXR" /external:I "E:/DVS/include/Imath" /external:I "E:/DVS/include/openjph" /utf-8</AdditionalOptions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>E:\miniconda3\libs\python311.lib;..\..\build\lib\Release\OpenImageIO.lib;E:\DVS\lib\Imath-3_2.lib;..\..\build\lib\Release\OpenImageIO_Util.lib;E:\DVS\lib\OpenEXR-3_4.lib;E:\DVS\lib\IlmThread-3_4.lib;E:\DVS\lib\Iex-3_4.lib;e:\DVS\lib\avcodec.lib;e:\DVS\lib\avutil.lib;e:\DVS\lib\swscale.lib;e:\DVS\lib\swresample.lib;E:\DVS\lib\avformat.lib;e:\DVS\lib\avfilter.lib;e:\DVS\lib\avdevice.lib;mfplat.lib;mfuuid.lib;secur32.lib;bcrypt.lib;crypt32.lib;ncrypt.lib;strmiids.lib;E:\DVS\lib\gif.lib;E:\DVS\lib\libpng18_static.lib;E:\DVS\lib\jpeg.lib;E:\DVS\lib\uhdr.lib;E:\DVS\lib\openjp2.lib;E:\DVS\lib\OpenEXRCore-3_4.lib;E:\DVS\lib\openjph.0.21.lib;E:\DVS\lib\Ptex.lib;E:\DVS\lib\deflatestatic.lib;E:\DVS\lib\bz2.lib;e:\DVS\lib\heif.lib;e:\DVS\lib\aom.lib;E:\DVS\lib\libde265.lib;e:\DVS\lib\x265-static.lib;e:\DVS\lib\libkvazaar.lib;E:\DVS\lib\zlibstatic.lib;E:\DVS\lib\jxl_threads.lib;E:\DVS\lib\jxl.lib;e:\DVS\lib\jxl_cms.lib;e:\DVS\lib\hwy.lib;e:\DVS\lib\brotlicommon.lib;e:\DVS\lib\brotlidec.lib;e:\DVS\lib\brotlienc.lib;E:\DVS\lib\raw.lib;E:\DVS\lib\raw_r.lib;e:\GH\Little-CMS\Lib\ST\lcms2_static.lib;w:\VisualStudio\dng_sdk_1_7_1\dng_sdk\projects\win\x64\Release\dng_sdk.lib;e:\DVS\lib\XMPFilesStaticRelease.lib;e:\DVS\lib\XMPCoreStaticRelease.lib;E:\DVS\lib\jasper.lib;E:\DVS\lib\tiff.lib;e:\DVS\lib\zstd_static.lib;e:\DVS\lib\lzma.lib;E:\DVS\lib\libwebpdemux.lib;E:\DVS\lib\libwebpmux.lib;E:\DVS\lib\libwebp.lib;E:\DVS\lib\libsharpyuv.lib;shlwapi.lib;ole32.lib;windowscodecs.lib;E:\DVS\lib\OpenColorIO.lib;E:\DVS\lib\libexpatMT.lib;E:\DVS\lib\pystring.lib;E:\DVS\lib\yaml-cpp.lib;E:\DVS\lib\minizip-ng.lib;E:\DVS\lib\pugixml.lib;E:\DVS\lib\tbb12.lib;E:\DVS\lib\freetype.lib;e:\DVS\lib\harfbuzz.lib;e:\DVS\lib\harfbuzz-icu.lib;e:\DVS\lib\harfbuzz-subset.lib;E:\DVS\lib\hwy.lib;psapi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="benchmark_hwy_simple.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\build\src\libOpenImageIO\OpenImageIO.vcxproj">
+      <Project>{c43560f9-56d6-362b-b98c-4bc95dafa5f2}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\build\src\libutil\OpenImageIO_Util.vcxproj">
+      <Project>{2c9e85a4-2054-3abc-ac2f-b70c6fbca457}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\build\ZERO_CHECK.vcxproj">
+      <Project>{da4923cd-b45a-31d6-b228-02f63df9b8b1}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
