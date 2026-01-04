@@ -1184,6 +1184,8 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
         for (int y = roi.ybegin; y < roi.yend; ++y) {
             float t      = (y - dstfy + 0.5f) * dstpixelheight;
             float src_yf = srcfy + t * srcfh;
+            // Pixel-center convention: subtract 0.5 before interpolation
+            src_yf -= 0.5f;
             int src_y    = ifloor(src_yf);
             SimdType fy  = (SimdType)(src_yf - src_y);
 
@@ -1218,6 +1220,8 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                                           hn::Set(d, (SimdType)dstpixelwidth));
                 auto src_xf_vec = hn::MulAdd(s, hn::Set(d, (SimdType)srcfw),
                                              hn::Set(d, (SimdType)srcfx));
+                // Pixel-center convention: subtract 0.5 before interpolation
+                src_xf_vec = hn::Sub(src_xf_vec, hn::Set(d, (SimdType)0.5f));
 
                 auto src_x_vec = hn::Floor(src_xf_vec);
                 auto fx        = hn::Sub(src_xf_vec, src_x_vec);
