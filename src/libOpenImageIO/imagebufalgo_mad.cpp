@@ -12,6 +12,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 
+#include "imagebufalgo_hwy_pvt.h"
 #include "imageio_pvt.h"
 
 
@@ -21,65 +22,113 @@ OIIO_NAMESPACE_3_1_BEGIN
 
 template<class Rtype, class ABCtype>
 static bool
-mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
-         ROI roi, int nthreads)
+mad_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+                const ImageBuf& C, ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        if ((std::is_same<Rtype, float>::value
-             || std::is_same<Rtype, half>::value)
-            && (std::is_same<ABCtype, float>::value
-                || std::is_same<ABCtype, half>::value)
-            // && R.localpixels() // has to be, because it's writable
-            && A.localpixels() && B.localpixels()
-            && C.localpixels()
-            // && R.contains_roi(roi)  // has to be, because IBAPrep
-            && A.contains_roi(roi) && B.contains_roi(roi) && C.contains_roi(roi)
-            && roi.chbegin == 0 && roi.chend == R.nchannels()
-            && roi.chend == A.nchannels() && roi.chend == B.nchannels()
-            && roi.chend == C.nchannels()) {
-            // Special case when all inputs are either float or half, with in-
-            // memory contiguous data and we're operating on the full channel
-            // range: skip iterators: For these circumstances, we can operate on
-            // the raw memory very efficiently. Otherwise, we will need the
-            // magic of the the Iterators (and pay the price).
-            int nxvalues = roi.width() * R.nchannels();
-            for (int z = roi.zbegin; z < roi.zend; ++z)
-                for (int y = roi.ybegin; y < roi.yend; ++y) {
-                    Rtype* rraw = (Rtype*)R.pixeladdr(roi.xbegin, y, z);
-                    const ABCtype* araw
-                        = (const ABCtype*)A.pixeladdr(roi.xbegin, y, z);
-                    const ABCtype* braw
-                        = (const ABCtype*)B.pixeladdr(roi.xbegin, y, z);
-                    const ABCtype* craw
-                        = (const ABCtype*)C.pixeladdr(roi.xbegin, y, z);
-                    OIIO_DASSERT(araw && braw && craw);
-                    // The straightforward loop auto-vectorizes very well,
-                    // there's no benefit to using explicit SIMD here.
-                    for (int x = 0; x < nxvalues; ++x)
-                        rraw[x] = araw[x] * braw[x] + craw[x];
-                    // But if you did want to explicitly vectorize, this is
-                    // how it would look:
-                    // int simdend = nxvalues & (~3); // how many float4's?
-                    // for (int x = 0; x < simdend; x += 4) {
-                    //     simd::float4 a_simd(araw+x), b_simd(braw+x), c_simd(craw+x);
-                    //     simd::float4 r_simd = a_simd * b_simd + c_simd;
-                    //     r_simd.store (rraw+x);
-                    // }
-                    // for (int x = simdend; x < nxvalues; ++x)
-                    //     rraw[x] = araw[x] * braw[x] + craw[x];
+        ImageBuf::Iterator<Rtype> r(R, roi);
+        ImageBuf::ConstIterator<ABCtype> a(A, roi);
+        ImageBuf::ConstIterator<ABCtype> b(B, roi);
+        ImageBuf::ConstIterator<ABCtype> c(C, roi);
+        for (; !r.done(); ++r, ++a, ++b, ++c) {
+            for (int ch = roi.chbegin; ch < roi.chend; ++ch)
+                r[ch] = a[ch] * b[ch] + c[ch];
+        }
+    });
+    return true;
+}
+
+
+
+template<class Rtype, class ABCtype>
+static bool
+mad_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+             const ImageBuf& C, ROI roi, int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& Rspec  = R.spec();
+        const ImageSpec& Aspec  = A.spec();
+        const ImageSpec& Bspec  = B.spec();
+        const ImageSpec& Cspec  = C.spec();
+        size_t r_pixel_bytes    = Rspec.pixel_bytes();
+        size_t a_pixel_bytes    = Aspec.pixel_bytes();
+        size_t b_pixel_bytes    = Bspec.pixel_bytes();
+        size_t c_pixel_bytes    = Cspec.pixel_bytes();
+        size_t r_scanline_bytes = Rspec.scanline_bytes();
+        size_t a_scanline_bytes = Aspec.scanline_bytes();
+        size_t b_scanline_bytes = Bspec.scanline_bytes();
+        size_t c_scanline_bytes = Cspec.scanline_bytes();
+
+        char* r_base       = (char*)R.localpixels();
+        const char* a_base = (const char*)A.localpixels();
+        const char* b_base = (const char*)B.localpixels();
+        const char* c_base = (const char*)C.localpixels();
+
+        int nchannels = roi.chend - roi.chbegin;
+        bool contig   = (nchannels * sizeof(Rtype) == r_pixel_bytes)
+                      && (nchannels * sizeof(ABCtype) == a_pixel_bytes)
+                      && (nchannels * sizeof(ABCtype) == b_pixel_bytes)
+                      && (nchannels * sizeof(ABCtype) == c_pixel_bytes);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes
+                          + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes
+                                + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
+            const char* b_row = b_base + (y - B.ybegin()) * b_scanline_bytes
+                                + (roi.xbegin - B.xbegin()) * b_pixel_bytes;
+            const char* c_row = c_base + (y - C.ybegin()) * c_scanline_bytes
+                                + (roi.xbegin - C.xbegin()) * c_pixel_bytes;
+
+            r_row += roi.chbegin * sizeof(Rtype);
+            a_row += roi.chbegin * sizeof(ABCtype);
+            b_row += roi.chbegin * sizeof(ABCtype);
+            c_row += roi.chbegin * sizeof(ABCtype);
+
+            if (contig) {
+                size_t n = static_cast<size_t>(roi.width()) * nchannels;
+                // Use Highway SIMD for a*b+c (fused multiply-add)
+                RunHwyTernaryCmd<Rtype, ABCtype>(
+                    reinterpret_cast<Rtype*>(r_row),
+                    reinterpret_cast<const ABCtype*>(a_row),
+                    reinterpret_cast<const ABCtype*>(b_row),
+                    reinterpret_cast<const ABCtype*>(c_row), n,
+                    [](auto d, auto a, auto b, auto c) {
+                        // a*b+c: use MulAdd if available, otherwise Mul+Add
+                        return hn::MulAdd(a, b, c);
+                    });
+            } else {
+                for (int x = 0; x < roi.width(); ++x) {
+                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
+                                   + x * r_pixel_bytes / sizeof(Rtype);
+                    const ABCtype* a_ptr = reinterpret_cast<const ABCtype*>(a_row)
+                                           + x * a_pixel_bytes / sizeof(ABCtype);
+                    const ABCtype* b_ptr = reinterpret_cast<const ABCtype*>(b_row)
+                                           + x * b_pixel_bytes / sizeof(ABCtype);
+                    const ABCtype* c_ptr = reinterpret_cast<const ABCtype*>(c_row)
+                                           + x * c_pixel_bytes / sizeof(ABCtype);
+                    for (int ch = 0; ch < nchannels; ++ch) {
+                        r_ptr[ch] = static_cast<Rtype>(
+                            static_cast<float>(a_ptr[ch])
+                                * static_cast<float>(b_ptr[ch])
+                            + static_cast<float>(c_ptr[ch]));
+                    }
                 }
-        } else {
-            ImageBuf::Iterator<Rtype> r(R, roi);
-            ImageBuf::ConstIterator<ABCtype> a(A, roi);
-            ImageBuf::ConstIterator<ABCtype> b(B, roi);
-            ImageBuf::ConstIterator<ABCtype> c(C, roi);
-            for (; !r.done(); ++r, ++a, ++b, ++c) {
-                for (int ch = roi.chbegin; ch < roi.chend; ++ch)
-                    r[ch] = a[ch] * b[ch] + c[ch];
             }
         }
     });
     return true;
+}
+
+template<class Rtype, class ABCtype>
+static bool
+mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
+         ROI roi, int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels() && C.localpixels())
+        return mad_impl_hwy<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
+    return mad_impl_scalar<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
 }
 
 

@@ -330,6 +330,39 @@ inline void RunHwyCmd(Rtype* r, const Atype* a, const Btype* b, size_t n, OpFunc
     }
 }
 
+/// Execute a ternary SIMD operation on three arrays.
+/// Processes array elements in SIMD batches, handling type promotion/demotion
+/// and partial vectors at the end.
+/// @param r Destination array
+/// @param a First source array
+/// @param b Second source array
+/// @param c Third source array
+/// @param n Number of elements to process
+/// @param op Lambda/functor taking (descriptor, vector_a, vector_b, vector_c) and returning result
+///           Example: [](auto d, auto va, auto vb, auto vc) { return hn::MulAdd(va, vb, vc); }
+template <typename Rtype, typename ABCtype, typename OpFunc>
+inline void RunHwyTernaryCmd(Rtype* r, const ABCtype* a, const ABCtype* b, const ABCtype* c, size_t n, OpFunc op) {
+    using MathT = typename SimdMathType<Rtype>::type;
+    const hn::ScalableTag<MathT> d;
+    size_t x     = 0;
+    size_t lanes = hn::Lanes(d);
+    for (; x + lanes <= n; x += lanes) {
+        auto va  = LoadPromote(d, a + x);
+        auto vb  = LoadPromote(d, b + x);
+        auto vc  = LoadPromote(d, c + x);
+        auto res = op(d, va, vb, vc);
+        DemoteStore(d, r + x, res);
+    }
+    size_t remaining = n - x;
+    if (remaining > 0) {
+        auto va  = LoadPromoteN(d, a + x, remaining);
+        auto vb  = LoadPromoteN(d, b + x, remaining);
+        auto vc  = LoadPromoteN(d, c + x, remaining);
+        auto res = op(d, va, vb, vc);
+        DemoteStoreN(d, r + x, res, remaining);
+    }
+}
+
 // -----------------------------------------------------------------------
 // Interleaved Channel Load/Store Helpers
 // -----------------------------------------------------------------------

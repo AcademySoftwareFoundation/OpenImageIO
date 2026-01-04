@@ -28,8 +28,8 @@ OIIO_NAMESPACE_3_1_BEGIN
 
 template<class Rtype, class Atype, class Btype>
 static bool
-min_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-         int nthreads)
+min_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -46,7 +46,8 @@ min_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 
 template<class Rtype, class Atype>
 static bool
-min_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+min_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -56,6 +57,128 @@ min_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
                 r[c] = std::min(a[c], b[c]);
     });
     return true;
+}
+
+
+
+template<class Rtype, class Atype, class Btype>
+static bool
+min_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+             int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& Rspec  = R.spec();
+        const ImageSpec& Aspec  = A.spec();
+        const ImageSpec& Bspec  = B.spec();
+        size_t r_pixel_bytes    = Rspec.pixel_bytes();
+        size_t a_pixel_bytes    = Aspec.pixel_bytes();
+        size_t b_pixel_bytes    = Bspec.pixel_bytes();
+        size_t r_scanline_bytes = Rspec.scanline_bytes();
+        size_t a_scanline_bytes = Aspec.scanline_bytes();
+        size_t b_scanline_bytes = Bspec.scanline_bytes();
+
+        char* r_base       = (char*)R.localpixels();
+        const char* a_base = (const char*)A.localpixels();
+        const char* b_base = (const char*)B.localpixels();
+
+        int nchannels = roi.chend - roi.chbegin;
+        bool contig   = (nchannels * sizeof(Rtype) == r_pixel_bytes)
+                      && (nchannels * sizeof(Atype) == a_pixel_bytes)
+                      && (nchannels * sizeof(Btype) == b_pixel_bytes);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes
+                          + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes
+                                + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
+            const char* b_row = b_base + (y - B.ybegin()) * b_scanline_bytes
+                                + (roi.xbegin - B.xbegin()) * b_pixel_bytes;
+
+            r_row += roi.chbegin * sizeof(Rtype);
+            a_row += roi.chbegin * sizeof(Atype);
+            b_row += roi.chbegin * sizeof(Btype);
+
+            if (contig) {
+                size_t n = static_cast<size_t>(roi.width()) * nchannels;
+                RunHwyCmd<Rtype, Atype, Btype>(
+                    reinterpret_cast<Rtype*>(r_row),
+                    reinterpret_cast<const Atype*>(a_row),
+                    reinterpret_cast<const Btype*>(b_row), n,
+                    [](auto d, auto a, auto b) { return hn::Min(a, b); });
+            } else {
+                for (int x = 0; x < roi.width(); ++x) {
+                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
+                                   + x * r_pixel_bytes / sizeof(Rtype);
+                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row)
+                                         + x * a_pixel_bytes / sizeof(Atype);
+                    const Btype* b_ptr = reinterpret_cast<const Btype*>(b_row)
+                                         + x * b_pixel_bytes / sizeof(Btype);
+                    for (int c = 0; c < nchannels; ++c) {
+                        r_ptr[c] = static_cast<Rtype>(
+                            std::min(static_cast<float>(a_ptr[c]),
+                                     static_cast<float>(b_ptr[c])));
+                    }
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype>
+static bool
+min_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+             int nthreads)
+{
+    using SimdType
+        = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& Rspec  = R.spec();
+        const ImageSpec& Aspec  = A.spec();
+        size_t r_pixel_bytes    = Rspec.pixel_bytes();
+        size_t a_pixel_bytes    = Aspec.pixel_bytes();
+        size_t r_scanline_bytes = Rspec.scanline_bytes();
+        size_t a_scanline_bytes = Aspec.scanline_bytes();
+
+        char* r_base       = (char*)R.localpixels();
+        const char* a_base = (const char*)A.localpixels();
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            char* r_row       = r_base + (y - R.ybegin()) * r_scanline_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes;
+            for (int x = roi.xbegin; x < roi.xend; ++x) {
+                Rtype* r_ptr = (Rtype*)(r_row
+                                        + (x - R.xbegin()) * r_pixel_bytes);
+                const Atype* a_ptr
+                    = (const Atype*)(a_row + (x - A.xbegin()) * a_pixel_bytes);
+                for (int c = roi.chbegin; c < roi.chend; ++c) {
+                    r_ptr[c] = (Rtype)std::min((SimdType)a_ptr[c],
+                                               (SimdType)b[c]);
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype, class Btype>
+static bool
+min_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+         int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels())
+        return min_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    return min_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+}
+
+template<class Rtype, class Atype>
+static bool
+min_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
+        return min_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
+    return min_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
 }
 
 
@@ -125,8 +248,8 @@ ImageBufAlgo::min(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 
 template<class Rtype, class Atype, class Btype>
 static bool
-max_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-         int nthreads)
+max_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -143,7 +266,8 @@ max_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 
 template<class Rtype, class Atype>
 static bool
-max_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+max_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -153,6 +277,128 @@ max_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
                 r[c] = std::max(a[c], b[c]);
     });
     return true;
+}
+
+
+
+template<class Rtype, class Atype, class Btype>
+static bool
+max_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+             int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& Rspec  = R.spec();
+        const ImageSpec& Aspec  = A.spec();
+        const ImageSpec& Bspec  = B.spec();
+        size_t r_pixel_bytes    = Rspec.pixel_bytes();
+        size_t a_pixel_bytes    = Aspec.pixel_bytes();
+        size_t b_pixel_bytes    = Bspec.pixel_bytes();
+        size_t r_scanline_bytes = Rspec.scanline_bytes();
+        size_t a_scanline_bytes = Aspec.scanline_bytes();
+        size_t b_scanline_bytes = Bspec.scanline_bytes();
+
+        char* r_base       = (char*)R.localpixels();
+        const char* a_base = (const char*)A.localpixels();
+        const char* b_base = (const char*)B.localpixels();
+
+        int nchannels = roi.chend - roi.chbegin;
+        bool contig   = (nchannels * sizeof(Rtype) == r_pixel_bytes)
+                      && (nchannels * sizeof(Atype) == a_pixel_bytes)
+                      && (nchannels * sizeof(Btype) == b_pixel_bytes);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes
+                          + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes
+                                + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
+            const char* b_row = b_base + (y - B.ybegin()) * b_scanline_bytes
+                                + (roi.xbegin - B.xbegin()) * b_pixel_bytes;
+
+            r_row += roi.chbegin * sizeof(Rtype);
+            a_row += roi.chbegin * sizeof(Atype);
+            b_row += roi.chbegin * sizeof(Btype);
+
+            if (contig) {
+                size_t n = static_cast<size_t>(roi.width()) * nchannels;
+                RunHwyCmd<Rtype, Atype, Btype>(
+                    reinterpret_cast<Rtype*>(r_row),
+                    reinterpret_cast<const Atype*>(a_row),
+                    reinterpret_cast<const Btype*>(b_row), n,
+                    [](auto d, auto a, auto b) { return hn::Max(a, b); });
+            } else {
+                for (int x = 0; x < roi.width(); ++x) {
+                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
+                                   + x * r_pixel_bytes / sizeof(Rtype);
+                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row)
+                                         + x * a_pixel_bytes / sizeof(Atype);
+                    const Btype* b_ptr = reinterpret_cast<const Btype*>(b_row)
+                                         + x * b_pixel_bytes / sizeof(Btype);
+                    for (int c = 0; c < nchannels; ++c) {
+                        r_ptr[c] = static_cast<Rtype>(
+                            std::max(static_cast<float>(a_ptr[c]),
+                                     static_cast<float>(b_ptr[c])));
+                    }
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype>
+static bool
+max_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+             int nthreads)
+{
+    using SimdType
+        = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& Rspec  = R.spec();
+        const ImageSpec& Aspec  = A.spec();
+        size_t r_pixel_bytes    = Rspec.pixel_bytes();
+        size_t a_pixel_bytes    = Aspec.pixel_bytes();
+        size_t r_scanline_bytes = Rspec.scanline_bytes();
+        size_t a_scanline_bytes = Aspec.scanline_bytes();
+
+        char* r_base       = (char*)R.localpixels();
+        const char* a_base = (const char*)A.localpixels();
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            char* r_row       = r_base + (y - R.ybegin()) * r_scanline_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes;
+            for (int x = roi.xbegin; x < roi.xend; ++x) {
+                Rtype* r_ptr = (Rtype*)(r_row
+                                        + (x - R.xbegin()) * r_pixel_bytes);
+                const Atype* a_ptr
+                    = (const Atype*)(a_row + (x - A.xbegin()) * a_pixel_bytes);
+                for (int c = roi.chbegin; c < roi.chend; ++c) {
+                    r_ptr[c] = (Rtype)std::max((SimdType)a_ptr[c],
+                                               (SimdType)b[c]);
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype, class Btype>
+static bool
+max_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+         int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels())
+        return max_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    return max_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+}
+
+template<class Rtype, class Atype>
+static bool
+max_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
+        return max_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
+    return max_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
 }
 
 
@@ -222,8 +468,8 @@ ImageBufAlgo::max(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 
 template<class D, class S>
 static bool
-clamp_(ImageBuf& dst, const ImageBuf& src, const float* min, const float* max,
-       bool clampalpha01, ROI roi, int nthreads)
+clamp_scalar(ImageBuf& dst, const ImageBuf& src, const float* min,
+             const float* max, bool clampalpha01, ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::ConstIterator<S> s(src, roi);
@@ -238,6 +484,123 @@ clamp_(ImageBuf& dst, const ImageBuf& src, const float* min, const float* max,
         }
     });
     return true;
+}
+
+
+template<class Dtype, class Stype>
+static bool
+clamp_hwy(ImageBuf& dst, const ImageBuf& src, const float* min_vals,
+          const float* max_vals, bool clampalpha01, ROI roi, int nthreads)
+{
+    using MathT = typename SimdMathType<Dtype>::type;
+
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& dstspec = dst.spec();
+        const ImageSpec& srcspec = src.spec();
+        size_t dst_pixel_bytes   = dstspec.pixel_bytes();
+        size_t src_pixel_bytes   = srcspec.pixel_bytes();
+
+        char* dst_base       = (char*)dst.localpixels();
+        const char* src_base = (const char*)src.localpixels();
+
+        int nchannels = roi.chend - roi.chbegin;
+        bool contig   = (nchannels * sizeof(Dtype) == dst_pixel_bytes)
+                      && (nchannels * sizeof(Stype) == src_pixel_bytes);
+
+        // Set up Highway
+        const hn::ScalableTag<MathT> d;
+        size_t lanes = hn::Lanes(d);
+
+        // Pre-compute min/max pattern repeated to fill vector lanes
+        // Pattern: [min[0], min[1], ..., min[nch-1], min[0], min[1], ...]
+        MathT min_pattern[hn::MaxLanes(d)];
+        MathT max_pattern[hn::MaxLanes(d)];
+        for (size_t i = 0; i < lanes; ++i) {
+            int ch        = static_cast<int>(i % nchannels);
+            min_pattern[i] = static_cast<MathT>(min_vals[roi.chbegin + ch]);
+            max_pattern[i] = static_cast<MathT>(max_vals[roi.chbegin + ch]);
+        }
+        auto v_min = hn::Load(d, min_pattern);
+        auto v_max = hn::Load(d, max_pattern);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            size_t dst_offset = (y - dst.ybegin()) * dstspec.scanline_bytes()
+                                + (roi.xbegin - dst.xbegin()) * dst_pixel_bytes
+                                + roi.chbegin * sizeof(Dtype);
+            size_t src_offset = (y - src.ybegin()) * srcspec.scanline_bytes()
+                                + (roi.xbegin - src.xbegin()) * src_pixel_bytes
+                                + roi.chbegin * sizeof(Stype);
+
+            Dtype* d_row       = reinterpret_cast<Dtype*>(dst_base + dst_offset);
+            const Stype* s_row = reinterpret_cast<const Stype*>(src_base
+                                                                + src_offset);
+
+            if (contig) {
+                size_t total = static_cast<size_t>(roi.width()) * nchannels;
+                size_t x     = 0;
+
+                // Process full vectors when lanes is multiple of nchannels
+                // (ensures min/max pattern alignment)
+                if (nchannels > 0 && lanes % nchannels == 0) {
+                    for (; x + lanes <= total; x += lanes) {
+                        auto va  = LoadPromote(d, s_row + x);
+                        auto res = hn::Clamp(va, v_min, v_max);
+                        DemoteStore(d, d_row + x, res);
+                    }
+                }
+
+                // Handle remaining values (or all values if pattern doesn't align)
+                for (; x < total; ++x) {
+                    int ch   = static_cast<int>(x % nchannels);
+                    d_row[x] = static_cast<Dtype>(OIIO::clamp<float>(
+                        static_cast<float>(s_row[x]), min_vals[roi.chbegin + ch],
+                        max_vals[roi.chbegin + ch]));
+                }
+            } else {
+                // Non-contiguous: scalar fallback per pixel
+                for (int x = 0; x < roi.width(); ++x) {
+                    Dtype* d_ptr = reinterpret_cast<Dtype*>(
+                        dst_base + (y - dst.ybegin()) * dstspec.scanline_bytes()
+                        + (roi.xbegin + x - dst.xbegin()) * dst_pixel_bytes);
+                    const Stype* s_ptr = reinterpret_cast<const Stype*>(
+                        src_base + (y - src.ybegin()) * srcspec.scanline_bytes()
+                        + (roi.xbegin + x - src.xbegin()) * src_pixel_bytes);
+                    for (int c = roi.chbegin; c < roi.chend; ++c) {
+                        d_ptr[c] = static_cast<Dtype>(OIIO::clamp<float>(
+                            static_cast<float>(s_ptr[c]), min_vals[c],
+                            max_vals[c]));
+                    }
+                }
+            }
+        }
+
+        // Handle clampalpha01 separately (clamp alpha to [0,1])
+        int a = src.spec().alpha_channel;
+        if (clampalpha01 && a >= roi.chbegin && a < roi.chend) {
+            for (int y = roi.ybegin; y < roi.yend; ++y) {
+                for (int x = roi.xbegin; x < roi.xend; ++x) {
+                    Dtype* d_ptr = reinterpret_cast<Dtype*>(
+                        dst_base + (y - dst.ybegin()) * dstspec.scanline_bytes()
+                        + (x - dst.xbegin()) * dst_pixel_bytes);
+                    d_ptr[a] = static_cast<Dtype>(
+                        OIIO::clamp<float>(static_cast<float>(d_ptr[a]), 0.0f,
+                                           1.0f));
+                }
+            }
+        }
+    });
+    return true;
+}
+
+
+template<class D, class S>
+static bool
+clamp_(ImageBuf& dst, const ImageBuf& src, const float* min, const float* max,
+       bool clampalpha01, ROI roi, int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && dst.localpixels() && src.localpixels())
+        return clamp_hwy<D, S>(dst, src, min, max, clampalpha01, roi, nthreads);
+    return clamp_scalar<D, S>(dst, src, min, max, clampalpha01, roi, nthreads);
 }
 
 
@@ -278,8 +641,8 @@ ImageBufAlgo::clamp(const ImageBuf& src, cspan<float> min, cspan<float> max,
 
 template<class Rtype, class Atype, class Btype>
 static bool
-absdiff_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-             int nthreads)
+absdiff_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                    int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -295,8 +658,8 @@ absdiff_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 
 template<class Rtype, class Atype>
 static bool
-absdiff_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
-             int nthreads)
+absdiff_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+                    int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -306,6 +669,131 @@ absdiff_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
                 r[c] = std::abs(a[c] - b[c]);
     });
     return true;
+}
+
+
+
+template<class Rtype, class Atype, class Btype>
+static bool
+absdiff_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                 int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& Rspec  = R.spec();
+        const ImageSpec& Aspec  = A.spec();
+        const ImageSpec& Bspec  = B.spec();
+        size_t r_pixel_bytes    = Rspec.pixel_bytes();
+        size_t a_pixel_bytes    = Aspec.pixel_bytes();
+        size_t b_pixel_bytes    = Bspec.pixel_bytes();
+        size_t r_scanline_bytes = Rspec.scanline_bytes();
+        size_t a_scanline_bytes = Aspec.scanline_bytes();
+        size_t b_scanline_bytes = Bspec.scanline_bytes();
+
+        char* r_base       = (char*)R.localpixels();
+        const char* a_base = (const char*)A.localpixels();
+        const char* b_base = (const char*)B.localpixels();
+
+        int nchannels = roi.chend - roi.chbegin;
+        bool contig   = (nchannels * sizeof(Rtype) == r_pixel_bytes)
+                      && (nchannels * sizeof(Atype) == a_pixel_bytes)
+                      && (nchannels * sizeof(Btype) == b_pixel_bytes);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes
+                          + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes
+                                + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
+            const char* b_row = b_base + (y - B.ybegin()) * b_scanline_bytes
+                                + (roi.xbegin - B.xbegin()) * b_pixel_bytes;
+
+            r_row += roi.chbegin * sizeof(Rtype);
+            a_row += roi.chbegin * sizeof(Atype);
+            b_row += roi.chbegin * sizeof(Btype);
+
+            if (contig) {
+                size_t n = static_cast<size_t>(roi.width()) * nchannels;
+                RunHwyCmd<Rtype, Atype, Btype>(
+                    reinterpret_cast<Rtype*>(r_row),
+                    reinterpret_cast<const Atype*>(a_row),
+                    reinterpret_cast<const Btype*>(b_row), n,
+                    [](auto d, auto a, auto b) {
+                        return hn::Abs(hn::Sub(a, b));
+                    });
+            } else {
+                for (int x = 0; x < roi.width(); ++x) {
+                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
+                                   + x * r_pixel_bytes / sizeof(Rtype);
+                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row)
+                                         + x * a_pixel_bytes / sizeof(Atype);
+                    const Btype* b_ptr = reinterpret_cast<const Btype*>(b_row)
+                                         + x * b_pixel_bytes / sizeof(Btype);
+                    for (int c = 0; c < nchannels; ++c) {
+                        r_ptr[c] = static_cast<Rtype>(
+                            std::abs(static_cast<float>(a_ptr[c])
+                                     - static_cast<float>(b_ptr[c])));
+                    }
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype>
+static bool
+absdiff_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+                 int nthreads)
+{
+    using SimdType
+        = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& Rspec  = R.spec();
+        const ImageSpec& Aspec  = A.spec();
+        size_t r_pixel_bytes    = Rspec.pixel_bytes();
+        size_t a_pixel_bytes    = Aspec.pixel_bytes();
+        size_t r_scanline_bytes = Rspec.scanline_bytes();
+        size_t a_scanline_bytes = Aspec.scanline_bytes();
+
+        char* r_base       = (char*)R.localpixels();
+        const char* a_base = (const char*)A.localpixels();
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            char* r_row       = r_base + (y - R.ybegin()) * r_scanline_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes;
+            for (int x = roi.xbegin; x < roi.xend; ++x) {
+                Rtype* r_ptr = (Rtype*)(r_row
+                                        + (x - R.xbegin()) * r_pixel_bytes);
+                const Atype* a_ptr
+                    = (const Atype*)(a_row + (x - A.xbegin()) * a_pixel_bytes);
+                for (int c = roi.chbegin; c < roi.chend; ++c) {
+                    r_ptr[c] = (Rtype)std::abs((SimdType)a_ptr[c]
+                                               - (SimdType)b[c]);
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype, class Btype>
+static bool
+absdiff_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+             int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels())
+        return absdiff_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    return absdiff_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+}
+
+template<class Rtype, class Atype>
+static bool
+absdiff_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+             int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
+        return absdiff_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
+    return absdiff_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
 }
 
 

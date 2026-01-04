@@ -321,8 +321,8 @@ ImageBufAlgo::mul(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 
 template<class Rtype, class Atype, class Btype>
 static bool
-div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-         int nthreads)
+div_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -335,6 +335,88 @@ div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
             }
     });
     return true;
+}
+
+
+
+template<class Rtype, class Atype, class Btype>
+static bool
+div_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+             int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& Rspec  = R.spec();
+        const ImageSpec& Aspec  = A.spec();
+        const ImageSpec& Bspec  = B.spec();
+        size_t r_pixel_bytes    = Rspec.pixel_bytes();
+        size_t a_pixel_bytes    = Aspec.pixel_bytes();
+        size_t b_pixel_bytes    = Bspec.pixel_bytes();
+        size_t r_scanline_bytes = Rspec.scanline_bytes();
+        size_t a_scanline_bytes = Aspec.scanline_bytes();
+        size_t b_scanline_bytes = Bspec.scanline_bytes();
+
+        char* r_base       = (char*)R.localpixels();
+        const char* a_base = (const char*)A.localpixels();
+        const char* b_base = (const char*)B.localpixels();
+
+        int nchannels = roi.chend - roi.chbegin;
+        bool contig   = (nchannels * sizeof(Rtype) == r_pixel_bytes)
+                      && (nchannels * sizeof(Atype) == a_pixel_bytes)
+                      && (nchannels * sizeof(Btype) == b_pixel_bytes);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes
+                          + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes
+                                + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
+            const char* b_row = b_base + (y - B.ybegin()) * b_scanline_bytes
+                                + (roi.xbegin - B.xbegin()) * b_pixel_bytes;
+
+            r_row += roi.chbegin * sizeof(Rtype);
+            a_row += roi.chbegin * sizeof(Atype);
+            b_row += roi.chbegin * sizeof(Btype);
+
+            if (contig) {
+                size_t n = static_cast<size_t>(roi.width()) * nchannels;
+                RunHwyCmd<Rtype, Atype, Btype>(
+                    reinterpret_cast<Rtype*>(r_row),
+                    reinterpret_cast<const Atype*>(a_row),
+                    reinterpret_cast<const Btype*>(b_row), n,
+                    [](auto d, auto a, auto b) {
+                        // Check for zero division: if b == 0, return 0
+                        auto zero = hn::Zero(d);
+                        auto mask = hn::Eq(b, zero);
+                        return hn::IfThenElse(mask, zero, hn::Div(a, b));
+                    });
+            } else {
+                for (int x = 0; x < roi.width(); ++x) {
+                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
+                                   + x * r_pixel_bytes / sizeof(Rtype);
+                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row)
+                                         + x * a_pixel_bytes / sizeof(Atype);
+                    const Btype* b_ptr = reinterpret_cast<const Btype*>(b_row)
+                                         + x * b_pixel_bytes / sizeof(Btype);
+                    for (int c = 0; c < nchannels; ++c) {
+                        float v = static_cast<float>(b_ptr[c]);
+                        r_ptr[c] = (v == 0.0f) ? static_cast<Rtype>(0.0f)
+                                               : static_cast<Rtype>(static_cast<float>(a_ptr[c]) / v);
+                    }
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype, class Btype>
+static bool
+div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+         int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels())
+        return div_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    return div_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
 }
 
 

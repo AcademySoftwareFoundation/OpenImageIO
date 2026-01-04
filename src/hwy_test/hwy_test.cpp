@@ -447,6 +447,157 @@ main(int argc, char* argv[])
         save_image(R, "result_pow", cfg.name);
     }
 
+
+    // Div
+    printf("\n[ Div ]\n");
+    for (const auto& cfg : configs) {
+        ImageBuf A = create_test_image(width, height, 3, cfg.format);
+        ImageBuf B = create_test_image(width, height, 3, cfg.format);
+        ImageBuf R(A.spec());
+
+        auto bench_div = [&](int iters = 100) {
+            BenchResult result;
+            OIIO::attribute("enable_hwy", 0);
+            result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::div(R, A, B); }, iters);
+            OIIO::attribute("enable_hwy", 1);
+            result.simd_ms = benchmark_ms([&]() { ImageBufAlgo::div(R, A, B); }, iters);
+            result.speedup = result.scalar_ms / result.simd_ms;
+            return result;
+        };
+
+        print_result(cfg.name, bench_div(iterations));
+
+        // Save final result
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::div(R, A, B);
+        save_image(R, "result_div", cfg.name);
+    }
+
+    // Min
+    printf("\n[ Min ]\n");
+    for (const auto& cfg : configs) {
+        ImageBuf A = create_test_image(width, height, 3, cfg.format);
+        ImageBuf B = create_test_image(width, height, 3, cfg.format);
+        ImageBuf R(A.spec());
+
+        auto bench_min = [&](int iters = 100) {
+            BenchResult result;
+            OIIO::attribute("enable_hwy", 0);
+            result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::min(R, A, B); }, iters);
+            OIIO::attribute("enable_hwy", 1);
+            result.simd_ms = benchmark_ms([&]() { ImageBufAlgo::min(R, A, B); }, iters);
+            result.speedup = result.scalar_ms / result.simd_ms;
+            return result;
+        };
+
+        print_result(cfg.name, bench_min(iterations));
+
+        // Save final result
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::min(R, A, B);
+        save_image(R, "result_min", cfg.name);
+    }
+
+    // Max
+    printf("\n[ Max ]\n");
+    for (const auto& cfg : configs) {
+        ImageBuf A = create_test_image(width, height, 3, cfg.format);
+        ImageBuf B = create_test_image(width, height, 3, cfg.format);
+        ImageBuf R(A.spec());
+
+        auto bench_max = [&](int iters = 100) {
+            BenchResult result;
+            OIIO::attribute("enable_hwy", 0);
+            result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::max(R, A, B); }, iters);
+            OIIO::attribute("enable_hwy", 1);
+            result.simd_ms = benchmark_ms([&]() { ImageBufAlgo::max(R, A, B); }, iters);
+            result.speedup = result.scalar_ms / result.simd_ms;
+            return result;
+        };
+
+        print_result(cfg.name, bench_max(iterations));
+
+        // Save final result
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::max(R, A, B);
+        save_image(R, "result_max", cfg.name);
+    }
+
+    // Abs
+    printf("\n[ Abs ]\n");
+    for (const auto& cfg : configs) {
+        ImageBuf A = create_test_image(width, height, 3, cfg.format);
+        ImageBuf R(A.spec());
+
+        auto bench_abs = [&](int iters = 100) {
+            BenchResult result;
+            OIIO::attribute("enable_hwy", 0);
+            result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::abs(R, A); }, iters);
+            OIIO::attribute("enable_hwy", 1);
+            result.simd_ms = benchmark_ms([&]() { ImageBufAlgo::abs(R, A); }, iters);
+            result.speedup = result.scalar_ms / result.simd_ms;
+            return result;
+        };
+
+        print_result(cfg.name, bench_abs(iterations));
+
+        // Save final result
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::abs(R, A);
+        save_image(R, "result_abs", cfg.name);
+    }
+
+    // Absdiff
+    printf("\n[ Absdiff ]\n");
+    for (const auto& cfg : configs) {
+        ImageBuf A = create_test_image(width, height, 3, cfg.format);
+        ImageBuf B = create_test_image(width, height, 3, cfg.format);
+        ImageBuf R(A.spec());
+
+        auto bench_absdiff = [&](int iters = 100) {
+            BenchResult result;
+            OIIO::attribute("enable_hwy", 0);
+            result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::absdiff(R, A, B); }, iters);
+            OIIO::attribute("enable_hwy", 1);
+            result.simd_ms = benchmark_ms([&]() { ImageBufAlgo::absdiff(R, A, B); }, iters);
+            result.speedup = result.scalar_ms / result.simd_ms;
+            return result;
+        };
+
+        print_result(cfg.name, bench_absdiff(iterations));
+
+        // Save final result
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::absdiff(R, A, B);
+        save_image(R, "result_absdiff", cfg.name);
+    }
+
+    // MAD
+    printf("\n[ MAD ]\n");
+    for (const auto& cfg : configs) {
+        ImageBuf A = create_test_image(width, height, 3, cfg.format);
+        ImageBuf B = create_test_image(width, height, 3, cfg.format);
+        ImageBuf C = create_test_image(width, height, 3, cfg.format);
+        ImageBuf R(A.spec());
+
+        auto bench_mad = [&](int iters = 100) {
+            BenchResult result;
+            OIIO::attribute("enable_hwy", 0);
+            result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::mad(R, A, B, C); }, iters);
+            OIIO::attribute("enable_hwy", 1);
+            result.simd_ms = benchmark_ms([&]() { ImageBufAlgo::mad(R, A, B, C); }, iters);
+            result.speedup = result.scalar_ms / result.simd_ms;
+            return result;
+        };
+
+        print_result(cfg.name, bench_mad(iterations));
+
+        // Save final result
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::mad(R, A, B, C);
+        save_image(R, "result_mad", cfg.name);
+    }
+
     // RangeCompress
     printf("\n[ RangeCompress ]\n");
     //print_header();
