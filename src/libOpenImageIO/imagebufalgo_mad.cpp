@@ -101,12 +101,15 @@ mad_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
                 for (int x = 0; x < roi.width(); ++x) {
                     Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
                                    + x * r_pixel_bytes / sizeof(Rtype);
-                    const ABCtype* a_ptr = reinterpret_cast<const ABCtype*>(a_row)
-                                           + x * a_pixel_bytes / sizeof(ABCtype);
-                    const ABCtype* b_ptr = reinterpret_cast<const ABCtype*>(b_row)
-                                           + x * b_pixel_bytes / sizeof(ABCtype);
-                    const ABCtype* c_ptr = reinterpret_cast<const ABCtype*>(c_row)
-                                           + x * c_pixel_bytes / sizeof(ABCtype);
+                    const ABCtype* a_ptr
+                        = reinterpret_cast<const ABCtype*>(a_row)
+                          + x * a_pixel_bytes / sizeof(ABCtype);
+                    const ABCtype* b_ptr
+                        = reinterpret_cast<const ABCtype*>(b_row)
+                          + x * b_pixel_bytes / sizeof(ABCtype);
+                    const ABCtype* c_ptr
+                        = reinterpret_cast<const ABCtype*>(c_row)
+                          + x * c_pixel_bytes / sizeof(ABCtype);
                     for (int ch = 0; ch < nchannels; ++ch) {
                         r_ptr[ch] = static_cast<Rtype>(
                             static_cast<float>(a_ptr[ch])
