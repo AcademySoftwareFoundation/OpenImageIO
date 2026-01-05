@@ -22,15 +22,14 @@ namespace hn = hwy::HWY_NAMESPACE;
 // -----------------------------------------------------------------------
 
 /// Determine the appropriate SIMD math type for a given result type.
-/// Promotes smaller types to float, keeps double as double, and uses
-/// double for uint32_t to avoid precision loss.
+/// Promotes smaller types to float, keeps double as double.
+/// Note: uint32_t uses float (not double) for image processing performance.
+/// In OIIO, uint32 images are normalized to 0-1 range like uint8/uint16,
+/// so float precision (24-bit mantissa) is sufficient and much faster than double.
 template<typename T> struct SimdMathType {
     using type = float;
 };
 template<> struct SimdMathType<double> {
-    using type = double;
-};
-template<> struct SimdMathType<uint32_t> {
     using type = double;
 };
 
@@ -39,8 +38,9 @@ template<> struct SimdMathType<uint32_t> {
 // -----------------------------------------------------------------------
 
 /// Load and promote source data to target SIMD type.
-/// Handles type conversions from various source formats (uint8_t, uint16_t,
-/// int16_t, uint32_t, half, float, double) to the target SIMD computation type.
+/// Handles type conversions from various source formats (uint8_t, int8_t, uint16_t,
+/// int16_t, uint32_t, int32_t, uint64_t, int64_t, half, float, double) to the
+/// target SIMD computation type.
 /// @param d Highway descriptor tag defining the target SIMD type
 /// @param ptr Pointer to source data (may be unaligned)
 /// @return SIMD vector with promoted values
@@ -63,6 +63,12 @@ LoadPromote(D d, const SrcT* ptr)
         return hn::ConvertTo(
             d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
                              hn::PromoteTo(hn::Rebind<int16_t, D>(), v_u8)));
+    } else if constexpr (std::is_same_v<SrcT, int8_t>) {
+        auto d_i8 = hn::Rebind<int8_t, D>();
+        auto v_i8 = hn::Load(d_i8, ptr);
+        return hn::ConvertTo(
+            d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
+                             hn::PromoteTo(hn::Rebind<int16_t, D>(), v_i8)));
     } else if constexpr (std::is_same_v<SrcT, uint16_t>) {
         auto d_u16 = hn::Rebind<uint16_t, D>();
         auto v_u16 = hn::Load(d_u16, ptr);
@@ -72,11 +78,31 @@ LoadPromote(D d, const SrcT* ptr)
         auto v_i16 = hn::Load(d_i16, ptr);
         return hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_i16));
     } else if constexpr (std::is_same_v<SrcT, uint32_t>) {
+        // uint32 to float: Load and convert directly (no promotion needed)
+        // Note: We use float, not double, for image processing performance
         auto d_u32 = hn::Rebind<uint32_t, D>();
         auto v_u32 = hn::Load(d_u32, ptr);
+        return hn::ConvertTo(d, v_u32);
+    } else if constexpr (std::is_same_v<SrcT, int32_t>) {
+        // int32 to float: Load and convert directly
+        auto d_i32 = hn::Rebind<int32_t, D>();
+        auto v_i32 = hn::Load(d_i32, ptr);
+        return hn::ConvertTo(d, v_i32);
+    } else if constexpr (std::is_same_v<SrcT, uint64_t>) {
+        // uint64 to float: Load and demote to uint32, then convert
+        // Note: Precision loss expected for large values (>24 bits)
         auto d_u64 = hn::Rebind<uint64_t, D>();
-        auto v_u64 = hn::PromoteTo(d_u64, v_u32);
-        return hn::ConvertTo(d, v_u64);
+        auto v_u64 = hn::Load(d_u64, ptr);
+        auto d_u32 = hn::Rebind<uint32_t, D>();
+        auto v_u32 = hn::DemoteTo(d_u32, v_u64);
+        return hn::ConvertTo(d, v_u32);
+    } else if constexpr (std::is_same_v<SrcT, int64_t>) {
+        // int64 to float: Load and demote to int32, then convert
+        auto d_i64 = hn::Rebind<int64_t, D>();
+        auto v_i64 = hn::Load(d_i64, ptr);
+        auto d_i32 = hn::Rebind<int32_t, D>();
+        auto v_i32 = hn::DemoteTo(d_i32, v_i64);
+        return hn::ConvertTo(d, v_i32);
     } else {
         return hn::Zero(d);
     }
@@ -107,16 +133,40 @@ LoadPromoteN(D d, const SrcT* ptr, size_t count)
         return hn::ConvertTo(
             d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
                              hn::PromoteTo(hn::Rebind<int16_t, D>(), v_u8)));
+    } else if constexpr (std::is_same_v<SrcT, int8_t>) {
+        auto d_i8 = hn::Rebind<int8_t, D>();
+        auto v_i8 = hn::LoadN(d_i8, ptr, count);
+        return hn::ConvertTo(
+            d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
+                             hn::PromoteTo(hn::Rebind<int16_t, D>(), v_i8)));
     } else if constexpr (std::is_same_v<SrcT, uint16_t>) {
         auto d_u16 = hn::Rebind<uint16_t, D>();
         auto v_u16 = hn::LoadN(d_u16, ptr, count);
         return hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_u16));
     } else if constexpr (std::is_same_v<SrcT, uint32_t>) {
+        // uint32 to float: Load and convert directly (no promotion needed)
         auto d_u32 = hn::Rebind<uint32_t, D>();
         auto v_u32 = hn::LoadN(d_u32, ptr, count);
+        return hn::ConvertTo(d, v_u32);
+    } else if constexpr (std::is_same_v<SrcT, int32_t>) {
+        // int32 to float: Load and convert directly
+        auto d_i32 = hn::Rebind<int32_t, D>();
+        auto v_i32 = hn::LoadN(d_i32, ptr, count);
+        return hn::ConvertTo(d, v_i32);
+    } else if constexpr (std::is_same_v<SrcT, uint64_t>) {
+        // uint64 to float: Load and demote to uint32, then convert
         auto d_u64 = hn::Rebind<uint64_t, D>();
-        auto v_u64 = hn::PromoteTo(d_u64, v_u32);
-        return hn::ConvertTo(d, v_u64);
+        auto v_u64 = hn::LoadN(d_u64, ptr, count);
+        auto d_u32 = hn::Rebind<uint32_t, D>();
+        auto v_u32 = hn::DemoteTo(d_u32, v_u64);
+        return hn::ConvertTo(d, v_u32);
+    } else if constexpr (std::is_same_v<SrcT, int64_t>) {
+        // int64 to float: Load and demote to int32, then convert
+        auto d_i64 = hn::Rebind<int64_t, D>();
+        auto v_i64 = hn::LoadN(d_i64, ptr, count);
+        auto d_i32 = hn::Rebind<int32_t, D>();
+        auto v_i32 = hn::DemoteTo(d_i32, v_i64);
+        return hn::ConvertTo(d, v_i32);
     } else {
         return hn::Zero(d);
     }
@@ -160,6 +210,21 @@ DemoteStore(D d, DstT* ptr, VecT v)
         auto d_u8  = hn::Rebind<uint8_t, D>();
         auto v_u8  = hn::DemoteTo(d_u8, v_i16);
         hn::Store(v_u8, d_u8, ptr);
+    } else if constexpr (std::is_same_v<DstT, int8_t>) {
+        VecD v_val     = (VecD)v;
+        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        VecD v_min     = hn::Set(d, (MathT)-128.0);
+        VecD v_max     = hn::Set(d, (MathT)127.0);
+        VecD v_clamped = hn::Max(v_rounded, v_min);
+        v_clamped      = hn::Min(v_clamped, v_max);
+
+        auto d32   = hn::Rebind<int32_t, D>();
+        auto vi32  = hn::ConvertTo(d32, v_clamped);
+        auto d_i16 = hn::Rebind<int16_t, D>();
+        auto v_i16 = hn::DemoteTo(d_i16, vi32);
+        auto d_i8  = hn::Rebind<int8_t, D>();
+        auto v_i8  = hn::DemoteTo(d_i8, v_i16);
+        hn::Store(v_i8, d_i8, ptr);
     } else if constexpr (std::is_same_v<DstT, uint16_t>) {
         VecD v_val     = (VecD)v;
         VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
@@ -187,14 +252,53 @@ DemoteStore(D d, DstT* ptr, VecT v)
         auto v_i16 = hn::DemoteTo(d_i16, vi32);
         hn::Store(v_i16, d_i16, ptr);
     } else if constexpr (std::is_same_v<DstT, uint32_t>) {
+        // float -> uint32: Round and convert directly
+        // Note: We use float, not double, for image processing performance
         VecD v_val     = (VecD)v;
         VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
-        // double -> u32
-        auto d_u64 = hn::Rebind<uint64_t, D>();
-        auto v_u64 = hn::ConvertTo(d_u64, v_rounded);
+        VecD v_zero    = hn::Zero(d);
+        VecD v_max     = hn::Set(d, (MathT)4294967295.0);
+        VecD v_clamped = hn::Max(v_rounded, v_zero);
+        v_clamped      = hn::Min(v_clamped, v_max);
+
         auto d_u32 = hn::Rebind<uint32_t, D>();
-        auto v_u32 = hn::DemoteTo(d_u32, v_u64);
+        auto v_u32 = hn::ConvertTo(d_u32, v_clamped);
         hn::Store(v_u32, d_u32, ptr);
+    } else if constexpr (std::is_same_v<DstT, int32_t>) {
+        // float -> int32: Round and convert directly
+        VecD v_val     = (VecD)v;
+        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        VecD v_min     = hn::Set(d, (MathT)-2147483648.0);
+        VecD v_max     = hn::Set(d, (MathT)2147483647.0);
+        VecD v_clamped = hn::Max(v_rounded, v_min);
+        v_clamped      = hn::Min(v_clamped, v_max);
+
+        auto d_i32 = hn::Rebind<int32_t, D>();
+        auto v_i32 = hn::ConvertTo(d_i32, v_clamped);
+        hn::Store(v_i32, d_i32, ptr);
+    } else if constexpr (std::is_same_v<DstT, uint64_t>) {
+        // float -> uint64: Promote via uint32
+        // Note: Precision loss expected (float has only 24-bit mantissa)
+        VecD v_val     = (VecD)v;
+        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        VecD v_zero    = hn::Zero(d);
+        VecD v_clamped = hn::Max(v_rounded, v_zero);
+
+        auto d_u32 = hn::Rebind<uint32_t, D>();
+        auto v_u32 = hn::ConvertTo(d_u32, v_clamped);
+        auto d_u64 = hn::Rebind<uint64_t, D>();
+        auto v_u64 = hn::PromoteTo(d_u64, v_u32);
+        hn::Store(v_u64, d_u64, ptr);
+    } else if constexpr (std::is_same_v<DstT, int64_t>) {
+        // float -> int64: Promote via int32
+        VecD v_val     = (VecD)v;
+        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+
+        auto d_i32 = hn::Rebind<int32_t, D>();
+        auto v_i32 = hn::ConvertTo(d_i32, v_rounded);
+        auto d_i64 = hn::Rebind<int64_t, D>();
+        auto v_i64 = hn::PromoteTo(d_i64, v_i32);
+        hn::Store(v_i64, d_i64, ptr);
     }
 }
 
@@ -232,6 +336,21 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         auto d_u8  = hn::Rebind<uint8_t, D>();
         auto v_u8  = hn::DemoteTo(d_u8, v_i16);
         hn::StoreN(v_u8, d_u8, ptr, count);
+    } else if constexpr (std::is_same_v<DstT, int8_t>) {
+        VecD v_val     = (VecD)v;
+        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        VecD v_min     = hn::Set(d, (MathT)-128.0);
+        VecD v_max     = hn::Set(d, (MathT)127.0);
+        VecD v_clamped = hn::Max(v_rounded, v_min);
+        v_clamped      = hn::Min(v_clamped, v_max);
+
+        auto d32   = hn::Rebind<int32_t, D>();
+        auto vi32  = hn::ConvertTo(d32, v_clamped);
+        auto d_i16 = hn::Rebind<int16_t, D>();
+        auto v_i16 = hn::DemoteTo(d_i16, vi32);
+        auto d_i8  = hn::Rebind<int8_t, D>();
+        auto v_i8  = hn::DemoteTo(d_i8, v_i16);
+        hn::StoreN(v_i8, d_i8, ptr, count);
     } else if constexpr (std::is_same_v<DstT, uint16_t>) {
         VecD v_val     = (VecD)v;
         VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
@@ -259,18 +378,116 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         auto v_i16 = hn::DemoteTo(d_i16, vi32);
         hn::StoreN(v_i16, d_i16, ptr, count);
     } else if constexpr (std::is_same_v<DstT, uint32_t>) {
+        // float -> uint32: Round and convert directly
         VecD v_val     = (VecD)v;
         VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
-        auto d_u64     = hn::Rebind<uint64_t, D>();
-        auto v_u64     = hn::ConvertTo(d_u64, v_rounded);
-        auto d_u32     = hn::Rebind<uint32_t, D>();
-        auto v_u32     = hn::DemoteTo(d_u32, v_u64);
+        VecD v_zero    = hn::Zero(d);
+        VecD v_max     = hn::Set(d, (MathT)4294967295.0);
+        VecD v_clamped = hn::Max(v_rounded, v_zero);
+        v_clamped      = hn::Min(v_clamped, v_max);
+
+        auto d_u32 = hn::Rebind<uint32_t, D>();
+        auto v_u32 = hn::ConvertTo(d_u32, v_clamped);
         hn::StoreN(v_u32, d_u32, ptr, count);
+    } else if constexpr (std::is_same_v<DstT, int32_t>) {
+        // float -> int32: Round and convert directly
+        VecD v_val     = (VecD)v;
+        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        VecD v_min     = hn::Set(d, (MathT)-2147483648.0);
+        VecD v_max     = hn::Set(d, (MathT)2147483647.0);
+        VecD v_clamped = hn::Max(v_rounded, v_min);
+        v_clamped      = hn::Min(v_clamped, v_max);
+
+        auto d_i32 = hn::Rebind<int32_t, D>();
+        auto v_i32 = hn::ConvertTo(d_i32, v_clamped);
+        hn::StoreN(v_i32, d_i32, ptr, count);
+    } else if constexpr (std::is_same_v<DstT, uint64_t>) {
+        // float -> uint64: Promote via uint32
+        VecD v_val     = (VecD)v;
+        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        VecD v_zero    = hn::Zero(d);
+        VecD v_clamped = hn::Max(v_rounded, v_zero);
+
+        auto d_u32 = hn::Rebind<uint32_t, D>();
+        auto v_u32 = hn::ConvertTo(d_u32, v_clamped);
+        auto d_u64 = hn::Rebind<uint64_t, D>();
+        auto v_u64 = hn::PromoteTo(d_u64, v_u32);
+        hn::StoreN(v_u64, d_u64, ptr, count);
+    } else if constexpr (std::is_same_v<DstT, int64_t>) {
+        // float -> int64: Promote via int32
+        VecD v_val     = (VecD)v;
+        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+
+        auto d_i32 = hn::Rebind<int32_t, D>();
+        auto v_i32 = hn::ConvertTo(d_i32, v_rounded);
+        auto d_i64 = hn::Rebind<int64_t, D>();
+        auto v_i64 = hn::PromoteTo(d_i64, v_i32);
+        hn::StoreN(v_i64, d_i64, ptr, count);
     }
 }
 
 // -----------------------------------------------------------------------
-// Generic Kernel Runners
+// Native Integer Kernel Runners (No Type Conversion)
+// -----------------------------------------------------------------------
+
+/// Execute a unary SIMD operation on native integer arrays (no type promotion).
+/// For scale-invariant operations like abs, where int_op(a) == denorm(float_op(norm(a))).
+/// Much faster than promotion path - operates directly on integer SIMD vectors.
+/// @param r Destination array (same type as source)
+/// @param a Source array
+/// @param n Number of elements to process
+/// @param op Lambda/functor taking (descriptor, vector) and returning result vector
+///           Example: [](auto d, auto va) { return hn::Abs(va); }
+template <typename T, typename OpFunc>
+inline void RunHwyUnaryNativeInt(T* r, const T* a, size_t n, OpFunc op) {
+    const hn::ScalableTag<T> d;
+    size_t x = 0;
+    size_t lanes = hn::Lanes(d);
+    for (; x + lanes <= n; x += lanes) {
+        auto va = hn::Load(d, a + x);
+        auto res = op(d, va);
+        hn::Store(res, d, r + x);
+    }
+    size_t remaining = n - x;
+    if (remaining > 0) {
+        auto va = hn::LoadN(d, a + x, remaining);
+        auto res = op(d, va);
+        hn::StoreN(res, d, r + x, remaining);
+    }
+}
+
+/// Execute a binary SIMD operation on native integer arrays (no type promotion).
+/// For scale-invariant operations like saturated add, min, max, where:
+/// int_op(a, b) == denorm(float_op(norm(a), norm(b))).
+/// Much faster than promotion path - no conversion overhead.
+/// @param r Destination array (same type as sources)
+/// @param a First source array
+/// @param b Second source array
+/// @param n Number of elements to process
+/// @param op Lambda/functor taking (descriptor, vector_a, vector_b) and returning result
+///           Example: [](auto d, auto va, auto vb) { return hn::SaturatedAdd(va, vb); }
+template <typename T, typename OpFunc>
+inline void RunHwyBinaryNativeInt(T* r, const T* a, const T* b, size_t n, OpFunc op) {
+    const hn::ScalableTag<T> d;
+    size_t x = 0;
+    size_t lanes = hn::Lanes(d);
+    for (; x + lanes <= n; x += lanes) {
+        auto va = hn::Load(d, a + x);
+        auto vb = hn::Load(d, b + x);
+        auto res = op(d, va, vb);
+        hn::Store(res, d, r + x);
+    }
+    size_t remaining = n - x;
+    if (remaining > 0) {
+        auto va = hn::LoadN(d, a + x, remaining);
+        auto vb = hn::LoadN(d, b + x, remaining);
+        auto res = op(d, va, vb);
+        hn::StoreN(res, d, r + x, remaining);
+    }
+}
+
+// -----------------------------------------------------------------------
+// Generic Kernel Runners (With Type Conversion)
 // -----------------------------------------------------------------------
 
 /// Execute a unary SIMD operation on an array.

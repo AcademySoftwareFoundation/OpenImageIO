@@ -598,6 +598,34 @@ main(int argc, char* argv[])
         save_image(R, "result_mad", cfg.name);
     }
 
+    // Clamp
+    printf("\n[ Clamp ]\n");
+    for (const auto& cfg : configs) {
+        ImageBuf A = create_test_image(width, height, 3, cfg.format);
+        ImageBuf R(A.spec());
+
+        auto bench_clamp = [&](int iters = 100) {
+            BenchResult result;
+            OIIO::attribute("enable_hwy", 0);
+            result.scalar_ms = benchmark_ms([&]() {
+                ImageBufAlgo::clamp(R, A, 0.1f, 0.9f);
+            }, iters);
+            OIIO::attribute("enable_hwy", 1);
+            result.simd_ms = benchmark_ms([&]() {
+                ImageBufAlgo::clamp(R, A, 0.1f, 0.9f);
+            }, iters);
+            result.speedup = result.scalar_ms / result.simd_ms;
+            return result;
+        };
+
+        print_result(cfg.name, bench_clamp(iterations));
+
+        // Save final result
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::clamp(R, A, 0.1f, 0.9f);
+        save_image(R, "result_clamp", cfg.name);
+    }
+
     // RangeCompress
     printf("\n[ RangeCompress ]\n");
     //print_header();
@@ -659,33 +687,6 @@ main(int argc, char* argv[])
         save_image(R, "result_unpremult", cfg.name);
     }
 
-    // Clamp
-    printf("\n[ Clamp ]\n");
-    for (const auto& cfg : configs) {
-        ImageBuf A = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
-
-        auto bench_clamp = [&](int iters = 100) {
-            BenchResult result;
-            OIIO::attribute("enable_hwy", 0);
-            result.scalar_ms = benchmark_ms([&]() {
-                ImageBufAlgo::clamp(R, A, 0.1f, 0.9f);
-            }, iters);
-            OIIO::attribute("enable_hwy", 1);
-            result.simd_ms = benchmark_ms([&]() {
-                ImageBufAlgo::clamp(R, A, 0.1f, 0.9f);
-            }, iters);
-            result.speedup = result.scalar_ms / result.simd_ms;
-            return result;
-        };
-
-        print_result(cfg.name, bench_clamp(iterations));
-
-        // Save final result
-        OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::clamp(R, A, 0.1f, 0.9f);
-        save_image(R, "result_clamp", cfg.name);
-    }
 
     // Resample 75%
     printf("\n[ Resample 75%% ]\n");
