@@ -4,13 +4,13 @@
 
 #pragma once
 
-#include <hwy/highway.h>
-#include <hwy/contrib/math/math-inl.h>
 #include <OpenImageIO/half.h>
 #include <OpenImageIO/imageio.h>
-#include <type_traits>
 #include <algorithm>
 #include <cstddef>
+#include <hwy/contrib/math/math-inl.h>
+#include <hwy/highway.h>
+#include <type_traits>
 
 OIIO_NAMESPACE_BEGIN
 
@@ -58,47 +58,56 @@ LoadPromote(D d, const SrcT* ptr)
         auto v16  = hn::Load(d16, (const T16*)ptr);
         return hn::PromoteTo(d, v16);
     } else if constexpr (std::is_same_v<SrcT, uint8_t>) {
-        auto d_u8 = hn::Rebind<uint8_t, D>();
-        auto v_u8 = hn::Load(d_u8, ptr);
+        auto d_u8       = hn::Rebind<uint8_t, D>();
+        auto v_u8       = hn::Load(d_u8, ptr);
         auto v_promoted = hn::ConvertTo(
             d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
                              hn::PromoteTo(hn::Rebind<int16_t, D>(), v_u8)));
         // Normalize to 0-1 range for image operations
         return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 255.0)));
     } else if constexpr (std::is_same_v<SrcT, int8_t>) {
-        auto d_i8 = hn::Rebind<int8_t, D>();
-        auto v_i8 = hn::Load(d_i8, ptr);
+        auto d_i8       = hn::Rebind<int8_t, D>();
+        auto v_i8       = hn::Load(d_i8, ptr);
         auto v_promoted = hn::ConvertTo(
             d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
                              hn::PromoteTo(hn::Rebind<int16_t, D>(), v_i8)));
-        // Normalize: map [-128, 127] to [0, 1]
-        auto v_shifted = hn::Add(v_promoted, hn::Set(d, (MathT)128.0));
-        return hn::Mul(v_shifted, hn::Set(d, (MathT)(1.0 / 255.0)));
+        // Normalize: map [-128, 127] to approximately [-1.0, 1.0]
+        // Clamp INT_MIN so we never produce values < -1.0.
+        auto v_norm = hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 127.0)));
+        return hn::Max(v_norm, hn::Set(d, (MathT)-1.0));
     } else if constexpr (std::is_same_v<SrcT, uint16_t>) {
         auto d_u16 = hn::Rebind<uint16_t, D>();
         auto v_u16 = hn::Load(d_u16, ptr);
-        auto v_promoted = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_u16));
+        auto v_promoted
+            = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_u16));
         // Normalize to 0-1 range for image operations
         return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 65535.0)));
     } else if constexpr (std::is_same_v<SrcT, int16_t>) {
         auto d_i16 = hn::Rebind<int16_t, D>();
         auto v_i16 = hn::Load(d_i16, ptr);
-        auto v_promoted = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_i16));
-        // Normalize: map [-32768, 32767] to [0, 1]
-        auto v_shifted = hn::Add(v_promoted, hn::Set(d, (MathT)32768.0));
-        return hn::Mul(v_shifted, hn::Set(d, (MathT)(1.0 / 65535.0)));
+        auto v_promoted
+            = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_i16));
+        // Normalize: map [-32768, 32767] to approximately [-1.0, 1.0]
+        // Clamp INT_MIN so we never produce values < -1.0.
+        auto v_norm = hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 32767.0)));
+        return hn::Max(v_norm, hn::Set(d, (MathT)-1.0));
     } else if constexpr (std::is_same_v<SrcT, uint32_t>) {
         // uint32 to float: Load, convert, and normalize to 0-1 range
-        auto d_u32 = hn::Rebind<uint32_t, D>();
-        auto v_u32 = hn::Load(d_u32, ptr);
+        auto d_u32      = hn::Rebind<uint32_t, D>();
+        auto v_u32      = hn::Load(d_u32, ptr);
         auto v_promoted = hn::ConvertTo(d, v_u32);
         // Normalize to 0-1 range for image operations
         return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 4294967295.0)));
     } else if constexpr (std::is_same_v<SrcT, int32_t>) {
-        // int32 to float: Load and convert directly
-        auto d_i32 = hn::Rebind<int32_t, D>();
-        auto v_i32 = hn::Load(d_i32, ptr);
-        return hn::ConvertTo(d, v_i32);
+        // int32 to float: Load, convert, and normalize to approximately [-1.0, 1.0]
+        auto d_i32      = hn::Rebind<int32_t, D>();
+        auto v_i32      = hn::Load(d_i32, ptr);
+        auto v_promoted = hn::ConvertTo(d, v_i32);
+        // Normalize: map [-2147483648, 2147483647] to approximately [-1.0, 1.0]
+        // Clamp INT_MIN so we never produce values < -1.0.
+        auto v_norm = hn::Mul(v_promoted,
+                              hn::Set(d, (MathT)(1.0 / 2147483647.0)));
+        return hn::Max(v_norm, hn::Set(d, (MathT)-1.0));
     } else if constexpr (std::is_same_v<SrcT, uint64_t>) {
         // uint64 to float: Load and demote to uint32, then convert
         // Note: Precision loss expected for large values (>24 bits)
@@ -139,47 +148,56 @@ LoadPromoteN(D d, const SrcT* ptr, size_t count)
         auto v16  = hn::LoadN(d16, (const T16*)ptr, count);
         return hn::PromoteTo(d, v16);
     } else if constexpr (std::is_same_v<SrcT, uint8_t>) {
-        auto d_u8 = hn::Rebind<uint8_t, D>();
-        auto v_u8 = hn::LoadN(d_u8, ptr, count);
+        auto d_u8       = hn::Rebind<uint8_t, D>();
+        auto v_u8       = hn::LoadN(d_u8, ptr, count);
         auto v_promoted = hn::ConvertTo(
             d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
                              hn::PromoteTo(hn::Rebind<int16_t, D>(), v_u8)));
         // Normalize to 0-1 range for image operations
         return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 255.0)));
     } else if constexpr (std::is_same_v<SrcT, int8_t>) {
-        auto d_i8 = hn::Rebind<int8_t, D>();
-        auto v_i8 = hn::LoadN(d_i8, ptr, count);
+        auto d_i8       = hn::Rebind<int8_t, D>();
+        auto v_i8       = hn::LoadN(d_i8, ptr, count);
         auto v_promoted = hn::ConvertTo(
             d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
                              hn::PromoteTo(hn::Rebind<int16_t, D>(), v_i8)));
-        // Normalize: map [-128, 127] to [0, 1]
-        auto v_shifted = hn::Add(v_promoted, hn::Set(d, (MathT)128.0));
-        return hn::Mul(v_shifted, hn::Set(d, (MathT)(1.0 / 255.0)));
+        // Normalize: map [-128, 127] to approximately [-1.0, 1.0]
+        // Clamp INT_MIN so we never produce values < -1.0.
+        auto v_norm = hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 127.0)));
+        return hn::Max(v_norm, hn::Set(d, (MathT)-1.0));
     } else if constexpr (std::is_same_v<SrcT, uint16_t>) {
         auto d_u16 = hn::Rebind<uint16_t, D>();
         auto v_u16 = hn::LoadN(d_u16, ptr, count);
-        auto v_promoted = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_u16));
+        auto v_promoted
+            = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_u16));
         // Normalize to 0-1 range for image operations
         return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 65535.0)));
     } else if constexpr (std::is_same_v<SrcT, int16_t>) {
         auto d_i16 = hn::Rebind<int16_t, D>();
         auto v_i16 = hn::LoadN(d_i16, ptr, count);
-        auto v_promoted = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_i16));
-        // Normalize: map [-32768, 32767] to [0, 1]
-        auto v_shifted = hn::Add(v_promoted, hn::Set(d, (MathT)32768.0));
-        return hn::Mul(v_shifted, hn::Set(d, (MathT)(1.0 / 65535.0)));
+        auto v_promoted
+            = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_i16));
+        // Normalize: map [-32768, 32767] to approximately [-1.0, 1.0]
+        // Clamp INT_MIN so we never produce values < -1.0.
+        auto v_norm = hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 32767.0)));
+        return hn::Max(v_norm, hn::Set(d, (MathT)-1.0));
     } else if constexpr (std::is_same_v<SrcT, uint32_t>) {
         // uint32 to float: Load, convert, and normalize to 0-1 range
-        auto d_u32 = hn::Rebind<uint32_t, D>();
-        auto v_u32 = hn::LoadN(d_u32, ptr, count);
+        auto d_u32      = hn::Rebind<uint32_t, D>();
+        auto v_u32      = hn::LoadN(d_u32, ptr, count);
         auto v_promoted = hn::ConvertTo(d, v_u32);
         // Normalize to 0-1 range for image operations
         return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 4294967295.0)));
     } else if constexpr (std::is_same_v<SrcT, int32_t>) {
-        // int32 to float: Load and convert directly
-        auto d_i32 = hn::Rebind<int32_t, D>();
-        auto v_i32 = hn::LoadN(d_i32, ptr, count);
-        return hn::ConvertTo(d, v_i32);
+        // int32 to float: Load, convert, and normalize to approximately [-1.0, 1.0]
+        auto d_i32      = hn::Rebind<int32_t, D>();
+        auto v_i32      = hn::LoadN(d_i32, ptr, count);
+        auto v_promoted = hn::ConvertTo(d, v_i32);
+        // Normalize: map [-2147483648, 2147483647] to approximately [-1.0, 1.0]
+        // Clamp INT_MIN so we never produce values < -1.0.
+        auto v_norm = hn::Mul(v_promoted,
+                              hn::Set(d, (MathT)(1.0 / 2147483647.0)));
+        return hn::Max(v_norm, hn::Set(d, (MathT)-1.0));
     } else if constexpr (std::is_same_v<SrcT, uint64_t>) {
         // uint64 to float: Load and demote to uint32, then convert
         auto d_u64 = hn::Rebind<uint64_t, D>();
@@ -223,7 +241,7 @@ DemoteStore(D d, DstT* ptr, VecT v)
         auto v16 = hn::DemoteTo(d16, v);
         hn::Store(v16, d16, (hwy::float16_t*)ptr);
     } else if constexpr (std::is_same_v<DstT, uint8_t>) {
-        VecD v_val     = (VecD)v;
+        VecD v_val = (VecD)v;
         // Denormalize from 0-1 range to 0-255 range
         VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)255.0));
         VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
@@ -240,11 +258,14 @@ DemoteStore(D d, DstT* ptr, VecT v)
         auto v_u8  = hn::DemoteTo(d_u8, v_i16);
         hn::Store(v_u8, d_u8, ptr);
     } else if constexpr (std::is_same_v<DstT, int8_t>) {
-        VecD v_val     = (VecD)v;
-        // Denormalize from 0-1 range to -128-127 range
-        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)255.0));
-        VecD v_shifted = hn::Sub(v_denorm, hn::Set(d, (MathT)128.0));
-        VecD v_rounded = hn::Add(v_shifted, hn::Set(d, (MathT)0.5));
+        VecD v_val = (VecD)v;
+        // Denormalize from approximately [-1.0, 1.0] range to -128-127 range
+        VecD v_denorm = hn::Mul(v_val, hn::Set(d, (MathT)127.0));
+        // Symmetric round-to-nearest for signed values (assumes ConvertTo truncates).
+        auto is_neg    = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias    = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                        hn::Set(d, (MathT)0.5));
+        VecD v_rounded = hn::Add(v_denorm, v_bias);
         VecD v_min     = hn::Set(d, (MathT)-128.0);
         VecD v_max     = hn::Set(d, (MathT)127.0);
         VecD v_clamped = hn::Max(v_rounded, v_min);
@@ -258,7 +279,7 @@ DemoteStore(D d, DstT* ptr, VecT v)
         auto v_i8  = hn::DemoteTo(d_i8, v_i16);
         hn::Store(v_i8, d_i8, ptr);
     } else if constexpr (std::is_same_v<DstT, uint16_t>) {
-        VecD v_val     = (VecD)v;
+        VecD v_val = (VecD)v;
         // Denormalize from 0-1 range to 0-65535 range
         VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)65535.0));
         VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
@@ -273,11 +294,14 @@ DemoteStore(D d, DstT* ptr, VecT v)
         auto v_u16 = hn::DemoteTo(d_u16, vi32);
         hn::Store(v_u16, d_u16, ptr);
     } else if constexpr (std::is_same_v<DstT, int16_t>) {
-        VecD v_val     = (VecD)v;
-        // Denormalize from 0-1 range to -32768-32767 range
-        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)65535.0));
-        VecD v_shifted = hn::Sub(v_denorm, hn::Set(d, (MathT)32768.0));
-        VecD v_rounded = hn::Add(v_shifted, hn::Set(d, (MathT)0.5));
+        VecD v_val = (VecD)v;
+        // Denormalize from approximately [-1.0, 1.0] range to -32768-32767 range
+        VecD v_denorm = hn::Mul(v_val, hn::Set(d, (MathT)32767.0));
+        // Symmetric round-to-nearest for signed values (assumes ConvertTo truncates).
+        auto is_neg    = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias    = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                        hn::Set(d, (MathT)0.5));
+        VecD v_rounded = hn::Add(v_denorm, v_bias);
         VecD v_min     = hn::Set(d, (MathT)-32768.0);
         VecD v_max     = hn::Set(d, (MathT)32767.0);
         VecD v_clamped = hn::Max(v_rounded, v_min);
@@ -290,7 +314,7 @@ DemoteStore(D d, DstT* ptr, VecT v)
         hn::Store(v_i16, d_i16, ptr);
     } else if constexpr (std::is_same_v<DstT, uint32_t>) {
         // float -> uint32: Denormalize from 0-1 to 0-4294967295, round and convert
-        VecD v_val     = (VecD)v;
+        VecD v_val = (VecD)v;
         // Denormalize from 0-1 range to 0-4294967295 range
         VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)4294967295.0));
         VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
@@ -303,9 +327,15 @@ DemoteStore(D d, DstT* ptr, VecT v)
         auto v_u32 = hn::ConvertTo(d_u32, v_clamped);
         hn::Store(v_u32, d_u32, ptr);
     } else if constexpr (std::is_same_v<DstT, int32_t>) {
-        // float -> int32: Round and convert directly
-        VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // float -> int32: Denormalize from approximately [-1.0, 1.0] to int32 range
+        VecD v_val = (VecD)v;
+        // Denormalize from approximately [-1.0, 1.0] range to -2147483648-2147483647 range
+        VecD v_denorm = hn::Mul(v_val, hn::Set(d, (MathT)2147483647.0));
+        // Symmetric round-to-nearest for signed values (assumes ConvertTo truncates).
+        auto is_neg    = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias    = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                        hn::Set(d, (MathT)0.5));
+        VecD v_rounded = hn::Add(v_denorm, v_bias);
         VecD v_min     = hn::Set(d, (MathT)-2147483648.0);
         VecD v_max     = hn::Set(d, (MathT)2147483647.0);
         VecD v_clamped = hn::Max(v_rounded, v_min);
@@ -360,7 +390,7 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         auto v16 = hn::DemoteTo(d16, v);
         hn::StoreN(v16, d16, (hwy::float16_t*)ptr, count);
     } else if constexpr (std::is_same_v<DstT, uint8_t>) {
-        VecD v_val     = (VecD)v;
+        VecD v_val = (VecD)v;
         // Denormalize from 0-1 range to 0-255 range
         VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)255.0));
         VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
@@ -377,11 +407,14 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         auto v_u8  = hn::DemoteTo(d_u8, v_i16);
         hn::StoreN(v_u8, d_u8, ptr, count);
     } else if constexpr (std::is_same_v<DstT, int8_t>) {
-        VecD v_val     = (VecD)v;
-        // Denormalize from 0-1 range to -128-127 range
-        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)255.0));
-        VecD v_shifted = hn::Sub(v_denorm, hn::Set(d, (MathT)128.0));
-        VecD v_rounded = hn::Add(v_shifted, hn::Set(d, (MathT)0.5));
+        VecD v_val = (VecD)v;
+        // Denormalize from approximately [-1.0, 1.0] range to [-128, 127] range
+        VecD v_denorm = hn::Mul(v_val, hn::Set(d, (MathT)127.0));
+        // Symmetric round-to-nearest for signed values (assumes ConvertTo truncates).
+        auto is_neg    = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias    = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                        hn::Set(d, (MathT)0.5));
+        VecD v_rounded = hn::Add(v_denorm, v_bias);
         VecD v_min     = hn::Set(d, (MathT)-128.0);
         VecD v_max     = hn::Set(d, (MathT)127.0);
         VecD v_clamped = hn::Max(v_rounded, v_min);
@@ -395,7 +428,7 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         auto v_i8  = hn::DemoteTo(d_i8, v_i16);
         hn::StoreN(v_i8, d_i8, ptr, count);
     } else if constexpr (std::is_same_v<DstT, uint16_t>) {
-        VecD v_val     = (VecD)v;
+        VecD v_val = (VecD)v;
         // Denormalize from 0-1 range to 0-65535 range
         VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)65535.0));
         VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
@@ -410,11 +443,14 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         auto v_u16 = hn::DemoteTo(d_u16, vi32);
         hn::StoreN(v_u16, d_u16, ptr, count);
     } else if constexpr (std::is_same_v<DstT, int16_t>) {
-        VecD v_val     = (VecD)v;
-        // Denormalize from 0-1 range to -32768-32767 range
-        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)65535.0));
-        VecD v_shifted = hn::Sub(v_denorm, hn::Set(d, (MathT)32768.0));
-        VecD v_rounded = hn::Add(v_shifted, hn::Set(d, (MathT)0.5));
+        VecD v_val = (VecD)v;
+        // Denormalize from approximately [-1.0, 1.0] range to [-32768, 32767] range
+        VecD v_denorm = hn::Mul(v_val, hn::Set(d, (MathT)32767.0));
+        // Symmetric round-to-nearest for signed values (assumes ConvertTo truncates).
+        auto is_neg    = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias    = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                        hn::Set(d, (MathT)0.5));
+        VecD v_rounded = hn::Add(v_denorm, v_bias);
         VecD v_min     = hn::Set(d, (MathT)-32768.0);
         VecD v_max     = hn::Set(d, (MathT)32767.0);
         VecD v_clamped = hn::Max(v_rounded, v_min);
@@ -427,7 +463,7 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         hn::StoreN(v_i16, d_i16, ptr, count);
     } else if constexpr (std::is_same_v<DstT, uint32_t>) {
         // float -> uint32: Denormalize from 0-1 to 0-4294967295, round and convert
-        VecD v_val     = (VecD)v;
+        VecD v_val = (VecD)v;
         // Denormalize from 0-1 range to 0-4294967295 range
         VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)4294967295.0));
         VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
@@ -440,9 +476,14 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         auto v_u32 = hn::ConvertTo(d_u32, v_clamped);
         hn::StoreN(v_u32, d_u32, ptr, count);
     } else if constexpr (std::is_same_v<DstT, int32_t>) {
-        // float -> int32: Round and convert directly
-        VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // float -> int32: Denormalize from approximately [-1.0, 1.0] range to [-2147483648, 2147483647] range
+        VecD v_val    = (VecD)v;
+        VecD v_denorm = hn::Mul(v_val, hn::Set(d, (MathT)2147483647.0));
+        // Symmetric round-to-nearest for signed values (assumes ConvertTo truncates).
+        auto is_neg    = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias    = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                        hn::Set(d, (MathT)0.5));
+        VecD v_rounded = hn::Add(v_denorm, v_bias);
         VecD v_min     = hn::Set(d, (MathT)-2147483648.0);
         VecD v_max     = hn::Set(d, (MathT)2147483647.0);
         VecD v_clamped = hn::Max(v_rounded, v_min);
@@ -488,19 +529,21 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
 /// @param n Number of elements to process
 /// @param op Lambda/functor taking (descriptor, vector) and returning result vector
 ///           Example: [](auto d, auto va) { return hn::Abs(va); }
-template <typename T, typename OpFunc>
-inline void RunHwyUnaryNativeInt(T* r, const T* a, size_t n, OpFunc op) {
+template<typename T, typename OpFunc>
+inline void
+RunHwyUnaryNativeInt(T* r, const T* a, size_t n, OpFunc op)
+{
     const hn::ScalableTag<T> d;
-    size_t x = 0;
+    size_t x     = 0;
     size_t lanes = hn::Lanes(d);
     for (; x + lanes <= n; x += lanes) {
-        auto va = hn::Load(d, a + x);
+        auto va  = hn::Load(d, a + x);
         auto res = op(d, va);
         hn::Store(res, d, r + x);
     }
     size_t remaining = n - x;
     if (remaining > 0) {
-        auto va = hn::LoadN(d, a + x, remaining);
+        auto va  = hn::LoadN(d, a + x, remaining);
         auto res = op(d, va);
         hn::StoreN(res, d, r + x, remaining);
     }
@@ -516,21 +559,23 @@ inline void RunHwyUnaryNativeInt(T* r, const T* a, size_t n, OpFunc op) {
 /// @param n Number of elements to process
 /// @param op Lambda/functor taking (descriptor, vector_a, vector_b) and returning result
 ///           Example: [](auto d, auto va, auto vb) { return hn::SaturatedAdd(va, vb); }
-template <typename T, typename OpFunc>
-inline void RunHwyBinaryNativeInt(T* r, const T* a, const T* b, size_t n, OpFunc op) {
+template<typename T, typename OpFunc>
+inline void
+RunHwyBinaryNativeInt(T* r, const T* a, const T* b, size_t n, OpFunc op)
+{
     const hn::ScalableTag<T> d;
-    size_t x = 0;
+    size_t x     = 0;
     size_t lanes = hn::Lanes(d);
     for (; x + lanes <= n; x += lanes) {
-        auto va = hn::Load(d, a + x);
-        auto vb = hn::Load(d, b + x);
+        auto va  = hn::Load(d, a + x);
+        auto vb  = hn::Load(d, b + x);
         auto res = op(d, va, vb);
         hn::Store(res, d, r + x);
     }
     size_t remaining = n - x;
     if (remaining > 0) {
-        auto va = hn::LoadN(d, a + x, remaining);
-        auto vb = hn::LoadN(d, b + x, remaining);
+        auto va  = hn::LoadN(d, a + x, remaining);
+        auto vb  = hn::LoadN(d, b + x, remaining);
         auto res = op(d, va, vb);
         hn::StoreN(res, d, r + x, remaining);
     }
@@ -548,20 +593,22 @@ inline void RunHwyBinaryNativeInt(T* r, const T* a, const T* b, size_t n, OpFunc
 /// @param n Number of elements to process
 /// @param op Lambda/functor taking (descriptor, vector) and returning result vector
 ///           Example: [](auto d, auto va) { return hn::Sqrt(va); }
-template <typename Rtype, typename Atype, typename OpFunc>
-inline void RunHwyUnaryCmd(Rtype* r, const Atype* a, size_t n, OpFunc op) {
+template<typename Rtype, typename Atype, typename OpFunc>
+inline void
+RunHwyUnaryCmd(Rtype* r, const Atype* a, size_t n, OpFunc op)
+{
     using MathT = typename SimdMathType<Rtype>::type;
     const hn::ScalableTag<MathT> d;
-    size_t x = 0;
+    size_t x     = 0;
     size_t lanes = hn::Lanes(d);
     for (; x + lanes <= n; x += lanes) {
-        auto va = LoadPromote(d, a + x);
+        auto va  = LoadPromote(d, a + x);
         auto res = op(d, va);
         DemoteStore(d, r + x, res);
     }
     size_t remaining = n - x;
     if (remaining > 0) {
-        auto va = LoadPromoteN(d, a + x, remaining);
+        auto va  = LoadPromoteN(d, a + x, remaining);
         auto res = op(d, va);
         DemoteStoreN(d, r + x, res, remaining);
     }
@@ -576,8 +623,10 @@ inline void RunHwyUnaryCmd(Rtype* r, const Atype* a, size_t n, OpFunc op) {
 /// @param n Number of elements to process
 /// @param op Lambda/functor taking (descriptor, vector_a, vector_b) and returning result
 ///           Example: [](auto d, auto va, auto vb) { return hn::Add(va, vb); }
-template <typename Rtype, typename Atype, typename Btype, typename OpFunc>
-inline void RunHwyCmd(Rtype* r, const Atype* a, const Btype* b, size_t n, OpFunc op) {
+template<typename Rtype, typename Atype, typename Btype, typename OpFunc>
+inline void
+RunHwyCmd(Rtype* r, const Atype* a, const Btype* b, size_t n, OpFunc op)
+{
     using MathT = typename SimdMathType<Rtype>::type;
     const hn::ScalableTag<MathT> d;
     size_t x     = 0;
@@ -607,8 +656,11 @@ inline void RunHwyCmd(Rtype* r, const Atype* a, const Btype* b, size_t n, OpFunc
 /// @param n Number of elements to process
 /// @param op Lambda/functor taking (descriptor, vector_a, vector_b, vector_c) and returning result
 ///           Example: [](auto d, auto va, auto vb, auto vc) { return hn::MulAdd(va, vb, vc); }
-template <typename Rtype, typename ABCtype, typename OpFunc>
-inline void RunHwyTernaryCmd(Rtype* r, const ABCtype* a, const ABCtype* b, const ABCtype* c, size_t n, OpFunc op) {
+template<typename Rtype, typename ABCtype, typename OpFunc>
+inline void
+RunHwyTernaryCmd(Rtype* r, const ABCtype* a, const ABCtype* b, const ABCtype* c,
+                 size_t n, OpFunc op)
+{
     using MathT = typename SimdMathType<Rtype>::type;
     const hn::ScalableTag<MathT> d;
     size_t x     = 0;
@@ -778,13 +830,13 @@ rangecompress_simd(D d, VecT x)
     auto mask_passthrough = hn::Le(abs_x, hn::Set(d, x1));
 
     // compressed = a + b * log(c * |x| + 1.0)
-    auto c_vec = hn::Set(d, c);
-    auto one   = hn::Set(d, static_cast<T>(1.0));
-    auto temp  = hn::MulAdd(c_vec, abs_x, one);  // c * |x| + 1.0
-    auto log_val     = hn::Log(d, temp);
-    auto b_vec       = hn::Set(d, b);
-    auto a_vec       = hn::Set(d, a);
-    auto compressed  = hn::MulAdd(b_vec, log_val, a_vec);  // a + b * log
+    auto c_vec      = hn::Set(d, c);
+    auto one        = hn::Set(d, static_cast<T>(1.0));
+    auto temp       = hn::MulAdd(c_vec, abs_x, one);  // c * |x| + 1.0
+    auto log_val    = hn::Log(d, temp);
+    auto b_vec      = hn::Set(d, b);
+    auto a_vec      = hn::Set(d, a);
+    auto compressed = hn::MulAdd(b_vec, log_val, a_vec);  // a + b * log
 
     // Apply sign of original x
     auto result = hn::CopySign(compressed, x);

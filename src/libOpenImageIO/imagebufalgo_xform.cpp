@@ -1186,8 +1186,8 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
             float src_yf = srcfy + t * srcfh;
             // Pixel-center convention: subtract 0.5 before interpolation
             src_yf -= 0.5f;
-            int src_y    = ifloor(src_yf);
-            SimdType fy  = (SimdType)(src_yf - src_y);
+            int src_y   = ifloor(src_yf);
+            SimdType fy = (SimdType)(src_yf - src_y);
 
             // Clamp Y to valid range
             int src_y_clamped = clamp(src_y, src.ybegin(), src.yend() - 1);
@@ -1278,9 +1278,12 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
 
                     // Use FMA (Fused Multiply-Add) for better performance
                     auto res = hn::Mul(val00, w00);
-                    res      = hn::MulAdd(val01, w01, res);  // res = res + val01 * w01
-                    res      = hn::MulAdd(val10, w10, res);  // res = res + val10 * w10
-                    res      = hn::MulAdd(val11, w11, res);  // res = res + val11 * w11
+                    res      = hn::MulAdd(val01, w01,
+                                          res);  // res = res + val01 * w01
+                    res      = hn::MulAdd(val10, w10,
+                                          res);  // res = res + val10 * w10
+                    res      = hn::MulAdd(val11, w11,
+                                          res);  // res = res + val11 * w11
 
                     // Store
                     SimdType res_arr[16];

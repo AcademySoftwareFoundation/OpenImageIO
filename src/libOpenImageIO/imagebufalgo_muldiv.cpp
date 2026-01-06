@@ -172,8 +172,9 @@ mul_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
                     const Btype* b_ptr = reinterpret_cast<const Btype*>(b_row)
                                          + x * b_pixel_bytes / sizeof(Btype);
                     for (int c = 0; c < nchannels; ++c) {
-                        r_ptr[c] = static_cast<Rtype>(static_cast<float>(a_ptr[c]) *
-                                                       static_cast<float>(b_ptr[c]));
+                        r_ptr[c] = static_cast<Rtype>(
+                            static_cast<float>(a_ptr[c])
+                            * static_cast<float>(b_ptr[c]));
                     }
                 }
             }
@@ -397,9 +398,11 @@ div_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
                     const Btype* b_ptr = reinterpret_cast<const Btype*>(b_row)
                                          + x * b_pixel_bytes / sizeof(Btype);
                     for (int c = 0; c < nchannels; ++c) {
-                        float v = static_cast<float>(b_ptr[c]);
-                        r_ptr[c] = (v == 0.0f) ? static_cast<Rtype>(0.0f)
-                                               : static_cast<Rtype>(static_cast<float>(a_ptr[c]) / v);
+                        float v  = static_cast<float>(b_ptr[c]);
+                        r_ptr[c] = (v == 0.0f)
+                                       ? static_cast<Rtype>(0.0f)
+                                       : static_cast<Rtype>(
+                                             static_cast<float>(a_ptr[c]) / v);
                     }
                 }
             }

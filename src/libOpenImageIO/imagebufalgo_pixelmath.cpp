@@ -64,8 +64,8 @@ min_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
 // Native integer min (scale-invariant, no float conversion)
 template<class T>
 static bool
-min_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-                        int nthreads)
+min_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+                        ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& Rspec = R.spec();
@@ -103,20 +103,21 @@ min_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI r
             if (contig) {
                 // Native integer min - much faster than float conversion!
                 size_t n = static_cast<size_t>(roi.width()) * nchannels;
-                RunHwyBinaryNativeInt<T>(
-                    reinterpret_cast<T*>(r_row),
-                    reinterpret_cast<const T*>(a_row),
-                    reinterpret_cast<const T*>(b_row), n,
-                    [](auto d, auto a, auto b) { return hn::Min(a, b); });
+                RunHwyBinaryNativeInt<T>(reinterpret_cast<T*>(r_row),
+                                         reinterpret_cast<const T*>(a_row),
+                                         reinterpret_cast<const T*>(b_row), n,
+                                         [](auto d, auto a, auto b) {
+                                             return hn::Min(a, b);
+                                         });
             } else {
                 // Scalar fallback
                 for (int x = 0; x < roi.width(); ++x) {
                     T* r_ptr = reinterpret_cast<T*>(r_row)
-                                   + x * r_pixel_bytes / sizeof(T);
+                               + x * r_pixel_bytes / sizeof(T);
                     const T* a_ptr = reinterpret_cast<const T*>(a_row)
-                                         + x * a_pixel_bytes / sizeof(T);
+                                     + x * a_pixel_bytes / sizeof(T);
                     const T* b_ptr = reinterpret_cast<const T*>(b_row)
-                                         + x * b_pixel_bytes / sizeof(T);
+                                     + x * b_pixel_bytes / sizeof(T);
                     for (int c = 0; c < nchannels; ++c) {
                         r_ptr[c] = std::min(a_ptr[c], b_ptr[c]);
                     }
@@ -236,7 +237,8 @@ min_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
         && B.localpixels()) {
         // Use native integer path for scale-invariant min when all types match
         // and are integer types (much faster: 6-12x vs 3-5x with float conversion)
-        constexpr bool all_same = std::is_same_v<Rtype, Atype> && std::is_same_v<Atype, Btype>;
+        constexpr bool all_same = std::is_same_v<Rtype, Atype>
+                                  && std::is_same_v<Atype, Btype>;
         constexpr bool is_integer = std::is_integral_v<Rtype>;
         if constexpr (all_same && is_integer) {
             return min_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);
@@ -358,8 +360,8 @@ max_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
 // Native integer max (scale-invariant, no float conversion)
 template<class T>
 static bool
-max_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-                        int nthreads)
+max_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+                        ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& Rspec = R.spec();
@@ -397,20 +399,21 @@ max_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI r
             if (contig) {
                 // Native integer max - much faster than float conversion!
                 size_t n = static_cast<size_t>(roi.width()) * nchannels;
-                RunHwyBinaryNativeInt<T>(
-                    reinterpret_cast<T*>(r_row),
-                    reinterpret_cast<const T*>(a_row),
-                    reinterpret_cast<const T*>(b_row), n,
-                    [](auto d, auto a, auto b) { return hn::Max(a, b); });
+                RunHwyBinaryNativeInt<T>(reinterpret_cast<T*>(r_row),
+                                         reinterpret_cast<const T*>(a_row),
+                                         reinterpret_cast<const T*>(b_row), n,
+                                         [](auto d, auto a, auto b) {
+                                             return hn::Max(a, b);
+                                         });
             } else {
                 // Scalar fallback
                 for (int x = 0; x < roi.width(); ++x) {
                     T* r_ptr = reinterpret_cast<T*>(r_row)
-                                   + x * r_pixel_bytes / sizeof(T);
+                               + x * r_pixel_bytes / sizeof(T);
                     const T* a_ptr = reinterpret_cast<const T*>(a_row)
-                                         + x * a_pixel_bytes / sizeof(T);
+                                     + x * a_pixel_bytes / sizeof(T);
                     const T* b_ptr = reinterpret_cast<const T*>(b_row)
-                                         + x * b_pixel_bytes / sizeof(T);
+                                     + x * b_pixel_bytes / sizeof(T);
                     for (int c = 0; c < nchannels; ++c) {
                         r_ptr[c] = std::max(a_ptr[c], b_ptr[c]);
                     }
@@ -530,7 +533,8 @@ max_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
         && B.localpixels()) {
         // Use native integer path for scale-invariant max when all types match
         // and are integer types (much faster: 6-12x vs 3-5x with float conversion)
-        constexpr bool all_same = std::is_same_v<Rtype, Atype> && std::is_same_v<Atype, Btype>;
+        constexpr bool all_same = std::is_same_v<Rtype, Atype>
+                                  && std::is_same_v<Atype, Btype>;
         constexpr bool is_integer = std::is_integral_v<Rtype>;
         if constexpr (all_same && is_integer) {
             return max_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);
@@ -664,7 +668,7 @@ clamp_hwy(ImageBuf& dst, const ImageBuf& src, const float* min_vals,
         MathT min_pattern[hn::MaxLanes(d)];
         MathT max_pattern[hn::MaxLanes(d)];
         for (size_t i = 0; i < lanes; ++i) {
-            int ch        = static_cast<int>(i % nchannels);
+            int ch         = static_cast<int>(i % nchannels);
             min_pattern[i] = static_cast<MathT>(min_vals[roi.chbegin + ch]);
             max_pattern[i] = static_cast<MathT>(max_vals[roi.chbegin + ch]);
         }
@@ -679,7 +683,7 @@ clamp_hwy(ImageBuf& dst, const ImageBuf& src, const float* min_vals,
                                 + (roi.xbegin - src.xbegin()) * src_pixel_bytes
                                 + roi.chbegin * sizeof(Stype);
 
-            Dtype* d_row       = reinterpret_cast<Dtype*>(dst_base + dst_offset);
+            Dtype* d_row = reinterpret_cast<Dtype*>(dst_base + dst_offset);
             const Stype* s_row = reinterpret_cast<const Stype*>(src_base
                                                                 + src_offset);
 
@@ -699,8 +703,8 @@ clamp_hwy(ImageBuf& dst, const ImageBuf& src, const float* min_vals,
                 // Handle remaining values with partial vector load/store
                 if (x < total) {
                     size_t remaining = total - x;
-                    auto va  = LoadPromoteN(d, s_row + x, remaining);
-                    auto res = hn::Clamp(va, v_min, v_max);
+                    auto va          = LoadPromoteN(d, s_row + x, remaining);
+                    auto res         = hn::Clamp(va, v_min, v_max);
                     DemoteStoreN(d, d_row + x, res, remaining);
                 }
             } else {
@@ -713,9 +717,9 @@ clamp_hwy(ImageBuf& dst, const ImageBuf& src, const float* min_vals,
                         src_base + (y - src.ybegin()) * srcspec.scanline_bytes()
                         + (roi.xbegin + x - src.xbegin()) * src_pixel_bytes);
                     for (int c = roi.chbegin; c < roi.chend; ++c) {
-                        d_ptr[c] = static_cast<Dtype>(OIIO::clamp<float>(
-                            static_cast<float>(s_ptr[c]), min_vals[c],
-                            max_vals[c]));
+                        d_ptr[c] = static_cast<Dtype>(
+                            OIIO::clamp<float>(static_cast<float>(s_ptr[c]),
+                                               min_vals[c], max_vals[c]));
                     }
                 }
             }
@@ -823,8 +827,8 @@ absdiff_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
 // Native integer absdiff (scale-invariant, no float conversion)
 template<class T>
 static bool
-absdiff_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-                             int nthreads)
+absdiff_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+                            ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& Rspec = R.spec();
@@ -880,17 +884,19 @@ absdiff_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, R
                 // Scalar fallback
                 for (int x = 0; x < roi.width(); ++x) {
                     T* r_ptr = reinterpret_cast<T*>(r_row)
-                                   + x * r_pixel_bytes / sizeof(T);
+                               + x * r_pixel_bytes / sizeof(T);
                     const T* a_ptr = reinterpret_cast<const T*>(a_row)
-                                         + x * a_pixel_bytes / sizeof(T);
+                                     + x * a_pixel_bytes / sizeof(T);
                     const T* b_ptr = reinterpret_cast<const T*>(b_row)
-                                         + x * b_pixel_bytes / sizeof(T);
+                                     + x * b_pixel_bytes / sizeof(T);
                     for (int c = 0; c < nchannels; ++c) {
                         if constexpr (std::is_unsigned_v<T>) {
                             r_ptr[c] = (a_ptr[c] > b_ptr[c])
-                                ? (a_ptr[c] - b_ptr[c]) : (b_ptr[c] - a_ptr[c]);
+                                           ? (a_ptr[c] - b_ptr[c])
+                                           : (b_ptr[c] - a_ptr[c]);
                         } else {
-                            int64_t diff = (int64_t)a_ptr[c] - (int64_t)b_ptr[c];
+                            int64_t diff = (int64_t)a_ptr[c]
+                                           - (int64_t)b_ptr[c];
                             r_ptr[c] = (T)std::abs(diff);
                         }
                     }
@@ -1012,7 +1018,8 @@ absdiff_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
         && B.localpixels()) {
         // Use native integer path for scale-invariant absdiff when all types match
         // and are integer types (much faster: 6-12x vs 3-5x with float conversion)
-        constexpr bool all_same = std::is_same_v<Rtype, Atype> && std::is_same_v<Atype, Btype>;
+        constexpr bool all_same = std::is_same_v<Rtype, Atype>
+                                  && std::is_same_v<Atype, Btype>;
         constexpr bool is_integer = std::is_integral_v<Rtype>;
         if constexpr (all_same && is_integer) {
             return absdiff_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);
@@ -1121,7 +1128,8 @@ ImageBufAlgo::abs(const ImageBuf& A, ROI roi, int nthreads)
 
 template<class Rtype, class Atype>
 static bool
-pow_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+pow_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::ConstIterator<Atype> a(A, roi);
@@ -1136,67 +1144,94 @@ pow_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nth
 
 template<class Rtype, class Atype>
 static bool
-pow_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+pow_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+             int nthreads)
 {
     using MathT = typename SimdMathType<Rtype>::type;
 
     bool scalar_pow = (b.size() == 1);
-    float p_val = b[0];
+    float p_val     = b[0];
 
     // Fast pointer-based implementation
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        const ImageSpec& Rspec = R.spec();
-        const ImageSpec& Aspec = A.spec();
-        size_t r_pixel_bytes = Rspec.pixel_bytes();
-        size_t a_pixel_bytes = Aspec.pixel_bytes();
+        const ImageSpec& Rspec  = R.spec();
+        const ImageSpec& Aspec  = A.spec();
+        size_t r_pixel_bytes    = Rspec.pixel_bytes();
+        size_t a_pixel_bytes    = Aspec.pixel_bytes();
         size_t r_scanline_bytes = Rspec.scanline_bytes();
         size_t a_scanline_bytes = Aspec.scanline_bytes();
 
-        char* r_base = (char*)R.localpixels();
+        char* r_base       = (char*)R.localpixels();
         const char* a_base = (const char*)A.localpixels();
 
         int nchannels = roi.chend - roi.chbegin;
-        bool contig = (nchannels * sizeof(Rtype) == r_pixel_bytes) &&
-                      (nchannels * sizeof(Atype) == a_pixel_bytes);
+        bool contig   = (nchannels * sizeof(Rtype) == r_pixel_bytes)
+                      && (nchannels * sizeof(Atype) == a_pixel_bytes);
 
         for (int y = roi.ybegin; y < roi.yend; ++y) {
-            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
-            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
-            
+            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes
+                          + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes
+                                + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
+
             r_row += roi.chbegin * sizeof(Rtype);
             a_row += roi.chbegin * sizeof(Atype);
 
             if (contig && scalar_pow) {
                 size_t n = static_cast<size_t>(roi.width()) * nchannels;
-                RunHwyUnaryCmd<Rtype, Atype>(reinterpret_cast<Rtype*>(r_row),
-                                              reinterpret_cast<const Atype*>(a_row), n,
+                RunHwyUnaryCmd<Rtype, Atype>(
+                    reinterpret_cast<Rtype*>(r_row),
+                    reinterpret_cast<const Atype*>(a_row), n,
                     [p_val](auto d, auto va) {
                         auto vpow = hn::Set(d, static_cast<MathT>(p_val));
                         // result = exp(p * log(va))
                         return hn::Exp(d, hn::Mul(vpow, hn::Log(d, va)));
-                    }
-                );
+                    });
             } else {
-                // Normalize for proper value range (0-1)
-                constexpr float norm_factor = std::is_integral_v<Atype> ?
-                    (std::is_same_v<Atype, uint32_t> ? 1.0f/4294967295.0f :
-                     std::is_same_v<Atype, uint16_t> || std::is_same_v<Atype, int16_t> ? 1.0f/65535.0f : 1.0f/255.0f) : 1.0f;
-                constexpr float denorm_factor = std::is_integral_v<Rtype> ?
-                    (std::is_same_v<Rtype, uint32_t> ? 4294967295.0f :
-                     std::is_same_v<Rtype, uint16_t> || std::is_same_v<Rtype, int16_t> ? 65535.0f : 255.0f) : 1.0f;
+                // Normalize: unsigned ints to [0,1], signed ints to [-1,1]
+                constexpr float norm_factor
+                    = std::is_integral_v<Atype>
+                          ? (std::is_same_v<Atype, uint32_t>
+                                 ? 1.0f / 4294967295.0f
+                             : std::is_same_v<Atype, int32_t>
+                                 ? 1.0f / 2147483647.0f
+                             : std::is_same_v<Atype, uint16_t> ? 1.0f / 65535.0f
+                             : std::is_same_v<Atype, int16_t>  ? 1.0f / 32767.0f
+                             : std::is_same_v<Atype, uint8_t>  ? 1.0f / 255.0f
+                             : std::is_same_v<Atype, int8_t>   ? 1.0f / 127.0f
+                                                               : 1.0f / 255.0f)
+                          : 1.0f;
+                constexpr float denorm_factor
+                    = std::is_integral_v<Rtype>
+                          ? (std::is_same_v<Rtype, uint32_t>   ? 4294967295.0f
+                             : std::is_same_v<Rtype, int32_t>  ? 2147483647.0f
+                             : std::is_same_v<Rtype, uint16_t> ? 65535.0f
+                             : std::is_same_v<Rtype, int16_t>  ? 32767.0f
+                             : std::is_same_v<Rtype, uint8_t>  ? 255.0f
+                             : std::is_same_v<Rtype, int8_t>   ? 127.0f
+                                                               : 255.0f)
+                          : 1.0f;
 
                 for (int x = 0; x < roi.width(); ++x) {
-                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row) + x * r_pixel_bytes / sizeof(Rtype);
-                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row) + x * a_pixel_bytes / sizeof(Atype);
+                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
+                                   + x * r_pixel_bytes / sizeof(Rtype);
+                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row)
+                                         + x * a_pixel_bytes / sizeof(Atype);
                     for (int c = 0; c < nchannels; ++c) {
-                        using SimdType = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
-                        SimdType normalized = static_cast<SimdType>(a_ptr[c]) * norm_factor;
-                        SimdType result = pow(normalized, static_cast<SimdType>(b[c]));
+                        using SimdType
+                            = std::conditional_t<std::is_same_v<Rtype, double>,
+                                                 double, float>;
+                        SimdType normalized = static_cast<SimdType>(a_ptr[c])
+                                              * norm_factor;
+                        SimdType result = pow(normalized,
+                                              static_cast<SimdType>(b[c]));
                         // Only add rounding offset for integer types
                         if constexpr (std::is_integral_v<Rtype>) {
-                            r_ptr[c] = static_cast<Rtype>(result * denorm_factor + 0.5f);
+                            r_ptr[c] = static_cast<Rtype>(result * denorm_factor
+                                                          + 0.5f);
                         } else {
-                            r_ptr[c] = static_cast<Rtype>(result * denorm_factor);
+                            r_ptr[c] = static_cast<Rtype>(result
+                                                          * denorm_factor);
                         }
                     }
                 }
@@ -1429,11 +1464,10 @@ rangecompress_hwy(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
     constexpr float wr = 0.21264f, wg = 0.71517f, wb = 0.07219f;
 
     // Check if luma mode is viable
-    bool can_use_luma = useluma && roi.nchannels() >= 3
-                        && !(alpha_channel >= roi.chbegin
-                             && alpha_channel < roi.chbegin + 3)
-                        && !(z_channel >= roi.chbegin
-                             && z_channel < roi.chbegin + 3);
+    bool can_use_luma
+        = useluma && roi.nchannels() >= 3
+          && !(alpha_channel >= roi.chbegin && alpha_channel < roi.chbegin + 3)
+          && !(z_channel >= roi.chbegin && z_channel < roi.chbegin + 3);
 
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         size_t r_pixel_bytes    = Rspec.pixel_bytes();
@@ -1472,7 +1506,8 @@ rangecompress_hwy(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
                 const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row);
 
                 int x = 0;
-                for (; x + static_cast<int>(N) <= roi.width(); x += static_cast<int>(N)) {
+                for (; x + static_cast<int>(N) <= roi.width();
+                     x += static_cast<int>(N)) {
                     // Load RGB for N pixels
                     auto r_vec = LoadPromote(d, a_ptr + x * nchannels + 0);
                     auto g_vec = LoadPromote(d, a_ptr + x * nchannels + 1);
@@ -1507,19 +1542,21 @@ rangecompress_hwy(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
                     DemoteStore(d, r_ptr + x * nchannels + 2, b_vec);
 
                     // Copy remaining channels (alpha, etc.) - scalar
-                    for (size_t i = 0; i < N && x + static_cast<int>(i) < roi.width(); ++i) {
+                    for (size_t i = 0;
+                         i < N && x + static_cast<int>(i) < roi.width(); ++i) {
                         for (int c = 3; c < nchannels; ++c) {
                             r_ptr[(x + static_cast<int>(i)) * nchannels + c]
-                                = a_ptr[(x + static_cast<int>(i)) * nchannels + c];
+                                = a_ptr[(x + static_cast<int>(i)) * nchannels
+                                        + c];
                         }
                     }
                 }
 
                 // Scalar tail for remaining pixels
                 for (; x < roi.width(); ++x) {
-                    float r = static_cast<float>(a_ptr[x * nchannels + 0]);
-                    float g = static_cast<float>(a_ptr[x * nchannels + 1]);
-                    float b = static_cast<float>(a_ptr[x * nchannels + 2]);
+                    float r     = static_cast<float>(a_ptr[x * nchannels + 0]);
+                    float g     = static_cast<float>(a_ptr[x * nchannels + 1]);
+                    float b     = static_cast<float>(a_ptr[x * nchannels + 2]);
                     float luma  = wr * r + wg * g + wb * b;
                     float scale = luma > 0.0f ? rangecompress(luma) / luma
                                               : 0.0f;
@@ -1663,11 +1700,10 @@ rangeexpand_hwy(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
     constexpr float wr = 0.21264f, wg = 0.71517f, wb = 0.07219f;
 
     // Check if luma mode is viable
-    bool can_use_luma = useluma && roi.nchannels() >= 3
-                        && !(alpha_channel >= roi.chbegin
-                             && alpha_channel < roi.chbegin + 3)
-                        && !(z_channel >= roi.chbegin
-                             && z_channel < roi.chbegin + 3);
+    bool can_use_luma
+        = useluma && roi.nchannels() >= 3
+          && !(alpha_channel >= roi.chbegin && alpha_channel < roi.chbegin + 3)
+          && !(z_channel >= roi.chbegin && z_channel < roi.chbegin + 3);
 
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         size_t r_pixel_bytes    = Rspec.pixel_bytes();
@@ -1706,7 +1742,8 @@ rangeexpand_hwy(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
                 const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row);
 
                 int x = 0;
-                for (; x + static_cast<int>(N) <= roi.width(); x += static_cast<int>(N)) {
+                for (; x + static_cast<int>(N) <= roi.width();
+                     x += static_cast<int>(N)) {
                     // Load RGB for N pixels
                     auto r_vec = LoadPromote(d, a_ptr + x * nchannels + 0);
                     auto g_vec = LoadPromote(d, a_ptr + x * nchannels + 1);
@@ -1741,22 +1778,23 @@ rangeexpand_hwy(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
                     DemoteStore(d, r_ptr + x * nchannels + 2, b_vec);
 
                     // Copy remaining channels (alpha, etc.) - scalar
-                    for (size_t i = 0; i < N && x + static_cast<int>(i) < roi.width(); ++i) {
+                    for (size_t i = 0;
+                         i < N && x + static_cast<int>(i) < roi.width(); ++i) {
                         for (int c = 3; c < nchannels; ++c) {
                             r_ptr[(x + static_cast<int>(i)) * nchannels + c]
-                                = a_ptr[(x + static_cast<int>(i)) * nchannels + c];
+                                = a_ptr[(x + static_cast<int>(i)) * nchannels
+                                        + c];
                         }
                     }
                 }
 
                 // Scalar tail for remaining pixels
                 for (; x < roi.width(); ++x) {
-                    float r = static_cast<float>(a_ptr[x * nchannels + 0]);
-                    float g = static_cast<float>(a_ptr[x * nchannels + 1]);
-                    float b = static_cast<float>(a_ptr[x * nchannels + 2]);
+                    float r     = static_cast<float>(a_ptr[x * nchannels + 0]);
+                    float g     = static_cast<float>(a_ptr[x * nchannels + 1]);
+                    float b     = static_cast<float>(a_ptr[x * nchannels + 2]);
                     float luma  = wr * r + wg * g + wb * b;
-                    float scale = luma > 0.0f ? rangeexpand(luma) / luma
-                                              : 0.0f;
+                    float scale = luma > 0.0f ? rangeexpand(luma) / luma : 0.0f;
                     r_ptr[x * nchannels + 0] = static_cast<Rtype>(r * scale);
                     r_ptr[x * nchannels + 1] = static_cast<Rtype>(g * scale);
                     r_ptr[x * nchannels + 2] = static_cast<Rtype>(b * scale);
@@ -2101,21 +2139,45 @@ premult_hwy(ImageBuf& R, const ImageBuf& A, bool preserve_alpha0, ROI roi,
                     // a_vec unchanged
 
                     // Store N RGBA pixels
-                    StoreInterleaved4Demote<decltype(d), Rtype>(
-                        d, r_ptr + x * 4, r_vec, g_vec, b_vec, a_vec);
+                    StoreInterleaved4Demote<decltype(d), Rtype>(d,
+                                                                r_ptr + x * 4,
+                                                                r_vec, g_vec,
+                                                                b_vec, a_vec);
                 }
 
                 // Scalar tail for remaining pixels
                 for (; x < roi.width(); ++x) {
-                    // Normalize for proper value range (0-1)
-                    constexpr float norm_factor = std::is_integral_v<Atype> ?
-                        (std::is_same_v<Atype, uint32_t> ? 1.0f/4294967295.0f :
-                         std::is_same_v<Atype, uint16_t> || std::is_same_v<Atype, int16_t> ? 1.0f/65535.0f : 1.0f/255.0f) : 1.0f;
-                    constexpr float denorm_factor = std::is_integral_v<Rtype> ?
-                        (std::is_same_v<Rtype, uint32_t> ? 4294967295.0f :
-                         std::is_same_v<Rtype, uint16_t> || std::is_same_v<Rtype, int16_t> ? 65535.0f : 255.0f) : 1.0f;
+                    // Normalize: unsigned ints to [0,1], signed ints to [-1,1]
+                    constexpr float norm_factor
+                        = std::is_integral_v<Atype>
+                              ? (std::is_same_v<Atype, uint32_t>
+                                     ? 1.0f / 4294967295.0f
+                                 : std::is_same_v<Atype, int32_t>
+                                     ? 1.0f / 2147483647.0f
+                                 : std::is_same_v<Atype, uint16_t>
+                                     ? 1.0f / 65535.0f
+                                 : std::is_same_v<Atype, int16_t>
+                                     ? 1.0f / 32767.0f
+                                 : std::is_same_v<Atype, uint8_t>
+                                     ? 1.0f / 255.0f
+                                 : std::is_same_v<Atype, int8_t>
+                                     ? 1.0f / 127.0f
+                                     : 1.0f / 255.0f)
+                              : 1.0f;
+                    constexpr float denorm_factor
+                        = std::is_integral_v<Rtype>
+                              ? (std::is_same_v<Rtype, uint32_t> ? 4294967295.0f
+                                 : std::is_same_v<Rtype, int32_t>
+                                     ? 2147483647.0f
+                                 : std::is_same_v<Rtype, uint16_t> ? 65535.0f
+                                 : std::is_same_v<Rtype, int16_t>  ? 32767.0f
+                                 : std::is_same_v<Rtype, uint8_t>  ? 255.0f
+                                 : std::is_same_v<Rtype, int8_t>   ? 127.0f
+                                                                   : 255.0f)
+                              : 1.0f;
 
-                    float alpha = static_cast<float>(a_ptr[x * 4 + 3]) * norm_factor;
+                    float alpha = static_cast<float>(a_ptr[x * 4 + 3])
+                                  * norm_factor;
                     if ((preserve_alpha0 && alpha == 0.0f) || alpha == 1.0f) {
                         if (&R != &A) {
                             r_ptr[x * 4 + 0] = a_ptr[x * 4 + 0];
@@ -2128,26 +2190,35 @@ premult_hwy(ImageBuf& R, const ImageBuf& A, bool preserve_alpha0, ROI roi,
                     // Only add rounding offset for integer types
                     if constexpr (std::is_integral_v<Rtype>) {
                         r_ptr[x * 4 + 0] = static_cast<Rtype>(
-                            static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor * alpha * denorm_factor + 0.5f);
+                            static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor
+                                * alpha * denorm_factor
+                            + 0.5f);
                         r_ptr[x * 4 + 1] = static_cast<Rtype>(
-                            static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor * alpha * denorm_factor + 0.5f);
+                            static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor
+                                * alpha * denorm_factor
+                            + 0.5f);
                         r_ptr[x * 4 + 2] = static_cast<Rtype>(
-                            static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor * alpha * denorm_factor + 0.5f);
+                            static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor
+                                * alpha * denorm_factor
+                            + 0.5f);
                     } else {
                         r_ptr[x * 4 + 0] = static_cast<Rtype>(
-                            static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor * alpha * denorm_factor);
+                            static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor
+                            * alpha * denorm_factor);
                         r_ptr[x * 4 + 1] = static_cast<Rtype>(
-                            static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor * alpha * denorm_factor);
+                            static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor
+                            * alpha * denorm_factor);
                         r_ptr[x * 4 + 2] = static_cast<Rtype>(
-                            static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor * alpha * denorm_factor);
+                            static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor
+                            * alpha * denorm_factor);
                     }
                     r_ptr[x * 4 + 3] = a_ptr[x * 4 + 3];
                 }
             } else {
                 // Fallback to scalar per-pixel processing
                 for (int x = 0; x < roi.width(); ++x) {
-                    Rtype* r_pixel = reinterpret_cast<Rtype*>(r_row
-                                                              + x * r_pixel_bytes);
+                    Rtype* r_pixel = reinterpret_cast<Rtype*>(
+                        r_row + x * r_pixel_bytes);
                     const Atype* a_pixel = reinterpret_cast<const Atype*>(
                         a_row + x * a_pixel_bytes);
 
@@ -2247,21 +2318,45 @@ unpremult_hwy(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
                     // a_vec unchanged
 
                     // Store N RGBA pixels
-                    StoreInterleaved4Demote<decltype(d), Rtype>(
-                        d, r_ptr + x * 4, r_vec, g_vec, b_vec, a_vec);
+                    StoreInterleaved4Demote<decltype(d), Rtype>(d,
+                                                                r_ptr + x * 4,
+                                                                r_vec, g_vec,
+                                                                b_vec, a_vec);
                 }
 
                 // Scalar tail for remaining pixels
                 for (; x < roi.width(); ++x) {
-                    // Normalize for proper value range (0-1)
-                    constexpr float norm_factor = std::is_integral_v<Atype> ?
-                        (std::is_same_v<Atype, uint32_t> ? 1.0f/4294967295.0f :
-                         std::is_same_v<Atype, uint16_t> || std::is_same_v<Atype, int16_t> ? 1.0f/65535.0f : 1.0f/255.0f) : 1.0f;
-                    constexpr float denorm_factor = std::is_integral_v<Rtype> ?
-                        (std::is_same_v<Rtype, uint32_t> ? 4294967295.0f :
-                         std::is_same_v<Rtype, uint16_t> || std::is_same_v<Rtype, int16_t> ? 65535.0f : 255.0f) : 1.0f;
+                    // Normalize: unsigned ints to [0,1], signed ints to [-1,1]
+                    constexpr float norm_factor
+                        = std::is_integral_v<Atype>
+                              ? (std::is_same_v<Atype, uint32_t>
+                                     ? 1.0f / 4294967295.0f
+                                 : std::is_same_v<Atype, int32_t>
+                                     ? 1.0f / 2147483647.0f
+                                 : std::is_same_v<Atype, uint16_t>
+                                     ? 1.0f / 65535.0f
+                                 : std::is_same_v<Atype, int16_t>
+                                     ? 1.0f / 32767.0f
+                                 : std::is_same_v<Atype, uint8_t>
+                                     ? 1.0f / 255.0f
+                                 : std::is_same_v<Atype, int8_t>
+                                     ? 1.0f / 127.0f
+                                     : 1.0f / 255.0f)
+                              : 1.0f;
+                    constexpr float denorm_factor
+                        = std::is_integral_v<Rtype>
+                              ? (std::is_same_v<Rtype, uint32_t> ? 4294967295.0f
+                                 : std::is_same_v<Rtype, int32_t>
+                                     ? 2147483647.0f
+                                 : std::is_same_v<Rtype, uint16_t> ? 65535.0f
+                                 : std::is_same_v<Rtype, int16_t>  ? 32767.0f
+                                 : std::is_same_v<Rtype, uint8_t>  ? 255.0f
+                                 : std::is_same_v<Rtype, int8_t>   ? 127.0f
+                                                                   : 255.0f)
+                              : 1.0f;
 
-                    float alpha = static_cast<float>(a_ptr[x * 4 + 3]) * norm_factor;
+                    float alpha = static_cast<float>(a_ptr[x * 4 + 3])
+                                  * norm_factor;
                     if (alpha == 0.0f || alpha == 1.0f) {
                         if (&R != &A) {
                             r_ptr[x * 4 + 0] = a_ptr[x * 4 + 0];
@@ -2274,26 +2369,41 @@ unpremult_hwy(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
                     // Only add rounding offset for integer types
                     if constexpr (std::is_integral_v<Rtype>) {
                         r_ptr[x * 4 + 0] = static_cast<Rtype>(
-                            (static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor / alpha) * denorm_factor + 0.5f);
+                            (static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor
+                             / alpha)
+                                * denorm_factor
+                            + 0.5f);
                         r_ptr[x * 4 + 1] = static_cast<Rtype>(
-                            (static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor / alpha) * denorm_factor + 0.5f);
+                            (static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor
+                             / alpha)
+                                * denorm_factor
+                            + 0.5f);
                         r_ptr[x * 4 + 2] = static_cast<Rtype>(
-                            (static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor / alpha) * denorm_factor + 0.5f);
+                            (static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor
+                             / alpha)
+                                * denorm_factor
+                            + 0.5f);
                     } else {
                         r_ptr[x * 4 + 0] = static_cast<Rtype>(
-                            (static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor / alpha) * denorm_factor);
+                            (static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor
+                             / alpha)
+                            * denorm_factor);
                         r_ptr[x * 4 + 1] = static_cast<Rtype>(
-                            (static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor / alpha) * denorm_factor);
+                            (static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor
+                             / alpha)
+                            * denorm_factor);
                         r_ptr[x * 4 + 2] = static_cast<Rtype>(
-                            (static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor / alpha) * denorm_factor);
+                            (static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor
+                             / alpha)
+                            * denorm_factor);
                     }
                     r_ptr[x * 4 + 3] = a_ptr[x * 4 + 3];
                 }
             } else {
                 // Fallback to scalar per-pixel processing
                 for (int x = 0; x < roi.width(); ++x) {
-                    Rtype* r_pixel = reinterpret_cast<Rtype*>(r_row
-                                                              + x * r_pixel_bytes);
+                    Rtype* r_pixel = reinterpret_cast<Rtype*>(
+                        r_row + x * r_pixel_bytes);
                     const Atype* a_pixel = reinterpret_cast<const Atype*>(
                         a_row + x * a_pixel_bytes);
 
@@ -2488,9 +2598,10 @@ contrast_remap_hwy(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
             MathT white_val = static_cast<MathT>(white[roi.chbegin + ch]);
             MathT scale     = static_cast<MathT>(1.0) / (white_val - black_val);
             scale_pattern[i]  = scale;
-            offset_pattern[i] = -black_val * scale;  // Precompute offset for FMA
-            min_pattern[i]    = static_cast<MathT>(min[roi.chbegin + ch]);
-            max_pattern[i]    = static_cast<MathT>(max[roi.chbegin + ch]);
+            offset_pattern[i] = -black_val
+                                * scale;  // Precompute offset for FMA
+            min_pattern[i] = static_cast<MathT>(min[roi.chbegin + ch]);
+            max_pattern[i] = static_cast<MathT>(max[roi.chbegin + ch]);
         }
         auto v_scale  = hn::Load(d, scale_pattern);
         auto v_offset = hn::Load(d, offset_pattern);
@@ -2519,15 +2630,15 @@ contrast_remap_hwy(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
                     auto stretched = hn::MulAdd(va, v_scale, v_offset);
                     // Optional remap to [min, max]: min + stretched * (max - min)
                     auto res = do_minmax
-                                   ? hn::MulAdd(stretched, hn::Sub(v_max, v_min),
-                                                v_min)
+                                   ? hn::MulAdd(stretched,
+                                                hn::Sub(v_max, v_min), v_min)
                                    : stretched;
                     DemoteStore(d, d_row + x, res);
                 }
                 // Scalar tail for remaining pixels
                 for (; x < total; ++x) {
-                    int ch    = static_cast<int>(x % nchannels);
-                    float val = static_cast<float>(s_row[x]);
+                    int ch          = static_cast<int>(x % nchannels);
+                    float val       = static_cast<float>(s_row[x]);
                     float black_val = black[roi.chbegin + ch];
                     float white_val = white[roi.chbegin + ch];
                     float scale     = 1.0f / (white_val - black_val);
@@ -2559,7 +2670,7 @@ contrast_remap_hwy(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
                         if (do_minmax) {
                             float min_val = min[c];
                             float max_val = max[c];
-                            result        = result * (max_val - min_val) + min_val;
+                            result = result * (max_val - min_val) + min_val;
                         }
                         d_ptr[c] = static_cast<D>(result);
                     }

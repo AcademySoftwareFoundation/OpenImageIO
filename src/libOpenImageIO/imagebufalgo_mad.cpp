@@ -292,8 +292,8 @@ invert_impl_hwy(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
     using MathT = typename SimdMathType<Rtype>::type;
 
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        const ImageSpec& Rspec = R.spec();
-        const ImageSpec& Aspec = A.spec();
+        const ImageSpec& Rspec  = R.spec();
+        const ImageSpec& Aspec  = A.spec();
         size_t r_pixel_bytes    = Rspec.pixel_bytes();
         size_t a_pixel_bytes    = Aspec.pixel_bytes();
         size_t r_scanline_bytes = Rspec.scanline_bytes();
@@ -332,9 +332,8 @@ invert_impl_hwy(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
                     const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row)
                                          + x * a_pixel_bytes / sizeof(Atype);
                     for (int c = 0; c < nchannels; ++c) {
-                        r_ptr[c] = static_cast<Rtype>(1.0f
-                                                      - static_cast<float>(
-                                                          a_ptr[c]));
+                        r_ptr[c] = static_cast<Rtype>(
+                            1.0f - static_cast<float>(a_ptr[c]));
                     }
                 }
             }
