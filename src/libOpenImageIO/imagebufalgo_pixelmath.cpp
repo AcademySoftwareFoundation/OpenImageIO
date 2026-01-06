@@ -687,9 +687,8 @@ clamp_hwy(ImageBuf& dst, const ImageBuf& src, const float* min_vals,
                 size_t total = static_cast<size_t>(roi.width()) * nchannels;
                 size_t x     = 0;
 
-                // Process full vectors when lanes is multiple of nchannels
-                // (ensures min/max pattern alignment)
-                if (nchannels > 0 && lanes % nchannels == 0) {
+                // Process full vectors (pattern wraps correctly even when lanes % nchannels != 0)
+                if (nchannels > 0) {
                     for (; x + lanes <= total; x += lanes) {
                         auto va  = LoadPromote(d, s_row + x);
                         auto res = hn::Clamp(va, v_min, v_max);
@@ -697,12 +696,12 @@ clamp_hwy(ImageBuf& dst, const ImageBuf& src, const float* min_vals,
                     }
                 }
 
-                // Handle remaining values (or all values if pattern doesn't align)
-                for (; x < total; ++x) {
-                    int ch   = static_cast<int>(x % nchannels);
-                    d_row[x] = static_cast<Dtype>(OIIO::clamp<float>(
-                        static_cast<float>(s_row[x]), min_vals[roi.chbegin + ch],
-                        max_vals[roi.chbegin + ch]));
+                // Handle remaining values with partial vector load/store
+                if (x < total) {
+                    size_t remaining = total - x;
+                    auto va  = LoadPromoteN(d, s_row + x, remaining);
+                    auto res = hn::Clamp(va, v_min, v_max);
+                    DemoteStoreN(d, d_row + x, res, remaining);
                 }
             } else {
                 // Non-contiguous: scalar fallback per pixel
@@ -1178,13 +1177,27 @@ pow_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthrea
                     }
                 );
             } else {
+                // Normalize for proper value range (0-1)
+                constexpr float norm_factor = std::is_integral_v<Atype> ?
+                    (std::is_same_v<Atype, uint32_t> ? 1.0f/4294967295.0f :
+                     std::is_same_v<Atype, uint16_t> || std::is_same_v<Atype, int16_t> ? 1.0f/65535.0f : 1.0f/255.0f) : 1.0f;
+                constexpr float denorm_factor = std::is_integral_v<Rtype> ?
+                    (std::is_same_v<Rtype, uint32_t> ? 4294967295.0f :
+                     std::is_same_v<Rtype, uint16_t> || std::is_same_v<Rtype, int16_t> ? 65535.0f : 255.0f) : 1.0f;
+
                 for (int x = 0; x < roi.width(); ++x) {
                     Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row) + x * r_pixel_bytes / sizeof(Rtype);
                     const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row) + x * a_pixel_bytes / sizeof(Atype);
                     for (int c = 0; c < nchannels; ++c) {
                         using SimdType = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
-                        r_ptr[c] = static_cast<Rtype>(pow(static_cast<SimdType>(a_ptr[c]),
-                                                           static_cast<SimdType>(b[c])));
+                        SimdType normalized = static_cast<SimdType>(a_ptr[c]) * norm_factor;
+                        SimdType result = pow(normalized, static_cast<SimdType>(b[c]));
+                        // Only add rounding offset for integer types
+                        if constexpr (std::is_integral_v<Rtype>) {
+                            r_ptr[c] = static_cast<Rtype>(result * denorm_factor + 0.5f);
+                        } else {
+                            r_ptr[c] = static_cast<Rtype>(result * denorm_factor);
+                        }
                     }
                 }
             }
@@ -2094,7 +2107,15 @@ premult_hwy(ImageBuf& R, const ImageBuf& A, bool preserve_alpha0, ROI roi,
 
                 // Scalar tail for remaining pixels
                 for (; x < roi.width(); ++x) {
-                    float alpha = static_cast<float>(a_ptr[x * 4 + 3]);
+                    // Normalize for proper value range (0-1)
+                    constexpr float norm_factor = std::is_integral_v<Atype> ?
+                        (std::is_same_v<Atype, uint32_t> ? 1.0f/4294967295.0f :
+                         std::is_same_v<Atype, uint16_t> || std::is_same_v<Atype, int16_t> ? 1.0f/65535.0f : 1.0f/255.0f) : 1.0f;
+                    constexpr float denorm_factor = std::is_integral_v<Rtype> ?
+                        (std::is_same_v<Rtype, uint32_t> ? 4294967295.0f :
+                         std::is_same_v<Rtype, uint16_t> || std::is_same_v<Rtype, int16_t> ? 65535.0f : 255.0f) : 1.0f;
+
+                    float alpha = static_cast<float>(a_ptr[x * 4 + 3]) * norm_factor;
                     if ((preserve_alpha0 && alpha == 0.0f) || alpha == 1.0f) {
                         if (&R != &A) {
                             r_ptr[x * 4 + 0] = a_ptr[x * 4 + 0];
@@ -2104,12 +2125,22 @@ premult_hwy(ImageBuf& R, const ImageBuf& A, bool preserve_alpha0, ROI roi,
                         }
                         continue;
                     }
-                    r_ptr[x * 4 + 0] = static_cast<Rtype>(
-                        static_cast<float>(a_ptr[x * 4 + 0]) * alpha);
-                    r_ptr[x * 4 + 1] = static_cast<Rtype>(
-                        static_cast<float>(a_ptr[x * 4 + 1]) * alpha);
-                    r_ptr[x * 4 + 2] = static_cast<Rtype>(
-                        static_cast<float>(a_ptr[x * 4 + 2]) * alpha);
+                    // Only add rounding offset for integer types
+                    if constexpr (std::is_integral_v<Rtype>) {
+                        r_ptr[x * 4 + 0] = static_cast<Rtype>(
+                            static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor * alpha * denorm_factor + 0.5f);
+                        r_ptr[x * 4 + 1] = static_cast<Rtype>(
+                            static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor * alpha * denorm_factor + 0.5f);
+                        r_ptr[x * 4 + 2] = static_cast<Rtype>(
+                            static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor * alpha * denorm_factor + 0.5f);
+                    } else {
+                        r_ptr[x * 4 + 0] = static_cast<Rtype>(
+                            static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor * alpha * denorm_factor);
+                        r_ptr[x * 4 + 1] = static_cast<Rtype>(
+                            static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor * alpha * denorm_factor);
+                        r_ptr[x * 4 + 2] = static_cast<Rtype>(
+                            static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor * alpha * denorm_factor);
+                    }
                     r_ptr[x * 4 + 3] = a_ptr[x * 4 + 3];
                 }
             } else {
@@ -2222,7 +2253,15 @@ unpremult_hwy(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
 
                 // Scalar tail for remaining pixels
                 for (; x < roi.width(); ++x) {
-                    float alpha = static_cast<float>(a_ptr[x * 4 + 3]);
+                    // Normalize for proper value range (0-1)
+                    constexpr float norm_factor = std::is_integral_v<Atype> ?
+                        (std::is_same_v<Atype, uint32_t> ? 1.0f/4294967295.0f :
+                         std::is_same_v<Atype, uint16_t> || std::is_same_v<Atype, int16_t> ? 1.0f/65535.0f : 1.0f/255.0f) : 1.0f;
+                    constexpr float denorm_factor = std::is_integral_v<Rtype> ?
+                        (std::is_same_v<Rtype, uint32_t> ? 4294967295.0f :
+                         std::is_same_v<Rtype, uint16_t> || std::is_same_v<Rtype, int16_t> ? 65535.0f : 255.0f) : 1.0f;
+
+                    float alpha = static_cast<float>(a_ptr[x * 4 + 3]) * norm_factor;
                     if (alpha == 0.0f || alpha == 1.0f) {
                         if (&R != &A) {
                             r_ptr[x * 4 + 0] = a_ptr[x * 4 + 0];
@@ -2232,12 +2271,22 @@ unpremult_hwy(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
                         }
                         continue;
                     }
-                    r_ptr[x * 4 + 0] = static_cast<Rtype>(
-                        static_cast<float>(a_ptr[x * 4 + 0]) / alpha);
-                    r_ptr[x * 4 + 1] = static_cast<Rtype>(
-                        static_cast<float>(a_ptr[x * 4 + 1]) / alpha);
-                    r_ptr[x * 4 + 2] = static_cast<Rtype>(
-                        static_cast<float>(a_ptr[x * 4 + 2]) / alpha);
+                    // Only add rounding offset for integer types
+                    if constexpr (std::is_integral_v<Rtype>) {
+                        r_ptr[x * 4 + 0] = static_cast<Rtype>(
+                            (static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor / alpha) * denorm_factor + 0.5f);
+                        r_ptr[x * 4 + 1] = static_cast<Rtype>(
+                            (static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor / alpha) * denorm_factor + 0.5f);
+                        r_ptr[x * 4 + 2] = static_cast<Rtype>(
+                            (static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor / alpha) * denorm_factor + 0.5f);
+                    } else {
+                        r_ptr[x * 4 + 0] = static_cast<Rtype>(
+                            (static_cast<float>(a_ptr[x * 4 + 0]) * norm_factor / alpha) * denorm_factor);
+                        r_ptr[x * 4 + 1] = static_cast<Rtype>(
+                            (static_cast<float>(a_ptr[x * 4 + 1]) * norm_factor / alpha) * denorm_factor);
+                        r_ptr[x * 4 + 2] = static_cast<Rtype>(
+                            (static_cast<float>(a_ptr[x * 4 + 2]) * norm_factor / alpha) * denorm_factor);
+                    }
                     r_ptr[x * 4 + 3] = a_ptr[x * 4 + 3];
                 }
             } else {

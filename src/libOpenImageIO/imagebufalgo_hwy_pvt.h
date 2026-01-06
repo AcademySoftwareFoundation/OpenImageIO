@@ -60,29 +60,40 @@ LoadPromote(D d, const SrcT* ptr)
     } else if constexpr (std::is_same_v<SrcT, uint8_t>) {
         auto d_u8 = hn::Rebind<uint8_t, D>();
         auto v_u8 = hn::Load(d_u8, ptr);
-        return hn::ConvertTo(
+        auto v_promoted = hn::ConvertTo(
             d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
                              hn::PromoteTo(hn::Rebind<int16_t, D>(), v_u8)));
+        // Normalize to 0-1 range for image operations
+        return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 255.0)));
     } else if constexpr (std::is_same_v<SrcT, int8_t>) {
         auto d_i8 = hn::Rebind<int8_t, D>();
         auto v_i8 = hn::Load(d_i8, ptr);
-        return hn::ConvertTo(
+        auto v_promoted = hn::ConvertTo(
             d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
                              hn::PromoteTo(hn::Rebind<int16_t, D>(), v_i8)));
+        // Normalize: map [-128, 127] to [0, 1]
+        auto v_shifted = hn::Add(v_promoted, hn::Set(d, (MathT)128.0));
+        return hn::Mul(v_shifted, hn::Set(d, (MathT)(1.0 / 255.0)));
     } else if constexpr (std::is_same_v<SrcT, uint16_t>) {
         auto d_u16 = hn::Rebind<uint16_t, D>();
         auto v_u16 = hn::Load(d_u16, ptr);
-        return hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_u16));
+        auto v_promoted = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_u16));
+        // Normalize to 0-1 range for image operations
+        return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 65535.0)));
     } else if constexpr (std::is_same_v<SrcT, int16_t>) {
         auto d_i16 = hn::Rebind<int16_t, D>();
         auto v_i16 = hn::Load(d_i16, ptr);
-        return hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_i16));
+        auto v_promoted = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_i16));
+        // Normalize: map [-32768, 32767] to [0, 1]
+        auto v_shifted = hn::Add(v_promoted, hn::Set(d, (MathT)32768.0));
+        return hn::Mul(v_shifted, hn::Set(d, (MathT)(1.0 / 65535.0)));
     } else if constexpr (std::is_same_v<SrcT, uint32_t>) {
-        // uint32 to float: Load and convert directly (no promotion needed)
-        // Note: We use float, not double, for image processing performance
+        // uint32 to float: Load, convert, and normalize to 0-1 range
         auto d_u32 = hn::Rebind<uint32_t, D>();
         auto v_u32 = hn::Load(d_u32, ptr);
-        return hn::ConvertTo(d, v_u32);
+        auto v_promoted = hn::ConvertTo(d, v_u32);
+        // Normalize to 0-1 range for image operations
+        return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 4294967295.0)));
     } else if constexpr (std::is_same_v<SrcT, int32_t>) {
         // int32 to float: Load and convert directly
         auto d_i32 = hn::Rebind<int32_t, D>();
@@ -130,24 +141,40 @@ LoadPromoteN(D d, const SrcT* ptr, size_t count)
     } else if constexpr (std::is_same_v<SrcT, uint8_t>) {
         auto d_u8 = hn::Rebind<uint8_t, D>();
         auto v_u8 = hn::LoadN(d_u8, ptr, count);
-        return hn::ConvertTo(
+        auto v_promoted = hn::ConvertTo(
             d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
                              hn::PromoteTo(hn::Rebind<int16_t, D>(), v_u8)));
+        // Normalize to 0-1 range for image operations
+        return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 255.0)));
     } else if constexpr (std::is_same_v<SrcT, int8_t>) {
         auto d_i8 = hn::Rebind<int8_t, D>();
         auto v_i8 = hn::LoadN(d_i8, ptr, count);
-        return hn::ConvertTo(
+        auto v_promoted = hn::ConvertTo(
             d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
                              hn::PromoteTo(hn::Rebind<int16_t, D>(), v_i8)));
+        // Normalize: map [-128, 127] to [0, 1]
+        auto v_shifted = hn::Add(v_promoted, hn::Set(d, (MathT)128.0));
+        return hn::Mul(v_shifted, hn::Set(d, (MathT)(1.0 / 255.0)));
     } else if constexpr (std::is_same_v<SrcT, uint16_t>) {
         auto d_u16 = hn::Rebind<uint16_t, D>();
         auto v_u16 = hn::LoadN(d_u16, ptr, count);
-        return hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_u16));
+        auto v_promoted = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_u16));
+        // Normalize to 0-1 range for image operations
+        return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 65535.0)));
+    } else if constexpr (std::is_same_v<SrcT, int16_t>) {
+        auto d_i16 = hn::Rebind<int16_t, D>();
+        auto v_i16 = hn::LoadN(d_i16, ptr, count);
+        auto v_promoted = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v_i16));
+        // Normalize: map [-32768, 32767] to [0, 1]
+        auto v_shifted = hn::Add(v_promoted, hn::Set(d, (MathT)32768.0));
+        return hn::Mul(v_shifted, hn::Set(d, (MathT)(1.0 / 65535.0)));
     } else if constexpr (std::is_same_v<SrcT, uint32_t>) {
-        // uint32 to float: Load and convert directly (no promotion needed)
+        // uint32 to float: Load, convert, and normalize to 0-1 range
         auto d_u32 = hn::Rebind<uint32_t, D>();
         auto v_u32 = hn::LoadN(d_u32, ptr, count);
-        return hn::ConvertTo(d, v_u32);
+        auto v_promoted = hn::ConvertTo(d, v_u32);
+        // Normalize to 0-1 range for image operations
+        return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 4294967295.0)));
     } else if constexpr (std::is_same_v<SrcT, int32_t>) {
         // int32 to float: Load and convert directly
         auto d_i32 = hn::Rebind<int32_t, D>();
@@ -197,7 +224,9 @@ DemoteStore(D d, DstT* ptr, VecT v)
         hn::Store(v16, d16, (hwy::float16_t*)ptr);
     } else if constexpr (std::is_same_v<DstT, uint8_t>) {
         VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // Denormalize from 0-1 range to 0-255 range
+        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)255.0));
+        VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
         VecD v_zero    = hn::Zero(d);
         VecD v_max     = hn::Set(d, (MathT)255.0);
         VecD v_clamped = hn::Max(v_rounded, v_zero);
@@ -212,7 +241,10 @@ DemoteStore(D d, DstT* ptr, VecT v)
         hn::Store(v_u8, d_u8, ptr);
     } else if constexpr (std::is_same_v<DstT, int8_t>) {
         VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // Denormalize from 0-1 range to -128-127 range
+        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)255.0));
+        VecD v_shifted = hn::Sub(v_denorm, hn::Set(d, (MathT)128.0));
+        VecD v_rounded = hn::Add(v_shifted, hn::Set(d, (MathT)0.5));
         VecD v_min     = hn::Set(d, (MathT)-128.0);
         VecD v_max     = hn::Set(d, (MathT)127.0);
         VecD v_clamped = hn::Max(v_rounded, v_min);
@@ -227,7 +259,9 @@ DemoteStore(D d, DstT* ptr, VecT v)
         hn::Store(v_i8, d_i8, ptr);
     } else if constexpr (std::is_same_v<DstT, uint16_t>) {
         VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // Denormalize from 0-1 range to 0-65535 range
+        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)65535.0));
+        VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
         VecD v_zero    = hn::Zero(d);
         VecD v_max     = hn::Set(d, (MathT)65535.0);
         VecD v_clamped = hn::Max(v_rounded, v_zero);
@@ -240,7 +274,10 @@ DemoteStore(D d, DstT* ptr, VecT v)
         hn::Store(v_u16, d_u16, ptr);
     } else if constexpr (std::is_same_v<DstT, int16_t>) {
         VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // Denormalize from 0-1 range to -32768-32767 range
+        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)65535.0));
+        VecD v_shifted = hn::Sub(v_denorm, hn::Set(d, (MathT)32768.0));
+        VecD v_rounded = hn::Add(v_shifted, hn::Set(d, (MathT)0.5));
         VecD v_min     = hn::Set(d, (MathT)-32768.0);
         VecD v_max     = hn::Set(d, (MathT)32767.0);
         VecD v_clamped = hn::Max(v_rounded, v_min);
@@ -252,10 +289,11 @@ DemoteStore(D d, DstT* ptr, VecT v)
         auto v_i16 = hn::DemoteTo(d_i16, vi32);
         hn::Store(v_i16, d_i16, ptr);
     } else if constexpr (std::is_same_v<DstT, uint32_t>) {
-        // float -> uint32: Round and convert directly
-        // Note: We use float, not double, for image processing performance
+        // float -> uint32: Denormalize from 0-1 to 0-4294967295, round and convert
         VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // Denormalize from 0-1 range to 0-4294967295 range
+        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)4294967295.0));
+        VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
         VecD v_zero    = hn::Zero(d);
         VecD v_max     = hn::Set(d, (MathT)4294967295.0);
         VecD v_clamped = hn::Max(v_rounded, v_zero);
@@ -323,7 +361,9 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         hn::StoreN(v16, d16, (hwy::float16_t*)ptr, count);
     } else if constexpr (std::is_same_v<DstT, uint8_t>) {
         VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // Denormalize from 0-1 range to 0-255 range
+        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)255.0));
+        VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
         VecD v_zero    = hn::Zero(d);
         VecD v_max     = hn::Set(d, (MathT)255.0);
         VecD v_clamped = hn::Max(v_rounded, v_zero);
@@ -338,7 +378,10 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         hn::StoreN(v_u8, d_u8, ptr, count);
     } else if constexpr (std::is_same_v<DstT, int8_t>) {
         VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // Denormalize from 0-1 range to -128-127 range
+        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)255.0));
+        VecD v_shifted = hn::Sub(v_denorm, hn::Set(d, (MathT)128.0));
+        VecD v_rounded = hn::Add(v_shifted, hn::Set(d, (MathT)0.5));
         VecD v_min     = hn::Set(d, (MathT)-128.0);
         VecD v_max     = hn::Set(d, (MathT)127.0);
         VecD v_clamped = hn::Max(v_rounded, v_min);
@@ -353,7 +396,9 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         hn::StoreN(v_i8, d_i8, ptr, count);
     } else if constexpr (std::is_same_v<DstT, uint16_t>) {
         VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // Denormalize from 0-1 range to 0-65535 range
+        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)65535.0));
+        VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
         VecD v_zero    = hn::Zero(d);
         VecD v_max     = hn::Set(d, (MathT)65535.0);
         VecD v_clamped = hn::Max(v_rounded, v_zero);
@@ -366,7 +411,10 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         hn::StoreN(v_u16, d_u16, ptr, count);
     } else if constexpr (std::is_same_v<DstT, int16_t>) {
         VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // Denormalize from 0-1 range to -32768-32767 range
+        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)65535.0));
+        VecD v_shifted = hn::Sub(v_denorm, hn::Set(d, (MathT)32768.0));
+        VecD v_rounded = hn::Add(v_shifted, hn::Set(d, (MathT)0.5));
         VecD v_min     = hn::Set(d, (MathT)-32768.0);
         VecD v_max     = hn::Set(d, (MathT)32767.0);
         VecD v_clamped = hn::Max(v_rounded, v_min);
@@ -378,9 +426,11 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
         auto v_i16 = hn::DemoteTo(d_i16, vi32);
         hn::StoreN(v_i16, d_i16, ptr, count);
     } else if constexpr (std::is_same_v<DstT, uint32_t>) {
-        // float -> uint32: Round and convert directly
+        // float -> uint32: Denormalize from 0-1 to 0-4294967295, round and convert
         VecD v_val     = (VecD)v;
-        VecD v_rounded = hn::Add(v_val, hn::Set(d, (MathT)0.5));
+        // Denormalize from 0-1 range to 0-4294967295 range
+        VecD v_denorm  = hn::Mul(v_val, hn::Set(d, (MathT)4294967295.0));
+        VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
         VecD v_zero    = hn::Zero(d);
         VecD v_max     = hn::Set(d, (MathT)4294967295.0);
         VecD v_clamped = hn::Max(v_rounded, v_zero);
@@ -619,24 +669,25 @@ LoadInterleaved4Promote(D d, const SrcT* ptr)
 
         return std::make_tuple(r_vec, g_vec, b_vec, a_vec);
     } else {
-        // Generic type promotion - deinterleave manually
+        // Generic type promotion - deinterleave manually with normalization
         const size_t N = hn::Lanes(d);
-        MathT r_scalar[hn::MaxLanes(d)];
-        MathT g_scalar[hn::MaxLanes(d)];
-        MathT b_scalar[hn::MaxLanes(d)];
-        MathT a_scalar[hn::MaxLanes(d)];
+        SrcT r_src[hn::MaxLanes(d)];
+        SrcT g_src[hn::MaxLanes(d)];
+        SrcT b_src[hn::MaxLanes(d)];
+        SrcT a_src[hn::MaxLanes(d)];
 
         for (size_t i = 0; i < N; ++i) {
-            r_scalar[i] = static_cast<MathT>(ptr[i * 4 + 0]);
-            g_scalar[i] = static_cast<MathT>(ptr[i * 4 + 1]);
-            b_scalar[i] = static_cast<MathT>(ptr[i * 4 + 2]);
-            a_scalar[i] = static_cast<MathT>(ptr[i * 4 + 3]);
+            r_src[i] = ptr[i * 4 + 0];
+            g_src[i] = ptr[i * 4 + 1];
+            b_src[i] = ptr[i * 4 + 2];
+            a_src[i] = ptr[i * 4 + 3];
         }
 
-        Vec r_vec = hn::Load(d, r_scalar);
-        Vec g_vec = hn::Load(d, g_scalar);
-        Vec b_vec = hn::Load(d, b_scalar);
-        Vec a_vec = hn::Load(d, a_scalar);
+        // Use LoadPromote for proper normalization of integer types
+        auto r_vec = LoadPromote(d, r_src);
+        auto g_vec = LoadPromote(d, g_src);
+        auto b_vec = LoadPromote(d, b_src);
+        auto a_vec = LoadPromote(d, a_src);
 
         return std::make_tuple(r_vec, g_vec, b_vec, a_vec);
     }
@@ -674,26 +725,27 @@ StoreInterleaved4Demote(D d, DstT* ptr, VecT r, VecT g, VecT b, VecT a)
         // Store interleaved float16_t data
         hn::StoreInterleaved4(r16, g16, b16, a16, d16, (T16*)ptr);
     } else {
-        // Generic type demotion - demote and interleave manually
+        // Generic type demotion - use DemoteStore for each channel then interleave
         const size_t N = hn::Lanes(d);
 
-        // Store to temporary arrays with demotion
-        MathT r_scalar[hn::MaxLanes(d)];
-        MathT g_scalar[hn::MaxLanes(d)];
-        MathT b_scalar[hn::MaxLanes(d)];
-        MathT a_scalar[hn::MaxLanes(d)];
+        // Temporary arrays for demoted values
+        DstT r_demoted[hn::MaxLanes(d)];
+        DstT g_demoted[hn::MaxLanes(d)];
+        DstT b_demoted[hn::MaxLanes(d)];
+        DstT a_demoted[hn::MaxLanes(d)];
 
-        hn::Store(r, d, r_scalar);
-        hn::Store(g, d, g_scalar);
-        hn::Store(b, d, b_scalar);
-        hn::Store(a, d, a_scalar);
+        // Use DemoteStoreN to properly denormalize integer types
+        DemoteStoreN(d, r_demoted, r, N);
+        DemoteStoreN(d, g_demoted, g, N);
+        DemoteStoreN(d, b_demoted, b, N);
+        DemoteStoreN(d, a_demoted, a, N);
 
-        // Interleave and demote
+        // Interleave the demoted values
         for (size_t i = 0; i < N; ++i) {
-            ptr[i * 4 + 0] = static_cast<DstT>(r_scalar[i]);
-            ptr[i * 4 + 1] = static_cast<DstT>(g_scalar[i]);
-            ptr[i * 4 + 2] = static_cast<DstT>(b_scalar[i]);
-            ptr[i * 4 + 3] = static_cast<DstT>(a_scalar[i]);
+            ptr[i * 4 + 0] = r_demoted[i];
+            ptr[i * 4 + 1] = g_demoted[i];
+            ptr[i * 4 + 2] = b_demoted[i];
+            ptr[i * 4 + 3] = a_demoted[i];
         }
     }
 }
