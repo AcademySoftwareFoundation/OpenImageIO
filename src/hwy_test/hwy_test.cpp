@@ -38,6 +38,18 @@ benchmark_ms(Func&& func, int iterations = 100, int warmup = 5)
     return timer() * 1000.0 / iterations;  // Convert to ms
 }
 
+// Compare two ImageBufs and return true if they match (within tolerance)
+// Tolerance accounts for rounding differences between SIMD (round-to-nearest)
+// and scalar (truncate) conversions. For uint8: 1/255 = 0.004, uint16: 1/65535 = 0.00002
+bool
+verify_match(const ImageBuf& scalar_result, const ImageBuf& simd_result,
+             float tolerance = 0.005f)
+{
+    auto comp = ImageBufAlgo::compare(scalar_result, simd_result, tolerance,
+                                      tolerance);
+    return comp.nfail == 0 && comp.maxerror < tolerance;
+}
+
 // Benchmark add operation
 BenchResult
 bench_add(const ImageBuf& A, const ImageBuf& B, int iterations = 100)
@@ -387,64 +399,89 @@ main(int argc, char* argv[])
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
         ImageBuf B = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         print_result(cfg.name, bench_add(A, B, iterations));
 
-        // Save final result
+        // Verify: compute scalar and SIMD results
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::add(R_scalar, A, B);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::add(R, A, B);
+        ImageBufAlgo::add(R_simd, A, B);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
         save_image(A, "src_A", cfg.name);
         save_image(B, "src_B", cfg.name);
-        save_image(R, "result_add", cfg.name);
+        save_image(R_simd, "result_add", cfg.name);
     }
 
     // Sub
     printf("\n[ Sub ]\n");
-    //print_header();
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
         ImageBuf B = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         print_result(cfg.name, bench_sub(A, B, iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::sub(R_scalar, A, B);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::sub(R, A, B);
-        save_image(R, "result_sub", cfg.name);
+        ImageBufAlgo::sub(R_simd, A, B);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_sub", cfg.name);
     }
 
     // Mul
     printf("\n[ Mul ]\n");
-    //print_header();
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
         ImageBuf B = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         print_result(cfg.name, bench_mul(A, B, iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::mul(R_scalar, A, B);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::mul(R, A, B);
-        save_image(R, "result_mul", cfg.name);
+        ImageBufAlgo::mul(R_simd, A, B);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_mul", cfg.name);
     }
 
     // Pow
     printf("\n[ Pow ]\n");
-    //print_header();
     float exponent_vals[] = { 2.2f, 2.2f, 2.2f };
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         print_result(cfg.name, bench_pow(A, exponent_vals, iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::pow(R_scalar, A, exponent_vals);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::pow(R, A, exponent_vals);
-        save_image(R, "result_pow", cfg.name);
+        ImageBufAlgo::pow(R_simd, A, exponent_vals);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_pow", cfg.name);
     }
 
 
@@ -453,10 +490,12 @@ main(int argc, char* argv[])
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
         ImageBuf B = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         auto bench_div = [&](int iters = 100) {
             BenchResult result;
+            ImageBuf R(A.spec());
             OIIO::attribute("enable_hwy", 0);
             result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::div(R, A, B); }, iters);
             OIIO::attribute("enable_hwy", 1);
@@ -467,10 +506,16 @@ main(int argc, char* argv[])
 
         print_result(cfg.name, bench_div(iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::div(R_scalar, A, B);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::div(R, A, B);
-        save_image(R, "result_div", cfg.name);
+        ImageBufAlgo::div(R_simd, A, B);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_div", cfg.name);
     }
 
     // Min
@@ -478,10 +523,12 @@ main(int argc, char* argv[])
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
         ImageBuf B = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         auto bench_min = [&](int iters = 100) {
             BenchResult result;
+            ImageBuf R(A.spec());
             OIIO::attribute("enable_hwy", 0);
             result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::min(R, A, B); }, iters);
             OIIO::attribute("enable_hwy", 1);
@@ -492,10 +539,16 @@ main(int argc, char* argv[])
 
         print_result(cfg.name, bench_min(iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::min(R_scalar, A, B);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::min(R, A, B);
-        save_image(R, "result_min", cfg.name);
+        ImageBufAlgo::min(R_simd, A, B);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_min", cfg.name);
     }
 
     // Max
@@ -503,10 +556,12 @@ main(int argc, char* argv[])
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
         ImageBuf B = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         auto bench_max = [&](int iters = 100) {
             BenchResult result;
+            ImageBuf R(A.spec());
             OIIO::attribute("enable_hwy", 0);
             result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::max(R, A, B); }, iters);
             OIIO::attribute("enable_hwy", 1);
@@ -517,20 +572,28 @@ main(int argc, char* argv[])
 
         print_result(cfg.name, bench_max(iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::max(R_scalar, A, B);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::max(R, A, B);
-        save_image(R, "result_max", cfg.name);
+        ImageBufAlgo::max(R_simd, A, B);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_max", cfg.name);
     }
 
     // Abs
     printf("\n[ Abs ]\n");
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         auto bench_abs = [&](int iters = 100) {
             BenchResult result;
+            ImageBuf R(A.spec());
             OIIO::attribute("enable_hwy", 0);
             result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::abs(R, A); }, iters);
             OIIO::attribute("enable_hwy", 1);
@@ -541,10 +604,16 @@ main(int argc, char* argv[])
 
         print_result(cfg.name, bench_abs(iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::abs(R_scalar, A);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::abs(R, A);
-        save_image(R, "result_abs", cfg.name);
+        ImageBufAlgo::abs(R_simd, A);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_abs", cfg.name);
     }
 
     // Absdiff
@@ -552,10 +621,12 @@ main(int argc, char* argv[])
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
         ImageBuf B = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         auto bench_absdiff = [&](int iters = 100) {
             BenchResult result;
+            ImageBuf R(A.spec());
             OIIO::attribute("enable_hwy", 0);
             result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::absdiff(R, A, B); }, iters);
             OIIO::attribute("enable_hwy", 1);
@@ -566,10 +637,16 @@ main(int argc, char* argv[])
 
         print_result(cfg.name, bench_absdiff(iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::absdiff(R_scalar, A, B);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::absdiff(R, A, B);
-        save_image(R, "result_absdiff", cfg.name);
+        ImageBufAlgo::absdiff(R_simd, A, B);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_absdiff", cfg.name);
     }
 
     // MAD
@@ -578,10 +655,12 @@ main(int argc, char* argv[])
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
         ImageBuf B = create_test_image(width, height, 3, cfg.format);
         ImageBuf C = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         auto bench_mad = [&](int iters = 100) {
             BenchResult result;
+            ImageBuf R(A.spec());
             OIIO::attribute("enable_hwy", 0);
             result.scalar_ms = benchmark_ms([&]() { ImageBufAlgo::mad(R, A, B, C); }, iters);
             OIIO::attribute("enable_hwy", 1);
@@ -592,20 +671,28 @@ main(int argc, char* argv[])
 
         print_result(cfg.name, bench_mad(iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::mad(R_scalar, A, B, C);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::mad(R, A, B, C);
-        save_image(R, "result_mad", cfg.name);
+        ImageBufAlgo::mad(R_simd, A, B, C);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_mad", cfg.name);
     }
 
     // Clamp
     printf("\n[ Clamp ]\n");
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         auto bench_clamp = [&](int iters = 100) {
             BenchResult result;
+            ImageBuf R(A.spec());
             OIIO::attribute("enable_hwy", 0);
             result.scalar_ms = benchmark_ms([&]() {
                 ImageBufAlgo::clamp(R, A, 0.1f, 0.9f);
@@ -620,73 +707,181 @@ main(int argc, char* argv[])
 
         print_result(cfg.name, bench_clamp(iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::clamp(R_scalar, A, 0.1f, 0.9f);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::clamp(R, A, 0.1f, 0.9f);
-        save_image(R, "result_clamp", cfg.name);
+        ImageBufAlgo::clamp(R_simd, A, 0.1f, 0.9f);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_clamp", cfg.name);
     }
 
     // RangeCompress
     printf("\n[ RangeCompress ]\n");
-    //print_header();
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         print_result(cfg.name, bench_rangecompress(A, iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::rangecompress(R_scalar, A);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::rangecompress(R, A);
-        save_image(R, "result_rangecompress", cfg.name);
+        ImageBufAlgo::rangecompress(R_simd, A);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_rangecompress", cfg.name);
     }
 
     // RangeExpand
     printf("\n[ RangeExpand ]\n");
-    //print_header();
     for (const auto& cfg : configs) {
         ImageBuf A = create_test_image(width, height, 3, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         print_result(cfg.name, bench_rangeexpand(A, iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::rangeexpand(R_scalar, A);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::rangeexpand(R, A);
-        save_image(R, "result_rangeexpand", cfg.name);
+        ImageBufAlgo::rangeexpand(R_simd, A);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_rangeexpand", cfg.name);
     }
 
     // Premult
     printf("\n[ Premult ]\n");
-    //print_header();
     for (const auto& cfg : configs) {
         ImageBuf A = create_rgba_image(width, height, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         print_result(cfg.name, bench_premult(A, iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::premult(R_scalar, A);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::premult(R, A);
+        ImageBufAlgo::premult(R_simd, A);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
         save_image(A, "src_RGBA", cfg.name);
-        save_image(R, "result_premult", cfg.name);
+        save_image(R_simd, "result_premult", cfg.name);
     }
 
     // Unpremult
     printf("\n[ Unpremult ]\n");
-    //print_header();
     for (const auto& cfg : configs) {
         ImageBuf A = create_rgba_image(width, height, cfg.format);
-        ImageBuf R(A.spec());
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
 
         print_result(cfg.name, bench_unpremult(A, iterations));
 
-        // Save final result
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::unpremult(R_scalar, A);
         OIIO::attribute("enable_hwy", 1);
-        ImageBufAlgo::unpremult(R, A);
-        save_image(R, "result_unpremult", cfg.name);
+        ImageBufAlgo::unpremult(R_simd, A);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_unpremult", cfg.name);
     }
 
+
+    // Invert
+    printf("\n[ Invert ]\n");
+    for (const auto& cfg : configs) {
+        ImageBuf A = create_test_image(width, height, 3, cfg.format);
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
+
+        auto bench_invert = [&](int iters = 100) {
+            BenchResult result;
+            ImageBuf R(A.spec());
+            OIIO::attribute("enable_hwy", 0);
+            result.scalar_ms = benchmark_ms(
+                [&]() { ImageBufAlgo::invert(R, A); }, iters);
+            OIIO::attribute("enable_hwy", 1);
+            result.simd_ms = benchmark_ms([&]() { ImageBufAlgo::invert(R, A); },
+                                          iters);
+            result.speedup = result.scalar_ms / result.simd_ms;
+            return result;
+        };
+
+        print_result(cfg.name, bench_invert(iterations));
+
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::invert(R_scalar, A);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::invert(R_simd, A);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_invert", cfg.name);
+    }
+
+    // Contrast Remap (linear stretch)
+    printf("\n[ Contrast Remap (linear) ]\n");
+    for (const auto& cfg : configs) {
+        ImageBuf A = create_test_image(width, height, 3, cfg.format);
+        ImageBuf R_scalar(A.spec());
+        ImageBuf R_simd(A.spec());
+
+        // Linear stretch: remap [0.2, 0.8] -> [0.0, 1.0]
+        float black_vals[] = { 0.2f, 0.2f, 0.2f };
+        float white_vals[] = { 0.8f, 0.8f, 0.8f };
+
+        auto bench_contrast = [&](int iters = 100) {
+            BenchResult result;
+            ImageBuf R(A.spec());
+            OIIO::attribute("enable_hwy", 0);
+            result.scalar_ms = benchmark_ms(
+                [&]() {
+                    ImageBufAlgo::contrast_remap(R, A, black_vals, white_vals);
+                },
+                iters);
+            OIIO::attribute("enable_hwy", 1);
+            result.simd_ms = benchmark_ms(
+                [&]() {
+                    ImageBufAlgo::contrast_remap(R, A, black_vals, white_vals);
+                },
+                iters);
+            result.speedup = result.scalar_ms / result.simd_ms;
+            return result;
+        };
+
+        print_result(cfg.name, bench_contrast(iterations));
+
+        // Verify
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::contrast_remap(R_scalar, A, black_vals, white_vals);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::contrast_remap(R_simd, A, black_vals, white_vals);
+
+        bool match = verify_match(R_scalar, R_simd);
+        printf("  %s: %s\n", cfg.name, match ? "PASS" : "FAIL");
+
+        save_image(R_simd, "result_contrast_remap", cfg.name);
+    }
 
     // Resample 75%
     printf("\n[ Resample 75%% ]\n");

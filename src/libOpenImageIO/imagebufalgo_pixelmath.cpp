@@ -1139,7 +1139,7 @@ template<class Rtype, class Atype>
 static bool
 pow_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 {
-    using MathT = std::conditional_t<std::is_same_v<Rtype, double> || std::is_same_v<Rtype, uint32_t>, double, float>;
+    using MathT = typename SimdMathType<Rtype>::type;
 
     bool scalar_pow = (b.size() == 1);
     float p_val = b[0];
@@ -2400,6 +2400,128 @@ allspan(cspan<T> s, const T& v)
 
 
 
+// Highway SIMD implementation for contrast_remap (linear stretch only, no sigmoid)
+template<class D, class S>
+static bool
+contrast_remap_hwy(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
+                   cspan<float> white, cspan<float> min, cspan<float> max,
+                   bool do_minmax, ROI roi, int nthreads)
+{
+    using MathT = typename SimdMathType<D>::type;
+
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& dstspec = dst.spec();
+        const ImageSpec& srcspec = src.spec();
+        size_t dst_pixel_bytes   = dstspec.pixel_bytes();
+        size_t src_pixel_bytes   = srcspec.pixel_bytes();
+
+        char* dst_base       = (char*)dst.localpixels();
+        const char* src_base = (const char*)src.localpixels();
+
+        int nchannels = roi.chend - roi.chbegin;
+        bool contig   = (nchannels * sizeof(D) == dst_pixel_bytes)
+                      && (nchannels * sizeof(S) == src_pixel_bytes);
+
+        const hn::ScalableTag<MathT> d;
+        size_t lanes = hn::Lanes(d);
+
+        // Pre-compute per-channel constants for linear stretch
+        // Formula: (x - black) * scale = x * scale + (-black * scale)
+        // This allows using FMA (MulAdd) instead of Sub + Mul
+        MathT scale_pattern[hn::MaxLanes(d)];   // 1/(white-black)
+        MathT offset_pattern[hn::MaxLanes(d)];  // -black * scale
+        MathT min_pattern[hn::MaxLanes(d)];
+        MathT max_pattern[hn::MaxLanes(d)];
+
+        for (size_t i = 0; i < lanes; ++i) {
+            int ch          = static_cast<int>(i % nchannels);
+            MathT black_val = static_cast<MathT>(black[roi.chbegin + ch]);
+            MathT white_val = static_cast<MathT>(white[roi.chbegin + ch]);
+            MathT scale     = static_cast<MathT>(1.0) / (white_val - black_val);
+            scale_pattern[i]  = scale;
+            offset_pattern[i] = -black_val * scale;  // Precompute offset for FMA
+            min_pattern[i]    = static_cast<MathT>(min[roi.chbegin + ch]);
+            max_pattern[i]    = static_cast<MathT>(max[roi.chbegin + ch]);
+        }
+        auto v_scale  = hn::Load(d, scale_pattern);
+        auto v_offset = hn::Load(d, offset_pattern);
+        auto v_min    = hn::Load(d, min_pattern);
+        auto v_max    = hn::Load(d, max_pattern);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            size_t dst_offset = (y - dst.ybegin()) * dstspec.scanline_bytes()
+                                + (roi.xbegin - dst.xbegin()) * dst_pixel_bytes
+                                + roi.chbegin * sizeof(D);
+            size_t src_offset = (y - src.ybegin()) * srcspec.scanline_bytes()
+                                + (roi.xbegin - src.xbegin()) * src_pixel_bytes
+                                + roi.chbegin * sizeof(S);
+
+            D* d_row       = reinterpret_cast<D*>(dst_base + dst_offset);
+            const S* s_row = reinterpret_cast<const S*>(src_base + src_offset);
+
+            if (contig && nchannels > 0) {
+                size_t total = static_cast<size_t>(roi.width()) * nchannels;
+                size_t x     = 0;
+                // SIMD loop - pattern wraps correctly even when lanes % nchannels != 0
+                for (; x + lanes <= total; x += lanes) {
+                    auto va = LoadPromote(d, s_row + x);
+                    // Linear stretch using FMA: x * scale + offset
+                    // where offset = -black * scale
+                    auto stretched = hn::MulAdd(va, v_scale, v_offset);
+                    // Optional remap to [min, max]: min + stretched * (max - min)
+                    auto res = do_minmax
+                                   ? hn::MulAdd(stretched, hn::Sub(v_max, v_min),
+                                                v_min)
+                                   : stretched;
+                    DemoteStore(d, d_row + x, res);
+                }
+                // Scalar tail for remaining pixels
+                for (; x < total; ++x) {
+                    int ch    = static_cast<int>(x % nchannels);
+                    float val = static_cast<float>(s_row[x]);
+                    float black_val = black[roi.chbegin + ch];
+                    float white_val = white[roi.chbegin + ch];
+                    float scale     = 1.0f / (white_val - black_val);
+                    float offset    = -black_val * scale;
+                    float result    = val * scale + offset;
+                    if (do_minmax) {
+                        float min_val = min[roi.chbegin + ch];
+                        float max_val = max[roi.chbegin + ch];
+                        result        = result * (max_val - min_val) + min_val;
+                    }
+                    d_row[x] = static_cast<D>(result);
+                }
+            } else {
+                // Non-contiguous fallback
+                for (int x = 0; x < roi.width(); ++x) {
+                    D* d_ptr = reinterpret_cast<D*>(
+                        dst_base + (y - dst.ybegin()) * dstspec.scanline_bytes()
+                        + (roi.xbegin + x - dst.xbegin()) * dst_pixel_bytes);
+                    const S* s_ptr = reinterpret_cast<const S*>(
+                        src_base + (y - src.ybegin()) * srcspec.scanline_bytes()
+                        + (roi.xbegin + x - src.xbegin()) * src_pixel_bytes);
+                    for (int c = roi.chbegin; c < roi.chend; ++c) {
+                        float val       = static_cast<float>(s_ptr[c]);
+                        float black_val = black[c];
+                        float white_val = white[c];
+                        float scale     = 1.0f / (white_val - black_val);
+                        float offset    = -black_val * scale;
+                        float result    = val * scale + offset;  // FMA
+                        if (do_minmax) {
+                            float min_val = min[c];
+                            float max_val = max[c];
+                            result        = result * (max_val - min_val) + min_val;
+                        }
+                        d_ptr[c] = static_cast<D>(result);
+                    }
+                }
+            }
+        }
+    });
+    return true;
+}
+
+
 template<class D, class S>
 static bool
 contrast_remap_(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
@@ -2414,6 +2536,14 @@ contrast_remap_(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
     bool use_sigmoid = !allspan(scontrast, 1.0f);
     bool do_minmax   = !(allspan(min, 0.0f) && allspan(max, 1.0f));
 
+    // Use Highway SIMD for simple linear stretch (no sigmoid)
+    if (OIIO::pvt::enable_hwy && !use_sigmoid && !same_black_white
+        && dst.localpixels() && src.localpixels()) {
+        return contrast_remap_hwy<D, S>(dst, src, black, white, min, max,
+                                        do_minmax, roi, nthreads);
+    }
+
+    // Scalar fallback for complex cases (sigmoid, thresholding, etc.)
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         if (same_black_white) {
             // Special case -- black & white are the same value, which is

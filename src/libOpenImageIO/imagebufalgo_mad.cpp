@@ -284,11 +284,89 @@ ImageBufAlgo::mad(Image_or_Const A, Image_or_Const B, Image_or_Const C, ROI roi,
 
 
 
+// Highway SIMD implementation for invert: 1 - x
+template<class Rtype, class Atype>
+static bool
+invert_impl_hwy(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
+{
+    using MathT = typename SimdMathType<Rtype>::type;
+
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& Rspec = R.spec();
+        const ImageSpec& Aspec = A.spec();
+        size_t r_pixel_bytes    = Rspec.pixel_bytes();
+        size_t a_pixel_bytes    = Aspec.pixel_bytes();
+        size_t r_scanline_bytes = Rspec.scanline_bytes();
+        size_t a_scanline_bytes = Aspec.scanline_bytes();
+
+        char* r_base       = (char*)R.localpixels();
+        const char* a_base = (const char*)A.localpixels();
+
+        int nchannels = roi.chend - roi.chbegin;
+        bool contig   = (nchannels * sizeof(Rtype) == r_pixel_bytes)
+                      && (nchannels * sizeof(Atype) == a_pixel_bytes);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes
+                          + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
+            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes
+                                + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
+
+            r_row += roi.chbegin * sizeof(Rtype);
+            a_row += roi.chbegin * sizeof(Atype);
+
+            if (contig) {
+                size_t n = static_cast<size_t>(roi.width()) * nchannels;
+                RunHwyUnaryCmd<Rtype, Atype>(
+                    reinterpret_cast<Rtype*>(r_row),
+                    reinterpret_cast<const Atype*>(a_row), n,
+                    [](auto d, auto va) {
+                        auto one = hn::Set(d, static_cast<MathT>(1.0));
+                        return hn::Sub(one, va);
+                    });
+            } else {
+                // Non-contiguous fallback
+                for (int x = 0; x < roi.width(); ++x) {
+                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
+                                   + x * r_pixel_bytes / sizeof(Rtype);
+                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row)
+                                         + x * a_pixel_bytes / sizeof(Atype);
+                    for (int c = 0; c < nchannels; ++c) {
+                        r_ptr[c] = static_cast<Rtype>(1.0f
+                                                      - static_cast<float>(
+                                                          a_ptr[c]));
+                    }
+                }
+            }
+        }
+    });
+    return true;
+}
+
+
+// Dispatcher for invert
+template<class Rtype, class Atype>
+static bool
+invert_impl(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
+        return invert_impl_hwy<Rtype, Atype>(R, A, roi, nthreads);
+
+    // Scalar fallback: use mad(A, -1.0, 1.0)
+    return ImageBufAlgo::mad(R, A, -1.0, 1.0, roi, nthreads);
+}
+
+
 bool
 ImageBufAlgo::invert(ImageBuf& dst, const ImageBuf& A, ROI roi, int nthreads)
 {
-    // Calculate invert as simply 1-A == A*(-1)+1
-    return mad(dst, A, -1.0, 1.0, roi, nthreads);
+    OIIO::pvt::LoggedTimer logtime("IBA::invert");
+    if (!IBAprep(roi, &dst, &A))
+        return false;
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2(ok, "invert", invert_impl, dst.spec().format,
+                                A.spec().format, dst, A, roi, nthreads);
+    return ok;
 }
 
 
