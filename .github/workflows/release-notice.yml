@@ -1,0 +1,26 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+
+name: Publish Release Notice to ASWF Slack
+
+on:
+  release:
+    types:
+      - published
+      # published should cover both 'released' and 'prereleased'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - name: Notify Slack
+      id: slack
+      with:
+        project_name: "OpenImageIO"
+        slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
+        slack_channel: "#release-announcements"
+        project_logo: "https://artwork.aswf.io/projects/openimageio/icon/color/openimageio-icon-color.png"
+      uses: jmertic/slack-release-notifier@main

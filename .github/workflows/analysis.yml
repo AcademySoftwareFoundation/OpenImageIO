@@ -1,0 +1,109 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+name: Analysis
+
+on:
+  schedule:
+    # Run nightly while we're still working our way through the warnings
+    - cron: "0 8 * * *"
+    # Run unconditionally once weekly
+    # - cron: "0 0 * * 0"
+  push:
+    # Run on pushes only to main or if the branch name contains "analysis"
+    branches:
+      - main
+      - dev-3.0
+      - '*analysis*'
+      - '*sonar*'
+    paths:
+      - '**'
+      - '!**.md'
+      - '!**.rst'
+      - '!**/ci.yml'
+      - '!**/docs.yml'
+      - '!**/scorecard.yml'
+      - '!**/wheel.yml'
+      - '!**.properties'
+      - '!docs/**'
+  # Run analysis on PRs only if the branch name indicates that the purpose of
+  # the PR is related to the Sonar analysis. We don't run on every PR because
+  # the analysis run is very expensive and just isn't usually necessary.
+  pull_request:
+    branches:
+      - '*analysis*'
+      - '*sonar*'
+  # Allow manual kicking off of the workflow from github.com
+  workflow_dispatch:
+
+permissions: read-all
+
+# Allow subsequent pushes to the same PR or REF to cancel any previous jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+
+  aswf:
+    name: "SonarCloud Analysis"
+    # Exclude runs on forks, since only the main org has the SonarCloud
+    # account credentials.
+    if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    uses: ./.github/workflows/build-steps.yml
+    # Must let the called steps workflow inherit necessary secrets
+    secrets:
+      PASSED_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PASSED_SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    with:
+      nametag: ${{ matrix.nametag || 'unnamed!' }}
+      runner: ${{ matrix.runner || 'ubuntu-latest' }}
+      container: ${{ matrix.container }}
+      cc_compiler: ${{ matrix.cc_compiler }}
+      cxx_compiler: ${{ matrix.cxx_compiler }}
+      cxx_std: ${{ matrix.cxx_std || '17' }}
+      build_type: ${{ matrix.build_type || 'Release' }}
+      depcmds: ${{ matrix.depcmds }}
+      extra_artifacts: ${{ matrix.extra_artifacts }}
+      fmt_ver: ${{ matrix.fmt_ver }}
+      opencolorio_ver: ${{ matrix.opencolorio_ver }}
+      openexr_ver: ${{ matrix.openexr_ver }}
+      pybind11_ver: ${{ matrix.pybind11_ver }}
+      python_ver: ${{ matrix.python_ver }}
+      setenvs: ${{ matrix.setenvs }}
+      simd: ${{ matrix.simd }}
+      skip_build: ${{ matrix.skip_build }}
+      skip_tests: ${{ matrix.skip_tests }}
+      abi_check: ${{ matrix.abi_check }}
+      build_docs: ${{ matrix.build_docs }}
+      generator: ${{ matrix.generator }}
+      ctest_args: ${{ matrix.ctest_args }}
+      ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
+      coverage: ${{ matrix.coverage || '0' }}
+      sonar: ${{ matrix.sonar || '0' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - desc: sonar gcc11/C++17 py311 exr3.2 ocio2.3
+            nametag: static-analysis-sonar
+            os: ubuntu-latest
+            container: aswf/ci-oiio:2024.2
+            cxx_std: 17
+            python_ver: "3.11"
+            simd: "avx2,f16c"
+            opencolorio_ver: v2.3.2
+            fmt_ver: 10.1.1
+            pybind11_ver: v2.12.0
+            coverage: 1
+            # skip_tests: 1
+            sonar: 1
+            setenvs: export SONAR_SERVER_URL="https://sonarcloud.io"
+                            BUILD_WRAPPER_OUT_DIR=/__w/OpenImageIO/OpenImageIO/bw_output
+                            OIIO_CMAKE_BUILD_WRAPPER="build-wrapper-linux-x86-64 --out-dir /__w/OpenImageIO/OpenImageIO/bw_output"
+                            OIIO_CMAKE_BUILD_TYPE=Debug
+                            CMAKE_UNITY_BUILD=OFF
+                            CODECOV=1
+                            CTEST_TEST_TIMEOUT=1200
