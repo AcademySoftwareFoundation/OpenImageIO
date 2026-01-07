@@ -5,6 +5,7 @@
 #pragma once
 
 #include <OpenImageIO/half.h>
+#include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 #include <algorithm>
 #include <cstddef>
@@ -16,6 +17,79 @@ OIIO_NAMESPACE_BEGIN
 
 // Alias for Highway's namespace for convenience
 namespace hn = hwy::HWY_NAMESPACE;
+
+// -----------------------------------------------------------------------
+// ImageBuf local pixel helpers (header-only)
+// -----------------------------------------------------------------------
+
+template<class ByteT> struct HwyLocalPixelsView {
+    ByteT* base           = nullptr;
+    size_t pixel_bytes    = 0;
+    size_t scanline_bytes = 0;
+    int xbegin            = 0;
+    int ybegin            = 0;
+    int nchannels         = 0;
+};
+
+inline HwyLocalPixelsView<std::byte>
+HwyPixels(ImageBuf& img)
+{
+    const ImageSpec& spec = img.spec();
+    return { reinterpret_cast<std::byte*>(img.localpixels()),
+             spec.pixel_bytes(),
+             spec.scanline_bytes(),
+             img.xbegin(),
+             img.ybegin(),
+             spec.nchannels };
+}
+
+inline HwyLocalPixelsView<const std::byte>
+HwyPixels(const ImageBuf& img)
+{
+    const ImageSpec& spec = img.spec();
+    return { reinterpret_cast<const std::byte*>(img.localpixels()),
+             spec.pixel_bytes(),
+             spec.scanline_bytes(),
+             img.xbegin(),
+             img.ybegin(),
+             spec.nchannels };
+}
+
+inline int
+RoiNChannels(const ROI& roi) noexcept
+{
+    return roi.chend - roi.chbegin;
+}
+
+template<class T, class ByteT>
+inline bool
+ChannelsContiguous(const HwyLocalPixelsView<ByteT>& v, int nchannels) noexcept
+{
+    return size_t(nchannels) * sizeof(T) == v.pixel_bytes;
+}
+
+template<class ByteT>
+inline ByteT*
+PixelBase(const HwyLocalPixelsView<ByteT>& v, int x, int y) noexcept
+{
+    return v.base + size_t(y - v.ybegin) * v.scanline_bytes
+           + size_t(x - v.xbegin) * v.pixel_bytes;
+}
+
+template<class T, class ByteT>
+inline std::conditional_t<std::is_const_v<ByteT>, const T*, T*>
+ChannelPtr(const HwyLocalPixelsView<ByteT>& v, int x, int y, int ch) noexcept
+{
+    using RetT = std::conditional_t<std::is_const_v<ByteT>, const T, T>;
+    return reinterpret_cast<RetT*>(PixelBase(v, x, y) + size_t(ch) * sizeof(T));
+}
+
+template<class T, class ByteT>
+inline std::conditional_t<std::is_const_v<ByteT>, const T*, T*>
+RoiRowPtr(const HwyLocalPixelsView<ByteT>& v, int y, const ROI& roi) noexcept
+{
+    return ChannelPtr<T>(v, roi.xbegin, y, roi.chbegin);
+}
 
 // -----------------------------------------------------------------------
 // Type Traits
@@ -55,7 +129,7 @@ LoadPromote(D d, const SrcT* ptr)
     } else if constexpr (std::is_same_v<SrcT, half>) {
         using T16 = hwy::float16_t;
         auto d16  = hn::Rebind<T16, D>();
-        auto v16  = hn::Load(d16, (const T16*)ptr);
+        auto v16  = hn::Load(d16, reinterpret_cast<const T16*>(ptr));
         return hn::PromoteTo(d, v16);
     } else if constexpr (std::is_same_v<SrcT, uint8_t>) {
         auto d_u8       = hn::Rebind<uint8_t, D>();
@@ -145,7 +219,7 @@ LoadPromoteN(D d, const SrcT* ptr, size_t count)
     } else if constexpr (std::is_same_v<SrcT, half>) {
         using T16 = hwy::float16_t;
         auto d16  = hn::Rebind<T16, D>();
-        auto v16  = hn::LoadN(d16, (const T16*)ptr, count);
+        auto v16  = hn::LoadN(d16, reinterpret_cast<const T16*>(ptr), count);
         return hn::PromoteTo(d, v16);
     } else if constexpr (std::is_same_v<SrcT, uint8_t>) {
         auto d_u8       = hn::Rebind<uint8_t, D>();
@@ -239,7 +313,7 @@ DemoteStore(D d, DstT* ptr, VecT v)
     } else if constexpr (std::is_same_v<DstT, half>) {
         auto d16 = hn::Rebind<hwy::float16_t, D>();
         auto v16 = hn::DemoteTo(d16, v);
-        hn::Store(v16, d16, (hwy::float16_t*)ptr);
+        hn::Store(v16, d16, reinterpret_cast<hwy::float16_t*>(ptr));
     } else if constexpr (std::is_same_v<DstT, uint8_t>) {
         VecD v_val = (VecD)v;
         // Denormalize from 0-1 range to 0-255 range
@@ -388,7 +462,7 @@ DemoteStoreN(D d, DstT* ptr, VecT v, size_t count)
     } else if constexpr (std::is_same_v<DstT, half>) {
         auto d16 = hn::Rebind<hwy::float16_t, D>();
         auto v16 = hn::DemoteTo(d16, v);
-        hn::StoreN(v16, d16, (hwy::float16_t*)ptr, count);
+        hn::StoreN(v16, d16, reinterpret_cast<hwy::float16_t*>(ptr), count);
     } else if constexpr (std::is_same_v<DstT, uint8_t>) {
         VecD v_val = (VecD)v;
         // Denormalize from 0-1 range to 0-255 range
@@ -711,7 +785,8 @@ LoadInterleaved4Promote(D d, const SrcT* ptr)
 
         // Load interleaved half data as float16_t
         hn::Vec<decltype(d16)> r16, g16, b16, a16;
-        hn::LoadInterleaved4(d16, (const T16*)ptr, r16, g16, b16, a16);
+        hn::LoadInterleaved4(d16, reinterpret_cast<const T16*>(ptr), r16, g16,
+                             b16, a16);
 
         // Promote to computation type
         Vec r_vec = hn::PromoteTo(d, r16);
@@ -775,7 +850,8 @@ StoreInterleaved4Demote(D d, DstT* ptr, VecT r, VecT g, VecT b, VecT a)
         auto a16 = hn::DemoteTo(d16, a);
 
         // Store interleaved float16_t data
-        hn::StoreInterleaved4(r16, g16, b16, a16, d16, (T16*)ptr);
+        hn::StoreInterleaved4(r16, g16, b16, a16, d16,
+                              reinterpret_cast<T16*>(ptr));
     } else {
         // Generic type demotion - use DemoteStore for each channel then interleave
         const size_t N = hn::Lanes(d);

@@ -45,71 +45,41 @@ static bool
 mad_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
              const ImageBuf& C, ROI roi, int nthreads)
 {
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    auto Bv = HwyPixels(B);
+    auto Cv = HwyPixels(C);
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        const ImageSpec& Rspec  = R.spec();
-        const ImageSpec& Aspec  = A.spec();
-        const ImageSpec& Bspec  = B.spec();
-        const ImageSpec& Cspec  = C.spec();
-        size_t r_pixel_bytes    = Rspec.pixel_bytes();
-        size_t a_pixel_bytes    = Aspec.pixel_bytes();
-        size_t b_pixel_bytes    = Bspec.pixel_bytes();
-        size_t c_pixel_bytes    = Cspec.pixel_bytes();
-        size_t r_scanline_bytes = Rspec.scanline_bytes();
-        size_t a_scanline_bytes = Aspec.scanline_bytes();
-        size_t b_scanline_bytes = Bspec.scanline_bytes();
-        size_t c_scanline_bytes = Cspec.scanline_bytes();
-
-        char* r_base       = (char*)R.localpixels();
-        const char* a_base = (const char*)A.localpixels();
-        const char* b_base = (const char*)B.localpixels();
-        const char* c_base = (const char*)C.localpixels();
-
-        int nchannels = roi.chend - roi.chbegin;
-        bool contig   = (nchannels * sizeof(Rtype) == r_pixel_bytes)
-                      && (nchannels * sizeof(ABCtype) == a_pixel_bytes)
-                      && (nchannels * sizeof(ABCtype) == b_pixel_bytes)
-                      && (nchannels * sizeof(ABCtype) == c_pixel_bytes);
+        const int nchannels = RoiNChannels(roi);
+        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
+                            && ChannelsContiguous<ABCtype>(Av, nchannels)
+                            && ChannelsContiguous<ABCtype>(Bv, nchannels)
+                            && ChannelsContiguous<ABCtype>(Cv, nchannels);
 
         for (int y = roi.ybegin; y < roi.yend; ++y) {
-            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes
-                          + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
-            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes
-                                + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
-            const char* b_row = b_base + (y - B.ybegin()) * b_scanline_bytes
-                                + (roi.xbegin - B.xbegin()) * b_pixel_bytes;
-            const char* c_row = c_base + (y - C.ybegin()) * c_scanline_bytes
-                                + (roi.xbegin - C.xbegin()) * c_pixel_bytes;
-
-            r_row += roi.chbegin * sizeof(Rtype);
-            a_row += roi.chbegin * sizeof(ABCtype);
-            b_row += roi.chbegin * sizeof(ABCtype);
-            c_row += roi.chbegin * sizeof(ABCtype);
+            Rtype* r_row         = RoiRowPtr<Rtype>(Rv, y, roi);
+            const ABCtype* a_row = RoiRowPtr<ABCtype>(Av, y, roi);
+            const ABCtype* b_row = RoiRowPtr<ABCtype>(Bv, y, roi);
+            const ABCtype* c_row = RoiRowPtr<ABCtype>(Cv, y, roi);
 
             if (contig) {
-                size_t n = static_cast<size_t>(roi.width()) * nchannels;
+                size_t n = static_cast<size_t>(roi.width())
+                           * static_cast<size_t>(nchannels);
                 // Use Highway SIMD for a*b+c (fused multiply-add)
-                RunHwyTernaryCmd<Rtype, ABCtype>(
-                    reinterpret_cast<Rtype*>(r_row),
-                    reinterpret_cast<const ABCtype*>(a_row),
-                    reinterpret_cast<const ABCtype*>(b_row),
-                    reinterpret_cast<const ABCtype*>(c_row), n,
-                    [](auto d, auto a, auto b, auto c) {
-                        // a*b+c: use MulAdd if available, otherwise Mul+Add
-                        return hn::MulAdd(a, b, c);
-                    });
+                RunHwyTernaryCmd<Rtype, ABCtype>(r_row, a_row, b_row, c_row, n,
+                                                 [](auto d, auto a, auto b,
+                                                    auto c) {
+                                                     return hn::MulAdd(a, b, c);
+                                                 });
             } else {
-                for (int x = 0; x < roi.width(); ++x) {
-                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
-                                   + x * r_pixel_bytes / sizeof(Rtype);
-                    const ABCtype* a_ptr
-                        = reinterpret_cast<const ABCtype*>(a_row)
-                          + x * a_pixel_bytes / sizeof(ABCtype);
-                    const ABCtype* b_ptr
-                        = reinterpret_cast<const ABCtype*>(b_row)
-                          + x * b_pixel_bytes / sizeof(ABCtype);
-                    const ABCtype* c_ptr
-                        = reinterpret_cast<const ABCtype*>(c_row)
-                          + x * c_pixel_bytes / sizeof(ABCtype);
+                for (int x = roi.xbegin; x < roi.xend; ++x) {
+                    Rtype* r_ptr = ChannelPtr<Rtype>(Rv, x, y, roi.chbegin);
+                    const ABCtype* a_ptr = ChannelPtr<ABCtype>(Av, x, y,
+                                                               roi.chbegin);
+                    const ABCtype* b_ptr = ChannelPtr<ABCtype>(Bv, x, y,
+                                                               roi.chbegin);
+                    const ABCtype* c_ptr = ChannelPtr<ABCtype>(Cv, x, y,
+                                                               roi.chbegin);
                     for (int ch = 0; ch < nchannels; ++ch) {
                         r_ptr[ch] = static_cast<Rtype>(
                             static_cast<float>(a_ptr[ch])
@@ -291,46 +261,31 @@ invert_impl_hwy(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
 {
     using MathT = typename SimdMathType<Rtype>::type;
 
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        const ImageSpec& Rspec  = R.spec();
-        const ImageSpec& Aspec  = A.spec();
-        size_t r_pixel_bytes    = Rspec.pixel_bytes();
-        size_t a_pixel_bytes    = Aspec.pixel_bytes();
-        size_t r_scanline_bytes = Rspec.scanline_bytes();
-        size_t a_scanline_bytes = Aspec.scanline_bytes();
-
-        char* r_base       = (char*)R.localpixels();
-        const char* a_base = (const char*)A.localpixels();
-
-        int nchannels = roi.chend - roi.chbegin;
-        bool contig   = (nchannels * sizeof(Rtype) == r_pixel_bytes)
-                      && (nchannels * sizeof(Atype) == a_pixel_bytes);
+        const int nchannels = RoiNChannels(roi);
+        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
+                            && ChannelsContiguous<Atype>(Av, nchannels);
 
         for (int y = roi.ybegin; y < roi.yend; ++y) {
-            char* r_row = r_base + (y - R.ybegin()) * r_scanline_bytes
-                          + (roi.xbegin - R.xbegin()) * r_pixel_bytes;
-            const char* a_row = a_base + (y - A.ybegin()) * a_scanline_bytes
-                                + (roi.xbegin - A.xbegin()) * a_pixel_bytes;
-
-            r_row += roi.chbegin * sizeof(Rtype);
-            a_row += roi.chbegin * sizeof(Atype);
+            Rtype* r_row       = RoiRowPtr<Rtype>(Rv, y, roi);
+            const Atype* a_row = RoiRowPtr<Atype>(Av, y, roi);
 
             if (contig) {
-                size_t n = static_cast<size_t>(roi.width()) * nchannels;
+                size_t n = static_cast<size_t>(roi.width())
+                           * static_cast<size_t>(nchannels);
                 RunHwyUnaryCmd<Rtype, Atype>(
-                    reinterpret_cast<Rtype*>(r_row),
-                    reinterpret_cast<const Atype*>(a_row), n,
-                    [](auto d, auto va) {
+                    r_row, a_row, n, [](auto d, auto va) {
                         auto one = hn::Set(d, static_cast<MathT>(1.0));
                         return hn::Sub(one, va);
                     });
             } else {
                 // Non-contiguous fallback
-                for (int x = 0; x < roi.width(); ++x) {
-                    Rtype* r_ptr = reinterpret_cast<Rtype*>(r_row)
-                                   + x * r_pixel_bytes / sizeof(Rtype);
-                    const Atype* a_ptr = reinterpret_cast<const Atype*>(a_row)
-                                         + x * a_pixel_bytes / sizeof(Atype);
+                for (int x = roi.xbegin; x < roi.xend; ++x) {
+                    Rtype* r_ptr = ChannelPtr<Rtype>(Rv, x, y, roi.chbegin);
+                    const Atype* a_ptr = ChannelPtr<Atype>(Av, x, y,
+                                                           roi.chbegin);
                     for (int c = 0; c < nchannels; ++c) {
                         r_ptr[c] = static_cast<Rtype>(
                             1.0f - static_cast<float>(a_ptr[c]));

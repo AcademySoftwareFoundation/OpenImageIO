@@ -1066,6 +1066,26 @@ main(int argc, char* argv[])
         ImageBufAlgo::resample(R, A);
         save_image(R, "result_resample25", cfg.name);
     }
+
+    // Resample 16.66%
+    printf("\n[ Resample 16.66%% ]\n");
+    for (const auto& cfg : configs) {
+        ImageBuf A = create_checkerboard_image(width, height, 3, cfg.format);
+        ImageSpec newspec = A.spec();
+        newspec.width     = width / 6;
+        newspec.height    = height / 6;
+        ImageBuf R(newspec);
+        ImageBufAlgo::zero(R);
+
+        print_result(cfg.name,
+                     bench_resample(A, width / 6, height / 6, resample_iters));
+
+        // Save final result
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::resample(R, A);
+        save_image(R, "result_resample25", cfg.name);
+    }
+
     print_header();
 
     printf("\nBenchmark complete!\n");
