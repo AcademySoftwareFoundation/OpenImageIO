@@ -165,6 +165,8 @@ target_link_libraries (OpenImageIO
             $<TARGET_NAME_IF_EXISTS:Freetype::Freetype>
             ${BZIP2_LIBRARIES}
             ZLIB::ZLIB
+            hwy::hwy
+            hwy::hwy_contrib
             ${CMAKE_DL_LIBS}
         )
 

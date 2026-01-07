@@ -12,6 +12,7 @@
 
 #include <OpenImageIO/half.h>
 
+#include "imagebufalgo_hwy_pvt.h"
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/imagebuf.h>
@@ -86,8 +87,8 @@ ImageBufAlgo::scale(const ImageBuf& A, const ImageBuf& B, KWArgs options,
 
 template<class Rtype, class Atype, class Btype>
 static bool
-mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-         int nthreads)
+mul_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -104,7 +105,8 @@ mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 
 template<class Rtype, class Atype>
 static bool
-mul_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+mul_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::ConstIterator<Atype> a(A, roi);
@@ -116,6 +118,100 @@ mul_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 }
 
 
+
+template<class Rtype, class Atype, class Btype>
+static bool
+mul_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+             int nthreads)
+{
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    auto Bv = HwyPixels(B);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const int nchannels = RoiNChannels(roi);
+        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
+                            && ChannelsContiguous<Atype>(Av, nchannels)
+                            && ChannelsContiguous<Btype>(Bv, nchannels);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            Rtype* r_row       = RoiRowPtr<Rtype>(Rv, y, roi);
+            const Atype* a_row = RoiRowPtr<Atype>(Av, y, roi);
+            const Btype* b_row = RoiRowPtr<Btype>(Bv, y, roi);
+
+            if (contig) {
+                size_t n = static_cast<size_t>(roi.width())
+                           * static_cast<size_t>(nchannels);
+                RunHwyCmd<Rtype, Atype, Btype>(r_row, a_row, b_row, n,
+                                               [](auto d, auto a, auto b) {
+                                                   return hn::Mul(a, b);
+                                               });
+            } else {
+                for (int x = roi.xbegin; x < roi.xend; ++x) {
+                    Rtype* r_ptr = ChannelPtr<Rtype>(Rv, x, y, roi.chbegin);
+                    const Atype* a_ptr = ChannelPtr<Atype>(Av, x, y,
+                                                           roi.chbegin);
+                    const Btype* b_ptr = ChannelPtr<Btype>(Bv, x, y,
+                                                           roi.chbegin);
+                    for (int c = 0; c < nchannels; ++c) {
+                        r_ptr[c] = static_cast<Rtype>(
+                            static_cast<float>(a_ptr[c])
+                            * static_cast<float>(b_ptr[c]));
+                    }
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype>
+static bool
+mul_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+             int nthreads)
+{
+    using SimdType
+        = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            std::byte* r_row       = PixelBase(Rv, roi.xbegin, y);
+            const std::byte* a_row = PixelBase(Av, roi.xbegin, y);
+            for (int x = roi.xbegin; x < roi.xend; ++x) {
+                const size_t xoff = static_cast<size_t>(x - roi.xbegin);
+                Rtype* r_ptr      = reinterpret_cast<Rtype*>(
+                    r_row + xoff * Rv.pixel_bytes);
+                const Atype* a_ptr = reinterpret_cast<const Atype*>(
+                    a_row + xoff * Av.pixel_bytes);
+
+                for (int c = roi.chbegin; c < roi.chend; ++c) {
+                    r_ptr[c] = (Rtype)((SimdType)a_ptr[c] * (SimdType)b[c]);
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype, class Btype>
+static bool
+mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+         int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels())
+        return mul_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    return mul_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+}
+
+template<class Rtype, class Atype>
+static bool
+mul_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
+        return mul_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
+    return mul_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
+}
 
 static bool
 mul_impl_deep(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
@@ -198,8 +294,8 @@ ImageBufAlgo::mul(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 
 template<class Rtype, class Atype, class Btype>
 static bool
-div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-         int nthreads)
+div_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -212,6 +308,69 @@ div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
             }
     });
     return true;
+}
+
+
+
+template<class Rtype, class Atype, class Btype>
+static bool
+div_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+             int nthreads)
+{
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    auto Bv = HwyPixels(B);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const int nchannels = RoiNChannels(roi);
+        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
+                            && ChannelsContiguous<Atype>(Av, nchannels)
+                            && ChannelsContiguous<Btype>(Bv, nchannels);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            Rtype* r_row       = RoiRowPtr<Rtype>(Rv, y, roi);
+            const Atype* a_row = RoiRowPtr<Atype>(Av, y, roi);
+            const Btype* b_row = RoiRowPtr<Btype>(Bv, y, roi);
+
+            if (contig) {
+                size_t n = static_cast<size_t>(roi.width())
+                           * static_cast<size_t>(nchannels);
+                RunHwyCmd<Rtype, Atype, Btype>(
+                    r_row, a_row, b_row, n, [](auto d, auto a, auto b) {
+                        // Check for zero division: if b == 0, return 0
+                        auto zero = hn::Zero(d);
+                        auto mask = hn::Eq(b, zero);
+                        return hn::IfThenElse(mask, zero, hn::Div(a, b));
+                    });
+            } else {
+                for (int x = roi.xbegin; x < roi.xend; ++x) {
+                    Rtype* r_ptr = ChannelPtr<Rtype>(Rv, x, y, roi.chbegin);
+                    const Atype* a_ptr = ChannelPtr<Atype>(Av, x, y,
+                                                           roi.chbegin);
+                    const Btype* b_ptr = ChannelPtr<Btype>(Bv, x, y,
+                                                           roi.chbegin);
+                    for (int c = 0; c < nchannels; ++c) {
+                        float v  = static_cast<float>(b_ptr[c]);
+                        r_ptr[c] = (v == 0.0f)
+                                       ? static_cast<Rtype>(0.0f)
+                                       : static_cast<Rtype>(
+                                             static_cast<float>(a_ptr[c]) / v);
+                    }
+                }
+            }
+        }
+    });
+    return true;
+}
+
+template<class Rtype, class Atype, class Btype>
+static bool
+div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+         int nthreads)
+{
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels())
+        return div_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    return div_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
 }
 
 
