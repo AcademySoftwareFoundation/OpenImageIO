@@ -225,6 +225,9 @@ if (USE_QT AND OPENGL_FOUND)
 endif ()
 
 
+# Google Highway for SIMD (optional optimization)
+checked_find_package (hwy ENABLE ${OIIO_USE_HWY})
+
 # Tessil/robin-map
 checked_find_package (Robinmap REQUIRED
                       VERSION_MIN 1.2.0
