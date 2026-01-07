@@ -6,12 +6,19 @@
 #include <iostream>
 #include <limits>
 
+#if defined(_WIN32)
+#    include <malloc.h>  // for alloca
+#endif
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 
+#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#    include "imagebufalgo_hwy_pvt.h"
+#endif
 #include "imageio_pvt.h"
 
 
@@ -21,65 +28,90 @@ OIIO_NAMESPACE_3_1_BEGIN
 
 template<class Rtype, class ABCtype>
 static bool
-mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
-         ROI roi, int nthreads)
+mad_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+                const ImageBuf& C, ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        if ((std::is_same<Rtype, float>::value
-             || std::is_same<Rtype, half>::value)
-            && (std::is_same<ABCtype, float>::value
-                || std::is_same<ABCtype, half>::value)
-            // && R.localpixels() // has to be, because it's writable
-            && A.localpixels() && B.localpixels()
-            && C.localpixels()
-            // && R.contains_roi(roi)  // has to be, because IBAPrep
-            && A.contains_roi(roi) && B.contains_roi(roi) && C.contains_roi(roi)
-            && roi.chbegin == 0 && roi.chend == R.nchannels()
-            && roi.chend == A.nchannels() && roi.chend == B.nchannels()
-            && roi.chend == C.nchannels()) {
-            // Special case when all inputs are either float or half, with in-
-            // memory contiguous data and we're operating on the full channel
-            // range: skip iterators: For these circumstances, we can operate on
-            // the raw memory very efficiently. Otherwise, we will need the
-            // magic of the the Iterators (and pay the price).
-            int nxvalues = roi.width() * R.nchannels();
-            for (int z = roi.zbegin; z < roi.zend; ++z)
-                for (int y = roi.ybegin; y < roi.yend; ++y) {
-                    Rtype* rraw = (Rtype*)R.pixeladdr(roi.xbegin, y, z);
-                    const ABCtype* araw
-                        = (const ABCtype*)A.pixeladdr(roi.xbegin, y, z);
-                    const ABCtype* braw
-                        = (const ABCtype*)B.pixeladdr(roi.xbegin, y, z);
-                    const ABCtype* craw
-                        = (const ABCtype*)C.pixeladdr(roi.xbegin, y, z);
-                    OIIO_DASSERT(araw && braw && craw);
-                    // The straightforward loop auto-vectorizes very well,
-                    // there's no benefit to using explicit SIMD here.
-                    for (int x = 0; x < nxvalues; ++x)
-                        rraw[x] = araw[x] * braw[x] + craw[x];
-                    // But if you did want to explicitly vectorize, this is
-                    // how it would look:
-                    // int simdend = nxvalues & (~3); // how many float4's?
-                    // for (int x = 0; x < simdend; x += 4) {
-                    //     simd::float4 a_simd(araw+x), b_simd(braw+x), c_simd(craw+x);
-                    //     simd::float4 r_simd = a_simd * b_simd + c_simd;
-                    //     r_simd.store (rraw+x);
-                    // }
-                    // for (int x = simdend; x < nxvalues; ++x)
-                    //     rraw[x] = araw[x] * braw[x] + craw[x];
+        ImageBuf::Iterator<Rtype> r(R, roi);
+        ImageBuf::ConstIterator<ABCtype> a(A, roi);
+        ImageBuf::ConstIterator<ABCtype> b(B, roi);
+        ImageBuf::ConstIterator<ABCtype> c(C, roi);
+        for (; !r.done(); ++r, ++a, ++b, ++c) {
+            for (int ch = roi.chbegin; ch < roi.chend; ++ch)
+                r[ch] = a[ch] * b[ch] + c[ch];
+        }
+    });
+    return true;
+}
+
+
+
+#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+template<class Rtype, class ABCtype>
+static bool
+mad_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+             const ImageBuf& C, ROI roi, int nthreads)
+{
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    auto Bv = HwyPixels(B);
+    auto Cv = HwyPixels(C);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const int nchannels = RoiNChannels(roi);
+        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
+                            && ChannelsContiguous<ABCtype>(Av, nchannels)
+                            && ChannelsContiguous<ABCtype>(Bv, nchannels)
+                            && ChannelsContiguous<ABCtype>(Cv, nchannels);
+
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            Rtype* r_row         = RoiRowPtr<Rtype>(Rv, y, roi);
+            const ABCtype* a_row = RoiRowPtr<ABCtype>(Av, y, roi);
+            const ABCtype* b_row = RoiRowPtr<ABCtype>(Bv, y, roi);
+            const ABCtype* c_row = RoiRowPtr<ABCtype>(Cv, y, roi);
+
+            if (contig) {
+                size_t n = static_cast<size_t>(roi.width())
+                           * static_cast<size_t>(nchannels);
+                // Use Highway SIMD for a*b+c (fused multiply-add)
+                RunHwyTernaryCmd<Rtype, ABCtype>(r_row, a_row, b_row, c_row, n,
+                                                 [](auto d, auto a, auto b,
+                                                    auto c) {
+                                                     return hn::MulAdd(a, b, c);
+                                                 });
+            } else {
+                for (int x = roi.xbegin; x < roi.xend; ++x) {
+                    Rtype* r_ptr = ChannelPtr<Rtype>(Rv, x, y, roi.chbegin);
+                    const ABCtype* a_ptr = ChannelPtr<ABCtype>(Av, x, y,
+                                                               roi.chbegin);
+                    const ABCtype* b_ptr = ChannelPtr<ABCtype>(Bv, x, y,
+                                                               roi.chbegin);
+                    const ABCtype* c_ptr = ChannelPtr<ABCtype>(Cv, x, y,
+                                                               roi.chbegin);
+                    for (int ch = 0; ch < nchannels; ++ch) {
+                        r_ptr[ch] = static_cast<Rtype>(
+                            static_cast<float>(a_ptr[ch])
+                                * static_cast<float>(b_ptr[ch])
+                            + static_cast<float>(c_ptr[ch]));
+                    }
                 }
-        } else {
-            ImageBuf::Iterator<Rtype> r(R, roi);
-            ImageBuf::ConstIterator<ABCtype> a(A, roi);
-            ImageBuf::ConstIterator<ABCtype> b(B, roi);
-            ImageBuf::ConstIterator<ABCtype> c(C, roi);
-            for (; !r.done(); ++r, ++a, ++b, ++c) {
-                for (int ch = roi.chbegin; ch < roi.chend; ++ch)
-                    r[ch] = a[ch] * b[ch] + c[ch];
             }
         }
     });
     return true;
+}
+#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+
+template<class Rtype, class ABCtype>
+static bool
+mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
+         ROI roi, int nthreads)
+{
+#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels() && C.localpixels())
+        return mad_impl_hwy<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
+#endif
+    return mad_impl_scalar<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
 }
 
 

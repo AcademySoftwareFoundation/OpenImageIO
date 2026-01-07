@@ -397,16 +397,36 @@ inside the source code.
     line, but not the full human-readable command line. (This was added in
     OpenImageIO 2.5.11.)
 
+.. cpp:var:: OPENIMAGEIO_ENABLE_HWY
+
+    Controls whether to use Google Highway SIMD library optimizations for
+    ImageBufAlgo operations. If set to "1" (the default), Highway SIMD
+    optimizations will be enabled for supported operations, providing
+    significant performance improvements (typically 3-12x faster) on integer
+    image types. If set to "0", these optimizations will be disabled and fall
+    back to scalar implementations.
+
+    This can also be controlled at runtime via::
+
+        OIIO::attribute("enable_hwy", 1);  // enable (default)
+        OIIO::attribute("enable_hwy", 0);  // disable
+
+    Note: Highway SIMD optimizations are particularly beneficial for integer
+    image formats (uint8, uint16, int8, int16, uint32, int32, etc.) and provide
+    additional speedup for scale-invariant operations (add, sub, min, max,
+    absdiff) that can operate directly on integer data without float conversion.
+    (This was added in OpenImageIO 3.1.)
+
 .. cpp:var:: OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH
 
-    Windows only. Mimics the DLL-loading behavior of Python 3.7 and earlier. 
-    If set to "1", all directories under ``PATH`` will be added to the DLL load 
+    Windows only. Mimics the DLL-loading behavior of Python 3.7 and earlier.
+    If set to "1", all directories under ``PATH`` will be added to the DLL load
     path before attempting to import the OpenImageIO module. (This was added in
     OpenImageIO 3.0.3.0)
 
-    Note: This "opt-in-style" behavior replaces and inverts the "opt-out-style" 
-    Windows DLL-loading behavior governed by the now-defunct `OIIO_LOAD_DLLS_FROM_PATH` 
-    environment variable (added in OpenImageIO 2.4.0/2.3.18). 
+    Note: This "opt-in-style" behavior replaces and inverts the "opt-out-style"
+    Windows DLL-loading behavior governed by the now-defunct `OIIO_LOAD_DLLS_FROM_PATH`
+    environment variable (added in OpenImageIO 2.4.0/2.3.18).
 
-    In other words, to reproduce the default Python-module-loading behavior of 
+    In other words, to reproduce the default Python-module-loading behavior of
     earlier versions of OIIO, set ``OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1``.

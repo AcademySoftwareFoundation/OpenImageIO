@@ -39,6 +39,7 @@
 #endif
 
 #ifdef _MSC_VER
+#    include <malloc.h>  // for alloca
 #    include <intrin.h>
 #endif
 
@@ -305,8 +306,15 @@
 /// enough to cause trouble). Consider using the OIIO_ALLOCATE_STACK_OR_HEAP
 /// idiom rather than a direct OIIO_ALLOCA if you aren't sure the item will
 /// be small.
-#if defined(__GNUC__)
+#if defined(__has_include)
+#    if __has_include(<alloca.h>)
+#        include <alloca.h>  // for alloca (when available)
+#    endif
+#endif
+#if defined(__GNUC__) || defined(__clang__)
 #    define OIIO_ALLOCA(type, size) (assert(size < (1<<20)), (size) != 0 ? ((type*)__builtin_alloca((size) * sizeof(type))) : nullptr)
+#elif defined(_MSC_VER)
+#    define OIIO_ALLOCA(type, size) (assert(size < (1<<20)), (size) != 0 ? ((type*)_alloca((size) * sizeof(type))) : nullptr)
 #else
 #    define OIIO_ALLOCA(type, size) (assert(size < (1<<20)), (size) != 0 ? ((type*)alloca((size) * sizeof(type))) : nullptr)
 #endif
