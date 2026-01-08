@@ -485,30 +485,34 @@ endif ()
 #      recommended default for optimized, shipping code.
 #  2 : enable features that trade off performance for security, recommended
 #      for debugging or deploying in security-sensitive environments.
-#  3 : enable features that have a significant performance impact, only
-#      recommended for debugging.
+#  3 : enable features that have a significant performance impact, to maximize
+#      finding bugs without regard to performance. Only recommended for
+#      debugging.
 #
 # Some documentation:
 # https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
 # https://www.gnu.org/software/libc/manual/html_node/Source-Fortification.html
 # https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_macros.html
 # https://libcxx.llvm.org/Hardening.html
-#
+# https://www.productive-cpp.com/hardening-cpp-programs-stack-protector/
+# https://medium.com/@simontoth/daily-bit-e-of-c-hardened-mode-of-standard-library-implementations-18be2422c372
+# https://cheatsheetseries.owasp.org/cheatsheets/C-Based_Toolchain_Hardening_Cheat_Sheet.html
+
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set (${PROJ_NAME}_HARDENING_DEFAULT 3)
+    set (${PROJ_NAME}_HARDENING_DEFAULT 2)
 else ()
     set (${PROJ_NAME}_HARDENING_DEFAULT 1)
 endif ()
 set_cache (${PROJ_NAME}_HARDENING ${${PROJ_NAME}_HARDENING_DEFAULT}
            "Turn on security hardening features 0, 1, 2, 3")
 # Implementation:
-if (HARDENING GREATER_EQUAL 1)
+add_compile_definitions (${PROJ_NAME}_HARDENING_DEFAULT=${${PROJ_NAME}_HARDENING})
+if (${PROJ_NAME}_HARDENING GREATER_EQUAL 1)
+    # Enable PIE and pie to build as position-independent executables and
+    # libraries, needed for address space randomization used by some kernels.
+    set (CMAKE_POSITION_INDEPENDENT_CODE ON)
     # Features that should not detectably affect performance
     if (COMPILER_IS_GCC_OR_ANY_CLANG)
-        # Enable PIE and pie to build as position-independent executables,
-        # needed for address space randomiztion used by some kernels.
-        add_compile_options (-fPIE -pie)
-        add_link_options (-fPIE -pie)
         # Protect against stack overwrites. Is allegedly not a performance
         # tradeoff.
         add_compile_options (-fstack-protector-strong)
@@ -516,21 +520,47 @@ if (HARDENING GREATER_EQUAL 1)
     endif ()
     # Defining _FORTIFY_SOURCE provides buffer overflow checks in modern gcc &
     # clang with some compiler-assisted deduction of buffer lengths) for the
-    # many C functions such as memcpy, strcpy, sprintf, etc. See:
-    add_compile_definitions (_FORTIFY_SOURCE=${${PROJ_NAME}_HARDENING})
+    # many C functions such as memcpy, strcpy, sprintf, etc. But it requires
+    # optimization, so we don't do it for debug builds, nor if the toolchain
+    # already defines it a particular way.
+    if ((CMAKE_COMPILER_IS_CLANG OR (GCC_VERSION VERSION_GREATER_EQUAL 14))
+         AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+        # check_cxx_source_compiles("
+        #         #ifndef _FORTIFY_SOURCE
+        #         #error Fortification not declared
+        #         #endif
+        #     }" HAS_FORTIFY_SOURCE)
+        # if (NOT HAS_FORTIFY_SOURCE)
+            add_compile_definitions (_FORTIFY_SOURCE=${${PROJ_NAME}_HARDENING})
+        # endif ()
+    endif ()
+endif ()
+if (${PROJ_NAME}_HARDENING EQUAL 1)
     # Setting _LIBCPP_HARDENING_MODE enables various hardening features in
     # clang/llvm's libc++ 18.0 and later.
-    add_compiler_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
-endif ()
-if (HARDENING GREATER_EQUAL 2)
+    if (OIIO_CLANG_VERSION VERSION_GREATER_EQUAL 18.0 OR OIIO_APPLE_CLANG_VESION VERSION_GREATER_EQUAL 18.0)
+        add_compile_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
+    endif ()
+elseif (${PROJ_NAME}_HARDENING EQUAL 2)
     # Features that might impact performance measurably
-    add_compile_definitions (_GLIBCXX_ASSERTIONS)
-    add_compiler_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE)
-endif ()
-if (HARDENING GREATER_EQUAL 3)
+    if (GCC_VERSION VERSION_GREATER_EQUAL 14)
+        # I've had trouble turning this on in older gcc
+        add_compile_definitions (_GLIBCXX_ASSERTIONS)
+    endif ()
+    if (OIIO_CLANG_VERSION VERSION_GREATER_EQUAL 18.0 OR OIIO_APPLE_CLANG_VESION VERSION_GREATER_EQUAL 18.0)
+        add_compile_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE)
+    endif ()
+elseif (${PROJ_NAME}_HARDENING EQUAL 3)
     # Debugging features that might impact performance significantly
-    add_compile_definitions (_GLIBCXX_DEBUG)
-    add_compiler_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG)
+    if (GCC_VERSION VERSION_GREATER_EQUAL 14)
+        # I've had trouble turning this on in older gcc
+        add_compile_definitions (_GLIBCXX_ASSERTIONS)
+        # N.B. _GLIBCXX_DEBUG changes ABI, so don't do this:
+        #   add_compile_definitions (_GLIBCXX_DEBUG)
+    endif ()
+    if (OIIO_CLANG_VERSION VERSION_GREATER_EQUAL 18.0 OR OIIO_APPLE_CLANG_VESION VERSION_GREATER_EQUAL 18.0)
+        add_compile_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG)
+    endif ()
 endif ()
 
 
