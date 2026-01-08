@@ -641,6 +641,41 @@ test_zover()
 
 
 
+// Test ImageBuf::resample
+void
+test_resample()
+{
+    std::cout << "test resample\n";
+
+    // Timing
+    Benchmarker bench;
+    bench.units(Benchmarker::Unit::ms);
+
+    ImageSpec spec_hd_rgba_f(1920, 1080, 4, TypeFloat);
+    ImageSpec spec_hd_rgba_u8(1920, 1080, 4, TypeUInt8);
+    ImageBuf buf_hd_rgba_f(spec_hd_rgba_f);
+    ImageBuf buf_hd_rgba_u8(spec_hd_rgba_u8);
+    float red_rgba[] = { 1.0, 0.0, 0.0, 1.0 };
+    ImageBufAlgo::fill(buf_hd_rgba_f, red_rgba);
+    ImageBufAlgo::fill(buf_hd_rgba_u8, red_rgba);
+    ImageBuf smallf(ImageSpec(1024, 512, 4, TypeFloat));
+    ImageBuf smallu8(ImageSpec(1024, 512, 4, TypeUInt8));
+    bench("  IBA::resample HD->1024x512 rgba f->f    interp   ",
+          [&]() { ImageBufAlgo::resample(smallf, buf_hd_rgba_f, true); });
+    bench("  IBA::resample HD->1024x512 rgba f->u8   interp   ",
+          [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_f, true); });
+    bench("  IBA::resample HD->1024x512 rgba u8->u8  interp   ",
+          [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_u8, true); });
+    bench("  IBA::resample HD->1024x512 rgba f->f   no interp ",
+          [&]() { ImageBufAlgo::resample(smallf, buf_hd_rgba_f, false); });
+    bench("  IBA::resample HD->1024x512 rgba f->u8  no interp ",
+          [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_f, false); });
+    bench("  IBA::resample HD->1024x512 rgba u8->u8 no interp ",
+          [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_u8, false); });
+}
+
+
+
 // Tests ImageBufAlgo::compare
 void
 test_compare()
@@ -1581,6 +1616,7 @@ main(int argc, char** argv)
     test_over(TypeFloat);
     test_over(TypeHalf);
     test_zover();
+    test_resample();
     test_compare();
     test_isConstantColor();
     test_isConstantChannel();
