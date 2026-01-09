@@ -200,11 +200,9 @@ checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera
 set (NUKE_VERSION "7.0" CACHE STRING "Nuke version to target")
 checked_find_package (Nuke NO_RECORD_NOTFOUND)
 
-if (FFmpeg_FOUND OR FREETYPE_FOUND)
+if ((FFmpeg_FOUND OR FREETYPE_FOUND OR TARGET Freetype::Freetype)
+    AND NOT TARGET BZip2::BZip2)
     checked_find_package (BZip2)   # Used by ffmpeg and freetype
-    if (NOT BZIP2_FOUND)
-        set (BZIP2_LIBRARIES "")  # TODO: why does it break without this?
-    endif ()
 endif()
 
 
