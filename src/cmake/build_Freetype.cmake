@@ -6,10 +6,10 @@
 # Freetype by hand!
 ######################################################################
 
-set_cache (Freetype_BUILD_VERSION 2.13.2 "Freetype version for local builds")
+set_cache (Freetype_BUILD_VERSION 2.14.1 "Freetype version for local builds")
 set (Freetype_GIT_REPOSITORY "https://github.com/freetype/freetype")
-set (Freetype_GIT_TAG "VER-2-13-2")
-set_cache (Freetype_BUILD_SHARED_LIBS  OFF
+set (Freetype_GIT_TAG "VER-2-14-1")
+set_cache (Freetype_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local Freetype build, if necessary, build shared libraries" ADVANCED)
 # We would prefer to build a static Freetype, but haven't figured out how to make
 # it all work with the static dependencies, it just makes things complicated

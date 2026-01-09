@@ -11,7 +11,7 @@ set -ex
 
 # Repo and branch/tag/commit of Freetype to download if we don't have it yet
 FREETYPE_REPO=${FREETYPE_REPO:=https://github.com/freetype/freetype.git}
-FREETYPE_VERSION=${FREETYPE_VERSION:=VER-2-13-3}
+FREETYPE_VERSION=${FREETYPE_VERSION:=VER-2-14-1}
 
 # Where to put Freetype repo source (default to the ext area)
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
