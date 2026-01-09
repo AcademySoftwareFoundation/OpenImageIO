@@ -16,6 +16,7 @@ on:
       - '!**/scorecard.yml'
       - '!**/wheel.yml'
       - '!**.properties'
+      - '!pyproject.toml'
       - '!docs/**'
   pull_request:
     paths:
