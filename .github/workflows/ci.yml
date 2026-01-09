@@ -435,7 +435,7 @@ jobs:
                             PTEX_VERSION=v2.5.0
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
@@ -520,7 +520,7 @@ jobs:
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
           - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.4 ocio2.4
             nametag: linux-arm-latest-releases-clang
@@ -542,7 +542,7 @@ jobs:
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
 
           - desc: oldest gcc9/C++17 py3.9 exr3.1 ocio2.3
