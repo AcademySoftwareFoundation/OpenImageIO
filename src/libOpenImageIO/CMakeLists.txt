@@ -163,7 +163,7 @@ target_link_libraries (OpenImageIO
             $<TARGET_NAME_IF_EXISTS:pugixml::pugixml>
             $<TARGET_NAME_IF_EXISTS:TBB::tbb>
             $<TARGET_NAME_IF_EXISTS:Freetype::Freetype>
-            ${BZIP2_LIBRARIES}
+            $<TARGET_NAME_IF_EXISTS:BZip2::BZip2>
             ZLIB::ZLIB
             ${CMAKE_DL_LIBS}
         )
