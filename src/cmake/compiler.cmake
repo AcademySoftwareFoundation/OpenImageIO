@@ -521,18 +521,10 @@ if (${PROJ_NAME}_HARDENING GREATER_EQUAL 1)
     # Defining _FORTIFY_SOURCE provides buffer overflow checks in modern gcc &
     # clang with some compiler-assisted deduction of buffer lengths) for the
     # many C functions such as memcpy, strcpy, sprintf, etc. But it requires
-    # optimization, so we don't do it for debug builds, nor if the toolchain
-    # already defines it a particular way.
+    # optimization, so we don't do it for debug builds.
     if ((CMAKE_COMPILER_IS_CLANG OR (GCC_VERSION VERSION_GREATER_EQUAL 14))
          AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-        # check_cxx_source_compiles("
-        #         #ifndef _FORTIFY_SOURCE
-        #         #error Fortification not declared
-        #         #endif
-        #     }" HAS_FORTIFY_SOURCE)
-        # if (NOT HAS_FORTIFY_SOURCE)
-            add_compile_definitions (_FORTIFY_SOURCE=${${PROJ_NAME}_HARDENING})
-        # endif ()
+        add_compile_definitions (_FORTIFY_SOURCE=${${PROJ_NAME}_HARDENING})
     endif ()
 endif ()
 if (${PROJ_NAME}_HARDENING EQUAL 1)
