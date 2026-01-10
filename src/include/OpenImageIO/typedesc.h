@@ -409,7 +409,7 @@ template<> struct BaseTypeFromC<uint64_t> { static constexpr TypeDesc::BASETYPE 
 template<> struct BaseTypeFromC<const uint64_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::UINT64; };
 template<> struct BaseTypeFromC<int64_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT64; };
 template<> struct BaseTypeFromC<const int64_t> { static constexpr TypeDesc::BASETYPE value = TypeDesc::INT64; };
-#if defined(__GNUC__) && (ULONG_MAX == 0xffffffffffffffff) && !(defined(__APPLE__) && defined(__MACH__)) || defined(__NetBSD__)
+#if defined(__GNUC__) && (ULONG_MAX == 0xffffffffffffffff) && !(defined(__APPLE__) && defined(__MACH__)) && !defined(__OpenBSD__) || defined(__NetBSD__)
 // Some platforms consider int64_t and long long to be different types, even
 // though they are actually the same size.
 static_assert(!std::is_same_v<unsigned long long, uint64_t>);
