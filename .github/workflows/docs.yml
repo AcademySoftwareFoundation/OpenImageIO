@@ -20,6 +20,7 @@ on:
       - '**/run.py'
       - 'src/build-scripts/**'
       - './*.md'
+      - 'pyproject.toml'
   pull_request:
     paths-ignore:
       - '**/ci.yml'
@@ -33,6 +34,7 @@ on:
       - '**/run.py'
       - 'src/build-scripts/**'
       - './*.md'
+      - 'pyproject.toml'
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"

@@ -16,6 +16,7 @@ on:
       - '!**/scorecard.yml'
       - '!**/wheel.yml'
       - '!**.properties'
+      - '!pyproject.toml'
       - '!docs/**'
   pull_request:
     paths:
@@ -466,7 +467,7 @@ jobs:
                             PTEX_VERSION=v2.5.0
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
@@ -549,7 +550,7 @@ jobs:
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
           - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.4 ocio2.4
             nametag: linux-arm-latest-releases-clang
@@ -570,7 +571,7 @@ jobs:
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
 
 
@@ -626,7 +627,7 @@ jobs:
             python_ver: "3.13"
             simd: sse4.2,avx2
             ctest_test_timeout: 1200
-            setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
+            setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0 INSTALL_QT=0
             benchmark: 1
           - desc: MacOS-14-ARM aclang15/C++20/py3.13
             runner: macos-14
@@ -683,7 +684,7 @@ jobs:
       # built. But we would like to add more dependencies and reduce this list
       # of exceptions in the future.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;openjph;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
+      optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;openjph;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
     strategy:
       fail-fast: false
       matrix:
