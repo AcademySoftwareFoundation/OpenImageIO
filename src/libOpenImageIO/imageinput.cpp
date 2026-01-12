@@ -211,6 +211,40 @@ ImageInput::spec_dimensions(int subimage, int miplevel)
 
 
 
+// Utility: Make sure the provided data span is the right size for the
+// image described by spec and datatype. If they don't match, issue an
+// error and return false.
+static bool
+check_span_size(ImageInput* in, string_view caller, const ImageSpec& spec,
+                TypeDesc datatype, imagesize_t npixels, int chbegin, int chend,
+                const image_span<std::byte>& data)
+{
+    // One of two things must be correct: Either format is Unknown and the
+    // total byte size needs to match the "native" size, or the format is
+    // concrete and the number of value must match (it's ok if the size
+    // doesn't match, since a data type conversion will occur).
+    if (datatype.is_unknown()) {  // Unknown assumes native chan types
+        size_t sz = npixels * spec.pixel_bytes(chbegin, chend, true);
+        if (sz != data.size_bytes()) {
+            in->errorfmt(
+                "{}: image_span size is incorrect ({} bytes vs {} needed)",
+                caller, data.size_bytes(), sz);
+            return false;
+        }
+    } else {  // single concrete type
+        size_t nvals = npixels * size_t(chend - chbegin);
+        if (nvals != data.nvalues()) {
+            in->errorfmt(
+                "{}: image_span size is incorrect ({} values vs {} needed)",
+                caller, data.nvalues(), nvals);
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
 bool
 ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
                           stride_t xstride)
@@ -300,16 +334,10 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                  chend);
         return false;
     }
-    size_t isize = (format == TypeUnknown
-                        ? spec.pixel_bytes(chbegin, chend, true /*native*/)
-                        : format.size() * (chend - chbegin))
-                   * size_t(spec.width);
-    if (isize != data.size_bytes()) {
-        errorfmt(
-            "read_scanlines: Buffer size is incorrect ({} bytes vs {} needed)",
-            isize, data.size_bytes());
+    if (!check_span_size(this, "read_scanlines", m_spec, format,
+                         m_spec.width * size_t(yend - ybegin), chbegin, chend,
+                         data))
         return false;
-    }
 
     // Default implementation (for now): call the old pointer+stride
     return read_scanlines(subimage, miplevel, ybegin, yend, 0, chbegin, chend,
@@ -656,16 +684,11 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
         errorfmt("read_tiles: invalid channel range [{},{})", chbegin, chend);
         return false;
     }
-    size_t isize = (format == TypeUnknown
-                        ? spec.pixel_bytes(chbegin, chend, true /*native*/)
-                        : format.size() * (chend - chbegin))
-                   * size_t(xend - xbegin) * size_t(yend - ybegin)
-                   * size_t(zend - zbegin);
-    if (isize != data.size_bytes()) {
-        errorfmt("read_tiles: Buffer size is incorrect ({} bytes vs {} needed)",
-                 isize, data.size_bytes());
+    if (!check_span_size(this, "read_tiles", m_spec, format,
+                         size_t(xend - xbegin) * size_t(yend - ybegin)
+                             * size_t(zend - zbegin),
+                         chbegin, chend, data))
         return false;
-    }
 
     // Default implementation (for now): call the old pointer+stride
     return read_tiles(subimage, miplevel, ybegin, yend, xbegin, xend, zbegin,
@@ -1164,24 +1187,6 @@ bool
 ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
                        TypeDesc format, const image_span<std::byte>& data)
 {
-#if 0
-    ImageSpec spec = spec_dimensions(subimage, miplevel);
-    if (chend < 0 || chend > spec.nchannels)
-        chend = spec.nchannels;
-    size_t isize = (format == TypeUnknown
-                        ? spec.pixel_bytes(chbegin, chend, true /*native*/)
-                        : format.size() * (chend - chbegin))
-                   * spec.image_pixels();
-    if (isize != data.size_bytes()) {
-        errorfmt("read_image: Buffer size is incorrect ({} bytes vs {} needed)",
-                 sz, data.size_bytes());
-        return false;
-    }
-
-    // Default implementation (for now): call the old pointer+stride
-    return read_image(subimage, miplevel, chbegin, chend, format, data.data(),
-                      data.xstride(), data.ystride(), data.zstride());
-#else
     OIIO::pvt::LoggedTimer logtime("II::read_image");
     ImageSpec spec;
     int rps = 0;
@@ -1210,16 +1215,9 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         errorfmt("read_image: invalid channel range [{},{})", chbegin, chend);
         return false;
     }
-    int nchans         = chend - chbegin;
-    bool native        = (format == TypeUnknown);
-    size_t pixel_bytes = native ? spec.pixel_bytes(chbegin, chend, native)
-                                : (format.size() * nchans);
-    size_t isize       = pixel_bytes * spec.image_pixels();
-    if (isize != data.size_bytes()) {
-        errorfmt("read_image: Buffer size is incorrect ({} bytes vs {} needed)",
-                 isize, data.size_bytes());
+    if (!check_span_size(this, "read_image", m_spec, format,
+                         spec.image_pixels(), chbegin, chend, data))
         return false;
-    }
 
     bool ok = true;
     if (spec.tile_width) {  // Tiled image -- rely on read_tiles
@@ -1259,7 +1257,6 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         }
     }
     return ok;
-#endif
 }
 
 
