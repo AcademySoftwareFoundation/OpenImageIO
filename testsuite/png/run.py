@@ -50,7 +50,7 @@ command += info_command ("g22_rec709_display.png", safematch=True)
 command += info_command ("g22_rec709_scene.png", safematch=True)
 
 # Teset preference for scene referred color space
-command += info_command ("--oiioattrib color:prefer_image_state scene test16.png", safematch=True)
-command += info_command ("--oiioattrib color:prefer_image_state display test16.png", safematch=True)
+command += info_command ("--iconfig oiio:ImageStateDefault scene test16.png", safematch=True)
+command += info_command ("--iconfig oiio:ImageStateDefault display test16.png", safematch=True)
 
 outputs = [ "test16.png", "out.txt" ]

@@ -415,14 +415,14 @@ public:
     string_view get_color_interop_id(string_view colorspace) const;
 
     /// Find color interop ID corresponding to the CICP code.
-    /// If prefer_image_state is set to "scene", prefer returning a scene
+    /// If image_state_default is set to "scene", prefer returning a scene
     /// referred interop ID over a display referred interop ID if both exist.
     /// Returns empty string if not found.
     ///
     /// @version 3.1
     string_view
     get_color_interop_id(const int cicp[4],
-                         string_view prefer_image_state = "display") const;
+                         string_view image_state_default = "display") const;
 
     /// Return a filename or other identifier for the config we're using.
     std::string configname() const;

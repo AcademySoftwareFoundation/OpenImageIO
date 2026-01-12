@@ -65,10 +65,11 @@ public:
     }
 
 private:
-    std::string m_filename;          ///< Stash the filename
-    GifFileType* m_gif_file;         ///< GIFLIB handle
-    int m_transparent_color;         ///< Transparent color index
-    int m_subimage;                  ///< Current subimage index
+    std::string m_filename;             ///< Stash the filename
+    std::string m_image_state_default;  ///< Default image state for color space
+    GifFileType* m_gif_file;            ///< GIFLIB handle
+    int m_transparent_color;            ///< Transparent color index
+    int m_subimage;                     ///< Current subimage index
     int m_disposal_method;           ///< Disposal method of current subimage.
                                      ///  Indicates what to do with canvas
                                      ///  before drawing the _next_ subimage.
@@ -173,6 +174,8 @@ bool
 GIFInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
     // Check 'config' for any special requests
     ioproxy_retrieve_from_config(config);
     ioseek(0);
@@ -261,7 +264,7 @@ GIFInput::read_subimage_metadata(ImageSpec& newspec)
     newspec.nchannels = 4;
     newspec.default_channel_names();
     newspec.alpha_channel = 4;
-    pvt::set_colorspace_srgb(newspec);
+    pvt::set_colorspace_srgb(newspec, m_image_state_default);
 
     m_previous_disposal_method = m_disposal_method;
     m_disposal_method          = DISPOSAL_UNSPECIFIED;

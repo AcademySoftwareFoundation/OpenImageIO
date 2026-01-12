@@ -12,6 +12,8 @@
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/imageio.h>
 
+#include "imageio_pvt.h"
+
 #include "rla_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -42,12 +44,13 @@ public:
                               void* data) override;
 
 private:
-    std::string m_filename;            ///< Stash the filename
-    RLAHeader m_rla;                   ///< Wavefront RLA header
-    std::vector<unsigned char> m_buf;  ///< Buffer the image pixels
-    int m_subimage;                    ///< Current subimage index
-    std::vector<uint32_t> m_sot;       ///< Scanline offsets table
-    int m_stride;                      ///< Number of bytes a contig pixel takes
+    std::string m_filename;             ///< Stash the filename
+    std::string m_image_state_default;  ///< Default image state for color space
+    RLAHeader m_rla;                    ///< Wavefront RLA header
+    std::vector<unsigned char> m_buf;   ///< Buffer the image pixels
+    int m_subimage;                     ///< Current subimage index
+    std::vector<uint32_t> m_sot;        ///< Scanline offsets table
+    int m_stride;  ///< Number of bytes a contig pixel takes
 
     /// Reset everything to initial state
     ///
@@ -149,6 +152,8 @@ bool
 RLAInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
     // Check 'config' for any special requests
     ioproxy_retrieve_from_config(config);
     return open(name, newspec);
@@ -402,7 +407,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
         // decisions based on known gamma values. For example, you want
         // 2.2, not 2.19998.
         gamma = roundf(100.0 * gamma) / 100.0f;
-        set_colorspace_rec709_gamma(m_spec, gamma);
+        pvt::set_colorspace_rec709_gamma(m_spec, gamma, m_image_state_default);
     }
 
     float aspect = Strutil::stof(m_rla.AspectRatio);

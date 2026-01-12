@@ -186,10 +186,11 @@ private:
     bool m_convert_alpha;            ///< Do we need to associate alpha?
     bool m_separate;                 ///< Separate planarconfig?
     bool m_testopenconfig;           ///< Debug aid to test open-with-config
-    bool m_use_rgba_interface;       ///< Sometimes we punt
-    bool m_is_byte_swapped;          ///< Is the file opposite our endian?
-    int m_rowsperstrip;              ///< For scanline imgs, rows per strip
-    unsigned short m_planarconfig;   ///< Planar config of the file
+    std::string m_image_state_default;  ///< Default image state for color space
+    bool m_use_rgba_interface;          ///< Sometimes we punt
+    bool m_is_byte_swapped;             ///< Is the file opposite our endian?
+    int m_rowsperstrip;                 ///< For scanline imgs, rows per strip
+    unsigned short m_planarconfig;      ///< Planar config of the file
     unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
     unsigned short m_photometric;    ///< Of the *file*, not the client's view
     unsigned short m_compression;    ///< TIFF compression tag
@@ -773,6 +774,8 @@ TIFFInput::open(const std::string& name, ImageSpec& newspec,
     // OIIO components.
     if (config.get_int_attribute("oiio:DebugOpenConfig!", 0))
         m_testopenconfig = true;
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
     return open(name, newspec);
 }
 
@@ -1317,7 +1320,8 @@ TIFFInput::readspec(bool read_meta)
                 // NOTE: We do not erase other attributes as we want to
                 // preserve TIFF attributes.
                 const bool erase_other_attributes = false;
-                pvt::set_colorspace_srgb(m_spec, erase_other_attributes);
+                pvt::set_colorspace_srgb(m_spec, m_image_state_default,
+                                         erase_other_attributes);
             }
         }
         // TIFFReadEXIFDirectory seems to do something to the internal state

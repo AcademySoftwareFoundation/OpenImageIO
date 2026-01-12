@@ -61,6 +61,7 @@ private:
     dpx::Reader m_dpx;
     std::vector<unsigned char> m_userBuf;
     bool m_rawcolor;
+    std::string m_image_state_default;
     std::vector<unsigned char> m_decodebuf;  // temporary decode buffer
 
     /// Reset everything to initial state
@@ -171,6 +172,8 @@ DPXInput::open(const std::string& name, ImageSpec& newspec,
                  || config.get_int_attribute("dpx:RawData")  // deprecated
                  || config.get_int_attribute("oiio:RawColor");
     ioproxy_retrieve_from_config(config);
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
     return open(name, newspec);
 }
 
@@ -316,10 +319,14 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     switch (m_dpx.header.Transfer(subimage)) {
     case dpx::kLinear: m_spec.set_colorspace("lin_rec709_scene"); break;
     case dpx::kLogarithmic: m_spec.set_colorspace("KodakLog"); break;
-    case dpx::kITUR709: pvt::set_colorspace_srgb(m_spec); break;
+    case dpx::kITUR709:
+        pvt::set_colorspace_srgb(m_spec, m_image_state_default);
+        break;
     case dpx::kUserDefined:
         if (!std::isnan(m_dpx.header.Gamma()) && m_dpx.header.Gamma() != 0) {
-            set_colorspace_rec709_gamma(m_spec, float(m_dpx.header.Gamma()));
+            pvt::set_colorspace_rec709_gamma(m_spec,
+                                             float(m_dpx.header.Gamma()),
+                                             m_image_state_default);
             break;
         }
         // intentional fall-through

@@ -68,6 +68,7 @@ private:
     bool m_keep_unassociated_alpha = false;
     bool m_do_associate            = false;
     bool m_reorient                = true;
+    std::string m_image_state_default;
     std::unique_ptr<heif::Context> m_ctx;
     heif_item_id m_primary_id;             // id of primary image
     std::vector<heif_item_id> m_item_ids;  // ids of all other images
@@ -149,7 +150,9 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
 
     m_keep_unassociated_alpha
         = (config.get_int_attribute("oiio:UnassociatedAlpha") != 0);
-    m_reorient = config.get_int_attribute("oiio:reorient", 1);
+    m_reorient            = config.get_int_attribute("oiio:reorient", 1);
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
 
     try {
         m_ctx->read_from_file(name);
@@ -275,7 +278,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     if (m_bitdepth > 8) {
         m_spec.attribute("oiio:BitsPerSample", m_bitdepth);
     }
-    pvt::set_colorspace_srgb(m_spec);
+    pvt::set_colorspace_srgb(m_spec, m_image_state_default);
 
 #if LIBHEIF_HAVE_VERSION(1, 9, 0)
     // Read CICP. Have to use the C API to get it from the image handle,
@@ -301,7 +304,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
                                       int(nclx->transfer_characteristics),
                                       int(nclx->matrix_coefficients),
                                       int(nclx->full_range_flag ? 1 : 0) };
-                pvt::set_colorspace_cicp(m_spec, cicp);
+                pvt::set_colorspace_cicp(m_spec, cicp, m_image_state_default);
             }
             heif_nclx_color_profile_free(nclx);
         }

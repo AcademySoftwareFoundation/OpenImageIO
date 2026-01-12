@@ -130,10 +130,32 @@ check_texture_metadata_sanity(ImageSpec& spec);
 /// Set oiio:ColorSpace to the default sRGB colorspace, which may be display
 /// or scene referred depending on configuration.
 ///
+/// If image_state_default is "scene" or "display", a colorspace with that
+/// image state will be preferred over otherwise equivalent color spaces.
+///
 /// If erase_other_attributes is true, other potentially conflicting attributes
 /// are erased.
 OIIO_API void
-set_colorspace_srgb(ImageSpec& spec, bool erase_other_attributes = true);
+set_colorspace_srgb(ImageSpec& spec,
+                    string_view image_state_default = "display",
+                    bool erase_other_attributes     = true);
+
+/// Set oiio:ColorSpace in the spec's metadata based on the gamma value.
+///
+/// If image_state_default is "scene" or "display" a colrospace with that
+/// image state will be prefered over otherwise equivalent color spaces.
+OIIO_API void
+set_colorspace_rec709_gamma(ImageSpec& spec, float gamma,
+                            string_view image_state_default = "display");
+
+// Set CICP attribute in the spec's metadata, and set oiio:ColorSpace
+// along with it if there is a corresponding known colorspace.
+//
+/// If image_state_default is "scene" or "display" a colrospace with that
+/// image state will be prefered over otherwise equivalent color spaces.
+OIIO_API void
+set_colorspace_cicp(ImageSpec& spec, const int cicp[4],
+                    string_view image_state_default = "display");
 
 /// Returns true if for the purpose of interop, the spec's metadata
 /// specifies a color space that should be encoded as sRGB.
@@ -153,11 +175,6 @@ get_colorspace_rec709_gamma(const ImageSpec& spec);
 // Returns an empty vector if not found.
 OIIO_API std::vector<uint8_t>
 get_colorspace_icc_profile(const ImageSpec& spec, bool from_colorspace = true);
-
-// Set CICP attribute in the spec's metadata, and set oiio:ColorSpace
-// along with it if there is a corresponding known colorspace.
-OIIO_API void
-set_colorspace_cicp(ImageSpec& spec, const int cicp[4]);
 
 // Returns CICP from the spec's metadata, either from a CICP attribute
 // or from the colorspace if from_colorspace is true.

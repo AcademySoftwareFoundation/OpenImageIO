@@ -183,7 +183,7 @@ decode_png_text_exif(string_view raw, ImageSpec& spec)
 inline bool
 read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
           int& interlace_type, Imath::Color3f& bg, ImageSpec& spec,
-          bool keep_unassociated_alpha)
+          bool keep_unassociated_alpha, string_view image_state_default)
 {
     // Must call this setjmp in every function that does PNG reads
     if (setjmp(png_jmpbuf(sp))) {  // NOLINT(cert-err52-cpp)
@@ -225,7 +225,8 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     double gamma = 0.0;
     if (png_get_sRGB(sp, ip, &srgb_intent)) {
         const bool erase_other_attributes = false;
-        pvt::set_colorspace_srgb(spec, erase_other_attributes);
+        pvt::set_colorspace_srgb(spec, image_state_default,
+                                 erase_other_attributes);
     } else if (png_get_gAMA(sp, ip, &gamma) && gamma > 0.0) {
         // Round gamma to the nearest hundredth to prevent stupid
         // precision choices and make it easier for apps to make
@@ -233,11 +234,12 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         // 2.2, not 2.19998.
         float g = float(1.0 / gamma);
         g       = roundf(100.0f * g) / 100.0f;
-        set_colorspace_rec709_gamma(spec, g);
+        pvt::set_colorspace_rec709_gamma(spec, g, image_state_default);
     } else {
         // If there's no info at all, assume sRGB.
         const bool erase_other_attributes = false;
-        pvt::set_colorspace_srgb(spec, erase_other_attributes);
+        pvt::set_colorspace_srgb(spec, image_state_default,
+                                 erase_other_attributes);
     }
 
     if (png_get_valid(sp, ip, PNG_INFO_iCCP)) {
@@ -333,7 +335,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         png_byte pri = 0, trc = 0, mtx = 0, vfr = 0;
         if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
             const int cicp[4] = { pri, trc, mtx, vfr };
-            pvt::set_colorspace_cicp(spec, cicp);
+            pvt::set_colorspace_cicp(spec, cicp, image_state_default);
         }
     }
 #endif

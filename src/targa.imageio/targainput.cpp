@@ -51,16 +51,17 @@ public:
     bool get_thumbnail(ImageBuf& thumb, int subimage) override;
 
 private:
-    std::string m_filename;            // Stash the filename
-    tga_header m_tga;                  // Targa header
-    tga_footer m_foot;                 // Targa 2.0 footer
-    tga_alpha_type m_alpha_type;       // Alpha type
-    int64_t m_ofs_thumb       = 0;     // Offset of thumbnail info
-    int64_t m_ofs_palette     = 0;     // Offset of palette
-    int64_t m_ofs_colcorr_tbl = 0;     // Offset to colour correction table
-    bool m_keep_unassociated_alpha;    // Do not convert unassociated alpha
-    short m_tga_version = 1;           // TGA version (1 or 2)
-    std::unique_ptr<uint8_t[]> m_buf;  // Buffer the image pixels
+    std::string m_filename;             // Stash the filename
+    tga_header m_tga;                   // Targa header
+    tga_footer m_foot;                  // Targa 2.0 footer
+    tga_alpha_type m_alpha_type;        // Alpha type
+    int64_t m_ofs_thumb       = 0;      // Offset of thumbnail info
+    int64_t m_ofs_palette     = 0;      // Offset of palette
+    int64_t m_ofs_colcorr_tbl = 0;      // Offset to colour correction table
+    bool m_keep_unassociated_alpha;     // Do not convert unassociated alpha
+    std::string m_image_state_default;  // Default image state for color space
+    short m_tga_version = 1;            // TGA version (1 or 2)
+    std::unique_ptr<uint8_t[]> m_buf;   // Buffer the image pixels
 
     // Is this a palette image, i.e. it has a color map?
     bool is_palette() const { return m_tga.cmap_type != 0; }
@@ -312,6 +313,8 @@ TGAInput::open(const std::string& name, ImageSpec& newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
     ioproxy_retrieve_from_config(config);
     return open(name, newspec);
 }
@@ -440,7 +443,8 @@ TGAInput::read_tga2_header()
             // decisions based on known gamma values. For example, you want
             // 2.2, not 2.19998.
             gamma = roundf(100.0 * gamma) / 100.0f;
-            set_colorspace_rec709_gamma(m_spec, gamma);
+            pvt::set_colorspace_rec709_gamma(m_spec, gamma,
+                                             m_image_state_default);
         }
 
         // offset to colour correction table
@@ -524,7 +528,7 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
         // the thumbnail is in the same format as the main image but
         // uncompressed.
         ImageSpec thumbspec(res[0], res[1], m_spec.nchannels, TypeUInt8);
-        pvt::set_colorspace_srgb(thumbspec);
+        pvt::set_colorspace_srgb(thumbspec, m_image_state_default);
         thumb.reset(thumbspec);
         int bytespp    = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
         int palbytespp = (m_tga.cmap_size == 15) ? 2 : (m_tga.cmap_size / 8);

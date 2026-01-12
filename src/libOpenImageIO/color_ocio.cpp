@@ -55,8 +55,6 @@ static int disable_builtin_configs = Strutil::stoi(
     Sysutil::getenv("OIIO_DISABLE_BUILTIN_OCIO_CONFIGS"));
 static OCIO::ConstConfigRcPtr ocio_current_config;
 
-static const ustring scene_us("scene");
-
 
 const ColorConfig&
 ColorConfig::default_colorconfig()
@@ -2198,13 +2196,13 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
 
 string_view
 ColorConfig::get_color_interop_id(const int cicp[4],
-                                  const string_view prefer_image_state) const
+                                  string_view image_state_default) const
 {
     string_view other_interop_id = "";
     for (const ColorInteropID& interop : color_interop_ids) {
         if (interop.has_cicp && interop.cicp[0] == cicp[0]
             && interop.cicp[1] == cicp[1]) {
-            if (!Strutil::ends_with(interop.interop_id, prefer_image_state)) {
+            if (!Strutil::ends_with(interop.interop_id, image_state_default)) {
                 if (other_interop_id.empty()) {
                     other_interop_id = interop.interop_id;
                 }
@@ -2841,6 +2839,20 @@ ImageBufAlgo::colorconvert(span<float> color, const ColorProcessor* processor,
 void
 ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
 {
+    OIIO::set_colorspace(spec, colorspace);
+}
+
+
+void
+ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
+{
+    OIIO::pvt::set_colorspace_rec709_gamma(spec, gamma, string_view());
+}
+
+
+void
+set_colorspace(ImageSpec& spec, string_view colorspace)
+{
     // If we're not changing color space, don't mess with anything
     string_view oldspace = spec.get_string_attribute("oiio:ColorSpace");
     if (oldspace.size() && colorspace.size() && oldspace == colorspace)
@@ -2864,45 +2876,6 @@ ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
     spec.erase_attribute("oiio:Gamma");
 }
 
-
-
-void
-ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
-{
-    gamma = std::round(gamma * 100.0f) / 100.0f;
-    if (fabsf(gamma - 1.0f) <= 0.01f) {
-        set_colorspace(spec, "lin_rec709_scene");
-    } else if (fabsf(gamma - 1.8f) <= 0.01f) {
-        set_colorspace(spec, "g18_rec709_scene");
-        spec.attribute("oiio:Gamma", 1.8f);
-    } else if (fabsf(gamma - 2.2f) <= 0.01f) {
-        set_colorspace(spec,
-                       (OIIO::get_string_attribute("color:prefer_image_state")
-                        == scene_us)
-                           ? "g22_rec709_scene"
-                           : "g22_rec709_display");
-        spec.attribute("oiio:Gamma", 2.2f);
-    } else if (fabsf(gamma - 2.4f) <= 0.01f) {
-        set_colorspace(spec,
-                       (OIIO::get_string_attribute("color:prefer_image_state")
-                        == scene_us)
-                           ? "ocio:g24_rec709_scene"
-                           : "g24_rec709_display");
-        spec.attribute("oiio:Gamma", 2.4f);
-    } else {
-        set_colorspace(spec, Strutil::fmt::format("g{}_rec709_display",
-                                                  std::lround(gamma * 10.0f)));
-        spec.attribute("oiio:Gamma", gamma);
-    }
-}
-
-
-void
-set_colorspace(ImageSpec& spec, string_view colorspace)
-{
-    ColorConfig::default_colorconfig().set_colorspace(spec, colorspace);
-}
-
 void
 set_colorspace_rec709_gamma(ImageSpec& spec, float gamma)
 {
@@ -2914,35 +2887,45 @@ OIIO_NAMESPACE_3_1_END
 OIIO_NAMESPACE_BEGIN
 
 void
-pvt::set_colorspace_srgb(ImageSpec& spec, bool erase_other_attributes)
+pvt::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma,
+                                 string_view image_state_default)
 {
-    string_view srgb_colorspace
-        = (OIIO::get_string_attribute("color:prefer_image_state")
-           == OIIO::v3_1::scene_us)
-              ? "srgb_rec709_scene"
-              : "srgb_rec709_display";
+    gamma = std::round(gamma * 100.0f) / 100.0f;
+    if (fabsf(gamma - 1.0f) <= 0.01f) {
+        set_colorspace(spec, "lin_rec709_scene");
+    } else if (fabsf(gamma - 1.8f) <= 0.01f) {
+        set_colorspace(spec, "g18_rec709_scene");
+        spec.attribute("oiio:Gamma", 1.8f);
+    } else if (fabsf(gamma - 2.2f) <= 0.01f) {
+        set_colorspace(spec, (image_state_default == "scene")
+                                 ? "g22_rec709_scene"
+                                 : "g22_rec709_display");
+        spec.attribute("oiio:Gamma", 2.2f);
+    } else if (fabsf(gamma - 2.4f) <= 0.01f) {
+        set_colorspace(spec, (image_state_default == "scene")
+                                 ? "ocio:g24_rec709_scene"
+                                 : "g24_rec709_display");
+        spec.attribute("oiio:Gamma", 2.4f);
+    } else {
+        set_colorspace(spec, Strutil::fmt::format("g{}_rec709_display",
+                                                  std::lround(gamma * 10.0f)));
+        spec.attribute("oiio:Gamma", gamma);
+    }
+}
+
+
+void
+pvt::set_colorspace_srgb(ImageSpec& spec, string_view image_state_default,
+                         bool erase_other_attributes)
+{
+    string_view srgb_colorspace = (image_state_default == "scene")
+                                      ? "srgb_rec709_scene"
+                                      : "srgb_rec709_display";
     if (erase_other_attributes) {
         spec.set_colorspace(srgb_colorspace);
     } else {
         spec.attribute("oiio:ColorSpace", srgb_colorspace);
     }
-}
-
-bool
-pvt::is_colorspace_srgb(const ImageSpec& spec, bool default_to_srgb)
-{
-    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
-    if (default_to_srgb && colorspace.empty()) {
-        return true;
-    }
-
-    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-    string_view interop_id = colorconfig.get_color_interop_id(colorspace);
-
-    // See the interop table above for why g22_rec709_display is treated as sRGB
-    return (interop_id == "srgb_rec709_scene"
-            || interop_id == "srgb_rec709_display"
-            || interop_id == "g22_rec709_display");
 }
 
 float
@@ -2978,6 +2961,23 @@ pvt::get_colorspace_rec709_gamma(const ImageSpec& spec)
     return spec.get_float_attribute("oiio:Gamma", 0.0f);
 }
 
+bool
+pvt::is_colorspace_srgb(const ImageSpec& spec, bool default_to_srgb)
+{
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
+    if (default_to_srgb && colorspace.empty()) {
+        return true;
+    }
+
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view interop_id = colorconfig.get_color_interop_id(colorspace);
+
+    // See the interop table above for why g22_rec709_display is treated as sRGB
+    return (interop_id == "srgb_rec709_scene"
+            || interop_id == "srgb_rec709_display"
+            || interop_id == "g22_rec709_display");
+}
+
 std::vector<uint8_t>
 pvt::get_colorspace_icc_profile(const ImageSpec& spec, bool /*from_colorspace*/)
 {
@@ -2991,12 +2991,13 @@ pvt::get_colorspace_icc_profile(const ImageSpec& spec, bool /*from_colorspace*/)
 }
 
 void
-pvt::set_colorspace_cicp(ImageSpec& spec, const int cicp[4])
+pvt::set_colorspace_cicp(ImageSpec& spec, const int cicp[4],
+                         string_view image_state_default)
 {
     spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
     const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-    string_view interop_id = colorconfig.get_color_interop_id(
-        cicp, OIIO::get_string_attribute("color:prefer_image_state"));
+    string_view interop_id
+        = colorconfig.get_color_interop_id(cicp, image_state_default);
     if (!interop_id.empty())
         spec.attribute("oiio:ColorSpace", interop_id);
 }

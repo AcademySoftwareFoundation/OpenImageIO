@@ -10,6 +10,8 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 
+#include "imageio_pvt.h"
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -52,9 +54,10 @@ public:
     bool seek_subimage(int subimage, int miplevel) override;
 
 private:
-    std::string m_filename;  // File name
-    int m_subimage;          // What subimage are we looking at?
-    int m_next_scanline;     // Next scanline to read
+    std::string m_filename;             // File name
+    std::string m_image_state_default;  // Default image state for color space
+    int m_subimage;                     // What subimage are we looking at?
+    int m_next_scanline;                // Next scanline to read
     std::vector<int64_t> m_scanline_offsets;  // Cached scanline offsets
 
     void init()
@@ -222,6 +225,8 @@ HdrInput::open(const std::string& name, ImageSpec& newspec,
 {
     // Check 'config' for any special requests
     ioproxy_retrieve_from_config(config);
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
     return open(name, newspec);
 }
 
@@ -310,7 +315,7 @@ HdrInput::RGBE_ReadHeader()
             // 2.2, not 2.19998.
             float g = float(1.0 / tempf);
             g       = roundf(100.0 * g) / 100.0f;
-            set_colorspace_rec709_gamma(m_spec, g);
+            pvt::set_colorspace_rec709_gamma(m_spec, g, m_image_state_default);
         } else if (Strutil::parse_values(line,
                                          "EXPOSURE=", span<float>(tempf))) {
             m_spec.attribute("hdr:exposure", tempf);

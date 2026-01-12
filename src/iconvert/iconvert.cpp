@@ -226,7 +226,7 @@ adjust_spec(ImageInput* in, ImageOutput* out, const ImageSpec& inspec,
     if (gammaval != 1.0f)
         outspec.attribute("oiio:Gamma", gammaval);
     if (sRGB) {
-        pvt::set_colorspace_srgb(outspec);
+        pvt::set_colorspace_srgb(outspec, string_view());
         if (!strcmp(in->format_name(), "jpeg")
             || outspec.find_attribute("Exif:ColorSpace"))
             outspec.attribute("Exif:ColorSpace", 1);

@@ -157,8 +157,10 @@ bool
 JpgInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
-    auto p = config.find_attribute("_jpeg:raw", TypeInt);
-    m_raw  = p && *(int*)p->data();
+    auto p                = config.find_attribute("_jpeg:raw", TypeInt);
+    m_raw                 = p && *(int*)p->data();
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
     ioproxy_retrieve_from_config(config);
     m_config.reset(new ImageSpec(config));  // save config spec
     return open(name, newspec);
@@ -260,7 +262,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         return false;
 
     // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
-    pvt::set_colorspace_srgb(m_spec);
+    pvt::set_colorspace_srgb(m_spec, m_image_state_default);
 
     if (m_cinfo.jpeg_color_space == JCS_CMYK)
         m_spec.attribute("jpeg:ColorSpace", "CMYK");

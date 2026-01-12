@@ -3853,7 +3853,7 @@ OIIO_API std::string geterror(bool clear = true);
 ///    For more information, please see OpenImageIO's documentation on the
 ///    built-in PNG format support.
 ///
-/// - `string color:prefer_image_state` ("display")
+/// - `string color:image_state_default` ("display")
 ///
 ///    When the color space of an image file is ambiguous and can be
 ///    interpreted as either a display referred or scene referred, by default

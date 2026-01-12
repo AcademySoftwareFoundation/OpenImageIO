@@ -645,7 +645,9 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         return false;
     }
     if (cs.empty()) {
-        pvt::set_colorspace_srgb(m_spec);
+        string_view image_state_default = m_config.get_string_attribute(
+            "oiio:ImageStateDefault");
+        pvt::set_colorspace_srgb(m_spec, image_state_default);
     } else {
         m_spec.set_colorspace(cs);
     }

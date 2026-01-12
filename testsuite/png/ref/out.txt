@@ -107,12 +107,12 @@ Reading g22_rec709_display.png
 g22_rec709_display.png :   64 x   64, 3 channel, uint8 png
     SHA-1: 7CB41FEA50720B48BE0C145E1473982B23E9AB77
     channel list: R, G, B
-    oiio:ColorSpace: "g22_rec709_display"
+    oiio:ColorSpace: "srgb_rec709_display"
 Reading g22_rec709_scene.png
 g22_rec709_scene.png :   64 x   64, 3 channel, uint8 png
     SHA-1: 7CB41FEA50720B48BE0C145E1473982B23E9AB77
     channel list: R, G, B
-    oiio:ColorSpace: "g22_rec709_scene"
+    oiio:ColorSpace: "g22_rec709_display"
     oiio:Gamma: 2.2
 Reading test16.png
 test16.png           :   16 x   16, 4 channel, uint16 png

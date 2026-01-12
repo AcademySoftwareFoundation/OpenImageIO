@@ -53,7 +53,7 @@ int png_linear_premult(0);
 int tiff_half(0);
 int tiff_multithread(1);
 int dds_bc5normal(0);
-ustring color_prefer_image_state("display");
+ustring color_image_state_default("display");
 int limit_channels(1024);
 int limit_imagesize_MB(std::min(32 * 1024,
                                 int(Sysutil::physical_memory() >> 20)));
@@ -407,10 +407,6 @@ attribute(string_view name, TypeDesc type, const void* val)
         dds_bc5normal = *(const int*)val;
         return true;
     }
-    if (name == "color:prefer_image_state" && type == TypeString) {
-        color_prefer_image_state = ustring(*(const char**)val);
-        return true;
-    }
     if (name == "limits:channels" && type == TypeInt) {
         limit_channels = *(const int*)val;
         return true;
@@ -615,10 +611,6 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "dds:bc5normal" && type == TypeInt) {
         *(int*)val = dds_bc5normal;
-        return true;
-    }
-    if (name == "color:prefer_image_state" && type == TypeString) {
-        *(ustring*)val = color_prefer_image_state;
         return true;
     }
     if (name == "oiio:print_uncaught_errors" && type == TypeInt) {

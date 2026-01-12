@@ -61,8 +61,9 @@ public:
                           void* data) override;
 
 private:
-    std::string m_filename;            ///< Stash the filename
-    std::vector<unsigned char> m_buf;  ///< Buffer the image pixels
+    std::string m_filename;             ///< Stash the filename
+    std::string m_image_state_default;  ///< Default image state for color space
+    std::vector<unsigned char> m_buf;   ///< Buffer the image pixels
     int m_subimage;
     int m_miplevel;
     int m_nchans;               ///< Number of colour channels in image
@@ -412,6 +413,8 @@ DDSInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
     ioproxy_retrieve_from_config(config);
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
     return open(name, newspec);
 }
 
@@ -845,7 +848,7 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     }
 
     if (is_srgb) {
-        pvt::set_colorspace_srgb(m_spec);
+        pvt::set_colorspace_srgb(m_spec, m_image_state_default);
     } else if (!is_srgb
                && (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT)) {
         // linear color space for HDR-ish images

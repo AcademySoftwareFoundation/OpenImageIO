@@ -109,7 +109,8 @@ private:
     opj_image_t* m_image;
     opj_codec_t* m_codec;
     opj_stream_t* m_stream;
-    bool m_keep_unassociated_alpha;  // Do not convert unassociated alpha
+    bool m_keep_unassociated_alpha;     // Do not convert unassociated alpha
+    std::string m_image_state_default;  // Default image state for color space
 
     void init(void);
 
@@ -371,7 +372,7 @@ Jpeg2000Input::ojph_read_header()
     m_spec = ImageSpec(w, h, ch, dtype);
     m_spec.default_channel_names();
     m_spec.attribute("oiio:BitsPerSample", siz.get_bit_depth(0));
-    pvt::set_colorspace_srgb(m_spec);
+    pvt::set_colorspace_srgb(m_spec, m_image_state_default);
 
     return true;
 }
@@ -619,7 +620,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     m_spec.full_height = m_image->y1;
 
     m_spec.attribute("oiio:BitsPerSample", maxPrecision);
-    pvt::set_colorspace_srgb(m_spec);
+    pvt::set_colorspace_srgb(m_spec, m_image_state_default);
 
     if (m_image->icc_profile_len && m_image->icc_profile_buf) {
         m_spec.attribute("ICCProfile",
@@ -650,6 +651,8 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
     ioproxy_retrieve_from_config(config);
     return open(name, newspec);
 }

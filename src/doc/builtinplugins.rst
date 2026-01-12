@@ -87,6 +87,11 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 **Configuration settings for BMP output**
 
@@ -211,6 +216,11 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.    
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 Additionally, an integer ``dds:bc5normal`` global attribute is supported
 to control behaviour of images compressed in BC5/ATI2 compression format.
@@ -294,6 +304,11 @@ options are supported:
    * - ``oiio:subimages``
      - int
      - The number of "image elements" (subimages) in the file.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 
 **Configuration settings for DPX output**
@@ -618,6 +633,11 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 **Configuration settings for GIF output**
 
@@ -727,6 +747,11 @@ options are supported:
        orientation of the image). If this hint is set to 0, the pixels will be
        left in their orientation as stored in the file, and the "Orientation"
        metadata will reflect that.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 **Configuration settings for HDR output**
 
@@ -807,6 +832,12 @@ attributes are supported:
        having Orientation 1). If zero, then libheif will not reorient the
        image and the Orientation metadata will be set to reflect the camera
        orientation.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
+
 
 **Configuration settings for HEIF output**
 
@@ -871,6 +902,11 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.    
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 **Configuration settings for ICO output**
 
@@ -947,6 +983,11 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 **Configuration settings for IFF output**
 
@@ -1063,6 +1104,11 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 **Configuration settings for JPEG output**
 
@@ -1195,6 +1241,11 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
   
 If OpenJPH is installed, the reader will attempt to read the file first with 
 the OpenJPH library, and if that fails, it will fall back to the OpenJPEG library.
@@ -1302,6 +1353,11 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
        
 **Configuration settings for JPEG XL output**
 
@@ -1837,6 +1893,11 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
    * - ``png:linear_premult``
      - int
      - If nonzero, will convert  or gamma-encoded values to linear color
@@ -2317,6 +2378,11 @@ options are supported:
        initialization. This populates the image attributes which depend on the
        pixel values.
        (Default: 0)
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 |
 
@@ -2424,6 +2490,11 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 **Configuration settings for RLA output**
 
@@ -2674,6 +2745,11 @@ attributes are supported:
        cause the reader to leave alpha unassociated (versus the default of
        premultiplying color channels by alpha if the alpha channel is
        unassociated).
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 **Configuration settings for Targa output**
 
@@ -2842,6 +2918,11 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 **Configuration settings for TIFF output**
 
@@ -3152,6 +3233,11 @@ attributes are supported:
      - If nonzero, will leave alpha unassociated (versus the default of
        premultiplying color channels by alpha if the alpha channel is
        unassociated).
+   * - ``oiio:ImageStateDefault``
+     - string
+     - If ``scene`` or ``display``, prefer to assign the image a scene or
+       display referred ``oiio:ColorSpace``. The default is ``display``,
+       while ``scene`` is more common for textures.
 
 **Configuration settings for WebP output**
 
