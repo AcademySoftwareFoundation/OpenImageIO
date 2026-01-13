@@ -207,28 +207,28 @@ public:
     /// optimized builds, there is no bounds check.  Note: this is different
     /// from C++ std::span, which never bounds checks `operator[]`.
     constexpr reference operator[] (size_type idx) const {
-        OIIO_DASSERT(idx < m_size && "OIIO::span::operator[] range check");
+        OIIO_CONTRACT_ASSERT(idx < m_size);
         return m_data[idx];
     }
     constexpr reference operator() (size_type idx) const {
-        OIIO_DASSERT(idx < m_size && "OIIO::span::operator() range check");
+        OIIO_CONTRACT_ASSERT(idx < m_size);
         return m_data[idx];
     }
     /// Bounds-checked access, throws an assertion if out of range.
     reference at (size_type idx) const {
         if (idx >= size())
-            throw (std::out_of_range ("OpenImageIO::span::at"));
+            throw (std::out_of_range ("OIIO::span::at"));
         return m_data[idx];
     }
 
     /// The first element of the span.
     constexpr reference front() const noexcept {
-        OIIO_DASSERT(m_size >= 1);
+        OIIO_CONTRACT_ASSERT(m_size >= 1);
         return m_data[0];
     }
     /// The last element of the span.
     constexpr reference back() const noexcept {
-        OIIO_DASSERT(m_size >= 1);
+        OIIO_CONTRACT_ASSERT(m_size >= 1);
         return m_data[size() - 1];
     }
 
@@ -374,14 +374,16 @@ public:
     constexpr stride_type stride() const noexcept { return m_stride; }
 
     constexpr reference operator[] (size_type idx) const {
+        OIIO_CONTRACT_ASSERT(idx < m_size);
         return m_data[m_stride*idx];
     }
     constexpr reference operator() (size_type idx) const {
+        OIIO_CONTRACT_ASSERT(idx < m_size);
         return m_data[m_stride*idx];
     }
     reference at (size_type idx) const {
         if (idx >= size())
-            throw (std::out_of_range ("OpenImageIO::span_strided::at"));
+            throw (std::out_of_range ("OIIO::span_strided::at"));
         return m_data[m_stride*idx];
     }
     constexpr reference front() const noexcept { return m_data[0]; }
