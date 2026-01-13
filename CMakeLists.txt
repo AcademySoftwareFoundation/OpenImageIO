@@ -113,18 +113,8 @@ endif ()
 option (${PROJ_NAME}_BUILD_TOOLS "Build the command-line tools" ON)
 option (${PROJ_NAME}_BUILD_TESTS "Build the unit tests" ON)
 
-# Google Highway SIMD acceleration for selected ImageBufAlgo ops. This is an
-# optional optimization dependency: if enabled but not found, it will be
-# compiled out.
-#
-# Back-compat: honor -DUSE_HWY=OFF by mapping it to OIIO_USE_HWY if the latter
-# was not explicitly provided.
-if (DEFINED USE_HWY AND NOT DEFINED OIIO_USE_HWY)
-    set (OIIO_USE_HWY ${USE_HWY} CACHE BOOL
-         "Enable Google Highway SIMD optimizations (if Highway is available)" FORCE)
-else ()
-    option (OIIO_USE_HWY "Enable Google Highway SIMD optimizations (if Highway is available)" ON)
-endif ()
+# Google Highway SIMD acceleration for selected ImageBufAlgo ops. (optimization)
+option (OIIO_USE_HWY "Enable experimental Google Highway SIMD optimizations (if Highway is available)" OFF)
 
 set (OIIO_LIBNAME_SUFFIX "" CACHE STRING
      "Optional name appended to ${PROJECT_NAME} libraries that are built")
