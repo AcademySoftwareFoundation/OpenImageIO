@@ -67,7 +67,7 @@ add_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
 
 
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 // Native integer add using SaturatedAdd (scale-invariant, no float conversion)
 template<class T>
 static bool
