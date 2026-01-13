@@ -6,12 +6,35 @@
 #include <iostream>
 #include <vector>
 
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/image_span.h>
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/strided_ptr.h>
 #include <OpenImageIO/unittest.h>
 
 using namespace OIIO;
+
+
+static int iterations = 100000;
+static int ntrials    = 5;
+
+
+static void
+getargs(int argc, char* argv[])
+{
+    ArgParse ap;
+    ap.intro(
+          "span_test -- unit test and spans for OpenImageIO/span.h\n" OIIO_INTRO_STRING)
+        .usage("span_test [options]");
+
+    ap.arg("--iters %d", &iterations)
+        .help(Strutil::fmt::format("Number of iterations (default: {})",
+                                   iterations));
+    ap.arg("--trials %d", &ntrials).help("Number of trials");
+
+    ap.parse_args(argc, (const char**)argv);
+}
 
 
 
@@ -457,9 +480,44 @@ test_spanzero()
 
 
 
-int
-main(int /*argc*/, char* /*argv*/[])
+void
+benchmark_span()
 {
+    Benchmarker bench;
+    bench.iterations(iterations).trials(ntrials);
+    bench.work(1000);
+    std::array<float, 1000> f;
+    std::fill(f.begin(), f.end(), 1.0f);
+    int sum = 0;
+    bench("span operator[]", [&]() {
+        int t = 0;
+        for (size_t i = 0; i < f.size(); ++i)
+            DoNotOptimize(t += f[i]);
+        sum += t;
+    });
+    bench("span range", [&]() {
+        int t = 0;
+        for (auto x : f)
+            DoNotOptimize(t += x);
+        sum += t;
+    });
+}
+
+
+
+int
+main(int argc, char* argv[])
+{
+#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
+    // For the sake of test time, reduce the default iterations for DEBUG,
+    // CI, and code coverage builds. Explicit use of --iters or --trials
+    // will override this, since it comes before the getargs() call.
+    iterations /= 10;
+    ntrials = 1;
+#endif
+
+    getargs(argc, argv);
+
     test_span();
     test_span_mutable();
     test_span_initlist();
@@ -475,6 +533,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_spancpy();
     test_spanset();
     test_spanzero();
+    benchmark_span();
 
     return unit_test_failures;
 }
