@@ -226,7 +226,9 @@ endif ()
 
 
 # Google Highway for SIMD (optional optimization)
-checked_find_package (hwy ENABLE ${OIIO_USE_HWY})
+if (OIIO_USE_HWY)
+    checked_find_package (hwy)
+endif ()
 
 # Tessil/robin-map
 checked_find_package (Robinmap REQUIRED
