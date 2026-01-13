@@ -289,7 +289,14 @@ HeifInput::seek_subimage(int subimage, int miplevel)
             m_ihandle.get_raw_image_handle(), &nclx);
 
         if (nclx) {
-            if (err.code == heif_error_Ok) {
+            // When CICP metadata is not present in the file, libheif returns
+            // unspecified since v1.21. Ignore it then.
+            if (err.code == heif_error_Ok
+                && !(nclx->color_primaries == heif_color_primaries_unspecified
+                     && nclx->transfer_characteristics
+                            == heif_transfer_characteristic_unspecified
+                     && nclx->matrix_coefficients
+                            == heif_matrix_coefficients_unspecified)) {
                 const int cicp[4] = { int(nclx->color_primaries),
                                       int(nclx->transfer_characteristics),
                                       int(nclx->matrix_coefficients),

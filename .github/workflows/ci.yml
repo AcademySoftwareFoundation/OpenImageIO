@@ -16,6 +16,7 @@ on:
       - '!**/scorecard.yml'
       - '!**/wheel.yml'
       - '!**.properties'
+      - '!pyproject.toml'
       - '!docs/**'
   pull_request:
     paths:
@@ -460,13 +461,13 @@ jobs:
             simd: avx2,f16c
             setenvs: export LIBJPEGTURBO_VERSION=3.1.2
                             LIBPNG_VERSION=v1.6.50
-                            LIBRAW_VERSION=0.21.4
+                            LIBRAW_VERSION=0.21.5
                             LIBTIFF_VERSION=v4.7.1
                             OPENJPEG_VERSION=v2.5.4
                             PTEX_VERSION=v2.5.0
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
@@ -502,7 +503,7 @@ jobs:
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
             required_deps: all
-            optional_deps: 'CUDAToolkit;DCMTK;JXL;Nuke;OpenCV;OpenGL;OpenVDB;R3DSDK'
+            optional_deps: 'CUDAToolkit;DCMTK;JXL;libuhdr;Nuke;OpenCV;OpenGL;openjph;R3DSDK;'
           - desc: all local builds gcc12 C++17 avx2 exr3.2 ocio2.3
             nametag: linux-local-builds
             runner: ubuntu-22.04
@@ -513,22 +514,23 @@ jobs:
             simd: avx2,f16c
             setenvs: export OpenImageIO_BUILD_LOCAL_DEPS=all
                             OpenImageIO_DEPENDENCY_BUILD_VERBOSE=ON
-                            LIBRAW_VERSION=0.21.4
+                            LIBRAW_VERSION=0.21.5
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
                             WEBP_VERSION=v1.4.0
-          - desc: clang15 C++17 avx2 exr3.1 ocio2.3
-            nametag: linux-clang15
-            runner: ubuntu-22.04
-            cxx_compiler: clang++-15
-            cc_compiler: clang-15
+          - desc: clang18 C++17 avx2 exr3.1 ocio2.3
+            nametag: linux-clang18
+            runner: ubuntu-24.04
+            cxx_compiler: clang++
+            cc_compiler: clang
             cxx_std: 17
             fmt_ver: 10.1.1
             opencolorio_ver: v2.3.0
             openexr_ver: v3.1.13
             pybind11_ver: v2.12.0
-            python_ver: "3.10"
+            python_ver: "3.12"
             simd: avx2,f16c
+            setenvs: export USE_OPENVDB=0
           - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.4 ocio2.4
             nametag: linux-arm-latest-releases
             runner: ubuntu-24.04-arm
@@ -542,13 +544,13 @@ jobs:
             python_ver: "3.12"
             setenvs: export LIBJPEGTURBO_VERSION=3.1.2
                             LIBPNG_VERSION=v1.6.50
-                            LIBRAW_VERSION=0.21.4
+                            LIBRAW_VERSION=0.21.5
                             LIBTIFF_VERSION=v4.7.1
                             OPENJPEG_VERSION=v2.5.4
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
           - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.4 ocio2.4
             nametag: linux-arm-latest-releases-clang
@@ -563,13 +565,13 @@ jobs:
             python_ver: "3.12"
             setenvs: export LIBJPEGTURBO_VERSION=3.1.2
                             LIBPNG_VERSION=v1.6.50
-                            LIBRAW_VERSION=0.21.4
+                            LIBRAW_VERSION=0.21.5
                             LIBTIFF_VERSION=v4.7.1
                             OPENJPEG_VERSION=v2.5.4
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
 
 
@@ -625,7 +627,7 @@ jobs:
             python_ver: "3.13"
             simd: sse4.2,avx2
             ctest_test_timeout: 1200
-            setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
+            setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0 INSTALL_QT=0
             benchmark: 1
           - desc: MacOS-14-ARM aclang15/C++20/py3.13
             runner: macos-14
@@ -682,7 +684,7 @@ jobs:
       # built. But we would like to add more dependencies and reduce this list
       # of exceptions in the future.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;openjph;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
+      optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;openjph;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
     strategy:
       fail-fast: false
       matrix:

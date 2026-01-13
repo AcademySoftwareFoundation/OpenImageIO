@@ -566,12 +566,30 @@ put_parameter(png_structp& sp, png_infop& ip, const std::string& _name,
         return true;
     }
 #endif
+
+    // Before handling general named metadata, suppress format-specific
+    // metadata hints meant for other formats that are not meant to be literal
+    // metadata written to the file. This includes anything with a namespace
+    // prefix of "oiio:" or the name of any other file format.
+    auto colonpos = name.find(':');
+    if (colonpos != std::string::npos) {
+        std::string prefix = Strutil::lower(name.substr(0, colonpos));
+        if (prefix != "png" && is_imageio_format_name(prefix))
+            return false;
+        if (prefix == "oiio")
+            return false;
+    }
+
     if (type == TypeDesc::STRING) {
+        // We can save arbitrary string metadata in multiple png text entries.
+        // Is that ok? Should we also do it for other types by converting to
+        // string?
         png_text t;
         t.compression = PNG_TEXT_COMPRESSION_NONE;
         t.key         = (char*)ustring(name).c_str();
         t.text        = *(char**)data;  // Already uniquified
         text.push_back(t);
+        return true;
     }
 
     return false;

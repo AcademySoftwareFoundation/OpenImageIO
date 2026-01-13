@@ -47,7 +47,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for PNG files:
      * libPNG >= 1.6.0 (tested though 1.6.50)
  * If you want support for camera "RAW" formats:
-     * LibRaw >= 0.20 (tested though 0.21.4 and master)
+     * LibRaw >= 0.20 (tested though 0.21.5 and master)
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 4.0 (tested through 8.0)
  * If you want support for jpeg 2000 images:
@@ -64,7 +64,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 5.0 (tested through 5.2.2)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.11 (1.16 required for correct orientation support,
-       tested through 1.20.2)
+       tested through 1.21.1)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.9)
