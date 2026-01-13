@@ -181,17 +181,21 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
 static void
 encode_iptc_iim_one_tag(int tag, string_view data, std::vector<char>& iptc)
 {
-    OIIO_DASSERT(data != nullptr);
+    if (data.size() == 0)
+        return;
+    data = data.substr(0, 0xffff);  // Truncate to prevent 16 bit overflow
+    size_t tagsize = data.size();
     iptc.push_back((char)0x1c);
     iptc.push_back((char)0x02);
     iptc.push_back((char)tag);
-    if (data.size()) {
-        int tagsize = std::min(int(data.size()),
-                               0xffff - 1);  // Prevent 16 bit overflow
-        iptc.push_back((char)(tagsize >> 8));
-        iptc.push_back((char)(tagsize & 0xff));
-        iptc.insert(iptc.end(), data.data(), data.data() + tagsize);
-    }
+    iptc.push_back((char)(tagsize >> 8));
+    iptc.push_back((char)(tagsize & 0xff));
+    OIIO_PRAGMA_WARNING_PUSH
+    OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wstringop-overflow")
+    // Suppress what I'm sure is a false positive warning when
+    // _GLIBCXX_ASSERTIONS is enabled.
+    iptc.insert(iptc.end(), data.begin(), data.end());
+    OIIO_PRAGMA_WARNING_POP
 }
 
 
@@ -208,7 +212,7 @@ encode_iptc_iim(const ImageSpec& spec, std::vector<char>& iptc)
                 std::string allvals = p->get_string(0);
                 std::vector<std::string> tokens;
                 Strutil::split(allvals, tokens, ";");
-                for (auto& token : tokens) {
+                for (auto token : tokens) {
                     token = Strutil::strip(token);
                     if (token.size()) {
                         if (iimtag[i].maxlen && iimtag[i].maxlen < token.size())
