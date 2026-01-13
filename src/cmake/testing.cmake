@@ -47,7 +47,7 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
 #
 # The optional SUFFIX is appended to the test name.
 #
-# The optinonal ENVIRONMENT is a list of environment variables to set for the
+# The optional ENVIRONMENT is a list of environment variables to set for the
 # test.
 #
 macro (oiio_add_tests)
@@ -56,9 +56,12 @@ macro (oiio_add_tests)
     set (_ats_testdir "${OIIO_TESTSUITE_IMAGEDIR}/${_ats_IMAGEDIR}")
     # If there was a FOUNDVAR param specified and that variable name is
     # not defined, mark the test as broken.
+    set (_test_disabled FALSE)
+    set (_test_notfound FALSE)
     foreach (_var ${_ats_FOUNDVAR})
         if (NOT ${_var})
             set (_ats_LABEL "broken")
+            set (_test_notfound TRUE)
         endif ()
     endforeach ()
     set (_test_disabled 0)
@@ -66,7 +69,7 @@ macro (oiio_add_tests)
         if ((NOT "${${_var}}" STREQUAL "" AND NOT "${${_var}}") OR
             (NOT "$ENV{${_var}}" STREQUAL "" AND NOT "$ENV{${_var}}"))
             set (_ats_LABEL "broken")
-            set (_test_disabled 1)
+            set (_test_disabled TRUE)
         endif ()
     endforeach ()
     # For OCIO 2.2+, have the testsuite use the default built-in config
@@ -74,6 +77,8 @@ macro (oiio_add_tests)
                                   "OIIO_TESTSUITE_OCIOCONFIG=ocio://default")
     if (_test_disabled)
         message (STATUS "Skipping test(s) ${_ats_UNPARSED_ARGUMENTS} because of disabled ${_ats_ENABLEVAR}")
+    elseif (_test_notfound)
+        message (STATUS "Skipping test(s) ${_ats_UNPARSED_ARGUMENTS} because of missing dependency from ${_ats_FOUNDVAR}")
     elseif (_ats_IMAGEDIR AND NOT EXISTS ${_ats_testdir})
         # If the directory containing reference data (images) for the test
         # isn't found, point the user at the URL.
