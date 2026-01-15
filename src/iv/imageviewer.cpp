@@ -2556,7 +2556,7 @@ ImageViewer::flipHorizontal()
 
     if (curr_orientation >= 1 && curr_orientation <= 8) {
         static int next_orientation[] = { 0, 2, 1, 4, 3, 6, 5, 8, 7 };
-        curr_orientation     = next_orientation[curr_orientation];
+        curr_orientation              = next_orientation[curr_orientation];
         spec->attribute("Orientation", curr_orientation);
     }
     displayCurrentImage();
@@ -2576,7 +2576,7 @@ ImageViewer::flipVertical()
 
     if (curr_orientation >= 1 && curr_orientation <= 8) {
         static int next_orientation[] = { 0, 4, 3, 2, 1, 8, 7, 6, 5 };
-        curr_orientation     = next_orientation[curr_orientation];
+        curr_orientation              = next_orientation[curr_orientation];
         spec->attribute("Orientation", curr_orientation);
     }
     displayCurrentImage();
