@@ -28,12 +28,10 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
    through 3.1)
  * zlib >= 1.2.7 (tested through 1.3.1)
  * [fmtlib](https://github.com/fmtlib/fmt) >= 7.0 (tested through 12.0 and master).
-   If not found at build time, this will be automatically downloaded unless
-   the build sets `-DBUILD_MISSING_FMT=OFF`.
+   If not found at build time, this will be automatically downloaded and built.
  * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
    through 1.4, which is the recommended version). If not found at build time,
-   this will be automatically downloaded unless the build sets
-   `-DBUILD_MISSING_FMT=OFF`.
+   this will be automatically downloaded and built.
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
