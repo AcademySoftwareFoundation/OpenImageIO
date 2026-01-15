@@ -228,7 +228,6 @@ ImageViewer::createActions()
     connect(closeImgAct, SIGNAL(triggered()), this, SLOT(closeImg()));
 
     saveAct = new QAction(tr("&Save"), this);
-    saveAct->setShortcut(tr("Ctrl+S"));
     connect(saveAct, SIGNAL(triggered()), this, SLOT(save()));
 
     saveAsAct = new QAction(tr("&Save As..."), this);
@@ -1094,9 +1093,8 @@ ImageViewer::save()
     bool ok = img->write(name.toStdString(), TypeUnknown, "",
                          image_progress_callback, this);
     if (!ok) {
-        std::cerr << "Save failed: " << img->geterror() << "\n"
-                  << "Try using `Save As` instead."
-                  << "\n";
+        OIIO::print(stderr, "Save failed: {}\nTry using `Save As` instead.\n",
+                    img->geterror());
     }
 }
 
@@ -2505,14 +2503,14 @@ ImageViewer::areaSampleMode() const
 void
 rotateClockwise(ImageSpec* spec, int count = 1)
 {
-    int orientation = spec->get_int_attribute("Orientation", 1);
+    int curr_orientation = spec->get_int_attribute("Orientation", 1);
 
-    if (orientation >= 1 && orientation <= 8) {
-        static int cw[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
+    if (curr_orientation >= 1 && curr_orientation <= 8) {
+        static int next_orientation[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
         for (int i = 0; i < count; ++i) {
-            orientation = cw[orientation];
+            curr_orientation = next_orientation[curr_orientation];
         }
-        spec->attribute("Orientation", orientation);
+        spec->attribute("Orientation", curr_orientation);
     }
 }
 
@@ -2525,7 +2523,7 @@ ImageViewer::rotateLeft()
         return;
 
     ImageSpec* spec = curspecmod();
-    rotateClockwise(spec, 1);
+    rotateClockwise(spec, 3);
 
     displayCurrentImage();
 }
@@ -2539,7 +2537,7 @@ ImageViewer::rotateRight()
         return;
 
     ImageSpec* spec = curspecmod();
-    rotateClockwise(spec, 3);
+    rotateClockwise(spec, 1);
 
     displayCurrentImage();
 }
@@ -2554,12 +2552,12 @@ ImageViewer::flipHorizontal()
 
     ImageSpec* spec = curspecmod();
 
-    int orientation = spec->get_int_attribute("Orientation", 1);
+    int curr_orientation = spec->get_int_attribute("Orientation", 1);
 
-    if (orientation >= 1 && orientation <= 8) {
-        static int cw[] = { 0, 2, 1, 4, 3, 6, 5, 8, 7 };
-        orientation     = cw[orientation];
-        spec->attribute("Orientation", orientation);
+    if (curr_orientation >= 1 && curr_orientation <= 8) {
+        static int next_orientation[] = { 0, 2, 1, 4, 3, 6, 5, 8, 7 };
+        curr_orientation     = next_orientation[curr_orientation];
+        spec->attribute("Orientation", curr_orientation);
     }
     displayCurrentImage();
 }
@@ -2574,12 +2572,12 @@ ImageViewer::flipVertical()
 
     ImageSpec* spec = curspecmod();
 
-    int orientation = spec->get_int_attribute("Orientation", 1);
+    int curr_orientation = spec->get_int_attribute("Orientation", 1);
 
-    if (orientation >= 1 && orientation <= 8) {
-        static int cw[] = { 0, 4, 3, 2, 1, 8, 7, 6, 5 };
-        orientation     = cw[orientation];
-        spec->attribute("Orientation", orientation);
+    if (curr_orientation >= 1 && curr_orientation <= 8) {
+        static int next_orientation[] = { 0, 4, 3, 2, 1, 8, 7, 6, 5 };
+        curr_orientation     = next_orientation[curr_orientation];
+        spec->attribute("Orientation", curr_orientation);
     }
     displayCurrentImage();
 }
