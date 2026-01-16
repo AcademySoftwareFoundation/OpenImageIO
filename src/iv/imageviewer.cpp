@@ -2499,22 +2499,6 @@ ImageViewer::areaSampleMode() const
 }
 
 
-// rotate the image's orientation metadata
-void
-rotateClockwise(ImageSpec* spec, int count = 1)
-{
-    int curr_orientation = spec->get_int_attribute("Orientation", 1);
-
-    if (curr_orientation >= 1 && curr_orientation <= 8) {
-        static int next_orientation[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
-        for (int i = 0; i < count; ++i) {
-            curr_orientation = next_orientation[curr_orientation];
-        }
-        spec->attribute("Orientation", curr_orientation);
-    }
-}
-
-
 void
 ImageViewer::rotateLeft()
 {
@@ -2523,8 +2507,14 @@ ImageViewer::rotateLeft()
         return;
 
     ImageSpec* spec = curspecmod();
-    rotateClockwise(spec, 3);
 
+    int curr_orientation = spec->get_int_attribute("Orientation", 1);
+
+    if (curr_orientation >= 1 && curr_orientation <= 8) {
+        static int next_orientation[] = { 0, 8, 5, 6, 7, 4, 1, 2, 3 };
+        curr_orientation              = next_orientation[curr_orientation];
+        spec->attribute("Orientation", curr_orientation);
+    }
     displayCurrentImage();
 }
 
@@ -2536,9 +2526,14 @@ ImageViewer::rotateRight()
     if (!img)
         return;
 
-    ImageSpec* spec = curspecmod();
-    rotateClockwise(spec, 1);
+    ImageSpec* spec      = curspecmod();
+    int curr_orientation = spec->get_int_attribute("Orientation", 1);
 
+    if (curr_orientation >= 1 && curr_orientation <= 8) {
+        static int next_orientation[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
+        curr_orientation              = next_orientation[curr_orientation];
+        spec->attribute("Orientation", curr_orientation);
+    }
     displayCurrentImage();
 }
 
