@@ -162,9 +162,7 @@ else :
 if os.getenv("Python_EXECUTABLE") :
     pythonbin = os.getenv("Python_EXECUTABLE")
 else :
-    pythonbin = 'python'
-    if os.getenv("PYTHON_VERSION") :
-        pythonbin += os.getenv("PYTHON_VERSION")
+    pythonbin = sys.executable
 #print ("pythonbin = ", pythonbin)
 
 
