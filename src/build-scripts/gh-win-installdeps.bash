@@ -32,6 +32,10 @@ elif [[ "$PYTHON_VERSION" == "3.9" ]] ; then
     export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.9.13/x64"
     export Python_EXECUTABLE="/c/hostedtoolcache/windows/Python/3.9.13/x64/python3.exe"
     export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages
+elif [[ "$PYTHON_VERSION" == "3.12" ]] ; then
+    export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.12.10/x64"
+    export Python_EXECUTABLE="/c/hostedtoolcache/windows/Python/3.12.10/x64/python3.exe"
+    export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages
 fi
 pip install numpy
 
