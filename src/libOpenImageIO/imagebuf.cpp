@@ -150,10 +150,11 @@ public:
                      stride_t ystride = AutoStride,
                      stride_t zstride = AutoStride)
     {
-        m_bufspan = image_span(reinterpret_cast<std::byte*>(data),
-                               m_spec.nchannels, m_spec.width, m_spec.height,
-                               m_spec.depth, m_spec.format.size(), xstride,
-                               ystride, zstride);
+        auto formatsize = m_spec.format.size();
+        m_bufspan       = image_span(reinterpret_cast<std::byte*>(data),
+                                     m_spec.nchannels, m_spec.width, m_spec.height,
+                                     m_spec.depth, formatsize, xstride, ystride,
+                                     zstride, formatsize);
     }
 
     bool init_spec(string_view filename, int subimage, int miplevel,
