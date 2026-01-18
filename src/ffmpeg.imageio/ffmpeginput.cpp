@@ -71,6 +71,7 @@ receive_frame(AVCodecContext* avctx, AVFrame* picture, AVPacket* avpkt)
 
 
 
+#include "imageio_pvt.h"
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/imageio.h>
 #include <iostream>
@@ -90,6 +91,8 @@ public:
     }
     bool valid_file(const std::string& name) const override;
     bool open(const std::string& name, ImageSpec& spec) override;
+    bool open(const std::string& name, ImageSpec& spec,
+              const ImageSpec& config) override;
     bool close(void) override;
     int current_subimage(void) const override
     {
@@ -132,6 +135,7 @@ private:
     bool m_codec_cap_delay;
     bool m_read_frame;
     int64_t m_start_time;
+    std::string m_image_state_default;
 
     // init to initialize state
     void init(void)
@@ -211,6 +215,14 @@ FFmpegInput::valid_file(const std::string& name) const
 }
 
 
+bool
+FFmpegInput::open(const std::string& name, ImageSpec& spec,
+                  const ImageSpec& config)
+{
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
+    return open(name, spec);
+}
 
 bool
 FFmpegInput::open(const std::string& name, ImageSpec& spec)
@@ -549,11 +561,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         = { m_codec_context->color_primaries, m_codec_context->color_trc,
             m_codec_context->colorspace,
             m_codec_context->color_range == AVCOL_RANGE_MPEG ? 0 : 1 };
-    m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
-    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-    string_view interop_id = colorconfig.get_color_interop_id(cicp);
-    if (!interop_id.empty())
-        m_spec.attribute("oiio:ColorSpace", interop_id);
+    pvt::set_colorspace_cicp(m_spec, cicp, m_image_state_default);
 
     m_nsubimages = m_frames;
     spec         = m_spec;

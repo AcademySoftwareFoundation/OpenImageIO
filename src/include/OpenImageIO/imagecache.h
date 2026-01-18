@@ -215,6 +215,11 @@ public:
     /// - `string colorconfig` :
     ///           Name of the OCIO config to use. Default: "" (meaning to use
     ///           the default color config).
+    /// - `string image_state_default` :
+    ///           Preferred "display" or "scene" image state when automatically
+    ///           determining the color space of an image file. Default: "display"
+    ///           (matching default image input behavior, however "scene" may
+    ///           be a better choice for textures).
     ///
     /// - `string options`
     ///           This catch-all is simply a comma-separated list of

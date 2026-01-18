@@ -758,6 +758,8 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
         configspec = *m_configspec;
     if (imagecache().unassociatedalpha())
         configspec.attribute("oiio:UnassociatedAlpha", 1);
+    configspec.attribute("oiio:ImageStateDefault",
+                         imagecache().image_state_default());
 
     if (m_inputcreator)
         inp.reset(m_inputcreator());
@@ -1987,6 +1989,7 @@ ImageCacheImpl::init()
     m_latlong_y_up_default = true;
     m_Mw2c.makeIdentity();
     m_colorspace              = ustring("scene_linear");
+    m_image_state_default     = ustring("display");
     m_mem_used                = 0;
     m_statslevel              = 0;
     m_max_errors_per_file     = 100;
@@ -2597,6 +2600,12 @@ ImageCacheImpl::attribute(string_view name, TypeDesc type, const void* val)
             m_colorspace  = uval;
             do_invalidate = true;
         }
+    } else if (name == "image_state_default" && type == TypeDesc::STRING) {
+        ustring uval(*(const char**)val);
+        if (uval != m_image_state_default) {
+            m_image_state_default = uval;
+            do_invalidate         = true;
+        }
     } else if (name == "max_mip_res" && type == TypeInt) {
         m_max_mip_res = *(const int*)val;
         do_invalidate = true;
@@ -2745,6 +2754,10 @@ ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
     }
     if (name == "colorspace" && type == TypeDesc::STRING) {
         *(const char**)val = m_colorspace.c_str();
+        return true;
+    }
+    if (name == "image_state_default" && type == TypeDesc::STRING) {
+        *(const char**)val = m_image_state_default.c_str();
         return true;
     }
     if (name == "all_filenames" && type.basetype == TypeDesc::STRING

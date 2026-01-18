@@ -43,13 +43,14 @@ public:
                               void* data) override;
 
 private:
-    std::string m_filename;            ///< Stash the filename
-    ico_header m_ico;                  ///< ICO header
-    std::vector<unsigned char> m_buf;  ///< Buffer the image pixels
-    int m_subimage;                    ///< What subimage are we looking at?
-    int m_bpp;                         ///< Bits per pixel
-    int m_offset;                      ///< Offset to image data
-    int m_subimage_size;               ///< Length (in bytes) of image data
+    std::string m_filename;             ///< Stash the filename
+    std::string m_image_state_default;  ///< Default image state for color space
+    ico_header m_ico;                   ///< ICO header
+    std::vector<unsigned char> m_buf;   ///< Buffer the image pixels
+    int m_subimage;                     ///< What subimage are we looking at?
+    int m_bpp;                          ///< Bits per pixel
+    int m_offset;                       ///< Offset to image data
+    int m_subimage_size;                ///< Length (in bytes) of image data
     int m_palette_size;  ///< Number of colours in palette (0 means 256)
 
     png_structp m_png;     ///< PNG read structure pointer
@@ -142,6 +143,9 @@ ICOInput::open(const std::string& name, ImageSpec& newspec,
         return false;
     }
 
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
+
     // default to subimage #0, according to convention
     bool ok = seek_subimage(0, 0);
     if (ok)
@@ -231,7 +235,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
         png_set_sig_bytes(m_png, 8);  // already read 8 bytes
 
         PNG_pvt::read_info(m_png, m_info, m_bpp, m_color_type, m_interlace_type,
-                           m_bg, m_spec, true);
+                           m_bg, m_spec, true, m_image_state_default);
 
         m_spec.attribute("oiio:BitsPerSample", m_bpp / m_spec.nchannels);
 

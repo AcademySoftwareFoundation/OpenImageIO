@@ -15,6 +15,8 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "imageio_pvt.h"
+
 #include "rla_pvt.h"
 
 
@@ -260,21 +262,9 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     //           << m_rla.NumOfMatteChannels << " z " << m_rla.NumOfAuxChannels << "\n";
     m_rla.Revision = 0xFFFE;
 
-    const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
-    string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
-    if (colorconfig.equivalent(colorspace, "linear")
-        || colorconfig.equivalent(colorspace, "scene_linear"))
-        Strutil::safe_strcpy(m_rla.Gamma, "1.0", sizeof(m_rla.Gamma));
-    else if (colorconfig.equivalent(colorspace, "g22_rec709"))
-        Strutil::safe_strcpy(m_rla.Gamma, "2.2", sizeof(m_rla.Gamma));
-    else if (colorconfig.equivalent(colorspace, "g18_rec709"))
-        Strutil::safe_strcpy(m_rla.Gamma, "1.8", sizeof(m_rla.Gamma));
-    else if (Strutil::istarts_with(colorspace, "Gamma")) {
-        Strutil::parse_word(colorspace);
-        float g = Strutil::from_string<float>(colorspace);
-        if (!(g >= 0.01f && g <= 10.0f /* sanity check */))
-            g = m_spec.get_float_attribute("oiio:Gamma", 1.f);
-        safe_format_to(m_rla.Gamma, "{:.10}", g);
+    const float gamma = pvt::get_colorspace_rec709_gamma(m_spec);
+    if (gamma != 0.0f) {
+        safe_format_to(m_rla.Gamma, "{:.5g}", gamma);
     }
 
     const ParamValue* p;

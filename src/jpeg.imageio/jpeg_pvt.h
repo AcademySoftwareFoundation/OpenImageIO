@@ -93,11 +93,12 @@ public:
 
 private:
     std::string m_filename;
-    int m_next_scanline;   // Which scanline is the next to read?
-    bool m_raw;            // Read raw coefficients, not scanlines
-    bool m_cmyk;           // The input file is cmyk
-    bool m_fatalerr;       // JPEG reader hit a fatal error
-    bool m_decomp_create;  // Have we created the decompressor?
+    std::string m_image_state_default;  // Default image state for color space
+    int m_next_scanline;                // Which scanline is the next to read?
+    bool m_raw;                         // Read raw coefficients, not scanlines
+    bool m_cmyk;                        // The input file is cmyk
+    bool m_fatalerr;                    // JPEG reader hit a fatal error
+    bool m_decomp_create;               // Have we created the decompressor?
     struct jpeg_decompress_struct m_cinfo;
     my_error_mgr m_jerr;
     jvirt_barray_ptr* m_coeffs;

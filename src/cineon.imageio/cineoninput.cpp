@@ -182,13 +182,14 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         // either grayscale or printing density
         if (!std::isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
             // actual gamma value is read later on
-            set_colorspace_rec709_gamma(m_spec, float(m_cin.header.Gamma()));
+            pvt::set_colorspace_rec709_gamma(m_spec,
+                                             float(m_cin.header.Gamma()));
         break;
     }
 
     // gamma exponent
     if (!std::isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
-        set_colorspace_rec709_gamma(m_spec, float(m_cin.header.Gamma()));
+        pvt::set_colorspace_rec709_gamma(m_spec, float(m_cin.header.Gamma()));
 #endif
 
     // general metadata

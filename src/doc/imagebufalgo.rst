@@ -2849,12 +2849,14 @@ Color space conversion
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.jpg");
-          ImageBuf Dst = ImageBufAlgo::colorconvert (Src, "sRGB", "acescg", true);
+          ImageBuf Dst = ImageBufAlgo::colorconvert (Src, "srgb_rec709_scene",
+                                                     "acescg", true);
 
        .. code-tab:: py
 
           Src = ImageBuf("tahoe.jpg")
-          Dst = ImageBufAlgo.colorconvert (Src, "sRGB", "acescg", True)
+          Dst = ImageBufAlgo.colorconvert (Src, "srgb_rec709_scene", "acescg",
+                                           True)
 
        .. code-tab:: bash oiiotool
 
@@ -2950,14 +2952,15 @@ Color space conversion
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.exr");
-          ImageBuf Dst = ImageBufAlgo::ociodisplay (Src, "sRGB", "Film", "lnf",
-                                                    "", true, "SHOT", "pe0012");
+          ImageBuf Dst = ImageBufAlgo::ociodisplay (Src, "srgb_rec709_scene",
+                                                    "Film", "lnf", "", true,
+                                                    "SHOT", "pe0012");
 
        .. code-tab:: py
 
           Src = ImageBuf("tahoe.jpg")
-          Dst = ImageBufAlgo.ociodisplay (Src, "sRGB", "Film", "lnf",
-                                          "", True, "SHOT", "pe0012")
+          Dst = ImageBufAlgo.ociodisplay (Src, "srgb_rec709_scene", "Film",
+                                          "lnf", "", True, "SHOT", "pe0012")
 
        .. code-tab:: bash oiiotool
 

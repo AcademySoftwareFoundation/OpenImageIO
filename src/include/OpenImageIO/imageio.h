@@ -912,10 +912,10 @@ public:
     /// 1. Assigning to the delegate adds a metadata attribute:
     ///
     ///        ImageSpec spec;
-    ///        spec["foo"] = 42;                   // int
-    ///        spec["pi"] = float(M_PI);           // float
-    ///        spec["oiio:ColorSpace"] = "sRGB";   // string
-    ///        spec["cameratoworld"] = Imath::Matrix44(...);  // matrix
+    ///        spec["foo"] = 42;                                  // int
+    ///        spec["pi"] = float(M_PI);                          // float
+    ///        spec["oiio:ColorSpace"] = "srgb_rec709_display";   // string
+    ///        spec["cameratoworld"] = Imath::Matrix44(...);      // matrix
     ///
     ///    Be very careful, the attribute's type will be implied by the C++
     ///    type of what you assign.
@@ -3853,6 +3853,17 @@ OIIO_API std::string geterror(bool clear = true);
 ///    For more information, please see OpenImageIO's documentation on the
 ///    built-in PNG format support.
 ///
+/// - `string color:image_state_default` ("display")
+///
+///    When the color space of an image file is ambiguous and can be
+///    interpreted as either a display referred or scene referred, by default
+///    the `oiio:ColorSpace` attribute will be set to a display color space
+///    like `srgb_rec709_display`.
+///
+///    By setting the preferred image state to "scene", the corresponding
+///    scene referred color space like `srgb_rec709_scene` will be chosen
+///    instead. For textures in particular this can be a better default guess.
+///
 /// - `int limits:channels` (1024)
 ///
 ///    When nonzero, the maximum number of color channels in an image. Image
@@ -4271,7 +4282,6 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 ///
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
-
 
 /// Are the two named color spaces equivalent, based on the default color
 /// config in effect?

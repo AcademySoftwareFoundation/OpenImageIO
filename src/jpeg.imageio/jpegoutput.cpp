@@ -12,6 +12,8 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "imageio_pvt.h"
+
 #include "jpeg_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -268,8 +270,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         }
     }
 
-    if (equivalent_colorspace(m_spec.get_string_attribute("oiio:ColorSpace"),
-                              "srgb_rec709_scene"))
+    if (pvt::is_colorspace_srgb(m_spec, false))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Write EXIF info
@@ -320,37 +321,32 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     m_spec.set_format(TypeDesc::UINT8);  // JPG is only 8 bit
 
     // Write ICC profile, if we have anything
-    if (auto icc_profile_parameter = m_spec.find_attribute(ICC_PROFILE_ATTR)) {
-        cspan<unsigned char> icc_profile((unsigned char*)
-                                             icc_profile_parameter->data(),
-                                         icc_profile_parameter->type().size());
-        if (icc_profile.size() && icc_profile.data()) {
-            /* Calculate the number of markers we'll need, rounding up of course */
-            size_t num_markers = icc_profile.size() / MAX_DATA_BYTES_IN_MARKER;
-            if (num_markers * MAX_DATA_BYTES_IN_MARKER
-                != std::size(icc_profile))
-                num_markers++;
-            int curr_marker = 1; /* per spec, count starts at 1*/
-            std::vector<JOCTET> profile(MAX_DATA_BYTES_IN_MARKER
-                                        + ICC_HEADER_SIZE);
-            size_t icc_profile_length = icc_profile.size();
-            while (icc_profile_length > 0) {
-                // length of profile to put in this marker
-                size_t length = std::min(icc_profile_length,
-                                         size_t(MAX_DATA_BYTES_IN_MARKER));
-                icc_profile_length -= length;
-                // Write the JPEG marker header (APP2 code and marker length)
-                strcpy((char*)profile.data(), "ICC_PROFILE");  // NOSONAR
-                profile[11] = 0;
-                profile[12] = curr_marker;
-                profile[13] = (JOCTET)num_markers;
-                OIIO_ASSERT(profile.size() >= ICC_HEADER_SIZE + length);
-                spancpy(make_span(profile), ICC_HEADER_SIZE, icc_profile,
-                        length * (curr_marker - 1), length);
-                jpeg_write_marker(&m_cinfo, JPEG_APP0 + 2, profile.data(),
-                                  ICC_HEADER_SIZE + length);
-                curr_marker++;
-            }
+    std::vector<uint8_t> icc_profile = pvt::get_colorspace_icc_profile(m_spec);
+    if (icc_profile.size()) {
+        /* Calculate the number of markers we'll need, rounding up of course */
+        size_t num_markers = icc_profile.size() / MAX_DATA_BYTES_IN_MARKER;
+        if (num_markers * MAX_DATA_BYTES_IN_MARKER != std::size(icc_profile))
+            num_markers++;
+        int curr_marker = 1; /* per spec, count starts at 1*/
+        std::vector<JOCTET> profile(MAX_DATA_BYTES_IN_MARKER + ICC_HEADER_SIZE);
+        size_t icc_profile_length = icc_profile.size();
+        while (icc_profile_length > 0) {
+            // length of profile to put in this marker
+            size_t length = std::min(icc_profile_length,
+                                     size_t(MAX_DATA_BYTES_IN_MARKER));
+            icc_profile_length -= length;
+            // Write the JPEG marker header (APP2 code and marker length)
+            strcpy((char*)profile.data(), "ICC_PROFILE");  // NOSONAR
+            profile[11] = 0;
+            profile[12] = curr_marker;
+            profile[13] = (JOCTET)num_markers;
+            OIIO_ASSERT(profile.size() >= ICC_HEADER_SIZE + length);
+            spancpy(make_span(profile), ICC_HEADER_SIZE,
+                    cspan<uint8_t>(icc_profile), length * (curr_marker - 1),
+                    length);
+            jpeg_write_marker(&m_cinfo, JPEG_APP0 + 2, profile.data(),
+                              ICC_HEADER_SIZE + length);
+            curr_marker++;
         }
     }
 
