@@ -219,6 +219,14 @@ public:
         return img ? &img->spec() : NULL;
     }
 
+    /// Return a modifiable ref to the current image spec, or NULL if there is no
+    /// current image.
+    ImageSpec* curspecmod(void) const
+    {
+        IvImage* img = cur();
+        return img ? &img->specmod() : NULL;
+    }
+
     bool pixelviewOn(void) const
     {
         return showPixelviewWindowAct && showPixelviewWindowAct->isChecked();
@@ -276,6 +284,7 @@ private slots:
     void reload();              ///< Reread current image from disk
     void openRecentFile();      ///< Open a recent file
     void closeImg();            ///< Close the current image
+    void save();                ///< Save       functionality
     void saveAs();              ///< Save As... functionality
     void saveWindowAs();        ///< Save As... functionality
     void saveSelectionAs();     ///< Save As... functionality
@@ -334,6 +343,11 @@ private slots:
     void editPreferences();      ///< Edit viewer preferences
     void toggleAreaSample();     ///< Use area probe
 
+    void rotateLeft();
+    void rotateRight();
+    void flipHorizontal();
+    void flipVertical();
+
     void useOCIOAction(bool checked);
     void ocioColorSpaceAction();
     void ocioDisplayViewAction();
@@ -375,7 +389,7 @@ private:
     QAction *openAct, *reloadAct, *closeImgAct;
     static const unsigned int MaxRecentFiles = 10;
     QAction* openRecentAct[MaxRecentFiles];
-    QAction *saveAsAct, *saveWindowAsAct, *saveSelectionAsAct;
+    QAction *saveAct, *saveAsAct, *saveWindowAsAct, *saveSelectionAsAct;
     QAction* moveToNewWindowAct;
     QAction* printAct;
     QAction* deleteCurrentImageAct;
@@ -404,6 +418,8 @@ private:
     QAction* showPixelviewWindowAct;
     QAction* toggleAreaSampleAct;
     QAction* toggleWindowGuidesAct;
+    QAction *rotateLeftAct, *rotateRightAct, *flipHorizontalAct,
+        *flipVerticalAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu,
         *helpMenu;
     QMenu* openRecentMenu;
