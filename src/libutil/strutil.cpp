@@ -152,7 +152,7 @@ c_str(string_view str)
     // in C++17 string_view. So maybe we'll find ourselves relying on it a
     // lot less, and therefore the performance hit of doing it foolproof
     // won't be as onerous.
-    if (str[str.size()] == 0)  // 0-terminated
+    if (str.data()[str.size()] == 0)  // 0-terminated
         return str.data();
 
     // Rare case: may not be 0-terminated. Bite the bullet and construct a
