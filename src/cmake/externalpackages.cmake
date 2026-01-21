@@ -163,6 +163,7 @@ checked_find_package (GIF VERSION_MIN 5.0)
 
 # For HEIF/HEIC/AVIF formats
 checked_find_package (Libheif VERSION_MIN 1.11
+                      PREFER_CONFIG
                       RECOMMEND_MIN 1.16
                       RECOMMEND_MIN_REASON "for orientation support")
 
