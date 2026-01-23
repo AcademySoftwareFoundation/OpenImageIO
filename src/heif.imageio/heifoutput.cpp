@@ -49,7 +49,9 @@ private:
     std::unique_ptr<heif::Context> m_ctx;
     heif::ImageHandle m_ihandle;
     heif::Image m_himage;
-    heif::Encoder m_encoder { heif_compression_HEVC };
+    // Undefined until we know the specific requested encoder, because an
+    // exception is thrown if libheif is built without support for it.
+    heif::Encoder m_encoder { heif_compression_undefined };
     std::vector<unsigned char> scratch;
     std::vector<unsigned char> m_tilebuffer;
     int m_bitdepth = 0;
@@ -140,12 +142,13 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
         m_himage.add_plane(heif_channel_interleaved, newspec.width,
                            newspec.height, m_bitdepth);
 
-        m_encoder      = heif::Encoder(heif_compression_HEVC);
         auto compqual  = m_spec.decode_compression_metadata("", 75);
         auto extension = Filesystem::extension(m_filename);
         if (compqual.first == "avif"
             || (extension == ".avif" && compqual.first == "")) {
             m_encoder = heif::Encoder(heif_compression_AV1);
+        } else {
+            m_encoder = heif::Encoder(heif_compression_HEVC);
         }
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
