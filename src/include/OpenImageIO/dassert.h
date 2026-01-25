@@ -39,41 +39,44 @@
 #define OIIO_HARDENING_DEBUG 3
 
 // OIIO_HARDENING_DEFAULT defines the default hardening level we actually use.
-// By default, we use NONE for release builds and DEBUG for debug builds. But
-// any translation unit (including clients of OIIO) may override this by
-// defining OIIO_HARDENING_DEFAULT before including any OIIO headers. But note
-// that this only affects calls to inline functions or templates defined in
-// the headers. Non-inline functions compiled into the OIIO library, including
-// OIIO internal code itself, will have been compiled with whatever hardening
-// level was selected when the library was built.
+// By default, we use FAST for release builds and DEBUG for debug builds. But
+// it can be overridden:
+// - For OIIO internals, at OIIO build time with the `OIIO_HARDENING` CMake
+//   variable.
+// - For other projects using OIIO's headers, any translation unit may
+//   override this by defining OIIO_HARDENING_DEFAULT before including any
+//   OIIO headers. But note that this only affects calls to inline functions
+//   or templates defined in the headers. Non-inline functions compiled into
+//   the OIIO library itself will have been compiled with whatever hardening
+//   level was selected when the library was built.
 #ifndef OIIO_HARDENING_DEFAULT
 #    ifdef NDEBUG
-#        define OIIO_HARDENING_DEFAULT OIIO_HARDENING_NONE
+#        define OIIO_HARDENING_DEFAULT OIIO_HARDENING_FAST
 #    else
 #        define OIIO_HARDENING_DEFAULT OIIO_HARDENING_DEBUG
 #    endif
 #endif
 
 
-/// Choices for what to do when a contract assertion fails.
-/// This mimics the C++26 standard's std::contract behavior.
+// Choices for what to do when a contract assertion fails.
+// This mimics the C++26 standard's std::contract behavior.
 #define OIIO_ASSERTION_RESPONSE_IGNORE 0
 #define OIIO_ASSERTION_RESPONSE_OBSERVE 1
 #define OIIO_ASSERTION_RESPONSE_ENFORCE 2
 #define OIIO_ASSERTION_RESPONSE_QUICK_ENFORCE 3
 
 // OIIO_ASSERTION_RESPONSE_DEFAULT defines the default response to failed
-// contract assertions. By default, in NONE hardening mode and in release
-// builds, we do nothing. In all other cases, we abort. But any translation
+// contract assertions. By default, we enforce them, UNLESS we are a release
+// mode build that has set the hardening mode to NONE.  But any translation
 // unit (including clients of OIIO) may override this by defining
 // OIIO_ASSERTION_RESPONSE_DEFAULT before including any OIIO headers. But note
 // that this only affects calls to inline functions or templates defined in
-// the headers. Non-inline functions compiled into the OIIO library, including
-// OIIO internal code itself, will have been compiled with whatever response
-// was selected when the library was built.
+// the headers. Non-inline functions compiled into the OIIO library itself
+// will have been compiled with whatever response was selected when the
+// library was built.
 #ifndef OIIO_ASSERTION_RESPONSE_DEFAULT
 #    if OIIO_HARDENING_DEFAULT == OIIO_HARDENING_NONE && defined(NDEBUG)
-#        define OIIO_ASSERTION_RESPONSE_DEFAULT OIIO_ASSERTION_RESPONSE_ENFORCE
+#        define OIIO_ASSERTION_RESPONSE_DEFAULT OIIO_ASSERTION_RESPONSE_IGNORE
 #    else
 #        define OIIO_ASSERTION_RESPONSE_DEFAULT OIIO_ASSERTION_RESPONSE_ENFORCE
 #    endif

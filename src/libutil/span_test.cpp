@@ -485,21 +485,38 @@ benchmark_span()
 {
     Benchmarker bench;
     bench.iterations(iterations).trials(ntrials);
-    bench.work(1000);
-    std::array<float, 1000> f;
-    std::fill(f.begin(), f.end(), 1.0f);
-    int sum = 0;
+    const size_t N = 1000;
+    // bench.work(N);
+    std::array<float, N> fstdarr;
+    std::fill(fstdarr.begin(), fstdarr.end(), 1.0f);
+    bench("pointer operator[]", [&]() {
+        float* fptr(fstdarr.data());
+        float t = 0.0f;
+        for (size_t i = 0; i < N; ++i)
+            DoNotOptimize(t += fptr[i]);
+    });
+    bench("std::array operator[]", [&]() {
+        float t = 0.0f;
+        for (size_t i = 0; i < N; ++i)
+            DoNotOptimize(t += fstdarr[i]);
+    });
     bench("span operator[]", [&]() {
-        int t = 0;
-        for (size_t i = 0; i < f.size(); ++i)
-            DoNotOptimize(t += f[i]);
-        sum += t;
+        span<float> fspan(fstdarr);
+        float t = 0.0f;
+        for (size_t i = 0; i < N; ++i)
+            DoNotOptimize(t += fspan[i]);
+    });
+    bench("span unsafe indexing", [&]() {
+        span<float> fspan(fstdarr);
+        float t = 0.0f;
+        for (size_t i = 0; i < N; ++i)
+            DoNotOptimize(t += fspan.data()[i]);
     });
     bench("span range", [&]() {
-        int t = 0;
-        for (auto x : f)
+        span<float> fspan(fstdarr);
+        float t = 0.0f;
+        for (auto x : fspan)
             DoNotOptimize(t += x);
-        sum += t;
     });
 }
 
@@ -508,13 +525,18 @@ benchmark_span()
 int
 main(int argc, char* argv[])
 {
-#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
-    // For the sake of test time, reduce the default iterations for DEBUG,
-    // CI, and code coverage builds. Explicit use of --iters or --trials
-    // will override this, since it comes before the getargs() call.
-    iterations /= 10;
-    ntrials = 1;
+    // For the sake of test time, reduce the default number of benchmarking
+    // trials and iterations for DEBUG, CI, and code coverage builds. Explicit
+    // use of --iters or --trials will override this, since it comes before
+    // the getargs() call.
+    if (Strutil::eval_as_bool(Sysutil::getenv("OpenImageIO_CI"))
+#if !defined(NDEBUG) || defined(OIIO_CODE_COVERAGE)
+        || true
 #endif
+    ) {
+        iterations /= 10;
+        ntrials = 1;
+    }
 
     getargs(argc, argv);
 
