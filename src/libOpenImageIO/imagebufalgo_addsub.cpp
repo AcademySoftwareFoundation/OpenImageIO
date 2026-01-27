@@ -10,10 +10,6 @@
 #include <iostream>
 #include <limits>
 
-#if defined(_WIN32)
-#    include <malloc.h>  // for alloca
-#endif
-
 #include <OpenImageIO/half.h>
 
 #include <OpenImageIO/dassert.h>
