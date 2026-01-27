@@ -39,7 +39,6 @@
 #endif
 
 #ifdef _MSC_VER
-#    include <malloc.h>  // for alloca
 #    include <intrin.h>
 #endif
 
