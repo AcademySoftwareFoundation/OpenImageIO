@@ -312,8 +312,6 @@
 #endif
 #if defined(__GNUC__) || defined(__clang__)
 #    define OIIO_ALLOCA(type, size) (assert(size < (1<<20)), (size) != 0 ? ((type*)__builtin_alloca((size) * sizeof(type))) : nullptr)
-#elif defined(_MSC_VER)
-#    define OIIO_ALLOCA(type, size) (assert(size < (1<<20)), (size) != 0 ? ((type*)_alloca((size) * sizeof(type))) : nullptr)
 #else
 #    define OIIO_ALLOCA(type, size) (assert(size < (1<<20)), (size) != 0 ? ((type*)alloca((size) * sizeof(type))) : nullptr)
 #endif
