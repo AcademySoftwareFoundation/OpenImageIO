@@ -128,7 +128,7 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
     try {
         m_ctx.reset(new heif::Context);
         m_himage = heif::Image();
-        static heif_chroma chromas[/*nchannels*/]
+        const heif_chroma chromas[/*nchannels*/]
             = { heif_chroma_undefined, heif_chroma_monochrome,
                 heif_chroma_undefined,
                 (m_bitdepth == 8) ? heif_chroma_interleaved_RGB
