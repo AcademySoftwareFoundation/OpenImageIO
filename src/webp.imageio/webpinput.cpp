@@ -214,8 +214,11 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
     // Make space for the decoded image
     m_decoded_image.reset(new uint8_t[m_spec.image_bytes()]);
 
-    if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
+    if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1) {
         m_keep_unassociated_alpha = true;
+        if (m_spec.alpha_channel != -1)
+            m_spec.attribute("oiio:UnassociatedAlpha", 1);
+    }
 
     seek_subimage(0, 0);
     spec = m_spec;
