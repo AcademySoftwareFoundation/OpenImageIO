@@ -32,6 +32,35 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+
+class HeifReader final : public heif::Context::Reader {
+public:
+    HeifReader(Filesystem::IOProxy* ioproxy)
+        : m_ioproxy(ioproxy)
+    {
+        m_ioproxy->seek(0);
+    }
+    int64_t get_position() const override { return m_ioproxy->tell(); }
+    int read(void* data, size_t size) override
+    {
+        return m_ioproxy->read(data, size) == size ? 0 : -1;
+    }
+    int seek(int64_t position) override
+    {
+        return m_ioproxy->seek(position) ? 0 : -1;
+    }
+    heif_reader_grow_status wait_for_file_size(int64_t target_size) override
+    {
+        return target_size <= int64_t(m_ioproxy->size())
+                   ? heif_reader_grow_status_size_reached
+                   : heif_reader_grow_status_size_beyond_eof;
+    }
+
+private:
+    Filesystem::IOProxy* m_ioproxy;
+};
+
+
 class HeifInput final : public ImageInput {
 public:
     HeifInput() {}
@@ -39,13 +68,13 @@ public:
     const char* format_name(void) const override { return "heif"; }
     int supports(string_view feature) const override
     {
-        return feature == "exif"
+        return feature == "exif" || feature == "ioproxy"
 #if LIBHEIF_HAVE_VERSION(1, 9, 0)
                || feature == "cicp"
 #endif
             ;
     }
-    bool valid_file(const std::string& filename) const override;
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -67,12 +96,12 @@ private:
     bool m_do_associate            = false;
     bool m_reorient                = true;
     std::unique_ptr<heif::Context> m_ctx;
+    std::unique_ptr<HeifReader> m_reader;
     heif_item_id m_primary_id;             // id of primary image
     std::vector<heif_item_id> m_item_ids;  // ids of all other images
     heif::ImageHandle m_ihandle;
     heif::Image m_himage;
 };
-
 
 
 void
@@ -111,10 +140,12 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-HeifInput::valid_file(const std::string& filename) const
+HeifInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
     uint8_t magic[12];
-    if (Filesystem::read_bytes(filename, magic, sizeof(magic)) != sizeof(magic))
+    if (ioproxy->pread(magic, sizeof(magic), 0) != sizeof(magic))
         return false;
     heif_filetype_result filetype_check = heif_check_filetype(magic,
                                                               sizeof(magic));
@@ -141,7 +172,12 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
     m_filename = name;
     m_subimage = -1;
 
+    ioproxy_retrieve_from_config(config);
+    if (!ioproxy_use_or_open(name))
+        return false;
+
     m_ctx.reset(new heif::Context);
+    m_reader.reset(new HeifReader(ioproxy()));
     m_himage  = heif::Image();
     m_ihandle = heif::ImageHandle();
 
@@ -150,8 +186,7 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
     m_reorient = config.get_int_attribute("oiio:reorient", 1);
 
     try {
-        m_ctx->read_from_file(name);
-        // FIXME: should someday be read_from_reader to give full flexibility
+        m_ctx->read_from_reader(*m_reader);
 
         m_item_ids   = m_ctx->get_list_of_top_level_image_IDs();
         m_primary_id = m_ctx->get_primary_image_ID();
@@ -187,6 +222,7 @@ HeifInput::close()
     m_himage  = heif::Image();
     m_ihandle = heif::ImageHandle();
     m_ctx.reset();
+    m_reader.reset();
     m_subimage                = -1;
     m_num_subimages           = 0;
     m_associated_alpha        = true;
