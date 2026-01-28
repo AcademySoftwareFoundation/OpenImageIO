@@ -144,7 +144,19 @@ ispow2(T x) noexcept
     // Numerous references for this bit trick are on the web.  The
     // principle is that x is a power of 2 <=> x == 1<<b <=> x-1 is
     // all 1 bits for bits < b.
+#ifndef __INTEL_COMPILER
+    if constexpr (std::is_signed<T>::value) {
+        return (x & (x - 1)) == 0 && (x >= 0);
+    } else {
+        return (x & (x - 1)) == 0;
+    }
+#else
+    // Poor old icc doesn't recognize the above constexpr-if as returning in
+    // all cases and generates an error about no return value, so we just do
+    // it the old fashioned way. We can get rid of this nonsense when we stop
+    // supporting icc.
     return (x & (x - 1)) == 0 && (x >= 0);
+#endif
 }
 
 
