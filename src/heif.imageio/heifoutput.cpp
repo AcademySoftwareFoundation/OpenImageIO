@@ -29,7 +29,8 @@ public:
     const char* format_name(void) const override { return "heif"; }
     int supports(string_view feature) const override
     {
-        return feature == "alpha" || feature == "exif" || feature == "tiles"
+        return feature == "alpha" || feature == "exif" || feature == "ioproxy"
+               || feature == "tiles"
 #if LIBHEIF_HAVE_VERSION(1, 9, 0)
                || feature == "cicp"
 #endif
@@ -58,12 +59,9 @@ private:
 };
 
 
-
-namespace {
-
-class MyHeifWriter final : public heif::Context::Writer {
+class HeifWriter final : public heif::Context::Writer {
 public:
-    MyHeifWriter(Filesystem::IOProxy* ioproxy)
+    HeifWriter(Filesystem::IOProxy* ioproxy)
         : m_ioproxy(ioproxy)
     {
     }
@@ -83,9 +81,6 @@ public:
 private:
     Filesystem::IOProxy* m_ioproxy = nullptr;
 };
-
-}  // namespace
-
 
 
 OIIO_PLUGIN_EXPORTS_BEGIN
@@ -113,6 +108,11 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
         return false;
 
     m_filename = name;
+
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name)) {
+        return false;
+    }
 
     m_bitdepth = m_spec.format.size() > TypeUInt8.size() ? 10 : 8;
     m_bitdepth = m_spec.get_int_attribute("oiio:BitsPerSample", m_bitdepth);
@@ -221,7 +221,9 @@ HeifOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 bool
 HeifOutput::close()
 {
-    if (!m_ctx) {  // already closed
+    if (!m_ctx || !ioproxy_opened()) {  // already closed
+        m_ctx.reset();
+        ioproxy_clear();
         return true;
     }
 
@@ -286,25 +288,20 @@ HeifOutput::close()
 #endif
         }
         m_ctx->set_primary_image(m_ihandle);
-        Filesystem::IOFile ioproxy(m_filename, Filesystem::IOProxy::Write);
-        if (ioproxy.mode() != Filesystem::IOProxy::Write) {
-            errorfmt("Could not open \"{}\"", m_filename);
-            ok = false;
-        } else {
-            MyHeifWriter writer(&ioproxy);
-            m_ctx->write(writer);
-        }
+        HeifWriter writer(ioproxy());
+        m_ctx->write(writer);
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
-        return false;
+        ok = false;
     } catch (const std::exception& err) {
         std::string e = err.what();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
-        return false;
+        ok = false;
     }
 
     m_ctx.reset();
+    ioproxy_clear();
     return ok;
 }
 
