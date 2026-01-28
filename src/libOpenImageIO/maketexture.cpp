@@ -929,7 +929,8 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                         std::swap(small, sharp);
                     }
                     if (do_highlight_compensation) {
-                        ImageBufAlgo::rangeexpand(*small, *small);
+                        ImageBufAlgo::rangeexpand(*small, *small, false, ROI(),
+                                                  nthreads);
                         ImageBufAlgo::clamp(*small, *small, 0.0f,
                                             std::numeric_limits<float>::max(),
                                             true, ROI(), nthreads);
@@ -1452,7 +1453,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         std::shared_ptr<ImageBuf> newsrc(new ImageBuf(src->spec()));
         ImageBufAlgo::channels(*newsrc, *src, src->nchannels() - 1,
                                cspan<int>(), cspan<float>(),
-                               cspan<std::string>(), true);
+                               cspan<std::string>(), true, nthreads);
         std::swap(src, newsrc);  // N.B. the old src will delete
     }
 
@@ -1851,7 +1852,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         toplevel.reset(new ImageBuf(dstspec));
         if ((resize_filter == "box" || resize_filter == "triangle")
             && !orig_was_overscan) {
-            ImageBufAlgo::parallel_image(get_roi(dstspec), paropt(nthreads),
+            ImageBufAlgo::parallel_image(get_roi(dstspec), nthreads,
                                          [&](ROI roi) {
                                              resize_block(*toplevel, *src, roi,
                                                           envlatlmode,
