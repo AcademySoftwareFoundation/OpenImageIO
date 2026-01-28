@@ -73,7 +73,7 @@ WebpImageWriter(const uint8_t* img_data, size_t data_size,
 bool
 WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
-    if (!check_open(mode, spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 },
+    if (!check_open(mode, spec, { 0, 16383, 0, 16383, 0, 1, 0, 4 },
                     uint64_t(OpenChecks::Disallow1or2Channel)))
         return false;
 
