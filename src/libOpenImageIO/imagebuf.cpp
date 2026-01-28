@@ -2140,6 +2140,22 @@ ImageBuf::localpixels()
 
 
 
+image_span<const std::byte>
+ImageBuf::localpixels_as_byte_image_span() const
+{
+    return m_impl->m_bufspan;
+}
+
+
+
+image_span<std::byte>
+ImageBuf::localpixels_as_writable_byte_image_span()
+{
+    return m_impl->m_readonly ? image_span<std::byte>() : m_impl->m_bufspan;
+}
+
+
+
 const void*
 ImageBuf::localpixels() const
 {
