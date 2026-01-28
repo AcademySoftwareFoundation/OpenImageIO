@@ -9,6 +9,8 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "imageio_pvt.h"
+
 #include <libheif/heif_cxx.h>
 
 #define MAKE_LIBHEIF_VERSION(a, b, c, d) \
@@ -66,6 +68,7 @@ private:
     bool m_keep_unassociated_alpha = false;
     bool m_do_associate            = false;
     bool m_reorient                = true;
+    std::string m_image_state_default;
     std::unique_ptr<heif::Context> m_ctx;
     heif_item_id m_primary_id;             // id of primary image
     std::vector<heif_item_id> m_item_ids;  // ids of all other images
@@ -147,7 +150,9 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
 
     m_keep_unassociated_alpha
         = (config.get_int_attribute("oiio:UnassociatedAlpha") != 0);
-    m_reorient = config.get_int_attribute("oiio:reorient", 1);
+    m_reorient            = config.get_int_attribute("oiio:reorient", 1);
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
 
     try {
         m_ctx->read_from_file(name);
@@ -273,7 +278,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     if (m_bitdepth > 8) {
         m_spec.attribute("oiio:BitsPerSample", m_bitdepth);
     }
-    m_spec.set_colorspace("srgb_rec709_scene");
+    pvt::set_colorspace_srgb(m_spec, m_image_state_default);
 
 #if LIBHEIF_HAVE_VERSION(1, 9, 0)
     // Read CICP. Have to use the C API to get it from the image handle,
@@ -299,12 +304,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
                                       int(nclx->transfer_characteristics),
                                       int(nclx->matrix_coefficients),
                                       int(nclx->full_range_flag ? 1 : 0) };
-                m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
-                const ColorConfig& colorconfig(
-                    ColorConfig::default_colorconfig());
-                string_view interop_id = colorconfig.get_color_interop_id(cicp);
-                if (!interop_id.empty())
-                    m_spec.attribute("oiio:ColorSpace", interop_id);
+                pvt::set_colorspace_cicp(m_spec, cicp, m_image_state_default);
             }
             heif_nclx_color_profile_free(nclx);
         }

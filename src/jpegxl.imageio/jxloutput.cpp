@@ -12,6 +12,8 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "imageio_pvt.h"
+
 #include <jxl/decode.h>
 #include <jxl/encode.h>
 #include <jxl/encode_cxx.h>
@@ -542,18 +544,12 @@ JxlOutput::save_image(const void* data)
     bool wrote_colorspace = false;
 
     // Write the ICC profile, if available
-    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
-        "ICCProfile");
-    if (icc_profile_parameter != nullptr) {
-        unsigned char* icc_profile
-            = (unsigned char*)icc_profile_parameter->data();
-        uint32_t length = icc_profile_parameter->type().size();
-        if (icc_profile && length) {
-            if (JXL_ENC_SUCCESS
-                != JxlEncoderSetICCProfile(m_encoder.get(), icc_profile,
-                                           length)) {
-                errorfmt("JxlEncoderSetICCProfile failed\n");
-            }
+    std::vector<uint8_t> icc_profile = pvt::get_colorspace_icc_profile(m_spec);
+    if (icc_profile.size()) {
+        if (JXL_ENC_SUCCESS
+            != JxlEncoderSetICCProfile(m_encoder.get(), icc_profile.data(),
+                                       icc_profile.size())) {
+            errorfmt("JxlEncoderSetICCProfile failed\n");
             wrote_colorspace = true;
         }
     }

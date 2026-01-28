@@ -51,9 +51,10 @@ private:
     int m_subimage;                    ///< What subimage are we looking at?
     Imath::Color3f m_bg;               ///< Background color
     int m_next_scanline;
-    bool m_keep_unassociated_alpha;  ///< Do not convert unassociated alpha
-    bool m_linear_premult;           ///< Do premult for sRGB images in linear
-    bool m_srgb   = false;           ///< It's an sRGB image (not gamma)
+    bool m_keep_unassociated_alpha;     ///< Do not convert unassociated alpha
+    std::string m_image_state_default;  ///< Default image state for color space
+    bool m_linear_premult;  ///< Do premult for sRGB images in linear
+    bool m_srgb   = false;  ///< It's an sRGB image (not gamma)
     bool m_err    = false;
     float m_gamma = 1.0f;
     std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
@@ -170,29 +171,23 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
 
     bool ok = PNG_pvt::read_info(m_png, m_info, m_bit_depth, m_color_type,
                                  m_interlace_type, m_bg, m_spec,
-                                 m_keep_unassociated_alpha);
+                                 m_keep_unassociated_alpha,
+                                 m_image_state_default);
     if (!ok || m_err
         || !check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 })) {
         close();
         return false;
     }
 
-    string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
-                                                         "srgb_rec709_scene");
-    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-    m_srgb = false;
-    if (colorconfig.equivalent(colorspace, "srgb_rec709_scene")) {
+    if (pvt::is_colorspace_srgb(m_spec)) {
         m_srgb  = true;
         m_gamma = 1.0f;
-    } else if (colorconfig.equivalent(colorspace, "g22_rec709_scene")) {
-        m_gamma = 2.2f;
-    } else if (colorconfig.equivalent(colorspace, "g24_rec709_scene")) {
-        m_gamma = 2.4f;
-    } else if (colorconfig.equivalent(colorspace, "g18_rec709_scene")) {
-        m_gamma = 1.8f;
     } else {
-        m_gamma = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
-        // obsolete "oiio:Gamma" attrib for back compatibility
+        m_srgb  = false;
+        m_gamma = pvt::get_colorspace_rec709_gamma(m_spec);
+        if (m_gamma == 0.0f) {
+            m_gamma = 1.0f;
+        }
     }
 
     newspec         = spec();
@@ -210,6 +205,8 @@ PNGInput::open(const std::string& name, ImageSpec& newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
     m_linear_premult = config.get_int_attribute("png:linear_premult",
                                                 OIIO::get_int_attribute(
                                                     "png:linear_premult"));

@@ -7,6 +7,8 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "imageio_pvt.h"
+
 #include <webp/decode.h>
 #include <webp/demux.h>
 
@@ -47,6 +49,7 @@ private:
     int m_subimage      = -1;                // Subimage we're pointed to
     int m_subimage_read = -1;                // Subimage stored in decoded_image
     bool m_keep_unassociated_alpha = false;  // Do not convert unassociated alpha
+    std::string m_image_state_default;  // Default image state for color space
 
     void init(void)
     {
@@ -162,7 +165,8 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
 
     m_spec = ImageSpec(w, h, (m_demux_flags & ALPHA_FLAG) ? 4 : 3, TypeUInt8);
     m_scanline_size = m_spec.scanline_bytes();
-    m_spec.set_colorspace("srgb_rec709_scene");  // webp is always sRGB
+    pvt::set_colorspace_srgb(m_spec,
+                             m_image_state_default);  // webp is always sRGB
     if (m_demux_flags & ANIMATION_FLAG) {
         m_spec.attribute("oiio:Movie", 1);
         m_frame_count       = (int)WebPDemuxGetI(m_demux, WEBP_FF_FRAME_COUNT);
@@ -216,6 +220,9 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
 
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
 
     seek_subimage(0, 0);
     spec = m_spec;

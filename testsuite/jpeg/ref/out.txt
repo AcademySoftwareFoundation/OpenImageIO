@@ -4,6 +4,6 @@ src/YCbCrK.jpg       :   52 x   52, 3 channel, uint8 jpeg
     channel list: R, G, B
     jpeg:ColorSpace: "YCbCrK"
     jpeg:subsampling: "4:4:4"
-    oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:ColorSpace: "srgb_rec709_display"
 Comparing "rgb-from-YCbCrK.tif" and "ref/rgb-from-YCbCrK.tif"
 PASS

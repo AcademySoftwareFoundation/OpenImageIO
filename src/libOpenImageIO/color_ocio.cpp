@@ -56,7 +56,6 @@ static int disable_builtin_configs = Strutil::stoi(
 static OCIO::ConstConfigRcPtr ocio_current_config;
 
 
-
 const ColorConfig&
 ColorConfig::default_colorconfig()
 {
@@ -159,13 +158,15 @@ struct CSInfo {
     int index;         // More than one can have the same index -- aliases
     enum Flags {
         none               = 0,
-        is_linear_response = 1,   // any cs with linear transfer function
-        is_scene_linear    = 2,   // equivalent to scene_linear
-        is_srgb            = 4,   // sRGB (primaries, and transfer function)
-        is_lin_srgb        = 8,   // sRGB/Rec709 primaries, linear response
-        is_ACEScg          = 16,  // ACEScg
-        is_Rec709          = 32,  // Rec709 primaries and transfer function
-        is_known           = is_srgb | is_lin_srgb | is_ACEScg | is_Rec709
+        is_linear_response = 1,  // any cs with linear transfer function
+        is_scene_linear    = 2,  // equivalent to scene_linear
+        is_srgb_display = 4,  // sRGB (primaries, and transfer function) display
+        is_srgb_scene   = 8,  // sRGB (primaries, and transfer function) scene
+        is_lin_srgb     = 16,  // sRGB/Rec709 primaries, linear response
+        is_ACEScg       = 32,  // ACEScg
+        is_Rec709       = 64,  // Rec709 primaries and transfer function
+        is_known = is_srgb_display | is_srgb_scene | is_lin_srgb | is_ACEScg
+                   | is_Rec709
     };
     int m_flags   = 0;
     bool examined = false;
@@ -207,7 +208,8 @@ private:
     std::vector<CSInfo> colorspaces;
     std::string scene_linear_alias;  // Alias for a scene-linear color space
     std::string lin_srgb_alias;
-    std::string srgb_alias;
+    std::string srgb_display_alias;
+    std::string srgb_scene_alias;
     std::string ACEScg_alias;
     std::string Rec709_alias;
     mutable spin_rw_mutex m_mutex;
@@ -403,9 +405,9 @@ private:
 
     void debug_print_aliases()
     {
-        DBG("Aliases: scene_linear={}   lin_srgb={}   srgb={}   ACEScg={}   Rec709={}\n",
-            scene_linear_alias, lin_srgb_alias, srgb_alias, ACEScg_alias,
-            Rec709_alias);
+        DBG("Aliases: scene_linear={}   lin_srgb={}   srgb_display={}   srgb_scene={}   ACEScg={}   Rec709={}\n",
+            scene_linear_alias, lin_srgb_alias, srgb_display_alias,
+            srgb_scene_alias, ACEScg_alias, Rec709_alias);
     }
 
     // For OCIO 2.3+, we can ask for the equivalent of some built-in
@@ -423,7 +425,7 @@ private:
 
 
 // ColorConfig utility to take inventory of the color spaces available.
-// It sets up knowledge of "linear", "srgb_rec709_scene", "Rec709", etc,
+// It sets up knowledge of "linear", "srgb_rec709_display", "Rec709", etc,
 // even if the underlying OCIO configuration lacks them.
 void
 ColorConfig::Impl::inventory()
@@ -431,12 +433,23 @@ ColorConfig::Impl::inventory()
     DBG("inventorying config {}\n", configname());
     if (config_ && !disable_ocio) {
         bool nonraw = false;
-        for (int i = 0, e = config_->getNumColorSpaces(); i < e; ++i)
-            nonraw |= !Strutil::iequals(config_->getColorSpaceNameByIndex(i),
+        // In older ACES configs the display color spaces are inactive but they
+        // are essential for interop IDs like srgb_rec709_display to work.
+        const int numcolorspaces
+            = config_->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                         OCIO::COLORSPACE_ALL);
+        for (int i = 0; i < numcolorspaces; ++i)
+            nonraw |= !Strutil::iequals(config_->getColorSpaceNameByIndex(
+                                            OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                            OCIO::COLORSPACE_ALL, i),
                                         "raw");
         if (nonraw) {
-            for (int i = 0, e = config_->getNumColorSpaces(); i < e; ++i)
-                add(config_->getColorSpaceNameByIndex(i), i);
+            for (int i = 0; i < numcolorspaces; ++i) {
+                add(config_->getColorSpaceNameByIndex(
+                        OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ALL,
+                        i),
+                    i);
+            }
             for (auto&& cs : colorspaces)
                 classify_by_name(cs);
             OCIO::ConstColorSpaceRcPtr lin = config_->getColorSpace(
@@ -466,8 +479,9 @@ ColorConfig::Impl::inventory()
     add("lin_rec709_scene", 0, linflags);
     add("lin_srgb", 0, linflags);
     add("lin_rec709", 0, linflags);
-    add("srgb_rec709_scene", 1, CSInfo::is_srgb);
-    add("sRGB", 1, CSInfo::is_srgb);
+    add("srgb_rec709_display", 1, CSInfo::is_srgb_display);
+    add("srgb_rec709_scene", 1, CSInfo::is_srgb_scene);
+    add("sRGB", 1, CSInfo::is_srgb_scene);
     add("Rec709", 2, CSInfo::is_Rec709);
 
     for (auto&& cs : colorspaces)
@@ -581,14 +595,18 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
     // General heuristics based on the names -- for a few canonical names,
     // believe them! Woe be unto the poor soul who names a color space "sRGB"
     // or "ACEScg" and it's really something entirely different.
-    if (Strutil::iequals(cs.name, "srgb_rec709_scene")
-        || Strutil::iequals(cs.name, "srgb_tx")
-        || Strutil::iequals(cs.name, "srgb_texture")
-        || Strutil::iequals(cs.name, "srgb texture")
-        || Strutil::iequals(cs.name, "srgb_rec709_scene")
-        || Strutil::iequals(cs.name, "sRGB - Texture")
-        || Strutil::iequals(cs.name, "sRGB")) {
-        cs.setflag(CSInfo::is_srgb, srgb_alias);
+    //
+    if (Strutil::iequals(cs.name, "srgb_rec709_display")
+        || Strutil::iequals(cs.name, "srgb_display")
+        || Strutil::iequals(cs.name, "sRGB - Display")) {
+        cs.setflag(CSInfo::is_srgb_display, srgb_display_alias);
+    } else if (Strutil::iequals(cs.name, "srgb_rec709_scene")
+               || Strutil::iequals(cs.name, "srgb_tx")
+               || Strutil::iequals(cs.name, "srgb_texture")
+               || Strutil::iequals(cs.name, "srgb texture")
+               || Strutil::iequals(cs.name, "sRGB - Texture")
+               || Strutil::iequals(cs.name, "sRGB")) {
+        cs.setflag(CSInfo::is_srgb_scene, srgb_scene_alias);
     } else if (Strutil::iequals(cs.name, "lin_rec709_scene")
                || Strutil::iequals(cs.name, "lin_rec709")
                || Strutil::iequals(cs.name, "Linear Rec.709 (sRGB)")
@@ -611,7 +629,7 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
                    ACEScg_alias);
     } else if (cs.name == "srgbf" || cs.name == "srgbh" || cs.name == "srgb16"
                || cs.name == "srgb8") {
-        cs.setflag(CSInfo::is_srgb, srgb_alias);
+        cs.setflag(CSInfo::is_srgb_display, srgb_display_alias);
     } else if (cs.name == "srgblnf" || cs.name == "srgblnh"
                || cs.name == "srgbln16" || cs.name == "srgbln8") {
         cs.setflag(CSInfo::is_lin_srgb, lin_srgb_alias);
@@ -619,7 +637,9 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
 #endif
 
     // Set up some canonical names
-    if (cs.flags() & CSInfo::is_srgb)
+    if (cs.flags() & CSInfo::is_srgb_display)
+        cs.canonical = "srgb_rec709_display";
+    else if (cs.flags() & CSInfo::is_srgb_scene)
         cs.canonical = "srgb_rec709_scene";
     else if (cs.flags() & CSInfo::is_lin_srgb)
         cs.canonical = "lin_rec709_scene";
@@ -666,8 +686,11 @@ ColorConfig::Impl::classify_by_conversions(CSInfo& cs)
             // inversion costs, and they're not gonna be our favourite
             // canonical spaces anyway.
             // DBG("{} has LUT3\n", cs.name);
+        } else if (check_same_as_builtin_transform(cs.name.c_str(),
+                                                   "srgb_display")) {
+            cs.setflag(CSInfo::is_srgb_display, srgb_display_alias);
         } else if (check_same_as_builtin_transform(cs.name.c_str(), "srgb_tx")) {
-            cs.setflag(CSInfo::is_srgb, srgb_alias);
+            cs.setflag(CSInfo::is_srgb_scene, srgb_scene_alias);
         } else if (check_same_as_builtin_transform(cs.name.c_str(),
                                                    "lin_srgb")) {
             cs.setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
@@ -679,7 +702,9 @@ ColorConfig::Impl::classify_by_conversions(CSInfo& cs)
     }
 
     // Set up some canonical names
-    if (cs.flags() & CSInfo::is_srgb)
+    if (cs.flags() & CSInfo::is_srgb_display)
+        cs.canonical = "srgb_rec709_display";
+    else if (cs.flags() & CSInfo::is_srgb_scene)
         cs.canonical = "srgb_rec709_scene";
     else if (cs.flags() & CSInfo::is_lin_srgb)
         cs.canonical = "lin_rec709_scene";
@@ -729,14 +754,23 @@ ColorConfig::Impl::identify_builtin_equivalents()
     if (disable_builtin_configs)
         return;
     Timer timer;
+    if (auto n = IdentifyBuiltinColorSpace("srgb_display")) {
+        if (CSInfo* cs = find(n)) {
+            cs->setflag(CSInfo::is_srgb_display, srgb_display_alias);
+            DBG("Identified {} = builtin '{}'\n", "srgb_rec709_display",
+                cs->name);
+        }
+    } else {
+        DBG("No config space identified as srgb_display\n");
+    }
     if (auto n = IdentifyBuiltinColorSpace("srgb_tx")) {
         if (CSInfo* cs = find(n)) {
-            cs->setflag(CSInfo::is_srgb, srgb_alias);
+            cs->setflag(CSInfo::is_srgb_scene, srgb_scene_alias);
             DBG("Identified {} = builtin '{}'\n", "srgb_rec709_scene",
                 cs->name);
         }
     } else {
-        DBG("No config space identified as srgb\n");
+        DBG("No config space identified as srgb_scene\n");
     }
     DBG("identify_builtin_equivalents srgb took {:0.2f}s\n", timer.lap());
     if (auto n = IdentifyBuiltinColorSpace("lin_srgb")) {
@@ -839,8 +873,10 @@ ColorConfig::Impl::init(string_view filename)
     for (auto&& cs : colorspaces) {
         // examine(&cs);
         DBG("Color space '{}':\n", cs.name);
-        if (cs.flags() & CSInfo::is_srgb)
-            DBG("'{}' is srgb\n", cs.name);
+        if (cs.flags() & CSInfo::is_srgb_display)
+            DBG("'{}' is srgb_display\n", cs.name);
+        if (cs.flags() & CSInfo::is_srgb_scene)
+            DBG("'{}' is srgb_scene\n", cs.name);
         if (cs.flags() & CSInfo::is_lin_srgb)
             DBG("'{}' is lin_srgb\n", cs.name);
         if (cs.flags() & CSInfo::is_ACEScg)
@@ -1339,8 +1375,9 @@ ColorConfig::Impl::resolve(string_view name) const
     if (config && !disable_ocio) {
         const char* namestr           = c_str(name);
         OCIO::ConstColorSpaceRcPtr cs = config->getColorSpace(namestr);
-        if (cs)
+        if (cs) {
             return cs->getName();
+        }
     }
     // OCIO did not know this name as a color space, role, or alias.
 
@@ -1348,8 +1385,11 @@ ColorConfig::Impl::resolve(string_view name) const
     spin_rw_write_lock lock(m_mutex);
     if ((Strutil::iequals(name, "sRGB")
          || Strutil::iequals(name, "srgb_rec709_scene"))
-        && !srgb_alias.empty())
-        return srgb_alias;
+        && !srgb_scene_alias.empty())
+        return srgb_scene_alias;
+    if (Strutil::iequals(name, "srgb_rec709_display")
+        && !srgb_display_alias.empty())
+        return srgb_display_alias;
     if ((Strutil::iequals(name, "lin_srgb")
          || Strutil::iequals(name, "lin_rec709")
          || Strutil::iequals(name, "lin_rec709_scene")
@@ -1393,7 +1433,8 @@ ColorConfig::equivalent(string_view color_space1,
 
     // If the color spaces' flags (when masking only the bits that refer to
     // specific known color spaces) match, consider them equivalent.
-    const int mask = CSInfo::is_srgb | CSInfo::is_lin_srgb | CSInfo::is_ACEScg
+    const int mask = CSInfo::is_srgb_display | CSInfo::is_srgb_scene
+                     | CSInfo::is_lin_srgb | CSInfo::is_ACEScg
                      | CSInfo::is_Rec709;
     const CSInfo* csi1 = getImpl()->find(color_space1);
     const CSInfo* csi2 = getImpl()->find(color_space2);
@@ -2057,9 +2098,47 @@ struct ColorInteropID {
 // Mapping between color interop ID and CICP, based on Color Interop Forum
 // recommendations.
 constexpr ColorInteropID color_interop_ids[] = {
-    // Scene referred interop IDs first so they are the default in automatic
-    // conversion from CICP to interop ID. Some are not display color spaces
-    // at all, but can be represented by CICP anyway.
+    // Display referred interop IDs first so they are the default in automatic.
+    // conversion from CICP to interop ID.
+    { "srgb_rec709_display", CICPPrimaries::Rec709, CICPTransfer::sRGB,
+      CICPMatrix::BT709 },
+    // Not all software interprets this CICP the same, see the
+    // "QuickTime Gamma Shift" issue. We follow the CIF recommendation and
+    // interpret it as BT.1886.
+    { "g24_rec709_display", CICPPrimaries::Rec709, CICPTransfer::BT709,
+      CICPMatrix::BT709 },
+    { "srgb_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
+      CICPMatrix::BT709 },
+    { "srgbe_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
+      CICPMatrix::BT709 },
+    { "pq_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::PQ,
+      CICPMatrix::Rec2020_NCL },
+    { "pq_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::PQ,
+      CICPMatrix::Rec2020_NCL },
+    { "hlg_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::HLG,
+      CICPMatrix::Rec2020_NCL },
+    // Mapped to sRGB as a gamma 2.2 display is more likely meant to be written
+    // as sRGB. This type of display is often used to correct for the discrepancy
+    // where images are encoded as sRGB but usually decoded as gamma 2.2 by the
+    // physical display.
+    // For read and write, g22_rec709_scene. still maps to Gamma 2.2.
+    { "g22_rec709_display", CICPPrimaries::Rec709, CICPTransfer::sRGB,
+      CICPMatrix::BT709 },
+    // No CICP code for Adobe RGB primaries.
+    { "g22_adobergb_display" },
+    { "g26_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::Gamma26,
+      CICPMatrix::BT709 },
+    { "g26_xyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::Gamma26,
+      CICPMatrix::Unspecified },
+    { "pq_xyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::PQ,
+      CICPMatrix::Unspecified },
+    // OpenColorIO interop IDs.
+    { "ocio:lin_ciexyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::Linear,
+      CICPMatrix::Unspecified },
+
+    // Scene referred interop IDs. These have CICPs even if it can be argued
+    // those are only meant for display color spaces. It still improves interop
+    // with other software that does not care about the distinction.
     { "lin_ap1_scene" },
     { "lin_ap0_scene" },
     { "lin_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::Linear,
@@ -2083,35 +2162,12 @@ constexpr ColorInteropID color_interop_ids[] = {
     { "g22_adobergb_scene" },
     { "data" },
     { "unknown" },
-
-    // Display referred interop IDs.
-    { "srgb_rec709_display", CICPPrimaries::Rec709, CICPTransfer::sRGB,
+    // OpenColorIO interop IDs.
+    { "ocio:g24_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::BT709,
       CICPMatrix::BT709 },
-    { "g24_rec709_display", CICPPrimaries::Rec709, CICPTransfer::BT709,
-      CICPMatrix::BT709 },
-    { "srgb_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "srgbe_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "pq_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::PQ,
-      CICPMatrix::Rec2020_NCL },
-    { "pq_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::PQ,
-      CICPMatrix::Rec2020_NCL },
-    { "hlg_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::HLG,
-      CICPMatrix::Rec2020_NCL },
-    // No CICP mapping to keep previous behavior unchanged, as Gamma 2.2
-    // display is more likely meant to be written as sRGB. On read the
-    // scene referred interop ID will be used.
-    { "g22_rec709_display",
-      /* CICPPrimaries::Rec709, CICPTransfer::Gamma22, CICPMatrix::BT709 */ },
-    // No CICP code for Adobe RGB primaries.
-    { "g22_adobergb_display" },
-    { "g26_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::Gamma26,
-      CICPMatrix::BT709 },
-    { "g26_xyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::Gamma26,
-      CICPMatrix::Unspecified },
-    { "pq_xyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::PQ,
-      CICPMatrix::Unspecified },
+    // Not mapped to any CICP, because we already interpret the potential CICP
+    // as g24_rec709_*, see explanation for g24_rec709_display above.
+    { "ocio:itu709_rec709_scene" },
 };
 }  // namespace
 
@@ -2139,15 +2195,23 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
 }
 
 string_view
-ColorConfig::get_color_interop_id(const int cicp[4]) const
+ColorConfig::get_color_interop_id(const int cicp[4],
+                                  string_view image_state_default) const
 {
+    string_view other_interop_id = "";
     for (const ColorInteropID& interop : color_interop_ids) {
         if (interop.has_cicp && interop.cicp[0] == cicp[0]
             && interop.cicp[1] == cicp[1]) {
-            return interop.interop_id;
+            if (!Strutil::ends_with(interop.interop_id, image_state_default)) {
+                if (other_interop_id.empty()) {
+                    other_interop_id = interop.interop_id;
+                }
+            } else {
+                return interop.interop_id;
+            }
         }
     }
-    return "";
+    return other_interop_id;
 }
 
 cspan<int>
@@ -2775,6 +2839,20 @@ ImageBufAlgo::colorconvert(span<float> color, const ColorProcessor* processor,
 void
 ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
 {
+    OIIO::set_colorspace(spec, colorspace);
+}
+
+
+void
+ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
+{
+    OIIO::pvt::set_colorspace_rec709_gamma(spec, gamma, string_view());
+}
+
+
+void
+set_colorspace(ImageSpec& spec, string_view colorspace)
+{
     // If we're not changing color space, don't mess with anything
     string_view oldspace = spec.get_string_attribute("oiio:ColorSpace");
     if (oldspace.size() && colorspace.size() && oldspace == colorspace)
@@ -2791,42 +2869,11 @@ ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
     // including some format-specific things that we don't want to propagate
     // from input to output if we know that color space transformations have
     // occurred.
-    if (!equivalent(colorspace, "srgb_rec709_scene"))
+    if (!OIIO::pvt::is_colorspace_srgb(spec, false))
         spec.erase_attribute("Exif:ColorSpace");
     spec.erase_attribute("tiff:ColorSpace");
     spec.erase_attribute("tiff:PhotometricInterpretation");
     spec.erase_attribute("oiio:Gamma");
-}
-
-
-
-void
-ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
-{
-    gamma = std::round(gamma * 100.0f) / 100.0f;
-    if (fabsf(gamma - 1.0f) <= 0.01f) {
-        set_colorspace(spec, "lin_rec709_scene");
-    } else if (fabsf(gamma - 1.8f) <= 0.01f) {
-        set_colorspace(spec, "g18_rec709_scene");
-        spec.attribute("oiio:Gamma", 1.8f);
-    } else if (fabsf(gamma - 2.2f) <= 0.01f) {
-        set_colorspace(spec, "g22_rec709_scene");
-        spec.attribute("oiio:Gamma", 2.2f);
-    } else if (fabsf(gamma - 2.4f) <= 0.01f) {
-        set_colorspace(spec, "g24_rec709_scene");
-        spec.attribute("oiio:Gamma", 2.4f);
-    } else {
-        set_colorspace(spec, Strutil::fmt::format("g{}_rec709_scene",
-                                                  std::lround(gamma * 10.0f)));
-        spec.attribute("oiio:Gamma", gamma);
-    }
-}
-
-
-void
-set_colorspace(ImageSpec& spec, string_view colorspace)
-{
-    ColorConfig::default_colorconfig().set_colorspace(spec, colorspace);
 }
 
 void
@@ -2835,5 +2882,137 @@ set_colorspace_rec709_gamma(ImageSpec& spec, float gamma)
     ColorConfig::default_colorconfig().set_colorspace_rec709_gamma(spec, gamma);
 }
 
+OIIO_NAMESPACE_3_1_END
+
+OIIO_NAMESPACE_BEGIN
+
+void
+pvt::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma,
+                                 string_view image_state_default)
+{
+    gamma = std::round(gamma * 100.0f) / 100.0f;
+    if (fabsf(gamma - 1.0f) <= 0.01f) {
+        set_colorspace(spec, "lin_rec709_scene");
+    } else if (fabsf(gamma - 1.8f) <= 0.01f) {
+        set_colorspace(spec, "g18_rec709_scene");
+        spec.attribute("oiio:Gamma", 1.8f);
+    } else if (fabsf(gamma - 2.2f) <= 0.01f) {
+        set_colorspace(spec, (image_state_default == "scene")
+                                 ? "g22_rec709_scene"
+                                 : "g22_rec709_display");
+        spec.attribute("oiio:Gamma", 2.2f);
+    } else if (fabsf(gamma - 2.4f) <= 0.01f) {
+        set_colorspace(spec, (image_state_default == "scene")
+                                 ? "ocio:g24_rec709_scene"
+                                 : "g24_rec709_display");
+        spec.attribute("oiio:Gamma", 2.4f);
+    } else {
+        set_colorspace(spec, Strutil::fmt::format("g{}_rec709_display",
+                                                  std::lround(gamma * 10.0f)));
+        spec.attribute("oiio:Gamma", gamma);
+    }
+}
+
+
+void
+pvt::set_colorspace_srgb(ImageSpec& spec, string_view image_state_default,
+                         bool erase_other_attributes)
+{
+    string_view srgb_colorspace = (image_state_default == "scene")
+                                      ? "srgb_rec709_scene"
+                                      : "srgb_rec709_display";
+    if (erase_other_attributes) {
+        spec.set_colorspace(srgb_colorspace);
+    } else {
+        spec.attribute("oiio:ColorSpace", srgb_colorspace);
+    }
+}
+
+float
+pvt::get_colorspace_rec709_gamma(const ImageSpec& spec)
+{
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
+    string_view interop_id = colorconfig.get_color_interop_id(colorspace);
+
+    // scene_linear is not guaranteed to be Rec709, here for back compatibility
+    if (colorconfig.equivalent(colorspace, "linear")
+        || colorconfig.equivalent(colorspace, "scene_linear")
+        || interop_id == "lin_rec709_scene")
+        return 1.0f;
+    // See the interop table above for why g22_rec709_display is not treated as gamma
+    else if (interop_id == "g22_rec709_scene")
+        return 2.2f;
+    else if (interop_id == "ocio:g24_rec709_scene"
+             || interop_id == "g24_rec709_display")
+        return 2.4f;
+    // Note g18_rec709_display is not an interop ID
+    else if (interop_id == "g18_rec709_scene")
+        return 1.8f;
+    // Back compatible, this is DEPRECATED(3.1)
+    else if (Strutil::istarts_with(colorspace, "Gamma")) {
+        Strutil::parse_word(colorspace);
+        float g = Strutil::from_string<float>(colorspace);
+        if (g >= 0.01f && g <= 10.0f /* sanity check */)
+            return g;
+    }
+
+    // Obsolete "oiio:Gamma" attrib for back compatibility
+    return spec.get_float_attribute("oiio:Gamma", 0.0f);
+}
+
+bool
+pvt::is_colorspace_srgb(const ImageSpec& spec, bool default_to_srgb)
+{
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
+    if (default_to_srgb && colorspace.empty()) {
+        return true;
+    }
+
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view interop_id = colorconfig.get_color_interop_id(colorspace);
+
+    // See the interop table above for why g22_rec709_display is treated as sRGB
+    return (interop_id == "srgb_rec709_scene"
+            || interop_id == "srgb_rec709_display"
+            || interop_id == "g22_rec709_display");
+}
+
+std::vector<uint8_t>
+pvt::get_colorspace_icc_profile(const ImageSpec& spec, bool /*from_colorspace*/)
+{
+    std::vector<uint8_t> icc_profile;
+    const ParamValue* p = spec.find_attribute("ICCProfile");
+    if (p) {
+        cspan<uint8_t> icc_profile_span = p->as_cspan<uint8_t>();
+        icc_profile.assign(icc_profile_span.begin(), icc_profile_span.end());
+    }
+    return icc_profile;
+}
+
+void
+pvt::set_colorspace_cicp(ImageSpec& spec, const int cicp[4],
+                         string_view image_state_default)
+{
+    spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view interop_id
+        = colorconfig.get_color_interop_id(cicp, image_state_default);
+    if (!interop_id.empty())
+        spec.attribute("oiio:ColorSpace", interop_id);
+}
+
+cspan<int>
+pvt::get_colorspace_cicp(const ImageSpec& spec, bool from_colorspace)
+{
+    const ParamValue* p = spec.find_attribute("CICP",
+                                              TypeDesc(TypeDesc::INT, 4));
+    if (p)
+        return p->as_cspan<int>();
+    if (!from_colorspace)
+        return cspan<int>();
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    return colorconfig.get_cicp(spec.get_string_attribute("oiio:ColorSpace"));
+}
 
 OIIO_NAMESPACE_END

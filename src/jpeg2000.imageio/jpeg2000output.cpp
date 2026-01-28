@@ -481,10 +481,10 @@ Jpeg2000Output::create_jpeg2000_image()
     // someboody comes along that desperately needs JPEG2000 and ICC
     // profiles, maybe they will be motivated enough to track down the
     // problem.
-    const ParamValue *icc = m_spec.find_attribute ("ICCProfile");
-    if (icc && icc->type().basetype == TypeDesc::UINT8 && icc->type().arraylen > 0) {
-        m_image->icc_profile_len = icc->type().arraylen;
-        m_image->icc_profile_buf = (unsigned char *) icc->data();
+    std::vector<uint8_t> icc_profile = get_colorspace_icc_profile(m_spec);
+    if (icc_profile.size()) {
+        m_image->icc_profile_len = icc_profile.size();
+        m_image->icc_profile_buf = (unsigned char *) icc_profile.data();
     }
 #endif
 

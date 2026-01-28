@@ -1280,6 +1280,10 @@ public:
     int max_mip_res() const noexcept { return m_max_mip_res; }
 
     ustring colorspace() const noexcept { return m_colorspace; }
+    ustring image_state_default() const noexcept
+    {
+        return m_image_state_default;
+    }
 
     size_t heapsize() const;
     size_t footprint(ImageCacheFootprint& output) const;
@@ -1339,12 +1343,13 @@ private:
     bool m_trust_file_extensions = false;  ///< Assume file extensions don't lie?
     bool m_max_open_files_strict = false;  ///< Be strict about open files limit?
     int m_failure_retries;                 ///< Times to re-try disk failures
-    int m_max_mip_res = 1 << 30;  ///< Don't use MIP levels higher than this
-    Imath::M44f m_Mw2c;           ///< world-to-"common" matrix
-    Imath::M44f m_Mc2w;           ///< common-to-world matrix
-    ustring m_substitute_image;   ///< Substitute this image for all others
-    ustring m_colorspace;         ///< Working color space
-    ustring m_colorconfigname;    ///< Filename of color config to use
+    int m_max_mip_res = 1 << 30;    ///< Don't use MIP levels higher than this
+    Imath::M44f m_Mw2c;             ///< world-to-"common" matrix
+    Imath::M44f m_Mc2w;             ///< common-to-world matrix
+    ustring m_substitute_image;     ///< Substitute this image for all others
+    ustring m_colorspace;           ///< Working color space
+    ustring m_colorconfigname;      ///< Filename of color config to use
+    ustring m_image_state_default;  ///< Default image state for file color spaces
 
     mutable FilenameMap m_files;    ///< Map file names to ImageCacheFile's
     ustring m_file_sweep_name;      ///< Sweeper for "clock" paging algorithm

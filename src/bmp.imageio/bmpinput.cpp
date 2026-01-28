@@ -8,6 +8,8 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 
+#include "imageio_pvt.h"
+
 #include "bmp_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -33,6 +35,7 @@ public:
                               void* data) override;
 
 private:
+    std::string m_image_state_default;  // Default image state for color space
     int64_t m_padded_scanline_size;
     int m_pad_size;
     bmp_pvt::BmpFileHeader m_bmp_header;
@@ -151,6 +154,9 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     // this behavior off.
     bool monodetect = config["bmp:monochrome_detect"].get<int>(1);
 
+    m_image_state_default = config.get_string_attribute(
+        "oiio:ImageStateDefault");
+
     ioproxy_retrieve_from_config(config);
     if (!ioproxy_use_or_open(name))
         return false;
@@ -262,7 +268,9 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     // Default presumption is that a BMP file is meant to look reasonable on a
     // display, so assume it's sRGB. This is not really correct -- see the
     // comments below.
-    m_spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
+    const bool erase_other_attributes = false;
+    pvt::set_colorspace_srgb(m_spec, m_image_state_default,
+                             erase_other_attributes);
 #if 0
     if (m_dib_header.size >= WINDOWS_V4
         && m_dib_header.cs_type == CSType::CalibratedRGB) {

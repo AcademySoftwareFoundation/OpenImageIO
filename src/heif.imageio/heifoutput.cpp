@@ -10,6 +10,8 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "imageio_pvt.h"
+
 #include <libheif/heif_cxx.h>
 
 #define MAKE_LIBHEIF_VERSION(a, b, c, d) \
@@ -253,12 +255,7 @@ HeifOutput::close()
         std::unique_ptr<heif_color_profile_nclx,
                         void (*)(heif_color_profile_nclx*)>
             nclx(heif_nclx_color_profile_alloc(), heif_nclx_color_profile_free);
-        const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-        const ParamValue* p    = m_spec.find_attribute("CICP",
-                                                       TypeDesc(TypeDesc::INT, 4));
-        string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
-        cspan<int> cicp        = (p) ? p->as_cspan<int>()
-                                     : colorconfig.get_cicp(colorspace);
+        cspan<int> cicp = pvt::get_colorspace_cicp(m_spec);
         if (!cicp.empty()) {
             nclx->color_primaries          = heif_color_primaries(cicp[0]);
             nclx->transfer_characteristics = heif_transfer_characteristics(

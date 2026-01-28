@@ -19,6 +19,8 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "imageio_pvt.h"
+
 #if OIIO_GNUC_VERSION || OIIO_CLANG_VERSION
 // fix warnings in libraw headers: use of auto_ptr
 #    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -569,15 +571,14 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     // request for "sRGB-linear" will give you sRGB primaries with a linear
     // response.
     const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-    std::string cs = config.get_string_attribute("raw:ColorSpace",
-                                                 "srgb_rec709_scene");
+    std::string cs = config.get_string_attribute("raw:ColorSpace");
     if (Strutil::iequals(cs, "raw")) {
         // Values straight from the chip
         m_processor->imgdata.params.output_color = 0;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-    } else if (colorconfig.equivalent(cs, "srgb_rec709_scene")
-               || Strutil::iequals(cs, "sRGB") /* Necessary? */) {
+    } else if (cs.empty() || colorconfig.equivalent(cs, "srgb_rec709_display")
+               || colorconfig.equivalent(cs, "srgb_rec709_scene")) {
         // Request explicit sRGB, including usual sRGB response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0 / 2.4;
@@ -587,7 +588,7 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
                || Strutil::iequals(cs, "lin_srgb")
                || Strutil::iequals(cs, "lin_rec709")
                || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
-        // Request "sRGB" primaries, linear response
+        // Request sRGB primaries, linear response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
@@ -643,7 +644,13 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         errorfmt("raw:ColorSpace set to unknown value \"{}\"", cs);
         return false;
     }
-    m_spec.set_colorspace(cs);
+    if (cs.empty()) {
+        string_view image_state_default = m_config.get_string_attribute(
+            "oiio:ImageStateDefault");
+        pvt::set_colorspace_srgb(m_spec, image_state_default);
+    } else {
+        m_spec.set_colorspace(cs);
+    }
 
     // Exposure adjustment
     float exposure = config.get_float_attribute("raw:Exposure", -1.0f);
