@@ -1377,7 +1377,7 @@ public:
     /// Return an `image_span<std::byte>` giving the extent and layout of
     /// "local" pixel memory, if they are fully in RAM and not backed by an
     /// ImageCache, and it is a writable IB, or an empty span otherwise.
-    image_span<std::byte> localpixels_as_writable_byte_image_span() const;
+    image_span<std::byte> localpixels_as_writable_byte_image_span();
 
     /// Pixel-to-pixel stride within the localpixels memory.
     stride_t pixel_stride() const;
