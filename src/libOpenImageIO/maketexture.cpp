@@ -510,12 +510,11 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
             return false;
         }
         is_height = false;
-    } else if (Strutil::iequals(
-                   bumpformat,
-                   "auto")) {  // guess input bump format by analyzing channel count and component
+    } else if (Strutil::iequals(bumpformat, "auto")) {
+        // guess input bump format by analyzing channel count and component
         if (src.spec().nchannels > 2
-            && !ImageBufAlgo::isMonochrome(src))  // maybe it's a normal map?
-            is_height = false;
+            && !ImageBufAlgo::isMonochrome(src, 0.0f, ROI(), nthreads))
+            is_height = false;  // maybe it's a normal map?
         else
             is_height = true;
     } else {
@@ -705,6 +704,8 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     ImageSpec outspec      = outspec_template;
     outspec.set_format(outputdatatype);
 
+    int nthreads = configspec.get_int_attribute("maketx:threads");
+
     // Going from float to half is prone to generating Inf values if we had
     // any floats that were out of the range that half can represent. Nobody
     // wants Inf in textures; better to clamp.
@@ -783,7 +784,8 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
 
     if (clamp_half) {
         std::shared_ptr<ImageBuf> tmp(new ImageBuf);
-        ImageBufAlgo::clamp(*tmp, *img, -HALF_MAX, HALF_MAX, true);
+        ImageBufAlgo::clamp(*tmp, *img, -HALF_MAX, HALF_MAX, true, ROI(),
+                            nthreads);
         std::swap(tmp, img);
     }
     if (!img->write(out)) {
@@ -831,7 +833,8 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                     std::shared_ptr<ImageBuf> t(new ImageBuf(smallspec));
                     ImageBufAlgo::channels(*t, *small, outspec.nchannels,
                                            cspan<int>(), cspan<float>(),
-                                           cspan<std::string>(), true);
+                                           cspan<std::string>(), true,
+                                           nthreads);
                     std::swap(t, small);
                 }
                 smallspec.tile_width  = outspec.tile_width;
@@ -863,7 +866,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                 // and pixel windows match.  Don't worry, the texture
                 // engine doesn't care what the upper MIP levels have
                 // for the window sizes, it uses level 0 to determine
-                // the relatinship between texture 0-1 space (display
+                // the relationship between texture 0-1 space (display
                 // window) and the pixels.
                 smallspec.x      = 0;
                 smallspec.y      = 0;
@@ -875,12 +878,11 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
 
                 if (filtername == "box" && !orig_was_overscan
                     && sharpen <= 0.0f) {
-                    ImageBufAlgo::parallel_image(get_roi(small->spec()),
-                                                 std::bind(resize_block,
-                                                           std::ref(*small),
-                                                           std::cref(*img), _1,
-                                                           envlatlmode,
-                                                           allow_shift));
+                    ImageBufAlgo::parallel_image(
+                        get_roi(small->spec()), paropt(nthreads), [&](ROI roi) {
+                            resize_block(*small, *img, roi, envlatlmode,
+                                         allow_shift);
+                        });
                 } else {
                     Filter2D* filter = setup_filter(small->spec(), img->spec(),
                                                     filtername);
@@ -901,38 +903,44 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                         OIIO::print(outstream, "\n");
                     }
                     if (do_highlight_compensation)
-                        ImageBufAlgo::rangecompress(*img, *img);
+                        ImageBufAlgo::rangecompress(*img, *img, false, ROI(),
+                                                    nthreads);
                     if (sharpen > 0.0f && sharpen_first) {
                         std::shared_ptr<ImageBuf> sharp(new ImageBuf);
                         bool uok = ImageBufAlgo::unsharp_mask(*sharp, *img,
-                                                              sharpenfilt, 3.0,
-                                                              sharpen, 0.0f);
+                                                              sharpenfilt, 3.0f,
+                                                              sharpen, 0.0f,
+                                                              ROI(), nthreads);
                         if (!uok)
                             errorfmt("{}", sharp->geterror());
                         std::swap(img, sharp);
                     }
                     ImageBufAlgo::resize(*small, *img,
-                                         { make_pv("filterptr", filter) });
+                                         { make_pv("filterptr", filter) },
+                                         ROI(), nthreads);
                     if (sharpen > 0.0f && !sharpen_first) {
                         std::shared_ptr<ImageBuf> sharp(new ImageBuf);
                         bool uok = ImageBufAlgo::unsharp_mask(*sharp, *small,
-                                                              sharpenfilt, 3.0,
-                                                              sharpen, 0.0f);
+                                                              sharpenfilt, 3.0f,
+                                                              sharpen, 0.0f,
+                                                              ROI(), nthreads);
                         if (!uok)
                             errorfmt("{}", sharp->geterror());
                         std::swap(small, sharp);
                     }
                     if (do_highlight_compensation) {
-                        ImageBufAlgo::rangeexpand(*small, *small);
+                        ImageBufAlgo::rangeexpand(*small, *small, false, ROI(),
+                                                  nthreads);
                         ImageBufAlgo::clamp(*small, *small, 0.0f,
                                             std::numeric_limits<float>::max(),
-                                            true);
+                                            true, ROI(), nthreads);
                     }
                     Filter2D::destroy(filter);
                 }
             }
             if (clamp_half)
-                ImageBufAlgo::clamp(*small, *small, -HALF_MAX, HALF_MAX, true);
+                ImageBufAlgo::clamp(*small, *small, -HALF_MAX, HALF_MAX, true,
+                                    ROI(), nthreads);
 
             double this_miptime = miptimer();
             stat_miptime += this_miptime;
@@ -1092,6 +1100,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         configspec.tile_height = 64;
     if (!configspec.tile_depth)
         configspec.tile_depth = 1;
+
+    int nthreads = configspec.get_int_attribute("maketx:threads");
 
     bool ignore_unassoc = configspec.get_int_attribute("maketx:ignore_unassoc");
     ImageSpec inconfig;
@@ -1257,8 +1267,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         bool ok = true;
         OIIO_DISPATCH_COMMON_TYPES(ok, "lightprobe_to_envlatl",
                                    lightprobe_to_envlatl, src->spec().format,
-                                   *latlong, *src, true);
-        // lightprobe_to_envlatl(*latlong, *src, true);
+                                   *latlong, *src, true, ROI(), nthreads);
         // Carry on with the lat-long environment map from here on out
         mode = ImageBufAlgo::MakeTxEnvLatl;
         src  = latlong;
@@ -1269,7 +1278,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         if (Strutil::iequals(configspec.get_string_attribute("maketx:bumprange",
                                                              "auto"),
                              "auto"))
-            src_pixel_stats = ImageBufAlgo::computePixelStats(*src);
+            src_pixel_stats = ImageBufAlgo::computePixelStats(*src, ROI(),
+                                                              nthreads);
 
         ImageSpec newspec  = src->spec();
         newspec.tile_width = newspec.tile_height = 0;
@@ -1286,7 +1296,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         bool ok;
         OIIO_DISPATCH_COMMON_TYPES(ok, "bump_to_bumpslopes", bump_to_bumpslopes,
                                    src->spec().format, *bumpslopes, *src,
-                                   configspec, src_pixel_stats, outstream);
+                                   configspec, src_pixel_stats, outstream,
+                                   ROI(), nthreads);
         // bump_to_bumpslopes(*bumpslopes, *src);
         mode = ImageBufAlgo::MakeTxTexture;
         src  = bumpslopes;
@@ -1330,7 +1341,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         std::vector<imagesize_t> hist;
 
         for (int i = 0; i < channels; i++) {
-            hist = ImageBufAlgo::histogram(*src, i, bins, 0.0f, 1.0f);
+            hist = ImageBufAlgo::histogram(*src, i, bins, 0.0f, 1.0f, false,
+                                           ROI(), nthreads);
 
             // Turn the histogram into a non-normalized CDF
             for (uint64_t j = 1; j < bins; j++) {
@@ -1389,7 +1401,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     bool compute_stats = (constant_color_detect || opaque_detect
                           || compute_average_color || monochrome_detect);
     if (compute_stats) {
-        pixel_stats = ImageBufAlgo::computePixelStats(*src);
+        pixel_stats = ImageBufAlgo::computePixelStats(*src, ROI(), nthreads);
     }
     double stat_pixelstatstime = alltime.lap();
     STATUS("pixelstats", stat_pixelstatstime);
@@ -1420,7 +1432,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             newspec.full_height = newspec.height;
             newspec.full_depth  = newspec.depth;
             src->reset(newspec);
-            ImageBufAlgo::fill(*src, constantColor);
+            ImageBufAlgo::fill(*src, constantColor, ROI(), nthreads);
             if (verbose) {
                 outstream << "  Constant color image detected. ";
                 outstream << "Creating " << newspec.width << "x"
@@ -1441,7 +1453,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         std::shared_ptr<ImageBuf> newsrc(new ImageBuf(src->spec()));
         ImageBufAlgo::channels(*newsrc, *src, src->nchannels() - 1,
                                cspan<int>(), cspan<float>(),
-                               cspan<std::string>(), true);
+                               cspan<std::string>(), true, nthreads);
         std::swap(src, newsrc);  // N.B. the old src will delete
     }
 
@@ -1455,14 +1467,14 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         && src->spec().alpha_channel < 0
         && pixel_stats.avg[0] == pixel_stats.avg[1]
         && pixel_stats.avg[0] == pixel_stats.avg[2]
-        && ImageBufAlgo::isMonochrome(*src)) {
+        && ImageBufAlgo::isMonochrome(*src, 0.0f, ROI(), nthreads)) {
         if (verbose)
             OIIO::print(
                 outstream,
                 "  Monochrome image detected. Converting to single channel texture.\n");
         std::shared_ptr<ImageBuf> newsrc(new ImageBuf(src->spec()));
         ImageBufAlgo::channels(*newsrc, *src, 1, cspan<int>(), cspan<float>(),
-                               cspan<std::string>(), true);
+                               cspan<std::string>(), true, nthreads);
         newsrc->specmod().default_channel_names();
         std::swap(src, newsrc);
     }
@@ -1475,7 +1487,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                       << std::endl;
         std::shared_ptr<ImageBuf> newsrc(new ImageBuf(src->spec()));
         ImageBufAlgo::channels(*newsrc, *src, nchannels, cspan<int>(),
-                               cspan<float>(), cspan<std::string>(), true);
+                               cspan<float>(), cspan<std::string>(), true,
+                               nthreads);
         std::swap(src, newsrc);
     }
 
@@ -1663,7 +1676,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         && (srcspec.format.basetype == TypeDesc::FLOAT
             || srcspec.format.basetype == TypeDesc::HALF
             || srcspec.format.basetype == TypeDesc::DOUBLE)
-        && !ImageBufAlgo::fixNonFinite(*src, *src, fixmode, &pixelsFixed)) {
+        && !ImageBufAlgo::fixNonFinite(*src, *src, fixmode, &pixelsFixed, ROI(),
+                                       nthreads)) {
         errorfmt("Error fixing nans/infs.");
         return false;
     }
@@ -1677,7 +1691,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             || srcspec.format.basetype == TypeDesc::HALF
             || srcspec.format.basetype == TypeDesc::DOUBLE)) {
         int found_nonfinite = 0;
-        ImageBufAlgo::parallel_image(get_roi(srcspec),
+        ImageBufAlgo::parallel_image(get_roi(srcspec), nthreads,
                                      std::bind(check_nan_block, std::ref(*src),
                                                _1, std::ref(found_nonfinite)));
         if (found_nonfinite) {
@@ -1736,7 +1750,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             outstream << "  Unpremulting image..." << std::endl;
 
         if (!ImageBufAlgo::colorconvert(*ccSrc, *src, processor.get(),
-                                        unpremult)) {
+                                        unpremult, ROI(), nthreads)) {
             errorfmt("Error applying color conversion to image.");
             return false;
         }
@@ -1838,10 +1852,12 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         toplevel.reset(new ImageBuf(dstspec));
         if ((resize_filter == "box" || resize_filter == "triangle")
             && !orig_was_overscan) {
-            ImageBufAlgo::parallel_image(
-                get_roi(dstspec),
-                std::bind(resize_block, std::ref(*toplevel), std::cref(*src),
-                          _1, envlatlmode, allow_shift != 0));
+            ImageBufAlgo::parallel_image(get_roi(dstspec), nthreads,
+                                         [&](ROI roi) {
+                                             resize_block(*toplevel, *src, roi,
+                                                          envlatlmode,
+                                                          allow_shift != 0);
+                                         });
         } else {
             Filter2D* filter = setup_filter(toplevel->spec(), src->spec(),
                                             resize_filter);
@@ -1850,7 +1866,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                 return false;
             }
             ImageBufAlgo::resize(*toplevel, *src,
-                                 { make_pv("filterptr", filter) });
+                                 { make_pv("filterptr", filter) }, ROI(),
+                                 nthreads);
             Filter2D::destroy(filter);
         }
     }
@@ -1906,12 +1923,11 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         addlHashData << "keepaspect=1 ";
 
     const int sha1_blocksize = 256;
-    std::string hash_digest
-        = configspec.get_int_attribute("maketx:hash", 1)
-              ? ImageBufAlgo::computePixelHashSHA1(*toplevel,
-                                                   addlHashData.str(),
-                                                   ROI::All(), sha1_blocksize)
-              : "";
+    std::string hash_digest  = configspec.get_int_attribute("maketx:hash", 1)
+                                   ? ImageBufAlgo::computePixelHashSHA1(
+                                      *toplevel, addlHashData.str(), ROI::All(),
+                                      sha1_blocksize, nthreads)
+                                   : "";
     if (hash_digest.length()) {
         if (out->supports("arbitrary_metadata")) {
             dstspec.attribute("oiio:SHA-1", hash_digest);
