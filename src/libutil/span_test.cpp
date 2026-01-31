@@ -19,6 +19,10 @@ using namespace OIIO;
 static int iterations = 100000;
 static int ntrials    = 5;
 
+// Intentionally not static so the compiler can't optimize away its value
+int Nlen_unknown = 0;
+
+
 
 static void
 getargs(int argc, char* argv[])
@@ -32,6 +36,9 @@ getargs(int argc, char* argv[])
         .help(Strutil::fmt::format("Number of iterations (default: {})",
                                    iterations));
     ap.arg("--trials %d", &ntrials).help("Number of trials");
+
+    // Fake option to hide from compiler how big it will be
+    ap.arg("--unknown %d", &Nlen_unknown).hidden();
 
     ap.parse_args(argc, (const char**)argv);
 }
@@ -489,27 +496,28 @@ benchmark_span()
     // bench.work(N);
     std::array<float, N> fstdarr;
     std::fill(fstdarr.begin(), fstdarr.end(), 1.0f);
+    size_t Nlen = Nlen_unknown ? size_t(Nlen_unknown) : N;
     bench("pointer operator[]", [&]() {
         float* fptr(fstdarr.data());
         float t = 0.0f;
-        for (size_t i = 0; i < N; ++i)
+        for (size_t i = 0; i < Nlen; ++i)
             DoNotOptimize(t += fptr[i]);
     });
     bench("std::array operator[]", [&]() {
         float t = 0.0f;
-        for (size_t i = 0; i < N; ++i)
+        for (size_t i = 0; i < Nlen; ++i)
             DoNotOptimize(t += fstdarr[i]);
     });
     bench("span operator[]", [&]() {
         span<float> fspan(fstdarr);
         float t = 0.0f;
-        for (size_t i = 0; i < N; ++i)
+        for (size_t i = 0; i < Nlen; ++i)
             DoNotOptimize(t += fspan[i]);
     });
     bench("span unsafe indexing", [&]() {
         span<float> fspan(fstdarr);
         float t = 0.0f;
-        for (size_t i = 0; i < N; ++i)
+        for (size_t i = 0; i < Nlen; ++i)
             DoNotOptimize(t += fspan.data()[i]);
     });
     bench("span range", [&]() {
