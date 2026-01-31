@@ -470,7 +470,7 @@ jobs:
             fmt_ver: master
             opencolorio_ver: main
             openexr_ver: main
-            pybind11_ver: master
+            pybind11_ver: v3.0.1
             python_ver: "3.12"
             simd: avx2,f16c
             benchmark: 1
