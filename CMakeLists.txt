@@ -112,6 +112,7 @@ else ()
 endif ()
 option (${PROJ_NAME}_BUILD_TOOLS "Build the command-line tools" ON)
 option (${PROJ_NAME}_BUILD_TESTS "Build the unit tests" ON)
+option (OIIO_USE_HWY "Enable experimental Google Highway SIMD optimizations (if Highway is available)" OFF)
 set (OIIO_LIBNAME_SUFFIX "" CACHE STRING
      "Optional name appended to ${PROJECT_NAME} libraries that are built")
 option (BUILD_OIIOUTIL_ONLY "If ON, will build *only* libOpenImageIO_Util" OFF)
