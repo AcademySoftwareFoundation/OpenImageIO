@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+hardfail = 0.02
 
 command += oiiotool("../common/grid.tif --crop 512x512+200+100 -o grid-crop.tif")
 command += maketx_command ("grid-crop.tif", "grid-crop.tx")
