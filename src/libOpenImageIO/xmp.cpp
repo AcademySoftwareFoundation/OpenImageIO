@@ -98,8 +98,8 @@ static XMPtag xmptag[] = {
     { "tiff:Software", "Software", TypeDesc::STRING, TiffRedundant },
 
     { "exif:ColorSpace", "Exif:ColorSpace", TypeDesc::INT, ExifRedundant },
-    { "exif:PixelXDimension", "", TypeDesc::INT, ExifRedundant|TiffRedundant},
-    { "exif:PixelYDimension", "", TypeDesc::INT, ExifRedundant|TiffRedundant },
+    { "exif:PixelXDimension", "Exif:PixelXDimension", TypeDesc::INT, ExifRedundant|TiffRedundant},
+    { "exif:PixelYDimension", "Exif:PixelYDimension", TypeDesc::INT, ExifRedundant|TiffRedundant },
     { "exifEX:PhotographicSensitivity", "Exif:ISOSpeedRatings", TypeDesc::INT, ExifRedundant },
 
     { "xmp:CreateDate", "DateTime", TypeDesc::STRING, DateConversion|TiffRedundant },
