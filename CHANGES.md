@@ -1,3 +1,13 @@
+Release 3.0.15.0 (Feb 1, 2026) -- compared to 3.0.14.0
+-------------------------------------------------------
+  - *heif*: Can not output AVIF when libheif has no HEVC support [#5013](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5013) (by Brecht Van Lommel)
+  - *heif*: Error saving multiple images with different bit depths [#5018](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5018) (by Brecht Van Lommel)
+  - *webp*: Use correct resolution limits for WebpOutput::open [#5016](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5016) (by Jesse Yurkovich)
+  - *ci*: Speed up macos15 intel variant by not installing Qt [#4998](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4998)
+  - *ci*: Windows runners switched which python version they had [#5010](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5010)
+  - *ci*: Lock bleeding edge to pybind11 latest version [#5024](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5024)
+
+
 Release 3.0.14.0 (Jan 1, 2026) -- compared to 3.0.13.0
 -------------------------------------------------------
   - *fix(IBA)*: IBA::compare_Yee() accessed the wrong channel [#4976](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4976) (by Pavan Madduri)
