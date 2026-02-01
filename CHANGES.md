@@ -6,8 +6,11 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
 * *New image file format support:*
 * *oiiotool new features and major improvements*:
 * *Command line utilities*:
+  - *iv*: Flip, rotate and save image [#5003](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5003) (by Valery Angelique) (3.2.0.0)
 * *ImageBuf/ImageBufAlgo*:
+  - *ImageBuf*: IB::localpixels_as_[writable_]byte_image_span [#5011](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5011) (3.2.0.0, 3.1.10.0)
 * *ImageCache/TextureSystem*:
+  - *api/TS*: `IBA::make_texture()` now honors "maketx:threads" hint [#5014](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5014) (3.2.0.0, 3.1.10.0)
 * New global attribute queries via OIIO::getattribute():
 * Miscellaneous API changes:
   - *api*: Versioned namespace to preserve ABI compatibility between minor releases [#4869](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4869) (3.2.0.0)
@@ -17,12 +20,20 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
   - *openexr*: Write OpenEXR colorInteropID metadata based on oiio:ColorSpace [#4967](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4967) (by Brecht Van Lommel) (3.0.14.0, 3.2.0.0)
   - *jpeg-xl*: CICP read and write support for JPEG-XL [#4968](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4968) (by Brecht Van Lommel) (3.2.0.0, 3.1.9.0)
   - *jpeg-xl*: ICC read and write for JPEG-XL files (issue 4649) [#4905](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4905) (by shanesmith-dwa) (3.0.14.0, 3.2.0.0)
+* Other notable new feature:
+  - *heif*: Add IOProxy support for both input and output [#5017](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5017) (by Brecht Van Lommel) (3.2.0.0, 3.1.10.0)
+
 ### 🚀  Performance improvements
+  - *perf*: `ImageBufAlgo::resample` and `oiiotool --resample` improvements to speed up 20x or more [#4993](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4993) (3.2.0.0, 3.1.10.0)
+
 ### 🐛  Fixes and feature enhancements
   - *IBA*: IBA::compare_Yee() accessed the wrong channel [#4976](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4976) (by Pavan Madduri) (3.2.0.0)
   - *exif*: Support EXIF 3.0 tags [#4961](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4961) (3.2.0.0)
   - *imagebuf*: Fix set_pixels bug, didn't consider roi = All [#4949](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4949) (3.2.0.0)
   - *ffmpeg*: 10 bit video had wrong green channel [#4935](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4935) (by Brecht Van Lommel) (3.2.0.0, 3.1.7.0)
+  - *heif*: Add IOProxy support for both input and output [#5017](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5017) (by Brecht Van Lommel) (3.2.0.0, 3.1.10.0)
+  - *heif*: Fix: Could not output AVIF when libheif has no HEVC support [#5013](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5013) (by Brecht Van Lommel) (3.2.0.0, 3.1.10.0)
+  - *heif*: Fix error saving multiple images with different bit depths [#5018](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5018) (by Brecht Van Lommel) (3.2.0.0, 3.1.10.0)
   - *iff*: Handle non-zero origin, protect against buffer overflows [#4925](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4925) (3.2.0.0, 3.1.7.0)
   - *jpeg*: Fix wrong pointers/crashing when decoding CMYK jpeg files [#4963](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4963) (3.2.0.0)
   - *jpeg-2000*: Type warning in assertion in jpeg2000output.cpp [#4952](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4952) (3.2.0.0)
@@ -37,32 +48,74 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
   - *png*: We were not correctly suppressing hint metadata [#4983](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4983) (3.2.0.0)
   - *sgi*: Implement RLE encoding support for output [#4990](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4990) (by Jesse Yurkovich) (3.2.0.0)
   - *webp*: Allow out-of-order scanlines when writing webp [#4973](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4973) (by Pavan Madduri) (3.2.0.0)
+  - *webp*: Use correct resolution limits for WebpOutput::open [#5016](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5016) (by Jesse Yurkovich) (3.2.0.0, 3.1.10.0)
+  - *webp*: Fix missing oiio:UnassociatedAlpha on input [#5020](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5020) (by Brecht Van Lommel) (3.2.0.0, 3.1.10.0)
 ### 🔧  Internals and developer goodies
+  - *fix*: Several bug fixes related to internal use of image_span [#5004](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5004) (3.2.0.0, 3.1.10.0)
   - *filesystem.h*: Speedup to detect the existence of files on Windows [#4977](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4977) (by JacksonSun-adsk) (3.2.0.0)
 ### 🏗  Build/test/CI and platform ports
 * OIIO's CMake build system and scripts:
   - *build*: Allow auto-build of just required packages by setting `OpenImageIO_BUILD_MISSING_DEPS` to `required`. [#4927](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4927) (3.2.0.0, 3.1.7.0)
   - *build*: Make dependency report more clear about what was required [#4929](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4929) (3.2.0.0, 3.1.7.0)
+  - *build*: Fix HARDENING build options [#4996](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4996) (3.2.0.0)
+  - *build*: Fully disable tests when their required dependencies are missing [#5005](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5005) (3.2.0.0, 3.1.10.0)
 * Dependency and platform support:
   - *deps*: Additional auto-build capabilities for dependencies that are not found: GIF library [#4921](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4921) (by Valery Angelique), OpenJPEG [#4911](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4911) (by Danny Greenstein) (3.2.0.0, 3.1.7.0)
   - *deps*: Disable LERC in libTIFF local build script [#4957](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4957) (by LI JI) (3.2.0.0, 3.1.8.0)
   - *deps*: Test against libraw 0.21.5 [#4988](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4988) (3.2.0.0, 3.1.9.0)
+  - *build/platforms*: Fix building on OpenBSD [#5001](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5001) (by Brad Smith) (3.2.0.0, 3.1.10.0)
+  - *build/deps*: Bump OCIO auto-build ver to 2.5.1 [#5022](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5022) (by Zach Lewis) (3.2.0.0, 3.1.10.0)
+  - *build/deps*: Use libheif exported config if available [#5012](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5012) (3.2.0.0, 3.1.10.0)
+  - *build/deps*: Libheif 1.21 support [#4992](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4992) (3.2.0.0, 3.1.10.0)
 * Testing and Continuous integration (CI) systems:
   - *tests*: Image_span_test reduce benchmark load for debug and CI renders [#4951](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4951) (3.2.0.0, 3.1.8.0)
+  - *tests*: Add new ref image for jpeg test [#5007](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5007) (3.2.0.0, 3.1.10.0)
   - *ci*: Python wheel building improvements: use ccache [#4924](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4924) (by Larry Gritz), unbreak wheel release + other enhancements pt 1 [#4937](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4937) (by Zach Lewis) (3.2.0.0, 3.1.7.0)
   - *ci*: Simplify ci workflow by using build-steps for old aswf containers, too [#4932](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4932) (3.2.0.0, 3.1.7.0)
   - *ci*: We were not correctly setting fmt version from job options [#4939](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4939) (3.2.0.0, 3.1.7.0)
   - *ci*: Emergency fix change deprecated sonarqube action [#4969](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4969) (3.2.0.0)
   - *ci*: Try python 3.13 to fix Mac breakage on CI [#4970](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4970) (3.2.0.0)
+  - *ci*: Freetype adjustments [#4999](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4999) (3.2.0.0)
+  - *ci*: Speed up macos15 intel variant by not installing Qt [#4998](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4998) (3.2.0.0, 3.1.10.0)
+  - *ci*: Don't run non-wheel workflows when only pyproject.toml changes [#4997](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4997) (3.2.0.0, 3.1.10.0)
+  - *ci*: Windows runners switched which python version they had [#5010](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5010) (3.2.0.0, 3.1.10.0)
+  - *ci*: Test against libraw 0.22 for 'latest' test variants [#5009](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5009) (3.2.0.0, 3.1.10.0)
+  - *ci*: Lock bleeding edge to pybind11 latest version [#5024](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5024) (3.2.0.0, 3.1.10.0)
 ### 📚  Notable documentation changes
   - *docs*: Update/correct explanation of "openexr:core" attribute, and typo fixes [#4943](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4943) (3.2.0.0, 3.1.7.0)
+  - *docs*: Remove outdated/wrong description in INSTALL.md [#5008](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5008) (3.2.0.0)
 ### 🏢  Project Administration
   - *admin*: Minor rewording in the issue and PR templates [#4982](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4982) (3.2.0.0)
+  - *admin*: Refine PR template to give more visual separation [#4995](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4995) (3.2.0.0)
 ### 🤝  Contributors
 
 ---
 ---
 
+
+
+Release 3.1.10.0 (Feb 1, 2026) -- compared to 3.1.9.0
+-----------------------------------------------------
+  - *perf*: `IBA::resample()` and `oiiotool --resample` improvements to speed up 20x or more [#4993](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4993)
+  - *ImageBuf*: IB::localpixels_as_[writable_]byte_image_span [#5011](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5011)
+  - ImageBufAlgo*: IBA::make_texture now honors "maketx:threads" hint [#5014](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5014)
+  - *heif*: Add IOProxy for input and output [#5017](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5017) (by Brecht Van Lommel)
+  - *heif*: Can not output AVIF when libheif has no HEVC support [#5013](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5013) (by Brecht Van Lommel)
+  - *heif*: Error saving multiple images with different bit depths [#5018](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5018) (by Brecht Van Lommel)
+  - *webp*: Use correct resolution limits for WebpOutput::open [#5016](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5016) (by Jesse Yurkovich)
+  - *webp*: Missing oiio:UnassociatedAlpha on input [#5020](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5020) (by Brecht Van Lommel)
+  - *fix*: Several bug fixes related to internal use of image_span [#5004](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5004)
+  - *build*: Fix building on OpenBSD [#5001](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5001) (by Brad Smith)
+  - *deps*: Libheif 1.21 support [#4992](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4992)
+  - *deps*: Bump OCIO auto-build ver to 2.5.1 [#5022](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5022) (by Zach Lewis)
+  - *deps*: Use libheif exported config if available [#5012](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5012)
+  - *tests*: Add new ref image for jpeg test [#5007](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5007)
+  - *tests*: Fully disable tests when their required dependencies are missing [#5005](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5005)
+  - *ci*: Speed up macos15 intel variant by not installing Qt [#4998](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4998)
+  - *ci*: Don't run non-wheel workflows when only pyproject.toml changes [#4997](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4997)
+  - *ci*: Windows runners switched which python version they had [#5010](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5010)
+  - *ci*: Test against libraw 0.22 for 'latest' test variants [#5009](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5009)
+  - *ci*: Lock bleeding edge to pybind11 latest version [#5024](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5024)
 
 
 Release 3.1.9.0 (Jan 1, 2026) -- compared to 3.1.8.0
@@ -442,6 +495,16 @@ asterisk) had not previously contributed to the project.
 
 ---
 ---
+
+
+Release 3.0.15.0 (Feb 1, 2026) -- compared to 3.0.14.0
+-------------------------------------------------------
+  - *heif*: Can not output AVIF when libheif has no HEVC support [#5013](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5013) (by Brecht Van Lommel)
+  - *heif*: Error saving multiple images with different bit depths [#5018](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5018) (by Brecht Van Lommel)
+  - *webp*: Use correct resolution limits for WebpOutput::open [#5016](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5016) (by Jesse Yurkovich)
+  - *ci*: Speed up macos15 intel variant by not installing Qt [#4998](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4998)
+  - *ci*: Windows runners switched which python version they had [#5010](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5010)
+  - *ci*: Lock bleeding edge to pybind11 latest version [#5024](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5024)
 
 
 Release 3.0.14.0 (Jan 1, 2026) -- compared to 3.0.13.0
