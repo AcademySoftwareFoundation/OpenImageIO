@@ -1,3 +1,27 @@
+Release 3.1.10.0 (Feb 1, 2026) -- compared to 3.1.9.0
+-----------------------------------------------------
+  - *perf*: `IBA::resample()` and `oiiotool --resample` improvements to speed up 20x or more [#4993](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4993)
+  - *ImageBuf*: IB::localpixels_as_[writable_]byte_image_span [#5011](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5011)
+  - ImageBufAlgo*: IBA::make_texture now honors "maketx:threads" hint [#5014](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5014)
+  - *heif*: Add IOProxy for input and output [#5017](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5017) (by Brecht Van Lommel)
+  - *heif*: Can not output AVIF when libheif has no HEVC support [#5013](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5013) (by Brecht Van Lommel)
+  - *heif*: Error saving multiple images with different bit depths [#5018](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5018) (by Brecht Van Lommel)
+  - *webp*: Use correct resolution limits for WebpOutput::open [#5016](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5016) (by Jesse Yurkovich)
+  - *webp*: Missing oiio:UnassociatedAlpha on input [#5020](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5020) (by Brecht Van Lommel)
+  - *fix*: Several bug fixes related to internal use of image_span [#5004](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5004)
+  - *build*: Fix building on OpenBSD [#5001](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5001) (by Brad Smith)
+  - *deps*: Libheif 1.21 support [#4992](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4992)
+  - *deps*: Bump build ver to 2.5.1 [#5022](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5022) (by Zach Lewis)
+  - *deps*: Use libheif exported config if available [#5012](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5012)
+  - *tests*: Add new ref image for jpeg test [#5007](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5007)
+  - *tests*: Fully disable tests when their required dependencies are missing [#5005](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5005)
+  - *ci*: Speed up macos15 intel variant by not installing Qt [#4998](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4998)
+  - *ci*: Don't run non-wheel workflows when only pyproject.toml changes [#4997](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4997)
+  - *ci*: Windows runners switched which python version they had [#5010](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5010)
+  - *ci*: Test against libraw 0.22 for 'latest' test variants [#5009](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5009)
+  - *ci*: Lock bleeding edge to pybind11 latest version [#5024](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5024)
+
+
 Release 3.1.9.0 (Jan 1, 2026) -- compared to 3.1.8.0
 ----------------------------------------------------
   - Color management improvements:
@@ -375,6 +399,16 @@ asterisk) had not previously contributed to the project.
 
 ---
 ---
+
+
+Release 3.0.15.0 (Feb 1, 2026) -- compared to 3.0.14.0
+-------------------------------------------------------
+  - *heif*: Can not output AVIF when libheif has no HEVC support [#5013](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5013) (by Brecht Van Lommel)
+  - *heif*: Error saving multiple images with different bit depths [#5018](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5018) (by Brecht Van Lommel)
+  - *webp*: Use correct resolution limits for WebpOutput::open [#5016](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5016) (by Jesse Yurkovich)
+  - *ci*: Speed up macos15 intel variant by not installing Qt [#4998](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4998)
+  - *ci*: Windows runners switched which python version they had [#5010](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5010)
+  - *ci*: Lock bleeding edge to pybind11 latest version [#5024](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5024)
 
 
 Release 3.0.14.0 (Jan 1, 2026) -- compared to 3.0.13.0

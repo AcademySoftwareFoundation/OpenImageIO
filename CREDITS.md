@@ -110,6 +110,7 @@ lg@openimageio.org
 * Imarz
 * Irena Damsky
 * Ismael Cortes
+* Jackson Sun
 * Jan Hettenkofer
 * Jan Honsbrok
 * Jens Lindgren
@@ -191,6 +192,7 @@ lg@openimageio.org
 * Paul Franz
 * Paul Melis
 * Paul Molodowitch
+* Pavan Madduri
 * Pavel Karneliuk
 * Pete Larabell
 * Peter Horvath
@@ -223,6 +225,7 @@ lg@openimageio.org
 * Sergio Rojas
 * Shane Ambler
 * Shane Smith
+* Shashvat K. Singh
 * Simon Boorer
 * Solomon Boulos
 * SRHMorris
