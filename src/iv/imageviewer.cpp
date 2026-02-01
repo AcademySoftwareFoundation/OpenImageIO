@@ -520,6 +520,22 @@ ImageViewer::createActions()
     closeupAvgPixelsBox->setToolTip(closeupAvgPixelsTooltip);
     closeupAvgPixelsLabel->setToolTip(closeupAvgPixelsTooltip);
 
+
+    rotateLeftAct = new QAction(tr("&Rotate Left"), this);
+    rotateLeftAct->setShortcut(tr("Ctrl+Shift+L"));
+    connect(rotateLeftAct, SIGNAL(triggered()), this, SLOT(rotateLeft()));
+
+    rotateRightAct = new QAction(tr("&Rotate Right"), this);
+    rotateRightAct->setShortcut(tr("Ctrl+Shift+R"));
+    connect(rotateRightAct, SIGNAL(triggered()), this, SLOT(rotateRight()));
+
+    flipHorizontalAct = new QAction(tr("&Flip Horizontal"), this);
+    connect(flipHorizontalAct, SIGNAL(triggered()), this,
+            SLOT(flipHorizontal()));
+
+    flipVerticalAct = new QAction(tr("&Flip Vertical"), this);
+    connect(flipVerticalAct, SIGNAL(triggered()), this, SLOT(flipVertical()));
+
     // Connect signals to ensure closeupAvgPixelsBox value is always <= closeupPixelsBox value
     connect(closeupPixelsBox, QOverload<int>::of(&QSpinBox::valueChanged),
             [this](int value) {
@@ -780,6 +796,11 @@ ImageViewer::createMenus()
     toolsMenu->addAction(toggleAreaSampleAct);
     toolsMenu->addMenu(slideMenu);
     toolsMenu->addMenu(sortMenu);
+    toolsMenu->addSeparator();
+    toolsMenu->addAction(rotateLeftAct);
+    toolsMenu->addAction(rotateRightAct);
+    toolsMenu->addAction(flipHorizontalAct);
+    toolsMenu->addAction(flipVerticalAct);
 
     // Menus, toolbars, & status
     // Annotate
@@ -2454,4 +2475,83 @@ bool
 ImageViewer::areaSampleMode() const
 {
     return m_areaSampleMode;
+}
+
+
+void
+ImageViewer::rotateLeft()
+{
+    IvImage* img = cur();
+    if (!img)
+        return;
+
+    ImageSpec* spec = curspecmod();
+
+    int curr_orientation = spec->get_int_attribute("Orientation", 1);
+
+    if (curr_orientation >= 1 && curr_orientation <= 8) {
+        static int next_orientation[] = { 0, 8, 5, 6, 7, 4, 1, 2, 3 };
+        curr_orientation              = next_orientation[curr_orientation];
+        spec->attribute("Orientation", curr_orientation);
+    }
+    displayCurrentImage();
+}
+
+
+void
+ImageViewer::rotateRight()
+{
+    IvImage* img = cur();
+    if (!img)
+        return;
+
+    ImageSpec* spec      = curspecmod();
+    int curr_orientation = spec->get_int_attribute("Orientation", 1);
+
+    if (curr_orientation >= 1 && curr_orientation <= 8) {
+        static int next_orientation[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
+        curr_orientation              = next_orientation[curr_orientation];
+        spec->attribute("Orientation", curr_orientation);
+    }
+    displayCurrentImage();
+}
+
+
+void
+ImageViewer::flipHorizontal()
+{
+    IvImage* img = cur();
+    if (!img)
+        return;
+
+    ImageSpec* spec = curspecmod();
+
+    int curr_orientation = spec->get_int_attribute("Orientation", 1);
+
+    if (curr_orientation >= 1 && curr_orientation <= 8) {
+        static int next_orientation[] = { 0, 2, 1, 4, 3, 6, 5, 8, 7 };
+        curr_orientation              = next_orientation[curr_orientation];
+        spec->attribute("Orientation", curr_orientation);
+    }
+    displayCurrentImage();
+}
+
+
+void
+ImageViewer::flipVertical()
+{
+    IvImage* img = cur();
+    if (!img)
+        return;
+
+    ImageSpec* spec = curspecmod();
+
+    int curr_orientation = spec->get_int_attribute("Orientation", 1);
+
+    if (curr_orientation >= 1 && curr_orientation <= 8) {
+        static int next_orientation[] = { 0, 4, 3, 2, 1, 8, 7, 6, 5 };
+        curr_orientation              = next_orientation[curr_orientation];
+        spec->attribute("Orientation", curr_orientation);
+    }
+    displayCurrentImage();
 }
