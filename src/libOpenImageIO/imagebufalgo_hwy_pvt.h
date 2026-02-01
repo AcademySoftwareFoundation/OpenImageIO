@@ -6,6 +6,7 @@
 
 #include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/imageio.h>
 #include <algorithm>
 #include <cstddef>
@@ -754,6 +755,90 @@ RunHwyTernaryCmd(Rtype* r, const ABCtype* a, const ABCtype* b, const ABCtype* c,
         auto res = op(d, va, vb, vc);
         DemoteStoreN(d, r + x, res, remaining);
     }
+}
+
+// -----------------------------------------------------------------------
+// Per-pixel Ops (ImageBufAlgo, contiguous interleaved channels)
+// -----------------------------------------------------------------------
+
+/// Execute a binary per-pixel HWY operation for interleaved, contiguous
+/// channels. The caller is responsible for ensuring that the channel range is
+/// contiguous for R/A/B (i.e. no per-pixel padding, and the ROI channel range
+/// covers the full pixel).
+template<typename Rtype, typename Atype, typename Btype, typename OpFunc>
+inline bool
+hwy_binary_perpixel_op(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                       int nthreads, OpFunc op)
+{
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    auto Bv = HwyPixels(B);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
+        const int nchannels = RoiNChannels(roi);
+        const size_t n = static_cast<size_t>(roi.width())
+                         * static_cast<size_t>(nchannels);
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            Rtype* r_row       = RoiRowPtr<Rtype>(Rv, y, roi);
+            const Atype* a_row = RoiRowPtr<Atype>(Av, y, roi);
+            const Btype* b_row = RoiRowPtr<Btype>(Bv, y, roi);
+            RunHwyCmd<Rtype, Atype, Btype>(r_row, a_row, b_row, n, op);
+        }
+    });
+    return true;
+}
+
+/// Execute a ternary per-pixel HWY operation for interleaved, contiguous
+/// channels. The caller is responsible for ensuring that the channel range is
+/// contiguous for R/A/B/C (i.e. no per-pixel padding, and the ROI channel range
+/// covers the full pixel).
+template<typename Rtype, typename ABCtype, typename OpFunc>
+inline bool
+hwy_ternary_perpixel_op(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+                        const ImageBuf& C, ROI roi, int nthreads, OpFunc op)
+{
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    auto Bv = HwyPixels(B);
+    auto Cv = HwyPixels(C);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
+        const int nchannels = RoiNChannels(roi);
+        const size_t n = static_cast<size_t>(roi.width())
+                         * static_cast<size_t>(nchannels);
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            Rtype* r_row         = RoiRowPtr<Rtype>(Rv, y, roi);
+            const ABCtype* a_row = RoiRowPtr<ABCtype>(Av, y, roi);
+            const ABCtype* b_row = RoiRowPtr<ABCtype>(Bv, y, roi);
+            const ABCtype* c_row = RoiRowPtr<ABCtype>(Cv, y, roi);
+            RunHwyTernaryCmd<Rtype, ABCtype>(r_row, a_row, b_row, c_row, n, op);
+        }
+    });
+    return true;
+}
+
+/// Execute a binary per-pixel HWY operation on native integer arrays (no type
+/// promotion/normalization). The caller is responsible for ensuring that the
+/// channel range is contiguous for R/A/B.
+template<typename T, typename OpFunc>
+inline bool
+hwy_binary_native_int_perpixel_op(ImageBuf& R, const ImageBuf& A,
+                                  const ImageBuf& B, ROI roi, int nthreads,
+                                  OpFunc op)
+{
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    auto Bv = HwyPixels(B);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
+        const int nchannels = RoiNChannels(roi);
+        const size_t n = static_cast<size_t>(roi.width())
+                         * static_cast<size_t>(nchannels);
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            T* r_row       = RoiRowPtr<T>(Rv, y, roi);
+            const T* a_row = RoiRowPtr<T>(Av, y, roi);
+            const T* b_row = RoiRowPtr<T>(Bv, y, roi);
+            RunHwyBinaryNativeInt<T>(r_row, a_row, b_row, n, op);
+        }
+    });
+    return true;
 }
 
 // -----------------------------------------------------------------------

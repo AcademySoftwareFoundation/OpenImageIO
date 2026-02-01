@@ -52,52 +52,11 @@ static bool
 mad_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
              const ImageBuf& C, ROI roi, int nthreads)
 {
-    auto Rv = HwyPixels(R);
-    auto Av = HwyPixels(A);
-    auto Bv = HwyPixels(B);
-    auto Cv = HwyPixels(C);
-    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        const int nchannels = RoiNChannels(roi);
-        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
-                            && ChannelsContiguous<ABCtype>(Av, nchannels)
-                            && ChannelsContiguous<ABCtype>(Bv, nchannels)
-                            && ChannelsContiguous<ABCtype>(Cv, nchannels);
-
-        for (int y = roi.ybegin; y < roi.yend; ++y) {
-            Rtype* r_row         = RoiRowPtr<Rtype>(Rv, y, roi);
-            const ABCtype* a_row = RoiRowPtr<ABCtype>(Av, y, roi);
-            const ABCtype* b_row = RoiRowPtr<ABCtype>(Bv, y, roi);
-            const ABCtype* c_row = RoiRowPtr<ABCtype>(Cv, y, roi);
-
-            if (contig) {
-                size_t n = static_cast<size_t>(roi.width())
-                           * static_cast<size_t>(nchannels);
-                // Use Highway SIMD for a*b+c (fused multiply-add)
-                RunHwyTernaryCmd<Rtype, ABCtype>(r_row, a_row, b_row, c_row, n,
-                                                 [](auto d, auto a, auto b,
-                                                    auto c) {
-                                                     return hn::MulAdd(a, b, c);
-                                                 });
-            } else {
-                for (int x = roi.xbegin; x < roi.xend; ++x) {
-                    Rtype* r_ptr = ChannelPtr<Rtype>(Rv, x, y, roi.chbegin);
-                    const ABCtype* a_ptr = ChannelPtr<ABCtype>(Av, x, y,
-                                                               roi.chbegin);
-                    const ABCtype* b_ptr = ChannelPtr<ABCtype>(Bv, x, y,
-                                                               roi.chbegin);
-                    const ABCtype* c_ptr = ChannelPtr<ABCtype>(Cv, x, y,
-                                                               roi.chbegin);
-                    for (int ch = 0; ch < nchannels; ++ch) {
-                        r_ptr[ch] = static_cast<Rtype>(
-                            static_cast<float>(a_ptr[ch])
-                                * static_cast<float>(b_ptr[ch])
-                            + static_cast<float>(c_ptr[ch]));
-                    }
-                }
-            }
-        }
-    });
-    return true;
+    return hwy_ternary_perpixel_op<Rtype, ABCtype>(R, A, B, C, roi, nthreads,
+                                                   [](auto /*d*/, auto a, auto b,
+                                                      auto c) {
+                                                       return hn::MulAdd(a, b, c);
+                                                   });
 }
 #endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
 
@@ -108,8 +67,19 @@ mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
 {
 #if defined(OIIO_USE_HWY) && OIIO_USE_HWY
     if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
-        && B.localpixels() && C.localpixels())
-        return mad_impl_hwy<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
+        && B.localpixels() && C.localpixels()) {
+        auto Rv = HwyPixels(R);
+        auto Av = HwyPixels(A);
+        auto Bv = HwyPixels(B);
+        auto Cv = HwyPixels(C);
+        const int nchannels = RoiNChannels(roi);
+        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
+                            && ChannelsContiguous<ABCtype>(Av, nchannels)
+                            && ChannelsContiguous<ABCtype>(Bv, nchannels)
+                            && ChannelsContiguous<ABCtype>(Cv, nchannels);
+        if (contig)
+            return mad_impl_hwy<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
+    }
 #endif
     return mad_impl_scalar<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
 }
