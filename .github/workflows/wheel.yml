@@ -319,8 +319,8 @@ jobs:
   # ---------------------------------------------------------------------------
 
   macos:
-    name: Build wheels on macOS
-    runs-on: macos-13
+    name: Build wheels on macOS Intel
+    runs-on: macos-15-intel
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
