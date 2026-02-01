@@ -13,13 +13,14 @@ ls build
 ls $BUILD_BIN_DIR
 
 mkdir -p build/benchmarks
-for t in image_span_test ; do
+for t in image_span_test span_test ; do
     echo
     echo
     echo "$t"
     echo "========================================================"
-    ${BUILD_BIN_DIR}/$t > build/benchmarks/$t.out
-    cat build/benchmarks/$t.out
+    OpenImageIO_CI=0 ${BUILD_BIN_DIR}/$t | tee build/benchmarks/$t.out
+    # Note: set OpenImageIO_CI=0 to avoid CI-specific automatic reduction of
+    # the number of trials and iterations.
     echo "========================================================"
     echo "========================================================"
     echo
