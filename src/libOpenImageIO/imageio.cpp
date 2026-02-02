@@ -257,14 +257,15 @@ oiio_build_platform()
     platform = "UnknownOS";
 #endif
     platform += "/";
-#if defined(__x86_64__)
+#if defined(__x86_64__) || defined(_M_AMD64)
     platform += "x86_64";
-#elif defined(__i386__)
+#elif defined(__i386__) || defined(_M_IX86)
     platform += "i386";
-#elif defined(_M_ARM64) || defined(__aarch64__) || defined(__aarch64)
+#elif defined(_M_ARM64) || defined(__aarch64__) || defined(__aarch64) \
+    || defined(__ARM_ARCH)
     platform += "ARM";
 #else
-    platform = "unknown arch?";
+    platform += "unknown arch?";
 #endif
     return platform;
 }
