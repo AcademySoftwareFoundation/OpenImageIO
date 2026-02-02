@@ -46,9 +46,6 @@ public:
     bool close() override;
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
-    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                    stride_t xstride, stride_t ystride,
-                    stride_t zstride) override;
 
 private:
     OutStream* m_stream = nullptr;
@@ -69,7 +66,6 @@ private:
     std::vector<ImageSpec> m_subimage_specs;
     bool m_write_pending;  // subimage buffer needs to be written
     unsigned int m_dither;
-    std::vector<unsigned char> m_tilebuffer;
 
     // Initialize private members to pre-opened state
     void init(void)
@@ -417,11 +413,6 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
                    ? spec0.get_int_attribute("oiio:dither", 0)
                    : 0;
 
-    // If user asked for tiles -- which this format doesn't support, emulate
-    // it by buffering the whole image.
-    if (spec0.tile_width && spec0.tile_height)
-        m_tilebuffer.resize(spec0.image_bytes());
-
     return prep_subimage(m_subimage, true);
 }
 
@@ -593,16 +584,7 @@ DPXOutput::close()
         return true;
     }
 
-    bool ok = true;
-    const ImageSpec& spec_s(m_subimage_specs[m_subimage]);
-    if (spec_s.tile_width && m_tilebuffer.size()) {
-        // Handle tile emulation -- output the buffered pixels
-        ok &= write_scanlines(spec_s.y, spec_s.y + spec_s.height, 0,
-                              spec_s.format, &m_tilebuffer[0]);
-        std::vector<unsigned char>().swap(m_tilebuffer);
-    }
-
-    ok &= write_buffer();
+    bool ok = write_buffer();
     m_dpx.Finish();
     init();  // Reset to initial state
     return ok;
@@ -640,22 +622,6 @@ DPXOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         return false;
 
     return true;
-}
-
-
-
-bool
-DPXOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                      stride_t xstride, stride_t ystride, stride_t zstride)
-{
-    if (!is_opened()) {
-        errorfmt("write_tile called but file is not open.");
-        return false;
-    }
-
-    // Emulate tiles by buffering the whole image
-    return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
-                                     zstride, &m_tilebuffer[0]);
 }
 
 
