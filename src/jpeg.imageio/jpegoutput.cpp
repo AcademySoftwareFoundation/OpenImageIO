@@ -370,9 +370,9 @@ void
 JpgOutput::resmeta_to_density()
 {
     // Clear cruft from Exif that might confuse us
-    m_spec.erase_attribute("exif:XResolution");
-    m_spec.erase_attribute("exif:YResolution");
-    m_spec.erase_attribute("exif:ResolutionUnit");
+    m_spec.erase_attribute("Exif:XResolution");
+    m_spec.erase_attribute("Exif:YResolution");
+    m_spec.erase_attribute("Exif:ResolutionUnit");
 
     string_view resunit = m_spec.get_string_attribute("ResolutionUnit");
     if (Strutil::iequals(resunit, "none"))
