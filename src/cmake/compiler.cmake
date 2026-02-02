@@ -197,6 +197,7 @@ endif ()
 
 if (MSVC)
     # Microsoft specific options
+    add_compile_options (/utf-8)
     add_compile_options (/W1)
     add_compile_options (/MP)
     add_compile_definitions (_CRT_SECURE_NO_DEPRECATE)
