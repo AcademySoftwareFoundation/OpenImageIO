@@ -38,9 +38,6 @@ public:
     bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                          const void* data, stride_t xstride = AutoStride,
                          stride_t ystride = AutoStride) override;
-    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                    stride_t xstride, stride_t ystride,
-                    stride_t zstride) override;
 
 private:
     std::string m_filename;  ///< Stash the filename
@@ -55,7 +52,6 @@ private:
     float m_gamma = 1.0f;   ///< Gamma to use for alpha conversion
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
-    std::vector<unsigned char> m_tilebuffer;
     bool m_err = false;
 
     // Initialize private members to pre-opened state
@@ -240,11 +236,6 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
     m_convert_alpha = m_spec.alpha_channel != -1
                       && !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
 
-    // If user asked for tiles -- which this format doesn't support, emulate
-    // it by buffering the whole image.
-    if (m_spec.tile_width && m_spec.tile_height)
-        m_tilebuffer.resize(m_spec.image_bytes());
-
     return true;
 }
 
@@ -258,15 +249,6 @@ PNGOutput::close()
         return true;
     }
 
-    bool ok = true;
-    if (m_spec.tile_width) {
-        // Handle tile emulation -- output the buffered pixels
-        OIIO_ASSERT(m_tilebuffer.size());
-        ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, &m_tilebuffer[0]);
-        std::vector<unsigned char>().swap(m_tilebuffer);
-    }
-
     if (m_png) {
         PNG_pvt::write_end(m_png, m_info);
         if (m_png || m_info)
@@ -276,7 +258,7 @@ PNGOutput::close()
     }
 
     init();  // re-initialize
-    return ok;
+    return true;
 }
 
 
@@ -455,16 +437,6 @@ PNGOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     return true;
 }
 
-
-
-bool
-PNGOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                      stride_t xstride, stride_t ystride, stride_t zstride)
-{
-    // Emulate tiles by buffering the whole image
-    return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
-                                     zstride, &m_tilebuffer[0]);
-}
 
 
 OIIO_PLUGIN_NAMESPACE_END
