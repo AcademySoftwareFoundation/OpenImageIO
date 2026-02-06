@@ -271,18 +271,30 @@ public:
     /// Return a pointer to the value at channel c, pixel (x,y,z).
     inline T* getptr(int c, int x, int y, int z = 0) const
     {
-        // Bounds check in debug mode
-        OIIO_DASSERT(unsigned(c) < unsigned(nchannels())
-                     && unsigned(x) < unsigned(width())
-                     && unsigned(y) < unsigned(height())
-                     && unsigned(z) < unsigned(depth()));
         if constexpr (Rank == 2) {
             OIIO_DASSERT(y == 0 && z == 0);
+            OIIO_CONTRACT_ASSERT(unsigned(c) < unsigned(nchannels())
+                                 && unsigned(x) < unsigned(width()));
+            return (T*)((char*)data() + c * chanstride());
         } else if constexpr (Rank == 3) {
             OIIO_DASSERT(z == 0);
+            OIIO_CONTRACT_ASSERT(unsigned(c) < unsigned(nchannels())
+                                 && unsigned(x) < unsigned(width())
+                                 && unsigned(y) < unsigned(height()));
+            return (T*)((char*)data() + c * chanstride() + x * xstride()
+                        + y * ystride());
+        } else {
+            // Rank == 4
+            OIIO_CONTRACT_ASSERT(unsigned(c) < unsigned(nchannels())
+                                 && unsigned(x) < unsigned(width())
+                                 && unsigned(y) < unsigned(height())
+                                 && unsigned(z) < unsigned(depth()));
+            return (T*)((char*)data() + c * chanstride() + x * xstride()
+                        + y * ystride() + z * zstride());
         }
-        return (T*)((char*)data() + c * chanstride() + x * xstride()
-                    + y * ystride() + z * zstride());
+#ifdef __INTEL_COMPILER
+        return nullptr;  // should never get here, but icc is confused
+#endif
     }
 
     /// Return a pointer to the value at channel 0, pixel (x,y,z).
