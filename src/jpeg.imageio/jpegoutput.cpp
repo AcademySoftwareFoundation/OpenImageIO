@@ -40,9 +40,6 @@ public:
               OpenMode mode = Create) override;
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
-    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                    stride_t xstride, stride_t ystride,
-                    stride_t zstride) override;
     bool close() override;
     bool copy_image(ImageInput* in) override;
 
@@ -55,7 +52,7 @@ private:
     struct jpeg_error_mgr c_jerr;
     jvirt_barray_ptr* m_copy_coeffs;
     struct jpeg_decompress_struct* m_copy_decompressor;
-    std::vector<unsigned char> m_tilebuffer;
+
     // m_outbuffer/m_outsize are used for jpeg-to-memory
     unsigned char* m_outbuffer = nullptr;
 #if OIIO_JPEG_LIB_VERSION >= 94
@@ -356,11 +353,6 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
 
     m_dither = m_spec.get_int_attribute("oiio:dither", 0);
 
-    // If user asked for tiles -- which JPEG doesn't support, emulate it by
-    // buffering the whole image.
-    if (m_spec.tile_width && m_spec.tile_height)
-        m_tilebuffer.resize(m_spec.image_bytes());
-
     return true;
 }
 
@@ -518,32 +510,11 @@ JpgOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
 
 bool
-JpgOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                      stride_t xstride, stride_t ystride, stride_t zstride)
-{
-    // Emulate tiles by buffering the whole image
-    return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
-                                     zstride, &m_tilebuffer[0]);
-}
-
-
-
-bool
 JpgOutput::close()
 {
     if (!ioproxy_opened()) {  // Already closed
         init();
         return true;
-    }
-
-    bool ok = true;
-
-    if (m_spec.tile_width) {
-        // We've been emulating tiles; now dump as scanlines.
-        OIIO_DASSERT(m_tilebuffer.size());
-        ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, &m_tilebuffer[0]);
-        std::vector<unsigned char>().swap(m_tilebuffer);  // free it
     }
 
     if (m_next_scanline < spec().height && m_copy_coeffs == NULL) {
@@ -578,7 +549,7 @@ JpgOutput::close()
     }
 
     init();
-    return ok;
+    return true;
 }
 
 

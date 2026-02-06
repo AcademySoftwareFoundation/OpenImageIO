@@ -27,9 +27,6 @@ public:
     bool close(void) override;
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
-    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                    stride_t xstride, stride_t ystride,
-                    stride_t zstride) override;
 
 private:
     int64_t m_padded_scanline_size;
@@ -38,7 +35,6 @@ private:
     bmp_pvt::DibInformationHeader m_dib_header;
     int64_t m_image_start;
     unsigned int m_dither;
-    std::vector<unsigned char> m_tilebuffer;
     std::vector<unsigned char> m_scratch;
     std::vector<unsigned char> m_buf;  // more tmp space for write_scanline
 
@@ -110,11 +106,6 @@ BmpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     m_image_start = iotell();
 
-    // If user asked for tiles -- which this format doesn't support, emulate
-    // it by buffering the whole image.
-    if (m_spec.tile_width && m_spec.tile_height)
-        m_tilebuffer.resize(m_spec.image_bytes());
-
     return true;
 }
 
@@ -157,23 +148,6 @@ BmpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 }
 
 
-
-bool
-BmpOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                      stride_t xstride, stride_t ystride, stride_t zstride)
-{
-    if (!ioproxy_opened()) {
-        errorfmt("write_tile called but file is not open.");
-        return false;
-    }
-
-    // Emulate tiles by buffering the whole image
-    return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
-                                     zstride, m_tilebuffer.data());
-}
-
-
-
 bool
 BmpOutput::close(void)
 {
@@ -182,17 +156,8 @@ BmpOutput::close(void)
         return true;
     }
 
-    bool ok = true;
-    if (m_spec.tile_width && m_tilebuffer.size()) {
-        // Handle tile emulation -- output the buffered pixels
-        OIIO_DASSERT(m_tilebuffer.size());
-        ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, m_tilebuffer.data());
-        std::vector<unsigned char>().swap(m_tilebuffer);
-    }
-
     init();
-    return ok;
+    return true;
 }
 
 
