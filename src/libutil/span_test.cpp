@@ -6,12 +6,42 @@
 #include <iostream>
 #include <vector>
 
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/image_span.h>
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/strided_ptr.h>
 #include <OpenImageIO/unittest.h>
 
 using namespace OIIO;
+
+
+static int iterations = 100000;
+static int ntrials    = 5;
+
+// Intentionally not static so the compiler can't optimize away its value
+int Nlen_unknown = 0;
+
+
+
+static void
+getargs(int argc, char* argv[])
+{
+    ArgParse ap;
+    ap.intro(
+          "span_test -- unit test and spans for OpenImageIO/span.h\n" OIIO_INTRO_STRING)
+        .usage("span_test [options]");
+
+    ap.arg("--iters %d", &iterations)
+        .help(Strutil::fmt::format("Number of iterations (default: {})",
+                                   iterations));
+    ap.arg("--trials %d", &ntrials).help("Number of trials");
+
+    // Fake option to hide from compiler how big it will be
+    ap.arg("--unknown %d", &Nlen_unknown).hidden();
+
+    ap.parse_args(argc, (const char**)argv);
+}
 
 
 
@@ -457,9 +487,67 @@ test_spanzero()
 
 
 
-int
-main(int /*argc*/, char* /*argv*/[])
+void
+benchmark_span()
 {
+    Benchmarker bench;
+    bench.iterations(iterations).trials(ntrials);
+    const size_t N = 1000;
+    // bench.work(N);
+    std::array<float, N> fstdarr;
+    std::fill(fstdarr.begin(), fstdarr.end(), 1.0f);
+    size_t Nlen = Nlen_unknown ? size_t(Nlen_unknown) : N;
+    bench("pointer operator[]", [&]() {
+        float* fptr(fstdarr.data());
+        float t = 0.0f;
+        for (size_t i = 0; i < Nlen; ++i)
+            DoNotOptimize(t += fptr[i]);
+    });
+    bench("std::array operator[]", [&]() {
+        float t = 0.0f;
+        for (size_t i = 0; i < Nlen; ++i)
+            DoNotOptimize(t += fstdarr[i]);
+    });
+    bench("span operator[]", [&]() {
+        span<float> fspan(fstdarr);
+        float t = 0.0f;
+        for (size_t i = 0; i < Nlen; ++i)
+            DoNotOptimize(t += fspan[i]);
+    });
+    bench("span unsafe indexing", [&]() {
+        span<float> fspan(fstdarr);
+        float t = 0.0f;
+        for (size_t i = 0; i < Nlen; ++i)
+            DoNotOptimize(t += fspan.data()[i]);
+    });
+    bench("span range", [&]() {
+        span<float> fspan(fstdarr);
+        float t = 0.0f;
+        for (auto x : fspan)
+            DoNotOptimize(t += x);
+    });
+}
+
+
+
+int
+main(int argc, char* argv[])
+{
+    // For the sake of test time, reduce the default number of benchmarking
+    // trials and iterations for DEBUG, CI, and code coverage builds. Explicit
+    // use of --iters or --trials will override this, since it comes before
+    // the getargs() call.
+    if (Strutil::eval_as_bool(Sysutil::getenv("OpenImageIO_CI"))
+#if !defined(NDEBUG) || defined(OIIO_CODE_COVERAGE)
+        || true
+#endif
+    ) {
+        iterations /= 10;
+        ntrials = 1;
+    }
+
+    getargs(argc, argv);
+
     test_span();
     test_span_mutable();
     test_span_initlist();
@@ -475,6 +563,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_spancpy();
     test_spanset();
     test_spanzero();
+    benchmark_span();
 
     return unit_test_failures;
 }
