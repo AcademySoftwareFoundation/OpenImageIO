@@ -33,3 +33,4 @@ command += rw_command ("../oiio-images/bmp", "gracehopper.bmp")
 # See if we handle these corrupt files with useful error messages
 command += info_command ("src/decodecolormap-corrupt.bmp")
 command += info_command ("src/bad-y.bmp")
+command += info_command ("src/palette32bit-corrupt.bmp")
