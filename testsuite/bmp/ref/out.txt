@@ -298,3 +298,6 @@ oiiotool ERROR: read : "src/bad-y.bmp": BMP might be corrupted, it is referencin
 BMP error reading rle-compressed image
 Full command line was:
 > oiiotool --info -v -a --hash src/bad-y.bmp
+oiiotool ERROR: read : "src/palette32bit-corrupt.bmp": BMP error: bad BPP (32) for palette image -- presumed corrupt file
+Full command line was:
+> oiiotool --info -v -a --hash src/palette32bit-corrupt.bmp
