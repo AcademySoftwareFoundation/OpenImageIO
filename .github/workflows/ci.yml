@@ -604,7 +604,9 @@ jobs:
             python_ver: "3.13"
             simd: sse4.2,avx2
             ctest_test_timeout: 1200
-            setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0 INSTALL_QT=0
+            setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
+                            INSTALL_QT=0 INSTALL_OPENCV=0
+            optional_deps_append: 'OpenCV;Qt5;Qt6'
             benchmark: 1
           - desc: MacOS-14-ARM aclang15/C++20/py3.13
             runner: macos-14
