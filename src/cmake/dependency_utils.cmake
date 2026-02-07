@@ -609,7 +609,7 @@ macro (build_dependency_with_cmake pkgname)
         # noValueKeywords:
         "NOINSTALL"
         # singleValueKeywords:
-        "GIT_REPOSITORY;GIT_TAG;GIT_COMMIT;VERSION;SOURCE_SUBDIR;GIT_SHALLOW;QUIET"
+        "GIT_REPOSITORY;GIT_TAG;GIT_COMMIT;VERSION;SOURCE_SUBDIR;QUIET"
         # multiValueKeywords:
         "CMAKE_ARGS"
         # argsToParse:
@@ -629,8 +629,10 @@ macro (build_dependency_with_cmake pkgname)
 
     unset (${pkgname}_GIT_CLONE_ARGS)
     unset (_pkg_exec_quiet)
-    if (_pkg_GIT_SHALLOW OR "${_pkg_GIT_SHALLOW}" STREQUAL "")
-        list (APPEND ${pkgname}_GIT_CLONE_ARGS --depth 1)
+    if (NOT "${pkg_GIT_TAG}" STREQUAL "" AND "${_pkg_GIT_COMMIT}" STREQUAL "")
+        # If a tag was specified, but not a specific commit, do a shallow
+        # clone.
+        list (APPEND ${pkgname}_GIT_CLONE_ARGS -b ${pkg_GIT_TAG} --depth 1)
     endif ()
     if (_pkg_QUIET OR "${_pkg_QUIET}" STREQUAL "")
         list (APPEND ${pkgname}_GIT_CLONE_ARGS -q ERROR_VARIABLE ${pkgname}_clone_errors)
@@ -641,12 +643,10 @@ macro (build_dependency_with_cmake pkgname)
     find_package (Git REQUIRED)
     if (NOT IS_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
         message (STATUS "COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY} "
-                                "-b ${_pkg_GIT_TAG} "
                                 "${${pkgname}_LOCAL_SOURCE_DIR} "
                                 "${${pkgname}_GIT_CLONE_ARGS} "
                         "${_pkg_exec_quiet}")
         execute_process(COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY}
-                                -b ${_pkg_GIT_TAG}
                                 ${${pkgname}_LOCAL_SOURCE_DIR}
                                 ${${pkgname}_GIT_CLONE_ARGS}
                         ${_pkg_exec_quiet})
