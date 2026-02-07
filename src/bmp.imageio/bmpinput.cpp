@@ -259,6 +259,13 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     case WINDOWS_V5: m_spec.attribute("bmp:version", 5); break;
     }
 
+    if (m_dib_header.cpalete && !m_colortable.size()) {
+        errorfmt(
+            "BMP error: bad BPP ({}) for palette image -- presumed corrupt file",
+            m_dib_header.bpp);
+        return false;
+    }
+
     // Default presumption is that a BMP file is meant to look reasonable on a
     // display, so assume it's sRGB. This is not really correct -- see the
     // comments below.
@@ -391,8 +398,9 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
     size_t scanline_bytes = m_spec.scanline_bytes();
     uint8_t* mscanline    = (uint8_t*)data;
-    if (m_dib_header.compression == RLE4_COMPRESSION
-        || m_dib_header.compression == RLE8_COMPRESSION) {
+    if ((m_dib_header.compression == RLE4_COMPRESSION
+         || m_dib_header.compression == RLE8_COMPRESSION)
+        && m_colortable.size()) {
         for (int x = 0; x < m_spec.width; ++x) {
             int p = m_uncompressed[(m_spec.height - 1 - y) * m_spec.width + x];
             auto& c              = colortable(p);
