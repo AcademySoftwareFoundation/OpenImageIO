@@ -47,7 +47,7 @@ if [[ "$OIIO_BREW_INSTALL_PACKAGES" == "" ]] ; then
         robin-map \
         tbb \
         "
-    if [[ "${USE_OPENCV}" != "0" ]] && [[ "${INSTALL_OPENCV:=1}" != "0" ]] ; then
+    if [[ "${USE_OPENCV:=}" != "0" ]] && [[ "${INSTALL_OPENCV:=1}" != "0" ]] ; then
         OIIO_BREW_INSTALL_PACKAGES+=" opencv"
     fi
     if [[ "${USE_QT:=1}" != "0" ]] && [[ "${INSTALL_QT:=1}" != "0" ]] ; then
