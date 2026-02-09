@@ -304,12 +304,7 @@ HdrInput::RGBE_ReadHeader()
             found_FORMAT_line = true;
             /* LG says no:    break;       // format found so break out of loop */
         } else if (Strutil::parse_values(line, "GAMMA=", span<float>(tempf))) {
-            // Round gamma to the nearest hundredth to prevent stupid
-            // precision choices and make it easier for apps to make
-            // decisions based on known gamma values. For example, you want
-            // 2.2, not 2.19998.
             float g = float(1.0 / tempf);
-            g       = roundf(100.0 * g) / 100.0f;
             set_colorspace_rec709_gamma(m_spec, g);
         } else if (Strutil::parse_values(line,
                                          "EXPOSURE=", span<float>(tempf))) {

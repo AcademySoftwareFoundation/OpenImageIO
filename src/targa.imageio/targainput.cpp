@@ -435,11 +435,6 @@ TGAInput::read_tga2_header()
             if (bigendian())
                 swap_endian(&buf.s[0], 2);
             float gamma = (float)buf.s[0] / (float)buf.s[1];
-            // Round gamma to the nearest hundredth to prevent stupid
-            // precision choices and make it easier for apps to make
-            // decisions based on known gamma values. For example, you want
-            // 2.2, not 2.19998.
-            gamma = roundf(100.0 * gamma) / 100.0f;
             set_colorspace_rec709_gamma(m_spec, gamma);
         }
 
