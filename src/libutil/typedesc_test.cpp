@@ -69,10 +69,7 @@ test_type(string_view textrep, TypeDesc constructed,
         tostring_formatting fm(tostring_formatting::STDFORMAT);
         fm.aggregate_sep = ", ";
         fm.array_sep     = ", ";
-#if FMT_VERSION < 70100
-        fm.float_fmt = "{:g}";
-#endif
-        std::string s = tostring(constructed, &value, fm);
+        std::string s    = tostring(constructed, &value, fm);
         if (valuerep.size()) {
             OIIO_CHECK_EQUAL(s, valuerep);
             Strutil::print("  {}\n", s);
