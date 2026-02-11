@@ -1141,16 +1141,16 @@ TIFFOutput::write_exif_data()
             if (tifftype == TIFF_ASCII) {
                 ok = TIFFSetField(m_tif, tag, *(char**)p.data());
             } else if ((tifftype == TIFF_SHORT || tifftype == TIFF_LONG)
-                       && p.type() == TypeDesc::SHORT) {
+                       && p.type() == TypeDesc::SHORT && count == 1) {
                 ok = TIFFSetField(m_tif, tag, (int)*(short*)p.data());
             } else if ((tifftype == TIFF_SHORT || tifftype == TIFF_LONG)
-                       && p.type() == TypeDesc::INT) {
+                       && p.type() == TypeDesc::INT && count == 1) {
                 ok = TIFFSetField(m_tif, tag, *(int*)p.data());
             } else if ((tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL)
-                       && p.type() == TypeDesc::FLOAT) {
+                       && p.type() == TypeDesc::FLOAT && count == 1) {
                 ok = TIFFSetField(m_tif, tag, *(float*)p.data());
             } else if ((tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL)
-                       && p.type() == TypeDesc::DOUBLE) {
+                       && p.type() == TypeDesc::DOUBLE && count == 1) {
                 ok = TIFFSetField(m_tif, tag, *(double*)p.data());
             }
             if (!ok) {
