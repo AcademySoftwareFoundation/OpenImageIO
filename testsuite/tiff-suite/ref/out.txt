@@ -68,9 +68,11 @@ Reading ../oiio-images/libtiffpic/dscf0013.tif
     Exif:ColorSpace: 1
     Exif:DateTimeDigitized: "2004:11:10 00:00:31"
     Exif:DateTimeOriginal: "2004:11:10 00:00:31"
+    Exif:ExifVersion: "0210"
     Exif:ExposureBiasValue: 0
     Exif:ExposureProgram: 2 (normal program)
     Exif:Flash: 1 (flash fired)
+    Exif:FlashPixVersion: "0100"
     Exif:FocalLength: 7.4 (7.4 mm)
     Exif:FocalPlaneResolutionUnit: 3 (cm)
     Exif:FocalPlaneXResolution: 847
@@ -238,10 +240,12 @@ Reading ../oiio-images/libtiffpic/pc260001.tif
     Exif:DateTimeDigitized: "2005:12:26 17:09:35"
     Exif:DateTimeOriginal: "2005:12:26 17:09:35"
     Exif:DigitalZoomRatio: 0
+    Exif:ExifVersion: "0221"
     Exif:ExposureBiasValue: 0
     Exif:ExposureMode: 0 (auto)
     Exif:ExposureProgram: 2 (normal program)
     Exif:Flash: 89 (flash fired, auto flash, red-eye reduction)
+    Exif:FlashPixVersion: "0100"
     Exif:FocalLength: 17.8 (17.8 mm)
     Exif:LightSource: 0 (unknown)
     Exif:MaxApertureValue: 3 (f/2.8)
