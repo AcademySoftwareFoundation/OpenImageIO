@@ -292,9 +292,6 @@ public:
             return (T*)((char*)data() + c * chanstride() + x * xstride()
                         + y * ystride() + z * zstride());
         }
-#ifdef __INTEL_COMPILER
-        return nullptr;  // should never get here, but icc is confused
-#endif
     }
 
     /// Return a pointer to the value at channel 0, pixel (x,y,z).

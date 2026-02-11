@@ -220,9 +220,7 @@ oiio_build_compiler()
     using Strutil::fmt::format;
 
     std::string comp;
-#if OIIO_INTEL_CLASSIC_COMPILER_VERSION
-    comp = format("Intel icc {}", OIIO_INTEL_CLASSIC_COMPILER_VERSION);
-#elif OIIO_INTEL_LLVM_COMPILER
+#if OIIO_INTEL_LLVM_COMPILER
     comp = format("Intel icx {}.{}", __clang_major__, __clang_minor__);
 #elif OIIO_APPLE_CLANG_VERSION
     comp = format("Apple clang {}.{}", __clang_major__, __clang_minor__);

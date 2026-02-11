@@ -69,14 +69,7 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
         time pip3 install ${PIP_INSTALLS} || true
     fi
 
-    if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" ]] ; then
-        # Lock down icc to 2022.1 because newer versions hosted on the Intel
-        # repo require a glibc too new for the ASWF CentOS7-based containers
-        # we run CI on.
-        sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
-        sudo /usr/bin/yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2022.1.0.x86_64
-        set +e; source /opt/intel/oneapi/setvars.sh --config oneapi_2022.1.0.cfg; set -e
-    elif [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$CXX" == "icpx" || "$CC" == "icx" || "$USE_ICX" != "" ]] ; then
+    if [[ "$CXX" == "icpx" || "$CC" == "icx" || "$USE_ICX" != "" ]] ; then
         sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
         sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
         # If we needed to lock down to a particular version, we could:

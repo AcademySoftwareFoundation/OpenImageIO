@@ -241,39 +241,6 @@ jobs:
             pybind11_ver: v2.10.0
             setenvs: export PUGIXML_VERSION=v1.13
             optional_deps_append: 'LibRaw;Ptex;Qt6'
-          - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.3 qt5.15
-            nametag: linux-vfx2023.icc
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2023
-            opencolorio_ver: v2.3.0
-            python_ver: "3.10"
-            # simd: "avx2,f16c"
-            fmt_ver: 7.1.3
-            # icc MUST use this older FMT version
-            pybind11_ver: v2.9.0
-            setenvs: export USE_ICC=1 USE_OPENVDB=0 USE_OPENCV=0
-                            OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
-                            FREETYPE_VERSION=VER-2-13-0
-                            DISABLE_libuhdr=1
-            # For icc, use fp-model precise to eliminate needless LSB errors
-            # that make test results differ from other platforms.
-            optional_deps_append: "LibRaw;Ptex;Qt6"
-          - desc: VFX2025 icx/C++17 py3.11 exr3.3 ocio2.4 qt5.15
-            nametag: linux-vfx2023.icx
-            runner: ubuntu-latest
-            container: aswf/ci-oiio:2025
-            cc_compiler: icx
-            cxx_compiler: icpx
-            fmt_ver: 11.2.0
-            python_ver: "3.11"
-            pybind11_ver: v2.13.6
-            simd: "avx2,f16c"
-            benchmark: 1
-            setenvs: export USE_OPENVDB=0 USE_OPENCV=0
-                            UHDR_CMAKE_C_COMPILER=gcc
-                            UHDR_CMAKE_CXX_COMPILER=g++
-            # Building libuhdr with icx results in test failures
-            optional_deps_append: "LibRaw;Ptex;openjph;Qt6"
           - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
@@ -335,6 +302,22 @@ jobs:
           #   setenvs: export PUGIXML_VERSION=v1.15
           #                   BUILD_SHARED_LIBS=OFF
           #   optional_deps_append: "openjph;Qt6"
+          - desc: VFX2025 icx/C++17 py3.11 exr3.3 ocio2.4 qt5.15
+            nametag: linux-vfx2025.icx
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2025
+            cc_compiler: icx
+            cxx_compiler: icpx
+            fmt_ver: 11.2.0
+            python_ver: "3.11"
+            pybind11_ver: v2.13.6
+            simd: "avx2,f16c"
+            benchmark: 1
+            setenvs: export USE_OPENVDB=0 USE_OPENCV=0
+                            UHDR_CMAKE_C_COMPILER=gcc
+                            UHDR_CMAKE_CXX_COMPILER=g++
+            # Building libuhdr with icx results in test failures
+            optional_deps_append: "LibRaw;Ptex;openjph;Qt6"
           - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.4
             nametag: linux-vfx2026
             runner: ubuntu-latest
