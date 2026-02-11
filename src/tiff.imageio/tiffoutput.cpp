@@ -1150,15 +1150,21 @@ TIFFOutput::write_exif_data()
                     ok = TIFFSetField(m_tif, TIFFTAG_RESOLUTIONUNIT, r);
                 }
                 handled = true;
-            } else if ((tag == EXIF_EXIFVERSION || tag == EXIF_FLASHPIXVERSION)
-                       && p.type() == TypeString) {
-                // These tags are a 4-byte array of chars, but we
-                // allow users to set it as a string. Convert it if needed.
-                std::string version = p.get_string();
-                if (version.size() >= 4) {
-                    ok = TIFFSetField(m_tif, tag, version.c_str());
+            } else if (tag == EXIF_EXIFVERSION || tag == EXIF_FLASHPIXVERSION) {
+                if (p.type() == TypeString) {
+                    // These tags are a 4-byte array of chars, but we
+                    // allow users to set it as a string. Convert it if needed.
+                    std::string version = p.get_string();
+                    if (version.size() >= 4) {
+                        ok = TIFFSetField(m_tif, tag, version.c_str());
+                    }
+                    handled = true;
+                } else if (p.type() == TypeInt) {
+                    std::string s = Strutil::fmt::format("{:04}", p.get_int());
+                    if (s.size() == 4)
+                        ok = TIFFSetField(m_tif, tag, s.c_str());
+                    handled = true;
                 }
-                handled = true;
             }
             // General cases...
             else if (tifftype == TIFF_ASCII) {
