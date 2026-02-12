@@ -2803,21 +2803,25 @@ ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
 void
 ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
 {
-    gamma = std::round(gamma * 100.0f) / 100.0f;
-    if (fabsf(gamma - 1.0f) <= 0.01f) {
+    // Round gamma to the nearest hundredth to prevent stupid precision choices
+    // and make it easier for apps to make decisions based on known gamma values.
+    float g_rounded = std::round(gamma * 100.0f) / 100.0f;
+    if (fabsf(g_rounded - 1.0f) <= 0.01f) {
         set_colorspace(spec, "lin_rec709_scene");
-    } else if (fabsf(gamma - 1.8f) <= 0.01f) {
+    } else if (fabsf(g_rounded - 1.8f) <= 0.01f) {
         set_colorspace(spec, "g18_rec709_scene");
         spec.attribute("oiio:Gamma", 1.8f);
-    } else if (fabsf(gamma - 2.2f) <= 0.01f) {
+    } else if (fabsf(g_rounded - 2.2f) <= 0.01f) {
         set_colorspace(spec, "g22_rec709_scene");
         spec.attribute("oiio:Gamma", 2.2f);
-    } else if (fabsf(gamma - 2.4f) <= 0.01f) {
+    } else if (fabsf(g_rounded - 2.4f) <= 0.01f) {
         set_colorspace(spec, "g24_rec709_scene");
         spec.attribute("oiio:Gamma", 2.4f);
     } else {
-        set_colorspace(spec, Strutil::fmt::format("g{}_rec709_scene",
-                                                  std::lround(gamma * 10.0f)));
+        set_colorspace(spec,
+                       Strutil::fmt::format("g{}_rec709_scene",
+                                            std::lround(g_rounded * 10.0f)));
+        // Preserve the original gamma value for use in color conversions.
         spec.attribute("oiio:Gamma", gamma);
     }
 }

@@ -397,11 +397,6 @@ RLAInput::seek_subimage(int subimage, int miplevel)
 
     float gamma = Strutil::from_string<float>(m_rla.Gamma);
     if (gamma > 0.f) {
-        // Round gamma to the nearest hundredth to prevent stupid
-        // precision choices and make it easier for apps to make
-        // decisions based on known gamma values. For example, you want
-        // 2.2, not 2.19998.
-        gamma = roundf(100.0 * gamma) / 100.0f;
         set_colorspace_rec709_gamma(m_spec, gamma);
     }
 
