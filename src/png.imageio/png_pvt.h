@@ -226,12 +226,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     if (png_get_sRGB(sp, ip, &srgb_intent)) {
         spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
     } else if (png_get_gAMA(sp, ip, &gamma) && gamma > 0.0) {
-        // Round gamma to the nearest hundredth to prevent stupid
-        // precision choices and make it easier for apps to make
-        // decisions based on known gamma values. For example, you want
-        // 2.2, not 2.19998.
         float g = float(1.0 / gamma);
-        g       = roundf(100.0f * g) / 100.0f;
         set_colorspace_rec709_gamma(spec, g);
     } else {
         // If there's no info at all, assume sRGB.
