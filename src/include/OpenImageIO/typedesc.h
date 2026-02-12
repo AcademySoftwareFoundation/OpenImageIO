@@ -385,6 +385,7 @@ inline constexpr TypeDesc TypeHalf (TypeDesc::HALF);
 inline constexpr TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
 inline constexpr TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
 inline constexpr TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
+inline constexpr TypeDesc TypeURational(TypeDesc::UINT, TypeDesc::VEC2, TypeDesc::RATIONAL);
 inline constexpr TypeDesc TypePointer(TypeDesc::PTR);
 inline constexpr TypeDesc TypeUstringhash(TypeDesc::USTRINGHASH);
 
