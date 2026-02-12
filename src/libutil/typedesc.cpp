@@ -325,6 +325,8 @@ TypeDesc::fromstring(string_view typestring)
         t = OIIO::TypeTimeCode;
     else if (type == "rational")
         t = OIIO::TypeRational;
+    else if (type == "urational")
+        t = OIIO::TypeURational;
     else if (type == "box2i")
         t = OIIO::TypeBox2i;
     else if (type == "box3i")
@@ -887,6 +889,12 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
     if (dsttype == TypeFloat && srctype == TypeRational) {
         int num          = ((const int*)src)[0];
         int den          = ((const int*)src)[1];
+        ((float*)dst)[0] = den ? float(num) / float(den) : 0.0f;
+        return true;
+    }
+    if (dsttype == TypeFloat && srctype == TypeURational) {
+        auto num         = ((const uint32_t*)src)[0];
+        auto den         = ((const uint32_t*)src)[1];
         ((float*)dst)[0] = den ? float(num) / float(den) : 0.0f;
         return true;
     }
