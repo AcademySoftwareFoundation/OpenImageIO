@@ -8,6 +8,7 @@ on:
   schedule:
     # Run nightly while we're still working our way through the warnings
     - cron: "0 8 * * *"
+      if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
     # Run unconditionally once weekly
     # - cron: "0 0 * * 0"
   push:

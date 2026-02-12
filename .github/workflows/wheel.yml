@@ -36,6 +36,7 @@ on:
   schedule:
     # Nightly build
     - cron:  "0 8 * * *"
+      if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
   workflow_dispatch:
     # This allows manual triggering of the workflow from the web
 
