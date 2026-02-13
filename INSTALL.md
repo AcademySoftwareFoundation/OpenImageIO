@@ -61,8 +61,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for GIF images:
      * giflib >= 5.0 (tested through 5.2.2)
  * If you want support for HEIF/HEIC or AVIF images:
-     * libheif >= 1.11 (1.16 required for correct orientation support,
-       tested through 1.21.1)
+     * libheif >= 1.11 (1.16 required for correct orientation support and
+       1.17 required for monochrome HEIC support; tested through 1.21.1)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.9)
