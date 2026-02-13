@@ -137,10 +137,16 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
                 (m_bitdepth == 8) ? heif_chroma_interleaved_RGBA
                 : littleendian()  ? heif_chroma_interleaved_RRGGBBAA_LE
                                   : heif_chroma_interleaved_RRGGBBAA_BE };
-        m_himage.create(newspec.width, newspec.height, heif_colorspace_RGB,
+        const heif_colorspace colorspace = (m_spec.nchannels == 1)
+                                               ? heif_colorspace_monochrome
+                                               : heif_colorspace_RGB;
+        const heif_channel channel       = (m_spec.nchannels == 1)
+                                               ? heif_channel_Y
+                                               : heif_channel_interleaved;
+
+        m_himage.create(newspec.width, newspec.height, colorspace,
                         chromas[m_spec.nchannels]);
-        m_himage.add_plane(heif_channel_interleaved, newspec.width,
-                           newspec.height, m_bitdepth);
+        m_himage.add_plane(channel, newspec.width, newspec.height, m_bitdepth);
 
         auto compqual  = m_spec.decode_compression_metadata("", 75);
         auto extension = Filesystem::extension(m_filename);
@@ -153,10 +159,12 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        m_ctx.reset();
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        m_ctx.reset();
         return false;
     }
 
@@ -180,10 +188,13 @@ HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
 #else
     int hystride = 0;
 #endif
+    const heif_channel hchannel = (m_spec.nchannels == 1)
+                                      ? heif_channel_Y
+                                      : heif_channel_interleaved;
 #if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 20, 2, 0)
-    uint8_t* hdata = m_himage.get_plane2(heif_channel_interleaved, &hystride);
+    uint8_t* hdata = m_himage.get_plane2(hchannel, &hystride);
 #else
-    uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved, &hystride);
+    uint8_t* hdata = m_himage.get_plane(hchannel, &hystride);
 #endif
     hdata += hystride * (y - m_spec.y);
     if (m_bitdepth == 10 || m_bitdepth == 12) {
