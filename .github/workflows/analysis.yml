@@ -52,7 +52,7 @@ jobs:
     name: "SonarCloud Analysis"
     # Exclude runs on forks, since only the main org has the SonarCloud
     # account credentials.
-    if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    if: github.event.repository.fork == false
     uses: ./.github/workflows/build-steps.yml
     # Must let the called steps workflow inherit necessary secrets
     secrets:

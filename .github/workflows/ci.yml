@@ -27,7 +27,6 @@ on:
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"
-      if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
   workflow_dispatch:
     # This allows manual triggering of the workflow from the web
 
@@ -42,7 +41,7 @@ concurrency:
 jobs:
 
   aswf-old:
-    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "(old) ${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -191,7 +190,7 @@ jobs:
   # Linux Tests using ASWF-docker containers
   #
   linux-aswf:
-    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -388,7 +387,7 @@ jobs:
   # Linux Tests using GHA Ubuntu runners directly
   #
   linux-ubuntu:
-    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -580,7 +579,7 @@ jobs:
   # MacOS Tests
   #
   macos:
-    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'linux-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'linux-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -653,7 +652,7 @@ jobs:
   # Windows Tests
   #
   windows:
-    if: ${{ ! contains(github.ref, 'linux-only') && ! contains(github.ref, 'macos-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'linux-only') && ! contains(github.ref, 'macos-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
