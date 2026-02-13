@@ -10,7 +10,7 @@ on:
   push:
     # Run on pushes to main, but only the official repo, not forks
     branches: [ "main" ]
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.repository.fork == false
   pull_request:
     # Only run on individual PRs if the workflows changed
     paths:
@@ -28,7 +28,7 @@ concurrency:
 jobs:
   analysis:
     name: Scorecards analysis
-    if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    if: github.event.repository.fork == false
     runs-on: ubuntu-latest
     permissions:
       # Needed to upload the results to code-scanning dashboard.

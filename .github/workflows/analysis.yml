@@ -8,7 +8,7 @@ on:
   schedule:
     # Run nightly while we're still working our way through the warnings
     - cron: "0 8 * * *"
-      if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      if: github.event.repository.fork == false
     # Run unconditionally once weekly
     # - cron: "0 0 * * 0"
   push:
@@ -53,7 +53,7 @@ jobs:
     name: "SonarCloud Analysis"
     # Exclude runs on forks, since only the main org has the SonarCloud
     # account credentials.
-    if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    if: github.event.repository.fork == false
     uses: ./.github/workflows/build-steps.yml
     # Must let the called steps workflow inherit necessary secrets
     secrets:
