@@ -8,7 +8,6 @@ on:
   schedule:
     # Run nightly while we're still working our way through the warnings
     - cron: "0 8 * * *"
-      if: github.event.repository.fork == false
     # Run unconditionally once weekly
     # - cron: "0 0 * * 0"
   push:

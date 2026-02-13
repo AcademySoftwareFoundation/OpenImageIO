@@ -38,7 +38,6 @@ on:
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"
-      if: github.event.repository.fork == false
   workflow_dispatch:
     # This allows manual triggering of the workflow from the web
 
@@ -53,6 +52,7 @@ concurrency:
 jobs:
   docs:
     name: "Docs / ${{matrix.desc}}"
+    if: ${{ github.event_name != 'schedule' || github.event.repository.fork == false }}
     uses: ./.github/workflows/build-steps.yml
     with:
       nametag: ${{ matrix.nametag || 'unnamed!' }}

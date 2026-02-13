@@ -36,7 +36,6 @@ on:
   schedule:
     # Nightly build
     - cron:  "0 8 * * *"
-      if: github.event.repository.fork == false
   workflow_dispatch:
     # This allows manual triggering of the workflow from the web
 
@@ -86,7 +85,7 @@ jobs:
     name: Build wheels on Linux
     runs-on: ubuntu-latest
     if: |
-      github.event_name != 'schedule' || github.event.repository.fork == false
+      ${{ github.event_name != 'schedule' || github.event.repository.fork == false }}
     strategy:
       matrix:
         include:
