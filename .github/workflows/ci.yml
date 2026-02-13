@@ -41,7 +41,7 @@ concurrency:
 jobs:
 
   aswf-old:
-    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only')  && (github.event.repository.fork == false || github.event_name != 'schedule') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "(old) ${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
