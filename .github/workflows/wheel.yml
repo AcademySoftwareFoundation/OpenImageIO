@@ -59,8 +59,7 @@ jobs:
     name: Build SDist
     runs-on: ubuntu-latest
     if: |
-      github.event_name != 'schedule' ||
-      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      github.event_name != 'schedule' || github.event.repository.fork == false
 
     steps:
 
@@ -86,8 +85,7 @@ jobs:
     name: Build wheels on Linux
     runs-on: ubuntu-latest
     if: |
-      github.event_name != 'schedule' ||
-      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      ${{ github.event_name != 'schedule' || github.event.repository.fork == false }}
     strategy:
       matrix:
         include:
@@ -192,8 +190,7 @@ jobs:
     name: Build wheels on Linux ARM
     runs-on: ubuntu-24.04-arm
     if: |
-      github.event_name != 'schedule' ||
-      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      github.event_name != 'schedule' || github.event.repository.fork == false
     strategy:
         matrix:
           include:
@@ -294,8 +291,7 @@ jobs:
     name: Build wheels on macOS
     runs-on: macos-15-intel
     if: |
-      github.event_name != 'schedule' ||
-      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      github.event_name != 'schedule' || github.event.repository.fork == false
     strategy:
       matrix:
         include:
@@ -383,8 +379,7 @@ jobs:
     name: Build wheels on macOS ARM
     runs-on: macos-14
     if: |
-      github.event_name != 'schedule' ||
-      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      github.event_name != 'schedule' || github.event.repository.fork == false
     strategy:
       matrix:
         include:
@@ -463,8 +458,7 @@ jobs:
     name: Build wheels on Windows
     runs-on: windows-2022
     if: |
-      github.event_name != 'schedule' ||
-      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      github.event_name != 'schedule' || github.event.repository.fork == false
     strategy:
       matrix:
         include:
@@ -522,7 +516,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-    if: github.event_name == 'push' && (startsWith(github.event.ref, 'refs/tags/v3.0.') || startsWith(github.event.ref, 'refs/tags/v3.1.')) && github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    if: github.event_name == 'push' && (startsWith(github.event.ref, 'refs/tags/v3.0.') || startsWith(github.event.ref, 'refs/tags/v3.1.')) && github.event.repository.fork == false
     steps:
       - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
 
