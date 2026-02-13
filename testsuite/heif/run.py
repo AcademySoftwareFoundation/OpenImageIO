@@ -22,5 +22,11 @@ files = [ "greyhounds-looking-for-a-table.heic", "sewing-threads.heic" ]
 for f in files:
     command = command + info_command (os.path.join(OIIO_TESTSUITE_IMAGEDIR, f))
 
+command += oiiotool("--pattern checker:color1=1:color2=0 64x64 1 -o mono-8bit.avif")
+command += info_command("mono-8bit.avif", safematch=True)
+
+command += oiiotool("--pattern checker:color1=1:color2=0 64x64 1 -d uint10 -o mono-10bit.avif")
+command += info_command("mono-10bit.avif", safematch=True)
+
 # avif conversion is expected to fail if libheif is built without AV1 support
 failureok = 1

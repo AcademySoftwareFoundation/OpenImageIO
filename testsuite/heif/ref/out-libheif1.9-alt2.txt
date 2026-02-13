@@ -146,3 +146,17 @@ Reading ../oiio-images/heif/sewing-threads.heic
     GPS:Longitude: 1, 49, 34.0187
     GPS:LongitudeRef: "E"
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading mono-8bit.avif
+mono-8bit.avif       :   64 x   64, 3 channel, uint10 heif
+    SHA-1: 4E361351029D39379C73580BCD4C9859E4B73ADE
+    channel list: R, G, B
+    CICP: 2, 2, 6, 1
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading mono-10bit.avif
+mono-10bit.avif      :   64 x   64, 3 channel, uint10 heif
+    SHA-1: 4E361351029D39379C73580BCD4C9859E4B73ADE
+    channel list: R, G, B
+    CICP: 2, 2, 6, 1
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "srgb_rec709_scene"

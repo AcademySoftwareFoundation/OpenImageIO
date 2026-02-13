@@ -262,15 +262,40 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     }
 
     m_has_alpha = m_ihandle.has_alpha_channel();
-    auto chroma = m_has_alpha        ? (m_bitdepth > 8)
-                                           ? littleendian()
-                                                 ? heif_chroma_interleaved_RRGGBBAA_LE
-                                                 : heif_chroma_interleaved_RRGGBBAA_BE
-                                           : heif_chroma_interleaved_RGBA
-                  : (m_bitdepth > 8) ? littleendian()
-                                           ? heif_chroma_interleaved_RRGGBB_LE
-                                           : heif_chroma_interleaved_RRGGBB_BE
-                                     : heif_chroma_interleaved_RGB;
+
+    bool is_monochrome = false;
+
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 17, 0, 0)
+    heif_colorspace preferred_colorspace = heif_colorspace_undefined;
+    heif_chroma preferred_chroma         = heif_chroma_undefined;
+
+    if (heif_image_handle_get_preferred_decoding_colorspace(
+            m_ihandle.get_raw_image_handle(), &preferred_colorspace,
+            &preferred_chroma)
+            .code
+        == heif_error_Ok) {
+        is_monochrome = preferred_colorspace == heif_colorspace_monochrome;
+    }
+#endif
+
+    const heif_chroma chroma
+        = (is_monochrome)    ? heif_chroma_monochrome
+          : m_has_alpha      ? (m_bitdepth > 8)
+                                   ? littleendian()
+                                         ? heif_chroma_interleaved_RRGGBBAA_LE
+                                         : heif_chroma_interleaved_RRGGBBAA_BE
+                                   : heif_chroma_interleaved_RGBA
+          : (m_bitdepth > 8) ? littleendian()
+                                   ? heif_chroma_interleaved_RRGGBB_LE
+                                   : heif_chroma_interleaved_RRGGBB_BE
+                             : heif_chroma_interleaved_RGB;
+    const heif_colorspace colorspace = is_monochrome
+                                           ? heif_colorspace_monochrome
+                                           : heif_colorspace_RGB;
+    const heif_channel channel       = is_monochrome ? heif_channel_Y
+                                                     : heif_channel_interleaved;
+    const int nchannels              = is_monochrome ? 1 : m_has_alpha ? 4 : 3;
+
 #if 0
     try {
         m_himage = m_ihandle.decode_image(heif_colorspace_RGB, chroma);
@@ -290,8 +315,8 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     // print("Got decoding options version {}\n", options->version);
     struct heif_image* img_tmp = nullptr;
     struct heif_error herr = heif_decode_image(m_ihandle.get_raw_image_handle(),
-                                               &img_tmp, heif_colorspace_RGB,
-                                               chroma, options.get());
+                                               &img_tmp, colorspace, chroma,
+                                               options.get());
     if (img_tmp)
         m_himage = heif::Image(img_tmp);
     if (herr.code != heif_error_Ok || !img_tmp) {
@@ -301,9 +326,8 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     }
 #endif
 
-    m_spec = ImageSpec(m_himage.get_width(heif_channel_interleaved),
-                       m_himage.get_height(heif_channel_interleaved),
-                       m_has_alpha ? 4 : 3,
+    m_spec = ImageSpec(m_himage.get_width(channel),
+                       m_himage.get_height(channel), nchannels,
                        (m_bitdepth > 8) ? TypeUInt16 : TypeUInt8);
 
     if (m_bitdepth > 8) {
@@ -492,12 +516,13 @@ HeifInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 #else
     int ystride = 0;
 #endif
+    const heif_channel channel = m_spec.nchannels == 1
+                                     ? heif_channel_Y
+                                     : heif_channel_interleaved;
 #if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 20, 2, 0)
-    const uint8_t* hdata = m_himage.get_plane2(heif_channel_interleaved,
-                                               &ystride);
+    const uint8_t* hdata = m_himage.get_plane2(channel, &ystride);
 #else
-    const uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved,
-                                              &ystride);
+    const uint8_t* hdata = m_himage.get_plane(channel, &ystride);
 #endif
     if (!hdata) {
         errorfmt("Unknown read error");
