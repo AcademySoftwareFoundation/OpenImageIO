@@ -260,13 +260,15 @@ print_dir_entry(std::ostream& out, const TagMap& tagmap,
 
     switch (dir.tdir_type) {
     case TIFF_ASCII:
+#    ifdef EXIF_TIFF_UTF8
     case EXIF_TIFF_UTF8:
+#    endif
         OIIO::print(out, "'{}'", string_view(mydata, dir.tdir_count));
         break;
     case TIFF_RATIONAL: {
         const unsigned int* u = (unsigned int*)mydata;
         for (size_t i = 0; i < dir.tdir_count; ++i)
-            OIIO::print(out, "{}/{} = {} ", u[2 * i], << u[2 * i + 1],
+            OIIO::print(out, "{}/{} = {} ", u[2 * i], u[2 * i + 1],
                         (double)u[2 * i] / (double)u[2 * i + 1]);
     } break;
     case TIFF_SRATIONAL: {
@@ -449,7 +451,7 @@ static const TagInfo exif_tag_table[] = {
     { EXIF_SPECTRALSENSITIVITY,"Exif:SpectralSensitivity",	TIFF_ASCII, 0 },
     { EXIF_ISOSPEEDRATINGS,	"Exif:ISOSpeedRatings",	TIFF_SHORT, 1 },
     { EXIF_OECF,	        "Exif:OECF",	TIFF_NOTYPE, 1 },	 // skip it
-    { EXIF_EXIFVERSION,	"Exif:ExifVersion",	TIFF_UNDEFINED, 1, version4char_handler },	 // skip it
+    { EXIF_EXIFVERSION,	"Exif:ExifVersion",	TIFF_UNDEFINED, 1, version4char_handler },
     { EXIF_DATETIMEORIGINAL,	"Exif:DateTimeOriginal",	TIFF_ASCII, 0 },
     { EXIF_DATETIMEDIGITIZED,"Exif:DateTimeDigitized",   TIFF_ASCII, 0 },
     { EXIF_OFFSETTIME,"Exif:OffsetTime",   TIFF_ASCII, 0 },
@@ -475,7 +477,7 @@ static const TagInfo exif_tag_table[] = {
     { EXIF_SUBSECTIME,	"Exif:SubsecTime",	        TIFF_ASCII, 0 },
     { EXIF_SUBSECTIMEORIGINAL,"Exif:SubsecTimeOriginal",	TIFF_ASCII, 0 },
     { EXIF_SUBSECTIMEDIGITIZED,"Exif:SubsecTimeDigitized",	TIFF_ASCII, 0 },
-    { EXIF_FLASHPIXVERSION,	"Exif:FlashPixVersion",	TIFF_UNDEFINED, 1, version4char_handler },	// skip "Exif:FlashPixVesion",	TIFF_NOTYPE, 1 },
+    { EXIF_FLASHPIXVERSION,	"Exif:FlashPixVersion",	TIFF_UNDEFINED, 1, version4char_handler },
     { EXIF_COLORSPACE,	"Exif:ColorSpace",	TIFF_SHORT, 1 },
     { EXIF_PIXELXDIMENSION,	"Exif:PixelXDimension",	TIFF_LONG, 1 },
     { EXIF_PIXELYDIMENSION,	"Exif:PixelYDimension",	TIFF_LONG, 1 },
@@ -1202,7 +1204,7 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
 
 #if DEBUG_EXIF_READ
     std::cerr << "Exif dump:\n";
-    for (size_t i = 0; i < std::min(200L, exif.size()); ++i) {
+    for (size_t i = 0; i < std::min(200UL, exif.size()); ++i) {
         if ((i % 16) == 0)
             std::cerr << "[" << i << "] ";
         if (exif[i] >= ' ')
