@@ -280,7 +280,8 @@ private:
 
     OIIO_NODISCARD
     bool safe_tiffgetfield(string_view name OIIO_MAYBE_UNUSED, int tag,
-                           TypeDesc expected, void* dest)
+                           TypeDesc expected, void* dest,
+                           const uint32_t* count = nullptr)
     {
         TypeDesc type = tiffgetfieldtype(tag);
         // Caller expects a specific type and the tag doesn't match? Punt.
@@ -295,6 +296,11 @@ private:
         int readcount = TIFFFieldReadCount(field);
         if (!passcount && readcount > 0) {
             return TIFFGetField(m_tif, tag, dest);
+        } else if (passcount && readcount <= 0) {
+            uint32_t mycount = 0;
+            if (!count)
+                count = &mycount;
+            return TIFFGetField(m_tif, tag, count, dest);
         }
         // OIIO::debugfmt(" stgf {} tag {} {} datatype {} passcount {} readcount {}\n",
         //                name, tag, type, int(TIFFFieldDataType(field)), passcount, readcount);
@@ -396,21 +402,48 @@ private:
     // add it in the obvious way to m_spec under the name 'oiioname'.
     void find_tag(int tifftag, TIFFDataType tifftype, string_view oiioname)
     {
+        if (tifftype == TIFF_NOTYPE)
+            return;  // NOTYPE is a signal that should skip it
         auto info = find_field(tifftag, tifftype);
         if (!info) {
             // Something has gone wrong, libtiff doesn't think the field type
             // is the same as we do.
             return;
         }
-        if (tifftype == TIFF_ASCII)
+        tifftype  = TIFFFieldDataType(info);
+        int count = TIFFFieldReadCount(info);
+        if (tifftype == TIFF_ASCII) {
             get_string_attribute(oiioname, tifftag);
-        else if (tifftype == TIFF_SHORT)
+            return;
+        } else if (tifftype == TIFF_SHORT) {
             get_short_attribute(oiioname, tifftag);
-        else if (tifftype == TIFF_LONG)
+            return;
+        } else if (tifftype == TIFF_LONG) {
             get_int_attribute(oiioname, tifftag);
-        else if (tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL
-                 || tifftype == TIFF_FLOAT || tifftype == TIFF_DOUBLE)
+            return;
+        } else if (tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL
+                   || tifftype == TIFF_FLOAT || tifftype == TIFF_DOUBLE) {
             get_float_attribute(oiioname, tifftag);
+            return;
+        }
+        // special cases follow
+        if (tifftype == TIFF_UNDEFINED) {
+            if ((tifftag == EXIF_EXIFVERSION || tifftag == EXIF_FLASHPIXVERSION)
+                && count == 4) {
+                char* ptr = nullptr;
+                if (safe_tiffgetfield(oiioname, tifftag, TypeUnknown, &ptr)
+                    && ptr && ptr[0]) {
+                    std::string str(ptr, 4);
+                    m_spec.attribute(oiioname, str);
+                }
+                return;
+            }
+        }
+#if 0
+        print("Unhandled TIFF tag {} type {} count {} pass {} for {}\n",
+              tifftag, int(tifftype), count, TIFFFieldPassCount(info),
+              oiioname);
+#endif
     }
 
     // If we're at scanline y, where does the next strip start?

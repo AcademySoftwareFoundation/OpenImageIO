@@ -1202,16 +1202,18 @@ TIFFOutput::write_exif_data()
                 handled = true;
             }
             if (!handled) {
-#    ifndef NDEBUG
+#    if 0
                 print("Unhandled EXIF {} ({}) / tag {} tifftype {} count {}\n",
                       p.name(), p.type(), tag, tifftype, count);
 #    endif
             }
             // NOTE: We are not handling arrays of values, just scalars.
             if (!ok) {
-                // print(
-                //     "Error handling EXIF {} ({}) / tag {} tifftype {} count {}\n",
-                //     p.name(), p.type(), tag, tifftype, count);
+#    if 0
+                print(
+                    "Error handling EXIF {} ({}) / tag {} tifftype {} count {}\n",
+                    p.name(), p.type(), tag, tifftype, count);
+#    endif
             }
         }
     }
