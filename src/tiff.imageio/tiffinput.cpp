@@ -265,25 +265,37 @@ private:
     }
 
     OIIO_NODISCARD
-    TypeDesc tiffgetfieldtype(int tag)
+    TypeDesc tiffgetfieldtype(int tag, OIIO_MAYBE_UNUSED string_view name = "",
+                              int* readcount_             = nullptr,
+                              int* passcount_             = nullptr,
+                              TIFFDataType* tiffdatatype_ = nullptr)
     {
         auto field = find_field(tag);
         if (!field)
             return TypeUnknown;
-        TIFFDataType tiffdatatype = TIFFFieldDataType(field);
-        int passcount             = TIFFFieldPassCount(field);
-        int readcount             = TIFFFieldReadCount(field);
-        if (!passcount && readcount > 0)
-            return tiff_datatype_to_typedesc(tiffdatatype, readcount);
-        return TypeUnknown;
+        auto tiffdatatype = TIFFFieldDataType(field);
+        int readcount     = TIFFFieldReadCount(field);
+        int passcount     = TIFFFieldPassCount(field);
+        TypeDesc type     = tiff_datatype_to_typedesc(tiffdatatype,
+                                                      std::max(1, readcount));
+        if (readcount == TIFF_SPP)
+            type.arraylen = m_spec.nchannels;
+        if (readcount_)
+            *readcount_ = readcount;
+        if (passcount_)
+            *passcount_ = passcount;
+        if (tiffdatatype_)
+            *tiffdatatype_ = tiffdatatype;
+        return type;
     }
 
     OIIO_NODISCARD
     bool safe_tiffgetfield(string_view name OIIO_MAYBE_UNUSED, int tag,
                            TypeDesc expected, void* dest,
-                           const uint32_t* count = nullptr)
+                           uint32_t* count = nullptr)
     {
-        TypeDesc type = tiffgetfieldtype(tag);
+        int readcount = 0, passcount = 0;
+        TypeDesc type = tiffgetfieldtype(tag, name, &readcount, &passcount);
         // Caller expects a specific type and the tag doesn't match? Punt.
         if (expected != TypeUnknown && !equivalent(expected, type))
             return false;
@@ -292,8 +304,8 @@ private:
             return false;
 
         // TIFFDataType tiffdatatype = TIFFFieldDataType(field);
-        int passcount = TIFFFieldPassCount(field);
-        int readcount = TIFFFieldReadCount(field);
+        passcount = TIFFFieldPassCount(field);
+        readcount = TIFFFieldReadCount(field);
         if (!passcount && readcount > 0) {
             return TIFFGetField(m_tif, tag, dest);
         } else if (passcount && readcount <= 0) {
@@ -370,31 +382,120 @@ private:
             m_spec.attribute(name, TypeMatrix, f);
     }
 
-    // Get a float tiff tag field and put it into extra_params
-    void get_float_attribute(string_view name, int tag)
+    // Get a tiff tag field whose C type will match T, and put it into
+    // extra_params. If it must be a very specific TypeDesc, it can be
+    // supplied as expected_type. The hard part is that libtiff is horribly
+    // complicated because some tags have variable lengths, and there are even
+    // several different parameter passing conventions to the incredibly
+    // unsafe TIFFGetField function.
+    template<typename T>
+    void get_attribute_from_tag(string_view name, int tag,
+                                TypeDesc expected_type = TypeUnknown)
     {
-        float f[16];
-        if (safe_tiffgetfield(name, tag, TypeUnknown, f))
-            m_spec.attribute(name, f[0]);
-    }
-
-    // Get an int tiff tag field and put it into extra_params
-    void get_int_attribute(string_view name, int tag)
-    {
-        int i = 0;
-        if (safe_tiffgetfield(name, tag, TypeUnknown, &i))
-            m_spec.attribute(name, i);
-    }
-
-    // Get an int tiff tag field and put it into extra_params
-    void get_short_attribute(string_view name, int tag)
-    {
-        // Make room for two shorts, in case the tag is not the type we
-        // expect, and libtiff writes a long instead.
-        unsigned short s[2] = { 0, 0 };
-        if (safe_tiffgetfield(name, tag, TypeUInt16, &s)) {
-            int i = s[0];
-            m_spec.attribute(name, i);
+        int readcount = 0, passcount = 0;
+        TIFFDataType tiffdatatype = TIFF_NOTYPE;
+        TypeDesc oiiotype = tiffgetfieldtype(tag, name, &readcount, &passcount,
+                                             &tiffdatatype);
+        if (oiiotype == TypeUnknown)
+            return;
+        OIIO_ASSERT((readcount > 0 && passcount == 0)
+                    || (readcount == 0 && passcount == 0)
+                    || (readcount < 0 && passcount > 0));
+        oiiotype.basetype = BaseTypeFromC_v<T>;
+        if (expected_type != TypeUnknown) {
+            // If a specific OIIO type is demanded, skip if what we got
+            // doesn't really match in base type and total number of elements.
+            // But allow a ushort tag to make a int attribute.
+            if (oiiotype.basetype != expected_type.basetype)
+                return;
+            if (oiiotype.basevalues() != expected_type.basevalues())
+                return;
+            oiiotype = expected_type;
+        } else {
+            oiiotype.aggregate    = TypeDesc::SCALAR;
+            oiiotype.vecsemantics = TypeDesc::NOSEMANTICS;
+        }
+        if (readcount > 0 && passcount == 0) {
+            // We know how many are passed, so we pass TIFFGetField a pointer
+            // to where we want the (already sized) data to go.
+            OIIO_ASSERT(size_t(readcount) == oiiotype.basevalues());
+            if constexpr (std::is_same_v<T, uint16_t>) {
+                // Special case: we save a single tiff ushort as an int.
+                if (tiffdatatype == TIFF_SHORT && readcount == 1) {
+                    T val;
+                    if (TIFFGetField(m_tif, tag, &val))
+                        m_spec.attribute(name, int(val));
+                    return;
+                }
+                // Fun, there are some quirky special cases in libtiff where
+                // certain uint16[2] fields are retrieved with two pointers!
+                if (tiffdatatype == TIFF_SHORT && readcount == 2
+                    && (tag == TIFFTAG_PAGENUMBER
+                        || tag == TIFFTAG_HALFTONEHINTS
+                        || tag == TIFFTAG_DOTRANGE
+                        || tag == TIFFTAG_YCBCRSUBSAMPLING)) {
+                    T vals[2] = { 0, 0 };
+                    if (TIFFGetField(m_tif, tag, &(vals[0]), &(vals[1]))) {
+                        constexpr TypeDesc TypeUInt16_2(TypeDesc::UINT16, 2);
+                        m_spec.attribute(name, TypeUInt16_2, vals);
+                    }
+                    return;
+                }
+            }
+            if (readcount > 1) {
+                // If there are multiple values, we pass a T** and it puts the
+                // address of the real data in our pointer. There are very few
+                // TIFF tags like this.
+                const T* ptr = nullptr;
+                if (TIFFGetField(m_tif, tag, &ptr) && ptr)
+                    m_spec.attribute(name, oiiotype, ptr);
+                return;
+            } else {
+                // If there is just one value, we pass a pointer to our data,
+                // and libtiff fills it in.
+                T val;
+                if (TIFFGetField(m_tif, tag, &val))
+                    m_spec.attribute(name, oiiotype, &val);
+            }
+            return;
+        } else if (readcount == TIFF_VARIABLE) {
+            // Must pass a uin16_t to find out how many, and we get a data
+            // pointer instead of providing a pointer.
+            uint16_t count = 0;
+            const T* vals  = nullptr;
+            if (TIFFGetField(m_tif, tag, &count, &vals) && vals && count) {
+                oiiotype.unarray();
+                oiiotype.arraylen = count;
+                m_spec.attribute(name, oiiotype, make_span(vals, count));
+            }
+            return;
+        } else if (readcount == TIFF_VARIABLE2) {
+            // Must pass a uin32_t to find out how many, and we get a data
+            // pointer instead of providing a pointer.
+            uint32_t count = 0;
+            const T* vals  = nullptr;
+            if (TIFFGetField(m_tif, tag, &count, &vals) && vals && count) {
+                if (count > 1)
+                    oiiotype.arraylen = count;
+                else
+                    oiiotype.unarray();
+                m_spec.attribute(name, oiiotype, make_span(vals, count));
+            }
+            return;
+        } else if (readcount == TIFF_SPP) {
+            // The number of values is equal to the number of cannels.
+            uint32_t count = static_cast<uint32_t>(m_spec.nchannels);
+            const T* vals  = nullptr;
+            if (TIFFGetField(m_tif, tag, &vals) && vals) {
+                if (count > 1)
+                    oiiotype.arraylen = count;
+                else
+                    oiiotype.unarray();
+                m_spec.attribute(name, oiiotype, make_span(vals, count));
+            }
+            return;
+        } else {
+            // print("UNHANDLED CASE!\n");
         }
     }
 
@@ -416,14 +517,14 @@ private:
             get_string_attribute(oiioname, tifftag);
             return;
         } else if (tifftype == TIFF_SHORT) {
-            get_short_attribute(oiioname, tifftag);
+            get_attribute_from_tag<uint16_t>(oiioname, tifftag);
             return;
         } else if (tifftype == TIFF_LONG) {
-            get_int_attribute(oiioname, tifftag);
+            get_attribute_from_tag<int>(oiioname, tifftag);
             return;
         } else if (tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL
                    || tifftype == TIFF_FLOAT || tifftype == TIFF_DOUBLE) {
-            get_float_attribute(oiioname, tifftag);
+            get_attribute_from_tag<float>(oiioname, tifftag);
             return;
         }
         // special cases follow
@@ -1295,11 +1396,13 @@ TIFFInput::readspec(bool read_meta)
     if (xdensity && ydensity)
         m_spec.attribute("PixelAspectRatio", ydensity / xdensity);
 
-    get_matrix_attribute("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA);
-    get_matrix_attribute("worldtoscreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN);
-    get_int_attribute("tiff:subfiletype", TIFFTAG_SUBFILETYPE);
-    // FIXME -- should subfiletype be "conventionized" and used for all
-    // plugins uniformly?
+    get_attribute_from_tag<float>("worldtocamera",
+                                  TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA,
+                                  TypeMatrix);
+    get_attribute_from_tag<float>("worldtoscreen",
+                                  TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN,
+                                  TypeMatrix);
+    get_attribute_from_tag<int>("tiff:subfiletype", TIFFTAG_SUBFILETYPE);
 
     // Special names for shadow maps
     char* s = NULL;
@@ -1356,6 +1459,21 @@ TIFFInput::readspec(bool read_meta)
         // that requires a TIFFSetDirectory to set things straight again.
         TIFFSetDirectory(m_tif, m_actual_subimage);
     }
+
+#if OIIO_TIFFLIB_VERSION >= 40200
+    // Search for an GPS IFD in the TIFF file, and if found, rummage
+    // around for GPS fields.
+    toff_t gpsoffset = 0;
+    if (TIFFGetField(m_tif, TIFFTAG_GPSIFD, &gpsoffset)) {
+        if (TIFFReadEXIFDirectory(m_tif, gpsoffset)) {
+            for (const auto& tag : tag_table("GPS"))
+                find_tag(tag.tifftag, tag.tifftype, tag.name);
+        }
+        // TIFFReadEXIFDirectory seems to do something to the internal state
+        // that requires a TIFFSetDirectory to set things straight again.
+        TIFFSetDirectory(m_tif, m_actual_subimage);
+    }
+#endif
 
     // Search for IPTC metadata in IIM form -- but older versions of
     // libtiff botch the size, so ignore it for very old libtiff.

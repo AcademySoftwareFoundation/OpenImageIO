@@ -152,6 +152,11 @@ private:
     bool put_parameter(const ParamValue& metadata);
     bool write_exif_data();
 
+    // Write the tags of the given tag set to a custom TIFF directory.
+    // Return the offset of the new directory, or 0 if it could not be
+    // done.
+    uint64_t write_extra_tag_directory(string_view tag_set_name);
+
     // Make our best guess about whether the spec is describing data that
     // is in true CMYK values.
     bool source_is_cmyk(const ImageSpec& spec);
@@ -1096,19 +1101,26 @@ TIFFOutput::write_exif_data()
 
     // First, see if we have any Exif data at all
     bool any_exif = false;
-    for (size_t i = 0, e = m_spec.extra_attribs.size(); i < e; ++i) {
-        const ParamValue& p(m_spec.extra_attribs[i]);
+    bool any_gps  = false;
+    for (const auto& p : m_spec.extra_attribs) {
         int tag, tifftype, count;
-        if (exif_tag_lookup(p.name(), tag, tifftype, count)
+        if (!any_exif && exif_tag_lookup(p.name(), tag, tifftype, count)
             && tifftype != TIFF_NOTYPE) {
             if (tag == EXIF_SECURITYCLASSIFICATION || tag == EXIF_IMAGEHISTORY
                 || tag == EXIF_PHOTOGRAPHICSENSITIVITY)
                 continue;  // libtiff doesn't understand these
             any_exif = true;
-            break;
         }
+#    if OIIO_TIFFLIB_VERSION >= 40200
+        if (!any_gps && gps_tag_lookup(p.name(), tag, tifftype, count)
+            && tifftype != TIFF_NOTYPE) {
+            any_gps = true;
+        }
+#    endif
+        if (any_exif && any_gps)
+            break;  // If we've found both kinds, we're done
     }
-    if (!any_exif)
+    if (!any_exif && !any_gps)
         return true;
 
 #    if ENABLE_JPEG_COMPRESSION
@@ -1125,16 +1137,59 @@ TIFFOutput::write_exif_data()
         return false;
     }
 
-    // Create an Exif directory
-    if (TIFFCreateEXIFDirectory(m_tif) != 0) {
-        errorfmt("failed TIFFCreateEXIFDirectory()");
-        return false;
+    uint64_t exif_dir_offset = 0;
+    if (any_exif) {
+        // Create an Exif directory
+        if (TIFFCreateEXIFDirectory(m_tif) != 0) {
+            errorfmt("failed TIFFCreateEXIFDirectory()");
+            return false;
+        }
+        exif_dir_offset = write_extra_tag_directory("Exif");
     }
+#    if OIIO_TIFFLIB_VERSION >= 40200
+    uint64_t gps_dir_offset = 0;
+    if (any_gps) {
+        // Create a GPS directory
+        if (TIFFCreateGPSDirectory(m_tif) != 0) {
+            errorfmt("failed TIFFCreateGPSDirectory()");
+            return false;
+        }
+        gps_dir_offset = write_extra_tag_directory("GPS");
+    }
+#    endif
+
+    // Go back to the first directory, and add the EXIFIFD pointer.
+    // std::cout << "diffdir = " << tiffdir << "\n";
+    TIFFSetDirectory(m_tif, 0);
+    if (exif_dir_offset)
+        TIFFSetField(m_tif, TIFFTAG_EXIFIFD, exif_dir_offset);
+#    if OIIO_TIFFLIB_VERSION >= 40200
+    if (gps_dir_offset)
+        TIFFSetField(m_tif, TIFFTAG_GPSIFD, gps_dir_offset);
+#    endif
+#endif
+
+    return true;  // all is ok
+}
+
+
+
+uint64_t
+TIFFOutput::write_extra_tag_directory(string_view tag_set_name)
+{
+    using TagLookupFunc       = bool (*)(string_view, int&, int&, int&);
+    TagLookupFunc lookup_func = nullptr;
+    if (tag_set_name == "GPS") {
+        lookup_func = gps_tag_lookup;
+    } else {
+        lookup_func = exif_tag_lookup;
+    }
+    OIIO_ASSERT(lookup_func);
 
     for (size_t i = 0, e = m_spec.extra_attribs.size(); i < e; ++i) {
         const ParamValue& p(m_spec.extra_attribs[i]);
         int tag, tifftype, count;
-        if (exif_tag_lookup(p.name(), tag, tifftype, count)
+        if (lookup_func(p.name(), tag, tifftype, count)
             && tifftype != TIFF_NOTYPE) {
             bool ok      = false;
             bool handled = false;
@@ -1170,71 +1225,73 @@ TIFFOutput::write_exif_data()
             else if (tifftype == TIFF_ASCII) {
                 ok      = TIFFSetField(m_tif, tag, p.get_string().c_str());
                 handled = true;
-            } else if (tifftype == TIFF_SHORT || tifftype == TIFF_SSHORT
-                       || tifftype == TIFF_LONG || tifftype == TIFF_SLONG) {
-                if ((p.type() == TypeInt16 || p.type() == TypeInt32
-                     || p.type() == TypeUInt16 || p.type() == TypeUInt32)
-                    && count == 1) {
-                    // Passing our kinda-int as TIFF kinda-int
-                    ok      = TIFFSetField(m_tif, tag, p.get_int());
-                    handled = true;
-                } else if (p.type() == TypeString && count == 1) {
-                    // Passing our string as TIFF kinda-int -- convert as long
-                    // as the string looks like an int.
-                    std::string s = p.get_string();
-                    if (Strutil::string_is_int(s)) {
-                        int val = Strutil::stoi(s);
-                        ok      = TIFFSetField(m_tif, tag, val);
-                        handled = true;
-                    }
+            } else if ((tifftype == TIFF_SHORT || tifftype == TIFF_SSHORT
+                        || tifftype == TIFF_LONG || tifftype == TIFF_SLONG)
+                       && ((p.type().elementtype() == TypeInt16
+                            || p.type().elementtype() == TypeUInt16
+                            || p.type().elementtype() == TypeInt32
+                            || p.type().elementtype() == TypeUInt32))) {
+                // If the tag is an integer type, there are a number of types
+                // we can force into that form by converting to and then
+                // passing ints.
+                if (count == 1) {
+                    ok = TIFFSetField(m_tif, tag, p.get_int());
+                } else {
+                    auto vals = OIIO_ALLOCA_SPAN(int, count);
+                    for (int i = 0; i < count; ++i)
+                        vals[i] = p.get_int_indexed(i);
+                    ok = TIFFSetField(m_tif, tag, vals.data());
                 }
-            } else if ((tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL)
-                       && (p.type() == TypeFloat || p.type() == TypeDesc::DOUBLE
-                           || p.type() == TypeUInt16 || p.type() == TypeUInt32
-                           || p.type() == TypeInt16 || p.type() == TypeInt32
-                           || p.type() == TypeRational
-                           || p.type() == TypeURational)
-                       && count == 1) {
-                // If the tag is a rational, there are a number of types we
-                // can force into that form by converting to and then passing
-                // a float.
-                ok      = TIFFSetField(m_tif, tag, p.get_float());
+                handled = true;
+            } else if ((tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL
+                        || tifftype == TIFF_FLOAT || tifftype == TIFF_DOUBLE)
+                       && (p.type().is_floating_point()
+                           || p.type().elementtype() == TypeUInt16
+                           || p.type().elementtype() == TypeUInt32
+                           || p.type().elementtype() == TypeInt16
+                           || p.type().elementtype() == TypeInt32
+                           || p.type().elementtype() == TypeRational
+                           || p.type().elementtype() == TypeURational)) {
+                // If the tag is a rational or floats, there are a number of types
+                // we can force into that form by converting to and then passing
+                // floats. But actually, libtiff uses C conventions, so we actually
+                // pass doubles.
+                if (count == 1) {
+                    ok = TIFFSetField(m_tif, tag, p.get_float());
+                } else {
+                    auto vals = OIIO_ALLOCA_SPAN(double, count);
+                    for (int i = 0; i < count; ++i)
+                        vals[i] = p.get_float_indexed(i);
+                    ok = TIFFSetField(m_tif, tag, vals.data());
+                }
                 handled = true;
             }
             if (!handled) {
-#    if 0
-                print("Unhandled EXIF {} ({}) / tag {} tifftype {} count {}\n",
-                      p.name(), p.type(), tag, tifftype, count);
-#    endif
+#if 0
+                print("Unhandled {} {} ({}) / tag {} tifftype {} count {}\n",
+                      tag_set_name, p.name(), p.type(), tag, tifftype, count);
+#endif
             }
             // NOTE: We are not handling arrays of values, just scalars.
             if (!ok) {
-#    if 0
+#if 0
                 print(
-                    "Error handling EXIF {} ({}) / tag {} tifftype {} count {}\n",
-                    p.name(), p.type(), tag, tifftype, count);
-#    endif
+                    "Error handling {} {} ({}) / tag {} tifftype {} count {}\n",
+                    tag_set_name, p.name(), p.type(), tag, tifftype, count);
+#endif
             }
         }
     }
 
-    // Now write the directory of Exif data
-#    ifndef TIFF_GCC_DEPRECATED
-    uint64 dir_offset = 0;  // old type
-#    else
+    // Now write the directory of this data
     uint64_t dir_offset = 0;
-#    endif
     if (!TIFFWriteCustomDirectory(m_tif, &dir_offset)) {
-        errorfmt("failed TIFFWriteCustomDirectory() of the Exif data");
-        return false;
+        errorfmt("failed TIFFWriteCustomDirectory() of the {} data",
+                 tag_set_name);
+        return 0;
     }
-    // Go back to the first directory, and add the EXIFIFD pointer.
-    // std::cout << "diffdir = " << tiffdir << "\n";
-    TIFFSetDirectory(m_tif, 0);
-    TIFFSetField(m_tif, TIFFTAG_EXIFIFD, dir_offset);
-#endif
 
-    return true;  // all is ok
+    return dir_offset;
 }
 
 

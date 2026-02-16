@@ -426,7 +426,7 @@ static const TagInfo exif_tag_table[] = {
     { TIFFTAG_PHOTOMETRIC,	"Exif:Photometric",	TIFF_NOTYPE, 1 },
     { TIFFTAG_SAMPLESPERPIXEL,	"Exif:SamplesPerPixel",	TIFF_NOTYPE, 1 },
     { TIFFTAG_PLANARCONFIG,	"Exif:PlanarConfig",	TIFF_NOTYPE, 1 },
-    { TIFFTAG_YCBCRSUBSAMPLING,	"Exif:YCbCrSubsampling",TIFF_SHORT, 1 },
+    { TIFFTAG_YCBCRSUBSAMPLING,	"Exif:YCbCrSubsampling",TIFF_SHORT, 2 },
     { TIFFTAG_YCBCRPOSITIONING,	"Exif:YCbCrPositioning",TIFF_SHORT, 1 },
     // TIFF tags we may come across
     { TIFFTAG_ORIENTATION,	"Orientation",	TIFF_SHORT, 1 },
@@ -1550,6 +1550,21 @@ bool
 exif_tag_lookup(string_view name, int& tag, int& tifftype, int& count)
 {
     const TagInfo* e = exif_tagmap_ref().find(name);
+    if (!e)
+        return false;  // not found
+
+    tag      = e->tifftag;
+    tifftype = e->tifftype;
+    count    = e->tiffcount;
+    return true;
+}
+
+
+
+bool
+gps_tag_lookup(string_view name, int& tag, int& tifftype, int& count)
+{
+    const TagInfo* e = gps_tagmap_ref().find(name);
     if (!e)
         return false;  // not found
 
