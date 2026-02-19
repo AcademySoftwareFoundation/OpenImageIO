@@ -1,5 +1,19 @@
-Stack holds [0] = d.tif, [1] = c.tif, [2] = b.tif
+Stack holds [0] = d.tif, [1] = c.tif, [2] = b.tif , [3] = a.tif
 TOP = d.tif, BOTTOM = a.tif
+Stack holds [0] = b.tif, [1] = a.tif
+TOP = b.tif, BOTTOM = a.tif
+Stack holds [0] = a.tif
+TOP = a.tif, BOTTOM = a.tif
+Stack is empty
+oiiotool ERROR: expression : not a valid image at char 4 of 'TOP.filename'
+Full command line was:
+> oiiotool --echo "Stack is empty" --echo "TOP = {TOP.filename}"
+TOP = TOP.filename
+Stack is empty
+oiiotool ERROR: expression : not a valid image at char 7 of 'BOTTOM.filename'
+Full command line was:
+> oiiotool --echo "Stack is empty" --echo "BOTTOM = {BOTTOM.filename}"
+BOTTOM = BOTTOM.filename
 Stack bottom to top:
   a.tif
   b.tif
