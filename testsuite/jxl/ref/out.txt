@@ -42,3 +42,48 @@ tahoe-cicp-pq.jxl    :  128 x   96, 3 channel, uint8 jpegxl
     ICCProfile:profile_version: "4.4.0"
     ICCProfile:rendering_intent: "Perceptual"
     oiio:ColorSpace: "pq_rec2020_display"
+Reading tahoe-cicp-dcip3.jxl
+tahoe-cicp-dcip3.jxl :  128 x   96, 3 channel, uint8 jpegxl
+    SHA-1: 069F1A3E5567349C2D34E535B29913029EF1B09C
+    channel list: R, G, B
+    CICP: 11, 17, 0, 1
+    ICCProfile: 0, 0, 2, 24, 106, 120, 108, 32, 4, 64, 0, 0, 109, 110, 116, 114, ... [536 x uint8]
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1786276896
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "CC0"
+    ICCProfile:creation_date: "2019:12:01 00:00:00"
+    ICCProfile:creator_signature: "6a786c20"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "0"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Apple Computer, Inc."
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "RGB_DCI_DCI_Per_DCI"
+    ICCProfile:profile_size: 536
+    ICCProfile:profile_version: "4.4.0"
+    ICCProfile:rendering_intent: "Perceptual"
+Reading tahoe-cicp-displayp3.jxl
+tahoe-cicp-displayp3.jxl :  128 x   96, 3 channel, uint8 jpegxl
+    SHA-1: 069F1A3E5567349C2D34E535B29913029EF1B09C
+    channel list: R, G, B
+    CICP: 12, 13, 0, 1
+    ICCProfile: 0, 0, 2, 4, 106, 120, 108, 32, 4, 64, 0, 0, 109, 110, 116, 114, ... [516 x uint8]
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1786276896
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "CC0"
+    ICCProfile:creation_date: "2019:12:01 00:00:00"
+    ICCProfile:creator_signature: "6a786c20"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "0"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Apple Computer, Inc."
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "DisplayP3"
+    ICCProfile:profile_size: 516
+    ICCProfile:profile_version: "4.4.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    oiio:ColorSpace: "srgb_p3d65_scene"
