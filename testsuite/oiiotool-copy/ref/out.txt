@@ -38,6 +38,11 @@ Reading sub-formats2.exr
     oiio:subimages: 3
     oiio:subimages: 3
     oiio:subimages: 3
+Reading sub-formats3.exr
+    3 subimages: 64x64 [h,h,h], 64x64 [f,f,f], 64x64 [h,h,h]
+    oiio:subimages: 3
+    oiio:subimages: 3
+    oiio:subimages: 3
 explicit -d uint save result: 
 uint8.tif            :  128 x  128, 3 channel, uint8 tiff
     tile size: 16 x 16

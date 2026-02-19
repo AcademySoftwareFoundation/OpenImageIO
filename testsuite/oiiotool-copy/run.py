@@ -48,6 +48,12 @@ command += oiiotool ("--create 64x64 3 --attrib oiio:subimagename subimageA " +
                      "--create 64x64 4 --attrib oiio:subimagename subimageC " +
                      "--siappendall -d half -d subimageB.*=float -o sub-formats2.exr")
 command += info_command ("sub-formats2.exr", extraargs="--metamatch subimages")
+# test -d SUBIMAGE.*=fmt to change data format of one channel of one subimage,
+# when no subimages are named (they wil be upon output) but it will still
+# recognize "subimage{:02}".
+command += oiiotool ("--create 64x64 3 --dup --dup " +
+                     "--siappendall -d half -d subimage01.*=float -o sub-formats3.exr")
+command += info_command ("sub-formats3.exr", extraargs="--metamatch subimages")
 
 
 # Some tests to verify that we are transferring data formats properly.
