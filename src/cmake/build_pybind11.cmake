@@ -8,9 +8,12 @@
 
 set_cache (pybind11_BUILD_VERSION 3.0.1 "pybind11 version for local builds")
 set (pybind11_GIT_REPOSITORY "https://github.com/pybind/pybind11")
-set (pybind11_GIT_TAG "v${pybind11_BUILD_VERSION}")
+set_cache (pybind11_GIT_TAG "v${pybind11_BUILD_VERSION}"
+           "pybind11 git tag to checkout")
+set_cache (pybind11_GIT_COMMIT ""
+           "pybind11 specific commit to checkout (overrides tag if set)")
 set_cache (pybind11_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
-           DOC "Should a local pybind11 build, if necessary, build shared libraries" ADVANCED)
+           "Should a local pybind11 build, if necessary, build shared libraries" ADVANCED)
 
 string (MAKE_C_IDENTIFIER ${pybind11_BUILD_VERSION} pybind11_VERSION_IDENT)
 
