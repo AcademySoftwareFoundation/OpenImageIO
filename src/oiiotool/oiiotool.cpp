@@ -1155,6 +1155,15 @@ set_dataformat(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --compression
+static void
+set_compression(Oiiotool& ot, cspan<const char*> argv)
+{
+    ot.output_compression = ot.express(argv[1]);
+}
+
+
+
 // --if
 static void
 control_if(Oiiotool& ot, cspan<const char*> argv)
@@ -6750,8 +6759,9 @@ Oiiotool::getargs(int argc, char* argv[])
       .OTACTION(output_tiles);
     ap.arg("--force-tiles", &ot.output_force_tiles)
       .hidden(); // undocumented
-    ap.arg("--compression %s:NAME", &ot.output_compression)
-      .help("Set the compression method (in the form \"name\" or \"name:quality\")");
+    ap.arg("--compression %s:NAME")
+      .help("Set the compression method (in the form \"name\" or \"name:quality\")")
+      .OTACTION(set_compression);
     ap.arg("--quality %d:QUALITY", &ot.output_quality)
       .hidden(); // DEPRECATED(2.1)
     ap.arg("--dither", &ot.output_dither)
