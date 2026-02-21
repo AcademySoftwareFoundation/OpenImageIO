@@ -69,6 +69,7 @@ TypeNormal: TypeDesc
 TypePoint: TypeDesc
 TypePointer: TypeDesc
 TypeRational: TypeDesc
+TypeURational: TypeDesc
 TypeString: TypeDesc
 TypeTimeCode: TypeDesc
 TypeUInt: TypeDesc

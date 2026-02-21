@@ -205,6 +205,11 @@ main(int /*argc*/, char* /*argv*/[])
                       TypeDesc(TypeDesc::INT, TypeDesc::VEC2,
                                TypeDesc::RATIONAL),
                       TypeRational, i2, "1/2");
+    uint32_t ui2[2] = { 1, 2 };
+    test_type<uint32_t[2]>("urational",
+                           TypeDesc(TypeDesc::UINT32, TypeDesc::VEC2,
+                                    TypeDesc::RATIONAL),
+                           TypeURational, ui2, "1/2");
     test_type<Imath::Box2f>("box2",
                             TypeDesc(TypeDesc::FLOAT, TypeDesc::VEC2,
                                      TypeDesc::BOX, 2),
