@@ -265,14 +265,14 @@ create_lotso_ustrings(int iterations)
 {
     OIIO_DASSERT(size_t(iterations) <= strings.size());
     if (verbose)
-        Strutil::print("thread {}\n", std::this_thread::get_id());
+        print("thread {}\n", std::this_thread::get_id());
     size_t h = 0;
     for (int i = 0; i < iterations; ++i) {
         ustring s(strings[i].data());
         h += s.hash();
     }
     if (verbose)
-        Strutil::printf("checksum %08x\n", unsigned(h));
+        print("checksum {:08x}\n", h);
 }
 
 
@@ -310,10 +310,17 @@ verify_no_collisions()
     size_t ncollisions = ustring::hash_collisions(&collisions);
     OIIO_CHECK_ASSERT(ncollisions == 0);
     if (ncollisions) {
-        Strutil::print("  Hash collisions: {}\n", ncollisions);
+        print("  Hash collisions: {}\n", ncollisions);
         for (auto c : collisions)
-            Strutil::print("    \"{}\" (orig {:08x} rehashed {:08x})\n", c,
-                           Strutil::strhash(c), c.hash());
+            print("    \"{}\" (orig {:016x} rehashed {:016x})\n", c,
+                  Strutil::strhash(c), c.hash());
+    }
+
+    for (int i = 0; i < 200; ++i) {
+        ustring u = ustring::fmtformat("{}", i);
+        print("{}: {:016x} uh {:016x} sh {:016x} (addr {:p}){}\n", u, u.hash(),
+              ustring::strhash(u.c_str()), Strutil::strhash(u.c_str()),
+              u.c_str(), u.has_unique_hash() ? "" : " DUP");
     }
 }
 
@@ -330,7 +337,7 @@ main(int argc, char* argv[])
     benchmark_threaded_ustring_creation();
     verify_no_collisions();
 
-    std::cout << "\n" << ustring::getstats(true) << "\n";
+    print("\n{}\n", ustring::getstats(true));
 
     return unit_test_failures;
 }

@@ -22,11 +22,45 @@ typedef spin_rw_write_lock ustring_write_lock_t;
 
 #define PREVENT_HASH_COLLISIONS 1
 
+// Explanation of ustring hash non-collision guarantees:
+//
+// The gist is that the ustring::strhash(str) function is modified to
+// strip out the MSB from Strutil::strhash.  The rep entry is filed in
+// the ustring table based on this hash.  So effectively, the computed
+// hash is 63 bits, not 64.
+//
+// But rep->hashed field consists of the lower 63 bits being the computed
+// hash, and the MSB indicates whether this is the 2nd (or more) entry in
+// the table that had the same 63 bit hash.
+//
+// ustring::hash() then is modified as follows: If the MSB is 0, the
+// computed hash is the hash. If the MSB is 1, though, we DON'T use that
+// hash, and instead we use the pointer to the unique characters, but
+// with the MSB set (that's an invalid address by itself). Note that the
+// computed hashes never have MSB set, and the char*+MSB always have MSB
+// set, so therefore ustring::hash() will never have the same value for
+// two different ustrings.
+//
+// But -- please note! -- that ustring::strhash(str) and
+// ustring(str).hash() will only match (and also be the same value on
+// every execution) if the ustring is the first to receive that hash,
+// which should be approximately always. Probably always, in practice.
+//
+// But in the very improbable case of a hash collision, one of them (the
+// second to be turned into a ustring) will be using the alternate hash
+// based on the character address, which is both not the same as
+// ustring::strhash(chars), nor is it expected to be the same constant on
+// every program execution.
+
 
 template<class T> struct identity {
     constexpr T operator()(T val) const noexcept { return val; }
 };
 
+
+namespace {
+atomic_ll total_ustring_hash_collisions(0);
+}
 
 
 // #define USTRING_TRACK_NUM_LOOKUPS
@@ -71,6 +105,10 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
 
     const char* lookup(string_view str, uint64_t hash)
     {
+        if (OIIO_UNLIKELY(hash & ustring::duplicate_bit)) {
+            // duplicate bit is set -- the hash is related to the chars!
+            return OIIO::bitcast<const char*>(hash & ustring::hash_mask);
+        }
         ustring_read_lock_t lock(mutex);
 #ifdef USTRING_TRACK_NUM_LOOKUPS
         // NOTE: this simple increment adds a substantial amount of overhead
@@ -81,13 +119,12 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
 #endif
         size_t pos = hash & mask, dist = 0;
         for (;;) {
-            if (entries[pos] == 0)
+            ustring::TableRep* e = entries[pos];
+            if (e == 0)
                 return 0;
-            if (entries[pos]->hashed == hash
-                && entries[pos]->length == str.length()
-                && strncmp(entries[pos]->c_str(), str.data(), str.length())
-                       == 0)
-                return entries[pos]->c_str();
+            if (e->hashed == hash && e->length == str.length()
+                && !strncmp(e->c_str(), str.data(), str.length()))
+                return e->c_str();
             ++dist;
             pos = (pos + dist) & mask;  // quadratic probing
         }
@@ -98,6 +135,10 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
     // the hash.
     const char* lookup(uint64_t hash)
     {
+        if (OIIO_UNLIKELY(hash & ustring::duplicate_bit)) {
+            // duplicate bit is set -- the hash is related to the chars!
+            return OIIO::bitcast<const char*>(hash & ustring::hash_mask);
+        }
         ustring_read_lock_t lock(mutex);
 #ifdef USTRING_TRACK_NUM_LOOKUPS
         // NOTE: this simple increment adds a substantial amount of overhead
@@ -108,10 +149,11 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
 #endif
         size_t pos = hash & mask, dist = 0;
         for (;;) {
-            if (entries[pos] == 0)
+            ustring::TableRep* e = entries[pos];
+            if (e == 0)
                 return 0;
-            if (entries[pos]->hashed == hash)
-                return entries[pos]->c_str();
+            if (e->hashed == hash)
+                return e->c_str();
             ++dist;
             pos = (pos + dist) & mask;  // quadratic probing
         }
@@ -119,27 +161,52 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
 
     const char* insert(string_view str, uint64_t hash)
     {
+        OIIO_ASSERT((hash & ustring::duplicate_bit) == 0);  // can't happen?
         ustring_write_lock_t lock(mutex);
         size_t pos = hash & mask, dist = 0;
+        bool duplicate_hash = false;
         for (;;) {
-            if (entries[pos] == 0)
+            ustring::TableRep* e = entries[pos];
+            if (e == 0)
                 break;  // found insert pos
-            if (entries[pos]->hashed == hash
-                && entries[pos]->length == str.length()
-                && !strncmp(entries[pos]->c_str(), str.data(), str.length())) {
-                // same string is already inserted, return the one that is
-                // already in the table
-                return entries[pos]->c_str();
+            if (e->hashed == hash) {
+                duplicate_hash = true;
+                if (e->length == str.length()
+                    && !strncmp(e->c_str(), str.data(), str.length())) {
+                    // same string is already inserted, return the one that is
+                    // already in the table
+                    return e->c_str();
+                }
             }
             ++dist;
             pos = (pos + dist) & mask;  // quadratic probing
         }
 
         ustring::TableRep* rep = make_rep(str, hash);
-        entries[pos]           = rep;
+
+        // If we encountered another ustring with the same hash (if one
+        // exists, it would have hashed to the same address so we would have
+        // seen it), set the duplicate bit in the rep's hashed field.
+        if (duplicate_hash) {
+            ++total_ustring_hash_collisions;
+#if PREVENT_HASH_COLLISIONS
+            rep->hashed |= ustring::duplicate_bit;
+#endif
+#if !defined(NDEBUG)
+            print("DUPLICATE ustring '{}' hash {:x} c_str {:p} strhash {:x}\n",
+                  rep->c_str(), rep->hashed, rep->c_str(),
+                  ustring::strhash(str));
+#endif
+        }
+
+        entries[pos] = rep;
         ++num_entries;
         if (2 * num_entries > mask)
-            grow();           // maintain 0.5 load factor
+            grow();  // maintain 0.5 load factor
+        // ensure low bit clear
+        OIIO_DASSERT((size_t(rep->c_str()) & 1) == 0);
+        // ensure low bit clear
+        OIIO_DASSERT((size_t(rep->c_str()) & ustring::duplicate_bit) == 0);
         return rep->c_str();  // rep is now in the table
     }
 
@@ -283,11 +350,6 @@ private:
 // This string is here so that we can return sensible values of str when the ustring's pointer is NULL
 std::string ustring::empty_std_string;
 
-// The reverse map that lets you look up a string by its initial hash.
-using ReverseMap
-    = unordered_map_concurrent<uint64_t, const char*, identity<uint64_t>,
-                               std::equal_to<uint64_t>, 256 /*bins*/>;
-
 
 namespace {  // anonymous
 
@@ -297,19 +359,6 @@ ustring_table()
     static OIIO_CACHE_ALIGN UstringTable table;
     return table;
 }
-
-
-static ReverseMap&
-reverse_map()
-{
-    static OIIO_CACHE_ALIGN ReverseMap rm;
-    return rm;
-}
-
-
-// Keep track of any collisions
-static std::vector<std::pair<const char*, uint64_t>> all_hash_collisions;
-OIIO_CACHE_ALIGN static std::mutex collision_mutex;
 
 }  // end anonymous namespace
 
@@ -384,6 +433,7 @@ ustring::TableRep::TableRep(string_view strref, ustring::hash_t hash)
     && defined(_GLIBCXX_USE_CXX11_ABI) && _GLIBCXX_USE_CXX11_ABI
     // NEW gcc ABI
     // FIXME -- do something smart with this.
+    str = strref;
 
 #elif defined(__GNUC__) && !defined(_LIBCPP_VERSION)
     // OLD gcc ABI
@@ -402,7 +452,6 @@ ustring::TableRep::TableRep(string_view strref, ustring::hash_t hash)
     dummy_refcount      = 1;  // so it never frees
     *(const char**)&str = c_str();
     OIIO_DASSERT(str.c_str() == c_str() && str.size() == length);
-    return;
 
 #elif defined(_LIBCPP_VERSION) && !defined(__aarch64__)
     // FIXME -- we seem to do the wrong thing with libcpp on Mac M1. Disable
@@ -426,15 +475,17 @@ ustring::TableRep::TableRep(string_view strref, ustring::hash_t hash)
         ((libcpp_string__long*)&str)->__size_ = length;
         ((libcpp_string__long*)&str)->__data_ = (char*)c_str();
         OIIO_DASSERT(str.c_str() == c_str() && str.size() == length);
-        return;
+    } else {
+        // Short string -- just assign it, since there is no extra allocation.
+        str = strref;
     }
-#endif
-
+#else
     // Remaining cases - just assign the internal string.  This may result
     // in double allocation for the chars.  If you care about that, do
     // something special for your platform, much like we did for gcc and
     // libc++ above. (Windows users, I'm talking to you.)
     str = strref;
+#endif
 }
 
 
@@ -459,11 +510,8 @@ ustring::make_unique(string_view strref)
     if (!strref.data())
         strref = string_view("", 0);
 
-    hash_t hash = Strutil::strhash64(strref);
-    // This line, if uncommented, lets you force lots of hash collisions:
-    // hash &= ~hash_t(0xffffff);
+    hash_t hash = ustring::strhash(strref);
 
-#if !PREVENT_HASH_COLLISIONS
     // Check the ustring table to see if this string already exists.  If so,
     // construct from its canonical representation.
     // NOTE: all locking is performed internally to the table implementation
@@ -477,95 +525,13 @@ ustring::make_unique(string_view strref)
         // OIIO_ASSERT(strref.find('\0') == string_view::npos &&
         //             "ustring::make_unique() does not support embedded nulls");
         strref = strref.substr(0, nul);
-        hash   = Strutil::strhash64(strref);
+        hash   = ustring::strhash(strref);
         result = table.lookup(strref, hash);
         if (result)
             return result;
     }
     // Strutil::print("ADDED ustring \"{}\" {:08x}\n", strref, hash);
     return table.insert(strref, hash);
-
-#else
-    // Check the ustring table to see if this string already exists with the
-    // default hash. If so, we're done. This is by far the common case --
-    // most lookups already exist in the table, and hash collisions are
-    // extremely rare.
-    const char* result = table.lookup(strref, hash);
-    if (result)
-        return result;
-
-    // ustring doesn't allow strings with embedded nul characters. Before we
-    // go any further, trim beyond any nul and rehash.
-    auto nul = strref.find('\0');
-    if (nul != string_view::npos) {
-        // Strutil::print("ustring::make_unique: string contains nulls @{}/{}: \"{}\"\n",
-        //                strref.find('\0'), strref.size(), strref);
-        // OIIO_ASSERT(strref.find('\0') == string_view::npos &&
-        //             "ustring::make_unique() does not support embedded nulls");
-        strref = strref.substr(0, nul);
-        hash   = Strutil::strhash64(strref);
-        result = table.lookup(strref, hash);
-        if (result)
-            return result;
-    }
-
-    // We did not find it. There are two possibilities: (1) the string is in
-    // the table but has a different hash because it collided; or (2) the
-    // string is not yet in the table.
-
-    // Thread safety by locking reverse_map's bin corresponding to our
-    // original hash. This will prevent any potentially colliding ustring
-    // from being added to either table. But ustrings whose hashes go to
-    // different bins of the reverse map (which by definition cannot clash)
-    // are allowed to be added concurrently.
-    auto& rm(reverse_map());
-    size_t bin = rm.lock_bin(hash);
-
-    hash_t orighash     = hash;
-    size_t binmask      = orighash & (~rm.nobin_mask());
-    size_t num_rehashes = 0;
-
-    while (1) {
-        auto rev = rm.find(hash, false);
-        // rev now either holds an iterator into the reverse map for a
-        // record that has this hash, or else it's end().
-        if (rev == rm.end()) {
-            // That hash is unused, insert the string with that hash into
-            // the ustring table, and insert the hash with the unique char
-            // pointer into the reverse_map.
-            result  = table.insert(strref, hash);
-            bool ok = rm.insert(hash, result, false);
-            // Strutil::print("ADDED \"{}\" {:08x}\n", strref, hash);
-            OIIO_ASSERT(ok && "thread safety failure");
-            break;
-        }
-        // Something uses this hash. Is it our string?
-        if (!strncmp(rev->second, strref.data(), strref.size())) {
-            // It is our string, already in this hash slot!
-            result = rev->second;
-            break;
-        }
-        // Rehash, but keep the bin bits identical so we always rehash into
-        // the same (locked) bin.
-        hash = (hash & binmask)
-               | (farmhash::Fingerprint(hash) & rm.nobin_mask());
-        ++num_rehashes;
-        // Strutil::print("COLLISION \"{}\" {:08x} vs \"{}\"\n",
-        //                strref, orighash, rev->second);
-        {
-            std::lock_guard<std::mutex> lock(collision_mutex);
-            all_hash_collisions.emplace_back(rev->second, rev->first);
-        }
-    }
-    rm.unlock_bin(bin);
-
-    if (num_rehashes) {
-        std::lock_guard<std::mutex> lock(collision_mutex);
-        all_hash_collisions.emplace_back(result, orighash);
-    }
-
-    return result;
-#endif
 }
 
 
@@ -607,27 +573,20 @@ ustring::getstats(bool verbose)
     size_t n_e = total_ustrings();
     size_t mem = memory();
     if (verbose) {
-        out << "ustring statistics:\n";
+        print(out, "ustring statistics:\n");
 #ifdef USTRING_TRACK_NUM_LOOKUPS
-        out << "  ustring requests: " << ustring_table().get_num_lookups()
-            << "\n";
+        print(out, "  ustring requests: {}\n",
+              ustring_table().get_num_lookups());
 #endif
-        out << "  unique strings: " << n_e << "\n";
-        out << "  ustring memory: " << Strutil::memformat(mem) << "\n";
-#ifndef NDEBUG
-        std::vector<ustring> collisions;
-        hash_collisions(&collisions);
-        if (collisions.size()) {
-            out << "  Hash collisions: " << collisions.size() << "\n";
-            for (auto c : collisions)
-                out << Strutil::fmt::format("    {} \"{}\"\n", c.hash(), c);
-        }
-#endif
+        print(out, "  unique strings: {}\n", n_e);
+        print(out, "  ustring memory: {}\n", Strutil::memformat(mem));
+        print(out, "  total ustring hash collisions: {}\n",
+              (int)total_ustring_hash_collisions);
     } else {
 #ifdef USTRING_TRACK_NUM_LOOKUPS
-        out << "requests: " << ustring_table().get_num_lookups() << ", ";
+        print(out, "requests: {}, ", ustring_table().get_num_lookups());
 #endif
-        out << "unique " << n_e << ", " << Strutil::memformat(mem);
+        print(out, "unique {}, {}\n", n_e, Strutil::memformat(mem));
     }
     return out.str();
 }
@@ -637,11 +596,12 @@ ustring::getstats(bool verbose)
 size_t
 ustring::hash_collisions(std::vector<ustring>* collisions)
 {
-    std::lock_guard<std::mutex> lock(collision_mutex);
-    if (collisions)
-        for (const auto& c : all_hash_collisions)
-            collisions->emplace_back(ustring::from_unique(c.first));
-    return all_hash_collisions.size();
+    if (collisions) {
+        // Disabled for now
+        // for (const auto& c : all_hash_collisions)
+        //     collisions->emplace_back(ustring::from_unique(c.first));
+    }
+    return size_t(total_ustring_hash_collisions);
 }
 
 
