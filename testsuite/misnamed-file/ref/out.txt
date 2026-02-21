@@ -13,6 +13,7 @@ misnamed.exr         : 1000 x 1000, 4 channel, uint8 tiff
     YResolution: 72
     oiio:BitsPerSample: 8
     tiff:Compression: 8
+    tiff:PageNumber: 0, 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     tiff:RowsPerStrip: 8

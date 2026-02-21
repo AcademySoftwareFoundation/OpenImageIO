@@ -25,4 +25,8 @@ command += oiiotool ("--oiioattrib try_all_readers 0 --info -v src/crash-1633.ti
 command += oiiotool ("--oiioattrib try_all_readers 0 --info src/crash-1643.tif -o out.exr", failureok = True)
 command += iconvert ("src/crash-1709.tif crash-1709.exr", failureok=True)
 
+# Test reading and writing GPS tags
+command += oiiotool ("src/gps.tif -o gps.tif")
+command += info_command ("gps.tif", safematch=True, hash=False)
+
 outputs = [ "check1.tif", "out.txt" ]
