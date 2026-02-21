@@ -24,7 +24,12 @@ command += oiiotool("-i:ch=R,G rgb64.exr -o rgonly.exr")
 # Test -i to read nonexistent channels
 command += oiiotool("-i:ch=Z rgb64.exr -d half -o ch-err.exr")
 # Test -i to read nonexistent channels in one subimage of a multi-subimage file
-command += oiiotool("-i:ch=R,G,B rgb-z-parts64.exr -d half -o ch-err2.exr")
+command += oiiotool("-i:ch=R,G,B rgb-z-parts64.exr -o ch-err2.exr")
+# Double check that the right data types propagated to the output even
+# without a `-d` -- this was fixed in PR XXX, look out for a regression.
+# Must do channels out of order to get into this edge case.
+command += oiiotool("-i:ch=R,G=B,B=G rgb64.exr -o chrbg.exr")
+command += info_command("chrbg.exr", verbose=False, hash=False)
 
 
 # test -d to change data formats
