@@ -338,6 +338,20 @@ struct OIIO_UTIL_API TypeDesc {
     static BASETYPE basetype_merge(TypeDesc a, TypeDesc b, TypeDesc c) {
         return basetype_merge(basetype_merge(a, b), c);
     }
+    /// Merge the basetype of a contiguous span of TypeDesc's
+    static BASETYPE basetype_merge(cspan<TypeDesc> types) {
+        TypeDesc merged_type;
+        for (auto t : types)
+            merged_type = basetype_merge(merged_type, t);
+        return BASETYPE(merged_type.basetype);
+    }
+    /// Are all of the types in a contiguous span exactly the same?
+    static bool all_types_equal(cspan<TypeDesc> types) {
+        bool r = true;
+        for (size_t i = 1, e = types.size(); i < e; ++i)
+            r &= (types[i] == types[0]);
+        return r;
+    }
 };
 
 // Validate that TypeDesc can be used directly as POD in a C interface.
