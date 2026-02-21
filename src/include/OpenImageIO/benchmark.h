@@ -15,7 +15,7 @@
 #include <OpenImageIO/timer.h>
 
 
-#if (((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)  || defined(__INTEL_LLVM_COMPILER)) \
+#if (((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_LLVM_COMPILER)) \
       && (defined(__x86_64__) || defined(__i386__))) \
     || defined(_MSC_VER)
 #define OIIO_DONOTOPT_FORECINLINE OIIO_FORCEINLINE

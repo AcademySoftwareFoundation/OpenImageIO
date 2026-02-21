@@ -73,8 +73,6 @@
 #    define HAVE_STACKTRACE 1
 #endif
 
-OIIO_INTEL_PRAGMA(warning disable 2196)
-
 
 OIIO_NAMESPACE_3_1_BEGIN
 

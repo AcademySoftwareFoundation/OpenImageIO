@@ -2,6 +2,7 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
 ---------------------------------------------------
 
 ### New minimum dependencies and compatibility changes:
+  - The deprecated icc compiler is no longer supported. (3.2.0.0)
 ### ⛰️  New features and public API changes:
 * *New image file format support:*
 * *oiiotool new features and major improvements*:
