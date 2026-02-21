@@ -48,6 +48,7 @@ try:
     print ("equivalent('scene_linear', 'lin_srgb'):", config.equivalent("scene_linear", "lin_srgb"))
     print ("equivalent('ACEScg', 'scene_linear'):", config.equivalent("ACEScg", "scene_linear"))
     print ("equivalent('lnf', 'scene_linear'):", config.equivalent("lnf", "scene_linear"))
+    print ("get_color_interop_id('ACES2065-1') = ", config.get_color_interop_id("ACES2065-1"))
     print ("get_color_interop_id('ACEScg') = ", config.get_color_interop_id("ACEScg"))
     print ("get_color_interop_id('lin_srgb') = ", config.get_color_interop_id("lin_srgb"))
     print ("get_color_interop_id([1, 13, 1, 1]) = ", config.get_color_interop_id([1, 13, 1, 1]))
