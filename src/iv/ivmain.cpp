@@ -19,6 +19,8 @@
 #include <iterator>
 
 #include <QApplication>
+#include <QPalette>
+#include <QStyleFactory>
 
 #include "imageviewer.h"
 #include <OpenImageIO/argparse.h>
@@ -57,6 +59,11 @@ getargs(int argc, char* argv[])
       .store_true();
     ap.arg("--rawcolor")
       .help("Do not automatically transform to RGB");
+
+    ap.arg("--dark")
+      .help("Start in dark mode")
+      .dest("dark")
+      .store_true();
 
     ap.arg("--display")
       .help("OCIO display")
@@ -108,6 +115,26 @@ main(int argc, char* argv[])
     // LG
     //    Q_INIT_RESOURCE(iv);
     QApplication app(argc, argv);
+
+    // Apply dark mode if requested
+    if (ap["dark"].get<int>()) {
+        app.setStyle(QStyleFactory::create("Fusion"));
+        QPalette darkPalette;
+        darkPalette.setColor(QPalette::Window, QColor(53, 53, 53));
+        darkPalette.setColor(QPalette::WindowText, Qt::white);
+        darkPalette.setColor(QPalette::Base, QColor(25, 25, 25));
+        darkPalette.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
+        darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
+        darkPalette.setColor(QPalette::ToolTipText, Qt::white);
+        darkPalette.setColor(QPalette::Text, Qt::white);
+        darkPalette.setColor(QPalette::Button, QColor(53, 53, 53));
+        darkPalette.setColor(QPalette::ButtonText, Qt::white);
+        darkPalette.setColor(QPalette::BrightText, Qt::red);
+        darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
+        darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
+        darkPalette.setColor(QPalette::HighlightedText, Qt::black);
+        app.setPalette(darkPalette);
+    }
 
     std::string color_space = ap["image-color-space"].as_string("");
     std::string display     = ap["display"].as_string("");
