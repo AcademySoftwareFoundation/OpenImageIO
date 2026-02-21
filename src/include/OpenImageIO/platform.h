@@ -340,8 +340,6 @@
 #    define OIIO_ALIGN(size) __attribute__((aligned(size)))
 #elif defined(_MSC_VER)
 #    define OIIO_ALIGN(size) __declspec(align(size))
-#elif defined(__INTEL_COMPILER)
-#    define OIIO_ALIGN(size) __declspec(align((size)))
 #else
 #    define OIIO_ALIGN(size) alignas(size)
 #endif
@@ -365,7 +363,7 @@
 //     if (OIIO_UNLIKELY(x)) ...   // if you think x will rarely be true
 // Caveat: Programmers are notoriously bad at guessing this, so it
 // should be used only with thorough benchmarking.
-#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
+#if defined(__GNUC__) || defined(__clang__)
 #    define OIIO_LIKELY(x) (__builtin_expect(bool(x), true))
 #    define OIIO_UNLIKELY(x) (__builtin_expect(bool(x), false))
 #else
@@ -382,7 +380,7 @@
 #    define OIIO_FORCEINLINE __inline__
 #elif defined(__GNUC__) || defined(__clang__) || __has_attribute(always_inline)
 #    define OIIO_FORCEINLINE inline __attribute__((always_inline))
-#elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#elif defined(_MSC_VER)
 #    define OIIO_FORCEINLINE __forceinline
 #else
 #    define OIIO_FORCEINLINE inline
@@ -394,7 +392,7 @@
 // optimizations by knowing that calling the function cannot possibly alter
 // any other memory. This declaration goes after the function declaration:
 //   int blah (int arg) OIIO_PURE_FUNC;
-#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER) || __has_attribute(pure)
+#if defined(__GNUC__) || defined(__clang__) || __has_attribute(pure)
 #    define OIIO_PURE_FUNC __attribute__((pure))
 #elif defined(_MSC_VER)
 #    define OIIO_PURE_FUNC /* seems not supported by MSVS */
@@ -408,7 +406,7 @@
 // no side effects. This is even more strict than 'pure', and allows even
 // more optimizations (such as eliminating multiple calls to the function
 // that have the exact same argument values).
-#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER) || __has_attribute(const)
+#if defined(__GNUC__) || defined(__clang__) || __has_attribute(const)
 #    define OIIO_CONST_FUNC __attribute__((const))
 #elif defined(_MSC_VER)
 #    define OIIO_CONST_FUNC /* seems not supported by MSVS */
@@ -425,7 +423,7 @@
 // OIIO_RESTRICT is a parameter attribute that indicates a promise that the
 // parameter definitely will not alias any other parameters in such a way
 // that creates a data dependency. Use with caution!
-#if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
 #  define OIIO_RESTRICT __restrict
 #else
 #  define OIIO_RESTRICT
@@ -469,7 +467,7 @@
 // false positives that you can't easily get rid of.
 // This should work for any clang >= 3.3 and gcc >= 4.8, which are
 // guaranteed by our minimum requirements.
-#if defined(__clang__) || (OIIO_GNUC_VERSION > 90000 && !defined(__INTEL_COMPILER)) \
+#if defined(__clang__) || OIIO_GNUC_VERSION > 90000 \
                        || __has_attribute(no_sanitize_address)
 #    define OIIO_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
 #else
@@ -480,8 +478,7 @@
 // OIIO_NO_SANITIZE_UNDEFINED can be used to mark a function that you don't
 // want undefined behavior sanitizer to catch. Only use this if you know there
 // are false positives that you can't easily get rid of.
-#if defined(__clang__) || (OIIO_GNUC_VERSION > 90000 && !defined(__INTEL_COMPILER)) \
-                       || __has_attribute(no_sanitize)
+#if defined(__clang__) || OIIO_GNUC_VERSION > 90000 || __has_attribute(no_sanitize)
 #    define OIIO_NO_SANITIZE_UNDEFINED __attribute__((no_sanitize("undefined")))
 #else
 #    define OIIO_NO_SANITIZE_UNDEFINED
@@ -623,10 +620,7 @@ template <typename T, class... Args>
 inline T* aligned_new(Args&&... args) {
     static_assert(alignof(T) > alignof(void*), "Type doesn't seem to be over-aligned, aligned_new is not required");
     void* ptr = aligned_malloc(sizeof(T), alignof(T));
-    OIIO_PRAGMA_WARNING_PUSH
-    OIIO_INTEL_PRAGMA(warning disable 873)
     return ptr ? new (ptr) T(std::forward<Args>(args)...) : nullptr;
-    OIIO_PRAGMA_WARNING_POP
 }
 
 template <typename T>

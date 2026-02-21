@@ -37,40 +37,6 @@ bitcast(const From& from) noexcept
     return result;
 }
 
-#if defined(__INTEL_COMPILER)
-// For Intel icc, using the memcpy implementation above will cause a loop with
-// a bitcast to fail to vectorize, but using the intrinsics below will allow
-// it to vectorize. For icx, as well as gcc and clang, the same optimal code
-// is generated (even in a vectorized loop) for memcpy. We can probably remove
-// these intrinsics once we drop support for icc.
-template<>
-OIIO_NODISCARD OIIO_FORCEINLINE uint32_t
-bitcast<uint32_t, float>(const float& val) noexcept
-{
-    return static_cast<uint32_t>(_castf32_u32(val));
-}
-
-template<>
-OIIO_NODISCARD OIIO_FORCEINLINE int32_t
-bitcast<int32_t, float>(const float& val) noexcept
-{
-    return static_cast<int32_t>(_castf32_u32(val));
-}
-
-template<>
-OIIO_NODISCARD OIIO_FORCEINLINE float
-bitcast<float, uint32_t>(const uint32_t& val) noexcept
-{
-    return _castu32_f32(val);
-}
-
-template<>
-OIIO_NODISCARD OIIO_FORCEINLINE float
-bitcast<float, int32_t>(const int32_t& val) noexcept
-{
-    return _castu32_f32(val);
-}
-#endif
 
 
 OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE int
@@ -112,9 +78,7 @@ byteswap(T n)
 
 
 
-#if (OIIO_GNUC_VERSION || OIIO_ANY_CLANG     \
-     || OIIO_INTEL_CLASSIC_COMPILER_VERSION) \
-    && !defined(__CUDACC__)
+#if (OIIO_GNUC_VERSION || OIIO_ANY_CLANG) && !defined(__CUDACC__)
 // CPU gcc and compatible can use these intrinsics, 8-15x faster
 
 template<>

@@ -17,8 +17,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++17 or higher (also builds with C++20 and C++23)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: gcc 9.3 - 14.2, **clang 10** - 20, MSVS 2017 - 2022 (v19.14
-   and up), Intel icc 19+, Intel OneAPI C++ compiler 2022+.
+ * Compilers: gcc 9.3 - 14.2, clang 10 - 20, MSVS 2017 - 2022 (v19.14
+   and up), Intel OneAPI C++ compiler 2022+.
  * CMake >= 3.18.2 (tested through 4.1)
  * Imath >= 3.1 (tested through 3.2 and main)
  * OpenEXR >= 3.1 (tested through 3.4 and main)
