@@ -316,6 +316,7 @@ jobs:
             container: aswf/ci-oiio:2025
             cxx_std: 17
             build_type: Debug
+            ctest_test_timeout: "240"
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 11.2.0
@@ -697,6 +698,7 @@ jobs:
             vsver: 2022
             generator: "Visual Studio 17 2022"
             python_ver: "3.12"
+            ctest_test_timeout: "240"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
           - desc: Windows-2025 VS2022
             runner: windows-2025
@@ -704,5 +706,6 @@ jobs:
             vsver: 2022
             generator: "Visual Studio 17 2022"
             python_ver: "3.12"
+            ctest_test_timeout: "240"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
             benchmark: 1
