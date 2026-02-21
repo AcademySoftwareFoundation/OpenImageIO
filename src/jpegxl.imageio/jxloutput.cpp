@@ -571,7 +571,18 @@ JxlOutput::save_image(const void* data)
         // primaries and white point are not currently used but could help
         // support more CICP codes.
         JxlColorEncoding color_encoding {};
-        color_encoding.primaries         = JxlPrimaries(cicp[0]);
+        color_encoding.primaries = JxlPrimaries(cicp[0]);
+        // CICP primaries 11 and 12 both represent P3, but with different white points.
+        if (cicp[0] == 11) {
+            color_encoding.white_point = JXL_WHITE_POINT_DCI;
+        }
+        // JxlPrimaries enum only covers P3 primaries as value 11 and not 12.
+        else if (cicp[0] == 12) {
+            color_encoding.primaries   = JXL_PRIMARIES_P3;
+            color_encoding.white_point = JXL_WHITE_POINT_D65;
+        } else {
+            color_encoding.white_point = JXL_WHITE_POINT_D65;
+        }
         color_encoding.transfer_function = JxlTransferFunction(cicp[1]);
         color_encoding.color_space       = JXL_COLOR_SPACE_RGB;
 
@@ -581,10 +592,7 @@ JxlOutput::save_image(const void* data)
         switch (color_encoding.primaries) {
         case JXL_PRIMARIES_SRGB:
         case JXL_PRIMARIES_2100:
-        case JXL_PRIMARIES_P3:
-            supported_primaries        = true;
-            color_encoding.white_point = JXL_WHITE_POINT_D65;
-            break;
+        case JXL_PRIMARIES_P3: supported_primaries = true; break;
         case JXL_PRIMARIES_CUSTOM:  // Not an actual CICP code in JXL
             break;
         }

@@ -383,9 +383,15 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     if (have_color_encoding && color_encoding.primaries != JXL_PRIMARIES_CUSTOM
         && color_encoding.white_point != JXL_WHITE_POINT_CUSTOM
         && color_encoding.transfer_function != JXL_TRANSFER_FUNCTION_GAMMA) {
-        const int cicp[4] = { color_encoding.primaries,
-                              color_encoding.transfer_function, 0 /* RGB */,
-                              1 /* Full range */ };
+        int color_primaries = color_encoding.primaries;
+        // JxlPrimaries enum only covers P3 primaries as value 11 and not 12
+        // but CICP has separate code values based on white point.
+        if (color_primaries == JXL_PRIMARIES_P3
+            && color_encoding.white_point == JXL_WHITE_POINT_D65) {
+            color_primaries = 12;
+        }
+        const int cicp[4] = { color_primaries, color_encoding.transfer_function,
+                              0 /* RGB */, 1 /* Full range */ };
         m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
         const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
         string_view interop_id = colorconfig.get_color_interop_id(cicp);
