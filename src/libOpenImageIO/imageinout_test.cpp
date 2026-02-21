@@ -101,8 +101,8 @@ make_test_image(string_view formatname)
 
 static bool
 checked_write(ImageOutput* out, string_view filename, const ImageSpec& spec,
-              TypeDesc type, const void* data, bool do_asserts = true,
-              std::string* errmsg          = nullptr,
+              TypeDesc type, image_span<const std::byte> data,
+              bool do_asserts = true, std::string* errmsg = nullptr,
               Filesystem::IOProxy* ioproxy = nullptr)
 {
     if (errmsg)
@@ -117,7 +117,7 @@ checked_write(ImageOutput* out, string_view filename, const ImageSpec& spec,
         if (errmsg)
             *errmsg = OIIO::geterror();
         else
-            std::cout << "      " << OIIO::geterror() << "\n";
+            print("      {}\n", OIIO::geterror());
         return false;
     }
 
@@ -131,19 +131,27 @@ checked_write(ImageOutput* out, string_view filename, const ImageSpec& spec,
 
 static bool
 checked_read(ImageInput* in, string_view filename,
-             std::vector<unsigned char>& data, bool already_opened = false,
-             bool do_asserts = true, std::string* errmsg = nullptr)
+             std::vector<unsigned char>& data, TypeDesc datatype = TypeFloat,
+             bool already_opened = false, bool do_asserts = true,
+             std::string* errmsg = nullptr)
 {
     if (errmsg)
         *errmsg = "";
+    std::unique_ptr<ImageInput> in_local;
+    if (!in) {
+        in_local       = ImageInput::create(filename);
+        in             = in_local.get();
+        already_opened = false;
+    }
+    OIIO_CHECK_ASSERT(in && "Failed to create input");
     if (!already_opened) {
         ImageSpec spec;
         CHECKED(in, open(filename, spec));
     }
     data.resize(in->spec().image_pixels() * in->spec().nchannels
-                * sizeof(float));
+                * datatype.size());
     CHECKED(in,
-            read_image(0, 0, 0, in->spec().nchannels, TypeFloat, data.data()));
+            read_image(0, 0, 0, in->spec().nchannels, datatype, data.data()));
     CHECKED(in, close());
     return true;
 }
@@ -164,7 +172,8 @@ test_write_proxy(string_view formatname, string_view extension,
     // Use ImageOutput.write_image interface to write to outproxy
     Filesystem::IOVecOutput outproxy;
     ok = checked_write(nullptr, disk_filename, buf.spec(), buf.spec().format,
-                       buf.localpixels(), true, nullptr, &outproxy);
+                       buf.localpixels_as_writable_byte_image_span(), true,
+                       nullptr, &outproxy);
 
     // Use ImageBuf.write interface to write to outproxybuf
     Filesystem::IOVecOutput outproxybuf;
@@ -281,7 +290,7 @@ test_read_proxy(string_view formatname, string_view extension,
     OIIO_CHECK_ASSERT(in && "Failed to open input with proxy");
     if (in) {
         std::vector<unsigned char> readpixels;
-        ok &= checked_read(in.get(), memname, readpixels, true);
+        ok &= checked_read(in.get(), memname, readpixels, TypeFloat, true);
         OIIO_ASSERT(readpixels.size() == nvalues * sizeof(float));
         ok &= test_pixel_match({ (const float*)readpixels.data(), nvalues },
                                { (const float*)buf.localpixels(), nvalues },
@@ -331,7 +340,8 @@ test_write_unwritable(string_view extension, const ImageBuf& buf)
     if (badout) {
         std::string errmsg;
         ok = checked_write(badout.get(), bad_filename, buf.spec(),
-                           buf.spec().format, buf.localpixels(),
+                           buf.spec().format,
+                           buf.localpixels_as_byte_image_span(),
                            /*do_asserts=*/false, &errmsg);
         if (!ok)
             std::cout << term.ansi("green", "OK") << " ("
@@ -391,7 +401,7 @@ test_all_formats()
 
         std::cout << "    Writing " << filename << " ... ";
         ok = checked_write(out.get(), filename, buf.spec(), buf.spec().format,
-                           orig_pixels);
+                           buf.localpixels_as_writable_byte_image_span());
         if (ok)
             std::cout << term.ansi("green", "OK\n");
 
@@ -531,6 +541,68 @@ test_read_tricky_sizes()
 
 
 
+void
+benchmark_tile_sizes(string_view extension, TypeDesc datatype,
+                     int tilestart = 4)
+{
+    const int test_res = 4096;
+    std::vector<int> tile_sizes;
+    for (int ts = tilestart; ts <= test_res / 2; ts *= 2)
+        tile_sizes.push_back(ts);
+    ImageSpec test_image_spec(4096, 2048, 4, datatype);
+    ImageBuf buf(test_image_spec);
+    static float colors[4][4] = { { 0.1f, 0.1f, 0.1f, 1.0f },
+                                  { 1.0f, 0.0f, 0.0f, 1.0f },
+                                  { 0.0f, 1.0f, 0.0f, 1.0f },
+                                  { 0.0f, 0.0f, 1.0f, 1.0f } };
+    // ImageBufAlgo::fill(buf, make_cspan(colors[1], 4));
+    ImageBufAlgo::fill(buf, colors[0], colors[1], colors[2], colors[3]);
+    buf.write(Strutil::format("test.{}", extension));
+
+    Benchmarker bench;
+    bench.units(Benchmarker::Unit::ms);
+    bench.iterations(1);
+    bench.trials(5);
+    print("\nBenchmarking write/read for {} under different tile sizes\n",
+          extension);
+
+    // Write a scanline file
+    auto scanline_filename = Strutil::format("test_scanline.{}", extension);
+    bench(Strutil::format("  write {} scanline ", extension), [&]() {
+        checked_write(nullptr, scanline_filename, test_image_spec, datatype,
+                      buf.localpixels_as_byte_image_span());
+    });
+
+    // Write tiled files of different sizes
+    for (auto ts : tile_sizes) {
+        test_image_spec.tile_width  = ts;
+        test_image_spec.tile_height = ts;
+        test_image_spec.tile_depth  = ts ? 1 : 0;
+        auto filename = Strutil::format("test_tile_{:04}.{}", ts, extension);
+        bench(Strutil::format("  write {} tile {}", extension, ts), [&]() {
+            checked_write(nullptr, filename, test_image_spec, datatype,
+                          buf.localpixels_as_byte_image_span());
+        });
+    }
+
+    // read the scanline file (and delete it when we're done)
+    std::vector<unsigned char> readbuffer(test_image_spec.image_bytes());
+    bench(Strutil::format("  read {} scanline ", extension), [&]() {
+        checked_read(nullptr, scanline_filename, readbuffer, datatype);
+    });
+    Filesystem::remove(scanline_filename);
+
+    // read the tiled files of different sizes (and delete when done)
+    for (auto ts : tile_sizes) {
+        auto filename = Strutil::format("test_tile_{:04}.{}", ts, extension);
+        bench(Strutil::format("  read {} tile {}", extension, ts),
+              [&]() { checked_read(nullptr, filename, readbuffer, datatype); });
+        Filesystem::remove(filename);
+    }
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -549,6 +621,8 @@ main(int argc, char* argv[])
 
     test_all_formats();
     test_read_tricky_sizes();
+    benchmark_tile_sizes("exr", TypeHalf, 4);
+    benchmark_tile_sizes("tif", TypeUInt16, 16);
 
     return unit_test_failures;
 }
