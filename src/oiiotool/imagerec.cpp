@@ -355,13 +355,31 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
 
             bool ok = ib->read(s, m, chbegin, chend, forceread, convert);
             if (ok && post_channel_set_action) {
-                ImageBufRef allchan_buf(new ImageBuf);
-                std::swap(allchan_buf, ib);
-                ok = ImageBufAlgo::channels(*ib, *allchan_buf,
-                                            (int)channel_set_channels.size(),
+                ImageBufRef src(new ImageBuf);
+                std::swap(src, ib);
+                int nchannels(channel_set_channels.size());
+                ok = ImageBufAlgo::channels(*ib, *src, nchannels,
                                             channel_set_channels,
                                             channel_set_values, newchannelnames,
-                                            false);
+                                            true);
+                // By calling IBA::channels(), the new result is no longer
+                // going to have the correct nativespec info that reflects
+                // what was actually in the file, and that we'll need in order
+                // to know the data types of the first-read file (if this is
+                // it). So we must transfer the original nativespec info.
+                ImageSpec& newnativespec(
+                    const_cast<ImageSpec&>(ib->nativespec()));
+                newnativespec.channelformats.resize(nchannels);
+                for (int i = 0; i < nchannels; ++i) {
+                    int c = channel_set_channels[i];  // original channel index
+                    newnativespec.channelformats[i]
+                        = (c < 0) ? TypeFloat
+                                  : src->nativespec().channelformat(c);
+                }
+                newnativespec.format = TypeDesc::basetype_merge(
+                    newnativespec.channelformats);
+                if (TypeDesc::all_types_equal(newnativespec.channelformats))
+                    newnativespec.channelformats.clear();
             }
             if (!ok)
                 errorfmt("{}", ib->geterror());
