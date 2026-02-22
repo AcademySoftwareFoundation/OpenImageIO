@@ -79,6 +79,15 @@ ParamValue_from_pyobject(string_view name, TypeDesc type, int nvalues,
 
 
 
+void
+ParamValueList_attribute_onearg(ParamValueList& self, const std::string& name,
+                                const py::object& obj)
+{
+    attribute_onearg(self, name, obj);
+}
+
+
+
 // Based on attribute_typed in py_oiio.h, but with nvalues.
 template<typename T, typename POBJ>
 bool
@@ -240,18 +249,7 @@ declare_paramvalue(py::module& m)
             "value"_a, "casesensitive"_a = true)
         .def("sort", &ParamValueList::sort, "casesensitive"_a = true)
         .def("merge", &ParamValueList::merge, "other"_a, "override"_a = false)
-        .def("attribute",
-             [](ParamValueList& self, const std::string& name, float val) {
-                 self.attribute(name, TypeFloat, &val);
-             })
-        .def("attribute", [](ParamValueList& self, const std::string& name,
-                             int val) { self.attribute(name, TypeInt, &val); })
-        .def("attribute",
-             [](ParamValueList& self, const std::string& name,
-                const std::string& val) {
-                 const char* s = val.c_str();
-                 self.attribute(name, TypeString, &s);
-             })
+        .def("attribute", ParamValueList_attribute_onearg, "name"_a, "val"_a)
         .def("attribute",
              [](ParamValueList& self, const std::string& name, TypeDesc type,
                 const py::object& obj) {

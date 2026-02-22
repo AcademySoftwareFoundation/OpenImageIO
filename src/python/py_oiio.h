@@ -509,6 +509,24 @@ attribute_typed(T& myobj, string_view name, TypeDesc type, const POBJ& dataobj)
 
 
 
+// Dispatch a single-value attribute() call based on the type of the
+// Python object (int, float, or string).
+template<typename T>
+inline void
+attribute_onearg(T& myobj, string_view name, const py::object& obj)
+{
+    if (py::isinstance<py::float_>(obj))
+        myobj.attribute(name, float(obj.template cast<py::float_>()));
+    else if (py::isinstance<py::int_>(obj))
+        myobj.attribute(name, int(obj.template cast<py::int_>()));
+    else if (py::isinstance<py::str>(obj))
+        myobj.attribute(name, std::string(obj.template cast<py::str>()));
+    else
+        throw std::invalid_argument("Bad type for attribute");
+}
+
+
+
 // `data` points to values of `type`. Make a python object that represents
 // them.
 py::object
