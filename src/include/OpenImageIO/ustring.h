@@ -1146,8 +1146,7 @@ FMT_BEGIN_NAMESPACE
 
 template<> struct formatter<OIIO::ustring> : formatter<fmt::string_view, char> {
     template<typename FormatContext>
-    auto format(const OIIO::ustring& u,
-                FormatContext& ctx) OIIO_FMT_CUSTOM_FORMATTER_CONST
+    auto format(const OIIO::ustring& u, FormatContext& ctx) const
     {
         return formatter<fmt::string_view, char>::format({ u.data(), u.size() },
                                                          ctx);
@@ -1157,8 +1156,7 @@ template<> struct formatter<OIIO::ustring> : formatter<fmt::string_view, char> {
 template<>
 struct formatter<OIIO::ustringhash> : formatter<fmt::string_view, char> {
     template<typename FormatContext>
-    auto format(const OIIO::ustringhash& h,
-                FormatContext& ctx) OIIO_FMT_CUSTOM_FORMATTER_CONST
+    auto format(const OIIO::ustringhash& h, FormatContext& ctx) const
     {
         OIIO::ustring u(h);
         return formatter<fmt::string_view, char>::format({ u.data(), u.size() },
