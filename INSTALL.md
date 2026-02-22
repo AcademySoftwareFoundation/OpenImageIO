@@ -23,11 +23,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * Imath >= 3.1 (tested through 3.2 and main)
  * OpenEXR >= 3.1 (tested through 3.4 and main)
  * libTIFF >= 4.0 (tested through 4.7 and master)
- * *OpenColorIO >= 2.3* (tested through 2.5 and main)
+ * OpenColorIO >= 2.3 (tested through 2.5 and main)
  * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
    through 3.1)
  * zlib >= 1.2.7 (tested through 1.3.1)
- * [fmtlib](https://github.com/fmtlib/fmt) >= 7.0 (tested through 12.0 and master).
+ * **[fmtlib](https://github.com/fmtlib/fmt) >= 9.0** (tested through 12.1 and master).
    If not found at build time, this will be automatically downloaded and built.
  * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
    through 1.4, which is the recommended version). If not found at build time,
@@ -39,7 +39,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.9)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * **Python >= 3.9** (tested through 3.13).
+     * Python >= 3.9 (tested through 3.13).
      * pybind11 >= 2.7 (tested through 3.0)
      * NumPy (tested through 2.2.4)
  * If you want support for PNG files:

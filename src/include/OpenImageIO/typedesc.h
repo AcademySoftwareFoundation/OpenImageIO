@@ -681,7 +681,7 @@ struct fmt::formatter<OIIO::TypeDesc> {
     }
 
     template <typename FormatContext>
-    auto format(const OIIO::TypeDesc& t, FormatContext& ctx) OIIO_FMT_CUSTOM_FORMATTER_CONST
+    auto format(const OIIO::TypeDesc& t, FormatContext& ctx) const
     {
         // C++14:   auto format(const OIIO::TypeDesc& p, FormatContext& ctx) const {
         // ctx.out() is an output iterator to write to.

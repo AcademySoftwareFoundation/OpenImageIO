@@ -91,7 +91,7 @@ jobs:
             cxx_std: 17
             python_ver: 3.9
             simd: "avx2,f16c"
-            fmt_ver: 8.1.1
+            fmt_ver: 9.0.0
             opencolorio_ver: v2.3.0
             pybind11_ver: v2.9.0
             setenvs: export FREETYPE_VERSION=VER-2-12-0
@@ -123,7 +123,7 @@ jobs:
             vfxyear: 2022
             old_node: 1
             cxx_std: 17
-            fmt_ver: 7.0.1
+            fmt_ver: 9.0.0
             opencolorio_ver: v2.3.0
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
@@ -145,7 +145,7 @@ jobs:
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
-            fmt_ver: 7.0.1
+            fmt_ver: 9.0.0
             opencolorio_ver: v2.3.0
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
@@ -167,7 +167,7 @@ jobs:
             vfxyear: 2022
             old_node: 1
             cxx_std: 17
-            fmt_ver: 7.0.1
+            fmt_ver: 9.0.0
             opencolorio_ver: v2.3.0
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
