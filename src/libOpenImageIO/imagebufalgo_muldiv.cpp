@@ -131,10 +131,132 @@ static bool
 mul_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
              int nthreads)
 {
+    auto op = [](auto /*d*/, auto a, auto b) {
+        return hn::Mul(a, b);
+    };
+
+    // Special-case: RGBA images but ROI is RGB (strided channel subset). We
+    // still can SIMD the RGB channels by processing full RGBA and preserving
+    // alpha exactly (bitwise) from the destination.
+    if (roi.chbegin == 0 && roi.chend == 3) {
+        // Only support same-type float/half/double in this fast path.
+        constexpr bool floaty = (std::is_same_v<Rtype, float>
+                                 || std::is_same_v<Rtype, double>
+                                 || std::is_same_v<Rtype, half>)
+                                && std::is_same_v<Rtype, Atype>
+                                && std::is_same_v<Rtype, Btype>;
+        if constexpr (floaty) {
+            auto Rv = HwyPixels(R);
+            auto Av = HwyPixels(A);
+            auto Bv = HwyPixels(B);
+            if (Rv.nchannels >= 4 && Av.nchannels >= 4 && Bv.nchannels >= 4
+                && ChannelsContiguous<Rtype>(Rv, 4)
+                && ChannelsContiguous<Atype>(Av, 4)
+                && ChannelsContiguous<Btype>(Bv, 4)) {
+                ROI roi4     = roi;
+                roi4.chbegin = 0;
+                roi4.chend   = 4;
+                using MathT  = typename SimdMathType<Rtype>::type;
+                const hn::ScalableTag<MathT> d;
+                const size_t lanes = hn::Lanes(d);
+                ImageBufAlgo::parallel_image(roi4, nthreads, [&](ROI roi4) {
+                    for (int y = roi4.ybegin; y < roi4.yend; ++y) {
+                        Rtype* r_row       = RoiRowPtr<Rtype>(Rv, y, roi4);
+                        const Atype* a_row = RoiRowPtr<Atype>(Av, y, roi4);
+                        const Btype* b_row = RoiRowPtr<Btype>(Bv, y, roi4);
+                        const size_t npixels = static_cast<size_t>(roi4.width());
+
+                        size_t x = 0;
+                        for (; x + lanes <= npixels; x += lanes) {
+                            const size_t off = x * 4;
+                            if constexpr (std::is_same_v<Rtype, half>) {
+                                using T16  = hwy::float16_t;
+                                auto d16   = hn::Rebind<T16, decltype(d)>();
+                                const T16* a16
+                                    = reinterpret_cast<const T16*>(a_row + off);
+                                const T16* b16
+                                    = reinterpret_cast<const T16*>(b_row + off);
+                                T16* r16 = reinterpret_cast<T16*>(r_row + off);
+
+                                hn::Vec<decltype(d16)> ar16, ag16, ab16, aa16;
+                                hn::Vec<decltype(d16)> br16, bg16, bb16, ba16;
+                                hn::Vec<decltype(d16)> dr16, dg16, db16, da16;
+                                hn::LoadInterleaved4(d16, a16, ar16, ag16, ab16,
+                                                     aa16);
+                                hn::LoadInterleaved4(d16, b16, br16, bg16, bb16,
+                                                     ba16);
+                                hn::LoadInterleaved4(d16, r16, dr16, dg16, db16,
+                                                     da16);
+                                (void)aa16;
+                                (void)ba16;
+                                (void)dr16;
+                                (void)dg16;
+                                (void)db16;
+
+                                auto rr = op(d, hn::PromoteTo(d, ar16),
+                                             hn::PromoteTo(d, br16));
+                                auto rg = op(d, hn::PromoteTo(d, ag16),
+                                             hn::PromoteTo(d, bg16));
+                                auto rb = op(d, hn::PromoteTo(d, ab16),
+                                             hn::PromoteTo(d, bb16));
+
+                                auto rr16 = hn::DemoteTo(d16, rr);
+                                auto rg16 = hn::DemoteTo(d16, rg);
+                                auto rb16 = hn::DemoteTo(d16, rb);
+                                hn::StoreInterleaved4(rr16, rg16, rb16, da16, d16,
+                                                      r16);
+                            } else {
+                                hn::Vec<decltype(d)> ar, ag, ab, aa;
+                                hn::Vec<decltype(d)> br, bg, bb, ba;
+                                hn::Vec<decltype(d)> dr, dg, db, da;
+                                hn::LoadInterleaved4(d, a_row + off, ar, ag, ab,
+                                                     aa);
+                                hn::LoadInterleaved4(d, b_row + off, br, bg, bb,
+                                                     ba);
+                                hn::LoadInterleaved4(d, r_row + off, dr, dg, db,
+                                                     da);
+                                (void)aa;
+                                (void)ba;
+                                (void)dr;
+                                (void)dg;
+                                (void)db;
+
+                                auto rr = op(d, ar, br);
+                                auto rg = op(d, ag, bg);
+                                auto rb = op(d, ab, bb);
+                                hn::StoreInterleaved4(rr, rg, rb, da, d,
+                                                      r_row + off);
+                            }
+                        }
+
+                        for (; x < npixels; ++x) {
+                            const size_t off = x * 4;
+                            if constexpr (std::is_same_v<Rtype, half>) {
+                                r_row[off + 0]
+                                    = half((float)a_row[off + 0]
+                                           * (float)b_row[off + 0]);
+                                r_row[off + 1]
+                                    = half((float)a_row[off + 1]
+                                           * (float)b_row[off + 1]);
+                                r_row[off + 2]
+                                    = half((float)a_row[off + 2]
+                                           * (float)b_row[off + 2]);
+                            } else {
+                                r_row[off + 0] = a_row[off + 0] * b_row[off + 0];
+                                r_row[off + 1] = a_row[off + 1] * b_row[off + 1];
+                                r_row[off + 2] = a_row[off + 2] * b_row[off + 2];
+                            }
+                            // Preserve alpha (off+3).
+                        }
+                    }
+                });
+                return true;
+            }
+        }
+    }
+
     return hwy_binary_perpixel_op<Rtype, Atype, Btype>(R, A, B, roi, nthreads,
-                                                      [](auto /*d*/, auto a, auto b) {
-                                                          return hn::Mul(a, b);
-                                                      });
+                                                       op);
 }
 
 template<class Rtype, class Atype>
@@ -183,6 +305,25 @@ mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
                             && ChannelsContiguous<Btype>(Bv, nchannels);
         if (contig)
             return mul_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+
+        // Handle the common RGBA + RGB ROI strided case (preserving alpha).
+        constexpr bool floaty_strided = (std::is_same_v<Rtype, float>
+                                         || std::is_same_v<Rtype, double>
+                                         || std::is_same_v<Rtype, half>)
+                                        && std::is_same_v<Rtype, Atype>
+                                        && std::is_same_v<Rtype, Btype>;
+        if constexpr (floaty_strided) {
+            if (roi.chbegin == 0 && roi.chend == 3) {
+                const bool contig4 = (Rv.nchannels >= 4 && Av.nchannels >= 4
+                                      && Bv.nchannels >= 4)
+                                     && ChannelsContiguous<Rtype>(Rv, 4)
+                                     && ChannelsContiguous<Atype>(Av, 4)
+                                     && ChannelsContiguous<Btype>(Bv, 4);
+                if (contig4)
+                    return mul_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi,
+                                                             nthreads);
+            }
+        }
     }
 #endif
     return mul_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
@@ -304,13 +445,149 @@ static bool
 div_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
              int nthreads)
 {
+    auto op = [](auto d, auto a, auto b) {
+        const auto zero = hn::Zero(d);
+        const auto nz   = hn::Ne(b, zero);
+        const auto one  = hn::Set(d, 1);
+        const auto safe_b = hn::IfThenElse(nz, b, one);
+        const auto q      = hn::Div(a, safe_b);
+        return hn::IfThenElse(nz, q, zero);
+    };
+
+    // Special-case: RGBA images but ROI is RGB (strided channel subset). We
+    // still can SIMD the RGB channels by processing full RGBA and preserving
+    // alpha exactly (bitwise) from the destination.
+    if (roi.chbegin == 0 && roi.chend == 3) {
+        // Only support same-type float/half/double in this fast path.
+        constexpr bool floaty = (std::is_same_v<Rtype, float>
+                                 || std::is_same_v<Rtype, double>
+                                 || std::is_same_v<Rtype, half>)
+                                && std::is_same_v<Rtype, Atype>
+                                && std::is_same_v<Rtype, Btype>;
+        if constexpr (floaty) {
+            auto Rv = HwyPixels(R);
+            auto Av = HwyPixels(A);
+            auto Bv = HwyPixels(B);
+            if (Rv.nchannels >= 4 && Av.nchannels >= 4 && Bv.nchannels >= 4
+                && ChannelsContiguous<Rtype>(Rv, 4)
+                && ChannelsContiguous<Atype>(Av, 4)
+                && ChannelsContiguous<Btype>(Bv, 4)) {
+                ROI roi4     = roi;
+                roi4.chbegin = 0;
+                roi4.chend   = 4;
+                using MathT  = typename SimdMathType<Rtype>::type;
+                const hn::ScalableTag<MathT> d;
+                const size_t lanes = hn::Lanes(d);
+                ImageBufAlgo::parallel_image(roi4, nthreads, [&](ROI roi4) {
+                    for (int y = roi4.ybegin; y < roi4.yend; ++y) {
+                        Rtype* r_row       = RoiRowPtr<Rtype>(Rv, y, roi4);
+                        const Atype* a_row = RoiRowPtr<Atype>(Av, y, roi4);
+                        const Btype* b_row = RoiRowPtr<Btype>(Bv, y, roi4);
+                        const size_t npixels = static_cast<size_t>(roi4.width());
+
+                        size_t x = 0;
+                        for (; x + lanes <= npixels; x += lanes) {
+                            const size_t off = x * 4;
+                            if constexpr (std::is_same_v<Rtype, half>) {
+                                using T16  = hwy::float16_t;
+                                auto d16   = hn::Rebind<T16, decltype(d)>();
+                                const T16* a16
+                                    = reinterpret_cast<const T16*>(a_row + off);
+                                const T16* b16
+                                    = reinterpret_cast<const T16*>(b_row + off);
+                                T16* r16 = reinterpret_cast<T16*>(r_row + off);
+
+                                hn::Vec<decltype(d16)> ar16, ag16, ab16, aa16;
+                                hn::Vec<decltype(d16)> br16, bg16, bb16, ba16;
+                                hn::Vec<decltype(d16)> dr16, dg16, db16, da16;
+                                hn::LoadInterleaved4(d16, a16, ar16, ag16, ab16,
+                                                     aa16);
+                                hn::LoadInterleaved4(d16, b16, br16, bg16, bb16,
+                                                     ba16);
+                                hn::LoadInterleaved4(d16, r16, dr16, dg16, db16,
+                                                     da16);
+                                (void)aa16;
+                                (void)ba16;
+                                (void)dr16;
+                                (void)dg16;
+                                (void)db16;
+
+                                auto rr = op(d, hn::PromoteTo(d, ar16),
+                                             hn::PromoteTo(d, br16));
+                                auto rg = op(d, hn::PromoteTo(d, ag16),
+                                             hn::PromoteTo(d, bg16));
+                                auto rb = op(d, hn::PromoteTo(d, ab16),
+                                             hn::PromoteTo(d, bb16));
+
+                                auto rr16 = hn::DemoteTo(d16, rr);
+                                auto rg16 = hn::DemoteTo(d16, rg);
+                                auto rb16 = hn::DemoteTo(d16, rb);
+                                hn::StoreInterleaved4(rr16, rg16, rb16, da16, d16,
+                                                      r16);
+                            } else {
+                                hn::Vec<decltype(d)> ar, ag, ab, aa;
+                                hn::Vec<decltype(d)> br, bg, bb, ba;
+                                hn::Vec<decltype(d)> dr, dg, db, da;
+                                hn::LoadInterleaved4(d, a_row + off, ar, ag, ab,
+                                                     aa);
+                                hn::LoadInterleaved4(d, b_row + off, br, bg, bb,
+                                                     ba);
+                                hn::LoadInterleaved4(d, r_row + off, dr, dg, db,
+                                                     da);
+                                (void)aa;
+                                (void)ba;
+                                (void)dr;
+                                (void)dg;
+                                (void)db;
+
+                                auto rr = op(d, ar, br);
+                                auto rg = op(d, ag, bg);
+                                auto rb = op(d, ab, bb);
+                                hn::StoreInterleaved4(rr, rg, rb, da, d,
+                                                      r_row + off);
+                            }
+                        }
+
+                        for (; x < npixels; ++x) {
+                            const size_t off = x * 4;
+                            if constexpr (std::is_same_v<Rtype, half>) {
+                                const float denom0 = (float)b_row[off + 0];
+                                const float denom1 = (float)b_row[off + 1];
+                                const float denom2 = (float)b_row[off + 2];
+                                r_row[off + 0]
+                                    = (denom0 == 0.0f)
+                                          ? half(0.0f)
+                                          : half((float)a_row[off + 0] / denom0);
+                                r_row[off + 1]
+                                    = (denom1 == 0.0f)
+                                          ? half(0.0f)
+                                          : half((float)a_row[off + 1] / denom1);
+                                r_row[off + 2]
+                                    = (denom2 == 0.0f)
+                                          ? half(0.0f)
+                                          : half((float)a_row[off + 2] / denom2);
+                            } else {
+                                const auto denom0 = b_row[off + 0];
+                                const auto denom1 = b_row[off + 1];
+                                const auto denom2 = b_row[off + 2];
+                                r_row[off + 0]
+                                    = (denom0 == 0) ? 0 : (a_row[off + 0] / denom0);
+                                r_row[off + 1]
+                                    = (denom1 == 0) ? 0 : (a_row[off + 1] / denom1);
+                                r_row[off + 2]
+                                    = (denom2 == 0) ? 0 : (a_row[off + 2] / denom2);
+                            }
+                            // Preserve alpha (off+3).
+                        }
+                    }
+                });
+                return true;
+            }
+        }
+    }
+
     return hwy_binary_perpixel_op<Rtype, Atype, Btype>(R, A, B, roi, nthreads,
-                                                      [](auto d, auto a, auto b) {
-                                                          auto zero = hn::Zero(d);
-                                                          auto mask = hn::Eq(b, zero);
-                                                          return hn::IfThenElse(mask, zero,
-                                                                                hn::Div(a, b));
-                                                      });
+                                                       op);
 }
 #endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
 
@@ -331,6 +608,25 @@ div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
                             && ChannelsContiguous<Btype>(Bv, nchannels);
         if (contig)
             return div_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+
+        // Handle the common RGBA + RGB ROI strided case (preserving alpha).
+        constexpr bool floaty_strided = (std::is_same_v<Rtype, float>
+                                         || std::is_same_v<Rtype, double>
+                                         || std::is_same_v<Rtype, half>)
+                                        && std::is_same_v<Rtype, Atype>
+                                        && std::is_same_v<Rtype, Btype>;
+        if constexpr (floaty_strided) {
+            if (roi.chbegin == 0 && roi.chend == 3) {
+                const bool contig4 = (Rv.nchannels >= 4 && Av.nchannels >= 4
+                                      && Bv.nchannels >= 4)
+                                     && ChannelsContiguous<Rtype>(Rv, 4)
+                                     && ChannelsContiguous<Atype>(Av, 4)
+                                     && ChannelsContiguous<Btype>(Bv, 4);
+                if (contig4)
+                    return div_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi,
+                                                             nthreads);
+            }
+        }
     }
 #endif
     return div_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);

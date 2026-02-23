@@ -532,47 +532,57 @@ test_hwy_strided_roi_fallback()
 
     {
         ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
         OIIO::attribute("enable_hwy", 0);
         ImageBufAlgo::add(R0, A, B, roi);
         OIIO::attribute("enable_hwy", 1);
         ImageBufAlgo::add(R1, A, B, roi);
-        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
         OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
     }
     {
         ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
         OIIO::attribute("enable_hwy", 0);
         ImageBufAlgo::sub(R0, A, B, roi);
         OIIO::attribute("enable_hwy", 1);
         ImageBufAlgo::sub(R1, A, B, roi);
-        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
         OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
     }
     {
         ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
         OIIO::attribute("enable_hwy", 0);
         ImageBufAlgo::mul(R0, A, B, roi);
         OIIO::attribute("enable_hwy", 1);
         ImageBufAlgo::mul(R1, A, B, roi);
-        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
         OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
     }
     {
         ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
         OIIO::attribute("enable_hwy", 0);
         ImageBufAlgo::div(R0, A, B, roi);
         OIIO::attribute("enable_hwy", 1);
         ImageBufAlgo::div(R1, A, B, roi);
-        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
         OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
     }
     {
         ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
         OIIO::attribute("enable_hwy", 0);
         ImageBufAlgo::mad(R0, A, B, C, roi);
         OIIO::attribute("enable_hwy", 1);
         ImageBufAlgo::mad(R1, A, B, C, roi);
-        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
         OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
     }
 
