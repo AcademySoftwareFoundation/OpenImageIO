@@ -72,9 +72,10 @@ add_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
                         ROI roi, int nthreads)
 {
     return hwy_binary_native_int_perpixel_op<T>(R, A, B, roi, nthreads,
-                                               [](auto /*d*/, auto a, auto b) {
-                                                   return hn::SaturatedAdd(a, b);
-                                               });
+                                                [](auto /*d*/, auto a, auto b) {
+                                                    return hn::SaturatedAdd(a,
+                                                                            b);
+                                                });
 }
 
 template<class Rtype, class Atype, class Btype>
@@ -82,9 +83,7 @@ static bool
 add_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
              int nthreads)
 {
-    auto op = [](auto /*d*/, auto a, auto b) {
-        return hn::Add(a, b);
-    };
+    auto op = [](auto /*d*/, auto a, auto b) { return hn::Add(a, b); };
 
     // Handle packed RGBA images with an RGB ROI (preserve alpha).
     if constexpr (std::is_integral_v<Rtype> && std::is_same_v<Rtype, Atype>
@@ -93,8 +92,8 @@ add_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
             return hn::SaturatedAdd(a, b);
         };
         if (hwy_binary_native_int_perpixel_op_rgba_rgb_roi<Rtype>(R, A, B, roi,
-                                                                 nthreads,
-                                                                 op_int))
+                                                                  nthreads,
+                                                                  op_int))
             return true;
     }
     if (hwy_binary_perpixel_op_rgba_rgb_roi<Rtype, Atype, Btype>(R, A, B, roi,
@@ -142,9 +141,9 @@ add_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 #if defined(OIIO_USE_HWY) && OIIO_USE_HWY
     if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
         && B.localpixels()) {
-        auto Rv = HwyPixels(R);
-        auto Av = HwyPixels(A);
-        auto Bv = HwyPixels(B);
+        auto Rv             = HwyPixels(R);
+        auto Av             = HwyPixels(A);
+        auto Bv             = HwyPixels(B);
         const int nchannels = RoiNChannels(roi);
         const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
                             && ChannelsContiguous<Atype>(Av, nchannels)
@@ -196,9 +195,10 @@ sub_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
                         ROI roi, int nthreads)
 {
     return hwy_binary_native_int_perpixel_op<T>(R, A, B, roi, nthreads,
-                                               [](auto /*d*/, auto a, auto b) {
-                                                   return hn::SaturatedSub(a, b);
-                                               });
+                                                [](auto /*d*/, auto a, auto b) {
+                                                    return hn::SaturatedSub(a,
+                                                                            b);
+                                                });
 }
 
 template<class Rtype, class Atype, class Btype>
@@ -206,9 +206,7 @@ static bool
 sub_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
              int nthreads)
 {
-    auto op = [](auto /*d*/, auto a, auto b) {
-        return hn::Sub(a, b);
-    };
+    auto op = [](auto /*d*/, auto a, auto b) { return hn::Sub(a, b); };
 
     // Handle packed RGBA images with an RGB ROI (preserve alpha).
     if constexpr (std::is_integral_v<Rtype> && std::is_same_v<Rtype, Atype>
@@ -217,8 +215,8 @@ sub_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
             return hn::SaturatedSub(a, b);
         };
         if (hwy_binary_native_int_perpixel_op_rgba_rgb_roi<Rtype>(R, A, B, roi,
-                                                                 nthreads,
-                                                                 op_int))
+                                                                  nthreads,
+                                                                  op_int))
             return true;
     }
     if (hwy_binary_perpixel_op_rgba_rgb_roi<Rtype, Atype, Btype>(R, A, B, roi,
@@ -243,9 +241,9 @@ sub_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 #if defined(OIIO_USE_HWY) && OIIO_USE_HWY
     if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
         && B.localpixels()) {
-        auto Rv = HwyPixels(R);
-        auto Av = HwyPixels(A);
-        auto Bv = HwyPixels(B);
+        auto Rv             = HwyPixels(R);
+        auto Av             = HwyPixels(A);
+        auto Bv             = HwyPixels(B);
         const int nchannels = RoiNChannels(roi);
         const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
                             && ChannelsContiguous<Atype>(Av, nchannels)

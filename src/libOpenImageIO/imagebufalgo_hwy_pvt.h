@@ -132,8 +132,7 @@ LoadInterleaved4PromoteN(D d, const SrcT* ptr, size_t count);
 template<class D, typename DstT, typename VecMathT, typename VecAlphaLaneT>
 inline void
 StoreInterleaved4RgbAlphaPassthrough(D d, DstT* ptr, VecMathT r, VecMathT g,
-                                     VecMathT b,
-                                     VecAlphaLaneT a_passthrough);
+                                     VecMathT b, VecAlphaLaneT a_passthrough);
 
 // -----------------------------------------------------------------------
 // Load and Promote
@@ -267,8 +266,8 @@ PromoteVec(D d, VecT v)
         return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 4294967295.0)));
     } else if constexpr (std::is_same_v<SrcT, int32_t>) {
         auto v_promoted = hn::ConvertTo(d, v);
-        auto v_norm = hn::Mul(v_promoted,
-                              hn::Set(d, (MathT)(1.0 / 2147483647.0)));
+        auto v_norm     = hn::Mul(v_promoted,
+                                  hn::Set(d, (MathT)(1.0 / 2147483647.0)));
         return hn::Max(v_norm, hn::Set(d, (MathT)-1.0));
     } else if constexpr (std::is_same_v<SrcT, uint64_t>) {
         auto d_u32 = hn::Rebind<uint32_t, D>();
@@ -551,10 +550,10 @@ DemoteVec(D d, VecT v)
         auto d_u8  = hn::Rebind<uint8_t, D>();
         return hn::DemoteTo(d_u8, v_i16);
     } else if constexpr (std::is_same_v<DstT, int8_t>) {
-        VecD v_denorm = hn::Mul((VecD)v, hn::Set(d, (MathT)127.0));
-        auto is_neg   = hn::Lt(v_denorm, hn::Zero(d));
-        auto v_bias   = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
-                                       hn::Set(d, (MathT)0.5));
+        VecD v_denorm  = hn::Mul((VecD)v, hn::Set(d, (MathT)127.0));
+        auto is_neg    = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias    = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                        hn::Set(d, (MathT)0.5));
         VecD v_rounded = hn::Add(v_denorm, v_bias);
         VecD v_clamped = hn::Max(v_rounded, hn::Set(d, (MathT)-128.0));
         v_clamped      = hn::Min(v_clamped, hn::Set(d, (MathT)127.0));
@@ -576,10 +575,10 @@ DemoteVec(D d, VecT v)
         auto d_u16 = hn::Rebind<uint16_t, D>();
         return hn::DemoteTo(d_u16, vi32);
     } else if constexpr (std::is_same_v<DstT, int16_t>) {
-        VecD v_denorm = hn::Mul((VecD)v, hn::Set(d, (MathT)32767.0));
-        auto is_neg   = hn::Lt(v_denorm, hn::Zero(d));
-        auto v_bias   = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
-                                       hn::Set(d, (MathT)0.5));
+        VecD v_denorm  = hn::Mul((VecD)v, hn::Set(d, (MathT)32767.0));
+        auto is_neg    = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias    = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                        hn::Set(d, (MathT)0.5));
         VecD v_rounded = hn::Add(v_denorm, v_bias);
         VecD v_clamped = hn::Max(v_rounded, hn::Set(d, (MathT)-32768.0));
         v_clamped      = hn::Min(v_clamped, hn::Set(d, (MathT)32767.0));
@@ -595,10 +594,10 @@ DemoteVec(D d, VecT v)
         auto d_u32     = hn::Rebind<uint32_t, D>();
         return hn::ConvertTo(d_u32, v_clamped);
     } else if constexpr (std::is_same_v<DstT, int32_t>) {
-        VecD v_denorm = hn::Mul((VecD)v, hn::Set(d, (MathT)2147483647.0));
-        auto is_neg   = hn::Lt(v_denorm, hn::Zero(d));
-        auto v_bias   = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
-                                       hn::Set(d, (MathT)0.5));
+        VecD v_denorm  = hn::Mul((VecD)v, hn::Set(d, (MathT)2147483647.0));
+        auto is_neg    = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias    = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                        hn::Set(d, (MathT)0.5));
         VecD v_rounded = hn::Add(v_denorm, v_bias);
         VecD v_clamped = hn::Max(v_rounded, hn::Set(d, (MathT)-2147483648.0));
         v_clamped      = hn::Min(v_clamped, hn::Set(d, (MathT)2147483647.0));
@@ -932,15 +931,15 @@ RunHwyTernaryCmd(Rtype* r, const ABCtype* a, const ABCtype* b, const ABCtype* c,
 /// covers the full pixel).
 template<typename Rtype, typename Atype, typename Btype, typename OpFunc>
 inline bool
-hwy_binary_perpixel_op(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-                       int nthreads, OpFunc op)
+hwy_binary_perpixel_op(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+                       ROI roi, int nthreads, OpFunc op)
 {
     auto Rv = HwyPixels(R);
     auto Av = HwyPixels(A);
     auto Bv = HwyPixels(B);
     ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
         const int nchannels = RoiNChannels(roi);
-        const size_t n = static_cast<size_t>(roi.width())
+        const size_t n      = static_cast<size_t>(roi.width())
                          * static_cast<size_t>(nchannels);
         for (int y = roi.ybegin; y < roi.yend; ++y) {
             Rtype* r_row       = RoiRowPtr<Rtype>(Rv, y, roi);
@@ -967,7 +966,7 @@ hwy_ternary_perpixel_op(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
     auto Cv = HwyPixels(C);
     ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
         const int nchannels = RoiNChannels(roi);
-        const size_t n = static_cast<size_t>(roi.width())
+        const size_t n      = static_cast<size_t>(roi.width())
                          * static_cast<size_t>(nchannels);
         for (int y = roi.ybegin; y < roi.yend; ++y) {
             Rtype* r_row         = RoiRowPtr<Rtype>(Rv, y, roi);
@@ -994,7 +993,7 @@ hwy_binary_native_int_perpixel_op(ImageBuf& R, const ImageBuf& A,
     auto Bv = HwyPixels(B);
     ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
         const int nchannels = RoiNChannels(roi);
-        const size_t n = static_cast<size_t>(roi.width())
+        const size_t n      = static_cast<size_t>(roi.width())
                          * static_cast<size_t>(nchannels);
         for (int y = roi.ybegin; y < roi.yend; ++y) {
             T* r_row       = RoiRowPtr<T>(Rv, y, roi);
@@ -1063,9 +1062,9 @@ hwy_binary_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
 
     ImageBufAlgo::parallel_image(roi4, nthreads, [&, op](ROI roi4) {
         for (int y = roi4.ybegin; y < roi4.yend; ++y) {
-            Rtype* r_row       = RoiRowPtr<Rtype>(Rv, y, roi4);
-            const Atype* a_row = RoiRowPtr<Atype>(Av, y, roi4);
-            const Btype* b_row = RoiRowPtr<Btype>(Bv, y, roi4);
+            Rtype* r_row         = RoiRowPtr<Rtype>(Rv, y, roi4);
+            const Atype* a_row   = RoiRowPtr<Atype>(Av, y, roi4);
+            const Btype* b_row   = RoiRowPtr<Btype>(Bv, y, roi4);
             const size_t npixels = static_cast<size_t>(roi4.width());
 
             size_t x = 0;
@@ -1081,8 +1080,8 @@ hwy_binary_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
                 auto d_dstlane = hn::Rebind<DstLaneT, decltype(d)>();
                 hn::Vec<decltype(d_dstlane)> dr, dg, db, da;
                 hn::LoadInterleaved4(d_dstlane,
-                                     reinterpret_cast<const DstLaneT*>(
-                                         r_row + off),
+                                     reinterpret_cast<const DstLaneT*>(r_row
+                                                                       + off),
                                      dr, dg, db, da);
                 (void)dr;
                 (void)dg;
@@ -1097,11 +1096,11 @@ hwy_binary_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
 
             const size_t remaining = npixels - x;
             if (remaining > 0) {
-                const size_t off = x * 4;
-                auto [ar, ag, ab, aa]
-                    = LoadInterleaved4PromoteN(d, a_row + off, remaining);
-                auto [br, bg, bb, ba]
-                    = LoadInterleaved4PromoteN(d, b_row + off, remaining);
+                const size_t off      = x * 4;
+                auto [ar, ag, ab, aa] = LoadInterleaved4PromoteN(d, a_row + off,
+                                                                 remaining);
+                auto [br, bg, bb, ba] = LoadInterleaved4PromoteN(d, b_row + off,
+                                                                 remaining);
                 (void)aa;
                 (void)ba;
                 auto rr = op(d, ar, br);
@@ -1170,8 +1169,8 @@ hwy_ternary_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
                 auto d_dstlane = hn::Rebind<DstLaneT, decltype(d)>();
                 hn::Vec<decltype(d_dstlane)> dr, dg, db, da;
                 hn::LoadInterleaved4(d_dstlane,
-                                     reinterpret_cast<const DstLaneT*>(
-                                         r_row + off),
+                                     reinterpret_cast<const DstLaneT*>(r_row
+                                                                       + off),
                                      dr, dg, db, da);
                 (void)dr;
                 (void)dg;
@@ -1186,13 +1185,13 @@ hwy_ternary_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
 
             const size_t remaining = npixels - x;
             if (remaining > 0) {
-                const size_t off = x * 4;
-                auto [ar, ag, ab, aa]
-                    = LoadInterleaved4PromoteN(d, a_row + off, remaining);
-                auto [br, bg, bb, ba]
-                    = LoadInterleaved4PromoteN(d, b_row + off, remaining);
-                auto [cr, cg, cb, ca]
-                    = LoadInterleaved4PromoteN(d, c_row + off, remaining);
+                const size_t off      = x * 4;
+                auto [ar, ag, ab, aa] = LoadInterleaved4PromoteN(d, a_row + off,
+                                                                 remaining);
+                auto [br, bg, bb, ba] = LoadInterleaved4PromoteN(d, b_row + off,
+                                                                 remaining);
+                auto [cr, cg, cb, ca] = LoadInterleaved4PromoteN(d, c_row + off,
+                                                                 remaining);
                 (void)aa;
                 (void)ba;
                 (void)ca;
@@ -1246,7 +1245,7 @@ hwy_binary_native_int_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
             T* r_row       = RoiRowPtr<T>(Rv, y, roi4);
             const T* a_row = RoiRowPtr<T>(Av, y, roi4);
             const T* b_row = RoiRowPtr<T>(Bv, y, roi4);
-            size_t i = 0;
+            size_t i       = 0;
             for (; i + lanes <= n; i += lanes) {
                 auto va   = hn::Load(d, a_row + i);
                 auto vb   = hn::Load(d, b_row + i);

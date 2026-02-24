@@ -131,9 +131,7 @@ static bool
 mul_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
              int nthreads)
 {
-    auto op = [](auto /*d*/, auto a, auto b) {
-        return hn::Mul(a, b);
-    };
+    auto op = [](auto /*d*/, auto a, auto b) { return hn::Mul(a, b); };
 
     if (hwy_binary_perpixel_op_rgba_rgb_roi<Rtype, Atype, Btype>(R, A, B, roi,
                                                                  nthreads, op))
@@ -180,9 +178,9 @@ mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 #if defined(OIIO_USE_HWY) && OIIO_USE_HWY
     if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
         && B.localpixels()) {
-        auto Rv = HwyPixels(R);
-        auto Av = HwyPixels(A);
-        auto Bv = HwyPixels(B);
+        auto Rv             = HwyPixels(R);
+        auto Av             = HwyPixels(A);
+        auto Bv             = HwyPixels(B);
         const int nchannels = RoiNChannels(roi);
         const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
                             && ChannelsContiguous<Atype>(Av, nchannels)
@@ -323,9 +321,9 @@ div_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
              int nthreads)
 {
     auto op = [](auto d, auto a, auto b) {
-        const auto zero = hn::Zero(d);
-        const auto nz   = hn::Ne(b, zero);
-        const auto one  = hn::Set(d, 1);
+        const auto zero   = hn::Zero(d);
+        const auto nz     = hn::Ne(b, zero);
+        const auto one    = hn::Set(d, 1);
         const auto safe_b = hn::IfThenElse(nz, b, one);
         const auto q      = hn::Div(a, safe_b);
         return hn::IfThenElse(nz, q, zero);
@@ -348,9 +346,9 @@ div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 #if defined(OIIO_USE_HWY) && OIIO_USE_HWY
     if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
         && B.localpixels()) {
-        auto Rv = HwyPixels(R);
-        auto Av = HwyPixels(A);
-        auto Bv = HwyPixels(B);
+        auto Rv             = HwyPixels(R);
+        auto Av             = HwyPixels(A);
+        auto Bv             = HwyPixels(B);
         const int nchannels = RoiNChannels(roi);
         const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
                             && ChannelsContiguous<Atype>(Av, nchannels)

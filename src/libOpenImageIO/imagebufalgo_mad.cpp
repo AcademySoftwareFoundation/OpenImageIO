@@ -56,8 +56,8 @@ mad_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
         return hn::MulAdd(a, b, c);
     };
 
-    if (hwy_ternary_perpixel_op_rgba_rgb_roi<Rtype, ABCtype>(
-            R, A, B, C, roi, nthreads, op))
+    if (hwy_ternary_perpixel_op_rgba_rgb_roi<Rtype, ABCtype>(R, A, B, C, roi,
+                                                             nthreads, op))
         return true;
 
     return hwy_ternary_perpixel_op<Rtype, ABCtype>(R, A, B, C, roi, nthreads,
@@ -73,10 +73,10 @@ mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
 #if defined(OIIO_USE_HWY) && OIIO_USE_HWY
     if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
         && B.localpixels() && C.localpixels()) {
-        auto Rv = HwyPixels(R);
-        auto Av = HwyPixels(A);
-        auto Bv = HwyPixels(B);
-        auto Cv = HwyPixels(C);
+        auto Rv             = HwyPixels(R);
+        auto Av             = HwyPixels(A);
+        auto Bv             = HwyPixels(B);
+        auto Cv             = HwyPixels(C);
         const int nchannels = RoiNChannels(roi);
         const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
                             && ChannelsContiguous<ABCtype>(Av, nchannels)
