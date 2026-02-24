@@ -1,6 +1,6 @@
 Reading ref/IMG_7702_small.heic
 ref/IMG_7702_small.heic :  512 x  300, 3 channel, uint8 heif
-    SHA-1: 337C2EC7F5C2316F2FD31F04067BDC59AB7027AE
+    SHA-1: 2380C124F8338910013FEA75C9C64C23567A3156
     channel list: R, G, B
     DateTime: "2019:01:21 16:10:54"
     ExposureTime: 0.030303
@@ -39,9 +39,45 @@ ref/IMG_7702_small.heic :  512 x  300, 3 channel, uint8 heif
     Exif:SubsecTimeOriginal: "006"
     Exif:WhiteBalance: 0 (auto)
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading ref/Chimera-AV1-8bit-162.avif
+ref/Chimera-AV1-8bit-162.avif :  480 x  270, 3 channel, uint8 heif
+    SHA-1: F8FDAF1BD56A21E3AF99CF8EE7FA45434D2826C7
+    channel list: R, G, B
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ref/test-10bit.avif
+ref/test-10bit.avif  :   16 x   16, 4 channel, uint10 heif
+    SHA-1: A217653C4E10FEBF080E26F9FC78F572184B1FDA
+    channel list: R, G, B, A
+    Software: "OpenImageIO 3.2.0.0dev : B4BD496D92983E84F1FD621682CAB821C1E2126C"
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    Exif:ImageHistory: "oiiotool --pattern fill:topleft=1,0,0,1:topright=0,1,0,1:bottomleft=0,0,1,1:bottomright=1,1,1,1 16x16 4 -d uint16 -o test16.png"
+    heif:UnassociatedAlpha: 1
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading cicp_pq.avif
+cicp_pq.avif         :   16 x   16, 4 channel, uint10 heif
+    SHA-1: 0F3CAB52D479BC23E9C981DBADDFEF1F792E5540
+    channel list: R, G, B, A
+    CICP: 9, 16, 9, 1
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    heif:UnassociatedAlpha: 1
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "pq_rec2020_display"
+Reading colorspace_hlg.avif
+colorspace_hlg.avif  :   16 x   16, 4 channel, uint10 heif
+    SHA-1: 0F3CAB52D479BC23E9C981DBADDFEF1F792E5540
+    channel list: R, G, B, A
+    CICP: 9, 18, 9, 1
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    heif:UnassociatedAlpha: 1
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "hlg_rec2020_display"
 Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
 ../oiio-images/heif/greyhounds-looking-for-a-table.heic : 3024 x 4032, 3 channel, uint8 heif
-    SHA-1: 8211F56BBABDC7615CCAF67CBF49741D1A292D2E
+    SHA-1: 8064B23A1A995B0D6525AFB5248EEC6C730BBB6C
     channel list: R, G, B
     DateTime: "2023:09:28 09:44:03"
     ExposureTime: 0.0135135
@@ -100,7 +136,7 @@ Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
     oiio:OriginalOrientation: 6
 Reading ../oiio-images/heif/sewing-threads.heic
 ../oiio-images/heif/sewing-threads.heic : 4000 x 3000, 3 channel, uint8 heif
-    SHA-1: 6A061BFE2F0BAC4CC94F5D9D5A6E674634149813
+    SHA-1: 44551A0A8AADD2C71B504681F2BAE3F7863EF9B9
     channel list: R, G, B
     DateTime: "2023:12:12 18:39:16"
     ExposureTime: 0.04
@@ -147,16 +183,14 @@ Reading ../oiio-images/heif/sewing-threads.heic
     GPS:LongitudeRef: "E"
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading mono-8bit.avif
-mono-8bit.avif       :   64 x   64, 3 channel, uint10 heif
-    SHA-1: 4E361351029D39379C73580BCD4C9859E4B73ADE
-    channel list: R, G, B
-    CICP: 2, 2, 6, 1
+mono-8bit.avif       :   64 x   64, 1 channel, uint10 heif
+    SHA-1: 09BE4368A01BE26600CA54D797477ABC5A37CB7B
+    channel list: Y
     oiio:BitsPerSample: 10
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading mono-10bit.avif
-mono-10bit.avif      :   64 x   64, 3 channel, uint10 heif
-    SHA-1: 4E361351029D39379C73580BCD4C9859E4B73ADE
-    channel list: R, G, B
-    CICP: 2, 2, 6, 1
+mono-10bit.avif      :   64 x   64, 1 channel, uint10 heif
+    SHA-1: 09BE4368A01BE26600CA54D797477ABC5A37CB7B
+    channel list: Y
     oiio:BitsPerSample: 10
     oiio:ColorSpace: "srgb_rec709_scene"

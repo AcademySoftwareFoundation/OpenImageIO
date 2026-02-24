@@ -499,12 +499,12 @@ endif ()
 # https://cheatsheetseries.owasp.org/cheatsheets/C-Based_Toolchain_Hardening_Cheat_Sheet.html
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set (${PROJ_NAME}_HARDENING_DEFAULT 2)
+    set (${PROJ_NAME}_HARDENING_DEFAULT 2)  # Extensive
 else ()
-    set (${PROJ_NAME}_HARDENING_DEFAULT 1)
+    set (${PROJ_NAME}_HARDENING_DEFAULT 1)  # Fast
 endif ()
 set_cache (${PROJ_NAME}_HARDENING ${${PROJ_NAME}_HARDENING_DEFAULT}
-           "Turn on security hardening features 0, 1, 2, 3")
+           "Turn on security hardening features 0=none, 1=fast, 2=extensive, 3=debug")
 # Implementation:
 add_compile_definitions (${PROJ_NAME}_HARDENING_DEFAULT=${${PROJ_NAME}_HARDENING})
 if (${PROJ_NAME}_HARDENING GREATER_EQUAL 1)

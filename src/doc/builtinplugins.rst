@@ -806,6 +806,10 @@ attributes are supported:
        having Orientation 1). If zero, then libheif will not reorient the
        image and the Orientation metadata will be set to reflect the camera
        orientation.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
 
 **Configuration settings for HEIF output**
 
@@ -824,10 +828,21 @@ control aspects of the writing itself:
      - If supplied, can be ``"heic"`` or ``"avif"``, but may optionally have a
        quality value appended, like ``"heic:90"``. Quality can be 1-100, with
        100 meaning lossless. The default is 75.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to memory rather than the file system.
 
 
 
 |
+
+**Additional notes and limitations**
+
+* The underlying libheif dependency must be 1.16 or newer to support the
+  "oiio:reorient" configuration option and the "heif:Orientation" metadata.
+* The underlying libheif dependency must be 1.17 or newer to support
+  monochrome HEIC images.
 
 .. _sec-bundledplugins-ico:
 

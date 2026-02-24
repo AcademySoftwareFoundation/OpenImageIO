@@ -18,3 +18,9 @@ Reading ../oiio-images/webp/4.webp
     SHA-1: 8F42E3DCCE6FE15146BA06C440C15B7831F60572
     channel list: R, G, B
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading rgba.webp
+rgba.webp            :   64 x   64, 4 channel, uint8 webp
+    SHA-1: 897256B6709E1A4DA9DABA92B6BDE39CCFCCD8C1
+    channel list: R, G, B, A
+    oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:UnassociatedAlpha: 1

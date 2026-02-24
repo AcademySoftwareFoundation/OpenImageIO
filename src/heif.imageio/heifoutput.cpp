@@ -29,7 +29,8 @@ public:
     const char* format_name(void) const override { return "heif"; }
     int supports(string_view feature) const override
     {
-        return feature == "alpha" || feature == "exif" || feature == "tiles"
+        return feature == "alpha" || feature == "exif" || feature == "ioproxy"
+               || feature == "tiles"
 #if LIBHEIF_HAVE_VERSION(1, 9, 0)
                || feature == "cicp"
 #endif
@@ -49,19 +50,18 @@ private:
     std::unique_ptr<heif::Context> m_ctx;
     heif::ImageHandle m_ihandle;
     heif::Image m_himage;
-    heif::Encoder m_encoder { heif_compression_HEVC };
+    // Undefined until we know the specific requested encoder, because an
+    // exception is thrown if libheif is built without support for it.
+    heif::Encoder m_encoder { heif_compression_undefined };
     std::vector<unsigned char> scratch;
     std::vector<unsigned char> m_tilebuffer;
     int m_bitdepth = 0;
 };
 
 
-
-namespace {
-
-class MyHeifWriter final : public heif::Context::Writer {
+class HeifWriter final : public heif::Context::Writer {
 public:
-    MyHeifWriter(Filesystem::IOProxy* ioproxy)
+    HeifWriter(Filesystem::IOProxy* ioproxy)
         : m_ioproxy(ioproxy)
     {
     }
@@ -81,9 +81,6 @@ public:
 private:
     Filesystem::IOProxy* m_ioproxy = nullptr;
 };
-
-}  // namespace
-
 
 
 OIIO_PLUGIN_EXPORTS_BEGIN
@@ -112,6 +109,11 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
 
     m_filename = name;
 
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name)) {
+        return false;
+    }
+
     m_bitdepth = m_spec.format.size() > TypeUInt8.size() ? 10 : 8;
     m_bitdepth = m_spec.get_int_attribute("oiio:BitsPerSample", m_bitdepth);
     if (m_bitdepth == 10 || m_bitdepth == 12) {
@@ -126,7 +128,7 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
     try {
         m_ctx.reset(new heif::Context);
         m_himage = heif::Image();
-        static heif_chroma chromas[/*nchannels*/]
+        const heif_chroma chromas[/*nchannels*/]
             = { heif_chroma_undefined, heif_chroma_monochrome,
                 heif_chroma_undefined,
                 (m_bitdepth == 8) ? heif_chroma_interleaved_RGB
@@ -135,25 +137,34 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
                 (m_bitdepth == 8) ? heif_chroma_interleaved_RGBA
                 : littleendian()  ? heif_chroma_interleaved_RRGGBBAA_LE
                                   : heif_chroma_interleaved_RRGGBBAA_BE };
-        m_himage.create(newspec.width, newspec.height, heif_colorspace_RGB,
-                        chromas[m_spec.nchannels]);
-        m_himage.add_plane(heif_channel_interleaved, newspec.width,
-                           newspec.height, m_bitdepth);
+        const heif_colorspace colorspace = (m_spec.nchannels == 1)
+                                               ? heif_colorspace_monochrome
+                                               : heif_colorspace_RGB;
+        const heif_channel channel       = (m_spec.nchannels == 1)
+                                               ? heif_channel_Y
+                                               : heif_channel_interleaved;
 
-        m_encoder      = heif::Encoder(heif_compression_HEVC);
+        m_himage.create(newspec.width, newspec.height, colorspace,
+                        chromas[m_spec.nchannels]);
+        m_himage.add_plane(channel, newspec.width, newspec.height, m_bitdepth);
+
         auto compqual  = m_spec.decode_compression_metadata("", 75);
         auto extension = Filesystem::extension(m_filename);
         if (compqual.first == "avif"
             || (extension == ".avif" && compqual.first == "")) {
             m_encoder = heif::Encoder(heif_compression_AV1);
+        } else {
+            m_encoder = heif::Encoder(heif_compression_HEVC);
         }
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        m_ctx.reset();
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        m_ctx.reset();
         return false;
     }
 
@@ -177,10 +188,13 @@ HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
 #else
     int hystride = 0;
 #endif
+    const heif_channel hchannel = (m_spec.nchannels == 1)
+                                      ? heif_channel_Y
+                                      : heif_channel_interleaved;
 #if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 20, 2, 0)
-    uint8_t* hdata = m_himage.get_plane2(heif_channel_interleaved, &hystride);
+    uint8_t* hdata = m_himage.get_plane2(hchannel, &hystride);
 #else
-    uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved, &hystride);
+    uint8_t* hdata = m_himage.get_plane(hchannel, &hystride);
 #endif
     hdata += hystride * (y - m_spec.y);
     if (m_bitdepth == 10 || m_bitdepth == 12) {
@@ -218,7 +232,9 @@ HeifOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 bool
 HeifOutput::close()
 {
-    if (!m_ctx) {  // already closed
+    if (!m_ctx || !ioproxy_opened()) {  // already closed
+        m_ctx.reset();
+        ioproxy_clear();
         return true;
     }
 
@@ -283,25 +299,20 @@ HeifOutput::close()
 #endif
         }
         m_ctx->set_primary_image(m_ihandle);
-        Filesystem::IOFile ioproxy(m_filename, Filesystem::IOProxy::Write);
-        if (ioproxy.mode() != Filesystem::IOProxy::Write) {
-            errorfmt("Could not open \"{}\"", m_filename);
-            ok = false;
-        } else {
-            MyHeifWriter writer(&ioproxy);
-            m_ctx->write(writer);
-        }
+        HeifWriter writer(ioproxy());
+        m_ctx->write(writer);
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
-        return false;
+        ok = false;
     } catch (const std::exception& err) {
         std::string e = err.what();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
-        return false;
+        ok = false;
     }
 
     m_ctx.reset();
+    ioproxy_clear();
     return ok;
 }
 
