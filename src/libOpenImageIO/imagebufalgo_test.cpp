@@ -526,7 +526,7 @@ test_hwy_strided_roi_fallback()
     ImageBufAlgo::fill(B, { 0.1f, 0.3f, 0.5f, 0.7f });
     ImageBufAlgo::fill(C, { 0.05f, 0.05f, 0.05f, 0.05f });
 
-    ROI roi = get_roi(A.spec());
+    ROI roi     = get_roi(A.spec());
     roi.chbegin = 0;
     roi.chend   = 3;  // RGB only => non-contiguous for RGBA interleaving
 
