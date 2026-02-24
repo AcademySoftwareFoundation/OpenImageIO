@@ -168,6 +168,17 @@ target_link_libraries (OpenImageIO
             ${CMAKE_DL_LIBS}
         )
 
+# Google Highway (hwy) is an optional optimization dependency.
+set (_oiio_use_hwy 0)
+if (OIIO_USE_HWY AND TARGET hwy::hwy)
+    set (_oiio_use_hwy 1)
+    target_link_libraries (OpenImageIO PRIVATE hwy::hwy)
+    if (TARGET hwy::hwy_contrib)
+        target_link_libraries (OpenImageIO PRIVATE hwy::hwy_contrib)
+    endif ()
+endif ()
+target_compile_definitions (OpenImageIO PRIVATE OIIO_USE_HWY=${_oiio_use_hwy})
+
 if (WIN32)
     target_link_libraries (OpenImageIO PRIVATE psapi)
 endif()
