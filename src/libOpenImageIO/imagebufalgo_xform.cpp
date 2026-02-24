@@ -936,7 +936,11 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
     OIIO::pvt::LoggedTimer logtime("IBA::fit");
 
     static const ustring recognized[] = {
-        filtername_us, filterwidth_us, filterptr_us, fillmode_us, exact_us,
+        filtername_us,
+        filterwidth_us,
+        filterptr_us,
+        fillmode_us,
+        exact_us,
 #if 0 /* Not currently recognized */
         wrap_us,
         edgeclamp_us,
