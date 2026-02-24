@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <hwy/contrib/math/math-inl.h>
 #include <hwy/highway.h>
+#include <tuple>
 #include <type_traits>
 
 OIIO_NAMESPACE_BEGIN
@@ -37,8 +38,8 @@ HwyPixels(ImageBuf& img)
 {
     const ImageSpec& spec = img.spec();
     return { reinterpret_cast<std::byte*>(img.localpixels()),
-             spec.pixel_bytes(),
-             spec.scanline_bytes(),
+             static_cast<size_t>(img.pixel_stride()),
+             static_cast<size_t>(img.scanline_stride()),
              img.xbegin(),
              img.ybegin(),
              spec.nchannels };
@@ -49,8 +50,8 @@ HwyPixels(const ImageBuf& img)
 {
     const ImageSpec& spec = img.spec();
     return { reinterpret_cast<const std::byte*>(img.localpixels()),
-             spec.pixel_bytes(),
-             spec.scanline_bytes(),
+             static_cast<size_t>(img.pixel_stride()),
+             static_cast<size_t>(img.scanline_stride()),
              img.xbegin(),
              img.ybegin(),
              spec.nchannels };
@@ -107,6 +108,32 @@ template<typename T> struct SimdMathType {
 template<> struct SimdMathType<double> {
     using type = double;
 };
+
+// Half is stored as OIIO::half in memory, but HWY's interleaved load/store uses
+// hwy::float16_t lanes.
+template<typename T> struct HwyLaneType {
+    using type = T;
+};
+template<> struct HwyLaneType<half> {
+    using type = hwy::float16_t;
+};
+template<typename T> using HwyLaneTypeT = typename HwyLaneType<T>::type;
+
+// Forward declarations (needed for templates that use these helpers before
+// their definitions later in this header).
+template<class D, typename SrcT>
+inline std::tuple<hn::Vec<D>, hn::Vec<D>, hn::Vec<D>, hn::Vec<D>>
+LoadInterleaved4Promote(D d, const SrcT* ptr);
+
+template<class D, typename SrcT>
+inline std::tuple<hn::Vec<D>, hn::Vec<D>, hn::Vec<D>, hn::Vec<D>>
+LoadInterleaved4PromoteN(D d, const SrcT* ptr, size_t count);
+
+template<class D, typename DstT, typename VecMathT, typename VecAlphaLaneT>
+inline void
+StoreInterleaved4RgbAlphaPassthrough(D d, DstT* ptr, VecMathT r, VecMathT g,
+                                     VecMathT b,
+                                     VecAlphaLaneT a_passthrough);
 
 // -----------------------------------------------------------------------
 // Load and Promote
@@ -197,6 +224,59 @@ LoadPromote(D d, const SrcT* ptr)
         auto v_i64 = hn::Load(d_i64, ptr);
         auto d_i32 = hn::Rebind<int32_t, D>();
         auto v_i32 = hn::DemoteTo(d_i32, v_i64);
+        return hn::ConvertTo(d, v_i32);
+    } else {
+        return hn::Zero(d);
+    }
+}
+
+/// Promote an already-loaded SIMD vector to the math type for `d`.
+/// This mirrors LoadPromote()'s conversion and normalization semantics but
+/// avoids re-loading from memory (useful for interleaved loads).
+template<class D, typename SrcT, typename VecT>
+inline auto
+PromoteVec(D d, VecT v)
+{
+    using MathT = typename D::T;
+    if constexpr (std::is_same_v<SrcT, MathT>) {
+        return v;
+    } else if constexpr (std::is_same_v<SrcT, half>) {
+        return hn::PromoteTo(d, v);
+    } else if constexpr (std::is_same_v<SrcT, uint8_t>) {
+        auto v_promoted = hn::ConvertTo(
+            d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
+                             hn::PromoteTo(hn::Rebind<int16_t, D>(), v)));
+        return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 255.0)));
+    } else if constexpr (std::is_same_v<SrcT, int8_t>) {
+        auto v_promoted = hn::ConvertTo(
+            d, hn::PromoteTo(hn::Rebind<int32_t, D>(),
+                             hn::PromoteTo(hn::Rebind<int16_t, D>(), v)));
+        auto v_norm = hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 127.0)));
+        return hn::Max(v_norm, hn::Set(d, (MathT)-1.0));
+    } else if constexpr (std::is_same_v<SrcT, uint16_t>) {
+        auto v_promoted
+            = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v));
+        return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 65535.0)));
+    } else if constexpr (std::is_same_v<SrcT, int16_t>) {
+        auto v_promoted
+            = hn::ConvertTo(d, hn::PromoteTo(hn::Rebind<int32_t, D>(), v));
+        auto v_norm = hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 32767.0)));
+        return hn::Max(v_norm, hn::Set(d, (MathT)-1.0));
+    } else if constexpr (std::is_same_v<SrcT, uint32_t>) {
+        auto v_promoted = hn::ConvertTo(d, v);
+        return hn::Mul(v_promoted, hn::Set(d, (MathT)(1.0 / 4294967295.0)));
+    } else if constexpr (std::is_same_v<SrcT, int32_t>) {
+        auto v_promoted = hn::ConvertTo(d, v);
+        auto v_norm = hn::Mul(v_promoted,
+                              hn::Set(d, (MathT)(1.0 / 2147483647.0)));
+        return hn::Max(v_norm, hn::Set(d, (MathT)-1.0));
+    } else if constexpr (std::is_same_v<SrcT, uint64_t>) {
+        auto d_u32 = hn::Rebind<uint32_t, D>();
+        auto v_u32 = hn::DemoteTo(d_u32, v);
+        return hn::ConvertTo(d, v_u32);
+    } else if constexpr (std::is_same_v<SrcT, int64_t>) {
+        auto d_i32 = hn::Rebind<int32_t, D>();
+        auto v_i32 = hn::DemoteTo(d_i32, v);
         return hn::ConvertTo(d, v_i32);
     } else {
         return hn::Zero(d);
@@ -442,6 +522,91 @@ DemoteStore(D d, DstT* ptr, VecT v)
         auto d_i64 = hn::Rebind<int64_t, D>();
         auto v_i64 = hn::PromoteTo(d_i64, v_i32);
         hn::Store(v_i64, d_i64, ptr);
+    }
+}
+
+/// Demote a SIMD math vector to the destination lane type (no store).
+/// This mirrors DemoteStore()'s rounding/clamping semantics.
+template<class D, typename DstT, typename VecT>
+inline auto
+DemoteVec(D d, VecT v)
+{
+    using MathT = typename D::T;
+    using VecD  = hn::Vec<D>;
+    if constexpr (std::is_same_v<DstT, MathT>) {
+        return v;
+    } else if constexpr (std::is_same_v<DstT, half>) {
+        auto d16 = hn::Rebind<hwy::float16_t, D>();
+        return hn::DemoteTo(d16, v);
+    } else if constexpr (std::is_same_v<DstT, uint8_t>) {
+        VecD v_denorm  = hn::Mul((VecD)v, hn::Set(d, (MathT)255.0));
+        VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
+        VecD v_clamped = hn::Max(v_rounded, hn::Zero(d));
+        v_clamped      = hn::Min(v_clamped, hn::Set(d, (MathT)255.0));
+
+        auto d32   = hn::Rebind<int32_t, D>();
+        auto vi32  = hn::ConvertTo(d32, v_clamped);
+        auto d_i16 = hn::Rebind<int16_t, D>();
+        auto v_i16 = hn::DemoteTo(d_i16, vi32);
+        auto d_u8  = hn::Rebind<uint8_t, D>();
+        return hn::DemoteTo(d_u8, v_i16);
+    } else if constexpr (std::is_same_v<DstT, int8_t>) {
+        VecD v_denorm = hn::Mul((VecD)v, hn::Set(d, (MathT)127.0));
+        auto is_neg   = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias   = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                       hn::Set(d, (MathT)0.5));
+        VecD v_rounded = hn::Add(v_denorm, v_bias);
+        VecD v_clamped = hn::Max(v_rounded, hn::Set(d, (MathT)-128.0));
+        v_clamped      = hn::Min(v_clamped, hn::Set(d, (MathT)127.0));
+
+        auto d32   = hn::Rebind<int32_t, D>();
+        auto vi32  = hn::ConvertTo(d32, v_clamped);
+        auto d_i16 = hn::Rebind<int16_t, D>();
+        auto v_i16 = hn::DemoteTo(d_i16, vi32);
+        auto d_i8  = hn::Rebind<int8_t, D>();
+        return hn::DemoteTo(d_i8, v_i16);
+    } else if constexpr (std::is_same_v<DstT, uint16_t>) {
+        VecD v_denorm  = hn::Mul((VecD)v, hn::Set(d, (MathT)65535.0));
+        VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
+        VecD v_clamped = hn::Max(v_rounded, hn::Zero(d));
+        v_clamped      = hn::Min(v_clamped, hn::Set(d, (MathT)65535.0));
+
+        auto d32   = hn::Rebind<int32_t, D>();
+        auto vi32  = hn::ConvertTo(d32, v_clamped);
+        auto d_u16 = hn::Rebind<uint16_t, D>();
+        return hn::DemoteTo(d_u16, vi32);
+    } else if constexpr (std::is_same_v<DstT, int16_t>) {
+        VecD v_denorm = hn::Mul((VecD)v, hn::Set(d, (MathT)32767.0));
+        auto is_neg   = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias   = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                       hn::Set(d, (MathT)0.5));
+        VecD v_rounded = hn::Add(v_denorm, v_bias);
+        VecD v_clamped = hn::Max(v_rounded, hn::Set(d, (MathT)-32768.0));
+        v_clamped      = hn::Min(v_clamped, hn::Set(d, (MathT)32767.0));
+
+        auto d32   = hn::Rebind<int32_t, D>();
+        auto vi32  = hn::ConvertTo(d32, v_clamped);
+        auto d_i16 = hn::Rebind<int16_t, D>();
+        return hn::DemoteTo(d_i16, vi32);
+    } else if constexpr (std::is_same_v<DstT, uint32_t>) {
+        VecD v_denorm  = hn::Mul((VecD)v, hn::Set(d, (MathT)4294967295.0));
+        VecD v_rounded = hn::Add(v_denorm, hn::Set(d, (MathT)0.5));
+        VecD v_clamped = hn::Max(v_rounded, hn::Zero(d));
+        auto d_u32     = hn::Rebind<uint32_t, D>();
+        return hn::ConvertTo(d_u32, v_clamped);
+    } else if constexpr (std::is_same_v<DstT, int32_t>) {
+        VecD v_denorm = hn::Mul((VecD)v, hn::Set(d, (MathT)2147483647.0));
+        auto is_neg   = hn::Lt(v_denorm, hn::Zero(d));
+        auto v_bias   = hn::IfThenElse(is_neg, hn::Set(d, (MathT)-0.5),
+                                       hn::Set(d, (MathT)0.5));
+        VecD v_rounded = hn::Add(v_denorm, v_bias);
+        VecD v_clamped = hn::Max(v_rounded, hn::Set(d, (MathT)-2147483648.0));
+        v_clamped      = hn::Min(v_clamped, hn::Set(d, (MathT)2147483647.0));
+        auto d_i32     = hn::Rebind<int32_t, D>();
+        return hn::ConvertTo(d_i32, v_clamped);
+    } else {
+        auto d_dst = hn::Rebind<DstT, D>();
+        return hn::Zero(d_dst);
     }
 }
 
@@ -842,6 +1007,270 @@ hwy_binary_native_int_perpixel_op(ImageBuf& R, const ImageBuf& A,
 }
 
 // -----------------------------------------------------------------------
+// Per-pixel Ops (ImageBufAlgo, RGBA packed but ROI is RGB)
+// -----------------------------------------------------------------------
+
+/// Store only RGB results for `count` pixels into interleaved RGBA memory,
+/// leaving alpha untouched.
+template<class D, typename DstT, typename VecT>
+inline void
+StoreInterleaved3DemoteN(D d, DstT* ptr, VecT r, VecT g, VecT b, size_t count)
+{
+    DstT r_demoted[hn::MaxLanes(d)];
+    DstT g_demoted[hn::MaxLanes(d)];
+    DstT b_demoted[hn::MaxLanes(d)];
+    DemoteStoreN(d, r_demoted, r, count);
+    DemoteStoreN(d, g_demoted, g, count);
+    DemoteStoreN(d, b_demoted, b, count);
+    for (size_t i = 0; i < count; ++i) {
+        ptr[i * 4 + 0] = r_demoted[i];
+        ptr[i * 4 + 1] = g_demoted[i];
+        ptr[i * 4 + 2] = b_demoted[i];
+        // Preserve alpha (i*4+3).
+    }
+}
+
+/// Execute a binary per-pixel HWY operation for the common "packed RGBA but
+/// ROI is RGB" case. This can still SIMD by processing N pixels at a time and
+/// passing alpha through unchanged from the destination.
+template<typename Rtype, typename Atype, typename Btype, typename OpFunc>
+inline bool
+hwy_binary_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
+                                    const ImageBuf& B, ROI roi, int nthreads,
+                                    OpFunc op)
+{
+    if (roi.chbegin != 0 || roi.chend != 3)
+        return false;
+
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    auto Bv = HwyPixels(B);
+    if (Rv.nchannels < 4 || Av.nchannels < 4 || Bv.nchannels < 4)
+        return false;
+
+    // Require packed RGBA (no padding, exactly 4 channels).
+    if (!ChannelsContiguous<Rtype>(Rv, 4) || !ChannelsContiguous<Atype>(Av, 4)
+        || !ChannelsContiguous<Btype>(Bv, 4))
+        return false;
+
+    ROI roi4     = roi;
+    roi4.chbegin = 0;
+    roi4.chend   = 4;
+
+    using MathT = typename SimdMathType<Rtype>::type;
+    const hn::ScalableTag<MathT> d;
+    const size_t lanes = hn::Lanes(d);
+
+    ImageBufAlgo::parallel_image(roi4, nthreads, [&, op](ROI roi4) {
+        for (int y = roi4.ybegin; y < roi4.yend; ++y) {
+            Rtype* r_row       = RoiRowPtr<Rtype>(Rv, y, roi4);
+            const Atype* a_row = RoiRowPtr<Atype>(Av, y, roi4);
+            const Btype* b_row = RoiRowPtr<Btype>(Bv, y, roi4);
+            const size_t npixels = static_cast<size_t>(roi4.width());
+
+            size_t x = 0;
+            for (; x + lanes <= npixels; x += lanes) {
+                const size_t off = x * 4;
+
+                auto [ar, ag, ab, aa] = LoadInterleaved4Promote(d, a_row + off);
+                auto [br, bg, bb, ba] = LoadInterleaved4Promote(d, b_row + off);
+                (void)aa;
+                (void)ba;
+
+                using DstLaneT = HwyLaneTypeT<Rtype>;
+                auto d_dstlane = hn::Rebind<DstLaneT, decltype(d)>();
+                hn::Vec<decltype(d_dstlane)> dr, dg, db, da;
+                hn::LoadInterleaved4(d_dstlane,
+                                     reinterpret_cast<const DstLaneT*>(
+                                         r_row + off),
+                                     dr, dg, db, da);
+                (void)dr;
+                (void)dg;
+                (void)db;
+
+                auto rr = op(d, ar, br);
+                auto rg = op(d, ag, bg);
+                auto rb = op(d, ab, bb);
+                StoreInterleaved4RgbAlphaPassthrough(d, r_row + off, rr, rg, rb,
+                                                     da);
+            }
+
+            const size_t remaining = npixels - x;
+            if (remaining > 0) {
+                const size_t off = x * 4;
+                auto [ar, ag, ab, aa]
+                    = LoadInterleaved4PromoteN(d, a_row + off, remaining);
+                auto [br, bg, bb, ba]
+                    = LoadInterleaved4PromoteN(d, b_row + off, remaining);
+                (void)aa;
+                (void)ba;
+                auto rr = op(d, ar, br);
+                auto rg = op(d, ag, bg);
+                auto rb = op(d, ab, bb);
+                StoreInterleaved3DemoteN(d, r_row + off, rr, rg, rb, remaining);
+            }
+        }
+    });
+
+    return true;
+}
+
+/// Execute a ternary per-pixel HWY operation for the common "packed RGBA but
+/// ROI is RGB" case, passing alpha through unchanged from the destination.
+template<typename Rtype, typename ABCtype, typename OpFunc>
+inline bool
+hwy_ternary_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
+                                     const ImageBuf& B, const ImageBuf& C,
+                                     ROI roi, int nthreads, OpFunc op)
+{
+    if (roi.chbegin != 0 || roi.chend != 3)
+        return false;
+
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    auto Bv = HwyPixels(B);
+    auto Cv = HwyPixels(C);
+    if (Rv.nchannels < 4 || Av.nchannels < 4 || Bv.nchannels < 4
+        || Cv.nchannels < 4)
+        return false;
+
+    if (!ChannelsContiguous<Rtype>(Rv, 4) || !ChannelsContiguous<ABCtype>(Av, 4)
+        || !ChannelsContiguous<ABCtype>(Bv, 4)
+        || !ChannelsContiguous<ABCtype>(Cv, 4))
+        return false;
+
+    ROI roi4     = roi;
+    roi4.chbegin = 0;
+    roi4.chend   = 4;
+
+    using MathT = typename SimdMathType<Rtype>::type;
+    const hn::ScalableTag<MathT> d;
+    const size_t lanes = hn::Lanes(d);
+
+    ImageBufAlgo::parallel_image(roi4, nthreads, [&, op](ROI roi4) {
+        for (int y = roi4.ybegin; y < roi4.yend; ++y) {
+            Rtype* r_row         = RoiRowPtr<Rtype>(Rv, y, roi4);
+            const ABCtype* a_row = RoiRowPtr<ABCtype>(Av, y, roi4);
+            const ABCtype* b_row = RoiRowPtr<ABCtype>(Bv, y, roi4);
+            const ABCtype* c_row = RoiRowPtr<ABCtype>(Cv, y, roi4);
+            const size_t npixels = static_cast<size_t>(roi4.width());
+
+            size_t x = 0;
+            for (; x + lanes <= npixels; x += lanes) {
+                const size_t off = x * 4;
+
+                auto [ar, ag, ab, aa] = LoadInterleaved4Promote(d, a_row + off);
+                auto [br, bg, bb, ba] = LoadInterleaved4Promote(d, b_row + off);
+                auto [cr, cg, cb, ca] = LoadInterleaved4Promote(d, c_row + off);
+                (void)aa;
+                (void)ba;
+                (void)ca;
+
+                using DstLaneT = HwyLaneTypeT<Rtype>;
+                auto d_dstlane = hn::Rebind<DstLaneT, decltype(d)>();
+                hn::Vec<decltype(d_dstlane)> dr, dg, db, da;
+                hn::LoadInterleaved4(d_dstlane,
+                                     reinterpret_cast<const DstLaneT*>(
+                                         r_row + off),
+                                     dr, dg, db, da);
+                (void)dr;
+                (void)dg;
+                (void)db;
+
+                auto rr = op(d, ar, br, cr);
+                auto rg = op(d, ag, bg, cg);
+                auto rb = op(d, ab, bb, cb);
+                StoreInterleaved4RgbAlphaPassthrough(d, r_row + off, rr, rg, rb,
+                                                     da);
+            }
+
+            const size_t remaining = npixels - x;
+            if (remaining > 0) {
+                const size_t off = x * 4;
+                auto [ar, ag, ab, aa]
+                    = LoadInterleaved4PromoteN(d, a_row + off, remaining);
+                auto [br, bg, bb, ba]
+                    = LoadInterleaved4PromoteN(d, b_row + off, remaining);
+                auto [cr, cg, cb, ca]
+                    = LoadInterleaved4PromoteN(d, c_row + off, remaining);
+                (void)aa;
+                (void)ba;
+                (void)ca;
+                auto rr = op(d, ar, br, cr);
+                auto rg = op(d, ag, bg, cg);
+                auto rb = op(d, ab, bb, cb);
+                StoreInterleaved3DemoteN(d, r_row + off, rr, rg, rb, remaining);
+            }
+        }
+    });
+
+    return true;
+}
+
+/// Execute a native integer binary operation for the "packed RGBA but ROI is
+/// RGB" case. This operates on the raw integer channel values and preserves
+/// alpha by masking.
+template<typename T, typename OpFunc>
+inline bool
+hwy_binary_native_int_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
+                                               const ImageBuf& B, ROI roi,
+                                               int nthreads, OpFunc op)
+{
+    if (roi.chbegin != 0 || roi.chend != 3)
+        return false;
+
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    auto Bv = HwyPixels(B);
+    if (Rv.nchannels < 4 || Av.nchannels < 4 || Bv.nchannels < 4)
+        return false;
+    if (!ChannelsContiguous<T>(Rv, 4) || !ChannelsContiguous<T>(Av, 4)
+        || !ChannelsContiguous<T>(Bv, 4))
+        return false;
+
+    const hn::ScalableTag<T> d;
+    const size_t lanes = hn::Lanes(d);
+    if (lanes & 3)
+        return false;  // need block alignment so the alpha mask stays aligned
+
+    const auto three      = hn::Set(d, T(3));
+    const auto lane_index = hn::Iota(d, T(0));
+    const auto alpha_mask = hn::Eq(hn::And(lane_index, three), three);
+
+    ROI roi4     = roi;
+    roi4.chbegin = 0;
+    roi4.chend   = 4;
+    ImageBufAlgo::parallel_image(roi4, nthreads, [&, op](ROI roi4) {
+        const size_t n = static_cast<size_t>(roi4.width()) * 4;
+        for (int y = roi4.ybegin; y < roi4.yend; ++y) {
+            T* r_row       = RoiRowPtr<T>(Rv, y, roi4);
+            const T* a_row = RoiRowPtr<T>(Av, y, roi4);
+            const T* b_row = RoiRowPtr<T>(Bv, y, roi4);
+            size_t i = 0;
+            for (; i + lanes <= n; i += lanes) {
+                auto va   = hn::Load(d, a_row + i);
+                auto vb   = hn::Load(d, b_row + i);
+                auto vold = hn::Load(d, r_row + i);
+                auto vnew = op(d, va, vb);
+                auto vres = hn::IfThenElse(alpha_mask, vold, vnew);
+                hn::Store(vres, d, r_row + i);
+            }
+            const size_t remaining = n - i;
+            if (remaining > 0) {
+                auto va   = hn::LoadN(d, a_row + i, remaining);
+                auto vb   = hn::LoadN(d, b_row + i, remaining);
+                auto vold = hn::LoadN(d, r_row + i, remaining);
+                auto vnew = op(d, va, vb);
+                auto vres = hn::IfThenElse(alpha_mask, vold, vnew);
+                hn::StoreN(vres, d, r_row + i, remaining);
+            }
+        }
+    });
+
+    return true;
+}
+
+// -----------------------------------------------------------------------
 // Interleaved Channel Load/Store Helpers
 // -----------------------------------------------------------------------
 
@@ -852,7 +1281,7 @@ hwy_binary_native_int_perpixel_op(ImageBuf& R, const ImageBuf& A,
 /// @param ptr Pointer to interleaved RGBA data (R0,G0,B0,A0,R1,G1,B1,A1,...)
 /// @return Tuple of (R, G, B, A) SIMD vectors in promoted type
 template<class D, typename SrcT>
-inline auto
+inline std::tuple<hn::Vec<D>, hn::Vec<D>, hn::Vec<D>, hn::Vec<D>>
 LoadInterleaved4Promote(D d, const SrcT* ptr)
 {
     using MathT = typename D::T;
@@ -881,28 +1310,39 @@ LoadInterleaved4Promote(D d, const SrcT* ptr)
 
         return std::make_tuple(r_vec, g_vec, b_vec, a_vec);
     } else {
-        // Generic type promotion - deinterleave manually with normalization
-        const size_t N = hn::Lanes(d);
-        SrcT r_src[hn::MaxLanes(d)];
-        SrcT g_src[hn::MaxLanes(d)];
-        SrcT b_src[hn::MaxLanes(d)];
-        SrcT a_src[hn::MaxLanes(d)];
-
-        for (size_t i = 0; i < N; ++i) {
-            r_src[i] = ptr[i * 4 + 0];
-            g_src[i] = ptr[i * 4 + 1];
-            b_src[i] = ptr[i * 4 + 2];
-            a_src[i] = ptr[i * 4 + 3];
-        }
-
-        // Use LoadPromote for proper normalization of integer types
-        auto r_vec = LoadPromote(d, r_src);
-        auto g_vec = LoadPromote(d, g_src);
-        auto b_vec = LoadPromote(d, b_src);
-        auto a_vec = LoadPromote(d, a_src);
-
+        // Generic type promotion - deinterleave with HWY then promote.
+        auto d_src = hn::Rebind<SrcT, D>();
+        hn::Vec<decltype(d_src)> r_src, g_src, b_src, a_src;
+        hn::LoadInterleaved4(d_src, ptr, r_src, g_src, b_src, a_src);
+        auto r_vec = PromoteVec<D, SrcT>(d, r_src);
+        auto g_vec = PromoteVec<D, SrcT>(d, g_src);
+        auto b_vec = PromoteVec<D, SrcT>(d, b_src);
+        auto a_vec = PromoteVec<D, SrcT>(d, a_src);
         return std::make_tuple(r_vec, g_vec, b_vec, a_vec);
     }
+}
+
+/// Load 4 interleaved channels (RGBA) with type promotion for a partial vector
+/// (count pixels, count <= lanes).
+template<class D, typename SrcT>
+inline std::tuple<hn::Vec<D>, hn::Vec<D>, hn::Vec<D>, hn::Vec<D>>
+LoadInterleaved4PromoteN(D d, const SrcT* ptr, size_t count)
+{
+    SrcT r_src[hn::MaxLanes(d)];
+    SrcT g_src[hn::MaxLanes(d)];
+    SrcT b_src[hn::MaxLanes(d)];
+    SrcT a_src[hn::MaxLanes(d)];
+    for (size_t i = 0; i < count; ++i) {
+        r_src[i] = ptr[i * 4 + 0];
+        g_src[i] = ptr[i * 4 + 1];
+        b_src[i] = ptr[i * 4 + 2];
+        a_src[i] = ptr[i * 4 + 3];
+    }
+    auto r_vec = LoadPromoteN(d, r_src, count);
+    auto g_vec = LoadPromoteN(d, g_src, count);
+    auto b_vec = LoadPromoteN(d, b_src, count);
+    auto a_vec = LoadPromoteN(d, a_src, count);
+    return std::make_tuple(r_vec, g_vec, b_vec, a_vec);
 }
 
 /// Store 4 interleaved channels (RGBA) with type demotion.
@@ -938,28 +1378,40 @@ StoreInterleaved4Demote(D d, DstT* ptr, VecT r, VecT g, VecT b, VecT a)
         hn::StoreInterleaved4(r16, g16, b16, a16, d16,
                               reinterpret_cast<T16*>(ptr));
     } else {
-        // Generic type demotion - use DemoteStore for each channel then interleave
-        const size_t N = hn::Lanes(d);
+        // Generic type demotion - demote to lane vectors and use HWY's interleaved store.
+        auto d_dst = hn::Rebind<DstT, D>();
+        auto r_dst = DemoteVec<D, DstT>(d, r);
+        auto g_dst = DemoteVec<D, DstT>(d, g);
+        auto b_dst = DemoteVec<D, DstT>(d, b);
+        auto a_dst = DemoteVec<D, DstT>(d, a);
+        hn::StoreInterleaved4(r_dst, g_dst, b_dst, a_dst, d_dst, ptr);
+    }
+}
 
-        // Temporary arrays for demoted values
-        DstT r_demoted[hn::MaxLanes(d)];
-        DstT g_demoted[hn::MaxLanes(d)];
-        DstT b_demoted[hn::MaxLanes(d)];
-        DstT a_demoted[hn::MaxLanes(d)];
-
-        // Use DemoteStoreN to properly denormalize integer types
-        DemoteStoreN(d, r_demoted, r, N);
-        DemoteStoreN(d, g_demoted, g, N);
-        DemoteStoreN(d, b_demoted, b, N);
-        DemoteStoreN(d, a_demoted, a, N);
-
-        // Interleave the demoted values
-        for (size_t i = 0; i < N; ++i) {
-            ptr[i * 4 + 0] = r_demoted[i];
-            ptr[i * 4 + 1] = g_demoted[i];
-            ptr[i * 4 + 2] = b_demoted[i];
-            ptr[i * 4 + 3] = a_demoted[i];
-        }
+/// Store 4 interleaved channels (RGBA) demoting RGB from math type and passing
+/// alpha through unchanged (alpha is already in the destination lane type).
+template<class D, typename DstT, typename VecMathT, typename VecAlphaLaneT>
+inline void
+StoreInterleaved4RgbAlphaPassthrough(D d, DstT* ptr, VecMathT r, VecMathT g,
+                                     VecMathT b, VecAlphaLaneT a_passthrough)
+{
+    using MathT = typename D::T;
+    if constexpr (std::is_same_v<DstT, MathT>) {
+        hn::StoreInterleaved4(r, g, b, a_passthrough, d, ptr);
+    } else if constexpr (std::is_same_v<DstT, half>) {
+        using T16 = hwy::float16_t;
+        auto d16  = hn::Rebind<T16, D>();
+        auto r16  = hn::DemoteTo(d16, r);
+        auto g16  = hn::DemoteTo(d16, g);
+        auto b16  = hn::DemoteTo(d16, b);
+        hn::StoreInterleaved4(r16, g16, b16, a_passthrough, d16,
+                              reinterpret_cast<T16*>(ptr));
+    } else {
+        auto d_dst = hn::Rebind<DstT, D>();
+        auto r_dst = DemoteVec<D, DstT>(d, r);
+        auto g_dst = DemoteVec<D, DstT>(d, g);
+        auto b_dst = DemoteVec<D, DstT>(d, b);
+        hn::StoreInterleaved4(r_dst, g_dst, b_dst, a_passthrough, d_dst, ptr);
     }
 }
 
