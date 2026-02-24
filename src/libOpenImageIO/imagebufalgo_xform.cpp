@@ -1442,8 +1442,6 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
 
 
 
-
-
 bool
 ImageBufAlgo::resample(ImageBuf& dst, const ImageBuf& src, bool interpolate,
                        ROI roi, int nthreads)
