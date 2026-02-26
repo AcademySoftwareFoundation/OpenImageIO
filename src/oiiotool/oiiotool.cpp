@@ -819,20 +819,26 @@ get_value_override(string_view localoption, string_view defaultval)
 static void
 set_output_dataformat(ImageSpec& spec, TypeDesc format,
                       std::map<std::string, std::string>& channelformats,
-                      int bitdepth)
+                      int bitdepth, int subimage_index, int nsubimages)
 {
     if (format != TypeUnknown)
         spec.format = format;
     spec.channelformats.resize(spec.nchannels, spec.format);
     if (!channelformats.empty()) {
         std::string subimagename = spec["oiio:subimagename"];
+        // If this is one of several subimages and it doesn't have a name, let
+        // it be referred to be "subimage0N".
+        if (nsubimages > 1 && subimagename.size() == 0)
+            subimagename = Strutil::format("subimage{:02}", subimage_index);
+        auto subwildcard = Strutil::format("{}.*", subimagename);
         for (int c = 0; c < spec.nchannels; ++c) {
             std::string chname = spec.channel_name(c);
-            auto subchname     = Strutil::fmt::format("{}.{}", subimagename,
-                                                      chname);
+            auto subchname     = Strutil::format("{}.{}", subimagename, chname);
             TypeDesc chtype    = spec.channelformat(c);
             if (subimagename.size() && channelformats[subchname] != "")
                 chtype = TypeDesc(channelformats[subchname]);
+            else if (subimagename.size() && channelformats[subwildcard] != "")
+                chtype = TypeDesc(channelformats[subwildcard]);
             else if (channelformats[chname] != "")
                 chtype = TypeDesc(channelformats[chname]);
             if (chtype != TypeUnknown)
@@ -862,6 +868,7 @@ set_output_dataformat(ImageSpec& spec, TypeDesc format,
 static void
 adjust_output_options(string_view filename, ImageSpec& spec,
                       const ImageSpec* nativespec, const Oiiotool& ot,
+                      int subimage_index, int nsubimages,
                       bool format_supports_tiles,
                       const ParamValueList& fileoptions,
                       bool was_direct_read = false)
@@ -944,7 +951,8 @@ adjust_output_options(string_view filename, ImageSpec& spec,
 
     // Set the types in the spec
     set_output_dataformat(spec, requested_output_dataformat,
-                          requested_channelformats, requested_output_bits);
+                          requested_channelformats, requested_output_bits,
+                          subimage_index, nsubimages);
 
 
     // Tiling strategy:
@@ -5850,8 +5858,8 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     bool ok = true;
     if (do_tex || do_latlong || do_bumpslopes) {
         ImageSpec configspec;
-        adjust_output_options(filename, configspec, nullptr, ot, supports_tiles,
-                              fileoptions);
+        adjust_output_options(filename, configspec, nullptr, ot, 0, 1,
+                              supports_tiles, fileoptions);
         prep_texture_config(ot, configspec, fileoptions);
         ImageBufAlgo::MakeTextureMode mode = ImageBufAlgo::MakeTxTexture;
         if (do_shad)
@@ -5878,10 +5886,10 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     } else {
         // Non-texture case
         std::vector<ImageSpec> subimagespecs(ir->subimages());
-        for (int s = 0; s < ir->subimages(); ++s) {
+        for (int s = 0, send = ir->subimages(); s < send; ++s) {
             ImageSpec spec = *ir->spec(s, 0);
-            adjust_output_options(filename, spec, ir->nativespec(s), ot,
-                                  supports_tiles, fileoptions,
+            adjust_output_options(filename, spec, ir->nativespec(s), ot, s,
+                                  send, supports_tiles, fileoptions,
                                   (*ir)[s].was_direct_read());
             // If it's not tiled and MIP-mapped, remove any "textureformat"
             if (!spec.tile_pixels() || ir->miplevels(s) <= 1)
@@ -5923,7 +5931,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
             for (int m = 0, mend = ir->miplevels(s); m < mend && ok; ++m) {
                 ImageSpec spec = *ir->spec(s, m);
                 adjust_output_options(filename, spec, ir->nativespec(s, m), ot,
-                                      supports_tiles, fileoptions,
+                                      s, send, supports_tiles, fileoptions,
                                       (*ir)[s].was_direct_read());
                 if (s > 0 || m > 0) {  // already opened first subimage/level
                     if (!out->open(tmpfilename, spec, mode)) {
