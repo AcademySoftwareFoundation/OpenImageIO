@@ -647,6 +647,14 @@ jobs:
             cxx_std: 20
             python_ver: "3.13"
             benchmark: 1
+          - desc: MacOS-26-ARM aclang16/C++20/py3.13
+            runner: macos-26
+            nametag: macos26-arm-py313
+            cc_compiler: clang
+            cxx_compiler: clang++
+            cxx_std: 20
+            python_ver: "3.14"
+            benchmark: 1
 
 
   #
