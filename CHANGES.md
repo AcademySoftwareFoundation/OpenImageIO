@@ -1,3 +1,18 @@
+Release 3.0.16.0 (Mar 1, 2026) -- compared to 3.0.15.0
+-------------------------------------------------------
+  - *oiiotool*: Fix expression BOTTOM when there are exactly two images [#5046](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5046)
+  - *bmp*: Detect corrupt files where palette doesn't match bpp [#5030](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5030)
+  - *tiff*: Fix TIFF output crash for multi-count Exif metadata [#5035](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5035)
+  - *windows*: `oiiotool --buildinfo` misreported platform on MSVS [#5027](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5027)
+  - *build*: Raise fmt auto-build version to 12.1, handle Windows flags [#5039](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5039)
+  - *ci*: Optimize install_homebrew_deps by coalescing installs [#4975](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4975)
+  - *ci*: Don't install OpenCV on Mac Intel job variant [#5032](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5032)
+  - *ci*: Temporarily disable python stub checking [#5061](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5061)
+  - *ci*: Add MacOS 26 (ARM) to the CI lineup [#5059](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5059)
+  - *tests*: Add testsuite/heif ref output for libheif 1.21 + avif support [#5031](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5031)
+  - *tests*: Adjust test comparision thresholds for Mac ARM [#5026](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5026)
+
+
 Release 3.0.15.0 (Feb 1, 2026) -- compared to 3.0.14.0
 -------------------------------------------------------
   - *heif*: Can not output AVIF when libheif has no HEVC support [#5013](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5013) (by Brecht Van Lommel)
