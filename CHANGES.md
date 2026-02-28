@@ -1,3 +1,29 @@
+Release 3.1.11.0 (Mar 1, 2026) -- compared to 3.1.10.0
+------------------------------------------------------
+  - *oiiotool*: Fix expression BOTTOM when there are exactly two images [#5046](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5046)
+  - *oiiotool*: `-d SUBIMAGENAME.*` didn't work properly [#5048](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5048)
+  - *oiiotool*: Make sure `oiiotool --compression` does expression substitution [#5055](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5055)
+  - *iv*: Ability to flip, rotate and save image [#5003](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5003) (by Valery Angelique)
+  - *fix*: Gamma precision [#5038](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5038) (by Lumina Wang)
+  - *bmp*: Detect corrupt files where palette doesn't match bpp [#5030](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5030)
+  - *heif*: Monochrome channel read and write support, fix crash [#5043](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5043) (by Brecht Van Lommel)
+  - *jpeg-xl / color mgmt*: Extending JXL CICP support to include P3 / color primaries 12 [#5054](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5054) (by Shane Smith)
+  - *tiff*: Fix TIFF output crash for multi-count Exif metadata [#5035](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5035)
+  - *tiff*: Improve TIFF robustness for non-matching tag/metadata types [#5036](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5036)
+  - *tiff*: Correctly read TIFF EXIF fields for ExifVersion and FlashPixVersion [#5045](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5045)
+  - *typedesc.h*: New TypeURational type definition is like TypeRational, but with unsigned components. [#5036](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5036) [#5057](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5057)
+  - *win*: `oiiotool --buildinfo` misreported platform on MSVS [#5027](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5027)
+  - *build*: Raise fmt auto-build version to 12.1, handle Windows flags [#5039](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5039)
+  - *build*: Self-builder logic fixes for deep vs shallow clones [#5034](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5034)
+  - *build*: Use quote to avoid error if variable is empty [#5053](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5053)
+  - *tests*: Add testsuite/heif ref output for libheif 1.21 + avif support [#5031](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5031)
+  - *tests*: Adjust test comparision thresholds for Mac ARM [#5026](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5026)
+  - *tests*: Imageinout_test: add benchmark of read and write speed vs tile size [#5037](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5037)
+  - *ci*: Don't install OpenCV on Mac Intel job variant [#5032](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5032)
+  - *ci*: Temporarily disable python stub checking [#5061](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5061)
+  - *ci*: Add MacOS 26 (ARM) to the CI lineup [#5059](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5059)
+
+
 Release 3.1.10.0 (Feb 1, 2026) -- compared to 3.1.9.0
 -----------------------------------------------------
   - *perf*: `IBA::resample()` and `oiiotool --resample` improvements to speed up 20x or more [#4993](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4993)
@@ -399,6 +425,21 @@ asterisk) had not previously contributed to the project.
 
 ---
 ---
+
+
+Release 3.0.16.0 (Mar 1, 2026) -- compared to 3.0.15.0
+-------------------------------------------------------
+  - *oiiotool*: Fix expression BOTTOM when there are exactly two images [#5046](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5046)
+  - *bmp*: Detect corrupt files where palette doesn't match bpp [#5030](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5030)
+  - *tiff*: Fix TIFF output crash for multi-count Exif metadata [#5035](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5035)
+  - *windows*: `oiiotool --buildinfo` misreported platform on MSVS [#5027](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5027)
+  - *build*: Raise fmt auto-build version to 12.1, handle Windows flags [#5039](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5039)
+  - *ci*: Optimize install_homebrew_deps by coalescing installs [#4975](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4975)
+  - *ci*: Don't install OpenCV on Mac Intel job variant [#5032](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5032)
+  - *ci*: Temporarily disable python stub checking [#5061](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5061)
+  - *ci*: Add MacOS 26 (ARM) to the CI lineup [#5059](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5059)
+  - *tests*: Add testsuite/heif ref output for libheif 1.21 + avif support [#5031](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5031)
+  - *tests*: Adjust test comparision thresholds for Mac ARM [#5026](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5026)
 
 
 Release 3.0.15.0 (Feb 1, 2026) -- compared to 3.0.14.0
