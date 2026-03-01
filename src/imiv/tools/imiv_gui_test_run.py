@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+"""Run imiv automation via Dear ImGui Test Engine.
+
+Examples:
+  # Screenshot only
+  python3 src/imiv/tools/imiv_gui_test_run.py \
+    --screenshot-out build_u/test_captures/smoke.png
+
+  # Layout JSON + SVG
+  python3 src/imiv/tools/imiv_gui_test_run.py \
+    --layout-json-out build_u/test_captures/layout_items.json \
+    --layout-items \
+    --svg-out build_u/test_captures/layout_items.svg \
+    --svg-items --svg-labels
+
+  # Screenshot + layout + junit xml
+  python3 src/imiv/tools/imiv_gui_test_run.py \
+    --screenshot-out build_u/test_captures/smoke.png \
+    --layout-json-out build_u/test_captures/layout.json \
+    --junit-out build_u/test_captures/imiv_tests.junit.xml
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import subprocess
+import sys
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+
+def _resolve_path(path: str, root: Path) -> Path:
+    p = Path(path)
+    if p.is_absolute():
+        return p
+    return (root / p).resolve()
+
+
+def _default_binary(repo_root: Path) -> Path:
+    candidates = [
+        repo_root / "build_u" / "bin" / "imiv",
+        repo_root / "build" / "bin" / "imiv",
+        repo_root / "build_u" / "src" / "imiv" / "imiv",
+        repo_root / "build" / "src" / "imiv" / "imiv",
+        repo_root / "build" / "Debug" / "imiv.exe",
+        repo_root / "build" / "Release" / "imiv.exe",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+def main() -> int:
+    repo_root = Path(__file__).resolve().parents[3]
+    default_bin = _default_binary(repo_root)
+
+    ap = argparse.ArgumentParser(description="imiv automation runner")
+    ap.add_argument("--bin", default=str(default_bin), help="imiv executable path")
+    ap.add_argument("--cwd", default="", help="Working directory for imiv (default: binary dir)")
+    ap.add_argument("--open", default="", help="Optional image path to open at startup")
+
+    ap.add_argument("--screenshot-out", default="", help="Enable screenshot test and write to this output path")
+    ap.add_argument("--screenshot-frames", type=int, default=1, help="Number of screenshot frames")
+    ap.add_argument("--screenshot-delay-frames", type=int, default=3, help="Initial delay before screenshot capture")
+    ap.add_argument("--screenshot-save-all", action="store_true", help="Save all screenshot frames")
+
+    ap.add_argument("--layout-json-out", default="", help="Enable layout JSON dump and write to this path")
+    ap.add_argument("--layout-items", action="store_true", help="Include per-item data in layout JSON")
+    ap.add_argument("--layout-depth", type=int, default=3, help="Layout gather depth")
+    ap.add_argument("--layout-delay-frames", type=int, default=3, help="Initial delay before layout dump")
+
+    ap.add_argument("--svg-out", default="", help="Post-convert layout JSON to SVG at this path")
+    ap.add_argument("--svg-items", action="store_true", help="Draw items in SVG (implies --layout-items)")
+    ap.add_argument("--svg-no-items", action="store_true", help="Disable items in SVG")
+    ap.add_argument("--svg-items-clipped", action="store_true", help="Use clipped item rects in SVG")
+    ap.add_argument("--svg-labels", action="store_true", help="Draw labels in SVG")
+
+    ap.add_argument("--junit-out", default="", help="Enable JUnit XML export to this path")
+    ap.add_argument("--trace", action="store_true", help="Enable test engine trace logs")
+    args = ap.parse_args()
+
+    exe = _resolve_path(args.bin, repo_root)
+    if not exe.exists():
+        print(f"error: binary not found: {exe}", file=sys.stderr)
+        return 2
+
+    run_cwd = Path(args.cwd).resolve() if args.cwd else exe.parent.resolve()
+
+    layout_json_out = args.layout_json_out
+    if args.svg_out and not layout_json_out:
+        svg_path = _resolve_path(args.svg_out, repo_root)
+        layout_json_out = str(svg_path.with_suffix(".json"))
+
+    want_screenshot = bool(args.screenshot_out)
+    want_layout = bool(layout_json_out)
+    want_svg = bool(args.svg_out)
+    want_junit = bool(args.junit_out)
+
+    if not (want_screenshot or want_layout):
+        print(
+            "error: select at least one automation task: --screenshot-out, --layout-json-out, or --svg-out",
+            file=sys.stderr,
+        )
+        return 2
+
+    env = dict(os.environ)
+    env["IMIV_IMGUI_TEST_ENGINE"] = "1"
+    env["IMIV_IMGUI_TEST_ENGINE_EXIT_ON_FINISH"] = "1"
+
+    if args.open:
+        open_path = _resolve_path(args.open, repo_root)
+        env["IMIV_IMGUI_TEST_ENGINE_OPEN_PATH"] = str(open_path)
+
+    if args.trace:
+        env["IMIV_IMGUI_TEST_ENGINE_TRACE"] = "1"
+
+    if want_screenshot:
+        out = _resolve_path(args.screenshot_out, repo_root)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT"] = "1"
+        env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_OUT"] = str(out)
+        env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_FRAMES"] = str(max(1, args.screenshot_frames))
+        env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_DELAY_FRAMES"] = str(max(0, args.screenshot_delay_frames))
+        if args.screenshot_save_all:
+            env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_SAVE_ALL"] = "1"
+
+    if want_layout:
+        out = _resolve_path(layout_json_out, repo_root)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP"] = "1"
+        env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_OUT"] = str(out)
+        env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DEPTH"] = str(max(1, args.layout_depth))
+        env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DELAY_FRAMES"] = str(max(0, args.layout_delay_frames))
+        if args.layout_items or args.svg_items or (want_svg and not args.svg_no_items):
+            env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS"] = "1"
+
+    if want_junit:
+        junit_out = _resolve_path(args.junit_out, repo_root)
+        junit_out.parent.mkdir(parents=True, exist_ok=True)
+        env["IMIV_IMGUI_TEST_ENGINE_JUNIT_XML"] = "1"
+        env["IMIV_IMGUI_TEST_ENGINE_JUNIT_OUT"] = str(junit_out)
+
+    print(f"run: {exe}")
+    print(f"cwd: {run_cwd}")
+    rc = subprocess.run(
+        [str(exe), "-F"], cwd=str(run_cwd), env=env, check=False
+    ).returncode
+    if rc != 0:
+        print(f"error: imiv exited with code {rc}", file=sys.stderr)
+        return rc
+
+    if want_svg:
+        if not want_layout:
+            print("error: internal: svg requested without layout json", file=sys.stderr)
+            return 2
+
+        json_path = _resolve_path(layout_json_out, repo_root)
+        svg_path = _resolve_path(args.svg_out, repo_root)
+        svg_path.parent.mkdir(parents=True, exist_ok=True)
+        converter = repo_root / "src" / "imiv" / "tools" / "imiv_layout_json_to_svg.py"
+        cmd = [sys.executable, str(converter), "--in", str(json_path), "--out", str(svg_path)]
+        if args.svg_items:
+            cmd.append("--items")
+        if args.svg_no_items:
+            cmd.append("--no-items")
+        if args.svg_items_clipped:
+            cmd.append("--items-clipped")
+        if args.svg_labels:
+            cmd.append("--labels")
+
+        print("post:", " ".join(cmd))
+        rc_svg = subprocess.run(cmd, cwd=str(repo_root), check=False).returncode
+        if rc_svg != 0:
+            return rc_svg
+
+    if want_junit:
+        junit_path = _resolve_path(args.junit_out, repo_root)
+        if not junit_path.exists():
+            print(f"error: junit output not found: {junit_path}", file=sys.stderr)
+            return 2
+        try:
+            root = ET.parse(junit_path).getroot()
+        except ET.ParseError as exc:
+            print(f"error: failed to parse junit xml '{junit_path}': {exc}", file=sys.stderr)
+            return 2
+
+        failures = 0
+        errors = 0
+        if root.tag == "testsuite":
+            failures += int(root.attrib.get("failures", "0") or "0")
+            errors += int(root.attrib.get("errors", "0") or "0")
+        else:
+            for suite in root.iter("testsuite"):
+                failures += int(suite.attrib.get("failures", "0") or "0")
+                errors += int(suite.attrib.get("errors", "0") or "0")
+
+        if failures > 0 or errors > 0:
+            print(f"error: junit reported failures={failures}, errors={errors}", file=sys.stderr)
+            return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
