@@ -470,7 +470,7 @@ private:
             }
             return;
         } else if (readcount == TIFF_VARIABLE2) {
-            // Must pass a uin32_t to find out how many, and we get a data
+            // Must pass a uin32t_t to find out how many, and we get a data
             // pointer instead of providing a pointer.
             uint32_t count = 0;
             const T* vals  = nullptr;
