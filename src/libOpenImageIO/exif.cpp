@@ -525,7 +525,7 @@ static const TagInfo exif_tag_table[] = {
     { EXIF_LENSMAKE,  "Exif:LensMake",         TIFF_ASCII, 0 },
     { EXIF_LENSMODEL,  "Exif:LensModel",        TIFF_ASCII, 0 },
     { EXIF_LENSSERIALNUMBER,  "Exif:LensSerialNumber", TIFF_ASCII, 0 },
-    { EXIF_GAMMA,  "Exif:Gamma", TIFF_RATIONAL, 0 },
+    { EXIF_GAMMA,  "Exif:Gamma", TIFF_RATIONAL, 1 },
     // Exif 3.0 additions follow
     { EXIF_IMAGETITLE, "Exif:ImageTitle", TIFF_ASCII, 0 },
     { EXIF_PHOTOGRAPHER, "Exif:Photographer", TIFF_ASCII, 0 },
