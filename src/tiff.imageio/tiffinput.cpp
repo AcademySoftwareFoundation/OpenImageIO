@@ -483,7 +483,7 @@ private:
             }
             return;
         } else if (readcount == TIFF_SPP) {
-            // The number of values is equal to the number of cannels.
+            // The number of values is equal to the number of channels.
             uint32_t count = static_cast<uint32_t>(m_spec.nchannels);
             const T* vals  = nullptr;
             if (TIFFGetField(m_tif, tag, &vals) && vals) {
