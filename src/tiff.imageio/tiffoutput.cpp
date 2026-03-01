@@ -1272,7 +1272,6 @@ TIFFOutput::write_extra_tag_directory(string_view tag_set_name)
                       tag_set_name, p.name(), p.type(), tag, tifftype, count);
 #endif
             }
-            // NOTE: We are not handling arrays of values, just scalars.
             if (!ok) {
 #if 0
                 print(
