@@ -1,0 +1,122 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) readonly buffer SourceWords {
+    uint words[];
+} src_words;
+
+#if IMIV_OUTPUT_16F
+layout(rgba16f, set = 0, binding = 1) writeonly uniform image2D dst_image;
+#else
+layout(rgba32f, set = 0, binding = 1) writeonly uniform image2D dst_image;
+#endif
+
+layout(push_constant) uniform UploadPushConstants {
+    uint width;
+    uint height;
+    uint row_pitch_bytes;
+    uint pixel_stride_bytes;
+    uint channel_count;
+    uint data_type;
+} pc;
+
+const uint IMIV_DATA_U8  = 0u;
+const uint IMIV_DATA_U16 = 1u;
+const uint IMIV_DATA_U32 = 2u;
+const uint IMIV_DATA_F16 = 3u;
+const uint IMIV_DATA_F32 = 4u;
+const uint IMIV_DATA_F64 = 5u;
+
+uint read_byte(const uint byte_offset)
+{
+    const uint word  = src_words.words[byte_offset >> 2u];
+    const uint shift = (byte_offset & 3u) * 8u;
+    return (word >> shift) & 0xffu;
+}
+
+uint read_u16(const uint byte_offset)
+{
+    return read_byte(byte_offset)
+           | (read_byte(byte_offset + 1u) << 8u);
+}
+
+uint read_u32(const uint byte_offset)
+{
+    return read_byte(byte_offset)
+           | (read_byte(byte_offset + 1u) << 8u)
+           | (read_byte(byte_offset + 2u) << 16u)
+           | (read_byte(byte_offset + 3u) << 24u);
+}
+
+float decode_channel(const uint pixel_offset, const uint channel_index)
+{
+    uint channel_bytes = 1u;
+    if (pc.data_type == IMIV_DATA_U16 || pc.data_type == IMIV_DATA_F16)
+        channel_bytes = 2u;
+    else if (pc.data_type == IMIV_DATA_U32 || pc.data_type == IMIV_DATA_F32)
+        channel_bytes = 4u;
+    else if (pc.data_type == IMIV_DATA_F64)
+        channel_bytes = 8u;
+
+    const uint byte_offset = pixel_offset + channel_index * channel_bytes;
+
+    if (pc.data_type == IMIV_DATA_U8)
+        return float(read_byte(byte_offset)) * (1.0 / 255.0);
+    if (pc.data_type == IMIV_DATA_U16)
+        return float(read_u16(byte_offset)) * (1.0 / 65535.0);
+    if (pc.data_type == IMIV_DATA_U32)
+        return float(read_u32(byte_offset)) * (1.0 / 4294967295.0);
+    if (pc.data_type == IMIV_DATA_F16)
+        return unpackHalf2x16(read_u16(byte_offset)).x;
+    if (pc.data_type == IMIV_DATA_F32)
+        return uintBitsToFloat(read_u32(byte_offset));
+
+#if IMIV_ENABLE_FP64
+    if (pc.data_type == IMIV_DATA_F64) {
+        const uvec2 dwords = uvec2(read_u32(byte_offset),
+                                   read_u32(byte_offset + 4u));
+        const double dv = packDouble2x32(dwords);
+        return float(dv);
+    }
+#endif
+
+    return 0.0;
+}
+
+vec4 decode_pixel(const uint pixel_offset)
+{
+    if (pc.channel_count == 0u)
+        return vec4(0.0, 0.0, 0.0, 1.0);
+
+    if (pc.channel_count == 1u) {
+        const float g = decode_channel(pixel_offset, 0u);
+        return vec4(g, g, g, 1.0);
+    }
+
+    if (pc.channel_count == 2u) {
+        const float g = decode_channel(pixel_offset, 0u);
+        const float a = decode_channel(pixel_offset, 1u);
+        return vec4(g, g, g, a);
+    }
+
+    const float r = decode_channel(pixel_offset, 0u);
+    const float g = decode_channel(pixel_offset, 1u);
+    const float b = decode_channel(pixel_offset, 2u);
+    float a       = 1.0;
+    if (pc.channel_count >= 4u)
+        a = decode_channel(pixel_offset, 3u);
+    return vec4(r, g, b, a);
+}
+
+void main()
+{
+    const uvec2 gid = gl_GlobalInvocationID.xy;
+    if (gid.x >= pc.width || gid.y >= pc.height)
+        return;
+
+    const uint pixel_offset = gid.y * pc.row_pitch_bytes
+                              + gid.x * pc.pixel_stride_bytes;
+    const vec4 rgba         = decode_pixel(pixel_offset);
+    imageStore(dst_image, ivec2(gid), rgba);
+}
