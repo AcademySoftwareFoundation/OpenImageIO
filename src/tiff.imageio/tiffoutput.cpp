@@ -1258,13 +1258,14 @@ TIFFOutput::write_extra_tag_directory(string_view tag_set_name)
                 // pass doubles.
                 if (count == 1) {
                     ok = TIFFSetField(m_tif, tag, p.get_float());
-                } else {
+                    handled = true;
+                } else if (count > 1) {
                     auto vals = OIIO_ALLOCA_SPAN(double, count);
                     for (int i = 0; i < count; ++i)
                         vals[i] = p.get_float_indexed(i);
                     ok = TIFFSetField(m_tif, tag, vals.data());
+                    handled = true;
                 }
-                handled = true;
             }
             if (!handled) {
 #if 0
