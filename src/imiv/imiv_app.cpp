@@ -134,14 +134,33 @@ namespace {
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
 
+    struct PreviewControls {
+        float exposure = 0.0f;
+        float gamma    = 1.0f;
+        int color_mode = 0;
+        int channel    = 0;
+        int use_ocio   = 0;
+    };
+
     struct VulkanTexture {
-        VkImage image         = VK_NULL_HANDLE;
-        VkImageView view      = VK_NULL_HANDLE;
-        VkDeviceMemory memory = VK_NULL_HANDLE;
+        VkImage source_image         = VK_NULL_HANDLE;
+        VkImageView source_view      = VK_NULL_HANDLE;
+        VkDeviceMemory source_memory = VK_NULL_HANDLE;
+
+        VkImage image         = VK_NULL_HANDLE;  // preview/output image
+        VkImageView view      = VK_NULL_HANDLE;  // preview/output view
+        VkDeviceMemory memory = VK_NULL_HANDLE;  // preview/output memory
+
+        VkFramebuffer preview_framebuffer      = VK_NULL_HANDLE;
+        VkDescriptorSet preview_source_set     = VK_NULL_HANDLE;
         VkSampler sampler     = VK_NULL_HANDLE;
         VkDescriptorSet set   = VK_NULL_HANDLE;
         int width             = 0;
         int height            = 0;
+        bool preview_initialized = false;
+        bool preview_dirty       = false;
+        bool preview_params_valid = false;
+        PreviewControls last_preview_controls = {};
     };
 
     struct UploadComputePushConstants {
@@ -151,6 +170,14 @@ namespace {
         uint32_t pixel_stride     = 0;
         uint32_t channel_count    = 0;
         uint32_t data_type        = 0;
+    };
+
+    struct PreviewPushConstants {
+        float exposure   = 0.0f;
+        float gamma      = 1.0f;
+        int32_t color_mode = 0;
+        int32_t channel    = 0;
+        int32_t use_ocio   = 0;
     };
 
     struct VulkanState {
@@ -180,6 +207,12 @@ namespace {
         VkPipelineLayout compute_pipeline_layout                  = VK_NULL_HANDLE;
         VkPipeline compute_pipeline                               = VK_NULL_HANDLE;
         VkPipeline compute_pipeline_fp64                          = VK_NULL_HANDLE;
+
+        VkDescriptorPool preview_descriptor_pool                  = VK_NULL_HANDLE;
+        VkDescriptorSetLayout preview_descriptor_set_layout       = VK_NULL_HANDLE;
+        VkPipelineLayout preview_pipeline_layout                  = VK_NULL_HANDLE;
+        VkPipeline preview_pipeline                               = VK_NULL_HANDLE;
+        VkRenderPass preview_render_pass                          = VK_NULL_HANDLE;
         PFN_vkSetDebugUtilsObjectNameEXT set_debug_object_name_fn = nullptr;
     };
 
@@ -191,6 +224,9 @@ namespace {
         std::string last_error;
         float zoom       = 1.0f;
         bool fit_request = true;
+        std::vector<std::string> sibling_images;
+        int sibling_index = -1;
+        std::string toggle_image_path;
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
         VulkanTexture texture;
 #endif
@@ -231,6 +267,10 @@ namespace {
         std::string ocio_view              = "default";
         std::string ocio_image_color_space = "auto";
     };
+
+    void refresh_sibling_images(ViewerState& viewer);
+    bool pick_sibling_image(const ViewerState& viewer, int delta,
+                            std::string& out_path);
 
 
 
@@ -969,6 +1009,294 @@ namespace {
 
 
 
+    bool create_shader_module_from_file(VkDevice device,
+                                        VkAllocationCallbacks* allocator,
+                                        const std::string& shader_path,
+                                        VkShaderModule& shader_module,
+                                        std::string& error_message)
+    {
+        shader_module = VK_NULL_HANDLE;
+        std::vector<uint32_t> shader_words;
+        if (!read_binary_file(shader_path, shader_words, error_message))
+            return false;
+
+        VkShaderModuleCreateInfo shader_ci = {};
+        shader_ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        shader_ci.codeSize = shader_words.size() * sizeof(uint32_t);
+        shader_ci.pCode    = shader_words.data();
+        VkResult err = vkCreateShaderModule(device, &shader_ci, allocator,
+                                            &shader_module);
+        if (err != VK_SUCCESS) {
+            error_message = Strutil::fmt::format(
+                "vkCreateShaderModule failed for '{}'", shader_path);
+            shader_module = VK_NULL_HANDLE;
+            return false;
+        }
+        return true;
+    }
+
+
+
+    void destroy_preview_resources(VulkanState& vk_state)
+    {
+        if (vk_state.preview_pipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(vk_state.device, vk_state.preview_pipeline,
+                              vk_state.allocator);
+            vk_state.preview_pipeline = VK_NULL_HANDLE;
+        }
+        if (vk_state.preview_pipeline_layout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(vk_state.device,
+                                    vk_state.preview_pipeline_layout,
+                                    vk_state.allocator);
+            vk_state.preview_pipeline_layout = VK_NULL_HANDLE;
+        }
+        if (vk_state.preview_descriptor_set_layout != VK_NULL_HANDLE) {
+            vkDestroyDescriptorSetLayout(vk_state.device,
+                                         vk_state.preview_descriptor_set_layout,
+                                         vk_state.allocator);
+            vk_state.preview_descriptor_set_layout = VK_NULL_HANDLE;
+        }
+        if (vk_state.preview_descriptor_pool != VK_NULL_HANDLE) {
+            vkDestroyDescriptorPool(vk_state.device,
+                                    vk_state.preview_descriptor_pool,
+                                    vk_state.allocator);
+            vk_state.preview_descriptor_pool = VK_NULL_HANDLE;
+        }
+        if (vk_state.preview_render_pass != VK_NULL_HANDLE) {
+            vkDestroyRenderPass(vk_state.device, vk_state.preview_render_pass,
+                                vk_state.allocator);
+            vk_state.preview_render_pass = VK_NULL_HANDLE;
+        }
+    }
+
+
+
+    bool init_preview_resources(VulkanState& vk_state, std::string& error_message)
+    {
+#    if !(defined(IMIV_HAS_COMPUTE_UPLOAD_SHADERS) && IMIV_HAS_COMPUTE_UPLOAD_SHADERS)
+        error_message = "preview shaders were not generated at build time";
+        return false;
+#    else
+        destroy_preview_resources(vk_state);
+
+        if (!has_format_features(vk_state.physical_device,
+                                 vk_state.compute_output_format,
+                                 VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT)) {
+            error_message
+                = "selected preview output format does not support color attachment";
+            return false;
+        }
+
+        VkAttachmentDescription attachment = {};
+        attachment.format         = vk_state.compute_output_format;
+        attachment.samples        = VK_SAMPLE_COUNT_1_BIT;
+        attachment.loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+        attachment.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachment.initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        attachment.finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference color_ref = {};
+        color_ref.attachment = 0;
+        color_ref.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments    = &color_ref;
+
+        VkRenderPassCreateInfo render_pass_ci = {};
+        render_pass_ci.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        render_pass_ci.attachmentCount = 1;
+        render_pass_ci.pAttachments    = &attachment;
+        render_pass_ci.subpassCount    = 1;
+        render_pass_ci.pSubpasses      = &subpass;
+        VkResult err = vkCreateRenderPass(vk_state.device, &render_pass_ci,
+                                          vk_state.allocator,
+                                          &vk_state.preview_render_pass);
+        if (err != VK_SUCCESS) {
+            error_message = "vkCreateRenderPass failed for preview pipeline";
+            destroy_preview_resources(vk_state);
+            return false;
+        }
+        set_vk_object_name(vk_state, VK_OBJECT_TYPE_RENDER_PASS,
+                           vk_state.preview_render_pass,
+                           "imiv.preview.render_pass");
+
+        VkDescriptorPoolSize preview_pool_size = {};
+        preview_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        preview_pool_size.descriptorCount = 64;
+        VkDescriptorPoolCreateInfo preview_pool_ci = {};
+        preview_pool_ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        preview_pool_ci.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        preview_pool_ci.maxSets = 64;
+        preview_pool_ci.poolSizeCount = 1;
+        preview_pool_ci.pPoolSizes = &preview_pool_size;
+        err = vkCreateDescriptorPool(vk_state.device, &preview_pool_ci,
+                                     vk_state.allocator,
+                                     &vk_state.preview_descriptor_pool);
+        if (err != VK_SUCCESS) {
+            error_message = "vkCreateDescriptorPool failed for preview";
+            destroy_preview_resources(vk_state);
+            return false;
+        }
+        set_vk_object_name(vk_state, VK_OBJECT_TYPE_DESCRIPTOR_POOL,
+                           vk_state.preview_descriptor_pool,
+                           "imiv.preview.descriptor_pool");
+
+        VkDescriptorSetLayoutBinding preview_binding = {};
+        preview_binding.binding            = 0;
+        preview_binding.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        preview_binding.descriptorCount    = 1;
+        preview_binding.stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT;
+        VkDescriptorSetLayoutCreateInfo preview_set_layout_ci = {};
+        preview_set_layout_ci.sType
+            = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        preview_set_layout_ci.bindingCount = 1;
+        preview_set_layout_ci.pBindings    = &preview_binding;
+        err = vkCreateDescriptorSetLayout(vk_state.device,
+                                          &preview_set_layout_ci,
+                                          vk_state.allocator,
+                                          &vk_state.preview_descriptor_set_layout);
+        if (err != VK_SUCCESS) {
+            error_message = "vkCreateDescriptorSetLayout failed for preview";
+            destroy_preview_resources(vk_state);
+            return false;
+        }
+        set_vk_object_name(vk_state, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
+                           vk_state.preview_descriptor_set_layout,
+                           "imiv.preview.set_layout");
+
+        VkPushConstantRange preview_push = {};
+        preview_push.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        preview_push.offset     = 0;
+        preview_push.size       = sizeof(PreviewPushConstants);
+
+        VkPipelineLayoutCreateInfo preview_layout_ci = {};
+        preview_layout_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        preview_layout_ci.setLayoutCount = 1;
+        preview_layout_ci.pSetLayouts    = &vk_state.preview_descriptor_set_layout;
+        preview_layout_ci.pushConstantRangeCount = 1;
+        preview_layout_ci.pPushConstantRanges    = &preview_push;
+        err = vkCreatePipelineLayout(vk_state.device, &preview_layout_ci,
+                                     vk_state.allocator,
+                                     &vk_state.preview_pipeline_layout);
+        if (err != VK_SUCCESS) {
+            error_message = "vkCreatePipelineLayout failed for preview";
+            destroy_preview_resources(vk_state);
+            return false;
+        }
+        set_vk_object_name(vk_state, VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+                           vk_state.preview_pipeline_layout,
+                           "imiv.preview.pipeline_layout");
+
+        const std::string shader_vert
+            = std::string(IMIV_SHADER_DIR) + "/imiv_preview.vert.spv";
+        const std::string shader_frag
+            = std::string(IMIV_SHADER_DIR) + "/imiv_preview.frag.spv";
+        VkShaderModule vert_module = VK_NULL_HANDLE;
+        VkShaderModule frag_module = VK_NULL_HANDLE;
+        if (!create_shader_module_from_file(vk_state.device, vk_state.allocator,
+                                            shader_vert, vert_module,
+                                            error_message)) {
+            destroy_preview_resources(vk_state);
+            return false;
+        }
+        if (!create_shader_module_from_file(vk_state.device, vk_state.allocator,
+                                            shader_frag, frag_module,
+                                            error_message)) {
+            vkDestroyShaderModule(vk_state.device, vert_module,
+                                  vk_state.allocator);
+            destroy_preview_resources(vk_state);
+            return false;
+        }
+
+        VkPipelineShaderStageCreateInfo stages[2] = {};
+        stages[0].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        stages[0].stage  = VK_SHADER_STAGE_VERTEX_BIT;
+        stages[0].module = vert_module;
+        stages[0].pName  = "main";
+        stages[1].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        stages[1].stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
+        stages[1].module = frag_module;
+        stages[1].pName  = "main";
+
+        VkPipelineVertexInputStateCreateInfo vertex_input = {};
+        vertex_input.sType
+            = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        VkPipelineInputAssemblyStateCreateInfo input_assembly = {};
+        input_assembly.sType
+            = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        VkPipelineViewportStateCreateInfo viewport_state = {};
+        viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewport_state.viewportCount = 1;
+        viewport_state.scissorCount  = 1;
+        VkPipelineRasterizationStateCreateInfo raster = {};
+        raster.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        raster.polygonMode = VK_POLYGON_MODE_FILL;
+        raster.cullMode    = VK_CULL_MODE_NONE;
+        raster.frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        raster.lineWidth   = 1.0f;
+        VkPipelineMultisampleStateCreateInfo multisample = {};
+        multisample.sType
+            = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisample.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        VkPipelineColorBlendAttachmentState color_blend_attachment = {};
+        color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT
+                                                | VK_COLOR_COMPONENT_G_BIT
+                                                | VK_COLOR_COMPONENT_B_BIT
+                                                | VK_COLOR_COMPONENT_A_BIT;
+        VkPipelineColorBlendStateCreateInfo color_blend = {};
+        color_blend.sType
+            = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        color_blend.attachmentCount = 1;
+        color_blend.pAttachments    = &color_blend_attachment;
+        VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT,
+                                            VK_DYNAMIC_STATE_SCISSOR };
+        VkPipelineDynamicStateCreateInfo dynamic_state = {};
+        dynamic_state.sType
+            = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamic_state.dynamicStateCount
+            = static_cast<uint32_t>(IM_ARRAYSIZE(dynamic_states));
+        dynamic_state.pDynamicStates = dynamic_states;
+
+        VkGraphicsPipelineCreateInfo pipeline_ci = {};
+        pipeline_ci.sType      = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipeline_ci.stageCount = 2;
+        pipeline_ci.pStages    = stages;
+        pipeline_ci.pVertexInputState   = &vertex_input;
+        pipeline_ci.pInputAssemblyState = &input_assembly;
+        pipeline_ci.pViewportState      = &viewport_state;
+        pipeline_ci.pRasterizationState = &raster;
+        pipeline_ci.pMultisampleState   = &multisample;
+        pipeline_ci.pColorBlendState    = &color_blend;
+        pipeline_ci.pDynamicState       = &dynamic_state;
+        pipeline_ci.layout              = vk_state.preview_pipeline_layout;
+        pipeline_ci.renderPass          = vk_state.preview_render_pass;
+        pipeline_ci.subpass             = 0;
+
+        err = vkCreateGraphicsPipelines(vk_state.device, vk_state.pipeline_cache,
+                                        1, &pipeline_ci, vk_state.allocator,
+                                        &vk_state.preview_pipeline);
+        vkDestroyShaderModule(vk_state.device, vert_module, vk_state.allocator);
+        vkDestroyShaderModule(vk_state.device, frag_module, vk_state.allocator);
+        if (err != VK_SUCCESS) {
+            error_message = "vkCreateGraphicsPipelines failed for preview";
+            destroy_preview_resources(vk_state);
+            return false;
+        }
+        set_vk_object_name(vk_state, VK_OBJECT_TYPE_PIPELINE,
+                           vk_state.preview_pipeline,
+                           "imiv.preview.pipeline");
+
+        return true;
+#    endif
+    }
+
+
+
     void destroy_compute_upload_resources(VulkanState& vk_state)
     {
         if (vk_state.compute_pipeline_fp64 != VK_NULL_HANDLE) {
@@ -1371,6 +1699,8 @@ namespace {
 
         if (!init_compute_upload_resources(vk_state, error_message))
             return false;
+        if (!init_preview_resources(vk_state, error_message))
+            return false;
 
         return true;
     }
@@ -1447,6 +1777,8 @@ namespace {
         }
         if (vk_state.device != VK_NULL_HANDLE)
             destroy_compute_upload_resources(vk_state);
+        if (vk_state.device != VK_NULL_HANDLE)
+            destroy_preview_resources(vk_state);
         if (vk_state.descriptor_pool != VK_NULL_HANDLE) {
             vkDestroyDescriptorPool(vk_state.device, vk_state.descriptor_pool,
                                     vk_state.allocator);
@@ -1572,6 +1904,17 @@ namespace {
             ImGui_ImplVulkan_RemoveTexture(texture.set);
             texture.set = VK_NULL_HANDLE;
         }
+        if (texture.preview_source_set != VK_NULL_HANDLE
+            && vk_state.preview_descriptor_pool != VK_NULL_HANDLE) {
+            vkFreeDescriptorSets(vk_state.device, vk_state.preview_descriptor_pool,
+                                 1, &texture.preview_source_set);
+            texture.preview_source_set = VK_NULL_HANDLE;
+        }
+        if (texture.preview_framebuffer != VK_NULL_HANDLE) {
+            vkDestroyFramebuffer(vk_state.device, texture.preview_framebuffer,
+                                 vk_state.allocator);
+            texture.preview_framebuffer = VK_NULL_HANDLE;
+        }
         if (texture.sampler != VK_NULL_HANDLE) {
             vkDestroySampler(vk_state.device, texture.sampler,
                              vk_state.allocator);
@@ -1590,8 +1933,26 @@ namespace {
             vkFreeMemory(vk_state.device, texture.memory, vk_state.allocator);
             texture.memory = VK_NULL_HANDLE;
         }
+        if (texture.source_view != VK_NULL_HANDLE) {
+            vkDestroyImageView(vk_state.device, texture.source_view,
+                               vk_state.allocator);
+            texture.source_view = VK_NULL_HANDLE;
+        }
+        if (texture.source_image != VK_NULL_HANDLE) {
+            vkDestroyImage(vk_state.device, texture.source_image,
+                           vk_state.allocator);
+            texture.source_image = VK_NULL_HANDLE;
+        }
+        if (texture.source_memory != VK_NULL_HANDLE) {
+            vkFreeMemory(vk_state.device, texture.source_memory,
+                         vk_state.allocator);
+            texture.source_memory = VK_NULL_HANDLE;
+        }
         texture.width  = 0;
         texture.height = 0;
+        texture.preview_initialized = false;
+        texture.preview_dirty = false;
+        texture.preview_params_valid = false;
     }
 
 
@@ -1667,7 +2028,6 @@ namespace {
         VkBuffer source_buffer            = VK_NULL_HANDLE;
         VkDeviceMemory source_memory      = VK_NULL_HANDLE;
         VkDescriptorSet compute_set       = VK_NULL_HANDLE;
-        VkImageView compute_output_view   = VK_NULL_HANDLE;
         VkCommandPool upload_command_pool = VK_NULL_HANDLE;
         VkCommandBuffer upload_command    = VK_NULL_HANDLE;
         bool ok                           = false;
@@ -1675,62 +2035,158 @@ namespace {
         do {
             VkResult err = VK_SUCCESS;
 
-            VkImageCreateInfo image_ci = {};
-            image_ci.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-            image_ci.imageType         = VK_IMAGE_TYPE_2D;
-            image_ci.format            = vk_state.compute_output_format;
-            image_ci.extent.width      = static_cast<uint32_t>(image.width);
-            image_ci.extent.height     = static_cast<uint32_t>(image.height);
-            image_ci.extent.depth      = 1;
-            image_ci.mipLevels         = 1;
-            image_ci.arrayLayers       = 1;
-            image_ci.samples           = VK_SAMPLE_COUNT_1_BIT;
-            image_ci.tiling            = VK_IMAGE_TILING_OPTIMAL;
-            image_ci.usage = VK_IMAGE_USAGE_STORAGE_BIT
-                             | VK_IMAGE_USAGE_SAMPLED_BIT;
-            image_ci.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
-            image_ci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            VkImageCreateInfo source_ci = {};
+            source_ci.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            source_ci.imageType         = VK_IMAGE_TYPE_2D;
+            source_ci.format            = vk_state.compute_output_format;
+            source_ci.extent.width      = static_cast<uint32_t>(image.width);
+            source_ci.extent.height     = static_cast<uint32_t>(image.height);
+            source_ci.extent.depth      = 1;
+            source_ci.mipLevels         = 1;
+            source_ci.arrayLayers       = 1;
+            source_ci.samples           = VK_SAMPLE_COUNT_1_BIT;
+            source_ci.tiling            = VK_IMAGE_TILING_OPTIMAL;
+            source_ci.usage             = VK_IMAGE_USAGE_STORAGE_BIT
+                              | VK_IMAGE_USAGE_SAMPLED_BIT;
+            source_ci.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
+            source_ci.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
 
-            err = vkCreateImage(vk_state.device, &image_ci, vk_state.allocator,
-                                &texture.image);
+            err = vkCreateImage(vk_state.device, &source_ci, vk_state.allocator,
+                                &texture.source_image);
             if (err != VK_SUCCESS) {
-                error_message = "vkCreateImage failed";
+                error_message = "vkCreateImage failed for source image";
                 break;
             }
-            set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE, texture.image,
-                               "imiv.viewer.image");
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE,
+                               texture.source_image, "imiv.viewer.source_image");
 
-            VkMemoryRequirements image_memory_reqs = {};
-            vkGetImageMemoryRequirements(vk_state.device, texture.image,
-                                         &image_memory_reqs);
+            VkMemoryRequirements source_reqs = {};
+            vkGetImageMemoryRequirements(vk_state.device, texture.source_image,
+                                         &source_reqs);
 
             uint32_t image_memory_type = 0;
             if (!find_memory_type(vk_state.physical_device,
-                                  image_memory_reqs.memoryTypeBits,
+                                  source_reqs.memoryTypeBits,
                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                   image_memory_type)) {
-                error_message = "no device-local memory type for image";
+                error_message = "no device-local memory type for source image";
                 break;
             }
 
-            VkMemoryAllocateInfo image_alloc = {};
-            image_alloc.sType          = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-            image_alloc.allocationSize = image_memory_reqs.size;
-            image_alloc.memoryTypeIndex = image_memory_type;
-            err = vkAllocateMemory(vk_state.device, &image_alloc,
-                                   vk_state.allocator, &texture.memory);
+            VkMemoryAllocateInfo source_alloc = {};
+            source_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            source_alloc.allocationSize = source_reqs.size;
+            source_alloc.memoryTypeIndex = image_memory_type;
+            err = vkAllocateMemory(vk_state.device, &source_alloc,
+                                   vk_state.allocator, &texture.source_memory);
             if (err != VK_SUCCESS) {
-                error_message = "vkAllocateMemory failed for image";
+                error_message = "vkAllocateMemory failed for source image";
                 break;
             }
             set_vk_object_name(vk_state, VK_OBJECT_TYPE_DEVICE_MEMORY,
-                               texture.memory, "imiv.viewer.image.memory");
-            err = vkBindImageMemory(vk_state.device, texture.image,
-                                    texture.memory, 0);
+                               texture.source_memory,
+                               "imiv.viewer.source_image.memory");
+            err = vkBindImageMemory(vk_state.device, texture.source_image,
+                                    texture.source_memory, 0);
             if (err != VK_SUCCESS) {
-                error_message = "vkBindImageMemory failed";
+                error_message = "vkBindImageMemory failed for source image";
                 break;
             }
+
+            VkImageViewCreateInfo source_view_ci = {};
+            source_view_ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            source_view_ci.image = texture.source_image;
+            source_view_ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            source_view_ci.format = vk_state.compute_output_format;
+            source_view_ci.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            source_view_ci.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            source_view_ci.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            source_view_ci.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+            source_view_ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            source_view_ci.subresourceRange.baseMipLevel = 0;
+            source_view_ci.subresourceRange.levelCount = 1;
+            source_view_ci.subresourceRange.baseArrayLayer = 0;
+            source_view_ci.subresourceRange.layerCount = 1;
+            err = vkCreateImageView(vk_state.device, &source_view_ci,
+                                    vk_state.allocator, &texture.source_view);
+            if (err != VK_SUCCESS) {
+                error_message = "vkCreateImageView failed for source image";
+                break;
+            }
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE_VIEW,
+                               texture.source_view, "imiv.viewer.source_view");
+
+            VkImageCreateInfo preview_ci = source_ci;
+            preview_ci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                               | VK_IMAGE_USAGE_SAMPLED_BIT;
+            err = vkCreateImage(vk_state.device, &preview_ci, vk_state.allocator,
+                                &texture.image);
+            if (err != VK_SUCCESS) {
+                error_message = "vkCreateImage failed for preview image";
+                break;
+            }
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE, texture.image,
+                               "imiv.viewer.preview_image");
+
+            VkMemoryRequirements preview_reqs = {};
+            vkGetImageMemoryRequirements(vk_state.device, texture.image,
+                                         &preview_reqs);
+            uint32_t preview_memory_type = 0;
+            if (!find_memory_type(vk_state.physical_device,
+                                  preview_reqs.memoryTypeBits,
+                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                  preview_memory_type)) {
+                error_message = "no device-local memory type for preview image";
+                break;
+            }
+            VkMemoryAllocateInfo preview_alloc = {};
+            preview_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            preview_alloc.allocationSize = preview_reqs.size;
+            preview_alloc.memoryTypeIndex = preview_memory_type;
+            err = vkAllocateMemory(vk_state.device, &preview_alloc,
+                                   vk_state.allocator, &texture.memory);
+            if (err != VK_SUCCESS) {
+                error_message = "vkAllocateMemory failed for preview image";
+                break;
+            }
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_DEVICE_MEMORY,
+                               texture.memory, "imiv.viewer.preview_image.memory");
+            err = vkBindImageMemory(vk_state.device, texture.image, texture.memory,
+                                    0);
+            if (err != VK_SUCCESS) {
+                error_message = "vkBindImageMemory failed for preview image";
+                break;
+            }
+
+            VkImageViewCreateInfo preview_view_ci = source_view_ci;
+            preview_view_ci.image = texture.image;
+            err = vkCreateImageView(vk_state.device, &preview_view_ci,
+                                    vk_state.allocator, &texture.view);
+            if (err != VK_SUCCESS) {
+                error_message = "vkCreateImageView failed for preview image";
+                break;
+            }
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE_VIEW, texture.view,
+                               "imiv.viewer.preview_view");
+
+            VkFramebufferCreateInfo fb_ci = {};
+            fb_ci.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            fb_ci.renderPass = vk_state.preview_render_pass;
+            fb_ci.attachmentCount = 1;
+            fb_ci.pAttachments = &texture.view;
+            fb_ci.width = static_cast<uint32_t>(image.width);
+            fb_ci.height = static_cast<uint32_t>(image.height);
+            fb_ci.layers = 1;
+            err = vkCreateFramebuffer(vk_state.device, &fb_ci,
+                                      vk_state.allocator,
+                                      &texture.preview_framebuffer);
+            if (err != VK_SUCCESS) {
+                error_message = "vkCreateFramebuffer failed for preview image";
+                break;
+            }
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_FRAMEBUFFER,
+                               texture.preview_framebuffer,
+                               "imiv.viewer.preview_framebuffer");
 
             VkBufferCreateInfo buffer_ci = {};
             buffer_ci.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1884,30 +2340,9 @@ namespace {
             source_buffer_info.range  = upload_size_aligned;
 
             VkDescriptorImageInfo output_image_info = {};
-            output_image_info.imageView   = compute_output_view;
+            output_image_info.imageView   = texture.source_view;
             output_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
             output_image_info.sampler     = VK_NULL_HANDLE;
-
-            VkImageViewCreateInfo temp_view_ci = {};
-            temp_view_ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            temp_view_ci.image = texture.image;
-            temp_view_ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            temp_view_ci.format = vk_state.compute_output_format;
-            temp_view_ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            temp_view_ci.subresourceRange.baseMipLevel = 0;
-            temp_view_ci.subresourceRange.levelCount = 1;
-            temp_view_ci.subresourceRange.baseArrayLayer = 0;
-            temp_view_ci.subresourceRange.layerCount = 1;
-            err = vkCreateImageView(vk_state.device, &temp_view_ci,
-                                    vk_state.allocator, &compute_output_view);
-            if (err != VK_SUCCESS) {
-                error_message = "vkCreateImageView failed for compute output";
-                break;
-            }
-            set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE_VIEW,
-                               compute_output_view,
-                               "imiv.viewer.compute_output_view");
-            output_image_info.imageView = compute_output_view;
 
             VkWriteDescriptorSet writes[2] = {};
             writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1923,6 +2358,66 @@ namespace {
             writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
             writes[1].pImageInfo = &output_image_info;
             vkUpdateDescriptorSets(vk_state.device, 2, writes, 0, nullptr);
+
+            VkSamplerCreateInfo sampler_ci = {};
+            sampler_ci.sType         = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+            VkFormatProperties output_props = {};
+            vkGetPhysicalDeviceFormatProperties(vk_state.physical_device,
+                                                vk_state.compute_output_format,
+                                                &output_props);
+            const bool has_linear_filter
+                = (output_props.optimalTilingFeatures
+                   & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
+                  != 0;
+            sampler_ci.magFilter = has_linear_filter ? VK_FILTER_LINEAR
+                                                     : VK_FILTER_NEAREST;
+            sampler_ci.minFilter = has_linear_filter ? VK_FILTER_LINEAR
+                                                     : VK_FILTER_NEAREST;
+            sampler_ci.mipmapMode    = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+            sampler_ci.addressModeU  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            sampler_ci.addressModeV  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            sampler_ci.addressModeW  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            sampler_ci.minLod        = -1000.0f;
+            sampler_ci.maxLod        = 1000.0f;
+            sampler_ci.maxAnisotropy = 1.0f;
+            err = vkCreateSampler(vk_state.device, &sampler_ci,
+                                  vk_state.allocator, &texture.sampler);
+            if (err != VK_SUCCESS) {
+                error_message = "vkCreateSampler failed";
+                break;
+            }
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_SAMPLER,
+                               texture.sampler, "imiv.viewer.sampler");
+
+            VkDescriptorSetAllocateInfo preview_set_alloc = {};
+            preview_set_alloc.sType
+                = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            preview_set_alloc.descriptorPool = vk_state.preview_descriptor_pool;
+            preview_set_alloc.descriptorSetCount = 1;
+            preview_set_alloc.pSetLayouts
+                = &vk_state.preview_descriptor_set_layout;
+            err = vkAllocateDescriptorSets(vk_state.device, &preview_set_alloc,
+                                           &texture.preview_source_set);
+            if (err != VK_SUCCESS) {
+                error_message
+                    = "vkAllocateDescriptorSets failed for preview source set";
+                break;
+            }
+            VkDescriptorImageInfo preview_source_image = {};
+            preview_source_image.sampler = texture.sampler;
+            preview_source_image.imageView = texture.source_view;
+            preview_source_image.imageLayout
+                = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            VkWriteDescriptorSet preview_write = {};
+            preview_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            preview_write.dstSet = texture.preview_source_set;
+            preview_write.dstBinding = 0;
+            preview_write.descriptorCount = 1;
+            preview_write.descriptorType
+                = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            preview_write.pImageInfo = &preview_source_image;
+            vkUpdateDescriptorSets(vk_state.device, 1, &preview_write, 0,
+                                   nullptr);
 
             VkCommandBufferBeginInfo command_begin = {};
             command_begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1962,7 +2457,7 @@ namespace {
                 = VK_QUEUE_FAMILY_IGNORED;
             image_to_general.dstQueueFamilyIndex
                 = VK_QUEUE_FAMILY_IGNORED;
-            image_to_general.image = texture.image;
+            image_to_general.image = texture.source_image;
             image_to_general.subresourceRange.aspectMask
                 = VK_IMAGE_ASPECT_COLOR_BIT;
             image_to_general.subresourceRange.baseMipLevel = 0;
@@ -2009,7 +2504,7 @@ namespace {
             to_shader.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             to_shader.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             to_shader.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            to_shader.image = texture.image;
+            to_shader.image = texture.source_image;
             to_shader.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             to_shader.subresourceRange.baseMipLevel = 0;
             to_shader.subresourceRange.levelCount = 1;
@@ -2044,41 +2539,6 @@ namespace {
                 break;
             }
 
-            texture.view = compute_output_view;
-            compute_output_view = VK_NULL_HANDLE;
-            set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE_VIEW,
-                               texture.view, "imiv.viewer.image_view");
-
-            VkSamplerCreateInfo sampler_ci = {};
-            sampler_ci.sType         = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-            VkFormatProperties output_props = {};
-            vkGetPhysicalDeviceFormatProperties(vk_state.physical_device,
-                                                vk_state.compute_output_format,
-                                                &output_props);
-            const bool has_linear_filter
-                = (output_props.optimalTilingFeatures
-                   & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
-                  != 0;
-            sampler_ci.magFilter = has_linear_filter ? VK_FILTER_LINEAR
-                                                     : VK_FILTER_NEAREST;
-            sampler_ci.minFilter = has_linear_filter ? VK_FILTER_LINEAR
-                                                     : VK_FILTER_NEAREST;
-            sampler_ci.mipmapMode    = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-            sampler_ci.addressModeU  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            sampler_ci.addressModeV  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            sampler_ci.addressModeW  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            sampler_ci.minLod        = -1000.0f;
-            sampler_ci.maxLod        = 1000.0f;
-            sampler_ci.maxAnisotropy = 1.0f;
-            err = vkCreateSampler(vk_state.device, &sampler_ci,
-                                  vk_state.allocator, &texture.sampler);
-            if (err != VK_SUCCESS) {
-                error_message = "vkCreateSampler failed";
-                break;
-            }
-            set_vk_object_name(vk_state, VK_OBJECT_TYPE_SAMPLER,
-                               texture.sampler, "imiv.viewer.sampler");
-
             texture.set = ImGui_ImplVulkan_AddTexture(
                 texture.sampler, texture.view,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -2089,6 +2549,9 @@ namespace {
 
             texture.width  = image.width;
             texture.height = image.height;
+            texture.preview_initialized = false;
+            texture.preview_dirty       = true;
+            texture.preview_params_valid = false;
             ok             = true;
 
             if (compute_set != VK_NULL_HANDLE) {
@@ -2103,9 +2566,6 @@ namespace {
             vkFreeDescriptorSets(vk_state.device,
                                  vk_state.compute_descriptor_pool, 1,
                                  &compute_set);
-        if (compute_output_view != VK_NULL_HANDLE)
-            vkDestroyImageView(vk_state.device, compute_output_view,
-                               vk_state.allocator);
         if (upload_command_pool != VK_NULL_HANDLE)
             vkDestroyCommandPool(vk_state.device, upload_command_pool,
                                  vk_state.allocator);
@@ -2121,6 +2581,209 @@ namespace {
             vkFreeMemory(vk_state.device, staging_memory, vk_state.allocator);
         if (!ok)
             destroy_texture(vk_state, texture);
+        return ok;
+    }
+
+
+
+    bool preview_controls_equal(const PreviewControls& a,
+                                const PreviewControls& b)
+    {
+        return std::abs(a.exposure - b.exposure) < 1.0e-6f
+               && std::abs(a.gamma - b.gamma) < 1.0e-6f
+               && a.color_mode == b.color_mode && a.channel == b.channel
+               && a.use_ocio == b.use_ocio;
+    }
+
+
+
+    bool update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
+                                const PreviewControls& controls,
+                                std::string& error_message)
+    {
+        if (texture.image == VK_NULL_HANDLE || texture.source_image == VK_NULL_HANDLE
+            || texture.preview_framebuffer == VK_NULL_HANDLE
+            || texture.preview_source_set == VK_NULL_HANDLE)
+            return false;
+
+        if (texture.preview_params_valid
+            && preview_controls_equal(texture.last_preview_controls, controls)
+            && !texture.preview_dirty) {
+            return true;
+        }
+
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+        VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+        bool ok = false;
+
+        do {
+            VkCommandPoolCreateInfo pool_ci = {};
+            pool_ci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+            pool_ci.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+            pool_ci.queueFamilyIndex = vk_state.queue_family;
+            VkResult err = vkCreateCommandPool(vk_state.device, &pool_ci,
+                                               vk_state.allocator, &command_pool);
+            if (err != VK_SUCCESS) {
+                error_message = "vkCreateCommandPool failed for preview update";
+                break;
+            }
+
+            VkCommandBufferAllocateInfo command_alloc = {};
+            command_alloc.sType
+                = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            command_alloc.commandPool = command_pool;
+            command_alloc.level       = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            command_alloc.commandBufferCount = 1;
+            err = vkAllocateCommandBuffers(vk_state.device, &command_alloc,
+                                           &command_buffer);
+            if (err != VK_SUCCESS) {
+                error_message
+                    = "vkAllocateCommandBuffers failed for preview update";
+                break;
+            }
+
+            VkCommandBufferBeginInfo begin = {};
+            begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            err = vkBeginCommandBuffer(command_buffer, &begin);
+            if (err != VK_SUCCESS) {
+                error_message = "vkBeginCommandBuffer failed for preview update";
+                break;
+            }
+
+            VkImageMemoryBarrier to_color_attachment = {};
+            to_color_attachment.sType
+                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            to_color_attachment.oldLayout
+                = texture.preview_initialized
+                      ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                      : VK_IMAGE_LAYOUT_UNDEFINED;
+            to_color_attachment.newLayout
+                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            to_color_attachment.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            to_color_attachment.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            to_color_attachment.image = texture.image;
+            to_color_attachment.subresourceRange.aspectMask
+                = VK_IMAGE_ASPECT_COLOR_BIT;
+            to_color_attachment.subresourceRange.baseMipLevel = 0;
+            to_color_attachment.subresourceRange.levelCount   = 1;
+            to_color_attachment.subresourceRange.baseArrayLayer = 0;
+            to_color_attachment.subresourceRange.layerCount     = 1;
+            to_color_attachment.srcAccessMask = texture.preview_initialized
+                                                    ? VK_ACCESS_SHADER_READ_BIT
+                                                    : 0;
+            to_color_attachment.dstAccessMask
+                = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            vkCmdPipelineBarrier(command_buffer,
+                                 texture.preview_initialized
+                                     ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                                     : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                 0, 0, nullptr, 0, nullptr, 1,
+                                 &to_color_attachment);
+
+            VkClearValue clear = {};
+            clear.color.float32[0] = 0.0f;
+            clear.color.float32[1] = 0.0f;
+            clear.color.float32[2] = 0.0f;
+            clear.color.float32[3] = 1.0f;
+
+            VkRenderPassBeginInfo rp_begin = {};
+            rp_begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            rp_begin.renderPass = vk_state.preview_render_pass;
+            rp_begin.framebuffer = texture.preview_framebuffer;
+            rp_begin.renderArea.offset = { 0, 0 };
+            rp_begin.renderArea.extent.width = static_cast<uint32_t>(texture.width);
+            rp_begin.renderArea.extent.height
+                = static_cast<uint32_t>(texture.height);
+            rp_begin.clearValueCount = 1;
+            rp_begin.pClearValues    = &clear;
+
+            vkCmdBeginRenderPass(command_buffer, &rp_begin,
+                                 VK_SUBPASS_CONTENTS_INLINE);
+            VkViewport vp = {};
+            vp.x        = 0.0f;
+            vp.y        = 0.0f;
+            vp.width    = static_cast<float>(texture.width);
+            vp.height   = static_cast<float>(texture.height);
+            vp.minDepth = 0.0f;
+            vp.maxDepth = 1.0f;
+            VkRect2D scissor = {};
+            scissor.extent.width = static_cast<uint32_t>(texture.width);
+            scissor.extent.height = static_cast<uint32_t>(texture.height);
+            vkCmdSetViewport(command_buffer, 0, 1, &vp);
+            vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+            vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              vk_state.preview_pipeline);
+            vkCmdBindDescriptorSets(command_buffer,
+                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    vk_state.preview_pipeline_layout, 0, 1,
+                                    &texture.preview_source_set, 0, nullptr);
+
+            PreviewPushConstants push = {};
+            push.exposure   = controls.exposure;
+            push.gamma      = std::max(0.01f, controls.gamma);
+            push.color_mode = controls.color_mode;
+            push.channel    = controls.channel;
+            push.use_ocio   = controls.use_ocio;
+            vkCmdPushConstants(command_buffer, vk_state.preview_pipeline_layout,
+                               VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push),
+                               &push);
+            vkCmdDraw(command_buffer, 3, 1, 0, 0);
+            vkCmdEndRenderPass(command_buffer);
+
+            VkImageMemoryBarrier to_shader_read = {};
+            to_shader_read.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            to_shader_read.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            to_shader_read.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            to_shader_read.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            to_shader_read.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            to_shader_read.image = texture.image;
+            to_shader_read.subresourceRange.aspectMask
+                = VK_IMAGE_ASPECT_COLOR_BIT;
+            to_shader_read.subresourceRange.baseMipLevel = 0;
+            to_shader_read.subresourceRange.levelCount   = 1;
+            to_shader_read.subresourceRange.baseArrayLayer = 0;
+            to_shader_read.subresourceRange.layerCount     = 1;
+            to_shader_read.srcAccessMask
+                = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            to_shader_read.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            vkCmdPipelineBarrier(command_buffer,
+                                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
+                                 nullptr, 0, nullptr, 1, &to_shader_read);
+
+            err = vkEndCommandBuffer(command_buffer);
+            if (err != VK_SUCCESS) {
+                error_message = "vkEndCommandBuffer failed for preview update";
+                break;
+            }
+
+            VkSubmitInfo submit = {};
+            submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit.commandBufferCount = 1;
+            submit.pCommandBuffers    = &command_buffer;
+            err = vkQueueSubmit(vk_state.queue, 1, &submit, VK_NULL_HANDLE);
+            if (err != VK_SUCCESS) {
+                error_message = "vkQueueSubmit failed for preview update";
+                break;
+            }
+            err = vkQueueWaitIdle(vk_state.queue);
+            if (err != VK_SUCCESS) {
+                error_message = "vkQueueWaitIdle failed for preview update";
+                break;
+            }
+
+            texture.preview_initialized = true;
+            texture.preview_dirty       = false;
+            texture.preview_params_valid = true;
+            texture.last_preview_controls = controls;
+            ok = true;
+        } while (false);
+
+        if (command_pool != VK_NULL_HANDLE)
+            vkDestroyCommandPool(vk_state.device, command_pool,
+                                 vk_state.allocator);
         return ok;
     }
 
@@ -2143,10 +2806,13 @@ namespace {
             return false;
         }
         destroy_texture(vk_state, viewer.texture);
+        if (!viewer.image.path.empty())
+            viewer.toggle_image_path = viewer.image.path;
         viewer.image       = std::move(loaded);
         viewer.texture     = texture;
         viewer.zoom        = 1.0f;
         viewer.fit_request = true;
+        refresh_sibling_images(viewer);
         viewer.status_message
             = Strutil::fmt::format("Loaded {} ({}x{}, {} channels, {})",
                                    viewer.image.path, viewer.image.width,
@@ -2777,6 +3443,67 @@ namespace {
 
 
 
+    bool has_supported_image_extension(const std::filesystem::path& path)
+    {
+        std::string ext = path.extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), to_lower_ascii);
+        return ext == ".exr" || ext == ".tif" || ext == ".tiff"
+               || ext == ".png" || ext == ".jpg" || ext == ".jpeg"
+               || ext == ".bmp" || ext == ".hdr";
+    }
+
+
+
+    void refresh_sibling_images(ViewerState& viewer)
+    {
+        viewer.sibling_images.clear();
+        viewer.sibling_index = -1;
+        if (viewer.image.path.empty())
+            return;
+
+        std::filesystem::path current(viewer.image.path);
+        std::error_code ec;
+        const std::filesystem::path dir = current.parent_path();
+        if (dir.empty() || !std::filesystem::exists(dir, ec))
+            return;
+
+        for (const std::filesystem::directory_entry& entry :
+             std::filesystem::directory_iterator(dir, ec)) {
+            if (ec)
+                break;
+            if (!entry.is_regular_file(ec))
+                continue;
+            if (!has_supported_image_extension(entry.path()))
+                continue;
+            viewer.sibling_images.emplace_back(entry.path().string());
+        }
+        std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end());
+        auto it = std::find(viewer.sibling_images.begin(),
+                            viewer.sibling_images.end(), current.string());
+        if (it != viewer.sibling_images.end())
+            viewer.sibling_index = static_cast<int>(
+                std::distance(viewer.sibling_images.begin(), it));
+    }
+
+
+
+    bool pick_sibling_image(const ViewerState& viewer, int delta,
+                            std::string& out_path)
+    {
+        out_path.clear();
+        if (viewer.sibling_images.empty() || viewer.sibling_index < 0)
+            return false;
+        const int count = static_cast<int>(viewer.sibling_images.size());
+        int idx = viewer.sibling_index + delta;
+        while (idx < 0)
+            idx += count;
+        idx %= count;
+        out_path = viewer.sibling_images[static_cast<size_t>(idx)];
+        return !out_path.empty();
+    }
+
+
+
     void set_placeholder_status(ViewerState& viewer, const char* action)
     {
         viewer.status_message = Strutil::fmt::format("{} (placeholder)",
@@ -2835,11 +3562,46 @@ namespace {
     void close_current_image_action(VulkanState& vk_state, ViewerState& viewer)
     {
         destroy_texture(vk_state, viewer.texture);
+        if (!viewer.image.path.empty())
+            viewer.toggle_image_path = viewer.image.path;
         viewer.image       = LoadedImage();
         viewer.zoom        = 1.0f;
         viewer.fit_request = true;
+        viewer.sibling_images.clear();
+        viewer.sibling_index = -1;
         viewer.last_error.clear();
         viewer.status_message = "Closed current image";
+    }
+
+
+
+    void next_sibling_image_action(VulkanState& vk_state, ViewerState& viewer,
+                                   int delta)
+    {
+        std::string path;
+        if (!pick_sibling_image(viewer, delta, path)) {
+            set_placeholder_status(viewer, delta < 0 ? "Previous Image"
+                                                     : "Next Image");
+            return;
+        }
+        load_viewer_image(vk_state, viewer, path);
+    }
+
+
+
+    void toggle_image_action(VulkanState& vk_state, ViewerState& viewer)
+    {
+        if (viewer.toggle_image_path.empty()) {
+            set_placeholder_status(viewer, "Toggle image");
+            return;
+        }
+        if (viewer.image.path == viewer.toggle_image_path) {
+            if (!pick_sibling_image(viewer, 1, viewer.toggle_image_path)) {
+                set_placeholder_status(viewer, "Toggle image");
+                return;
+            }
+        }
+        load_viewer_image(vk_state, viewer, viewer.toggle_image_path);
     }
 #endif
 
@@ -2953,6 +3715,9 @@ namespace {
         bool save_as_requested = false;
         bool reload_requested  = false;
         bool close_requested   = false;
+        bool prev_requested    = false;
+        bool next_requested    = false;
+        bool toggle_requested  = false;
         const bool has_image   = !viewer.image.path.empty();
 
         if (ImGui::BeginMainMenuBar()) {
@@ -3004,11 +3769,11 @@ namespace {
 
             if (ImGui::BeginMenu("View")) {
                 if (ImGui::MenuItem("Previous Image", "PgUp"))
-                    set_placeholder_status(viewer, "Previous Image");
+                    prev_requested = true;
                 if (ImGui::MenuItem("Next Image", "PgDown"))
-                    set_placeholder_status(viewer, "Next Image");
+                    next_requested = true;
                 if (ImGui::MenuItem("Toggle image", "T"))
-                    set_placeholder_status(viewer, "Toggle image");
+                    toggle_requested = true;
                 ImGui::MenuItem("Show display/data window borders", nullptr,
                                 &ui_state.show_window_guides);
                 ImGui::Separator();
@@ -3260,6 +4025,30 @@ namespace {
 #endif
             close_requested = false;
         }
+        if (prev_requested) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            next_sibling_image_action(vk_state, viewer, -1);
+#else
+            set_placeholder_status(viewer, "Previous Image");
+#endif
+            prev_requested = false;
+        }
+        if (next_requested) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            next_sibling_image_action(vk_state, viewer, 1);
+#else
+            set_placeholder_status(viewer, "Next Image");
+#endif
+            next_requested = false;
+        }
+        if (toggle_requested) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            toggle_image_action(vk_state, viewer);
+#else
+            set_placeholder_status(viewer, "Toggle image");
+#endif
+            toggle_requested = false;
+        }
         if (save_as_requested) {
             save_as_dialog_action(viewer);
             save_as_requested = false;
@@ -3326,6 +4115,21 @@ namespace {
             ImGui::SetNextItemWidth(220.0f);
             ImGui::SliderFloat("Zoom", &viewer.zoom, 0.05f, 32.0f, "%.2fx",
                                ImGuiSliderFlags_Logarithmic);
+
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            PreviewControls preview_controls = {};
+            preview_controls.exposure = ui_state.exposure;
+            preview_controls.gamma    = ui_state.gamma;
+            preview_controls.color_mode = ui_state.color_mode;
+            preview_controls.channel    = ui_state.current_channel;
+            preview_controls.use_ocio   = ui_state.use_ocio ? 1 : 0;
+            std::string preview_error;
+            if (!update_preview_texture(vk_state, viewer.texture,
+                                        preview_controls, preview_error)) {
+                if (!preview_error.empty())
+                    viewer.last_error = preview_error;
+            }
+#endif
 
             ImGui::BeginChild("Viewport", ImVec2(0, 0), true,
                               ImGuiWindowFlags_HorizontalScrollbar);
