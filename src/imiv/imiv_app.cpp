@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -46,6 +47,8 @@ namespace Imiv {
 namespace {
 
     constexpr const char* k_image_window_title = "Image";
+    constexpr const char* k_imiv_prefs_filename = "imiv_prefs.ini";
+    constexpr size_t k_max_recent_images        = 16;
 
     enum class UploadDataType : uint32_t {
         UInt8  = 0,
@@ -83,6 +86,20 @@ namespace {
         default: break;
         }
         return "unknown";
+    }
+
+    TypeDesc upload_data_type_to_typedesc(UploadDataType type)
+    {
+        switch (type) {
+        case UploadDataType::UInt8: return TypeUInt8;
+        case UploadDataType::UInt16: return TypeUInt16;
+        case UploadDataType::UInt32: return TypeUInt32;
+        case UploadDataType::Half: return TypeHalf;
+        case UploadDataType::Float: return TypeFloat;
+        case UploadDataType::Double: return TypeDesc::DOUBLE;
+        default: break;
+        }
+        return TypeUnknown;
     }
 
     bool map_spec_type_to_upload(TypeDesc spec_type, UploadDataType& upload_type,
@@ -126,6 +143,10 @@ namespace {
         int width              = 0;
         int height             = 0;
         int nchannels          = 0;
+        int subimage           = 0;
+        int miplevel           = 0;
+        int nsubimages         = 1;
+        int nmiplevels         = 1;
         UploadDataType type    = UploadDataType::Unknown;
         size_t channel_bytes   = 0;
         size_t row_pitch_bytes = 0;
@@ -227,6 +248,7 @@ namespace {
         std::vector<std::string> sibling_images;
         int sibling_index = -1;
         std::string toggle_image_path;
+        std::vector<std::string> recent_images;
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
         VulkanTexture texture;
 #endif
@@ -271,6 +293,14 @@ namespace {
     void refresh_sibling_images(ViewerState& viewer);
     bool pick_sibling_image(const ViewerState& viewer, int delta,
                             std::string& out_path);
+    void add_recent_image_path(ViewerState& viewer, const std::string& path);
+    void clamp_placeholder_ui_state(PlaceholderUiState& ui_state);
+    bool load_persistent_state(PlaceholderUiState& ui_state,
+                               ViewerState& viewer,
+                               std::string& error_message);
+    bool save_persistent_state(const PlaceholderUiState& ui_state,
+                               const ViewerState& viewer,
+                               std::string& error_message);
 
 
 
@@ -360,6 +390,315 @@ namespace {
         return static_cast<int>(x);
     }
 
+
+
+    bool is_ascii_space(char c)
+    {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+    }
+
+
+
+    std::string trim_ascii(const std::string& value)
+    {
+        size_t begin = 0;
+        while (begin < value.size() && is_ascii_space(value[begin]))
+            ++begin;
+        size_t end = value.size();
+        while (end > begin && is_ascii_space(value[end - 1]))
+            --end;
+        return value.substr(begin, end - begin);
+    }
+
+
+
+    bool parse_bool_value(const std::string& value, bool& out)
+    {
+        const std::string trimmed = trim_ascii(value);
+        if (trimmed.empty())
+            return false;
+        const char* cstr = trimmed.c_str();
+        if (streq_i_ascii(cstr, "1") || streq_i_ascii(cstr, "true")
+            || streq_i_ascii(cstr, "yes") || streq_i_ascii(cstr, "on")) {
+            out = true;
+            return true;
+        }
+        if (streq_i_ascii(cstr, "0") || streq_i_ascii(cstr, "false")
+            || streq_i_ascii(cstr, "no") || streq_i_ascii(cstr, "off")) {
+            out = false;
+            return true;
+        }
+        return false;
+    }
+
+
+
+    bool parse_int_value(const std::string& value, int& out)
+    {
+        const std::string trimmed = trim_ascii(value);
+        if (trimmed.empty())
+            return false;
+        char* end = nullptr;
+        long x    = std::strtol(trimmed.c_str(), &end, 10);
+        if (end == trimmed.c_str() || *end != '\0')
+            return false;
+        if (x < std::numeric_limits<int>::min()
+            || x > std::numeric_limits<int>::max())
+            return false;
+        out = static_cast<int>(x);
+        return true;
+    }
+
+
+
+    bool parse_float_value(const std::string& value, float& out)
+    {
+        const std::string trimmed = trim_ascii(value);
+        if (trimmed.empty())
+            return false;
+        char* end = nullptr;
+        float x   = std::strtof(trimmed.c_str(), &end);
+        if (end == trimmed.c_str() || *end != '\0')
+            return false;
+        out = x;
+        return true;
+    }
+
+
+
+    std::filesystem::path prefs_file_path()
+    {
+        return std::filesystem::path(k_imiv_prefs_filename);
+    }
+
+
+
+    void clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
+    {
+        if (ui_state.max_memory_ic_mb < 64)
+            ui_state.max_memory_ic_mb = 64;
+        if (ui_state.slide_duration_seconds < 1)
+            ui_state.slide_duration_seconds = 1;
+        if (ui_state.closeup_pixels < 9)
+            ui_state.closeup_pixels = 9;
+        if (ui_state.closeup_avg_pixels < 3)
+            ui_state.closeup_avg_pixels = 3;
+        if (ui_state.closeup_avg_pixels > ui_state.closeup_pixels)
+            ui_state.closeup_avg_pixels = ui_state.closeup_pixels;
+        if (ui_state.current_channel < 0)
+            ui_state.current_channel = 0;
+        if (ui_state.current_channel > 4)
+            ui_state.current_channel = 4;
+        if (ui_state.color_mode < 0)
+            ui_state.color_mode = 0;
+        if (ui_state.color_mode > 4)
+            ui_state.color_mode = 4;
+        if (ui_state.subimage_index < 0)
+            ui_state.subimage_index = 0;
+        if (ui_state.miplevel_index < 0)
+            ui_state.miplevel_index = 0;
+        if (ui_state.gamma < 0.1f)
+            ui_state.gamma = 0.1f;
+        if (ui_state.ocio_display.empty())
+            ui_state.ocio_display = "default";
+        if (ui_state.ocio_view.empty())
+            ui_state.ocio_view = "default";
+        if (ui_state.ocio_image_color_space.empty())
+            ui_state.ocio_image_color_space = "auto";
+    }
+
+
+
+    bool load_persistent_state(PlaceholderUiState& ui_state,
+                               ViewerState& viewer,
+                               std::string& error_message)
+    {
+        error_message.clear();
+        const std::filesystem::path path = prefs_file_path();
+        std::error_code ec;
+        if (!std::filesystem::exists(path, ec))
+            return true;
+
+        std::ifstream input(path);
+        if (!input) {
+            error_message = Strutil::fmt::format("failed to open '{}'",
+                                                 path.string());
+            return false;
+        }
+
+        std::string line;
+        while (std::getline(input, line)) {
+            const std::string trimmed = trim_ascii(line);
+            if (trimmed.empty() || trimmed[0] == '#')
+                continue;
+
+            const size_t eq = trimmed.find('=');
+            if (eq == std::string::npos)
+                continue;
+
+            const std::string key   = trim_ascii(trimmed.substr(0, eq));
+            const std::string value = trimmed.substr(eq + 1);
+            bool bool_value         = false;
+            int int_value           = 0;
+            float float_value       = 0.0f;
+
+            if (key == "pixelview_follows_mouse") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.pixelview_follows_mouse = bool_value;
+            } else if (key == "linear_interpolation") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.linear_interpolation = bool_value;
+            } else if (key == "dark_palette") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.dark_palette = bool_value;
+            } else if (key == "auto_mipmap") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.auto_mipmap = bool_value;
+            } else if (key == "fit_image_to_window") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.fit_image_to_window = bool_value;
+            } else if (key == "full_screen_mode") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.full_screen_mode = bool_value;
+            } else if (key == "slide_show_running") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.slide_show_running = bool_value;
+            } else if (key == "slide_loop") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.slide_loop = bool_value;
+            } else if (key == "use_ocio") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.use_ocio = bool_value;
+            } else if (key == "max_memory_ic_mb") {
+                if (parse_int_value(value, int_value))
+                    ui_state.max_memory_ic_mb = int_value;
+            } else if (key == "slide_duration_seconds") {
+                if (parse_int_value(value, int_value))
+                    ui_state.slide_duration_seconds = int_value;
+            } else if (key == "closeup_pixels") {
+                if (parse_int_value(value, int_value))
+                    ui_state.closeup_pixels = int_value;
+            } else if (key == "closeup_avg_pixels") {
+                if (parse_int_value(value, int_value))
+                    ui_state.closeup_avg_pixels = int_value;
+            } else if (key == "current_channel") {
+                if (parse_int_value(value, int_value))
+                    ui_state.current_channel = int_value;
+            } else if (key == "subimage_index") {
+                if (parse_int_value(value, int_value))
+                    ui_state.subimage_index = int_value;
+            } else if (key == "miplevel_index") {
+                if (parse_int_value(value, int_value))
+                    ui_state.miplevel_index = int_value;
+            } else if (key == "color_mode") {
+                if (parse_int_value(value, int_value))
+                    ui_state.color_mode = int_value;
+            } else if (key == "exposure") {
+                if (parse_float_value(value, float_value))
+                    ui_state.exposure = float_value;
+            } else if (key == "gamma") {
+                if (parse_float_value(value, float_value))
+                    ui_state.gamma = float_value;
+            } else if (key == "ocio_display") {
+                ui_state.ocio_display = trim_ascii(value);
+            } else if (key == "ocio_view") {
+                ui_state.ocio_view = trim_ascii(value);
+            } else if (key == "ocio_image_color_space") {
+                ui_state.ocio_image_color_space = trim_ascii(value);
+            } else if (key == "recent_image") {
+                add_recent_image_path(viewer, trim_ascii(value));
+            }
+        }
+
+        clamp_placeholder_ui_state(ui_state);
+        if (!input.eof()) {
+            error_message = Strutil::fmt::format("failed while reading '{}'",
+                                                 path.string());
+            return false;
+        }
+        return true;
+    }
+
+
+
+    bool save_persistent_state(const PlaceholderUiState& ui_state,
+                               const ViewerState& viewer,
+                               std::string& error_message)
+    {
+        error_message.clear();
+        const std::filesystem::path path = prefs_file_path();
+        const std::filesystem::path temp_path
+            = path.string() + ".tmp";
+
+        std::ofstream output(temp_path, std::ios::trunc);
+        if (!output) {
+            error_message = Strutil::fmt::format("failed to open '{}'",
+                                                 temp_path.string());
+            return false;
+        }
+
+        output << "# imiv preferences\n";
+        output << "pixelview_follows_mouse="
+               << (ui_state.pixelview_follows_mouse ? 1 : 0) << "\n";
+        output << "linear_interpolation="
+               << (ui_state.linear_interpolation ? 1 : 0) << "\n";
+        output << "dark_palette=" << (ui_state.dark_palette ? 1 : 0) << "\n";
+        output << "auto_mipmap=" << (ui_state.auto_mipmap ? 1 : 0) << "\n";
+        output << "fit_image_to_window="
+               << (ui_state.fit_image_to_window ? 1 : 0) << "\n";
+        output << "full_screen_mode="
+               << (ui_state.full_screen_mode ? 1 : 0) << "\n";
+        output << "slide_show_running="
+               << (ui_state.slide_show_running ? 1 : 0) << "\n";
+        output << "slide_loop=" << (ui_state.slide_loop ? 1 : 0) << "\n";
+        output << "use_ocio=" << (ui_state.use_ocio ? 1 : 0) << "\n";
+        output << "max_memory_ic_mb=" << ui_state.max_memory_ic_mb << "\n";
+        output << "slide_duration_seconds=" << ui_state.slide_duration_seconds
+               << "\n";
+        output << "closeup_pixels=" << ui_state.closeup_pixels << "\n";
+        output << "closeup_avg_pixels=" << ui_state.closeup_avg_pixels
+               << "\n";
+        output << "current_channel=" << ui_state.current_channel << "\n";
+        output << "subimage_index=" << ui_state.subimage_index << "\n";
+        output << "miplevel_index=" << ui_state.miplevel_index << "\n";
+        output << "color_mode=" << ui_state.color_mode << "\n";
+        output << "exposure=" << ui_state.exposure << "\n";
+        output << "gamma=" << ui_state.gamma << "\n";
+        output << "ocio_display=" << ui_state.ocio_display << "\n";
+        output << "ocio_view=" << ui_state.ocio_view << "\n";
+        output << "ocio_image_color_space=" << ui_state.ocio_image_color_space
+               << "\n";
+        for (const std::string& recent : viewer.recent_images)
+            output << "recent_image=" << recent << "\n";
+        output.flush();
+        if (!output) {
+            error_message = Strutil::fmt::format("failed while writing '{}'",
+                                                 temp_path.string());
+            output.close();
+            std::error_code rm_ec;
+            std::filesystem::remove(temp_path, rm_ec);
+            return false;
+        }
+        output.close();
+
+        std::error_code ec;
+        std::filesystem::rename(temp_path, path, ec);
+        if (ec) {
+            std::error_code remove_ec;
+            std::filesystem::remove(path, remove_ec);
+            ec.clear();
+            std::filesystem::rename(temp_path, path, ec);
+        }
+        if (ec) {
+            error_message = Strutil::fmt::format("failed to replace '{}': {}",
+                                                 path.string(), ec.message());
+            std::error_code rm_ec;
+            std::filesystem::remove(temp_path, rm_ec);
+            return false;
+        }
+        return true;
+    }
+
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     struct TestEngineConfig {
         bool want_test_engine = false;
@@ -387,7 +726,8 @@ namespace {
         print(stderr, "imiv: GLFW error {}: {}\n", error, description);
     }
 
-    bool load_image_for_compute(const std::string& path, LoadedImage& image,
+    bool load_image_for_compute(const std::string& path, int requested_subimage,
+                                int requested_miplevel, LoadedImage& image,
                                 std::string& error_message)
     {
         ImageBuf source(path);
@@ -396,6 +736,37 @@ namespace {
             if (error_message.empty())
                 error_message = "failed to read image";
             return false;
+        }
+
+        int nsubimages = source.nsubimages();
+        if (nsubimages <= 0)
+            nsubimages = 1;
+        const int resolved_subimage
+            = std::clamp(requested_subimage, 0, nsubimages - 1);
+        if (resolved_subimage != 0) {
+            source.reset(path, resolved_subimage, 0);
+            if (!source.read(resolved_subimage, 0, true, TypeUnknown)) {
+                error_message = source.geterror();
+                if (error_message.empty())
+                    error_message = "failed to read subimage";
+                return false;
+            }
+        }
+
+        int nmiplevels = source.nmiplevels();
+        if (nmiplevels <= 0)
+            nmiplevels = 1;
+        const int resolved_miplevel
+            = std::clamp(requested_miplevel, 0, nmiplevels - 1);
+        if (resolved_miplevel != source.miplevel()) {
+            source.reset(path, resolved_subimage, resolved_miplevel);
+            if (!source.read(resolved_subimage, resolved_miplevel, true,
+                             TypeUnknown)) {
+                error_message = source.geterror();
+                if (error_message.empty())
+                    error_message = "failed to read miplevel";
+                return false;
+            }
         }
 
         const ImageSpec& spec = source.spec();
@@ -434,6 +805,10 @@ namespace {
         image.width       = spec.width;
         image.height      = spec.height;
         image.nchannels   = spec.nchannels;
+        image.subimage    = resolved_subimage;
+        image.miplevel    = resolved_miplevel;
+        image.nsubimages  = nsubimages;
+        image.nmiplevels  = nmiplevels;
         image.type        = upload_type;
         image.channel_bytes   = channel_bytes;
         image.row_pitch_bytes = row_pitch;
@@ -2786,16 +3161,16 @@ namespace {
                                  vk_state.allocator);
         return ok;
     }
-
-
-
     bool load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
-                           const std::string& path)
+                           const std::string& path,
+                           int requested_subimage = 0,
+                           int requested_miplevel = 0)
     {
         viewer.last_error.clear();
         LoadedImage loaded;
         std::string error;
-        if (!load_image_for_compute(path, loaded, error)) {
+        if (!load_image_for_compute(path, requested_subimage,
+                                    requested_miplevel, loaded, error)) {
             viewer.last_error = Strutil::fmt::format("open failed: {}", error);
             return false;
         }
@@ -2812,12 +3187,18 @@ namespace {
         viewer.texture     = texture;
         viewer.zoom        = 1.0f;
         viewer.fit_request = true;
+        add_recent_image_path(viewer, viewer.image.path);
         refresh_sibling_images(viewer);
         viewer.status_message
-            = Strutil::fmt::format("Loaded {} ({}x{}, {} channels, {})",
+            = Strutil::fmt::format(
+                "Loaded {} ({}x{}, {} channels, {}, subimage {}/{}, mip {}/{})",
                                    viewer.image.path, viewer.image.width,
                                    viewer.image.height, viewer.image.nchannels,
-                                   upload_data_type_name(viewer.image.type));
+                                   upload_data_type_name(viewer.image.type),
+                                   viewer.image.subimage + 1,
+                                   viewer.image.nsubimages,
+                                   viewer.image.miplevel + 1,
+                                   viewer.image.nmiplevels);
         return true;
     }
 
@@ -3504,6 +3885,38 @@ namespace {
 
 
 
+    std::string normalize_recent_path(const std::string& path)
+    {
+        if (path.empty())
+            return std::string();
+        std::filesystem::path p(path);
+        std::error_code ec;
+        if (!p.is_absolute()) {
+            std::filesystem::path abs = std::filesystem::absolute(p, ec);
+            if (!ec)
+                p = abs;
+        }
+        return p.lexically_normal().string();
+    }
+
+
+
+    void add_recent_image_path(ViewerState& viewer, const std::string& path)
+    {
+        const std::string normalized = normalize_recent_path(path);
+        if (normalized.empty())
+            return;
+
+        auto it = std::remove(viewer.recent_images.begin(),
+                              viewer.recent_images.end(), normalized);
+        viewer.recent_images.erase(it, viewer.recent_images.end());
+        viewer.recent_images.insert(viewer.recent_images.begin(), normalized);
+        if (viewer.recent_images.size() > k_max_recent_images)
+            viewer.recent_images.resize(k_max_recent_images);
+    }
+
+
+
     void set_placeholder_status(ViewerState& viewer, const char* action)
     {
         viewer.status_message = Strutil::fmt::format("{} (placeholder)",
@@ -3513,31 +3926,146 @@ namespace {
 
 
 
+    std::string parent_directory_for_dialog(const std::string& path)
+    {
+        if (path.empty())
+            return std::string();
+        std::filesystem::path p(path);
+        if (!p.has_parent_path())
+            return std::string();
+        return p.parent_path().string();
+    }
+
+
+
+    std::string open_dialog_default_path(const ViewerState& viewer)
+    {
+        if (!viewer.image.path.empty())
+            return parent_directory_for_dialog(viewer.image.path);
+        if (!viewer.recent_images.empty())
+            return parent_directory_for_dialog(viewer.recent_images.front());
+        return std::string();
+    }
+
+
+
+    std::string save_dialog_default_name(const ViewerState& viewer)
+    {
+        if (viewer.image.path.empty())
+            return "image.exr";
+        std::filesystem::path p(viewer.image.path);
+        if (p.filename().empty())
+            return "image.exr";
+        return p.filename().string();
+    }
+
+
+
+    bool save_loaded_image(const LoadedImage& image, const std::string& path,
+                           std::string& error_message)
+    {
+        error_message.clear();
+        if (path.empty()) {
+            error_message = "save path is empty";
+            return false;
+        }
+        if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0) {
+            error_message = "no valid image is loaded";
+            return false;
+        }
+
+        const TypeDesc format = upload_data_type_to_typedesc(image.type);
+        if (format == TypeUnknown) {
+            error_message = "unsupported source pixel type for save";
+            return false;
+        }
+
+        const size_t width = static_cast<size_t>(image.width);
+        const size_t height = static_cast<size_t>(image.height);
+        const size_t channels = static_cast<size_t>(image.nchannels);
+        const size_t min_row_pitch = width * channels * image.channel_bytes;
+        if (image.row_pitch_bytes < min_row_pitch) {
+            error_message = "image row pitch is invalid";
+            return false;
+        }
+        const size_t required_bytes = image.row_pitch_bytes * height;
+        if (image.pixels.size() < required_bytes) {
+            error_message = "image pixel buffer is incomplete";
+            return false;
+        }
+
+        ImageSpec spec(image.width, image.height, image.nchannels, format);
+        ImageBuf output(spec);
+
+        const std::byte* begin
+            = reinterpret_cast<const std::byte*>(image.pixels.data());
+        const cspan<std::byte> byte_span(begin, image.pixels.size());
+        const stride_t xstride
+            = static_cast<stride_t>(image.nchannels * image.channel_bytes);
+        const stride_t ystride = static_cast<stride_t>(image.row_pitch_bytes);
+        if (!output.set_pixels(ROI::All(), format, byte_span, begin, xstride,
+                               ystride, AutoStride)) {
+            error_message = output.geterror();
+            if (error_message.empty())
+                error_message = "failed to copy pixels into save buffer";
+            return false;
+        }
+
+        if (!output.write(path, format)) {
+            error_message = output.geterror();
+            if (error_message.empty())
+                error_message = "image write failed";
+            return false;
+        }
+        return true;
+    }
+
+
+
     void save_as_dialog_action(ViewerState& viewer)
     {
+        if (viewer.image.path.empty()) {
+            viewer.last_error = "No image loaded to save";
+            return;
+        }
+
+        const std::string default_path = open_dialog_default_path(viewer);
+        const std::string default_name = save_dialog_default_name(viewer);
         FileDialog::DialogReply reply
-            = FileDialog::save_image_file("", "image.exr");
+            = FileDialog::save_image_file(default_path, default_name);
         if (reply.result == FileDialog::Result::Okay) {
-            viewer.status_message = Strutil::fmt::format(
-                "Save path selected '{}' (save implementation pending)",
-                reply.path);
-            viewer.last_error.clear();
+            std::string error;
+            if (save_loaded_image(viewer.image, reply.path, error)) {
+                add_recent_image_path(viewer, reply.path);
+                viewer.status_message = Strutil::fmt::format("Saved {}",
+                                                             reply.path);
+                viewer.last_error.clear();
+            } else {
+                viewer.last_error = Strutil::fmt::format("save failed: {}",
+                                                         error);
+            }
         } else if (reply.result == FileDialog::Result::Cancel) {
             viewer.status_message = "Save cancelled";
             viewer.last_error.clear();
         } else {
-            viewer.last_error = reply.message;
+            viewer.last_error = reply.message.empty()
+                                    ? "Save dialog failed"
+                                    : reply.message;
         }
     }
 
 
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-    void open_image_dialog_action(VulkanState& vk_state, ViewerState& viewer)
+    void open_image_dialog_action(VulkanState& vk_state, ViewerState& viewer,
+                                  int requested_subimage,
+                                  int requested_miplevel)
     {
-        FileDialog::DialogReply reply = FileDialog::open_image_file("");
+        FileDialog::DialogReply reply = FileDialog::open_image_file(
+            open_dialog_default_path(viewer));
         if (reply.result == FileDialog::Result::Okay) {
-            load_viewer_image(vk_state, viewer, reply.path);
+            load_viewer_image(vk_state, viewer, reply.path, requested_subimage,
+                              requested_miplevel);
         } else if (reply.result == FileDialog::Result::Cancel) {
             viewer.status_message = "Open cancelled";
             viewer.last_error.clear();
@@ -3554,7 +4082,8 @@ namespace {
             set_placeholder_status(viewer, "Reload image");
             return;
         }
-        load_viewer_image(vk_state, viewer, viewer.image.path);
+        load_viewer_image(vk_state, viewer, viewer.image.path,
+                          viewer.image.subimage, viewer.image.miplevel);
     }
 
 
@@ -3584,7 +4113,8 @@ namespace {
                                                      : "Next Image");
             return;
         }
-        load_viewer_image(vk_state, viewer, path);
+        load_viewer_image(vk_state, viewer, path, viewer.image.subimage,
+                          viewer.image.miplevel);
     }
 
 
@@ -3601,7 +4131,44 @@ namespace {
                 return;
             }
         }
-        load_viewer_image(vk_state, viewer, viewer.toggle_image_path);
+        load_viewer_image(vk_state, viewer, viewer.toggle_image_path,
+                          viewer.image.subimage, viewer.image.miplevel);
+    }
+
+
+
+    void change_subimage_action(VulkanState& vk_state, ViewerState& viewer,
+                                int delta)
+    {
+        if (viewer.image.path.empty()) {
+            set_placeholder_status(viewer,
+                                   delta < 0 ? "Prev Subimage"
+                                             : "Next Subimage");
+            return;
+        }
+        const int target_subimage = viewer.image.subimage + delta;
+        if (target_subimage < 0 || target_subimage >= viewer.image.nsubimages)
+            return;
+        load_viewer_image(vk_state, viewer, viewer.image.path, target_subimage,
+                          viewer.image.miplevel);
+    }
+
+
+
+    void change_miplevel_action(VulkanState& vk_state, ViewerState& viewer,
+                                int delta)
+    {
+        if (viewer.image.path.empty()) {
+            set_placeholder_status(viewer,
+                                   delta < 0 ? "Prev MIP level"
+                                             : "Next MIP level");
+            return;
+        }
+        const int target_mip = viewer.image.miplevel + delta;
+        if (target_mip < 0 || target_mip >= viewer.image.nmiplevels)
+            return;
+        load_viewer_image(vk_state, viewer, viewer.image.path,
+                          viewer.image.subimage, target_mip);
     }
 #endif
 
@@ -3652,17 +4219,11 @@ namespace {
             ImGui::InputInt("Slide show delay (s)", &ui.slide_duration_seconds);
             ImGui::InputInt("# closeup pixels", &ui.closeup_pixels);
             ImGui::InputInt("# closeup avg pixels", &ui.closeup_avg_pixels);
-            if (ui.closeup_pixels < 9)
-                ui.closeup_pixels = 9;
-            if (ui.closeup_avg_pixels < 3)
-                ui.closeup_avg_pixels = 3;
-            if (ui.closeup_avg_pixels > ui.closeup_pixels)
-                ui.closeup_avg_pixels = ui.closeup_pixels;
+            clamp_placeholder_ui_state(ui);
             ImGui::Separator();
             ImGui::Text("Raw Color startup: %s",
                         config.rawcolor ? "on" : "off");
-            ImGui::TextUnformatted(
-                "Preference persistence placeholder (QSettings parity pending)");
+            ImGui::Text("Preference file: %s", k_imiv_prefs_filename);
         }
         ImGui::End();
     }
@@ -3688,8 +4249,16 @@ namespace {
             ImGui::Separator();
             ImGui::Text("Channel: %s", channel_view_name(ui.current_channel));
             ImGui::Text("Color mode: %s", color_mode_name(ui.color_mode));
-            ImGui::Text("Subimage: %d  MIP: %d", ui.subimage_index,
-                        ui.miplevel_index);
+            if (!viewer.image.path.empty()) {
+                ImGui::Text("Subimage: %d / %d  MIP: %d / %d",
+                            viewer.image.subimage + 1,
+                            std::max(1, viewer.image.nsubimages),
+                            viewer.image.miplevel + 1,
+                            std::max(1, viewer.image.nmiplevels));
+            } else {
+                ImGui::Text("Subimage: %d  MIP: %d", ui.subimage_index,
+                            ui.miplevel_index);
+            }
             ImGui::Text("Exposure: %.2f  Gamma: %.2f", ui.exposure, ui.gamma);
             ImGui::Text("OCIO: %s", ui.use_ocio ? "enabled" : "disabled");
         }
@@ -3713,12 +4282,27 @@ namespace {
     {
         bool open_requested    = false;
         bool save_as_requested = false;
+        bool clear_recent_requested = false;
         bool reload_requested  = false;
         bool close_requested   = false;
         bool prev_requested    = false;
         bool next_requested    = false;
         bool toggle_requested  = false;
+        bool prev_subimage_requested = false;
+        bool next_subimage_requested = false;
+        bool prev_mip_requested      = false;
+        bool next_mip_requested      = false;
+        std::string recent_open_path;
         const bool has_image   = !viewer.image.path.empty();
+        const bool can_prev_subimage
+            = has_image && viewer.image.subimage > 0;
+        const bool can_next_subimage
+            = has_image
+              && (viewer.image.subimage + 1 < viewer.image.nsubimages);
+        const bool can_prev_mip = has_image && viewer.image.miplevel > 0;
+        const bool can_next_mip
+            = has_image
+              && (viewer.image.miplevel + 1 < viewer.image.nmiplevels);
 
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
@@ -3726,15 +4310,23 @@ namespace {
                     open_requested = true;
 
                 if (ImGui::BeginMenu("Open recent...")) {
-                    ImGui::MenuItem("Recent #1 (placeholder)", nullptr, false,
-                                    false);
-                    ImGui::MenuItem("Recent #2 (placeholder)", nullptr, false,
-                                    false);
-                    ImGui::MenuItem("Recent #3 (placeholder)", nullptr, false,
-                                    false);
+                    if (viewer.recent_images.empty()) {
+                        ImGui::MenuItem("No recent files", nullptr, false,
+                                        false);
+                    } else {
+                        for (size_t i = 0; i < viewer.recent_images.size();
+                             ++i) {
+                            const std::string& recent = viewer.recent_images[i];
+                            const std::string label = Strutil::fmt::format(
+                                "{}: {}##imiv_recent_{}", i + 1, recent, i);
+                            if (ImGui::MenuItem(label.c_str()))
+                                recent_open_path = recent;
+                        }
+                    }
                     ImGui::Separator();
-                    if (ImGui::MenuItem("Clear recent list"))
-                        set_placeholder_status(viewer, "Clear recent list");
+                    if (ImGui::MenuItem("Clear recent list", nullptr, false,
+                                        !viewer.recent_images.empty()))
+                        clear_recent_requested = true;
                     ImGui::EndMenu();
                 }
 
@@ -3800,26 +4392,18 @@ namespace {
                 }
                 ImGui::Separator();
 
-                if (ImGui::MenuItem("Prev Subimage", "<", false, has_image)) {
-                    ui_state.subimage_index
-                        = std::max(0, ui_state.subimage_index - 1);
-                    set_placeholder_status(viewer, "Prev Subimage");
-                }
-                if (ImGui::MenuItem("Next Subimage", ">", false, has_image)) {
-                    ++ui_state.subimage_index;
-                    set_placeholder_status(viewer, "Next Subimage");
-                }
+                if (ImGui::MenuItem("Prev Subimage", "<", false,
+                                    can_prev_subimage))
+                    prev_subimage_requested = true;
+                if (ImGui::MenuItem("Next Subimage", ">", false,
+                                    can_next_subimage))
+                    next_subimage_requested = true;
                 if (ImGui::MenuItem("Prev MIP level", nullptr, false,
-                                    has_image)) {
-                    ui_state.miplevel_index
-                        = std::max(0, ui_state.miplevel_index - 1);
-                    set_placeholder_status(viewer, "Prev MIP level");
-                }
+                                    can_prev_mip))
+                    prev_mip_requested = true;
                 if (ImGui::MenuItem("Next MIP level", nullptr, false,
-                                    has_image)) {
-                    ++ui_state.miplevel_index;
-                    set_placeholder_status(viewer, "Next MIP level");
-                }
+                                    can_next_mip))
+                    next_mip_requested = true;
 
                 if (ImGui::BeginMenu("Channels")) {
                     if (ImGui::MenuItem("Full Color", "C",
@@ -4003,11 +4587,28 @@ namespace {
 
         if (open_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            open_image_dialog_action(vk_state, viewer);
+            open_image_dialog_action(vk_state, viewer, ui_state.subimage_index,
+                                     ui_state.miplevel_index);
 #else
             set_placeholder_status(viewer, "Open image");
 #endif
             open_requested = false;
+        }
+        if (!recent_open_path.empty()) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            load_viewer_image(vk_state, viewer, recent_open_path,
+                              ui_state.subimage_index,
+                              ui_state.miplevel_index);
+#else
+            set_placeholder_status(viewer, "Open recent image");
+#endif
+            recent_open_path.clear();
+        }
+        if (clear_recent_requested) {
+            viewer.recent_images.clear();
+            viewer.status_message = "Cleared recent files list";
+            viewer.last_error.clear();
+            clear_recent_requested = false;
         }
         if (reload_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
@@ -4049,6 +4650,38 @@ namespace {
 #endif
             toggle_requested = false;
         }
+        if (prev_subimage_requested) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            change_subimage_action(vk_state, viewer, -1);
+#else
+            set_placeholder_status(viewer, "Prev Subimage");
+#endif
+            prev_subimage_requested = false;
+        }
+        if (next_subimage_requested) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            change_subimage_action(vk_state, viewer, 1);
+#else
+            set_placeholder_status(viewer, "Next Subimage");
+#endif
+            next_subimage_requested = false;
+        }
+        if (prev_mip_requested) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            change_miplevel_action(vk_state, viewer, -1);
+#else
+            set_placeholder_status(viewer, "Prev MIP level");
+#endif
+            prev_mip_requested = false;
+        }
+        if (next_mip_requested) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            change_miplevel_action(vk_state, viewer, 1);
+#else
+            set_placeholder_status(viewer, "Next MIP level");
+#endif
+            next_mip_requested = false;
+        }
         if (save_as_requested) {
             save_as_dialog_action(viewer);
             save_as_requested = false;
@@ -4072,7 +4705,8 @@ namespace {
 
         if (open_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            open_image_dialog_action(vk_state, viewer);
+            open_image_dialog_action(vk_state, viewer, ui_state.subimage_index,
+                                     ui_state.miplevel_index);
 #else
             set_placeholder_status(viewer, "Open image");
 #endif
@@ -4081,6 +4715,14 @@ namespace {
         if (save_as_requested) {
             save_as_dialog_action(viewer);
             save_as_requested = false;
+        }
+
+        if (!viewer.image.path.empty()) {
+            ui_state.subimage_index = viewer.image.subimage;
+            ui_state.miplevel_index = viewer.image.miplevel;
+        } else {
+            ui_state.subimage_index = 0;
+            ui_state.miplevel_index = 0;
         }
 
         if (!viewer.status_message.empty())
@@ -4100,8 +4742,11 @@ namespace {
             ImGui::Text("Channel: %s",
                         channel_view_name(ui_state.current_channel));
             ImGui::Text("Color mode: %s", color_mode_name(ui_state.color_mode));
-            ImGui::Text("Subimage: %d  MIP: %d", ui_state.subimage_index,
-                        ui_state.miplevel_index);
+            ImGui::Text("Subimage: %d / %d  MIP: %d / %d",
+                        viewer.image.subimage + 1,
+                        std::max(1, viewer.image.nsubimages),
+                        viewer.image.miplevel + 1,
+                        std::max(1, viewer.image.nmiplevels));
             ImGui::Text("Exposure: %.2f  Gamma: %.2f", ui_state.exposure,
                         ui_state.gamma);
             ImGui::Text("OCIO: %s  (%s/%s, %s)",
@@ -4459,6 +5104,12 @@ run(const AppConfig& config)
 
     ViewerState viewer;
     PlaceholderUiState ui_state;
+    std::string prefs_error;
+    if (!load_persistent_state(ui_state, viewer, prefs_error)) {
+        print(stderr, "imiv: failed to load preferences: {}\n", prefs_error);
+        viewer.last_error = Strutil::fmt::format(
+            "failed to load preferences: {}", prefs_error);
+    }
     if (!run_config.ocio_display.empty())
         ui_state.ocio_display = run_config.ocio_display;
     if (!run_config.ocio_view.empty())
@@ -4468,14 +5119,21 @@ run(const AppConfig& config)
     ui_state.use_ocio = (!run_config.ocio_display.empty()
                          || !run_config.ocio_view.empty()
                          || !run_config.ocio_image_color_space.empty());
+    clamp_placeholder_ui_state(ui_state);
+    if (ui_state.dark_palette)
+        ImGui::StyleColorsDark();
+    else
+        ImGui::StyleColorsLight();
 
     if (!run_config.input_paths.empty()) {
-        load_viewer_image(vk_state, viewer, run_config.input_paths[0]);
+        load_viewer_image(vk_state, viewer, run_config.input_paths[0],
+                          ui_state.subimage_index, ui_state.miplevel_index);
     } else {
         viewer.status_message = "Open an image to start preview";
     }
 
     bool request_exit = false;
+    bool applied_dark_palette = ui_state.dark_palette;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -4514,6 +5172,13 @@ run(const AppConfig& config)
 #    endif
                        ,
                        vk_state);
+        if (ui_state.dark_palette != applied_dark_palette) {
+            if (ui_state.dark_palette)
+                ImGui::StyleColorsDark();
+            else
+                ImGui::StyleColorsLight();
+            applied_dark_palette = ui_state.dark_palette;
+        }
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
         if (test_engine_runtime.engine && test_engine_runtime.show_windows
             && !test_engine_cfg.automation_mode) {
@@ -4559,6 +5224,11 @@ run(const AppConfig& config)
         if (request_exit)
             glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
+
+    std::string prefs_save_error;
+    if (!save_persistent_state(ui_state, viewer, prefs_save_error))
+        print(stderr, "imiv: failed to save preferences: {}\n",
+              prefs_save_error);
 
     err = vkDeviceWaitIdle(vk_state.device);
     check_vk_result(err);
