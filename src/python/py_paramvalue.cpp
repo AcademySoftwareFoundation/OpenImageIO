@@ -79,7 +79,7 @@ ParamValue_from_pyobject(string_view name, TypeDesc type, int nvalues,
 
 
 
-void
+static void
 ParamValueList_attribute_onearg(ParamValueList& self, const std::string& name,
                                 const py::object& obj)
 {
