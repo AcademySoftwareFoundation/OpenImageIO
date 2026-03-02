@@ -62,10 +62,14 @@ set (_imiv_core_sources
      imiv_main.cpp)
 
 set (_imiv_shader_src "${CMAKE_CURRENT_SOURCE_DIR}/shaders/imiv_upload_to_rgba.comp")
+set (_imiv_preview_vert_src "${CMAKE_CURRENT_SOURCE_DIR}/shaders/imiv_preview.vert")
+set (_imiv_preview_frag_src "${CMAKE_CURRENT_SOURCE_DIR}/shaders/imiv_preview.frag")
 set (_imiv_shader_spv_16f "${CMAKE_CURRENT_BINARY_DIR}/imiv_upload_to_rgba16f.comp.spv")
 set (_imiv_shader_spv_32f "${CMAKE_CURRENT_BINARY_DIR}/imiv_upload_to_rgba32f.comp.spv")
 set (_imiv_shader_spv_16f_fp64 "${CMAKE_CURRENT_BINARY_DIR}/imiv_upload_to_rgba16f_fp64.comp.spv")
 set (_imiv_shader_spv_32f_fp64 "${CMAKE_CURRENT_BINARY_DIR}/imiv_upload_to_rgba32f_fp64.comp.spv")
+set (_imiv_preview_vert_spv "${CMAKE_CURRENT_BINARY_DIR}/imiv_preview.vert.spv")
+set (_imiv_preview_frag_spv "${CMAKE_CURRENT_BINARY_DIR}/imiv_preview.frag.spv")
 set (_imiv_shader_outputs)
 
 if (NOT APPLE)
@@ -122,11 +126,33 @@ if (NOT APPLE)
                     -o "${_imiv_shader_spv_32f_fp64}"
             DEPENDS "${_imiv_shader_src}"
             COMMENT "imiv: compiling Vulkan compute shader (rgba32f, fp64)")
+        add_custom_command (
+            OUTPUT "${_imiv_preview_vert_spv}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}"
+            COMMAND ${OIIO_IMIV_GLSLC_EXECUTABLE}
+                    -fshader-stage=vert
+                    -O
+                    "${_imiv_preview_vert_src}"
+                    -o "${_imiv_preview_vert_spv}"
+            DEPENDS "${_imiv_preview_vert_src}"
+            COMMENT "imiv: compiling Vulkan preview vertex shader")
+        add_custom_command (
+            OUTPUT "${_imiv_preview_frag_spv}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}"
+            COMMAND ${OIIO_IMIV_GLSLC_EXECUTABLE}
+                    -fshader-stage=frag
+                    -O
+                    "${_imiv_preview_frag_src}"
+                    -o "${_imiv_preview_frag_spv}"
+            DEPENDS "${_imiv_preview_frag_src}"
+            COMMENT "imiv: compiling Vulkan preview fragment shader")
         set (_imiv_shader_outputs
              "${_imiv_shader_spv_16f}"
              "${_imiv_shader_spv_32f}"
              "${_imiv_shader_spv_16f_fp64}"
-             "${_imiv_shader_spv_32f_fp64}")
+             "${_imiv_shader_spv_32f_fp64}"
+             "${_imiv_preview_vert_spv}"
+             "${_imiv_preview_frag_spv}")
         add_custom_target (imiv_shaders DEPENDS ${_imiv_shader_outputs})
     else ()
         message (STATUS
