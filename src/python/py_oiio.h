@@ -521,6 +521,8 @@ attribute_onearg(T& myobj, string_view name, const py::object& obj)
         myobj.attribute(name, int(obj.template cast<py::int_>()));
     else if (py::isinstance<py::str>(obj))
         myobj.attribute(name, std::string(obj.template cast<py::str>()));
+    else if (py::isinstance<py::bytes>(obj))
+        myobj.attribute(name, std::string(obj.template cast<py::bytes>()));
     else
         throw py::type_error("attribute() value must be int, float, or str");
 }
