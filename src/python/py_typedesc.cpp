@@ -119,7 +119,10 @@ declare_typedesc(py::module& m)
         .def("is_vec4", &TypeDesc::is_vec4)
         .def("is_box2", &TypeDesc::is_box2)
         .def("is_box3", &TypeDesc::is_box3)
-        .def("all_types_equal", &TypeDesc::all_types_equal)
+        .def_static("all_types_equal",
+                    [](const std::vector<TypeDesc>& types) {
+                        return TypeDesc::all_types_equal(types);
+                    })
 
         // overloaded operators
         .def(py::self == py::self)  // operator==   //NOSONAR

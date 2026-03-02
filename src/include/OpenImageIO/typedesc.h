@@ -25,6 +25,7 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/span.h>
 #include <OpenImageIO/string_view.h>
 #include <OpenImageIO/strutil.h>
 
