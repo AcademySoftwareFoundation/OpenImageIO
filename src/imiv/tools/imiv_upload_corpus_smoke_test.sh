@@ -89,6 +89,9 @@ for image in "${images[@]}"; do
     elif ! grep -q "Saved '" "$log_path"; then
         result="FAIL"
         reason="no_screenshot_saved"
+    elif ! grep -q "imiv: Loaded " "$log_path"; then
+        result="FAIL"
+        reason="image_not_loaded"
     elif grep -Eq "upload failed|vk\\[error\\]\\[validation\\]|VUID-" "$log_path"; then
         result="FAIL"
         reason="validation_or_upload_error"

@@ -211,6 +211,13 @@ def main() -> int:
                     f'<polygon class="item" points="{points}" '
                     f'fill="{_xml_escape(args.item_stroke)}" fill-opacity="{item_fill_opacity:.3f}" stroke="none"/>'
                 )
+                if args.labels:
+                    label = str(item.get("debug") or "")
+                    if label:
+                        svg_lines.append(
+                            f'<text x="{x + 2.0:.3f}" y="{y + 11.0:.3f}" fill="{_xml_escape(args.item_stroke)}">'
+                            f"{_xml_escape(label)}</text>"
+                        )
         svg_lines.append("</g>")
 
     svg_lines.append("</svg>")
