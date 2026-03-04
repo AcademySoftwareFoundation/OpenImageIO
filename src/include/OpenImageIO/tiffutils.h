@@ -196,6 +196,12 @@ OIIO_API void encode_exif (const ImageSpec &spec, std::vector<char> &blob,
 OIIO_API bool exif_tag_lookup (string_view name, int &tag,
                                int &tifftype, int &count);
 
+/// Helper: For the given OIIO metadata attribute name, look up the GPS tag
+/// ID, TIFFDataType (expressed as an int), and count. Return true and fill
+/// in the fields if found, return false if not found.
+OIIO_API bool gps_tag_lookup (string_view name, int &tag,
+                              int &tifftype, int &count);
+
 /// Add metadata to spec based on raw IPTC (International Press
 /// Telecommunications Council) metadata in the form of an IIM
 /// (Information Interchange Model).  Return true if all is ok, false if
@@ -286,6 +292,7 @@ using v3_1::decode_xmp;
 using v3_1::encode_iptc_iim;
 using v3_1::encode_xmp;
 using v3_1::exif_tag_lookup;
+using v3_1::gps_tag_lookup;
 using v3_1::tag_lookup;
 using v3_1::tag_table;
 using v3_1::TagInfo;

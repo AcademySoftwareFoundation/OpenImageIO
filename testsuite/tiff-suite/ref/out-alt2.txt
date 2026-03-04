@@ -77,11 +77,14 @@ Reading ../oiio-images/libtiffpic/dscf0013.tif
     Exif:FocalPlaneResolutionUnit: 3 (cm)
     Exif:FocalPlaneXResolution: 847
     Exif:FocalPlaneYResolution: 847
+    Exif:ISOSpeedRatings: 125
     Exif:MaxApertureValue: 3.53 (f/3.4)
     Exif:MeteringMode: 1 (average)
+    Exif:PhotographicSensitivity: 125
     Exif:SensingMethod: 2 (1-chip color area)
     Exif:ShutterSpeedValue: 6.5 (1/90 s)
     Exif:YCbCrPositioning: 2
+    Exif:YCbCrSubsampling: 2, 1
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "srgb_rec709_scene"
     tiff:ColorSpace: "YCbCr"
@@ -100,6 +103,7 @@ Reading ../oiio-images/libtiffpic/dscf0013.tif
     XResolution: 72
     YResolution: 72
     Exif:YCbCrPositioning: 2
+    Exif:YCbCrSubsampling: 2, 1
     oiio:BitsPerSample: 8
     tiff:ColorSpace: "YCbCr"
     tiff:Compression: 1
@@ -122,6 +126,7 @@ Reading ../oiio-images/libtiffpic/fax2d.tif
     YResolution: 98
     oiio:BitsPerSample: 1
     tiff:Compression: 3
+    tiff:PageNumber: 1, 1
     tiff:PhotometricInterpretation: 0
     tiff:PlanarConfiguration: 1
 Comparing "../oiio-images/libtiffpic/fax2d.tif" and "fax2d.tif"
@@ -140,6 +145,7 @@ Reading ../oiio-images/libtiffpic/g3test.tif
     YResolution: 98
     oiio:BitsPerSample: 1
     tiff:Compression: 3
+    tiff:PageNumber: 1, 1
     tiff:PhotometricInterpretation: 0
     tiff:PlanarConfiguration: 1
 Comparing "../oiio-images/libtiffpic/g3test.tif" and "g3test.tif"
@@ -247,9 +253,11 @@ Reading ../oiio-images/libtiffpic/pc260001.tif
     Exif:Flash: 89 (flash fired, auto flash, red-eye reduction)
     Exif:FlashPixVersion: "0100"
     Exif:FocalLength: 17.8 (17.8 mm)
+    Exif:ISOSpeedRatings: 200
     Exif:LightSource: 0 (unknown)
     Exif:MaxApertureValue: 3 (f/2.8)
     Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 200
     Exif:Saturation: 0 (normal)
     Exif:SceneCaptureType: 0 (standard)
     Exif:Sharpness: 2 (hard)
@@ -316,6 +324,7 @@ Reading ../oiio-images/libtiffpic/ycbcr-cat.tif
     Orientation: 1 (normal)
     planarconfig: "contig"
     Exif:YCbCrPositioning: 1
+    Exif:YCbCrSubsampling: 2, 2
     oiio:BitsPerSample: 8
     tiff:ColorSpace: "YCbCr"
     tiff:Compression: 5
@@ -336,6 +345,7 @@ Reading ../oiio-images/libtiffpic/smallliz.tif
     XResolution: 100
     YResolution: 100
     Exif:YCbCrPositioning: 1
+    Exif:YCbCrSubsampling: 2, 2
     oiio:BitsPerSample: 8
     tiff:ColorSpace: "YCbCr"
     tiff:Compression: 6
@@ -354,6 +364,7 @@ Reading ../oiio-images/libtiffpic/zackthecat.tif
     ResolutionUnit: "in"
     XResolution: 75
     YResolution: 75
+    Exif:YCbCrSubsampling: 2, 2
     oiio:BitsPerSample: 8
     tiff:ColorSpace: "YCbCr"
     tiff:Compression: 6
