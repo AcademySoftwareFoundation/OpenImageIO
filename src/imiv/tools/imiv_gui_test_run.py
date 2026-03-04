@@ -68,7 +68,7 @@ def main() -> int:
 
     ap.add_argument("--layout-json-out", default="", help="Enable layout JSON dump and write to this path")
     ap.add_argument("--layout-items", action="store_true", help="Include per-item data in layout JSON")
-    ap.add_argument("--layout-depth", type=int, default=3, help="Layout gather depth")
+    ap.add_argument("--layout-depth", type=int, default=8, help="Layout gather depth")
     ap.add_argument("--layout-delay-frames", type=int, default=3, help="Initial delay before layout dump")
 
     ap.add_argument("--svg-out", default="", help="Post-convert layout JSON to SVG at this path")

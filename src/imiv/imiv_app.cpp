@@ -261,8 +261,8 @@ namespace {
         bool show_preferences_window = false;
         bool show_pixelview_window   = false;
         bool show_area_probe_window  = false;
-        bool show_status_window      = true;
         bool show_window_guides      = false;
+        bool show_mouse_mode_selector = false;
         bool fit_image_to_window     = false;
         bool full_screen_mode        = false;
         bool slide_show_running      = false;
@@ -281,6 +281,7 @@ namespace {
         int subimage_index         = 0;
         int miplevel_index         = 0;
         int color_mode             = 0;
+        int mouse_mode             = 0;
 
         float exposure = 0.0f;
         float gamma    = 1.0f;
@@ -390,6 +391,61 @@ namespace {
         return static_cast<int>(x);
     }
 
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
+    int g_layout_dump_synthetic_item_counter = 0;
+
+    bool layout_dump_items_enabled()
+    {
+        return env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS");
+    }
+
+    void reset_layout_dump_synthetic_items()
+    {
+        g_layout_dump_synthetic_item_counter = 0;
+    }
+
+    void register_layout_dump_synthetic_item(const char* kind,
+                                             const char* label)
+    {
+        if (!layout_dump_items_enabled())
+            return;
+        ImGuiContext* ui_ctx = ImGui::GetCurrentContext();
+        if (ui_ctx == nullptr)
+            return;
+
+        const ImVec2 min = ImGui::GetItemRectMin();
+        const ImVec2 max = ImGui::GetItemRectMax();
+        if (max.x <= min.x || max.y <= min.y)
+            return;
+
+        const int ordinal = ++g_layout_dump_synthetic_item_counter;
+        char id_source[128] = {};
+        std::snprintf(id_source, sizeof(id_source),
+                      "##imiv_layout_synth_%s_%d",
+                      kind ? kind : "item", ordinal);
+        const ImGuiID id = ImGui::GetID(id_source);
+        if (id == 0)
+            return;
+
+        char debug_label[128] = {};
+        if (label && label[0] != '\0') {
+            std::snprintf(debug_label, sizeof(debug_label), "%s: %s",
+                          kind ? kind : "item", label);
+        } else {
+            std::snprintf(debug_label, sizeof(debug_label), "%s",
+                          kind ? kind : "item");
+        }
+
+        const ImRect bb(min, max);
+        ImGuiTestEngineHook_ItemAdd(ui_ctx, id, bb, nullptr);
+        ImGuiTestEngineHook_ItemInfo(ui_ctx, id, debug_label,
+                                     ImGuiItemStatusFlags_None);
+    }
+#else
+    void reset_layout_dump_synthetic_items() {}
+    void register_layout_dump_synthetic_item(const char*, const char*) {}
+#endif
+
 
 
     bool is_ascii_space(char c)
@@ -493,6 +549,10 @@ namespace {
             ui_state.color_mode = 0;
         if (ui_state.color_mode > 4)
             ui_state.color_mode = 4;
+        if (ui_state.mouse_mode < 0)
+            ui_state.mouse_mode = 0;
+        if (ui_state.mouse_mode > 4)
+            ui_state.mouse_mode = 4;
         if (ui_state.subimage_index < 0)
             ui_state.subimage_index = 0;
         if (ui_state.miplevel_index < 0)
@@ -557,6 +617,9 @@ namespace {
             } else if (key == "fit_image_to_window") {
                 if (parse_bool_value(value, bool_value))
                     ui_state.fit_image_to_window = bool_value;
+            } else if (key == "show_mouse_mode_selector") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.show_mouse_mode_selector = bool_value;
             } else if (key == "full_screen_mode") {
                 if (parse_bool_value(value, bool_value))
                     ui_state.full_screen_mode = bool_value;
@@ -593,6 +656,9 @@ namespace {
             } else if (key == "color_mode") {
                 if (parse_int_value(value, int_value))
                     ui_state.color_mode = int_value;
+            } else if (key == "mouse_mode") {
+                if (parse_int_value(value, int_value))
+                    ui_state.mouse_mode = int_value;
             } else if (key == "exposure") {
                 if (parse_float_value(value, float_value))
                     ui_state.exposure = float_value;
@@ -646,6 +712,8 @@ namespace {
         output << "auto_mipmap=" << (ui_state.auto_mipmap ? 1 : 0) << "\n";
         output << "fit_image_to_window="
                << (ui_state.fit_image_to_window ? 1 : 0) << "\n";
+        output << "show_mouse_mode_selector="
+               << (ui_state.show_mouse_mode_selector ? 1 : 0) << "\n";
         output << "full_screen_mode="
                << (ui_state.full_screen_mode ? 1 : 0) << "\n";
         output << "slide_show_running="
@@ -662,6 +730,7 @@ namespace {
         output << "subimage_index=" << ui_state.subimage_index << "\n";
         output << "miplevel_index=" << ui_state.miplevel_index << "\n";
         output << "color_mode=" << ui_state.color_mode << "\n";
+        output << "mouse_mode=" << ui_state.mouse_mode << "\n";
         output << "exposure=" << ui_state.exposure << "\n";
         output << "gamma=" << ui_state.gamma << "\n";
         output << "ocio_display=" << ui_state.ocio_display << "\n";
@@ -3172,12 +3241,14 @@ namespace {
         if (!load_image_for_compute(path, requested_subimage,
                                     requested_miplevel, loaded, error)) {
             viewer.last_error = Strutil::fmt::format("open failed: {}", error);
+            print(stderr, "imiv: {}\n", viewer.last_error);
             return false;
         }
         VulkanTexture texture;
         if (!create_texture(vk_state, loaded, texture, error)) {
             viewer.last_error = Strutil::fmt::format("upload failed: {}",
                                                      error);
+            print(stderr, "imiv: {}\n", viewer.last_error);
             return false;
         }
         destroy_texture(vk_state, viewer.texture);
@@ -3199,6 +3270,12 @@ namespace {
                                    viewer.image.nsubimages,
                                    viewer.image.miplevel + 1,
                                    viewer.image.nmiplevels);
+        if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE")
+            || env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT")
+            || env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP")
+            || env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_JUNIT_XML")) {
+            print("imiv: {}\n", viewer.status_message);
+        }
         return true;
     }
 
@@ -3527,13 +3604,38 @@ namespace {
             return false;
         }
 
-        ImGuiIO& io           = ImGui::GetIO();
-        ImGuiTestItemInfo win = ctx->WindowInfo(k_image_window_title,
-                                                ImGuiTestOpFlags_NoError);
-        if (win.ID == 0 || win.Window == nullptr) {
+        ImGuiIO& io = ImGui::GetIO();
+        struct WindowDumpEntry {
+            ImGuiTestItemInfo info;
+        };
+        std::vector<WindowDumpEntry> windows;
+        const char* window_names[] = {
+            "##MainMenuBar",
+            k_image_window_title,
+            "Image Info",
+            "Preferences",
+            "Pixel Closeup",
+            "Area Sample",
+        };
+        windows.reserve(IM_ARRAYSIZE(window_names));
+        for (const char* window_name : window_names) {
+            ImGuiTestItemInfo win
+                = ctx->WindowInfo(window_name, ImGuiTestOpFlags_NoError);
+            if (win.ID == 0 || win.Window == nullptr)
+                continue;
+            bool duplicate = false;
+            for (const WindowDumpEntry& existing : windows) {
+                if (existing.info.Window == win.Window) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate)
+                windows.push_back({ win });
+        }
+        if (windows.empty()) {
             std::fclose(f);
-            ctx->LogError("layout dump: could not resolve window '%s'",
-                          k_image_window_title);
+            ctx->LogError("layout dump: could not resolve any UI windows");
             mark_test_error(ctx);
             return false;
         }
@@ -3545,68 +3647,75 @@ namespace {
         json_write_vec2(f, io.DisplaySize);
         std::fputs(",\n", f);
         std::fputs("  \"windows\": [\n", f);
-        std::fputs("    {\"name\": ", f);
-        json_write_escaped(f, win.Window->Name);
-        std::fputs(", \"id\": ", f);
-        std::fprintf(f, "%u", static_cast<unsigned int>(win.Window->ID));
-        std::fputs(", \"viewport_id\": ", f);
-        std::fprintf(f, "%u",
-                     static_cast<unsigned int>(win.Window->ViewportId));
-        std::fputs(", \"pos\": ", f);
-        json_write_vec2(f, win.Window->Pos);
-        std::fputs(", \"size\": ", f);
-        json_write_vec2(f, win.Window->Size);
-        std::fputs(", \"rect\": ", f);
-        json_write_rect(f, win.Window->Rect());
-        std::fputs(", \"collapsed\": ", f);
-        std::fputs(win.Window->Collapsed ? "true" : "false", f);
-        std::fputs(", \"active\": ", f);
-        std::fputs(win.Window->Active ? "true" : "false", f);
-        std::fputs(", \"was_active\": ", f);
-        std::fputs(win.Window->WasActive ? "true" : "false", f);
-        std::fputs(", \"hidden\": ", f);
-        std::fputs(win.Window->Hidden ? "true" : "false", f);
+        for (size_t wi = 0; wi < windows.size(); ++wi) {
+            if (wi > 0)
+                std::fputs(",\n", f);
+            ImGuiTestItemInfo& win = windows[wi].info;
+            std::fputs("    {\"name\": ", f);
+            json_write_escaped(f, win.Window->Name);
+            std::fputs(", \"id\": ", f);
+            std::fprintf(f, "%u", static_cast<unsigned int>(win.Window->ID));
+            std::fputs(", \"viewport_id\": ", f);
+            std::fprintf(f, "%u",
+                         static_cast<unsigned int>(win.Window->ViewportId));
+            std::fputs(", \"pos\": ", f);
+            json_write_vec2(f, win.Window->Pos);
+            std::fputs(", \"size\": ", f);
+            json_write_vec2(f, win.Window->Size);
+            std::fputs(", \"rect\": ", f);
+            json_write_rect(f, win.Window->Rect());
+            std::fputs(", \"collapsed\": ", f);
+            std::fputs(win.Window->Collapsed ? "true" : "false", f);
+            std::fputs(", \"active\": ", f);
+            std::fputs(win.Window->Active ? "true" : "false", f);
+            std::fputs(", \"was_active\": ", f);
+            std::fputs(win.Window->WasActive ? "true" : "false", f);
+            std::fputs(", \"hidden\": ", f);
+            std::fputs(win.Window->Hidden ? "true" : "false", f);
 
-        if (include_items) {
-            std::fputs(", \"items\": [\n", f);
-            ImGuiTestItemList list;
-            list.Reserve(4096);
-            ctx->GatherItems(&list, ImGuiTestRef(win.Window->ID), depth);
+            if (include_items) {
+                std::fputs(", \"items\": [\n", f);
+                ImGuiTestItemList list;
+                list.Reserve(16384);
+                ctx->GatherItems(&list, ImGuiTestRef(win.Window->ID), depth);
 
-            int emitted_items = 0;
-            for (int i = 0; i < list.GetSize(); ++i) {
-                const ImGuiTestItemInfo* item = list.GetByIndex(i);
-                if (item == nullptr || item->ID == 0 || item->Window == nullptr)
-                    continue;
-                if (emitted_items++ > 0)
-                    std::fputs(",\n", f);
-                std::fputs("      {\"id\": ", f);
-                std::fprintf(f, "%u", static_cast<unsigned int>(item->ID));
-                std::fputs(", \"parent_id\": ", f);
-                std::fprintf(f, "%u",
-                             static_cast<unsigned int>(item->ParentID));
-                std::fputs(", \"depth\": ", f);
-                std::fprintf(f, "%d", static_cast<int>(item->Depth));
-                std::fputs(", \"debug\": ", f);
-                json_write_escaped(f, item->DebugLabel);
-                std::fputs(", \"rect_full\": ", f);
-                json_write_rect(f, item->RectFull);
-                std::fputs(", \"rect_clipped\": ", f);
-                json_write_rect(f, item->RectClipped);
-                std::fputs(", \"item_flags\": ", f);
-                std::fprintf(f, "%u",
-                             static_cast<unsigned int>(item->ItemFlags));
-                std::fputs(", \"status_flags\": ", f);
-                std::fprintf(f, "%u",
-                             static_cast<unsigned int>(item->StatusFlags));
-                std::fputs("}", f);
+                int emitted_items = 0;
+                for (int i = 0; i < list.GetSize(); ++i) {
+                    const ImGuiTestItemInfo* item = list.GetByIndex(i);
+                    if (item == nullptr || item->Window == nullptr)
+                        continue;
+                    if (emitted_items++ > 0)
+                        std::fputs(",\n", f);
+                    std::fputs("      {\"id\": ", f);
+                    std::fprintf(f, "%u", static_cast<unsigned int>(item->ID));
+                    std::fputs(", \"has_id\": ", f);
+                    std::fputs(item->ID != 0 ? "true" : "false", f);
+                    std::fputs(", \"parent_id\": ", f);
+                    std::fprintf(f, "%u",
+                                 static_cast<unsigned int>(item->ParentID));
+                    std::fputs(", \"depth\": ", f);
+                    std::fprintf(f, "%d", static_cast<int>(item->Depth));
+                    std::fputs(", \"debug\": ", f);
+                    json_write_escaped(f, item->DebugLabel);
+                    std::fputs(", \"rect_full\": ", f);
+                    json_write_rect(f, item->RectFull);
+                    std::fputs(", \"rect_clipped\": ", f);
+                    json_write_rect(f, item->RectClipped);
+                    std::fputs(", \"item_flags\": ", f);
+                    std::fprintf(f, "%u",
+                                 static_cast<unsigned int>(item->ItemFlags));
+                    std::fputs(", \"status_flags\": ", f);
+                    std::fprintf(f, "%u",
+                                 static_cast<unsigned int>(item->StatusFlags));
+                    std::fputs("}", f);
+                }
+                if (emitted_items > 0)
+                    std::fputs("\n", f);
+                std::fputs("    ]", f);
             }
-            if (emitted_items > 0)
-                std::fputs("\n", f);
-            std::fputs("    ]", f);
+            std::fputs("}", f);
         }
-
-        std::fputs("}\n", f);
+        std::fputs("\n", f);
         std::fputs("  ]\n}\n", f);
         std::fflush(f);
         std::fclose(f);
@@ -3701,7 +3810,7 @@ namespace {
         bool include_items = env_flag_is_truthy(
             "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS");
         int depth = env_int_value("IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DEPTH",
-                                  3);
+                                  8);
         if (depth <= 0)
             depth = 1;
 
@@ -3784,12 +3893,12 @@ namespace {
 
 
 
-    ImGuiID begin_main_dockspace()
+    void setup_main_window_geometry()
     {
-        ImGuiDockNodeFlags dock_flags = ImGuiDockNodeFlags_None;
-        return ImGui::DockSpaceOverViewport(ImGui::GetID("ImivMainDockspace"),
-                                            ImGui::GetMainViewport(),
-                                            dock_flags);
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos, ImGuiCond_Always);
+        ImGui::SetNextWindowSize(viewport->WorkSize, ImGuiCond_Always);
+        ImGui::SetNextWindowViewport(viewport->ID);
     }
 
 
@@ -3820,6 +3929,21 @@ namespace {
         default: break;
         }
         return "Unknown";
+    }
+
+
+
+    const char* mouse_mode_name(int mode)
+    {
+        switch (mode) {
+        case 0: return "Zoom";
+        case 1: return "Pan";
+        case 2: return "Wipe";
+        case 3: return "Select";
+        case 4: return "Annotate";
+        default: break;
+        }
+        return "Zoom";
     }
 
 
@@ -4174,24 +4298,32 @@ namespace {
 
 
 
-    void draw_info_window(const ViewerState& viewer, ImGuiID dockspace_id,
-                          bool& show_window)
+    void draw_info_window(const ViewerState& viewer, bool& show_window)
     {
         if (!show_window)
             return;
-        if (dockspace_id != 0)
-            ImGui::SetNextWindowDockID(dockspace_id, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(640.0f, 420.0f),
+                                 ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Image Info", &show_window)) {
             if (viewer.image.path.empty()) {
                 ImGui::TextUnformatted("No image loaded.");
+                register_layout_dump_synthetic_item("text",
+                                                    "No image loaded.");
             } else {
                 ImGui::TextWrapped("%s", viewer.image.path.c_str());
+                register_layout_dump_synthetic_item("text",
+                                                    viewer.image.path.c_str());
                 ImGui::Separator();
+                register_layout_dump_synthetic_item("divider", "Image Info");
                 ImGui::Text("Resolution: %d x %d", viewer.image.width,
                             viewer.image.height);
+                register_layout_dump_synthetic_item("text", "Resolution");
                 ImGui::Text("Channels: %d", viewer.image.nchannels);
+                register_layout_dump_synthetic_item("text", "Channels");
                 ImGui::TextUnformatted(
                     "Metadata/details panel placeholder (iv longinfo parity)");
+                register_layout_dump_synthetic_item("text",
+                                                    "Metadata/details panel");
             }
         }
         ImGui::End();
@@ -4200,20 +4332,22 @@ namespace {
 
 
     void draw_preferences_window(const AppConfig& config,
-                                 PlaceholderUiState& ui, ImGuiID dockspace_id,
-                                 bool& show_window)
+                                 PlaceholderUiState& ui, bool& show_window)
     {
         if (!show_window)
             return;
-        if (dockspace_id != 0)
-            ImGui::SetNextWindowDockID(dockspace_id, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(520.0f, 420.0f),
+                                 ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Preferences", &show_window)) {
             ImGui::Checkbox("Pixel view follows mouse",
                             &ui.pixelview_follows_mouse);
             ImGui::Checkbox("Linear interpolation", &ui.linear_interpolation);
             ImGui::Checkbox("Dark palette", &ui.dark_palette);
             ImGui::Checkbox("Generate mipmaps", &ui.auto_mipmap);
+            ImGui::Checkbox("Show mouse mode selector",
+                            &ui.show_mouse_mode_selector);
             ImGui::Separator();
+            register_layout_dump_synthetic_item("divider", "Preferences");
             ImGui::InputInt("Image Cache max memory (MB)",
                             &ui.max_memory_ic_mb);
             ImGui::InputInt("Slide show delay (s)", &ui.slide_duration_seconds);
@@ -4221,55 +4355,131 @@ namespace {
             ImGui::InputInt("# closeup avg pixels", &ui.closeup_avg_pixels);
             clamp_placeholder_ui_state(ui);
             ImGui::Separator();
+            register_layout_dump_synthetic_item("divider", "Preferences");
             ImGui::Text("Raw Color startup: %s",
                         config.rawcolor ? "on" : "off");
+            register_layout_dump_synthetic_item("text", "Raw Color startup");
             ImGui::Text("Preference file: %s", k_imiv_prefs_filename);
+            register_layout_dump_synthetic_item("text", "Preference file");
         }
         ImGui::End();
     }
 
 
 
-    void draw_status_window(const ViewerState& viewer,
-                            const PlaceholderUiState& ui, ImGuiID dockspace_id,
-                            bool show_window)
+    std::string status_image_text(const ViewerState& viewer)
     {
-        if (!show_window)
-            return;
-        if (dockspace_id != 0)
-            ImGui::SetNextWindowDockID(dockspace_id, ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("Status")) {
-            if (!viewer.image.path.empty()) {
-                ImGui::Text("Image: %s", viewer.image.path.c_str());
-                ImGui::Text("Size: %d x %d, %d channels", viewer.image.width,
-                            viewer.image.height, viewer.image.nchannels);
-            } else {
-                ImGui::TextUnformatted("Image: <none>");
-            }
-            ImGui::Separator();
-            ImGui::Text("Channel: %s", channel_view_name(ui.current_channel));
-            ImGui::Text("Color mode: %s", color_mode_name(ui.color_mode));
-            if (!viewer.image.path.empty()) {
-                ImGui::Text("Subimage: %d / %d  MIP: %d / %d",
-                            viewer.image.subimage + 1,
-                            std::max(1, viewer.image.nsubimages),
-                            viewer.image.miplevel + 1,
-                            std::max(1, viewer.image.nmiplevels));
-            } else {
-                ImGui::Text("Subimage: %d  MIP: %d", ui.subimage_index,
-                            ui.miplevel_index);
-            }
-            ImGui::Text("Exposure: %.2f  Gamma: %.2f", ui.exposure, ui.gamma);
-            ImGui::Text("OCIO: %s", ui.use_ocio ? "enabled" : "disabled");
+        if (viewer.image.path.empty())
+            return "No image loaded";
+        return Strutil::fmt::format("(1/1): {} ({}x{}, {} ch, {})",
+                                    viewer.image.path, viewer.image.width,
+                                    viewer.image.height, viewer.image.nchannels,
+                                    upload_data_type_name(viewer.image.type));
+    }
+
+
+
+    std::string status_view_text(const ViewerState& viewer,
+                                 const PlaceholderUiState& ui)
+    {
+        if (viewer.image.path.empty())
+            return "";
+
+        std::string mode = color_mode_name(ui.color_mode);
+        if (ui.color_mode == 2 || ui.color_mode == 4) {
+            mode += Strutil::fmt::format(" {}", ui.current_channel);
+        } else {
+            mode += Strutil::fmt::format(" ({})",
+                                         channel_view_name(ui.current_channel));
         }
-        ImGui::End();
+
+        const float zoom  = std::max(viewer.zoom, 0.00001f);
+        const float z_num = zoom >= 1.0f ? zoom : 1.0f;
+        const float z_den = zoom >= 1.0f ? 1.0f : (1.0f / zoom);
+        std::string text
+            = Strutil::fmt::format("{}  {:.2f}:{:.2f}  exp {:+.1f}  gam {:.2f}",
+                                   mode, z_num, z_den, ui.exposure, ui.gamma);
+        if (viewer.image.nsubimages > 1) {
+            text += Strutil::fmt::format("  subimg {}/{}",
+                                         viewer.image.subimage + 1,
+                                         viewer.image.nsubimages);
+        }
+        if (viewer.image.nmiplevels > 1) {
+            text += Strutil::fmt::format("  MIP {}/{}",
+                                         viewer.image.miplevel + 1,
+                                         viewer.image.nmiplevels);
+        }
+        if (ui.show_mouse_mode_selector) {
+            text += Strutil::fmt::format("  mouse {}",
+                                         mouse_mode_name(ui.mouse_mode));
+        }
+        return text;
+    }
+
+
+
+    void draw_embedded_status_bar(const ViewerState& viewer,
+                                  PlaceholderUiState& ui)
+    {
+        const std::string img_text  = status_image_text(viewer);
+        const std::string view_text = status_view_text(viewer, ui);
+        const bool show_progress = false;
+
+        int columns = 2;
+        if (show_progress)
+            ++columns;
+        if (ui.show_mouse_mode_selector)
+            ++columns;
+        ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV
+                                      | ImGuiTableFlags_SizingStretchProp
+                                      | ImGuiTableFlags_NoSavedSettings;
+        if (ImGui::BeginTable("##imiv_status_bar", columns, table_flags)) {
+            ImGui::TableSetupColumn("Image", ImGuiTableColumnFlags_WidthStretch,
+                                    2.5f);
+            ImGui::TableSetupColumn("View", ImGuiTableColumnFlags_WidthStretch,
+                                    2.0f);
+            if (show_progress) {
+                ImGui::TableSetupColumn("Load",
+                                        ImGuiTableColumnFlags_WidthFixed,
+                                        140.0f);
+            }
+            if (ui.show_mouse_mode_selector) {
+                ImGui::TableSetupColumn("Mouse",
+                                        ImGuiTableColumnFlags_WidthFixed,
+                                        150.0f);
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(img_text.c_str());
+            register_layout_dump_synthetic_item("text", img_text.c_str());
+
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(view_text.c_str());
+            register_layout_dump_synthetic_item("text", view_text.c_str());
+
+            if (show_progress) {
+                ImGui::TableNextColumn();
+                ImGui::ProgressBar(0.0f, ImVec2(-1.0f, 0.0f), "idle");
+            }
+
+            if (ui.show_mouse_mode_selector) {
+                static const char* mouse_modes[]
+                    = { "Zoom", "Pan", "Wipe", "Select", "Annotate" };
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-1.0f);
+                ImGui::Combo("##mouse_mode", &ui.mouse_mode, mouse_modes,
+                             IM_ARRAYSIZE(mouse_modes));
+            }
+
+            ImGui::EndTable();
+        }
     }
 
 
 
     void draw_viewer_ui(const AppConfig& config, ViewerState& viewer,
-                        PlaceholderUiState& ui_state, ImGuiID dockspace_id,
-                        bool& request_exit
+                        PlaceholderUiState& ui_state, bool& request_exit
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                         ,
                         bool* show_test_engine_windows
@@ -4280,6 +4490,8 @@ namespace {
 #endif
     )
     {
+        reset_layout_dump_synthetic_items();
+
         bool open_requested    = false;
         bool save_as_requested = false;
         bool clear_recent_requested = false;
@@ -4576,7 +4788,9 @@ namespace {
             }
 
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
-            if (show_test_engine_windows && ImGui::BeginMenu("Tests")) {
+            if (show_test_engine_windows
+                && env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_MENU")
+                && ImGui::BeginMenu("Tests")) {
                 ImGui::MenuItem("Show test engine windows", nullptr,
                                 show_test_engine_windows);
                 ImGui::EndMenu();
@@ -4687,36 +4901,6 @@ namespace {
             save_as_requested = false;
         }
 
-        if (dockspace_id != 0)
-            ImGui::SetNextWindowDockID(dockspace_id, ImGuiCond_FirstUseEver);
-        ImGui::Begin(k_image_window_title);
-
-        if (ImGui::Button("Open..."))
-            open_requested = true;
-        ImGui::SameLine();
-        if (ImGui::Button("Save As..."))
-            save_as_requested = true;
-        ImGui::SameLine();
-        if (ImGui::Button("Info"))
-            ui_state.show_info_window = true;
-        ImGui::SameLine();
-        if (ImGui::Button("Preferences"))
-            ui_state.show_preferences_window = true;
-
-        if (open_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-            open_image_dialog_action(vk_state, viewer, ui_state.subimage_index,
-                                     ui_state.miplevel_index);
-#else
-            set_placeholder_status(viewer, "Open image");
-#endif
-            open_requested = false;
-        }
-        if (save_as_requested) {
-            save_as_dialog_action(viewer);
-            save_as_requested = false;
-        }
-
         if (!viewer.image.path.empty()) {
             ui_state.subimage_index = viewer.image.subimage;
             ui_state.miplevel_index = viewer.image.miplevel;
@@ -4725,75 +4909,95 @@ namespace {
             ui_state.miplevel_index = 0;
         }
 
-        if (!viewer.status_message.empty())
-            ImGui::TextUnformatted(viewer.status_message.c_str());
-        if (!viewer.last_error.empty()) {
-            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 90, 90, 255));
-            ImGui::TextWrapped("%s", viewer.last_error.c_str());
-            ImGui::PopStyleColor();
-        }
-
-        if (!viewer.image.path.empty()) {
-            ImGui::Separator();
-            ImGui::Text("%s", viewer.image.path.c_str());
-            ImGui::Text("%d x %d, %d channels", viewer.image.width,
-                        viewer.image.height, viewer.image.nchannels);
-            ImGui::Text("Raw Color: %s", config.rawcolor ? "on" : "off");
-            ImGui::Text("Channel: %s",
-                        channel_view_name(ui_state.current_channel));
-            ImGui::Text("Color mode: %s", color_mode_name(ui_state.color_mode));
-            ImGui::Text("Subimage: %d / %d  MIP: %d / %d",
-                        viewer.image.subimage + 1,
-                        std::max(1, viewer.image.nsubimages),
-                        viewer.image.miplevel + 1,
-                        std::max(1, viewer.image.nmiplevels));
-            ImGui::Text("Exposure: %.2f  Gamma: %.2f", ui_state.exposure,
-                        ui_state.gamma);
-            ImGui::Text("OCIO: %s  (%s/%s, %s)",
-                        ui_state.use_ocio ? "on" : "off",
-                        ui_state.ocio_display.c_str(),
-                        ui_state.ocio_view.c_str(),
-                        ui_state.ocio_image_color_space.c_str());
-            if (ImGui::Button("Fit"))
-                viewer.fit_request = true;
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(220.0f);
-            ImGui::SliderFloat("Zoom", &viewer.zoom, 0.05f, 32.0f, "%.2fx",
-                               ImGuiSliderFlags_Logarithmic);
-
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
+        if (!viewer.image.path.empty()) {
             PreviewControls preview_controls = {};
-            preview_controls.exposure = ui_state.exposure;
-            preview_controls.gamma    = ui_state.gamma;
-            preview_controls.color_mode = ui_state.color_mode;
-            preview_controls.channel    = ui_state.current_channel;
-            preview_controls.use_ocio   = ui_state.use_ocio ? 1 : 0;
+            preview_controls.exposure        = ui_state.exposure;
+            preview_controls.gamma           = ui_state.gamma;
+            preview_controls.color_mode      = ui_state.color_mode;
+            preview_controls.channel         = ui_state.current_channel;
+            preview_controls.use_ocio        = ui_state.use_ocio ? 1 : 0;
             std::string preview_error;
             if (!update_preview_texture(vk_state, viewer.texture,
                                         preview_controls, preview_error)) {
                 if (!preview_error.empty())
                     viewer.last_error = preview_error;
             }
+        }
 #endif
 
-            ImGui::BeginChild("Viewport", ImVec2(0, 0), true,
-                              ImGuiWindowFlags_HorizontalScrollbar);
+        setup_main_window_geometry();
+        ImGuiWindowFlags main_window_flags = ImGuiWindowFlags_NoTitleBar
+                                             | ImGuiWindowFlags_NoResize
+                                             | ImGuiWindowFlags_NoMove
+                                             | ImGuiWindowFlags_NoCollapse
+                                             | ImGuiWindowFlags_NoScrollbar
+                                             | ImGuiWindowFlags_NoScrollWithMouse;
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::Begin(k_image_window_title, nullptr, main_window_flags);
+        ImGui::PopStyleVar(3);
+
+        const float status_bar_height = ImGui::GetFrameHeightWithSpacing()
+                                        + 6.0f;
+        ImVec2 content_avail = ImGui::GetContentRegionAvail();
+        const float viewport_h = std::max(64.0f,
+                                          content_avail.y - status_bar_height);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+        ImGui::BeginChild("Viewport", ImVec2(0.0f, viewport_h), false,
+                          ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::PopStyleVar();
+
+        if (!viewer.last_error.empty()) {
+            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 90, 90, 255));
+            ImGui::TextWrapped("%s", viewer.last_error.c_str());
+            ImGui::PopStyleColor();
+            register_layout_dump_synthetic_item("text",
+                                                viewer.last_error.c_str());
+        }
+
+        if (!viewer.image.path.empty()) {
             const ImVec2 avail = ImGui::GetContentRegionAvail();
-            if (viewer.fit_request && viewer.image.width > 0
-                && viewer.image.height > 0) {
-                const float fit_x = avail.x
+            ImVec2 draw_avail  = avail;
+            if ((viewer.fit_request || ui_state.fit_image_to_window)
+                && viewer.image.width > 0 && viewer.image.height > 0) {
+                ImVec2 fit_avail = avail;
+                const float scrollbar_size = ImGui::GetStyle().ScrollbarSize;
+                // GetContentRegionAvail() is reduced when a scrollbar is
+                // already present. Add that thickness back to recover
+                // the true content extent for fit-to-window zoom.
+                if (ImGui::GetScrollMaxY() > 0.0f)
+                    fit_avail.x += scrollbar_size;
+                if (ImGui::GetScrollMaxX() > 0.0f)
+                    fit_avail.y += scrollbar_size;
+
+                const float fit_x = fit_avail.x
                                     / static_cast<float>(viewer.image.width);
-                const float fit_y = avail.y
+                const float fit_y = fit_avail.y
                                     / static_cast<float>(viewer.image.height);
                 if (fit_x > 0.0f && fit_y > 0.0f)
                     viewer.zoom = std::max(0.05f, std::min(fit_x, fit_y));
+                draw_avail         = fit_avail;
                 viewer.fit_request = false;
+                ImGui::SetScrollX(0.0f);
+                ImGui::SetScrollY(0.0f);
             }
 
             const ImVec2 image_size(static_cast<float>(viewer.image.width)
                                         * viewer.zoom,
                                     static_cast<float>(viewer.image.height)
                                         * viewer.zoom);
+            if (image_size.x < draw_avail.x || image_size.y < draw_avail.y) {
+                ImVec2 p = ImGui::GetCursorPos();
+                if (image_size.x < draw_avail.x)
+                    p.x += (draw_avail.x - image_size.x) * 0.5f;
+                if (image_size.y < draw_avail.y)
+                    p.y += (draw_avail.y - image_size.y) * 0.5f;
+                ImGui::SetCursorPos(p);
+            }
+
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
             if (viewer.texture.set != VK_NULL_HANDLE)
                 ImGui::Image(ImTextureRef(static_cast<ImTextureID>(
@@ -4802,8 +5006,11 @@ namespace {
                              image_size);
             else
                 ImGui::TextUnformatted("No texture");
+            if (viewer.texture.set == VK_NULL_HANDLE)
+                register_layout_dump_synthetic_item("text", "No texture");
 #else
             ImGui::TextUnformatted("No Vulkan backend");
+            register_layout_dump_synthetic_item("text", "No Vulkan backend");
 #endif
             if (ImGui::IsItemHovered()) {
                 const float wheel = ImGui::GetIO().MouseWheel;
@@ -4812,48 +5019,55 @@ namespace {
                     viewer.zoom = std::clamp(viewer.zoom * scale, 0.05f, 64.0f);
                 }
             }
-
-            ImGui::EndChild();
-        } else {
-            ImGui::Separator();
+        } else if (viewer.last_error.empty()) {
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY()
+                                 + ImGui::GetTextLineHeightWithSpacing());
             ImGui::TextUnformatted(
                 "Image viewport placeholder is ready. Use File/Open to load an image.");
+            register_layout_dump_synthetic_item(
+                "text", "Image viewport placeholder is ready.");
         }
 
+        ImGui::EndChild();
+        ImGui::Separator();
+        register_layout_dump_synthetic_item("divider", "Main viewport");
+        draw_embedded_status_bar(viewer, ui_state);
         ImGui::End();
 
-        draw_info_window(viewer, dockspace_id, ui_state.show_info_window);
-        draw_preferences_window(config, ui_state, dockspace_id,
-                                ui_state.show_preferences_window);
+        draw_info_window(viewer, ui_state.show_info_window);
+        draw_preferences_window(config, ui_state, ui_state.show_preferences_window);
 
         if (ui_state.show_pixelview_window) {
-            if (dockspace_id != 0)
-                ImGui::SetNextWindowDockID(dockspace_id,
-                                           ImGuiCond_FirstUseEver);
-            if (ImGui::Begin("Pixel Closeup", &ui_state.show_pixelview_window))
+            ImGui::SetNextWindowSize(ImVec2(420.0f, 280.0f),
+                                     ImGuiCond_FirstUseEver);
+            if (ImGui::Begin("Pixel Closeup", &ui_state.show_pixelview_window)) {
                 ImGui::TextUnformatted(
                     "Pixel closeup/probe panel placeholder (shader path pending)");
+                register_layout_dump_synthetic_item("text",
+                                                    "Pixel closeup/probe panel");
+            }
             ImGui::End();
         }
 
         if (ui_state.show_area_probe_window) {
-            if (dockspace_id != 0)
-                ImGui::SetNextWindowDockID(dockspace_id,
-                                           ImGuiCond_FirstUseEver);
-            if (ImGui::Begin("Area Sample", &ui_state.show_area_probe_window))
+            ImGui::SetNextWindowSize(ImVec2(420.0f, 260.0f),
+                                     ImGuiCond_FirstUseEver);
+            if (ImGui::Begin("Area Sample", &ui_state.show_area_probe_window)) {
                 ImGui::TextUnformatted(
                     "Area sample statistics placeholder (implementation pending)");
+                register_layout_dump_synthetic_item("text",
+                                                    "Area sample statistics");
+            }
             ImGui::End();
         }
-
-        draw_status_window(viewer, ui_state, dockspace_id,
-                           ui_state.show_status_window);
 
         if (ImGui::BeginPopupModal("About imiv", nullptr,
                                    ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted("imiv (Dear ImGui port of iv)");
+            register_layout_dump_synthetic_item("text", "About imiv title");
             ImGui::TextUnformatted(
                 "UI placeholders are in place; feature implementation follows.");
+            register_layout_dump_synthetic_item("text", "About imiv body");
             if (ImGui::Button("Close"))
                 ImGui::CloseCurrentPopup();
             ImGui::EndPopup();
@@ -4894,6 +5108,14 @@ run(const AppConfig& config)
     return EXIT_FAILURE;
 #else
     AppConfig run_config = config;
+    run_config.input_paths.erase(
+        std::remove_if(run_config.input_paths.begin(),
+                       run_config.input_paths.end(),
+                       [](const std::string& path) {
+                           return trim_ascii(path).empty();
+                       }),
+        run_config.input_paths.end());
+
     std::string startup_open_path;
     if (run_config.input_paths.empty()
         && read_env_value("IMIV_IMGUI_TEST_ENGINE_OPEN_PATH", startup_open_path)
@@ -4987,9 +5209,14 @@ run(const AppConfig& config)
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     io.IniFilename = "imiv.ini";
     ImGui::StyleColorsDark();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        ImGuiStyle& style = ImGui::GetStyle();
+        style.WindowRounding          = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
     ImGui_ImplVulkan_InitInfo init_info    = {};
@@ -5126,8 +5353,12 @@ run(const AppConfig& config)
         ImGui::StyleColorsLight();
 
     if (!run_config.input_paths.empty()) {
-        load_viewer_image(vk_state, viewer, run_config.input_paths[0],
-                          ui_state.subimage_index, ui_state.miplevel_index);
+        if (!load_viewer_image(vk_state, viewer, run_config.input_paths[0],
+                               ui_state.subimage_index,
+                               ui_state.miplevel_index)) {
+            print(stderr, "imiv: startup load failed for '{}'\n",
+                  run_config.input_paths[0]);
+        }
     } else {
         viewer.status_message = "Open an image to start preview";
     }
@@ -5162,8 +5393,7 @@ run(const AppConfig& config)
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGuiID dockspace_id = begin_main_dockspace();
-        draw_viewer_ui(run_config, viewer, ui_state, dockspace_id, request_exit
+        draw_viewer_ui(run_config, viewer, ui_state, request_exit
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
                        ,
                        test_engine_runtime.engine
@@ -5197,6 +5427,10 @@ run(const AppConfig& config)
         vk_state.window_data.ClearValue.color.float32[3] = 1.0f;
         if (!main_is_minimized)
             frame_render(vk_state, draw_data);
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
         if (test_engine_runtime.engine)
             ImGuiTestEngine_PostSwap(test_engine_runtime.engine);
