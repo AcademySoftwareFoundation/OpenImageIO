@@ -61,7 +61,6 @@ static std::string searchpath;
 static bool batch         = false;
 static bool nowarp        = false;
 static bool tube          = false;
-static bool planepersp    = false;
 static bool use_handle    = false;
 static bool use_bluenoise = false;
 static float cachesize    = -1;
