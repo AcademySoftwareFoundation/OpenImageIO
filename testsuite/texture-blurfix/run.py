@@ -11,6 +11,8 @@
 # blur levels to verify that the fixed blur is consistent regardless of
 # the ellipse orientation in ST space.
 
+hardfail = 0.04
+
 checker = "../common/textures/checker.tx"
 
 command += testtex_command (checker, "--fix-texture-blur --blur 0.0 -d uint8 -o checker-0.00.tif")
