@@ -1890,7 +1890,7 @@ adjust_width(float& dsdx, float& dtdx, float& dsdy, float& dtdy, float swidth,
 // back to this and solve it better.
 inline void
 adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
-            float tblur)
+            float tblur, bool legacy_textblur = true)
 {
     if (sblur + tblur != 0.0f /* avoid the work when blur is zero */) {
         // Carefully add blur to the right derivative components in the
@@ -1901,8 +1901,22 @@ adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
         fast_sincos(theta, &sintheta, &costheta);
         sintheta = fabsf(sintheta);
         costheta = fabsf(costheta);
-        majorlength += sblur * costheta + tblur * sintheta;
-        minorlength += sblur * sintheta + tblur * costheta;
+
+        if (legacy_textblur) {
+            // The legacy blur code just adds the blur to the major and minor
+            // axes, which is a crude approximation that is wrong at some angles
+            // but is very simple and fast.  I'm leaving it here as an option
+            // for now, in case the new code causes any unforeseen problems.
+            majorlength += sblur * costheta + tblur * sintheta;
+            minorlength += sblur * sintheta + tblur * costheta;
+        } else {
+            const float sintheta2 = sintheta * sintheta;
+            const float costheta2 = costheta * costheta;
+            const float sblur2    = sblur * sblur;
+            const float tblur2    = tblur * tblur;
+            majorlength += sqrtf(sblur2 * costheta2 + tblur2 * sintheta2);
+            minorlength += sqrtf(sblur2 * sintheta2 + tblur2 * costheta2);
+        }
 #if 1
         if (minorlength > majorlength) {
             // Wildly uneven sblur and tblur values might swap which axis is
@@ -2273,7 +2287,8 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
     // or bicubic texture probes, and therefore runtime!
     ellipse_axes(dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta);
 
-    adjust_blur(majorlength, minorlength, theta, options.sblur, options.tblur);
+    adjust_blur(majorlength, minorlength, theta, options.sblur, options.tblur,
+                m_imagecache->legacy_texture_blur());
 
     float aspect, trueaspect;
     aspect = anisotropic_aspect(majorlength, minorlength, options, trueaspect);
@@ -3388,7 +3403,8 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     ellipse_axes(dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta, ABCF);
     std::cout << "  ellipse major " << majorlength << ", minor " << minorlength
               << ", theta " << theta << "\n";
-    adjust_blur(majorlength, minorlength, theta, sblur, tblur);
+    adjust_blur(majorlength, minorlength, theta, sblur, tblur,
+                m_imagecache->legacy_texture_blur());
     std::cout << "  post " << sblur << ' ' << tblur << " blur: major "
               << majorlength << ", minor " << minorlength << "\n\n";
 

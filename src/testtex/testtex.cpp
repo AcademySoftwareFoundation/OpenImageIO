@@ -61,6 +61,7 @@ static std::string searchpath;
 static bool batch         = false;
 static bool nowarp        = false;
 static bool tube          = false;
+static bool planepersp    = false;
 static bool use_handle    = false;
 static bool use_bluenoise = false;
 static float cachesize    = -1;
@@ -86,6 +87,7 @@ static bool test_derivs            = false;
 static bool test_statquery         = false;
 static bool invalidate_before_iter = true;
 static bool close_before_iter      = false;
+static bool fix_texture_blur       = false;
 static bool runstats               = false;
 static bool udim_tests             = false;
 static bool do_gettextureinfo      = true;
@@ -200,6 +202,8 @@ getargs(int argc, const char* argv[])
       .help("Do not warp the image->texture mapping");
     ap.arg("--tube", &tube)
       .help("Make a tube projection");
+    ap.arg("--fix-texture-blur", &fix_texture_blur)
+      .help("Use mathematically correct texture blur instead of legacy overblur");
     ap.arg("--ctr", &test_construction)
       .help("Test TextureOpt construction time");
     ap.arg("--gettexels", &test_gettexels)
@@ -641,7 +645,7 @@ map_env_latlong(const int& x, const int& y, Imath::Vec3<float>& R,
     float dphi_dy   = float(M_PI) * dv_dy;  // dphi_dx = 0
 
     R    = Imath::Vec3<float>(fast_sin(phi) * fast_sin(theta), fast_cos(phi),
-                           -fast_sin(phi) * fast_cos(theta));
+                              -fast_sin(phi) * fast_cos(theta));
     dRdx = Imath::Vec3<float>(fast_sin(phi) * fast_cos(theta) * dtheta_dx,
                               float(0.0f),
                               fast_sin(phi) * fast_sin(theta) * dtheta_dx);
@@ -1831,6 +1835,8 @@ main(int argc, const char* argv[])
     texsys->attribute("gray_to_rgb", gray_to_rgb);
     texsys->attribute("flip_t", flip_t);
     texsys->attribute("stochastic", stochastic);
+    if (fix_texture_blur)
+        texsys->attribute("legacy_texture_blur", 0);
     texcolortransform_id
         = std::max(0, texsys->get_colortransform_id(ustring(texcolorspace),
                                                     ustring("scene_linear")));
