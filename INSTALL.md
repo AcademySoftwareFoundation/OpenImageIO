@@ -17,17 +17,17 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++17 or higher (also builds with C++20 and C++23)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: gcc 9.3 - 14.2, **clang 10** - 20, MSVS 2017 - 2022 (v19.14
-   and up), Intel icc 19+, Intel OneAPI C++ compiler 2022+.
+ * Compilers: gcc 9.3 - 14.2, clang 10 - 20, MSVS 2017 - 2022 (v19.14
+   and up), Intel OneAPI C++ compiler 2022+.
  * CMake >= 3.18.2 (tested through 4.1)
  * Imath >= 3.1 (tested through 3.2 and main)
  * OpenEXR >= 3.1 (tested through 3.4 and main)
  * libTIFF >= 4.0 (tested through 4.7 and master)
- * *OpenColorIO >= 2.3* (tested through 2.5 and main)
+ * OpenColorIO >= 2.3 (tested through 2.5 and main)
  * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
    through 3.1)
  * zlib >= 1.2.7 (tested through 1.3.1)
- * [fmtlib](https://github.com/fmtlib/fmt) >= 7.0 (tested through 12.0 and master).
+ * **[fmtlib](https://github.com/fmtlib/fmt) >= 9.0** (tested through 12.1 and master).
    If not found at build time, this will be automatically downloaded and built.
  * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
    through 1.4, which is the recommended version). If not found at build time,
@@ -39,7 +39,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.9)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * **Python >= 3.9** (tested through 3.13).
+     * Python >= 3.9 (tested through 3.13).
      * pybind11 >= 2.7 (tested through 3.0)
      * NumPy (tested through 2.2.4)
  * If you want support for PNG files:
@@ -61,8 +61,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for GIF images:
      * giflib >= 5.0 (tested through 5.2.2)
  * If you want support for HEIF/HEIC or AVIF images:
-     * libheif >= 1.11 (1.16 required for correct orientation support,
-       tested through 1.21.1)
+     * libheif >= 1.11 (1.16 required for correct orientation support and
+       1.17 required for monochrome HEIC support; tested through 1.21.1)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.9)

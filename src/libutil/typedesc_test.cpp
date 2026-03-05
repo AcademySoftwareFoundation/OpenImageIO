@@ -69,10 +69,7 @@ test_type(string_view textrep, TypeDesc constructed,
         tostring_formatting fm(tostring_formatting::STDFORMAT);
         fm.aggregate_sep = ", ";
         fm.array_sep     = ", ";
-#if FMT_VERSION < 70100
-        fm.float_fmt = "{:g}";
-#endif
-        std::string s = tostring(constructed, &value, fm);
+        std::string s    = tostring(constructed, &value, fm);
         if (valuerep.size()) {
             OIIO_CHECK_EQUAL(s, valuerep);
             Strutil::print("  {}\n", s);
@@ -205,6 +202,11 @@ main(int /*argc*/, char* /*argv*/[])
                       TypeDesc(TypeDesc::INT, TypeDesc::VEC2,
                                TypeDesc::RATIONAL),
                       TypeRational, i2, "1/2");
+    uint32_t ui2[2] = { 1, 2 };
+    test_type<uint32_t[2]>("urational",
+                           TypeDesc(TypeDesc::UINT32, TypeDesc::VEC2,
+                                    TypeDesc::RATIONAL),
+                           TypeURational, ui2, "1/2");
     test_type<Imath::Box2f>("box2",
                             TypeDesc(TypeDesc::FLOAT, TypeDesc::VEC2,
                                      TypeDesc::BOX, 2),

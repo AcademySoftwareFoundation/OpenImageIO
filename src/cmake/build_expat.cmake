@@ -47,7 +47,7 @@ set (expat_DIR ${expat_ROOT}/lib/cmake/expat-${expat_VERSION})
 if (WIN32)
     # Set the expat_LIBRARY variable to the full path to ${EXPAT_LIBRARIES}.
     # For some reason, find_package(expat) behaves differently on Windows
-    find_package (EXPAT ${expat_BUILD_VERSION} EXACT REQUIRED)
+    find_package (expat ${expat_BUILD_VERSION} EXACT REQUIRED)
     set_cache(expat_LIBRARY ${EXPAT_LIBRARIES} "Full path to the expat library")
     message(STATUS "expat_LIBRARY = ${expat_LIBRARY}")
 endif ()
