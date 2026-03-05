@@ -11,7 +11,27 @@ layout(push_constant) uniform PreviewPushConstants {
     int color_mode;
     int channel;
     int use_ocio;
+    int orientation;
 } pc;
+
+vec2 display_to_source_uv(vec2 uv, int orientation)
+{
+    if (orientation == 2)
+        return vec2(1.0 - uv.x, uv.y);
+    if (orientation == 3)
+        return vec2(1.0 - uv.x, 1.0 - uv.y);
+    if (orientation == 4)
+        return vec2(uv.x, 1.0 - uv.y);
+    if (orientation == 5)
+        return vec2(uv.y, uv.x);
+    if (orientation == 6)
+        return vec2(uv.y, 1.0 - uv.x);
+    if (orientation == 7)
+        return vec2(1.0 - uv.y, 1.0 - uv.x);
+    if (orientation == 8)
+        return vec2(1.0 - uv.y, uv.x);
+    return uv;
+}
 
 float selected_channel(vec4 c, int channel)
 {
@@ -42,7 +62,8 @@ vec3 heatmap(float x)
 
 void main()
 {
-    vec4 c = texture(source_image, uv_in);
+    vec2 src_uv = display_to_source_uv(uv_in, pc.orientation);
+    vec4 c = texture(source_image, src_uv);
 
     if (pc.color_mode == 1) {
         c.a = 1.0;

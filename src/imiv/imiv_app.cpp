@@ -7,9 +7,11 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <ctime>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -18,6 +20,7 @@
 #include <limits>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <imgui.h>
@@ -38,6 +41,8 @@
 #endif
 
 #include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/strutil.h>
 
 using namespace OIIO;
@@ -142,6 +147,7 @@ namespace {
         std::string path;
         int width              = 0;
         int height             = 0;
+        int orientation        = 1;  // EXIF orientation [1..8]
         int nchannels          = 0;
         int subimage           = 0;
         int miplevel           = 0;
@@ -151,6 +157,7 @@ namespace {
         size_t channel_bytes   = 0;
         size_t row_pitch_bytes = 0;
         std::vector<unsigned char> pixels;
+        std::vector<std::pair<std::string, std::string>> longinfo_rows;
     };
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
@@ -161,6 +168,7 @@ namespace {
         int color_mode = 0;
         int channel    = 0;
         int use_ocio   = 0;
+        int orientation = 1;
     };
 
     struct VulkanTexture {
@@ -175,7 +183,9 @@ namespace {
         VkFramebuffer preview_framebuffer      = VK_NULL_HANDLE;
         VkDescriptorSet preview_source_set     = VK_NULL_HANDLE;
         VkSampler sampler     = VK_NULL_HANDLE;
+        VkSampler pixelview_sampler = VK_NULL_HANDLE;
         VkDescriptorSet set   = VK_NULL_HANDLE;
+        VkDescriptorSet pixelview_set = VK_NULL_HANDLE;
         int width             = 0;
         int height            = 0;
         bool preview_initialized = false;
@@ -199,6 +209,7 @@ namespace {
         int32_t color_mode = 0;
         int32_t channel    = 0;
         int32_t use_ocio   = 0;
+        int32_t orientation = 1;
     };
 
     struct VulkanState {
@@ -239,6 +250,13 @@ namespace {
 
 #endif
 
+    enum class ImageSortMode : uint8_t {
+        ByName     = 0,
+        ByPath     = 1,
+        ByImageDate = 2,
+        ByFileDate = 3
+    };
+
     struct ViewerState {
         LoadedImage image;
         std::string status_message;
@@ -249,6 +267,18 @@ namespace {
         int sibling_index = -1;
         std::string toggle_image_path;
         std::vector<std::string> recent_images;
+        ImageSortMode sort_mode = ImageSortMode::ByName;
+        bool sort_reverse       = false;
+        bool probe_valid   = false;
+        int probe_x        = 0;
+        int probe_y        = 0;
+        std::vector<double> probe_channels;
+        bool fullscreen_applied = false;
+        int windowed_x          = 100;
+        int windowed_y          = 100;
+        int windowed_width      = 1600;
+        int windowed_height     = 900;
+        double slide_last_advance_time = 0.0;
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
         VulkanTexture texture;
 #endif
@@ -269,6 +299,7 @@ namespace {
         bool slide_loop              = true;
         bool use_ocio                = false;
         bool pixelview_follows_mouse = false;
+        bool pixelview_left_corner   = true;
         bool linear_interpolation    = true;
         bool dark_palette            = true;
         bool auto_mipmap             = false;
@@ -294,6 +325,8 @@ namespace {
     void refresh_sibling_images(ViewerState& viewer);
     bool pick_sibling_image(const ViewerState& viewer, int delta,
                             std::string& out_path);
+    void sort_sibling_images(ViewerState& viewer);
+    int clamp_orientation(int orientation);
     void add_recent_image_path(ViewerState& viewer, const std::string& path);
     void clamp_placeholder_ui_state(PlaceholderUiState& ui_state);
     bool load_persistent_state(PlaceholderUiState& ui_state,
@@ -448,6 +481,140 @@ namespace {
 
 
 
+    template<class T>
+    T read_unaligned_value(const unsigned char* ptr)
+    {
+        T value = {};
+        std::memcpy(&value, ptr, sizeof(T));
+        return value;
+    }
+
+
+
+    std::string channel_label_for_index(int c)
+    {
+        static const char* names[] = { "R", "G", "B", "A" };
+        if (c >= 0 && c < 4)
+            return names[c];
+        return Strutil::fmt::format("C{}", c);
+    }
+
+
+
+    bool sample_loaded_pixel(const LoadedImage& image, int x, int y,
+                             std::vector<double>& out_channels)
+    {
+        out_channels.clear();
+        if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0
+            || image.channel_bytes == 0) {
+            return false;
+        }
+        if (x < 0 || y < 0 || x >= image.width || y >= image.height)
+            return false;
+
+        const size_t channels = static_cast<size_t>(image.nchannels);
+        const size_t px_stride = channels * image.channel_bytes;
+        const size_t row_start = static_cast<size_t>(y) * image.row_pitch_bytes;
+        const size_t px_start  = static_cast<size_t>(x) * px_stride;
+        const size_t offset    = row_start + px_start;
+        if (offset + px_stride > image.pixels.size())
+            return false;
+
+        out_channels.resize(channels);
+        const unsigned char* src = image.pixels.data() + offset;
+        for (size_t c = 0; c < channels; ++c) {
+            const unsigned char* channel_ptr = src + c * image.channel_bytes;
+            double v                          = 0.0;
+            switch (image.type) {
+            case UploadDataType::UInt8:
+                v = static_cast<double>(*channel_ptr);
+                break;
+            case UploadDataType::UInt16:
+                v = static_cast<double>(
+                    read_unaligned_value<uint16_t>(channel_ptr));
+                break;
+            case UploadDataType::UInt32:
+                v = static_cast<double>(
+                    read_unaligned_value<uint32_t>(channel_ptr));
+                break;
+            case UploadDataType::Half:
+                v = static_cast<double>(
+                    static_cast<float>(read_unaligned_value<half>(channel_ptr)));
+                break;
+            case UploadDataType::Float:
+                v = static_cast<double>(
+                    read_unaligned_value<float>(channel_ptr));
+                break;
+            case UploadDataType::Double:
+                v = read_unaligned_value<double>(channel_ptr);
+                break;
+            default: return false;
+            }
+            out_channels[c] = v;
+        }
+        return true;
+    }
+
+
+
+    bool compute_area_stats(const LoadedImage& image, int center_x, int center_y,
+                            int window_size, std::vector<double>& out_min,
+                            std::vector<double>& out_max,
+                            std::vector<double>& out_avg, int& out_samples)
+    {
+        out_min.clear();
+        out_max.clear();
+        out_avg.clear();
+        out_samples = 0;
+        if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0)
+            return false;
+        if (window_size <= 0)
+            return false;
+        if ((window_size & 1) == 0)
+            ++window_size;
+
+        const int half_window = window_size / 2;
+        const int x0 = std::max(0, center_x - half_window);
+        const int x1 = std::min(image.width - 1, center_x + half_window);
+        const int y0 = std::max(0, center_y - half_window);
+        const int y1 = std::min(image.height - 1, center_y + half_window);
+        if (x1 < x0 || y1 < y0)
+            return false;
+
+        const size_t channels = static_cast<size_t>(image.nchannels);
+        out_min.assign(channels, std::numeric_limits<double>::infinity());
+        out_max.assign(channels, -std::numeric_limits<double>::infinity());
+        out_avg.assign(channels, 0.0);
+
+        std::vector<double> sample;
+        for (int y = y0; y <= y1; ++y) {
+            for (int x = x0; x <= x1; ++x) {
+                if (!sample_loaded_pixel(image, x, y, sample))
+                    continue;
+                if (sample.size() != channels)
+                    continue;
+                for (size_t c = 0; c < channels; ++c) {
+                    out_min[c] = std::min(out_min[c], sample[c]);
+                    out_max[c] = std::max(out_max[c], sample[c]);
+                    out_avg[c] += sample[c];
+                }
+                ++out_samples;
+            }
+        }
+
+        if (out_samples <= 0) {
+            out_min.clear();
+            out_max.clear();
+            out_avg.clear();
+            return false;
+        }
+        for (double& v : out_avg)
+            v /= static_cast<double>(out_samples);
+        return true;
+    }
+
+
+
     bool is_ascii_space(char c)
     {
         return c == ' ' || c == '\t' || c == '\n' || c == '\r';
@@ -531,14 +698,25 @@ namespace {
 
     void clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
     {
+        auto clamp_odd = [](int value, int min_value, int max_value) {
+            int clamped = std::clamp(value, min_value, max_value);
+            if ((clamped & 1) == 0) {
+                if (clamped < max_value)
+                    ++clamped;
+                else
+                    --clamped;
+            }
+            return std::clamp(clamped, min_value, max_value);
+        };
+
         if (ui_state.max_memory_ic_mb < 64)
             ui_state.max_memory_ic_mb = 64;
         if (ui_state.slide_duration_seconds < 1)
             ui_state.slide_duration_seconds = 1;
-        if (ui_state.closeup_pixels < 9)
-            ui_state.closeup_pixels = 9;
-        if (ui_state.closeup_avg_pixels < 3)
-            ui_state.closeup_avg_pixels = 3;
+        ui_state.closeup_pixels
+            = clamp_odd(ui_state.closeup_pixels, 9, 25);
+        ui_state.closeup_avg_pixels
+            = clamp_odd(ui_state.closeup_avg_pixels, 3, 25);
         if (ui_state.closeup_avg_pixels > ui_state.closeup_pixels)
             ui_state.closeup_avg_pixels = ui_state.closeup_pixels;
         if (ui_state.current_channel < 0)
@@ -605,6 +783,9 @@ namespace {
             if (key == "pixelview_follows_mouse") {
                 if (parse_bool_value(value, bool_value))
                     ui_state.pixelview_follows_mouse = bool_value;
+            } else if (key == "pixelview_left_corner") {
+                if (parse_bool_value(value, bool_value))
+                    ui_state.pixelview_left_corner = bool_value;
             } else if (key == "linear_interpolation") {
                 if (parse_bool_value(value, bool_value))
                     ui_state.linear_interpolation = bool_value;
@@ -671,6 +852,14 @@ namespace {
                 ui_state.ocio_view = trim_ascii(value);
             } else if (key == "ocio_image_color_space") {
                 ui_state.ocio_image_color_space = trim_ascii(value);
+            } else if (key == "sort_mode") {
+                if (parse_int_value(value, int_value)) {
+                    int_value = std::clamp(int_value, 0, 3);
+                    viewer.sort_mode = static_cast<ImageSortMode>(int_value);
+                }
+            } else if (key == "sort_reverse") {
+                if (parse_bool_value(value, bool_value))
+                    viewer.sort_reverse = bool_value;
             } else if (key == "recent_image") {
                 add_recent_image_path(viewer, trim_ascii(value));
             }
@@ -706,6 +895,8 @@ namespace {
         output << "# imiv preferences\n";
         output << "pixelview_follows_mouse="
                << (ui_state.pixelview_follows_mouse ? 1 : 0) << "\n";
+        output << "pixelview_left_corner="
+               << (ui_state.pixelview_left_corner ? 1 : 0) << "\n";
         output << "linear_interpolation="
                << (ui_state.linear_interpolation ? 1 : 0) << "\n";
         output << "dark_palette=" << (ui_state.dark_palette ? 1 : 0) << "\n";
@@ -737,6 +928,8 @@ namespace {
         output << "ocio_view=" << ui_state.ocio_view << "\n";
         output << "ocio_image_color_space=" << ui_state.ocio_image_color_space
                << "\n";
+        output << "sort_mode=" << static_cast<int>(viewer.sort_mode) << "\n";
+        output << "sort_reverse=" << (viewer.sort_reverse ? 1 : 0) << "\n";
         for (const std::string& recent : viewer.recent_images)
             output << "recent_image=" << recent << "\n";
         output.flush();
@@ -793,6 +986,85 @@ namespace {
     void glfw_error_callback(int error, const char* description)
     {
         print(stderr, "imiv: GLFW error {}: {}\n", error, description);
+    }
+
+    void append_longinfo_row(LoadedImage& image, const char* label,
+                             const std::string& value)
+    {
+        if (label == nullptr || label[0] == '\0')
+            return;
+        image.longinfo_rows.emplace_back(label, value);
+    }
+
+    void build_longinfo_rows(LoadedImage& image, const ImageBuf& source,
+                             const ImageSpec& spec)
+    {
+        image.longinfo_rows.clear();
+        if (spec.depth <= 1) {
+            append_longinfo_row(
+                image, "Dimensions",
+                Strutil::fmt::format("{} x {} pixels", spec.width,
+                                     spec.height));
+        } else {
+            append_longinfo_row(
+                image, "Dimensions",
+                Strutil::fmt::format("{} x {} x {} pixels", spec.width,
+                                     spec.height, spec.depth));
+        }
+        append_longinfo_row(image, "Channels",
+                            Strutil::fmt::format("{}", spec.nchannels));
+
+        std::string channel_list;
+        for (int i = 0; i < spec.nchannels; ++i) {
+            if (i > 0)
+                channel_list += ", ";
+            channel_list += spec.channelnames[i];
+        }
+        append_longinfo_row(image, "Channel list", channel_list);
+        append_longinfo_row(image, "File format",
+                            std::string(source.file_format_name()));
+        append_longinfo_row(image, "Data format",
+                            std::string(spec.format.c_str()));
+        append_longinfo_row(
+            image, "Data size",
+            Strutil::fmt::format("{:.2f} MB",
+                                 static_cast<double>(spec.image_bytes())
+                                     / (1024.0 * 1024.0)));
+        append_longinfo_row(image, "Image origin",
+                            Strutil::fmt::format("{}, {}, {}", spec.x, spec.y,
+                                                 spec.z));
+        append_longinfo_row(image, "Full/display size",
+                            Strutil::fmt::format("{} x {} x {}",
+                                                 spec.full_width,
+                                                 spec.full_height,
+                                                 spec.full_depth));
+        append_longinfo_row(image, "Full/display origin",
+                            Strutil::fmt::format("{}, {}, {}", spec.full_x,
+                                                 spec.full_y, spec.full_z));
+        if (spec.tile_width) {
+            append_longinfo_row(
+                image, "Scanline/tile",
+                Strutil::fmt::format("tiled {} x {} x {}", spec.tile_width,
+                                     spec.tile_height, spec.tile_depth));
+        } else {
+            append_longinfo_row(image, "Scanline/tile", "scanline");
+        }
+        if (spec.alpha_channel >= 0) {
+            append_longinfo_row(
+                image, "Alpha channel",
+                Strutil::fmt::format("{}", spec.alpha_channel));
+        }
+        if (spec.z_channel >= 0) {
+            append_longinfo_row(image, "Depth (z) channel",
+                                Strutil::fmt::format("{}", spec.z_channel));
+        }
+
+        ParamValueList attribs = spec.extra_attribs;
+        attribs.sort(false);
+        for (auto&& p : attribs) {
+            append_longinfo_row(image, p.name().c_str(),
+                                spec.metadata_val(p, true));
+        }
     }
 
     bool load_image_for_compute(const std::string& path, int requested_subimage,
@@ -873,6 +1145,8 @@ namespace {
         image.path        = path;
         image.width       = spec.width;
         image.height      = spec.height;
+        image.orientation = clamp_orientation(
+            spec.get_int_attribute("Orientation", 1));
         image.nchannels   = spec.nchannels;
         image.subimage    = resolved_subimage;
         image.miplevel    = resolved_miplevel;
@@ -882,6 +1156,7 @@ namespace {
         image.channel_bytes   = channel_bytes;
         image.row_pitch_bytes = row_pitch;
         image.pixels      = std::move(pixels);
+        build_longinfo_rows(image, source, spec);
 
         if (spec.format != read_format) {
             print(stderr,
@@ -2344,6 +2619,10 @@ namespace {
 
     void destroy_texture(VulkanState& vk_state, VulkanTexture& texture)
     {
+        if (texture.pixelview_set != VK_NULL_HANDLE) {
+            ImGui_ImplVulkan_RemoveTexture(texture.pixelview_set);
+            texture.pixelview_set = VK_NULL_HANDLE;
+        }
         if (texture.set != VK_NULL_HANDLE) {
             ImGui_ImplVulkan_RemoveTexture(texture.set);
             texture.set = VK_NULL_HANDLE;
@@ -2363,6 +2642,11 @@ namespace {
             vkDestroySampler(vk_state.device, texture.sampler,
                              vk_state.allocator);
             texture.sampler = VK_NULL_HANDLE;
+        }
+        if (texture.pixelview_sampler != VK_NULL_HANDLE) {
+            vkDestroySampler(vk_state.device, texture.pixelview_sampler,
+                             vk_state.allocator);
+            texture.pixelview_sampler = VK_NULL_HANDLE;
         }
         if (texture.view != VK_NULL_HANDLE) {
             vkDestroyImageView(vk_state.device, texture.view,
@@ -2833,6 +3117,22 @@ namespace {
             set_vk_object_name(vk_state, VK_OBJECT_TYPE_SAMPLER,
                                texture.sampler, "imiv.viewer.sampler");
 
+            VkSamplerCreateInfo pixelview_sampler_ci = sampler_ci;
+            pixelview_sampler_ci.magFilter           = VK_FILTER_NEAREST;
+            pixelview_sampler_ci.minFilter           = VK_FILTER_NEAREST;
+            pixelview_sampler_ci.mipmapMode
+                = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+            err = vkCreateSampler(vk_state.device, &pixelview_sampler_ci,
+                                  vk_state.allocator,
+                                  &texture.pixelview_sampler);
+            if (err != VK_SUCCESS) {
+                error_message = "vkCreateSampler failed for pixel closeup";
+                break;
+            }
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_SAMPLER,
+                               texture.pixelview_sampler,
+                               "imiv.viewer.pixelview_sampler");
+
             VkDescriptorSetAllocateInfo preview_set_alloc = {};
             preview_set_alloc.sType
                 = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -2990,6 +3290,14 @@ namespace {
                 error_message = "ImGui_ImplVulkan_AddTexture failed";
                 break;
             }
+            texture.pixelview_set = ImGui_ImplVulkan_AddTexture(
+                texture.pixelview_sampler, texture.view,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            if (texture.pixelview_set == VK_NULL_HANDLE) {
+                error_message
+                    = "ImGui_ImplVulkan_AddTexture failed for pixel closeup";
+                break;
+            }
 
             texture.width  = image.width;
             texture.height = image.height;
@@ -3036,7 +3344,8 @@ namespace {
         return std::abs(a.exposure - b.exposure) < 1.0e-6f
                && std::abs(a.gamma - b.gamma) < 1.0e-6f
                && a.color_mode == b.color_mode && a.channel == b.channel
-               && a.use_ocio == b.use_ocio;
+               && a.use_ocio == b.use_ocio
+               && a.orientation == b.orientation;
     }
 
 
@@ -3170,6 +3479,7 @@ namespace {
             push.color_mode = controls.color_mode;
             push.channel    = controls.channel;
             push.use_ocio   = controls.use_ocio;
+            push.orientation = controls.orientation;
             vkCmdPushConstants(command_buffer, vk_state.preview_pipeline_layout,
                                VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push),
                                &push);
@@ -3258,6 +3568,19 @@ namespace {
         viewer.texture     = texture;
         viewer.zoom        = 1.0f;
         viewer.fit_request = true;
+        viewer.probe_valid = false;
+        viewer.probe_channels.clear();
+        if (viewer.image.width > 0 && viewer.image.height > 0) {
+            const int center_x = viewer.image.width / 2;
+            const int center_y = viewer.image.height / 2;
+            std::vector<double> sample;
+            if (sample_loaded_pixel(viewer.image, center_x, center_y, sample)) {
+                viewer.probe_valid    = true;
+                viewer.probe_x        = center_x;
+                viewer.probe_y        = center_y;
+                viewer.probe_channels = std::move(sample);
+            }
+        }
         add_recent_image_path(viewer, viewer.image.path);
         refresh_sibling_images(viewer);
         viewer.status_message
@@ -3612,10 +3935,8 @@ namespace {
         const char* window_names[] = {
             "##MainMenuBar",
             k_image_window_title,
-            "Image Info",
-            "Preferences",
-            "Pixel Closeup",
-            "Area Sample",
+            "iv Info",
+            "iv Preferences",
         };
         windows.reserve(IM_ARRAYSIZE(window_names));
         for (const char* window_name : window_names) {
@@ -3946,6 +4267,154 @@ namespace {
         return "Zoom";
     }
 
+    int clamp_orientation(int orientation)
+    {
+        return std::clamp(orientation, 1, 8);
+    }
+
+    bool orientation_swaps_axes(int orientation)
+    {
+        orientation = clamp_orientation(orientation);
+        return orientation == 5 || orientation == 6 || orientation == 7
+               || orientation == 8;
+    }
+
+    void oriented_image_dimensions(const LoadedImage& image, int& out_width,
+                                   int& out_height)
+    {
+        if (orientation_swaps_axes(image.orientation)) {
+            out_width  = image.height;
+            out_height = image.width;
+        } else {
+            out_width  = image.width;
+            out_height = image.height;
+        }
+    }
+
+    ImVec2 source_uv_to_display_uv(const ImVec2& src_uv, int orientation)
+    {
+        const float u = src_uv.x;
+        const float v = src_uv.y;
+        switch (clamp_orientation(orientation)) {
+        case 1: return ImVec2(u, v);
+        case 2: return ImVec2(1.0f - u, v);
+        case 3: return ImVec2(1.0f - u, 1.0f - v);
+        case 4: return ImVec2(u, 1.0f - v);
+        case 5: return ImVec2(v, u);
+        case 6: return ImVec2(1.0f - v, u);
+        case 7: return ImVec2(1.0f - v, 1.0f - u);
+        case 8: return ImVec2(v, 1.0f - u);
+        default: break;
+        }
+        return ImVec2(u, v);
+    }
+
+    ImVec2 display_uv_to_source_uv(const ImVec2& display_uv, int orientation)
+    {
+        const float u = display_uv.x;
+        const float v = display_uv.y;
+        switch (clamp_orientation(orientation)) {
+        case 1: return ImVec2(u, v);
+        case 2: return ImVec2(1.0f - u, v);
+        case 3: return ImVec2(1.0f - u, 1.0f - v);
+        case 4: return ImVec2(u, 1.0f - v);
+        case 5: return ImVec2(v, u);
+        case 6: return ImVec2(v, 1.0f - u);
+        case 7: return ImVec2(1.0f - v, 1.0f - u);
+        case 8: return ImVec2(1.0f - v, u);
+        default: break;
+        }
+        return ImVec2(u, v);
+    }
+
+    struct ImageCoordinateMap {
+        bool valid = false;
+        int source_width  = 0;
+        int source_height = 0;
+        int orientation   = 1;
+        ImVec2 image_rect_min = ImVec2(0.0f, 0.0f);  // screen space
+        ImVec2 image_rect_max = ImVec2(0.0f, 0.0f);  // screen space
+        ImVec2 window_pos      = ImVec2(0.0f, 0.0f);  // screen space
+    };
+
+    ImVec2 screen_to_window_coords(const ImageCoordinateMap& map,
+                                   const ImVec2& screen_pos)
+    {
+        return ImVec2(screen_pos.x - map.window_pos.x,
+                      screen_pos.y - map.window_pos.y);
+    }
+
+    ImVec2 window_to_screen_coords(const ImageCoordinateMap& map,
+                                   const ImVec2& window_pos)
+    {
+        return ImVec2(window_pos.x + map.window_pos.x,
+                      window_pos.y + map.window_pos.y);
+    }
+
+    bool screen_to_display_uv(const ImageCoordinateMap& map,
+                              const ImVec2& screen_pos, ImVec2& out_display_uv)
+    {
+        out_display_uv = ImVec2(0.0f, 0.0f);
+        if (!map.valid)
+            return false;
+        const float w = map.image_rect_max.x - map.image_rect_min.x;
+        const float h = map.image_rect_max.y - map.image_rect_min.y;
+        if (w <= 0.0f || h <= 0.0f)
+            return false;
+        const float u = (screen_pos.x - map.image_rect_min.x) / w;
+        const float v = (screen_pos.y - map.image_rect_min.y) / h;
+        out_display_uv = ImVec2(u, v);
+        return (u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f);
+    }
+
+    bool screen_to_source_uv(const ImageCoordinateMap& map,
+                             const ImVec2& screen_pos, ImVec2& out_source_uv)
+    {
+        ImVec2 display_uv(0.0f, 0.0f);
+        if (!screen_to_display_uv(map, screen_pos, display_uv))
+            return false;
+        out_source_uv = display_uv_to_source_uv(display_uv, map.orientation);
+        out_source_uv.x = std::clamp(out_source_uv.x, 0.0f, 1.0f);
+        out_source_uv.y = std::clamp(out_source_uv.y, 0.0f, 1.0f);
+        return true;
+    }
+
+    bool source_uv_to_screen(const ImageCoordinateMap& map, const ImVec2& source_uv,
+                             ImVec2& out_screen_pos)
+    {
+        out_screen_pos = ImVec2(0.0f, 0.0f);
+        if (!map.valid)
+            return false;
+        const float w = map.image_rect_max.x - map.image_rect_min.x;
+        const float h = map.image_rect_max.y - map.image_rect_min.y;
+        if (w <= 0.0f || h <= 0.0f)
+            return false;
+        const ImVec2 display_uv
+            = source_uv_to_display_uv(source_uv, map.orientation);
+        out_screen_pos = ImVec2(map.image_rect_min.x + display_uv.x * w,
+                                map.image_rect_min.y + display_uv.y * h);
+        return true;
+    }
+
+    bool source_uv_to_pixel(const ImageCoordinateMap& map, const ImVec2& source_uv,
+                            int& out_px, int& out_py)
+    {
+        out_px = 0;
+        out_py = 0;
+        if (!map.valid || map.source_width <= 0 || map.source_height <= 0)
+            return false;
+
+        const float u = std::clamp(source_uv.x, 0.0f, 1.0f);
+        const float v = std::clamp(source_uv.y, 0.0f, 1.0f);
+        out_px = std::clamp(static_cast<int>(std::floor(
+                                u * static_cast<float>(map.source_width))),
+                            0, map.source_width - 1);
+        out_py = std::clamp(static_cast<int>(std::floor(
+                                v * static_cast<float>(map.source_height))),
+                            0, map.source_height - 1);
+        return true;
+    }
+
 
 
     bool has_supported_image_extension(const std::filesystem::path& path)
@@ -3955,6 +4424,136 @@ namespace {
         return ext == ".exr" || ext == ".tif" || ext == ".tiff"
                || ext == ".png" || ext == ".jpg" || ext == ".jpeg"
                || ext == ".bmp" || ext == ".hdr";
+    }
+
+    bool datetime_to_time_t(string_view datetime, std::time_t& out_time)
+    {
+        int year  = 0;
+        int month = 0;
+        int day   = 0;
+        int hour  = 0;
+        int min   = 0;
+        int sec   = 0;
+        if (!Strutil::scan_datetime(datetime, year, month, day, hour, min, sec))
+            return false;
+
+        std::tm tm_value = {};
+        tm_value.tm_sec  = sec;
+        tm_value.tm_min  = min;
+        tm_value.tm_hour = hour;
+        tm_value.tm_mday = day;
+        tm_value.tm_mon  = month - 1;
+        tm_value.tm_year = year - 1900;
+        out_time         = std::mktime(&tm_value);
+        return out_time != static_cast<std::time_t>(-1);
+    }
+
+    bool file_last_write_time(const std::string& path, std::time_t& out_time)
+    {
+        std::error_code ec;
+        const auto file_time = std::filesystem::last_write_time(path, ec);
+        if (ec)
+            return false;
+        const auto system_time = std::chrono::time_point_cast<
+            std::chrono::system_clock::duration>(
+            file_time - std::filesystem::file_time_type::clock::now()
+            + std::chrono::system_clock::now());
+        out_time = std::chrono::system_clock::to_time_t(system_time);
+        return true;
+    }
+
+    bool image_datetime(const std::string& path, std::time_t& out_time)
+    {
+        auto input = ImageInput::open(path);
+        if (!input)
+            return false;
+        const ImageSpec spec = input->spec();
+        input->close();
+
+        const std::string datetime = spec.get_string_attribute("DateTime");
+        if (datetime.empty())
+            return false;
+        return datetime_to_time_t(datetime, out_time);
+    }
+
+    void sort_sibling_images(ViewerState& viewer)
+    {
+        if (viewer.sibling_images.empty())
+            return;
+
+        auto filename_key = [](const std::string& path) {
+            return std::filesystem::path(path).filename().string();
+        };
+        auto path_key = [](const std::string& path) {
+            return std::filesystem::path(path).lexically_normal().string();
+        };
+
+        switch (viewer.sort_mode) {
+        case ImageSortMode::ByName:
+            std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+                      [&](const std::string& a, const std::string& b) {
+                          const std::string a_name = filename_key(a);
+                          const std::string b_name = filename_key(b);
+                          if (a_name == b_name)
+                              return path_key(a) < path_key(b);
+                          return a_name < b_name;
+                      });
+            break;
+        case ImageSortMode::ByPath:
+            std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+                      [&](const std::string& a, const std::string& b) {
+                          return path_key(a) < path_key(b);
+                      });
+            break;
+        case ImageSortMode::ByImageDate:
+            std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+                      [&](const std::string& a, const std::string& b) {
+                          std::time_t a_time = {};
+                          std::time_t b_time = {};
+                          const bool a_ok = image_datetime(a, a_time)
+                                            || file_last_write_time(a, a_time);
+                          const bool b_ok = image_datetime(b, b_time)
+                                            || file_last_write_time(b, b_time);
+                          if (a_ok != b_ok)
+                              return a_ok;
+                          if (!a_ok && !b_ok)
+                              return filename_key(a) < filename_key(b);
+                          if (a_time == b_time)
+                              return filename_key(a) < filename_key(b);
+                          return a_time < b_time;
+                      });
+            break;
+        case ImageSortMode::ByFileDate:
+            std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+                      [&](const std::string& a, const std::string& b) {
+                          std::time_t a_time = {};
+                          std::time_t b_time = {};
+                          const bool a_ok = file_last_write_time(a, a_time);
+                          const bool b_ok = file_last_write_time(b, b_time);
+                          if (a_ok != b_ok)
+                              return a_ok;
+                          if (!a_ok && !b_ok)
+                              return filename_key(a) < filename_key(b);
+                          if (a_time == b_time)
+                              return filename_key(a) < filename_key(b);
+                          return a_time < b_time;
+                      });
+            break;
+        }
+
+        if (viewer.sort_reverse)
+            std::reverse(viewer.sibling_images.begin(), viewer.sibling_images.end());
+
+        if (viewer.image.path.empty()) {
+            viewer.sibling_index = -1;
+            return;
+        }
+        auto it = std::find(viewer.sibling_images.begin(),
+                            viewer.sibling_images.end(), viewer.image.path);
+        viewer.sibling_index = (it != viewer.sibling_images.end())
+                                   ? static_cast<int>(std::distance(
+                                       viewer.sibling_images.begin(), it))
+                                   : -1;
     }
 
 
@@ -3982,12 +4581,7 @@ namespace {
                 continue;
             viewer.sibling_images.emplace_back(entry.path().string());
         }
-        std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end());
-        auto it = std::find(viewer.sibling_images.begin(),
-                            viewer.sibling_images.end(), current.string());
-        if (it != viewer.sibling_images.end())
-            viewer.sibling_index = static_cast<int>(
-                std::distance(viewer.sibling_images.begin(), it));
+        sort_sibling_images(viewer);
     }
 
 
@@ -4043,7 +4637,7 @@ namespace {
 
     void set_placeholder_status(ViewerState& viewer, const char* action)
     {
-        viewer.status_message = Strutil::fmt::format("{} (placeholder)",
+        viewer.status_message = Strutil::fmt::format("{} (not implemented yet)",
                                                      action);
         viewer.last_error.clear();
     }
@@ -4181,6 +4775,150 @@ namespace {
 
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
+    void set_full_screen_mode(GLFWwindow* window, ViewerState& viewer,
+                              bool enable, std::string& error_message)
+    {
+        error_message.clear();
+        if (window == nullptr)
+            return;
+        if (enable == viewer.fullscreen_applied)
+            return;
+
+        if (enable) {
+            GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+            if (monitor == nullptr) {
+                error_message = "fullscreen failed: no primary monitor";
+                return;
+            }
+            const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+            if (mode == nullptr) {
+                error_message = "fullscreen failed: monitor mode unavailable";
+                return;
+            }
+
+            glfwGetWindowPos(window, &viewer.windowed_x, &viewer.windowed_y);
+            glfwGetWindowSize(window, &viewer.windowed_width,
+                              &viewer.windowed_height);
+            glfwSetWindowMonitor(window, monitor, 0, 0, mode->width,
+                                 mode->height, mode->refreshRate);
+            viewer.fullscreen_applied = true;
+            return;
+        }
+
+        const int restore_w = std::max(320, viewer.windowed_width);
+        const int restore_h = std::max(240, viewer.windowed_height);
+        glfwSetWindowMonitor(window, nullptr, viewer.windowed_x, viewer.windowed_y,
+                             restore_w, restore_h, 0);
+        viewer.fullscreen_applied = false;
+    }
+
+    void fit_window_to_image_action(GLFWwindow* window, ViewerState& viewer,
+                                    PlaceholderUiState& ui_state)
+    {
+        if (window == nullptr || viewer.image.path.empty())
+            return;
+        if (viewer.fullscreen_applied || ui_state.full_screen_mode)
+            return;
+
+        int window_w = 0;
+        int window_h = 0;
+        int fb_w     = 0;
+        int fb_h     = 0;
+        glfwGetWindowSize(window, &window_w, &window_h);
+        glfwGetFramebufferSize(window, &fb_w, &fb_h);
+
+        const float scale_x
+            = (fb_w > 0) ? (static_cast<float>(window_w) / fb_w) : 1.0f;
+        const float scale_y
+            = (fb_h > 0) ? (static_cast<float>(window_h) / fb_h) : 1.0f;
+
+        constexpr int k_view_padding_px = 24;
+        constexpr int k_ui_overhead_px  = 120;
+        int display_width  = viewer.image.width;
+        int display_height = viewer.image.height;
+        oriented_image_dimensions(viewer.image, display_width, display_height);
+        const int target_fb_w = std::max(320, display_width + k_view_padding_px);
+        const int target_fb_h = std::max(240,
+                                         display_height + k_ui_overhead_px);
+        const int target_w = static_cast<int>(
+            std::round(static_cast<float>(target_fb_w) * scale_x));
+        const int target_h = static_cast<int>(
+            std::round(static_cast<float>(target_fb_h) * scale_y));
+
+        glfwSetWindowSize(window, target_w, target_h);
+        ui_state.fit_image_to_window = false;
+        viewer.zoom                  = 1.0f;
+        viewer.fit_request           = false;
+        viewer.status_message = Strutil::fmt::format("Fit window to image: {}x{}",
+                                                     target_w, target_h);
+        viewer.last_error.clear();
+    }
+
+    void save_window_as_dialog_action(ViewerState& viewer)
+    {
+        save_as_dialog_action(viewer);
+    }
+
+    void save_selection_as_dialog_action(ViewerState& viewer)
+    {
+        save_as_dialog_action(viewer);
+    }
+
+    void set_sort_mode_action(ViewerState& viewer, ImageSortMode mode)
+    {
+        viewer.sort_mode = mode;
+        sort_sibling_images(viewer);
+        viewer.status_message = "Image list sort mode changed";
+        viewer.last_error.clear();
+    }
+
+    void toggle_sort_reverse_action(ViewerState& viewer)
+    {
+        viewer.sort_reverse = !viewer.sort_reverse;
+        sort_sibling_images(viewer);
+        viewer.status_message = viewer.sort_reverse
+                                    ? "Image list order reversed"
+                                    : "Image list order restored";
+        viewer.last_error.clear();
+    }
+
+    bool advance_slide_show_action(VulkanState& vk_state, ViewerState& viewer,
+                                   PlaceholderUiState& ui_state)
+    {
+        if (!ui_state.slide_show_running || viewer.sibling_images.empty()
+            || viewer.image.path.empty()) {
+            return false;
+        }
+
+        const int count = static_cast<int>(viewer.sibling_images.size());
+        if (count <= 0 || viewer.sibling_index < 0)
+            return false;
+
+        if (!ui_state.slide_loop && viewer.sibling_index >= count - 1) {
+            ui_state.slide_show_running = false;
+            viewer.status_message       = "Slide show reached final image";
+            viewer.last_error.clear();
+            return false;
+        }
+
+        std::string next_path;
+        if (!pick_sibling_image(viewer, 1, next_path) || next_path.empty())
+            return false;
+        return load_viewer_image(vk_state, viewer, next_path,
+                                 viewer.image.subimage, viewer.image.miplevel);
+    }
+
+    void toggle_slide_show_action(PlaceholderUiState& ui_state, ViewerState& viewer)
+    {
+        ui_state.slide_show_running = !ui_state.slide_show_running;
+        if (ui_state.slide_show_running)
+            ui_state.full_screen_mode = true;
+        viewer.slide_last_advance_time = ImGui::GetTime();
+        viewer.status_message = ui_state.slide_show_running ? "Slide show started"
+                                                            : "Slide show stopped";
+        viewer.last_error.clear();
+    }
+
     void open_image_dialog_action(VulkanState& vk_state, ViewerState& viewer,
                                   int requested_subimage,
                                   int requested_miplevel)
@@ -4203,7 +4941,8 @@ namespace {
     void reload_current_image_action(VulkanState& vk_state, ViewerState& viewer)
     {
         if (viewer.image.path.empty()) {
-            set_placeholder_status(viewer, "Reload image");
+            viewer.status_message = "No image loaded";
+            viewer.last_error.clear();
             return;
         }
         load_viewer_image(vk_state, viewer, viewer.image.path,
@@ -4220,6 +4959,8 @@ namespace {
         viewer.image       = LoadedImage();
         viewer.zoom        = 1.0f;
         viewer.fit_request = true;
+        viewer.probe_valid = false;
+        viewer.probe_channels.clear();
         viewer.sibling_images.clear();
         viewer.sibling_index = -1;
         viewer.last_error.clear();
@@ -4233,8 +4974,10 @@ namespace {
     {
         std::string path;
         if (!pick_sibling_image(viewer, delta, path)) {
-            set_placeholder_status(viewer, delta < 0 ? "Previous Image"
-                                                     : "Next Image");
+            viewer.status_message
+                = (delta < 0) ? "Previous image unavailable"
+                              : "Next image unavailable";
+            viewer.last_error.clear();
             return;
         }
         load_viewer_image(vk_state, viewer, path, viewer.image.subimage,
@@ -4246,12 +4989,14 @@ namespace {
     void toggle_image_action(VulkanState& vk_state, ViewerState& viewer)
     {
         if (viewer.toggle_image_path.empty()) {
-            set_placeholder_status(viewer, "Toggle image");
+            viewer.status_message = "No toggled image available";
+            viewer.last_error.clear();
             return;
         }
         if (viewer.image.path == viewer.toggle_image_path) {
             if (!pick_sibling_image(viewer, 1, viewer.toggle_image_path)) {
-                set_placeholder_status(viewer, "Toggle image");
+                viewer.status_message = "No toggled image available";
+                viewer.last_error.clear();
                 return;
             }
         }
@@ -4265,9 +5010,8 @@ namespace {
                                 int delta)
     {
         if (viewer.image.path.empty()) {
-            set_placeholder_status(viewer,
-                                   delta < 0 ? "Prev Subimage"
-                                             : "Next Subimage");
+            viewer.status_message = "No image loaded";
+            viewer.last_error.clear();
             return;
         }
         const int target_subimage = viewer.image.subimage + delta;
@@ -4283,9 +5027,8 @@ namespace {
                                 int delta)
     {
         if (viewer.image.path.empty()) {
-            set_placeholder_status(viewer,
-                                   delta < 0 ? "Prev MIP level"
-                                             : "Next MIP level");
+            viewer.status_message = "No image loaded";
+            viewer.last_error.clear();
             return;
         }
         const int target_mip = viewer.image.miplevel + delta;
@@ -4298,71 +5041,652 @@ namespace {
 
 
 
+    void draw_padded_message(const char* message, float x_pad = 10.0f,
+                             float y_pad = 6.0f)
+    {
+        if (!message || message[0] == '\0')
+            return;
+        ImVec2 pos = ImGui::GetCursorPos();
+        pos.x += x_pad;
+        pos.y += y_pad;
+        ImGui::SetCursorPos(pos);
+        const float wrap_width = ImGui::GetCursorPosX()
+                                 + std::max(64.0f,
+                                            ImGui::GetContentRegionAvail().x
+                                                - x_pad);
+        ImGui::PushTextWrapPos(wrap_width);
+        ImGui::TextUnformatted(message);
+        ImGui::PopTextWrapPos();
+    }
+
+
+
+    std::string format_probe_channel_value(UploadDataType type, double value)
+    {
+        switch (type) {
+        case UploadDataType::UInt8:
+        case UploadDataType::UInt16:
+        case UploadDataType::UInt32:
+            return Strutil::fmt::format("{:.0f}", value);
+        case UploadDataType::Half:
+        case UploadDataType::Float:
+            return Strutil::fmt::format("{:.7g}", value);
+        case UploadDataType::Double:
+            return Strutil::fmt::format("{:.12g}", value);
+        default: break;
+        }
+        return Strutil::fmt::format("{:.7g}", value);
+    }
+
+
+    bool probe_type_is_integer(UploadDataType type)
+    {
+        return type == UploadDataType::UInt8 || type == UploadDataType::UInt16
+               || type == UploadDataType::UInt32;
+    }
+
+
+
+    double probe_channel_integer_denominator(UploadDataType type)
+    {
+        switch (type) {
+        case UploadDataType::UInt8: return 255.0;
+        case UploadDataType::UInt16: return 65535.0;
+        case UploadDataType::UInt32: return 4294967295.0;
+        default: break;
+        }
+        return 1.0;
+    }
+
+
+
+    struct OverlayPanelRect {
+        bool valid = false;
+        ImVec2 min = ImVec2(0.0f, 0.0f);
+        ImVec2 max = ImVec2(0.0f, 0.0f);
+    };
+
+    OverlayPanelRect draw_overlay_text_panel(const std::vector<std::string>& lines,
+                                             const ImVec2& preferred_pos,
+                                             const ImVec2& clip_min,
+                                             const ImVec2& clip_max)
+    {
+        OverlayPanelRect panel;
+        if (lines.empty())
+            return panel;
+
+        const float pad_x    = 10.0f;
+        const float pad_y    = 8.0f;
+        const float line_gap = 2.0f;
+        const float line_h   = ImGui::GetTextLineHeight();
+
+        float text_w = 0.0f;
+        for (const std::string& line : lines) {
+            const ImVec2 size = ImGui::CalcTextSize(line.c_str());
+            if (size.x > text_w)
+                text_w = size.x;
+        }
+        const float panel_w = text_w + pad_x * 2.0f;
+        const float panel_h = pad_y * 2.0f
+                              + static_cast<float>(lines.size()) * line_h
+                              + static_cast<float>(lines.size() - 1) * line_gap;
+
+        const float min_x = std::min(clip_min.x, clip_max.x);
+        const float min_y = std::min(clip_min.y, clip_max.y);
+        const float max_x = std::max(clip_min.x, clip_max.x);
+        const float max_y = std::max(clip_min.y, clip_max.y);
+
+        ImVec2 pos = preferred_pos;
+        pos.x      = std::clamp(pos.x, min_x, std::max(min_x, max_x - panel_w));
+        pos.y      = std::clamp(pos.y, min_y, std::max(min_y, max_y - panel_h));
+
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        draw_list->PushClipRect(clip_min, clip_max, true);
+        draw_list->AddRectFilled(pos, ImVec2(pos.x + panel_w, pos.y + panel_h),
+                                 IM_COL32(20, 24, 30, 224), 4.0f);
+        draw_list->AddRect(pos, ImVec2(pos.x + panel_w, pos.y + panel_h),
+                           IM_COL32(175, 185, 205, 255), 4.0f, 0, 1.0f);
+
+        ImVec2 text_pos(pos.x + pad_x, pos.y + pad_y);
+        for (const std::string& line : lines) {
+            draw_list->AddText(text_pos, IM_COL32(240, 242, 245, 255),
+                               line.c_str());
+            text_pos.y += line_h + line_gap;
+        }
+        draw_list->PopClipRect();
+
+        panel.valid = true;
+        panel.min   = pos;
+        panel.max   = ImVec2(pos.x + panel_w, pos.y + panel_h);
+        return panel;
+    }
+
+
+
     void draw_info_window(const ViewerState& viewer, bool& show_window)
     {
         if (!show_window)
             return;
         ImGui::SetNextWindowSize(ImVec2(640.0f, 420.0f),
                                  ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("Image Info", &show_window)) {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+        if (ImGui::Begin("iv Info", &show_window)) {
+            const float close_height = ImGui::GetFrameHeightWithSpacing();
+            const float body_height  = std::max(
+                100.0f, ImGui::GetContentRegionAvail().y - close_height - 4.0f);
+            ImGui::BeginChild("##iv_info_scroll", ImVec2(0.0f, body_height), true,
+                              ImGuiWindowFlags_HorizontalScrollbar);
             if (viewer.image.path.empty()) {
-                ImGui::TextUnformatted("No image loaded.");
-                register_layout_dump_synthetic_item("text",
-                                                    "No image loaded.");
+                draw_padded_message("No image loaded.", 8.0f, 8.0f);
+                register_layout_dump_synthetic_item("text", "No image loaded.");
             } else {
-                ImGui::TextWrapped("%s", viewer.image.path.c_str());
-                register_layout_dump_synthetic_item("text",
-                                                    viewer.image.path.c_str());
-                ImGui::Separator();
-                register_layout_dump_synthetic_item("divider", "Image Info");
-                ImGui::Text("Resolution: %d x %d", viewer.image.width,
-                            viewer.image.height);
-                register_layout_dump_synthetic_item("text", "Resolution");
-                ImGui::Text("Channels: %d", viewer.image.nchannels);
-                register_layout_dump_synthetic_item("text", "Channels");
-                ImGui::TextUnformatted(
-                    "Metadata/details panel placeholder (iv longinfo parity)");
-                register_layout_dump_synthetic_item("text",
-                                                    "Metadata/details panel");
+                if (ImGui::BeginTable("##iv_info_table", 2,
+                                      ImGuiTableFlags_SizingStretchProp
+                                          | ImGuiTableFlags_BordersInnerV
+                                          | ImGuiTableFlags_RowBg)) {
+                    ImGui::TableSetupColumn("Field",
+                                            ImGuiTableColumnFlags_WidthFixed,
+                                            190.0f);
+                    ImGui::TableSetupColumn("Value",
+                                            ImGuiTableColumnFlags_WidthStretch);
+
+                    auto draw_row = [](const char* label,
+                                       const std::string& value) {
+                        ImGui::TableNextRow();
+                        ImGui::TableNextColumn();
+                        ImGui::TextUnformatted(label);
+                        ImGui::TableNextColumn();
+                        ImGui::PushTextWrapPos(0.0f);
+                        ImGui::TextUnformatted(value.c_str());
+                        ImGui::PopTextWrapPos();
+                    };
+
+                    draw_row("Path", viewer.image.path);
+                    for (const auto& row : viewer.image.longinfo_rows) {
+                        draw_row(row.first.c_str(), row.second);
+                    }
+                    draw_row("Orientation",
+                             Strutil::fmt::format("{}",
+                                                  viewer.image.orientation));
+                    draw_row("Subimage",
+                             Strutil::fmt::format("{}/{}",
+                                                  viewer.image.subimage + 1,
+                                                  viewer.image.nsubimages));
+                    draw_row("MIP level",
+                             Strutil::fmt::format("{}/{}",
+                                                  viewer.image.miplevel + 1,
+                                                  viewer.image.nmiplevels));
+                    draw_row("Row pitch (bytes)",
+                             Strutil::fmt::format("{}",
+                                                  viewer.image.row_pitch_bytes));
+                    ImGui::EndTable();
+                }
+                register_layout_dump_synthetic_item("text", "iv Info content");
             }
+            ImGui::EndChild();
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.0f);
+            if (ImGui::Button("Close"))
+                show_window = false;
         }
         ImGui::End();
+        ImGui::PopStyleVar();
     }
 
 
 
-    void draw_preferences_window(const AppConfig& config,
-                                 PlaceholderUiState& ui, bool& show_window)
+    void draw_preferences_window(PlaceholderUiState& ui, bool& show_window)
     {
         if (!show_window)
             return;
-        ImGui::SetNextWindowSize(ImVec2(520.0f, 420.0f),
+        ImGui::SetNextWindowSize(ImVec2(520.0f, 360.0f),
                                  ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("Preferences", &show_window)) {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+        if (ImGui::Begin("iv Preferences", &show_window)) {
+            const float close_height = ImGui::GetFrameHeightWithSpacing();
+            const float body_height  = std::max(
+                120.0f, ImGui::GetContentRegionAvail().y - close_height - 4.0f);
+            ImGui::BeginChild("##iv_prefs_body", ImVec2(0.0f, body_height),
+                              false, ImGuiWindowFlags_NoScrollbar);
+
             ImGui::Checkbox("Pixel view follows mouse",
                             &ui.pixelview_follows_mouse);
+            register_layout_dump_synthetic_item("text",
+                                                "Pixel view follows mouse");
+
+            ImGui::Spacing();
+            ImGui::TextUnformatted("# closeup pixels");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(76.0f);
+            ImGui::InputInt("##pref_closeup_pixels", &ui.closeup_pixels, 2, 2);
+            ImGui::SameLine();
+            ImGui::TextUnformatted("# closeup avg pixels");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(76.0f);
+            ImGui::InputInt("##pref_closeup_avg_pixels",
+                            &ui.closeup_avg_pixels, 2, 2);
+
+            ImGui::Spacing();
             ImGui::Checkbox("Linear interpolation", &ui.linear_interpolation);
             ImGui::Checkbox("Dark palette", &ui.dark_palette);
-            ImGui::Checkbox("Generate mipmaps", &ui.auto_mipmap);
-            ImGui::Checkbox("Show mouse mode selector",
-                            &ui.show_mouse_mode_selector);
-            ImGui::Separator();
-            register_layout_dump_synthetic_item("divider", "Preferences");
-            ImGui::InputInt("Image Cache max memory (MB)",
-                            &ui.max_memory_ic_mb);
-            ImGui::InputInt("Slide show delay (s)", &ui.slide_duration_seconds);
-            ImGui::InputInt("# closeup pixels", &ui.closeup_pixels);
-            ImGui::InputInt("# closeup avg pixels", &ui.closeup_avg_pixels);
+            ImGui::Checkbox("Generate mipmaps (requires restart)",
+                            &ui.auto_mipmap);
+
+            ImGui::Spacing();
+            ImGui::TextUnformatted("Image Cache max memory (requires restart)");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(90.0f);
+            ImGui::InputInt("##pref_max_mem", &ui.max_memory_ic_mb);
+            ImGui::SameLine();
+            ImGui::TextUnformatted("MB");
+
+            ImGui::TextUnformatted("Slide Show delay");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(90.0f);
+            ImGui::InputInt("##pref_slide_delay",
+                            &ui.slide_duration_seconds);
+            ImGui::SameLine();
+            ImGui::TextUnformatted("s");
+
+            ImGui::EndChild();
             clamp_placeholder_ui_state(ui);
-            ImGui::Separator();
-            register_layout_dump_synthetic_item("divider", "Preferences");
-            ImGui::Text("Raw Color startup: %s",
-                        config.rawcolor ? "on" : "off");
-            register_layout_dump_synthetic_item("text", "Raw Color startup");
-            ImGui::Text("Preference file: %s", k_imiv_prefs_filename);
-            register_layout_dump_synthetic_item("text", "Preference file");
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.0f);
+            if (ImGui::Button("Close"))
+                show_window = false;
+            register_layout_dump_synthetic_item("text", "iv Preferences content");
         }
         ImGui::End();
+        ImGui::PopStyleVar();
+    }
+
+
+
+    OverlayPanelRect draw_pixel_closeup_overlay(const ViewerState& viewer,
+                                                PlaceholderUiState& ui_state,
+                                                const ImageCoordinateMap& map,
+                                                ImTextureRef closeup_texture,
+                                                bool has_closeup_texture)
+    {
+        OverlayPanelRect panel;
+        if (!ui_state.show_pixelview_window || !map.valid)
+            return panel;
+
+        std::vector<std::string> lines;
+        lines.emplace_back("Pixel Closeup");
+        if (viewer.image.path.empty()) {
+            lines.emplace_back("No image loaded.");
+        } else if (!viewer.probe_valid) {
+            lines.emplace_back("Hover over image to inspect.");
+        } else {
+            lines.emplace_back(Strutil::fmt::format("Pixel: {}, {}",
+                                                    viewer.probe_x,
+                                                    viewer.probe_y));
+
+            std::vector<double> min_values;
+            std::vector<double> max_values;
+            std::vector<double> avg_values;
+            int sample_count = 0;
+            const bool have_stats = compute_area_stats(
+                viewer.image, viewer.probe_x, viewer.probe_y,
+                ui_state.closeup_avg_pixels, min_values, max_values,
+                avg_values, sample_count);
+            lines.emplace_back(Strutil::fmt::format(
+                "Data: {}   Avg window: {}x{}",
+                upload_data_type_name(viewer.image.type),
+                ui_state.closeup_avg_pixels, ui_state.closeup_avg_pixels));
+            if (have_stats) {
+                lines.emplace_back(
+                    Strutil::fmt::format("Samples: {}", sample_count));
+            }
+
+            const bool integer_type = probe_type_is_integer(viewer.image.type);
+            const double denom
+                = probe_channel_integer_denominator(viewer.image.type);
+            for (size_t c = 0; c < viewer.probe_channels.size(); ++c) {
+                const std::string label
+                    = channel_label_for_index(static_cast<int>(c));
+                const std::string value
+                    = format_probe_channel_value(viewer.image.type,
+                                                 viewer.probe_channels[c]);
+                if (have_stats && c < min_values.size() && c < max_values.size()
+                    && c < avg_values.size()) {
+                    if (integer_type && denom > 0.0) {
+                        lines.emplace_back(Strutil::fmt::format(
+                            "{} v={} ({:.6f}) min={} max={} avg={}",
+                            label, value, viewer.probe_channels[c] / denom,
+                            format_probe_channel_value(viewer.image.type,
+                                                       min_values[c]),
+                            format_probe_channel_value(viewer.image.type,
+                                                       max_values[c]),
+                            format_probe_channel_value(viewer.image.type,
+                                                       avg_values[c])));
+                    } else {
+                        lines.emplace_back(Strutil::fmt::format(
+                            "{} v={} min={} max={} avg={}",
+                            label, value,
+                            format_probe_channel_value(viewer.image.type,
+                                                       min_values[c]),
+                            format_probe_channel_value(viewer.image.type,
+                                                       max_values[c]),
+                            format_probe_channel_value(viewer.image.type,
+                                                       avg_values[c])));
+                    }
+                } else {
+                    lines.emplace_back(
+                        Strutil::fmt::format("{} v={}", label, value));
+                }
+            }
+        }
+
+        const float closeup_window_size = 260.0f;
+        const float follow_mouse_offset = 15.0f;
+        const float corner_padding      = 5.0f;
+        const float text_pad_x          = 10.0f;
+        const float text_pad_y          = 8.0f;
+        const float text_line_gap       = 2.0f;
+        const float text_line_h         = ImGui::GetTextLineHeight();
+        const float text_to_window_gap  = 2.0f;
+
+        float text_w = 0.0f;
+        for (const std::string& line : lines) {
+            const ImVec2 size = ImGui::CalcTextSize(line.c_str());
+            if (size.x > text_w)
+                text_w = size.x;
+        }
+        const float text_panel_w = std::max(closeup_window_size,
+                                            text_w + text_pad_x * 2.0f);
+        const float text_panel_h
+            = text_pad_y * 2.0f
+              + static_cast<float>(lines.size()) * text_line_h
+              + static_cast<float>(std::max<size_t>(0, lines.size() - 1))
+                    * text_line_gap;
+        const float total_h = closeup_window_size + text_to_window_gap
+                              + text_panel_h;
+
+        const float clip_min_x = std::min(map.image_rect_min.x,
+                                          map.image_rect_max.x);
+        const float clip_min_y = std::min(map.image_rect_min.y,
+                                          map.image_rect_max.y);
+        const float clip_max_x = std::max(map.image_rect_min.x,
+                                          map.image_rect_max.x);
+        const float clip_max_y = std::max(map.image_rect_min.y,
+                                          map.image_rect_max.y);
+
+        ImVec2 closeup_min(clip_min_x + corner_padding,
+                           clip_min_y + corner_padding);
+        const ImVec2 mouse_pos = ImGui::GetIO().MousePos;
+
+        if (ui_state.pixelview_follows_mouse) {
+            const bool should_show_on_left
+                = (mouse_pos.x + closeup_window_size + follow_mouse_offset)
+                  > clip_max_x;
+            const bool should_show_above
+                = (mouse_pos.y + closeup_window_size + follow_mouse_offset
+                   + text_panel_h)
+                  > clip_max_y;
+
+            closeup_min.x = mouse_pos.x + follow_mouse_offset;
+            closeup_min.y = mouse_pos.y + follow_mouse_offset;
+            if (should_show_on_left) {
+                closeup_min.x
+                    = mouse_pos.x - follow_mouse_offset - closeup_window_size;
+            }
+            if (should_show_above) {
+                closeup_min.y = mouse_pos.y - follow_mouse_offset
+                                - closeup_window_size - text_to_window_gap
+                                - text_panel_h;
+            }
+        } else {
+            closeup_min.x = ui_state.pixelview_left_corner
+                                ? (clip_min_x + corner_padding)
+                                : (clip_max_x - closeup_window_size
+                                   - corner_padding);
+            closeup_min.y = clip_min_y + corner_padding;
+
+            const ImVec2 panel_max(closeup_min.x + text_panel_w,
+                                   closeup_min.y + total_h);
+            const bool mouse_over_panel = mouse_pos.x >= closeup_min.x
+                                          && mouse_pos.x <= panel_max.x
+                                          && mouse_pos.y >= closeup_min.y
+                                          && mouse_pos.y <= panel_max.y;
+            if (mouse_over_panel) {
+                ui_state.pixelview_left_corner
+                    = !ui_state.pixelview_left_corner;
+                closeup_min.x = ui_state.pixelview_left_corner
+                                    ? (clip_min_x + corner_padding)
+                                    : (clip_max_x - closeup_window_size
+                                       - corner_padding);
+            }
+        }
+
+        closeup_min.x = std::clamp(closeup_min.x, clip_min_x,
+                                   std::max(clip_min_x,
+                                            clip_max_x - text_panel_w));
+        closeup_min.y = std::clamp(closeup_min.y, clip_min_y,
+                                   std::max(clip_min_y,
+                                            clip_max_y - total_h));
+        const ImVec2 closeup_max(closeup_min.x + closeup_window_size,
+                                 closeup_min.y + closeup_window_size);
+        const ImVec2 text_min(closeup_min.x,
+                              closeup_max.y + text_to_window_gap);
+        const ImVec2 text_max(text_min.x + text_panel_w,
+                              text_min.y + text_panel_h);
+
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        draw_list->PushClipRect(map.image_rect_min, map.image_rect_max, true);
+        draw_list->AddRectFilled(closeup_min, closeup_max,
+                                 IM_COL32(20, 24, 30, 224), 4.0f);
+        draw_list->AddRect(closeup_min, closeup_max,
+                           IM_COL32(175, 185, 205, 255), 4.0f, 0, 1.0f);
+
+        const bool render_zoom_patch
+            = has_closeup_texture && !viewer.image.path.empty()
+              && viewer.probe_valid && map.source_width > 0
+              && map.source_height > 0;
+        if (render_zoom_patch) {
+            int display_w = viewer.image.width;
+            int display_h = viewer.image.height;
+            oriented_image_dimensions(viewer.image, display_w, display_h);
+            display_w = std::max(1, display_w);
+            display_h = std::max(1, display_h);
+
+            int closeup_px = std::clamp(ui_state.closeup_pixels, 1,
+                                        std::min(display_w, display_h));
+            if (closeup_px <= 0)
+                closeup_px = 1;
+            int patch_w = std::min(closeup_px, display_w);
+            int patch_h = std::min(closeup_px, display_h);
+            patch_w     = std::max(1, patch_w);
+            patch_h     = std::max(1, patch_h);
+
+            const ImVec2 source_uv(
+                (static_cast<float>(viewer.probe_x) + 0.5f)
+                    / static_cast<float>(map.source_width),
+                (static_cast<float>(viewer.probe_y) + 0.5f)
+                    / static_cast<float>(map.source_height));
+            const ImVec2 display_uv
+                = source_uv_to_display_uv(source_uv, map.orientation);
+            const int center_x = std::clamp(
+                static_cast<int>(std::floor(display_uv.x * display_w)), 0,
+                display_w - 1);
+            const int center_y = std::clamp(
+                static_cast<int>(std::floor(display_uv.y * display_h)), 0,
+                display_h - 1);
+
+            const int xbegin = std::clamp(center_x - patch_w / 2, 0,
+                                          std::max(0, display_w - patch_w));
+            const int ybegin = std::clamp(center_y - patch_h / 2, 0,
+                                          std::max(0, display_h - patch_h));
+            const int xend   = xbegin + patch_w;
+            const int yend   = ybegin + patch_h;
+
+            const ImVec2 uv_min(static_cast<float>(xbegin) / display_w,
+                                static_cast<float>(ybegin) / display_h);
+            const ImVec2 uv_max(static_cast<float>(xend) / display_w,
+                                static_cast<float>(yend) / display_h);
+            draw_list->AddImage(closeup_texture, closeup_min, closeup_max,
+                                uv_min, uv_max, IM_COL32_WHITE);
+
+            const float cell_w = closeup_window_size / patch_w;
+            const float cell_h = closeup_window_size / patch_h;
+            for (int i = 1; i < patch_w; ++i) {
+                const float x = closeup_min.x + i * cell_w;
+                draw_list->AddLine(ImVec2(x, closeup_min.y),
+                                   ImVec2(x, closeup_max.y),
+                                   IM_COL32(8, 10, 12, 140), 1.0f);
+            }
+            for (int i = 1; i < patch_h; ++i) {
+                const float y = closeup_min.y + i * cell_h;
+                draw_list->AddLine(ImVec2(closeup_min.x, y),
+                                   ImVec2(closeup_max.x, y),
+                                   IM_COL32(8, 10, 12, 140), 1.0f);
+            }
+
+            auto draw_corner_marker = [draw_list](const ImVec2& p0,
+                                                  const ImVec2& p1,
+                                                  ImU32 color) {
+                const float corner_size = 4.0f;
+                draw_list->AddLine(p0, ImVec2(p0.x + corner_size, p0.y), color,
+                                   1.0f);
+                draw_list->AddLine(p0, ImVec2(p0.x, p0.y + corner_size), color,
+                                   1.0f);
+                draw_list->AddLine(ImVec2(p1.x - corner_size, p0.y),
+                                   ImVec2(p1.x, p0.y), color,
+                                   1.0f);
+                draw_list->AddLine(ImVec2(p1.x, p0.y),
+                                   ImVec2(p1.x, p0.y + corner_size),
+                                   color, 1.0f);
+                draw_list->AddLine(ImVec2(p0.x, p1.y - corner_size),
+                                   ImVec2(p0.x, p1.y),
+                                   color, 1.0f);
+                draw_list->AddLine(ImVec2(p0.x, p1.y),
+                                   ImVec2(p0.x + corner_size, p1.y),
+                                   color, 1.0f);
+                draw_list->AddLine(ImVec2(p1.x - corner_size, p1.y), p1, color,
+                                   1.0f);
+                draw_list->AddLine(ImVec2(p1.x, p1.y - corner_size), p1, color,
+                                   1.0f);
+            };
+
+            const int center_ix = center_x - xbegin;
+            const int center_iy = center_y - ybegin;
+            const ImVec2 center_min(closeup_min.x + center_ix * cell_w,
+                                    closeup_min.y + center_iy * cell_h);
+            const ImVec2 center_max(center_min.x + cell_w, center_min.y + cell_h);
+            draw_corner_marker(center_min, center_max,
+                               IM_COL32(0, 255, 255, 180));
+
+            int avg_px = std::clamp(ui_state.closeup_avg_pixels, 1,
+                                    std::min(patch_w, patch_h));
+            if ((avg_px & 1) == 0)
+                avg_px = std::max(1, avg_px - 1);
+            if (avg_px > 1) {
+                int avg_start_x = center_ix - avg_px / 2;
+                int avg_start_y = center_iy - avg_px / 2;
+                int avg_end_x   = avg_start_x + avg_px;
+                int avg_end_y   = avg_start_y + avg_px;
+                avg_start_x = std::clamp(avg_start_x, 0, patch_w - avg_px);
+                avg_start_y = std::clamp(avg_start_y, 0, patch_h - avg_px);
+                avg_end_x   = avg_start_x + avg_px;
+                avg_end_y   = avg_start_y + avg_px;
+                const ImVec2 avg_min(closeup_min.x + avg_start_x * cell_w,
+                                     closeup_min.y + avg_start_y * cell_h);
+                const ImVec2 avg_max(closeup_min.x + avg_end_x * cell_w,
+                                     closeup_min.y + avg_end_y * cell_h);
+                draw_corner_marker(avg_min, avg_max,
+                                   IM_COL32(255, 255, 0, 170));
+            }
+        }
+
+        draw_list->AddRectFilled(text_min, text_max, IM_COL32(20, 24, 30, 224),
+                                 4.0f);
+        draw_list->AddRect(text_min, text_max, IM_COL32(175, 185, 205, 255),
+                           4.0f, 0, 1.0f);
+        ImVec2 text_pos(text_min.x + text_pad_x, text_min.y + text_pad_y);
+        for (const std::string& line : lines) {
+            draw_list->AddText(text_pos, IM_COL32(240, 242, 245, 255),
+                               line.c_str());
+            text_pos.y += text_line_h + text_line_gap;
+        }
+        draw_list->PopClipRect();
+
+        panel.valid = true;
+        panel.min   = closeup_min;
+        panel.max   = ImVec2(closeup_min.x + text_panel_w,
+                             closeup_min.y + total_h);
+        register_layout_dump_synthetic_item("text", "Pixel Closeup overlay");
+        return panel;
+    }
+
+
+
+    void draw_area_probe_overlay(const ViewerState& viewer,
+                                 const PlaceholderUiState& ui_state,
+                                 const ImageCoordinateMap& map,
+                                 const OverlayPanelRect& pixel_overlay_panel)
+    {
+        if (!ui_state.show_area_probe_window || !map.valid)
+            return;
+
+        std::vector<std::string> lines;
+        lines.emplace_back("Area Probe");
+        if (viewer.image.path.empty()) {
+            lines.emplace_back("No image loaded.");
+        } else {
+            std::vector<double> min_values;
+            std::vector<double> max_values;
+            std::vector<double> avg_values;
+            int sample_count = 0;
+            const bool have_stats
+                = viewer.probe_valid
+                  && compute_area_stats(viewer.image, viewer.probe_x,
+                                        viewer.probe_y,
+                                        ui_state.closeup_avg_pixels, min_values,
+                                        max_values, avg_values, sample_count);
+            if (viewer.probe_valid) {
+                lines.emplace_back(Strutil::fmt::format("Center: {}, {}",
+                                                        viewer.probe_x,
+                                                        viewer.probe_y));
+            } else {
+                lines.emplace_back("Center: -----, -----");
+            }
+            lines.emplace_back(Strutil::fmt::format(
+                "Window: {} x {}", ui_state.closeup_avg_pixels,
+                ui_state.closeup_avg_pixels));
+            if (have_stats) {
+                lines.emplace_back(
+                    Strutil::fmt::format("Samples: {}", sample_count));
+            }
+
+            const int channel_count = std::max(1, viewer.image.nchannels);
+            for (int c = 0; c < channel_count; ++c) {
+                const std::string channel
+                    = channel_label_for_index(static_cast<int>(c));
+                if (have_stats && static_cast<size_t>(c) < min_values.size()
+                    && static_cast<size_t>(c) < max_values.size()
+                    && static_cast<size_t>(c) < avg_values.size()) {
+                    lines.emplace_back(Strutil::fmt::format(
+                        "{} min={} max={} avg={}", channel,
+                        format_probe_channel_value(viewer.image.type,
+                                                   min_values[c]),
+                        format_probe_channel_value(viewer.image.type,
+                                                   max_values[c]),
+                        format_probe_channel_value(viewer.image.type,
+                                                   avg_values[c])));
+                } else {
+                    lines.emplace_back(Strutil::fmt::format(
+                        "{} min=----- max=----- avg=-----", channel));
+                }
+            }
+        }
+
+        ImVec2 preferred(map.image_rect_min.x + 12.0f, map.image_rect_min.y + 12.0f);
+        if (pixel_overlay_panel.valid) {
+            preferred.y = pixel_overlay_panel.max.y + 10.0f;
+            preferred.x = pixel_overlay_panel.min.x;
+        }
+        draw_overlay_text_panel(lines, preferred, map.image_rect_min,
+                                map.image_rect_max);
+        register_layout_dump_synthetic_item("text", "Area Probe overlay");
     }
 
 
@@ -4371,8 +5695,14 @@ namespace {
     {
         if (viewer.image.path.empty())
             return "No image loaded";
-        return Strutil::fmt::format("(1/1): {} ({}x{}, {} ch, {})",
-                                    viewer.image.path, viewer.image.width,
+        int current = 1;
+        int total   = 1;
+        if (!viewer.sibling_images.empty() && viewer.sibling_index >= 0) {
+            total = static_cast<int>(viewer.sibling_images.size());
+            current = viewer.sibling_index + 1;
+        }
+        return Strutil::fmt::format("({}/{}): {} ({}x{}, {} ch, {})", current,
+                                    total, viewer.image.path, viewer.image.width,
                                     viewer.image.height, viewer.image.nchannels,
                                     upload_data_type_name(viewer.image.type));
     }
@@ -4409,6 +5739,9 @@ namespace {
                                          viewer.image.miplevel + 1,
                                          viewer.image.nmiplevels);
         }
+        if (viewer.image.orientation != 1) {
+            text += Strutil::fmt::format("  orient {}", viewer.image.orientation);
+        }
         if (ui.show_mouse_mode_selector) {
             text += Strutil::fmt::format("  mouse {}",
                                          mouse_mode_name(ui.mouse_mode));
@@ -4431,8 +5764,10 @@ namespace {
         if (ui.show_mouse_mode_selector)
             ++columns;
         ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV
+                                      | ImGuiTableFlags_PadOuterX
                                       | ImGuiTableFlags_SizingStretchProp
                                       | ImGuiTableFlags_NoSavedSettings;
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 4.0f));
         if (ImGui::BeginTable("##imiv_status_bar", columns, table_flags)) {
             ImGui::TableSetupColumn("Image", ImGuiTableColumnFlags_WidthStretch,
                                     2.5f);
@@ -4474,18 +5809,20 @@ namespace {
 
             ImGui::EndTable();
         }
+        ImGui::PopStyleVar();
     }
 
 
 
-    void draw_viewer_ui(const AppConfig& config, ViewerState& viewer,
-                        PlaceholderUiState& ui_state, bool& request_exit
+    void draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
+                        bool& request_exit
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                         ,
                         bool* show_test_engine_windows
 #endif
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
                         ,
+                        GLFWwindow* window,
                         VulkanState& vk_state
 #endif
     )
@@ -4504,6 +5841,15 @@ namespace {
         bool next_subimage_requested = false;
         bool prev_mip_requested      = false;
         bool next_mip_requested      = false;
+        bool save_window_as_requested = false;
+        bool save_selection_as_requested = false;
+        bool fit_window_to_image_requested = false;
+        bool delete_from_disk_requested    = false;
+        bool full_screen_toggle_requested  = false;
+        bool rotate_left_requested         = false;
+        bool rotate_right_requested        = false;
+        bool flip_horizontal_requested     = false;
+        bool flip_vertical_requested       = false;
         std::string recent_open_path;
         const bool has_image   = !viewer.image.path.empty();
         const bool can_prev_subimage
@@ -4515,6 +5861,127 @@ namespace {
         const bool can_next_mip
             = has_image
               && (viewer.image.miplevel + 1 < viewer.image.nmiplevels);
+
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+        if (window != nullptr) {
+            std::string fullscreen_error;
+            set_full_screen_mode(window, viewer, ui_state.full_screen_mode,
+                                 fullscreen_error);
+            if (!fullscreen_error.empty()) {
+                viewer.last_error = fullscreen_error;
+                ui_state.full_screen_mode = viewer.fullscreen_applied;
+            }
+        }
+#endif
+
+        const ImGuiIO& global_io = ImGui::GetIO();
+        const bool no_mods = !global_io.KeyCtrl && !global_io.KeyAlt
+                             && !global_io.KeySuper;
+
+        if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_INFO"))
+            ui_state.show_info_window = true;
+        if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PREFS"))
+            ui_state.show_preferences_window = true;
+        if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PIXEL"))
+            ui_state.show_pixelview_window = true;
+        if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AREA"))
+            ui_state.show_area_probe_window = true;
+        if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AUX_WINDOWS")) {
+            ui_state.show_info_window        = true;
+            ui_state.show_preferences_window = true;
+            ui_state.show_pixelview_window   = true;
+            ui_state.show_area_probe_window  = true;
+        }
+
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O))
+            open_requested = true;
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_R) && has_image)
+            reload_requested = true;
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_W) && has_image)
+            close_requested = true;
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S) && has_image)
+            save_as_requested = true;
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Comma))
+            ui_state.show_preferences_window = true;
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Q))
+            request_exit = true;
+        if (ImGui::Shortcut(ImGuiKey_PageUp))
+            prev_requested = true;
+        if (ImGui::Shortcut(ImGuiKey_PageDown))
+            next_requested = true;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_T))
+            toggle_requested = true;
+        if ((ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Equal)
+             || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Equal)
+             || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadAdd))
+            && has_image)
+            viewer.zoom = std::min(viewer.zoom * 2.0f, 64.0f);
+        if ((ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Minus)
+             || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadSubtract))
+            && has_image)
+            viewer.zoom = std::max(viewer.zoom * 0.5f, 0.05f);
+        if ((ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_0)
+             || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Keypad0))
+            && has_image)
+            viewer.zoom = 1.0f;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_F) && has_image)
+            fit_window_to_image_requested = true;
+        if (ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_F) && has_image) {
+            ui_state.fit_image_to_window = !ui_state.fit_image_to_window;
+            viewer.fit_request           = true;
+        }
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_F))
+            full_screen_toggle_requested = true;
+        if (ui_state.full_screen_mode && ImGui::Shortcut(ImGuiKey_Escape))
+            full_screen_toggle_requested = true;
+        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Comma) && can_prev_subimage)
+            prev_subimage_requested = true;
+        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Period) && can_next_subimage)
+            next_subimage_requested = true;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_C))
+            ui_state.current_channel = 0;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_R))
+            ui_state.current_channel = 1;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_G))
+            ui_state.current_channel = 2;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_B))
+            ui_state.current_channel = 3;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_A))
+            ui_state.current_channel = 4;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_Comma) && has_image)
+            ui_state.current_channel = std::max(0, ui_state.current_channel - 1);
+        if (no_mods && ImGui::Shortcut(ImGuiKey_Period) && has_image)
+            ui_state.current_channel = std::min(4, ui_state.current_channel + 1);
+        if (no_mods && ImGui::Shortcut(ImGuiKey_1))
+            ui_state.color_mode = 2;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_L))
+            ui_state.color_mode = 3;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_H))
+            ui_state.color_mode = 4;
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_I))
+            ui_state.show_info_window = !ui_state.show_info_window;
+        if (no_mods && ImGui::Shortcut(ImGuiKey_P))
+            ui_state.show_pixelview_window = !ui_state.show_pixelview_window;
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_A))
+            ui_state.show_area_probe_window = !ui_state.show_area_probe_window;
+        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_LeftBracket))
+            ui_state.exposure -= 0.5f;
+        if (ImGui::Shortcut(ImGuiKey_LeftBracket))
+            ui_state.exposure -= 0.1f;
+        if (ImGui::Shortcut(ImGuiKey_RightBracket))
+            ui_state.exposure += 0.1f;
+        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_RightBracket))
+            ui_state.exposure += 0.5f;
+        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_9))
+            ui_state.gamma = std::max(0.1f, ui_state.gamma - 0.1f);
+        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_0))
+            ui_state.gamma += 0.1f;
+        if (ImGui::Shortcut(ImGuiKey_Delete) && has_image)
+            delete_from_disk_requested = true;
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_L))
+            rotate_left_requested = true;
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_R))
+            rotate_right_requested = true;
 
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
@@ -4551,17 +6018,18 @@ namespace {
                     save_as_requested = true;
                 if (ImGui::MenuItem("Save Window As...", nullptr, false,
                                     has_image))
-                    set_placeholder_status(viewer, "Save Window As");
+                    save_window_as_requested = true;
                 if (ImGui::MenuItem("Save Selection As...", nullptr, false,
                                     has_image))
-                    set_placeholder_status(viewer, "Save Selection As");
+                    save_selection_as_requested = true;
                 ImGui::Separator();
                 if (ImGui::MenuItem("Move to new window", nullptr, false,
                                     has_image))
-                    set_placeholder_status(viewer, "Move to new window");
+                    viewer.status_message
+                        = "Move to new window is not available in imiv yet";
                 if (ImGui::MenuItem("Delete from disk", "Delete", false,
                                     has_image))
-                    set_placeholder_status(viewer, "Delete from disk");
+                    delete_from_disk_requested = true;
                 ImGui::Separator();
                 if (ImGui::MenuItem("Preferences...", "Ctrl+,"))
                     ui_state.show_preferences_window = true;
@@ -4591,7 +6059,7 @@ namespace {
                     viewer.zoom = 1.0f;
                 if (ImGui::MenuItem("Fit Window to Image", "F", false,
                                     has_image))
-                    set_placeholder_status(viewer, "Fit Window to Image");
+                    fit_window_to_image_requested = true;
                 if (ImGui::MenuItem("Fit Image to Window", "Alt+F",
                                     ui_state.fit_image_to_window, has_image)) {
                     ui_state.fit_image_to_window = !ui_state.fit_image_to_window;
@@ -4599,8 +6067,7 @@ namespace {
                 }
                 if (ImGui::MenuItem("Full screen", "Ctrl+F",
                                     ui_state.full_screen_mode)) {
-                    ui_state.full_screen_mode = !ui_state.full_screen_mode;
-                    set_placeholder_status(viewer, "Full screen toggle");
+                    full_screen_toggle_requested = true;
                 }
                 ImGui::Separator();
 
@@ -4742,9 +6209,7 @@ namespace {
                 if (ImGui::BeginMenu("Slide Show")) {
                     if (ImGui::MenuItem("Start Slide Show", nullptr,
                                         ui_state.slide_show_running)) {
-                        ui_state.slide_show_running
-                            = !ui_state.slide_show_running;
-                        set_placeholder_status(viewer, "Slide show");
+                        toggle_slide_show_action(ui_state, viewer);
                     }
                     if (ImGui::MenuItem("Loop slide show", nullptr,
                                         ui_state.slide_loop))
@@ -4757,27 +6222,27 @@ namespace {
 
                 if (ImGui::BeginMenu("Sort")) {
                     if (ImGui::MenuItem("By Name"))
-                        set_placeholder_status(viewer, "Sort by name");
+                        set_sort_mode_action(viewer, ImageSortMode::ByName);
                     if (ImGui::MenuItem("By File Path"))
-                        set_placeholder_status(viewer, "Sort by file path");
+                        set_sort_mode_action(viewer, ImageSortMode::ByPath);
                     if (ImGui::MenuItem("By Image Date"))
-                        set_placeholder_status(viewer, "Sort by image date");
+                        set_sort_mode_action(viewer, ImageSortMode::ByImageDate);
                     if (ImGui::MenuItem("By File Date"))
-                        set_placeholder_status(viewer, "Sort by file date");
+                        set_sort_mode_action(viewer, ImageSortMode::ByFileDate);
                     if (ImGui::MenuItem("Reverse current order"))
-                        set_placeholder_status(viewer, "Sort reverse");
+                        toggle_sort_reverse_action(viewer);
                     ImGui::EndMenu();
                 }
 
                 ImGui::Separator();
                 if (ImGui::MenuItem("Rotate Left", "Ctrl+Shift+L"))
-                    set_placeholder_status(viewer, "Rotate Left");
+                    rotate_left_requested = true;
                 if (ImGui::MenuItem("Rotate Right", "Ctrl+Shift+R"))
-                    set_placeholder_status(viewer, "Rotate Right");
+                    rotate_right_requested = true;
                 if (ImGui::MenuItem("Flip Horizontal"))
-                    set_placeholder_status(viewer, "Flip Horizontal");
+                    flip_horizontal_requested = true;
                 if (ImGui::MenuItem("Flip Vertical"))
-                    set_placeholder_status(viewer, "Flip Vertical");
+                    flip_vertical_requested = true;
                 ImGui::EndMenu();
             }
 
@@ -4900,6 +6365,116 @@ namespace {
             save_as_dialog_action(viewer);
             save_as_requested = false;
         }
+        if (save_window_as_requested) {
+            save_window_as_dialog_action(viewer);
+            save_window_as_requested = false;
+        }
+        if (save_selection_as_requested) {
+            save_selection_as_dialog_action(viewer);
+            save_selection_as_requested = false;
+        }
+        if (fit_window_to_image_requested) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            fit_window_to_image_action(window, viewer, ui_state);
+#else
+            viewer.status_message = "Fit window to image is unavailable";
+#endif
+            fit_window_to_image_requested = false;
+        }
+        if (full_screen_toggle_requested) {
+            ui_state.full_screen_mode = !ui_state.full_screen_mode;
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            std::string fullscreen_error;
+            set_full_screen_mode(window, viewer, ui_state.full_screen_mode,
+                                 fullscreen_error);
+            if (!fullscreen_error.empty()) {
+                viewer.last_error = fullscreen_error;
+                ui_state.full_screen_mode = viewer.fullscreen_applied;
+            } else {
+                viewer.status_message = ui_state.full_screen_mode
+                                            ? "Entered full screen"
+                                            : "Exited full screen";
+                viewer.last_error.clear();
+            }
+#endif
+            full_screen_toggle_requested = false;
+        }
+        if (delete_from_disk_requested) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+            if (!viewer.image.path.empty()) {
+                const std::string to_delete = viewer.image.path;
+                close_current_image_action(vk_state, viewer);
+                std::error_code ec;
+                if (std::filesystem::remove(to_delete, ec)) {
+                    viewer.status_message = Strutil::fmt::format("Deleted {}",
+                                                                 to_delete);
+                    viewer.last_error.clear();
+                    refresh_sibling_images(viewer);
+                } else {
+                    viewer.last_error = ec ? Strutil::fmt::format(
+                                                 "Delete failed: {}",
+                                                 ec.message())
+                                            : "Delete failed";
+                }
+            }
+#endif
+            delete_from_disk_requested = false;
+        }
+        if (rotate_left_requested || rotate_right_requested
+            || flip_horizontal_requested || flip_vertical_requested) {
+            if (!viewer.image.path.empty()) {
+                int orientation = clamp_orientation(viewer.image.orientation);
+                if (rotate_left_requested) {
+                    static const int next_orientation[] = { 0, 8, 5, 6, 7,
+                                                            4, 1, 2, 3 };
+                    orientation = next_orientation[orientation];
+                }
+                if (rotate_right_requested) {
+                    static const int next_orientation[] = { 0, 6, 7, 8, 5,
+                                                            2, 3, 4, 1 };
+                    orientation = next_orientation[orientation];
+                }
+                if (flip_horizontal_requested) {
+                    static const int next_orientation[] = { 0, 2, 1, 4, 3,
+                                                            6, 5, 8, 7 };
+                    orientation = next_orientation[orientation];
+                }
+                if (flip_vertical_requested) {
+                    static const int next_orientation[] = { 0, 4, 3, 2, 1,
+                                                            8, 7, 6, 5 };
+                    orientation = next_orientation[orientation];
+                }
+                viewer.image.orientation = clamp_orientation(orientation);
+                viewer.fit_request       = true;
+                viewer.status_message = Strutil::fmt::format(
+                    "Orientation set to {}", viewer.image.orientation);
+                viewer.last_error.clear();
+            } else {
+                viewer.status_message = "No image loaded";
+                viewer.last_error.clear();
+            }
+            rotate_left_requested     = false;
+            rotate_right_requested    = false;
+            flip_horizontal_requested = false;
+            flip_vertical_requested   = false;
+        }
+
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+        if (ui_state.slide_show_running && has_image
+            && !viewer.sibling_images.empty()) {
+            const double now = ImGui::GetTime();
+            if (viewer.slide_last_advance_time <= 0.0)
+                viewer.slide_last_advance_time = now;
+            const double delay = std::max(1, ui_state.slide_duration_seconds);
+            if (now - viewer.slide_last_advance_time >= delay) {
+                (void)advance_slide_show_action(vk_state, viewer, ui_state);
+                viewer.slide_last_advance_time = now;
+            }
+        } else {
+            viewer.slide_last_advance_time = 0.0;
+        }
+#endif
+        clamp_placeholder_ui_state(ui_state);
 
         if (!viewer.image.path.empty()) {
             ui_state.subimage_index = viewer.image.subimage;
@@ -4917,6 +6492,7 @@ namespace {
             preview_controls.color_mode      = ui_state.color_mode;
             preview_controls.channel         = ui_state.current_channel;
             preview_controls.use_ocio        = ui_state.use_ocio ? 1 : 0;
+            preview_controls.orientation     = viewer.image.orientation;
             std::string preview_error;
             if (!update_preview_texture(vk_state, viewer.texture,
                                         preview_controls, preview_error)) {
@@ -4939,8 +6515,9 @@ namespace {
         ImGui::Begin(k_image_window_title, nullptr, main_window_flags);
         ImGui::PopStyleVar(3);
 
-        const float status_bar_height = ImGui::GetFrameHeightWithSpacing()
-                                        + 6.0f;
+        const float status_bar_height = std::max(
+            30.0f, ImGui::GetTextLineHeightWithSpacing()
+                       + ImGui::GetStyle().FramePadding.y * 2.0f + 8.0f);
         ImVec2 content_avail = ImGui::GetContentRegionAvail();
         const float viewport_h = std::max(64.0f,
                                           content_avail.y - status_bar_height);
@@ -4961,8 +6538,11 @@ namespace {
         if (!viewer.image.path.empty()) {
             const ImVec2 avail = ImGui::GetContentRegionAvail();
             ImVec2 draw_avail  = avail;
+            int display_width  = viewer.image.width;
+            int display_height = viewer.image.height;
+            oriented_image_dimensions(viewer.image, display_width, display_height);
             if ((viewer.fit_request || ui_state.fit_image_to_window)
-                && viewer.image.width > 0 && viewer.image.height > 0) {
+                && display_width > 0 && display_height > 0) {
                 ImVec2 fit_avail = avail;
                 const float scrollbar_size = ImGui::GetStyle().ScrollbarSize;
                 // GetContentRegionAvail() is reduced when a scrollbar is
@@ -4974,9 +6554,9 @@ namespace {
                     fit_avail.y += scrollbar_size;
 
                 const float fit_x = fit_avail.x
-                                    / static_cast<float>(viewer.image.width);
+                                    / static_cast<float>(display_width);
                 const float fit_y = fit_avail.y
-                                    / static_cast<float>(viewer.image.height);
+                                    / static_cast<float>(display_height);
                 if (fit_x > 0.0f && fit_y > 0.0f)
                     viewer.zoom = std::max(0.05f, std::min(fit_x, fit_y));
                 draw_avail         = fit_avail;
@@ -4985,9 +6565,9 @@ namespace {
                 ImGui::SetScrollY(0.0f);
             }
 
-            const ImVec2 image_size(static_cast<float>(viewer.image.width)
+            const ImVec2 image_size(static_cast<float>(display_width)
                                         * viewer.zoom,
-                                    static_cast<float>(viewer.image.height)
+                                    static_cast<float>(display_height)
                                         * viewer.zoom);
             if (image_size.x < draw_avail.x || image_size.y < draw_avail.y) {
                 ImVec2 p = ImGui::GetCursorPos();
@@ -4997,6 +6577,9 @@ namespace {
                     p.y += (draw_avail.y - image_size.y) * 0.5f;
                 ImGui::SetCursorPos(p);
             }
+
+            ImTextureRef closeup_texture_ref;
+            bool has_closeup_texture = false;
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
             if (viewer.texture.set != VK_NULL_HANDLE)
@@ -5008,65 +6591,179 @@ namespace {
                 ImGui::TextUnformatted("No texture");
             if (viewer.texture.set == VK_NULL_HANDLE)
                 register_layout_dump_synthetic_item("text", "No texture");
+            if (viewer.texture.pixelview_set != VK_NULL_HANDLE) {
+                closeup_texture_ref = ImTextureRef(static_cast<ImTextureID>(
+                    reinterpret_cast<uintptr_t>(viewer.texture.pixelview_set)));
+                has_closeup_texture = true;
+            } else if (viewer.texture.set != VK_NULL_HANDLE) {
+                closeup_texture_ref = ImTextureRef(static_cast<ImTextureID>(
+                    reinterpret_cast<uintptr_t>(viewer.texture.set)));
+                has_closeup_texture = true;
+            }
 #else
             ImGui::TextUnformatted("No Vulkan backend");
             register_layout_dump_synthetic_item("text", "No Vulkan backend");
 #endif
+            const ImVec2 item_min = ImGui::GetItemRectMin();
+            const ImVec2 item_max = ImGui::GetItemRectMax();
+            ImageCoordinateMap coord_map;
+            coord_map.valid        = (item_max.x > item_min.x
+                               && item_max.y > item_min.y);
+            coord_map.source_width  = viewer.image.width;
+            coord_map.source_height = viewer.image.height;
+            coord_map.orientation   = viewer.image.orientation;
+            coord_map.image_rect_min = item_min;
+            coord_map.image_rect_max = item_max;
+            coord_map.window_pos     = ImGui::GetWindowPos();
+            if (ui_state.show_window_guides && item_max.x > item_min.x
+                && item_max.y > item_min.y) {
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                draw_list->AddRect(item_min, item_max,
+                                   IM_COL32(250, 210, 80, 255), 0.0f, 0, 1.5f);
+                const ImVec2 view_min = ImGui::GetWindowPos();
+                const ImVec2 window_size = ImGui::GetWindowSize();
+                const ImVec2 view_max(view_min.x + window_size.x,
+                                      view_min.y + window_size.y);
+                draw_list->AddRect(view_min, view_max,
+                                   IM_COL32(80, 200, 255, 220), 0.0f, 0, 1.0f);
+
+                ImVec2 center_screen(0.0f, 0.0f);
+                if (source_uv_to_screen(coord_map, ImVec2(0.5f, 0.5f),
+                                        center_screen)) {
+                    const float r = 6.0f;
+                    draw_list->AddLine(ImVec2(center_screen.x - r, center_screen.y),
+                                       ImVec2(center_screen.x + r, center_screen.y),
+                                       IM_COL32(255, 170, 60, 255), 1.3f);
+                    draw_list->AddLine(ImVec2(center_screen.x, center_screen.y - r),
+                                       ImVec2(center_screen.x, center_screen.y + r),
+                                       IM_COL32(255, 170, 60, 255), 1.3f);
+                }
+            }
+
             if (ImGui::IsItemHovered()) {
-                const float wheel = ImGui::GetIO().MouseWheel;
+                ImGuiIO& io = ImGui::GetIO();
+                const ImVec2 mouse = io.MousePos;
+                ImVec2 source_uv(0.0f, 0.0f);
+                int px = 0;
+                int py = 0;
+                std::vector<double> sampled;
+                if (screen_to_source_uv(coord_map, mouse, source_uv)
+                    && source_uv_to_pixel(coord_map, source_uv, px, py)
+                    && sample_loaded_pixel(viewer.image, px, py, sampled)) {
+                    viewer.probe_valid    = true;
+                    viewer.probe_x        = px;
+                    viewer.probe_y        = py;
+                    viewer.probe_channels = std::move(sampled);
+                } else if (ui_state.pixelview_follows_mouse) {
+                    viewer.probe_valid = false;
+                    viewer.probe_channels.clear();
+                }
+
+                static bool pan_drag_active  = false;
+                static bool zoom_drag_active = false;
+                static ImVec2 drag_prev_mouse(0.0f, 0.0f);
+
+                bool want_pan = false;
+                bool want_zoom_drag = false;
+                if (ui_state.mouse_mode == 1) {
+                    want_pan = ImGui::IsMouseDown(ImGuiMouseButton_Left)
+                               || ImGui::IsMouseDown(ImGuiMouseButton_Right)
+                               || ImGui::IsMouseDown(ImGuiMouseButton_Middle);
+                } else if (ui_state.mouse_mode == 0) {
+                    want_pan = ImGui::IsMouseDown(ImGuiMouseButton_Middle)
+                               || (io.KeyAlt
+                                   && ImGui::IsMouseDown(ImGuiMouseButton_Left));
+                    want_zoom_drag = io.KeyAlt
+                                     && ImGui::IsMouseDown(
+                                         ImGuiMouseButton_Right);
+                    if (!io.KeyAlt) {
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                            viewer.zoom
+                                = std::min(viewer.zoom * 2.0f, 64.0f);
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                            viewer.zoom
+                                = std::max(viewer.zoom * 0.5f, 0.05f);
+                    }
+                }
+
+                if (want_pan) {
+                    if (!pan_drag_active) {
+                        pan_drag_active = true;
+                        drag_prev_mouse = mouse;
+                    } else {
+                        const float dx = mouse.x - drag_prev_mouse.x;
+                        const float dy = mouse.y - drag_prev_mouse.y;
+                        ImGui::SetScrollX(ImGui::GetScrollX() - dx);
+                        ImGui::SetScrollY(ImGui::GetScrollY() - dy);
+                        drag_prev_mouse = mouse;
+                        ui_state.fit_image_to_window = false;
+                    }
+                } else {
+                    pan_drag_active = false;
+                }
+
+                if (want_zoom_drag) {
+                    if (!zoom_drag_active) {
+                        zoom_drag_active = true;
+                        drag_prev_mouse  = mouse;
+                    } else {
+                        const float dx = mouse.x - drag_prev_mouse.x;
+                        const float dy = mouse.y - drag_prev_mouse.y;
+                        const float scale = 1.0f + 0.005f * (dx + dy);
+                        if (scale > 0.0f) {
+                            viewer.zoom
+                                = std::clamp(viewer.zoom * scale, 0.05f, 64.0f);
+                            ui_state.fit_image_to_window = false;
+                        }
+                        drag_prev_mouse = mouse;
+                    }
+                } else {
+                    zoom_drag_active = false;
+                }
+
+                const float wheel = io.MouseWheel;
                 if (wheel != 0.0f) {
                     const float scale = (wheel > 0.0f) ? 1.1f : 0.9f;
                     viewer.zoom = std::clamp(viewer.zoom * scale, 0.05f, 64.0f);
+                    ui_state.fit_image_to_window = false;
                 }
             }
+
+            const OverlayPanelRect pixel_panel
+                = draw_pixel_closeup_overlay(viewer, ui_state, coord_map,
+                                             closeup_texture_ref,
+                                             has_closeup_texture);
+            draw_area_probe_overlay(viewer, ui_state, coord_map, pixel_panel);
         } else if (viewer.last_error.empty()) {
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY()
-                                 + ImGui::GetTextLineHeightWithSpacing());
-            ImGui::TextUnformatted(
-                "Image viewport placeholder is ready. Use File/Open to load an image.");
-            register_layout_dump_synthetic_item(
-                "text", "Image viewport placeholder is ready.");
+            viewer.probe_valid = false;
+            viewer.probe_channels.clear();
+            draw_padded_message(
+                "No image loaded. Use File/Open to load an image.");
+            register_layout_dump_synthetic_item("text", "No image loaded.");
         }
 
         ImGui::EndChild();
         ImGui::Separator();
         register_layout_dump_synthetic_item("divider", "Main viewport");
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 4.0f));
+        ImGui::BeginChild("StatusBarRegion", ImVec2(0.0f, status_bar_height),
+                          false,
+                          ImGuiWindowFlags_NoScrollbar
+                              | ImGuiWindowFlags_NoScrollWithMouse);
         draw_embedded_status_bar(viewer, ui_state);
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
         ImGui::End();
 
         draw_info_window(viewer, ui_state.show_info_window);
-        draw_preferences_window(config, ui_state, ui_state.show_preferences_window);
-
-        if (ui_state.show_pixelview_window) {
-            ImGui::SetNextWindowSize(ImVec2(420.0f, 280.0f),
-                                     ImGuiCond_FirstUseEver);
-            if (ImGui::Begin("Pixel Closeup", &ui_state.show_pixelview_window)) {
-                ImGui::TextUnformatted(
-                    "Pixel closeup/probe panel placeholder (shader path pending)");
-                register_layout_dump_synthetic_item("text",
-                                                    "Pixel closeup/probe panel");
-            }
-            ImGui::End();
-        }
-
-        if (ui_state.show_area_probe_window) {
-            ImGui::SetNextWindowSize(ImVec2(420.0f, 260.0f),
-                                     ImGuiCond_FirstUseEver);
-            if (ImGui::Begin("Area Sample", &ui_state.show_area_probe_window)) {
-                ImGui::TextUnformatted(
-                    "Area sample statistics placeholder (implementation pending)");
-                register_layout_dump_synthetic_item("text",
-                                                    "Area sample statistics");
-            }
-            ImGui::End();
-        }
+        draw_preferences_window(ui_state, ui_state.show_preferences_window);
 
         if (ImGui::BeginPopupModal("About imiv", nullptr,
                                    ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted("imiv (Dear ImGui port of iv)");
             register_layout_dump_synthetic_item("text", "About imiv title");
             ImGui::TextUnformatted(
-                "UI placeholders are in place; feature implementation follows.");
+                "Image viewer port built with Dear ImGui and Vulkan.");
             register_layout_dump_synthetic_item("text", "About imiv body");
             if (ImGui::Button("Close"))
                 ImGui::CloseCurrentPopup();
@@ -5347,6 +7044,20 @@ run(const AppConfig& config)
                          || !run_config.ocio_view.empty()
                          || !run_config.ocio_image_color_space.empty());
     clamp_placeholder_ui_state(ui_state);
+    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AUX_WINDOWS")) {
+        ui_state.show_info_window        = true;
+        ui_state.show_preferences_window = true;
+        ui_state.show_pixelview_window   = true;
+        ui_state.show_area_probe_window  = true;
+    }
+    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_INFO"))
+        ui_state.show_info_window = true;
+    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PREFS"))
+        ui_state.show_preferences_window = true;
+    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PIXEL"))
+        ui_state.show_pixelview_window = true;
+    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AREA"))
+        ui_state.show_area_probe_window = true;
     if (ui_state.dark_palette)
         ImGui::StyleColorsDark();
     else
@@ -5393,7 +7104,7 @@ run(const AppConfig& config)
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        draw_viewer_ui(run_config, viewer, ui_state, request_exit
+        draw_viewer_ui(viewer, ui_state, request_exit
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
                        ,
                        test_engine_runtime.engine
@@ -5401,6 +7112,7 @@ run(const AppConfig& config)
                            : nullptr
 #    endif
                        ,
+                       window,
                        vk_state);
         if (ui_state.dark_palette != applied_dark_palette) {
             if (ui_state.dark_palette)
