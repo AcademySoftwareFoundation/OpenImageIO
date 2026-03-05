@@ -25,11 +25,13 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPalette>
 #include <QProgressBar>
 #include <QResizeEvent>
 #include <QSettings>
 #include <QSpinBox>
 #include <QStatusBar>
+#include <QStyleFactory>
 #include <QTimer>
 
 #if OIIO_QT_MAJOR < 6
@@ -99,7 +101,8 @@ static const char *s_file_filters = ""
 
 
 ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
-                         const std::string& display, const std::string& view)
+                         const std::string& display, const std::string& view,
+                         bool dark)
     : infoWindow(NULL)
     , preferenceWindow(NULL)
     , darkPaletteBox(NULL)
@@ -110,7 +113,7 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
     , m_zoom(1)
     , m_fullscreen(false)
     , m_default_gamma(1)
-    , m_darkPalette(false)
+    , m_darkPalette(dark)
     , m_useOCIO(use_ocio)
     , m_ocioColourSpace(image_color_space)
     , m_ocioDisplay(display)
@@ -126,10 +129,26 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
     // Also, some time in the future we may want a real 3D LUT for
     // "film look", etc.
 
-    if (darkPalette())
-        m_palette = QPalette(Qt::darkGray);  // darkGray?
-    else
+    if (darkPalette()) {
+        QApplication::setStyle(QStyleFactory::create("Fusion"));
+        QPalette dp;
+        dp.setColor(QPalette::Window, QColor(53, 53, 53));
+        dp.setColor(QPalette::WindowText, Qt::white);
+        dp.setColor(QPalette::Base, QColor(25, 25, 25));
+        dp.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
+        dp.setColor(QPalette::ToolTipBase, Qt::white);
+        dp.setColor(QPalette::ToolTipText, Qt::white);
+        dp.setColor(QPalette::Text, Qt::white);
+        dp.setColor(QPalette::Button, QColor(53, 53, 53));
+        dp.setColor(QPalette::ButtonText, Qt::white);
+        dp.setColor(QPalette::BrightText, Qt::red);
+        dp.setColor(QPalette::Link, QColor(42, 130, 218));
+        dp.setColor(QPalette::Highlight, QColor(42, 130, 218));
+        dp.setColor(QPalette::HighlightedText, Qt::black);
+        m_palette = dp;
+    } else {
         m_palette = QPalette();
+    }
     QApplication::setPalette(m_palette);  // FIXME -- why not work?
     this->setPalette(m_palette);
 
