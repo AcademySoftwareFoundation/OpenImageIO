@@ -51,10 +51,15 @@ foreach (_imiv_required_file ${_imiv_imgui_required_files})
 endforeach ()
 
 if (NOT _imiv_imgui_found)
+    record_build_dependency (
+        ImGui NOTFOUND
+        NOT_FOUND_EXPLANATION
+            "(sources not found under ${OIIO_IMIV_IMGUI_ROOT})")
     message (STATUS
              "\n\n   WARNING: Dear ImGui not found at '${OIIO_IMIV_IMGUI_ROOT}' -- 'imiv' will not be built!\n")
     return ()
 endif ()
+record_build_dependency (ImGui FOUND)
 
 set (_imiv_core_sources
      imiv_app.cpp
@@ -201,10 +206,20 @@ if (OIIO_IMIV_ENABLE_IMGUI_TEST_ENGINE)
              "${_imiv_test_engine_dir}/imgui_te_ui.cpp"
              "${_imiv_test_engine_dir}/imgui_te_utils.cpp"
              "${_imiv_test_engine_dir}/imgui_capture_tool.cpp")
+        record_build_dependency (ImGuiTestEngine FOUND)
     else ()
+        record_build_dependency (
+            ImGuiTestEngine NOTFOUND
+            NOT_FOUND_EXPLANATION
+                "(sources not found under ${OIIO_IMIV_TEST_ENGINE_ROOT})")
         message (STATUS
                  "imiv: Dear ImGui Test Engine not found; test automation support will be disabled")
     endif ()
+else ()
+    record_build_dependency (
+        ImGuiTestEngine NOTFOUND
+        NOT_FOUND_EXPLANATION
+            "(disabled by OIIO_IMIV_ENABLE_IMGUI_TEST_ENGINE=OFF)")
 endif ()
 
 set (_imiv_link_libs OpenImageIO)
@@ -220,6 +235,7 @@ if (NOT APPLE)
 
     find_package (Vulkan QUIET)
     if (Vulkan_FOUND)
+        record_build_dependency (Vulkan FOUND VERSION "${Vulkan_VERSION}")
         list (APPEND _imiv_link_libs Vulkan::Vulkan)
     else ()
         find_path (OIIO_IMIV_VULKAN_INCLUDE_DIR
@@ -231,6 +247,7 @@ if (NOT APPLE)
                       HINTS
                           "${OIIO_IMIV_VULKAN_SDK}/lib")
         if (OIIO_IMIV_VULKAN_INCLUDE_DIR AND OIIO_IMIV_VULKAN_LIBRARY)
+            record_build_dependency (Vulkan FOUND)
             add_library (imiv_vulkan_external UNKNOWN IMPORTED)
             set_target_properties (
                 imiv_vulkan_external PROPERTIES
@@ -240,6 +257,10 @@ if (NOT APPLE)
             list (APPEND _imiv_link_libs imiv_vulkan_external)
             message (STATUS "imiv: using Vulkan from explicit SDK include/library paths")
         else ()
+            record_build_dependency (
+                Vulkan NOTFOUND
+                NOT_FOUND_EXPLANATION
+                    "(required by imiv on this platform)")
             message (STATUS
                      "\n\n   WARNING: Vulkan not found -- 'imiv' will not be built!\n")
             return ()
@@ -346,6 +367,41 @@ if (TARGET imiv)
     else ()
         target_compile_definitions (imiv PRIVATE IMIV_HAS_NFD=0)
     endif ()
+
+    add_custom_command (
+        TARGET imiv POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans_Mono"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans.ttf"
+                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans/DroidSans.ttf"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans-Bold.ttf"
+                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans/DroidSans-Bold.ttf"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/droid-lic.txt"
+                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans/droid-lic.txt"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/DroidSansMono.ttf"
+                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans_Mono/DroidSansMono.ttf"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/droid-lic.txt"
+                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans_Mono/droid-lic.txt"
+        VERBATIM)
+
+    install (FILES
+                 "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans.ttf"
+                 "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans-Bold.ttf"
+                 "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/droid-lic.txt"
+             DESTINATION
+                 "${CMAKE_INSTALL_BINDIR}/fonts/Droid_Sans")
+    install (FILES
+                 "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/DroidSansMono.ttf"
+                 "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/droid-lic.txt"
+             DESTINATION
+                 "${CMAKE_INSTALL_BINDIR}/fonts/Droid_Sans_Mono")
 endif ()
 
 if (MSVC)

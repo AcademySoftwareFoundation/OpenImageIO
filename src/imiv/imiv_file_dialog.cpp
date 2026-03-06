@@ -18,36 +18,33 @@ namespace Imiv::FileDialog {
 
 namespace {
 
-const nfdu8filteritem_t k_image_filter[] = {
-    { "Image Files", "avif,bmp,dpx,exr,gif,hdr,heic,jpg,jpeg,jxl,png,tif,tiff,tx,webp" }
-};
+    const nfdu8filteritem_t k_image_filter[] = {
+        { "Image Files",
+          "avif,bmp,dpx,exr,gif,hdr,heic,jpg,jpeg,jxl,png,tif,tiff,tx,webp" }
+    };
 
-struct NfdThreadGuard {
-    bool initialized = false;
-    NfdThreadGuard()
+    struct NfdThreadGuard {
+        bool initialized = false;
+        NfdThreadGuard() { initialized = (NFD_Init() == NFD_OKAY); }
+        ~NfdThreadGuard()
+        {
+            if (initialized)
+                NFD_Quit();
+        }
+    };
+
+
+
+    DialogReply map_error(const char* fallback_message)
     {
-        initialized = (NFD_Init() == NFD_OKAY);
+        DialogReply reply;
+        reply.result    = Result::Error;
+        reply.message   = fallback_message;
+        const char* err = NFD_GetError();
+        if (err && err[0] != '\0')
+            reply.message = err;
+        return reply;
     }
-    ~NfdThreadGuard()
-    {
-        if (initialized)
-            NFD_Quit();
-    }
-};
-
-
-
-DialogReply
-map_error(const char* fallback_message)
-{
-    DialogReply reply;
-    reply.result  = Result::Error;
-    reply.message = fallback_message;
-    const char* err = NFD_GetError();
-    if (err && err[0] != '\0')
-        reply.message = err;
-    return reply;
-}
 
 }  // namespace
 
@@ -91,7 +88,8 @@ open_image_file(const std::string& default_path)
 
 
 DialogReply
-save_image_file(const std::string& default_path, const std::string& default_name)
+save_image_file(const std::string& default_path,
+                const std::string& default_name)
 {
     NfdThreadGuard guard;
     if (!guard.initialized)
@@ -139,7 +137,8 @@ open_image_file(const std::string& default_path)
 
 
 DialogReply
-save_image_file(const std::string& default_path, const std::string& default_name)
+save_image_file(const std::string& default_path,
+                const std::string& default_name)
 {
     (void)default_path;
     (void)default_name;

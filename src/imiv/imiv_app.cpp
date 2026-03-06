@@ -11,10 +11,10 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <ctime>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -40,10 +40,11 @@
 #    include <imgui_te_ui.h>
 #endif
 
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
-#include <OpenImageIO/half.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 
 using namespace OIIO;
 
@@ -51,17 +52,18 @@ namespace Imiv {
 
 namespace {
 
-    constexpr const char* k_image_window_title = "Image";
-    constexpr const char* k_imiv_prefs_filename = "imiv_prefs.ini";
-    constexpr size_t k_max_recent_images        = 16;
+    constexpr const char* k_dockspace_host_title = "imiv DockSpace";
+    constexpr const char* k_image_window_title   = "Image";
+    constexpr const char* k_imiv_prefs_filename  = "imiv_prefs.ini";
+    constexpr size_t k_max_recent_images         = 16;
 
     enum class UploadDataType : uint32_t {
-        UInt8  = 0,
-        UInt16 = 1,
-        UInt32 = 2,
-        Half   = 3,
-        Float  = 4,
-        Double = 5,
+        UInt8   = 0,
+        UInt16  = 1,
+        UInt32  = 2,
+        Half    = 3,
+        Float   = 4,
+        Double  = 5,
         Unknown = 255
     };
 
@@ -107,35 +109,38 @@ namespace {
         return TypeUnknown;
     }
 
-    bool map_spec_type_to_upload(TypeDesc spec_type, UploadDataType& upload_type,
+    bool map_spec_type_to_upload(TypeDesc spec_type,
+                                 UploadDataType& upload_type,
                                  TypeDesc& read_format)
     {
-        if (spec_type == TypeUInt8) {
+        const TypeDesc::BASETYPE base = static_cast<TypeDesc::BASETYPE>(
+            spec_type.basetype);
+        if (base == TypeDesc::UINT8) {
             upload_type = UploadDataType::UInt8;
             read_format = TypeUInt8;
             return true;
         }
-        if (spec_type == TypeUInt16) {
+        if (base == TypeDesc::UINT16) {
             upload_type = UploadDataType::UInt16;
             read_format = TypeUInt16;
             return true;
         }
-        if (spec_type == TypeUInt32) {
+        if (base == TypeDesc::UINT32) {
             upload_type = UploadDataType::UInt32;
             read_format = TypeUInt32;
             return true;
         }
-        if (spec_type == TypeHalf) {
+        if (base == TypeDesc::HALF) {
             upload_type = UploadDataType::Half;
             read_format = TypeHalf;
             return true;
         }
-        if (spec_type == TypeFloat) {
+        if (base == TypeDesc::FLOAT) {
             upload_type = UploadDataType::Float;
             read_format = TypeFloat;
             return true;
         }
-        if (spec_type == TypeDesc::DOUBLE) {
+        if (base == TypeDesc::DOUBLE) {
             upload_type = UploadDataType::Double;
             read_format = TypeDesc::DOUBLE;
             return true;
@@ -157,17 +162,18 @@ namespace {
         size_t channel_bytes   = 0;
         size_t row_pitch_bytes = 0;
         std::vector<unsigned char> pixels;
+        std::vector<std::string> channel_names;
         std::vector<std::pair<std::string, std::string>> longinfo_rows;
     };
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
 
     struct PreviewControls {
-        float exposure = 0.0f;
-        float gamma    = 1.0f;
-        int color_mode = 0;
-        int channel    = 0;
-        int use_ocio   = 0;
+        float exposure  = 0.0f;
+        float gamma     = 1.0f;
+        int color_mode  = 0;
+        int channel     = 0;
+        int use_ocio    = 0;
         int orientation = 1;
     };
 
@@ -180,35 +186,35 @@ namespace {
         VkImageView view      = VK_NULL_HANDLE;  // preview/output view
         VkDeviceMemory memory = VK_NULL_HANDLE;  // preview/output memory
 
-        VkFramebuffer preview_framebuffer      = VK_NULL_HANDLE;
-        VkDescriptorSet preview_source_set     = VK_NULL_HANDLE;
-        VkSampler sampler     = VK_NULL_HANDLE;
-        VkSampler pixelview_sampler = VK_NULL_HANDLE;
-        VkDescriptorSet set   = VK_NULL_HANDLE;
-        VkDescriptorSet pixelview_set = VK_NULL_HANDLE;
-        int width             = 0;
-        int height            = 0;
-        bool preview_initialized = false;
-        bool preview_dirty       = false;
-        bool preview_params_valid = false;
+        VkFramebuffer preview_framebuffer     = VK_NULL_HANDLE;
+        VkDescriptorSet preview_source_set    = VK_NULL_HANDLE;
+        VkSampler sampler                     = VK_NULL_HANDLE;
+        VkSampler pixelview_sampler           = VK_NULL_HANDLE;
+        VkDescriptorSet set                   = VK_NULL_HANDLE;
+        VkDescriptorSet pixelview_set         = VK_NULL_HANDLE;
+        int width                             = 0;
+        int height                            = 0;
+        bool preview_initialized              = false;
+        bool preview_dirty                    = false;
+        bool preview_params_valid             = false;
         PreviewControls last_preview_controls = {};
     };
 
     struct UploadComputePushConstants {
-        uint32_t width            = 0;
-        uint32_t height           = 0;
-        uint32_t row_pitch_bytes  = 0;
-        uint32_t pixel_stride     = 0;
-        uint32_t channel_count    = 0;
-        uint32_t data_type        = 0;
+        uint32_t width           = 0;
+        uint32_t height          = 0;
+        uint32_t row_pitch_bytes = 0;
+        uint32_t pixel_stride    = 0;
+        uint32_t channel_count   = 0;
+        uint32_t data_type       = 0;
     };
 
     struct PreviewPushConstants {
-        float exposure   = 0.0f;
-        float gamma      = 1.0f;
-        int32_t color_mode = 0;
-        int32_t channel    = 0;
-        int32_t use_ocio   = 0;
+        float exposure      = 0.0f;
+        float gamma         = 1.0f;
+        int32_t color_mode  = 0;
+        int32_t channel     = 0;
+        int32_t use_ocio    = 0;
         int32_t orientation = 1;
     };
 
@@ -225,36 +231,39 @@ namespace {
         VkDescriptorPool descriptor_pool                = VK_NULL_HANDLE;
         VkSurfaceKHR surface                            = VK_NULL_HANDLE;
         ImGui_ImplVulkanH_Window window_data;
-        uint32_t min_image_count                                  = 2;
-        bool swapchain_rebuild                                    = false;
-        bool validation_layer_enabled                             = false;
-        bool debug_utils_enabled                                  = false;
-        bool queue_requires_full_image_copies                     = false;
-        bool warned_about_full_imgui_uploads                      = false;
-        bool compute_upload_ready                                 = false;
-        bool compute_supports_float64                             = false;
-        VkFormat compute_output_format                            = VK_FORMAT_UNDEFINED;
-        VkDescriptorPool compute_descriptor_pool                  = VK_NULL_HANDLE;
-        VkDescriptorSetLayout compute_descriptor_set_layout       = VK_NULL_HANDLE;
-        VkPipelineLayout compute_pipeline_layout                  = VK_NULL_HANDLE;
-        VkPipeline compute_pipeline                               = VK_NULL_HANDLE;
-        VkPipeline compute_pipeline_fp64                          = VK_NULL_HANDLE;
+        uint32_t min_image_count                 = 2;
+        bool swapchain_rebuild                   = false;
+        bool validation_layer_enabled            = false;
+        bool debug_utils_enabled                 = false;
+        bool verbose_logging                     = false;
+        bool verbose_validation_output           = false;
+        bool log_imgui_texture_updates           = false;
+        bool queue_requires_full_image_copies    = false;
+        bool warned_about_full_imgui_uploads     = false;
+        bool compute_upload_ready                = false;
+        bool compute_supports_float64            = false;
+        VkFormat compute_output_format           = VK_FORMAT_UNDEFINED;
+        VkDescriptorPool compute_descriptor_pool = VK_NULL_HANDLE;
+        VkDescriptorSetLayout compute_descriptor_set_layout = VK_NULL_HANDLE;
+        VkPipelineLayout compute_pipeline_layout            = VK_NULL_HANDLE;
+        VkPipeline compute_pipeline                         = VK_NULL_HANDLE;
+        VkPipeline compute_pipeline_fp64                    = VK_NULL_HANDLE;
 
-        VkDescriptorPool preview_descriptor_pool                  = VK_NULL_HANDLE;
-        VkDescriptorSetLayout preview_descriptor_set_layout       = VK_NULL_HANDLE;
-        VkPipelineLayout preview_pipeline_layout                  = VK_NULL_HANDLE;
-        VkPipeline preview_pipeline                               = VK_NULL_HANDLE;
-        VkRenderPass preview_render_pass                          = VK_NULL_HANDLE;
+        VkDescriptorPool preview_descriptor_pool            = VK_NULL_HANDLE;
+        VkDescriptorSetLayout preview_descriptor_set_layout = VK_NULL_HANDLE;
+        VkPipelineLayout preview_pipeline_layout            = VK_NULL_HANDLE;
+        VkPipeline preview_pipeline                         = VK_NULL_HANDLE;
+        VkRenderPass preview_render_pass                    = VK_NULL_HANDLE;
         PFN_vkSetDebugUtilsObjectNameEXT set_debug_object_name_fn = nullptr;
     };
 
 #endif
 
     enum class ImageSortMode : uint8_t {
-        ByName     = 0,
-        ByPath     = 1,
+        ByName      = 0,
+        ByPath      = 1,
         ByImageDate = 2,
-        ByFileDate = 3
+        ByFileDate  = 3
     };
 
     struct ViewerState {
@@ -269,15 +278,15 @@ namespace {
         std::vector<std::string> recent_images;
         ImageSortMode sort_mode = ImageSortMode::ByName;
         bool sort_reverse       = false;
-        bool probe_valid   = false;
-        int probe_x        = 0;
-        int probe_y        = 0;
+        bool probe_valid        = false;
+        int probe_x             = 0;
+        int probe_y             = 0;
         std::vector<double> probe_channels;
-        bool fullscreen_applied = false;
-        int windowed_x          = 100;
-        int windowed_y          = 100;
-        int windowed_width      = 1600;
-        int windowed_height     = 900;
+        bool fullscreen_applied        = false;
+        int windowed_x                 = 100;
+        int windowed_y                 = 100;
+        int windowed_width             = 1600;
+        int windowed_height            = 900;
         double slide_last_advance_time = 0.0;
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
         VulkanTexture texture;
@@ -287,22 +296,23 @@ namespace {
 
 
     struct PlaceholderUiState {
-        bool show_info_window        = false;
-        bool show_preferences_window = false;
-        bool show_pixelview_window   = false;
-        bool show_area_probe_window  = false;
-        bool show_window_guides      = false;
+        bool show_info_window         = false;
+        bool show_preferences_window  = false;
+        bool show_pixelview_window    = false;
+        bool show_area_probe_window   = false;
+        bool show_window_guides       = false;
         bool show_mouse_mode_selector = false;
-        bool fit_image_to_window     = false;
-        bool full_screen_mode        = false;
-        bool slide_show_running      = false;
-        bool slide_loop              = true;
-        bool use_ocio                = false;
-        bool pixelview_follows_mouse = false;
-        bool pixelview_left_corner   = true;
-        bool linear_interpolation    = true;
-        bool dark_palette            = true;
-        bool auto_mipmap             = false;
+        bool fit_image_to_window      = false;
+        bool full_screen_mode         = false;
+        bool slide_show_running       = false;
+        bool slide_loop               = true;
+        bool use_ocio                 = false;
+        bool pixelview_follows_mouse  = false;
+        bool pixelview_left_corner    = true;
+        bool linear_interpolation     = true;
+        bool dark_palette             = true;
+        bool auto_mipmap              = false;
+        bool image_window_force_dock  = true;
 
         int max_memory_ic_mb       = 2048;
         int slide_duration_seconds = 10;
@@ -322,6 +332,11 @@ namespace {
         std::string ocio_image_color_space = "auto";
     };
 
+    struct AppFonts {
+        ImFont* ui   = nullptr;
+        ImFont* mono = nullptr;
+    };
+
     void refresh_sibling_images(ViewerState& viewer);
     bool pick_sibling_image(const ViewerState& viewer, int delta,
                             std::string& out_path);
@@ -330,11 +345,55 @@ namespace {
     void add_recent_image_path(ViewerState& viewer, const std::string& path);
     void clamp_placeholder_ui_state(PlaceholderUiState& ui_state);
     bool load_persistent_state(PlaceholderUiState& ui_state,
-                               ViewerState& viewer,
-                               std::string& error_message);
+                               ViewerState& viewer, std::string& error_message);
     bool save_persistent_state(const PlaceholderUiState& ui_state,
                                const ViewerState& viewer,
                                std::string& error_message);
+
+    std::filesystem::path executable_directory_path()
+    {
+        const std::string program_path = Sysutil::this_program_path();
+        if (program_path.empty())
+            return std::filesystem::path();
+        return std::filesystem::path(program_path).parent_path();
+    }
+
+    ImFont* load_font_if_present(const std::filesystem::path& path,
+                                 float size_pixels)
+    {
+        std::error_code ec;
+        if (path.empty() || !std::filesystem::exists(path, ec) || ec)
+            return nullptr;
+        ImGuiIO& io = ImGui::GetIO();
+        return io.Fonts->AddFontFromFileTTF(path.string().c_str(), size_pixels);
+    }
+
+    AppFonts setup_app_fonts(bool verbose_logging)
+    {
+        AppFonts fonts;
+        ImGuiIO& io = ImGui::GetIO();
+
+        const std::filesystem::path font_root = executable_directory_path()
+                                                / "fonts";
+        fonts.ui   = load_font_if_present(font_root / "Droid_Sans"
+                                              / "DroidSans.ttf",
+                                          16.0f);
+        fonts.mono = load_font_if_present(font_root / "Droid_Sans_Mono"
+                                              / "DroidSansMono.ttf",
+                                          16.0f);
+        if (!fonts.ui)
+            fonts.ui = io.Fonts->AddFontDefault();
+        if (!fonts.mono)
+            fonts.mono = fonts.ui;
+        io.FontDefault = fonts.ui;
+
+        if (verbose_logging) {
+            print("imiv: ui font={} mono font={}\n",
+                  fonts.ui ? "ready" : "missing",
+                  fonts.mono ? "ready" : "missing");
+        }
+        return fonts;
+    }
 
 
 
@@ -424,6 +483,108 @@ namespace {
         return static_cast<int>(x);
     }
 
+
+
+    bool env_var_is_nonempty(const char* name)
+    {
+        std::string value;
+        return read_env_value(name, value) && !value.empty();
+    }
+
+
+
+    enum class GlfwPlatformPreference : uint8_t {
+        Auto    = 0,
+        X11     = 1,
+        Wayland = 2
+    };
+
+
+
+    GlfwPlatformPreference glfw_platform_preference()
+    {
+        std::string value;
+        if (!read_env_value("IMIV_GLFW_PLATFORM", value) || value.empty())
+            return GlfwPlatformPreference::Auto;
+        if (streq_i_ascii(value.c_str(), "x11"))
+            return GlfwPlatformPreference::X11;
+        if (streq_i_ascii(value.c_str(), "wayland"))
+            return GlfwPlatformPreference::Wayland;
+        return GlfwPlatformPreference::Auto;
+    }
+
+
+
+    const char* glfw_platform_name(int platform)
+    {
+#if defined(IMIV_BACKEND_VULKAN_GLFW) && defined(GLFW_VERSION_MAJOR) \
+    && ((GLFW_VERSION_MAJOR > 3)                                     \
+        || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4))
+        switch (platform) {
+#    if defined(GLFW_PLATFORM_WIN32)
+        case GLFW_PLATFORM_WIN32: return "win32";
+#    endif
+#    if defined(GLFW_PLATFORM_COCOA)
+        case GLFW_PLATFORM_COCOA: return "cocoa";
+#    endif
+#    if defined(GLFW_PLATFORM_WAYLAND)
+        case GLFW_PLATFORM_WAYLAND: return "wayland";
+#    endif
+#    if defined(GLFW_PLATFORM_X11)
+        case GLFW_PLATFORM_X11: return "x11";
+#    endif
+#    if defined(GLFW_PLATFORM_NULL)
+        case GLFW_PLATFORM_NULL: return "null";
+#    endif
+        default: break;
+        }
+#else
+        (void)platform;
+#endif
+        return "unknown";
+    }
+
+
+
+    void configure_glfw_platform_preference(bool verbose_logging)
+    {
+#if defined(IMIV_BACKEND_VULKAN_GLFW) && !defined(_WIN32) \
+    && !defined(__APPLE__) && defined(GLFW_VERSION_MAJOR) \
+    && ((GLFW_VERSION_MAJOR > 3)                          \
+        || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4))
+        const GlfwPlatformPreference preference = glfw_platform_preference();
+        if (preference == GlfwPlatformPreference::X11) {
+#    if defined(GLFW_PLATFORM) && defined(GLFW_PLATFORM_X11)
+            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+            if (verbose_logging)
+                print("imiv: GLFW platform preference = x11\n");
+#    endif
+            return;
+        }
+        if (preference == GlfwPlatformPreference::Wayland) {
+#    if defined(GLFW_PLATFORM) && defined(GLFW_PLATFORM_WAYLAND)
+            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
+            if (verbose_logging)
+                print("imiv: GLFW platform preference = wayland\n");
+#    endif
+            return;
+        }
+
+        const bool have_x11_display     = env_var_is_nonempty("DISPLAY");
+        const bool have_wayland_display = env_var_is_nonempty(
+            "WAYLAND_DISPLAY");
+        if (have_x11_display && have_wayland_display) {
+#    if defined(GLFW_PLATFORM) && defined(GLFW_PLATFORM_X11)
+            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+            if (verbose_logging) {
+                print("imiv: GLFW auto-selected x11 for platform windows "
+                      "(DISPLAY and WAYLAND_DISPLAY are both present)\n");
+            }
+#    endif
+        }
+#endif
+    }
+
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     int g_layout_dump_synthetic_item_counter = 0;
 
@@ -451,10 +612,9 @@ namespace {
         if (max.x <= min.x || max.y <= min.y)
             return;
 
-        const int ordinal = ++g_layout_dump_synthetic_item_counter;
+        const int ordinal   = ++g_layout_dump_synthetic_item_counter;
         char id_source[128] = {};
-        std::snprintf(id_source, sizeof(id_source),
-                      "##imiv_layout_synth_%s_%d",
+        std::snprintf(id_source, sizeof(id_source), "##imiv_layout_synth_%s_%d",
                       kind ? kind : "item", ordinal);
         const ImGuiID id = ImGui::GetID(id_source);
         if (id == 0)
@@ -481,8 +641,7 @@ namespace {
 
 
 
-    template<class T>
-    T read_unaligned_value(const unsigned char* ptr)
+    template<class T> T read_unaligned_value(const unsigned char* ptr)
     {
         T value = {};
         std::memcpy(&value, ptr, sizeof(T));
@@ -501,6 +660,37 @@ namespace {
 
 
 
+    std::string pixel_preview_channel_label(const LoadedImage& image, int c)
+    {
+        if (c >= 0 && c < static_cast<int>(image.channel_names.size())
+            && !image.channel_names[c].empty()) {
+            return image.channel_names[c];
+        }
+        return channel_label_for_index(c);
+    }
+
+
+
+    double probe_value_to_oiio_float(UploadDataType type, double value)
+    {
+        switch (type) {
+        case UploadDataType::UInt8: return value / 255.0;
+        case UploadDataType::UInt16: return value / 65535.0;
+        case UploadDataType::UInt32: return value / 4294967295.0;
+        case UploadDataType::Half:
+        case UploadDataType::Float:
+        case UploadDataType::Double: return value;
+        default: break;
+        }
+        return value;
+    }
+
+
+
+    enum class ProbeStatsSemantics : uint8_t { RawStored = 0, OIIOFloat = 1 };
+
+
+
     bool sample_loaded_pixel(const LoadedImage& image, int x, int y,
                              std::vector<double>& out_channels)
     {
@@ -512,7 +702,7 @@ namespace {
         if (x < 0 || y < 0 || x >= image.width || y >= image.height)
             return false;
 
-        const size_t channels = static_cast<size_t>(image.nchannels);
+        const size_t channels  = static_cast<size_t>(image.nchannels);
         const size_t px_stride = channels * image.channel_bytes;
         const size_t row_start = static_cast<size_t>(y) * image.row_pitch_bytes;
         const size_t px_start  = static_cast<size_t>(x) * px_stride;
@@ -524,7 +714,7 @@ namespace {
         const unsigned char* src = image.pixels.data() + offset;
         for (size_t c = 0; c < channels; ++c) {
             const unsigned char* channel_ptr = src + c * image.channel_bytes;
-            double v                          = 0.0;
+            double v                         = 0.0;
             switch (image.type) {
             case UploadDataType::UInt8:
                 v = static_cast<double>(*channel_ptr);
@@ -538,8 +728,8 @@ namespace {
                     read_unaligned_value<uint32_t>(channel_ptr));
                 break;
             case UploadDataType::Half:
-                v = static_cast<double>(
-                    static_cast<float>(read_unaligned_value<half>(channel_ptr)));
+                v = static_cast<double>(static_cast<float>(
+                    read_unaligned_value<half>(channel_ptr)));
                 break;
             case UploadDataType::Float:
                 v = static_cast<double>(
@@ -557,10 +747,53 @@ namespace {
 
 
 
-    bool compute_area_stats(const LoadedImage& image, int center_x, int center_y,
-                            int window_size, std::vector<double>& out_min,
-                            std::vector<double>& out_max,
-                            std::vector<double>& out_avg, int& out_samples)
+    bool sample_loaded_pixel_with_semantics(const LoadedImage& image, int x,
+                                            int y,
+                                            ProbeStatsSemantics semantics,
+                                            std::vector<double>& out_channels)
+    {
+        if (!sample_loaded_pixel(image, x, y, out_channels))
+            return false;
+        if (semantics == ProbeStatsSemantics::OIIOFloat) {
+            for (double& value : out_channels)
+                value = probe_value_to_oiio_float(image.type, value);
+        }
+        return true;
+    }
+
+
+
+    bool apply_forced_probe_from_env(ViewerState& viewer)
+    {
+        const int forced_x = env_int_value("IMIV_IMGUI_TEST_ENGINE_PROBE_X",
+                                           -1);
+        const int forced_y = env_int_value("IMIV_IMGUI_TEST_ENGINE_PROBE_Y",
+                                           -1);
+        if (forced_x < 0 || forced_y < 0 || viewer.image.path.empty())
+            return false;
+
+        const int px = std::clamp(forced_x, 0,
+                                  std::max(0, viewer.image.width - 1));
+        const int py = std::clamp(forced_y, 0,
+                                  std::max(0, viewer.image.height - 1));
+        std::vector<double> sampled;
+        if (!sample_loaded_pixel(viewer.image, px, py, sampled))
+            return false;
+
+        viewer.probe_valid    = true;
+        viewer.probe_x        = px;
+        viewer.probe_y        = py;
+        viewer.probe_channels = std::move(sampled);
+        return true;
+    }
+
+
+
+    bool compute_area_stats(
+        const LoadedImage& image, int center_x, int center_y, int window_size,
+        std::vector<double>& out_min, std::vector<double>& out_max,
+        std::vector<double>& out_avg, int& out_samples,
+        ProbeStatsSemantics semantics = ProbeStatsSemantics::RawStored)
     {
         out_min.clear();
         out_max.clear();
@@ -574,7 +807,7 @@ namespace {
             ++window_size;
 
         const int half_window = window_size / 2;
-        const int x0 = std::max(0, center_x - half_window);
+        const int x0          = std::max(0, center_x - half_window);
         const int x1 = std::min(image.width - 1, center_x + half_window);
         const int y0 = std::max(0, center_y - half_window);
         const int y1 = std::min(image.height - 1, center_y + half_window);
@@ -589,7 +822,8 @@ namespace {
         std::vector<double> sample;
         for (int y = y0; y <= y1; ++y) {
             for (int x = x0; x <= x1; ++x) {
-                if (!sample_loaded_pixel(image, x, y, sample))
+                if (!sample_loaded_pixel_with_semantics(image, x, y, semantics,
+                                                        sample))
                     continue;
                 if (sample.size() != channels)
                     continue;
@@ -713,10 +947,9 @@ namespace {
             ui_state.max_memory_ic_mb = 64;
         if (ui_state.slide_duration_seconds < 1)
             ui_state.slide_duration_seconds = 1;
-        ui_state.closeup_pixels
-            = clamp_odd(ui_state.closeup_pixels, 9, 25);
-        ui_state.closeup_avg_pixels
-            = clamp_odd(ui_state.closeup_avg_pixels, 3, 25);
+        ui_state.closeup_pixels     = clamp_odd(ui_state.closeup_pixels, 9, 25);
+        ui_state.closeup_avg_pixels = clamp_odd(ui_state.closeup_avg_pixels, 3,
+                                                25);
         if (ui_state.closeup_avg_pixels > ui_state.closeup_pixels)
             ui_state.closeup_avg_pixels = ui_state.closeup_pixels;
         if (ui_state.current_channel < 0)
@@ -748,8 +981,7 @@ namespace {
 
 
     bool load_persistent_state(PlaceholderUiState& ui_state,
-                               ViewerState& viewer,
-                               std::string& error_message)
+                               ViewerState& viewer, std::string& error_message)
     {
         error_message.clear();
         const std::filesystem::path path = prefs_file_path();
@@ -854,7 +1086,7 @@ namespace {
                 ui_state.ocio_image_color_space = trim_ascii(value);
             } else if (key == "sort_mode") {
                 if (parse_int_value(value, int_value)) {
-                    int_value = std::clamp(int_value, 0, 3);
+                    int_value        = std::clamp(int_value, 0, 3);
                     viewer.sort_mode = static_cast<ImageSortMode>(int_value);
                 }
             } else if (key == "sort_reverse") {
@@ -881,9 +1113,8 @@ namespace {
                                std::string& error_message)
     {
         error_message.clear();
-        const std::filesystem::path path = prefs_file_path();
-        const std::filesystem::path temp_path
-            = path.string() + ".tmp";
+        const std::filesystem::path path      = prefs_file_path();
+        const std::filesystem::path temp_path = path.string() + ".tmp";
 
         std::ofstream output(temp_path, std::ios::trunc);
         if (!output) {
@@ -905,18 +1136,17 @@ namespace {
                << (ui_state.fit_image_to_window ? 1 : 0) << "\n";
         output << "show_mouse_mode_selector="
                << (ui_state.show_mouse_mode_selector ? 1 : 0) << "\n";
-        output << "full_screen_mode="
-               << (ui_state.full_screen_mode ? 1 : 0) << "\n";
-        output << "slide_show_running="
-               << (ui_state.slide_show_running ? 1 : 0) << "\n";
+        output << "full_screen_mode=" << (ui_state.full_screen_mode ? 1 : 0)
+               << "\n";
+        output << "slide_show_running=" << (ui_state.slide_show_running ? 1 : 0)
+               << "\n";
         output << "slide_loop=" << (ui_state.slide_loop ? 1 : 0) << "\n";
         output << "use_ocio=" << (ui_state.use_ocio ? 1 : 0) << "\n";
         output << "max_memory_ic_mb=" << ui_state.max_memory_ic_mb << "\n";
         output << "slide_duration_seconds=" << ui_state.slide_duration_seconds
                << "\n";
         output << "closeup_pixels=" << ui_state.closeup_pixels << "\n";
-        output << "closeup_avg_pixels=" << ui_state.closeup_avg_pixels
-               << "\n";
+        output << "closeup_avg_pixels=" << ui_state.closeup_avg_pixels << "\n";
         output << "current_channel=" << ui_state.current_channel << "\n";
         output << "subimage_index=" << ui_state.subimage_index << "\n";
         output << "miplevel_index=" << ui_state.miplevel_index << "\n";
@@ -1001,15 +1231,14 @@ namespace {
     {
         image.longinfo_rows.clear();
         if (spec.depth <= 1) {
-            append_longinfo_row(
-                image, "Dimensions",
-                Strutil::fmt::format("{} x {} pixels", spec.width,
-                                     spec.height));
+            append_longinfo_row(image, "Dimensions",
+                                Strutil::fmt::format("{} x {} pixels",
+                                                     spec.width, spec.height));
         } else {
-            append_longinfo_row(
-                image, "Dimensions",
-                Strutil::fmt::format("{} x {} x {} pixels", spec.width,
-                                     spec.height, spec.depth));
+            append_longinfo_row(image, "Dimensions",
+                                Strutil::fmt::format("{} x {} x {} pixels",
+                                                     spec.width, spec.height,
+                                                     spec.depth));
         }
         append_longinfo_row(image, "Channels",
                             Strutil::fmt::format("{}", spec.nchannels));
@@ -1025,11 +1254,11 @@ namespace {
                             std::string(source.file_format_name()));
         append_longinfo_row(image, "Data format",
                             std::string(spec.format.c_str()));
-        append_longinfo_row(
-            image, "Data size",
-            Strutil::fmt::format("{:.2f} MB",
-                                 static_cast<double>(spec.image_bytes())
-                                     / (1024.0 * 1024.0)));
+        append_longinfo_row(image, "Data size",
+                            Strutil::fmt::format("{:.2f} MB",
+                                                 static_cast<double>(
+                                                     spec.image_bytes())
+                                                     / (1024.0 * 1024.0)));
         append_longinfo_row(image, "Image origin",
                             Strutil::fmt::format("{}, {}, {}", spec.x, spec.y,
                                                  spec.z));
@@ -1042,17 +1271,17 @@ namespace {
                             Strutil::fmt::format("{}, {}, {}", spec.full_x,
                                                  spec.full_y, spec.full_z));
         if (spec.tile_width) {
-            append_longinfo_row(
-                image, "Scanline/tile",
-                Strutil::fmt::format("tiled {} x {} x {}", spec.tile_width,
-                                     spec.tile_height, spec.tile_depth));
+            append_longinfo_row(image, "Scanline/tile",
+                                Strutil::fmt::format("tiled {} x {} x {}",
+                                                     spec.tile_width,
+                                                     spec.tile_height,
+                                                     spec.tile_depth));
         } else {
             append_longinfo_row(image, "Scanline/tile", "scanline");
         }
         if (spec.alpha_channel >= 0) {
-            append_longinfo_row(
-                image, "Alpha channel",
-                Strutil::fmt::format("{}", spec.alpha_channel));
+            append_longinfo_row(image, "Alpha channel",
+                                Strutil::fmt::format("{}", spec.alpha_channel));
         }
         if (spec.z_channel >= 0) {
             append_longinfo_row(image, "Depth (z) channel",
@@ -1082,8 +1311,8 @@ namespace {
         int nsubimages = source.nsubimages();
         if (nsubimages <= 0)
             nsubimages = 1;
-        const int resolved_subimage
-            = std::clamp(requested_subimage, 0, nsubimages - 1);
+        const int resolved_subimage = std::clamp(requested_subimage, 0,
+                                                 nsubimages - 1);
         if (resolved_subimage != 0) {
             source.reset(path, resolved_subimage, 0);
             if (!source.read(resolved_subimage, 0, true, TypeUnknown)) {
@@ -1097,8 +1326,8 @@ namespace {
         int nmiplevels = source.nmiplevels();
         if (nmiplevels <= 0)
             nmiplevels = 1;
-        const int resolved_miplevel
-            = std::clamp(requested_miplevel, 0, nmiplevels - 1);
+        const int resolved_miplevel = std::clamp(requested_miplevel, 0,
+                                                 nmiplevels - 1);
         if (resolved_miplevel != source.miplevel()) {
             source.reset(path, resolved_subimage, resolved_miplevel);
             if (!source.read(resolved_subimage, resolved_miplevel, true,
@@ -1131,7 +1360,7 @@ namespace {
             error_message = "unsupported pixel data type";
             return false;
         }
-        const size_t row_pitch = width * channel_count * channel_bytes;
+        const size_t row_pitch  = width * channel_count * channel_bytes;
         const size_t total_size = row_pitch * height;
 
         std::vector<unsigned char> pixels(total_size);
@@ -1147,21 +1376,26 @@ namespace {
         image.height      = spec.height;
         image.orientation = clamp_orientation(
             spec.get_int_attribute("Orientation", 1));
-        image.nchannels   = spec.nchannels;
-        image.subimage    = resolved_subimage;
-        image.miplevel    = resolved_miplevel;
-        image.nsubimages  = nsubimages;
-        image.nmiplevels  = nmiplevels;
-        image.type        = upload_type;
+        image.nchannels       = spec.nchannels;
+        image.subimage        = resolved_subimage;
+        image.miplevel        = resolved_miplevel;
+        image.nsubimages      = nsubimages;
+        image.nmiplevels      = nmiplevels;
+        image.type            = upload_type;
         image.channel_bytes   = channel_bytes;
         image.row_pitch_bytes = row_pitch;
-        image.pixels      = std::move(pixels);
+        image.pixels          = std::move(pixels);
+        image.channel_names.clear();
+        image.channel_names.reserve(static_cast<size_t>(spec.nchannels));
+        for (int c = 0; c < spec.nchannels; ++c)
+            image.channel_names.emplace_back(spec.channelnames[c]);
         build_longinfo_rows(image, source, spec);
 
         if (spec.format != read_format) {
-            print(stderr,
-                  "imiv: source format '{}' converted to '{}' for compute upload path\n",
-                  spec.format.c_str(), read_format.c_str());
+            print(
+                stderr,
+                "imiv: source format '{}' converted to '{}' for compute upload path\n",
+                spec.format.c_str(), read_format.c_str());
         }
         return true;
     }
@@ -1442,12 +1676,15 @@ namespace {
                                                      || granularity.height == 0
                                                      || granularity.depth == 0);
 
-        print("imiv: Vulkan queue family {} flags={} granularity=({}, {}, {}) "
-              "count={}\n",
-              vk_state.queue_family,
-              queue_flags_string(vk_state.queue_family_properties.queueFlags),
-              granularity.width, granularity.height, granularity.depth,
-              vk_state.queue_family_properties.queueCount);
+        if (vk_state.verbose_logging) {
+            print("imiv: Vulkan queue family {} flags={} granularity=({}, {}, "
+                  "{}) count={}\n",
+                  vk_state.queue_family,
+                  queue_flags_string(
+                      vk_state.queue_family_properties.queueFlags),
+                  granularity.width, granularity.height, granularity.depth,
+                  vk_state.queue_family_properties.queueCount);
+        }
         if (vk_state.queue_requires_full_image_copies) {
             print(stderr,
                   "imiv: queue family {} requires full-image transfer copies; "
@@ -1540,12 +1777,14 @@ namespace {
             if (tex == nullptr || tex->Status == ImTextureStatus_OK)
                 continue;
 
-            print(
-                stderr,
-                "imiv: imgui texture id={} status={} size={}x{} update=({},{} {}x{}) pending={}\n",
-                tex->UniqueID, texture_status_name(tex->Status), tex->Width,
-                tex->Height, tex->UpdateRect.x, tex->UpdateRect.y,
-                tex->UpdateRect.w, tex->UpdateRect.h, tex->Updates.Size);
+            if (vk_state.log_imgui_texture_updates) {
+                print(
+                    stderr,
+                    "imiv: imgui texture id={} status={} size={}x{} update=({},{} {}x{}) pending={}\n",
+                    tex->UniqueID, texture_status_name(tex->Status), tex->Width,
+                    tex->Height, tex->UpdateRect.x, tex->UpdateRect.y,
+                    tex->UpdateRect.w, tex->UpdateRect.h, tex->Updates.Size);
+            }
 
             if (!vk_state.queue_requires_full_image_copies
                 || tex->Status != ImTextureStatus_WantUpdates) {
@@ -1576,14 +1815,18 @@ namespace {
 
 
 
-    void populate_debug_messenger_ci(VkDebugUtilsMessengerCreateInfoEXT& ci)
+    void populate_debug_messenger_ci(VkDebugUtilsMessengerCreateInfoEXT& ci,
+                                     bool verbose_output)
     {
         ci       = {};
         ci.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        ci.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
-                             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
-                             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+        ci.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
                              | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        if (verbose_output) {
+            ci.messageSeverity
+                |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+                   | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+        }
         ci.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
                          | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                          | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
@@ -1605,7 +1848,7 @@ namespace {
         }
 
         VkDebugUtilsMessengerCreateInfoEXT ci = {};
-        populate_debug_messenger_ci(ci);
+        populate_debug_messenger_ci(ci, vk_state.verbose_validation_output);
         VkResult err = create_fn(vk_state.instance, &ci, vk_state.allocator,
                                  &vk_state.debug_messenger);
         if (err != VK_SUCCESS) {
@@ -1661,8 +1904,9 @@ namespace {
 
         const std::streamsize size = in.tellg();
         if (size <= 0 || (size % 4) != 0) {
-            error_message = Strutil::fmt::format(
-                "invalid SPIR-V file size for '{}'", path);
+            error_message
+                = Strutil::fmt::format("invalid SPIR-V file size for '{}'",
+                                       path);
             return false;
         }
         in.seekg(0, std::ios::beg);
@@ -1689,16 +1933,17 @@ namespace {
         if (!read_binary_file(shader_path, shader_words, error_message))
             return false;
 
-        VkShaderModule shader_module = VK_NULL_HANDLE;
+        VkShaderModule shader_module       = VK_NULL_HANDLE;
         VkShaderModuleCreateInfo shader_ci = {};
-        shader_ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        shader_ci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         shader_ci.codeSize = shader_words.size() * sizeof(uint32_t);
         shader_ci.pCode    = shader_words.data();
-        VkResult err = vkCreateShaderModule(vk_state.device, &shader_ci,
-                                            vk_state.allocator, &shader_module);
+        VkResult err       = vkCreateShaderModule(vk_state.device, &shader_ci,
+                                                  vk_state.allocator, &shader_module);
         if (err != VK_SUCCESS) {
-            error_message = Strutil::fmt::format(
-                "vkCreateShaderModule failed for '{}'", shader_path);
+            error_message
+                = Strutil::fmt::format("vkCreateShaderModule failed for '{}'",
+                                       shader_path);
             return false;
         }
 
@@ -1714,7 +1959,8 @@ namespace {
         err = vkCreateComputePipelines(vk_state.device, vk_state.pipeline_cache,
                                        1, &pipeline_ci, vk_state.allocator,
                                        &out_pipeline);
-        vkDestroyShaderModule(vk_state.device, shader_module, vk_state.allocator);
+        vkDestroyShaderModule(vk_state.device, shader_module,
+                              vk_state.allocator);
         if (err != VK_SUCCESS) {
             error_message = Strutil::fmt::format(
                 "vkCreateComputePipelines failed for '{}'", shader_path);
@@ -1740,14 +1986,15 @@ namespace {
             return false;
 
         VkShaderModuleCreateInfo shader_ci = {};
-        shader_ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        shader_ci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         shader_ci.codeSize = shader_words.size() * sizeof(uint32_t);
         shader_ci.pCode    = shader_words.data();
-        VkResult err = vkCreateShaderModule(device, &shader_ci, allocator,
-                                            &shader_module);
+        VkResult err       = vkCreateShaderModule(device, &shader_ci, allocator,
+                                                  &shader_module);
         if (err != VK_SUCCESS) {
-            error_message = Strutil::fmt::format(
-                "vkCreateShaderModule failed for '{}'", shader_path);
+            error_message
+                = Strutil::fmt::format("vkCreateShaderModule failed for '{}'",
+                                       shader_path);
             shader_module = VK_NULL_HANDLE;
             return false;
         }
@@ -1790,9 +2037,11 @@ namespace {
 
 
 
-    bool init_preview_resources(VulkanState& vk_state, std::string& error_message)
+    bool init_preview_resources(VulkanState& vk_state,
+                                std::string& error_message)
     {
-#    if !(defined(IMIV_HAS_COMPUTE_UPLOAD_SHADERS) && IMIV_HAS_COMPUTE_UPLOAD_SHADERS)
+#    if !(defined(IMIV_HAS_COMPUTE_UPLOAD_SHADERS) \
+          && IMIV_HAS_COMPUTE_UPLOAD_SHADERS)
         error_message = "preview shaders were not generated at build time";
         return false;
 #    else
@@ -1807,18 +2056,18 @@ namespace {
         }
 
         VkAttachmentDescription attachment = {};
-        attachment.format         = vk_state.compute_output_format;
-        attachment.samples        = VK_SAMPLE_COUNT_1_BIT;
-        attachment.loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
-        attachment.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachment.initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        attachment.finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        attachment.format                  = vk_state.compute_output_format;
+        attachment.samples                 = VK_SAMPLE_COUNT_1_BIT;
+        attachment.loadOp                  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.storeOp                 = VK_ATTACHMENT_STORE_OP_STORE;
+        attachment.stencilLoadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.stencilStoreOp          = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        attachment.finalLayout   = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference color_ref = {};
-        color_ref.attachment = 0;
-        color_ref.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        color_ref.attachment            = 0;
+        color_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkSubpassDescription subpass = {};
         subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -1845,13 +2094,14 @@ namespace {
 
         VkDescriptorPoolSize preview_pool_size = {};
         preview_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        preview_pool_size.descriptorCount = 64;
+        preview_pool_size.descriptorCount          = 64;
         VkDescriptorPoolCreateInfo preview_pool_ci = {};
         preview_pool_ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        preview_pool_ci.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        preview_pool_ci.maxSets = 64;
+        preview_pool_ci.flags
+            = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        preview_pool_ci.maxSets       = 64;
         preview_pool_ci.poolSizeCount = 1;
-        preview_pool_ci.pPoolSizes = &preview_pool_size;
+        preview_pool_ci.pPoolSizes    = &preview_pool_size;
         err = vkCreateDescriptorPool(vk_state.device, &preview_pool_ci,
                                      vk_state.allocator,
                                      &vk_state.preview_descriptor_pool);
@@ -1865,19 +2115,19 @@ namespace {
                            "imiv.preview.descriptor_pool");
 
         VkDescriptorSetLayoutBinding preview_binding = {};
-        preview_binding.binding            = 0;
-        preview_binding.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        preview_binding.descriptorCount    = 1;
-        preview_binding.stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT;
+        preview_binding.binding                      = 0;
+        preview_binding.descriptorType
+            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        preview_binding.descriptorCount = 1;
+        preview_binding.stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
         VkDescriptorSetLayoutCreateInfo preview_set_layout_ci = {};
         preview_set_layout_ci.sType
             = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         preview_set_layout_ci.bindingCount = 1;
         preview_set_layout_ci.pBindings    = &preview_binding;
-        err = vkCreateDescriptorSetLayout(vk_state.device,
-                                          &preview_set_layout_ci,
-                                          vk_state.allocator,
-                                          &vk_state.preview_descriptor_set_layout);
+        err                                = vkCreateDescriptorSetLayout(
+            vk_state.device, &preview_set_layout_ci, vk_state.allocator,
+            &vk_state.preview_descriptor_set_layout);
         if (err != VK_SUCCESS) {
             error_message = "vkCreateDescriptorSetLayout failed for preview";
             destroy_preview_resources(vk_state);
@@ -1888,14 +2138,14 @@ namespace {
                            "imiv.preview.set_layout");
 
         VkPushConstantRange preview_push = {};
-        preview_push.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        preview_push.offset     = 0;
-        preview_push.size       = sizeof(PreviewPushConstants);
+        preview_push.stageFlags          = VK_SHADER_STAGE_FRAGMENT_BIT;
+        preview_push.offset              = 0;
+        preview_push.size                = sizeof(PreviewPushConstants);
 
         VkPipelineLayoutCreateInfo preview_layout_ci = {};
         preview_layout_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         preview_layout_ci.setLayoutCount = 1;
-        preview_layout_ci.pSetLayouts    = &vk_state.preview_descriptor_set_layout;
+        preview_layout_ci.pSetLayouts = &vk_state.preview_descriptor_set_layout;
         preview_layout_ci.pushConstantRangeCount = 1;
         preview_layout_ci.pPushConstantRanges    = &preview_push;
         err = vkCreatePipelineLayout(vk_state.device, &preview_layout_ci,
@@ -1910,10 +2160,10 @@ namespace {
                            vk_state.preview_pipeline_layout,
                            "imiv.preview.pipeline_layout");
 
-        const std::string shader_vert
-            = std::string(IMIV_SHADER_DIR) + "/imiv_preview.vert.spv";
-        const std::string shader_frag
-            = std::string(IMIV_SHADER_DIR) + "/imiv_preview.frag.spv";
+        const std::string shader_vert = std::string(IMIV_SHADER_DIR)
+                                        + "/imiv_preview.vert.spv";
+        const std::string shader_frag = std::string(IMIV_SHADER_DIR)
+                                        + "/imiv_preview.frag.spv";
         VkShaderModule vert_module = VK_NULL_HANDLE;
         VkShaderModule frag_module = VK_NULL_HANDLE;
         if (!create_shader_module_from_file(vk_state.device, vk_state.allocator,
@@ -1949,11 +2199,13 @@ namespace {
             = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         VkPipelineViewportStateCreateInfo viewport_state = {};
-        viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewport_state.viewportCount = 1;
-        viewport_state.scissorCount  = 1;
+        viewport_state.sType
+            = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewport_state.viewportCount                  = 1;
+        viewport_state.scissorCount                   = 1;
         VkPipelineRasterizationStateCreateInfo raster = {};
-        raster.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        raster.sType
+            = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         raster.polygonMode = VK_POLYGON_MODE_FILL;
         raster.cullMode    = VK_CULL_MODE_NONE;
         raster.frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -1970,21 +2222,21 @@ namespace {
         VkPipelineColorBlendStateCreateInfo color_blend = {};
         color_blend.sType
             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        color_blend.attachmentCount = 1;
-        color_blend.pAttachments    = &color_blend_attachment;
+        color_blend.attachmentCount     = 1;
+        color_blend.pAttachments        = &color_blend_attachment;
         VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT,
                                             VK_DYNAMIC_STATE_SCISSOR };
         VkPipelineDynamicStateCreateInfo dynamic_state = {};
         dynamic_state.sType
             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamic_state.dynamicStateCount
-            = static_cast<uint32_t>(IM_ARRAYSIZE(dynamic_states));
+        dynamic_state.dynamicStateCount = static_cast<uint32_t>(
+            IM_ARRAYSIZE(dynamic_states));
         dynamic_state.pDynamicStates = dynamic_states;
 
         VkGraphicsPipelineCreateInfo pipeline_ci = {};
-        pipeline_ci.sType      = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipeline_ci.stageCount = 2;
-        pipeline_ci.pStages    = stages;
+        pipeline_ci.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipeline_ci.stageCount          = 2;
+        pipeline_ci.pStages             = stages;
         pipeline_ci.pVertexInputState   = &vertex_input;
         pipeline_ci.pInputAssemblyState = &input_assembly;
         pipeline_ci.pViewportState      = &viewport_state;
@@ -1996,8 +2248,9 @@ namespace {
         pipeline_ci.renderPass          = vk_state.preview_render_pass;
         pipeline_ci.subpass             = 0;
 
-        err = vkCreateGraphicsPipelines(vk_state.device, vk_state.pipeline_cache,
-                                        1, &pipeline_ci, vk_state.allocator,
+        err = vkCreateGraphicsPipelines(vk_state.device,
+                                        vk_state.pipeline_cache, 1,
+                                        &pipeline_ci, vk_state.allocator,
                                         &vk_state.preview_pipeline);
         vkDestroyShaderModule(vk_state.device, vert_module, vk_state.allocator);
         vkDestroyShaderModule(vk_state.device, frag_module, vk_state.allocator);
@@ -2007,8 +2260,7 @@ namespace {
             return false;
         }
         set_vk_object_name(vk_state, VK_OBJECT_TYPE_PIPELINE,
-                           vk_state.preview_pipeline,
-                           "imiv.preview.pipeline");
+                           vk_state.preview_pipeline, "imiv.preview.pipeline");
 
         return true;
 #    endif
@@ -2046,8 +2298,8 @@ namespace {
                                     vk_state.allocator);
             vk_state.compute_descriptor_pool = VK_NULL_HANDLE;
         }
-        vk_state.compute_output_format    = VK_FORMAT_UNDEFINED;
-        vk_state.compute_upload_ready     = false;
+        vk_state.compute_output_format = VK_FORMAT_UNDEFINED;
+        vk_state.compute_upload_ready  = false;
     }
 
 
@@ -2055,8 +2307,10 @@ namespace {
     bool init_compute_upload_resources(VulkanState& vk_state,
                                        std::string& error_message)
     {
-#    if !(defined(IMIV_HAS_COMPUTE_UPLOAD_SHADERS) && IMIV_HAS_COMPUTE_UPLOAD_SHADERS)
-        error_message = "compute upload shaders were not generated at build time";
+#    if !(defined(IMIV_HAS_COMPUTE_UPLOAD_SHADERS) \
+          && IMIV_HAS_COMPUTE_UPLOAD_SHADERS)
+        error_message
+            = "compute upload shaders were not generated at build time";
         return false;
 #    else
         destroy_compute_upload_resources(vk_state);
@@ -2081,16 +2335,16 @@ namespace {
         if (has_format_features(vk_state.physical_device,
                                 VK_FORMAT_R16G16B16A16_SFLOAT, required)) {
             vk_state.compute_output_format = VK_FORMAT_R16G16B16A16_SFLOAT;
-            shader_path
-                = std::string(IMIV_SHADER_DIR) + "/imiv_upload_to_rgba16f.comp.spv";
+            shader_path                    = std::string(IMIV_SHADER_DIR)
+                          + "/imiv_upload_to_rgba16f.comp.spv";
             shader_path_fp64 = std::string(IMIV_SHADER_DIR)
                                + "/imiv_upload_to_rgba16f_fp64.comp.spv";
         } else if (has_format_features(vk_state.physical_device,
                                        VK_FORMAT_R32G32B32A32_SFLOAT,
                                        required)) {
             vk_state.compute_output_format = VK_FORMAT_R32G32B32A32_SFLOAT;
-            shader_path
-                = std::string(IMIV_SHADER_DIR) + "/imiv_upload_to_rgba32f.comp.spv";
+            shader_path                    = std::string(IMIV_SHADER_DIR)
+                          + "/imiv_upload_to_rgba32f.comp.spv";
             shader_path_fp64 = std::string(IMIV_SHADER_DIR)
                                + "/imiv_upload_to_rgba32f_fp64.comp.spv";
         } else {
@@ -2105,15 +2359,14 @@ namespace {
         pool_sizes[1].type                 = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         pool_sizes[1].descriptorCount      = 64;
         VkDescriptorPoolCreateInfo pool_ci = {};
-        pool_ci.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_ci.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        pool_ci.maxSets       = 64;
+        pool_ci.sType   = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        pool_ci.flags   = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        pool_ci.maxSets = 64;
         pool_ci.poolSizeCount = 2;
         pool_ci.pPoolSizes    = pool_sizes;
-        VkResult err
-            = vkCreateDescriptorPool(vk_state.device, &pool_ci,
-                                     vk_state.allocator,
-                                     &vk_state.compute_descriptor_pool);
+        VkResult err = vkCreateDescriptorPool(vk_state.device, &pool_ci,
+                                              vk_state.allocator,
+                                              &vk_state.compute_descriptor_pool);
         if (err != VK_SUCCESS) {
             error_message = "vkCreateDescriptorPool failed for compute upload";
             destroy_compute_upload_resources(vk_state);
@@ -2124,7 +2377,7 @@ namespace {
                            "imiv.compute_upload.descriptor_pool");
 
         VkDescriptorSetLayoutBinding bindings[2] = {};
-        bindings[0].binding         = 0;
+        bindings[0].binding                      = 0;
         bindings[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         bindings[0].descriptorCount = 1;
         bindings[0].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -2137,11 +2390,12 @@ namespace {
             = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         set_layout_ci.bindingCount = 2;
         set_layout_ci.pBindings    = bindings;
-        err = vkCreateDescriptorSetLayout(vk_state.device, &set_layout_ci,
-                                          vk_state.allocator,
-                                          &vk_state.compute_descriptor_set_layout);
+        err                        = vkCreateDescriptorSetLayout(
+            vk_state.device, &set_layout_ci, vk_state.allocator,
+            &vk_state.compute_descriptor_set_layout);
         if (err != VK_SUCCESS) {
-            error_message = "vkCreateDescriptorSetLayout failed for compute upload";
+            error_message
+                = "vkCreateDescriptorSetLayout failed for compute upload";
             destroy_compute_upload_resources(vk_state);
             return false;
         }
@@ -2152,13 +2406,11 @@ namespace {
         VkPushConstantRange push_range = {};
         push_range.stageFlags          = VK_SHADER_STAGE_COMPUTE_BIT;
         push_range.offset              = 0;
-        push_range.size = sizeof(UploadComputePushConstants);
+        push_range.size                = sizeof(UploadComputePushConstants);
         VkPipelineLayoutCreateInfo pipeline_layout_ci = {};
-        pipeline_layout_ci.sType
-            = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipeline_layout_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipeline_layout_ci.setLayoutCount = 1;
-        pipeline_layout_ci.pSetLayouts
-            = &vk_state.compute_descriptor_set_layout;
+        pipeline_layout_ci.pSetLayouts = &vk_state.compute_descriptor_set_layout;
         pipeline_layout_ci.pushConstantRangeCount = 1;
         pipeline_layout_ci.pPushConstantRanges    = &push_range;
         err = vkCreatePipelineLayout(vk_state.device, &pipeline_layout_ci,
@@ -2195,11 +2447,14 @@ namespace {
         }
 
         vk_state.compute_upload_ready = true;
-        print(
-            "imiv: compute upload ready output_format={} shader={} float64_support={} fp64_pipeline={}\n",
-              static_cast<int>(vk_state.compute_output_format), shader_path,
-              vk_state.compute_supports_float64 ? "yes" : "no",
-              vk_state.compute_pipeline_fp64 != VK_NULL_HANDLE ? "yes" : "no");
+        if (vk_state.verbose_logging) {
+            print(
+                "imiv: compute upload ready output_format={} shader={} float64_support={} fp64_pipeline={}\n",
+                static_cast<int>(vk_state.compute_output_format), shader_path,
+                vk_state.compute_supports_float64 ? "yes" : "no",
+                vk_state.compute_pipeline_fp64 != VK_NULL_HANDLE ? "yes"
+                                                                 : "no");
+        }
         return true;
 #    endif
     }
@@ -2291,7 +2546,8 @@ namespace {
 
         VkDebugUtilsMessengerCreateInfoEXT debug_ci = {};
         if (vk_state.validation_layer_enabled && vk_state.debug_utils_enabled) {
-            populate_debug_messenger_ci(debug_ci);
+            populate_debug_messenger_ci(debug_ci,
+                                        vk_state.verbose_validation_output);
             instance_ci.pNext = &debug_ci;
         }
 
@@ -2305,11 +2561,19 @@ namespace {
             if (vk_state.debug_utils_enabled) {
                 if (!setup_debug_messenger(vk_state, error_message))
                     return false;
-                print(
-                    "imiv: Vulkan validation enabled with verbose debug utils output\n");
+                if (vk_state.verbose_validation_output) {
+                    print("imiv: Vulkan validation enabled with verbose debug "
+                          "utils output\n");
+                } else if (vk_state.verbose_logging) {
+                    print(
+                        "imiv: Vulkan validation enabled with warnings/errors "
+                        "only\n");
+                }
             } else {
-                print(
-                    "imiv: Vulkan validation enabled without debug utils messenger\n");
+                if (vk_state.verbose_logging) {
+                    print("imiv: Vulkan validation enabled without debug utils "
+                          "messenger\n");
+                }
             }
         }
 
@@ -2359,7 +2623,7 @@ namespace {
                                     &supported_features);
         VkPhysicalDeviceFeatures enabled_features = {};
         if (supported_features.shaderFloat64 == VK_TRUE) {
-            enabled_features.shaderFloat64  = VK_TRUE;
+            enabled_features.shaderFloat64    = VK_TRUE;
             vk_state.compute_supports_float64 = true;
         } else {
             vk_state.compute_supports_float64 = false;
@@ -2629,8 +2893,9 @@ namespace {
         }
         if (texture.preview_source_set != VK_NULL_HANDLE
             && vk_state.preview_descriptor_pool != VK_NULL_HANDLE) {
-            vkFreeDescriptorSets(vk_state.device, vk_state.preview_descriptor_pool,
-                                 1, &texture.preview_source_set);
+            vkFreeDescriptorSets(vk_state.device,
+                                 vk_state.preview_descriptor_pool, 1,
+                                 &texture.preview_source_set);
             texture.preview_source_set = VK_NULL_HANDLE;
         }
         if (texture.preview_framebuffer != VK_NULL_HANDLE) {
@@ -2676,10 +2941,10 @@ namespace {
                          vk_state.allocator);
             texture.source_memory = VK_NULL_HANDLE;
         }
-        texture.width  = 0;
-        texture.height = 0;
-        texture.preview_initialized = false;
-        texture.preview_dirty = false;
+        texture.width                = 0;
+        texture.height               = 0;
+        texture.preview_initialized  = false;
+        texture.preview_dirty        = false;
         texture.preview_params_valid = false;
     }
 
@@ -2716,8 +2981,10 @@ namespace {
         if (upload_type == UploadDataType::Double) {
             if (vk_state.compute_pipeline_fp64 != VK_NULL_HANDLE) {
                 use_fp64_pipeline = true;
-                print("imiv: using fp64 compute upload path for '{}'\n",
-                      image.path);
+                if (vk_state.verbose_logging) {
+                    print("imiv: using fp64 compute upload path for '{}'\n",
+                          image.path);
+                }
             } else {
                 const size_t value_count = image.pixels.size() / sizeof(double);
                 converted_pixels.resize(value_count * sizeof(float));
@@ -2726,30 +2993,30 @@ namespace {
                 float* dst = reinterpret_cast<float*>(converted_pixels.data());
                 for (size_t i = 0; i < value_count; ++i)
                     dst[i] = static_cast<float>(src[i]);
-                upload_type      = UploadDataType::Float;
-                channel_bytes    = sizeof(float);
-                row_pitch_bytes  = static_cast<size_t>(image.width)
+                upload_type     = UploadDataType::Float;
+                channel_bytes   = sizeof(float);
+                row_pitch_bytes = static_cast<size_t>(image.width)
                                   * static_cast<size_t>(channel_count)
                                   * channel_bytes;
-                upload_ptr       = converted_pixels.data();
-                upload_bytes     = converted_pixels.size();
+                upload_ptr   = converted_pixels.data();
+                upload_bytes = converted_pixels.size();
                 print(stderr,
                       "imiv: fp64 compute pipeline unavailable; converting "
                       "double input to float on CPU\n");
             }
         }
 
-        const size_t pixel_stride_bytes
-            = channel_bytes * static_cast<size_t>(channel_count);
+        const size_t pixel_stride_bytes = channel_bytes
+                                          * static_cast<size_t>(channel_count);
         if (pixel_stride_bytes == 0 || row_pitch_bytes == 0
-            || row_pitch_bytes < static_cast<size_t>(image.width)
-                                    * pixel_stride_bytes) {
+            || row_pitch_bytes
+                   < static_cast<size_t>(image.width) * pixel_stride_bytes) {
             error_message = "invalid source stride for compute upload";
             return false;
         }
 
-        const VkDeviceSize upload_size_aligned
-            = static_cast<VkDeviceSize>((upload_bytes + 3u) & ~size_t(3));
+        const VkDeviceSize upload_size_aligned = static_cast<VkDeviceSize>(
+            (upload_bytes + 3u) & ~size_t(3));
 
         VkBuffer staging_buffer           = VK_NULL_HANDLE;
         VkDeviceMemory staging_memory     = VK_NULL_HANDLE;
@@ -2776,8 +3043,8 @@ namespace {
             source_ci.tiling            = VK_IMAGE_TILING_OPTIMAL;
             source_ci.usage             = VK_IMAGE_USAGE_STORAGE_BIT
                               | VK_IMAGE_USAGE_SAMPLED_BIT;
-            source_ci.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
-            source_ci.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
+            source_ci.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+            source_ci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
             err = vkCreateImage(vk_state.device, &source_ci, vk_state.allocator,
                                 &texture.source_image);
@@ -2786,7 +3053,8 @@ namespace {
                 break;
             }
             set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE,
-                               texture.source_image, "imiv.viewer.source_image");
+                               texture.source_image,
+                               "imiv.viewer.source_image");
 
             VkMemoryRequirements source_reqs = {};
             vkGetImageMemoryRequirements(vk_state.device, texture.source_image,
@@ -2803,7 +3071,7 @@ namespace {
 
             VkMemoryAllocateInfo source_alloc = {};
             source_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-            source_alloc.allocationSize = source_reqs.size;
+            source_alloc.allocationSize  = source_reqs.size;
             source_alloc.memoryTypeIndex = image_memory_type;
             err = vkAllocateMemory(vk_state.device, &source_alloc,
                                    vk_state.allocator, &texture.source_memory);
@@ -2822,19 +3090,20 @@ namespace {
             }
 
             VkImageViewCreateInfo source_view_ci = {};
-            source_view_ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            source_view_ci.image = texture.source_image;
+            source_view_ci.sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            source_view_ci.image    = texture.source_image;
             source_view_ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            source_view_ci.format = vk_state.compute_output_format;
+            source_view_ci.format   = vk_state.compute_output_format;
             source_view_ci.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
             source_view_ci.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
             source_view_ci.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
             source_view_ci.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            source_view_ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            source_view_ci.subresourceRange.baseMipLevel = 0;
-            source_view_ci.subresourceRange.levelCount = 1;
+            source_view_ci.subresourceRange.aspectMask
+                = VK_IMAGE_ASPECT_COLOR_BIT;
+            source_view_ci.subresourceRange.baseMipLevel   = 0;
+            source_view_ci.subresourceRange.levelCount     = 1;
             source_view_ci.subresourceRange.baseArrayLayer = 0;
-            source_view_ci.subresourceRange.layerCount = 1;
+            source_view_ci.subresourceRange.layerCount     = 1;
             err = vkCreateImageView(vk_state.device, &source_view_ci,
                                     vk_state.allocator, &texture.source_view);
             if (err != VK_SUCCESS) {
@@ -2845,10 +3114,10 @@ namespace {
                                texture.source_view, "imiv.viewer.source_view");
 
             VkImageCreateInfo preview_ci = source_ci;
-            preview_ci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+            preview_ci.usage             = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
                                | VK_IMAGE_USAGE_SAMPLED_BIT;
-            err = vkCreateImage(vk_state.device, &preview_ci, vk_state.allocator,
-                                &texture.image);
+            err = vkCreateImage(vk_state.device, &preview_ci,
+                                vk_state.allocator, &texture.image);
             if (err != VK_SUCCESS) {
                 error_message = "vkCreateImage failed for preview image";
                 break;
@@ -2869,7 +3138,7 @@ namespace {
             }
             VkMemoryAllocateInfo preview_alloc = {};
             preview_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-            preview_alloc.allocationSize = preview_reqs.size;
+            preview_alloc.allocationSize  = preview_reqs.size;
             preview_alloc.memoryTypeIndex = preview_memory_type;
             err = vkAllocateMemory(vk_state.device, &preview_alloc,
                                    vk_state.allocator, &texture.memory);
@@ -2878,36 +3147,37 @@ namespace {
                 break;
             }
             set_vk_object_name(vk_state, VK_OBJECT_TYPE_DEVICE_MEMORY,
-                               texture.memory, "imiv.viewer.preview_image.memory");
-            err = vkBindImageMemory(vk_state.device, texture.image, texture.memory,
-                                    0);
+                               texture.memory,
+                               "imiv.viewer.preview_image.memory");
+            err = vkBindImageMemory(vk_state.device, texture.image,
+                                    texture.memory, 0);
             if (err != VK_SUCCESS) {
                 error_message = "vkBindImageMemory failed for preview image";
                 break;
             }
 
             VkImageViewCreateInfo preview_view_ci = source_view_ci;
-            preview_view_ci.image = texture.image;
+            preview_view_ci.image                 = texture.image;
             err = vkCreateImageView(vk_state.device, &preview_view_ci,
                                     vk_state.allocator, &texture.view);
             if (err != VK_SUCCESS) {
                 error_message = "vkCreateImageView failed for preview image";
                 break;
             }
-            set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE_VIEW, texture.view,
-                               "imiv.viewer.preview_view");
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE_VIEW,
+                               texture.view, "imiv.viewer.preview_view");
 
             VkFramebufferCreateInfo fb_ci = {};
-            fb_ci.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            fb_ci.renderPass = vk_state.preview_render_pass;
+            fb_ci.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            fb_ci.renderPass      = vk_state.preview_render_pass;
             fb_ci.attachmentCount = 1;
-            fb_ci.pAttachments = &texture.view;
-            fb_ci.width = static_cast<uint32_t>(image.width);
-            fb_ci.height = static_cast<uint32_t>(image.height);
-            fb_ci.layers = 1;
-            err = vkCreateFramebuffer(vk_state.device, &fb_ci,
-                                      vk_state.allocator,
-                                      &texture.preview_framebuffer);
+            fb_ci.pAttachments    = &texture.view;
+            fb_ci.width           = static_cast<uint32_t>(image.width);
+            fb_ci.height          = static_cast<uint32_t>(image.height);
+            fb_ci.layers          = 1;
+            err                   = vkCreateFramebuffer(vk_state.device, &fb_ci,
+                                                        vk_state.allocator,
+                                                        &texture.preview_framebuffer);
             if (err != VK_SUCCESS) {
                 error_message = "vkCreateFramebuffer failed for preview image";
                 break;
@@ -2918,12 +3188,12 @@ namespace {
 
             VkBufferCreateInfo buffer_ci = {};
             buffer_ci.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            buffer_ci.size = upload_size_aligned;
-            buffer_ci.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT
+            buffer_ci.size               = upload_size_aligned;
+            buffer_ci.usage              = VK_BUFFER_USAGE_TRANSFER_DST_BIT
                               | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-            buffer_ci.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;
-            err = vkCreateBuffer(vk_state.device, &buffer_ci,
-                                 vk_state.allocator, &source_buffer);
+            buffer_ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            err                   = vkCreateBuffer(vk_state.device, &buffer_ci,
+                                                   vk_state.allocator, &source_buffer);
             if (err != VK_SUCCESS) {
                 error_message = "vkCreateBuffer failed for source buffer";
                 break;
@@ -2955,7 +3225,8 @@ namespace {
                 break;
             }
             set_vk_object_name(vk_state, VK_OBJECT_TYPE_DEVICE_MEMORY,
-                               source_memory, "imiv.viewer.upload.source_memory");
+                               source_memory,
+                               "imiv.viewer.upload.source_memory");
             err = vkBindBufferMemory(vk_state.device, source_buffer,
                                      source_memory, 0);
             if (err != VK_SUCCESS) {
@@ -2964,10 +3235,10 @@ namespace {
             }
 
             VkBufferCreateInfo staging_ci = {};
-            staging_ci.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            staging_ci.size               = upload_size_aligned;
-            staging_ci.usage              = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-            staging_ci.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;
+            staging_ci.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            staging_ci.size        = upload_size_aligned;
+            staging_ci.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            staging_ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             err = vkCreateBuffer(vk_state.device, &staging_ci,
                                  vk_state.allocator, &staging_buffer);
             if (err != VK_SUCCESS) {
@@ -2990,7 +3261,7 @@ namespace {
                 break;
             }
             VkMemoryAllocateInfo host_alloc = {};
-            host_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            host_alloc.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
             host_alloc.allocationSize  = staging_buffer_reqs.size;
             host_alloc.memoryTypeIndex = host_visible_memory_type;
             err = vkAllocateMemory(vk_state.device, &host_alloc,
@@ -3010,9 +3281,8 @@ namespace {
             }
 
             void* mapped = nullptr;
-            err = vkMapMemory(vk_state.device, staging_memory, 0,
-                              upload_size_aligned,
-                              0, &mapped);
+            err          = vkMapMemory(vk_state.device, staging_memory, 0,
+                                       upload_size_aligned, 0, &mapped);
             if (err != VK_SUCCESS || mapped == nullptr) {
                 error_message = "vkMapMemory failed for staging buffer";
                 break;
@@ -3023,13 +3293,14 @@ namespace {
 
             VkDescriptorSetAllocateInfo set_alloc = {};
             set_alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            set_alloc.descriptorPool = vk_state.compute_descriptor_pool;
+            set_alloc.descriptorPool     = vk_state.compute_descriptor_pool;
             set_alloc.descriptorSetCount = 1;
             set_alloc.pSetLayouts = &vk_state.compute_descriptor_set_layout;
             err = vkAllocateDescriptorSets(vk_state.device, &set_alloc,
                                            &compute_set);
             if (err != VK_SUCCESS) {
-                error_message = "vkAllocateDescriptorSets failed for upload compute";
+                error_message
+                    = "vkAllocateDescriptorSets failed for upload compute";
                 break;
             }
 
@@ -3063,32 +3334,32 @@ namespace {
                                "imiv.viewer.upload.command_buffer");
 
             VkDescriptorBufferInfo source_buffer_info = {};
-            source_buffer_info.buffer = source_buffer;
-            source_buffer_info.offset = 0;
-            source_buffer_info.range  = upload_size_aligned;
+            source_buffer_info.buffer                 = source_buffer;
+            source_buffer_info.offset                 = 0;
+            source_buffer_info.range                  = upload_size_aligned;
 
             VkDescriptorImageInfo output_image_info = {};
-            output_image_info.imageView   = texture.source_view;
-            output_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-            output_image_info.sampler     = VK_NULL_HANDLE;
+            output_image_info.imageView             = texture.source_view;
+            output_image_info.imageLayout           = VK_IMAGE_LAYOUT_GENERAL;
+            output_image_info.sampler               = VK_NULL_HANDLE;
 
             VkWriteDescriptorSet writes[2] = {};
-            writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[0].dstSet = compute_set;
-            writes[0].dstBinding = 0;
+            writes[0].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[0].dstSet          = compute_set;
+            writes[0].dstBinding      = 0;
             writes[0].descriptorCount = 1;
-            writes[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            writes[0].pBufferInfo = &source_buffer_info;
-            writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[1].dstSet = compute_set;
-            writes[1].dstBinding = 1;
+            writes[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            writes[0].pBufferInfo     = &source_buffer_info;
+            writes[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[1].dstSet          = compute_set;
+            writes[1].dstBinding      = 1;
             writes[1].descriptorCount = 1;
-            writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-            writes[1].pImageInfo = &output_image_info;
+            writes[1].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            writes[1].pImageInfo      = &output_image_info;
             vkUpdateDescriptorSets(vk_state.device, 2, writes, 0, nullptr);
 
             VkSamplerCreateInfo sampler_ci = {};
-            sampler_ci.sType         = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+            sampler_ci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
             VkFormatProperties output_props = {};
             vkGetPhysicalDeviceFormatProperties(vk_state.physical_device,
                                                 vk_state.compute_output_format,
@@ -3097,10 +3368,10 @@ namespace {
                 = (output_props.optimalTilingFeatures
                    & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
                   != 0;
-            sampler_ci.magFilter = has_linear_filter ? VK_FILTER_LINEAR
-                                                     : VK_FILTER_NEAREST;
-            sampler_ci.minFilter = has_linear_filter ? VK_FILTER_LINEAR
-                                                     : VK_FILTER_NEAREST;
+            sampler_ci.magFilter     = has_linear_filter ? VK_FILTER_LINEAR
+                                                         : VK_FILTER_NEAREST;
+            sampler_ci.minFilter     = has_linear_filter ? VK_FILTER_LINEAR
+                                                         : VK_FILTER_NEAREST;
             sampler_ci.mipmapMode    = VK_SAMPLER_MIPMAP_MODE_LINEAR;
             sampler_ci.addressModeU  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
             sampler_ci.addressModeV  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -3120,8 +3391,7 @@ namespace {
             VkSamplerCreateInfo pixelview_sampler_ci = sampler_ci;
             pixelview_sampler_ci.magFilter           = VK_FILTER_NEAREST;
             pixelview_sampler_ci.minFilter           = VK_FILTER_NEAREST;
-            pixelview_sampler_ci.mipmapMode
-                = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+            pixelview_sampler_ci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
             err = vkCreateSampler(vk_state.device, &pixelview_sampler_ci,
                                   vk_state.allocator,
                                   &texture.pixelview_sampler);
@@ -3148,13 +3418,13 @@ namespace {
                 break;
             }
             VkDescriptorImageInfo preview_source_image = {};
-            preview_source_image.sampler = texture.sampler;
-            preview_source_image.imageView = texture.source_view;
+            preview_source_image.sampler               = texture.sampler;
+            preview_source_image.imageView             = texture.source_view;
             preview_source_image.imageLayout
                 = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             VkWriteDescriptorSet preview_write = {};
-            preview_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            preview_write.dstSet = texture.preview_source_set;
+            preview_write.sType      = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            preview_write.dstSet     = texture.preview_source_set;
             preview_write.dstBinding = 0;
             preview_write.descriptorCount = 1;
             preview_write.descriptorType
@@ -3173,42 +3443,36 @@ namespace {
             }
 
             VkBufferCopy copy_region = {};
-            copy_region.srcOffset = 0;
-            copy_region.dstOffset = 0;
-            copy_region.size      = upload_size_aligned;
+            copy_region.srcOffset    = 0;
+            copy_region.dstOffset    = 0;
+            copy_region.size         = upload_size_aligned;
             vkCmdCopyBuffer(upload_command, staging_buffer, source_buffer, 1,
                             &copy_region);
 
             VkBufferMemoryBarrier source_to_compute = {};
-            source_to_compute.sType
-                = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+            source_to_compute.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
             source_to_compute.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             source_to_compute.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-            source_to_compute.srcQueueFamilyIndex
-                = VK_QUEUE_FAMILY_IGNORED;
-            source_to_compute.dstQueueFamilyIndex
-                = VK_QUEUE_FAMILY_IGNORED;
-            source_to_compute.buffer = source_buffer;
-            source_to_compute.offset = 0;
-            source_to_compute.size   = upload_size_aligned;
+            source_to_compute.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            source_to_compute.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            source_to_compute.buffer              = source_buffer;
+            source_to_compute.offset              = 0;
+            source_to_compute.size                = upload_size_aligned;
 
             VkImageMemoryBarrier image_to_general = {};
-            image_to_general.sType
-                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            image_to_general.sType     = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             image_to_general.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             image_to_general.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-            image_to_general.srcQueueFamilyIndex
-                = VK_QUEUE_FAMILY_IGNORED;
-            image_to_general.dstQueueFamilyIndex
-                = VK_QUEUE_FAMILY_IGNORED;
-            image_to_general.image = texture.source_image;
+            image_to_general.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            image_to_general.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            image_to_general.image               = texture.source_image;
             image_to_general.subresourceRange.aspectMask
                 = VK_IMAGE_ASPECT_COLOR_BIT;
-            image_to_general.subresourceRange.baseMipLevel = 0;
-            image_to_general.subresourceRange.levelCount   = 1;
+            image_to_general.subresourceRange.baseMipLevel   = 0;
+            image_to_general.subresourceRange.levelCount     = 1;
             image_to_general.subresourceRange.baseArrayLayer = 0;
             image_to_general.subresourceRange.layerCount     = 1;
-            image_to_general.srcAccessMask = 0;
+            image_to_general.srcAccessMask                   = 0;
             image_to_general.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 
             vkCmdPipelineBarrier(upload_command, VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -3217,17 +3481,16 @@ namespace {
                                  &image_to_general);
 
             vkCmdBindPipeline(upload_command, VK_PIPELINE_BIND_POINT_COMPUTE,
-                              use_fp64_pipeline
-                                  ? vk_state.compute_pipeline_fp64
-                                  : vk_state.compute_pipeline);
+                              use_fp64_pipeline ? vk_state.compute_pipeline_fp64
+                                                : vk_state.compute_pipeline);
             vkCmdBindDescriptorSets(upload_command,
                                     VK_PIPELINE_BIND_POINT_COMPUTE,
                                     vk_state.compute_pipeline_layout, 0, 1,
                                     &compute_set, 0, nullptr);
 
             UploadComputePushConstants push = {};
-            push.width          = static_cast<uint32_t>(image.width);
-            push.height         = static_cast<uint32_t>(image.height);
+            push.width           = static_cast<uint32_t>(image.width);
+            push.height          = static_cast<uint32_t>(image.height);
             push.row_pitch_bytes = static_cast<uint32_t>(row_pitch_bytes);
             push.pixel_stride    = static_cast<uint32_t>(pixel_stride_bytes);
             push.channel_count   = static_cast<uint32_t>(channel_count);
@@ -3236,24 +3499,22 @@ namespace {
                                VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push),
                                &push);
 
-            const uint32_t group_x
-                = (push.width + 15u) / 16u;
-            const uint32_t group_y
-                = (push.height + 15u) / 16u;
+            const uint32_t group_x = (push.width + 15u) / 16u;
+            const uint32_t group_y = (push.height + 15u) / 16u;
             vkCmdDispatch(upload_command, group_x, group_y, 1);
 
             VkImageMemoryBarrier to_shader = {};
-            to_shader.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            to_shader.sType     = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             to_shader.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
             to_shader.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            to_shader.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            to_shader.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            to_shader.image = texture.source_image;
-            to_shader.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            to_shader.srcQueueFamilyIndex           = VK_QUEUE_FAMILY_IGNORED;
+            to_shader.dstQueueFamilyIndex           = VK_QUEUE_FAMILY_IGNORED;
+            to_shader.image                         = texture.source_image;
+            to_shader.subresourceRange.aspectMask   = VK_IMAGE_ASPECT_COLOR_BIT;
             to_shader.subresourceRange.baseMipLevel = 0;
-            to_shader.subresourceRange.levelCount = 1;
+            to_shader.subresourceRange.levelCount   = 1;
             to_shader.subresourceRange.baseArrayLayer = 0;
-            to_shader.subresourceRange.layerCount = 1;
+            to_shader.subresourceRange.layerCount     = 1;
             to_shader.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
             to_shader.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
             vkCmdPipelineBarrier(upload_command,
@@ -3299,12 +3560,12 @@ namespace {
                 break;
             }
 
-            texture.width  = image.width;
-            texture.height = image.height;
-            texture.preview_initialized = false;
-            texture.preview_dirty       = true;
+            texture.width                = image.width;
+            texture.height               = image.height;
+            texture.preview_initialized  = false;
+            texture.preview_dirty        = true;
             texture.preview_params_valid = false;
-            ok             = true;
+            ok                           = true;
 
             if (compute_set != VK_NULL_HANDLE) {
                 vkFreeDescriptorSets(vk_state.device,
@@ -3322,8 +3583,7 @@ namespace {
             vkDestroyCommandPool(vk_state.device, upload_command_pool,
                                  vk_state.allocator);
         if (source_buffer != VK_NULL_HANDLE)
-            vkDestroyBuffer(vk_state.device, source_buffer,
-                            vk_state.allocator);
+            vkDestroyBuffer(vk_state.device, source_buffer, vk_state.allocator);
         if (source_memory != VK_NULL_HANDLE)
             vkFreeMemory(vk_state.device, source_memory, vk_state.allocator);
         if (staging_buffer != VK_NULL_HANDLE)
@@ -3344,8 +3604,7 @@ namespace {
         return std::abs(a.exposure - b.exposure) < 1.0e-6f
                && std::abs(a.gamma - b.gamma) < 1.0e-6f
                && a.color_mode == b.color_mode && a.channel == b.channel
-               && a.use_ocio == b.use_ocio
-               && a.orientation == b.orientation;
+               && a.use_ocio == b.use_ocio && a.orientation == b.orientation;
     }
 
 
@@ -3354,7 +3613,8 @@ namespace {
                                 const PreviewControls& controls,
                                 std::string& error_message)
     {
-        if (texture.image == VK_NULL_HANDLE || texture.source_image == VK_NULL_HANDLE
+        if (texture.image == VK_NULL_HANDLE
+            || texture.source_image == VK_NULL_HANDLE
             || texture.preview_framebuffer == VK_NULL_HANDLE
             || texture.preview_source_set == VK_NULL_HANDLE)
             return false;
@@ -3365,9 +3625,9 @@ namespace {
             return true;
         }
 
-        VkCommandPool command_pool = VK_NULL_HANDLE;
+        VkCommandPool command_pool     = VK_NULL_HANDLE;
         VkCommandBuffer command_buffer = VK_NULL_HANDLE;
-        bool ok = false;
+        bool ok                        = false;
 
         do {
             VkCommandPoolCreateInfo pool_ci = {};
@@ -3375,17 +3635,17 @@ namespace {
             pool_ci.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
             pool_ci.queueFamilyIndex = vk_state.queue_family;
             VkResult err = vkCreateCommandPool(vk_state.device, &pool_ci,
-                                               vk_state.allocator, &command_pool);
+                                               vk_state.allocator,
+                                               &command_pool);
             if (err != VK_SUCCESS) {
                 error_message = "vkCreateCommandPool failed for preview update";
                 break;
             }
 
             VkCommandBufferAllocateInfo command_alloc = {};
-            command_alloc.sType
-                = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            command_alloc.commandPool = command_pool;
-            command_alloc.level       = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            command_alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            command_alloc.commandPool        = command_pool;
+            command_alloc.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             command_alloc.commandBufferCount = 1;
             err = vkAllocateCommandBuffers(vk_state.device, &command_alloc,
                                            &command_buffer);
@@ -3398,15 +3658,14 @@ namespace {
             VkCommandBufferBeginInfo begin = {};
             begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            err = vkBeginCommandBuffer(command_buffer, &begin);
+            err         = vkBeginCommandBuffer(command_buffer, &begin);
             if (err != VK_SUCCESS) {
                 error_message = "vkBeginCommandBuffer failed for preview update";
                 break;
             }
 
             VkImageMemoryBarrier to_color_attachment = {};
-            to_color_attachment.sType
-                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            to_color_attachment.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             to_color_attachment.oldLayout
                 = texture.preview_initialized
                       ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
@@ -3415,11 +3674,11 @@ namespace {
                 = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             to_color_attachment.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             to_color_attachment.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            to_color_attachment.image = texture.image;
+            to_color_attachment.image               = texture.image;
             to_color_attachment.subresourceRange.aspectMask
                 = VK_IMAGE_ASPECT_COLOR_BIT;
-            to_color_attachment.subresourceRange.baseMipLevel = 0;
-            to_color_attachment.subresourceRange.levelCount   = 1;
+            to_color_attachment.subresourceRange.baseMipLevel   = 0;
+            to_color_attachment.subresourceRange.levelCount     = 1;
             to_color_attachment.subresourceRange.baseArrayLayer = 0;
             to_color_attachment.subresourceRange.layerCount     = 1;
             to_color_attachment.srcAccessMask = texture.preview_initialized
@@ -3435,34 +3694,35 @@ namespace {
                                  0, 0, nullptr, 0, nullptr, 1,
                                  &to_color_attachment);
 
-            VkClearValue clear = {};
+            VkClearValue clear     = {};
             clear.color.float32[0] = 0.0f;
             clear.color.float32[1] = 0.0f;
             clear.color.float32[2] = 0.0f;
             clear.color.float32[3] = 1.0f;
 
             VkRenderPassBeginInfo rp_begin = {};
-            rp_begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            rp_begin.renderPass = vk_state.preview_render_pass;
+            rp_begin.sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            rp_begin.renderPass  = vk_state.preview_render_pass;
             rp_begin.framebuffer = texture.preview_framebuffer;
-            rp_begin.renderArea.offset = { 0, 0 };
-            rp_begin.renderArea.extent.width = static_cast<uint32_t>(texture.width);
-            rp_begin.renderArea.extent.height
-                = static_cast<uint32_t>(texture.height);
+            rp_begin.renderArea.offset       = { 0, 0 };
+            rp_begin.renderArea.extent.width = static_cast<uint32_t>(
+                texture.width);
+            rp_begin.renderArea.extent.height = static_cast<uint32_t>(
+                texture.height);
             rp_begin.clearValueCount = 1;
             rp_begin.pClearValues    = &clear;
 
             vkCmdBeginRenderPass(command_buffer, &rp_begin,
                                  VK_SUBPASS_CONTENTS_INLINE);
-            VkViewport vp = {};
-            vp.x        = 0.0f;
-            vp.y        = 0.0f;
-            vp.width    = static_cast<float>(texture.width);
-            vp.height   = static_cast<float>(texture.height);
-            vp.minDepth = 0.0f;
-            vp.maxDepth = 1.0f;
-            VkRect2D scissor = {};
-            scissor.extent.width = static_cast<uint32_t>(texture.width);
+            VkViewport vp         = {};
+            vp.x                  = 0.0f;
+            vp.y                  = 0.0f;
+            vp.width              = static_cast<float>(texture.width);
+            vp.height             = static_cast<float>(texture.height);
+            vp.minDepth           = 0.0f;
+            vp.maxDepth           = 1.0f;
+            VkRect2D scissor      = {};
+            scissor.extent.width  = static_cast<uint32_t>(texture.width);
             scissor.extent.height = static_cast<uint32_t>(texture.height);
             vkCmdSetViewport(command_buffer, 0, 1, &vp);
             vkCmdSetScissor(command_buffer, 0, 1, &scissor);
@@ -3474,12 +3734,12 @@ namespace {
                                     &texture.preview_source_set, 0, nullptr);
 
             PreviewPushConstants push = {};
-            push.exposure   = controls.exposure;
-            push.gamma      = std::max(0.01f, controls.gamma);
-            push.color_mode = controls.color_mode;
-            push.channel    = controls.channel;
-            push.use_ocio   = controls.use_ocio;
-            push.orientation = controls.orientation;
+            push.exposure             = controls.exposure;
+            push.gamma                = std::max(0.01f, controls.gamma);
+            push.color_mode           = controls.color_mode;
+            push.channel              = controls.channel;
+            push.use_ocio             = controls.use_ocio;
+            push.orientation          = controls.orientation;
             vkCmdPushConstants(command_buffer, vk_state.preview_pipeline_layout,
                                VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push),
                                &push);
@@ -3487,20 +3747,19 @@ namespace {
             vkCmdEndRenderPass(command_buffer);
 
             VkImageMemoryBarrier to_shader_read = {};
-            to_shader_read.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            to_shader_read.sType     = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             to_shader_read.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             to_shader_read.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             to_shader_read.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             to_shader_read.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            to_shader_read.image = texture.image;
+            to_shader_read.image               = texture.image;
             to_shader_read.subresourceRange.aspectMask
                 = VK_IMAGE_ASPECT_COLOR_BIT;
-            to_shader_read.subresourceRange.baseMipLevel = 0;
-            to_shader_read.subresourceRange.levelCount   = 1;
+            to_shader_read.subresourceRange.baseMipLevel   = 0;
+            to_shader_read.subresourceRange.levelCount     = 1;
             to_shader_read.subresourceRange.baseArrayLayer = 0;
             to_shader_read.subresourceRange.layerCount     = 1;
-            to_shader_read.srcAccessMask
-                = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            to_shader_read.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
             to_shader_read.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
             vkCmdPipelineBarrier(command_buffer,
                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -3513,8 +3772,8 @@ namespace {
                 break;
             }
 
-            VkSubmitInfo submit = {};
-            submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            VkSubmitInfo submit       = {};
+            submit.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             submit.commandBufferCount = 1;
             submit.pCommandBuffers    = &command_buffer;
             err = vkQueueSubmit(vk_state.queue, 1, &submit, VK_NULL_HANDLE);
@@ -3528,11 +3787,11 @@ namespace {
                 break;
             }
 
-            texture.preview_initialized = true;
-            texture.preview_dirty       = false;
-            texture.preview_params_valid = true;
+            texture.preview_initialized   = true;
+            texture.preview_dirty         = false;
+            texture.preview_params_valid  = true;
             texture.last_preview_controls = controls;
-            ok = true;
+            ok                            = true;
         } while (false);
 
         if (command_pool != VK_NULL_HANDLE)
@@ -3541,8 +3800,7 @@ namespace {
         return ok;
     }
     bool load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
-                           const std::string& path,
-                           int requested_subimage = 0,
+                           const std::string& path, int requested_subimage = 0,
                            int requested_miplevel = 0)
     {
         viewer.last_error.clear();
@@ -3583,16 +3841,12 @@ namespace {
         }
         add_recent_image_path(viewer, viewer.image.path);
         refresh_sibling_images(viewer);
-        viewer.status_message
-            = Strutil::fmt::format(
-                "Loaded {} ({}x{}, {} channels, {}, subimage {}/{}, mip {}/{})",
-                                   viewer.image.path, viewer.image.width,
-                                   viewer.image.height, viewer.image.nchannels,
-                                   upload_data_type_name(viewer.image.type),
-                                   viewer.image.subimage + 1,
-                                   viewer.image.nsubimages,
-                                   viewer.image.miplevel + 1,
-                                   viewer.image.nmiplevels);
+        viewer.status_message = Strutil::fmt::format(
+            "Loaded {} ({}x{}, {} channels, {}, subimage {}/{}, mip {}/{})",
+            viewer.image.path, viewer.image.width, viewer.image.height,
+            viewer.image.nchannels, upload_data_type_name(viewer.image.type),
+            viewer.image.subimage + 1, viewer.image.nsubimages,
+            viewer.image.miplevel + 1, viewer.image.nmiplevels);
         if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE")
             || env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT")
             || env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP")
@@ -3940,8 +4194,8 @@ namespace {
         };
         windows.reserve(IM_ARRAYSIZE(window_names));
         for (const char* window_name : window_names) {
-            ImGuiTestItemInfo win
-                = ctx->WindowInfo(window_name, ImGuiTestOpFlags_NoError);
+            ImGuiTestItemInfo win = ctx->WindowInfo(window_name,
+                                                    ImGuiTestOpFlags_NoError);
             if (win.ID == 0 || win.Window == nullptr)
                 continue;
             bool duplicate = false;
@@ -4214,12 +4468,50 @@ namespace {
 
 
 
-    void setup_main_window_geometry()
+    ImGuiID begin_main_dockspace_host()
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->WorkPos, ImGuiCond_Always);
         ImGui::SetNextWindowSize(viewport->WorkSize, ImGuiCond_Always);
         ImGui::SetNextWindowViewport(viewport->ID);
+
+        ImGuiWindowFlags host_flags = ImGuiWindowFlags_NoTitleBar
+                                      | ImGuiWindowFlags_NoCollapse
+                                      | ImGuiWindowFlags_NoResize
+                                      | ImGuiWindowFlags_NoMove
+                                      | ImGuiWindowFlags_NoDocking
+                                      | ImGuiWindowFlags_NoBringToFrontOnFocus
+                                      | ImGuiWindowFlags_NoNavFocus;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::Begin(k_dockspace_host_title, nullptr, host_flags);
+        ImGui::PopStyleVar(3);
+
+        const ImGuiID dockspace_id = ImGui::GetID("imiv.main.dockspace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f),
+                         ImGuiDockNodeFlags_None);
+        ImGui::End();
+        return dockspace_id;
+    }
+
+
+
+    void setup_image_window_policy(ImGuiID dockspace_id, bool force_dock)
+    {
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowSize(viewport->WorkSize, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowDockID(dockspace_id, force_dock
+                                                     ? ImGuiCond_Always
+                                                     : ImGuiCond_FirstUseEver);
+
+        ImGuiWindowClass window_class;
+        window_class.ClassId = ImGui::GetID("imiv.image.window");
+        window_class.DockNodeFlagsOverrideSet
+            = ImGuiDockNodeFlags_NoUndocking
+              | ImGuiDockNodeFlags_AutoHideTabBar;
+        ImGui::SetNextWindowClass(&window_class);
     }
 
 
@@ -4328,13 +4620,15 @@ namespace {
     }
 
     struct ImageCoordinateMap {
-        bool valid = false;
-        int source_width  = 0;
-        int source_height = 0;
-        int orientation   = 1;
-        ImVec2 image_rect_min = ImVec2(0.0f, 0.0f);  // screen space
-        ImVec2 image_rect_max = ImVec2(0.0f, 0.0f);  // screen space
-        ImVec2 window_pos      = ImVec2(0.0f, 0.0f);  // screen space
+        bool valid               = false;
+        int source_width         = 0;
+        int source_height        = 0;
+        int orientation          = 1;
+        ImVec2 image_rect_min    = ImVec2(0.0f, 0.0f);  // screen space
+        ImVec2 image_rect_max    = ImVec2(0.0f, 0.0f);  // screen space
+        ImVec2 viewport_rect_min = ImVec2(0.0f, 0.0f);  // screen space
+        ImVec2 viewport_rect_max = ImVec2(0.0f, 0.0f);  // screen space
+        ImVec2 window_pos        = ImVec2(0.0f, 0.0f);  // screen space
     };
 
     ImVec2 screen_to_window_coords(const ImageCoordinateMap& map,
@@ -4361,8 +4655,8 @@ namespace {
         const float h = map.image_rect_max.y - map.image_rect_min.y;
         if (w <= 0.0f || h <= 0.0f)
             return false;
-        const float u = (screen_pos.x - map.image_rect_min.x) / w;
-        const float v = (screen_pos.y - map.image_rect_min.y) / h;
+        const float u  = (screen_pos.x - map.image_rect_min.x) / w;
+        const float v  = (screen_pos.y - map.image_rect_min.y) / h;
         out_display_uv = ImVec2(u, v);
         return (u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f);
     }
@@ -4373,14 +4667,14 @@ namespace {
         ImVec2 display_uv(0.0f, 0.0f);
         if (!screen_to_display_uv(map, screen_pos, display_uv))
             return false;
-        out_source_uv = display_uv_to_source_uv(display_uv, map.orientation);
+        out_source_uv   = display_uv_to_source_uv(display_uv, map.orientation);
         out_source_uv.x = std::clamp(out_source_uv.x, 0.0f, 1.0f);
         out_source_uv.y = std::clamp(out_source_uv.y, 0.0f, 1.0f);
         return true;
     }
 
-    bool source_uv_to_screen(const ImageCoordinateMap& map, const ImVec2& source_uv,
-                             ImVec2& out_screen_pos)
+    bool source_uv_to_screen(const ImageCoordinateMap& map,
+                             const ImVec2& source_uv, ImVec2& out_screen_pos)
     {
         out_screen_pos = ImVec2(0.0f, 0.0f);
         if (!map.valid)
@@ -4389,15 +4683,15 @@ namespace {
         const float h = map.image_rect_max.y - map.image_rect_min.y;
         if (w <= 0.0f || h <= 0.0f)
             return false;
-        const ImVec2 display_uv
-            = source_uv_to_display_uv(source_uv, map.orientation);
+        const ImVec2 display_uv = source_uv_to_display_uv(source_uv,
+                                                          map.orientation);
         out_screen_pos = ImVec2(map.image_rect_min.x + display_uv.x * w,
                                 map.image_rect_min.y + display_uv.y * h);
         return true;
     }
 
-    bool source_uv_to_pixel(const ImageCoordinateMap& map, const ImVec2& source_uv,
-                            int& out_px, int& out_py)
+    bool source_uv_to_pixel(const ImageCoordinateMap& map,
+                            const ImVec2& source_uv, int& out_px, int& out_py)
     {
         out_px = 0;
         out_py = 0;
@@ -4406,12 +4700,12 @@ namespace {
 
         const float u = std::clamp(source_uv.x, 0.0f, 1.0f);
         const float v = std::clamp(source_uv.y, 0.0f, 1.0f);
-        out_px = std::clamp(static_cast<int>(std::floor(
+        out_px        = std::clamp(static_cast<int>(std::floor(
                                 u * static_cast<float>(map.source_width))),
-                            0, map.source_width - 1);
-        out_py = std::clamp(static_cast<int>(std::floor(
+                                   0, map.source_width - 1);
+        out_py        = std::clamp(static_cast<int>(std::floor(
                                 v * static_cast<float>(map.source_height))),
-                            0, map.source_height - 1);
+                                   0, map.source_height - 1);
         return true;
     }
 
@@ -4421,9 +4715,9 @@ namespace {
     {
         std::string ext = path.extension().string();
         std::transform(ext.begin(), ext.end(), ext.begin(), to_lower_ascii);
-        return ext == ".exr" || ext == ".tif" || ext == ".tiff"
-               || ext == ".png" || ext == ".jpg" || ext == ".jpeg"
-               || ext == ".bmp" || ext == ".hdr";
+        return ext == ".exr" || ext == ".tif" || ext == ".tiff" || ext == ".png"
+               || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp"
+               || ext == ".hdr";
     }
 
     bool datetime_to_time_t(string_view datetime, std::time_t& out_time)
@@ -4454,10 +4748,10 @@ namespace {
         const auto file_time = std::filesystem::last_write_time(path, ec);
         if (ec)
             return false;
-        const auto system_time = std::chrono::time_point_cast<
-            std::chrono::system_clock::duration>(
-            file_time - std::filesystem::file_time_type::clock::now()
-            + std::chrono::system_clock::now());
+        const auto system_time
+            = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                file_time - std::filesystem::file_time_type::clock::now()
+                + std::chrono::system_clock::now());
         out_time = std::chrono::system_clock::to_time_t(system_time);
         return true;
     }
@@ -4490,7 +4784,8 @@ namespace {
 
         switch (viewer.sort_mode) {
         case ImageSortMode::ByName:
-            std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+            std::sort(viewer.sibling_images.begin(),
+                      viewer.sibling_images.end(),
                       [&](const std::string& a, const std::string& b) {
                           const std::string a_name = filename_key(a);
                           const std::string b_name = filename_key(b);
@@ -4500,17 +4795,19 @@ namespace {
                       });
             break;
         case ImageSortMode::ByPath:
-            std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+            std::sort(viewer.sibling_images.begin(),
+                      viewer.sibling_images.end(),
                       [&](const std::string& a, const std::string& b) {
                           return path_key(a) < path_key(b);
                       });
             break;
         case ImageSortMode::ByImageDate:
-            std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+            std::sort(viewer.sibling_images.begin(),
+                      viewer.sibling_images.end(),
                       [&](const std::string& a, const std::string& b) {
                           std::time_t a_time = {};
                           std::time_t b_time = {};
-                          const bool a_ok = image_datetime(a, a_time)
+                          const bool a_ok    = image_datetime(a, a_time)
                                             || file_last_write_time(a, a_time);
                           const bool b_ok = image_datetime(b, b_time)
                                             || file_last_write_time(b, b_time);
@@ -4524,12 +4821,13 @@ namespace {
                       });
             break;
         case ImageSortMode::ByFileDate:
-            std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+            std::sort(viewer.sibling_images.begin(),
+                      viewer.sibling_images.end(),
                       [&](const std::string& a, const std::string& b) {
                           std::time_t a_time = {};
                           std::time_t b_time = {};
-                          const bool a_ok = file_last_write_time(a, a_time);
-                          const bool b_ok = file_last_write_time(b, b_time);
+                          const bool a_ok    = file_last_write_time(a, a_time);
+                          const bool b_ok    = file_last_write_time(b, b_time);
                           if (a_ok != b_ok)
                               return a_ok;
                           if (!a_ok && !b_ok)
@@ -4542,7 +4840,8 @@ namespace {
         }
 
         if (viewer.sort_reverse)
-            std::reverse(viewer.sibling_images.begin(), viewer.sibling_images.end());
+            std::reverse(viewer.sibling_images.begin(),
+                         viewer.sibling_images.end());
 
         if (viewer.image.path.empty()) {
             viewer.sibling_index = -1;
@@ -4550,10 +4849,11 @@ namespace {
         }
         auto it = std::find(viewer.sibling_images.begin(),
                             viewer.sibling_images.end(), viewer.image.path);
-        viewer.sibling_index = (it != viewer.sibling_images.end())
-                                   ? static_cast<int>(std::distance(
-                                       viewer.sibling_images.begin(), it))
-                                   : -1;
+        viewer.sibling_index
+            = (it != viewer.sibling_images.end())
+                  ? static_cast<int>(
+                        std::distance(viewer.sibling_images.begin(), it))
+                  : -1;
     }
 
 
@@ -4593,7 +4893,7 @@ namespace {
         if (viewer.sibling_images.empty() || viewer.sibling_index < 0)
             return false;
         const int count = static_cast<int>(viewer.sibling_images.size());
-        int idx = viewer.sibling_index + delta;
+        int idx         = viewer.sibling_index + delta;
         while (idx < 0)
             idx += count;
         idx %= count;
@@ -4698,9 +4998,9 @@ namespace {
             return false;
         }
 
-        const size_t width = static_cast<size_t>(image.width);
-        const size_t height = static_cast<size_t>(image.height);
-        const size_t channels = static_cast<size_t>(image.nchannels);
+        const size_t width         = static_cast<size_t>(image.width);
+        const size_t height        = static_cast<size_t>(image.height);
+        const size_t channels      = static_cast<size_t>(image.nchannels);
         const size_t min_row_pitch = width * channels * image.channel_bytes;
         if (image.row_pitch_bytes < min_row_pitch) {
             error_message = "image row pitch is invalid";
@@ -4715,11 +5015,11 @@ namespace {
         ImageSpec spec(image.width, image.height, image.nchannels, format);
         ImageBuf output(spec);
 
-        const std::byte* begin
-            = reinterpret_cast<const std::byte*>(image.pixels.data());
+        const std::byte* begin = reinterpret_cast<const std::byte*>(
+            image.pixels.data());
         const cspan<std::byte> byte_span(begin, image.pixels.size());
-        const stride_t xstride
-            = static_cast<stride_t>(image.nchannels * image.channel_bytes);
+        const stride_t xstride = static_cast<stride_t>(image.nchannels
+                                                       * image.channel_bytes);
         const stride_t ystride = static_cast<stride_t>(image.row_pitch_bytes);
         if (!output.set_pixels(ROI::All(), format, byte_span, begin, xstride,
                                ystride, AutoStride)) {
@@ -4766,9 +5066,8 @@ namespace {
             viewer.status_message = "Save cancelled";
             viewer.last_error.clear();
         } else {
-            viewer.last_error = reply.message.empty()
-                                    ? "Save dialog failed"
-                                    : reply.message;
+            viewer.last_error = reply.message.empty() ? "Save dialog failed"
+                                                      : reply.message;
         }
     }
 
@@ -4807,8 +5106,8 @@ namespace {
 
         const int restore_w = std::max(320, viewer.windowed_width);
         const int restore_h = std::max(240, viewer.windowed_height);
-        glfwSetWindowMonitor(window, nullptr, viewer.windowed_x, viewer.windowed_y,
-                             restore_w, restore_h, 0);
+        glfwSetWindowMonitor(window, nullptr, viewer.windowed_x,
+                             viewer.windowed_y, restore_w, restore_h, 0);
         viewer.fullscreen_applied = false;
     }
 
@@ -4827,20 +5126,21 @@ namespace {
         glfwGetWindowSize(window, &window_w, &window_h);
         glfwGetFramebufferSize(window, &fb_w, &fb_h);
 
-        const float scale_x
-            = (fb_w > 0) ? (static_cast<float>(window_w) / fb_w) : 1.0f;
-        const float scale_y
-            = (fb_h > 0) ? (static_cast<float>(window_h) / fb_h) : 1.0f;
+        const float scale_x = (fb_w > 0) ? (static_cast<float>(window_w) / fb_w)
+                                         : 1.0f;
+        const float scale_y = (fb_h > 0) ? (static_cast<float>(window_h) / fb_h)
+                                         : 1.0f;
 
         constexpr int k_view_padding_px = 24;
         constexpr int k_ui_overhead_px  = 120;
-        int display_width  = viewer.image.width;
-        int display_height = viewer.image.height;
+        int display_width               = viewer.image.width;
+        int display_height              = viewer.image.height;
         oriented_image_dimensions(viewer.image, display_width, display_height);
-        const int target_fb_w = std::max(320, display_width + k_view_padding_px);
+        const int target_fb_w = std::max(320,
+                                         display_width + k_view_padding_px);
         const int target_fb_h = std::max(240,
                                          display_height + k_ui_overhead_px);
-        const int target_w = static_cast<int>(
+        const int target_w    = static_cast<int>(
             std::round(static_cast<float>(target_fb_w) * scale_x));
         const int target_h = static_cast<int>(
             std::round(static_cast<float>(target_fb_h) * scale_y));
@@ -4849,8 +5149,9 @@ namespace {
         ui_state.fit_image_to_window = false;
         viewer.zoom                  = 1.0f;
         viewer.fit_request           = false;
-        viewer.status_message = Strutil::fmt::format("Fit window to image: {}x{}",
-                                                     target_w, target_h);
+        viewer.status_message
+            = Strutil::fmt::format("Fit window to image: {}x{}", target_w,
+                                   target_h);
         viewer.last_error.clear();
     }
 
@@ -4908,14 +5209,16 @@ namespace {
                                  viewer.image.subimage, viewer.image.miplevel);
     }
 
-    void toggle_slide_show_action(PlaceholderUiState& ui_state, ViewerState& viewer)
+    void toggle_slide_show_action(PlaceholderUiState& ui_state,
+                                  ViewerState& viewer)
     {
         ui_state.slide_show_running = !ui_state.slide_show_running;
         if (ui_state.slide_show_running)
             ui_state.full_screen_mode = true;
         viewer.slide_last_advance_time = ImGui::GetTime();
-        viewer.status_message = ui_state.slide_show_running ? "Slide show started"
-                                                            : "Slide show stopped";
+        viewer.status_message          = ui_state.slide_show_running
+                                             ? "Slide show started"
+                                             : "Slide show stopped";
         viewer.last_error.clear();
     }
 
@@ -4974,9 +5277,8 @@ namespace {
     {
         std::string path;
         if (!pick_sibling_image(viewer, delta, path)) {
-            viewer.status_message
-                = (delta < 0) ? "Previous image unavailable"
-                              : "Next image unavailable";
+            viewer.status_message = (delta < 0) ? "Previous image unavailable"
+                                                : "Next image unavailable";
             viewer.last_error.clear();
             return;
         }
@@ -5050,10 +5352,9 @@ namespace {
         pos.x += x_pad;
         pos.y += y_pad;
         ImGui::SetCursorPos(pos);
-        const float wrap_width = ImGui::GetCursorPosX()
-                                 + std::max(64.0f,
-                                            ImGui::GetContentRegionAvail().x
-                                                - x_pad);
+        const float wrap_width
+            = ImGui::GetCursorPosX()
+              + std::max(64.0f, ImGui::GetContentRegionAvail().x - x_pad);
         ImGui::PushTextWrapPos(wrap_width);
         ImGui::TextUnformatted(message);
         ImGui::PopTextWrapPos();
@@ -5079,10 +5380,51 @@ namespace {
     }
 
 
+
+    std::string format_probe_fixed3(double value)
+    {
+        return Strutil::fmt::format("{:.3f}", value);
+    }
+
+
+
+    std::string format_probe_iv_float(double value)
+    {
+        if (value < 10.0)
+            return Strutil::fmt::format("{:.3f}", value);
+        if (value < 100.0)
+            return Strutil::fmt::format("{:.2f}", value);
+        if (value < 1000.0)
+            return Strutil::fmt::format("{:.1f}", value);
+        return Strutil::fmt::format("{:.0f}", value);
+    }
+
+
+
+    std::string format_probe_integer_trunc(UploadDataType type, double value)
+    {
+        switch (type) {
+        case UploadDataType::UInt8:
+            return Strutil::fmt::format("{}",
+                                        static_cast<unsigned int>(
+                                            std::clamp(value, 0.0, 255.0)));
+        case UploadDataType::UInt16:
+            return Strutil::fmt::format("{}",
+                                        static_cast<unsigned int>(
+                                            std::clamp(value, 0.0, 65535.0)));
+        case UploadDataType::UInt32:
+            return Strutil::fmt::format("{}", static_cast<uint32_t>(
+                                                  std::clamp(value, 0.0,
+                                                             4294967295.0)));
+        default: break;
+        }
+        return Strutil::fmt::format("{:.0f}", value);
+    }
+
+
     bool probe_type_is_integer(UploadDataType type)
     {
-        return type == UploadDataType::UInt8 || type == UploadDataType::UInt16
-               || type == UploadDataType::UInt32;
+        return type == UploadDataType::UInt8 || type == UploadDataType::UInt16;
     }
 
 
@@ -5106,23 +5448,30 @@ namespace {
         ImVec2 max = ImVec2(0.0f, 0.0f);
     };
 
-    OverlayPanelRect draw_overlay_text_panel(const std::vector<std::string>& lines,
-                                             const ImVec2& preferred_pos,
-                                             const ImVec2& clip_min,
-                                             const ImVec2& clip_max)
+    OverlayPanelRect
+    draw_overlay_text_panel(const std::vector<std::string>& lines,
+                            const ImVec2& preferred_pos, const ImVec2& clip_min,
+                            const ImVec2& clip_max, ImFont* font = nullptr)
     {
         OverlayPanelRect panel;
         if (lines.empty())
             return panel;
 
-        const float pad_x    = 10.0f;
-        const float pad_y    = 8.0f;
-        const float line_gap = 2.0f;
-        const float line_h   = ImGui::GetTextLineHeight();
+        ImFont* draw_font     = font ? font : ImGui::GetFont();
+        const float font_size = draw_font ? draw_font->LegacySize
+                                          : ImGui::GetFontSize();
+        const float pad_x     = 10.0f;
+        const float pad_y     = 8.0f;
+        const float line_gap  = 2.0f;
+        const float line_h    = draw_font ? draw_font->LegacySize
+                                          : ImGui::GetTextLineHeight();
 
         float text_w = 0.0f;
         for (const std::string& line : lines) {
-            const ImVec2 size = ImGui::CalcTextSize(line.c_str());
+            const ImVec2 size
+                = draw_font->CalcTextSizeA(font_size,
+                                           std::numeric_limits<float>::max(),
+                                           0.0f, line.c_str());
             if (size.x > text_w)
                 text_w = size.x;
         }
@@ -5135,6 +5484,8 @@ namespace {
         const float min_y = std::min(clip_min.y, clip_max.y);
         const float max_x = std::max(clip_min.x, clip_max.x);
         const float max_y = std::max(clip_min.y, clip_max.y);
+        if ((max_x - min_x) < panel_w || (max_y - min_y) < panel_h)
+            return panel;
 
         ImVec2 pos = preferred_pos;
         pos.x      = std::clamp(pos.x, min_x, std::max(min_x, max_x - panel_w));
@@ -5149,8 +5500,8 @@ namespace {
 
         ImVec2 text_pos(pos.x + pad_x, pos.y + pad_y);
         for (const std::string& line : lines) {
-            draw_list->AddText(text_pos, IM_COL32(240, 242, 245, 255),
-                               line.c_str());
+            draw_list->AddText(draw_font, font_size, text_pos,
+                               IM_COL32(240, 242, 245, 255), line.c_str());
             text_pos.y += line_h + line_gap;
         }
         draw_list->PopClipRect();
@@ -5167,15 +5518,17 @@ namespace {
     {
         if (!show_window)
             return;
+        ImGui::SetNextWindowPos(ImVec2(72.0f, 72.0f), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(640.0f, 420.0f),
                                  ImGuiCond_FirstUseEver);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
         if (ImGui::Begin("iv Info", &show_window)) {
             const float close_height = ImGui::GetFrameHeightWithSpacing();
-            const float body_height  = std::max(
-                100.0f, ImGui::GetContentRegionAvail().y - close_height - 4.0f);
-            ImGui::BeginChild("##iv_info_scroll", ImVec2(0.0f, body_height), true,
-                              ImGuiWindowFlags_HorizontalScrollbar);
+            const float body_height  = std::max(100.0f,
+                                                ImGui::GetContentRegionAvail().y
+                                                    - close_height - 4.0f);
+            ImGui::BeginChild("##iv_info_scroll", ImVec2(0.0f, body_height),
+                              true, ImGuiWindowFlags_HorizontalScrollbar);
             if (viewer.image.path.empty()) {
                 draw_padded_message("No image loaded.", 8.0f, 8.0f);
                 register_layout_dump_synthetic_item("text", "No image loaded.");
@@ -5238,13 +5591,15 @@ namespace {
     {
         if (!show_window)
             return;
+        ImGui::SetNextWindowPos(ImVec2(740.0f, 72.0f), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(520.0f, 360.0f),
                                  ImGuiCond_FirstUseEver);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
         if (ImGui::Begin("iv Preferences", &show_window)) {
             const float close_height = ImGui::GetFrameHeightWithSpacing();
-            const float body_height  = std::max(
-                120.0f, ImGui::GetContentRegionAvail().y - close_height - 4.0f);
+            const float body_height  = std::max(120.0f,
+                                                ImGui::GetContentRegionAvail().y
+                                                    - close_height - 4.0f);
             ImGui::BeginChild("##iv_prefs_body", ImVec2(0.0f, body_height),
                               false, ImGuiWindowFlags_NoScrollbar);
 
@@ -5258,12 +5613,11 @@ namespace {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(76.0f);
             ImGui::InputInt("##pref_closeup_pixels", &ui.closeup_pixels, 2, 2);
-            ImGui::SameLine();
             ImGui::TextUnformatted("# closeup avg pixels");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(76.0f);
-            ImGui::InputInt("##pref_closeup_avg_pixels",
-                            &ui.closeup_avg_pixels, 2, 2);
+            ImGui::InputInt("##pref_closeup_avg_pixels", &ui.closeup_avg_pixels,
+                            2, 2);
 
             ImGui::Spacing();
             ImGui::Checkbox("Linear interpolation", &ui.linear_interpolation);
@@ -5282,8 +5636,7 @@ namespace {
             ImGui::TextUnformatted("Slide Show delay");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(90.0f);
-            ImGui::InputInt("##pref_slide_delay",
-                            &ui.slide_duration_seconds);
+            ImGui::InputInt("##pref_slide_delay", &ui.slide_duration_seconds);
             ImGui::SameLine();
             ImGui::TextUnformatted("s");
 
@@ -5292,7 +5645,8 @@ namespace {
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.0f);
             if (ImGui::Button("Close"))
                 show_window = false;
-            register_layout_dump_synthetic_item("text", "iv Preferences content");
+            register_layout_dump_synthetic_item("text",
+                                                "iv Preferences content");
         }
         ImGui::End();
         ImGui::PopStyleVar();
@@ -5304,77 +5658,106 @@ namespace {
                                                 PlaceholderUiState& ui_state,
                                                 const ImageCoordinateMap& map,
                                                 ImTextureRef closeup_texture,
-                                                bool has_closeup_texture)
+                                                bool has_closeup_texture,
+                                                const AppFonts& fonts)
     {
         OverlayPanelRect panel;
         if (!ui_state.show_pixelview_window || !map.valid)
             return panel;
 
         std::vector<std::string> lines;
-        lines.emplace_back("Pixel Closeup");
+        std::vector<ImU32> line_colors;
+        lines.emplace_back("Pixel Closeup:");
+        line_colors.emplace_back(IM_COL32(240, 242, 245, 255));
         if (viewer.image.path.empty()) {
             lines.emplace_back("No image loaded.");
+            line_colors.emplace_back(IM_COL32(240, 242, 245, 255));
         } else if (!viewer.probe_valid) {
             lines.emplace_back("Hover over image to inspect.");
+            line_colors.emplace_back(IM_COL32(240, 242, 245, 255));
         } else {
-            lines.emplace_back(Strutil::fmt::format("Pixel: {}, {}",
+            lines.emplace_back(Strutil::fmt::format("          ({:d},{:d})",
                                                     viewer.probe_x,
                                                     viewer.probe_y));
+            line_colors.emplace_back(IM_COL32(0, 255, 255, 220));
 
             std::vector<double> min_values;
             std::vector<double> max_values;
             std::vector<double> avg_values;
-            int sample_count = 0;
+            int sample_count        = 0;
+            const bool integer_type = probe_type_is_integer(viewer.image.type);
+            const ProbeStatsSemantics preview_semantics
+                = integer_type ? ProbeStatsSemantics::RawStored
+                               : ProbeStatsSemantics::OIIOFloat;
             const bool have_stats = compute_area_stats(
                 viewer.image, viewer.probe_x, viewer.probe_y,
-                ui_state.closeup_avg_pixels, min_values, max_values,
-                avg_values, sample_count);
-            lines.emplace_back(Strutil::fmt::format(
-                "Data: {}   Avg window: {}x{}",
-                upload_data_type_name(viewer.image.type),
-                ui_state.closeup_avg_pixels, ui_state.closeup_avg_pixels));
-            if (have_stats) {
-                lines.emplace_back(
-                    Strutil::fmt::format("Samples: {}", sample_count));
-            }
+                ui_state.closeup_avg_pixels, min_values, max_values, avg_values,
+                sample_count, preview_semantics);
 
-            const bool integer_type = probe_type_is_integer(viewer.image.type);
-            const double denom
-                = probe_channel_integer_denominator(viewer.image.type);
+            const double denom = probe_channel_integer_denominator(
+                viewer.image.type);
+            if (integer_type) {
+                lines.emplace_back("      Val    Norm   Min   Max   Avg");
+            } else {
+                lines.emplace_back("      Val    Min    Max    Avg");
+            }
+            line_colors.emplace_back(IM_COL32(255, 255, 160, 220));
             for (size_t c = 0; c < viewer.probe_channels.size(); ++c) {
                 const std::string label
-                    = channel_label_for_index(static_cast<int>(c));
+                    = pixel_preview_channel_label(viewer.image,
+                                                  static_cast<int>(c));
+                const double semantic_value
+                    = integer_type
+                          ? viewer.probe_channels[c]
+                          : probe_value_to_oiio_float(viewer.image.type,
+                                                      viewer.probe_channels[c]);
                 const std::string value
-                    = format_probe_channel_value(viewer.image.type,
-                                                 viewer.probe_channels[c]);
+                    = integer_type
+                          ? format_probe_integer_trunc(viewer.image.type,
+                                                       viewer.probe_channels[c])
+                          : format_probe_iv_float(semantic_value);
                 if (have_stats && c < min_values.size() && c < max_values.size()
                     && c < avg_values.size()) {
                     if (integer_type && denom > 0.0) {
                         lines.emplace_back(Strutil::fmt::format(
-                            "{} v={} ({:.6f}) min={} max={} avg={}",
+                            "{:<2}: {:>5}  {:>6.3f}  {:>3}  {:>3}  {:>3}",
                             label, value, viewer.probe_channels[c] / denom,
-                            format_probe_channel_value(viewer.image.type,
+                            format_probe_integer_trunc(viewer.image.type,
                                                        min_values[c]),
-                            format_probe_channel_value(viewer.image.type,
+                            format_probe_integer_trunc(viewer.image.type,
                                                        max_values[c]),
-                            format_probe_channel_value(viewer.image.type,
+                            format_probe_integer_trunc(viewer.image.type,
                                                        avg_values[c])));
                     } else {
                         lines.emplace_back(Strutil::fmt::format(
-                            "{} v={} min={} max={} avg={}",
-                            label, value,
-                            format_probe_channel_value(viewer.image.type,
-                                                       min_values[c]),
-                            format_probe_channel_value(viewer.image.type,
-                                                       max_values[c]),
-                            format_probe_channel_value(viewer.image.type,
-                                                       avg_values[c])));
+                            "{:<2}: {:>6}  {:>6}  {:>6}  {:>6}", label, value,
+                            format_probe_iv_float(min_values[c]),
+                            format_probe_iv_float(max_values[c]),
+                            format_probe_iv_float(avg_values[c])));
                     }
                 } else {
-                    lines.emplace_back(
-                        Strutil::fmt::format("{} v={}", label, value));
+                    if (integer_type) {
+                        lines.emplace_back(Strutil::fmt::format(
+                            "{:<2}: {:>5}  {:>6}  {:>3}  {:>3}  {:>3}", label,
+                            value, "-----", "---", "---", "---"));
+                    } else {
+                        lines.emplace_back(Strutil::fmt::format(
+                            "{:<2}: {:>6}  {:>6}  {:>6}  {:>6}", label, value,
+                            "-----", "-----", "-----"));
+                    }
                 }
+                ImU32 channel_color = IM_COL32(220, 220, 220, 255);
+                if (!label.empty()) {
+                    if (label[0] == 'R')
+                        channel_color = IM_COL32(250, 94, 143, 255);
+                    else if (label[0] == 'G')
+                        channel_color = IM_COL32(135, 203, 124, 255);
+                    else if (label[0] == 'B')
+                        channel_color = IM_COL32(107, 188, 255, 255);
+                }
+                line_colors.emplace_back(channel_color);
             }
+            (void)sample_count;
         }
 
         const float closeup_window_size = 260.0f;
@@ -5383,52 +5766,59 @@ namespace {
         const float text_pad_x          = 10.0f;
         const float text_pad_y          = 8.0f;
         const float text_line_gap       = 2.0f;
-        const float text_line_h         = ImGui::GetTextLineHeight();
         const float text_to_window_gap  = 2.0f;
+        const float text_wrap_w         = std::max(8.0f, closeup_window_size
+                                                             - text_pad_x * 2.0f);
+        ImFont* text_font          = fonts.mono ? fonts.mono : ImGui::GetFont();
+        const float text_font_size = text_font ? text_font->LegacySize
+                                               : ImGui::GetFontSize();
 
-        float text_w = 0.0f;
+        float text_panel_h = text_pad_y * 2.0f;
         for (const std::string& line : lines) {
-            const ImVec2 size = ImGui::CalcTextSize(line.c_str());
-            if (size.x > text_w)
-                text_w = size.x;
+            const ImVec2 line_size
+                = text_font->CalcTextSizeA(text_font_size,
+                                           std::numeric_limits<float>::max(),
+                                           text_wrap_w, line.c_str());
+            text_panel_h += line_size.y;
+            text_panel_h += text_line_gap;
         }
-        const float text_panel_w = std::max(closeup_window_size,
-                                            text_w + text_pad_x * 2.0f);
-        const float text_panel_h
-            = text_pad_y * 2.0f
-              + static_cast<float>(lines.size()) * text_line_h
-              + static_cast<float>(std::max<size_t>(0, lines.size() - 1))
-                    * text_line_gap;
-        const float total_h = closeup_window_size + text_to_window_gap
+        if (!lines.empty())
+            text_panel_h -= text_line_gap;
+        const float text_panel_w = closeup_window_size;
+        const float total_h      = closeup_window_size + text_to_window_gap
                               + text_panel_h;
 
-        const float clip_min_x = std::min(map.image_rect_min.x,
-                                          map.image_rect_max.x);
-        const float clip_min_y = std::min(map.image_rect_min.y,
-                                          map.image_rect_max.y);
-        const float clip_max_x = std::max(map.image_rect_min.x,
-                                          map.image_rect_max.x);
-        const float clip_max_y = std::max(map.image_rect_min.y,
-                                          map.image_rect_max.y);
+        const float clip_min_x = std::min(map.viewport_rect_min.x,
+                                          map.viewport_rect_max.x);
+        const float clip_min_y = std::min(map.viewport_rect_min.y,
+                                          map.viewport_rect_max.y);
+        const float clip_max_x = std::max(map.viewport_rect_min.x,
+                                          map.viewport_rect_max.x);
+        const float clip_max_y = std::max(map.viewport_rect_min.y,
+                                          map.viewport_rect_max.y);
+        if ((clip_max_x - clip_min_x) < closeup_window_size
+            || (clip_max_y - clip_min_y) < total_h) {
+            return panel;
+        }
 
         ImVec2 closeup_min(clip_min_x + corner_padding,
                            clip_min_y + corner_padding);
         const ImVec2 mouse_pos = ImGui::GetIO().MousePos;
 
         if (ui_state.pixelview_follows_mouse) {
-            const bool should_show_on_left
-                = (mouse_pos.x + closeup_window_size + follow_mouse_offset)
-                  > clip_max_x;
-            const bool should_show_above
-                = (mouse_pos.y + closeup_window_size + follow_mouse_offset
-                   + text_panel_h)
-                  > clip_max_y;
+            const bool should_show_on_left = (mouse_pos.x + closeup_window_size
+                                              + follow_mouse_offset)
+                                             > clip_max_x;
+            const bool should_show_above = (mouse_pos.y + closeup_window_size
+                                            + follow_mouse_offset
+                                            + text_panel_h)
+                                           > clip_max_y;
 
             closeup_min.x = mouse_pos.x + follow_mouse_offset;
             closeup_min.y = mouse_pos.y + follow_mouse_offset;
             if (should_show_on_left) {
-                closeup_min.x
-                    = mouse_pos.x - follow_mouse_offset - closeup_window_size;
+                closeup_min.x = mouse_pos.x - follow_mouse_offset
+                                - closeup_window_size;
             }
             if (should_show_above) {
                 closeup_min.y = mouse_pos.y - follow_mouse_offset
@@ -5449,8 +5839,7 @@ namespace {
                                           && mouse_pos.y >= closeup_min.y
                                           && mouse_pos.y <= panel_max.y;
             if (mouse_over_panel) {
-                ui_state.pixelview_left_corner
-                    = !ui_state.pixelview_left_corner;
+                ui_state.pixelview_left_corner = !ui_state.pixelview_left_corner;
                 closeup_min.x = ui_state.pixelview_left_corner
                                     ? (clip_min_x + corner_padding)
                                     : (clip_max_x - closeup_window_size
@@ -5458,12 +5847,11 @@ namespace {
             }
         }
 
-        closeup_min.x = std::clamp(closeup_min.x, clip_min_x,
-                                   std::max(clip_min_x,
-                                            clip_max_x - text_panel_w));
+        closeup_min.x
+            = std::clamp(closeup_min.x, clip_min_x,
+                         std::max(clip_min_x, clip_max_x - text_panel_w));
         closeup_min.y = std::clamp(closeup_min.y, clip_min_y,
-                                   std::max(clip_min_y,
-                                            clip_max_y - total_h));
+                                   std::max(clip_min_y, clip_max_y - total_h));
         const ImVec2 closeup_max(closeup_min.x + closeup_window_size,
                                  closeup_min.y + closeup_window_size);
         const ImVec2 text_min(closeup_min.x,
@@ -5472,16 +5860,18 @@ namespace {
                               text_min.y + text_panel_h);
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        draw_list->PushClipRect(map.image_rect_min, map.image_rect_max, true);
+        draw_list->PushClipRect(map.viewport_rect_min, map.viewport_rect_max,
+                                true);
         draw_list->AddRectFilled(closeup_min, closeup_max,
                                  IM_COL32(20, 24, 30, 224), 4.0f);
         draw_list->AddRect(closeup_min, closeup_max,
                            IM_COL32(175, 185, 205, 255), 4.0f, 0, 1.0f);
 
-        const bool render_zoom_patch
-            = has_closeup_texture && !viewer.image.path.empty()
-              && viewer.probe_valid && map.source_width > 0
-              && map.source_height > 0;
+        const bool render_zoom_patch = has_closeup_texture
+                                       && !viewer.image.path.empty()
+                                       && viewer.probe_valid
+                                       && map.source_width > 0
+                                       && map.source_height > 0;
         if (render_zoom_patch) {
             int display_w = viewer.image.width;
             int display_h = viewer.image.height;
@@ -5498,19 +5888,18 @@ namespace {
             patch_w     = std::max(1, patch_w);
             patch_h     = std::max(1, patch_h);
 
-            const ImVec2 source_uv(
-                (static_cast<float>(viewer.probe_x) + 0.5f)
-                    / static_cast<float>(map.source_width),
-                (static_cast<float>(viewer.probe_y) + 0.5f)
-                    / static_cast<float>(map.source_height));
-            const ImVec2 display_uv
-                = source_uv_to_display_uv(source_uv, map.orientation);
-            const int center_x = std::clamp(
-                static_cast<int>(std::floor(display_uv.x * display_w)), 0,
-                display_w - 1);
-            const int center_y = std::clamp(
-                static_cast<int>(std::floor(display_uv.y * display_h)), 0,
-                display_h - 1);
+            const ImVec2 source_uv((static_cast<float>(viewer.probe_x) + 0.5f)
+                                       / static_cast<float>(map.source_width),
+                                   (static_cast<float>(viewer.probe_y) + 0.5f)
+                                       / static_cast<float>(map.source_height));
+            const ImVec2 display_uv = source_uv_to_display_uv(source_uv,
+                                                              map.orientation);
+            const int center_x      = std::clamp(static_cast<int>(std::floor(
+                                                display_uv.x * display_w)),
+                                                 0, display_w - 1);
+            const int center_y      = std::clamp(static_cast<int>(std::floor(
+                                                display_uv.y * display_h)),
+                                                 0, display_h - 1);
 
             const int xbegin = std::clamp(center_x - patch_w / 2, 0,
                                           std::max(0, display_w - patch_w));
@@ -5541,37 +5930,35 @@ namespace {
                                    IM_COL32(8, 10, 12, 140), 1.0f);
             }
 
-            auto draw_corner_marker = [draw_list](const ImVec2& p0,
-                                                  const ImVec2& p1,
-                                                  ImU32 color) {
-                const float corner_size = 4.0f;
-                draw_list->AddLine(p0, ImVec2(p0.x + corner_size, p0.y), color,
-                                   1.0f);
-                draw_list->AddLine(p0, ImVec2(p0.x, p0.y + corner_size), color,
-                                   1.0f);
-                draw_list->AddLine(ImVec2(p1.x - corner_size, p0.y),
-                                   ImVec2(p1.x, p0.y), color,
-                                   1.0f);
-                draw_list->AddLine(ImVec2(p1.x, p0.y),
-                                   ImVec2(p1.x, p0.y + corner_size),
-                                   color, 1.0f);
-                draw_list->AddLine(ImVec2(p0.x, p1.y - corner_size),
-                                   ImVec2(p0.x, p1.y),
-                                   color, 1.0f);
-                draw_list->AddLine(ImVec2(p0.x, p1.y),
-                                   ImVec2(p0.x + corner_size, p1.y),
-                                   color, 1.0f);
-                draw_list->AddLine(ImVec2(p1.x - corner_size, p1.y), p1, color,
-                                   1.0f);
-                draw_list->AddLine(ImVec2(p1.x, p1.y - corner_size), p1, color,
-                                   1.0f);
-            };
+            auto draw_corner_marker =
+                [draw_list](const ImVec2& p0, const ImVec2& p1, ImU32 color) {
+                    const float corner_size = 4.0f;
+                    draw_list->AddLine(p0, ImVec2(p0.x + corner_size, p0.y),
+                                       color, 1.0f);
+                    draw_list->AddLine(p0, ImVec2(p0.x, p0.y + corner_size),
+                                       color, 1.0f);
+                    draw_list->AddLine(ImVec2(p1.x - corner_size, p0.y),
+                                       ImVec2(p1.x, p0.y), color, 1.0f);
+                    draw_list->AddLine(ImVec2(p1.x, p0.y),
+                                       ImVec2(p1.x, p0.y + corner_size), color,
+                                       1.0f);
+                    draw_list->AddLine(ImVec2(p0.x, p1.y - corner_size),
+                                       ImVec2(p0.x, p1.y), color, 1.0f);
+                    draw_list->AddLine(ImVec2(p0.x, p1.y),
+                                       ImVec2(p0.x + corner_size, p1.y), color,
+                                       1.0f);
+                    draw_list->AddLine(ImVec2(p1.x - corner_size, p1.y), p1,
+                                       color, 1.0f);
+                    draw_list->AddLine(ImVec2(p1.x, p1.y - corner_size), p1,
+                                       color, 1.0f);
+                };
 
             const int center_ix = center_x - xbegin;
             const int center_iy = center_y - ybegin;
             const ImVec2 center_min(closeup_min.x + center_ix * cell_w,
                                     closeup_min.y + center_iy * cell_h);
-            const ImVec2 center_max(center_min.x + cell_w, center_min.y + cell_h);
+            const ImVec2 center_max(center_min.x + cell_w,
+                                    center_min.y + cell_h);
             draw_corner_marker(center_min, center_max,
                                IM_COL32(0, 255, 255, 180));
 
@@ -5584,10 +5971,10 @@ namespace {
                 int avg_start_y = center_iy - avg_px / 2;
                 int avg_end_x   = avg_start_x + avg_px;
                 int avg_end_y   = avg_start_y + avg_px;
-                avg_start_x = std::clamp(avg_start_x, 0, patch_w - avg_px);
-                avg_start_y = std::clamp(avg_start_y, 0, patch_h - avg_px);
-                avg_end_x   = avg_start_x + avg_px;
-                avg_end_y   = avg_start_y + avg_px;
+                avg_start_x     = std::clamp(avg_start_x, 0, patch_w - avg_px);
+                avg_start_y     = std::clamp(avg_start_y, 0, patch_h - avg_px);
+                avg_end_x       = avg_start_x + avg_px;
+                avg_end_y       = avg_start_y + avg_px;
                 const ImVec2 avg_min(closeup_min.x + avg_start_x * cell_w,
                                      closeup_min.y + avg_start_y * cell_h);
                 const ImVec2 avg_max(closeup_min.x + avg_end_x * cell_w,
@@ -5602,10 +5989,18 @@ namespace {
         draw_list->AddRect(text_min, text_max, IM_COL32(175, 185, 205, 255),
                            4.0f, 0, 1.0f);
         ImVec2 text_pos(text_min.x + text_pad_x, text_min.y + text_pad_y);
-        for (const std::string& line : lines) {
-            draw_list->AddText(text_pos, IM_COL32(240, 242, 245, 255),
-                               line.c_str());
-            text_pos.y += text_line_h + text_line_gap;
+        for (size_t i = 0; i < lines.size(); ++i) {
+            const std::string& line = lines[i];
+            const ImU32 color       = i < line_colors.size()
+                                          ? line_colors[i]
+                                          : IM_COL32(240, 242, 245, 255);
+            draw_list->AddText(text_font, text_font_size, text_pos, color,
+                               line.c_str(), nullptr, text_wrap_w);
+            const ImVec2 line_size
+                = text_font->CalcTextSizeA(text_font_size,
+                                           std::numeric_limits<float>::max(),
+                                           text_wrap_w, line.c_str());
+            text_pos.y += line_size.y + text_line_gap;
         }
         draw_list->PopClipRect();
 
@@ -5622,13 +6017,15 @@ namespace {
     void draw_area_probe_overlay(const ViewerState& viewer,
                                  const PlaceholderUiState& ui_state,
                                  const ImageCoordinateMap& map,
-                                 const OverlayPanelRect& pixel_overlay_panel)
+                                 const OverlayPanelRect& pixel_overlay_panel,
+                                 const AppFonts& fonts)
     {
+        (void)pixel_overlay_panel;
         if (!ui_state.show_area_probe_window || !map.valid)
             return;
 
         std::vector<std::string> lines;
-        lines.emplace_back("Area Probe");
+        lines.emplace_back("Area Probe:");
         if (viewer.image.path.empty()) {
             lines.emplace_back("No image loaded.");
         } else {
@@ -5641,52 +6038,108 @@ namespace {
                   && compute_area_stats(viewer.image, viewer.probe_x,
                                         viewer.probe_y,
                                         ui_state.closeup_avg_pixels, min_values,
-                                        max_values, avg_values, sample_count);
-            if (viewer.probe_valid) {
-                lines.emplace_back(Strutil::fmt::format("Center: {}, {}",
-                                                        viewer.probe_x,
-                                                        viewer.probe_y));
-            } else {
-                lines.emplace_back("Center: -----, -----");
-            }
-            lines.emplace_back(Strutil::fmt::format(
-                "Window: {} x {}", ui_state.closeup_avg_pixels,
-                ui_state.closeup_avg_pixels));
-            if (have_stats) {
-                lines.emplace_back(
-                    Strutil::fmt::format("Samples: {}", sample_count));
-            }
+                                        max_values, avg_values, sample_count,
+                                        ProbeStatsSemantics::OIIOFloat);
 
             const int channel_count = std::max(1, viewer.image.nchannels);
             for (int c = 0; c < channel_count; ++c) {
                 const std::string channel
-                    = channel_label_for_index(static_cast<int>(c));
+                    = pixel_preview_channel_label(viewer.image,
+                                                  static_cast<int>(c));
                 if (have_stats && static_cast<size_t>(c) < min_values.size()
                     && static_cast<size_t>(c) < max_values.size()
                     && static_cast<size_t>(c) < avg_values.size()) {
                     lines.emplace_back(Strutil::fmt::format(
-                        "{} min={} max={} avg={}", channel,
-                        format_probe_channel_value(viewer.image.type,
-                                                   min_values[c]),
-                        format_probe_channel_value(viewer.image.type,
-                                                   max_values[c]),
-                        format_probe_channel_value(viewer.image.type,
-                                                   avg_values[c])));
+                        "{:<5}: [min: {:>6.3f}  max: {:>6.3f}  avg: {:>6.3f}]",
+                        channel, min_values[c], max_values[c], avg_values[c]));
                 } else {
                     lines.emplace_back(Strutil::fmt::format(
-                        "{} min=----- max=----- avg=-----", channel));
+                        "{:<5}: [min:  -----  max:  -----  avg:  -----]",
+                        channel));
                 }
             }
         }
 
-        ImVec2 preferred(map.image_rect_min.x + 12.0f, map.image_rect_min.y + 12.0f);
-        if (pixel_overlay_panel.valid) {
-            preferred.y = pixel_overlay_panel.max.y + 10.0f;
-            preferred.x = pixel_overlay_panel.min.x;
-        }
-        draw_overlay_text_panel(lines, preferred, map.image_rect_min,
-                                map.image_rect_max);
+        const float clip_min_x  = std::min(map.viewport_rect_min.x,
+                                           map.viewport_rect_max.x);
+        const float clip_max_y  = std::max(map.viewport_rect_min.y,
+                                           map.viewport_rect_max.y);
+        const float pad_y       = 8.0f;
+        const float line_gap    = 2.0f;
+        const ImFont* mono_font = fonts.mono ? fonts.mono : ImGui::GetFont();
+        const float line_h      = mono_font ? mono_font->LegacySize
+                                            : ImGui::GetTextLineHeight();
+        float panel_h = pad_y * 2.0f + static_cast<float>(lines.size()) * line_h
+                        + static_cast<float>(
+                              std::max<size_t>(0, lines.size() - 1))
+                              * line_gap;
+        const float border_margin = 9.0f;
+        ImVec2 preferred(clip_min_x + border_margin,
+                         clip_max_y - panel_h - border_margin);
+        draw_overlay_text_panel(lines, preferred, map.viewport_rect_min,
+                                map.viewport_rect_max, fonts.mono);
         register_layout_dump_synthetic_item("text", "Area Probe overlay");
+    }
+
+    bool primary_monitor_workarea(int& x, int& y, int& w, int& h)
+    {
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        if (monitor == nullptr)
+            return false;
+#if defined(GLFW_VERSION_MAJOR)  \
+    && ((GLFW_VERSION_MAJOR > 3) \
+        || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 3))
+        glfwGetMonitorWorkarea(monitor, &x, &y, &w, &h);
+        if (w > 0 && h > 0)
+            return true;
+#endif
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        if (mode == nullptr)
+            return false;
+        x = 0;
+        y = 0;
+        w = mode->width;
+        h = mode->height;
+        return (w > 0 && h > 0);
+    }
+
+    void center_glfw_window(GLFWwindow* window)
+    {
+        if (window == nullptr)
+            return;
+        int monitor_x = 0;
+        int monitor_y = 0;
+        int monitor_w = 0;
+        int monitor_h = 0;
+        if (!primary_monitor_workarea(monitor_x, monitor_y, monitor_w,
+                                      monitor_h)) {
+            return;
+        }
+        int window_w = 0;
+        int window_h = 0;
+        glfwGetWindowSize(window, &window_w, &window_h);
+        if (window_w <= 0 || window_h <= 0)
+            return;
+        const int pos_x = monitor_x + std::max(0, (monitor_w - window_w) / 2);
+        const int pos_y = monitor_y + std::max(0, (monitor_h - window_h) / 2);
+        glfwSetWindowPos(window, pos_x, pos_y);
+    }
+
+    void current_child_visible_rect(const ImVec2& padding, ImVec2& out_min,
+                                    ImVec2& out_max)
+    {
+        const ImVec2 window_pos  = ImGui::GetWindowPos();
+        const ImVec2 window_size = ImGui::GetWindowSize();
+        const ImGuiStyle& style  = ImGui::GetStyle();
+        out_min = ImVec2(window_pos.x + padding.x, window_pos.y + padding.y);
+        out_max = ImVec2(window_pos.x + window_size.x - padding.x,
+                         window_pos.y + window_size.y - padding.y);
+        if (ImGui::GetScrollMaxY() > 0.0f)
+            out_max.x -= style.ScrollbarSize;
+        if (ImGui::GetScrollMaxX() > 0.0f)
+            out_max.y -= style.ScrollbarSize;
+        out_max.x = std::max(out_min.x, out_max.x);
+        out_max.y = std::max(out_min.y, out_max.y);
     }
 
 
@@ -5698,12 +6151,13 @@ namespace {
         int current = 1;
         int total   = 1;
         if (!viewer.sibling_images.empty() && viewer.sibling_index >= 0) {
-            total = static_cast<int>(viewer.sibling_images.size());
+            total   = static_cast<int>(viewer.sibling_images.size());
             current = viewer.sibling_index + 1;
         }
         return Strutil::fmt::format("({}/{}): {} ({}x{}, {} ch, {})", current,
-                                    total, viewer.image.path, viewer.image.width,
-                                    viewer.image.height, viewer.image.nchannels,
+                                    total, viewer.image.path,
+                                    viewer.image.width, viewer.image.height,
+                                    viewer.image.nchannels,
                                     upload_data_type_name(viewer.image.type));
     }
 
@@ -5740,7 +6194,8 @@ namespace {
                                          viewer.image.nmiplevels);
         }
         if (viewer.image.orientation != 1) {
-            text += Strutil::fmt::format("  orient {}", viewer.image.orientation);
+            text += Strutil::fmt::format("  orient {}",
+                                         viewer.image.orientation);
         }
         if (ui.show_mouse_mode_selector) {
             text += Strutil::fmt::format("  mouse {}",
@@ -5756,7 +6211,7 @@ namespace {
     {
         const std::string img_text  = status_image_text(viewer);
         const std::string view_text = status_view_text(viewer, ui);
-        const bool show_progress = false;
+        const bool show_progress    = false;
 
         int columns = 2;
         if (show_progress)
@@ -5799,8 +6254,8 @@ namespace {
             }
 
             if (ui.show_mouse_mode_selector) {
-                static const char* mouse_modes[]
-                    = { "Zoom", "Pan", "Wipe", "Select", "Annotate" };
+                static const char* mouse_modes[] = { "Zoom", "Pan", "Wipe",
+                                                     "Select", "Annotate" };
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(-1.0f);
                 ImGui::Combo("##mouse_mode", &ui.mouse_mode, mouse_modes,
@@ -5815,34 +6270,33 @@ namespace {
 
 
     void draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
-                        bool& request_exit
+                        const AppFonts& fonts, bool& request_exit
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                         ,
                         bool* show_test_engine_windows
 #endif
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
                         ,
-                        GLFWwindow* window,
-                        VulkanState& vk_state
+                        GLFWwindow* window, VulkanState& vk_state
 #endif
     )
     {
         reset_layout_dump_synthetic_items();
 
-        bool open_requested    = false;
-        bool save_as_requested = false;
-        bool clear_recent_requested = false;
-        bool reload_requested  = false;
-        bool close_requested   = false;
-        bool prev_requested    = false;
-        bool next_requested    = false;
-        bool toggle_requested  = false;
-        bool prev_subimage_requested = false;
-        bool next_subimage_requested = false;
-        bool prev_mip_requested      = false;
-        bool next_mip_requested      = false;
-        bool save_window_as_requested = false;
-        bool save_selection_as_requested = false;
+        bool open_requested                = false;
+        bool save_as_requested             = false;
+        bool clear_recent_requested        = false;
+        bool reload_requested              = false;
+        bool close_requested               = false;
+        bool prev_requested                = false;
+        bool next_requested                = false;
+        bool toggle_requested              = false;
+        bool prev_subimage_requested       = false;
+        bool next_subimage_requested       = false;
+        bool prev_mip_requested            = false;
+        bool next_mip_requested            = false;
+        bool save_window_as_requested      = false;
+        bool save_selection_as_requested   = false;
         bool fit_window_to_image_requested = false;
         bool delete_from_disk_requested    = false;
         bool full_screen_toggle_requested  = false;
@@ -5851,16 +6305,15 @@ namespace {
         bool flip_horizontal_requested     = false;
         bool flip_vertical_requested       = false;
         std::string recent_open_path;
-        const bool has_image   = !viewer.image.path.empty();
-        const bool can_prev_subimage
-            = has_image && viewer.image.subimage > 0;
-        const bool can_next_subimage
-            = has_image
-              && (viewer.image.subimage + 1 < viewer.image.nsubimages);
+        const bool has_image         = !viewer.image.path.empty();
+        const bool can_prev_subimage = has_image && viewer.image.subimage > 0;
+        const bool can_next_subimage = has_image
+                                       && (viewer.image.subimage + 1
+                                           < viewer.image.nsubimages);
         const bool can_prev_mip = has_image && viewer.image.miplevel > 0;
-        const bool can_next_mip
-            = has_image
-              && (viewer.image.miplevel + 1 < viewer.image.nmiplevels);
+        const bool can_next_mip = has_image
+                                  && (viewer.image.miplevel + 1
+                                      < viewer.image.nmiplevels);
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
         if (window != nullptr) {
@@ -5868,14 +6321,14 @@ namespace {
             set_full_screen_mode(window, viewer, ui_state.full_screen_mode,
                                  fullscreen_error);
             if (!fullscreen_error.empty()) {
-                viewer.last_error = fullscreen_error;
+                viewer.last_error         = fullscreen_error;
                 ui_state.full_screen_mode = viewer.fullscreen_applied;
             }
         }
 #endif
 
         const ImGuiIO& global_io = ImGui::GetIO();
-        const bool no_mods = !global_io.KeyCtrl && !global_io.KeyAlt
+        const bool no_mods       = !global_io.KeyCtrl && !global_io.KeyAlt
                              && !global_io.KeySuper;
 
         if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_INFO"))
@@ -5934,9 +6387,11 @@ namespace {
             full_screen_toggle_requested = true;
         if (ui_state.full_screen_mode && ImGui::Shortcut(ImGuiKey_Escape))
             full_screen_toggle_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Comma) && can_prev_subimage)
+        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Comma)
+            && can_prev_subimage)
             prev_subimage_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Period) && can_next_subimage)
+        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Period)
+            && can_next_subimage)
             next_subimage_requested = true;
         if (no_mods && ImGui::Shortcut(ImGuiKey_C))
             ui_state.current_channel = 0;
@@ -5949,9 +6404,11 @@ namespace {
         if (no_mods && ImGui::Shortcut(ImGuiKey_A))
             ui_state.current_channel = 4;
         if (no_mods && ImGui::Shortcut(ImGuiKey_Comma) && has_image)
-            ui_state.current_channel = std::max(0, ui_state.current_channel - 1);
+            ui_state.current_channel = std::max(0,
+                                                ui_state.current_channel - 1);
         if (no_mods && ImGui::Shortcut(ImGuiKey_Period) && has_image)
-            ui_state.current_channel = std::min(4, ui_state.current_channel + 1);
+            ui_state.current_channel = std::min(4,
+                                                ui_state.current_channel + 1);
         if (no_mods && ImGui::Shortcut(ImGuiKey_1))
             ui_state.color_mode = 2;
         if (no_mods && ImGui::Shortcut(ImGuiKey_L))
@@ -5996,8 +6453,9 @@ namespace {
                         for (size_t i = 0; i < viewer.recent_images.size();
                              ++i) {
                             const std::string& recent = viewer.recent_images[i];
-                            const std::string label = Strutil::fmt::format(
-                                "{}: {}##imiv_recent_{}", i + 1, recent, i);
+                            const std::string label
+                                = Strutil::fmt::format("{}: {}##imiv_recent_{}",
+                                                       i + 1, recent, i);
                             if (ImGui::MenuItem(label.c_str()))
                                 recent_open_path = recent;
                         }
@@ -6226,7 +6684,8 @@ namespace {
                     if (ImGui::MenuItem("By File Path"))
                         set_sort_mode_action(viewer, ImageSortMode::ByPath);
                     if (ImGui::MenuItem("By Image Date"))
-                        set_sort_mode_action(viewer, ImageSortMode::ByImageDate);
+                        set_sort_mode_action(viewer,
+                                             ImageSortMode::ByImageDate);
                     if (ImGui::MenuItem("By File Date"))
                         set_sort_mode_action(viewer, ImageSortMode::ByFileDate);
                     if (ImGui::MenuItem("Reverse current order"))
@@ -6276,8 +6735,7 @@ namespace {
         if (!recent_open_path.empty()) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
             load_viewer_image(vk_state, viewer, recent_open_path,
-                              ui_state.subimage_index,
-                              ui_state.miplevel_index);
+                              ui_state.subimage_index, ui_state.miplevel_index);
 #else
             set_placeholder_status(viewer, "Open recent image");
 #endif
@@ -6388,7 +6846,7 @@ namespace {
             set_full_screen_mode(window, viewer, ui_state.full_screen_mode,
                                  fullscreen_error);
             if (!fullscreen_error.empty()) {
-                viewer.last_error = fullscreen_error;
+                viewer.last_error         = fullscreen_error;
                 ui_state.full_screen_mode = viewer.fullscreen_applied;
             } else {
                 viewer.status_message = ui_state.full_screen_mode
@@ -6411,10 +6869,10 @@ namespace {
                     viewer.last_error.clear();
                     refresh_sibling_images(viewer);
                 } else {
-                    viewer.last_error = ec ? Strutil::fmt::format(
-                                                 "Delete failed: {}",
-                                                 ec.message())
-                                            : "Delete failed";
+                    viewer.last_error
+                        = ec ? Strutil::fmt::format("Delete failed: {}",
+                                                    ec.message())
+                             : "Delete failed";
                 }
             }
 #endif
@@ -6446,8 +6904,9 @@ namespace {
                 }
                 viewer.image.orientation = clamp_orientation(orientation);
                 viewer.fit_request       = true;
-                viewer.status_message = Strutil::fmt::format(
-                    "Orientation set to {}", viewer.image.orientation);
+                viewer.status_message
+                    = Strutil::fmt::format("Orientation set to {}",
+                                           viewer.image.orientation);
                 viewer.last_error.clear();
             } else {
                 viewer.status_message = "No image loaded";
@@ -6502,27 +6961,27 @@ namespace {
         }
 #endif
 
-        setup_main_window_geometry();
-        ImGuiWindowFlags main_window_flags = ImGuiWindowFlags_NoTitleBar
-                                             | ImGuiWindowFlags_NoResize
-                                             | ImGuiWindowFlags_NoMove
-                                             | ImGuiWindowFlags_NoCollapse
-                                             | ImGuiWindowFlags_NoScrollbar
-                                             | ImGuiWindowFlags_NoScrollWithMouse;
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        const ImGuiID main_dockspace_id = begin_main_dockspace_host();
+        setup_image_window_policy(main_dockspace_id,
+                                  ui_state.image_window_force_dock);
+        ImGuiWindowFlags main_window_flags
+            = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar
+              | ImGuiWindowFlags_NoScrollWithMouse;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::Begin(k_image_window_title, nullptr, main_window_flags);
-        ImGui::PopStyleVar(3);
+        ImGui::PopStyleVar();
+        ui_state.image_window_force_dock = !ImGui::IsWindowDocked();
 
-        const float status_bar_height = std::max(
-            30.0f, ImGui::GetTextLineHeightWithSpacing()
-                       + ImGui::GetStyle().FramePadding.y * 2.0f + 8.0f);
-        ImVec2 content_avail = ImGui::GetContentRegionAvail();
+        const float status_bar_height
+            = std::max(30.0f, ImGui::GetTextLineHeightWithSpacing()
+                                  + ImGui::GetStyle().FramePadding.y * 2.0f
+                                  + 8.0f);
+        ImVec2 content_avail   = ImGui::GetContentRegionAvail();
         const float viewport_h = std::max(64.0f,
                                           content_avail.y - status_bar_height);
 
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+        const ImVec2 viewport_padding(8.0f, 8.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, viewport_padding);
         ImGui::BeginChild("Viewport", ImVec2(0.0f, viewport_h), false,
                           ImGuiWindowFlags_HorizontalScrollbar);
         ImGui::PopStyleVar();
@@ -6540,10 +6999,11 @@ namespace {
             ImVec2 draw_avail  = avail;
             int display_width  = viewer.image.width;
             int display_height = viewer.image.height;
-            oriented_image_dimensions(viewer.image, display_width, display_height);
+            oriented_image_dimensions(viewer.image, display_width,
+                                      display_height);
             if ((viewer.fit_request || ui_state.fit_image_to_window)
                 && display_width > 0 && display_height > 0) {
-                ImVec2 fit_avail = avail;
+                ImVec2 fit_avail           = avail;
                 const float scrollbar_size = ImGui::GetStyle().ScrollbarSize;
                 // GetContentRegionAvail() is reduced when a scrollbar is
                 // already present. Add that thickness back to recover
@@ -6607,41 +7067,45 @@ namespace {
             const ImVec2 item_min = ImGui::GetItemRectMin();
             const ImVec2 item_max = ImGui::GetItemRectMax();
             ImageCoordinateMap coord_map;
-            coord_map.valid        = (item_max.x > item_min.x
+            coord_map.valid          = (item_max.x > item_min.x
                                && item_max.y > item_min.y);
-            coord_map.source_width  = viewer.image.width;
-            coord_map.source_height = viewer.image.height;
-            coord_map.orientation   = viewer.image.orientation;
+            coord_map.source_width   = viewer.image.width;
+            coord_map.source_height  = viewer.image.height;
+            coord_map.orientation    = viewer.image.orientation;
             coord_map.image_rect_min = item_min;
             coord_map.image_rect_max = item_max;
-            coord_map.window_pos     = ImGui::GetWindowPos();
+            current_child_visible_rect(viewport_padding,
+                                       coord_map.viewport_rect_min,
+                                       coord_map.viewport_rect_max);
+            coord_map.window_pos = ImGui::GetWindowPos();
             if (ui_state.show_window_guides && item_max.x > item_min.x
                 && item_max.y > item_min.y) {
                 ImDrawList* draw_list = ImGui::GetWindowDrawList();
                 draw_list->AddRect(item_min, item_max,
                                    IM_COL32(250, 210, 80, 255), 0.0f, 0, 1.5f);
-                const ImVec2 view_min = ImGui::GetWindowPos();
-                const ImVec2 window_size = ImGui::GetWindowSize();
-                const ImVec2 view_max(view_min.x + window_size.x,
-                                      view_min.y + window_size.y);
-                draw_list->AddRect(view_min, view_max,
+                draw_list->AddRect(coord_map.viewport_rect_min,
+                                   coord_map.viewport_rect_max,
                                    IM_COL32(80, 200, 255, 220), 0.0f, 0, 1.0f);
 
                 ImVec2 center_screen(0.0f, 0.0f);
                 if (source_uv_to_screen(coord_map, ImVec2(0.5f, 0.5f),
                                         center_screen)) {
                     const float r = 6.0f;
-                    draw_list->AddLine(ImVec2(center_screen.x - r, center_screen.y),
-                                       ImVec2(center_screen.x + r, center_screen.y),
+                    draw_list->AddLine(ImVec2(center_screen.x - r,
+                                              center_screen.y),
+                                       ImVec2(center_screen.x + r,
+                                              center_screen.y),
                                        IM_COL32(255, 170, 60, 255), 1.3f);
-                    draw_list->AddLine(ImVec2(center_screen.x, center_screen.y - r),
-                                       ImVec2(center_screen.x, center_screen.y + r),
+                    draw_list->AddLine(ImVec2(center_screen.x,
+                                              center_screen.y - r),
+                                       ImVec2(center_screen.x,
+                                              center_screen.y + r),
                                        IM_COL32(255, 170, 60, 255), 1.3f);
                 }
             }
 
             if (ImGui::IsItemHovered()) {
-                ImGuiIO& io = ImGui::GetIO();
+                ImGuiIO& io        = ImGui::GetIO();
                 const ImVec2 mouse = io.MousePos;
                 ImVec2 source_uv(0.0f, 0.0f);
                 int px = 0;
@@ -6663,7 +7127,7 @@ namespace {
                 static bool zoom_drag_active = false;
                 static ImVec2 drag_prev_mouse(0.0f, 0.0f);
 
-                bool want_pan = false;
+                bool want_pan       = false;
                 bool want_zoom_drag = false;
                 if (ui_state.mouse_mode == 1) {
                     want_pan = ImGui::IsMouseDown(ImGuiMouseButton_Left)
@@ -6678,11 +7142,9 @@ namespace {
                                          ImGuiMouseButton_Right);
                     if (!io.KeyAlt) {
                         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                            viewer.zoom
-                                = std::min(viewer.zoom * 2.0f, 64.0f);
+                            viewer.zoom = std::min(viewer.zoom * 2.0f, 64.0f);
                         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-                            viewer.zoom
-                                = std::max(viewer.zoom * 0.5f, 0.05f);
+                            viewer.zoom = std::max(viewer.zoom * 0.5f, 0.05f);
                     }
                 }
 
@@ -6695,7 +7157,7 @@ namespace {
                         const float dy = mouse.y - drag_prev_mouse.y;
                         ImGui::SetScrollX(ImGui::GetScrollX() - dx);
                         ImGui::SetScrollY(ImGui::GetScrollY() - dy);
-                        drag_prev_mouse = mouse;
+                        drag_prev_mouse              = mouse;
                         ui_state.fit_image_to_window = false;
                     }
                 } else {
@@ -6707,12 +7169,12 @@ namespace {
                         zoom_drag_active = true;
                         drag_prev_mouse  = mouse;
                     } else {
-                        const float dx = mouse.x - drag_prev_mouse.x;
-                        const float dy = mouse.y - drag_prev_mouse.y;
+                        const float dx    = mouse.x - drag_prev_mouse.x;
+                        const float dy    = mouse.y - drag_prev_mouse.y;
                         const float scale = 1.0f + 0.005f * (dx + dy);
                         if (scale > 0.0f) {
-                            viewer.zoom
-                                = std::clamp(viewer.zoom * scale, 0.05f, 64.0f);
+                            viewer.zoom = std::clamp(viewer.zoom * scale, 0.05f,
+                                                     64.0f);
                             ui_state.fit_image_to_window = false;
                         }
                         drag_prev_mouse = mouse;
@@ -6729,11 +7191,15 @@ namespace {
                 }
             }
 
+            if (apply_forced_probe_from_env(viewer))
+                viewer.probe_valid = true;
+
             const OverlayPanelRect pixel_panel
                 = draw_pixel_closeup_overlay(viewer, ui_state, coord_map,
                                              closeup_texture_ref,
-                                             has_closeup_texture);
-            draw_area_probe_overlay(viewer, ui_state, coord_map, pixel_panel);
+                                             has_closeup_texture, fonts);
+            draw_area_probe_overlay(viewer, ui_state, coord_map, pixel_panel,
+                                    fonts);
         } else if (viewer.last_error.empty()) {
             viewer.probe_valid = false;
             viewer.probe_channels.clear();
@@ -6820,6 +7286,13 @@ run(const AppConfig& config)
         run_config.input_paths.push_back(startup_open_path);
     }
 
+    const bool verbose_logging = run_config.verbose;
+    const bool verbose_validation_output
+        = verbose_logging
+          || env_flag_is_truthy("IMIV_VULKAN_VERBOSE_VALIDATION");
+    const bool log_imgui_texture_updates = env_flag_is_truthy(
+        "IMIV_DEBUG_IMGUI_TEXTURES");
+
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
     TestEngineConfig test_engine_cfg = gather_test_engine_config();
     TestEngineRuntime test_engine_runtime;
@@ -6832,6 +7305,7 @@ run(const AppConfig& config)
 #    endif
 
     glfwSetErrorCallback(glfw_error_callback);
+    configure_glfw_platform_preference(verbose_logging);
     if (!glfwInit()) {
         print(stderr, "imiv: glfwInit failed\n");
         return EXIT_FAILURE;
@@ -6844,6 +7318,7 @@ run(const AppConfig& config)
         glfwTerminate();
         return EXIT_FAILURE;
     }
+    center_glfw_window(window);
 
     if (!glfwVulkanSupported()) {
         print(stderr, "imiv: GLFW reports Vulkan is not supported\n");
@@ -6861,6 +7336,9 @@ run(const AppConfig& config)
     }
 
     VulkanState vk_state;
+    vk_state.verbose_logging           = verbose_logging;
+    vk_state.verbose_validation_output = verbose_validation_output;
+    vk_state.log_imgui_texture_updates = log_imgui_texture_updates;
     ImVector<const char*> instance_extensions;
     uint32_t glfw_extension_count = 0;
     const char** glfw_extensions  = glfwGetRequiredInstanceExtensions(
@@ -6906,12 +7384,14 @@ run(const AppConfig& config)
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    io.IniFilename = "imiv.ini";
+    io.IniFilename       = "imiv.ini";
+    const AppFonts fonts = setup_app_fonts(verbose_logging);
     ImGui::StyleColorsDark();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        ImGuiStyle& style = ImGui::GetStyle();
-        style.WindowRounding          = 0.0f;
+        ImGuiStyle& style                 = ImGui::GetStyle();
+        style.WindowRounding              = 0.0f;
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
     ImGui_ImplGlfw_InitForVulkan(window, true);
@@ -6941,6 +7421,32 @@ run(const AppConfig& config)
         glfwDestroyWindow(window);
         glfwTerminate();
         return EXIT_FAILURE;
+    }
+
+    const bool platform_has_viewports
+        = (io.BackendFlags & ImGuiBackendFlags_PlatformHasViewports) != 0;
+    const bool renderer_has_viewports
+        = (io.BackendFlags & ImGuiBackendFlags_RendererHasViewports) != 0;
+#    if defined(IMIV_BACKEND_VULKAN_GLFW) && defined(GLFW_VERSION_MAJOR) \
+        && ((GLFW_VERSION_MAJOR > 3)                                     \
+            || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4))
+    const int selected_glfw_platform = glfwGetPlatform();
+#    else
+    const int selected_glfw_platform = 0;
+#    endif
+    if (verbose_logging) {
+        print("imiv: GLFW selected platform={} imgui_viewports platform={} "
+              "renderer={}\n",
+              glfw_platform_name(selected_glfw_platform),
+              platform_has_viewports ? "yes" : "no",
+              renderer_has_viewports ? "yes" : "no");
+    }
+    if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        && (!platform_has_viewports || !renderer_has_viewports)) {
+        io.ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
+        print("imiv: detached auxiliary windows disabled because the active "
+              "GLFW platform backend does not support Dear ImGui "
+              "multi-viewports\n");
     }
 
     if (run_config.verbose) {
@@ -7031,8 +7537,9 @@ run(const AppConfig& config)
     std::string prefs_error;
     if (!load_persistent_state(ui_state, viewer, prefs_error)) {
         print(stderr, "imiv: failed to load preferences: {}\n", prefs_error);
-        viewer.last_error = Strutil::fmt::format(
-            "failed to load preferences: {}", prefs_error);
+        viewer.last_error
+            = Strutil::fmt::format("failed to load preferences: {}",
+                                   prefs_error);
     }
     if (!run_config.ocio_display.empty())
         ui_state.ocio_display = run_config.ocio_display;
@@ -7074,7 +7581,7 @@ run(const AppConfig& config)
         viewer.status_message = "Open an image to start preview";
     }
 
-    bool request_exit = false;
+    bool request_exit         = false;
     bool applied_dark_palette = ui_state.dark_palette;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -7104,7 +7611,7 @@ run(const AppConfig& config)
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        draw_viewer_ui(viewer, ui_state, request_exit
+        draw_viewer_ui(viewer, ui_state, fonts, request_exit
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
                        ,
                        test_engine_runtime.engine
@@ -7112,8 +7619,7 @@ run(const AppConfig& config)
                            : nullptr
 #    endif
                        ,
-                       window,
-                       vk_state);
+                       window, vk_state);
         if (ui_state.dark_palette != applied_dark_palette) {
             if (ui_state.dark_palette)
                 ImGui::StyleColorsDark();
