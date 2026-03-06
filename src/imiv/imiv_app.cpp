@@ -169,12 +169,14 @@ namespace {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
 
     struct PreviewControls {
-        float exposure  = 0.0f;
-        float gamma     = 1.0f;
-        int color_mode  = 0;
-        int channel     = 0;
-        int use_ocio    = 0;
-        int orientation = 1;
+        float exposure           = 0.0f;
+        float gamma              = 1.0f;
+        float offset             = 0.0f;
+        int color_mode           = 0;
+        int channel              = 0;
+        int use_ocio             = 0;
+        int orientation          = 1;
+        int linear_interpolation = 0;
     };
 
     struct VulkanTexture {
@@ -210,12 +212,14 @@ namespace {
     };
 
     struct PreviewPushConstants {
-        float exposure      = 0.0f;
-        float gamma         = 1.0f;
-        int32_t color_mode  = 0;
-        int32_t channel     = 0;
-        int32_t use_ocio    = 0;
-        int32_t orientation = 1;
+        float exposure               = 0.0f;
+        float gamma                  = 1.0f;
+        float offset                 = 0.0f;
+        int32_t color_mode           = 0;
+        int32_t channel              = 0;
+        int32_t use_ocio             = 0;
+        int32_t orientation          = 1;
+        int32_t linear_interpolation = 0;
     };
 
     struct VulkanState {
@@ -298,6 +302,7 @@ namespace {
     struct PlaceholderUiState {
         bool show_info_window         = false;
         bool show_preferences_window  = false;
+        bool show_preview_window      = false;
         bool show_pixelview_window    = false;
         bool show_area_probe_window   = false;
         bool show_window_guides       = false;
@@ -309,7 +314,7 @@ namespace {
         bool use_ocio                 = false;
         bool pixelview_follows_mouse  = false;
         bool pixelview_left_corner    = true;
-        bool linear_interpolation     = true;
+        bool linear_interpolation     = false;
         bool dark_palette             = true;
         bool auto_mipmap              = false;
         bool image_window_force_dock  = true;
@@ -326,6 +331,7 @@ namespace {
 
         float exposure = 0.0f;
         float gamma    = 1.0f;
+        float offset   = 0.0f;
 
         std::string ocio_display           = "default";
         std::string ocio_view              = "default";
@@ -970,6 +976,7 @@ namespace {
             ui_state.miplevel_index = 0;
         if (ui_state.gamma < 0.1f)
             ui_state.gamma = 0.1f;
+        ui_state.offset = std::clamp(ui_state.offset, -1.0f, 1.0f);
         if (ui_state.ocio_display.empty())
             ui_state.ocio_display = "default";
         if (ui_state.ocio_view.empty())
@@ -1078,6 +1085,9 @@ namespace {
             } else if (key == "gamma") {
                 if (parse_float_value(value, float_value))
                     ui_state.gamma = float_value;
+            } else if (key == "offset") {
+                if (parse_float_value(value, float_value))
+                    ui_state.offset = float_value;
             } else if (key == "ocio_display") {
                 ui_state.ocio_display = trim_ascii(value);
             } else if (key == "ocio_view") {
@@ -1154,6 +1164,7 @@ namespace {
         output << "mouse_mode=" << ui_state.mouse_mode << "\n";
         output << "exposure=" << ui_state.exposure << "\n";
         output << "gamma=" << ui_state.gamma << "\n";
+        output << "offset=" << ui_state.offset << "\n";
         output << "ocio_display=" << ui_state.ocio_display << "\n";
         output << "ocio_view=" << ui_state.ocio_view << "\n";
         output << "ocio_image_color_space=" << ui_state.ocio_image_color_space
@@ -3603,8 +3614,10 @@ namespace {
     {
         return std::abs(a.exposure - b.exposure) < 1.0e-6f
                && std::abs(a.gamma - b.gamma) < 1.0e-6f
+               && std::abs(a.offset - b.offset) < 1.0e-6f
                && a.color_mode == b.color_mode && a.channel == b.channel
-               && a.use_ocio == b.use_ocio && a.orientation == b.orientation;
+               && a.use_ocio == b.use_ocio && a.orientation == b.orientation
+               && a.linear_interpolation == b.linear_interpolation;
     }
 
 
@@ -3736,10 +3749,12 @@ namespace {
             PreviewPushConstants push = {};
             push.exposure             = controls.exposure;
             push.gamma                = std::max(0.01f, controls.gamma);
+            push.offset               = controls.offset;
             push.color_mode           = controls.color_mode;
             push.channel              = controls.channel;
             push.use_ocio             = controls.use_ocio;
             push.orientation          = controls.orientation;
+            push.linear_interpolation = controls.linear_interpolation;
             vkCmdPushConstants(command_buffer, vk_state.preview_pipeline_layout,
                                VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push),
                                &push);
@@ -4187,10 +4202,8 @@ namespace {
         };
         std::vector<WindowDumpEntry> windows;
         const char* window_names[] = {
-            "##MainMenuBar",
-            k_image_window_title,
-            "iv Info",
-            "iv Preferences",
+            "##MainMenuBar",  k_image_window_title, "iv Info",
+            "iv Preferences", "iv Preview",
         };
         windows.reserve(IM_ARRAYSIZE(window_names));
         for (const char* window_name : window_names) {
@@ -5512,15 +5525,25 @@ namespace {
         return panel;
     }
 
+    void set_aux_window_defaults(const ImVec2& offset, const ImVec2& size)
+    {
+        const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+        ImVec2 base_pos(0.0f, 0.0f);
+        if (main_viewport != nullptr)
+            base_pos = main_viewport->WorkPos;
+        ImGui::SetNextWindowPos(ImVec2(base_pos.x + offset.x,
+                                       base_pos.y + offset.y),
+                                ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
+    }
+
 
 
     void draw_info_window(const ViewerState& viewer, bool& show_window)
     {
         if (!show_window)
             return;
-        ImGui::SetNextWindowPos(ImVec2(72.0f, 72.0f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(640.0f, 420.0f),
-                                 ImGuiCond_FirstUseEver);
+        set_aux_window_defaults(ImVec2(72.0f, 72.0f), ImVec2(640.0f, 420.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
         if (ImGui::Begin("iv Info", &show_window)) {
             const float close_height = ImGui::GetFrameHeightWithSpacing();
@@ -5585,15 +5608,83 @@ namespace {
         ImGui::PopStyleVar();
     }
 
+    void push_preview_active_button_style(bool active)
+    {
+        if (!active)
+            return;
+        ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(66, 112, 171, 255));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                              IM_COL32(80, 133, 200, 255));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,
+                              IM_COL32(57, 95, 146, 255));
+    }
+
+    void pop_preview_active_button_style(bool active)
+    {
+        if (!active)
+            return;
+        ImGui::PopStyleColor(3);
+    }
+
+    void preview_form_next_row(const char* label)
+    {
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::TableSetColumnIndex(1);
+    }
+
+    bool draw_preview_row_button_cell(const char* label, bool active)
+    {
+        ImGui::TableNextColumn();
+        push_preview_active_button_style(active);
+        const bool pressed
+            = ImGui::Button(label,
+                            ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
+        pop_preview_active_button_style(active);
+        return pressed;
+    }
+
+    void preview_set_rgb_mode(PlaceholderUiState& ui)
+    {
+        ui.color_mode      = 1;
+        ui.current_channel = 0;
+    }
+
+    void preview_set_luma_mode(PlaceholderUiState& ui)
+    {
+        ui.color_mode      = 3;
+        ui.current_channel = 0;
+    }
+
+    void preview_set_single_channel_mode(PlaceholderUiState& ui, int channel)
+    {
+        ui.color_mode      = 2;
+        ui.current_channel = channel;
+    }
+
+    void preview_set_heat_mode(PlaceholderUiState& ui)
+    {
+        ui.color_mode = 4;
+        if (ui.current_channel <= 0)
+            ui.current_channel = 1;
+    }
+
+    void preview_reset_adjustments(PlaceholderUiState& ui)
+    {
+        ui.exposure = 0.0f;
+        ui.gamma    = 1.0f;
+        ui.offset   = 0.0f;
+    }
+
 
 
     void draw_preferences_window(PlaceholderUiState& ui, bool& show_window)
     {
         if (!show_window)
             return;
-        ImGui::SetNextWindowPos(ImVec2(740.0f, 72.0f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(520.0f, 360.0f),
-                                 ImGuiCond_FirstUseEver);
+        set_aux_window_defaults(ImVec2(740.0f, 72.0f), ImVec2(520.0f, 360.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
         if (ImGui::Begin("iv Preferences", &show_window)) {
             const float close_height = ImGui::GetFrameHeightWithSpacing();
@@ -5613,6 +5704,7 @@ namespace {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(76.0f);
             ImGui::InputInt("##pref_closeup_pixels", &ui.closeup_pixels, 2, 2);
+
             ImGui::TextUnformatted("# closeup avg pixels");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(76.0f);
@@ -5647,6 +5739,143 @@ namespace {
                 show_window = false;
             register_layout_dump_synthetic_item("text",
                                                 "iv Preferences content");
+        }
+        ImGui::End();
+        ImGui::PopStyleVar();
+    }
+
+    void draw_preview_window(PlaceholderUiState& ui, bool& show_window)
+    {
+        if (!show_window)
+            return;
+        set_aux_window_defaults(ImVec2(1030.0f, 72.0f), ImVec2(500.0f, 360.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+        if (ImGui::Begin("iv Preview", &show_window)) {
+            const float close_height = ImGui::GetFrameHeightWithSpacing();
+            const float body_height  = std::max(120.0f,
+                                                ImGui::GetContentRegionAvail().y
+                                                    - close_height - 4.0f);
+            ImGui::BeginChild("##iv_preview_body", ImVec2(0.0f, body_height),
+                              false, ImGuiWindowFlags_NoScrollbar);
+
+            if (ImGui::BeginTable("##iv_preview_form", 2,
+                                  ImGuiTableFlags_SizingStretchProp
+                                      | ImGuiTableFlags_NoSavedSettings
+                                      | ImGuiTableFlags_BordersInnerV)) {
+                ImGui::TableSetupColumn("Label",
+                                        ImGuiTableColumnFlags_WidthFixed,
+                                        110.0f);
+                ImGui::TableSetupColumn("Control",
+                                        ImGuiTableColumnFlags_WidthStretch);
+
+                preview_form_next_row("Interpolation");
+                ImGui::Checkbox("Linear##preview_interp",
+                                &ui.linear_interpolation);
+
+                preview_form_next_row("Exposure");
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                ImGui::SliderFloat("##preview_exposure", &ui.exposure, -10.0f,
+                                   10.0f, "%.2f");
+
+                preview_form_next_row("");
+                if (ImGui::BeginTable("##preview_exposure_steps", 4,
+                                      ImGuiTableFlags_SizingStretchSame
+                                          | ImGuiTableFlags_NoSavedSettings)) {
+                    if (draw_preview_row_button_cell("-1/2", false))
+                        ui.exposure -= 0.5f;
+                    if (draw_preview_row_button_cell("-1/10", false))
+                        ui.exposure -= 0.1f;
+                    if (draw_preview_row_button_cell("+1/10", false))
+                        ui.exposure += 0.1f;
+                    if (draw_preview_row_button_cell("+1/2", false))
+                        ui.exposure += 0.5f;
+                    ImGui::EndTable();
+                }
+
+                preview_form_next_row("Gamma");
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                ImGui::SliderFloat("##preview_gamma", &ui.gamma, 0.1f, 4.0f,
+                                   "%.2f");
+
+                preview_form_next_row("");
+                if (ImGui::BeginTable("##preview_gamma_steps", 2,
+                                      ImGuiTableFlags_SizingStretchSame
+                                          | ImGuiTableFlags_NoSavedSettings)) {
+                    if (draw_preview_row_button_cell("-0.1", false))
+                        ui.gamma = std::max(0.1f, ui.gamma - 0.1f);
+                    if (draw_preview_row_button_cell("+0.1", false))
+                        ui.gamma += 0.1f;
+                    ImGui::EndTable();
+                }
+
+                preview_form_next_row("Offset");
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                ImGui::SliderFloat("##preview_offset", &ui.offset, -1.0f, 1.0f,
+                                   "%+.3f");
+
+                preview_form_next_row("");
+                if (ImGui::Button("Reset",
+                                  ImVec2(ImGui::GetContentRegionAvail().x,
+                                         0.0f))) {
+                    preview_reset_adjustments(ui);
+                }
+
+                preview_form_next_row("");
+                if (ImGui::BeginTable("##preview_modes", 7,
+                                      ImGuiTableFlags_SizingStretchSame
+                                          | ImGuiTableFlags_NoSavedSettings)) {
+                    const bool rgb_active = ui.current_channel == 0
+                                            && (ui.color_mode == 0
+                                                || ui.color_mode == 1);
+                    const bool red_active = ui.current_channel == 1
+                                            && ui.color_mode != 3
+                                            && ui.color_mode != 4;
+                    const bool green_active = ui.current_channel == 2
+                                              && ui.color_mode != 3
+                                              && ui.color_mode != 4;
+                    const bool blue_active = ui.current_channel == 3
+                                             && ui.color_mode != 3
+                                             && ui.color_mode != 4;
+                    const bool alpha_active = ui.current_channel == 4
+                                              && ui.color_mode != 3
+                                              && ui.color_mode != 4;
+                    if (draw_preview_row_button_cell("RGB", rgb_active)) {
+                        preview_set_rgb_mode(ui);
+                    }
+                    if (draw_preview_row_button_cell("Luma",
+                                                     ui.color_mode == 3
+                                                         && ui.current_channel
+                                                                == 0)) {
+                        preview_set_luma_mode(ui);
+                    }
+                    if (draw_preview_row_button_cell("R", red_active)) {
+                        preview_set_single_channel_mode(ui, 1);
+                    }
+                    if (draw_preview_row_button_cell("G", green_active)) {
+                        preview_set_single_channel_mode(ui, 2);
+                    }
+                    if (draw_preview_row_button_cell("B", blue_active)) {
+                        preview_set_single_channel_mode(ui, 3);
+                    }
+                    if (draw_preview_row_button_cell("A", alpha_active)) {
+                        preview_set_single_channel_mode(ui, 4);
+                    }
+                    if (draw_preview_row_button_cell("Heat",
+                                                     ui.color_mode == 4)) {
+                        preview_set_heat_mode(ui);
+                    }
+                    ImGui::EndTable();
+                }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::EndChild();
+            clamp_placeholder_ui_state(ui);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.0f);
+            if (ImGui::Button("Close"))
+                show_window = false;
+            register_layout_dump_synthetic_item("text", "iv Preview content");
         }
         ImGui::End();
         ImGui::PopStyleVar();
@@ -6180,9 +6409,9 @@ namespace {
         const float zoom  = std::max(viewer.zoom, 0.00001f);
         const float z_num = zoom >= 1.0f ? zoom : 1.0f;
         const float z_den = zoom >= 1.0f ? 1.0f : (1.0f / zoom);
-        std::string text
-            = Strutil::fmt::format("{}  {:.2f}:{:.2f}  exp {:+.1f}  gam {:.2f}",
-                                   mode, z_num, z_den, ui.exposure, ui.gamma);
+        std::string text  = Strutil::fmt::format(
+            "{}  {:.2f}:{:.2f}  exp {:+.1f}  gam {:.2f}  off {:+.2f}", mode,
+            z_num, z_den, ui.exposure, ui.gamma, ui.offset);
         if (viewer.image.nsubimages > 1) {
             text += Strutil::fmt::format("  subimg {}/{}",
                                          viewer.image.subimage + 1,
@@ -6335,6 +6564,8 @@ namespace {
             ui_state.show_info_window = true;
         if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PREFS"))
             ui_state.show_preferences_window = true;
+        if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PREVIEW"))
+            ui_state.show_preview_window = true;
         if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PIXEL"))
             ui_state.show_pixelview_window = true;
         if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AREA"))
@@ -6342,6 +6573,7 @@ namespace {
         if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AUX_WINDOWS")) {
             ui_state.show_info_window        = true;
             ui_state.show_preferences_window = true;
+            ui_state.show_preview_window     = true;
             ui_state.show_pixelview_window   = true;
             ui_state.show_area_probe_window  = true;
         }
@@ -6659,6 +6891,8 @@ namespace {
             if (ImGui::BeginMenu("Tools")) {
                 ImGui::MenuItem("Image info...", "Ctrl+I",
                                 &ui_state.show_info_window);
+                ImGui::MenuItem("Preview controls...", nullptr,
+                                &ui_state.show_preview_window);
                 ImGui::MenuItem("Pixel closeup view...", "P",
                                 &ui_state.show_pixelview_window);
                 ImGui::MenuItem("Toggle area sample", "Ctrl+A",
@@ -6948,10 +7182,13 @@ namespace {
             PreviewControls preview_controls = {};
             preview_controls.exposure        = ui_state.exposure;
             preview_controls.gamma           = ui_state.gamma;
+            preview_controls.offset          = ui_state.offset;
             preview_controls.color_mode      = ui_state.color_mode;
             preview_controls.channel         = ui_state.current_channel;
             preview_controls.use_ocio        = ui_state.use_ocio ? 1 : 0;
             preview_controls.orientation     = viewer.image.orientation;
+            preview_controls.linear_interpolation
+                = ui_state.linear_interpolation ? 1 : 0;
             std::string preview_error;
             if (!update_preview_texture(vk_state, viewer.texture,
                                         preview_controls, preview_error)) {
@@ -7223,6 +7460,7 @@ namespace {
 
         draw_info_window(viewer, ui_state.show_info_window);
         draw_preferences_window(ui_state, ui_state.show_preferences_window);
+        draw_preview_window(ui_state, ui_state.show_preview_window);
 
         if (ImGui::BeginPopupModal("About imiv", nullptr,
                                    ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -7554,6 +7792,7 @@ run(const AppConfig& config)
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AUX_WINDOWS")) {
         ui_state.show_info_window        = true;
         ui_state.show_preferences_window = true;
+        ui_state.show_preview_window     = true;
         ui_state.show_pixelview_window   = true;
         ui_state.show_area_probe_window  = true;
     }
@@ -7561,6 +7800,8 @@ run(const AppConfig& config)
         ui_state.show_info_window = true;
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PREFS"))
         ui_state.show_preferences_window = true;
+    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PREVIEW"))
+        ui_state.show_preview_window = true;
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PIXEL"))
         ui_state.show_pixelview_window = true;
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AREA"))
