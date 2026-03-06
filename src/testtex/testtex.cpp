@@ -86,7 +86,7 @@ static bool test_derivs            = false;
 static bool test_statquery         = false;
 static bool invalidate_before_iter = true;
 static bool close_before_iter      = false;
-static bool fix_texture_blur       = false;
+static bool legacy_texture_blur    = false;
 static bool runstats               = false;
 static bool udim_tests             = false;
 static bool do_gettextureinfo      = true;
@@ -201,7 +201,7 @@ getargs(int argc, const char* argv[])
       .help("Do not warp the image->texture mapping");
     ap.arg("--tube", &tube)
       .help("Make a tube projection");
-    ap.arg("--fix-texture-blur", &fix_texture_blur)
+    ap.arg("--legacy-texture-blur", &legacy_texture_blur)
       .help("Use mathematically correct texture blur instead of legacy overblur");
     ap.arg("--ctr", &test_construction)
       .help("Test TextureOpt construction time");
@@ -1834,7 +1834,9 @@ main(int argc, const char* argv[])
     texsys->attribute("gray_to_rgb", gray_to_rgb);
     texsys->attribute("flip_t", flip_t);
     texsys->attribute("stochastic", stochastic);
-    if (fix_texture_blur)
+    if (legacy_texture_blur)
+        texsys->attribute("legacy_texture_blur", 1);
+    else
         texsys->attribute("legacy_texture_blur", 0);
     texcolortransform_id
         = std::max(0, texsys->get_colortransform_id(ustring(texcolorspace),

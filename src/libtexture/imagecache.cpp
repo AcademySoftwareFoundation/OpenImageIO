@@ -1985,7 +1985,7 @@ ImageCacheImpl::init()
     m_unassociatedalpha    = false;
     m_failure_retries      = 0;
     m_latlong_y_up_default = true;
-    m_legacy_texture_blur  = true;
+    m_legacy_texture_blur  = false;
     m_Mw2c.makeIdentity();
     m_colorspace              = ustring("scene_linear");
     m_mem_used                = 0;

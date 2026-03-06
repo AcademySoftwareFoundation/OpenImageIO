@@ -1890,7 +1890,7 @@ adjust_width(float& dsdx, float& dtdx, float& dsdy, float& dtdy, float swidth,
 // back to this and solve it better.
 inline void
 adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
-            float tblur, bool legacy_textblur = true)
+            float tblur, bool legacy_textblur = false)
 {
     if (sblur + tblur != 0.0f /* avoid the work when blur is zero */) {
         // Carefully add blur to the right derivative components in the

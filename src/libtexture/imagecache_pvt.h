@@ -1338,7 +1338,7 @@ private:
     bool m_unassociatedalpha;  ///< Keep unassociated alpha files as they are?
     bool m_latlong_y_up_default;  ///< Is +y the default "up" for latlong?
     bool m_trust_file_extensions = false;  ///< Assume file extensions don't lie?
-    bool m_legacy_texture_blur = true;  ///< Use legacy texture blur behavior?
+    bool m_legacy_texture_blur = false;  ///< Use legacy texture blur behavior?
     bool m_max_open_files_strict = false;  ///< Be strict about open files limit?
     int m_failure_retries;                 ///< Times to re-try disk failures
     int m_max_mip_res = 1 << 30;  ///< Don't use MIP levels higher than this
