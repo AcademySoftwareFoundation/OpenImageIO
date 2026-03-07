@@ -1,0 +1,6 @@
+// Resource script for OIIO EXEs.
+
+// The value is invariant, so should be safe to hardcode, but we could replace
+// 24 with `RT_MANIFEST` by adding `#include "winres.h"` first.
+// Reference: https://learn.microsoft.com/en-us/windows/win32/menurc/user-defined-resource
+1 24 "oiio_exe.manifest"
