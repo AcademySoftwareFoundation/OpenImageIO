@@ -439,7 +439,7 @@ jobs:
             fmt_ver: 12.1.0
             opencolorio_ver: v2.5.0
             openexr_ver: v3.4.3
-            pybind11_ver: v3.0.1
+            pybind11_ver: v3.0.2
             python_ver: "3.12"
             simd: avx2,f16c
             setenvs: export LIBJPEGTURBO_VERSION=3.1.2
@@ -465,7 +465,7 @@ jobs:
             fmt_ver: master
             opencolorio_ver: main
             openexr_ver: main
-            pybind11_ver: v3.0.1
+            pybind11_ver: master
             python_ver: "3.12"
             simd: avx2,f16c
             benchmark: 1
@@ -524,7 +524,7 @@ jobs:
             fmt_ver: 12.1.0
             opencolorio_ver: v2.5.0
             openexr_ver: v3.4.3
-            pybind11_ver: v3.0.1
+            pybind11_ver: v3.0.2
             python_ver: "3.12"
             setenvs: export LIBJPEGTURBO_VERSION=3.1.2
                             LIBPNG_VERSION=v1.6.50
@@ -545,7 +545,7 @@ jobs:
             fmt_ver: 12.1.0
             opencolorio_ver: v2.5.0
             openexr_ver: v3.4.3
-            pybind11_ver: v3.0.1
+            pybind11_ver: v3.0.2
             python_ver: "3.12"
             setenvs: export LIBJPEGTURBO_VERSION=3.1.2
                             LIBPNG_VERSION=v1.6.50
