@@ -467,7 +467,7 @@ public:
     int m_max_tile_channels;  ///< narrow tile ID channel range when
                               ///<   the file has more channels
     int m_stochastic;
-#if OIIO_VERSION_GREATER_EQUAL(3,2,0)
+#if OIIO_VERSION_GREATER_EQUAL(3, 2, 0)
     bool m_legacy_texture_blur = false;  ///< Use legacy texture blur behavior?
     // Opt OUT of the fix for 3.2 and beyond
 #else
