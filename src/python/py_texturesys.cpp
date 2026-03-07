@@ -178,20 +178,10 @@ declare_texturesystem(py::module& m)
         .def_static("destroy", &TextureSystemWrap::destroy)
 
         .def("attribute",
-             [](TextureSystemWrap& ts, const std::string& name, float val) {
-                 if (ts.m_texsys)
-                     ts.m_texsys->attribute(name, val);
-             })
-        .def("attribute",
-             [](TextureSystemWrap& ts, const std::string& name, int val) {
-                 if (ts.m_texsys)
-                     ts.m_texsys->attribute(name, val);
-             })
-        .def("attribute",
              [](TextureSystemWrap& ts, const std::string& name,
-                const std::string& val) {
+                const py::object& obj) {
                  if (ts.m_texsys)
-                     ts.m_texsys->attribute(name, val);
+                     attribute_onearg(*ts.m_texsys, name, obj);
              })
         .def("attribute",
              [](TextureSystemWrap& ts, const std::string& name, TypeDesc type,

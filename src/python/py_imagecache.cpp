@@ -81,20 +81,10 @@ declare_imagecache(py::module& m)
                     "teardown"_a = false)
 
         .def("attribute",
-             [](ImageCacheWrap& ic, const std::string& name, float val) {
-                 if (ic.m_cache)
-                     ic.m_cache->attribute(name, val);
-             })
-        .def("attribute",
-             [](ImageCacheWrap& ic, const std::string& name, int val) {
-                 if (ic.m_cache)
-                     ic.m_cache->attribute(name, val);
-             })
-        .def("attribute",
              [](ImageCacheWrap& ic, const std::string& name,
-                const std::string& val) {
+                const py::object& obj) {
                  if (ic.m_cache)
-                     ic.m_cache->attribute(name, val);
+                     attribute_onearg(*ic.m_cache, name, obj);
              })
         .def("attribute",
              [](ImageCacheWrap& ic, const std::string& name, TypeDesc type,

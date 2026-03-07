@@ -21,6 +21,7 @@ build_dependency_with_cmake(pybind11
     VERSION         ${pybind11_BUILD_VERSION}
     GIT_REPOSITORY  ${pybind11_GIT_REPOSITORY}
     GIT_TAG         ${pybind11_GIT_TAG}
+    GIT_COMMIT      ${pybind11_GIT_COMMIT}
     CMAKE_ARGS
         -D PYBIND11_PYTHON_VERSION=${PYTHON3_VERSION}
         # Don't built unnecessary parts of Pybind11
