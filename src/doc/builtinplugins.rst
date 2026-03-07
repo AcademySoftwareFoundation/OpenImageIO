@@ -1608,7 +1608,9 @@ The official OpenEXR site is http://www.openexr.com/.
      - the MIPmap rounding mode of the file.
    * - ``openexr:dwaCompressionLevel``
      - float
-     - compression level for dwaa or dwab compression (default: 45.0).
+     - compression level for dwaa or dwab compression (default: 45.0). 
+       Reflects the level used when reading an existing file. To set 
+       the compression level, use the ``compression`` attribute.
    * - ``openexr::luminancechroma``
      - int
      - If nonzero, indicates whether the image is a luminance-chroma image.
