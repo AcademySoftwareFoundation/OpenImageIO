@@ -489,8 +489,6 @@ namespace {
         return static_cast<int>(x);
     }
 
-
-
     bool env_var_is_nonempty(const char* name)
     {
         std::string value;
@@ -591,8 +589,19 @@ namespace {
 #endif
     }
 
+    bool env_read_float_value(const char* name, float& out);
+
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     int g_layout_dump_synthetic_item_counter = 0;
+    struct TestEngineMouseSpaceState {
+        bool viewport_valid = false;
+        bool image_valid    = false;
+        ImVec2 viewport_min = ImVec2(0.0f, 0.0f);
+        ImVec2 viewport_max = ImVec2(0.0f, 0.0f);
+        ImVec2 image_min    = ImVec2(0.0f, 0.0f);
+        ImVec2 image_max    = ImVec2(0.0f, 0.0f);
+    };
+    TestEngineMouseSpaceState g_test_engine_mouse_space;
 
     bool layout_dump_items_enabled()
     {
@@ -602,6 +611,72 @@ namespace {
     void reset_layout_dump_synthetic_items()
     {
         g_layout_dump_synthetic_item_counter = 0;
+    }
+
+    void reset_test_engine_mouse_space()
+    {
+        g_test_engine_mouse_space = TestEngineMouseSpaceState();
+    }
+
+    void update_test_engine_mouse_space(const ImVec2& viewport_min,
+                                        const ImVec2& viewport_max,
+                                        const ImVec2& image_min,
+                                        const ImVec2& image_max)
+    {
+        g_test_engine_mouse_space.viewport_valid = true;
+        g_test_engine_mouse_space.viewport_min   = viewport_min;
+        g_test_engine_mouse_space.viewport_max   = viewport_max;
+        g_test_engine_mouse_space.image_valid    = (image_max.x > image_min.x
+                                                 && image_max.y > image_min.y);
+        g_test_engine_mouse_space.image_min      = image_min;
+        g_test_engine_mouse_space.image_max      = image_max;
+    }
+
+    ImVec2 test_engine_rect_rel_pos(const ImVec2& rect_min,
+                                    const ImVec2& rect_max, float rel_x,
+                                    float rel_y)
+    {
+        const float clamped_x = std::clamp(rel_x, 0.0f, 1.0f);
+        const float clamped_y = std::clamp(rel_y, 0.0f, 1.0f);
+        return ImVec2(rect_min.x + (rect_max.x - rect_min.x) * clamped_x,
+                      rect_min.y + (rect_max.y - rect_min.y) * clamped_y);
+    }
+
+    bool resolve_test_engine_mouse_pos(ImVec2& out_pos)
+    {
+        float rel_x = 0.0f;
+        float rel_y = 0.0f;
+        if (env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_IMAGE_REL_X",
+                                 rel_x)
+            && env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_IMAGE_REL_Y",
+                                    rel_y)
+            && g_test_engine_mouse_space.image_valid) {
+            out_pos
+                = test_engine_rect_rel_pos(g_test_engine_mouse_space.image_min,
+                                           g_test_engine_mouse_space.image_max,
+                                           rel_x, rel_y);
+            return true;
+        }
+
+        if (env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_WINDOW_REL_X",
+                                 rel_x)
+            && env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_WINDOW_REL_Y",
+                                    rel_y)
+            && g_test_engine_mouse_space.viewport_valid) {
+            out_pos = test_engine_rect_rel_pos(
+                g_test_engine_mouse_space.viewport_min,
+                g_test_engine_mouse_space.viewport_max, rel_x, rel_y);
+            return true;
+        }
+
+        float mouse_x = 0.0f;
+        float mouse_y = 0.0f;
+        if (env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_X", mouse_x)
+            && env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_Y", mouse_y)) {
+            out_pos = ImVec2(mouse_x, mouse_y);
+            return true;
+        }
+        return false;
     }
 
     void register_layout_dump_synthetic_item(const char* kind,
@@ -642,6 +717,12 @@ namespace {
     }
 #else
     void reset_layout_dump_synthetic_items() {}
+    void reset_test_engine_mouse_space() {}
+    void update_test_engine_mouse_space(const ImVec2&, const ImVec2&,
+                                        const ImVec2&, const ImVec2&)
+    {
+    }
+    bool resolve_test_engine_mouse_pos(ImVec2&) { return false; }
     void register_layout_dump_synthetic_item(const char*, const char*) {}
 #endif
 
@@ -927,6 +1008,18 @@ namespace {
         return true;
     }
 
+    bool env_read_int_value(const char* name, int& out)
+    {
+        std::string value;
+        return read_env_value(name, value) && parse_int_value(value, out);
+    }
+
+    bool env_read_float_value(const char* name, float& out)
+    {
+        std::string value;
+        return read_env_value(name, value) && parse_float_value(value, out);
+    }
+
 
 
     std::filesystem::path prefs_file_path()
@@ -985,6 +1078,15 @@ namespace {
             ui_state.ocio_image_color_space = "auto";
     }
 
+    void reset_per_image_preview_state(PlaceholderUiState& ui_state)
+    {
+        ui_state.current_channel = 0;
+        ui_state.color_mode      = 0;
+        ui_state.exposure        = 0.0f;
+        ui_state.gamma           = 1.0f;
+        ui_state.offset          = 0.0f;
+    }
+
 
 
     bool load_persistent_state(PlaceholderUiState& ui_state,
@@ -1017,7 +1119,6 @@ namespace {
             const std::string value = trimmed.substr(eq + 1);
             bool bool_value         = false;
             int int_value           = 0;
-            float float_value       = 0.0f;
 
             if (key == "pixelview_follows_mouse") {
                 if (parse_bool_value(value, bool_value))
@@ -1064,30 +1165,15 @@ namespace {
             } else if (key == "closeup_avg_pixels") {
                 if (parse_int_value(value, int_value))
                     ui_state.closeup_avg_pixels = int_value;
-            } else if (key == "current_channel") {
-                if (parse_int_value(value, int_value))
-                    ui_state.current_channel = int_value;
             } else if (key == "subimage_index") {
                 if (parse_int_value(value, int_value))
                     ui_state.subimage_index = int_value;
             } else if (key == "miplevel_index") {
                 if (parse_int_value(value, int_value))
                     ui_state.miplevel_index = int_value;
-            } else if (key == "color_mode") {
-                if (parse_int_value(value, int_value))
-                    ui_state.color_mode = int_value;
             } else if (key == "mouse_mode") {
                 if (parse_int_value(value, int_value))
                     ui_state.mouse_mode = int_value;
-            } else if (key == "exposure") {
-                if (parse_float_value(value, float_value))
-                    ui_state.exposure = float_value;
-            } else if (key == "gamma") {
-                if (parse_float_value(value, float_value))
-                    ui_state.gamma = float_value;
-            } else if (key == "offset") {
-                if (parse_float_value(value, float_value))
-                    ui_state.offset = float_value;
             } else if (key == "ocio_display") {
                 ui_state.ocio_display = trim_ascii(value);
             } else if (key == "ocio_view") {
@@ -1157,14 +1243,9 @@ namespace {
                << "\n";
         output << "closeup_pixels=" << ui_state.closeup_pixels << "\n";
         output << "closeup_avg_pixels=" << ui_state.closeup_avg_pixels << "\n";
-        output << "current_channel=" << ui_state.current_channel << "\n";
         output << "subimage_index=" << ui_state.subimage_index << "\n";
         output << "miplevel_index=" << ui_state.miplevel_index << "\n";
-        output << "color_mode=" << ui_state.color_mode << "\n";
         output << "mouse_mode=" << ui_state.mouse_mode << "\n";
-        output << "exposure=" << ui_state.exposure << "\n";
-        output << "gamma=" << ui_state.gamma << "\n";
-        output << "offset=" << ui_state.offset << "\n";
         output << "ocio_display=" << ui_state.ocio_display << "\n";
         output << "ocio_view=" << ui_state.ocio_view << "\n";
         output << "ocio_image_color_space=" << ui_state.ocio_image_color_space
@@ -3814,7 +3895,20 @@ namespace {
                                  vk_state.allocator);
         return ok;
     }
+    bool should_reset_preview_on_load(const ViewerState& viewer,
+                                      const std::string& path)
+    {
+        if (path.empty())
+            return false;
+        if (viewer.image.path.empty())
+            return true;
+        const std::filesystem::path current_path(viewer.image.path);
+        const std::filesystem::path next_path(path);
+        return current_path.lexically_normal() != next_path.lexically_normal();
+    }
+
     bool load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
+                           PlaceholderUiState* ui_state,
                            const std::string& path, int requested_subimage = 0,
                            int requested_miplevel = 0)
     {
@@ -3837,6 +3931,8 @@ namespace {
         destroy_texture(vk_state, viewer.texture);
         if (!viewer.image.path.empty())
             viewer.toggle_image_path = viewer.image.path;
+        if (ui_state != nullptr && should_reset_preview_on_load(viewer, path))
+            reset_per_image_preview_state(*ui_state);
         viewer.image       = std::move(loaded);
         viewer.texture     = texture;
         viewer.zoom        = 1.0f;
@@ -4331,6 +4427,58 @@ namespace {
                                | ImGuiCaptureFlags_HideMouseCursor);
     }
 
+    void apply_test_engine_mouse_actions(ImGuiTestContext* ctx)
+    {
+        ImVec2 mouse_pos(0.0f, 0.0f);
+        if (resolve_test_engine_mouse_pos(mouse_pos)) {
+            ctx->MouseMoveToPos(mouse_pos);
+            ctx->Yield(1);
+        }
+
+        int click_button = 0;
+        if (env_read_int_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_CLICK_BUTTON",
+                               click_button)) {
+            click_button = std::clamp(click_button, 0, 4);
+            ctx->MouseClick(static_cast<ImGuiMouseButton>(click_button));
+            ctx->Yield(1);
+        }
+
+        float wheel_x = 0.0f;
+        float wheel_y = 0.0f;
+        const bool have_wheel_x
+            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_WHEEL_X",
+                                   wheel_x);
+        const bool have_wheel_y
+            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_WHEEL_Y",
+                                   wheel_y);
+        if (have_wheel_x || have_wheel_y) {
+            ctx->MouseWheel(ImVec2(have_wheel_x ? wheel_x : 0.0f,
+                                   have_wheel_y ? wheel_y : 0.0f));
+            ctx->Yield(1);
+        }
+
+        float drag_dx = 0.0f;
+        float drag_dy = 0.0f;
+        const bool have_drag_dx
+            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_DX",
+                                   drag_dx);
+        const bool have_drag_dy
+            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_DY",
+                                   drag_dy);
+        if (have_drag_dx || have_drag_dy) {
+            int drag_button = 0;
+            if (!env_read_int_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_BUTTON",
+                                    drag_button)) {
+                drag_button = 0;
+            }
+            drag_button = std::clamp(drag_button, 0, 4);
+            ctx->MouseDragWithDelta(ImVec2(have_drag_dx ? drag_dx : 0.0f,
+                                           have_drag_dy ? drag_dy : 0.0f),
+                                    static_cast<ImGuiMouseButton>(drag_button));
+            ctx->Yield(1);
+        }
+    }
+
 
 
     void ImivTest_SmokeScreenshot(ImGuiTestContext* ctx)
@@ -4338,6 +4486,7 @@ namespace {
         int delay_frames = env_int_value(
             "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_DELAY_FRAMES", 3);
         ctx->Yield(delay_frames);
+        apply_test_engine_mouse_actions(ctx);
 
         int frames_to_capture
             = env_int_value("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_FRAMES", 1);
@@ -4394,6 +4543,7 @@ namespace {
             = env_int_value("IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DELAY_FRAMES",
                             3);
         ctx->Yield(delay_frames);
+        apply_test_engine_mouse_actions(ctx);
 
         bool include_items = env_flag_is_truthy(
             "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS");
@@ -4701,6 +4851,177 @@ namespace {
         out_screen_pos = ImVec2(map.image_rect_min.x + display_uv.x * w,
                                 map.image_rect_min.y + display_uv.y * h);
         return true;
+    }
+
+    bool point_in_rect(const ImVec2& pos, const ImVec2& rect_min,
+                       const ImVec2& rect_max)
+    {
+        const float min_x = std::min(rect_min.x, rect_max.x);
+        const float max_x = std::max(rect_min.x, rect_max.x);
+        const float min_y = std::min(rect_min.y, rect_max.y);
+        const float max_y = std::max(rect_min.y, rect_max.y);
+        return pos.x >= min_x && pos.x <= max_x && pos.y >= min_y
+               && pos.y <= max_y;
+    }
+
+    ImVec2 clamp_pos_to_rect(const ImVec2& pos, const ImVec2& rect_min,
+                             const ImVec2& rect_max)
+    {
+        const float min_x = std::min(rect_min.x, rect_max.x);
+        const float max_x = std::max(rect_min.x, rect_max.x);
+        const float min_y = std::min(rect_min.y, rect_max.y);
+        const float max_y = std::max(rect_min.y, rect_max.y);
+        return ImVec2(std::clamp(pos.x, min_x, max_x),
+                      std::clamp(pos.y, min_y, max_y));
+    }
+
+    ImVec2 rect_center(const ImVec2& rect_min, const ImVec2& rect_max)
+    {
+        return ImVec2((rect_min.x + rect_max.x) * 0.5f,
+                      (rect_min.y + rect_max.y) * 0.5f);
+    }
+
+    ImVec2 rect_size(const ImVec2& rect_min, const ImVec2& rect_max)
+    {
+        return ImVec2(std::abs(rect_max.x - rect_min.x),
+                      std::abs(rect_max.y - rect_min.y));
+    }
+
+    ImVec2 predicted_viewport_size_for_image(const ImageCoordinateMap& map,
+                                             const ImVec2& image_size)
+    {
+        ImVec2 base_size        = rect_size(map.viewport_rect_min,
+                                            map.viewport_rect_max);
+        const ImGuiStyle& style = ImGui::GetStyle();
+        if (ImGui::GetScrollMaxY() > 0.0f)
+            base_size.x += style.ScrollbarSize;
+        if (ImGui::GetScrollMaxX() > 0.0f)
+            base_size.y += style.ScrollbarSize;
+
+        ImVec2 size = base_size;
+        for (int i = 0; i < 3; ++i) {
+            const bool need_horizontal = image_size.x > size.x;
+            const bool need_vertical   = image_size.y > size.y;
+            ImVec2 next_size           = base_size;
+            if (need_vertical)
+                next_size.x -= style.ScrollbarSize;
+            if (need_horizontal)
+                next_size.y -= style.ScrollbarSize;
+            next_size.x = std::max(1.0f, next_size.x);
+            next_size.y = std::max(1.0f, next_size.y);
+            if (std::abs(next_size.x - size.x) < 1.0e-4f
+                && std::abs(next_size.y - size.y) < 1.0e-4f) {
+                size = next_size;
+                break;
+            }
+            size = next_size;
+        }
+        return size;
+    }
+
+    struct PendingZoomRequest {
+        float scale       = 1.0f;
+        bool snap_to_one  = false;
+        bool prefer_mouse = false;
+    };
+
+    void request_zoom_scale(PendingZoomRequest& request, float scale,
+                            bool prefer_mouse)
+    {
+        request.scale *= scale;
+        request.prefer_mouse = request.prefer_mouse || prefer_mouse;
+    }
+
+    void request_zoom_reset(PendingZoomRequest& request, bool prefer_mouse)
+    {
+        request.snap_to_one  = true;
+        request.prefer_mouse = request.prefer_mouse || prefer_mouse;
+    }
+
+    void compute_zoom_pivot(const ImageCoordinateMap& map,
+                            const ImVec2& mouse_screen,
+                            bool prefer_mouse_position,
+                            ImVec2& out_anchor_screen, ImVec2& out_source_uv)
+    {
+        out_anchor_screen = rect_center(map.viewport_rect_min,
+                                        map.viewport_rect_max);
+        if (prefer_mouse_position
+            && point_in_rect(mouse_screen, map.viewport_rect_min,
+                             map.viewport_rect_max)) {
+            out_anchor_screen = mouse_screen;
+        }
+
+        ImVec2 sample_screen = out_anchor_screen;
+        if (!point_in_rect(sample_screen, map.image_rect_min,
+                           map.image_rect_max)) {
+            sample_screen = clamp_pos_to_rect(sample_screen, map.image_rect_min,
+                                              map.image_rect_max);
+        }
+
+        if (!screen_to_source_uv(map, sample_screen, out_source_uv))
+            out_source_uv = ImVec2(0.5f, 0.5f);
+    }
+
+    void apply_zoom_request(const ImageCoordinateMap& map, ViewerState& viewer,
+                            PlaceholderUiState& ui_state,
+                            const PendingZoomRequest& request,
+                            const ImVec2& mouse_screen)
+    {
+        if (!map.valid)
+            return;
+        if (!request.snap_to_one && std::abs(request.scale - 1.0f) < 1.0e-6f)
+            return;
+
+        const float new_zoom = request.snap_to_one
+                                   ? 1.0f
+                                   : std::clamp(viewer.zoom * request.scale,
+                                                0.05f, 64.0f);
+        if (std::abs(new_zoom - viewer.zoom) < 1.0e-6f)
+            return;
+
+        ImVec2 anchor_screen(0.0f, 0.0f);
+        ImVec2 source_uv(0.5f, 0.5f);
+        compute_zoom_pivot(map, mouse_screen, request.prefer_mouse,
+                           anchor_screen, source_uv);
+
+        int display_width  = viewer.image.width;
+        int display_height = viewer.image.height;
+        oriented_image_dimensions(viewer.image, display_width, display_height);
+
+        const ImVec2 new_image_size(static_cast<float>(display_width)
+                                        * new_zoom,
+                                    static_cast<float>(display_height)
+                                        * new_zoom);
+        const ImVec2 viewport_size
+            = predicted_viewport_size_for_image(map, new_image_size);
+        if (viewport_size.x <= 0.0f || viewport_size.y <= 0.0f)
+            return;
+
+        const ImVec2 new_center_offset(
+            std::max(0.0f, (viewport_size.x - new_image_size.x) * 0.5f),
+            std::max(0.0f, (viewport_size.y - new_image_size.y) * 0.5f));
+        const ImVec2 anchor_local
+            = ImVec2(anchor_screen.x - map.viewport_rect_min.x,
+                     anchor_screen.y - map.viewport_rect_min.y);
+        const ImVec2 display_uv  = source_uv_to_display_uv(source_uv,
+                                                           map.orientation);
+        const float max_scroll_x = std::max(0.0f,
+                                            new_image_size.x - viewport_size.x);
+        const float max_scroll_y = std::max(0.0f,
+                                            new_image_size.y - viewport_size.y);
+        const float new_scroll_x
+            = std::clamp(new_center_offset.x + display_uv.x * new_image_size.x
+                             - anchor_local.x,
+                         0.0f, max_scroll_x);
+        const float new_scroll_y
+            = std::clamp(new_center_offset.y + display_uv.y * new_image_size.y
+                             - anchor_local.y,
+                         0.0f, max_scroll_y);
+
+        viewer.zoom                  = new_zoom;
+        ui_state.fit_image_to_window = false;
+        ImGui::SetScrollX(new_scroll_x);
+        ImGui::SetScrollY(new_scroll_y);
     }
 
     bool source_uv_to_pixel(const ImageCoordinateMap& map,
@@ -5218,7 +5539,7 @@ namespace {
         std::string next_path;
         if (!pick_sibling_image(viewer, 1, next_path) || next_path.empty())
             return false;
-        return load_viewer_image(vk_state, viewer, next_path,
+        return load_viewer_image(vk_state, viewer, &ui_state, next_path,
                                  viewer.image.subimage, viewer.image.miplevel);
     }
 
@@ -5236,14 +5557,15 @@ namespace {
     }
 
     void open_image_dialog_action(VulkanState& vk_state, ViewerState& viewer,
+                                  PlaceholderUiState& ui_state,
                                   int requested_subimage,
                                   int requested_miplevel)
     {
         FileDialog::DialogReply reply = FileDialog::open_image_file(
             open_dialog_default_path(viewer));
         if (reply.result == FileDialog::Result::Okay) {
-            load_viewer_image(vk_state, viewer, reply.path, requested_subimage,
-                              requested_miplevel);
+            load_viewer_image(vk_state, viewer, &ui_state, reply.path,
+                              requested_subimage, requested_miplevel);
         } else if (reply.result == FileDialog::Result::Cancel) {
             viewer.status_message = "Open cancelled";
             viewer.last_error.clear();
@@ -5254,14 +5576,15 @@ namespace {
 
 
 
-    void reload_current_image_action(VulkanState& vk_state, ViewerState& viewer)
+    void reload_current_image_action(VulkanState& vk_state, ViewerState& viewer,
+                                     PlaceholderUiState& ui_state)
     {
         if (viewer.image.path.empty()) {
             viewer.status_message = "No image loaded";
             viewer.last_error.clear();
             return;
         }
-        load_viewer_image(vk_state, viewer, viewer.image.path,
+        load_viewer_image(vk_state, viewer, &ui_state, viewer.image.path,
                           viewer.image.subimage, viewer.image.miplevel);
     }
 
@@ -5286,7 +5609,7 @@ namespace {
 
 
     void next_sibling_image_action(VulkanState& vk_state, ViewerState& viewer,
-                                   int delta)
+                                   PlaceholderUiState& ui_state, int delta)
     {
         std::string path;
         if (!pick_sibling_image(viewer, delta, path)) {
@@ -5295,13 +5618,14 @@ namespace {
             viewer.last_error.clear();
             return;
         }
-        load_viewer_image(vk_state, viewer, path, viewer.image.subimage,
-                          viewer.image.miplevel);
+        load_viewer_image(vk_state, viewer, &ui_state, path,
+                          viewer.image.subimage, viewer.image.miplevel);
     }
 
 
 
-    void toggle_image_action(VulkanState& vk_state, ViewerState& viewer)
+    void toggle_image_action(VulkanState& vk_state, ViewerState& viewer,
+                             PlaceholderUiState& ui_state)
     {
         if (viewer.toggle_image_path.empty()) {
             viewer.status_message = "No toggled image available";
@@ -5315,14 +5639,14 @@ namespace {
                 return;
             }
         }
-        load_viewer_image(vk_state, viewer, viewer.toggle_image_path,
+        load_viewer_image(vk_state, viewer, &ui_state, viewer.toggle_image_path,
                           viewer.image.subimage, viewer.image.miplevel);
     }
 
 
 
     void change_subimage_action(VulkanState& vk_state, ViewerState& viewer,
-                                int delta)
+                                PlaceholderUiState& ui_state, int delta)
     {
         if (viewer.image.path.empty()) {
             viewer.status_message = "No image loaded";
@@ -5332,14 +5656,14 @@ namespace {
         const int target_subimage = viewer.image.subimage + delta;
         if (target_subimage < 0 || target_subimage >= viewer.image.nsubimages)
             return;
-        load_viewer_image(vk_state, viewer, viewer.image.path, target_subimage,
-                          viewer.image.miplevel);
+        load_viewer_image(vk_state, viewer, &ui_state, viewer.image.path,
+                          target_subimage, viewer.image.miplevel);
     }
 
 
 
     void change_miplevel_action(VulkanState& vk_state, ViewerState& viewer,
-                                int delta)
+                                PlaceholderUiState& ui_state, int delta)
     {
         if (viewer.image.path.empty()) {
             viewer.status_message = "No image loaded";
@@ -5349,7 +5673,7 @@ namespace {
         const int target_mip = viewer.image.miplevel + delta;
         if (target_mip < 0 || target_mip >= viewer.image.nmiplevels)
             return;
-        load_viewer_image(vk_state, viewer, viewer.image.path,
+        load_viewer_image(vk_state, viewer, &ui_state, viewer.image.path,
                           viewer.image.subimage, target_mip);
     }
 #endif
@@ -6332,25 +6656,71 @@ namespace {
         return (w > 0 && h > 0);
     }
 
-    void center_glfw_window(GLFWwindow* window)
+    bool centered_glfw_window_pos(GLFWwindow* window, int& out_pos_x,
+                                  int& out_pos_y, int& out_window_w,
+                                  int& out_window_h)
     {
+        out_pos_x    = 0;
+        out_pos_y    = 0;
+        out_window_w = 0;
+        out_window_h = 0;
         if (window == nullptr)
-            return;
+            return false;
         int monitor_x = 0;
         int monitor_y = 0;
         int monitor_w = 0;
         int monitor_h = 0;
         if (!primary_monitor_workarea(monitor_x, monitor_y, monitor_w,
                                       monitor_h)) {
-            return;
+            return false;
         }
         int window_w = 0;
         int window_h = 0;
         glfwGetWindowSize(window, &window_w, &window_h);
         if (window_w <= 0 || window_h <= 0)
+            return false;
+        int frame_left   = 0;
+        int frame_top    = 0;
+        int frame_right  = 0;
+        int frame_bottom = 0;
+        glfwGetWindowFrameSize(window, &frame_left, &frame_top, &frame_right,
+                               &frame_bottom);
+        const int outer_w = window_w + frame_left + frame_right;
+        const int outer_h = window_h + frame_top + frame_bottom;
+        out_pos_x         = monitor_x + std::max(0, (monitor_w - outer_w) / 2)
+                    + frame_left;
+        out_pos_y = monitor_y + std::max(0, (monitor_h - outer_h) / 2)
+                    + frame_top;
+        out_window_w = window_w;
+        out_window_h = window_h;
+        return true;
+    }
+
+    void center_glfw_window(GLFWwindow* window)
+    {
+        int pos_x    = 0;
+        int pos_y    = 0;
+        int window_w = 0;
+        int window_h = 0;
+        if (!centered_glfw_window_pos(window, pos_x, pos_y, window_w,
+                                      window_h)) {
             return;
-        const int pos_x = monitor_x + std::max(0, (monitor_w - window_w) / 2);
-        const int pos_y = monitor_y + std::max(0, (monitor_h - window_h) / 2);
+        }
+        glfwSetWindowPos(window, pos_x, pos_y);
+    }
+
+    void force_center_glfw_window(GLFWwindow* window)
+    {
+        int pos_x    = 0;
+        int pos_y    = 0;
+        int window_w = 0;
+        int window_h = 0;
+        if (!centered_glfw_window_pos(window, pos_x, pos_y, window_w,
+                                      window_h)) {
+            return;
+        }
+        glfwSetWindowMonitor(window, nullptr, pos_x, pos_y, window_w, window_h,
+                             GLFW_DONT_CARE);
         glfwSetWindowPos(window, pos_x, pos_y);
     }
 
@@ -6511,6 +6881,7 @@ namespace {
     )
     {
         reset_layout_dump_synthetic_items();
+        reset_test_engine_mouse_space();
 
         bool open_requested                = false;
         bool save_as_requested             = false;
@@ -6533,6 +6904,7 @@ namespace {
         bool rotate_right_requested        = false;
         bool flip_horizontal_requested     = false;
         bool flip_vertical_requested       = false;
+        PendingZoomRequest pending_zoom;
         std::string recent_open_path;
         const bool has_image         = !viewer.image.path.empty();
         const bool can_prev_subimage = has_image && viewer.image.subimage > 0;
@@ -6600,15 +6972,15 @@ namespace {
              || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Equal)
              || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadAdd))
             && has_image)
-            viewer.zoom = std::min(viewer.zoom * 2.0f, 64.0f);
+            request_zoom_scale(pending_zoom, 2.0f, false);
         if ((ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Minus)
              || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadSubtract))
             && has_image)
-            viewer.zoom = std::max(viewer.zoom * 0.5f, 0.05f);
+            request_zoom_scale(pending_zoom, 0.5f, false);
         if ((ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_0)
              || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Keypad0))
             && has_image)
-            viewer.zoom = 1.0f;
+            request_zoom_reset(pending_zoom, false);
         if (no_mods && ImGui::Shortcut(ImGuiKey_F) && has_image)
             fit_window_to_image_requested = true;
         if (ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_F) && has_image) {
@@ -6741,12 +7113,12 @@ namespace {
                 ImGui::Separator();
 
                 if (ImGui::MenuItem("Zoom In", "Ctrl++", false, has_image))
-                    viewer.zoom = std::min(viewer.zoom * 2.0f, 64.0f);
+                    request_zoom_scale(pending_zoom, 2.0f, false);
                 if (ImGui::MenuItem("Zoom Out", "Ctrl+-", false, has_image))
-                    viewer.zoom = std::max(viewer.zoom * 0.5f, 0.05f);
+                    request_zoom_scale(pending_zoom, 0.5f, false);
                 if (ImGui::MenuItem("Normal Size (1:1)", "Ctrl+0", false,
                                     has_image))
-                    viewer.zoom = 1.0f;
+                    request_zoom_reset(pending_zoom, false);
                 if (ImGui::MenuItem("Fit Window to Image", "F", false,
                                     has_image))
                     fit_window_to_image_requested = true;
@@ -6959,7 +7331,8 @@ namespace {
 
         if (open_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            open_image_dialog_action(vk_state, viewer, ui_state.subimage_index,
+            open_image_dialog_action(vk_state, viewer, ui_state,
+                                     ui_state.subimage_index,
                                      ui_state.miplevel_index);
 #else
             set_placeholder_status(viewer, "Open image");
@@ -6968,7 +7341,7 @@ namespace {
         }
         if (!recent_open_path.empty()) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            load_viewer_image(vk_state, viewer, recent_open_path,
+            load_viewer_image(vk_state, viewer, &ui_state, recent_open_path,
                               ui_state.subimage_index, ui_state.miplevel_index);
 #else
             set_placeholder_status(viewer, "Open recent image");
@@ -6983,7 +7356,7 @@ namespace {
         }
         if (reload_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            reload_current_image_action(vk_state, viewer);
+            reload_current_image_action(vk_state, viewer, ui_state);
 #else
             set_placeholder_status(viewer, "Reload image");
 #endif
@@ -6999,7 +7372,7 @@ namespace {
         }
         if (prev_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            next_sibling_image_action(vk_state, viewer, -1);
+            next_sibling_image_action(vk_state, viewer, ui_state, -1);
 #else
             set_placeholder_status(viewer, "Previous Image");
 #endif
@@ -7007,7 +7380,7 @@ namespace {
         }
         if (next_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            next_sibling_image_action(vk_state, viewer, 1);
+            next_sibling_image_action(vk_state, viewer, ui_state, 1);
 #else
             set_placeholder_status(viewer, "Next Image");
 #endif
@@ -7015,7 +7388,7 @@ namespace {
         }
         if (toggle_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            toggle_image_action(vk_state, viewer);
+            toggle_image_action(vk_state, viewer, ui_state);
 #else
             set_placeholder_status(viewer, "Toggle image");
 #endif
@@ -7023,7 +7396,7 @@ namespace {
         }
         if (prev_subimage_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            change_subimage_action(vk_state, viewer, -1);
+            change_subimage_action(vk_state, viewer, ui_state, -1);
 #else
             set_placeholder_status(viewer, "Prev Subimage");
 #endif
@@ -7031,7 +7404,7 @@ namespace {
         }
         if (next_subimage_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            change_subimage_action(vk_state, viewer, 1);
+            change_subimage_action(vk_state, viewer, ui_state, 1);
 #else
             set_placeholder_status(viewer, "Next Subimage");
 #endif
@@ -7039,7 +7412,7 @@ namespace {
         }
         if (prev_mip_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            change_miplevel_action(vk_state, viewer, -1);
+            change_miplevel_action(vk_state, viewer, ui_state, -1);
 #else
             set_placeholder_status(viewer, "Prev MIP level");
 #endif
@@ -7047,7 +7420,7 @@ namespace {
         }
         if (next_mip_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            change_miplevel_action(vk_state, viewer, 1);
+            change_miplevel_action(vk_state, viewer, ui_state, 1);
 #else
             set_placeholder_status(viewer, "Next MIP level");
 #endif
@@ -7220,7 +7593,8 @@ namespace {
         const ImVec2 viewport_padding(8.0f, 8.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, viewport_padding);
         ImGui::BeginChild("Viewport", ImVec2(0.0f, viewport_h), false,
-                          ImGuiWindowFlags_HorizontalScrollbar);
+                          ImGuiWindowFlags_HorizontalScrollbar
+                              | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::PopStyleVar();
 
         if (!viewer.last_error.empty()) {
@@ -7314,6 +7688,10 @@ namespace {
             current_child_visible_rect(viewport_padding,
                                        coord_map.viewport_rect_min,
                                        coord_map.viewport_rect_max);
+            update_test_engine_mouse_space(
+                coord_map.viewport_rect_min, coord_map.viewport_rect_max,
+                (has_image && coord_map.valid) ? item_min : ImVec2(0.0f, 0.0f),
+                (has_image && coord_map.valid) ? item_max : ImVec2(0.0f, 0.0f));
             coord_map.window_pos = ImGui::GetWindowPos();
             if (ui_state.show_window_guides && item_max.x > item_min.x
                 && item_max.y > item_min.y) {
@@ -7341,31 +7719,38 @@ namespace {
                 }
             }
 
-            if (ImGui::IsItemHovered()) {
-                ImGuiIO& io        = ImGui::GetIO();
-                const ImVec2 mouse = io.MousePos;
-                ImVec2 source_uv(0.0f, 0.0f);
-                int px = 0;
-                int py = 0;
-                std::vector<double> sampled;
-                if (screen_to_source_uv(coord_map, mouse, source_uv)
-                    && source_uv_to_pixel(coord_map, source_uv, px, py)
-                    && sample_loaded_pixel(viewer.image, px, py, sampled)) {
-                    viewer.probe_valid    = true;
-                    viewer.probe_x        = px;
-                    viewer.probe_y        = py;
-                    viewer.probe_channels = std::move(sampled);
-                } else if (ui_state.pixelview_follows_mouse) {
-                    viewer.probe_valid = false;
-                    viewer.probe_channels.clear();
-                }
+            const ImGuiIO& io         = ImGui::GetIO();
+            const ImVec2 mouse        = io.MousePos;
+            const bool mouse_in_image = point_in_rect(mouse, item_min,
+                                                      item_max);
+            const bool mouse_in_viewport
+                = point_in_rect(mouse, coord_map.viewport_rect_min,
+                                coord_map.viewport_rect_max);
 
-                static bool pan_drag_active  = false;
-                static bool zoom_drag_active = false;
-                static ImVec2 drag_prev_mouse(0.0f, 0.0f);
+            ImVec2 source_uv(0.0f, 0.0f);
+            int px = 0;
+            int py = 0;
+            std::vector<double> sampled;
+            if (mouse_in_image
+                && screen_to_source_uv(coord_map, mouse, source_uv)
+                && source_uv_to_pixel(coord_map, source_uv, px, py)
+                && sample_loaded_pixel(viewer.image, px, py, sampled)) {
+                viewer.probe_valid    = true;
+                viewer.probe_x        = px;
+                viewer.probe_y        = py;
+                viewer.probe_channels = std::move(sampled);
+            } else if (ui_state.pixelview_follows_mouse && !mouse_in_image) {
+                viewer.probe_valid = false;
+                viewer.probe_channels.clear();
+            }
 
-                bool want_pan       = false;
-                bool want_zoom_drag = false;
+            static bool pan_drag_active  = false;
+            static bool zoom_drag_active = false;
+            static ImVec2 drag_prev_mouse(0.0f, 0.0f);
+
+            bool want_pan       = false;
+            bool want_zoom_drag = false;
+            if (mouse_in_viewport || pan_drag_active || zoom_drag_active) {
                 if (ui_state.mouse_mode == 1) {
                     want_pan = ImGui::IsMouseDown(ImGuiMouseButton_Left)
                                || ImGui::IsMouseDown(ImGuiMouseButton_Right)
@@ -7377,56 +7762,54 @@ namespace {
                     want_zoom_drag = io.KeyAlt
                                      && ImGui::IsMouseDown(
                                          ImGuiMouseButton_Right);
-                    if (!io.KeyAlt) {
+                    if (!io.KeyAlt && mouse_in_viewport) {
                         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                            viewer.zoom = std::min(viewer.zoom * 2.0f, 64.0f);
+                            request_zoom_scale(pending_zoom, 2.0f, true);
                         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-                            viewer.zoom = std::max(viewer.zoom * 0.5f, 0.05f);
+                            request_zoom_scale(pending_zoom, 0.5f, true);
                     }
-                }
-
-                if (want_pan) {
-                    if (!pan_drag_active) {
-                        pan_drag_active = true;
-                        drag_prev_mouse = mouse;
-                    } else {
-                        const float dx = mouse.x - drag_prev_mouse.x;
-                        const float dy = mouse.y - drag_prev_mouse.y;
-                        ImGui::SetScrollX(ImGui::GetScrollX() - dx);
-                        ImGui::SetScrollY(ImGui::GetScrollY() - dy);
-                        drag_prev_mouse              = mouse;
-                        ui_state.fit_image_to_window = false;
-                    }
-                } else {
-                    pan_drag_active = false;
-                }
-
-                if (want_zoom_drag) {
-                    if (!zoom_drag_active) {
-                        zoom_drag_active = true;
-                        drag_prev_mouse  = mouse;
-                    } else {
-                        const float dx    = mouse.x - drag_prev_mouse.x;
-                        const float dy    = mouse.y - drag_prev_mouse.y;
-                        const float scale = 1.0f + 0.005f * (dx + dy);
-                        if (scale > 0.0f) {
-                            viewer.zoom = std::clamp(viewer.zoom * scale, 0.05f,
-                                                     64.0f);
-                            ui_state.fit_image_to_window = false;
-                        }
-                        drag_prev_mouse = mouse;
-                    }
-                } else {
-                    zoom_drag_active = false;
-                }
-
-                const float wheel = io.MouseWheel;
-                if (wheel != 0.0f) {
-                    const float scale = (wheel > 0.0f) ? 1.1f : 0.9f;
-                    viewer.zoom = std::clamp(viewer.zoom * scale, 0.05f, 64.0f);
-                    ui_state.fit_image_to_window = false;
                 }
             }
+
+            if (want_pan) {
+                if (!pan_drag_active) {
+                    pan_drag_active = true;
+                    drag_prev_mouse = mouse;
+                } else {
+                    const float dx = mouse.x - drag_prev_mouse.x;
+                    const float dy = mouse.y - drag_prev_mouse.y;
+                    ImGui::SetScrollX(ImGui::GetScrollX() - dx);
+                    ImGui::SetScrollY(ImGui::GetScrollY() - dy);
+                    drag_prev_mouse              = mouse;
+                    ui_state.fit_image_to_window = false;
+                }
+            } else {
+                pan_drag_active = false;
+            }
+
+            if (want_zoom_drag) {
+                if (!zoom_drag_active) {
+                    zoom_drag_active = true;
+                    drag_prev_mouse  = mouse;
+                } else {
+                    const float dx    = mouse.x - drag_prev_mouse.x;
+                    const float dy    = mouse.y - drag_prev_mouse.y;
+                    const float scale = 1.0f + 0.005f * (dx + dy);
+                    if (scale > 0.0f)
+                        request_zoom_scale(pending_zoom, scale, true);
+                    drag_prev_mouse = mouse;
+                }
+            } else {
+                zoom_drag_active = false;
+            }
+
+            if (mouse_in_viewport && io.MouseWheel != 0.0f) {
+                const float scale = (io.MouseWheel > 0.0f) ? 1.1f : 0.9f;
+                request_zoom_scale(pending_zoom, scale, true);
+            }
+
+            apply_zoom_request(coord_map, viewer, ui_state, pending_zoom,
+                               mouse);
 
             if (apply_forced_probe_from_env(viewer))
                 viewer.probe_valid = true;
@@ -7550,6 +7933,7 @@ run(const AppConfig& config)
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     GLFWwindow* window = glfwCreateWindow(1600, 900, "imiv", nullptr, nullptr);
     if (!window) {
         print(stderr, "imiv: failed to create GLFW window\n");
@@ -7788,6 +8172,7 @@ run(const AppConfig& config)
     ui_state.use_ocio = (!run_config.ocio_display.empty()
                          || !run_config.ocio_view.empty()
                          || !run_config.ocio_image_color_space.empty());
+    reset_per_image_preview_state(ui_state);
     clamp_placeholder_ui_state(ui_state);
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AUX_WINDOWS")) {
         ui_state.show_info_window        = true;
@@ -7812,7 +8197,8 @@ run(const AppConfig& config)
         ImGui::StyleColorsLight();
 
     if (!run_config.input_paths.empty()) {
-        if (!load_viewer_image(vk_state, viewer, run_config.input_paths[0],
+        if (!load_viewer_image(vk_state, viewer, &ui_state,
+                               run_config.input_paths[0],
                                ui_state.subimage_index,
                                ui_state.miplevel_index)) {
             print(stderr, "imiv: startup load failed for '{}'\n",
@@ -7822,10 +8208,19 @@ run(const AppConfig& config)
         viewer.status_message = "Open an image to start preview";
     }
 
+    glfwShowWindow(window);
+    glfwPollEvents();
+    force_center_glfw_window(window);
+
     bool request_exit         = false;
     bool applied_dark_palette = ui_state.dark_palette;
+    int startup_center_frames = 90;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        if (startup_center_frames > 0) {
+            center_glfw_window(window);
+            --startup_center_frames;
+        }
 
         int fb_width  = 0;
         int fb_height = 0;

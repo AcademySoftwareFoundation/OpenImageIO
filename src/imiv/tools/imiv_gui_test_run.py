@@ -79,6 +79,20 @@ def main() -> int:
 
     ap.add_argument("--junit-out", default="", help="Enable JUnit XML export to this path")
     ap.add_argument("--trace", action="store_true", help="Enable test engine trace logs")
+    ap.add_argument("--mouse-pos", nargs=2, type=float, metavar=("X", "Y"), default=None,
+                    help="Move mouse to absolute position before capture/layout")
+    ap.add_argument("--mouse-pos-window-rel", nargs=2, type=float, metavar=("X", "Y"), default=None,
+                    help="Move mouse to viewport-relative position [0..1] before capture/layout")
+    ap.add_argument("--mouse-pos-image-rel", nargs=2, type=float, metavar=("U", "V"), default=None,
+                    help="Move mouse to image-relative position [0..1] before capture/layout")
+    ap.add_argument("--mouse-click", type=int, default=None,
+                    help="Optional mouse click button index before capture/layout")
+    ap.add_argument("--mouse-wheel", nargs=2, type=float, metavar=("DX", "DY"), default=None,
+                    help="Optional mouse wheel delta before capture/layout")
+    ap.add_argument("--mouse-drag", nargs=2, type=float, metavar=("DX", "DY"), default=None,
+                    help="Optional mouse drag delta before capture/layout")
+    ap.add_argument("--mouse-drag-button", type=int, default=0,
+                    help="Mouse button index for --mouse-drag")
     args = ap.parse_args()
 
     exe = _resolve_path(args.bin, repo_root)
@@ -115,6 +129,30 @@ def main() -> int:
 
     if args.trace:
         env["IMIV_IMGUI_TEST_ENGINE_TRACE"] = "1"
+
+    if args.mouse_pos:
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_X"] = str(args.mouse_pos[0])
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_Y"] = str(args.mouse_pos[1])
+
+    if args.mouse_pos_window_rel:
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_WINDOW_REL_X"] = str(args.mouse_pos_window_rel[0])
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_WINDOW_REL_Y"] = str(args.mouse_pos_window_rel[1])
+
+    if args.mouse_pos_image_rel:
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_IMAGE_REL_X"] = str(args.mouse_pos_image_rel[0])
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_IMAGE_REL_Y"] = str(args.mouse_pos_image_rel[1])
+
+    if args.mouse_click is not None:
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_CLICK_BUTTON"] = str(args.mouse_click)
+
+    if args.mouse_wheel:
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_WHEEL_X"] = str(args.mouse_wheel[0])
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_WHEEL_Y"] = str(args.mouse_wheel[1])
+
+    if args.mouse_drag:
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_DX"] = str(args.mouse_drag[0])
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_DY"] = str(args.mouse_drag[1])
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_BUTTON"] = str(args.mouse_drag_button)
 
     if want_screenshot:
         out = _resolve_path(args.screenshot_out, repo_root)
