@@ -181,6 +181,7 @@ macro (oiio_add_all_tests)
                     texture-uint8
                     texture-width0blur
                     texture-wrapfill
+                    texture-blurfix
                     texture-fat texture-skinny
                     texture-stats
                     texture-threadtimes
