@@ -32,6 +32,7 @@ if [[ "$OIIO_BREW_INSTALL_PACKAGES" == "" ]] ; then
     OIIO_BREW_INSTALL_PACKAGES=" \
         ccache \
         dcmtk \
+        expat \
         ffmpeg \
         imath \
         libheif \
@@ -41,7 +42,6 @@ if [[ "$OIIO_BREW_INSTALL_PACKAGES" == "" ]] ; then
         opencolorio \
         openexr \
         openjpeg \
-        openvdb \
         ptex \
         pybind11 \
         robin-map \
@@ -49,6 +49,9 @@ if [[ "$OIIO_BREW_INSTALL_PACKAGES" == "" ]] ; then
         "
     if [[ "${USE_OPENCV:=}" != "0" ]] && [[ "${INSTALL_OPENCV:=1}" != "0" ]] ; then
         OIIO_BREW_INSTALL_PACKAGES+=" opencv"
+    fi
+    if [[ "${USE_OPENVDB:=1}" != "0" ]] && [[ "${INSTALL_OPENVDB:=1}" != "0" ]] ; then
+        OIIO_BREW_INSTALL_PACKAGES+=" openvdb"
     fi
     if [[ "${USE_QT:=1}" != "0" ]] && [[ "${INSTALL_QT:=1}" != "0" ]] ; then
         OIIO_BREW_INSTALL_PACKAGES+=" qt${QT_VERSION}"
@@ -62,9 +65,9 @@ brew list --versions
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
-export PATH=/usr/local/opt/qt5/bin:$PATH
-export PATH=/usr/local/opt/python/libexec/bin:$PATH
-export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
+export PATH=${HOMEBREW_PREFIX}/opt/qt5/bin:$PATH
+export PATH=${HOMEBREW_PREFIX}/opt/python/libexec/bin:$PATH
+export PYTHONPATH=${HOMEBREW_PREFIX}/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
 
 # Save the env for use by other stages
 src/build-scripts/save-env.bash
