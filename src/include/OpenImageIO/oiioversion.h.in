@@ -55,7 +55,7 @@
 // Construct a single integer version number from major, minor, patch.
 // Example of its use:
 //
-//     #if OIIO_VERSION >= OIIO_MAKE_VERSION(2,3,0)
+//     #if OIIO_VERSION >= OIIO_MAKE_VERSION(2, 3, 0)
 //         ... use a feature introduced in version 2.3.0 ...
 //     #endif
 //
@@ -96,7 +96,7 @@
 // were deprecated as of that version may be hidden from view of software
 // including the OIIO headers.  For example, if a downstream project says
 //
-//     #define OIIO_DISABLE_DEPRECATED OIIO_MAKE_VERSION(2,2,0)
+//     #define OIIO_DISABLE_DEPRECATED OIIO_MAKE_VERSION(2, 2, 0)
 //
 // before including any OpenImageIO header, then we will do our best to make
 // it a compile-time error if they try to use anything that was deprecated
@@ -108,7 +108,7 @@
 // To clarify, if version 2.2 is the first to deprecate a certain definition,
 // then it is considered good practice to guard it like this:
 //
-//     #if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,2,0)
+//     #if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 2, 0)
 //        ... deprecated definition here ...
 //     #endif
 //
