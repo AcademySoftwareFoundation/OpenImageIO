@@ -1013,7 +1013,6 @@ public:
     bool accept_unmipped() const { return m_accept_unmipped; }
     bool unassociatedalpha() const { return m_unassociatedalpha; }
     bool trust_file_extensions() const { return m_trust_file_extensions; }
-    bool legacy_texture_blur() const { return m_legacy_texture_blur; }
     int failure_retries() const { return m_failure_retries; }
     bool latlong_y_up_default() const { return m_latlong_y_up_default; }
     void get_commontoworld(Imath::M44f& result) const { result = m_Mc2w; }
@@ -1338,7 +1337,6 @@ private:
     bool m_unassociatedalpha;  ///< Keep unassociated alpha files as they are?
     bool m_latlong_y_up_default;  ///< Is +y the default "up" for latlong?
     bool m_trust_file_extensions = false;  ///< Assume file extensions don't lie?
-    bool m_legacy_texture_blur = false;  ///< Use legacy texture blur behavior?
     bool m_max_open_files_strict = false;  ///< Be strict about open files limit?
     int m_failure_retries;                 ///< Times to re-try disk failures
     int m_max_mip_res = 1 << 30;  ///< Don't use MIP levels higher than this

@@ -746,10 +746,11 @@ void
 TextureSystemImpl::init()
 {
     m_Mw2c.makeIdentity();
-    m_gray_to_rgb       = false;
-    m_flip_t            = false;
-    m_max_tile_channels = 6;
-    m_stochastic        = StochasticStrategy_None;
+    m_gray_to_rgb         = false;
+    m_flip_t              = false;
+    m_max_tile_channels   = 6;
+    m_stochastic          = StochasticStrategy_None;
+    m_legacy_texture_blur = false;
     hq_filter.reset(Filter1D::create("b-spline", 4));
     m_statslevel = 0;
 
@@ -907,6 +908,10 @@ TextureSystemImpl::attribute(string_view name, TypeDesc type, const void* val)
         unit_test_texture_blur = *(const float*)val;
         return true;
     }
+    if (name == "legacy_texture_blur" && type == TypeInt) {
+        m_legacy_texture_blur = (*(const int*)val != 0);
+        return true;
+    }
 
     // Maybe it's meant for the cache?
     return m_imagecache->attribute(name, type, val);
@@ -926,6 +931,7 @@ TextureSystemImpl::getattributetype(string_view name) const
         { "flip_t", TypeInt },
         { "max_tile_channels", TypeInt },
         { "stochastic", TypeInt },
+        { "legacy_texture_blur", TypeInt },
     };
     // clang-format on
 
@@ -973,6 +979,10 @@ TextureSystemImpl::getattribute(string_view name, TypeDesc type,
     }
     if (name == "stochastic" && type == TypeInt) {
         *(int*)val = m_stochastic;
+        return true;
+    }
+    if (name == "legacy_texture_blur" && type == TypeInt) {
+        *(int*)val = m_legacy_texture_blur;
         return true;
     }
 
@@ -2288,7 +2298,7 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
     ellipse_axes(dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta);
 
     adjust_blur(majorlength, minorlength, theta, options.sblur, options.tblur,
-                m_imagecache->legacy_texture_blur());
+                m_legacy_texture_blur);
 
     float aspect, trueaspect;
     aspect = anisotropic_aspect(majorlength, minorlength, options, trueaspect);
@@ -3404,7 +3414,7 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     std::cout << "  ellipse major " << majorlength << ", minor " << minorlength
               << ", theta " << theta << "\n";
     adjust_blur(majorlength, minorlength, theta, sblur, tblur,
-                m_imagecache->legacy_texture_blur());
+                m_legacy_texture_blur);
     std::cout << "  post " << sblur << ' ' << tblur << " blur: major "
               << majorlength << ", minor " << minorlength << "\n\n";
 

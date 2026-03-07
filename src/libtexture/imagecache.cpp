@@ -1985,7 +1985,6 @@ ImageCacheImpl::init()
     m_unassociatedalpha    = false;
     m_failure_retries      = 0;
     m_latlong_y_up_default = true;
-    m_legacy_texture_blur  = false;
     m_Mw2c.makeIdentity();
     m_colorspace              = ustring("scene_linear");
     m_mem_used                = 0;
@@ -2572,8 +2571,6 @@ ImageCacheImpl::attribute(string_view name, TypeDesc type, const void* val)
         m_failure_retries = *(const int*)val;
     } else if (name == "trust_file_extensions" && type == TypeDesc::INT) {
         m_trust_file_extensions = *(const int*)val;
-    } else if (name == "legacy_texture_blur" && type == TypeDesc::INT) {
-        m_legacy_texture_blur = (*(const int*)val != 0);
     } else if (name == "max_open_files_strict" && type == TypeDesc::INT) {
         m_max_open_files_strict = *(const int*)val;
     } else if (name == "latlong_up" && type == TypeDesc::STRING) {
@@ -2632,7 +2629,6 @@ ImageCacheImpl::getattributetype(string_view name) const
         { "deduplicate", TypeInt },
         { "unassociatedalpha", TypeInt },
         { "trust_file_extensions", TypeInt },
-        { "legacy_texture_blur", TypeInt },
         { "failure_retries", TypeInt },
         { "total_files", TypeInt },
         { "max_mip_res", TypeInt },
@@ -2711,7 +2707,6 @@ ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
     ATTR_DECODE("deduplicate", int, m_deduplicate);
     ATTR_DECODE("unassociatedalpha", int, m_unassociatedalpha);
     ATTR_DECODE("trust_file_extensions", int, m_trust_file_extensions);
-    ATTR_DECODE("legacy_texture_blur", int, m_legacy_texture_blur);
     ATTR_DECODE("max_open_files_strict", int, m_max_open_files_strict);
     ATTR_DECODE("failure_retries", int, m_failure_retries);
     ATTR_DECODE("total_files", int, m_files.size());

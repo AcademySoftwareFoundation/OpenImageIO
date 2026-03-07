@@ -467,6 +467,7 @@ public:
     int m_max_tile_channels;  ///< narrow tile ID channel range when
                               ///<   the file has more channels
     int m_stochastic;
+    bool m_legacy_texture_blur = false;  ///< Use legacy texture blur behavior?
     static EightBitConverter<float> uchar2float;
 
     enum StochasticStrategyBits {
