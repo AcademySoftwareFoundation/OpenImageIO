@@ -249,11 +249,23 @@ oiio_getattribute_typed(const std::string& name, TypeDesc type = TypeUnknown)
 }
 
 
-// Wrapper to let attribute_typed work for global attributes.
+// Wrapper to let attribute_typed/attribute_onearg work for global attributes.
 struct oiio_global_attrib_wrapper {
     bool attribute(string_view name, TypeDesc type, const void* data)
     {
         return OIIO::attribute(name, type, data);
+    }
+    bool attribute(string_view name, int val)
+    {
+        return OIIO::attribute(name, val);
+    }
+    bool attribute(string_view name, float val)
+    {
+        return OIIO::attribute(name, val);
+    }
+    bool attribute(string_view name, const std::string& val)
+    {
+        return OIIO::attribute(name, val);
     }
 };
 
@@ -297,13 +309,9 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
 
     // Global (OpenImageIO scope) functions and symbols
     m.def("geterror", &OIIO::geterror, "clear"_a = true);
-    m.def("attribute", [](const std::string& name, float val) {
-        OIIO::attribute(name, val);
-    });
-    m.def("attribute",
-          [](const std::string& name, int val) { OIIO::attribute(name, val); });
-    m.def("attribute", [](const std::string& name, const std::string& val) {
-        OIIO::attribute(name, val);
+    m.def("attribute", [](const std::string& name, const py::object& obj) {
+        oiio_global_attrib_wrapper wrapper;
+        attribute_onearg(wrapper, name, obj);
     });
     m.def("attribute",
           [](const std::string& name, TypeDesc type, const py::object& obj) {

@@ -128,7 +128,8 @@ described in detail in Section :ref:`sec-typedesc`, is replicated for Python.
              TypeFloat2 TypeVector2 TypeFloat4
              TypeVector2i TypeVector3i
              TypeMatrix TypeMatrix33
-             TypeTimeCode TypeKeyCode TypeRational TypePointer
+             TypeTimeCode TypeKeyCode TypeRational TypeURational
+             TypePointer
 
     Pre-constructed `TypeDesc` objects for some common types, available in the
     outer OpenImageIO scope.

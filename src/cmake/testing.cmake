@@ -186,6 +186,7 @@ macro (oiio_add_all_tests)
                     texture-uint8
                     texture-width0blur
                     texture-wrapfill
+                    texture-blurfix
                     texture-fat texture-skinny
                     texture-stats
                     texture-threadtimes
@@ -362,13 +363,31 @@ macro (oiio_add_all_tests)
                     ENABLEVAR ENABLE_TARGA
                     IMAGEDIR oiio-images)
     endif()
-    if (NOT WIN32)
+    if (WIN32)
+        if (OIIO_BUILD_TOOLS)
+            # Add test for long path handling if support is enabled at the system level.
+            execute_process (
+                COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/windows-long-paths/check_registry.py"
+                RESULT_VARIABLE _reg_check_status
+                OUTPUT_QUIET ERROR_QUIET
+            )
+            if (_reg_check_status EQUAL 0)
+                add_test (NAME windows-long-paths
+                          COMMAND
+                          ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/windows-long-paths/test.py"
+                          --source-root "${CMAKE_SOURCE_DIR}"
+                          --oiiotool-path $<TARGET_FILE:oiiotool>)
+            else ()
+                message (STATUS "Skipping Windows long path test: System-level support is not enabled")
+            endif ()
+        endif ()
+    else ()
         oiio_add_tests (term
                         ENABLEVAR ENABLE_TERM)
         # I just could not get this test to work on Windows CI. The test fails
         # when comparing the output, but the saved artifacts compare just fine
         # on my system. Maybe someone will come back to this.
-        endif ()
+    endif ()
     oiio_add_tests (tiff-suite tiff-depths tiff-misc
                     IMAGEDIR oiio-images/libtiffpic)
     oiio_add_tests (webp
