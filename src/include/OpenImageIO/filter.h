@@ -12,7 +12,7 @@
 #include <OpenImageIO/string_view.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Quick structure that describes a filter.
 ///
@@ -156,4 +156,4 @@ protected:
 };
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

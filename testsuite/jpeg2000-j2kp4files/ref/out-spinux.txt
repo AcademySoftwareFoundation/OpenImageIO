@@ -3,7 +3,7 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file1.jp2
     SHA-1: 746B1B44D0E5EE3999B1350B2A4245D679A617F7
     channel list: R, G, B
     oiio:BitsPerSample: 8
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file1.jp2" and "file1.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file2.jp2
@@ -11,7 +11,7 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file2.jp2
     SHA-1: FB4746F0C4909CE8FED60C0179B70B2EEA0C0BA9
     channel list: R, G, B
     oiio:BitsPerSample: 8
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file2.jp2" and "file2.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file3.jp2
@@ -19,7 +19,7 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file3.jp2
     SHA-1: B8A8FBF015263C072B051839F6BE645E7F27C671
     channel list: R, G, B
     oiio:BitsPerSample: 8
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file3.jp2" and "file3.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file4.jp2
@@ -27,7 +27,7 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file4.jp2
     SHA-1: A45171430806BA3E74705675C855A781FC04BE44
     channel list: Y
     oiio:BitsPerSample: 8
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file4.jp2" and "file4.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file5.jp2
@@ -52,7 +52,7 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file5.jp2
     ICCProfile:profile_version: "2.2.0"
     ICCProfile:rendering_intent: "Perceptual"
     oiio:BitsPerSample: 8
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file5.jp2" and "file5.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file6.jp2
@@ -60,7 +60,7 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file6.jp2
     SHA-1: 3A29DFAD0AA3F910AA2D37007989A4CC6E7BDE2A
     channel list: Y
     oiio:BitsPerSample: 12
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file6.jp2" and "file6.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file7.jp2
@@ -87,7 +87,7 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file7.jp2
     ICCProfile:profile_version: "2.1.0"
     ICCProfile:rendering_intent: "Perceptual"
     oiio:BitsPerSample: 16
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file7.jp2" and "file7.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file8.jp2
@@ -112,7 +112,7 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file8.jp2
     ICCProfile:profile_version: "2.2.0"
     ICCProfile:rendering_intent: "Perceptual"
     oiio:BitsPerSample: 8
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file8.jp2" and "file8.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file9.jp2
@@ -120,6 +120,6 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file9.jp2
     SHA-1: 9784D248E95A47CDB3D0B260C7FBFFE2A4A2D492
     channel list: Y
     oiio:BitsPerSample: 8
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file9.jp2" and "file9.jp2"
 PASS

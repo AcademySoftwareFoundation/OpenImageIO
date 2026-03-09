@@ -13,10 +13,10 @@ command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg"
 
 command += diff_command(OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg", "test.j2c")
 
-command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/dpx_nuke_10bits_rgb.dpx"
+command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/dpx/dpx_nuke_10bits_rgb.dpx"
                     " -o testdpx.j2c")
 
-command += diff_command(OIIO_TESTSUITE_IMAGEDIR+"/dpx_nuke_10bits_rgb.dpx", "testdpx.j2c")
+command += diff_command(OIIO_TESTSUITE_IMAGEDIR+"/dpx/dpx_nuke_10bits_rgb.dpx", "testdpx.j2c")
 
 
 command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg"

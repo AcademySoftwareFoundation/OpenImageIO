@@ -17,9 +17,7 @@
 #include <OpenImageIO/unittest.h>
 #include <OpenImageIO/ustring.h>
 
-#if FMT_VERSION >= 90000
-#    include <OpenImageIO/detail/fmt/std.h>
-#endif
+#include <OpenImageIO/detail/fmt/std.h>
 
 
 using namespace OIIO;

@@ -24,10 +24,12 @@ command += oiiotool ("--pattern constant:color=0.5,0.0,0.0 64x64 3 --text A -att
 command += oiiotool ("subimages-4.exr --subimage 3 -o subimageD3.exr")
 command += oiiotool ("subimages-4.exr --subimage layerB -o subimageB1.exr")
 command += oiiotool ("subimages-2.exr --sisplit -o:all=1 subimage%d.exr")
+command += oiiotool ("subimages-4.exr --sisplit -o:all=1 \"subimage.{TOP.'oiio:subimagename'}.exr\"")
+command += info_command ("subimage.layerA.exr subimage.layerB.exr subimage.layerC.exr subimage.layerD.exr", verbose=False)
 
 # test that we can set attributes on individual subimages
-command += oiiotool ("subimages-4.exr --attrib:subimages=0 Beatle John --attrib:subimages=1 Beatle Paul --attrib:subimages=2 Beatle George --attrib:subimages=3 Beatle Ringo -o gpgr.exr")
-command += info_command ("-a -v gpgr.exr", safematch=1)
+command += oiiotool ("subimages-4.exr --attrib:subimages=0 Beatle John --attrib:subimages=1 Beatle Paul --attrib:subimages=2 Beatle George --attrib:subimages=3 Beatle Ringo -o jpgr.exr")
+command += info_command ("-a -v jpgr.exr", safematch=1)
 
 # Test extraction of MIP levels
 command += oiiotool ("../common/textures/grid.tx --selectmip 4 -o mip4.tif")

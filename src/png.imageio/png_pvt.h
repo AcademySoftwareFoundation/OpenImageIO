@@ -40,7 +40,7 @@ http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/00065
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #define ICC_PROFILE_ATTR "ICCProfile"
-
+#define CICP_ATTR "CICP"
 
 namespace PNG_pvt {
 
@@ -224,18 +224,13 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     int srgb_intent;
     double gamma = 0.0;
     if (png_get_sRGB(sp, ip, &srgb_intent)) {
-        spec.set_colorspace("sRGB");
+        spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
     } else if (png_get_gAMA(sp, ip, &gamma) && gamma > 0.0) {
-        // Round gamma to the nearest hundredth to prevent stupid
-        // precision choices and make it easier for apps to make
-        // decisions based on known gamma values. For example, you want
-        // 2.2, not 2.19998.
         float g = float(1.0 / gamma);
-        g       = roundf(100.0f * g) / 100.0f;
         set_colorspace_rec709_gamma(spec, g);
     } else {
         // If there's no info at all, assume sRGB.
-        set_colorspace(spec, "sRGB");
+        spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
     }
 
     if (png_get_valid(sp, ip, PNG_INFO_iCCP)) {
@@ -325,6 +320,20 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     }
 
     interlace_type = png_get_interlace_type(sp, ip);
+
+#ifdef PNG_cICP_SUPPORTED
+    {
+        png_byte pri = 0, trc = 0, mtx = 0, vfr = 0;
+        if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
+            const int cicp[4] = { pri, trc, mtx, vfr };
+            spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::INT, 4), cicp);
+            const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+            string_view interop_id = colorconfig.get_color_interop_id(cicp);
+            if (!interop_id.empty())
+                spec.attribute("oiio:ColorSpace", interop_id);
+        }
+    }
+#endif
 
 #ifdef PNG_eXIf_SUPPORTED
     // Recent version of PNG and libpng (>= 1.6.32, I think) have direct
@@ -554,12 +563,30 @@ put_parameter(png_structp& sp, png_infop& ip, const std::string& _name,
         return true;
     }
 #endif
+
+    // Before handling general named metadata, suppress format-specific
+    // metadata hints meant for other formats that are not meant to be literal
+    // metadata written to the file. This includes anything with a namespace
+    // prefix of "oiio:" or the name of any other file format.
+    auto colonpos = name.find(':');
+    if (colonpos != std::string::npos) {
+        std::string prefix = Strutil::lower(name.substr(0, colonpos));
+        if (prefix != "png" && is_imageio_format_name(prefix))
+            return false;
+        if (prefix == "oiio")
+            return false;
+    }
+
     if (type == TypeDesc::STRING) {
+        // We can save arbitrary string metadata in multiple png text entries.
+        // Is that ok? Should we also do it for other types by converting to
+        // string?
         png_text t;
         t.compression = PNG_TEXT_COMPRESSION_NONE;
         t.key         = (char*)ustring(name).c_str();
         t.text        = *(char**)data;  // Already uniquified
         text.push_back(t);
+        return true;
     }
 
     return false;
@@ -595,17 +622,34 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     convert_alpha = spec.alpha_channel != -1
                     && !spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
 
-    gamma = spec.get_float_attribute("oiio:Gamma", 1.0);
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace",
+                                                       "srgb_rec709_scene");
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    OIIO_MAYBE_UNUSED bool wrote_colorspace = false;
+    srgb                                    = false;
+    if (colorconfig.equivalent(colorspace, "srgb_rec709_scene")) {
+        srgb  = true;
+        gamma = 1.0f;
+    } else if (colorconfig.equivalent(colorspace, "g22_rec709_scene")) {
+        gamma = 2.2f;
+    } else if (colorconfig.equivalent(colorspace, "g24_rec709_scene")) {
+        gamma = 2.4f;
+    } else if (colorconfig.equivalent(colorspace, "g18_rec709_scene")) {
+        gamma = 1.8f;
+    } else {
+        gamma = spec.get_float_attribute("oiio:Gamma", 1.0f);
+        // obsolete "oiio:Gamma" attrib for back compatibility
+    }
 
-    const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
-    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
     if (colorconfig.equivalent(colorspace, "scene_linear")
-        || colorconfig.equivalent(colorspace, "lin_rec709")) {
+        || colorconfig.equivalent(colorspace, "lin_rec709_scene")) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0);
-        srgb = false;
+        srgb             = false;
+        wrote_colorspace = true;
     } else if (Strutil::istarts_with(colorspace, "Gamma")) {
+        // Back compatible, this is DEPRECATED(3.1)
         Strutil::parse_word(colorspace);
         float g = Strutil::from_string<float>(colorspace);
         if (g >= 0.01f && g <= 10.0f /* sanity check */)
@@ -613,24 +657,28 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
-        srgb = false;
-    } else if (colorconfig.equivalent(colorspace, "g22_rec709")) {
+        srgb             = false;
+        wrote_colorspace = true;
+    } else if (colorconfig.equivalent(colorspace, "g22_rec709_scene")) {
         gamma = 2.2f;
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
-        srgb = false;
-    } else if (colorconfig.equivalent(colorspace, "g18_rec709")) {
+        srgb             = false;
+        wrote_colorspace = true;
+    } else if (colorconfig.equivalent(colorspace, "g18_rec709_scene")) {
         gamma = 1.8f;
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
-        srgb = false;
-    } else if (colorconfig.equivalent(colorspace, "sRGB")) {
+        srgb             = false;
+        wrote_colorspace = true;
+    } else if (colorconfig.equivalent(colorspace, "srgb_rec709_scene")) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA and cHRM chunk";
         png_set_sRGB_gAMA_and_cHRM(sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
-        srgb = true;
+        srgb             = true;
+        wrote_colorspace = true;
     }
 
     // Write ICC profile, if we have anything
@@ -642,8 +690,10 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
             return "Could not set PNG iCCP chunk";
         unsigned char* icc_profile
             = (unsigned char*)icc_profile_parameter->data();
-        if (icc_profile && length)
+        if (icc_profile && length) {
             png_set_iCCP(sp, ip, "Embedded Profile", 0, icc_profile, length);
+            wrote_colorspace = true;
+        }
     }
 
     if (false && !spec.find_attribute("DateTime")) {
@@ -697,6 +747,25 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         png_set_pHYs(sp, ip, (png_uint_32)(xres * scale),
                      (png_uint_32)(yres * scale), unittype);
     }
+
+#ifdef PNG_cICP_SUPPORTED
+    // Only automatically determine CICP from oiio::ColorSpace if we didn't
+    // write colorspace metadata yet.
+    const ParamValue* p = spec.find_attribute(CICP_ATTR,
+                                              TypeDesc(TypeDesc::INT, 4));
+    cspan<int> cicp     = (p) ? p->as_cspan<int>()
+                          : (!wrote_colorspace) ? colorconfig.get_cicp(colorspace)
+                                                : cspan<int>();
+    if (!cicp.empty()) {
+        png_byte vals[4];
+        for (int i = 0; i < 4; ++i)
+            vals[i] = static_cast<png_byte>(cicp[i]);
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG cICP chunk";
+        // libpng will only write the chunk if the third byte is 0
+        png_set_cICP(sp, ip, vals[0], vals[1], (png_byte)0, vals[3]);
+    }
+#endif
 
 #ifdef PNG_eXIf_SUPPORTED
     std::vector<char> exifBlob;

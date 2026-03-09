@@ -21,7 +21,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 template<typename DSTTYPE>
@@ -63,7 +63,7 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
         return ok;
     }
 
-    pvt::LoggedTimer logtime("IBA::channels");
+    OIIO::pvt::LoggedTimer logtime("IBA::channels");
     // Not intended to create 0-channel images.
     if (nchannels <= 0) {
         dst.errorfmt("{}-channel images not supported", nchannels);
@@ -228,7 +228,7 @@ bool
 ImageBufAlgo::channel_append(ImageBuf& dst, const ImageBuf& A,
                              const ImageBuf& B, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::channel_append");
+    OIIO::pvt::LoggedTimer logtime("IBA::channel_append");
     // If the region is not defined, set it to the union of the valid
     // regions of the two source images.
     if (!roi.defined())
@@ -294,4 +294,4 @@ ImageBufAlgo::channel_append(const ImageBuf& A, const ImageBuf& B, ROI roi,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

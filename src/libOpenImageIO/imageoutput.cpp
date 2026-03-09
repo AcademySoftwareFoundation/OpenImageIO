@@ -25,8 +25,9 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 using namespace pvt;
+using namespace OIIO::pvt;
 
 
 // store an error message per thread, for a specific ImageInput
@@ -38,7 +39,7 @@ class ImageOutput::Impl {
 public:
     Impl()
         : m_id(++output_next_id)
-        , m_threads(pvt::oiio_threads)
+        , m_threads(OIIO::pvt::oiio_threads)
     {
     }
 
@@ -101,6 +102,40 @@ ImageOutput::~ImageOutput()
 
 
 
+// Utility: Make sure the provided data span is the right size for the
+// image described by spec and datatype. If they don't match, issue an
+// error and return false.
+static bool
+check_span_size(ImageOutput* out, string_view caller, const ImageSpec& spec,
+                TypeDesc datatype, imagesize_t npixels,
+                const image_span<const std::byte>& data)
+{
+    // One of two things must be correct: Either format is Unknown and the
+    // total byte size needs to match the "native" size, or the format is
+    // concrete and the number of value must match (it's ok if the size
+    // doesn't match, since a data type conversion will occur).
+    if (datatype.is_unknown()) {  // Unknown assumes native chan types
+        size_t sz = npixels * spec.pixel_bytes(true);
+        if (sz != data.size_bytes()) {
+            out->errorfmt(
+                "{}: image_span size is incorrect ({} bytes vs {} needed)",
+                caller, data.size_bytes(), sz);
+            return false;
+        }
+    } else {  // single concrete type
+        size_t nvals = npixels * size_t(spec.nchannels);
+        if (nvals != data.nvalues()) {
+            out->errorfmt(
+                "{}: image_span size is incorrect ({} values vs {} needed)",
+                caller, data.nvalues(), nvals);
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
 bool
 ImageOutput::write_scanline(int /*y*/, int /*z*/, TypeDesc /*format*/,
                             const void* /*data*/, stride_t /*xstride*/)
@@ -119,13 +154,9 @@ ImageOutput::write_scanline(int y, TypeDesc format,
         errorfmt("write_scanlines: Invalid scanline index {}", y);
         return false;
     }
-    size_t sz = m_spec.scanline_bytes(format);
-    if (sz != data.size_bytes()) {
-        errorfmt(
-            "write_scanline: Buffer size is incorrect ({} bytes vs {} needed)",
-            sz, data.size_bytes());
+    if (!check_span_size(this, "write_scanline", m_spec, format, m_spec.width,
+                         data))
         return false;
-    }
 
     // Default implementation (for now): call the old pointer+stride
     return write_scanline(y, 0, format, data.data(), data.xstride());
@@ -163,13 +194,9 @@ ImageOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
         errorfmt("write_scanlines: Invalid scanline range {}-{}", ybegin, yend);
         return false;
     }
-    size_t sz = m_spec.scanline_bytes(format) * size_t(yend - ybegin);
-    if (sz != data.size_bytes()) {
-        errorfmt(
-            "write_scanlines: Buffer size is incorrect ({} bytes vs {} needed)",
-            sz, data.size_bytes());
+    if (!check_span_size(this, "write_scanlines", m_spec, format,
+                         m_spec.width * size_t(yend - ybegin), data))
         return false;
-    }
 
     // Default implementation (for now): call the old pointer+stride
     return write_scanlines(ybegin, yend, 0, format, data.data(), data.xstride(),
@@ -193,15 +220,9 @@ bool
 ImageOutput::write_tile(int x, int y, int z, TypeDesc format,
                         const image_span<const std::byte>& data)
 {
-    size_t sz = format == TypeUnknown
-                    ? m_spec.pixel_bytes(true /*native*/)
-                    : m_spec.tile_pixels() * size_t(m_spec.nchannels)
-                          * format.size();
-    if (sz != data.size_bytes()) {
-        errorfmt("write_tile: Buffer size is incorrect ({} bytes vs {} needed)",
-                 sz, data.size_bytes());
+    if (!check_span_size(this, "write_tile", m_spec, format,
+                         m_spec.tile_pixels(), data))
         return false;
-    }
 
     // Default implementation (for now): call the old pointer+stride
     return write_tile(x, y, z, format, data.data(), data.xstride(),
@@ -600,7 +621,7 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
                          ProgressCallback progress_callback,
                          void* progress_callback_data)
 {
-    pvt::LoggedTimer logtime("ImageOutput::write image");
+    OIIO::pvt::LoggedTimer logtime("ImageOutput::write image");
     bool native          = (format == TypeDesc::UNKNOWN);
     stride_t pixel_bytes = native ? (stride_t)m_spec.pixel_bytes(native)
                                   : format.size() * m_spec.nchannels;
@@ -690,12 +711,9 @@ bool
 ImageOutput::write_image(TypeDesc format,
                          const image_span<const std::byte>& data)
 {
-    size_t sz = m_spec.image_bytes(/*native=*/format == TypeUnknown);
-    if (sz != data.size_bytes()) {
-        errorfmt("write_image: Buffer size is incorrect ({} bytes vs {} needed)",
-                 sz, data.size_bytes());
+    if (!check_span_size(this, "write_image", m_spec, format,
+                         m_spec.image_pixels(), data))
         return false;
-    }
 
     // Default implementation (for now): call the old pointer+stride
     return write_image(format, data.data(), data.xstride(), data.ystride(),
@@ -1140,20 +1158,11 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
 
 
 
-template<>
-inline size_t
-pvt::heapsize<ImageOutput::Impl>(const ImageOutput::Impl& impl)
-{
-    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
-}
-
-
-
 size_t
 ImageOutput::heapsize() const
 {
-    size_t size = pvt::heapsize(m_impl);
-    size += pvt::heapsize(m_spec);
+    size_t size = OIIO::pvt::heapsize(m_impl);
+    size += OIIO::pvt::heapsize(m_spec);
     return size;
 }
 
@@ -1163,6 +1172,15 @@ size_t
 ImageOutput::footprint() const
 {
     return sizeof(ImageOutput) + heapsize();
+}
+
+
+
+template<>
+inline size_t
+pvt::heapsize<ImageOutput::Impl>(const ImageOutput::Impl& impl)
+{
+    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
 }
 
 
@@ -1183,6 +1201,4 @@ pvt::footprint<ImageOutput>(const ImageOutput& output)
     return output.footprint();
 }
 
-
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

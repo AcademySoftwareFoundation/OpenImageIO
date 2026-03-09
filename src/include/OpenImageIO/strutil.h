@@ -15,6 +15,7 @@
 #pragma once
 
 #include <cstdio>
+#include <cstdarg>
 #include <map>
 #include <sstream>
 #include <string>
@@ -55,7 +56,8 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
+
 /// @namespace Strutil
 ///
 /// @brief     String-related utilities.
@@ -202,7 +204,6 @@ namespace sync {
 /// Output is fully thread-safe (the outputs are "atomic" to the file or
 /// stream), and if the stream is buffered, it is flushed after the output).
 
-#if FMT_VERSION >= 70000
 template<typename Str, typename... Args>
 inline void print (FILE *file, const Str& fmt, Args&&... args)
 {
@@ -221,26 +222,6 @@ inline void print (std::ostream &file, const Str& fmt, Args&&... args)
     sync_output (file, ::fmt::vformat(fmt, ::fmt::make_format_args(args...)));
 }
 
-#else
-
-template<typename... Args>
-inline void print (FILE *file, const char* fmt, Args&&... args)
-{
-    sync_output (file, ::fmt::format(fmt, std::forward<Args>(args)...));
-}
-
-template<typename... Args>
-inline void print (const char* fmt, Args&&... args)
-{
-    print(stdout, fmt, std::forward<Args>(args)...);
-}
-
-template<typename... Args>
-inline void print (std::ostream &file, const char* fmt, Args&&... args)
-{
-    sync_output (file, ::fmt::format(fmt, std::forward<Args>(args)...));
-}
-#endif
 } // namespace sync
 
 
@@ -273,7 +254,7 @@ void print (FILE *file, const char* fmt, const Args&... args);
 template<typename... Args>
 void print (std::ostream &file, const char* fmt, const Args&... args);
 
-#elif FMT_VERSION >= 70000 && !OIIO_PRINT_IS_SYNCHRONIZED
+#elif !OIIO_PRINT_IS_SYNCHRONIZED
 using ::fmt::print;
 #else
 using sync::print;
@@ -688,6 +669,14 @@ template<> inline uint64_t from_string<uint64_t>(string_view s) {
     // For conversion of string_view to unsigned int, fall back on strtoull.
     auto r = strtoull(std::string(s).c_str(), nullptr, 10);
     return static_cast<uint64_t>(r);
+}
+
+template<> inline short from_string<short>(string_view s) {
+    return static_cast<short>(Strutil::stoi(s));
+}
+
+template<> inline unsigned short from_string<unsigned short>(string_view s) {
+    return static_cast<unsigned short>(Strutil::stoi(s));
 }
 #endif
 
@@ -1162,7 +1151,11 @@ eval_as_bool(string_view value);
 }  // namespace Strutil
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
 // Bring the ever-useful Strutil::print into the OIIO namespace.
 using Strutil::print;
-
 OIIO_NAMESPACE_END

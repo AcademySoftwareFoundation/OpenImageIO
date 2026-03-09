@@ -20,6 +20,16 @@ macro (set_replace_if_nonempty var replacement)
 endmacro ()
 
 
+# Set a variable to the inverse of whether `value` was true or false.
+macro (set_invert var value)
+    if (${value})
+        set (${var} FALSE ${ARGN})
+    else ()
+        set (${var} TRUE ${ARGN})
+    endif ()
+endmacro ()
+
+
 
 # Set a cmake variable `var` from an environment variable, if it is not
 # already defined (or if the FORCE flag is used). By default, the env var is

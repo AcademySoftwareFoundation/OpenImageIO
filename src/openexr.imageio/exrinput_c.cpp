@@ -19,6 +19,7 @@
 #include <OpenEXR/openexr.h>
 
 #include "imageio_pvt.h"
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
@@ -208,6 +209,7 @@ private:
     std::unique_ptr<Filesystem::IOProxy> m_local_io;
     int m_nsubimages;                   ///< How many subimages are there?
     std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
+    std::string m_filename;             // filename, if known
 
     void init()
     {
@@ -216,6 +218,7 @@ private:
         m_userdata.m_io  = nullptr;
         m_local_io.reset();
         m_missingcolor.clear();
+        m_filename.clear();
     }
 
     bool valid_file(const std::string& filename, Filesystem::IOProxy* io) const;
@@ -267,6 +270,7 @@ static std::map<std::string, std::string> cexr_tag_to_oiio_std {
     { "chunkCount", "openexr:chunkCount" },
     { "maxSamplesPerPixel", "openexr:maxSamplesPerPixel" },
     { "dwaCompressionLevel", "openexr:dwaCompressionLevel" },
+    { "idManifest", "openexr:compressedIDManifest" },
     // Ones to skip because we handle specially or consider them irrelevant
     { "channels", "" },
     { "compression", "" },
@@ -357,6 +361,8 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
     //KDTDISABLE }
 
     // Check any other configuration hints
+
+    m_filename = name;
 
     // "missingcolor" gives fill color for missing scanlines or tiles.
     if (const ParamValue* m = config.find_attribute("oiio:missingcolor")) {
@@ -527,14 +533,6 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     spec.deep = (storage == EXR_STORAGE_DEEP_TILED
                  || storage == EXR_STORAGE_DEEP_SCANLINE);
 
-    // Unless otherwise specified, exr files are assumed to be linear Rec709
-    // if the channels appear to be R, G, B.  I know this suspect, but I'm
-    // betting that this heuristic will guess the right thing that users want
-    // more often than if we pretending we have no idea what the color space
-    // is.
-    if (pvt::channels_are_rgb(spec))
-        spec.set_colorspace("lin_rec709");
-
     if (levelmode != EXR_TILE_ONE_LEVEL)
         spec.attribute("openexr:roundingmode", (int)roundingmode);
 
@@ -571,8 +569,11 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
         case EXR_COMPRESSION_B44A: comp = "b44a"; break;
         case EXR_COMPRESSION_DWAA: comp = "dwaa"; break;
         case EXR_COMPRESSION_DWAB: comp = "dwab"; break;
-#ifdef IMF_HTJ2K_COMPRESSION
-        case EXR_COMPRESSION_HTJ2K: comp = "htj2k"; break;
+#ifdef IMF_HTJ2K256_COMPRESSION
+        case EXR_COMPRESSION_HTJ2K256: comp = "htj2k256"; break;
+#endif
+#ifdef IMF_HTJ2K32_COMPRESSION
+        case EXR_COMPRESSION_HTJ2K32: comp = "htj2k32"; break;
 #endif
         default: break;
         }
@@ -629,7 +630,6 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
         case EXR_ATTR_FLOAT_VECTOR: {
             TypeDesc fv(TypeDesc::FLOAT, (size_t)attr->floatvector->length);
             spec.attribute(oname, fv, attr->floatvector->arr);
-
             break;
         }
 
@@ -743,8 +743,42 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
             break;
         }
 
+#if OPENEXR_CODED_VERSION >= 30300
+        case EXR_ATTR_DEEP_IMAGE_STATE: {
+            const char* val = "messy";
+            switch (attr->uc) {
+            case EXR_DIS_MESSY: val = "messy"; break;
+            case EXR_DIS_SORTED: val = "sorted"; break;
+            case EXR_DIS_NON_OVERLAPPING: val = "non_overlapping"; break;
+            case EXR_DIS_TIDY: val = "tidy"; break;
+            default: break;
+            }
+            spec.attribute("openexr:deepImageState", val);
+            break;
+        }
+#endif
+
+#if OPENEXR_CODED_VERSION >= 30400
+        case EXR_ATTR_BYTES: {
+            spec.attribute(oname, TypeDesc(TypeDesc::UINT8, attr->bytes->size),
+                           make_span(attr->bytes->data, attr->bytes->size));
+            break;
+        }
+#endif
+
+        case EXR_ATTR_OPAQUE: {
+            if (Strutil::iequals(oname, "idManifest"))
+                oname = "openexr:compressedIDManifeset";  // our name for this
+            spec.attribute(oname, TypeDesc(TypeDesc::UINT8, attr->opaque->size),
+                           attr->opaque->packed_data);
+            // NOTE: The blob of bytes we're making consists of:
+            // Bytes 0-7: little endian uint64 giving the *uncompressed*
+            //            size that will be needed for the serialized IDM.
+            // Bytes 8-(size-1): the zip-compressed serialized IDManifest.
+            break;
+        }
+
         case EXR_ATTR_PREVIEW:
-        case EXR_ATTR_OPAQUE:
         case EXR_ATTR_ENVMAP:
         case EXR_ATTR_COMPRESSION:
         case EXR_ATTR_CHLIST:
@@ -775,6 +809,13 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     }
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
+
+    // Try to figure out the color space for some unambiguous cases
+    if (spec.get_int_attribute("acesImageContainerFlag") == 1) {
+        spec.set_colorspace("lin_ap0_scene");
+    } else if (auto c = spec.find_attribute("colorInteropID", TypeString)) {
+        spec.set_colorspace(c->get_ustring());
+    }
 
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);

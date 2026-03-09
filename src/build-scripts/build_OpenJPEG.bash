@@ -11,7 +11,7 @@ set -ex
 
 # Repo and branch/tag/commit of OpenJPEG to download if we don't have it yet
 OPENJPEG_REPO=${OPENJPEG_REPO:=https://github.com/uclouvain/openjpeg.git}
-OPENJPEG_VERSION=${OPENJPEG_VERSION:=v2.5.2}
+OPENJPEG_VERSION=${OPENJPEG_VERSION:=v2.5.4}
 
 # Where to put OpenJPEG repo source (default to the ext area)
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
@@ -45,6 +45,8 @@ if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
                -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${OPENJPEG_INSTALL_DIR} \
                -DBUILD_CODEC=OFF \
+               -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+               -DBUILD_SHARED_LIBS=${OPENJPEG_BUILD_SHARED_LIBS:-ON} \
                ${OPENJPEG_CONFIG_OPTS}
     time cmake --build ${OPENJPEG_BUILD_DIR} --config Release --target install
 fi

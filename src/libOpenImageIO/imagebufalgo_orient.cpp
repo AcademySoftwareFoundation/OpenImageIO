@@ -16,7 +16,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 template<class D, class S = D>
@@ -45,7 +45,7 @@ ImageBufAlgo::flip(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
         tmp.swap(const_cast<ImageBuf&>(src));
         return flip(dst, tmp, roi, nthreads);
     }
-    pvt::LoggedTimer logtime("IBA::flip");
+    OIIO::pvt::LoggedTimer logtime("IBA::flip");
 
     ROI src_roi      = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
@@ -95,7 +95,7 @@ ImageBufAlgo::flop(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
         return flop(dst, tmp, roi, nthreads);
     }
 
-    pvt::LoggedTimer logtime("IBA::flop");
+    OIIO::pvt::LoggedTimer logtime("IBA::flop");
     ROI src_roi      = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
     int offset       = src_roi.xbegin - src_roi_full.xbegin;
@@ -167,7 +167,7 @@ ImageBufAlgo::rotate90(ImageBuf& dst, const ImageBuf& src, ROI roi,
         return rotate90(dst, tmp, roi, nthreads);
     }
 
-    pvt::LoggedTimer logtime("IBA::rotate90");
+    OIIO::pvt::LoggedTimer logtime("IBA::rotate90");
     ROI src_roi      = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
 
@@ -230,7 +230,7 @@ ImageBufAlgo::rotate180(ImageBuf& dst, const ImageBuf& src, ROI roi,
         return rotate180(dst, tmp, roi, nthreads);
     }
 
-    pvt::LoggedTimer logtime("IBA::rotate180");
+    OIIO::pvt::LoggedTimer logtime("IBA::rotate180");
     ROI src_roi      = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
     int xoffset      = src_roi.xbegin - src_roi_full.xbegin;
@@ -281,7 +281,7 @@ ImageBufAlgo::rotate270(ImageBuf& dst, const ImageBuf& src, ROI roi,
         return rotate270(dst, tmp, roi, nthreads);
     }
 
-    pvt::LoggedTimer logtime("IBA::rotate270");
+    OIIO::pvt::LoggedTimer logtime("IBA::rotate270");
     ROI src_roi      = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
 
@@ -420,7 +420,7 @@ bool
 ImageBufAlgo::transpose(ImageBuf& dst, const ImageBuf& src, ROI roi,
                         int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::transpose");
+    OIIO::pvt::LoggedTimer logtime("IBA::transpose");
     if (!roi.defined())
         roi = get_roi(src.spec());
     roi.chend = std::min(roi.chend, src.nchannels());
@@ -459,4 +459,4 @@ ImageBufAlgo::transpose(const ImageBuf& src, ROI roi, int nthreads)
     return result;
 }
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

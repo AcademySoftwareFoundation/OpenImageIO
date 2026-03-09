@@ -6,11 +6,11 @@
 # TIFF by hand!
 ######################################################################
 
-set_cache (TIFF_BUILD_VERSION 4.6.0 "TIFF version for local builds")
+set_cache (TIFF_BUILD_VERSION 4.7.1 "TIFF version for local builds")
 set (TIFF_GIT_REPOSITORY "https://gitlab.com/libtiff/libtiff.git")
-set (TIFF_GIT_TAG "v${TIFF_BUILD_VERSION}")
+set_cache (TIFF_GIT_TAG "v${TIFF_BUILD_VERSION}" "Git branch or tag")
 set_cache (TIFF_BUILD_SHARED_LIBS  ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
-           DOC "Should a local TIFF build, if necessary, build shared libraries" ADVANCED)
+           "Should a local TIFF build, if necessary, build shared libraries" ADVANCED)
 
 # We need libdeflate to build libtiff
 checked_find_package (libdeflate REQUIRED
@@ -44,6 +44,7 @@ build_dependency_with_cmake(TIFF
         -D lzma=OFF
         -D zstd=OFF
         -D jbig=OFF
+        -D lerc=OFF
         ${MORE_TIFF_CMAKE_ARGS}
     )
 

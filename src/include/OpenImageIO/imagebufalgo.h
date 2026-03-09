@@ -18,18 +18,14 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/parallel.h>
+#include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/vecparam.h>
 
 #include <limits>
 
 
-OIIO_NAMESPACE_BEGIN
-
-// forward declarations
-class ColorConfig;
-class ColorProcessor;
-class Filter2D;
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// @defgroup ImageBufAlgo_intro (ImageBufAlgo common principles)
@@ -311,7 +307,7 @@ bool OIIO_API render_line (ImageBuf &dst, int x1, int y1, int x2, int y2,
 /// as many values as `roi.chend-1`. The ROI can be used to limit the pixel
 /// area or channels that are modified, and default to the entirety of
 /// `dst`. If `fill` is `true`, the box will be completely filled in,
-/// otherwise only its outlien will be drawn.
+/// otherwise only its outline will be drawn.
 bool OIIO_API render_box (ImageBuf &dst, int x1, int y1, int x2, int y2,
                           cspan<float> color=1.0f, bool fill = false,
                           ROI roi={}, int nthreads=0);
@@ -546,7 +542,7 @@ bool OIIO_API transpose (ImageBuf &dst, const ImageBuf &src,
 /// @}
 
 
-/// Return (or store into `dst`) a copy of `src`, but with whatever seties
+/// Return (or store into `dst`) a copy of `src`, but with whatever series
 /// of rotations, flips, or flops are necessary to transform the pixels into
 /// the configuration suggested by the "Orientation" metadata of the image
 /// (and the "Orientation" metadata is then set to 1, ordinary orientation).
@@ -1250,7 +1246,7 @@ OIIO_API bool contrast_remap (ImageBuf &dst, const ImageBuf &src,
 /// `src` within the ROI, and in the process adjusts the color saturation of
 /// the three consecutive channels starting with `firstchannel` based on the
 /// `scale` parameter: 0.0 fully desaturates to a greyscale image of
-/// percaptually equivalent luminance, 1.0 leaves the colors unchanged,
+/// perceptually equivalent luminance, 1.0 leaves the colors unchanged,
 /// `scale` values inside this range interpolate between them, and `scale` > 1
 /// would increase apparent color saturation.
 ///
@@ -2121,14 +2117,14 @@ bool OIIO_API ocionamedtransform (ImageBuf &dst, const ImageBuf &src,
 /// `src` within the ROI, and in the process divides all color channels
 /// (those not alpha or z) by the alpha value, to "un-premultiply" them.
 /// This presumes that the image starts of as "associated alpha" a.k.a.
-/// "premultipled," and you are converting to "unassociated alpha." For
+/// "premultiplied," and you are converting to "unassociated alpha." For
 /// pixels with alpha == 0, the color values are not modified.
 ///
 /// The `premult` operation returns (or copies into `dst`) the pixels of
 /// `src` within the ROI, and in the process multiplies all color channels
 /// (those not alpha or z) by the alpha value, to "premultiply" them.  This
 /// presumes that the image starts of as "unassociated alpha" a.k.a.
-/// "non-premultipled" and converts it to "associated alpha / premultipled."
+/// "non-premultiplied" and converts it to "associated alpha / premultiplied."
 ///
 /// The `repremult` operation is like `premult`, but preserves the color
 /// values of pixels whose alpha is 0. This is intended for cases where you
@@ -2251,7 +2247,9 @@ enum MakeTextureMode {
 ///                                 the coordinates for normal maps. ("")
 ///    - `maketx:verbose` (int) :   How much detail should go to outstream (0).
 ///    - `maketx:runstats` (int) :  If nonzero, print run stats to outstream (0).
+///    - `maketx:threads` (int) :   Number of threads to use (0 = auto).
 ///    - `maketx:resize` (int) :    If nonzero, resize to power of 2. (0)
+///    - `maketx:keepaspect` (int): If nonzero, save aspect ratio to metadata. (0)
 ///    - `maketx:nomipmap` (int) :  If nonzero, only output the top MIP level (0).
 ///    - `maketx:updatemode` (int) : If nonzero, write new output only if the
 ///                                  output file doesn't already exist, or is
@@ -2372,6 +2370,36 @@ enum MakeTextureMode {
 ///                           factor. The default is 0, disabling the
 ///                           feature. If you use this feature, a suggested
 ///                           value is 256.
+///    - `maketx:slopefilter` (string) :
+///                           When used in MakeTxBumpWithSlopes mode, this
+///                           sets the filter for computing the slopes when 
+///                           `--bumpformat` is set to "height". The default
+///                           value is "sobel". The option "centraldiff"
+///                           matches the behavior of `txmake` and is less
+///                           prone to ring-shaped artifacting. (sobel)
+///    - `maketx:bumpinverts` (int) :
+///                           When used in MakeTxBumpWithSlopes mode, a
+///                           non-zero value inverts the computed slopes on the
+///                           s/u/x direction. (0)
+///    - `maketx:bumpinvertt` (int) :
+///                           When used in MakeTxBumpWithSlopes mode, a
+///                           non-zero value inverts the computed slopes on the
+///                           t/v/y direction. (0)
+///    - `maketx:bumpscale` (float) :
+///                           When used in MakeTxBumpWithSlopes mode, this
+///                           scales the strength of the resulting bumpslopes 
+///                           map. (1.0)
+///    - `maketx:bumprange` (string) :
+///                           When used in MakeTxBumpWithSlopes mode, this
+///                           sets the convention used for normal map data when
+///                           `--bumpformat` is set to "normal". When set to 
+///                           "centered", the normals data is assumed to exist
+///                           on the range [-1,1]. When set to "positive", the 
+///                           normals data is assumed to exist on the range 
+///                           [0,1]. When set to "auto", the default value, the
+///                           range is inferred based on whether or not
+///                           negative values are present in the input image. 
+///                           (auto)
 ///    - `maketx:cdf` (int) :
 ///                           If nonzero, will write a Gaussian CDF and
 ///                           Inverse Gaussian CDF as per-channel metadata
@@ -2504,7 +2532,7 @@ bool OIIO_API deep_merge (ImageBuf &dst, const ImageBuf &A,
 /// Return the samples of deep image `src` that are closer than the opaque
 /// frontier of deep image holdout, returning true upon success and false
 /// for any failures. Samples of `src` that are farther than the first
-/// opaque sample of holdout (for the corresponding pixel)will not be copied
+/// opaque sample of holdout (for the corresponding pixel) will not be copied
 /// to `dst`. Image holdout is only used as the depth threshold; no sample
 /// values from holdout are themselves copied to `dst`.
 ImageBuf OIIO_API deep_holdout (const ImageBuf &src, const ImageBuf &holdout,
@@ -2675,4 +2703,15 @@ inline bool fit(ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
 
 }  // end namespace ImageBufAlgo
 
+OIIO_NAMESPACE_END
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::Image_or_Const;
+namespace ImageBufAlgo {
+using namespace OIIO::v3_1::ImageBufAlgo;
+}
+#endif
 OIIO_NAMESPACE_END

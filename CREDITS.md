@@ -11,6 +11,7 @@ lg@openimageio.org
 * Alejandro Conty
 * Alejandro Aguirre
 * Aleksandr Motsjonov
+* Alex Fuller
 * Alex Guirre
 * Alex Hughes
 * Alex Schworer
@@ -47,6 +48,7 @@ lg@openimageio.org
 * Brian Hall
 * Brice Gros
 * Campbell Barton
+* Carine Touraille
 * Carl Rand
 * Cassian Andrei
 * Chad Dombrova
@@ -60,6 +62,7 @@ lg@openimageio.org
 * Christoph Willing
 * Clément Champetier
 * Cliff Stein
+* Connie Chang
 * Curtis Black
 * D-Spirits
 * Dalai Felinto
@@ -107,6 +110,7 @@ lg@openimageio.org
 * Imarz
 * Irena Damsky
 * Ismael Cortes
+* Jackson Sun
 * Jan Hettenkofer
 * Jan Honsbrok
 * Jens Lindgren
@@ -122,6 +126,7 @@ lg@openimageio.org
 * John Burnett
 * John Fea
 * John Haddon
+* Jonathan Brown
 * Jonathan Hearn
 * Jonathan Scruggs
 * Joris Nijs
@@ -145,6 +150,7 @@ lg@openimageio.org
 * Lukas Schrangl
 * Lukasz Maliszewski
 * Luke Emrose
+* Lumina Wang
 * Lydia Zheng
 * M Joonas Pihlaja
 * Malcolm Humphreys
@@ -179,6 +185,7 @@ lg@openimageio.org
 * Nuno Cardoso
 * Oktay Comu
 * Ole Gulbrandsen
+* omcaif
 * Ott Tinn
 * Pascal Lecocq
 * Patrick Hodoul
@@ -186,6 +193,7 @@ lg@openimageio.org
 * Paul Franz
 * Paul Melis
 * Paul Molodowitch
+* Pavan Madduri
 * Pavel Karneliuk
 * Pete Larabell
 * Peter Horvath
@@ -209,6 +217,7 @@ lg@openimageio.org
 * Saket Jalan
 * Sam Richards
 * Samuel Nicholas
+* Scott Milner
 * Scott Wilson
 * Sebastian Elsner
 * SebTV
@@ -216,6 +225,8 @@ lg@openimageio.org
 * Sergey Sharybin
 * Sergio Rojas
 * Shane Ambler
+* Shane Smith
+* Shashvat K. Singh
 * Simon Boorer
 * Solomon Boulos
 * SRHMorris
@@ -223,6 +234,7 @@ lg@openimageio.org
 * Stefan Stavrev
 * Thiago Ize
 * Thomas Dinges
+* Thomas Klausner
 * Thomas Mansencal
 * Till Dechent
 * Tim D. Smith
@@ -230,6 +242,8 @@ lg@openimageio.org
 * Todica Ionut
 * Tom Knowles
 * Troy James Sobotka
+* Valery Angelique
+* Vanessa Valderrama
 * Vic P
 * Vinod Khare
 * Vishal Agrawal
@@ -245,3 +259,7 @@ lg@openimageio.org
 * Zach Lewis
 * Ziad Khouri
 * zomgrolf
+
+
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->

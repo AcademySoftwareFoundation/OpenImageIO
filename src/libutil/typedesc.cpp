@@ -16,7 +16,7 @@
 #include <OpenImageIO/ustring.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 TypeDesc::TypeDesc(string_view typestring)
     : basetype(UNKNOWN)
@@ -325,6 +325,8 @@ TypeDesc::fromstring(string_view typestring)
         t = OIIO::TypeTimeCode;
     else if (type == "rational")
         t = OIIO::TypeRational;
+    else if (type == "urational")
+        t = OIIO::TypeURational;
     else if (type == "box2i")
         t = OIIO::TypeBox2i;
     else if (type == "box3i")
@@ -356,6 +358,57 @@ TypeDesc::fromstring(string_view typestring)
 
     *this = t;
     return orig.length() - typestring.length();
+}
+
+
+
+bool
+TypeDesc::operator<(const TypeDesc& x) const noexcept
+{
+    if (basetype != x.basetype)
+        return basetype < x.basetype;
+    if (aggregate != x.aggregate)
+        return aggregate < x.aggregate;
+    if (arraylen != x.arraylen)
+        return arraylen < x.arraylen;
+    if (vecsemantics != x.vecsemantics)
+        return vecsemantics < x.vecsemantics;
+    return false;  // they are equal
+}
+
+
+
+TypeDesc::BASETYPE
+TypeDesc::basetype_merge(TypeDesc at, TypeDesc bt)
+{
+    BASETYPE a = (BASETYPE)at.basetype;
+    BASETYPE b = (BASETYPE)bt.basetype;
+
+    // Same type already? done.
+    if (a == b)
+        return a;
+    if (a == UNKNOWN)
+        return b;
+    if (b == UNKNOWN)
+        return a;
+    // Canonicalize so a's size (in bytes) is >= b's size in bytes. This
+    // unclutters remaining cases.
+    if (TypeDesc(a).size() < TypeDesc(b).size())
+        std::swap(a, b);
+    // Double or float trump anything else
+    if (a == DOUBLE || a == FLOAT)
+        return a;
+    if (a == UINT32 && (b == UINT16 || b == UINT8))
+        return a;
+    if (a == INT32 && (b == INT16 || b == UINT16 || b == INT8 || b == UINT8))
+        return a;
+    if ((a == UINT16 || a == HALF) && b == UINT8)
+        return a;
+    if ((a == INT16 || a == HALF) && (b == INT8 || b == UINT8))
+        return a;
+    // Out of common cases. For all remaining edge cases, punt and say that
+    // we prefer float.
+    return FLOAT;
 }
 
 
@@ -801,7 +854,7 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
         if (srctype == TypeUstringhash)
             (*(ustring*)dst) = ustring::from_hash(*(const ustring::hash_t*)src);
         else
-            (*(ustring*)dst) = ustring(tostring(srctype, src));
+            (*(ustring*)dst) = ustring(OIIO::tostring(srctype, src));
         return true;
     }
 
@@ -839,6 +892,12 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
         ((float*)dst)[0] = den ? float(num) / float(den) : 0.0f;
         return true;
     }
+    if (dsttype == TypeFloat && srctype == TypeURational) {
+        auto num         = ((const uint32_t*)src)[0];
+        auto den         = ((const uint32_t*)src)[1];
+        ((float*)dst)[0] = den ? float(num) / float(den) : 0.0f;
+        return true;
+    }
     if (dsttype == TypeFloat && srctype == TypeString) {
         // Only succeed for a string if it exactly holds something that
         // exactly parses to a float value.
@@ -858,55 +917,4 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
     return false;
 }
 
-
-
-bool
-TypeDesc::operator<(const TypeDesc& x) const noexcept
-{
-    if (basetype != x.basetype)
-        return basetype < x.basetype;
-    if (aggregate != x.aggregate)
-        return aggregate < x.aggregate;
-    if (arraylen != x.arraylen)
-        return arraylen < x.arraylen;
-    if (vecsemantics != x.vecsemantics)
-        return vecsemantics < x.vecsemantics;
-    return false;  // they are equal
-}
-
-
-
-TypeDesc::BASETYPE
-TypeDesc::basetype_merge(TypeDesc at, TypeDesc bt)
-{
-    BASETYPE a = (BASETYPE)at.basetype;
-    BASETYPE b = (BASETYPE)bt.basetype;
-
-    // Same type already? done.
-    if (a == b)
-        return a;
-    if (a == UNKNOWN)
-        return b;
-    if (b == UNKNOWN)
-        return a;
-    // Canonicalize so a's size (in bytes) is >= b's size in bytes. This
-    // unclutters remaining cases.
-    if (TypeDesc(a).size() < TypeDesc(b).size())
-        std::swap(a, b);
-    // Double or float trump anything else
-    if (a == DOUBLE || a == FLOAT)
-        return a;
-    if (a == UINT32 && (b == UINT16 || b == UINT8))
-        return a;
-    if (a == INT32 && (b == INT16 || b == UINT16 || b == INT8 || b == UINT8))
-        return a;
-    if ((a == UINT16 || a == HALF) && b == UINT8)
-        return a;
-    if ((a == INT16 || a == HALF) && (b == INT8 || b == UINT8))
-        return a;
-    // Out of common cases. For all remaining edge cases, punt and say that
-    // we prefer float.
-    return FLOAT;
-}
-
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

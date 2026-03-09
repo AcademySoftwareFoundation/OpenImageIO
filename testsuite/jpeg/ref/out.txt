@@ -1,0 +1,9 @@
+Reading src/YCbCrK.jpg
+src/YCbCrK.jpg       :   52 x   52, 3 channel, uint8 jpeg
+    SHA-1: 888C1DD026F9C9A613A94BE5053292AC7010E79C
+    channel list: R, G, B
+    jpeg:ColorSpace: "YCbCrK"
+    jpeg:subsampling: "4:4:4"
+    oiio:ColorSpace: "srgb_rec709_scene"
+Comparing "rgb-from-YCbCrK.tif" and "ref/rgb-from-YCbCrK.tif"
+PASS

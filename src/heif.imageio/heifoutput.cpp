@@ -3,8 +3,11 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/tiffutils.h>
 
 #include <libheif/heif_cxx.h>
@@ -26,7 +29,12 @@ public:
     const char* format_name(void) const override { return "heif"; }
     int supports(string_view feature) const override
     {
-        return feature == "alpha" || feature == "exif" || feature == "tiles";
+        return feature == "alpha" || feature == "exif" || feature == "ioproxy"
+               || feature == "tiles"
+#if LIBHEIF_HAVE_VERSION(1, 9, 0)
+               || feature == "cicp"
+#endif
+            ;
     }
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode) override;
@@ -42,18 +50,18 @@ private:
     std::unique_ptr<heif::Context> m_ctx;
     heif::ImageHandle m_ihandle;
     heif::Image m_himage;
-    heif::Encoder m_encoder { heif_compression_HEVC };
+    // Undefined until we know the specific requested encoder, because an
+    // exception is thrown if libheif is built without support for it.
+    heif::Encoder m_encoder { heif_compression_undefined };
     std::vector<unsigned char> scratch;
     std::vector<unsigned char> m_tilebuffer;
+    int m_bitdepth = 0;
 };
 
 
-
-namespace {
-
-class MyHeifWriter final : public heif::Context::Writer {
+class HeifWriter final : public heif::Context::Writer {
 public:
-    MyHeifWriter(Filesystem::IOProxy* ioproxy)
+    HeifWriter(Filesystem::IOProxy* ioproxy)
         : m_ioproxy(ioproxy)
     {
     }
@@ -73,9 +81,6 @@ public:
 private:
     Filesystem::IOProxy* m_ioproxy = nullptr;
 };
-
-}  // namespace
-
 
 
 OIIO_PLUGIN_EXPORTS_BEGIN
@@ -104,34 +109,62 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
 
     m_filename = name;
 
-    m_spec.set_format(TypeUInt8);  // Only uint8 for now
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name)) {
+        return false;
+    }
+
+    m_bitdepth = m_spec.format.size() > TypeUInt8.size() ? 10 : 8;
+    m_bitdepth = m_spec.get_int_attribute("oiio:BitsPerSample", m_bitdepth);
+    if (m_bitdepth == 10 || m_bitdepth == 12) {
+        m_spec.set_format(TypeUInt16);
+    } else if (m_bitdepth == 8) {
+        m_spec.set_format(TypeUInt8);
+    } else {
+        errorfmt("Unsupported bit depth {}", m_bitdepth);
+        return false;
+    }
 
     try {
         m_ctx.reset(new heif::Context);
         m_himage = heif::Image();
-        static heif_chroma chromas[/*nchannels*/]
+        const heif_chroma chromas[/*nchannels*/]
             = { heif_chroma_undefined, heif_chroma_monochrome,
-                heif_chroma_undefined, heif_chroma_interleaved_RGB,
-                heif_chroma_interleaved_RGBA };
-        m_himage.create(newspec.width, newspec.height, heif_colorspace_RGB,
-                        chromas[m_spec.nchannels]);
-        m_himage.add_plane(heif_channel_interleaved, newspec.width,
-                           newspec.height, 8 * m_spec.nchannels /*bit depth*/);
+                heif_chroma_undefined,
+                (m_bitdepth == 8) ? heif_chroma_interleaved_RGB
+                : littleendian()  ? heif_chroma_interleaved_RRGGBB_LE
+                                  : heif_chroma_interleaved_RRGGBB_BE,
+                (m_bitdepth == 8) ? heif_chroma_interleaved_RGBA
+                : littleendian()  ? heif_chroma_interleaved_RRGGBBAA_LE
+                                  : heif_chroma_interleaved_RRGGBBAA_BE };
+        const heif_colorspace colorspace = (m_spec.nchannels == 1)
+                                               ? heif_colorspace_monochrome
+                                               : heif_colorspace_RGB;
+        const heif_channel channel       = (m_spec.nchannels == 1)
+                                               ? heif_channel_Y
+                                               : heif_channel_interleaved;
 
-        m_encoder      = heif::Encoder(heif_compression_HEVC);
+        m_himage.create(newspec.width, newspec.height, colorspace,
+                        chromas[m_spec.nchannels]);
+        m_himage.add_plane(channel, newspec.width, newspec.height, m_bitdepth);
+
         auto compqual  = m_spec.decode_compression_metadata("", 75);
         auto extension = Filesystem::extension(m_filename);
         if (compqual.first == "avif"
             || (extension == ".avif" && compqual.first == "")) {
             m_encoder = heif::Encoder(heif_compression_AV1);
+        } else {
+            m_encoder = heif::Encoder(heif_compression_HEVC);
         }
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        m_ctx.reset();
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        m_ctx.reset();
         return false;
     }
 
@@ -155,9 +188,31 @@ HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
 #else
     int hystride = 0;
 #endif
-    uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved, &hystride);
+    const heif_channel hchannel = (m_spec.nchannels == 1)
+                                      ? heif_channel_Y
+                                      : heif_channel_interleaved;
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 20, 2, 0)
+    uint8_t* hdata = m_himage.get_plane2(hchannel, &hystride);
+#else
+    uint8_t* hdata = m_himage.get_plane(hchannel, &hystride);
+#endif
     hdata += hystride * (y - m_spec.y);
-    memcpy(hdata, data, hystride);
+    if (m_bitdepth == 10 || m_bitdepth == 12) {
+        const uint16_t* data16  = static_cast<const uint16_t*>(data);
+        uint16_t* hdata16       = reinterpret_cast<uint16_t*>(hdata);
+        const size_t num_values = m_spec.width * m_spec.nchannels;
+        if (m_bitdepth == 10) {
+            for (size_t i = 0; i < num_values; ++i) {
+                hdata16[i] = bit_range_convert<16, 10>(data16[i]);
+            }
+        } else {
+            for (size_t i = 0; i < num_values; ++i) {
+                hdata16[i] = bit_range_convert<16, 12>(data16[i]);
+            }
+        }
+    } else {
+        memcpy(hdata, data, hystride);
+    }
     return true;
 }
 
@@ -177,7 +232,9 @@ HeifOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 bool
 HeifOutput::close()
 {
-    if (!m_ctx) {  // already closed
+    if (!m_ctx || !ioproxy_opened()) {  // already closed
+        m_ctx.reset();
+        ioproxy_clear();
         return true;
     }
 
@@ -203,8 +260,33 @@ HeifOutput::close()
         } else if (compqual.first == "none") {
             m_encoder.set_lossless(true);
         }
+        heif::Context::EncodingOptions options;
+#if LIBHEIF_HAVE_VERSION(1, 9, 0)
+        // Write CICP. we can only set output_nclx_profile with the C API.
+        std::unique_ptr<heif_color_profile_nclx,
+                        void (*)(heif_color_profile_nclx*)>
+            nclx(heif_nclx_color_profile_alloc(), heif_nclx_color_profile_free);
+        const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+        const ParamValue* p    = m_spec.find_attribute("CICP",
+                                                       TypeDesc(TypeDesc::INT, 4));
+        string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
+        cspan<int> cicp        = (p) ? p->as_cspan<int>()
+                                     : colorconfig.get_cicp(colorspace);
+        if (!cicp.empty()) {
+            nclx->color_primaries          = heif_color_primaries(cicp[0]);
+            nclx->transfer_characteristics = heif_transfer_characteristics(
+                cicp[1]);
+            nclx->matrix_coefficients   = heif_matrix_coefficients(cicp[2]);
+            nclx->full_range_flag       = cicp[3];
+            options.output_nclx_profile = nclx.get();
+            // Chroma subsampling is incompatible with RGB.
+            if (nclx->matrix_coefficients == heif_matrix_coefficients_RGB_GBR) {
+                m_encoder.set_string_parameter("chroma", "444");
+            }
+        }
+#endif
         encode_exif(m_spec, exifblob, endian::big);
-        m_ihandle = m_ctx->encode_image(m_himage, m_encoder);
+        m_ihandle = m_ctx->encode_image(m_himage, m_encoder, options);
         std::vector<char> head { 'E', 'x', 'i', 'f', 0, 0 };
         exifblob.insert(exifblob.begin(), head.begin(), head.end());
         try {
@@ -217,25 +299,20 @@ HeifOutput::close()
 #endif
         }
         m_ctx->set_primary_image(m_ihandle);
-        Filesystem::IOFile ioproxy(m_filename, Filesystem::IOProxy::Write);
-        if (ioproxy.mode() != Filesystem::IOProxy::Write) {
-            errorfmt("Could not open \"{}\"", m_filename);
-            ok = false;
-        } else {
-            MyHeifWriter writer(&ioproxy);
-            m_ctx->write(writer);
-        }
+        HeifWriter writer(ioproxy());
+        m_ctx->write(writer);
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
-        return false;
+        ok = false;
     } catch (const std::exception& err) {
         std::string e = err.what();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
-        return false;
+        ok = false;
     }
 
     m_ctx.reset();
+    ioproxy_clear();
     return ok;
 }
 

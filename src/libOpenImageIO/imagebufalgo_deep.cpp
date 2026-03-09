@@ -20,7 +20,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 // FIXME -- NOT CORRECT!  This code assumes sorted, non-overlapping samples.
@@ -88,7 +88,7 @@ flatten_(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 bool
 ImageBufAlgo::flatten(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::flatten");
+    OIIO::pvt::LoggedTimer logtime("IBA::flatten");
     if (!src.deep()) {
         // For some reason, we were asked to flatten an already-flat image.
         // So just copy it.
@@ -138,7 +138,7 @@ bool
 ImageBufAlgo::deepen(ImageBuf& dst, const ImageBuf& src, float zvalue, ROI roi,
                      int /*nthreads*/)
 {
-    pvt::LoggedTimer logtime("IBA::deepen");
+    OIIO::pvt::LoggedTimer logtime("IBA::deepen");
     if (src.deep()) {
         // For some reason, we were asked to deepen an already-deep image.
         // So just copy it.
@@ -242,7 +242,7 @@ bool
 ImageBufAlgo::deep_merge(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
                          bool occlusion_cull, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::deep_merge");
+    OIIO::pvt::LoggedTimer logtime("IBA::deep_merge");
     if (!A.deep() || !B.deep()) {
         // For some reason, we were asked to merge a flat image.
         dst.errorfmt("deep_merge can only be performed on deep images");
@@ -366,7 +366,7 @@ bool
 ImageBufAlgo::deep_holdout(ImageBuf& dst, const ImageBuf& src,
                            const ImageBuf& thresh, ROI roi, int /*nthreads*/)
 {
-    pvt::LoggedTimer logtime("IBA::deep_holdout");
+    OIIO::pvt::LoggedTimer logtime("IBA::deep_holdout");
     if (!src.deep() || !thresh.deep()) {
         dst.errorfmt("deep_holdout can only be performed on deep images");
         return false;
@@ -444,4 +444,4 @@ ImageBufAlgo::deep_holdout(const ImageBuf& src, const ImageBuf& thresh, ROI roi,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

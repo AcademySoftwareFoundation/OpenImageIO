@@ -1,0 +1,280 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+######################################################################
+# CMakeLists.txt for GIF/GIFLIB
+
+# GIFLib repository doesn't have a cmakelists.txt included.
+# So when we clone the repository on build_GIF.cmake, we also want to
+# add this file as a "CMakeLists.txt" into the repository. This way
+# we can run it the same way with other libraries, following the same
+# logic as the build_with_cmake_macro
+
+# Windows compatibility: Source code includes unistd.h, which is not available
+# on Windows systems. We patch source files to use appropriate Windows
+# alternatives and use these patched files (in GIF-build) instead of 
+# the originals (GIF)
+######################################################################
+
+cmake_minimum_required (VERSION @CMAKE_MINIMUM_REQUIRED_VERSION@)
+project(GIF VERSION @GIF_BUILD_VERSION@ LANGUAGES C)
+
+# Options
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(BUILD_UTILS "Build utility programs" OFF)
+
+
+# Set MSVC specific flags and runtime
+if(MSVC)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4")
+    
+    # Let runtime library be set by CMAKE_MSVC_RUNTIME_LIBRARY from command line
+    if(NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
+        if(BUILD_SHARED_LIBS)
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        else()
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        endif()
+    endif()
+    
+    # Ensure proper DLL export/import
+    if(BUILD_SHARED_LIBS)
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    endif()
+endif()
+
+# replace #includes unistd to use windows equivalent
+if(WIN32)
+    file(GLOB_RECURSE ORIGINAL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
+
+    foreach(HEADER ${ORIGINAL_HEADERS})
+        # Compute output path in build dir
+        file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}" "${HEADER}")
+        set(OUT_HEADER "${CMAKE_CURRENT_BINARY_DIR}/${REL_PATH}")
+
+        # Make sure directory exists
+        get_filename_component(OUT_DIR ${OUT_HEADER} DIRECTORY)
+        file(MAKE_DIRECTORY ${OUT_DIR})
+
+        # Read header
+        file(READ ${HEADER} CONTENTS)
+
+        # Add #ifdef guards to unistd.h
+        if(CONTENTS MATCHES "#include <unistd.h>")
+            string(REPLACE "#include <unistd.h>" "#ifdef _WIN32\n#include <io.h>\n#else\n#include <unistd.h>\n#endif" CONTENTS "${CONTENTS}")
+        endif()
+
+        # Write patched header
+        file(WRITE ${OUT_HEADER} "${CONTENTS}")
+
+        # Add patched directory to include path
+        include_directories(${CMAKE_CURRENT_BINARY_DIR})
+    endforeach()
+endif()
+
+# Set output directories
+if(MSVC)
+    # For MSVC, we want Debug and Release in separate directories
+    foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/bin/${OUTPUTCONFIG})
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib/${OUTPUTCONFIG})
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib/${OUTPUTCONFIG})
+    endforeach()
+else()
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+endif()
+
+# Core library source files
+if (WIN32)
+    # Use patched files from build directory
+    set(GIF_SOURCES
+        ${CMAKE_CURRENT_BINARY_DIR}/dgif_lib.c
+        ${CMAKE_CURRENT_BINARY_DIR}/egif_lib.c
+        ${CMAKE_CURRENT_BINARY_DIR}/gif_err.c
+        ${CMAKE_CURRENT_BINARY_DIR}/gif_hash.c
+        ${CMAKE_CURRENT_BINARY_DIR}/gifalloc.c
+        ${CMAKE_CURRENT_BINARY_DIR}/openbsd-reallocarray.c
+        ${CMAKE_CURRENT_BINARY_DIR}/quantize.c
+    )
+else()
+    # Use original files on non-Windows platforms
+set(GIF_SOURCES
+    dgif_lib.c
+    egif_lib.c
+    gif_err.c
+    gif_hash.c
+    gifalloc.c
+    openbsd-reallocarray.c
+    quantize.c
+)
+endif()
+
+
+# Define the GIF library
+if(BUILD_SHARED_LIBS)
+    add_library(GIF SHARED ${GIF_SOURCES})
+
+    if (MSVC)
+        # Add export definitions for Windows DLL
+        target_compile_definitions(GIF
+            PRIVATE -DGIF_EXPORTS
+            PUBLIC -DGIF_DLL
+    )
+    endif()
+else()
+    add_library(GIF STATIC ${GIF_SOURCES})
+endif()
+
+# Create an alias target since we want to refer to it as GIF::GIF
+add_library(GIF::GIF ALIAS GIF)
+
+# Set library properties
+set_target_properties(GIF PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+    OUTPUT_NAME "GIF"
+    # Ensure PIC just in case we need to link it into a shared library
+    POSITION_INDEPENDENT_CODE ON
+)
+
+# Add include path for GIFLIB
+if(WIN32)
+    target_include_directories(GIF
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    )
+else()
+    target_include_directories(GIF
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    )
+endif()
+
+# Utility programs common source files
+if(WIN32)
+    # Use patched files from build directory
+    set(UTILS_COMMON_SOURCES
+        ${CMAKE_CURRENT_BINARY_DIR}/getarg.c
+        ${CMAKE_CURRENT_BINARY_DIR}/qprintf.c
+        ${CMAKE_CURRENT_BINARY_DIR}/gif_font.c
+    )
+else()
+    # Use original files on non-Windows platforms
+    set(UTILS_COMMON_SOURCES
+        getarg.c
+        qprintf.c
+        gif_font.c
+    )
+endif()
+
+# Define utility programs
+set(UTILS
+    gif2rgb
+    gifbuild
+    gifbg
+    gifclrmp
+    gifcolor
+    gifecho
+    giffilter
+    giffix
+    gifhisto
+    gifinto
+    gifsponge
+    giftext
+    giftool #note: this requires getopt.c, which is not available on Windows
+    gifwedge
+)
+
+# Build utilities if enabled
+if(BUILD_UTILS)
+    foreach(UTIL ${UTILS})
+        add_executable(${UTIL} ${UTIL}.c ${UTILS_COMMON_SOURCES})
+        target_link_libraries(${UTIL} PRIVATE GIF m)
+        
+        # Set utility output properties
+        set_target_properties(${UTIL} PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG}"
+            RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}"
+            PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+        )
+    endforeach()
+endif()
+
+# Installation
+include(GNUInstallDirs)
+
+install(TARGETS GIF
+    EXPORT GIFTargets
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+# Install headers
+if(WIN32)
+    # Install patched headers from build directory
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/gif_lib.h
+        ${CMAKE_CURRENT_BINARY_DIR}/gif_hash.h
+        ${CMAKE_CURRENT_BINARY_DIR}/gif_lib_private.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+else()
+    # Install original headers on non-Windows platforms
+    install(FILES
+        gif_lib.h
+        gif_hash.h
+        gif_lib_private.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+endif()
+
+# Install utilities
+if(BUILD_UTILS)
+    install(TARGETS ${UTILS}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+endif()
+
+# Export targets
+install(EXPORT GIFTargets
+    FILE GIFTargets.cmake
+    NAMESPACE GIF::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GIF
+)
+
+# Create and install config files
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/GIFConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+# since we don't have a GIFConfig.cmake file in the source tree, we want to create
+# one and install it
+set(GIF_CONFIG_IN "
+@PACKAGE_INIT@
+include(\${CMAKE_CURRENT_LIST_DIR}/GIFTargets.cmake)
+check_required_components(GIF)
+")
+file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GIFConfig.cmake.in" "${GIF_CONFIG_IN}")
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GIFConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/GIFConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/GIF
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/GIFConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/GIFConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GIF
+) 

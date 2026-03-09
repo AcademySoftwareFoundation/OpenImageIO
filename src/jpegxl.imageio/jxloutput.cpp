@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <vector>
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -228,9 +229,9 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
                 lossless = true;
             } else {
                 m_basic_info.uses_original_profile = JXL_FALSE;
-                JxlEncoderSetFrameDistance(
-                    m_frame_settings,
-                    1.0f / static_cast<float>(compqual.second));
+                const float distance = JxlEncoderDistanceFromQuality(
+                    compqual.second);
+                JxlEncoderSetFrameDistance(m_frame_settings, distance);
                 JxlEncoderSetFrameLossless(m_frame_settings, JXL_FALSE);
             }
         } else {  // default to lossless
@@ -538,6 +539,84 @@ JxlOutput::save_image(const void* data)
         return false;
     }
 
+    bool wrote_colorspace = false;
+
+    // Write the ICC profile, if available
+    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
+        "ICCProfile");
+    if (icc_profile_parameter != nullptr) {
+        unsigned char* icc_profile
+            = (unsigned char*)icc_profile_parameter->data();
+        uint32_t length = icc_profile_parameter->type().size();
+        if (icc_profile && length) {
+            if (JXL_ENC_SUCCESS
+                != JxlEncoderSetICCProfile(m_encoder.get(), icc_profile,
+                                           length)) {
+                errorfmt("JxlEncoderSetICCProfile failed\n");
+            }
+            wrote_colorspace = true;
+        }
+    }
+
+    // Write CICP
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    const ParamValue* p    = m_spec.find_attribute("CICP",
+                                                   TypeDesc(TypeDesc::INT, 4));
+    string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
+    cspan<int> cicp        = (p) ? p->as_cspan<int>()
+                             : (!wrote_colorspace) ? colorconfig.get_cicp(colorspace)
+                                                   : cspan<int>();
+    if (!cicp.empty()) {
+        // JXL only has a subset of CICP, only write if supported. Custom
+        // primaries and white point are not currently used but could help
+        // support more CICP codes.
+        JxlColorEncoding color_encoding {};
+        color_encoding.primaries = JxlPrimaries(cicp[0]);
+        // CICP primaries 11 and 12 both represent P3, but with different white points.
+        if (cicp[0] == 11) {
+            color_encoding.white_point = JXL_WHITE_POINT_DCI;
+        }
+        // JxlPrimaries enum only covers P3 primaries as value 11 and not 12.
+        else if (cicp[0] == 12) {
+            color_encoding.primaries   = JXL_PRIMARIES_P3;
+            color_encoding.white_point = JXL_WHITE_POINT_D65;
+        } else {
+            color_encoding.white_point = JXL_WHITE_POINT_D65;
+        }
+        color_encoding.transfer_function = JxlTransferFunction(cicp[1]);
+        color_encoding.color_space       = JXL_COLOR_SPACE_RGB;
+
+        bool supported_primaries = false;
+        bool supported_transfer  = false;
+
+        switch (color_encoding.primaries) {
+        case JXL_PRIMARIES_SRGB:
+        case JXL_PRIMARIES_2100:
+        case JXL_PRIMARIES_P3: supported_primaries = true; break;
+        case JXL_PRIMARIES_CUSTOM:  // Not an actual CICP code in JXL
+            break;
+        }
+
+        switch (color_encoding.transfer_function) {
+        case JXL_TRANSFER_FUNCTION_709:
+        case JXL_TRANSFER_FUNCTION_UNKNOWN:
+        case JXL_TRANSFER_FUNCTION_LINEAR:
+        case JXL_TRANSFER_FUNCTION_SRGB:
+        case JXL_TRANSFER_FUNCTION_PQ:
+        case JXL_TRANSFER_FUNCTION_DCI:
+        case JXL_TRANSFER_FUNCTION_HLG: supported_transfer = true; break;
+        case JXL_TRANSFER_FUNCTION_GAMMA:  // Not an actual CICP code
+            break;
+        }
+
+        if (supported_primaries && supported_transfer) {
+            if (JXL_ENC_SUCCESS
+                != JxlEncoderSetColorEncoding(m_encoder.get(),
+                                              &color_encoding)) {
+                errorfmt("JxlEncoderSetColorEncoding failed\n");
+            }
+        }
+    }
 
     // No more image frames nor metadata boxes to add
     DBG std::cout << "calling JxlEncoderCloseInput()\n";

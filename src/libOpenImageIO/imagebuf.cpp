@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -38,52 +38,10 @@ std::atomic<float> IB_total_open_time(0.0f);
 std::atomic<float> IB_total_image_read_time(0.0f);
 }  // namespace pvt
 
+OIIO_NAMESPACE_END
 
 
-ROI
-get_roi(const ImageSpec& spec)
-{
-    return ROI(spec.x, spec.x + spec.width, spec.y, spec.y + spec.height,
-               spec.z, spec.z + spec.depth, 0, spec.nchannels);
-}
-
-
-
-ROI
-get_roi_full(const ImageSpec& spec)
-{
-    return ROI(spec.full_x, spec.full_x + spec.full_width, spec.full_y,
-               spec.full_y + spec.full_height, spec.full_z,
-               spec.full_z + spec.full_depth, 0, spec.nchannels);
-}
-
-
-
-void
-set_roi(ImageSpec& spec, const ROI& newroi)
-{
-    spec.x      = newroi.xbegin;
-    spec.y      = newroi.ybegin;
-    spec.z      = newroi.zbegin;
-    spec.width  = newroi.width();
-    spec.height = newroi.height();
-    spec.depth  = newroi.depth();
-}
-
-
-
-void
-set_roi_full(ImageSpec& spec, const ROI& newroi)
-{
-    spec.full_x      = newroi.xbegin;
-    spec.full_y      = newroi.ybegin;
-    spec.full_z      = newroi.zbegin;
-    spec.full_width  = newroi.width();
-    spec.full_height = newroi.height();
-    spec.full_depth  = newroi.depth();
-}
-
-
+OIIO_NAMESPACE_3_1_BEGIN
 
 span<std::byte>
 span_from_buffer(void* data, TypeDesc format, int nchannels, int width,
@@ -192,10 +150,11 @@ public:
                      stride_t ystride = AutoStride,
                      stride_t zstride = AutoStride)
     {
-        m_bufspan = image_span(reinterpret_cast<std::byte*>(data),
-                               m_spec.nchannels, m_spec.width, m_spec.height,
-                               m_spec.depth, m_spec.format.size(), xstride,
-                               ystride, zstride);
+        auto formatsize = m_spec.format.size();
+        m_bufspan       = image_span(reinterpret_cast<std::byte*>(data),
+                                     m_spec.nchannels, m_spec.width, m_spec.height,
+                                     m_spec.depth, formatsize, xstride, ystride,
+                                     zstride, formatsize);
     }
 
     bool init_spec(string_view filename, int subimage, int miplevel,
@@ -615,7 +574,7 @@ ImageBufImpl::~ImageBufImpl()
     // Upon destruction, print uncaught errors to help users who don't know
     // how to properly check for errors.
     if (!m_err.empty() /* Note: safe becausethis is the dtr */
-        && pvt::imagebuf_print_uncaught_errors) {
+        && OIIO::pvt::imagebuf_print_uncaught_errors) {
         OIIO::print(
             "An ImageBuf was destroyed with a pending error message that was never\n"
             "retrieved via ImageBuf::geterror(). This was the error message:\n{}\n",
@@ -782,16 +741,16 @@ ImageBufImpl::new_pixels(ImageBuf::IBStorage storage, size_t size,
             m_bufspan = {};
         }
         m_allocated_size = size;
-        pvt::IB_local_mem_current += m_allocated_size;
-        atomic_max(pvt::IB_local_mem_peak,
-                   static_cast<long long>(pvt::IB_local_mem_current));
+        OIIO::pvt::IB_local_mem_current += m_allocated_size;
+        atomic_max(OIIO::pvt::IB_local_mem_peak,
+                   static_cast<long long>(OIIO::pvt::IB_local_mem_current));
     }
 
     if (data && size)
         memcpy(m_pixels.get(), data, size);
-    if (pvt::oiio_print_debug > 1)
+    if (OIIO::pvt::oiio_print_debug > 1)
         OIIO::debugfmt("IB allocated {} MB, global IB memory now {} MB\n",
-                       size >> 20, pvt::IB_local_mem_current >> 20);
+                       size >> 20, OIIO::pvt::IB_local_mem_current >> 20);
     eval_contiguous();
     return m_pixels.get();
 }
@@ -801,11 +760,11 @@ void
 ImageBufImpl::free_pixels()
 {
     if (m_allocated_size) {
-        if (pvt::oiio_print_debug > 1)
+        if (OIIO::pvt::oiio_print_debug > 1)
             OIIO::debugfmt("IB freed {} MB, global IB memory now {} MB\n",
                            m_allocated_size >> 20,
-                           pvt::IB_local_mem_current >> 20);
-        pvt::IB_local_mem_current -= m_allocated_size;
+                           OIIO::pvt::IB_local_mem_current >> 20);
+        OIIO::pvt::IB_local_mem_current -= m_allocated_size;
         m_allocated_size = 0;
     }
     m_pixels.reset();
@@ -934,7 +893,7 @@ ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
 {
     clear();
     m_name = ustring(filename);
-    if (m_imagecache || pvt::imagebuf_use_imagecache) {
+    if (m_imagecache || OIIO::pvt::imagebuf_use_imagecache) {
         // Invalidate the image in cache. Do so unconditionally if there's a
         // chance that configuration hints may have changed.
         invalidate(m_name, config || m_configspec);
@@ -1146,13 +1105,13 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         && m_current_subimage == subimage && m_current_miplevel == miplevel)
         return true;  // Already done
 
-    pvt::LoggedTimer logtime("IB::init_spec");
+    OIIO::pvt::LoggedTimer logtime("IB::init_spec");
 
     m_name = filename;
 
     // If we weren't given an imagecache but "imagebuf:use_imagecache"
     // attribute was set, use a shared IC.
-    if (!m_imagecache && pvt::imagebuf_use_imagecache)
+    if (!m_imagecache && OIIO::pvt::imagebuf_use_imagecache)
         m_imagecache = ImageCache::create(true);
 
     if (m_imagecache) {
@@ -1279,20 +1238,20 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         auto input = ImageInput::open(filename, m_configspec.get(), m_rioproxy);
         if (!input) {
             error("Could not open file: {}", OIIO::geterror());
-            atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+            atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
             return false;
         }
         m_spec       = input->spec(subimage, miplevel);
         m_nativespec = m_spec;
         if (input->has_error()) {
             errorfmt("Error reading: {}", input->geterror());
-            atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+            atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
             return false;
         }
         if (m_spec.format == TypeUnknown) {
             errorfmt("Could not seek to subimage={} miplevel={}", subimage,
                      miplevel);
-            atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+            atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
             return false;
         }
         m_badfile    = false;
@@ -1320,7 +1279,7 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_current_subimage = subimage;
         m_current_miplevel = miplevel;
         m_pixelaspect = m_spec.get_float_attribute("pixelaspectratio", 1.0f);
-        atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+        atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
     }
     return !m_badfile;
 }
@@ -1374,7 +1333,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         return false;
     }
 
-    pvt::LoggedTimer logtime("IB::read");
+    OIIO::pvt::LoggedTimer logtime("IB::read");
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
     if (chend < 0 || chend > nativespec().nchannels)
@@ -1399,7 +1358,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         } else {
             error(input->geterror());
         }
-        atomic_fetch_add(pvt::IB_total_image_read_time, float(timer()));
+        atomic_fetch_add(OIIO::pvt::IB_total_image_read_time, float(timer()));
         return ok;
     }
 
@@ -1511,7 +1470,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
             m_pixels_valid = false;
             error(OIIO::geterror());
         }
-        atomic_fetch_add(pvt::IB_total_image_read_time, float(timer()));
+        atomic_fetch_add(OIIO::pvt::IB_total_image_read_time, float(timer()));
         // Since we have read in the entire image now, if we are using an
         // IOProxy, we invalidate any cache entry to avoid lifetime issues
         // related to the IOProxy. This helps to eliminate trouble emerging
@@ -1623,7 +1582,7 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
     }
     bool ok = true;
     ok &= m_impl->validate_pixels();
-    pvt::LoggedTimer logtime("IB::write inner");
+    OIIO::pvt::LoggedTimer logtime("IB::write inner");
     if (out->supports("thumbnail") && has_thumbnail()) {
         auto thumb = get_thumbnail();
         // Strutil::print("IB::write: has thumbnail ROI {}\n", thumb->roi());
@@ -1749,7 +1708,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
                 ProgressCallback progress_callback,
                 void* progress_callback_data) const
 {
-    pvt::LoggedTimer logtime("IB::write");
+    OIIO::pvt::LoggedTimer logtime("IB::write");
     string_view filename   = _filename.size() ? _filename : string_view(name());
     string_view fileformat = _fileformat.size() ? _fileformat : filename;
     if (filename.size() == 0) {
@@ -2177,6 +2136,22 @@ ImageBuf::localpixels()
 {
     m_impl->validate_pixels();
     return m_impl->localpixels();
+}
+
+
+
+image_span<const std::byte>
+ImageBuf::localpixels_as_byte_image_span() const
+{
+    return m_impl->m_bufspan;
+}
+
+
+
+image_span<std::byte>
+ImageBuf::localpixels_as_writable_byte_image_span()
+{
+    return m_impl->m_readonly ? image_span<std::byte>() : m_impl->m_bufspan;
 }
 
 
@@ -2811,6 +2786,9 @@ bool
 ImageBuf::set_pixels(ROI roi, TypeDesc format, const void* data,
                      stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (!roi.defined())
+        roi = this->roi();
+    roi.chend = std::min(roi.chend, nchannels());
     image_span<const std::byte> s(reinterpret_cast<const std::byte*>(data),
                                   roi.nchannels(), roi.width(), roi.height(),
                                   roi.depth(), format.size(), xstride, ystride,
@@ -3700,4 +3678,4 @@ ImageBuf::unlock() const
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

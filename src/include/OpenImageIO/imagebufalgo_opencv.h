@@ -59,7 +59,7 @@ OIIO_PRAGMA_WARNING_POP
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace ImageBufAlgo {
 
@@ -294,4 +294,4 @@ ImageBufAlgo::capture_image(int cameranum, TypeDesc convert)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

@@ -16,11 +16,13 @@
 #include <cassert>
 #include <cstdio>
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include <jxl/color_encoding.h>
 #include <jxl/decode.h>
 #include <jxl/decode_cxx.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
@@ -222,6 +224,8 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     JxlDataType jxl_data_type;
     TypeDesc m_data_type;
     uint32_t bits = 0;
+    JxlColorEncoding color_encoding {};
+    bool have_color_encoding = false;
 
     for (;;) {
         JxlDecoderStatus status = JxlDecoderProcessInput(m_decoder.get());
@@ -298,6 +302,16 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 errorfmt("JxlDecoderGetColorAsICCProfile failed\n");
                 return false;
             }
+
+            // Get the color encoding of the pixel data
+            // This will return JXL_DEC_ERR for a valid file without color
+            // encoding information, so don't report an error.
+            if (JXL_DEC_SUCCESS
+                == JxlDecoderGetColorAsEncodedProfile(
+                    m_decoder.get(), JXL_COLOR_PROFILE_TARGET_DATA,
+                    &color_encoding)) {
+                have_color_encoding = true;
+            }
         } else if (status == JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
             DBG std::cout << "JXL_DEC_NEED_IMAGE_OUT_BUFFER\n";
 
@@ -345,6 +359,45 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     m_spec = ImageSpec(info.xsize, info.ysize, m_channels, m_data_type);
+
+    // Read ICC profile
+    if (m_icc_profile.size() && m_icc_profile.data()) {
+        m_spec.attribute("ICCProfile",
+                         TypeDesc(TypeDesc::UINT8, m_icc_profile.size()),
+                         m_icc_profile.data());
+        std::string errormsg;
+
+        bool ok = decode_icc_profile(cspan<uint8_t>(m_icc_profile.data(),
+                                                    m_icc_profile.size()),
+                                     m_spec, errormsg);
+
+        if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
+                     errormsg);
+            return false;
+        }
+    }
+
+    // Read CICP from color encoding. Custom primaries, custom white point and
+    // arbitrary gamma not supported currently.
+    if (have_color_encoding && color_encoding.primaries != JXL_PRIMARIES_CUSTOM
+        && color_encoding.white_point != JXL_WHITE_POINT_CUSTOM
+        && color_encoding.transfer_function != JXL_TRANSFER_FUNCTION_GAMMA) {
+        int color_primaries = color_encoding.primaries;
+        // JxlPrimaries enum only covers P3 primaries as value 11 and not 12
+        // but CICP has separate code values based on white point.
+        if (color_primaries == JXL_PRIMARIES_P3
+            && color_encoding.white_point == JXL_WHITE_POINT_D65) {
+            color_primaries = 12;
+        }
+        const int cicp[4] = { color_primaries, color_encoding.transfer_function,
+                              0 /* RGB */, 1 /* Full range */ };
+        m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+        const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+        string_view interop_id = colorconfig.get_color_interop_id(cicp);
+        if (!interop_id.empty())
+            m_spec.attribute("oiio:ColorSpace", interop_id);
+    }
 
     newspec = m_spec;
     return true;

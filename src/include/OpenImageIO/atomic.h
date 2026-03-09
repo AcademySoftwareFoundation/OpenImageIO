@@ -19,11 +19,11 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 using std::atomic;
-typedef atomic<int> atomic_int;
-typedef atomic<long long> atomic_ll;
+using atomic_int = atomic<int>;
+using atomic_ll  = atomic<long long>;
 
 
 
@@ -79,5 +79,17 @@ atomic_fetch_add(atomic<double>& a, double f)
     } while (true);
 }
 
+OIIO_NAMESPACE_3_1_END
 
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using std::atomic;
+using atomic_int = atomic<int>;
+using atomic_ll  = atomic<long long>;
+using v3_1::atomic_fetch_add;
+using v3_1::atomic_max;
+using v3_1::atomic_min;
+#endif
 OIIO_NAMESPACE_END

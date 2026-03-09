@@ -28,7 +28,7 @@ powf(const Imath::Vec3<T>& x, float y)
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace {
 
@@ -52,7 +52,7 @@ public:
         if (lev >= PYRAMID_MAX_LEVELS)
             return 0.0f;
         else
-            return level[lev].getchannel(x, y, 0, 1);
+            return level[lev].getchannel(x, y, 0, 0);
     }
 
 #if 0 /* unused */
@@ -65,7 +65,7 @@ public:
     float operator()(int x, int y, int lev) const
     {
         OIIO_DASSERT(lev < PYRAMID_MAX_LEVELS);
-        return level[lev].getchannel(x, y, 0, 1);
+        return level[lev].getchannel(x, y, 0, 0);
     }
 #endif
 
@@ -336,4 +336,4 @@ ImageBufAlgo::compare_Yee(const ImageBuf& img0, const ImageBuf& img1,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

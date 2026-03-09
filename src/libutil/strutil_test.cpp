@@ -1315,7 +1315,7 @@ test_string_view()
     OIIO_CHECK_EQUAL(OIIO::c_str(string_view(sr.data(), 2)), std::string("01"));
     Strutil::print("addr cstr={:p}, s={:p}, ustring={:p}, sr={:p}, c_str(sr)={:p}\n",
                      (void*)cstr, (void*)s.c_str(), (void*)ustring(cstr).c_str(), (void*)sr.data(),
-                     (void*)c_str(sr));
+                     (void*)OIIO::c_str(sr));
 }
 
 

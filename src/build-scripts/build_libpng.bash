@@ -11,7 +11,7 @@ set -ex
 
 # Repo and branch/tag/commit of libpng to download if we don't have it yet
 LIBPNG_REPO=${LIBPNG_REPO:=https://github.com/pnggroup/libpng.git}
-LIBPNG_VERSION=${LIBPNG_VERSION:=v1.6.47}
+LIBPNG_VERSION=${LIBPNG_VERSION:=v1.6.50}
 
 # Where to put libpng repo source (default to the ext area)
 LIBPNG_SRC_DIR=${LIBPNG_SRC_DIR:=${PWD}/ext/libpng}

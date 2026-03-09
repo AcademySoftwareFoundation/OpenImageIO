@@ -12,8 +12,26 @@
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
 
+// Preprocessor symbol to allow conditional compilation depending on
+// whether the ColorProcessor class is exposed (it was not prior to OIIO 1.9).
+#define OIIO_HAS_COLORPROCESSOR 1
 
-OIIO_NAMESPACE_BEGIN
+//
+// Some general color management information materials to have handy:
+//   - CIF recommendations for scene referred color spaces for rendering and
+//     textures:
+//     https://github.com/AcademySoftwareFoundation/ColorInterop/blob/main/Recommendations/01_TextureAssetColorSpaces/TextureAssetColorSpaces.md
+//   - CIF recommendations for display referred color spaces:
+//     https://docs.google.com/document/d/1MmBG4a3Dr6S6EO781WjK-xZW7QdHpuo-zd7wtMvG1Rs
+//
+
+
+// Preprocessor symbol to allow conditional compilation depending on
+// whether the ColorConfig returns ColorProcessor shared pointers or raw.
+#define OIIO_COLORCONFIG_USES_SHARED_PTR 1
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// The ColorProcessor encapsulates a baked color transformation, suitable for
 /// application to raw pixels, or ImageBuf(s). These are generated using
@@ -40,17 +58,9 @@ public:
     }
 };
 
-// Preprocessor symbol to allow conditional compilation depending on
-// whether the ColorProcessor class is exposed (it was not prior to OIIO 1.9).
-#define OIIO_HAS_COLORPROCESSOR 1
 
 
-
-typedef std::shared_ptr<ColorProcessor> ColorProcessorHandle;
-
-// Preprocessor symbol to allow conditional compilation depending on
-// whether the ColorConfig returns ColorProcessor shared pointers or raw.
-#define OIIO_COLORCONFIG_USES_SHARED_PTR 1
+using ColorProcessorHandle = std::shared_ptr<ColorProcessor>;
 
 
 
@@ -392,6 +402,24 @@ public:
     bool equivalent(string_view color_space,
                     string_view other_color_space) const;
 
+    /// Find CICP code corresponding to the colorspace.
+    /// Return a cspan of 4 ints, or an empty span if not found.
+    ///
+    /// @version 3.1
+    cspan<int> get_cicp(string_view colorspace) const;
+
+    /// Find color interop ID for the given colorspace.
+    /// Returns empty string if not found.
+    ///
+    /// @version 3.1
+    string_view get_color_interop_id(string_view colorspace) const;
+
+    /// Find color interop ID corresponding to the CICP code.
+    /// Returns empty string if not found.
+    ///
+    /// @version 3.1
+    string_view get_color_interop_id(const int cicp[4]) const;
+
     /// Return a filename or other identifier for the config we're using.
     std::string configname() const;
 
@@ -435,7 +463,18 @@ private:
     Impl* getImpl() const { return m_impl.get(); }
 };
 
+OIIO_NAMESPACE_3_1_END
 
+
+// Compatibility
+#ifndef OIIO_DOXYGEN
+OIIO_NAMESPACE_BEGIN
+using v3_1::ColorProcessorHandle;
+OIIO_NAMESPACE_END
+#endif
+
+
+OIIO_NAMESPACE_BEGIN
 
 /// Utility -- convert sRGB value to linear transfer function, without
 /// any change in color primaries.

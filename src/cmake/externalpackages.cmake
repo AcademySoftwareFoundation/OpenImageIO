@@ -91,7 +91,9 @@ checked_find_package (libuhdr
                       VERSION_MIN 1.3)
 
 checked_find_package (TIFF REQUIRED
-                      VERSION_MIN 4.0)
+                      VERSION_MIN 4.0
+                      RECOMMEND_MIN 4.2
+                      RECOMMEND_MIN_REASON "4.2 for GPS support")
 alias_library_if_not_exists (TIFF::TIFF TIFF::tiff)
 
 # JPEG XL
@@ -137,7 +139,7 @@ checked_find_package (Freetype
                       DEFINITIONS USE_FREETYPE=1 )
 
 checked_find_package (OpenColorIO REQUIRED
-                      VERSION_MIN 2.2
+                      VERSION_MIN 2.3
                       VERSION_MAX 2.9
                      )
 if (NOT OPENCOLORIO_INCLUDES)
@@ -163,8 +165,9 @@ checked_find_package (GIF VERSION_MIN 5.0)
 
 # For HEIF/HEIC/AVIF formats
 checked_find_package (Libheif VERSION_MIN 1.11
+                      PREFER_CONFIG
                       RECOMMEND_MIN 1.16
-                      RECOMMEND_MIN_REASON "for orientation support")
+                      RECOMMEND_MIN_REASON "1.16 for orientation support, 1.17 for monochrome support")
 
 checked_find_package (LibRaw
                       VERSION_MIN 0.20.0
@@ -172,11 +175,12 @@ checked_find_package (LibRaw
 
 checked_find_package (OpenJPEG VERSION_MIN 2.0
                       RECOMMEND_MIN 2.2
-                      RECOMMEND_MIN_REASON "for multithreading support")
+                      RECOMMEND_MIN_REASON "for multithreading support"
+                      PREFER_CONFIG)
 # Note: Recent OpenJPEG versions have exported cmake configs, but we don't
 # find them reliable at all, so we stick to our FindOpenJPEG.cmake module.
 
-checked_find_package (OpenJPH VERSION_MIN 0.21)
+checked_find_package (openjph VERSION_MIN 0.21.2)
 
 checked_find_package (OpenVDB
                       VERSION_MIN  9.0
@@ -199,11 +203,9 @@ checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera
 set (NUKE_VERSION "7.0" CACHE STRING "Nuke version to target")
 checked_find_package (Nuke NO_RECORD_NOTFOUND)
 
-if (FFmpeg_FOUND OR FREETYPE_FOUND)
+if ((FFmpeg_FOUND OR FREETYPE_FOUND OR TARGET Freetype::Freetype)
+    AND NOT TARGET BZip2::BZip2)
     checked_find_package (BZip2)   # Used by ffmpeg and freetype
-    if (NOT BZIP2_FOUND)
-        set (BZIP2_LIBRARIES "")  # TODO: why does it break without this?
-    endif ()
 endif()
 
 
@@ -231,9 +233,9 @@ checked_find_package (Robinmap REQUIRED
                      )
 
 # fmtlib
-option (OIIO_INTERNALIZE_FMT "Copy fmt headers into <install>/include/OpenImageIO/detail/fmt" ON)
+set_option (OIIO_INTERNALIZE_FMT "Copy fmt headers into <install>/include/OpenImageIO/detail/fmt" ON)
 checked_find_package (fmt REQUIRED
-                      VERSION_MIN 7.0
+                      VERSION_MIN 9.0
                       BUILD_LOCAL missing
                      )
 get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)

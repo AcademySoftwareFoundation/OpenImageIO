@@ -105,10 +105,20 @@ command += oiiotool ("../common/tahoe-small.tif --chsum:weight=.2126,.7152,.0722
 command += oiiotool ("--create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 "
                      + " -rotate 30 -trim -origin +0+0 -fullpixels -d uint8 -o trim.tif")
 
+# test --trim on empty image
+command += oiiotool ("--create 320x240 3 "
+                     + " -trim -origin +0+0 -fullpixels -d uint8 -o trimempty.tif")
+
 # test --trim, tricky case of multiple subimages
 command += oiiotool (  "-a --create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 -rotate 30 "
                      + "--create 320x240 3 -fill:color=.5,.5,.1 100x10+70+70 -rotate 140 "
                      + "--siappend -trim -origin +0+0 -fullpixels -d uint8 -o trimsubimages.tif")
+
+# test --trim, tricky case of multiple subimages including one empty one
+command += oiiotool (  "-a --create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 -rotate 30 "
+                     + "--create 320x240 3 -fill:color=.5,.5,.1 100x10+70+70 -rotate 140 "
+                     + "--create 320x240 3 "
+                     + "--siappendall -trim -origin +0+0 -fullpixels -d uint8 -o trimemptysubimages.tif")
 
 # test hole filling
 command += oiiotool ("ref/hole.tif --fillholes -o tahoe-filled.tif")
@@ -262,7 +272,8 @@ command += oiiotool (f"--info {root_folder}/folder2/out.tif")
 outputs = [
             "filled.tif",
             "autotrim.tif",
-            "trim.tif", "trimsubimages.tif",
+            "trim.tif", "trimempty.tif",
+            "trimsubimages.tif", "trimemptysubimages.tif",
             "add.exr", "cadd1.exr", "cadd2.exr",
             "sub.exr", "subc.exr",
             "mul.exr", "cmul1.exr", "cmul2.exr",

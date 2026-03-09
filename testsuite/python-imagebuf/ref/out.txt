@@ -115,11 +115,11 @@ Interpolating 1,0.5 -> (0.5, 0.5, 0.0)
 Interpolating NDC 0.25,0.5 -> (0.5, 0.0, 0.5)
 Interpolating bicubic 0.25,0.5 -> (0.31944, 0.31944, 0.079861)
 Interpolating NDC bicubic 0.25,0.5 -> (0.31944, 0.079861, 0.31944)
-The whole image is:  [[[ 1.  0.  0.]
-  [ 0.  1.  0.]]
+The whole image is:  [[[1. 0. 0.]
+  [0. 1. 0.]]
 
- [[ 0.  0.  1.]
-  [ 0.  0.  0.]]]
+ [[0. 0. 1.]
+  [0. 0. 0.]]]
 
 Saving file...
 

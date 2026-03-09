@@ -12,7 +12,7 @@
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/platform.h>
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 namespace bjhash {
@@ -782,4 +782,4 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval)
 } // end namespace bjhash
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

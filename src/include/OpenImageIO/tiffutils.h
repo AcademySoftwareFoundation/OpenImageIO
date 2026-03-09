@@ -45,6 +45,14 @@ struct TIFFDirEntry {
 
 OIIO_NAMESPACE_BEGIN
 
+// Exif spec extends TIFFDataType beyond what TIFF or litiff define in
+// TIFFDataType.
+enum TIFFDataType_Exif3_Extensions {
+    EXIF_UTF8_TYPE = 129
+};
+
+
+
 // Define EXIF constants
 enum TIFFTAG {
     EXIF_EXPOSURETIME               = 33434,
@@ -128,9 +136,23 @@ enum TIFFTAG {
     EXIF_LENSMODEL                  = 42036,
     EXIF_LENSSERIALNUMBER           = 42037,
     EXIF_GAMMA                      = 42240,
+    // Exif 3.0 additions follow
+    EXIF_IMAGETITLE                 = 42038,
+    EXIF_PHOTOGRAPHER               = 42039,
+    EXIF_IMAGEEDTOR                 = 42040,
+    EXIF_CAMERAFIRMWARE             = 42041,
+    EXIF_RAWDEVELOPINGSOFTWARE      = 42042,
+    EXIF_IMAGEEDITINGSOFTWARE       = 42043,
+    EXIF_METADATAEDITINGSOFTWARE    = 42044,
+    EXIF_COMPOSITEIMAGE             = 42080,
+    EXIF_SOURCEIMAGENUMBEROFCOMPOSITEIMAGE        = 42081,
+    EXIF_SOURCEIMAGEEXPOSURETIMESOFCOMPOSITEIMAGE = 42082,
 };
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Given a TIFF data type code (defined in tiff.h) and a count, return the
 /// equivalent TypeDesc where one exists. Return TypeUnknown if there is no
@@ -173,6 +195,12 @@ OIIO_API void encode_exif (const ImageSpec &spec, std::vector<char> &blob,
 /// in the fields if found, return false if not found.
 OIIO_API bool exif_tag_lookup (string_view name, int &tag,
                                int &tifftype, int &count);
+
+/// Helper: For the given OIIO metadata attribute name, look up the GPS tag
+/// ID, TIFFDataType (expressed as an int), and count. Return true and fill
+/// in the fields if found, return false if not found.
+OIIO_API bool gps_tag_lookup (string_view name, int &tag,
+                              int &tifftype, int &count);
 
 /// Add metadata to spec based on raw IPTC (International Press
 /// Telecommunications Council) metadata in the form of an IIM
@@ -250,5 +278,26 @@ OIIO_API const TagInfo* tag_lookup (string_view domain, int tag);
 OIIO_API const TagInfo* tag_lookup (string_view domain, string_view tagname);
 
 
+OIIO_NAMESPACE_3_1_END
 
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::decode_exif;
+using v3_1::decode_icc_profile;
+using v3_1::decode_iptc_iim;
+using v3_1::decode_xmp;
+using v3_1::encode_iptc_iim;
+using v3_1::encode_xmp;
+using v3_1::exif_tag_lookup;
+using v3_1::gps_tag_lookup;
+using v3_1::tag_lookup;
+using v3_1::tag_table;
+using v3_1::TagInfo;
+using v3_1::tiff_data_size;
+using v3_1::tiff_datatype_to_typedesc;
+using v3_1::tiff_dir_data;
+#endif
 OIIO_NAMESPACE_END

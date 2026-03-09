@@ -14,11 +14,6 @@
 #include <OpenImageIO/texture.h>
 
 OIIO_NAMESPACE_BEGIN
-
-class ImageCache;
-class TextureSystemImpl;
-class Filter1D;
-
 #ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
 class ImageCacheFile;
 class ImageCacheTile;
@@ -26,7 +21,10 @@ class ImageCacheTileRef;
 class ImageCacheTileID;
 class ImageCacheImpl;
 #endif
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// Working implementation of the abstract TextureSystem class.
@@ -469,6 +467,13 @@ public:
     int m_max_tile_channels;  ///< narrow tile ID channel range when
                               ///<   the file has more channels
     int m_stochastic;
+#if OIIO_VERSION_GREATER_EQUAL(3, 2, 0)
+    bool m_legacy_texture_blur = false;  ///< Use legacy texture blur behavior?
+    // Opt OUT of the fix for 3.2 and beyond
+#else
+    bool m_legacy_texture_blur = true;  ///< Use legacy texture blur behavior?
+    // Opt IN to get the fix for 3.1
+#endif
     static EightBitConverter<float> uchar2float;
 
     enum StochasticStrategyBits {
@@ -554,6 +559,6 @@ TextureSystemImpl::st_to_texel(float s, float t, TextureFile& texturefile,
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
 
 #endif  // OPENIMAGEIO_TEXTURE_PVT_H

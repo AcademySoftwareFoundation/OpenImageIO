@@ -12,7 +12,7 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 
@@ -58,4 +58,15 @@ ErrorHandler::operator()(int errcode, const std::string& msg)
     fflush(stderr);
 }
 
-OIIO_NAMESPACE_END
+
+
+void
+contract_violation_handler(const char* location, const char* function,
+                           const char* msg)
+{
+    Strutil::print(stderr, "{} ({}): Contract assertion failed: {}\n", location,
+                   function, msg ? msg : "");
+    fflush(stderr);
+}
+
+OIIO_NAMESPACE_3_1_END

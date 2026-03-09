@@ -171,8 +171,9 @@ try:
     breakdown_test (oiio.TypeVector2i, "TypeVector2i", verbose=False)
     breakdown_test (oiio.TypeVector3i, "TypeVector3i", verbose=False)
     breakdown_test (oiio.TypeHalf,     "TypeHalf",     verbose=False)
-    breakdown_test (oiio.TypeRational, "TypeRational", verbose=False)
-    breakdown_test (oiio.TypeUInt,     "TypeUInt",     verbose=False)
+    breakdown_test (oiio.TypeRational,  "TypeRational",  verbose=False)
+    breakdown_test (oiio.TypeURational, "TypeURational", verbose=False)
+    breakdown_test (oiio.TypeUInt,      "TypeUInt",      verbose=False)
     print ("")
 
     print ("Done.")

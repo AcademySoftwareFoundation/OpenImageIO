@@ -219,6 +219,14 @@ public:
         return img ? &img->spec() : NULL;
     }
 
+    /// Return a modifiable ref to the current image spec, or NULL if there is no
+    /// current image.
+    ImageSpec* curspecmod(void) const
+    {
+        IvImage* img = cur();
+        return img ? &img->specmod() : NULL;
+    }
+
     bool pixelviewOn(void) const
     {
         return showPixelviewWindowAct && showPixelviewWindowAct->isChecked();
@@ -334,6 +342,11 @@ private slots:
     void editPreferences();      ///< Edit viewer preferences
     void toggleAreaSample();     ///< Use area probe
 
+    void rotateLeft();
+    void rotateRight();
+    void flipHorizontal();
+    void flipVertical();
+
     void useOCIOAction(bool checked);
     void ocioColorSpaceAction();
     void ocioDisplayViewAction();
@@ -404,6 +417,8 @@ private:
     QAction* showPixelviewWindowAct;
     QAction* toggleAreaSampleAct;
     QAction* toggleWindowGuidesAct;
+    QAction *rotateLeftAct, *rotateRightAct, *flipHorizontalAct,
+        *flipVerticalAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu,
         *helpMenu;
     QMenu* openRecentMenu;

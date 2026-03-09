@@ -139,40 +139,41 @@ Color information
 
 .. option:: "oiio:ColorSpace" : string
 
-    The name of the color space of the color channels.  Values include:
+    The name of the color space of the color channels. This can be the name of
+    any documented Color Interop Forum standard token, or any color space,
+    alias, or role known to OpenColorIO. Common values include:
     
-    - `"scene_linear"` :  Color pixel values are known to be scene-linear and
-      using facility-default color primaries as defined by the OpenColorIO
-      configuration.
-    - `"lin_srgb"`, `"lin_rec709"` :  Color pixel values are known to be
-      linear and using sRGB/Rec709 color primaries. Note that `"linear"` is
-      treated as a synonym.
-    - `"sRGB"` :  Using standard sRGB response and primaries.
-    - `"Rec709"` :  Using standard Rec709 response and primaries.
-    - `"ACEScg"` :  ACEScg color space encoding.
-    - `"AdobeRGB"` :  Adobe RGB color space.
-    - `"KodakLog"` :  Kodak logarithmic color space.
-    - `"g22_rec709"` : Rec709/sRGB primaries, but using a response curve
+    - `"lin_rec709_scene"`,  :  Color pixel values are known to be linear
+      scene-referred and using sRGB/Rec709 color primaries. Note that
+      `"lin_rec709"` is treated as a synonym.
+    - `"lin_ap1_scene"`, `"ACEScg"` :  ACEScg color space encoding.
+    - `"lin_ap0_scene"` :  ACES2065-1, the recommended ACES space for
+      interchange and archiving.
+    - `"srgb_rec709_scene"` : Using standard (piecewise) sRGB response and
+      primaries. The token `"sRGB"` is treated as a synonym.
+    - `"g22_rec709_scene"` : Rec709/sRGB primaries, but using a response curve
       corresponding to gamma 2.2.
-    - `"g18_rec709"` : Rec709/sRGB primaries, but using a response curve
-      corresponding to gamma 1.8.
-    - `"GammaX.Y"` :  Color values have been gamma corrected
-      (raised to the power :math:`1/\gamma`). The `X.Y` is the numeric value
-      of the gamma exponent.
-    - *arbitrary* :  The name of any color space known to OpenColorIO (if
-      OCIO support is present).
 
-.. option:: "oiio:Gamma" : float
-
-    If the color space is "GammaX.Y", this value is the gamma exponent.
-    (Optional/deprecated; if present, it should match the suffix of the color
-    space.)
+    Additionally, `"scene_linear"` is a role that is appropriate for color
+    pixel values are known to be scene-linear and using facility-default color
+    primaries as defined by the OpenColorIO configuration.
 
 .. option:: "oiio:BorderColor" : float[nchannels]
 
     The color presumed to be filling any parts of the display/full image
     window that are not overlapping the pixel data window.  If not supplied,
     the default is black (0 in all channels).
+
+.. option:: "CICP" : int[4]
+
+    The CICP color space information, as defined by
+    `ITU-T H.273 <https://www.itu.int/rec/T-REC-H.273>`_.  This is an array
+    of four integers, with the following meanings:
+
+    - `[0]` : color primaries
+    - `[1]` : transfer characteristics
+    - `[2]` : matrix coefficients
+    - `[3]` : full range flag
 
 .. option:: "ICCProfile" : uint8[]
             "ICCProfile:...various..." : ...various types...
@@ -758,6 +759,59 @@ A sum of:
 
     A unique identifier for the image, as 16 ASCII hexadecimal digits
     representing a 128-bit number.
+
+.. option:: "Exif:ImageTitle" : string
+
+    Title of the image.
+
+.. option:: "Exif:Photographer" : string
+
+    The name of the photographer. This may be different from the "Artist"
+    field.
+
+.. option:: "Exif:ImageEdtor" : string
+
+    The name of the main person who edited the image.
+
+.. option:: "Exif:CameraFirmware" : string
+
+    The name and version of the firmware of the camera that captured the image.
+
+.. option:: "Exif:RAWDevelopingSoftware" : string
+
+    The name and version of the software that developed the RAW image.
+
+.. option:: "Exif:ImageEditingSoftware" : string
+
+    The name and version of any image editing software that was used to
+    process or edit the image.
+
+.. option:: "Exif:MetadataEditingSoftware" : string
+
+    The name and version of any image editing software that was used to
+    edit the image metadata but not the pixels.
+
+.. option:: "Exif:CompositeImage" : int
+
+    Indicates whether the recorded image is a composite image (generated
+    from capturing multiple, tentatively recorded, source images).
+
+    ===  ==============================================================
+     0   unknown
+     1   non-composite image
+     2   general composite image
+     3   composite image captured when shooting
+    ===  ==============================================================
+
+.. option:: "Exif:SourceImageNumberOfCompositeImage" : ushort[2]
+
+    If a composite image, the first value is the number of source images
+    captured (at least 2) and the second value is the number of those
+    source images ultimately used in the comopsite image.
+
+.. option:: "Exif:SourceImageExposureTimesOfCompositeImage"
+
+    This is currently unsupported by OpenImageIO.
 
 
 

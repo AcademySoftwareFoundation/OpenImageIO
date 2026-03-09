@@ -25,7 +25,7 @@ OIIO_PRAGMA_WARNING_POP
 #include <OpenImageIO/thread.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 using namespace Plugin;
 
@@ -147,4 +147,4 @@ Plugin::geterror(bool clear)
     return e;
 }
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

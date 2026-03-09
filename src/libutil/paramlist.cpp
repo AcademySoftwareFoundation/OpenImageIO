@@ -12,23 +12,23 @@
 #include <OpenImageIO/ustring.h>
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 void
-ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                         const void* _value, Copy _copy,
-                         FromUstring _from_ustring) noexcept
+ParamValue::init_noclear(ustring name, TypeDesc type, int nvalues,
+                         cspan<std::byte> value, Copy copy,
+                         FromUstring from_ustring) noexcept
 {
-    init_noclear(_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy,
-                 _from_ustring);
+    init_noclear(name, type, nvalues, INTERP_CONSTANT, value, copy,
+                 from_ustring);
 }
 
 
 
 void
 ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                         Interp _interp, const void* _value, Copy _copy,
+                         Interp _interp, cspan<std::byte> _value, Copy _copy,
                          FromUstring _from_ustring) noexcept
 {
     m_name      = _name;
@@ -37,19 +37,20 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
     m_interp    = _interp;
     size_t size = (size_t)(m_nvalues * m_type.size());
     bool small  = (size <= sizeof(m_data));
+    OIIO_ASSERT(_value.size() == 0 || _value.size() == size);
 
     if (_copy || small) {
         if (small) {
-            if (_value)
-                memcpy(&m_data, _value, size);
+            if (_value.size())
+                memcpy(&m_data, _value.data(), _value.size());
             else
                 memset(&m_data, 0, sizeof(m_data));
             m_copy     = false;
             m_nonlocal = false;
         } else {
             void* ptr = malloc(size);
-            if (_value)
-                memcpy(ptr, _value, size);  //NOSONAR
+            if (_value.size())
+                memcpy(ptr, _value.data(), _value.size());
             else
                 memset(ptr, 0, size);
             m_data.ptr = ptr;
@@ -64,7 +65,7 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
     } else {
         // Big enough to warrant a malloc, but the caller said don't
         // make a copy
-        m_data.ptr = _value;
+        m_data.ptr = _value.data();
         m_copy     = false;
         m_nonlocal = true;
     }
@@ -77,7 +78,7 @@ ParamValue::operator=(const ParamValue& p) noexcept
 {
     if (this != &p) {
         clear_value();
-        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.as_bytes(),
                      Copy(p.m_copy), FromUstring(true));
     }
     return *this;
@@ -90,7 +91,7 @@ ParamValue::operator=(ParamValue&& p) noexcept
 {
     if (this != &p) {
         clear_value();
-        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.as_bytes(),
                      Copy(false), FromUstring(true));
         m_copy       = p.m_copy;
         m_nonlocal   = p.m_nonlocal;
@@ -98,25 +99,6 @@ ParamValue::operator=(ParamValue&& p) noexcept
     }
     return *this;
 }
-
-
-
-namespace Strutil {
-template<>
-inline short
-from_string<short>(string_view s)
-{
-    return static_cast<short>(Strutil::stoi(s));
-}
-
-
-template<>
-inline unsigned short
-from_string<unsigned short>(string_view s)
-{
-    return static_cast<unsigned short>(Strutil::stoi(s));
-}
-}  // namespace Strutil
 
 
 
@@ -145,7 +127,7 @@ parse_elements(string_view value, ParamValue& p)
 
 // Construct from parsed string
 ParamValue::ParamValue(string_view name, TypeDesc type, string_view value)
-    : ParamValue(name, type, 1, nullptr)
+    : ParamValue(name, type, 1, cspan<std::byte>())
 {
     if (type.basetype == TypeDesc::INT) {
         parse_elements<int>(value, *this);
@@ -378,17 +360,6 @@ ParamValue::clear_value() noexcept
 
 
 
-template<>
-size_t
-pvt::heapsize<ParamValue>(const ParamValue& pv)
-{
-    return (pv.m_nonlocal && pv.m_copy)
-               ? pv.m_nvalues * static_cast<int>(pv.m_type.size())
-               : 0;
-}
-
-
-
 ParamValueList::const_iterator
 ParamValueList::find(ustring name, TypeDesc type, bool casesensitive) const
 {
@@ -553,6 +524,21 @@ ParamValueList::add_or_replace(ParamValue&& pv, bool casesensitive)
 
 
 bool
+ParamValueList::getattribute(string_view name, TypeDesc type,
+                             span<std::byte> value, bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        return convert_type(p->type(), p->data(), type, value.data());
+        // FIXME: some day, change this to a span-based call
+    } else {
+        return false;
+    }
+}
+
+
+
+bool
 ParamValueList::getattribute(string_view name, TypeDesc type, void* value,
                              bool casesensitive) const
 {
@@ -577,6 +563,27 @@ ParamValueList::getattribute(string_view name, std::string& value,
         if (ok)
             value = s.string();
         return ok;
+    } else {
+        return false;
+    }
+}
+
+
+
+bool
+ParamValueList::getattribute_indexed(string_view name, int index, TypeDesc type,
+                                     span<std::byte> value,
+                                     bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        if (index >= int(p->type().basevalues()))
+            return false;
+        TypeDesc basetype = p->type().scalartype();
+        return convert_type(basetype,
+                            (const char*)p->data() + index * basetype.size(),
+                            type, value.data());
+        // FIXME: some day, change this to a span-based call
     } else {
         return false;
     }
@@ -808,6 +815,20 @@ ParamValueSpan::get_bool(string_view name, bool defaultval,
 
 
 bool
+ParamValueSpan::getattribute(string_view name, TypeDesc type,
+                             span<std::byte> value, bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        return convert_type(p->type(), p->data(), type, value.data());
+    } else {
+        return false;
+    }
+}
+
+
+
+bool
 ParamValueSpan::getattribute(string_view name, TypeDesc type, void* value,
                              bool casesensitive) const
 {
@@ -832,6 +853,26 @@ ParamValueSpan::getattribute(string_view name, std::string& value,
         if (ok)
             value = s.string();
         return ok;
+    } else {
+        return false;
+    }
+}
+
+
+
+bool
+ParamValueSpan::getattribute_indexed(string_view name, int index, TypeDesc type,
+                                     span<std::byte> value,
+                                     bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        if (index >= int(p->type().basevalues()))
+            return false;
+        TypeDesc basetype = p->type().scalartype();
+        return convert_type(basetype,
+                            (const char*)p->data() + index * basetype.size(),
+                            type, value.data());
     } else {
         return false;
     }
@@ -882,4 +923,13 @@ ParamValueSpan::getattribute_indexed(string_view name, int index,
 
 
 
-OIIO_NAMESPACE_END
+template<>
+size_t
+pvt::heapsize<ParamValue>(const ParamValue& pv)
+{
+    return (pv.m_nonlocal && pv.m_copy)
+               ? pv.m_nvalues * static_cast<int>(pv.m_type.size())
+               : 0;
+}
+
+OIIO_NAMESPACE_3_1_END

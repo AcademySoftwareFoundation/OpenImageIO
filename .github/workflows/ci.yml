@@ -16,6 +16,7 @@ on:
       - '!**/scorecard.yml'
       - '!**/wheel.yml'
       - '!**.properties'
+      - '!pyproject.toml'
       - '!docs/**'
   pull_request:
     paths:
@@ -26,7 +27,6 @@ on:
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"
-      if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
   workflow_dispatch:
     # This allows manual triggering of the workflow from the web
 
@@ -41,43 +41,48 @@ concurrency:
 jobs:
 
   aswf-old:
-    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "(old) ${{matrix.desc}}"
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      nametag: ${{ matrix.nametag || 'unnamed!' }}
+      runner: ${{ matrix.runner || 'ubuntu-latest' }}
+      container: ${{ matrix.container }}
+      container_volumes: '["/node20217:/node20217:rw,rshared", "/node20217:/__e/node20:ro,rshared]"]'
+      cc_compiler: ${{ matrix.cc_compiler }}
+      cxx_compiler: ${{ matrix.cxx_compiler }}
+      cxx_std: ${{ matrix.cxx_std || '17' }}
+      build_type: ${{ matrix.build_type || 'Release' }}
+      depcmds: ${{ matrix.depcmds }}
+      extra_artifacts: ${{ matrix.extra_artifacts }}
+      fmt_ver: ${{ matrix.fmt_ver }}
+      opencolorio_ver: ${{ matrix.opencolorio_ver }}
+      openexr_ver: ${{ matrix.openexr_ver }}
+      pybind11_ver: ${{ matrix.pybind11_ver }}
+      python_ver: ${{ matrix.python_ver }}
+      setenvs: ${{ matrix.setenvs }}
+      simd: ${{ matrix.simd }}
+      skip_build: ${{ matrix.skip_build }}
+      skip_tests: ${{ matrix.skip_tests }}
+      abi_check: ${{ matrix.abi_check }}
+      benchmark: ${{ matrix.benchmark }}
+      build_docs: ${{ matrix.build_docs }}
+      clang_format: ${{ matrix.clang_format }}
+      generator: ${{ matrix.generator }}
+      ctest_args: ${{ matrix.ctest_args }}
+      ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
+      coverage: ${{ matrix.coverage || 0 }}
+      sonar: ${{ matrix.sonar || 0 }}
+      old_node: ${{ matrix.old_node || 0 }}
+      # Override required_deps to be 'all' and explicitly list as optional
+      # only the ones we are intentionally not testing for those jobs.
+      required_deps: ${{ matrix.required_deps || 'all' }}
+      optional_deps: ${{ matrix.optional_deps || 'DCMTK;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - desc: VP2021 gcc9/C++17 py3.7 exr3.1 ocio2.0
-            nametag: linux-vfx2021
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2021
-            vfxyear: 2021
-            old_node: 1
-            cxx_std: 17
-            openexr_ver: v3.1.13
-            python_ver: 3.7
-            simd: "avx2,f16c"
-            fmt_ver: 7.1.0
-            pybind11_ver: v2.7.0
-            setenvs: export PUGIXML_VERSION=v1.9 WEBP_VERSION=v1.1.0 USE_OPENVDB=0
-                            FREETYPE_VERSION=VER-2-10-0
-          - desc: VP2021 clang10/C++17 avx2 exr3.1 ocio2.0
-            nametag: linux-vfx2021.clang10.cpp14
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2021-clang10
-            vfxyear: 2021
-            old_node: 1
-            cc_compiler: clang
-            cxx_compiler: clang++
-            cxx_std: 17
-            openexr_ver: v3.1.13
-            pybind11_ver: v2.7.0
-            python_ver: 3.7
-            simd: "avx2,f16c"
-            fmt_ver: 8.1.1
-            setenvs: export USE_OPENVDB=0
-                            FREETYPE_VERSION=VER-2-11-0
-          - desc: VP2022 gcc9/C++17 py39 exr3.1 ocio2.1
+          - desc: VP2022 gcc9/C++17 py39 exr3.1 ocio2.3
             nametag: linux-vfx2022
             runner: ubuntu-latest
             container: aswf/ci-osl:2022-clang11
@@ -86,10 +91,14 @@ jobs:
             cxx_std: 17
             python_ver: 3.9
             simd: "avx2,f16c"
-            fmt_ver: 8.1.1
+            fmt_ver: 9.0.0
+            opencolorio_ver: v2.3.0
             pybind11_ver: v2.9.0
             setenvs: export FREETYPE_VERSION=VER-2-12-0
-          - desc: VP2022 clang13/C++17 py39 avx2 exr3.1 ocio2.1
+                            BUILD_PNG_VERSION=1.6.30
+                            WebP_BUILD_VERSION=1.5.0
+            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
+          - desc: VP2022 clang13/C++17 py39 avx2 exr3.1 ocio2.3
             nametag: linux-vfx2022.clang13
             runner: ubuntu-latest
             container: aswf/ci-osl:2022-clang13
@@ -98,44 +107,71 @@ jobs:
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
+            opencolorio_ver: v2.3.2
+            pybind11_ver: v2.8.1
             python_ver: 3.9
             simd: "avx2,f16c"
             fmt_ver: 9.1.0
-            pybind11_ver: v2.8.1
             setenvs: export FREETYPE_VERSION=VER-2-12-0
-          - desc: oldest gcc9.3/C++17 py3.7 exr-3.1
-            # Oldest versions of the dependencies that we support.
+                            BUILD_PNG_VERSION=1.6.30
+            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
+          - desc: oldest gcc9.3/C++17 py3.9 exr3.1 ocio2.3
+            # Oldest gcc and versions of the dependencies that we support.
             nametag: linux-oldest
             runner: ubuntu-latest
-            container: aswf/ci-osl:2021
-            vfxyear: 2021
+            container: aswf/ci-osl:2022
+            vfxyear: 2022
             old_node: 1
             cxx_std: 17
-            fmt_ver: 7.0.1
-            opencolorio_ver: v2.2.1
+            fmt_ver: 9.0.0
+            opencolorio_ver: v2.3.0
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
-            python_ver: 3.7
+            python_ver: 3.9
             setenvs: export  CMAKE_VERSION=3.18.2
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              PUGIXML_VERSION=v1.8
+                             BUILD_PNG_VERSION=1.6.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
-          - desc: hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse
+            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
+          - desc: oldest clang10/C++17 py3.9 exr3.1 ocio2.3
+            # Oldest clang and versions of the dependencies that we support.
+            nametag: linux-oldest-clang
+            runner: ubuntu-latest
+            container: aswf/ci-osl:2022-clang10
+            vfxyear: 2021
+            old_node: 1
+            cc_compiler: clang
+            cxx_compiler: clang++
+            cxx_std: 17
+            fmt_ver: 9.0.0
+            opencolorio_ver: v2.3.0
+            openexr_ver: v3.1.0
+            pybind11_ver: v2.7.0
+            python_ver: 3.9
+            setenvs: export  CMAKE_VERSION=3.18.2
+                             PTEX_VERSION=v2.3.2
+                             WEBP_VERSION=v1.1.0
+                             PUGIXML_VERSION=v1.8
+                             BUILD_PNG_VERSION=1.6.0
+            depcmds: sudo rm -rf /usr/local/include/OpenEXR
+            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
+          - desc: hobbled gcc9.3/C++17 py3.9 exr-3.1 no-sse
             # Use the oldest supported versions of required dependencies, and
             # disable most optional dependencies and features (no SSE or
             # OpenCV, don't embed plugins).
             nametag: linux-disabled
             runner: ubuntu-latest
-            container: aswf/ci-osl:2021
-            vfxyear: 2021
+            container: aswf/ci-osl:2022
+            vfxyear: 2022
             old_node: 1
             cxx_std: 17
-            fmt_ver: 7.0.1
-            opencolorio_ver: v2.2.1
+            fmt_ver: 9.0.0
+            opencolorio_ver: v2.3.0
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
-            python_ver: 3.7
+            python_ver: 3.9
             simd: 0
             setenvs: export  EMBEDPLUGINS=0
                              CMAKE_VERSION=3.18.2
@@ -145,107 +181,197 @@ jobs:
                              USE_OPENCV=0
                              FREETYPE_VERSION=VER-2-10-0
                              PUGIXML_VERSION=v1.8
+                             BUILD_PNG_VERSION=1.6.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
-
-    runs-on: ${{ matrix.runner }}
-    container:
-      image: ${{ matrix.container }}
-      volumes:
-        - /node20217:/node20217:rw,rshared
-        - /node20217:/__e/node20:ro,rshared
-    env:
-      CXX: ${{matrix.cxx_compiler}}
-      CC: ${{matrix.cc_compiler}}
-      CMAKE_CXX_STANDARD: ${{matrix.cxx_std}}
-      USE_SIMD: ${{matrix.simd}}
-      FMT_VERSION: ${{matrix.fmt_ver}}
-      OPENCOLORIO_VERSION: ${{matrix.opencolorio_ver}}
-      OPENEXR_VERSION: ${{matrix.openexr_ver}}
-      PYBIND11_VERSION: ${{matrix.pybind11_ver}}
-      PYTHON_VERSION: ${{matrix.python_ver}}
-      ABI_CHECK: ${{matrix.abi_check}}
-    steps:
-      # Install nodejs 20 with glibc 2.17, to work around the face that the
-      # GHA runners are insisting on a node version that is too new for the
-      # glibc in the ASWF containers prior to 2023.
-      - name: install nodejs20glibc2.17
-        if: matrix.old_node == '1'
-        run: |
-          curl --silent https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.xz | tar -xJ --strip-components 1 -C /node20217 -f -
-      # We would like to use harden-runner, but it flags too many false
-      # positives, every time we download a dependency. We should use it only
-      # on CI runs where we are producing artifacts that users might rely on.
-      # - name: Harden Runner
-      #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
-      #   with:
-      #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-      - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Build setup
-        run: |
-            ${{matrix.setenvs}}
-            src/build-scripts/ci-startup.bash
-      - name: Prepare ccache timestamp
-        id: ccache_cache_keys
-        shell: bash
-        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
-      - name: ccache-restore
-        id: ccache-restore
-        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          # path: ./ccache
-          key: ${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
-          restore-keys: ${{matrix.nametag}}
-      - name: Dependencies
-        run: |
-            ${{matrix.depcmds}}
-            src/build-scripts/gh-installdeps.bash
-      - name: Build
-        if: matrix.skip_build != '1'
-        run: src/build-scripts/ci-build.bash
-      - name: ccache-save
-        id: ccache-save
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
-      - name: Testsuite
-        if: matrix.skip_tests != '1'
-        run: src/build-scripts/ci-test.bash
-      - name: Benchmarks
-        if: matrix.benchmark == '1'
-        shell: bash
-        run: src/build-scripts/ci-benchmark.bash
-      - name: Build Docs
-        if: matrix.build_docs == '1'
-        run: |
-            cd src/doc
-            time make doxygen
-            time make sphinx
-      - name: Upload testsuite debugging artifacts
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
-        if: ${{ failure() || matrix.build_docs == '1'}}
-        with:
-          name: oiio-${{github.job}}-${{matrix.nametag}}
-          path: |
-            build/cmake-save
-            build/compat_reports
-            build/sphinx
-            build/benchmarks
-            build/testsuite/*/*.*
-            !build/testsuite/oiio-images
-            !build/testsuite/openexr-images
-            !build/testsuite/fits-images
-            !build/testsuite/j2kp4files_v1_5
-
+            required_deps: none
 
 
   #
-  # Linux Tests
+  # Linux Tests using ASWF-docker containers
   #
-  linux:
-    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
+  linux-aswf:
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
+    name: "${{matrix.desc}}"
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      nametag: ${{ matrix.nametag || 'unnamed!' }}
+      runner: ${{ matrix.runner || 'ubuntu-latest' }}
+      container: ${{ matrix.container }}
+      container_volumes: ${{ matrix.container_volumes || '[]' }}
+      cc_compiler: ${{ matrix.cc_compiler }}
+      cxx_compiler: ${{ matrix.cxx_compiler }}
+      cxx_std: ${{ matrix.cxx_std || '17' }}
+      build_type: ${{ matrix.build_type || 'Release' }}
+      depcmds: ${{ matrix.depcmds }}
+      extra_artifacts: ${{ matrix.extra_artifacts }}
+      fmt_ver: ${{ matrix.fmt_ver }}
+      opencolorio_ver: ${{ matrix.opencolorio_ver }}
+      openexr_ver: ${{ matrix.openexr_ver }}
+      pybind11_ver: ${{ matrix.pybind11_ver }}
+      python_ver: ${{ matrix.python_ver }}
+      setenvs: ${{ matrix.setenvs }}
+      simd: ${{ matrix.simd }}
+      skip_build: ${{ matrix.skip_build }}
+      skip_tests: ${{ matrix.skip_tests }}
+      abi_check: ${{ matrix.abi_check }}
+      benchmark: ${{ matrix.benchmark }}
+      build_docs: ${{ matrix.build_docs }}
+      clang_format: ${{ matrix.clang_format }}
+      generator: ${{ matrix.generator }}
+      ctest_args: ${{ matrix.ctest_args }}
+      ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
+      coverage: ${{ matrix.coverage || 0 }}
+      sonar: ${{ matrix.sonar || 0 }}
+      # Override required_deps to be 'all' and explicitly list as optional
+      # only the ones we are intentionally not testing for those jobs.
+      required_deps: ${{ matrix.required_deps || 'all' }}
+      optional_deps: ${{ matrix.optional_deps || 'DCMTK;FFmpeg;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - desc: VFX2023 gcc11/C++17 py3.10 exr3.1 ocio2.3
+            nametag: linux-vfx2023
+            runner: ubuntu-latest
+            container: aswf/ci-osl:2023-clang15
+            opencolorio_ver: v2.3.0
+            python_ver: "3.10"
+            simd: "avx2,f16c"
+            fmt_ver: 10.1.1
+            pybind11_ver: v2.10.0
+            setenvs: export PUGIXML_VERSION=v1.13
+            optional_deps_append: 'LibRaw;Ptex;Qt6'
+          - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
+            nametag: linux-vfx2024
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2024.2
+            opencolorio_ver: v2.3.2
+            python_ver: "3.11"
+            simd: "avx2,f16c"
+            fmt_ver: 10.1.1
+            pybind11_ver: v2.12.0
+            setenvs: export PUGIXML_VERSION=v1.14
+            optional_deps_append: "LibRaw"
+          - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
+            nametag: linux-vfx2024.clang
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2024.2
+            cc_compiler: clang
+            cxx_compiler: clang++
+            opencolorio_ver: v2.3.2
+            python_ver: "3.11"
+            simd: "avx2,f16c"
+            fmt_ver: 10.1.1
+            pybind11_ver: v2.12.0
+            setenvs: export PUGIXML_VERSION=v1.14
+            optional_deps_append: "LibRaw"
+          - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
+            nametag: linux-vfx2025
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2025
+            cxx_std: 17
+            python_ver: "3.11"
+            simd: "avx2,f16c"
+            fmt_ver: 11.2.0
+            pybind11_ver: v2.13.6
+            benchmark: 1
+            setenvs: export PUGIXML_VERSION=v1.15
+            optional_deps_append: "openjph;Qt6"
+          - desc: VFX2025 Debug gcc11/C++17 py3.11 exr3.3 ocio2.4
+            nametag: linux-vfx2025-debug
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2025
+            cxx_std: 17
+            build_type: Debug
+            ctest_test_timeout: "240"
+            python_ver: "3.11"
+            simd: "avx2,f16c"
+            fmt_ver: 11.2.0
+            pybind11_ver: v2.13.6
+            setenvs: export PUGIXML_VERSION=v1.15
+            optional_deps_append: "openjph;Qt6"
+          # - desc: VFX2025 Static gcc11/C++17 py3.11 exr3.3 ocio2.4
+          #   nametag: linux-vfx2025-static
+          #   runner: ubuntu-latest
+          #   container: aswf/ci-oiio:2025
+          #   cxx_std: 17
+          #   python_ver: "3.11"
+          #   simd: "avx2,f16c"
+          #   fmt_ver: 11.2.0
+          #   pybind11_ver: v2.13.6
+          #   benchmark: 1
+          #   setenvs: export PUGIXML_VERSION=v1.15
+          #                   BUILD_SHARED_LIBS=OFF
+          #   optional_deps_append: "openjph;Qt6"
+          - desc: VFX2025 icx/C++17 py3.11 exr3.3 ocio2.4 qt5.15
+            nametag: linux-vfx2025.icx
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2025
+            cc_compiler: icx
+            cxx_compiler: icpx
+            fmt_ver: 11.2.0
+            python_ver: "3.11"
+            pybind11_ver: v2.13.6
+            simd: "avx2,f16c"
+            benchmark: 1
+            setenvs: export USE_OPENVDB=0 USE_OPENCV=0
+                            UHDR_CMAKE_C_COMPILER=gcc
+                            UHDR_CMAKE_CXX_COMPILER=g++
+            # Building libuhdr with icx results in test failures
+            optional_deps_append: "LibRaw;Ptex;openjph;Qt6"
+          - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.4
+            nametag: linux-vfx2026
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2026
+            cxx_std: 20
+            python_ver: "3.13"
+            simd: "avx2,f16c"
+            pybind11_ver: v3.0.0
+            benchmark: 1
+            # setenvs: export 
+            optional_deps_append: "Qt5;Qt6"
+          - desc: Sanitizers
+            nametag: sanitizer
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2024.2
+            cc_compiler: clang
+            cxx_compiler: clang++
+            build_type: Debug
+            opencolorio_ver: v2.4.2
+            python_ver: "3.11"
+            ctest_test_timeout: "1200"
+            setenvs: export SANITIZE=address,undefined
+                            OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DOIIO_HARDENING=3 -DUSE_PYTHON=0"
+                            CTEST_EXCLUSIONS="broken|png-damaged"
+                            OpenImageIO_BUILD_LOCAL_DEPS=PNG
+            optional_deps_append: "LibRaw"
+
+          # Test ABI stability. `abi_check` is the version or commit that we
+          # believe is the current standard against which we don't want to
+          # break the ABI. Basically, we will build that version as well as
+          # the current one, and compare the resulting libraries.
+          - desc: ABI check
+            nametag: abi-check
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2025
+            build_type: RelWithDebInfo
+            fmt_ver: 11.1.4
+            python_ver: "3.11"
+            pybind11_ver: v3.0.0
+            simd: "avx2,f16c"
+            skip_tests: 1
+            # abi_check: v3.1.6.0
+            abi_check: d4c8024633dba8bb3c01d22b65ce9bc7a1ae215e
+            setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
+                            USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
+            optional_deps_append: "openjph;Qt6"
+
+
+  #
+  # Linux Tests using GHA Ubuntu runners directly
+  #
+  linux-ubuntu:
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -276,114 +402,14 @@ jobs:
       ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
       coverage: ${{ matrix.coverage || 0 }}
       sonar: ${{ matrix.sonar || 0 }}
+      # Override required_deps to be 'all' and explicitly list as optional
+      # only the ones we are intentionally not testing for those jobs.
+      required_deps: ${{ matrix.required_deps || 'all' }}
+      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;JXL;Nuke;OpenGL;openjph;OpenVDB;Ptex;pystring;Qt5;R3DSDK;' }}${{matrix.optional_deps_append}}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - desc: VFX2023 gcc11/C++17 py3.10 exr3.1 ocio2.2
-            nametag: linux-vfx2023
-            runner: ubuntu-latest
-            container: aswftesting/ci-osl:2023-clang15
-            python_ver: "3.10"
-            simd: "avx2,f16c"
-            fmt_ver: 10.1.1
-            pybind11_ver: v2.10.0
-            setenvs: PUGIXML_VERSION=v1.13
-          - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.1 qt5.15
-            nametag: linux-vfx2023.icc
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2023
-            opencolorio_ver: v2.2.1
-            python_ver: "3.10"
-            # simd: "avx2,f16c"
-            fmt_ver: 7.1.3
-            # icc MUST use this older FMT version
-            pybind11_ver: v2.9.0
-            setenvs: export USE_ICC=1 USE_OPENVDB=0
-                            OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
-                            FREETYPE_VERSION=VER-2-13-0
-                            DISABLE_libuhdr=1
-            # For icc, use fp-model precise to eliminate needless LSB errors
-            # that make test results differ from other platforms.
-          - desc: VFX2023 icx/C++17 py3.10 exr3.1 ocio2.2 qt5.15
-            nametag: linux-vfx2023.icx
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2023
-            cc_compiler: icx
-            cxx_compiler: icpx
-            python_ver: "3.10"
-            pybind11_ver: v2.10.0
-            simd: "avx2,f16c"
-            benchmark: 1
-            setenvs: export USE_OPENVDB=0
-                            xOPENCOLORIO_CXX=g++
-                            UHDR_CMAKE_C_COMPILER=gcc
-                            UHDR_CMAKE_CXX_COMPILER=g++
-            # Building libuhdr with icx results in test failures
-            # so we force using gcc/g++.
-          - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
-            nametag: linux-vfx2024
-            runner: ubuntu-latest
-            container: aswftesting/ci-osl:2024-clang17
-            python_ver: "3.11"
-            simd: "avx2,f16c"
-            fmt_ver: 10.1.1
-            pybind11_ver: v2.12.0
-            benchmark: 1
-            setenvs: PUGIXML_VERSION=v1.14
-          - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
-            nametag: linux-vfx2024.clang
-            runner: ubuntu-latest
-            container: aswftesting/ci-osl:2024-clang17
-            cc_compiler: clang
-            cxx_compiler: clang++
-            python_ver: "3.11"
-            simd: "avx2,f16c"
-            fmt_ver: 10.1.1
-            pybind11_ver: v2.12.0
-            benchmark: 1
-            setenvs: PUGIXML_VERSION=v1.14
-          - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
-            nametag: linux-vfx2025
-            runner: ubuntu-latest
-            container: aswftesting/ci-oiio:2025
-            python_ver: "3.11"
-            simd: "avx2,f16c"
-            fmt_ver: 11.1.4
-            pybind11_ver: v2.13.6
-            benchmark: 1
-            setenvs: PUGIXML_VERSION=v1.15
-          - desc: Sanitizers
-            nametag: sanitizer
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2024-clang17
-            cc_compiler: clang
-            cxx_compiler: clang++
-            build_type: Debug
-            opencolorio_ver: v2.3.2
-            python_ver: "3.11"
-            ctest_test_timeout: "1200"
-            setenvs: export SANITIZE=address,undefined
-                            OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DOIIO_HARDENING=3 -DUSE_PYTHON=0"
-                            CTEST_EXCLUSIONS="broken|png-damaged"
-
-          # Test ABI stability. `abi_check` is the version or commit that we
-          # believe is the current standard against which we don't want to
-          # break the ABI. Basically, we will build that version as well as
-          # the current one, and compare the resulting libraries.
-          - desc: ABI check
-            nametag: abi-check
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2024-clang17
-            build_type: RelWithDebInfo
-            python_ver: "3.11"
-            simd: "avx2,f16c"
-            skip_tests: 1
-            # abi_check: v3.1.3.0
-            abi_check: 488dfb240884fcb58c889f340c869c2226ca2a28
-            setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
-                            USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
-
           # Test formatting. This test entry doesn't build at all, it
           # just runs clang-format on everything, and passes if nothing is
           # misformatted. Upon failure, the build artifact will be the full
@@ -404,33 +430,38 @@ jobs:
                             EXTRA_DEP_PACKAGES="clang-format-17"
                             CLANG_FORMAT_EXE=clang-format-17
 
-          - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.3 ocio2.4
+          - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.4 ocio2.4
             nametag: linux-latest-releases
             runner: ubuntu-24.04
             cc_compiler: gcc-13
             cxx_compiler: g++-13
             cxx_std: 20
-            fmt_ver: 11.2.0
-            opencolorio_ver: v2.4.2
-            openexr_ver: v3.3.4
-            pybind11_ver: v3.0.0
+            fmt_ver: 12.1.0
+            opencolorio_ver: v2.5.0
+            openexr_ver: v3.4.3
+            pybind11_ver: v3.0.2
             python_ver: "3.12"
             simd: avx2,f16c
-            setenvs: export LIBJPEGTURBO_VERSION=3.1.1
-                            LIBRAW_VERSION=0.21.4
-                            LIBTIFF_VERSION=v4.7.0
-                            OPENJPEG_VERSION=v2.5.3
-                            PTEX_VERSION=v2.4.3
+            setenvs: export LIBJPEGTURBO_VERSION=3.1.2
+                            LIBPNG_VERSION=v1.6.50
+                            LIBRAW_VERSION=0.22.0
+                            LIBTIFF_VERSION=v4.7.1
+                            OPENJPEG_VERSION=v2.5.4
+                            PTEX_VERSION=v2.5.0
                             PUGIXML_VERSION=v1.15
-                            WEBP_VERSION=v1.5.0
-                            FREETYPE_VERSION=VER-2-13-3
+                            WEBP_VERSION=v1.6.0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
-          - desc: bleeding edge gcc14 C++20 py3.12 OCIO/libtiff/exr-main avx2
+            # Ensure we are testing all the deps we think we are. We would
+            # like this test to have minimal missing dependencies.
+            required_deps: all
+            optional_deps: 'CUDAToolkit;DCMTK;JXL;Nuke;OpenCV;OpenGL;OpenVDB;R3DSDK'
+          - desc: bleeding edge gcc14 C++23 py3.12 OCIO/libtiff/exr-main avx2
             nametag: linux-bleeding-edge
             runner: ubuntu-24.04
             cc_compiler: gcc-14
             cxx_compiler: g++-14
-            cxx_std: 20
+            cxx_std: 23
             fmt_ver: master
             opencolorio_ver: main
             openexr_ver: main
@@ -439,18 +470,23 @@ jobs:
             simd: avx2,f16c
             benchmark: 1
             setenvs: export LIBJPEGTURBO_VERSION=main
+                            LIBPNG_VERSION=master
                             LIBRAW_VERSION=master
                             LIBTIFF_VERSION=master
                             OPENJPEG_VERSION=master
                             PTEX_VERSION=main
                             PUGIXML_VERSION=master
                             WEBP_VERSION=main
-                            OIIO_CMAKE_FLAGS="-DOIIO_HARDENING=2"
+                            OIIO_HARDENING=2
                             EXTRA_DEP_PACKAGES="python3.12-dev python3-numpy"
                             USE_OPENVDB=0
                             FREETYPE_VERSION=master
                             QT_VERSION=0 INSTALL_OPENCV=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
+            # Ensure we are testing all the deps we think we are. We would
+            # like this test to have minimal missing dependencies.
+            required_deps: all
+            optional_deps: 'CUDAToolkit;DCMTK;JXL;libuhdr;Nuke;OpenCV;OpenGL;openjph;R3DSDK;'
           - desc: all local builds gcc12 C++17 avx2 exr3.2 ocio2.3
             nametag: linux-local-builds
             runner: ubuntu-22.04
@@ -460,88 +496,66 @@ jobs:
             python_ver: "3.10"
             simd: avx2,f16c
             setenvs: export OpenImageIO_BUILD_LOCAL_DEPS=all
-                            LIBJPEGTURBO_VERSION=3.0.4
-                            LIBRAW_VERSION=0.21.3
-                            OPENJPEG_VERSION=v2.4.0
+                            OpenImageIO_DEPENDENCY_BUILD_VERBOSE=ON
+                            LIBRAW_VERSION=0.22.0
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
                             WEBP_VERSION=v1.4.0
-
-          - desc: clang15 C++17 avx2 exr3.1 ocio2.2
-            nametag: linux-clang15
-            runner: ubuntu-22.04
-            cxx_compiler: clang++-15
-            cc_compiler: clang-15
+                            OIIO_HARDENING=3
+          - desc: clang18 C++17 avx2 exr3.1 ocio2.3
+            nametag: linux-clang18
+            runner: ubuntu-24.04
+            cxx_compiler: clang++
+            cc_compiler: clang
             cxx_std: 17
             fmt_ver: 10.1.1
-            opencolorio_ver: v2.2.1
+            opencolorio_ver: v2.3.0
             openexr_ver: v3.1.13
             pybind11_ver: v2.12.0
-            python_ver: "3.10"
+            python_ver: "3.12"
             simd: avx2,f16c
-          - desc: debug gcc9/C++17, sse4.2, exr3.1
-            nametag: linux-gcc9-cpp17-debug
-            runner: ubuntu-22.04
-            cxx_compiler: g++-9
-            cxx_std: 17
-            build_type: Debug
-            python_ver: "3.10"
-            simd: sse4.2
-            openexr_ver: v3.1.13
-            pybind11_ver: v2.7.0
-            ctest_test_timeout: 1200
-            setenvs: export PUGIXML_VERSION=v1.9
-          - desc: static libs gcc9 C++17 exr3.1
-            nametag: linux-static
-            runner: ubuntu-22.04
-            cxx_compiler: g++-9
-            cxx_std: 17
-            openexr_ver: v3.1.13
-            python_ver: "3.10"
-            pybind11_ver: v2.7.0
-            setenvs: export BUILD_SHARED_LIBS=OFF
-            depcmds: |
-              sudo rm -rf /usr/local/include/OpenEXR
-              sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
-          - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.3 ocio2.4
+            setenvs: export USE_OPENVDB=0
+          - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.4 ocio2.4
             nametag: linux-arm-latest-releases
             runner: ubuntu-24.04-arm
             cc_compiler: gcc-14
             cxx_compiler: g++-14
             cxx_std: 20
-            fmt_ver: 11.1.4
-            opencolorio_ver: v2.4.2
-            openexr_ver: v3.3.3
-            pybind11_ver: v3.0.0
+            fmt_ver: 12.1.0
+            opencolorio_ver: v2.5.0
+            openexr_ver: v3.4.3
+            pybind11_ver: v3.0.2
             python_ver: "3.12"
-            setenvs: export LIBJPEGTURBO_VERSION=3.1.0
-                            LIBRAW_VERSION=0.21.3
-                            LIBTIFF_VERSION=v4.7.0
-                            OPENJPEG_VERSION=v2.5.3
+            setenvs: export LIBJPEGTURBO_VERSION=3.1.2
+                            LIBPNG_VERSION=v1.6.50
+                            LIBRAW_VERSION=0.22.0
+                            LIBTIFF_VERSION=v4.7.1
+                            OPENJPEG_VERSION=v2.5.4
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
-                            WEBP_VERSION=v1.5.0
-                            FREETYPE_VERSION=VER-2-13-3
+                            WEBP_VERSION=v1.6.0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
-          - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.3 ocio2.4
+          - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.4 ocio2.4
             nametag: linux-arm-latest-releases-clang
             runner: ubuntu-24.04-arm
             cc_compiler: clang-18
             cxx_compiler: clang++-18
             cxx_std: 20
-            fmt_ver: 11.1.4
-            opencolorio_ver: v2.4.2
-            openexr_ver: v3.3.3
-            pybind11_ver: v3.0.0
+            fmt_ver: 12.1.0
+            opencolorio_ver: v2.5.0
+            openexr_ver: v3.4.3
+            pybind11_ver: v3.0.2
             python_ver: "3.12"
-            setenvs: export LIBJPEGTURBO_VERSION=3.1.0
-                            LIBRAW_VERSION=0.21.3
-                            LIBTIFF_VERSION=v4.7.0
-                            OPENJPEG_VERSION=v2.5.3
+            setenvs: export LIBJPEGTURBO_VERSION=3.1.2
+                            LIBPNG_VERSION=v1.6.50
+                            LIBRAW_VERSION=0.22.0
+                            LIBTIFF_VERSION=v4.7.1
+                            OPENJPEG_VERSION=v2.5.4
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.15
-                            WEBP_VERSION=v1.5.0
-                            FREETYPE_VERSION=VER-2-13-3
+                            WEBP_VERSION=v1.6.0
+                            FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
 
 
@@ -549,7 +563,7 @@ jobs:
   # MacOS Tests
   #
   macos:
-    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'linux-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'linux-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -579,28 +593,35 @@ jobs:
       ctest_test_timeout: ${{ matrix.ctest_test_timeout || '800' }}
       coverage: ${{ matrix.coverage || 0 }}
       sonar: ${{ matrix.sonar || 0 }}
+      # We're able to use Homebrew to install ALMOST every dependency, so the
+      # only optional ones in our Mac CI tests are commercial things we can't
+      # test in GHA CI.
+      required_deps: ${{ matrix.required_deps || 'all' }}
+      optional_deps: ${{ matrix.optional_deps || 'Nuke;R3DSDK;' }}${{matrix.optional_deps_append}}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - desc: MacOS-13-Intel aclang14/C++17/py3.11
-            runner: macos-13
-            nametag: macos13-py311
+          - desc: MacOS-15-Intel aclang17/C++17/py3.13
+            runner: macos-15-intel
+            nametag: MacOS-15-Intel
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
-            python_ver: "3.11"
+            python_ver: "3.14"
             simd: sse4.2,avx2
             ctest_test_timeout: 1200
             setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
+                            INSTALL_QT=0 INSTALL_OPENCV=0 INSTALL_OPENVDB=0
+            optional_deps_append: 'OpenCV;OpenVDB;Qt5;Qt6'
             benchmark: 1
-          - desc: MacOS-14-ARM aclang15/C++20/py3.12
+          - desc: MacOS-14-ARM aclang15/C++20/py3.13
             runner: macos-14
-            nametag: macos14-arm-py312
+            nametag: macos14-arm-py313
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 20
-            python_ver: "3.12"
+            python_ver: "3.13"
           - desc: MacOS-15-ARM aclang16/C++20/py3.13
             runner: macos-15
             nametag: macos15-arm-py313
@@ -609,13 +630,21 @@ jobs:
             cxx_std: 20
             python_ver: "3.13"
             benchmark: 1
+          - desc: MacOS-26-ARM aclang16/C++20/py3.13
+            runner: macos-26
+            nametag: macos26-arm-py313
+            cc_compiler: clang
+            cxx_compiler: clang++
+            cxx_std: 20
+            python_ver: "3.14"
+            benchmark: 1
 
 
   #
   # Windows Tests
   #
   windows:
-    if: ${{ ! contains(github.ref, 'linux-only') && ! contains(github.ref, 'macos-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'linux-only') && ! contains(github.ref, 'macos-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -645,6 +674,11 @@ jobs:
       ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
       coverage: ${{ matrix.coverage || 0 }}
       sonar: ${{ matrix.sonar || 0 }}
+      # Windows is a PITA, so we expect very few dependencies to be present or
+      # built. But we would like to add more dependencies and reduce this list
+      # of exceptions in the future.
+      required_deps: ${{ matrix.required_deps || 'all' }}
+      optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;openjph;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
     strategy:
       fail-fast: false
       matrix:
@@ -652,15 +686,23 @@ jobs:
           - desc: Windows-2022 VS2022
             runner: windows-2022
             nametag: windows-2022
-            vsver: 2022
             generator: "Visual Studio 17 2022"
-            python_ver: "3.9"
+            python_ver: "3.12"
+            ctest_test_timeout: "240"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
           - desc: Windows-2025 VS2022
             runner: windows-2025
             nametag: windows-2025
-            vsver: 2022
             generator: "Visual Studio 17 2022"
-            python_ver: "3.9"
+            python_ver: "3.12"
+            ctest_test_timeout: "240"
+            setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
+            benchmark: 1
+          - desc: Windows-2025 VS2026
+            runner: windows-2025-vs2026
+            nametag: windows-2025-vs2026
+            generator: "Visual Studio 18 2026"
+            python_ver: "3.12"
+            ctest_test_timeout: "240"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
             benchmark: 1

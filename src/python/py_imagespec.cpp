@@ -175,13 +175,9 @@ declare_imagespec(py::module& m)
         // For now, do not expose auto_stride.  It's not obvious that
         // anybody will want to do pointer work and strides from Python.
 
-        .def("attribute", [](ImageSpec& spec, const std::string& name,
-                             float val) { spec.attribute(name, val); })
-        .def("attribute", [](ImageSpec& spec, const std::string& name,
-                             int val) { spec.attribute(name, val); })
         .def("attribute",
              [](ImageSpec& spec, const std::string& name,
-                const std::string& val) { spec.attribute(name, val); })
+                const py::object& obj) { attribute_onearg(spec, name, obj); })
         .def("attribute",
              [](ImageSpec& spec, const std::string& name, TypeDesc type,
                 const py::object& obj) {

@@ -14,7 +14,7 @@
 
 #include "imagecache_pvt.h"
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace pvt {
 
@@ -78,4 +78,4 @@ heapsize<ImageCacheImpl>(const ImageCacheImpl& ic)
 
 }  // namespace pvt
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

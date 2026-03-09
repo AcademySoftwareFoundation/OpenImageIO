@@ -30,9 +30,6 @@ public:
     bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                          const void* data, stride_t xstride = AutoStride,
                          stride_t ystride = AutoStride) override;
-    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                    stride_t xstride, stride_t ystride,
-                    stride_t zstride) override;
 
 private:
     std::string m_filename;  // Stash the filename
@@ -42,7 +39,6 @@ private:
 
     unsigned int m_dither;
     std::vector<unsigned char> m_scratch;
-    std::vector<unsigned char> m_tilebuffer;
 
     void init(void) { ioproxy_clear(); }
 
@@ -310,10 +306,6 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
             ok &= iowritefmt("{}\n", scale);
         }
     }
-    // If user asked for tiles -- which this format doesn't support, emulate
-    // it by buffering the whole image.
-    if (m_spec.tile_width && m_spec.tile_height)
-        m_tilebuffer.resize(m_spec.image_bytes());
 
     return ok;
 }
@@ -326,17 +318,8 @@ PNMOutput::close()
     if (!ioproxy_opened())  // already closed
         return true;
 
-    bool ok = true;
-    if (m_spec.tile_width) {
-        // Handle tile emulation -- output the buffered pixels
-        OIIO_DASSERT(m_tilebuffer.size());
-        ok &= ImageOutput::write_scanlines(m_spec.y, m_spec.y + m_spec.height,
-                                           0, m_spec.format, &m_tilebuffer[0]);
-        m_tilebuffer.shrink_to_fit();
-    }
-
     init();
-    return ok;
+    return true;
 }
 
 
@@ -420,16 +403,6 @@ PNMOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                                         ystride);
 }
 
-
-
-bool
-PNMOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                      stride_t xstride, stride_t ystride, stride_t zstride)
-{
-    // Emulate tiles by buffering the whole image
-    return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
-                                     zstride, &m_tilebuffer[0]);
-}
 
 
 OIIO_PLUGIN_NAMESPACE_END

@@ -92,16 +92,12 @@ public:
     bool close() override;
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
-    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                    stride_t xstride, stride_t ystride,
-                    stride_t zstride) override;
 
 private:
     std::string m_filename;  ///< Stash the filename
     FILE* m_file;            ///< Open image handle for not compressed
     gzFile m_gz;             ///< Handle for compressed files
     std::vector<unsigned char> m_scratch;
-    std::vector<unsigned char> m_tilebuffer;
 
     bool opened() const { return m_file || m_gz; }
 
@@ -112,7 +108,6 @@ private:
         m_gz   = 0;
         m_filename.clear();
         m_scratch.clear();
-        m_tilebuffer.clear();
     }
 };
 
@@ -306,11 +301,6 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
         return false;
     }
 
-    // If user asked for tiles -- which this format doesn't support, emulate
-    // it by buffering the whole image.this form
-    if (m_spec.tile_width && m_spec.tile_height)
-        m_tilebuffer.resize(m_spec.image_bytes());
-
     return true;
 }
 
@@ -324,15 +314,6 @@ ZfileOutput::close()
         return true;
     }
 
-    bool ok = true;
-    if (m_spec.tile_width && m_tilebuffer.size()) {
-        // We've been emulating tiles; now dump as scanlines.
-        ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, m_tilebuffer.data());
-        m_tilebuffer.clear();
-        m_tilebuffer.shrink_to_fit();
-    }
-
     if (m_gz) {
         gzclose(m_gz);
         m_gz = 0;
@@ -343,7 +324,7 @@ ZfileOutput::close()
     }
 
     init();  // re-initialize
-    return ok;
+    return true;
 }
 
 
@@ -380,21 +361,6 @@ ZfileOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
     return true;
 }
 
-
-
-bool
-ZfileOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                        stride_t xstride, stride_t ystride, stride_t zstride)
-{
-    if (!opened()) {
-        errorfmt("File not open");
-        return false;
-    }
-    // Emulate tiles by buffering the whole image
-    OIIO_ASSERT(m_tilebuffer.data());
-    return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
-                                     zstride, m_tilebuffer.data());
-}
 
 
 OIIO_PLUGIN_NAMESPACE_END

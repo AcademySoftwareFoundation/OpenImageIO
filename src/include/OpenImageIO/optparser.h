@@ -15,7 +15,7 @@
 #include <OpenImageIO/strutil.h>
 #include <string>
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// Parse a string of the form "name=value" and then call
@@ -101,5 +101,14 @@ optparser(C& system, const std::string& optstring)
     return ok;
 }
 
+OIIO_NAMESPACE_3_1_END
 
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::optparse1;
+using v3_1::optparser;
+#endif
 OIIO_NAMESPACE_END

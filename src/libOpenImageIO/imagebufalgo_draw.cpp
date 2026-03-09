@@ -94,11 +94,16 @@ fill_corners_(ImageBuf& dst, const float* topleft, const float* topright,
     return true;
 }
 
+OIIO_NAMESPACE_END
+
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 bool
 ImageBufAlgo::fill(ImageBuf& dst, cspan<float> pixel, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::fill");
+    OIIO::pvt::LoggedTimer logtime("IBA::fill");
     if (!IBAprep(roi, &dst))
         return false;
     bool ok;
@@ -113,7 +118,7 @@ bool
 ImageBufAlgo::fill(ImageBuf& dst, cspan<float> top, cspan<float> bottom,
                    ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::fill");
+    OIIO::pvt::LoggedTimer logtime("IBA::fill");
     if (!IBAprep(roi, &dst))
         return false;
     bool ok;
@@ -130,7 +135,7 @@ ImageBufAlgo::fill(ImageBuf& dst, cspan<float> topleft, cspan<float> topright,
                    cspan<float> bottomleft, cspan<float> bottomright, ROI roi,
                    int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::fill");
+    OIIO::pvt::LoggedTimer logtime("IBA::fill");
     if (!IBAprep(roi, &dst))
         return false;
     bool ok;
@@ -185,7 +190,7 @@ ImageBufAlgo::fill(cspan<float> topleft, cspan<float> topright,
 bool
 ImageBufAlgo::zero(ImageBuf& dst, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::zero");
+    OIIO::pvt::LoggedTimer logtime("IBA::zero");
     if (!IBAprep(roi, &dst))
         return false;
     OIIO_ASSERT(dst.localpixels());
@@ -243,7 +248,7 @@ bool
 ImageBufAlgo::render_point(ImageBuf& dst, int x, int y, cspan<float> color,
                            ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::render_point");
+    OIIO::pvt::LoggedTimer logtime("IBA::render_point");
     if (!IBAprep(roi, &dst))
         return false;
     IBA_FIX_PERCHAN_LEN_DEF(color, dst.nchannels());
@@ -368,7 +373,7 @@ ImageBufAlgo::render_line(ImageBuf& dst, int x1, int y1, int x2, int y2,
                           cspan<float> color, bool skip_first_point, ROI roi,
                           int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::render_line");
+    OIIO::pvt::LoggedTimer logtime("IBA::render_line");
     if (!IBAprep(roi, &dst))
         return false;
     IBA_FIX_PERCHAN_LEN_DEF(color, dst.nchannels());
@@ -426,7 +431,7 @@ bool
 ImageBufAlgo::render_box(ImageBuf& dst, int x1, int y1, int x2, int y2,
                          cspan<float> color, bool fill, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::render_box");
+    OIIO::pvt::LoggedTimer logtime("IBA::render_box");
     if (!IBAprep(roi, &dst))
         return false;
     IBA_FIX_PERCHAN_LEN_DEF(color, dst.nchannels());
@@ -505,7 +510,7 @@ ImageBufAlgo::checker(ImageBuf& dst, int width, int height, int depth,
                       cspan<float> color1, cspan<float> color2, int xoffset,
                       int yoffset, int zoffset, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::checker");
+    OIIO::pvt::LoggedTimer logtime("IBA::checker");
     if (!IBAprep(roi, &dst))
         return false;
     IBA_FIX_PERCHAN_LEN_DEF(color1, dst.nchannels());
@@ -636,6 +641,7 @@ static bool
 noise_blue_(ImageBuf& dst, float min, float max, bool mono, int seed, ROI roi,
             int nthreads)
 {
+    using OIIO::pvt::bluenoise_4chan_ptr;
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         for (ImageBuf::Iterator<T> p(dst, roi); !p.done(); ++p) {
             float n         = 0.0;
@@ -643,8 +649,8 @@ noise_blue_(ImageBuf& dst, float min, float max, bool mono, int seed, ROI roi,
             for (int c = roi.chbegin; c < roi.chend; ++c) {
                 if (c == roi.chbegin || !mono) {
                     if (!bn || !(c & 3))
-                        bn = pvt::bluenoise_4chan_ptr(p.x(), p.y(), p.z(),
-                                                      roi.chbegin & ~3, seed);
+                        bn = bluenoise_4chan_ptr(p.x(), p.y(), p.z(),
+                                                 roi.chbegin & ~3, seed);
                     n = lerp(min, max, bn[c & 3]);
                 }
                 p[c] = p[c] + n;
@@ -660,7 +666,7 @@ bool
 ImageBufAlgo::noise(ImageBuf& dst, string_view noisetype, float A, float B,
                     bool mono, int seed, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::noise");
+    OIIO::pvt::LoggedTimer logtime("IBA::noise");
     if (!IBAprep(roi, &dst))
         return false;
     bool ok;
@@ -709,7 +715,8 @@ namespace {
 inline ImageSpec
 bnspec()
 {
-    ImageSpec spec(pvt::bntable_res, pvt::bntable_res, 4, TypeFloat);
+    using OIIO::pvt::bntable_res;
+    ImageSpec spec(bntable_res, bntable_res, 4, TypeFloat);
     spec.channelnames  = { "X", "Y", "Z", "W" };
     spec.alpha_channel = -1;
     return spec;
@@ -720,13 +727,16 @@ const ImageBuf&
 ImageBufAlgo::bluenoise_image()
 {
     // This ImageBuf "wraps" the table.
-    using namespace pvt;
+    using namespace OIIO::pvt;
     static ImageBuf img(bnspec(), make_cspan(&bluenoise_table[0][0][0],
                                              bntable_res * bntable_res * 4));
     return img;
 }
 
+OIIO_NAMESPACE_3_1_END
 
+
+OIIO_NAMESPACE_BEGIN
 
 static std::vector<std::string> font_search_dirs;
 static std::vector<std::string> all_font_files;
@@ -1114,11 +1124,15 @@ resolve_font(string_view font_, std::string& result)
 #endif
 
 
+OIIO_NAMESPACE_END
+
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 ROI
 ImageBufAlgo::text_size(string_view text, int fontsize, string_view font_)
 {
-    pvt::LoggedTimer logtime("IBA::text_size");
+    OIIO::pvt::LoggedTimer logtime("IBA::text_size");
     ROI size;
 #ifdef USE_FREETYPE
     // Thread safety
@@ -1164,7 +1178,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
                           TextAlignY aligny, int shadow, ROI roi,
                           int /*nthreads*/)
 {
-    pvt::LoggedTimer logtime("IBA::render_text");
+    OIIO::pvt::LoggedTimer logtime("IBA::render_text");
     if (R.spec().depth > 1) {
         R.errorfmt("ImageBufAlgo::render_text does not support volume images");
         return false;
@@ -1316,7 +1330,10 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
 #endif
 }
 
+OIIO_NAMESPACE_3_1_END
 
+
+OIIO_NAMESPACE_BEGIN
 
 const std::vector<std::string>&
 pvt::font_family_list()

@@ -24,13 +24,17 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/i
 #ls -l "C:/Program Files (x86)/Microsoft Visual Studio" && true
 
 
-if [[ "$PYTHON_VERSION" == "3.7" ]] ; then
-    export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.7.9/x64"
-    export Python_EXECUTABLE="/c/hostedtoolcache/windows/Python/3.7.9/x64/python.exe"
-    export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages
-elif [[ "$PYTHON_VERSION" == "3.9" ]] ; then
+if [[ "$PYTHON_VERSION" == "3.9" ]] ; then
     export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.9.13/x64"
     export Python_EXECUTABLE="/c/hostedtoolcache/windows/Python/3.9.13/x64/python3.exe"
+    export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages
+elif [[ "$PYTHON_VERSION" == "3.12" ]] ; then
+    export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.12.10/x64"
+    export Python_EXECUTABLE="/c/hostedtoolcache/windows/Python/3.12.10/x64/python3.exe"
+    export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages
+elif [[ "$PYTHON_VERSION" == "3.14" ]] ; then
+    export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.14.3/x64"
+    export Python_EXECUTABLE="/c/hostedtoolcache/windows/Python/3.14.3/x64/python3.exe"
     export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages
 fi
 pip install numpy
@@ -71,6 +75,13 @@ if [[ "$OPENEXR_VERSION" != "" ]] ; then
     export PATH="$OPENEXR_INSTALL_DIR/bin:$OPENEXR_INSTALL_DIR/lib:$PATH"
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PATH
     # the above line is admittedly sketchy
+fi
+
+echo "OPENCOLORIO_VERSION='${OPENCOLORIO_VERSION}'"
+if [[ "$OPENCOLORIO_VERSION" != "" ]] ; then
+    OPENCOLORIO_INSTALL_DIR=$DEP_DIR
+    source src/build-scripts/build_opencolorio.bash
+    export PATH="$OPENCOLORIO_INSTALL_DIR/bin:$OPENCOLORIO_INSTALL_DIR/lib:$PATH"
 fi
 
 cp $DEP_DIR/lib/*.lib $DEP_DIR/bin || true

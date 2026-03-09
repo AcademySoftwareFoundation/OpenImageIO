@@ -281,7 +281,7 @@
 #endif
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace simd {
 
@@ -1020,12 +1020,7 @@ public:
     vint4& operator=(int a) { load(a); return *this; }
 
     /// Assignment from another vint4
-#if !defined(__INTEL_COMPILER)
     vint4& operator=(const vint4& other) = default;
-#else
-    // For explanation of the necessity of this, see implementation comment.
-    vint4& operator=(const vint4& other);
-#endif
 
     /// Component access (get)
     int operator[] (int i) const;
@@ -1314,12 +1309,7 @@ public:
     vint8& operator=(int a) { load(a); return *this; }
 
     /// Assignment from another vint8
-#if !defined(__INTEL_COMPILER)
     vint8& operator=(const vint8& other) = default;
-#else
-    // For explanation of the necessity of this, see implementation comment.
-    vint8& operator=(const vint8& other);
-#endif
 
     /// Component access (get)
     int operator[] (int i) const;
@@ -1614,12 +1604,7 @@ public:
     vint16& operator=(int a) { load(a); return *this; }
 
     /// Assignment from another vint16
-#if !defined(__INTEL_COMPILER)
     vint16& operator=(const vint16& other) = default;
-#else
-    // For explanation of the necessity of this, see implementation comment.
-    vint16& operator=(const vint16& other);
-#endif
 
     /// Component access (get)
     int operator[] (int i) const;
@@ -3317,7 +3302,7 @@ OIIO_FORCEINLINE const vbool4 vbool4::False () {
 OIIO_FORCEINLINE const vbool4 vbool4::True () {
     // Fastest way to fill with all 1 bits is to cmp any value to itself.
 #if OIIO_SIMD_SSE
-# if OIIO_SIMD_AVX && (OIIO_GNUC_VERSION > 50000)
+# if OIIO_SIMD_AVX
     __m128i anyval = _mm_undefined_si128();
 # else
     __m128i anyval = _mm_setzero_si128();
@@ -3676,7 +3661,7 @@ OIIO_FORCEINLINE const vbool8 vbool8::False () {
 
 OIIO_FORCEINLINE const vbool8 vbool8::True () {
 #if OIIO_SIMD_AVX
-# if OIIO_SIMD_AVX >= 2 && (OIIO_GNUC_VERSION > 50000)
+# if OIIO_SIMD_AVX >= 2
     // Fastest way to fill with all 1 bits is to cmp any value to itself.
     __m256i anyval = _mm256_undefined_si256();
     return _mm256_castsi256_ps (_mm256_cmpeq_epi8 (anyval, anyval));
@@ -4106,18 +4091,6 @@ OIIO_FORCEINLINE bool none (const vbool16& v) { return reduce_or(v) == false; }
 //////////////////////////////////////////////////////////////////////
 // vint4 implementation
 
-#if defined(__INTEL_COMPILER)
-// For reasons we don't understand, all sorts of failures crop up only on icc
-// if we make this =default. Although we still support icc for now, it's a
-// discontinued compiler, so we special-case it here rather than spend a lot
-// of time investigating what might be broken (and would of course never be
-// fixed if it's a compiler bug).
-OIIO_FORCEINLINE vint4& vint4::operator=(const vint4& other) {
-    m_simd = other.m_simd;
-    return *this;
-}
-#endif
-
 OIIO_FORCEINLINE int vint4::operator[] (int i) const {
     OIIO_DASSERT(i<elements);
     return m_val[i];
@@ -4413,7 +4386,7 @@ OIIO_FORCEINLINE const vint4 vint4::NegOne () {
 #if OIIO_SIMD_SSE
     // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
     // any value to itself.
-# if OIIO_SIMD_AVX && (OIIO_GNUC_VERSION > 50000)
+# if OIIO_SIMD_AVX
     __m128i anyval = _mm_undefined_si128();
 # else
     __m128i anyval = _mm_setzero_si128();
@@ -5003,18 +4976,6 @@ OIIO_FORCEINLINE vint4 safe_mod (const vint4& a, int b) {
 
 //////////////////////////////////////////////////////////////////////
 // vint8 implementation
-
-#if defined(__INTEL_COMPILER)
-// For reasons we don't understand, all sorts of failures crop up only on icc
-// if we make this =default. Although we still support icc for now, it's a
-// discontinued compiler, so we special-case it here rather than spend a lot
-// of time investigating what might be broken (and would of course never be
-// fixed if it's a compiler bug).
-OIIO_FORCEINLINE vint8& vint8::operator=(const vint8& other) {
-    m_simd = other.m_simd;
-    return *this;
-}
-#endif
 
 OIIO_FORCEINLINE int vint8::operator[] (int i) const {
     OIIO_DASSERT(i<elements);
@@ -5833,18 +5794,6 @@ OIIO_FORCEINLINE vint8 safe_mod (const vint8& a, int b) {
 
 //////////////////////////////////////////////////////////////////////
 // vint16 implementation
-
-#if defined(__INTEL_COMPILER)
-// For reasons we don't understand, all sorts of failures crop up only on icc
-// if we make this =default. Although we still support icc for now, it's a
-// discontinued compiler, so we special-case it here rather than spend a lot
-// of time investigating what might be broken (and would of course never be
-// fixed if it's a compiler bug).
-OIIO_FORCEINLINE vint16& vint16::operator=(const vint16& other) {
-    m_simd = other.m_simd;
-    return *this;
-}
-#endif
 
 OIIO_FORCEINLINE int vint16::operator[] (int i) const {
     OIIO_DASSERT(i<elements);
@@ -10284,41 +10233,28 @@ OIIO_FORCEINLINE vfloat16 nmsub (const simd::vfloat16& a, const simd::vfloat16& 
 
 } // end namespace simd
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END
 
 
 /// Custom fmtlib formatters for our SIMD types.
 
-namespace fmt {
-template<> struct formatter<OIIO::simd::vfloat3>
+template<> struct fmt::formatter<OIIO::simd::vfloat3>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat3> {};
-template<> struct formatter<OIIO::simd::vfloat4>
+template<> struct fmt::formatter<OIIO::simd::vfloat4>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat4> {};
-template<> struct formatter<OIIO::simd::vfloat8>
+template<> struct fmt::formatter<OIIO::simd::vfloat8>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat8> {};
-template<> struct formatter<OIIO::simd::vfloat16>
+template<> struct fmt::formatter<OIIO::simd::vfloat16>
     : OIIO::pvt::index_formatter<OIIO::simd::vfloat16> {};
-template<> struct formatter<OIIO::simd::vint4>
+template<> struct fmt::formatter<OIIO::simd::vint4>
     : OIIO::pvt::index_formatter<OIIO::simd::vint4> {};
-template<> struct formatter<OIIO::simd::vint8>
+template<> struct fmt::formatter<OIIO::simd::vint8>
     : OIIO::pvt::index_formatter<OIIO::simd::vint8> {};
-template<> struct formatter<OIIO::simd::vint16>
+template<> struct fmt::formatter<OIIO::simd::vint16>
     : OIIO::pvt::index_formatter<OIIO::simd::vint16> {};
-template<> struct formatter<OIIO::simd::matrix44>
+template<> struct fmt::formatter<OIIO::simd::matrix44>
     : OIIO::pvt::array_formatter<OIIO::simd::matrix44, float, 16> {};
-} // namespace fmt
 
-
-// Allow C++ metaprogramming to understand that the simd types are trivially
-// copyable (i.e. memcpy to copy simd types is fine).
-namespace std {  // not necessary in C++17, just say std::is_trivially_copyable
-#if defined(__INTEL_COMPILER)
-// Necessary because we have to define the vint types copy constructors on icc
-template<> struct is_trivially_copyable<OIIO::simd::vint4> : std::true_type {};
-template<> struct is_trivially_copyable<OIIO::simd::vint8> : std::true_type {};
-template<> struct is_trivially_copyable<OIIO::simd::vint16> : std::true_type {};
-#endif
-}  // namespace std
 
 
 #undef SIMD_DO

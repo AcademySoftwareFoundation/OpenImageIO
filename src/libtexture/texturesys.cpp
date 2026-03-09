@@ -34,13 +34,15 @@
 
 #define TEX_FAST_MATH 1
 
+using namespace OIIO::simd;
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 using namespace pvt;
-using namespace simd;
+using namespace OIIO::pvt;
 using LevelInfo    = ImageCacheFile::LevelInfo;
 using SubimageInfo = ImageCacheFile::SubimageInfo;
 using ImageDims    = ImageCacheFile::ImageDims;
+
 
 namespace {  // anonymous
 
@@ -183,9 +185,25 @@ TextureSystem::destroy_thread_info(Perthread* threadinfo)
 
 
 bool
-TextureSystem::attribute(string_view name, TypeDesc type, const void* val)
+TextureSystem::attribute(string_view name, TypeDesc type,
+                         cspan<std::byte> value)
 {
-    return m_impl->attribute(name, type, val);
+    if (value.size_bytes() != type.size()) {
+        errorfmt(
+            "TextureSystem::attribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return m_impl->attribute(name, type, value.data());
+}
+
+
+
+bool
+TextureSystem::attribute(string_view name, TypeDesc type, const void* value)
+{
+    return m_impl->attribute(name, type, value);
 }
 
 
@@ -199,9 +217,25 @@ TextureSystem::getattributetype(string_view name) const
 
 
 bool
-TextureSystem::getattribute(string_view name, TypeDesc type, void* val) const
+TextureSystem::getattribute(string_view name, TypeDesc type,
+                            span<std::byte> value) const
 {
-    return m_impl->getattribute(name, type, val);
+    if (value.size_bytes() != type.size()) {
+        errorfmt(
+            "TextureSystem::getattribute given a {}-byte span as data for a {}-byte attribute {} {}",
+            value.size(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() == type.size());
+        return false;
+    }
+    return m_impl->getattribute(name, type, value.data());
+}
+
+
+
+bool
+TextureSystem::getattribute(string_view name, TypeDesc type, void* value) const
+{
+    return m_impl->getattribute(name, type, value);
 }
 
 
@@ -712,10 +746,11 @@ void
 TextureSystemImpl::init()
 {
     m_Mw2c.makeIdentity();
-    m_gray_to_rgb       = false;
-    m_flip_t            = false;
-    m_max_tile_channels = 6;
-    m_stochastic        = StochasticStrategy_None;
+    m_gray_to_rgb         = false;
+    m_flip_t              = false;
+    m_max_tile_channels   = 6;
+    m_stochastic          = StochasticStrategy_None;
+    m_legacy_texture_blur = false;
     hq_filter.reset(Filter1D::create("b-spline", 4));
     m_statslevel = 0;
 
@@ -773,31 +808,33 @@ TextureSystemImpl::getstats(int level, bool icstats) const
 #undef BOOLOPT
 #undef INTOPT
 #undef STROPT
-        print(out, "  Options:  {}\n", Strutil::wordwrap(opt, 75, 12));
+        OIIO::print(out, "  Options:  {}\n", Strutil::wordwrap(opt, 75, 12));
 
-        print(out, "  Queries/batches : \n");
-        print(out, "    texture     :  {} queries in {} batches\n",
-              stats.texture_queries, stats.texture_batches);
-        print(out, "    texture 3d  :  {} queries in {} batches\n",
-              stats.texture3d_queries, stats.texture3d_batches);
-        print(out, "    shadow      :  {} queries in {} batches\n",
-              stats.shadow_queries, stats.shadow_batches);
-        print(out, "    environment :  {} queries in {} batches\n",
-              stats.environment_queries, stats.environment_batches);
-        print(out, "    gettextureinfo :  {} queries\n",
-              stats.imageinfo_queries);
-        print(out, "  Interpolations :\n");
-        print(out, "    closest  : {}\n", stats.closest_interps);
-        print(out, "    bilinear : {}\n", stats.bilinear_interps);
-        print(out, "    bicubic  : {}\n", stats.cubic_interps);
+        OIIO::print(out, "  Queries/batches : \n");
+        OIIO::print(out, "    texture     :  {} queries in {} batches\n",
+                    stats.texture_queries, stats.texture_batches);
+        OIIO::print(out, "    texture 3d  :  {} queries in {} batches\n",
+                    stats.texture3d_queries, stats.texture3d_batches);
+        OIIO::print(out, "    shadow      :  {} queries in {} batches\n",
+                    stats.shadow_queries, stats.shadow_batches);
+        OIIO::print(out, "    environment :  {} queries in {} batches\n",
+                    stats.environment_queries, stats.environment_batches);
+        OIIO::print(out, "    gettextureinfo :  {} queries\n",
+                    stats.imageinfo_queries);
+        OIIO::print(out, "  Interpolations :\n");
+        OIIO::print(out, "    closest  : {}\n", stats.closest_interps);
+        OIIO::print(out, "    bilinear : {}\n", stats.bilinear_interps);
+        OIIO::print(out, "    bicubic  : {}\n", stats.cubic_interps);
         if (stats.aniso_queries)
-            print(out, "  Average anisotropic probes : {:.3g}\n",
-                  (double)stats.aniso_probes / (double)stats.aniso_queries);
+            OIIO::print(out, "  Average anisotropic probes : {:.3g}\n",
+                        (double)stats.aniso_probes
+                            / (double)stats.aniso_queries);
         else
-            print(out, "  Average anisotropic probes : 0\n");
-        print(out, "  Max anisotropy in the wild : {:.3g}\n", stats.max_aniso);
+            OIIO::print(out, "  Average anisotropic probes : 0\n");
+        OIIO::print(out, "  Max anisotropy in the wild : {:.3g}\n",
+                    stats.max_aniso);
         if (icstats)
-            print(out, "\n");
+            OIIO::print(out, "\n");
     }
     if (icstats)
         out << m_imagecache->getstats(level);
@@ -871,6 +908,10 @@ TextureSystemImpl::attribute(string_view name, TypeDesc type, const void* val)
         unit_test_texture_blur = *(const float*)val;
         return true;
     }
+    if (name == "legacy_texture_blur" && type == TypeInt) {
+        m_legacy_texture_blur = (*(const int*)val != 0);
+        return true;
+    }
 
     // Maybe it's meant for the cache?
     return m_imagecache->attribute(name, type, val);
@@ -890,6 +931,7 @@ TextureSystemImpl::getattributetype(string_view name) const
         { "flip_t", TypeInt },
         { "max_tile_channels", TypeInt },
         { "stochastic", TypeInt },
+        { "legacy_texture_blur", TypeInt },
     };
     // clang-format on
 
@@ -937,6 +979,10 @@ TextureSystemImpl::getattribute(string_view name, TypeDesc type,
     }
     if (name == "stochastic" && type == TypeInt) {
         *(int*)val = m_stochastic;
+        return true;
+    }
+    if (name == "legacy_texture_blur" && type == TypeInt) {
+        *(int*)val = m_legacy_texture_blur;
         return true;
     }
 
@@ -1854,7 +1900,7 @@ adjust_width(float& dsdx, float& dtdx, float& dsdy, float& dtdy, float swidth,
 // back to this and solve it better.
 inline void
 adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
-            float tblur)
+            float tblur, bool legacy_textblur = false)
 {
     if (sblur + tblur != 0.0f /* avoid the work when blur is zero */) {
         // Carefully add blur to the right derivative components in the
@@ -1865,8 +1911,22 @@ adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
         fast_sincos(theta, &sintheta, &costheta);
         sintheta = fabsf(sintheta);
         costheta = fabsf(costheta);
-        majorlength += sblur * costheta + tblur * sintheta;
-        minorlength += sblur * sintheta + tblur * costheta;
+
+        if (legacy_textblur) {
+            // The legacy blur code just adds the blur to the major and minor
+            // axes, which is a crude approximation that is wrong at some angles
+            // but is very simple and fast.  I'm leaving it here as an option
+            // for now, in case the new code causes any unforeseen problems.
+            majorlength += sblur * costheta + tblur * sintheta;
+            minorlength += sblur * sintheta + tblur * costheta;
+        } else {
+            const float sintheta2 = sintheta * sintheta;
+            const float costheta2 = costheta * costheta;
+            const float sblur2    = sblur * sblur;
+            const float tblur2    = tblur * tblur;
+            majorlength += sqrtf(sblur2 * costheta2 + tblur2 * sintheta2);
+            minorlength += sqrtf(sblur2 * sintheta2 + tblur2 * costheta2);
+        }
 #if 1
         if (minorlength > majorlength) {
             // Wildly uneven sblur and tblur values might swap which axis is
@@ -2237,7 +2297,8 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
     // or bicubic texture probes, and therefore runtime!
     ellipse_axes(dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta);
 
-    adjust_blur(majorlength, minorlength, theta, options.sblur, options.tblur);
+    adjust_blur(majorlength, minorlength, theta, options.sblur, options.tblur,
+                m_legacy_texture_blur);
 
     float aspect, trueaspect;
     aspect = anisotropic_aspect(majorlength, minorlength, options, trueaspect);
@@ -3352,7 +3413,8 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     ellipse_axes(dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta, ABCF);
     std::cout << "  ellipse major " << majorlength << ", minor " << minorlength
               << ", theta " << theta << "\n";
-    adjust_blur(majorlength, minorlength, theta, sblur, tblur);
+    adjust_blur(majorlength, minorlength, theta, sblur, tblur,
+                m_legacy_texture_blur);
     std::cout << "  post " << sblur << ' ' << tblur << " blur: major "
               << majorlength << ", minor " << minorlength << "\n\n";
 
@@ -3608,4 +3670,4 @@ TextureSystem::unit_test_hash()
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

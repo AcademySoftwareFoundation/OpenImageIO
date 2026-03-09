@@ -72,7 +72,7 @@ described in detail in Section :ref:`sec-typedesc`, is replicated for Python.
     These names are also exported to the `OpenImageIO` namespace.
 
 
-.. py::method:: TypeDesc.TypeDesc(typename='unknown')
+.. py:method:: TypeDesc.TypeDesc(typename='unknown')
 
     Construct a `TypeDesc` object the easy way: from a string description.
     If the type name is omitted, it will default to`UNKNOWN`.
@@ -97,7 +97,7 @@ described in detail in Section :ref:`sec-typedesc`, is replicated for Python.
 
 
 
-.. py::method:: TypeDesc.TypeDesc(basetype=oiio.UNKNOWN, aggregate=oiio.SCALAR, vecsemantics=NOSEMANTICS, arraylen=0)
+.. py:method:: TypeDesc.TypeDesc(basetype=oiio.UNKNOWN, aggregate=oiio.SCALAR, vecsemantics=NOSEMANTICS, arraylen=0)
 
     Construct a `TypeDesc` object the hard way: from individual enum tokens
     describing the base type, aggregate class, semantic hints, and array length.
@@ -128,7 +128,8 @@ described in detail in Section :ref:`sec-typedesc`, is replicated for Python.
              TypeFloat2 TypeVector2 TypeFloat4
              TypeVector2i TypeVector3i
              TypeMatrix TypeMatrix33
-             TypeTimeCode TypeKeyCode TypeRational TypePointer
+             TypeTimeCode TypeKeyCode TypeRational TypeURational
+             TypePointer
 
     Pre-constructed `TypeDesc` objects for some common types, available in the
     outer OpenImageIO scope.
@@ -729,7 +730,7 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
     .. code-block:: python
 
         spec = ImageSpec(...)
-        spec.set_colorspace ("sRGB")
+        spec.set_colorspace ("srgb_rec709_scene")
 
 
 .. py:method:: ImageSpec.undefined ()
@@ -751,7 +752,7 @@ function that opens a file and prints all the relevant header information:
     from OpenImageIO import ImageInput
 
     # Print the contents of an ImageSpec
-    def print_imagespec (spec, subimage=0, mip=0) :
+    def print_imagespec (spec: ImageSpec, subimage: int=0, mip: int=0) :
         if spec.depth <= 1 :
             print ("  resolution %dx%d%+d%+d" % (spec.width, spec.height, spec.x, spec.y))
         else :
@@ -787,7 +788,7 @@ function that opens a file and prints all the relevant header information:
                 print (" ", i.name, "=", i.value)
 
 
-    def poor_mans_iinfo (filename) :
+    def poor_mans_iinfo (filename: str) :
         input = ImageInput.open (filename)
         if not input :
             print ('Could not open "' + filename + '"')
@@ -1243,7 +1244,7 @@ Example: Reading pixel values from a file to find min/max
     #!/usr/bin/env python 
     import OpenImageIO as oiio
     
-    def find_min_max (filename) :
+    def find_min_max (filename: str) :
         input = ImageInput.open (filename)
         if not input :
             print ('Could not open "' + filename + '"')
@@ -3888,6 +3889,73 @@ sections) work with deep inputs::
 
 |
 
+.. _sec-pythoncolorconfig:
+
+
+ColorConfig
+===========
+
+The `ColorConfig` class that represents the set of color transformations that
+are allowed.
+
+If OpenColorIO is enabled at build time, this configuration is loaded at
+runtime, allowing the user to have complete control of all color transformation
+math. See the
+`OpenColorIO documentation <https://opencolorio.readthedocs.io>`_ for details.
+
+If OpenColorIO is not enabled at build time, a generic color configuration
+is provided for minimal color support.
+
+..
+  TODO: The documentation for this class is incomplete.
+
+.. py:method:: get_cicp (colorspace)
+
+    Find CICP code corresponding to the colorspace.
+    Return a sequence of 4 ints, or None if not found.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        cicp = colorconfig.get_cicp("pq_rec2020_display")
+        if cicp:
+            primaries, transfer, matrix, color_range = cicp
+
+    This function was added in OpenImageIO 3.1.
+
+
+.. py:method:: get_color_interop_id (colorspace)
+
+    Find color interop ID for the given colorspace.
+    Returns empty string if not found.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        interop_id = colorconfig.get_color_interop_id("Rec.2100-PQ - Display")
+
+    This function was added in OpenImageIO 3.1.
+
+
+.. py:method:: get_color_interop_id (cicp)
+
+    Find color interop ID corresponding to the CICP code.
+    Returns empty string if not found.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        interop_id = colorconfig.get_color_interop_id([9, 16, 9, 1])
+
+    This function was added in OpenImageIO 3.1.
+
+
 .. _sec-pythonmiscapi:
 
 Miscellaneous Utilities
@@ -3961,12 +4029,12 @@ details.
     .. code-block:: python
 
         spec = oiio.ImageSpec()
-        oiio.set_colorspace (spec, "lin_rec709")
+        oiio.set_colorspace (spec, "lin_rec709_scene")
 
     This function was added in OpenImageIO 3.0.
 
 
-.. py:method:: set_colorspace_rec709_gamma (spec, name)
+.. py:method:: set_colorspace_rec709_gamma (spec, gamma)
 
     Set the metadata of the `spec` to reflect Rec709 color primaries and the
     given gamma.
@@ -3992,7 +4060,7 @@ details.
 
         # ib is an ImageBuf
         cs = ib.spec().get_string_attribute("oiio:ColorSpace")
-        if oiio.equivalent_colorspace(cs, "sRGB") :
+        if oiio.equivalent_colorspace(cs, "srgb_rec709_scene") :
             print ("The image is sRGB")
 
     This function was added in OpenImageIO 3.0.
@@ -4041,8 +4109,8 @@ following boilerplate:
     # Create an ImageBuf holding a n image of constant color, given the
     # resolution, data format (defaulting to UINT8), fill value, and image
     # origin.
-    def make_constimage (xres, yres, chans=3, format=oiio.UINT8, value=(0,0,0),
-                         xoffset=0, yoffset=0) :
+    def make_constimage (xres: int, yres: int, chans: int=3, format: TypeDesc=oiio.UINT8, value: tuple[int, int, int]=(0,0,0),
+                         xoffset: int=0, yoffset: int=0) -> ImageBuf:
         spec = ImageSpec (xres,yres,chans,format)
         spec.x = xoffset
         spec.y = yoffset
@@ -4062,7 +4130,7 @@ what to do with it next.
 
     # Save an ImageBuf to a given file name, with optional forced image format
     # and error handling.
-    def write_image (image, filename, format=oiio.UNKNOWN) :
+    def write_image (image: ImageBuf, filename: str, format: TypeDesc=oiio.UNKNOWN) :
         if not image.has_error :
             image.write (filename, format)
         if image.has_error :

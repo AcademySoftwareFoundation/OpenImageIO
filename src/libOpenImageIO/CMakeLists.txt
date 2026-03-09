@@ -15,7 +15,7 @@ if (NOT USE_EXTERNAL_PUGIXML)
           ../include/OpenImageIO/detail/pugixml/pugixml.hpp
           ../include/OpenImageIO/detail/pugixml/pugixml.cpp
     )
-    if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 6.0)
+    if (CMAKE_COMPILER_IS_GNUCC)
         set_source_files_properties (formatspec.cpp xmp.cpp
                                      PROPERTIES COMPILE_FLAGS -Wno-error=placement-new)
     endif ()
@@ -30,15 +30,9 @@ if (NOT MSVC)
                              PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
 endif()
 
-if (CMAKE_COMPILER_IS_GNUCC AND ${GCC_VERSION} VERSION_GREATER_EQUAL 9.0)
+if (CMAKE_COMPILER_IS_GNUCC)
     set_source_files_properties (../libutil/SHA1.cpp
                                  PROPERTIES COMPILE_FLAGS -Wno-stringop-truncation)
-endif ()
-
-if (CMAKE_COMPILER_IS_GNUCC AND ${GCC_VERSION} VERSION_GREATER_EQUAL 6.0
-    AND ${GCC_VERSION} VERSION_LESS 7.0)
-    set_source_files_properties (../openvdb.imageio/openvdbinput.cpp
-                                 PROPERTIES COMPILE_FLAGS -Wno-error=strict-overflow)
 endif ()
 
 set (libOpenImageIO_srcs
@@ -169,7 +163,7 @@ target_link_libraries (OpenImageIO
             $<TARGET_NAME_IF_EXISTS:pugixml::pugixml>
             $<TARGET_NAME_IF_EXISTS:TBB::tbb>
             $<TARGET_NAME_IF_EXISTS:Freetype::Freetype>
-            ${BZIP2_LIBRARIES}
+            $<TARGET_NAME_IF_EXISTS:BZip2::BZip2>
             ZLIB::ZLIB
             ${CMAKE_DL_LIBS}
         )

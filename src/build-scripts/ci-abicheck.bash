@@ -41,6 +41,7 @@ for lib in $LIBS ; do
     fgrep "Binary compatibility:" ${lib}-abi-results.txt
     echo -e "\x1b[33;0m"
 done
+cp -r compat_reports ${BUILDDIR_NEW}/compat_reports || true
 
 #
 # If the "Binary compatibility" summary results say anything other than 100%,
@@ -48,7 +49,6 @@ done
 #
 for lib in $LIBS ; do
     if [[ `fgrep "Binary compatibility:" ${lib}-abi-results.txt | grep -v 100\%` != "" ]] ; then
-        cp -r compat_reports ${BUILDDIR_NEW}/compat_reports
         exit 1
     fi
 done

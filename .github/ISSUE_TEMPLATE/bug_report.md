@@ -1,11 +1,14 @@
 ---
 name: Bug report
 about: I think I have identified a legit bug and can describe it.
-title: "[BUG]"
+title: "bug:"
 labels: ''
 assignees: ''
 
 ---
+
+<!-- THESE ARE JUST SUGGESTIONS. FEEL FREE TO DELETE ALL OF THIS AND -->
+<!-- WRITE YOUR OWN THOROUGH BUG REPORT.                             -->
 
 **Describe the bug**
 

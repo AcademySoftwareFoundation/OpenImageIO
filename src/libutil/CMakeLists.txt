@@ -9,7 +9,7 @@ set (libOpenImageIO_Util_srcs argparse.cpp benchmark.cpp
                   strutil.cpp sysutil.cpp thread.cpp timer.cpp
                   typedesc.cpp ustring.cpp xxhash.cpp)
 
-if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 9.0)
+if (CMAKE_COMPILER_IS_GNUCC)
     set_property (SOURCE SHA1.cpp
                   APPEND PROPERTY COMPILE_OPTIONS -Wno-stringop-truncation)
 endif ()
@@ -51,6 +51,12 @@ function (setup_oiio_util_library targetname)
     target_link_options(${targetname} PRIVATE
                                ${${PROJECT_NAME}_link_options})
 
+    if (MSVC AND fmt_VERSION VERSION_GREATER_EQUAL 11.0)
+        # For MSVC, Unicode support requires compiling with /utf-8, and fmt
+        # needs this. This line adapted from fmt's CMakeLists.txt file.
+        target_compile_options(${targetname} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>:/utf-8>)
+    endif ()
+
     target_include_directories (${targetname}
             PUBLIC
                 $<BUILD_INTERFACE:${OpenImageIO_LOCAL_DEPS_ROOT}/include>
@@ -70,9 +76,12 @@ function (setup_oiio_util_library targetname)
             )
 
     if (GCC_VERSION VERSION_GREATER_EQUAL 12.0
-        AND CMAKE_CXX_STANDARD VERSION_GREATER_EQUAL 23)
-        target_link_libraries (${targetname}
-                               PRIVATE stdc++_libbacktrace)
+          AND GCC_VERSION VERSION_LESS 14.0
+          AND CMAKE_CXX_STANDARD VERSION_GREATER_EQUAL 23)
+        target_link_libraries (${targetname} PRIVATE stdc++_libbacktrace)
+    elseif (GCC_VERSION VERSION_GREATER_EQUAL 14.0
+            AND CMAKE_CXX_STANDARD VERSION_GREATER_EQUAL 23)
+        target_link_libraries (${targetname} PRIVATE stdc++exp)
     endif ()
 
     if (OIIO_INTERNALIZE_FMT OR fmt_LOCAL_BUILD)

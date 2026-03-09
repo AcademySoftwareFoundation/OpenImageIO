@@ -13,11 +13,8 @@
 
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
-using std::bind;
-using std::cref;
-using std::ref;
 using namespace std::placeholders;
 using std::placeholders::_1;
 
@@ -808,4 +805,10 @@ perpixel_op(const ImageBuf& srcA, const ImageBuf& srcB,
 }  // end namespace ImageBufAlgo
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
+using namespace std::placeholders;
+using std::placeholders::_1;
 OIIO_NAMESPACE_END

@@ -37,9 +37,6 @@ public:
     bool close() override;
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
-    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                    stride_t xstride, stride_t ystride,
-                    stride_t zstride) override;
     bool set_thumbnail(const ImageBuf& thumb) override;
 
 private:
@@ -50,7 +47,6 @@ private:
     std::vector<unsigned char> m_scratch;
     int m_idlen;  ///< Length of the TGA ID block
     unsigned int m_dither;
-    std::vector<unsigned char> m_tilebuffer;
     ImageBuf m_thumb;
 
     // Initialize private members to pre-opened state
@@ -239,11 +235,6 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
         }
     }
 
-    // If user asked for tiles -- which this format doesn't support, emulate
-    // it by buffering the whole image.
-    if (m_spec.tile_width && m_spec.tile_height)
-        m_tilebuffer.resize(m_spec.image_bytes());
-
     return true;
 }
 
@@ -421,16 +412,7 @@ TGAOutput::close()
         return true;
     }
 
-    bool ok = true;
-    if (m_spec.tile_width) {
-        // Handle tile emulation -- output the buffered pixels
-        OIIO_ASSERT(m_tilebuffer.size());
-        ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, &m_tilebuffer[0]);
-        m_tilebuffer.shrink_to_fit();
-    }
-
-    ok &= write_tga20_data_fields();
+    bool ok = write_tga20_data_fields();
 
     init();  // re-initialize
     return ok;
@@ -677,17 +659,6 @@ TGAOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     }
 
     return true;
-}
-
-
-
-bool
-TGAOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                      stride_t xstride, stride_t ystride, stride_t zstride)
-{
-    // Emulate tiles by buffering the whole image
-    return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
-                                     zstride, &m_tilebuffer[0]);
 }
 
 

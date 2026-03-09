@@ -550,7 +550,7 @@ test_half_convert_accuracy()
             && Imath::finitef(H[i])) {
             ++nwrong;
             Strutil::print("wrong {} 0b{}  h={}, f={} {}\n", i, bin16(i), H[i],
-                           F[i], isnan(f) ? "(nan)" : "");
+                           F[i], std::isnan(f) ? "(nan)" : "");
         }
     }
 

@@ -46,6 +46,12 @@
 
 
 OIIO_NAMESPACE_BEGIN
+// NOTE: Almost everything in fmath.h is either inline or templated, and
+// therefore can be left in the "current" OIIO namespace, they are never
+// visible between translation units. But if this ever comes up as a problem,
+// we can just move them into an older v3_1 namespace and appropriate `using`
+// directives to alias it into other namespaces.
+
 
 /// If the caller defines OIIO_FMATH_HEADER_ONLY to nonzero, then 100% of the
 /// implementation of fmath functions will be defined directly in this header
@@ -138,7 +144,11 @@ ispow2(T x) noexcept
     // Numerous references for this bit trick are on the web.  The
     // principle is that x is a power of 2 <=> x == 1<<b <=> x-1 is
     // all 1 bits for bits < b.
-    return (x & (x - 1)) == 0 && (x >= 0);
+    if constexpr (std::is_signed<T>::value) {
+        return (x & (x - 1)) == 0 && (x >= 0);
+    } else {
+        return (x & (x - 1)) == 0;
+    }
 }
 
 
@@ -743,7 +753,10 @@ scaled_conversion(const S& src, F scale, F min, F max)
     }
 }
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 /// Convert n consecutive values from the type of S to the type of D.
 /// The conversion is not a simple cast, but correctly remaps the
@@ -1017,6 +1030,11 @@ convert_type (const S &src)
     }
 }
 
+OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
+using v3_1::convert_type;
 
 
 /// Helper function to convert channel values between different bit depths.
@@ -2272,6 +2290,12 @@ interpolate_linear (float x, span_strided<const float> y)
 // (end miscellaneous numerical methods)
 ////////////////////////////////////////////////////////////////////////////
 
+OIIO_NAMESPACE_END
 
 
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::convert_type;
+#endif
 OIIO_NAMESPACE_END

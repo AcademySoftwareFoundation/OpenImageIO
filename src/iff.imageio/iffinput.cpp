@@ -505,17 +505,29 @@ bool
 IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
                            void* data)
 {
-    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 
-    if (m_buf.empty()) {
-        if (!readimg()) {
-            return false;
+    {
+        lock_guard lock(*this);
+
+        if (m_buf.empty()) {
+            if (!readimg())
+                return false;
         }
     }
 
-    // tile size
+    // Offset vs the image data origin
+    x -= m_spec.x;
+    y -= m_spec.y;
+
+    if (x < 0 || x >= m_spec.width || y < 0 || y >= m_spec.height) {
+        errorfmt("Tile coordinate is not within the valid pixel data window");
+        return false;
+    }
+
+    // tile size that we're reading -- consider if the tile overlaps the image
+    // boundary.
     int w  = m_header.width;
     int tw = std::min(x + static_cast<int>(m_header.tile_width),
                       static_cast<int>(m_header.width))
@@ -525,16 +537,14 @@ IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
              - y;
 
     // tile data
-    int oy = 0;
-    for (int iy = y; iy < y + th; iy++) {
-        // in
-        uint8_t* in_p = m_buf.data() + (iy * w + x) * m_header.pixel_bytes();
-        // out
-        uint8_t* out_p = reinterpret_cast<uint8_t*>(data)
-                         + (oy * m_header.tile_width) * m_header.pixel_bytes();
-        // copy
-        memcpy(out_p, in_p, tw * m_header.pixel_bytes());
-        oy++;
+    span<uint8_t> dataspan(static_cast<uint8_t*>(data),
+                           m_header.tile_width * m_header.tile_height
+                               * m_header.pixel_bytes());
+    cspan<uint8_t> bufspan(m_buf);
+    for (int oy = 0, iy = y; oy < th; ++oy, ++iy) {
+        spancpy(dataspan, (oy * m_header.tile_width) * m_header.pixel_bytes(),
+                bufspan, (iy * w + x) * m_header.pixel_bytes(),
+                tw * m_header.pixel_bytes());
     }
     return true;
 }

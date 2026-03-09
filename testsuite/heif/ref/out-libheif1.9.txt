@@ -38,7 +38,7 @@ ref/IMG_7702_small.heic :  512 x  300, 3 channel, uint8 heif
     Exif:SubsecTimeDigitized: "006"
     Exif:SubsecTimeOriginal: "006"
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
 ../oiio-images/heif/greyhounds-looking-for-a-table.heic : 3024 x 4032, 3 channel, uint8 heif
     SHA-1: 8211F56BBABDC7615CCAF67CBF49741D1A292D2E
@@ -56,6 +56,7 @@ Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
     Exif:ApertureValue: 2.52607 (f/2.4)
     Exif:BrightnessValue: 2.7506
     Exif:ColorSpace: 65535
+    Exif:CompositeImage: 2
     Exif:DateTimeDigitized: "2023:09:28 09:44:03"
     Exif:DateTimeOriginal: "2023:09:28 09:44:03"
     Exif:DigitalZoomRatio: 1.3057
@@ -95,7 +96,7 @@ Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
     GPS:LongitudeRef: "E"
     GPS:Speed: 0.171966
     GPS:SpeedRef: "K" (km/hour)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
     oiio:OriginalOrientation: 6
 Reading ../oiio-images/heif/sewing-threads.heic
 ../oiio-images/heif/sewing-threads.heic : 4000 x 3000, 3 channel, uint8 heif
@@ -144,4 +145,18 @@ Reading ../oiio-images/heif/sewing-threads.heic
     GPS:LatitudeRef: "N"
     GPS:Longitude: 1, 49, 34.0187
     GPS:LongitudeRef: "E"
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading mono-8bit.avif
+mono-8bit.avif       :   64 x   64, 3 channel, uint10 heif
+    SHA-1: 4E361351029D39379C73580BCD4C9859E4B73ADE
+    channel list: R, G, B
+    CICP: 2, 2, 6, 1
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading mono-10bit.avif
+mono-10bit.avif      :   64 x   64, 3 channel, uint10 heif
+    SHA-1: 4E361351029D39379C73580BCD4C9859E4B73ADE
+    channel list: R, G, B
+    CICP: 2, 2, 6, 1
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "srgb_rec709_scene"

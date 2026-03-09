@@ -23,9 +23,26 @@ command += oiiotool ('-pattern:type=uint8 constant:color=1,0,0 2x2 3 -o a.tif ' 
 # Test TOP, BOTTOM, IMG[]
 # TOP should be c.tif, BOTTOM should be a.tif
 command += oiiotool ("a.tif b.tif c.tif d.tif " +
-                     "--echo \"Stack holds [0] = {IMG[0].filename}, [1] = {IMG[1].filename}, [2] = {IMG[2].filename}\" " +
+                     "--echo \"Stack holds [0] = {IMG[0].filename}, [1] = {IMG[1].filename}, [2] = {IMG[2].filename} , [3] = {IMG[3].filename}\" " +
                      "--echo \"TOP = {TOP.filename}, BOTTOM = {BOTTOM.filename}\" "
                      )
+# Regression test (Issue #5044): make sure BOTTOM works correctly for 0-2 images
+command += oiiotool ("a.tif b.tif " +
+                     "--echo \"Stack holds [0] = {IMG[0].filename}, [1] = {IMG[1].filename}\" " +
+                     "--echo \"TOP = {TOP.filename}, BOTTOM = {BOTTOM.filename}\" "
+                     )
+command += oiiotool ("a.tif " +
+                     "--echo \"Stack holds [0] = {IMG[0].filename}\" " +
+                     "--echo \"TOP = {TOP.filename}, BOTTOM = {BOTTOM.filename}\" "
+                     )
+# Empty -- should get an error about TOP and BOTTOM not being available
+command += oiiotool ("--echo \"Stack is empty\" " +
+                     "--echo \"TOP = {TOP.filename}\" "
+                     )
+command += oiiotool ("--echo \"Stack is empty\" " +
+                     "--echo \"BOTTOM = {BOTTOM.filename}\" "
+                     )
+
 # Test --pop, --popbottom, --stackreverse, --stackclear, --stackextract
 command += oiiotool (
       "a.tif b.tif c.tif d.tif "

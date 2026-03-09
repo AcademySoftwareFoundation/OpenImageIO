@@ -11,3 +11,6 @@ for f in files:
     # a lossy format and is not stable under the round trip
     # command += rw_command (OIIO_TESTSUITE_IMAGEDIR, f,
     #                        extraargs='-attrib compression lossless')
+
+command += oiiotool ("--create 64x64 4 -o rgba.webp")
+command += info_command ("rgba.webp", "--iconfig oiio:UnassociatedAlpha 1", safematch=True)

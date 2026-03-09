@@ -28,7 +28,7 @@ if (FFmpeg_FOUND)
     add_oiio_plugin (ffmpeginput.cpp
                      INCLUDE_DIRS ${FFMPEG_INCLUDES}
                      LINK_LIBRARIES ${FFMPEG_LIBRARIES}
-                                    ${BZIP2_LIBRARIES}
+                                    $<TARGET_NAME_IF_EXISTS:BZip2::BZip2>
                      DEFINITIONS "USE_FFMPEG"
                                  "-DOIIO_FFMPEG_VERSION=\"${FFMPEG_VERSION}\"")
 else()

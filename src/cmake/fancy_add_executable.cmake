@@ -44,6 +44,12 @@ macro (fancy_add_executable)
     check_is_enabled (${_target_NAME} _target_NAME_enabled)
     if (_target_NAME_enabled)
         add_executable (${_target_NAME} ${_target_SRC})
+        if (WIN32)
+            # Disable default manifest generation to avoid conflicts.
+            target_link_options(${_target_NAME} PRIVATE "/MANIFEST:NO")
+            # Include Windows resource file, which will in turn embed our exe manifest.
+            target_sources(${_target_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/src/windows/oiio_exe.rc")
+        endif ()
         target_include_directories (${_target_NAME} PRIVATE ${_target_INCLUDE_DIRS})
         target_include_directories (${_target_NAME} SYSTEM PRIVATE ${_target_SYSTEM_INCLUDE_DIRS})
         target_compile_definitions (${_target_NAME} PRIVATE

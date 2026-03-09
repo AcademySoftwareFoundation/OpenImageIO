@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -49,7 +49,7 @@ bool
 Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                              std::string& result)
 {
-    // print(" Entering express_parse_atom, s='{}'\n", s);
+    // OIIO::print(" Entering express_parse_atom, s='{}'\n", s);
 
     string_view orig = s;
     float floatval;
@@ -156,7 +156,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
         if (Strutil::parse_prefix(s, "TOP")) {
             img = curimg;
         } else if (Strutil::parse_prefix(s, "BOTTOM")) {
-            img = (image_stack.size() <= 1) ? curimg : image_stack[0];
+            img = image_stack.empty() ? curimg : image_stack[0];
         } else if (Strutil::parse_prefix(s, "IMG[")) {
             std::string until_bracket = Strutil::parse_until(s, "]");
             if (until_bracket.empty() || !Strutil::parse_char(s, ']')) {
@@ -390,7 +390,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
     if (invert)
         result = Strutil::eval_as_bool(result) ? "0" : "1";
 
-    // print(" Exiting express_parse_atom, result='{}'\n", result);
+    // OIIO::print(" Exiting express_parse_atom, result='{}'\n", result);
 
     return true;
 }
@@ -401,7 +401,7 @@ bool
 Oiiotool::express_parse_factors(const string_view expr, string_view& s,
                                 std::string& result)
 {
-    // print(" Entering express_parse_factrors, s='{}'\n", s);
+    // OIIO::print(" Entering express_parse_factrors, s='{}'\n", s);
 
     string_view orig = s;
     std::string atom;
@@ -471,7 +471,7 @@ Oiiotool::express_parse_factors(const string_view expr, string_view& s,
         result = atom;
     }
 
-    // print(" Exiting express_parse_factors, result='{}'\n", result);
+    // OIIO::print(" Exiting express_parse_factors, result='{}'\n", result);
 
     return true;
 }
@@ -482,7 +482,7 @@ bool
 Oiiotool::express_parse_summands(const string_view expr, string_view& s,
                                  std::string& result)
 {
-    // print(" Entering express_parse_summands, s='{}'\n", s);
+    // OIIO::print(" Entering express_parse_summands, s='{}'\n", s);
 
     string_view orig = s;
     std::string atom;
@@ -555,7 +555,7 @@ Oiiotool::express_parse_summands(const string_view expr, string_view& s,
         result = atom;
     }
 
-    // print(" Exiting express_parse_summands, result='{}'\n", result);
+    // OIIO::print(" Exiting express_parse_summands, result='{}'\n", result);
 
     return true;
 }
@@ -603,6 +603,6 @@ Oiiotool::express(string_view str)
     ustring result = ustring::fmtformat("{}{}{}", prefix, express_impl(expr),
                                         express(s));
     if (debug)
-        print("Expanding expression \"{}\" -> \"{}\"\n", str, result);
+        OIIO::print("Expanding expression \"{}\" -> \"{}\"\n", str, result);
     return result;
 }

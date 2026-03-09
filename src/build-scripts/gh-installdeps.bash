@@ -8,6 +8,14 @@
 
 set -ex
 
+# Make extra space on the runners
+df -h .
+time rm -rf /usr/local/lib/android /host/root/usr/local/lib/android &
+sleep 3
+# rather than block, delete in background, but give it a few secs to start
+# clearing things out before moving on.
+# Other candidates, if we need it: /usr/share/dotnet /usr/local/.ghcup
+
 
 #
 # Install system packages when those are acceptable for dependencies.
@@ -17,22 +25,42 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
 
     #ls /etc/yum.repos.d
 
-    if [[ "$ASWF_VFXPLATFORM_VERSION" == "2021" || "$ASWF_VFXPLATFORM_VERSION" == "2022" ]] ; then
-        # CentOS 7 based containers need the now-nonexistant centos repo to be
+    # This will show how much space is taken by each installed package, sorted
+    # by size in KB.
+    # rpm -qa --queryformat '%10{size} - %-25{name} \t %{version}\n' | sort -n
+
+    # I would like this to free space by removing packages we don't need.
+    # BUT IT DOESN'T, because uninstalling a package just ends is visibility
+    # to the runtime, it doesn't remove it from the static container image
+    # that's taking up the disk space. So this is pointless. But leaving it
+    # here to remind myself not to waste time trying it again.
+    # time sudo yum remove -y nsight-compute-2022.3.0 libcublas-devel-11-8 libcublas-11-8 libcusparse-devel-11-8 libnpp-devel-11-8 libnpp-11-8 libcurand-devel-11-8 libcurand-11-8 || true
+    # time sudo yum remove -y nsight-compute-2024.3.1 libcublas-devel-12-6 libcublas-12-6 libcusparse-devel-12-6 libnpp-devel-12-6 libnpp-12-6 libcurand-devel-12-6 libcurand-12-6 || true
+
+    # time sudo dnf upgrade --refresh || true
+    if [[ "${DO_RPMFUSION_REPO:-0}" != "0" ]] ; then
+        time sudo dnf install --nogpgcheck https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm -y || true
+    fi
+
+    if [[ "$ASWF_VFXPLATFORM_VERSION" == "2022" ]] ; then
+        # CentOS 7 based containers need the now-nonexistent centos repo to be
         # excluded or all the subsequent yum install commands will fail.
         yum-config-manager --disable centos-sclo-rh || true
         sed -i 's,^mirrorlist=,#,; s,^#baseurl=http://mirror\.centos\.org/centos/$releasever,baseurl=https://vault.centos.org/7.9.2009,' /etc/yum.repos.d/CentOS-Base.repo
     fi
 
-    sudo yum install -y giflib giflib-devel || true
+    # time time sudo yum install -y giflib giflib-devel || true
     if [[ "${USE_OPENCV}" != "0" ]] ; then
-        sudo yum install -y opencv opencv-devel || true
+        time sudo yum install -y opencv opencv-devel || true
     fi
     if [[ "${USE_FFMPEG}" != "0" ]] ; then
-        sudo yum install -y ffmpeg ffmpeg-devel || true
+        time sudo dnf install -y ffmpeg ffmpeg-devel || true
     fi
     if [[ "${USE_FREETYPE:-1}" != "0" ]] ; then
-        sudo yum install -y freetype freetype-devel || true
+        time sudo yum install -y freetype freetype-devel || true
+    fi
+    if [[ "${USE_LIBRAW:-0}" != "0" ]] ; then
+        time sudo yum install -y LibRaw LibRaw-devel || true
     fi
     if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
         time sudo yum install -y ${EXTRA_DEP_PACKAGES} || true
@@ -41,39 +69,11 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
         time pip3 install ${PIP_INSTALLS} || true
     fi
 
-    if [[ "${CONAN_LLVM_VERSION}" != "" ]] ; then
-        mkdir conan
-        pushd conan
-        # Simple way to conan install just one package:
-        #   conan install clang/${CONAN_LLVM_VERSION}@aswftesting/ci_common1 -g deploy -g virtualenv
-        # But the below method can accommodate multiple requirements:
-        echo "[imports]" >> conanfile.txt
-        echo "., * -> ." >> conanfile.txt
-        echo "[requires]" >> conanfile.txt
-        echo "clang/${CONAN_LLVM_VERSION}@aswftesting/ci_common1" >> conanfile.txt
-        time conan install .
-        echo "--ls--"
-        ls -R .
-        export PATH=$PWD/bin:$PATH
-        export LD_LIBRARY_PATH=$PWD/lib:$LD_LIBRARY_PATH
-        export LLVM_ROOT=$PWD
-        popd
-    fi
-
-    if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" ]] ; then
-        # Lock down icc to 2022.1 because newer versions hosted on the Intel
-        # repo require a glibc too new for the ASWF CentOS7-based containers
-        # we run CI on.
+    if [[ "$CXX" == "icpx" || "$CC" == "icx" || "$USE_ICX" != "" ]] ; then
         sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
-        sudo /usr/bin/yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2022.1.0.x86_64
-        set +e; source /opt/intel/oneapi/setvars.sh --config oneapi_2022.1.0.cfg; set -e
-    elif [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$CXX" == "icpx" || "$CC" == "icx" || "$USE_ICX" != "" ]] ; then
-        # Lock down icx to 2023.1 because newer versions hosted on the Intel
-        # repo require a libstd++ too new for the ASWF containers we run CI on
-        # because their default install of gcc 9 based toolchain.
-        sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
-        sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2023.1.0.x86_64
-        # sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        # If we needed to lock down to a particular version, we could:
+        # sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2023.1.0.x86_64
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         echo "Verifying installation of Intel(r) oneAPI DPC++/C++ Compiler:"
         icpx --version
@@ -89,14 +89,17 @@ else
     if [[ "${SKIP_SYSTEM_DEPS_INSTALL}" != "1" ]] ; then
         time sudo apt-get -q install -y --fix-missing \
             git cmake ninja-build ccache g++ \
-            libilmbase-dev libopenexr-dev \
-            libtiff-dev libgif-dev libpng-dev \
+            libtiff-dev libgif-dev libpng-dev libjpeg-dev \
             libraw-dev libwebp-dev \
             libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
             dcmtk libopenvdb-dev \
             libfreetype6-dev \
             libopencolorio-dev \
-            libtbb-dev || true
+            libtbb-dev \
+            libdeflate-dev bzip2
+        # Iffy ones get the "|| true" treatment so failure is ok
+        time sudo apt-get -q install -y --fix-missing \
+            libjxl-dev || true
     fi
     if [[ "${USE_OPENCV}" != "0" ]] && [[ "${INSTALL_OPENCV}" != "0" ]] ; then
         sudo apt-get -q install -y --fix-missing libopencv-dev || true
@@ -124,6 +127,10 @@ else
        time sudo apt-get -q install -y libheif-plugin-aomdec \
             libheif-plugin-aomenc libheif-plugin-libde265 \
             libheif-plugin-x265 libheif-dev || true
+    fi
+
+    if [[ "${USE_FFMPEG}" != "0" ]] ; then
+        time sudo apt-get -q install -y ffmpeg || true
     fi
 
     export CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
@@ -208,12 +215,19 @@ if [[ "$FREETYPE_VERSION" != "" ]] ; then
     source src/build-scripts/build_Freetype.bash
 fi
 
+if [[ "$LIBPNG_VERSION" != "" ]] ; then
+    source src/build-scripts/build_libpng.bash
+fi
+
 if [[ "$USE_ICC" != "" ]] ; then
     # We used gcc for the prior dependency builds, but use icc for OIIO itself
     echo "which icpc:" $(which icpc)
     export CXX=icpc
     export CC=icc
 fi
+
+df -h .
+df -h /host/root || true
 
 # Save the env for use by other stages
 src/build-scripts/save-env.bash

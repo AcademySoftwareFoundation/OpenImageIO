@@ -57,7 +57,7 @@
 ///////////////////////////////////////////////////////////////////////////
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 bool
@@ -819,7 +819,7 @@ ImageBufAlgo::convolve(ImageBuf& dst, const ImageBuf& src,
                        const ImageBuf& kernel, bool normalize, ROI roi,
                        int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::convolve");
+    OIIO::pvt::LoggedTimer logtime("IBA::convolve");
     if (!IBAprep(roi, &dst, &src, IBAprep_REQUIRE_SAME_NCHANNELS))
         return false;
     bool ok;
@@ -1130,7 +1130,7 @@ bool
 ImageBufAlgo::median_filter(ImageBuf& dst, const ImageBuf& src, int width,
                             int height, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::median_filter");
+    OIIO::pvt::LoggedTimer logtime("IBA::median_filter");
     if (!IBAprep(roi, &dst, &src,
                  IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
         return false;
@@ -1212,7 +1212,7 @@ bool
 ImageBufAlgo::dilate(ImageBuf& dst, const ImageBuf& src, int width, int height,
                      ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::dilate");
+    OIIO::pvt::LoggedTimer logtime("IBA::dilate");
     if (!IBAprep(roi, &dst, &src,
                  IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
         return false;
@@ -1243,7 +1243,7 @@ bool
 ImageBufAlgo::erode(ImageBuf& dst, const ImageBuf& src, int width, int height,
                     ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::erode");
+    OIIO::pvt::LoggedTimer logtime("IBA::erode");
     if (!IBAprep(roi, &dst, &src,
                  IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
         return false;
@@ -1308,7 +1308,7 @@ hfft_(ImageBuf& dst, const ImageBuf& src, bool inverse, bool unitary, ROI roi,
 bool
 ImageBufAlgo::fft(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::fft");
+    OIIO::pvt::LoggedTimer logtime("IBA::fft");
     if (src.spec().depth > 1) {
         dst.errorfmt("ImageBufAlgo::fft does not support volume images");
         return false;
@@ -1379,7 +1379,7 @@ ImageBufAlgo::fft(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 bool
 ImageBufAlgo::ifft(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::ifft");
+    OIIO::pvt::LoggedTimer logtime("IBA::ifft");
     if (src.nchannels() != 2 || src.spec().format != TypeDesc::FLOAT) {
         dst.errorfmt("ifft can only be done on 2-channel float images");
         return false;
@@ -1505,7 +1505,7 @@ bool
 ImageBufAlgo::polar_to_complex(ImageBuf& dst, const ImageBuf& src, ROI roi,
                                int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::polar_to_complex");
+    OIIO::pvt::LoggedTimer logtime("IBA::polar_to_complex");
     if (src.nchannels() != 2) {
         dst.errorfmt("polar_to_complex can only be done on 2-channel");
         return false;
@@ -1542,7 +1542,7 @@ bool
 ImageBufAlgo::complex_to_polar(ImageBuf& dst, const ImageBuf& src, ROI roi,
                                int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::complex_to_polar");
+    OIIO::pvt::LoggedTimer logtime("IBA::complex_to_polar");
     if (src.nchannels() != 2) {
         dst.errorfmt("complex_to_polar can only be done on 2-channel");
         return false;
@@ -1670,4 +1670,4 @@ ImageBufAlgo::fillholes_pushpull(const ImageBuf& src, ROI roi, int nthreads)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

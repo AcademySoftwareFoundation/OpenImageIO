@@ -25,5 +25,19 @@ Full command line was:
 > oiiotool --oiioattrib try_all_readers 0 --info src/crash-1643.tif -o out.exr
 iconvert ERROR copying "src/crash-1709.tif" to "crash-1709.exr" :
 	
+Reading gps.tif
+gps.tif              :   64 x   64, 3 channel, uint8 tiff
+    channel list: R, G, B
+    compression: "zip"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    Exif:ColorSpace: 1
+    Exif:SubjectDistance: 0 (0 m)
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
 Comparing "check1.tif" and "ref/check1.tif"
 PASS

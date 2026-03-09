@@ -641,6 +641,41 @@ test_zover()
 
 
 
+// Test ImageBuf::resample
+void
+test_resample()
+{
+    std::cout << "test resample\n";
+
+    // Timing
+    Benchmarker bench;
+    bench.units(Benchmarker::Unit::ms);
+
+    ImageSpec spec_hd_rgba_f(1920, 1080, 4, TypeFloat);
+    ImageSpec spec_hd_rgba_u8(1920, 1080, 4, TypeUInt8);
+    ImageBuf buf_hd_rgba_f(spec_hd_rgba_f);
+    ImageBuf buf_hd_rgba_u8(spec_hd_rgba_u8);
+    float red_rgba[] = { 1.0, 0.0, 0.0, 1.0 };
+    ImageBufAlgo::fill(buf_hd_rgba_f, red_rgba);
+    ImageBufAlgo::fill(buf_hd_rgba_u8, red_rgba);
+    ImageBuf smallf(ImageSpec(1024, 512, 4, TypeFloat));
+    ImageBuf smallu8(ImageSpec(1024, 512, 4, TypeUInt8));
+    bench("  IBA::resample HD->1024x512 rgba f->f    interp   ",
+          [&]() { ImageBufAlgo::resample(smallf, buf_hd_rgba_f, true); });
+    bench("  IBA::resample HD->1024x512 rgba f->u8   interp   ",
+          [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_f, true); });
+    bench("  IBA::resample HD->1024x512 rgba u8->u8  interp   ",
+          [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_u8, true); });
+    bench("  IBA::resample HD->1024x512 rgba f->f   no interp ",
+          [&]() { ImageBufAlgo::resample(smallf, buf_hd_rgba_f, false); });
+    bench("  IBA::resample HD->1024x512 rgba f->u8  no interp ",
+          [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_f, false); });
+    bench("  IBA::resample HD->1024x512 rgba u8->u8 no interp ",
+          [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_u8, false); });
+}
+
+
+
 // Tests ImageBufAlgo::compare
 void
 test_compare()
@@ -1037,10 +1072,10 @@ void
 benchmark_parallel_image(int res, int iters)
 {
     using namespace ImageBufAlgo;
-    print("\nTime old parallel_image for {}x{}\n", res, res);
+    OIIO::print("\nTime old parallel_image for {}x{}\n", res, res);
 
-    print("  threads time    rate   (best of {})\n", ntrials);
-    print("  ------- ------- -------\n");
+    OIIO::print("  threads time    rate   (best of {})\n", ntrials);
+    OIIO::print("  ------- ------- -------\n");
     ImageSpec spec(res, res, 3, TypeDesc::FLOAT);
     ImageBuf X(spec), Y(spec);
     ImageBufAlgo::zero(Y);
@@ -1064,16 +1099,16 @@ benchmark_parallel_image(int res, int iters)
         };
         double range;
         double t = time_trial(func, ntrials, iters, &range) / iters;
-        print("  {:4}   {:7.3f} ms  {:5.1f} Mpels/s\n", nt, t * 1000,
-              double(res * res) / t / 1.0e6);
+        OIIO::print("  {:4}   {:7.3f} ms  {:5.1f} Mpels/s\n", nt, t * 1000,
+                    double(res * res) / t / 1.0e6);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }
 
-    print("\nTime new parallel_image for {}x{}\n", res, res);
+    OIIO::print("\nTime new parallel_image for {}x{}\n", res, res);
 
-    print("  threads time    rate   (best of {})\n", ntrials);
-    print("  ------- ------- -------\n");
+    OIIO::print("  threads time    rate   (best of {})\n", ntrials);
+    OIIO::print("  ------- ------- -------\n");
     for (int i = 0; threadcounts[i] <= numthreads; ++i) {
         int nt = wedge ? threadcounts[i] : numthreads;
         // default_thread_pool()->resize (nt);
@@ -1081,8 +1116,8 @@ benchmark_parallel_image(int res, int iters)
         auto func = [&]() { parallel_image(Y.roi(), nt, exercise); };
         double range;
         double t = time_trial(func, ntrials, iters, &range) / iters;
-        print("  {:4}   {:6.2f} ms  {:5.1f} Mpels/s\n", nt, t * 1000,
-              double(res * res) / t / 1.0e6);
+        OIIO::print("  {:4}   {:6.2f} ms  {:5.1f} Mpels/s\n", nt, t * 1000,
+                    double(res * res) / t / 1.0e6);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }
@@ -1143,13 +1178,15 @@ void
 test_color_management()
 {
     ColorConfig config;
-    auto processor = config.createColorProcessor("lin_srgb", "srgb");
+    auto processor = config.createColorProcessor("lin_rec709_scene",
+                                                 "srgb_rec709_scene");
     // These color spaces might not be found if the site running this test
     // has a weirdo OCIO config that doesn't contain those names. If we fail,
     // try again using the built-in config (OCIO 2.2+) and hope for the best.
     if (!processor)
         processor = ColorConfig("ocio://default")
-                        .createColorProcessor("lin_srgb", "srgb");
+                        .createColorProcessor("lin_rec709_scene",
+                                              "srgb_rec709_scene");
     OIIO_CHECK_ASSERT(processor);
 
     // Test the IBA::colorconvert version that works on a color at a time
@@ -1176,7 +1213,7 @@ test_color_management()
 static void
 test_yee()
 {
-    print("Testing Yee comparison\n");
+    OIIO::print("Testing Yee comparison\n");
     ImageSpec spec(1, 1, 3, TypeDesc::FLOAT);
     ImageBuf img1(spec);
     ImageBufAlgo::fill(img1, { 0.1f, 0.1f, 0.1f });
@@ -1219,9 +1256,9 @@ static void
 test_simple_perpixel()
 {
     TypeDesc td = TypeDescFromC<T>::value();
-    print("test_simple_perpixel {}\n", td);
+    OIIO::print("test_simple_perpixel {}\n", td);
     {
-        print("  unary op\n");
+        OIIO::print("  unary op\n");
         ImageBuf src = filled_image({ 0.25f, 0.5f, 0.75f, 1.0f }, 4, 4, td);
         ImageBuf result;
         // Test with raw function pointer
@@ -1259,7 +1296,7 @@ test_simple_perpixel()
         }
     }
     {
-        print("  binary op\n");
+        OIIO::print("  binary op\n");
         ImageBuf srcA   = filled_image({ 0.25f, 0.5f, 0.75f, 1.0f }, 4, 4, td);
         ImageBuf srcB   = filled_image({ 1.0f, 2.0f, 3.0f, 4.0f }, 4, 4, td);
         ImageBuf result = ImageBufAlgo::perpixel_op(
@@ -1314,15 +1351,15 @@ test_simple_perpixel()
 
 template<class T>
 std::string
-mosaic(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-       const std::string& pattern, const float (&white_balance)[4],
-       int nthreads);
+do_mosaic(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+          const std::string& pattern, const float (&white_balance)[4],
+          int nthreads);
 
 template<>
 std::string
-mosaic<float>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-              const std::string& pattern, const float (&white_balance)[4],
-              int nthreads)
+do_mosaic<float>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+                 const std::string& pattern, const float (&white_balance)[4],
+                 int nthreads)
 {
     return ImageBufAlgo::mosaic_float(dst, src, x_offset, y_offset, pattern,
                                       white_balance, nthreads);
@@ -1330,9 +1367,9 @@ mosaic<float>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
 
 template<>
 std::string
-mosaic<half>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-             const std::string& pattern, const float (&white_balance)[4],
-             int nthreads)
+do_mosaic<half>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+                const std::string& pattern, const float (&white_balance)[4],
+                int nthreads)
 {
     return ImageBufAlgo::mosaic_half(dst, src, x_offset, y_offset, pattern,
                                      white_balance, nthreads);
@@ -1340,9 +1377,9 @@ mosaic<half>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
 
 template<>
 std::string
-mosaic<uint16_t>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-                 const std::string& pattern, const float (&white_balance)[4],
-                 int nthreads)
+do_mosaic<uint16_t>(ImageBuf& dst, const ImageBuf& src, int x_offset,
+                    int y_offset, const std::string& pattern,
+                    const float (&white_balance)[4], int nthreads)
 {
     return ImageBufAlgo::mosaic_uint16(dst, src, x_offset, y_offset, pattern,
                                        white_balance, nthreads);
@@ -1350,9 +1387,9 @@ mosaic<uint16_t>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
 
 template<>
 std::string
-mosaic<uint8_t>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-                const std::string& pattern, const float (&white_balance)[4],
-                int nthreads)
+do_mosaic<uint8_t>(ImageBuf& dst, const ImageBuf& src, int x_offset,
+                   int y_offset, const std::string& pattern,
+                   const float (&white_balance)[4], int nthreads)
 {
     return ImageBufAlgo::mosaic_uint8(dst, src, x_offset, y_offset, pattern,
                                       white_balance, nthreads);
@@ -1419,8 +1456,8 @@ test_demosaic(const DemosaicTestConfig& config, const ImageBuf& src_image,
             ImageSpec dst_spec(src_spec.width, src_spec.height, 1, type);
             ImageBuf mosaiced_image(dst_spec);
 
-            std::string layout = mosaic<T>(mosaiced_image, src_image, x, y,
-                                           config.pattern, wb, 0);
+            std::string layout = do_mosaic<T>(mosaiced_image, src_image, x, y,
+                                              config.pattern, wb, 0);
 
             mosaiced_image.specmod().attribute("raw:FilterPattern", layout);
             mosaiced_image.specmod().attribute("raw:WhiteBalance",
@@ -1475,7 +1512,7 @@ test_demosaic(const DemosaicTestConfig& config, const ImageBuf& src_image,
 static void
 test_demosaic()
 {
-    print("Testing Demosaicing\n");
+    OIIO::print("Testing Demosaicing\n");
 
     ImageSpec src_spec(256, 256, 3, TypeDesc::FLOAT);
     ImageBuf src_image(src_spec);
@@ -1579,6 +1616,7 @@ main(int argc, char** argv)
     test_over(TypeFloat);
     test_over(TypeHalf);
     test_zover();
+    test_resample();
     test_compare();
     test_isConstantColor();
     test_isConstantChannel();

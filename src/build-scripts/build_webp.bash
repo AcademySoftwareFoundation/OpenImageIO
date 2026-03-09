@@ -11,7 +11,7 @@ set -ex
 
 # Repo and branch/tag/commit of webp to download if we don't have it yet
 WEBP_REPO=${WEBP_REPO:=https://github.com/webmproject/libwebp.git}
-WEBP_VERSION=${WEBP_VERSION:=v1.4.0}
+WEBP_VERSION=${WEBP_VERSION:=v1.6.0}
 
 # Where to put webp repo source (default to the ext area)
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}

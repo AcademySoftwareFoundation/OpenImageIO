@@ -27,7 +27,7 @@ find_library (LIBHEIF_LIBRARY heif
               HINTS
                   ${LIBHEIF_LIBRARY_PATH}
                   ENV LIBHEIF_LIBRARY_PATH
-              DOC "The directory where libheif libraries reside")
+              DOC "The found libheif library")
 
 if (LIBHEIF_INCLUDE_DIR)
     file(STRINGS "${LIBHEIF_INCLUDE_DIR}/libheif/heif_version.h" TMP REGEX "^#define LIBHEIF_VERSION[ \t].*$")
@@ -44,11 +44,11 @@ if (Libheif_FOUND)
     set(LIBHEIF_INCLUDES "${LIBHEIF_INCLUDE_DIR}")
     set(LIBHEIF_LIBRARIES "${LIBHEIF_LIBRARY}")
 
-    if (NOT TARGET Libheif::Libheif)
-        add_library(Libheif::Libheif UNKNOWN IMPORTED)
-        set_target_properties(Libheif::Libheif PROPERTIES
+    if (NOT TARGET heif)
+        add_library(heif UNKNOWN IMPORTED)
+        set_target_properties(heif PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${LIBHEIF_INCLUDES}")
-        set_property(TARGET Libheif::Libheif APPEND PROPERTY
+        set_property(TARGET heif APPEND PROPERTY
             IMPORTED_LOCATION "${LIBHEIF_LIBRARIES}")
     endif ()
 endif()

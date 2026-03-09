@@ -15,7 +15,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 
@@ -142,7 +142,7 @@ bool
 ImageBufAlgo::mad(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_,
                   Image_or_Const C_, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::mad");
+    OIIO::pvt::LoggedTimer logtime("IBA::mad");
 
     // Canonicalize so that if one of A,B is a constant, A is an image.
     if (A_.is_val() && B_.is_img())  // canonicalize to A_img, B_val
@@ -251,4 +251,4 @@ ImageBufAlgo::invert(const ImageBuf& A, ROI roi, int nthreads)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

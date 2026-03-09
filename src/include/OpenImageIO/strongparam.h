@@ -9,7 +9,7 @@
 
 #include <OpenImageIO/oiioversion.h>
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// StrongParam is used to construct an implementation of a derived type
@@ -110,6 +110,7 @@ private:
     static_assert(std::is_trivial<Basetype>::value, "Need trivial type");
 };
 
+OIIO_NAMESPACE_3_1_END
 
 
 /// Convenience macro for making strong parameter type Name that is Basetype
@@ -121,4 +122,10 @@ private:
     }
 
 
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::StrongParam;
+#endif
 OIIO_NAMESPACE_END

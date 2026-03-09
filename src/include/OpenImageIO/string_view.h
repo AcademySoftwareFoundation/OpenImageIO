@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 
+#include <OpenImageIO/dassert.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
@@ -32,7 +33,7 @@
 #endif
 
 
-OIIO_NAMESPACE_BEGIN
+OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// A `string_view` is a non-owning, non-copying, non-allocating reference
@@ -205,11 +206,12 @@ public:
     /// Is the view empty, containing no characters?
     constexpr bool empty() const noexcept { return m_len == 0; }
 
-    /// Element access of an individual character. For debug build, does
-    /// bounds check with assertion. For optimized builds, there is no bounds
-    /// check.  Note: this is different from C++ std::span, which never bounds
-    /// checks `operator[]`.
-    constexpr const_reference operator[](size_type pos) const { return m_chars[pos]; }
+    /// Element access of an individual character. For debug or hardened
+    /// builds, does bounds check with assertion.
+    constexpr const_reference operator[](size_type pos) const {
+        OIIO_CONTRACT_ASSERT(pos < m_len);
+        return m_chars[pos];
+    }
     /// Element access with bounds checking and exception if out of bounds.
     constexpr const_reference at(size_t pos) const
     {
@@ -218,9 +220,15 @@ public:
         return m_chars[pos];
     }
     /// The first character of the view.
-    constexpr const_reference front() const { return m_chars[0]; }
+    constexpr const_reference front() const {
+        OIIO_CONTRACT_ASSERT(m_len >= 1);
+        return m_chars[0];
+    }
     /// The last character of the view.
-    constexpr const_reference back() const { return m_chars[m_len - 1]; }
+    constexpr const_reference back() const {
+        OIIO_CONTRACT_ASSERT(m_len >= 1);
+        return m_chars[m_len - 1];
+    }
     /// Return the underlying data pointer to the first character.
     constexpr const_pointer data() const noexcept { return m_chars; }
 
@@ -509,11 +517,22 @@ OIIO_UTIL_API const char* c_str(string_view str);
 // DEPRECATED(3.0)
 template<> inline const char*
 basic_string_view<char>::c_str() const {
-    return OIIO::c_str(*this);
+    return OIIO::v3_1::c_str(*this);
 }
 
 
+OIIO_NAMESPACE_3_1_END
+
+
+// Compatibility
+#ifndef OIIO_DOXYGEN
+OIIO_NAMESPACE_BEGIN
+using v3_1::basic_string_view;
+using v3_1::c_str;
+using v3_1::string_view;
+using v3_1::wstring_view;
 OIIO_NAMESPACE_END
+#endif
 
 
 #if FMT_VERSION >= 100000

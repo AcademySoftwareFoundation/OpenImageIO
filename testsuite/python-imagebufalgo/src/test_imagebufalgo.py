@@ -374,9 +374,9 @@ try:
     b.setpixel(0, 1, (.5,.5,.5,1))
     b.setpixel(1, 1, (1,1,1,1))
     dumpimg (b, msg="linear src=")
-    r = test_iba (ImageBufAlgo.colorconvert, b, "Linear", "sRGB")
+    r = test_iba (ImageBufAlgo.colorconvert, b, "lin_rec709", "sRGB")
     dumpimg (r, msg="to srgb =")
-    r = ImageBufAlgo.colorconvert(r, "sRGB", "Linear")
+    r = ImageBufAlgo.colorconvert(r, "sRGB", "lin_rec709")
     dumpimg (r, msg="back to linear =")
     # Just to test, make a matrix that halves red, doubles green,
     # adds 0.1 to blue.

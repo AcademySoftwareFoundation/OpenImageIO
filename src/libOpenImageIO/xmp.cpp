@@ -98,8 +98,8 @@ static XMPtag xmptag[] = {
     { "tiff:Software", "Software", TypeDesc::STRING, TiffRedundant },
 
     { "exif:ColorSpace", "Exif:ColorSpace", TypeDesc::INT, ExifRedundant },
-    { "exif:PixelXDimension", "", TypeDesc::INT, ExifRedundant|TiffRedundant},
-    { "exif:PixelYDimension", "", TypeDesc::INT, ExifRedundant|TiffRedundant },
+    { "exif:PixelXDimension", "Exif:PixelXDimension", TypeDesc::INT, ExifRedundant|TiffRedundant},
+    { "exif:PixelYDimension", "Exif:PixelYDimension", TypeDesc::INT, ExifRedundant|TiffRedundant },
     { "exifEX:PhotographicSensitivity", "Exif:ISOSpeedRatings", TypeDesc::INT, ExifRedundant },
 
     { "xmp:CreateDate", "DateTime", TypeDesc::STRING, DateConversion|TiffRedundant },
@@ -317,7 +317,7 @@ add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
                  && count == 1) {
             oiiotype = TypeDesc::FLOAT;
             special  = Rational;
-        } else if (tifftype == TIFF_ASCII)
+        } else if (tifftype == TIFF_ASCII || tifftype == EXIF_UTF8_TYPE)
             oiiotype = TypeDesc::STRING;
         else if (tifftype == TIFF_BYTE && count == 1)
             oiiotype = TypeDesc::INT;
@@ -513,7 +513,10 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
 
 }  // anonymous namespace
 
+OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
 
 bool
 decode_xmp(cspan<uint8_t> xml, ImageSpec& spec)
@@ -857,4 +860,4 @@ encode_xmp(const ImageSpec& spec, bool minimal)
 }
 
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

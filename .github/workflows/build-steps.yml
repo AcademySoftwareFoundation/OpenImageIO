@@ -18,6 +18,9 @@ on:
         type: string
       container:
         type: string
+      container_volumes:
+        type: string
+        default: '[]'
       cc_compiler:
         type: string
       cxx_compiler:
@@ -66,7 +69,14 @@ on:
         type: string
       sonar:
         type: string
+      old_node:
+        type: string
+        default: 0
       nametag:
+        type: string
+      required_deps:
+        type: string
+      optional_deps:
         type: string
     secrets:
         PASSED_GITHUB_TOKEN:
@@ -84,7 +94,11 @@ jobs:
     runs-on: ${{ inputs.runner }}
     container:
       image: ${{ inputs.container }}
-
+      volumes: ${{ fromJson( inputs.container_volumes ) }}
+      options: -v /:/host/root ${{ (contains(inputs.runner, 'gpu') && '-e NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility --gpus all') || '-e A=x' }}
+      # Extra options:
+      # - Ensure the GPU runners have OptiX is visible in the container.
+      # - Mount the native filesystem under /host/root
     env:
       CXX: ${{inputs.cxx_compiler}}
       CC: ${{inputs.cc_compiler}}
@@ -94,7 +108,7 @@ jobs:
       CTEST_ARGS: ${{inputs.ctest_args}}
       CTEST_TEST_TIMEOUT: ${{inputs.ctest_test_timeout}}
       USE_SIMD: ${{inputs.simd}}
-      FMT_VERSION: ${{inputs.fmt_ver}}
+      fmt_BUILD_VERSION: ${{inputs.fmt_ver}}
       OPENCOLORIO_VERSION: ${{inputs.opencolorio_ver}}
       OPENEXR_VERSION: ${{inputs.openexr_ver}}
       PYBIND11_VERSION: ${{inputs.pybind11_ver}}
@@ -102,8 +116,18 @@ jobs:
       ABI_CHECK: ${{inputs.abi_check}}
       ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      # For CI, sometimes we want to require all dependencies to be present,
+      # except for a select few listed explicitly. This ensures that we don't
+      # accidentally have a situation in which we think we are building
+      # against and testing an optional dependency, but in fact are not.
+      OpenImageIO_REQUIRED_DEPS: ${{inputs.required_deps}}
+      OpenImageIO_OPTIONAL_DEPS: ${{inputs.optional_deps}}
 
     steps:
+      - name: install nodejs20glibc2.17
+        if: inputs.old_node == '1'
+        run: |
+          curl --silent https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.xz | tar -xJ --strip-components 1 -C /node20217 -f -
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Build setup
@@ -117,7 +141,7 @@ jobs:
         run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache-restore
         id: ccache-restore
-        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ env.CCACHE_DIR }}
           # path: ./ccache
@@ -136,7 +160,7 @@ jobs:
             fi
       - name:  Install sonar-scanner and build-wrapper
         if: inputs.sonar == '1'
-        uses: sonarsource/sonarcloud-github-c-cpp@e4882e1621ad2fb48dddfa48287411bed34789b1 # v2.0.2
+        uses: sonarsource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
       - name: Build
         if: inputs.skip_build != '1'
         shell: bash
@@ -157,7 +181,7 @@ jobs:
             popd
       - name: ccache-save
         id: ccache-save
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{inputs.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
@@ -177,7 +201,7 @@ jobs:
         if: inputs.coverage == '1'
         run: src/build-scripts/ci-coverage.bash
       - name: Sonar-scanner
-        if: inputs.sonar == 1
+        if: inputs.sonar == '1'
         env:
           GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.PASSED_SONAR_TOKEN }}
@@ -186,8 +210,8 @@ jobs:
             ls -l /__w/OpenImageIO/OpenImageIO/bw_output
             echo "BUILD_OUTPUT_DIR is " "${{ env.BUILD_WRAPPER_OUT_DIR }}"
             find . -name "*.gcov" -print
-            # sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
-            time sonar-scanner --define sonar.host.url="${{ env.SONAR_SERVER_URL }}" --define sonar.cfamily.build-wrapper-output="$BUILD_WRAPPER_OUT_DIR" --define sonar.cfamily.gcov.reportsPath="_coverage" --define sonar.cfamily.threads="$PARALLEL"
+            # sonar-scanner --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json"
+            time sonar-scanner --define sonar.host.url="${{ env.SONAR_SERVER_URL }}" --define sonar.cfamily.compile-commands="$BUILD_WRAPPER_OUT_DIR/compile_commands.json" --define sonar.cfamily.gcov.reportsPath="_coverage" --define sonar.cfamily.threads="$PARALLEL"
         # Consult https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/ for more information and options
       - name: Check ABI
         if: inputs.abi_check != ''
@@ -203,7 +227,7 @@ jobs:
             time make sphinx
       - name: Upload testsuite debugging artifacts
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
-        if: ${{ failure() || inputs.build_docs == '1' || inputs.benchmark == '1' }}
+        if: ${{ failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '' }}
         with:
           name: oiio-${{github.job}}-${{inputs.nametag}}
           path: |
