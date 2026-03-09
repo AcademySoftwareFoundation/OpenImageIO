@@ -191,8 +191,10 @@ namespace {
         VkFramebuffer preview_framebuffer     = VK_NULL_HANDLE;
         VkDescriptorSet preview_source_set    = VK_NULL_HANDLE;
         VkSampler sampler                     = VK_NULL_HANDLE;
+        VkSampler nearest_mag_sampler         = VK_NULL_HANDLE;
         VkSampler pixelview_sampler           = VK_NULL_HANDLE;
         VkDescriptorSet set                   = VK_NULL_HANDLE;
+        VkDescriptorSet nearest_mag_set       = VK_NULL_HANDLE;
         VkDescriptorSet pixelview_set         = VK_NULL_HANDLE;
         int width                             = 0;
         int height                            = 0;
@@ -212,20 +214,20 @@ namespace {
     };
 
     struct PreviewPushConstants {
-        float exposure               = 0.0f;
-        float gamma                  = 1.0f;
-        float offset                 = 0.0f;
-        int32_t color_mode           = 0;
-        int32_t channel              = 0;
-        int32_t use_ocio             = 0;
-        int32_t orientation          = 1;
-        int32_t linear_interpolation = 0;
+        float exposure      = 0.0f;
+        float gamma         = 1.0f;
+        float offset        = 0.0f;
+        int32_t color_mode  = 0;
+        int32_t channel     = 0;
+        int32_t use_ocio    = 0;
+        int32_t orientation = 1;
     };
 
     struct VulkanState {
         VkAllocationCallbacks* allocator         = nullptr;
         VkInstance instance                      = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
+        uint32_t api_version                     = VK_API_VERSION_1_0;
         VkPhysicalDevice physical_device         = VK_NULL_HANDLE;
         VkDevice device                          = VK_NULL_HANDLE;
         uint32_t queue_family                    = static_cast<uint32_t>(-1);
@@ -274,8 +276,18 @@ namespace {
         LoadedImage image;
         std::string status_message;
         std::string last_error;
-        float zoom       = 1.0f;
-        bool fit_request = true;
+        float zoom               = 1.0f;
+        bool fit_request         = true;
+        ImVec2 scroll            = ImVec2(0.0f, 0.0f);
+        ImVec2 norm_scroll       = ImVec2(0.5f, 0.5f);
+        ImVec2 max_scroll        = ImVec2(0.0f, 0.0f);
+        ImVec2 zoom_pivot_screen = ImVec2(0.0f,
+                                          0.0f);  // screen-space pivot anchor
+        ImVec2 zoom_pivot_source_uv
+            = ImVec2(0.5f, 0.5f);  // original image normalized [0..1]
+        bool zoom_pivot_pending     = false;
+        int zoom_pivot_frames_left  = 0;
+        int scroll_sync_frames_left = 0;
         std::vector<std::string> sibling_images;
         int sibling_index = -1;
         std::string toggle_image_path;
@@ -355,6 +367,20 @@ namespace {
     bool save_persistent_state(const PlaceholderUiState& ui_state,
                                const ViewerState& viewer,
                                std::string& error_message);
+    void oriented_image_dimensions(const LoadedImage& image, int& out_width,
+                                   int& out_height);
+
+    void reset_view_navigation_state(ViewerState& viewer)
+    {
+        viewer.scroll                  = ImVec2(0.0f, 0.0f);
+        viewer.norm_scroll             = ImVec2(0.5f, 0.5f);
+        viewer.max_scroll              = ImVec2(0.0f, 0.0f);
+        viewer.zoom_pivot_screen       = ImVec2(0.0f, 0.0f);
+        viewer.zoom_pivot_source_uv    = ImVec2(0.5f, 0.5f);
+        viewer.zoom_pivot_pending      = false;
+        viewer.zoom_pivot_frames_left  = 0;
+        viewer.scroll_sync_frames_left = 2;
+    }
 
     std::filesystem::path executable_directory_path()
     {
@@ -956,6 +982,109 @@ namespace {
 
 
 
+    std::string lower_ascii_copy(const std::string& value)
+    {
+        std::string out = value;
+        for (char& c : out)
+            c = to_lower_ascii(c);
+        return out;
+    }
+
+
+
+    ImGuiKey parse_test_engine_key_token(const std::string& token)
+    {
+        if (token.size() == 1) {
+            const char c = token[0];
+            if (c >= 'a' && c <= 'z')
+                return static_cast<ImGuiKey>(ImGuiKey_A + (c - 'a'));
+            if (c >= '0' && c <= '9')
+                return static_cast<ImGuiKey>(ImGuiKey_0 + (c - '0'));
+        }
+
+        if (token == "comma")
+            return ImGuiKey_Comma;
+        if (token == "period" || token == "dot")
+            return ImGuiKey_Period;
+        if (token == "equal" || token == "equals")
+            return ImGuiKey_Equal;
+        if (token == "minus" || token == "dash")
+            return ImGuiKey_Minus;
+        if (token == "leftbracket" || token == "[")
+            return ImGuiKey_LeftBracket;
+        if (token == "rightbracket" || token == "]")
+            return ImGuiKey_RightBracket;
+        if (token == "pageup")
+            return ImGuiKey_PageUp;
+        if (token == "pagedown")
+            return ImGuiKey_PageDown;
+        if (token == "escape" || token == "esc")
+            return ImGuiKey_Escape;
+        if (token == "delete" || token == "del")
+            return ImGuiKey_Delete;
+        if (token == "kp0" || token == "keypad0")
+            return ImGuiKey_Keypad0;
+        if (token == "kpdecimal" || token == "keypaddecimal")
+            return ImGuiKey_KeypadDecimal;
+        if (token == "kpadd" || token == "keypadadd")
+            return ImGuiKey_KeypadAdd;
+        if (token == "kpsubtract" || token == "keypadsubtract")
+            return ImGuiKey_KeypadSubtract;
+
+        return ImGuiKey_None;
+    }
+
+
+
+    bool parse_test_engine_key_chord(const std::string& value,
+                                     ImGuiKeyChord& out_chord)
+    {
+        const std::string trimmed = trim_ascii(value);
+        if (trimmed.empty())
+            return false;
+
+        ImGuiKeyChord chord = 0;
+        bool have_key       = false;
+        size_t begin        = 0;
+        while (begin <= trimmed.size()) {
+            const size_t plus = trimmed.find('+', begin);
+            const size_t end  = (plus == std::string::npos) ? trimmed.size()
+                                                            : plus;
+            const std::string token = lower_ascii_copy(
+                trim_ascii(trimmed.substr(begin, end - begin)));
+            if (token.empty())
+                return false;
+
+            if (token == "ctrl" || token == "control") {
+                chord |= ImGuiMod_Ctrl;
+            } else if (token == "shift") {
+                chord |= ImGuiMod_Shift;
+            } else if (token == "alt") {
+                chord |= ImGuiMod_Alt;
+            } else if (token == "super" || token == "cmd" || token == "command"
+                       || token == "win" || token == "meta") {
+                chord |= ImGuiMod_Super;
+            } else {
+                const ImGuiKey key = parse_test_engine_key_token(token);
+                if (key == ImGuiKey_None || have_key)
+                    return false;
+                chord |= key;
+                have_key = true;
+            }
+
+            if (plus == std::string::npos)
+                break;
+            begin = plus + 1;
+        }
+
+        if (!have_key)
+            return false;
+        out_chord = chord;
+        return true;
+    }
+
+
+
     bool parse_bool_value(const std::string& value, bool& out)
     {
         const std::string trimmed = trim_ascii(value);
@@ -1018,6 +1147,13 @@ namespace {
     {
         std::string value;
         return read_env_value(name, value) && parse_float_value(value, out);
+    }
+
+    bool env_read_key_chord_value(const char* name, ImGuiKeyChord& out)
+    {
+        std::string value;
+        return read_env_value(name, value)
+               && parse_test_engine_key_chord(value, out);
     }
 
 
@@ -1289,12 +1425,14 @@ namespace {
         bool trace            = false;
         bool auto_screenshot  = false;
         bool layout_dump      = false;
+        bool state_dump       = false;
         bool junit_xml        = false;
         bool automation_mode  = false;
         bool exit_on_finish   = false;
         bool has_work         = false;
         bool show_windows     = false;
         std::string junit_xml_out;
+        std::string state_dump_out;
     };
 
     struct TestEngineRuntime {
@@ -1547,6 +1685,56 @@ namespace {
                 return true;
         }
         return false;
+    }
+
+
+
+    uint32_t vulkan_header_api_version()
+    {
+#    ifdef VK_HEADER_VERSION_COMPLETE
+        return VK_HEADER_VERSION_COMPLETE;
+#    else
+        return VK_API_VERSION_1_0;
+#    endif
+    }
+
+
+
+    uint32_t query_loader_api_version()
+    {
+        uint32_t version = VK_API_VERSION_1_0;
+        PFN_vkEnumerateInstanceVersion enumerate_instance_version
+            = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
+                vkGetInstanceProcAddr(VK_NULL_HANDLE,
+                                      "vkEnumerateInstanceVersion"));
+        if (enumerate_instance_version != nullptr) {
+            uint32_t loader_version = VK_API_VERSION_1_0;
+            if (enumerate_instance_version(&loader_version) == VK_SUCCESS)
+                version = loader_version;
+        }
+        return version;
+    }
+
+
+
+    uint32_t choose_instance_api_version()
+    {
+        return std::min(vulkan_header_api_version(),
+                        query_loader_api_version());
+    }
+
+
+
+    const char* physical_device_type_name(VkPhysicalDeviceType type)
+    {
+        switch (type) {
+        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: return "integrated";
+        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: return "discrete";
+        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: return "virtual";
+        case VK_PHYSICAL_DEVICE_TYPE_CPU: return "cpu";
+        default: break;
+        }
+        return "other";
     }
 
 
@@ -1981,6 +2169,211 @@ namespace {
         vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
         return (props.optimalTilingFeatures & required_features)
                == required_features;
+    }
+
+
+
+    bool device_supports_required_extensions(VkPhysicalDevice physical_device,
+                                             bool& has_portability_subset,
+                                             std::string& error_message)
+    {
+        has_portability_subset = false;
+
+        uint32_t device_extension_count = 0;
+        VkResult err                    = vkEnumerateDeviceExtensionProperties(
+            physical_device, nullptr, &device_extension_count, nullptr);
+        if (err != VK_SUCCESS) {
+            error_message = "vkEnumerateDeviceExtensionProperties failed";
+            return false;
+        }
+
+        ImVector<VkExtensionProperties> device_properties;
+        device_properties.resize(device_extension_count);
+        err = vkEnumerateDeviceExtensionProperties(physical_device, nullptr,
+                                                   &device_extension_count,
+                                                   device_properties.Data);
+        if (err != VK_SUCCESS) {
+            error_message = "vkEnumerateDeviceExtensionProperties failed";
+            return false;
+        }
+
+        if (!is_extension_available(device_properties,
+                                    VK_KHR_SWAPCHAIN_EXTENSION_NAME))
+            return false;
+
+#    ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+        has_portability_subset
+            = is_extension_available(device_properties,
+                                     VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+#    endif
+        return true;
+    }
+
+
+
+    int score_device_type(VkPhysicalDeviceType type)
+    {
+        switch (type) {
+        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: return 1000;
+        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: return 500;
+        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: return 250;
+        case VK_PHYSICAL_DEVICE_TYPE_CPU: return 50;
+        default: break;
+        }
+        return 10;
+    }
+
+
+
+    int score_queue_family(const VkQueueFamilyProperties& properties)
+    {
+        int score = 0;
+        if ((properties.queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
+            score += 100;
+        if ((properties.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0)
+            score += 100;
+        if ((properties.queueFlags & VK_QUEUE_TRANSFER_BIT) != 0)
+            score += 25;
+        score += static_cast<int>(properties.queueCount);
+        return score;
+    }
+
+
+
+    bool select_physical_device_and_queue(VulkanState& vk_state,
+                                          std::string& error_message)
+    {
+        const VkFormatFeatureFlags required_compute_output_features
+            = VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT
+              | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+
+        uint32_t device_count = 0;
+        VkResult err          = vkEnumeratePhysicalDevices(vk_state.instance,
+                                                           &device_count, nullptr);
+        if (err != VK_SUCCESS) {
+            error_message = "vkEnumeratePhysicalDevices failed";
+            return false;
+        }
+        if (device_count == 0) {
+            error_message = "no Vulkan physical device found";
+            return false;
+        }
+
+        ImVector<VkPhysicalDevice> devices;
+        devices.resize(device_count);
+        err = vkEnumeratePhysicalDevices(vk_state.instance, &device_count,
+                                         devices.Data);
+        if (err != VK_SUCCESS) {
+            error_message = "vkEnumeratePhysicalDevices failed";
+            return false;
+        }
+
+        int best_score               = std::numeric_limits<int>::min();
+        VkPhysicalDevice best_device = VK_NULL_HANDLE;
+        uint32_t best_queue_family   = static_cast<uint32_t>(-1);
+        VkPhysicalDeviceProperties best_properties = {};
+
+        for (VkPhysicalDevice device : devices) {
+            bool has_portability_subset = false;
+            std::string extension_error;
+            if (!device_supports_required_extensions(device,
+                                                     has_portability_subset,
+                                                     extension_error)) {
+                if (!extension_error.empty()) {
+                    error_message = extension_error;
+                    return false;
+                }
+                continue;
+            }
+
+            VkPhysicalDeviceProperties properties = {};
+            vkGetPhysicalDeviceProperties(device, &properties);
+
+            VkPhysicalDeviceFeatures features = {};
+            vkGetPhysicalDeviceFeatures(device, &features);
+
+            if (!has_format_features(device, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                     required_compute_output_features)
+                && !has_format_features(device, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                        required_compute_output_features)) {
+                continue;
+            }
+
+            uint32_t queue_family_count = 0;
+            vkGetPhysicalDeviceQueueFamilyProperties(device,
+                                                     &queue_family_count,
+                                                     nullptr);
+            if (queue_family_count == 0)
+                continue;
+
+            std::vector<VkQueueFamilyProperties> queue_families(
+                queue_family_count);
+            vkGetPhysicalDeviceQueueFamilyProperties(device,
+                                                     &queue_family_count,
+                                                     queue_families.data());
+
+            for (uint32_t family_index = 0; family_index < queue_family_count;
+                 ++family_index) {
+                const VkQueueFamilyProperties& family_properties
+                    = queue_families[family_index];
+                if ((family_properties.queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0
+                    || (family_properties.queueFlags & VK_QUEUE_COMPUTE_BIT)
+                           == 0
+                    || family_properties.queueCount == 0) {
+                    continue;
+                }
+
+                VkBool32 supports_present = VK_FALSE;
+                err = vkGetPhysicalDeviceSurfaceSupportKHR(device, family_index,
+                                                           vk_state.surface,
+                                                           &supports_present);
+                if (err != VK_SUCCESS) {
+                    error_message
+                        = "vkGetPhysicalDeviceSurfaceSupportKHR failed";
+                    return false;
+                }
+                if (supports_present != VK_TRUE)
+                    continue;
+
+                int score = score_device_type(properties.deviceType);
+                score += score_queue_family(family_properties);
+                if (features.shaderFloat64 == VK_TRUE)
+                    score += 50;
+                if (has_portability_subset)
+                    score += 5;
+
+                if (score > best_score) {
+                    best_score        = score;
+                    best_device       = device;
+                    best_queue_family = family_index;
+                    best_properties   = properties;
+                }
+            }
+        }
+
+        if (best_device == VK_NULL_HANDLE
+            || best_queue_family == static_cast<uint32_t>(-1)) {
+            error_message
+                = "no Vulkan device/queue family supports graphics+compute+present for the window surface";
+            return false;
+        }
+
+        vk_state.physical_device = best_device;
+        vk_state.queue_family    = best_queue_family;
+        if (!cache_queue_family_properties(vk_state, error_message))
+            return false;
+
+        if (vk_state.verbose_logging) {
+            print("imiv: selected Vulkan device='{}' type={} api={}.{}.{} "
+                  "queue_family={}\n",
+                  best_properties.deviceName,
+                  physical_device_type_name(best_properties.deviceType),
+                  VK_API_VERSION_MAJOR(best_properties.apiVersion),
+                  VK_API_VERSION_MINOR(best_properties.apiVersion),
+                  VK_API_VERSION_PATCH(best_properties.apiVersion),
+                  vk_state.queue_family);
+        }
+        return true;
     }
 
 
@@ -2553,9 +2946,9 @@ namespace {
 
 
 
-    bool setup_vulkan(VulkanState& vk_state,
-                      ImVector<const char*>& instance_extensions,
-                      std::string& error_message)
+    bool setup_vulkan_instance(VulkanState& vk_state,
+                               ImVector<const char*>& instance_extensions,
+                               std::string& error_message)
     {
         VkResult err;
 
@@ -2627,7 +3020,8 @@ namespace {
         app_info.applicationVersion       = VK_MAKE_API_VERSION(0, 0, 1, 0);
         app_info.pEngineName              = "OpenImageIO";
         app_info.engineVersion            = VK_MAKE_API_VERSION(0, 0, 1, 0);
-        app_info.apiVersion               = VK_API_VERSION_1_2;
+        vk_state.api_version              = choose_instance_api_version();
+        app_info.apiVersion               = vk_state.api_version;
         instance_ci.pApplicationInfo      = &app_info;
         instance_ci.enabledExtensionCount = static_cast<uint32_t>(
             instance_extensions.Size);
@@ -2668,34 +3062,38 @@ namespace {
                 }
             }
         }
+        return true;
+    }
 
-        vk_state.physical_device = ImGui_ImplVulkanH_SelectPhysicalDevice(
-            vk_state.instance);
-        if (vk_state.physical_device == VK_NULL_HANDLE) {
-            error_message = "no Vulkan physical device found";
-            return false;
-        }
+    bool setup_vulkan_device(VulkanState& vk_state, std::string& error_message)
+    {
+        VkResult err;
 
-        vk_state.queue_family = ImGui_ImplVulkanH_SelectQueueFamilyIndex(
-            vk_state.physical_device);
-        if (vk_state.queue_family == static_cast<uint32_t>(-1)) {
-            error_message = "no suitable Vulkan queue family found";
-            return false;
-        }
-        if (!cache_queue_family_properties(vk_state, error_message))
+        if (!select_physical_device_and_queue(vk_state, error_message))
             return false;
 
         ImVector<const char*> device_extensions;
         device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
         uint32_t device_extension_count = 0;
-        vkEnumerateDeviceExtensionProperties(vk_state.physical_device, nullptr,
-                                             &device_extension_count, nullptr);
+        err = vkEnumerateDeviceExtensionProperties(vk_state.physical_device,
+                                                   nullptr,
+                                                   &device_extension_count,
+                                                   nullptr);
+        if (err != VK_SUCCESS) {
+            error_message = "vkEnumerateDeviceExtensionProperties failed";
+            return false;
+        }
         ImVector<VkExtensionProperties> device_properties;
         device_properties.resize(device_extension_count);
-        vkEnumerateDeviceExtensionProperties(vk_state.physical_device, nullptr,
-                                             &device_extension_count,
-                                             device_properties.Data);
+        err = vkEnumerateDeviceExtensionProperties(vk_state.physical_device,
+                                                   nullptr,
+                                                   &device_extension_count,
+                                                   device_properties.Data);
+        if (err != VK_SUCCESS) {
+            error_message = "vkEnumerateDeviceExtensionProperties failed";
+            return false;
+        }
 #    ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
         if (is_extension_available(device_properties,
                                    VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME))
@@ -2823,16 +3221,26 @@ namespace {
 
 
 
-    void cleanup_vulkan_window(VulkanState& vk_state)
+    void destroy_vulkan_surface(VulkanState& vk_state)
     {
-        ImGui_ImplVulkanH_DestroyWindow(vk_state.instance, vk_state.device,
-                                        &vk_state.window_data,
-                                        vk_state.allocator);
         if (vk_state.surface != VK_NULL_HANDLE) {
             vkDestroySurfaceKHR(vk_state.instance, vk_state.surface,
                                 vk_state.allocator);
             vk_state.surface = VK_NULL_HANDLE;
         }
+    }
+
+
+
+    void cleanup_vulkan_window(VulkanState& vk_state)
+    {
+        if (vk_state.window_data.Swapchain != VK_NULL_HANDLE) {
+            ImGui_ImplVulkanH_DestroyWindow(vk_state.instance, vk_state.device,
+                                            &vk_state.window_data,
+                                            vk_state.allocator);
+            vk_state.window_data = ImGui_ImplVulkanH_Window();
+        }
+        destroy_vulkan_surface(vk_state);
     }
 
 
@@ -2979,6 +3387,10 @@ namespace {
             ImGui_ImplVulkan_RemoveTexture(texture.pixelview_set);
             texture.pixelview_set = VK_NULL_HANDLE;
         }
+        if (texture.nearest_mag_set != VK_NULL_HANDLE) {
+            ImGui_ImplVulkan_RemoveTexture(texture.nearest_mag_set);
+            texture.nearest_mag_set = VK_NULL_HANDLE;
+        }
         if (texture.set != VK_NULL_HANDLE) {
             ImGui_ImplVulkan_RemoveTexture(texture.set);
             texture.set = VK_NULL_HANDLE;
@@ -2999,6 +3411,11 @@ namespace {
             vkDestroySampler(vk_state.device, texture.sampler,
                              vk_state.allocator);
             texture.sampler = VK_NULL_HANDLE;
+        }
+        if (texture.nearest_mag_sampler != VK_NULL_HANDLE) {
+            vkDestroySampler(vk_state.device, texture.nearest_mag_sampler,
+                             vk_state.allocator);
+            texture.nearest_mag_sampler = VK_NULL_HANDLE;
         }
         if (texture.pixelview_sampler != VK_NULL_HANDLE) {
             vkDestroySampler(vk_state.device, texture.pixelview_sampler,
@@ -3480,10 +3897,22 @@ namespace {
             set_vk_object_name(vk_state, VK_OBJECT_TYPE_SAMPLER,
                                texture.sampler, "imiv.viewer.sampler");
 
-            VkSamplerCreateInfo pixelview_sampler_ci = sampler_ci;
-            pixelview_sampler_ci.magFilter           = VK_FILTER_NEAREST;
-            pixelview_sampler_ci.minFilter           = VK_FILTER_NEAREST;
+            VkSamplerCreateInfo pixelview_sampler_ci   = sampler_ci;
+            VkSamplerCreateInfo nearest_mag_sampler_ci = sampler_ci;
+            nearest_mag_sampler_ci.magFilter           = VK_FILTER_NEAREST;
+            pixelview_sampler_ci.magFilter             = VK_FILTER_NEAREST;
+            pixelview_sampler_ci.minFilter             = VK_FILTER_NEAREST;
             pixelview_sampler_ci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+            err = vkCreateSampler(vk_state.device, &nearest_mag_sampler_ci,
+                                  vk_state.allocator,
+                                  &texture.nearest_mag_sampler);
+            if (err != VK_SUCCESS) {
+                error_message = "vkCreateSampler failed for nearest-mag view";
+                break;
+            }
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_SAMPLER,
+                               texture.nearest_mag_sampler,
+                               "imiv.viewer.nearest_mag_sampler");
             err = vkCreateSampler(vk_state.device, &pixelview_sampler_ci,
                                   vk_state.allocator,
                                   &texture.pixelview_sampler);
@@ -3643,6 +4072,15 @@ namespace {
                 error_message = "ImGui_ImplVulkan_AddTexture failed";
                 break;
             }
+            texture.nearest_mag_set = ImGui_ImplVulkan_AddTexture(
+                texture.nearest_mag_sampler, texture.view,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            if (texture.nearest_mag_set == VK_NULL_HANDLE) {
+                error_message
+                    = "ImGui_ImplVulkan_AddTexture failed for nearest-mag "
+                      "view";
+                break;
+            }
             texture.pixelview_set = ImGui_ImplVulkan_AddTexture(
                 texture.pixelview_sampler, texture.view,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -3697,8 +4135,7 @@ namespace {
                && std::abs(a.gamma - b.gamma) < 1.0e-6f
                && std::abs(a.offset - b.offset) < 1.0e-6f
                && a.color_mode == b.color_mode && a.channel == b.channel
-               && a.use_ocio == b.use_ocio && a.orientation == b.orientation
-               && a.linear_interpolation == b.linear_interpolation;
+               && a.use_ocio == b.use_ocio && a.orientation == b.orientation;
     }
 
 
@@ -3835,7 +4272,6 @@ namespace {
             push.channel              = controls.channel;
             push.use_ocio             = controls.use_ocio;
             push.orientation          = controls.orientation;
-            push.linear_interpolation = controls.linear_interpolation;
             vkCmdPushConstants(command_buffer, vk_state.preview_pipeline_layout,
                                VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push),
                                &push);
@@ -3937,6 +4373,7 @@ namespace {
         viewer.texture     = texture;
         viewer.zoom        = 1.0f;
         viewer.fit_request = true;
+        reset_view_navigation_state(viewer);
         viewer.probe_valid = false;
         viewer.probe_channels.clear();
         if (viewer.image.width > 0 && viewer.image.height > 0) {
@@ -3968,7 +4405,9 @@ namespace {
     }
 
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
-    TestEngineRuntime* g_imiv_test_runtime = nullptr;
+    TestEngineRuntime* g_imiv_test_runtime   = nullptr;
+    ViewerState* g_imiv_test_viewer          = nullptr;
+    PlaceholderUiState* g_imiv_test_ui_state = nullptr;
 
 
 
@@ -4407,6 +4846,69 @@ namespace {
         return true;
     }
 
+    bool write_viewer_state_json(ImGuiTestContext* ctx,
+                                 const std::filesystem::path& out_path)
+    {
+        if (g_imiv_test_viewer == nullptr || g_imiv_test_ui_state == nullptr) {
+            ctx->LogError("state dump: viewer state is unavailable");
+            mark_test_error(ctx);
+            return false;
+        }
+
+        std::error_code ec;
+        if (!out_path.parent_path().empty())
+            std::filesystem::create_directories(out_path.parent_path(), ec);
+
+        FILE* f = nullptr;
+#        if defined(_WIN32)
+        if (fopen_s(&f, out_path.string().c_str(), "wb") != 0)
+            f = nullptr;
+#        else
+        f = std::fopen(out_path.string().c_str(), "wb");
+#        endif
+        if (!f) {
+            ctx->LogError("state dump: failed to open output file: %s",
+                          out_path.string().c_str());
+            mark_test_error(ctx);
+            return false;
+        }
+
+        const ViewerState& viewer          = *g_imiv_test_viewer;
+        const PlaceholderUiState& ui_state = *g_imiv_test_ui_state;
+        int display_width                  = viewer.image.width;
+        int display_height                 = viewer.image.height;
+        if (!viewer.image.path.empty())
+            oriented_image_dimensions(viewer.image, display_width,
+                                      display_height);
+
+        std::fputs("{\n", f);
+        std::fputs("  \"image_loaded\": ", f);
+        std::fputs(viewer.image.path.empty() ? "false" : "true", f);
+        std::fputs(",\n  \"image_path\": ", f);
+        json_write_escaped(f, viewer.image.path.c_str());
+        std::fputs(",\n  \"zoom\": ", f);
+        std::fprintf(f, "%.6f", static_cast<double>(viewer.zoom));
+        std::fputs(",\n  \"scroll\": ", f);
+        json_write_vec2(f, viewer.scroll);
+        std::fputs(",\n  \"norm_scroll\": ", f);
+        json_write_vec2(f, viewer.norm_scroll);
+        std::fputs(",\n  \"max_scroll\": ", f);
+        json_write_vec2(f, viewer.max_scroll);
+        std::fputs(",\n  \"fit_image_to_window\": ", f);
+        std::fputs(ui_state.fit_image_to_window ? "true" : "false", f);
+        std::fputs(",\n  \"image_size\": [", f);
+        std::fprintf(f, "%d,%d", viewer.image.width, viewer.image.height);
+        std::fputs("],\n  \"display_size\": [", f);
+        std::fprintf(f, "%d,%d", display_width, display_height);
+        std::fputs("],\n  \"orientation\": ", f);
+        std::fprintf(f, "%d", viewer.image.orientation);
+        std::fputs("\n}\n", f);
+        std::fflush(f);
+        std::fclose(f);
+        ctx->LogInfo("state dump: wrote %s", out_path.string().c_str());
+        return true;
+    }
+
 
 
     void capture_main_viewport_screenshot(ImGuiTestContext* ctx,
@@ -4429,6 +4931,13 @@ namespace {
 
     void apply_test_engine_mouse_actions(ImGuiTestContext* ctx)
     {
+        ImGuiKeyChord key_chord = 0;
+        if (env_read_key_chord_value("IMIV_IMGUI_TEST_ENGINE_KEY_CHORD",
+                                     key_chord)) {
+            ctx->KeyPress(key_chord);
+            ctx->Yield(1);
+        }
+
         ImVec2 mouse_pos(0.0f, 0.0f);
         if (resolve_test_engine_mouse_pos(mouse_pos)) {
             ctx->MouseMoveToPos(mouse_pos);
@@ -4568,6 +5077,30 @@ namespace {
             g_imiv_test_runtime->request_exit = true;
     }
 
+    void ImivTest_DumpViewerState(ImGuiTestContext* ctx)
+    {
+        int delay_frames
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_DELAY_FRAMES",
+                            3);
+        ctx->Yield(delay_frames);
+        apply_test_engine_mouse_actions(ctx);
+        ctx->Yield(1);
+
+        std::string out_value;
+        if (!read_env_value("IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_OUT", out_value)
+            || out_value.empty()) {
+            out_value = "viewer_state.json";
+        }
+
+        if (!write_viewer_state_json(ctx, std::filesystem::path(out_value))) {
+            if (g_imiv_test_runtime != nullptr)
+                g_imiv_test_runtime->request_exit = true;
+            return;
+        }
+        if (g_imiv_test_runtime != nullptr)
+            g_imiv_test_runtime->request_exit = true;
+    }
+
 
 
     ImGuiTest* register_imiv_smoke_tests(ImGuiTestEngine* engine)
@@ -4583,6 +5116,13 @@ namespace {
     {
         ImGuiTest* t = IM_REGISTER_TEST(engine, "imiv", "dump_layout_json");
         t->TestFunc  = ImivTest_DumpLayoutJson;
+        return t;
+    }
+
+    ImGuiTest* register_imiv_state_dump_tests(ImGuiTestEngine* engine)
+    {
+        ImGuiTest* t = IM_REGISTER_TEST(engine, "imiv", "dump_viewer_state");
+        t->TestFunc  = ImivTest_DumpViewerState;
         return t;
     }
 
@@ -4605,6 +5145,14 @@ namespace {
                               "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP")
                           || has_layout_out;
 
+        std::string state_out;
+        const bool has_state_out
+            = read_env_value("IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_OUT", state_out)
+              && !state_out.empty();
+        cfg.state_dump = env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_STATE_DUMP")
+                         || has_state_out;
+        cfg.state_dump_out = has_state_out ? state_out : "viewer_state.json";
+
         std::string junit_out;
         const bool has_junit_out
             = read_env_value("IMIV_IMGUI_TEST_ENGINE_JUNIT_OUT", junit_out)
@@ -4615,12 +5163,13 @@ namespace {
 
         cfg.want_test_engine = env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE")
                                || cfg.auto_screenshot || cfg.layout_dump
-                               || cfg.junit_xml;
+                               || cfg.state_dump || cfg.junit_xml;
 #        if !defined(NDEBUG)
         cfg.want_test_engine = true;
 #        endif
-        cfg.automation_mode = cfg.auto_screenshot || cfg.layout_dump;
-        cfg.exit_on_finish  = env_flag_is_truthy(
+        cfg.automation_mode = cfg.auto_screenshot || cfg.layout_dump
+                              || cfg.state_dump;
+        cfg.exit_on_finish = env_flag_is_truthy(
                                  "IMIV_IMGUI_TEST_ENGINE_EXIT_ON_FINISH")
                              || cfg.automation_mode;
         cfg.show_windows = false;
@@ -4887,36 +5436,99 @@ namespace {
                       std::abs(rect_max.y - rect_min.y));
     }
 
-    ImVec2 predicted_viewport_size_for_image(const ImageCoordinateMap& map,
-                                             const ImVec2& image_size)
-    {
-        ImVec2 base_size        = rect_size(map.viewport_rect_min,
-                                            map.viewport_rect_max);
-        const ImGuiStyle& style = ImGui::GetStyle();
-        if (ImGui::GetScrollMaxY() > 0.0f)
-            base_size.x += style.ScrollbarSize;
-        if (ImGui::GetScrollMaxX() > 0.0f)
-            base_size.y += style.ScrollbarSize;
+    struct ImageViewportLayout {
+        ImVec2 child_size   = ImVec2(0.0f, 0.0f);
+        ImVec2 inner_size   = ImVec2(0.0f, 0.0f);
+        ImVec2 content_size = ImVec2(0.0f, 0.0f);
+        ImVec2 image_size   = ImVec2(0.0f, 0.0f);
+        bool scroll_x       = false;
+        bool scroll_y       = false;
+    };
 
-        ImVec2 size = base_size;
+    bool viewport_axis_needs_scroll(float image_axis, float inner_axis)
+    {
+        return image_axis > inner_axis + 0.01f;
+    }
+
+    ImageViewportLayout compute_image_viewport_layout(const ImVec2& child_size,
+                                                      const ImVec2& padding,
+                                                      const ImVec2& image_size,
+                                                      float scrollbar_size)
+    {
+        ImageViewportLayout layout;
+        layout.child_size = child_size;
+        layout.image_size = image_size;
+
+        const ImVec2 base_inner(std::max(0.0f, child_size.x - padding.x * 2.0f),
+                                std::max(0.0f, child_size.y - padding.y * 2.0f));
+        bool scroll_x = viewport_axis_needs_scroll(image_size.x, base_inner.x);
+        bool scroll_y = viewport_axis_needs_scroll(image_size.y, base_inner.y);
         for (int i = 0; i < 3; ++i) {
-            const bool need_horizontal = image_size.x > size.x;
-            const bool need_vertical   = image_size.y > size.y;
-            ImVec2 next_size           = base_size;
-            if (need_vertical)
-                next_size.x -= style.ScrollbarSize;
-            if (need_horizontal)
-                next_size.y -= style.ScrollbarSize;
-            next_size.x = std::max(1.0f, next_size.x);
-            next_size.y = std::max(1.0f, next_size.y);
-            if (std::abs(next_size.x - size.x) < 1.0e-4f
-                && std::abs(next_size.y - size.y) < 1.0e-4f) {
-                size = next_size;
+            const ImVec2 inner(
+                std::max(0.0f,
+                         base_inner.x - (scroll_y ? scrollbar_size : 0.0f)),
+                std::max(0.0f,
+                         base_inner.y - (scroll_x ? scrollbar_size : 0.0f)));
+            const bool next_x = viewport_axis_needs_scroll(image_size.x,
+                                                           inner.x);
+            const bool next_y = viewport_axis_needs_scroll(image_size.y,
+                                                           inner.y);
+            layout.inner_size = inner;
+            if (next_x == scroll_x && next_y == scroll_y)
                 break;
-            }
-            size = next_size;
+            scroll_x = next_x;
+            scroll_y = next_y;
         }
-        return size;
+        layout.scroll_x       = scroll_x;
+        layout.scroll_y       = scroll_y;
+        layout.content_size.x = scroll_x ? (image_size.x + layout.inner_size.x)
+                                         : layout.inner_size.x;
+        layout.content_size.y = scroll_y ? (image_size.y + layout.inner_size.y)
+                                         : layout.inner_size.y;
+        return layout;
+    }
+
+    void sync_view_scroll_from_display_scroll(ViewerState& viewer,
+                                              const ImVec2& display_scroll,
+                                              const ImVec2& image_size)
+    {
+        viewer.max_scroll    = image_size;
+        viewer.scroll.x      = std::clamp(display_scroll.x, 0.0f,
+                                          std::max(0.0f, image_size.x));
+        viewer.scroll.y      = std::clamp(display_scroll.y, 0.0f,
+                                          std::max(0.0f, image_size.y));
+        viewer.norm_scroll.x = (image_size.x > 0.0f)
+                                   ? (viewer.scroll.x / image_size.x)
+                                   : 0.5f;
+        viewer.norm_scroll.y = (image_size.y > 0.0f)
+                                   ? (viewer.scroll.y / image_size.y)
+                                   : 0.5f;
+    }
+
+    void sync_view_scroll_from_source_uv(ViewerState& viewer,
+                                         const ImVec2& source_uv,
+                                         int orientation,
+                                         const ImVec2& image_size)
+    {
+        const ImVec2 display_uv = source_uv_to_display_uv(
+            ImVec2(std::clamp(source_uv.x, 0.0f, 1.0f),
+                   std::clamp(source_uv.y, 0.0f, 1.0f)),
+            orientation);
+        viewer.max_scroll  = image_size;
+        viewer.norm_scroll = display_uv;
+        viewer.scroll      = ImVec2(display_uv.x * image_size.x,
+                                    display_uv.y * image_size.y);
+    }
+
+    void queue_zoom_pivot(ViewerState& viewer, const ImVec2& anchor_screen,
+                          const ImVec2& source_uv)
+    {
+        viewer.zoom_pivot_screen = anchor_screen;
+        viewer.zoom_pivot_source_uv
+            = ImVec2(std::clamp(source_uv.x, 0.0f, 1.0f),
+                     std::clamp(source_uv.y, 0.0f, 1.0f));
+        viewer.zoom_pivot_pending     = true;
+        viewer.zoom_pivot_frames_left = 3;
     }
 
     struct PendingZoomRequest {
@@ -4936,6 +5548,35 @@ namespace {
     {
         request.snap_to_one  = true;
         request.prefer_mouse = request.prefer_mouse || prefer_mouse;
+    }
+
+    void recenter_view(ViewerState& viewer, const ImVec2& image_size)
+    {
+        viewer.zoom_pivot_pending     = false;
+        viewer.zoom_pivot_frames_left = 0;
+        sync_view_scroll_from_display_scroll(viewer,
+                                             ImVec2(image_size.x * 0.5f,
+                                                    image_size.y * 0.5f),
+                                             image_size);
+        viewer.scroll_sync_frames_left
+            = std::max(viewer.scroll_sync_frames_left, 2);
+    }
+
+    float compute_fit_zoom(const ImVec2& child_size, const ImVec2& padding,
+                           int display_width, int display_height)
+    {
+        if (display_width <= 0 || display_height <= 0)
+            return 1.0f;
+
+        const ImVec2 fit_inner(std::max(1.0f, child_size.x - padding.x * 2.0f),
+                               std::max(1.0f, child_size.y - padding.y * 2.0f));
+        const float fit_x = fit_inner.x / static_cast<float>(display_width);
+        const float fit_y = fit_inner.y / static_cast<float>(display_height);
+        if (!(fit_x > 0.0f && fit_y > 0.0f))
+            return 1.0f;
+
+        const float fit_zoom = std::min(fit_x, fit_y);
+        return std::max(0.05f, std::nextafter(fit_zoom, 0.0f));
     }
 
     void compute_zoom_pivot(const ImageCoordinateMap& map,
@@ -4984,44 +5625,40 @@ namespace {
         compute_zoom_pivot(map, mouse_screen, request.prefer_mouse,
                            anchor_screen, source_uv);
 
-        int display_width  = viewer.image.width;
-        int display_height = viewer.image.height;
-        oriented_image_dimensions(viewer.image, display_width, display_height);
-
-        const ImVec2 new_image_size(static_cast<float>(display_width)
-                                        * new_zoom,
-                                    static_cast<float>(display_height)
-                                        * new_zoom);
-        const ImVec2 viewport_size
-            = predicted_viewport_size_for_image(map, new_image_size);
-        if (viewport_size.x <= 0.0f || viewport_size.y <= 0.0f)
-            return;
-
-        const ImVec2 new_center_offset(
-            std::max(0.0f, (viewport_size.x - new_image_size.x) * 0.5f),
-            std::max(0.0f, (viewport_size.y - new_image_size.y) * 0.5f));
-        const ImVec2 anchor_local
-            = ImVec2(anchor_screen.x - map.viewport_rect_min.x,
-                     anchor_screen.y - map.viewport_rect_min.y);
-        const ImVec2 display_uv  = source_uv_to_display_uv(source_uv,
-                                                           map.orientation);
-        const float max_scroll_x = std::max(0.0f,
-                                            new_image_size.x - viewport_size.x);
-        const float max_scroll_y = std::max(0.0f,
-                                            new_image_size.y - viewport_size.y);
-        const float new_scroll_x
-            = std::clamp(new_center_offset.x + display_uv.x * new_image_size.x
-                             - anchor_local.x,
-                         0.0f, max_scroll_x);
-        const float new_scroll_y
-            = std::clamp(new_center_offset.y + display_uv.y * new_image_size.y
-                             - anchor_local.y,
-                         0.0f, max_scroll_y);
-
         viewer.zoom                  = new_zoom;
         ui_state.fit_image_to_window = false;
-        ImGui::SetScrollX(new_scroll_x);
-        ImGui::SetScrollY(new_scroll_y);
+        viewer.fit_request           = false;
+        queue_zoom_pivot(viewer, anchor_screen, source_uv);
+    }
+
+    void apply_pending_zoom_pivot(ViewerState& viewer,
+                                  const ImageCoordinateMap& map,
+                                  const ImVec2& image_size, bool can_scroll_x,
+                                  bool can_scroll_y)
+    {
+        if (!(viewer.zoom_pivot_pending || viewer.zoom_pivot_frames_left > 0))
+            return;
+        const ImVec2 viewport_center = rect_center(map.viewport_rect_min,
+                                                   map.viewport_rect_max);
+        const ImVec2 display_uv
+            = source_uv_to_display_uv(viewer.zoom_pivot_source_uv,
+                                      map.orientation);
+        const ImVec2 new_scroll((viewport_center.x - viewer.zoom_pivot_screen.x)
+                                    + display_uv.x * image_size.x,
+                                (viewport_center.y - viewer.zoom_pivot_screen.y)
+                                    + display_uv.y * image_size.y);
+        sync_view_scroll_from_display_scroll(viewer, new_scroll, image_size);
+        if (can_scroll_x)
+            ImGui::SetScrollX(viewer.scroll.x);
+        else
+            ImGui::SetScrollX(0.0f);
+        if (can_scroll_y)
+            ImGui::SetScrollY(viewer.scroll.y);
+        else
+            ImGui::SetScrollY(0.0f);
+        viewer.zoom_pivot_pending = false;
+        if (viewer.zoom_pivot_frames_left > 0)
+            --viewer.zoom_pivot_frames_left;
     }
 
     bool source_uv_to_pixel(const ImageCoordinateMap& map,
@@ -5598,6 +6235,7 @@ namespace {
         viewer.image       = LoadedImage();
         viewer.zoom        = 1.0f;
         viewer.fit_request = true;
+        reset_view_navigation_state(viewer);
         viewer.probe_valid = false;
         viewer.probe_channels.clear();
         viewer.sibling_images.clear();
@@ -6084,11 +6722,10 @@ namespace {
 
             if (ImGui::BeginTable("##iv_preview_form", 2,
                                   ImGuiTableFlags_SizingStretchProp
-                                      | ImGuiTableFlags_NoSavedSettings
-                                      | ImGuiTableFlags_BordersInnerV)) {
+                                      | ImGuiTableFlags_NoSavedSettings)) {
                 ImGui::TableSetupColumn("Label",
                                         ImGuiTableColumnFlags_WidthFixed,
-                                        110.0f);
+                                        90.0f);
                 ImGui::TableSetupColumn("Control",
                                         ImGuiTableColumnFlags_WidthStretch);
 
@@ -6724,7 +7361,8 @@ namespace {
         glfwSetWindowPos(window, pos_x, pos_y);
     }
 
-    void current_child_visible_rect(const ImVec2& padding, ImVec2& out_min,
+    void current_child_visible_rect(const ImVec2& padding, bool scroll_x,
+                                    bool scroll_y, ImVec2& out_min,
                                     ImVec2& out_max)
     {
         const ImVec2 window_pos  = ImGui::GetWindowPos();
@@ -6733,9 +7371,9 @@ namespace {
         out_min = ImVec2(window_pos.x + padding.x, window_pos.y + padding.y);
         out_max = ImVec2(window_pos.x + window_size.x - padding.x,
                          window_pos.y + window_size.y - padding.y);
-        if (ImGui::GetScrollMaxY() > 0.0f)
+        if (scroll_y)
             out_max.x -= style.ScrollbarSize;
-        if (ImGui::GetScrollMaxX() > 0.0f)
+        if (scroll_x)
             out_max.y -= style.ScrollbarSize;
         out_max.x = std::max(out_min.x, out_max.x);
         out_max.y = std::max(out_min.y, out_max.y);
@@ -6801,6 +7439,15 @@ namespace {
                                          mouse_mode_name(ui.mouse_mode));
         }
         return text;
+    }
+
+
+
+    bool app_shortcut(ImGuiKeyChord key_chord)
+    {
+        return ImGui::Shortcut(key_chord,
+                               ImGuiInputFlags_RouteGlobal
+                                   | ImGuiInputFlags_RouteUnlessBgFocused);
     }
 
 
@@ -6898,6 +7545,7 @@ namespace {
         bool save_window_as_requested      = false;
         bool save_selection_as_requested   = false;
         bool fit_window_to_image_requested = false;
+        bool recenter_requested            = false;
         bool delete_from_disk_requested    = false;
         bool full_screen_toggle_requested  = false;
         bool rotate_left_requested         = false;
@@ -6950,98 +7598,100 @@ namespace {
             ui_state.show_area_probe_window  = true;
         }
 
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O))
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_O))
             open_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_R) && has_image)
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_R) && has_image)
             reload_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_W) && has_image)
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_W) && has_image)
             close_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S) && has_image)
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_S) && has_image)
             save_as_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Comma))
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Comma))
             ui_state.show_preferences_window = true;
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Q))
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Q))
             request_exit = true;
-        if (ImGui::Shortcut(ImGuiKey_PageUp))
+        if (app_shortcut(ImGuiKey_PageUp))
             prev_requested = true;
-        if (ImGui::Shortcut(ImGuiKey_PageDown))
+        if (app_shortcut(ImGuiKey_PageDown))
             next_requested = true;
-        if (no_mods && ImGui::Shortcut(ImGuiKey_T))
+        if (no_mods && app_shortcut(ImGuiKey_T))
             toggle_requested = true;
-        if ((ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Equal)
-             || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Equal)
-             || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadAdd))
+        if ((app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Equal)
+             || app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Equal)
+             || app_shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadAdd))
             && has_image)
             request_zoom_scale(pending_zoom, 2.0f, false);
-        if ((ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Minus)
-             || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadSubtract))
+        if ((app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Minus)
+             || app_shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadSubtract))
             && has_image)
             request_zoom_scale(pending_zoom, 0.5f, false);
-        if ((ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_0)
-             || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Keypad0))
+        if ((app_shortcut(ImGuiMod_Ctrl | ImGuiKey_0)
+             || app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Keypad0))
             && has_image)
             request_zoom_reset(pending_zoom, false);
-        if (no_mods && ImGui::Shortcut(ImGuiKey_F) && has_image)
+        if ((app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Period)
+             || app_shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadDecimal))
+            && has_image)
+            recenter_requested = true;
+        if (no_mods && app_shortcut(ImGuiKey_F) && has_image)
             fit_window_to_image_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_F) && has_image) {
+        if (app_shortcut(ImGuiMod_Alt | ImGuiKey_F) && has_image) {
             ui_state.fit_image_to_window = !ui_state.fit_image_to_window;
             viewer.fit_request           = true;
         }
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_F))
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_F))
             full_screen_toggle_requested = true;
-        if (ui_state.full_screen_mode && ImGui::Shortcut(ImGuiKey_Escape))
+        if (ui_state.full_screen_mode && app_shortcut(ImGuiKey_Escape))
             full_screen_toggle_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Comma)
-            && can_prev_subimage)
+        if (app_shortcut(ImGuiMod_Shift | ImGuiKey_Comma) && can_prev_subimage)
             prev_subimage_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Period)
-            && can_next_subimage)
+        if (app_shortcut(ImGuiMod_Shift | ImGuiKey_Period) && can_next_subimage)
             next_subimage_requested = true;
-        if (no_mods && ImGui::Shortcut(ImGuiKey_C))
+        if (no_mods && app_shortcut(ImGuiKey_C))
             ui_state.current_channel = 0;
-        if (no_mods && ImGui::Shortcut(ImGuiKey_R))
+        if (no_mods && app_shortcut(ImGuiKey_R))
             ui_state.current_channel = 1;
-        if (no_mods && ImGui::Shortcut(ImGuiKey_G))
+        if (no_mods && app_shortcut(ImGuiKey_G))
             ui_state.current_channel = 2;
-        if (no_mods && ImGui::Shortcut(ImGuiKey_B))
+        if (no_mods && app_shortcut(ImGuiKey_B))
             ui_state.current_channel = 3;
-        if (no_mods && ImGui::Shortcut(ImGuiKey_A))
+        if (no_mods && app_shortcut(ImGuiKey_A))
             ui_state.current_channel = 4;
-        if (no_mods && ImGui::Shortcut(ImGuiKey_Comma) && has_image)
+        if (no_mods && app_shortcut(ImGuiKey_Comma) && has_image)
             ui_state.current_channel = std::max(0,
                                                 ui_state.current_channel - 1);
-        if (no_mods && ImGui::Shortcut(ImGuiKey_Period) && has_image)
+        if (no_mods && app_shortcut(ImGuiKey_Period) && has_image)
             ui_state.current_channel = std::min(4,
                                                 ui_state.current_channel + 1);
-        if (no_mods && ImGui::Shortcut(ImGuiKey_1))
+        if (no_mods && app_shortcut(ImGuiKey_1))
             ui_state.color_mode = 2;
-        if (no_mods && ImGui::Shortcut(ImGuiKey_L))
+        if (no_mods && app_shortcut(ImGuiKey_L))
             ui_state.color_mode = 3;
-        if (no_mods && ImGui::Shortcut(ImGuiKey_H))
+        if (no_mods && app_shortcut(ImGuiKey_H))
             ui_state.color_mode = 4;
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_I))
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_I))
             ui_state.show_info_window = !ui_state.show_info_window;
-        if (no_mods && ImGui::Shortcut(ImGuiKey_P))
+        if (no_mods && app_shortcut(ImGuiKey_P))
             ui_state.show_pixelview_window = !ui_state.show_pixelview_window;
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_A))
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_A))
             ui_state.show_area_probe_window = !ui_state.show_area_probe_window;
-        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_LeftBracket))
+        if (app_shortcut(ImGuiMod_Shift | ImGuiKey_LeftBracket))
             ui_state.exposure -= 0.5f;
-        if (ImGui::Shortcut(ImGuiKey_LeftBracket))
+        if (app_shortcut(ImGuiKey_LeftBracket))
             ui_state.exposure -= 0.1f;
-        if (ImGui::Shortcut(ImGuiKey_RightBracket))
+        if (app_shortcut(ImGuiKey_RightBracket))
             ui_state.exposure += 0.1f;
-        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_RightBracket))
+        if (app_shortcut(ImGuiMod_Shift | ImGuiKey_RightBracket))
             ui_state.exposure += 0.5f;
-        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_9))
+        if (app_shortcut(ImGuiMod_Shift | ImGuiKey_9))
             ui_state.gamma = std::max(0.1f, ui_state.gamma - 0.1f);
-        if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_0))
+        if (app_shortcut(ImGuiMod_Shift | ImGuiKey_0))
             ui_state.gamma += 0.1f;
-        if (ImGui::Shortcut(ImGuiKey_Delete) && has_image)
+        if (app_shortcut(ImGuiKey_Delete) && has_image)
             delete_from_disk_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_L))
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_L))
             rotate_left_requested = true;
-        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_R))
+        if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_R))
             rotate_right_requested = true;
 
         if (ImGui::BeginMainMenuBar()) {
@@ -7119,6 +7769,9 @@ namespace {
                 if (ImGui::MenuItem("Normal Size (1:1)", "Ctrl+0", false,
                                     has_image))
                     request_zoom_reset(pending_zoom, false);
+                if (ImGui::MenuItem("Re-center Image", "Ctrl+.", false,
+                                    has_image))
+                    recenter_requested = true;
                 if (ImGui::MenuItem("Fit Window to Image", "F", false,
                                     has_image))
                     fit_window_to_image_requested = true;
@@ -7591,7 +8244,50 @@ namespace {
                                           content_avail.y - status_bar_height);
 
         const ImVec2 viewport_padding(8.0f, 8.0f);
+        ImageViewportLayout image_layout;
+        int display_width  = 0;
+        int display_height = 0;
+        if (!viewer.image.path.empty()) {
+            display_width  = viewer.image.width;
+            display_height = viewer.image.height;
+            oriented_image_dimensions(viewer.image, display_width,
+                                      display_height);
+            if ((viewer.fit_request || ui_state.fit_image_to_window)
+                && display_width > 0 && display_height > 0) {
+                const ImVec2 child_size(content_avail.x, viewport_h);
+                viewer.zoom = compute_fit_zoom(child_size, viewport_padding,
+                                               display_width, display_height);
+                viewer.zoom_pivot_pending     = false;
+                viewer.zoom_pivot_frames_left = 0;
+                viewer.norm_scroll            = ImVec2(0.5f, 0.5f);
+                viewer.fit_request            = false;
+                viewer.scroll_sync_frames_left
+                    = std::max(viewer.scroll_sync_frames_left, 2);
+            }
+
+            const ImVec2 image_size(static_cast<float>(display_width)
+                                        * viewer.zoom,
+                                    static_cast<float>(display_height)
+                                        * viewer.zoom);
+            if (recenter_requested)
+                recenter_view(viewer, image_size);
+            image_layout = compute_image_viewport_layout(
+                ImVec2(content_avail.x, viewport_h), viewport_padding,
+                image_size, ImGui::GetStyle().ScrollbarSize);
+            sync_view_scroll_from_display_scroll(
+                viewer,
+                ImVec2(viewer.norm_scroll.x * image_size.x,
+                       viewer.norm_scroll.y * image_size.y),
+                image_size);
+        }
+
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, viewport_padding);
+        if (!viewer.image.path.empty()
+            && (image_layout.scroll_x || image_layout.scroll_y)) {
+            ImGui::SetNextWindowContentSize(image_layout.content_size);
+            if (viewer.scroll_sync_frames_left > 0)
+                ImGui::SetNextWindowScroll(viewer.scroll);
+        }
         ImGui::BeginChild("Viewport", ImVec2(0.0f, viewport_h), false,
                           ImGuiWindowFlags_HorizontalScrollbar
                               | ImGuiWindowFlags_NoScrollWithMouse);
@@ -7606,97 +8302,113 @@ namespace {
         }
 
         if (!viewer.image.path.empty()) {
-            const ImVec2 avail = ImGui::GetContentRegionAvail();
-            ImVec2 draw_avail  = avail;
-            int display_width  = viewer.image.width;
-            int display_height = viewer.image.height;
-            oriented_image_dimensions(viewer.image, display_width,
-                                      display_height);
-            if ((viewer.fit_request || ui_state.fit_image_to_window)
-                && display_width > 0 && display_height > 0) {
-                ImVec2 fit_avail           = avail;
-                const float scrollbar_size = ImGui::GetStyle().ScrollbarSize;
-                // GetContentRegionAvail() is reduced when a scrollbar is
-                // already present. Add that thickness back to recover
-                // the true content extent for fit-to-window zoom.
-                if (ImGui::GetScrollMaxY() > 0.0f)
-                    fit_avail.x += scrollbar_size;
-                if (ImGui::GetScrollMaxX() > 0.0f)
-                    fit_avail.y += scrollbar_size;
-
-                const float fit_x = fit_avail.x
-                                    / static_cast<float>(display_width);
-                const float fit_y = fit_avail.y
-                                    / static_cast<float>(display_height);
-                if (fit_x > 0.0f && fit_y > 0.0f)
-                    viewer.zoom = std::max(0.05f, std::min(fit_x, fit_y));
-                draw_avail         = fit_avail;
-                viewer.fit_request = false;
-                ImGui::SetScrollX(0.0f);
-                ImGui::SetScrollY(0.0f);
-            }
-
-            const ImVec2 image_size(static_cast<float>(display_width)
-                                        * viewer.zoom,
-                                    static_cast<float>(display_height)
-                                        * viewer.zoom);
-            if (image_size.x < draw_avail.x || image_size.y < draw_avail.y) {
-                ImVec2 p = ImGui::GetCursorPos();
-                if (image_size.x < draw_avail.x)
-                    p.x += (draw_avail.x - image_size.x) * 0.5f;
-                if (image_size.y < draw_avail.y)
-                    p.y += (draw_avail.y - image_size.y) * 0.5f;
-                ImGui::SetCursorPos(p);
-            }
-
+            const ImVec2 image_size = image_layout.image_size;
+            ImTextureRef main_texture_ref;
             ImTextureRef closeup_texture_ref;
-            bool has_closeup_texture = false;
+            bool has_main_texture     = false;
+            bool has_closeup_texture  = false;
+            bool image_canvas_pressed = false;
+            bool image_canvas_hovered = false;
+            bool image_canvas_active  = false;
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-            if (viewer.texture.set != VK_NULL_HANDLE)
-                ImGui::Image(ImTextureRef(static_cast<ImTextureID>(
-                                 reinterpret_cast<uintptr_t>(
-                                     viewer.texture.set))),
-                             image_size);
-            else
-                ImGui::TextUnformatted("No texture");
-            if (viewer.texture.set == VK_NULL_HANDLE)
-                register_layout_dump_synthetic_item("text", "No texture");
+            VkDescriptorSet main_set = ui_state.linear_interpolation
+                                           ? viewer.texture.set
+                                           : viewer.texture.nearest_mag_set;
+            if (main_set == VK_NULL_HANDLE)
+                main_set = viewer.texture.set;
+            if (main_set != VK_NULL_HANDLE) {
+                main_texture_ref = ImTextureRef(static_cast<ImTextureID>(
+                    reinterpret_cast<uintptr_t>(main_set)));
+                has_main_texture = true;
+            }
             if (viewer.texture.pixelview_set != VK_NULL_HANDLE) {
                 closeup_texture_ref = ImTextureRef(static_cast<ImTextureID>(
                     reinterpret_cast<uintptr_t>(viewer.texture.pixelview_set)));
                 has_closeup_texture = true;
             } else if (viewer.texture.set != VK_NULL_HANDLE) {
-                closeup_texture_ref = ImTextureRef(static_cast<ImTextureID>(
-                    reinterpret_cast<uintptr_t>(viewer.texture.set)));
+                closeup_texture_ref = main_texture_ref;
                 has_closeup_texture = true;
             }
-#else
-            ImGui::TextUnformatted("No Vulkan backend");
-            register_layout_dump_synthetic_item("text", "No Vulkan backend");
 #endif
-            const ImVec2 item_min = ImGui::GetItemRectMin();
-            const ImVec2 item_max = ImGui::GetItemRectMax();
             ImageCoordinateMap coord_map;
-            coord_map.valid          = (item_max.x > item_min.x
-                               && item_max.y > item_min.y);
-            coord_map.source_width   = viewer.image.width;
-            coord_map.source_height  = viewer.image.height;
-            coord_map.orientation    = viewer.image.orientation;
-            coord_map.image_rect_min = item_min;
-            coord_map.image_rect_max = item_max;
-            current_child_visible_rect(viewport_padding,
+            coord_map.source_width  = viewer.image.width;
+            coord_map.source_height = viewer.image.height;
+            coord_map.orientation   = viewer.image.orientation;
+            current_child_visible_rect(viewport_padding, image_layout.scroll_x,
+                                       image_layout.scroll_y,
                                        coord_map.viewport_rect_min,
                                        coord_map.viewport_rect_max);
-            update_test_engine_mouse_space(
-                coord_map.viewport_rect_min, coord_map.viewport_rect_max,
-                (has_image && coord_map.valid) ? item_min : ImVec2(0.0f, 0.0f),
-                (has_image && coord_map.valid) ? item_max : ImVec2(0.0f, 0.0f));
+            const ImVec2 viewport_center
+                = rect_center(coord_map.viewport_rect_min,
+                              coord_map.viewport_rect_max);
+            const bool can_scroll_x = image_layout.scroll_x;
+            const bool can_scroll_y = image_layout.scroll_y;
+            if (viewer.zoom_pivot_pending
+                || viewer.zoom_pivot_frames_left > 0) {
+                apply_pending_zoom_pivot(viewer, coord_map, image_size,
+                                         can_scroll_x, can_scroll_y);
+            } else if (viewer.scroll_sync_frames_left > 0) {
+                if (can_scroll_x)
+                    ImGui::SetScrollX(viewer.scroll.x);
+                else
+                    ImGui::SetScrollX(0.0f);
+                if (can_scroll_y)
+                    ImGui::SetScrollY(viewer.scroll.y);
+                else
+                    ImGui::SetScrollY(0.0f);
+                --viewer.scroll_sync_frames_left;
+            } else {
+                ImVec2 imgui_scroll = viewer.scroll;
+                if (can_scroll_x)
+                    imgui_scroll.x = ImGui::GetScrollX();
+                if (can_scroll_y)
+                    imgui_scroll.y = ImGui::GetScrollY();
+                sync_view_scroll_from_display_scroll(viewer, imgui_scroll,
+                                                     image_size);
+            }
+            coord_map.valid = (image_size.x > 0.0f && image_size.y > 0.0f);
+            coord_map.image_rect_min
+                = ImVec2(viewport_center.x - viewer.scroll.x,
+                         viewport_center.y - viewer.scroll.y);
+            coord_map.image_rect_max
+                = ImVec2(coord_map.image_rect_min.x + image_size.x,
+                         coord_map.image_rect_min.y + image_size.y);
+            update_test_engine_mouse_space(coord_map.viewport_rect_min,
+                                           coord_map.viewport_rect_max,
+                                           (has_image && coord_map.valid)
+                                               ? coord_map.image_rect_min
+                                               : ImVec2(0.0f, 0.0f),
+                                           (has_image && coord_map.valid)
+                                               ? coord_map.image_rect_max
+                                               : ImVec2(0.0f, 0.0f));
             coord_map.window_pos = ImGui::GetWindowPos();
-            if (ui_state.show_window_guides && item_max.x > item_min.x
-                && item_max.y > item_min.y) {
+            if (has_main_texture && coord_map.valid) {
+                ImGui::SetCursorScreenPos(coord_map.image_rect_min);
+                image_canvas_pressed = ImGui::InvisibleButton(
+                    "##image_canvas", image_size,
+                    ImGuiButtonFlags_MouseButtonLeft
+                        | ImGuiButtonFlags_MouseButtonRight
+                        | ImGuiButtonFlags_MouseButtonMiddle);
+                image_canvas_hovered = ImGui::IsItemHovered(
+                    ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+                image_canvas_active = ImGui::IsItemActive();
+                register_layout_dump_synthetic_item("image", "Image");
                 ImDrawList* draw_list = ImGui::GetWindowDrawList();
-                draw_list->AddRect(item_min, item_max,
+                draw_list->PushClipRect(coord_map.viewport_rect_min,
+                                        coord_map.viewport_rect_max, true);
+                draw_list->AddImage(main_texture_ref, coord_map.image_rect_min,
+                                    coord_map.image_rect_max);
+                draw_list->PopClipRect();
+            } else if (!has_main_texture) {
+                ImGui::TextUnformatted("No texture");
+                register_layout_dump_synthetic_item("text", "No texture");
+            }
+
+            if (ui_state.show_window_guides && coord_map.valid) {
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                draw_list->AddRect(coord_map.image_rect_min,
+                                   coord_map.image_rect_max,
                                    IM_COL32(250, 210, 80, 255), 0.0f, 0, 1.5f);
                 draw_list->AddRect(coord_map.viewport_rect_min,
                                    coord_map.viewport_rect_max,
@@ -7721,17 +8433,36 @@ namespace {
 
             const ImGuiIO& io         = ImGui::GetIO();
             const ImVec2 mouse        = io.MousePos;
-            const bool mouse_in_image = point_in_rect(mouse, item_min,
-                                                      item_max);
+            const bool mouse_in_image = point_in_rect(mouse,
+                                                      coord_map.image_rect_min,
+                                                      coord_map.image_rect_max);
             const bool mouse_in_viewport
                 = point_in_rect(mouse, coord_map.viewport_rect_min,
                                 coord_map.viewport_rect_max);
+            const bool viewport_hovered = ImGui::IsWindowHovered(
+                ImGuiHoveredFlags_None);
+            const bool viewport_accepts_mouse = viewport_hovered
+                                                && mouse_in_viewport;
+            const bool image_canvas_accepts_mouse = image_canvas_hovered
+                                                    || image_canvas_active;
+            const bool image_canvas_clicked_left
+                = image_canvas_pressed
+                  && io.MouseReleased[ImGuiMouseButton_Left];
+            const bool image_canvas_clicked_right
+                = image_canvas_pressed
+                  && io.MouseReleased[ImGuiMouseButton_Right];
+            const bool empty_viewport_clicked_left
+                = viewport_accepts_mouse && !mouse_in_image
+                  && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+            const bool empty_viewport_clicked_right
+                = viewport_accepts_mouse && !mouse_in_image
+                  && ImGui::IsMouseClicked(ImGuiMouseButton_Right);
 
             ImVec2 source_uv(0.0f, 0.0f);
             int px = 0;
             int py = 0;
             std::vector<double> sampled;
-            if (mouse_in_image
+            if (viewport_accepts_mouse && mouse_in_image
                 && screen_to_source_uv(coord_map, mouse, source_uv)
                 && source_uv_to_pixel(coord_map, source_uv, px, py)
                 && sample_loaded_pixel(viewer.image, px, py, sampled)) {
@@ -7739,7 +8470,8 @@ namespace {
                 viewer.probe_x        = px;
                 viewer.probe_y        = py;
                 viewer.probe_channels = std::move(sampled);
-            } else if (ui_state.pixelview_follows_mouse && !mouse_in_image) {
+            } else if (ui_state.pixelview_follows_mouse
+                       && (!viewport_accepts_mouse || !mouse_in_image)) {
                 viewer.probe_valid = false;
                 viewer.probe_channels.clear();
             }
@@ -7750,22 +8482,37 @@ namespace {
 
             bool want_pan       = false;
             bool want_zoom_drag = false;
-            if (mouse_in_viewport || pan_drag_active || zoom_drag_active) {
+            if (viewport_accepts_mouse || image_canvas_accepts_mouse
+                || pan_drag_active || zoom_drag_active) {
                 if (ui_state.mouse_mode == 1) {
                     want_pan = ImGui::IsMouseDown(ImGuiMouseButton_Left)
                                || ImGui::IsMouseDown(ImGuiMouseButton_Right)
                                || ImGui::IsMouseDown(ImGuiMouseButton_Middle);
                 } else if (ui_state.mouse_mode == 0) {
-                    want_pan = ImGui::IsMouseDown(ImGuiMouseButton_Middle)
-                               || (io.KeyAlt
-                                   && ImGui::IsMouseDown(ImGuiMouseButton_Left));
-                    want_zoom_drag = io.KeyAlt
-                                     && ImGui::IsMouseDown(
-                                         ImGuiMouseButton_Right);
-                    if (!io.KeyAlt && mouse_in_viewport) {
-                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                    const bool want_middle_pan
+                        = ImGui::IsMouseDown(ImGuiMouseButton_Middle)
+                          && (pan_drag_active || image_canvas_accepts_mouse
+                              || viewport_accepts_mouse);
+                    const bool want_alt_left_pan
+                        = io.KeyAlt && ImGui::IsMouseDown(ImGuiMouseButton_Left)
+                          && (pan_drag_active || image_canvas_accepts_mouse
+                              || viewport_accepts_mouse);
+                    want_pan = want_middle_pan || want_alt_left_pan;
+                    want_zoom_drag
+                        = io.KeyAlt
+                          && ImGui::IsMouseDown(ImGuiMouseButton_Right)
+                          && (zoom_drag_active || image_canvas_accepts_mouse
+                              || viewport_accepts_mouse);
+                    if (!io.KeyAlt
+                        && (image_canvas_clicked_left
+                            || image_canvas_clicked_right
+                            || empty_viewport_clicked_left
+                            || empty_viewport_clicked_right)) {
+                        if (image_canvas_clicked_left
+                            || empty_viewport_clicked_left)
                             request_zoom_scale(pending_zoom, 2.0f, true);
-                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                        if (image_canvas_clicked_right
+                            || empty_viewport_clicked_right)
                             request_zoom_scale(pending_zoom, 0.5f, true);
                     }
                 }
@@ -7778,9 +8525,14 @@ namespace {
                 } else {
                     const float dx = mouse.x - drag_prev_mouse.x;
                     const float dy = mouse.y - drag_prev_mouse.y;
-                    ImGui::SetScrollX(ImGui::GetScrollX() - dx);
-                    ImGui::SetScrollY(ImGui::GetScrollY() - dy);
+                    sync_view_scroll_from_display_scroll(
+                        viewer,
+                        ImVec2(viewer.scroll.x - dx, viewer.scroll.y - dy),
+                        image_size);
+                    viewer.scroll_sync_frames_left
+                        = std::max(viewer.scroll_sync_frames_left, 2);
                     drag_prev_mouse              = mouse;
+                    viewer.fit_request           = false;
                     ui_state.fit_image_to_window = false;
                 }
             } else {
@@ -7803,7 +8555,7 @@ namespace {
                 zoom_drag_active = false;
             }
 
-            if (mouse_in_viewport && io.MouseWheel != 0.0f) {
+            if (viewport_accepts_mouse && io.MouseWheel != 0.0f) {
                 const float scale = (io.MouseWheel > 0.0f) ? 1.1f : 0.9f;
                 request_zoom_scale(pending_zoom, scale, true);
             }
@@ -7969,7 +8721,7 @@ run(const AppConfig& config)
         instance_extensions.push_back(glfw_extensions[i]);
 
     std::string startup_error;
-    if (!setup_vulkan(vk_state, instance_extensions, startup_error)) {
+    if (!setup_vulkan_instance(vk_state, instance_extensions, startup_error)) {
         print(stderr, "imiv: {}\n", startup_error);
         cleanup_vulkan(vk_state);
         ImGui::DestroyContext();
@@ -7983,6 +8735,16 @@ run(const AppConfig& config)
                                            &vk_state.surface);
     if (err != VK_SUCCESS) {
         print(stderr, "imiv: glfwCreateWindowSurface failed\n");
+        cleanup_vulkan(vk_state);
+        ImGui::DestroyContext();
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return EXIT_FAILURE;
+    }
+
+    if (!setup_vulkan_device(vk_state, startup_error)) {
+        print(stderr, "imiv: {}\n", startup_error);
+        destroy_vulkan_surface(vk_state);
         cleanup_vulkan(vk_state);
         ImGui::DestroyContext();
         glfwDestroyWindow(window);
@@ -8019,7 +8781,7 @@ run(const AppConfig& config)
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
     ImGui_ImplVulkan_InitInfo init_info    = {};
-    init_info.ApiVersion                   = VK_API_VERSION_1_2;
+    init_info.ApiVersion                   = vk_state.api_version;
     init_info.Instance                     = vk_state.instance;
     init_info.PhysicalDevice               = vk_state.physical_device;
     init_info.Device                       = vk_state.device;
@@ -8120,6 +8882,12 @@ run(const AppConfig& config)
         }
         if (test_engine_cfg.layout_dump) {
             ImGuiTest* dump = register_imiv_layout_dump_tests(
+                test_engine_runtime.engine);
+            ImGuiTestEngine_QueueTest(test_engine_runtime.engine, dump);
+            test_engine_cfg.has_work = true;
+        }
+        if (test_engine_cfg.state_dump) {
+            ImGuiTest* dump = register_imiv_state_dump_tests(
                 test_engine_runtime.engine);
             ImGuiTestEngine_QueueTest(test_engine_runtime.engine, dump);
             test_engine_cfg.has_work = true;
@@ -8247,6 +9015,10 @@ run(const AppConfig& config)
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+        g_imiv_test_viewer   = &viewer;
+        g_imiv_test_ui_state = &ui_state;
+#    endif
         draw_viewer_ui(viewer, ui_state, fonts, request_exit
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
                        ,
@@ -8334,7 +9106,9 @@ run(const AppConfig& config)
         ImGuiTestEngine_DestroyContext(test_engine_runtime.engine);
         test_engine_runtime.engine = nullptr;
     }
-    g_imiv_test_runtime = nullptr;
+    g_imiv_test_runtime  = nullptr;
+    g_imiv_test_viewer   = nullptr;
+    g_imiv_test_ui_state = nullptr;
 #    endif
 
     cleanup_vulkan_window(vk_state);

@@ -70,6 +70,8 @@ def main() -> int:
     ap.add_argument("--layout-items", action="store_true", help="Include per-item data in layout JSON")
     ap.add_argument("--layout-depth", type=int, default=8, help="Layout gather depth")
     ap.add_argument("--layout-delay-frames", type=int, default=3, help="Initial delay before layout dump")
+    ap.add_argument("--state-json-out", default="", help="Enable viewer state JSON dump and write to this path")
+    ap.add_argument("--state-delay-frames", type=int, default=3, help="Initial delay before viewer state dump")
 
     ap.add_argument("--svg-out", default="", help="Post-convert layout JSON to SVG at this path")
     ap.add_argument("--svg-items", action="store_true", help="Draw items in SVG (implies --layout-items)")
@@ -79,6 +81,8 @@ def main() -> int:
 
     ap.add_argument("--junit-out", default="", help="Enable JUnit XML export to this path")
     ap.add_argument("--trace", action="store_true", help="Enable test engine trace logs")
+    ap.add_argument("--key-chord", default="",
+                    help="Optional ImGui key chord before capture/layout, e.g. ctrl+i or ctrl+0")
     ap.add_argument("--mouse-pos", nargs=2, type=float, metavar=("X", "Y"), default=None,
                     help="Move mouse to absolute position before capture/layout")
     ap.add_argument("--mouse-pos-window-rel", nargs=2, type=float, metavar=("X", "Y"), default=None,
@@ -109,12 +113,13 @@ def main() -> int:
 
     want_screenshot = bool(args.screenshot_out)
     want_layout = bool(layout_json_out)
+    want_state = bool(args.state_json_out)
     want_svg = bool(args.svg_out)
     want_junit = bool(args.junit_out)
 
-    if not (want_screenshot or want_layout):
+    if not (want_screenshot or want_layout or want_state):
         print(
-            "error: select at least one automation task: --screenshot-out, --layout-json-out, or --svg-out",
+            "error: select at least one automation task: --screenshot-out, --layout-json-out, --state-json-out, or --svg-out",
             file=sys.stderr,
         )
         return 2
@@ -129,6 +134,9 @@ def main() -> int:
 
     if args.trace:
         env["IMIV_IMGUI_TEST_ENGINE_TRACE"] = "1"
+
+    if args.key_chord:
+        env["IMIV_IMGUI_TEST_ENGINE_KEY_CHORD"] = args.key_chord
 
     if args.mouse_pos:
         env["IMIV_IMGUI_TEST_ENGINE_MOUSE_X"] = str(args.mouse_pos[0])
@@ -173,6 +181,13 @@ def main() -> int:
         env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DELAY_FRAMES"] = str(max(0, args.layout_delay_frames))
         if args.layout_items or args.svg_items or (want_svg and not args.svg_no_items):
             env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS"] = "1"
+
+    if want_state:
+        out = _resolve_path(args.state_json_out, repo_root)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP"] = "1"
+        env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_OUT"] = str(out)
+        env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_DELAY_FRAMES"] = str(max(0, args.state_delay_frames))
 
     if want_junit:
         junit_out = _resolve_path(args.junit_out, repo_root)
@@ -237,6 +252,12 @@ def main() -> int:
         if failures > 0 or errors > 0:
             print(f"error: junit reported failures={failures}, errors={errors}", file=sys.stderr)
             return 1
+
+    if want_state:
+        state_path = _resolve_path(args.state_json_out, repo_root)
+        if not state_path.exists():
+            print(f"error: state output not found: {state_path}", file=sys.stderr)
+            return 2
 
     return 0
 

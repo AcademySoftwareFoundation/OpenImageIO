@@ -13,7 +13,6 @@ layout(push_constant) uniform PreviewPushConstants {
     int channel;
     int use_ocio;
     int orientation;
-    int linear_interpolation;
 } pc;
 
 vec2 display_to_source_uv(vec2 uv, int orientation)
@@ -65,12 +64,6 @@ vec3 heatmap(float x)
 void main()
 {
     vec2 src_uv = display_to_source_uv(uv_in, pc.orientation);
-    if (pc.linear_interpolation == 0) {
-        vec2 image_wh = vec2(textureSize(source_image, 0));
-        vec2 pixel = clamp(floor(src_uv * image_wh), vec2(0.0),
-                           image_wh - vec2(1.0));
-        src_uv = (pixel + vec2(0.5)) / image_wh;
-    }
     vec4 c = texture(source_image, src_uv);
     c.rgb += vec3(pc.offset);
 
