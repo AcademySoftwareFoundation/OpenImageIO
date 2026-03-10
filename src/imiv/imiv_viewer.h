@@ -44,6 +44,10 @@ struct ViewerState {
     int probe_x             = 0;
     int probe_y             = 0;
     std::vector<double> probe_channels;
+    bool area_probe_drag_active     = false;
+    ImVec2 area_probe_drag_start_uv = ImVec2(0.0f, 0.0f);
+    ImVec2 area_probe_drag_end_uv   = ImVec2(0.0f, 0.0f);
+    std::vector<std::string> area_probe_lines;
     bool pan_drag_active           = false;
     bool zoom_drag_active          = false;
     ImVec2 drag_prev_mouse         = ImVec2(0.0f, 0.0f);

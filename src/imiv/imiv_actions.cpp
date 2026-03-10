@@ -39,6 +39,7 @@ namespace {
         reset_view_navigation_state(viewer);
         viewer.probe_valid = false;
         viewer.probe_channels.clear();
+        reset_area_probe_overlay(viewer);
     }
 
 }  // namespace
@@ -145,6 +146,7 @@ load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
     reset_view_navigation_state(viewer);
     viewer.probe_valid = false;
     viewer.probe_channels.clear();
+    reset_area_probe_overlay(viewer);
     if (viewer.image.width > 0 && viewer.image.height > 0) {
         const int center_x = viewer.image.width / 2;
         const int center_y = viewer.image.height / 2;

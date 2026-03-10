@@ -129,6 +129,103 @@ namespace {
         return true;
     }
 
+    bool compute_rect_stats(const LoadedImage& image, int xbegin, int ybegin,
+                            int xend, int yend, std::vector<double>& out_min,
+                            std::vector<double>& out_max,
+                            std::vector<double>& out_avg, int& out_samples,
+                            ProbeStatsSemantics semantics
+                            = ProbeStatsSemantics::OIIOFloat)
+    {
+        out_min.clear();
+        out_max.clear();
+        out_avg.clear();
+        out_samples = 0;
+        if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0)
+            return false;
+
+        const int xmin = std::clamp(std::min(xbegin, xend), 0, image.width - 1);
+        const int xmax = std::clamp(std::max(xbegin, xend), 0, image.width - 1);
+        const int ymin = std::clamp(std::min(ybegin, yend), 0,
+                                    image.height - 1);
+        const int ymax = std::clamp(std::max(ybegin, yend), 0,
+                                    image.height - 1);
+        if (xmax < xmin || ymax < ymin)
+            return false;
+
+        const size_t channels = static_cast<size_t>(image.nchannels);
+        out_min.assign(channels, std::numeric_limits<double>::infinity());
+        out_max.assign(channels, -std::numeric_limits<double>::infinity());
+        out_avg.assign(channels, 0.0);
+
+        std::vector<double> sample;
+        for (int y = ymin; y <= ymax; ++y) {
+            for (int x = xmin; x <= xmax; ++x) {
+                if (!sample_loaded_pixel_with_semantics(image, x, y, semantics,
+                                                        sample)) {
+                    continue;
+                }
+                if (sample.size() != channels)
+                    continue;
+                for (size_t c = 0; c < channels; ++c) {
+                    out_min[c] = std::min(out_min[c], sample[c]);
+                    out_max[c] = std::max(out_max[c], sample[c]);
+                    out_avg[c] += sample[c];
+                }
+                ++out_samples;
+            }
+        }
+
+        if (out_samples <= 0) {
+            out_min.clear();
+            out_max.clear();
+            out_avg.clear();
+            return false;
+        }
+        for (double& value : out_avg)
+            value /= static_cast<double>(out_samples);
+        return true;
+    }
+
+    void build_area_probe_placeholder_lines(const LoadedImage& image,
+                                            std::vector<std::string>& out_lines)
+    {
+        out_lines.clear();
+        out_lines.emplace_back("Area Probe:");
+        if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0)
+            return;
+        for (int c = 0; c < image.nchannels; ++c) {
+            const std::string channel
+                = pixel_preview_channel_label(image, static_cast<int>(c));
+            out_lines.emplace_back(Strutil::fmt::format(
+                "{:<5}: [min:  -----  max:  -----  avg:  -----]", channel));
+        }
+    }
+
+    void build_area_probe_result_lines(const LoadedImage& image,
+                                       const std::vector<double>& min_values,
+                                       const std::vector<double>& max_values,
+                                       const std::vector<double>& avg_values,
+                                       std::vector<std::string>& out_lines)
+    {
+        out_lines.clear();
+        out_lines.emplace_back("Area Probe:");
+        const int channel_count = std::max(1, image.nchannels);
+        for (int c = 0; c < channel_count; ++c) {
+            const std::string channel
+                = pixel_preview_channel_label(image, static_cast<int>(c));
+            if (static_cast<size_t>(c) < min_values.size()
+                && static_cast<size_t>(c) < max_values.size()
+                && static_cast<size_t>(c) < avg_values.size()) {
+                out_lines.emplace_back(Strutil::fmt::format(
+                    "{:<5}: [min: {:>6.3f}  max: {:>6.3f}  avg: {:>6.3f}]",
+                    channel, min_values[c], max_values[c], avg_values[c]));
+            } else {
+                out_lines.emplace_back(Strutil::fmt::format(
+                    "{:<5}: [min:  -----  max:  -----  avg:  -----]", channel));
+            }
+        }
+    }
+
     std::string format_probe_iv_float(double value)
     {
         if (value < 10.0)
@@ -357,6 +454,40 @@ namespace {
     }
 
 }  // namespace
+
+void
+reset_area_probe_overlay(ViewerState& viewer)
+{
+    viewer.area_probe_drag_active   = false;
+    viewer.area_probe_drag_start_uv = ImVec2(0.0f, 0.0f);
+    viewer.area_probe_drag_end_uv   = ImVec2(0.0f, 0.0f);
+    build_area_probe_placeholder_lines(viewer.image, viewer.area_probe_lines);
+}
+
+void
+update_area_probe_overlay(ViewerState& viewer, int xbegin, int ybegin, int xend,
+                          int yend)
+{
+    if (viewer.image.path.empty()) {
+        viewer.area_probe_lines.clear();
+        return;
+    }
+
+    std::vector<double> min_values;
+    std::vector<double> max_values;
+    std::vector<double> avg_values;
+    int sample_count = 0;
+    if (!compute_rect_stats(viewer.image, xbegin, ybegin, xend, yend,
+                            min_values, max_values, avg_values, sample_count,
+                            ProbeStatsSemantics::OIIOFloat)) {
+        build_area_probe_placeholder_lines(viewer.image,
+                                           viewer.area_probe_lines);
+        return;
+    }
+
+    build_area_probe_result_lines(viewer.image, min_values, max_values,
+                                  avg_values, viewer.area_probe_lines);
+}
 
 OverlayPanelRect
 draw_pixel_closeup_overlay(const ViewerState& viewer,
@@ -697,38 +828,35 @@ draw_area_probe_overlay(const ViewerState& viewer,
     if (!ui_state.show_area_probe_window || !map.valid)
         return;
 
-    std::vector<std::string> lines;
-    lines.emplace_back("Area Probe:");
-    if (viewer.image.path.empty()) {
-        lines.emplace_back("No image loaded.");
-    } else {
-        std::vector<double> min_values;
-        std::vector<double> max_values;
-        std::vector<double> avg_values;
-        int sample_count = 0;
-        const bool have_stats
-            = viewer.probe_valid
-              && compute_area_stats(viewer.image, viewer.probe_x,
-                                    viewer.probe_y, ui_state.closeup_avg_pixels,
-                                    min_values, max_values, avg_values,
-                                    sample_count,
-                                    ProbeStatsSemantics::OIIOFloat);
+    if (viewer.area_probe_drag_active) {
+        ImVec2 start_screen(0.0f, 0.0f);
+        ImVec2 end_screen(0.0f, 0.0f);
+        if (source_uv_to_screen(map, viewer.area_probe_drag_start_uv,
+                                start_screen)
+            && source_uv_to_screen(map, viewer.area_probe_drag_end_uv,
+                                   end_screen)) {
+            const ImVec2 rect_min(std::min(start_screen.x, end_screen.x),
+                                  std::min(start_screen.y, end_screen.y));
+            const ImVec2 rect_max(std::max(start_screen.x, end_screen.x),
+                                  std::max(start_screen.y, end_screen.y));
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            draw_list->PushClipRect(map.viewport_rect_min,
+                                    map.viewport_rect_max, true);
+            draw_list->AddRectFilled(rect_min, rect_max,
+                                     IM_COL32(52, 128, 255, 76), 0.0f);
+            draw_list->AddRect(rect_min, rect_max, IM_COL32(96, 176, 255, 220),
+                               0.0f, 0, 1.2f);
+            draw_list->PopClipRect();
+        }
+    }
 
-        const int channel_count = std::max(1, viewer.image.nchannels);
-        for (int c = 0; c < channel_count; ++c) {
-            const std::string channel
-                = pixel_preview_channel_label(viewer.image,
-                                              static_cast<int>(c));
-            if (have_stats && static_cast<size_t>(c) < min_values.size()
-                && static_cast<size_t>(c) < max_values.size()
-                && static_cast<size_t>(c) < avg_values.size()) {
-                lines.emplace_back(Strutil::fmt::format(
-                    "{:<5}: [min: {:>6.3f}  max: {:>6.3f}  avg: {:>6.3f}]",
-                    channel, min_values[c], max_values[c], avg_values[c]));
-            } else {
-                lines.emplace_back(Strutil::fmt::format(
-                    "{:<5}: [min:  -----  max:  -----  avg:  -----]", channel));
-            }
+    std::vector<std::string> lines = viewer.area_probe_lines;
+    if (lines.empty()) {
+        if (viewer.image.path.empty()) {
+            lines.emplace_back("Area Probe:");
+            lines.emplace_back("No image loaded.");
+        } else {
+            build_area_probe_placeholder_lines(viewer.image, lines);
         }
     }
 
