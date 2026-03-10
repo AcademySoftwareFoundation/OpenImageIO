@@ -5,6 +5,7 @@
 #include "imiv_frame.h"
 
 #include "imiv_actions.h"
+#include "imiv_drag_drop.h"
 #include "imiv_image_view.h"
 #include "imiv_menu.h"
 #include "imiv_test_engine.h"
@@ -383,6 +384,9 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
                                  window, vk_state
 #endif
     );
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+    process_pending_drop_paths(vk_state, viewer, ui_state);
+#endif
     clamp_placeholder_ui_state(ui_state);
 
     if (!viewer.image.path.empty()) {
@@ -444,6 +448,8 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
             ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
+
+    draw_drag_drop_overlay(viewer);
 }
 
 const char*

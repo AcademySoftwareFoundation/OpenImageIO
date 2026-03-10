@@ -44,7 +44,8 @@ void
 reload_current_image_action(VulkanState& vk_state, ViewerState& viewer,
                             PlaceholderUiState& ui_state);
 void
-close_current_image_action(VulkanState& vk_state, ViewerState& viewer);
+close_current_image_action(VulkanState& vk_state, ViewerState& viewer,
+                           PlaceholderUiState& ui_state);
 void
 next_sibling_image_action(VulkanState& vk_state, ViewerState& viewer,
                           PlaceholderUiState& ui_state, int delta);

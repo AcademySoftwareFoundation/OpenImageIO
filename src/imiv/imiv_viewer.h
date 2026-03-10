@@ -33,8 +33,9 @@ struct ViewerState {
     bool zoom_pivot_pending     = false;
     int zoom_pivot_frames_left  = 0;
     int scroll_sync_frames_left = 0;
-    std::vector<std::string> sibling_images;
-    int sibling_index = -1;
+    std::vector<std::string> loaded_image_paths;
+    int current_path_index = -1;
+    int last_path_index    = -1;
     std::string toggle_image_path;
     std::vector<std::string> recent_images;
     ImageSortMode sort_mode = ImageSortMode::ByName;
@@ -52,6 +53,8 @@ struct ViewerState {
     int windowed_width             = 1600;
     int windowed_height            = 900;
     double slide_last_advance_time = 0.0;
+    bool drag_overlay_active       = false;
+    std::vector<std::string> pending_drop_paths;
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
     VulkanTexture texture;
 #endif
@@ -120,12 +123,22 @@ load_image_for_compute(const std::string& path, int requested_subimage,
 bool
 should_reset_preview_on_load(const ViewerState& viewer,
                              const std::string& path);
-void
-sort_sibling_images(ViewerState& viewer);
-void
-refresh_sibling_images(ViewerState& viewer);
 bool
-pick_sibling_image(const ViewerState& viewer, int delta, std::string& out_path);
+add_loaded_image_path(ViewerState& viewer, const std::string& path,
+                      int* out_index = nullptr);
+bool
+append_loaded_image_paths(ViewerState& viewer,
+                          const std::vector<std::string>& paths,
+                          int* out_first_added_index = nullptr);
+bool
+remove_loaded_image_path(ViewerState& viewer, const std::string& path);
+bool
+set_current_loaded_image_path(ViewerState& viewer, const std::string& path);
+bool
+pick_loaded_image_path(const ViewerState& viewer, int delta,
+                       std::string& out_path);
+void
+sort_loaded_image_paths(ViewerState& viewer);
 void
 add_recent_image_path(ViewerState& viewer, const std::string& path);
 

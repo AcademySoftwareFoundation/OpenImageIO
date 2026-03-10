@@ -66,6 +66,7 @@ set (_imiv_core_sources
      imiv_app.cpp
      imiv_aux_windows.cpp
      imiv_capture.cpp
+     imiv_drag_drop.cpp
      imiv_file_dialog.cpp
      imiv_frame.cpp
      imiv_image_view.cpp
@@ -81,6 +82,11 @@ set (_imiv_core_sources
      imiv_vulkan_window.cpp
      imiv_test_engine.cpp
      imiv_main.cpp)
+
+if (APPLE)
+    list (APPEND _imiv_core_sources
+          external/dnd_glfw/dnd_glfw_macos.mm)
+endif ()
 
 set (_imiv_shader_src "${CMAKE_CURRENT_SOURCE_DIR}/shaders/imiv_upload_to_rgba.comp")
 set (_imiv_preview_vert_src "${CMAKE_CURRENT_SOURCE_DIR}/shaders/imiv_preview.vert")
@@ -317,6 +323,10 @@ if (TARGET imiv)
     endif ()
     if (APPLE)
         target_compile_definitions (imiv PRIVATE IMIV_BACKEND_METAL_GLFW=1)
+        find_library (OIIO_IMIV_COCOA_FRAMEWORK Cocoa)
+        if (OIIO_IMIV_COCOA_FRAMEWORK)
+            target_link_libraries (imiv PRIVATE ${OIIO_IMIV_COCOA_FRAMEWORK})
+        endif ()
     else ()
         target_compile_definitions (imiv PRIVATE IMIV_BACKEND_VULKAN_GLFW=1
                                                   $<$<CONFIG:Debug>:IMIV_VULKAN_VALIDATION=1>)
