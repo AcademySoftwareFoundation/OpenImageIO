@@ -1,11 +1,22 @@
 Proposed OpenImageIO Policy on AI Coding Assistants
 ===================================================
 
-proposal as of 6-Mar-2026
+- first proposal as of 6-Mar-2026
+- revised 10-Mar-2026
 
 
 Use of "AI coding assistants" is permitted on this project, with the following
 guidelines and principles.
+
+Summary of our core values:
+- Human always in the loop and is the responsible party.
+- You're still on the hook for fully understanding and standing behind what
+  you submit.
+- Interact with the project and community yourself, not by agent.
+- Disclose what tools you used and how.
+- Don't waste maintainer's time with low quality PRs.
+
+The long version:
 
 ### Human authorship and interaction with the project
 
@@ -55,12 +66,11 @@ describe it to others.
 ### Disclosure
 
 **Disclosure is required.** Use of coding assistants to generate more than de
-minimis changes should have a short disclosure in the PR submission comments:
-what tool was used, for what purpose, and paraphrase the gist of the prompts.
-In cases where the code generation was the result of a detailed "spec" or
-other instructions, include that spec in the contents of the commit message or
-PR description. If it was an extended dialog or circuitous route, a short
-summary will do.
+minimis changes should have a short disclosure in the PR submission comments.
+Commits should have a "Assisted-by: " sign-off as a minimum. Ideally, the PR
+description will also have a summary of what tool was used, for what purpose,
+and paraphrase the gist of the key prompts or direction of the dialog. A full
+log is not necessary; a short summary will do.
 
 There are several reasons for this disclosure/documentation, even though it
 will sometimes be inconvenient:
@@ -89,10 +99,16 @@ a coding assistant -- we expect the terms of the
 to take reasonable care that code is not copied from a source with an
 incompatible license.
 
-We believe that the reputable coding assistant tools automatically exclude
-code that is too similar to that found in its training set. It is probably
-also prudent to include instructions to your coding assistant to avoid basing
-its answers on material from code bases with incompatible licenses.
+You may find that your confidence about complying with the DCO+CLA depends on:
+
+- If you provided a detailed specification and how much you edited or guided
+  the results yourself.
+- Whether you are modifying or extending existing code versus writing large
+  amounts of entirely new code.
+- The degree to which the generated code seems to fit into our structure and
+  idiomatic style, and therefore seems unlikely to be copied from elsewhere.
+- Whether your tool has guardrails to prevent answers that are too similar to
+  existing code, for example as claimed by [Claude](https://privacy.claude.com/en/articles/10023638-why-am-i-receiving-an-output-blocked-by-content-filtering-policy-error) and [Copilot](https://docs.github.com/en/copilot/how-tos/manage-your-account/).
 
 ### Extractive submissions
 
@@ -101,11 +117,11 @@ assistants is not an excuse to submit poor PRs or to externalize costs onto
 maintainers/reviewers (such as responsibility for understanding, testing, or
 fixing PRs that the human author does not have a full understanding of). 
 
-**AI tools may not be used to fix GitHub issues labeled as "good first
-issue"**, and are strongly discouraged for "Dev Days" work. Cultivating and
-educating new contributors is part of our job, and as such, we do not want
-people to swoop in and use tools to trivially solve these tasks that were
-curated specifically for somebody to actually learn from.
+**We discourage use of AI tools to fix GitHub issues labeled as "good first
+issue" or for "Dev Days" work.** Cultivating and educating new contributors is
+important, and as such, we do not want people to swoop in and use automated
+tools to trivially solve tasks that were curated specifically for somebody to
+actually learn from.
 
 Maintainers are free to take counter-measures against submitters of sub-par
 PRs, or other violations of this policy, up to and including banning habitual
@@ -116,10 +132,14 @@ abusers from future participation in the project.
 This AI tool use policy is not meant to encompass cases such as:
 - "Smart auto-complete", spell-checking, grammar checking, or other uses that
   aren't really contributing substantively to authorship.
+- Use of LLMs to explain code or learn about the codebase, answer basic
+  programming questions, or help with background research.
 - Language translation for non-fluent English speakers or other accessibility
   accommodations.
 - Trivial or de-minimis fixes such as fixing a typo, obviously wrong variable
   use, etc.
+- Reviewing your own code for mistakes prior to submitting a PR (as long as it
+  isn't making the fixes for you).
 
 ### References and inspiration
 
