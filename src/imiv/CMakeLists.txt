@@ -64,14 +64,21 @@ record_build_dependency (ImGui FOUND)
 set (_imiv_core_sources
      imiv_actions.cpp
      imiv_app.cpp
+     imiv_aux_windows.cpp
+     imiv_capture.cpp
      imiv_file_dialog.cpp
      imiv_frame.cpp
+     imiv_image_view.cpp
+     imiv_menu.cpp
      imiv_navigation.cpp
+     imiv_overlays.cpp
      imiv_ui.cpp
      imiv_viewer.cpp
      imiv_vulkan_setup.cpp
+     imiv_vulkan_preview.cpp
      imiv_vulkan_runtime.cpp
      imiv_vulkan_texture.cpp
+     imiv_vulkan_window.cpp
      imiv_test_engine.cpp
      imiv_main.cpp)
 
