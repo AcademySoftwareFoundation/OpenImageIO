@@ -4,6 +4,7 @@
 
 #include "imiv_app.h"
 #include "imiv_actions.h"
+#include "imiv_drag_drop.h"
 #include "imiv_file_dialog.h"
 #include "imiv_frame.h"
 #include "imiv_navigation.h"
@@ -505,9 +506,10 @@ run(const AppConfig& config)
 #    endif
 
     if (run_config.open_dialog) {
-        FileDialog::DialogReply reply = FileDialog::open_image_file("");
+        FileDialog::DialogReply reply = FileDialog::open_image_files("");
         if (reply.result == FileDialog::Result::Okay)
-            print("imiv: open dialog selected '{}'\n", reply.path);
+            print("imiv: open dialog selected {} path(s)\n",
+                  reply.paths.empty() ? 0 : reply.paths.size());
         else if (reply.result == FileDialog::Result::Cancel)
             print("imiv: open dialog cancelled\n");
         else
@@ -567,6 +569,7 @@ run(const AppConfig& config)
         ImGui::StyleColorsLight();
 
     if (!run_config.input_paths.empty()) {
+        append_loaded_image_paths(viewer, run_config.input_paths);
         if (!load_viewer_image(vk_state, viewer, &ui_state,
                                run_config.input_paths[0],
                                ui_state.subimage_index,
@@ -577,6 +580,8 @@ run(const AppConfig& config)
     } else {
         viewer.status_message = "Open an image to start preview";
     }
+
+    install_drag_drop(window, viewer);
 
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
     ViewerStateJsonWriteContext test_engine_state_ctx = { &viewer, &ui_state };
@@ -687,6 +692,7 @@ run(const AppConfig& config)
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_stop(test_engine_runtime);
 #    endif
+    uninstall_drag_drop(window);
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

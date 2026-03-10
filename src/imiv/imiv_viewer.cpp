@@ -720,22 +720,54 @@ image_datetime(const std::string& path, std::time_t& out_time)
     return datetime_to_time_t(datetime, out_time);
 }
 
-void
-sort_sibling_images(ViewerState& viewer)
+std::string
+normalize_path_for_viewer_list(const std::string& path)
 {
-    if (viewer.sibling_images.empty())
+    if (path.empty())
+        return std::string();
+    std::filesystem::path p(path);
+    std::error_code ec;
+    if (!p.is_absolute()) {
+        const std::filesystem::path abs = std::filesystem::absolute(p, ec);
+        if (!ec)
+            p = abs;
+    }
+    return p.lexically_normal().string();
+}
+
+int
+find_path_index(const std::vector<std::string>& paths, const std::string& path)
+{
+    if (path.empty())
+        return -1;
+    const auto it = std::find(paths.begin(), paths.end(), path);
+    if (it == paths.end())
+        return -1;
+    return static_cast<int>(std::distance(paths.begin(), it));
+}
+
+std::string
+filename_key(const std::string& path)
+{
+    return std::filesystem::path(path).filename().string();
+}
+
+std::string
+path_key(const std::string& path)
+{
+    return std::filesystem::path(path).lexically_normal().string();
+}
+
+void
+sort_image_path_list(std::vector<std::string>& paths, ImageSortMode sort_mode,
+                     bool sort_reverse)
+{
+    if (paths.empty())
         return;
 
-    auto filename_key = [](const std::string& path) {
-        return std::filesystem::path(path).filename().string();
-    };
-    auto path_key = [](const std::string& path) {
-        return std::filesystem::path(path).lexically_normal().string();
-    };
-
-    switch (viewer.sort_mode) {
+    switch (sort_mode) {
     case ImageSortMode::ByName:
-        std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+        std::sort(paths.begin(), paths.end(),
                   [&](const std::string& a, const std::string& b) {
                       const std::string a_name = filename_key(a);
                       const std::string b_name = filename_key(b);
@@ -745,13 +777,13 @@ sort_sibling_images(ViewerState& viewer)
                   });
         break;
     case ImageSortMode::ByPath:
-        std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+        std::sort(paths.begin(), paths.end(),
                   [&](const std::string& a, const std::string& b) {
                       return path_key(a) < path_key(b);
                   });
         break;
     case ImageSortMode::ByImageDate:
-        std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+        std::sort(paths.begin(), paths.end(),
                   [&](const std::string& a, const std::string& b) {
                       std::time_t a_time = {};
                       std::time_t b_time = {};
@@ -769,7 +801,7 @@ sort_sibling_images(ViewerState& viewer)
                   });
         break;
     case ImageSortMode::ByFileDate:
-        std::sort(viewer.sibling_images.begin(), viewer.sibling_images.end(),
+        std::sort(paths.begin(), paths.end(),
                   [&](const std::string& a, const std::string& b) {
                       std::time_t a_time = {};
                       std::time_t b_time = {};
@@ -786,84 +818,137 @@ sort_sibling_images(ViewerState& viewer)
         break;
     }
 
-    if (viewer.sort_reverse)
-        std::reverse(viewer.sibling_images.begin(),
-                     viewer.sibling_images.end());
-
-    if (viewer.image.path.empty()) {
-        viewer.sibling_index = -1;
-        return;
-    }
-    auto it = std::find(viewer.sibling_images.begin(),
-                        viewer.sibling_images.end(), viewer.image.path);
-    viewer.sibling_index
-        = (it != viewer.sibling_images.end())
-              ? static_cast<int>(
-                    std::distance(viewer.sibling_images.begin(), it))
-              : -1;
+    if (sort_reverse)
+        std::reverse(paths.begin(), paths.end());
 }
-
-
-
-void
-refresh_sibling_images(ViewerState& viewer)
-{
-    viewer.sibling_images.clear();
-    viewer.sibling_index = -1;
-    if (viewer.image.path.empty())
-        return;
-
-    std::filesystem::path current(viewer.image.path);
-    std::error_code ec;
-    const std::filesystem::path dir = current.parent_path();
-    if (dir.empty() || !std::filesystem::exists(dir, ec))
-        return;
-
-    for (const std::filesystem::directory_entry& entry :
-         std::filesystem::directory_iterator(dir, ec)) {
-        if (ec)
-            break;
-        if (!entry.is_regular_file(ec))
-            continue;
-        if (!has_supported_image_extension(entry.path()))
-            continue;
-        viewer.sibling_images.emplace_back(entry.path().string());
-    }
-    sort_sibling_images(viewer);
-}
-
-
 
 bool
-pick_sibling_image(const ViewerState& viewer, int delta, std::string& out_path)
+add_loaded_image_path(ViewerState& viewer, const std::string& path,
+                      int* out_index)
+{
+    if (out_index != nullptr)
+        *out_index = -1;
+    const std::string normalized = normalize_path_for_viewer_list(path);
+    if (normalized.empty())
+        return false;
+
+    int index = find_path_index(viewer.loaded_image_paths, normalized);
+    if (index < 0) {
+        viewer.loaded_image_paths.push_back(normalized);
+        index = static_cast<int>(viewer.loaded_image_paths.size()) - 1;
+    }
+    if (out_index != nullptr)
+        *out_index = index;
+    return index >= 0;
+}
+
+bool
+append_loaded_image_paths(ViewerState& viewer,
+                          const std::vector<std::string>& paths,
+                          int* out_first_added_index)
+{
+    if (out_first_added_index != nullptr)
+        *out_first_added_index = -1;
+
+    bool added_any = false;
+    std::string first_added_path;
+    for (const std::string& path : paths) {
+        const std::string normalized = normalize_path_for_viewer_list(path);
+        if (normalized.empty())
+            continue;
+        if (find_path_index(viewer.loaded_image_paths, normalized) >= 0)
+            continue;
+        viewer.loaded_image_paths.push_back(normalized);
+        if (first_added_path.empty())
+            first_added_path = normalized;
+        added_any = true;
+    }
+
+    if (!added_any)
+        return false;
+
+    if (out_first_added_index != nullptr && !first_added_path.empty())
+        *out_first_added_index = find_path_index(viewer.loaded_image_paths,
+                                                 first_added_path);
+    return true;
+}
+
+bool
+remove_loaded_image_path(ViewerState& viewer, const std::string& path)
+{
+    const std::string normalized = normalize_path_for_viewer_list(path);
+    const int remove_index       = find_path_index(viewer.loaded_image_paths,
+                                                   normalized);
+    if (remove_index < 0)
+        return false;
+
+    viewer.loaded_image_paths.erase(viewer.loaded_image_paths.begin()
+                                    + remove_index);
+    if (viewer.current_path_index == remove_index) {
+        viewer.current_path_index = -1;
+    } else if (viewer.current_path_index > remove_index) {
+        --viewer.current_path_index;
+    }
+
+    if (viewer.last_path_index == remove_index) {
+        viewer.last_path_index = -1;
+    } else if (viewer.last_path_index > remove_index) {
+        --viewer.last_path_index;
+    }
+    return true;
+}
+
+bool
+set_current_loaded_image_path(ViewerState& viewer, const std::string& path)
+{
+    const std::string normalized = normalize_path_for_viewer_list(path);
+    const int new_index          = find_path_index(viewer.loaded_image_paths,
+                                                   normalized);
+    if (new_index < 0)
+        return false;
+    if (viewer.current_path_index >= 0
+        && viewer.current_path_index != new_index)
+        viewer.last_path_index = viewer.current_path_index;
+    viewer.current_path_index = new_index;
+    return true;
+}
+
+bool
+pick_loaded_image_path(const ViewerState& viewer, int delta,
+                       std::string& out_path)
 {
     out_path.clear();
-    if (viewer.sibling_images.empty() || viewer.sibling_index < 0)
+    if (viewer.loaded_image_paths.empty() || viewer.current_path_index < 0)
         return false;
-    const int count = static_cast<int>(viewer.sibling_images.size());
-    int idx         = viewer.sibling_index + delta;
-    while (idx < 0)
-        idx += count;
-    idx %= count;
-    out_path = viewer.sibling_images[static_cast<size_t>(idx)];
+    const int count = static_cast<int>(viewer.loaded_image_paths.size());
+    int index       = viewer.current_path_index + delta;
+    while (index < 0)
+        index += count;
+    index %= count;
+    out_path = viewer.loaded_image_paths[static_cast<size_t>(index)];
     return !out_path.empty();
 }
 
-
-
-std::string
-normalize_recent_path(const std::string& path)
+void
+sort_loaded_image_paths(ViewerState& viewer)
 {
-    if (path.empty())
-        return std::string();
-    std::filesystem::path p(path);
-    std::error_code ec;
-    if (!p.is_absolute()) {
-        std::filesystem::path abs = std::filesystem::absolute(p, ec);
-        if (!ec)
-            p = abs;
-    }
-    return p.lexically_normal().string();
+    const std::string current_path = viewer.image.path;
+    const std::string last_path
+        = (viewer.last_path_index >= 0
+           && viewer.last_path_index
+                  < static_cast<int>(viewer.loaded_image_paths.size()))
+              ? viewer.loaded_image_paths[static_cast<size_t>(
+                    viewer.last_path_index)]
+              : std::string();
+
+    sort_image_path_list(viewer.loaded_image_paths, viewer.sort_mode,
+                         viewer.sort_reverse);
+    viewer.current_path_index
+        = find_path_index(viewer.loaded_image_paths,
+                          normalize_path_for_viewer_list(current_path));
+    viewer.last_path_index
+        = find_path_index(viewer.loaded_image_paths,
+                          normalize_path_for_viewer_list(last_path));
 }
 
 
@@ -871,7 +956,7 @@ normalize_recent_path(const std::string& path)
 void
 add_recent_image_path(ViewerState& viewer, const std::string& path)
 {
-    const std::string normalized = normalize_recent_path(path);
+    const std::string normalized = normalize_path_for_viewer_list(path);
     if (normalized.empty())
         return;
 

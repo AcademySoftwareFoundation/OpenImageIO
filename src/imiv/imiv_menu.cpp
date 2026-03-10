@@ -471,7 +471,7 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
     }
     if (actions.close_requested) {
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
-        close_current_image_action(vk_state, viewer);
+        close_current_image_action(vk_state, viewer, ui_state);
 #else
         set_placeholder_status(viewer, "Close image");
 #endif
@@ -575,13 +575,12 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
         if (!viewer.image.path.empty()) {
             const std::string to_delete = viewer.image.path;
-            close_current_image_action(vk_state, viewer);
+            close_current_image_action(vk_state, viewer, ui_state);
             std::error_code ec;
             if (std::filesystem::remove(to_delete, ec)) {
                 viewer.status_message = Strutil::fmt::format("Deleted {}",
                                                              to_delete);
                 viewer.last_error.clear();
-                refresh_sibling_images(viewer);
             } else {
                 viewer.last_error
                     = ec ? Strutil::fmt::format("Delete failed: {}",
@@ -635,7 +634,7 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
     if (ui_state.slide_show_running && !viewer.image.path.empty()
-        && !viewer.sibling_images.empty()) {
+        && !viewer.loaded_image_paths.empty()) {
         const double now = ImGui::GetTime();
         if (viewer.slide_last_advance_time <= 0.0)
             viewer.slide_last_advance_time = now;

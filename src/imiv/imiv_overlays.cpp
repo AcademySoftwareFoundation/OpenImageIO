@@ -303,9 +303,10 @@ namespace {
             return "No image loaded";
         int current = 1;
         int total   = 1;
-        if (!viewer.sibling_images.empty() && viewer.sibling_index >= 0) {
-            total   = static_cast<int>(viewer.sibling_images.size());
-            current = viewer.sibling_index + 1;
+        if (!viewer.loaded_image_paths.empty()
+            && viewer.current_path_index >= 0) {
+            total   = static_cast<int>(viewer.loaded_image_paths.size());
+            current = viewer.current_path_index + 1;
         }
         return Strutil::fmt::format("({}/{}): {} ({}x{}, {} ch, {})", current,
                                     total, viewer.image.path,

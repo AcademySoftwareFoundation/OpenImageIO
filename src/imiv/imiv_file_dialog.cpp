@@ -61,6 +61,17 @@ available()
 DialogReply
 open_image_file(const std::string& default_path)
 {
+    DialogReply reply = open_image_files(default_path);
+    if (!reply.paths.empty())
+        reply.path = reply.paths.front();
+    return reply;
+}
+
+
+
+DialogReply
+open_image_files(const std::string& default_path)
+{
     NfdThreadGuard guard;
     if (!guard.initialized)
         return map_error("nativefiledialog initialization failed");
@@ -70,18 +81,32 @@ open_image_file(const std::string& default_path)
     args.filterCount           = 1;
     args.defaultPath = default_path.empty() ? nullptr : default_path.c_str();
 
-    nfdu8char_t* selected_path = nullptr;
-    nfdresult_t result         = NFD_OpenDialogU8_With(&selected_path, &args);
+    const nfdpathset_t* selected_paths = nullptr;
+    nfdresult_t result = NFD_OpenDialogMultipleU8_With(&selected_paths, &args);
     if (result == NFD_OKAY) {
         DialogReply reply;
-        reply.result = Result::Okay;
-        if (selected_path)
-            reply.path = selected_path;
-        NFD_FreePathU8(selected_path);
+        reply.result                = Result::Okay;
+        nfdpathsetsize_t path_count = 0;
+        if (NFD_PathSet_GetCount(selected_paths, &path_count) == NFD_OKAY) {
+            reply.paths.reserve(static_cast<size_t>(path_count));
+            for (nfdpathsetsize_t i = 0; i < path_count; ++i) {
+                nfdu8char_t* selected_path = nullptr;
+                if (NFD_PathSet_GetPathU8(selected_paths, i, &selected_path)
+                    != NFD_OKAY) {
+                    continue;
+                }
+                if (selected_path != nullptr && selected_path[0] != '\0')
+                    reply.paths.emplace_back(selected_path);
+                NFD_PathSet_FreePathU8(selected_path);
+            }
+        }
+        if (!reply.paths.empty())
+            reply.path = reply.paths.front();
+        NFD_PathSet_Free(selected_paths);
         return reply;
     }
     if (result == NFD_CANCEL)
-        return DialogReply { Result::Cancel, std::string(), std::string() };
+        return DialogReply { Result::Cancel, std::string(), {}, std::string() };
     return map_error("nativefiledialog open dialog failed");
 }
 
@@ -112,7 +137,7 @@ save_image_file(const std::string& default_path,
         return reply;
     }
     if (result == NFD_CANCEL)
-        return DialogReply { Result::Cancel, std::string(), std::string() };
+        return DialogReply { Result::Cancel, std::string(), {}, std::string() };
     return map_error("nativefiledialog save dialog failed");
 }
 
@@ -131,6 +156,18 @@ open_image_file(const std::string& default_path)
 {
     (void)default_path;
     return DialogReply { Result::Unsupported, std::string(),
+                         "nativefiledialog integration is not configured" };
+}
+
+
+
+DialogReply
+open_image_files(const std::string& default_path)
+{
+    (void)default_path;
+    return DialogReply { Result::Unsupported,
+                         std::string(),
+                         {},
                          "nativefiledialog integration is not configured" };
 }
 

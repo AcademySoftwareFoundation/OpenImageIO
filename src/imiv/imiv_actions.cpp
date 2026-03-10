@@ -28,6 +28,22 @@ using namespace OIIO;
 
 namespace Imiv {
 
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+namespace {
+
+    void clear_loaded_image_state(ViewerState& viewer)
+    {
+        viewer.image       = LoadedImage();
+        viewer.zoom        = 1.0f;
+        viewer.fit_request = true;
+        reset_view_navigation_state(viewer);
+        viewer.probe_valid = false;
+        viewer.probe_channels.clear();
+    }
+
+}  // namespace
+#endif
+
 bool
 read_env_value(const char* name, std::string& out_value)
 {
@@ -100,6 +116,8 @@ load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
                   int requested_subimage, int requested_miplevel)
 {
     viewer.last_error.clear();
+    const std::string previous_path = viewer.image.path;
+    const int previous_index        = viewer.current_path_index;
     LoadedImage loaded;
     std::string error;
     if (!load_image_for_compute(path, requested_subimage, requested_miplevel,
@@ -118,8 +136,6 @@ load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
     quiesce_viewer_texture_lifetime(vk_state, viewer.texture);
 #endif
     destroy_texture(vk_state, viewer.texture);
-    if (!viewer.image.path.empty())
-        viewer.toggle_image_path = viewer.image.path;
     if (ui_state != nullptr && should_reset_preview_on_load(viewer, path))
         reset_per_image_preview_state(*ui_state);
     viewer.image       = std::move(loaded);
@@ -140,8 +156,15 @@ load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
             viewer.probe_channels = std::move(sample);
         }
     }
+    int loaded_index = -1;
+    add_loaded_image_path(viewer, viewer.image.path, &loaded_index);
+    if (!previous_path.empty() && previous_index >= 0
+        && previous_path != viewer.image.path
+        && previous_index != loaded_index) {
+        viewer.last_path_index = previous_index;
+    }
+    viewer.current_path_index = loaded_index;
     add_recent_image_path(viewer, viewer.image.path);
-    refresh_sibling_images(viewer);
     viewer.status_message = Strutil::fmt::format(
         "Loaded {} ({}x{}, {} channels, {}, subimage {}/{}, mip {}/{})",
         viewer.image.path, viewer.image.width, viewer.image.height,
@@ -385,7 +408,7 @@ void
 set_sort_mode_action(ViewerState& viewer, ImageSortMode mode)
 {
     viewer.sort_mode = mode;
-    sort_sibling_images(viewer);
+    sort_loaded_image_paths(viewer);
     viewer.status_message = "Image list sort mode changed";
     viewer.last_error.clear();
 }
@@ -394,7 +417,7 @@ void
 toggle_sort_reverse_action(ViewerState& viewer)
 {
     viewer.sort_reverse = !viewer.sort_reverse;
-    sort_sibling_images(viewer);
+    sort_loaded_image_paths(viewer);
     viewer.status_message = viewer.sort_reverse ? "Image list order reversed"
                                                 : "Image list order restored";
     viewer.last_error.clear();
@@ -404,16 +427,16 @@ bool
 advance_slide_show_action(VulkanState& vk_state, ViewerState& viewer,
                           PlaceholderUiState& ui_state)
 {
-    if (!ui_state.slide_show_running || viewer.sibling_images.empty()
+    if (!ui_state.slide_show_running || viewer.loaded_image_paths.empty()
         || viewer.image.path.empty()) {
         return false;
     }
 
-    const int count = static_cast<int>(viewer.sibling_images.size());
-    if (count <= 0 || viewer.sibling_index < 0)
+    const int count = static_cast<int>(viewer.loaded_image_paths.size());
+    if (count <= 0 || viewer.current_path_index < 0)
         return false;
 
-    if (!ui_state.slide_loop && viewer.sibling_index >= count - 1) {
+    if (!ui_state.slide_loop && viewer.current_path_index >= count - 1) {
         ui_state.slide_show_running = false;
         viewer.status_message       = "Slide show reached final image";
         viewer.last_error.clear();
@@ -421,7 +444,7 @@ advance_slide_show_action(VulkanState& vk_state, ViewerState& viewer,
     }
 
     std::string next_path;
-    if (!pick_sibling_image(viewer, 1, next_path) || next_path.empty())
+    if (!pick_loaded_image_path(viewer, 1, next_path) || next_path.empty())
         return false;
     return load_viewer_image(vk_state, viewer, &ui_state, next_path,
                              viewer.image.subimage, viewer.image.miplevel);
@@ -444,11 +467,42 @@ open_image_dialog_action(VulkanState& vk_state, ViewerState& viewer,
                          PlaceholderUiState& ui_state, int requested_subimage,
                          int requested_miplevel)
 {
-    FileDialog::DialogReply reply = FileDialog::open_image_file(
+    FileDialog::DialogReply reply = FileDialog::open_image_files(
         open_dialog_default_path(viewer));
     if (reply.result == FileDialog::Result::Okay) {
-        load_viewer_image(vk_state, viewer, &ui_state, reply.path,
-                          requested_subimage, requested_miplevel);
+        if (reply.paths.empty() && !reply.path.empty())
+            reply.paths.push_back(reply.path);
+
+        int first_added_index = -1;
+        append_loaded_image_paths(viewer, reply.paths, &first_added_index);
+
+        std::string target_path;
+        if (first_added_index >= 0
+            && first_added_index
+                   < static_cast<int>(viewer.loaded_image_paths.size())) {
+            target_path = viewer.loaded_image_paths[static_cast<size_t>(
+                first_added_index)];
+        } else {
+            for (const std::string& path : reply.paths) {
+                if (!set_current_loaded_image_path(viewer, path))
+                    continue;
+                if (viewer.current_path_index < 0
+                    || viewer.current_path_index >= static_cast<int>(
+                           viewer.loaded_image_paths.size())) {
+                    continue;
+                }
+                target_path = viewer.loaded_image_paths[static_cast<size_t>(
+                    viewer.current_path_index)];
+                break;
+            }
+        }
+
+        if (!target_path.empty()) {
+            load_viewer_image(vk_state, viewer, &ui_state, target_path,
+                              requested_subimage, requested_miplevel);
+        } else {
+            viewer.last_error = "No selected image paths were accepted";
+        }
     } else if (reply.result == FileDialog::Result::Cancel) {
         viewer.status_message = "Open cancelled";
         viewer.last_error.clear();
@@ -471,22 +525,31 @@ reload_current_image_action(VulkanState& vk_state, ViewerState& viewer,
 }
 
 void
-close_current_image_action(VulkanState& vk_state, ViewerState& viewer)
+close_current_image_action(VulkanState& vk_state, ViewerState& viewer,
+                           PlaceholderUiState& ui_state)
 {
+    const std::string closing_path = viewer.image.path;
+    const int closing_index        = viewer.current_path_index;
 #    if defined(IMIV_BACKEND_VULKAN_GLFW)
     quiesce_viewer_texture_lifetime(vk_state, viewer.texture);
 #    endif
     destroy_texture(vk_state, viewer.texture);
-    if (!viewer.image.path.empty())
-        viewer.toggle_image_path = viewer.image.path;
-    viewer.image       = LoadedImage();
-    viewer.zoom        = 1.0f;
-    viewer.fit_request = true;
-    reset_view_navigation_state(viewer);
-    viewer.probe_valid = false;
-    viewer.probe_channels.clear();
-    viewer.sibling_images.clear();
-    viewer.sibling_index = -1;
+    remove_loaded_image_path(viewer, closing_path);
+    if (!viewer.loaded_image_paths.empty()) {
+        const int replacement_index
+            = std::clamp(closing_index, 0,
+                         static_cast<int>(viewer.loaded_image_paths.size())
+                             - 1);
+        const std::string replacement_path
+            = viewer.loaded_image_paths[static_cast<size_t>(replacement_index)];
+        clear_loaded_image_state(viewer);
+        viewer.last_error.clear();
+        load_viewer_image(vk_state, viewer, &ui_state, replacement_path,
+                          ui_state.subimage_index, ui_state.miplevel_index);
+        return;
+    }
+
+    clear_loaded_image_state(viewer);
     viewer.last_error.clear();
     viewer.status_message = "Closed current image";
 }
@@ -496,7 +559,7 @@ next_sibling_image_action(VulkanState& vk_state, ViewerState& viewer,
                           PlaceholderUiState& ui_state, int delta)
 {
     std::string path;
-    if (!pick_sibling_image(viewer, delta, path)) {
+    if (!pick_loaded_image_path(viewer, delta, path)) {
         viewer.status_message = (delta < 0) ? "Previous image unavailable"
                                             : "Next image unavailable";
         viewer.last_error.clear();
@@ -510,19 +573,16 @@ void
 toggle_image_action(VulkanState& vk_state, ViewerState& viewer,
                     PlaceholderUiState& ui_state)
 {
-    if (viewer.toggle_image_path.empty()) {
+    if (viewer.last_path_index < 0
+        || viewer.last_path_index
+               >= static_cast<int>(viewer.loaded_image_paths.size())) {
         viewer.status_message = "No toggled image available";
         viewer.last_error.clear();
         return;
     }
-    if (viewer.image.path == viewer.toggle_image_path) {
-        if (!pick_sibling_image(viewer, 1, viewer.toggle_image_path)) {
-            viewer.status_message = "No toggled image available";
-            viewer.last_error.clear();
-            return;
-        }
-    }
-    load_viewer_image(vk_state, viewer, &ui_state, viewer.toggle_image_path,
+    const std::string toggle_path
+        = viewer.loaded_image_paths[static_cast<size_t>(viewer.last_path_index)];
+    load_viewer_image(vk_state, viewer, &ui_state, toggle_path,
                       viewer.image.subimage, viewer.image.miplevel);
 }
 
