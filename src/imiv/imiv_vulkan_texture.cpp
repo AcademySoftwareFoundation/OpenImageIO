@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "imiv_types.h"
+#include "imiv_vulkan_texture_internal.h"
 
 #include <algorithm>
 #include <cmath>
@@ -136,50 +137,6 @@ namespace {
         return false;
     }
 
-    void destroy_texture_upload_submit_resources(VulkanState& vk_state,
-                                                 VulkanTexture& texture)
-    {
-        if (texture.upload_compute_set != VK_NULL_HANDLE
-            && vk_state.compute_descriptor_pool != VK_NULL_HANDLE) {
-            vkFreeDescriptorSets(vk_state.device,
-                                 vk_state.compute_descriptor_pool, 1,
-                                 &texture.upload_compute_set);
-            texture.upload_compute_set = VK_NULL_HANDLE;
-        }
-        if (texture.upload_source_buffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(vk_state.device, texture.upload_source_buffer,
-                            vk_state.allocator);
-            texture.upload_source_buffer = VK_NULL_HANDLE;
-        }
-        if (texture.upload_source_memory != VK_NULL_HANDLE) {
-            vkFreeMemory(vk_state.device, texture.upload_source_memory,
-                         vk_state.allocator);
-            texture.upload_source_memory = VK_NULL_HANDLE;
-        }
-        if (texture.upload_staging_buffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(vk_state.device, texture.upload_staging_buffer,
-                            vk_state.allocator);
-            texture.upload_staging_buffer = VK_NULL_HANDLE;
-        }
-        if (texture.upload_staging_memory != VK_NULL_HANDLE) {
-            vkFreeMemory(vk_state.device, texture.upload_staging_memory,
-                         vk_state.allocator);
-            texture.upload_staging_memory = VK_NULL_HANDLE;
-        }
-        if (texture.upload_submit_fence != VK_NULL_HANDLE) {
-            vkDestroyFence(vk_state.device, texture.upload_submit_fence,
-                           vk_state.allocator);
-            texture.upload_submit_fence = VK_NULL_HANDLE;
-        }
-        texture.upload_command_buffer = VK_NULL_HANDLE;
-        if (texture.upload_command_pool != VK_NULL_HANDLE) {
-            vkDestroyCommandPool(vk_state.device, texture.upload_command_pool,
-                                 vk_state.allocator);
-            texture.upload_command_pool = VK_NULL_HANDLE;
-        }
-        texture.upload_submit_pending = false;
-    }
-
     bool ensure_texture_upload_submit_resources(VulkanState& vk_state,
                                                 VulkanTexture& texture,
                                                 std::string& error_message)
@@ -217,8 +174,8 @@ namespace {
         err = vkAllocateCommandBuffers(vk_state.device, &command_alloc,
                                        &texture.upload_command_buffer);
         if (err != VK_SUCCESS) {
-            error_message
-                = "vkAllocateCommandBuffers failed for upload async submit";
+            error_message = "vkAllocateCommandBuffers failed for upload async "
+                            "submit";
             destroy_texture_upload_submit_resources(vk_state, texture);
             return false;
         }
@@ -242,172 +199,90 @@ namespace {
         return true;
     }
 
-    bool poll_texture_upload_submission(VulkanState& vk_state,
-                                        VulkanTexture& texture,
-                                        bool wait_for_completion,
-                                        std::string& error_message)
-    {
-        if (texture.source_ready)
-            return true;
-        if (!texture.upload_submit_pending)
-            return false;
-        if (texture.upload_submit_fence == VK_NULL_HANDLE) {
-            texture.upload_submit_pending = false;
-            error_message = "upload submit fence is unavailable";
-            return false;
-        }
-
-        VkResult err = VK_SUCCESS;
-        if (wait_for_completion) {
-            err = vkWaitForFences(vk_state.device, 1,
-                                  &texture.upload_submit_fence, VK_TRUE,
-                                  UINT64_MAX);
-        } else {
-            err = vkGetFenceStatus(vk_state.device,
-                                   texture.upload_submit_fence);
-            if (err == VK_NOT_READY)
-                return false;
-        }
-        if (err != VK_SUCCESS) {
-            error_message
-                = wait_for_completion
-                      ? "vkWaitForFences failed for upload async submit"
-                      : "vkGetFenceStatus failed for upload async submit";
-            check_vk_result(err);
-            return false;
-        }
-
-        texture.upload_submit_pending = false;
-        texture.source_ready          = true;
-        texture.preview_dirty         = true;
-        destroy_texture_upload_submit_resources(vk_state, texture);
-        return true;
-    }
-
-    void destroy_texture_preview_submit_resources(VulkanState& vk_state,
-                                                  VulkanTexture& texture)
-    {
-        if (texture.preview_submit_fence != VK_NULL_HANDLE) {
-            vkDestroyFence(vk_state.device, texture.preview_submit_fence,
-                           vk_state.allocator);
-            texture.preview_submit_fence = VK_NULL_HANDLE;
-        }
-        texture.preview_command_buffer = VK_NULL_HANDLE;
-        if (texture.preview_command_pool != VK_NULL_HANDLE) {
-            vkDestroyCommandPool(vk_state.device, texture.preview_command_pool,
-                                 vk_state.allocator);
-            texture.preview_command_pool = VK_NULL_HANDLE;
-        }
-        texture.preview_submit_pending = false;
-    }
-
-    bool ensure_texture_preview_submit_resources(VulkanState& vk_state,
-                                                 VulkanTexture& texture,
-                                                 std::string& error_message)
-    {
-        if (texture.preview_command_pool != VK_NULL_HANDLE
-            && texture.preview_command_buffer != VK_NULL_HANDLE
-            && texture.preview_submit_fence != VK_NULL_HANDLE) {
-            return true;
-        }
-
-        destroy_texture_preview_submit_resources(vk_state, texture);
-
-        VkResult err                    = VK_SUCCESS;
-        VkCommandPoolCreateInfo pool_ci = {};
-        pool_ci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        pool_ci.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
-                        | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        pool_ci.queueFamilyIndex = vk_state.queue_family;
-        err = vkCreateCommandPool(vk_state.device, &pool_ci, vk_state.allocator,
-                                  &texture.preview_command_pool);
-        if (err != VK_SUCCESS) {
-            error_message
-                = "vkCreateCommandPool failed for preview async submit";
-            destroy_texture_preview_submit_resources(vk_state, texture);
-            return false;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_COMMAND_POOL,
-                           texture.preview_command_pool,
-                           "imiv.preview_async.command_pool");
-
-        VkCommandBufferAllocateInfo command_alloc = {};
-        command_alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        command_alloc.commandPool        = texture.preview_command_pool;
-        command_alloc.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        command_alloc.commandBufferCount = 1;
-        err = vkAllocateCommandBuffers(vk_state.device, &command_alloc,
-                                       &texture.preview_command_buffer);
-        if (err != VK_SUCCESS) {
-            error_message
-                = "vkAllocateCommandBuffers failed for preview async submit";
-            destroy_texture_preview_submit_resources(vk_state, texture);
-            return false;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_COMMAND_BUFFER,
-                           texture.preview_command_buffer,
-                           "imiv.preview_async.command_buffer");
-
-        VkFenceCreateInfo fence_ci = {};
-        fence_ci.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fence_ci.flags             = VK_FENCE_CREATE_SIGNALED_BIT;
-        err = vkCreateFence(vk_state.device, &fence_ci, vk_state.allocator,
-                            &texture.preview_submit_fence);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateFence failed for preview async submit";
-            destroy_texture_preview_submit_resources(vk_state, texture);
-            return false;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_FENCE,
-                           texture.preview_submit_fence,
-                           "imiv.preview_async.fence");
-        return true;
-    }
-
-    bool poll_texture_preview_submission(VulkanState& vk_state,
-                                         VulkanTexture& texture,
-                                         const PreviewControls& controls,
-                                         bool wait_for_completion,
-                                         std::string& error_message)
-    {
-        if (!texture.preview_submit_pending)
-            return true;
-        if (texture.preview_submit_fence == VK_NULL_HANDLE) {
-            texture.preview_submit_pending = false;
-            error_message = "preview submit fence is unavailable";
-            return false;
-        }
-
-        VkResult err = VK_SUCCESS;
-        if (wait_for_completion) {
-            err = vkWaitForFences(vk_state.device, 1,
-                                  &texture.preview_submit_fence, VK_TRUE,
-                                  UINT64_MAX);
-        } else {
-            err = vkGetFenceStatus(vk_state.device,
-                                   texture.preview_submit_fence);
-            if (err == VK_NOT_READY)
-                return false;
-        }
-        if (err != VK_SUCCESS) {
-            error_message
-                = wait_for_completion
-                      ? "vkWaitForFences failed for preview async submit"
-                      : "vkGetFenceStatus failed for preview async submit";
-            check_vk_result(err);
-            return false;
-        }
-
-        texture.preview_submit_pending = false;
-        texture.preview_initialized    = true;
-        texture.preview_params_valid   = true;
-        texture.last_preview_controls  = texture.preview_submit_controls;
-        texture.preview_dirty
-            = !preview_controls_equal(texture.last_preview_controls, controls);
-        return true;
-    }
-
 }  // namespace
+
+void
+destroy_texture_upload_submit_resources(VulkanState& vk_state,
+                                        VulkanTexture& texture)
+{
+    if (texture.upload_compute_set != VK_NULL_HANDLE
+        && vk_state.compute_descriptor_pool != VK_NULL_HANDLE) {
+        vkFreeDescriptorSets(vk_state.device, vk_state.compute_descriptor_pool,
+                             1, &texture.upload_compute_set);
+        texture.upload_compute_set = VK_NULL_HANDLE;
+    }
+    if (texture.upload_source_buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(vk_state.device, texture.upload_source_buffer,
+                        vk_state.allocator);
+        texture.upload_source_buffer = VK_NULL_HANDLE;
+    }
+    if (texture.upload_source_memory != VK_NULL_HANDLE) {
+        vkFreeMemory(vk_state.device, texture.upload_source_memory,
+                     vk_state.allocator);
+        texture.upload_source_memory = VK_NULL_HANDLE;
+    }
+    if (texture.upload_staging_buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(vk_state.device, texture.upload_staging_buffer,
+                        vk_state.allocator);
+        texture.upload_staging_buffer = VK_NULL_HANDLE;
+    }
+    if (texture.upload_staging_memory != VK_NULL_HANDLE) {
+        vkFreeMemory(vk_state.device, texture.upload_staging_memory,
+                     vk_state.allocator);
+        texture.upload_staging_memory = VK_NULL_HANDLE;
+    }
+    if (texture.upload_submit_fence != VK_NULL_HANDLE) {
+        vkDestroyFence(vk_state.device, texture.upload_submit_fence,
+                       vk_state.allocator);
+        texture.upload_submit_fence = VK_NULL_HANDLE;
+    }
+    texture.upload_command_buffer = VK_NULL_HANDLE;
+    if (texture.upload_command_pool != VK_NULL_HANDLE) {
+        vkDestroyCommandPool(vk_state.device, texture.upload_command_pool,
+                             vk_state.allocator);
+        texture.upload_command_pool = VK_NULL_HANDLE;
+    }
+    texture.upload_submit_pending = false;
+}
+
+bool
+poll_texture_upload_submission(VulkanState& vk_state, VulkanTexture& texture,
+                               bool wait_for_completion,
+                               std::string& error_message)
+{
+    if (texture.source_ready)
+        return true;
+    if (!texture.upload_submit_pending)
+        return false;
+    if (texture.upload_submit_fence == VK_NULL_HANDLE) {
+        texture.upload_submit_pending = false;
+        error_message                 = "upload submit fence is unavailable";
+        return false;
+    }
+
+    VkResult err = VK_SUCCESS;
+    if (wait_for_completion) {
+        err = vkWaitForFences(vk_state.device, 1, &texture.upload_submit_fence,
+                              VK_TRUE, UINT64_MAX);
+    } else {
+        err = vkGetFenceStatus(vk_state.device, texture.upload_submit_fence);
+        if (err == VK_NOT_READY)
+            return false;
+    }
+    if (err != VK_SUCCESS) {
+        error_message = wait_for_completion
+                            ? "vkWaitForFences failed for upload async submit"
+                            : "vkGetFenceStatus failed for upload async submit";
+        check_vk_result(err);
+        return false;
+    }
+
+    texture.upload_submit_pending = false;
+    texture.source_ready          = true;
+    texture.preview_dirty         = true;
+    destroy_texture_upload_submit_resources(vk_state, texture);
+    return true;
+}
 
 void
 check_vk_result(VkResult err)
@@ -1207,205 +1082,6 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
     if (!ok)
         destroy_texture(vk_state, texture);
     return ok;
-}
-
-bool
-preview_controls_equal(const PreviewControls& a, const PreviewControls& b)
-{
-    return std::abs(a.exposure - b.exposure) < 1.0e-6f
-           && std::abs(a.gamma - b.gamma) < 1.0e-6f
-           && std::abs(a.offset - b.offset) < 1.0e-6f
-           && a.color_mode == b.color_mode && a.channel == b.channel
-           && a.use_ocio == b.use_ocio && a.orientation == b.orientation;
-}
-
-bool
-update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
-                       const PreviewControls& controls,
-                       std::string& error_message)
-{
-    if (texture.image == VK_NULL_HANDLE
-        || texture.source_image == VK_NULL_HANDLE
-        || texture.preview_framebuffer == VK_NULL_HANDLE
-        || texture.preview_source_set == VK_NULL_HANDLE) {
-        return false;
-    }
-
-    error_message.clear();
-    if (!poll_texture_upload_submission(vk_state, texture, false,
-                                        error_message)) {
-        if (error_message.empty())
-            return true;
-        return false;
-    }
-    if (!texture.source_ready)
-        return true;
-
-    if (!poll_texture_preview_submission(vk_state, texture, controls, false,
-                                         error_message)) {
-        if (error_message.empty())
-            return true;
-        return false;
-    }
-
-    if (texture.preview_params_valid
-        && preview_controls_equal(texture.last_preview_controls, controls)
-        && !texture.preview_dirty) {
-        return true;
-    }
-
-    if (!ensure_texture_preview_submit_resources(vk_state, texture,
-                                                 error_message)) {
-        return false;
-    }
-
-    if (texture.preview_submit_pending)
-        return true;
-
-    bool preview_fence_signaled = false;
-    if (!nonblocking_fence_status(vk_state.device, texture.preview_submit_fence,
-                                  "preview async submit",
-                                  preview_fence_signaled, error_message)) {
-        return false;
-    }
-    if (!preview_fence_signaled)
-        return true;
-
-    VkResult err = VK_SUCCESS;
-    err = vkResetCommandPool(vk_state.device, texture.preview_command_pool, 0);
-    if (err != VK_SUCCESS) {
-        error_message = "vkResetCommandPool failed for preview async submit";
-        return false;
-    }
-
-    VkCommandBuffer command_buffer = texture.preview_command_buffer;
-
-    VkCommandBufferBeginInfo begin = {};
-    begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    err         = vkBeginCommandBuffer(command_buffer, &begin);
-    if (err != VK_SUCCESS) {
-        error_message = "vkBeginCommandBuffer failed for preview update";
-        return false;
-    }
-
-    VkImageMemoryBarrier to_color_attachment = {};
-    to_color_attachment.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    to_color_attachment.oldLayout
-        = texture.preview_initialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                                      : VK_IMAGE_LAYOUT_UNDEFINED;
-    to_color_attachment.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    to_color_attachment.srcQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
-    to_color_attachment.dstQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
-    to_color_attachment.image                       = texture.image;
-    to_color_attachment.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    to_color_attachment.subresourceRange.baseMipLevel   = 0;
-    to_color_attachment.subresourceRange.levelCount     = 1;
-    to_color_attachment.subresourceRange.baseArrayLayer = 0;
-    to_color_attachment.subresourceRange.layerCount     = 1;
-    to_color_attachment.srcAccessMask = texture.preview_initialized
-                                            ? VK_ACCESS_SHADER_READ_BIT
-                                            : 0;
-    to_color_attachment.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    vkCmdPipelineBarrier(command_buffer,
-                         texture.preview_initialized
-                             ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-                             : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0,
-                         nullptr, 0, nullptr, 1, &to_color_attachment);
-
-    VkClearValue clear     = {};
-    clear.color.float32[0] = 0.0f;
-    clear.color.float32[1] = 0.0f;
-    clear.color.float32[2] = 0.0f;
-    clear.color.float32[3] = 1.0f;
-
-    VkRenderPassBeginInfo rp_begin   = {};
-    rp_begin.sType                   = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    rp_begin.renderPass              = vk_state.preview_render_pass;
-    rp_begin.framebuffer             = texture.preview_framebuffer;
-    rp_begin.renderArea.offset       = { 0, 0 };
-    rp_begin.renderArea.extent.width = static_cast<uint32_t>(texture.width);
-    rp_begin.renderArea.extent.height = static_cast<uint32_t>(texture.height);
-    rp_begin.clearValueCount          = 1;
-    rp_begin.pClearValues             = &clear;
-
-    vkCmdBeginRenderPass(command_buffer, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
-    VkViewport vp         = {};
-    vp.x                  = 0.0f;
-    vp.y                  = 0.0f;
-    vp.width              = static_cast<float>(texture.width);
-    vp.height             = static_cast<float>(texture.height);
-    vp.minDepth           = 0.0f;
-    vp.maxDepth           = 1.0f;
-    VkRect2D scissor      = {};
-    scissor.extent.width  = static_cast<uint32_t>(texture.width);
-    scissor.extent.height = static_cast<uint32_t>(texture.height);
-    vkCmdSetViewport(command_buffer, 0, 1, &vp);
-    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      vk_state.preview_pipeline);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            vk_state.preview_pipeline_layout, 0, 1,
-                            &texture.preview_source_set, 0, nullptr);
-
-    PreviewPushConstants push = {};
-    push.exposure             = controls.exposure;
-    push.gamma                = std::max(0.01f, controls.gamma);
-    push.offset               = controls.offset;
-    push.color_mode           = controls.color_mode;
-    push.channel              = controls.channel;
-    push.use_ocio             = controls.use_ocio;
-    push.orientation          = controls.orientation;
-    vkCmdPushConstants(command_buffer, vk_state.preview_pipeline_layout,
-                       VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push), &push);
-    vkCmdDraw(command_buffer, 3, 1, 0, 0);
-    vkCmdEndRenderPass(command_buffer);
-
-    VkImageMemoryBarrier to_shader_read = {};
-    to_shader_read.sType     = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    to_shader_read.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    to_shader_read.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    to_shader_read.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-    to_shader_read.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-    to_shader_read.image                           = texture.image;
-    to_shader_read.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-    to_shader_read.subresourceRange.baseMipLevel   = 0;
-    to_shader_read.subresourceRange.levelCount     = 1;
-    to_shader_read.subresourceRange.baseArrayLayer = 0;
-    to_shader_read.subresourceRange.layerCount     = 1;
-    to_shader_read.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    to_shader_read.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    vkCmdPipelineBarrier(command_buffer,
-                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr,
-                         0, nullptr, 1, &to_shader_read);
-
-    err = vkEndCommandBuffer(command_buffer);
-    if (err != VK_SUCCESS) {
-        error_message = "vkEndCommandBuffer failed for preview update";
-        return false;
-    }
-    err = vkResetFences(vk_state.device, 1, &texture.preview_submit_fence);
-    if (err != VK_SUCCESS) {
-        error_message = "vkResetFences failed for preview async submit";
-        return false;
-    }
-
-    VkSubmitInfo submit       = {};
-    submit.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit.commandBufferCount = 1;
-    submit.pCommandBuffers    = &command_buffer;
-    err                       = vkQueueSubmit(vk_state.queue, 1, &submit,
-                                              texture.preview_submit_fence);
-    if (err != VK_SUCCESS) {
-        error_message = "vkQueueSubmit failed for preview update";
-        return false;
-    }
-
-    texture.preview_submit_pending  = true;
-    texture.preview_submit_controls = controls;
-    return true;
 }
 
 #endif
