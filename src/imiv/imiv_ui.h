@@ -29,6 +29,11 @@ bool
 sample_loaded_pixel(const LoadedImage& image, int x, int y,
                     std::vector<double>& out_channels);
 void
+reset_area_probe_overlay(ViewerState& viewer);
+void
+update_area_probe_overlay(ViewerState& viewer, int xbegin, int ybegin, int xend,
+                          int yend);
+void
 draw_padded_message(const char* message, float x_pad = 10.0f,
                     float y_pad = 6.0f);
 void

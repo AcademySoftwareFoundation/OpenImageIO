@@ -81,6 +81,8 @@ def main() -> int:
 
     ap.add_argument("--junit-out", default="", help="Enable JUnit XML export to this path")
     ap.add_argument("--trace", action="store_true", help="Enable test engine trace logs")
+    ap.add_argument("--show-drag-overlay", action="store_true",
+                    help="Force the drag-and-drop dimming overlay during automation")
     ap.add_argument("--key-chord", default="",
                     help="Optional ImGui key chord before capture/layout, e.g. ctrl+i or ctrl+0")
     ap.add_argument("--mouse-pos", nargs=2, type=float, metavar=("X", "Y"), default=None,
@@ -134,6 +136,9 @@ def main() -> int:
 
     if args.trace:
         env["IMIV_IMGUI_TEST_ENGINE_TRACE"] = "1"
+
+    if args.show_drag_overlay:
+        env["IMIV_IMGUI_TEST_ENGINE_SHOW_DRAG_OVERLAY"] = "1"
 
     if args.key_chord:
         env["IMIV_IMGUI_TEST_ENGINE_KEY_CHORD"] = args.key_chord

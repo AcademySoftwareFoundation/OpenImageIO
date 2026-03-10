@@ -172,12 +172,27 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
     test_engine_json_write_vec2(f, viewer.max_scroll);
     std::fputs(",\n  \"fit_image_to_window\": ", f);
     std::fputs(ui_state.fit_image_to_window ? "true" : "false", f);
+    std::fputs(",\n  \"loaded_image_count\": ", f);
+    std::fprintf(f, "%d", static_cast<int>(viewer.loaded_image_paths.size()));
+    std::fputs(",\n  \"current_image_index\": ", f);
+    std::fprintf(f, "%d", viewer.current_path_index);
+    std::fputs(",\n  \"drag_overlay_active\": ", f);
+    std::fputs(viewer.drag_overlay_active ? "true" : "false", f);
+    std::fputs(",\n  \"area_probe_drag_active\": ", f);
+    std::fputs(viewer.area_probe_drag_active ? "true" : "false", f);
     std::fputs(",\n  \"image_size\": [", f);
     std::fprintf(f, "%d,%d", viewer.image.width, viewer.image.height);
     std::fputs("],\n  \"display_size\": [", f);
     std::fprintf(f, "%d,%d", display_width, display_height);
     std::fputs("],\n  \"orientation\": ", f);
     std::fprintf(f, "%d", viewer.image.orientation);
+    std::fputs(",\n  \"area_probe_lines\": [", f);
+    for (size_t i = 0; i < viewer.area_probe_lines.size(); ++i) {
+        if (i > 0)
+            std::fputs(", ", f);
+        test_engine_json_write_escaped(f, viewer.area_probe_lines[i].c_str());
+    }
+    std::fputs("]", f);
     std::fputs("\n}\n", f);
     std::fflush(f);
     std::fclose(f);
@@ -367,6 +382,8 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
         ui_state.show_pixelview_window   = true;
         ui_state.show_area_probe_window  = true;
     }
+    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_DRAG_OVERLAY"))
+        viewer.drag_overlay_active = true;
 
     collect_viewer_shortcuts(viewer, ui_state, actions, request_exit);
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
