@@ -1,3 +1,7 @@
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
+
 #version 450
 
 layout(location = 0) in vec2 uv_in;
@@ -91,9 +95,10 @@ void main()
     c.rgb = pow(max(c.rgb, vec3(0.0)), vec3(1.0 / g));
 
     // OCIO pipeline is not connected yet; keep this branch explicit.
-    if (pc.use_ocio != 0) {
-        c.rgb = c.rgb;
-    }
+if (pc.use_ocio != 0) {
+    // TODO: apply the selected OCIO display/view transform here.
+    c.rgb = c.rgb;
+}
 
     out_color = c;
 }

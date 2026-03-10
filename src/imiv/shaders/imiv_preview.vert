@@ -1,3 +1,7 @@
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
+
 #version 450
 
 layout(location = 0) out vec2 uv_out;

@@ -6,7 +6,7 @@ set (OIIO_IMIV_IMGUI_ROOT "${PROJECT_SOURCE_DIR}/../imgui" CACHE PATH
      "Path to Dear ImGui repository checkout used by imiv")
 set (OIIO_IMIV_TEST_ENGINE_ROOT "${PROJECT_SOURCE_DIR}/../imgui_test_engine" CACHE PATH
      "Path to Dear ImGui Test Engine repository checkout used by imiv tests")
-set (OIIO_IMIV_NFD_ROOT "/mnt/f/GH/oiio-builder/developer/nativefiledialog-extended" CACHE PATH
+set (OIIO_IMIV_NFD_ROOT "$ENV{OIIO_IMIV_NFD_ROOT}" CACHE PATH
      "Path hint for nativefiledialog-extended source/build/install root used by imiv")
 set (OIIO_IMIV_NFD_INCLUDE_DIR "" CACHE PATH
      "Optional explicit include directory containing nfd.h")
@@ -62,8 +62,17 @@ endif ()
 record_build_dependency (ImGui FOUND)
 
 set (_imiv_core_sources
+     imiv_actions.cpp
      imiv_app.cpp
      imiv_file_dialog.cpp
+     imiv_frame.cpp
+     imiv_navigation.cpp
+     imiv_ui.cpp
+     imiv_viewer.cpp
+     imiv_vulkan_setup.cpp
+     imiv_vulkan_runtime.cpp
+     imiv_vulkan_texture.cpp
+     imiv_test_engine.cpp
      imiv_main.cpp)
 
 set (_imiv_shader_src "${CMAKE_CURRENT_SOURCE_DIR}/shaders/imiv_upload_to_rgba.comp")

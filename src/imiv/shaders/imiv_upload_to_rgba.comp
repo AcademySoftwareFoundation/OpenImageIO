@@ -1,3 +1,7 @@
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
+
 #version 450
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
