@@ -8,6 +8,7 @@
 #include "imiv_file_dialog.h"
 #include "imiv_frame.h"
 #include "imiv_navigation.h"
+#include "imiv_ocio.h"
 #include "imiv_test_engine.h"
 #include "imiv_types.h"
 #include "imiv_ui.h"
@@ -546,6 +547,16 @@ run(const AppConfig& config)
                          || !run_config.ocio_image_color_space.empty());
     reset_per_image_preview_state(ui_state);
     clamp_placeholder_ui_state(ui_state);
+    if (ui_state.use_ocio) {
+        std::string ocio_preflight_error;
+        if (!preflight_ocio_runtime_shader(ui_state, nullptr,
+                                           ocio_preflight_error)) {
+            viewer.last_error = Strutil::fmt::format(
+                "OCIO runtime shader preflight failed: {}",
+                ocio_preflight_error);
+            print(stderr, "imiv: {}\n", viewer.last_error);
+        }
+    }
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AUX_WINDOWS")) {
         ui_state.show_info_window        = true;
         ui_state.show_preferences_window = true;

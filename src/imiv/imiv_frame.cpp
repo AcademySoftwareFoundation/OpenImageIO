@@ -428,7 +428,8 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
                                                     ? 1
                                                     : 0;
         std::string preview_error;
-        if (!update_preview_texture(vk_state, viewer.texture, preview_controls,
+        if (!update_preview_texture(vk_state, viewer.texture, &viewer.image,
+                                    ui_state, preview_controls,
                                     preview_error)) {
             if (!preview_error.empty())
                 viewer.last_error = preview_error;

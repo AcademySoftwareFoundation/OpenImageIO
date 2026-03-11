@@ -5,6 +5,7 @@
 #include "imiv_menu.h"
 
 #include "imiv_actions.h"
+#include "imiv_ocio.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -297,40 +298,85 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
 
         if (ImGui::BeginMenu("OCIO")) {
             ImGui::MenuItem("Use OCIO", nullptr, &ui_state.use_ocio);
+            std::vector<std::string> ocio_color_spaces;
+            std::vector<std::string> ocio_displays;
+            std::vector<std::string> ocio_views;
+            std::string resolved_display;
+            std::string resolved_view;
+            std::string ocio_error;
+            const bool ocio_menu_data_ok = query_ocio_menu_data(
+                ui_state, ocio_color_spaces, ocio_displays, ocio_views,
+                resolved_display, resolved_view, ocio_error);
             if (ImGui::BeginMenu("Image color space")) {
-                if (ImGui::MenuItem("auto", nullptr,
-                                    ui_state.ocio_image_color_space == "auto")) {
-                    ui_state.ocio_image_color_space = "auto";
-                }
-                if (ImGui::MenuItem("scene_linear", nullptr,
-                                    ui_state.ocio_image_color_space
-                                        == "scene_linear")) {
-                    ui_state.ocio_image_color_space = "scene_linear";
-                }
-                if (ImGui::MenuItem("sRGB", nullptr,
-                                    ui_state.ocio_image_color_space == "sRGB")) {
-                    ui_state.ocio_image_color_space = "sRGB";
+                if (!ocio_menu_data_ok) {
+                    ImGui::MenuItem(ocio_error.c_str(), nullptr, false, false);
+                } else {
+                    for (const std::string& color_space : ocio_color_spaces) {
+                        if (ImGui::MenuItem(color_space.c_str(), nullptr,
+                                            ui_state.ocio_image_color_space
+                                                == color_space)) {
+                            ui_state.ocio_image_color_space = color_space;
+                        }
+                    }
                 }
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Display/View")) {
-                if (ImGui::MenuItem("default / default", nullptr,
-                                    ui_state.ocio_display == "default"
-                                        && ui_state.ocio_view == "default")) {
-                    ui_state.ocio_display = "default";
-                    ui_state.ocio_view    = "default";
-                }
-                if (ImGui::MenuItem("sRGB / Film", nullptr,
-                                    ui_state.ocio_display == "sRGB"
-                                        && ui_state.ocio_view == "Film")) {
-                    ui_state.ocio_display = "sRGB";
-                    ui_state.ocio_view    = "Film";
-                }
-                if (ImGui::MenuItem("sRGB / Raw", nullptr,
-                                    ui_state.ocio_display == "sRGB"
-                                        && ui_state.ocio_view == "Raw")) {
-                    ui_state.ocio_display = "sRGB";
-                    ui_state.ocio_view    = "Raw";
+                if (!ocio_menu_data_ok) {
+                    ImGui::MenuItem(ocio_error.c_str(), nullptr, false, false);
+                } else {
+                    if (ImGui::MenuItem("default / default", nullptr,
+                                        ui_state.ocio_display == "default"
+                                            && ui_state.ocio_view
+                                                   == "default")) {
+                        ui_state.ocio_display = "default";
+                        ui_state.ocio_view    = "default";
+                    }
+                    ImGui::Separator();
+                    for (const std::string& display_name : ocio_displays) {
+                        if (ImGui::BeginMenu(display_name.c_str())) {
+                            if (display_name == resolved_display
+                                && ImGui::MenuItem("default", nullptr,
+                                                   ui_state.ocio_display
+                                                       == "default")) {
+                                ui_state.ocio_display = "default";
+                                ui_state.ocio_view    = "default";
+                            }
+                            std::vector<std::string> display_views;
+                            std::vector<std::string> display_color_spaces;
+                            std::vector<std::string> display_displays;
+                            std::string ignored_display;
+                            std::string ignored_view;
+                            std::string display_error;
+                            PlaceholderUiState probe_state = ui_state;
+                            probe_state.ocio_display       = display_name;
+                            probe_state.ocio_view          = "default";
+                            if (!query_ocio_menu_data(
+                                    probe_state, display_color_spaces,
+                                    display_displays, display_views,
+                                    ignored_display, ignored_view,
+                                    display_error)) {
+                                ImGui::MenuItem(display_error.c_str(), nullptr,
+                                                false, false);
+                            } else {
+                                for (const std::string& view_name :
+                                     display_views) {
+                                    const bool selected
+                                        = ui_state.ocio_display == display_name
+                                          && ((ui_state.ocio_view == "default"
+                                               && view_name == ignored_view)
+                                              || ui_state.ocio_view
+                                                     == view_name);
+                                    if (ImGui::MenuItem(view_name.c_str(),
+                                                        nullptr, selected)) {
+                                        ui_state.ocio_display = display_name;
+                                        ui_state.ocio_view    = view_name;
+                                    }
+                                }
+                            }
+                            ImGui::EndMenu();
+                        }
+                    }
                 }
                 ImGui::EndMenu();
             }

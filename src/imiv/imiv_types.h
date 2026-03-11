@@ -42,6 +42,7 @@ map_spec_type_to_upload(OIIO::TypeDesc spec_type, UploadDataType& upload_type,
 
 struct LoadedImage {
     std::string path;
+    std::string metadata_color_space;
     int width              = 0;
     int height             = 0;
     int orientation        = 1;
@@ -59,6 +60,9 @@ struct LoadedImage {
 };
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
+
+struct PlaceholderUiState;
+struct OcioShaderRuntime;
 
 struct PreviewControls {
     float exposure           = 0.0f;
@@ -196,6 +200,33 @@ struct PreviewPushConstants {
     int32_t orientation = 1;
 };
 
+struct OcioVulkanTexture {
+    VkImage image         = VK_NULL_HANDLE;
+    VkImageView view      = VK_NULL_HANDLE;
+    VkDeviceMemory memory = VK_NULL_HANDLE;
+    VkSampler sampler     = VK_NULL_HANDLE;
+    uint32_t binding      = 0;
+    int width             = 0;
+    int height            = 0;
+    int depth             = 0;
+};
+
+struct OcioVulkanState {
+    OcioShaderRuntime* runtime                  = nullptr;
+    VkDescriptorPool descriptor_pool            = VK_NULL_HANDLE;
+    VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
+    VkDescriptorSet descriptor_set              = VK_NULL_HANDLE;
+    VkPipelineLayout pipeline_layout            = VK_NULL_HANDLE;
+    VkPipeline pipeline                         = VK_NULL_HANDLE;
+    VkBuffer uniform_buffer                     = VK_NULL_HANDLE;
+    VkDeviceMemory uniform_memory               = VK_NULL_HANDLE;
+    void* uniform_mapped                        = nullptr;
+    std::vector<OcioVulkanTexture> textures;
+    size_t uniform_buffer_size = 0;
+    std::string shader_cache_id;
+    bool ready = false;
+};
+
 struct VulkanState {
     VkAllocationCallbacks* allocator                = nullptr;
     VkInstance instance                             = VK_NULL_HANDLE;
@@ -228,11 +259,12 @@ struct VulkanState {
     VkPipeline compute_pipeline                         = VK_NULL_HANDLE;
     VkPipeline compute_pipeline_fp64                    = VK_NULL_HANDLE;
 
-    VkDescriptorPool preview_descriptor_pool                  = VK_NULL_HANDLE;
-    VkDescriptorSetLayout preview_descriptor_set_layout       = VK_NULL_HANDLE;
-    VkPipelineLayout preview_pipeline_layout                  = VK_NULL_HANDLE;
-    VkPipeline preview_pipeline                               = VK_NULL_HANDLE;
-    VkRenderPass preview_render_pass                          = VK_NULL_HANDLE;
+    VkDescriptorPool preview_descriptor_pool            = VK_NULL_HANDLE;
+    VkDescriptorSetLayout preview_descriptor_set_layout = VK_NULL_HANDLE;
+    VkPipelineLayout preview_pipeline_layout            = VK_NULL_HANDLE;
+    VkPipeline preview_pipeline                         = VK_NULL_HANDLE;
+    VkRenderPass preview_render_pass                    = VK_NULL_HANDLE;
+    OcioVulkanState ocio;
     VkCommandPool immediate_command_pool                      = VK_NULL_HANDLE;
     VkCommandBuffer immediate_command_buffer                  = VK_NULL_HANDLE;
     VkFence immediate_submit_fence                            = VK_NULL_HANDLE;
@@ -289,8 +321,17 @@ bool
 preview_controls_equal(const PreviewControls& a, const PreviewControls& b);
 bool
 update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
+                       const LoadedImage* image,
+                       const PlaceholderUiState& ui_state,
                        const PreviewControls& controls,
                        std::string& error_message);
+bool
+ensure_ocio_preview_resources(VulkanState& vk_state, const LoadedImage* image,
+                              const PlaceholderUiState& ui_state,
+                              const PreviewControls& controls,
+                              std::string& error_message);
+void
+destroy_ocio_preview_resources(VulkanState& vk_state);
 void
 name_window_frame_objects(VulkanState& vk_state);
 bool
