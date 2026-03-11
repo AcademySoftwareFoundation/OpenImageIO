@@ -122,6 +122,8 @@ jobs:
       # against and testing an optional dependency, but in fact are not.
       OpenImageIO_REQUIRED_DEPS: ${{inputs.required_deps}}
       OpenImageIO_OPTIONAL_DEPS: ${{inputs.optional_deps}}
+      SETENVS: ${{inputs.setenvs}}
+      DEPCMDS: ${{inputs.depcmds}}
 
     steps:
       - name: install nodejs20glibc2.17
@@ -133,7 +135,7 @@ jobs:
       - name: Build setup
         shell: bash
         run: |
-            ${{inputs.setenvs}}
+            eval "$SETENVS"
             src/build-scripts/ci-startup.bash
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
@@ -150,7 +152,7 @@ jobs:
       - name: Dependencies
         shell: bash
         run: |
-            ${{inputs.depcmds}}
+            eval "$DEPCMDS"
             if [[ "$RUNNER_OS" == "Linux" ]]; then
                 src/build-scripts/gh-installdeps.bash
             elif [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -208,10 +210,10 @@ jobs:
         run: |
             which sonar-scanner
             ls -l /__w/OpenImageIO/OpenImageIO/bw_output
-            echo "BUILD_OUTPUT_DIR is " "${{ env.BUILD_WRAPPER_OUT_DIR }}"
+            echo "BUILD_OUTPUT_DIR is ${BUILD_WRAPPER_OUT_DIR}"
             find . -name "*.gcov" -print
-            # sonar-scanner --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json"
-            time sonar-scanner --define sonar.host.url="${{ env.SONAR_SERVER_URL }}" --define sonar.cfamily.compile-commands="$BUILD_WRAPPER_OUT_DIR/compile_commands.json" --define sonar.cfamily.gcov.reportsPath="_coverage" --define sonar.cfamily.threads="$PARALLEL"
+            # sonar-scanner --define sonar.cfamily.compile-commands="${BUILD_WRAPPER_OUT_DIR}/compile_commands.json"
+            time sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.compile-commands="$BUILD_WRAPPER_OUT_DIR/compile_commands.json" --define sonar.cfamily.gcov.reportsPath="_coverage" --define sonar.cfamily.threads="$PARALLEL"
         # Consult https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/ for more information and options
       - name: Check ABI
         if: inputs.abi_check != ''
