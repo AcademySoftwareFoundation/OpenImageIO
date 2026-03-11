@@ -732,6 +732,7 @@ create_shader_module_from_file(VkDevice device,
 void
 destroy_preview_resources(VulkanState& vk_state)
 {
+    destroy_ocio_preview_resources(vk_state);
     if (vk_state.preview_pipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(vk_state.device, vk_state.preview_pipeline,
                           vk_state.allocator);

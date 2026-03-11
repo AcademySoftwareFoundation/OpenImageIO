@@ -442,6 +442,23 @@ append_longinfo_row(LoadedImage& image, const char* label,
     image.longinfo_rows.emplace_back(label, value);
 }
 
+std::string
+extract_image_color_space_metadata(const ImageSpec& spec)
+{
+    static constexpr const char* candidates[] = {
+        "oiio:ColorSpace",
+        "ColorSpace",
+        "colorspace",
+    };
+    for (const char* attr_name : candidates) {
+        const std::string value = std::string(
+            Strutil::strip(spec.get_string_attribute(attr_name)));
+        if (!value.empty())
+            return value;
+    }
+    return std::string();
+}
+
 void
 build_longinfo_rows(LoadedImage& image, const ImageBuf& source,
                     const ImageSpec& spec)
@@ -586,10 +603,11 @@ load_image_for_compute(const std::string& path, int requested_subimage,
         return false;
     }
 
-    image.path        = path;
-    image.width       = spec.width;
-    image.height      = spec.height;
-    image.orientation = clamp_orientation(
+    image.path                 = path;
+    image.metadata_color_space = extract_image_color_space_metadata(spec);
+    image.width                = spec.width;
+    image.height               = spec.height;
+    image.orientation          = clamp_orientation(
         spec.get_int_attribute("Orientation", 1));
     image.nchannels       = spec.nchannels;
     image.subimage        = resolved_subimage;

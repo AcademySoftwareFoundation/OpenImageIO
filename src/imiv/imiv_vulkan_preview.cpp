@@ -179,6 +179,8 @@ preview_controls_equal(const PreviewControls& a, const PreviewControls& b)
 
 bool
 update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
+                       const LoadedImage* image,
+                       const PlaceholderUiState& ui_state,
                        const PreviewControls& controls,
                        std::string& error_message)
 {
@@ -198,6 +200,12 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
     }
     if (!texture.source_ready)
         return true;
+
+    if (controls.use_ocio != 0
+        && !ensure_ocio_preview_resources(vk_state, image, ui_state, controls,
+                                          error_message)) {
+        return false;
+    }
 
     if (!poll_texture_preview_submission(vk_state, texture, controls, false,
                                          error_message)) {
@@ -301,11 +309,26 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
     scissor.extent.height = static_cast<uint32_t>(texture.height);
     vkCmdSetViewport(command_buffer, 0, 1, &vp);
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+    const bool use_ocio_pipeline
+        = controls.use_ocio != 0 && vk_state.ocio.ready
+          && vk_state.ocio.pipeline != VK_NULL_HANDLE
+          && vk_state.ocio.pipeline_layout != VK_NULL_HANDLE
+          && vk_state.ocio.descriptor_set != VK_NULL_HANDLE;
+    const VkPipeline pipeline = use_ocio_pipeline ? vk_state.ocio.pipeline
+                                                  : vk_state.preview_pipeline;
+    const VkPipelineLayout pipeline_layout
+        = use_ocio_pipeline ? vk_state.ocio.pipeline_layout
+                            : vk_state.preview_pipeline_layout;
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      vk_state.preview_pipeline);
+                      pipeline);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            vk_state.preview_pipeline_layout, 0, 1,
-                            &texture.preview_source_set, 0, nullptr);
+                            pipeline_layout, 0, 1, &texture.preview_source_set,
+                            0, nullptr);
+    if (use_ocio_pipeline) {
+        vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pipeline_layout, 1, 1,
+                                &vk_state.ocio.descriptor_set, 0, nullptr);
+    }
 
     PreviewPushConstants push = {};
     push.exposure             = controls.exposure;
@@ -315,7 +338,7 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
     push.channel              = controls.channel;
     push.use_ocio             = controls.use_ocio;
     push.orientation          = controls.orientation;
-    vkCmdPushConstants(command_buffer, vk_state.preview_pipeline_layout,
+    vkCmdPushConstants(command_buffer, pipeline_layout,
                        VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push), &push);
     vkCmdDraw(command_buffer, 3, 1, 0, 0);
     vkCmdEndRenderPass(command_buffer);

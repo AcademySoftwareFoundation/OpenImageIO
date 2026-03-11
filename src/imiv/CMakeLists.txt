@@ -72,10 +72,13 @@ set (_imiv_core_sources
      imiv_image_view.cpp
      imiv_menu.cpp
      imiv_navigation.cpp
+     imiv_ocio.cpp
      imiv_overlays.cpp
+     imiv_shader_compile.cpp
      imiv_ui.cpp
      imiv_viewer.cpp
      imiv_vulkan_setup.cpp
+     imiv_vulkan_ocio.cpp
      imiv_vulkan_preview.cpp
      imiv_vulkan_runtime.cpp
      imiv_vulkan_texture.cpp
@@ -244,7 +247,10 @@ else ()
             "(disabled by OIIO_IMIV_ENABLE_IMGUI_TEST_ENGINE=OFF)")
 endif ()
 
-set (_imiv_link_libs OpenImageIO)
+set (_imiv_link_libs
+     OpenImageIO
+     $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
+     $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>)
 if (NOT APPLE)
     find_package (glfw3 CONFIG QUIET)
     if (TARGET glfw)
@@ -288,6 +294,39 @@ if (NOT APPLE)
             return ()
         endif ()
     endif ()
+
+    set (_imiv_has_runtime_glslang OFF)
+    if (OIIO_IMIV_VULKAN_SDK)
+        set (OIIO_IMIV_GLSLANG_INCLUDE_DIR
+             "${OIIO_IMIV_VULKAN_SDK}/include")
+        set (OIIO_IMIV_GLSLANG_LIBRARY
+             "${OIIO_IMIV_VULKAN_SDK}/lib/libglslang.so")
+        set (OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY
+             "${OIIO_IMIV_VULKAN_SDK}/lib/libglslang-default-resource-limits.so")
+        if (EXISTS "${OIIO_IMIV_GLSLANG_INCLUDE_DIR}/glslang/Include/glslang_c_interface.h"
+            AND EXISTS "${OIIO_IMIV_GLSLANG_LIBRARY}"
+            AND EXISTS "${OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY}")
+            add_library (imiv_glslang_external SHARED IMPORTED)
+            set_target_properties (
+                imiv_glslang_external PROPERTIES
+                    IMPORTED_LOCATION "${OIIO_IMIV_GLSLANG_LIBRARY}"
+                    INTERFACE_INCLUDE_DIRECTORIES
+                        "${OIIO_IMIV_GLSLANG_INCLUDE_DIR}")
+            add_library (imiv_glslang_resource_limits_external SHARED IMPORTED)
+            set_target_properties (
+                imiv_glslang_resource_limits_external PROPERTIES
+                    IMPORTED_LOCATION
+                        "${OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY}"
+                    INTERFACE_INCLUDE_DIRECTORIES
+                        "${OIIO_IMIV_GLSLANG_INCLUDE_DIR}")
+            list (APPEND _imiv_link_libs
+                  imiv_glslang_external
+                  imiv_glslang_resource_limits_external)
+            set (_imiv_has_runtime_glslang ON)
+        endif ()
+    endif ()
+else ()
+    set (_imiv_has_runtime_glslang OFF)
 endif ()
 
 if (MSVC)
@@ -330,6 +369,11 @@ if (TARGET imiv)
     else ()
         target_compile_definitions (imiv PRIVATE IMIV_BACKEND_VULKAN_GLFW=1
                                                   $<$<CONFIG:Debug>:IMIV_VULKAN_VALIDATION=1>)
+    endif ()
+    if (_imiv_has_runtime_glslang)
+        target_compile_definitions (imiv PRIVATE IMIV_HAS_GLSLANG_RUNTIME=1)
+    else ()
+        target_compile_definitions (imiv PRIVATE IMIV_HAS_GLSLANG_RUNTIME=0)
     endif ()
     if (_imiv_test_engine_sources)
         target_compile_definitions (
