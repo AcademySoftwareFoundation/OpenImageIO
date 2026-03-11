@@ -63,10 +63,8 @@ my_error_exit(j_common_ptr cinfo)
     /* cinfo->err really points to a my_error_mgr struct, so coerce pointer */
     JpgInput::my_error_ptr myerr = (JpgInput::my_error_ptr)cinfo->err;
 
-    /* Always display the message. */
-    /* We could postpone this until after returning, if we chose. */
-    //  (*cinfo->err->output_message) (cinfo);
-    myerr->jpginput->jpegerror(myerr, true);
+    if (myerr && myerr->jpginput)
+        myerr->jpginput->jpegerror(myerr, true);
 
     /* Return control to the setjmp point */
     longjmp(myerr->setjmp_buffer, 1);
@@ -79,10 +77,8 @@ my_output_message(j_common_ptr cinfo)
 {
     JpgInput::my_error_ptr myerr = (JpgInput::my_error_ptr)cinfo->err;
 
-    // Create the message
-    char buffer[JMSG_LENGTH_MAX];
-    (*cinfo->err->format_message)(cinfo, buffer);
-    myerr->jpginput->jpegerror(myerr, false);
+    if (myerr && myerr->jpginput)
+        myerr->jpginput->jpegerror(myerr, false);
 
     // This function is called only for non-fatal problems, so we don't
     // need to do the longjmp.
@@ -122,7 +118,7 @@ void
 JpgInput::jpegerror(my_error_ptr /*myerr*/, bool fatal)
 {
     // Send the error message to the ImageInput
-    char errbuf[JMSG_LENGTH_MAX];
+    char errbuf[JMSG_LENGTH_MAX] = "";
     (*m_cinfo.err->format_message)((j_common_ptr)&m_cinfo, errbuf);
     errorfmt("JPEG error: {} (\"{}\")", errbuf, filename());
 
@@ -279,15 +275,19 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
             // to the start of the actual Exif data TIFF directory
             decode_exif(string_view((char*)m->data + 6, m->data_length - 6),
                         m_spec);
-        } else if (m->marker == (JPEG_APP0 + 1)
+        } else if (m->marker == (JPEG_APP0 + 1) && m->data_length >= 28
                    && !strcmp((const char*)m->data,
                               "http://ns.adobe.com/xap/1.0/")) {  //NOSONAR
             std::string xml((const char*)m->data, m->data_length);
             decode_xmp(xml, m_spec);
-        } else if (m->marker == (JPEG_APP0 + 13)
-                   && !strcmp((const char*)m->data, "Photoshop 3.0"))
-            jpeg_decode_iptc((unsigned char*)m->data);
-        else if (m->marker == JPEG_COM) {
+        } else if (m->marker == (JPEG_APP0 + 13) && m->data_length >= 13
+                   && !strncmp((const char*)m->data, "Photoshop 3.0", 13)) {
+            if (!jpeg_decode_iptc(
+                    string_view((const char*)m->data, m->data_length))) {
+                errorfmt("Corrupted IPTC data");
+                return false;
+            }
+        } else if (m->marker == JPEG_COM) {
             std::string data((const char*)m->data, m->data_length);
             // Additional string metadata can be stored in JPEG files as
             // comment markers in the form "key:value" or "ident:key:value".
@@ -717,34 +717,50 @@ JpgInput::close()
 
 
 
-void
-JpgInput::jpeg_decode_iptc(const unsigned char* buf)
+bool
+JpgInput::jpeg_decode_iptc(string_view buf)
 {
     // APP13 blob doesn't have to be IPTC info.  Look for the IPTC marker,
     // which is the string "Photoshop 3.0" followed by a null character.
-    if (strcmp((const char*)buf, "Photoshop 3.0"))
-        return;
-    buf += strlen("Photoshop 3.0") + 1;
+    if (!Strutil::starts_with(buf, "Photoshop 3.0"))
+        return false;
+    buf.remove_prefix(13);
+    if (buf.size() < 1 || buf[0] != '\0')
+        return false;
+    buf.remove_prefix(1);
 
     // Next are the 4 bytes "8BIM"
-    if (strncmp((const char*)buf, "8BIM", 4))
-        return;
-    buf += 4;
+    if (!Strutil::starts_with(buf, "8BIM"))
+        return false;
+    buf.remove_prefix(4);
 
     // Next two bytes are the segment type, in big endian.
     // We expect 1028 to indicate IPTC data block.
-    if (((buf[0] << 8) + buf[1]) != 1028)
-        return;
-    buf += 2;
+    if (buf.size() < 2
+        || ((static_cast<unsigned char>(buf[0]) << 8)
+            + static_cast<unsigned char>(buf[1]))
+               != 1028)
+        return false;
+    buf.remove_prefix(2);
 
     // Next are 4 bytes of 0 padding, just skip it.
-    buf += 4;
+    if (buf.size() < 4)
+        return false;
+    buf.remove_prefix(4);
 
     // Next is 2 byte (big endian) giving the size of the segment
-    int segmentsize = (buf[0] << 8) + buf[1];
-    buf += 2;
+    if (buf.size() < 2)
+        return false;
+    size_t segmentsize = (static_cast<unsigned char>(buf[0]) << 8)
+                         + static_cast<unsigned char>(buf[1]);
+    buf.remove_prefix(2);
 
-    decode_iptc_iim(buf, segmentsize, m_spec);
+    // Truncate to smaller of segment size and buffer size
+    if (segmentsize > buf.size())
+        return false;
+    buf = buf.substr(0, segmentsize);
+
+    return decode_iptc_iim(buf, m_spec);
 }
 
 OIIO_PLUGIN_NAMESPACE_END
