@@ -2,6 +2,7 @@ WARNING: --ch: Unknown channel name "Z", filling with 0 (actual channels: "R,G,B
 WARNING: --ch: Unknown channel name "R", filling with 0 (actual channels: "Z")
 WARNING: --ch: Unknown channel name "G", filling with 0 (actual channels: "Z")
 WARNING: --ch: Unknown channel name "B", filling with 0 (actual channels: "Z")
+chrbg.exr            :   64 x   64, 3 channel, half openexr
 Reading allhalf.exr
 allhalf.exr          :   38 x   38, 5 channel, half openexr
     SHA-1: 1C71682E8D8F6DCDC2A7A7B23842DFEEC51438F2
