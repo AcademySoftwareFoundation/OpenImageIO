@@ -746,10 +746,10 @@ void
 TextureSystemImpl::init()
 {
     m_Mw2c.makeIdentity();
-    m_gray_to_rgb         = false;
-    m_flip_t              = false;
-    m_max_tile_channels   = 6;
-    m_stochastic          = StochasticStrategy_None;
+    m_gray_to_rgb       = false;
+    m_flip_t            = false;
+    m_max_tile_channels = 6;
+    m_stochastic        = StochasticStrategy_None;
     hq_filter.reset(Filter1D::create("b-spline", 4));
     m_statslevel = 0;
 
