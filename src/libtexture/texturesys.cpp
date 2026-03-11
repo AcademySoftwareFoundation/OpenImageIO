@@ -750,7 +750,6 @@ TextureSystemImpl::init()
     m_flip_t              = false;
     m_max_tile_channels   = 6;
     m_stochastic          = StochasticStrategy_None;
-    m_legacy_texture_blur = false;
     hq_filter.reset(Filter1D::create("b-spline", 4));
     m_statslevel = 0;
 
