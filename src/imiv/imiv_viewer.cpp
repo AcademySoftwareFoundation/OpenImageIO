@@ -17,6 +17,7 @@
 #include <vector>
 
 #include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
@@ -541,10 +542,18 @@ build_longinfo_rows(LoadedImage& image, const ImageBuf& source,
 
 bool
 load_image_for_compute(const std::string& path, int requested_subimage,
-                       int requested_miplevel, LoadedImage& image,
-                       std::string& error_message)
+                       int requested_miplevel, bool rawcolor,
+                       LoadedImage& image, std::string& error_message)
 {
-    ImageBuf source(path);
+    ImageSpec input_config;
+    const ImageSpec* input_config_ptr = nullptr;
+    if (rawcolor) {
+        input_config.attribute("oiio:RawColor", 1);
+        input_config_ptr = &input_config;
+    }
+
+    std::shared_ptr<ImageCache> imagecache = ImageCache::create(true);
+    ImageBuf source(path, 0, 0, imagecache, input_config_ptr);
     if (!source.read(0, 0, true, TypeUnknown)) {
         error_message = source.geterror();
         if (error_message.empty())
@@ -558,7 +567,7 @@ load_image_for_compute(const std::string& path, int requested_subimage,
     const int resolved_subimage = std::clamp(requested_subimage, 0,
                                              nsubimages - 1);
     if (resolved_subimage != 0) {
-        source.reset(path, resolved_subimage, 0);
+        source.reset(path, resolved_subimage, 0, imagecache, input_config_ptr);
         if (!source.read(resolved_subimage, 0, true, TypeUnknown)) {
             error_message = source.geterror();
             if (error_message.empty())
@@ -573,7 +582,8 @@ load_image_for_compute(const std::string& path, int requested_subimage,
     const int resolved_miplevel = std::clamp(requested_miplevel, 0,
                                              nmiplevels - 1);
     if (resolved_miplevel != source.miplevel()) {
-        source.reset(path, resolved_subimage, resolved_miplevel);
+        source.reset(path, resolved_subimage, resolved_miplevel, imagecache,
+                     input_config_ptr);
         if (!source.read(resolved_subimage, resolved_miplevel, true,
                          TypeUnknown)) {
             error_message = source.geterror();

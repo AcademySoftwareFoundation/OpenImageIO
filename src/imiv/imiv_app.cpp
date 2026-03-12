@@ -45,6 +45,7 @@
 
 #include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
@@ -531,6 +532,12 @@ run(const AppConfig& config)
     ViewerState viewer;
     PlaceholderUiState ui_state;
     DeveloperUiState developer_ui;
+    viewer.rawcolor       = run_config.rawcolor;
+    viewer.no_autopremult = run_config.no_autopremult;
+    OIIO::attribute("imagebuf:use_imagecache", 1);
+    if (std::shared_ptr<ImageCache> imagecache = ImageCache::create(true))
+        imagecache->attribute("unassociatedalpha",
+                              run_config.no_autopremult ? 1 : 0);
     std::string prefs_error;
     if (!load_persistent_state(ui_state, viewer, prefs_error)) {
         print(stderr, "imiv: failed to load preferences: {}\n", prefs_error);

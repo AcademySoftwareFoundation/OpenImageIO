@@ -167,7 +167,7 @@ load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
     LoadedImage loaded;
     std::string error;
     if (!load_image_for_compute(path, requested_subimage, requested_miplevel,
-                                loaded, error)) {
+                                viewer.rawcolor, loaded, error)) {
         viewer.last_error = Strutil::fmt::format("open failed: {}", error);
         print(stderr, "imiv: {}\n", viewer.last_error);
         return false;
