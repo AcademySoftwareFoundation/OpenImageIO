@@ -24,14 +24,15 @@ if platform.system() == "Windows":
                 if os.path.exists(path) and path != ".":
                     os.add_dll_directory(path)
 
-from . import nanobind_experimental  # noqa: E402, F401
+from . import _nanobind_experimental as _ext  # noqa: E402
+from ._nanobind_experimental import *  # type: ignore # noqa: E402, F401, F403
 
 __doc__ = """
-OpenImageIO experimental Python package exposing nanobind migration shims.
+OpenImageIO experimental Python package exposing nanobind migration bindings.
 The production bindings are not installed in this configuration.
 """[1:-1]
 
-__version__ = getattr(nanobind_experimental, "__version__", "")
+__version__ = getattr(_ext, "__version__", "")
 
 
 def _call_program(name, args):
