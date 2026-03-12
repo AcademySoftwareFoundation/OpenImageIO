@@ -6,38 +6,23 @@
 
 from __future__ import annotations
 
-import importlib.util
+import importlib
 import pathlib
 import sys
 
 
-def load_module(build_root: pathlib.Path):
-    search_dirs = [
-        build_root / "lib/python/nanobind-experimental",
-        build_root,
-    ]
-    matches = []
-    for module_dir in search_dirs:
-        matches = sorted(module_dir.glob("_nanobind_experimental*"))
-        if matches:
-            break
-    if not matches:
-        raise RuntimeError(f"Could not find nanobind module in {search_dirs}")
+def load_package(build_root: pathlib.Path):
+    package_root = build_root / "lib/python/nanobind-experimental"
+    if not (package_root / "OpenImageIO" / "__init__.py").exists():
+        raise RuntimeError(f"Could not find OpenImageIO package in {package_root}")
 
-    module_path = matches[0]
-    spec = importlib.util.spec_from_file_location("_nanobind_experimental",
-                                                  module_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Could not load spec for {module_path}")
-
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    sys.path.insert(0, str(package_root))
+    return importlib.import_module("OpenImageIO")
 
 
 def main() -> int:
     build_root = pathlib.Path(sys.argv[1]).resolve()
-    nbexp = load_module(build_root)
+    nbexp = load_package(build_root)
 
     print("module:", nbexp.__name__)
     print("version:", nbexp.__version__)

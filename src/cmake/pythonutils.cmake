@@ -272,8 +272,8 @@ macro (setup_python_module_nanobind)
     # Keep experimental modules isolated in the build tree so they don't alter
     # how the existing top-level OpenImageIO module is imported during tests.
     set_target_properties (${target_name} PROPERTIES
-            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/nanobind-experimental
-            ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/nanobind-experimental
+            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/nanobind-experimental/OpenImageIO
+            ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/nanobind-experimental/OpenImageIO
             )
 
     install (TARGETS ${target_name}
