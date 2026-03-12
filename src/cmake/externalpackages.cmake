@@ -247,40 +247,7 @@ checked_find_package (fmt REQUIRED
                       VERSION_MIN 9.0
                       BUILD_LOCAL missing
                      )
-unset (FMT_INCLUDE_DIR)
-if (TARGET fmt::fmt-header-only)
-    get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only
-                        INTERFACE_INCLUDE_DIRECTORIES)
-endif ()
-if ((NOT FMT_INCLUDE_DIR OR FMT_INCLUDE_DIR STREQUAL "FMT_INCLUDE_DIR-NOTFOUND")
-        AND TARGET fmt::fmt)
-    get_target_property(FMT_INCLUDE_DIR fmt::fmt
-                        INTERFACE_INCLUDE_DIRECTORIES)
-endif ()
-if (FMT_INCLUDE_DIR AND ";" IN_LIST FMT_INCLUDE_DIR)
-    list (GET FMT_INCLUDE_DIR 0 FMT_INCLUDE_DIR)
-endif ()
-foreach (_fmt_include_var fmt_INCLUDE_DIRS fmt_INCLUDE_DIR FMT_INCLUDE_DIRS FMT_INCLUDE_DIR)
-    if (NOT FMT_INCLUDE_DIR OR FMT_INCLUDE_DIR STREQUAL "FMT_INCLUDE_DIR-NOTFOUND")
-        if (DEFINED ${_fmt_include_var} AND NOT "${${_fmt_include_var}}" STREQUAL "")
-            set (FMT_INCLUDE_DIR "${${_fmt_include_var}}")
-        endif ()
-    endif ()
-endforeach ()
-if (FMT_INCLUDE_DIR AND ";" IN_LIST FMT_INCLUDE_DIR)
-    list (GET FMT_INCLUDE_DIR 0 FMT_INCLUDE_DIR)
-endif ()
-if ((NOT FMT_INCLUDE_DIR OR FMT_INCLUDE_DIR STREQUAL "FMT_INCLUDE_DIR-NOTFOUND")
-        AND fmt_DIR)
-    get_filename_component (_fmt_prefix "${fmt_DIR}" DIRECTORY)
-    get_filename_component (_fmt_prefix "${_fmt_prefix}" DIRECTORY)
-    get_filename_component (_fmt_prefix "${_fmt_prefix}" DIRECTORY)
-    if (EXISTS "${_fmt_prefix}/include/fmt")
-        set (FMT_INCLUDE_DIR "${_fmt_prefix}/include")
-    endif ()
-endif ()
-unset (_fmt_include_var)
-unset (_fmt_prefix)
+get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
 
 
 ###########################################################################
