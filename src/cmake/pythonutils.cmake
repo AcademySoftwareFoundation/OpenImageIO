@@ -12,11 +12,17 @@ set (OIIO_PYTHON_BINDINGS_BACKEND "pybind11" CACHE STRING
      "Which Python binding backend(s) to build: pybind11, nanobind, or both")
 set_property (CACHE OIIO_PYTHON_BINDINGS_BACKEND PROPERTY STRINGS
               pybind11 nanobind both)
+
+# Normalize and validate the user-facing backend selector early so the rest
+# of the file can make simple boolean decisions.
 string (TOLOWER "${OIIO_PYTHON_BINDINGS_BACKEND}" OIIO_PYTHON_BINDINGS_BACKEND)
 if (NOT OIIO_PYTHON_BINDINGS_BACKEND MATCHES "^(pybind11|nanobind|both)$")
     message (FATAL_ERROR
              "OIIO_PYTHON_BINDINGS_BACKEND must be one of: pybind11, nanobind, both")
 endif ()
+
+# Derive internal switches used by the top-level CMakeLists and the Python
+# helper macros below.
 set (OIIO_BUILD_PYTHON_PYBIND11 OFF)
 set (OIIO_BUILD_PYTHON_NANOBIND OFF)
 if (OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "pybind11"
