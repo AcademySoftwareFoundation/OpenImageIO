@@ -25,6 +25,8 @@ struct ViewerState {
     LoadedImage image;
     std::string status_message;
     std::string last_error;
+    bool rawcolor               = false;
+    bool no_autopremult         = false;
     float zoom                  = 1.0f;
     bool fit_request            = true;
     ImVec2 scroll               = ImVec2(0.0f, 0.0f);
@@ -126,8 +128,8 @@ oriented_image_dimensions(const LoadedImage& image, int& out_width,
                           int& out_height);
 bool
 load_image_for_compute(const std::string& path, int requested_subimage,
-                       int requested_miplevel, LoadedImage& image,
-                       std::string& error_message);
+                       int requested_miplevel, bool rawcolor,
+                       LoadedImage& image, std::string& error_message);
 bool
 should_reset_preview_on_load(const ViewerState& viewer,
                              const std::string& path);
