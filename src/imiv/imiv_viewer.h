@@ -19,6 +19,8 @@ enum class ImageSortMode : uint8_t {
     ByFileDate  = 3
 };
 
+enum class OcioConfigSource : uint8_t { Global = 0, Local = 1, User = 2 };
+
 struct ViewerState {
     LoadedImage image;
     std::string status_message;
@@ -98,9 +100,11 @@ struct PlaceholderUiState {
     float gamma    = 1.0f;
     float offset   = 0.0f;
 
-    std::string ocio_display           = "default";
-    std::string ocio_view              = "default";
+    int ocio_config_source   = static_cast<int>(OcioConfigSource::Global);
+    std::string ocio_display = "default";
+    std::string ocio_view    = "default";
     std::string ocio_image_color_space = "auto";
+    std::string ocio_user_config_path;
 };
 
 void

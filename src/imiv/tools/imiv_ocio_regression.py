@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -71,6 +72,19 @@ def _default_iinfo(repo_root: Path) -> Path:
         if candidate.exists():
             return candidate
     return Path("iinfo")
+
+
+def _default_idiff(repo_root: Path) -> Path:
+    candidates = [
+        repo_root / "build_u" / "bin" / "idiff",
+        repo_root / "build" / "bin" / "idiff",
+        Path("/mnt/f/UBc/Release/bin/idiff"),
+        Path("/mnt/f/UBc/Debug/bin/idiff"),
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return Path("idiff")
 
 
 def _load_env_from_script(script_path: Path) -> dict[str, str]:
@@ -148,7 +162,8 @@ def _run_case(
 ) -> tuple[str, Path, Path]:
     screenshot_path = out_dir / f"{name}.png"
     log_path = out_dir / f"{name}.log"
-    cmd = [str(exe), "-F", *extra_args, str(image_path)]
+    exe_cmd = [str(exe), "-F", *extra_args, str(image_path)]
+    shell_cmd = "exec " + " ".join(shlex.quote(arg) for arg in exe_cmd)
 
     run_env = dict(env)
     run_env.update(
@@ -165,7 +180,7 @@ def _run_case(
 
     with log_path.open("w", encoding="utf-8") as log_handle:
         proc = subprocess.run(
-            cmd,
+            ["bash", "-lc", shell_cmd],
             cwd=str(cwd),
             env=run_env,
             check=False,
@@ -191,6 +206,17 @@ def _fail(message: str) -> int:
     return 1
 
 
+def _images_identical(idiff: Path, lhs: Path, rhs: Path) -> bool:
+    proc = subprocess.run(
+        [str(idiff), "-q", "-a", str(lhs), str(rhs)],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    return proc.returncode == 0
+
+
 def main() -> int:
     repo_root = Path(__file__).resolve().parents[3]
     default_out = repo_root / "build_u" / "imiv_captures" / "ocio_auto_regression"
@@ -202,6 +228,7 @@ def main() -> int:
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument("--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool executable")
     ap.add_argument("--iinfo", default=str(_default_iinfo(repo_root)), help="iinfo executable")
+    ap.add_argument("--idiff", default=str(_default_idiff(repo_root)), help="idiff executable")
     ap.add_argument("--env-script", default=str(default_env_script), help="Optional shell env script")
     ap.add_argument("--out-dir", default=str(default_out), help="Artifact directory")
     ap.add_argument("--image", default=str(default_image), help="Generated input image path")
@@ -213,12 +240,17 @@ def main() -> int:
 
     oiiotool = Path(args.oiiotool)
     iinfo = Path(args.iinfo)
+    idiff = Path(args.idiff)
     run_cwd = Path(args.cwd).resolve() if args.cwd else exe.parent.resolve()
     out_dir = Path(args.out_dir).resolve()
     image_path = Path(args.image).resolve()
+    shutil.rmtree(out_dir, ignore_errors=True)
     out_dir.mkdir(parents=True, exist_ok=True)
+    config_home = out_dir / "config_home"
+    config_home.mkdir(parents=True, exist_ok=True)
 
     env = _load_env_from_script(Path(args.env_script).resolve())
+    env["IMIV_CONFIG_HOME"] = str(config_home)
 
     try:
         _generate_probe_image(oiiotool, image_path)
@@ -254,12 +286,12 @@ def main() -> int:
     except (OSError, subprocess.CalledProcessError, RuntimeError, subprocess.TimeoutExpired) as exc:
         return _fail(str(exc))
 
-    if auto_hash != explicit_hash:
+    if not _images_identical(idiff, auto_png, explicit_png):
         return _fail(
             "auto colorspace does not match explicit metadata colorspace: "
             f"auto={auto_hash} explicit={explicit_hash}"
         )
-    if auto_hash == scene_linear_hash:
+    if _images_identical(idiff, auto_png, scene_linear_png):
         return _fail(
             "auto colorspace unexpectedly matches forced scene_linear output: "
             f"auto={auto_hash}"

@@ -22,6 +22,8 @@ namespace {
         { "Image Files",
           "avif,bmp,dpx,exr,gif,hdr,heic,jpg,jpeg,jxl,png,tif,tiff,tx,webp" }
     };
+    const nfdu8filteritem_t k_ocio_filter[]
+        = { { "OCIO Config Files", "ocio,ocioz" } };
 
     struct NfdThreadGuard {
         bool initialized = false;
@@ -110,6 +112,33 @@ open_image_files(const std::string& default_path)
     return map_error("nativefiledialog open dialog failed");
 }
 
+DialogReply
+open_ocio_config_file(const std::string& default_path)
+{
+    NfdThreadGuard guard;
+    if (!guard.initialized)
+        return map_error("nativefiledialog initialization failed");
+
+    nfdopendialogu8args_t args = {};
+    args.filterList            = k_ocio_filter;
+    args.filterCount           = 1;
+    args.defaultPath = default_path.empty() ? nullptr : default_path.c_str();
+
+    nfdu8char_t* selected_path = nullptr;
+    nfdresult_t result         = NFD_OpenDialogU8_With(&selected_path, &args);
+    if (result == NFD_OKAY) {
+        DialogReply reply;
+        reply.result = Result::Okay;
+        if (selected_path != nullptr && selected_path[0] != '\0')
+            reply.path = selected_path;
+        NFD_FreePathU8(selected_path);
+        return reply;
+    }
+    if (result == NFD_CANCEL)
+        return DialogReply { Result::Cancel, std::string(), {}, std::string() };
+    return map_error("nativefiledialog OCIO config dialog failed");
+}
+
 
 
 DialogReply
@@ -163,6 +192,16 @@ open_image_file(const std::string& default_path)
 
 DialogReply
 open_image_files(const std::string& default_path)
+{
+    (void)default_path;
+    return DialogReply { Result::Unsupported,
+                         std::string(),
+                         {},
+                         "nativefiledialog integration is not configured" };
+}
+
+DialogReply
+open_ocio_config_file(const std::string& default_path)
 {
     (void)default_path;
     return DialogReply { Result::Unsupported,

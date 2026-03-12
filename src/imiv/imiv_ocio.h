@@ -52,6 +52,15 @@ struct OcioTextureBlueprint {
     std::vector<float> values;
 };
 
+struct OcioConfigSelection {
+    OcioConfigSource requested_source = OcioConfigSource::Global;
+    OcioConfigSource resolved_source  = OcioConfigSource::Global;
+    bool uses_raw_fallback            = false;
+    std::string env_value;
+    std::string resolved_path;
+    std::string selection_key;
+};
+
 struct OcioShaderBlueprint {
     bool enabled                   = false;
     bool valid                     = false;
@@ -64,6 +73,7 @@ struct OcioShaderBlueprint {
     std::string input_color_space;
     std::string display;
     std::string view;
+    std::string config_selection_key;
     std::string processor_cache_id;
     std::string shader_cache_id;
     std::string function_name   = "imivOcioDisplay";
@@ -86,6 +96,11 @@ struct OcioShaderRuntime {
 
 void
 reset_ocio_shader_blueprint(OcioShaderBlueprint& blueprint);
+const char*
+ocio_config_source_name(OcioConfigSource source);
+void
+resolve_ocio_config_selection(const PlaceholderUiState& ui_state,
+                              OcioConfigSelection& selection);
 
 void
 destroy_ocio_shader_runtime(OcioShaderRuntime*& runtime);
