@@ -8,9 +8,12 @@
 #include "imiv_ui.h"
 
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <filesystem>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
@@ -23,6 +26,7 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 
 using namespace OIIO;
 
@@ -40,6 +44,47 @@ namespace {
         viewer.probe_valid = false;
         viewer.probe_channels.clear();
         reset_area_probe_overlay(viewer);
+    }
+
+    std::filesystem::path executable_directory_path()
+    {
+        const std::string program_path = Sysutil::this_program_path();
+        if (program_path.empty())
+            return std::filesystem::path();
+        return std::filesystem::path(program_path).parent_path();
+    }
+
+    std::filesystem::path default_screenshot_output_path()
+    {
+        std::filesystem::path base_dir = executable_directory_path();
+        if (base_dir.empty())
+            base_dir = std::filesystem::current_path();
+        base_dir /= "screenshots";
+
+        std::tm local_tm      = {};
+        const std::time_t now = std::time(nullptr);
+#    if defined(_WIN32)
+        localtime_s(&local_tm, &now);
+#    else
+        localtime_r(&now, &local_tm);
+#    endif
+
+        char timestamp[64] = {};
+        if (std::strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S",
+                          &local_tm)
+            == 0) {
+            std::snprintf(timestamp, sizeof(timestamp), "%lld",
+                          static_cast<long long>(now));
+        }
+
+        std::filesystem::path path
+            = base_dir / Strutil::fmt::format("imiv_{}.png", timestamp);
+        for (int suffix = 1; std::filesystem::exists(path); ++suffix) {
+            path = base_dir
+                   / Strutil::fmt::format("imiv_{}_{:02d}.png", timestamp,
+                                          suffix);
+        }
+        return path;
     }
 
 }  // namespace
@@ -618,6 +663,65 @@ change_miplevel_action(VulkanState& vk_state, ViewerState& viewer,
         return;
     load_viewer_image(vk_state, viewer, &ui_state, viewer.image.path,
                       viewer.image.subimage, target_mip);
+}
+
+bool
+capture_main_viewport_screenshot_action(VulkanState& vk_state,
+                                        ViewerState& viewer,
+                                        std::string& out_path)
+{
+    out_path.clear();
+    viewer.last_error.clear();
+
+    const int width  = std::max(0, vk_state.window_data.Width);
+    const int height = std::max(0, vk_state.window_data.Height);
+    if (width <= 0 || height <= 0) {
+        viewer.last_error = "screenshot failed: main viewport size is invalid";
+        return false;
+    }
+
+    const std::filesystem::path output_path = default_screenshot_output_path();
+    std::error_code ec;
+    std::filesystem::create_directories(output_path.parent_path(), ec);
+    if (ec) {
+        viewer.last_error = Strutil::fmt::format(
+            "screenshot failed: could not create output directory '{}': {}",
+            output_path.parent_path().string(), ec.message());
+        return false;
+    }
+
+    std::vector<unsigned int> pixels(static_cast<size_t>(width)
+                                     * static_cast<size_t>(height));
+    if (!imiv_vulkan_screen_capture(ImGui::GetMainViewport()->ID, 0, 0, width,
+                                    height, pixels.data(), &vk_state)) {
+        viewer.last_error = "screenshot failed: framebuffer readback failed";
+        return false;
+    }
+
+    ImageSpec spec(width, height, 4, TypeDesc::UINT8);
+    ImageBuf output(spec);
+    const unsigned char* bytes = reinterpret_cast<const unsigned char*>(
+        pixels.data());
+    if (!output.set_pixels(ROI::All(), TypeDesc::UINT8, bytes)) {
+        viewer.last_error = output.geterror().empty()
+                                ? "screenshot failed: could not populate image"
+                                : Strutil::fmt::format("screenshot failed: {}",
+                                                       output.geterror());
+        return false;
+    }
+    if (!output.write(output_path.string())) {
+        viewer.last_error = output.geterror().empty()
+                                ? "screenshot failed: image write failed"
+                                : Strutil::fmt::format("screenshot failed: {}",
+                                                       output.geterror());
+        return false;
+    }
+
+    out_path              = output_path.string();
+    viewer.status_message = Strutil::fmt::format("Saved screenshot {}",
+                                                 output_path.string());
+    viewer.last_error.clear();
+    return true;
 }
 
 #endif

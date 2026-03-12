@@ -14,6 +14,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -75,6 +76,112 @@ namespace {
         return Strutil::iequals(trimmed, "true")
                || Strutil::iequals(trimmed, "yes")
                || Strutil::iequals(trimmed, "on");
+    }
+
+    int env_int_value(const char* name, int fallback)
+    {
+        std::string value;
+        if (!read_env_value(name, value))
+            return fallback;
+        const std::string trimmed = std::string(Strutil::strip(value));
+        if (trimmed.empty())
+            return fallback;
+        char* end   = nullptr;
+        long parsed = std::strtol(trimmed.c_str(), &end, 10);
+        if (end == trimmed.c_str() || *end != '\0')
+            return fallback;
+        if (parsed < static_cast<long>(std::numeric_limits<int>::min())
+            || parsed > static_cast<long>(std::numeric_limits<int>::max())) {
+            return fallback;
+        }
+        return static_cast<int>(parsed);
+    }
+
+    void apply_test_engine_ocio_overrides(PlaceholderUiState& ui_state)
+    {
+        const int apply_frame
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_OCIO_APPLY_FRAME", 0);
+        if (ImGui::GetFrameCount() < apply_frame)
+            return;
+
+        std::string value;
+        if (read_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_USE", value)) {
+            const string_view trimmed = Strutil::strip(value);
+            if (trimmed == "1" || Strutil::iequals(trimmed, "true")
+                || Strutil::iequals(trimmed, "yes")
+                || Strutil::iequals(trimmed, "on")) {
+                ui_state.use_ocio = true;
+            } else if (trimmed == "0" || Strutil::iequals(trimmed, "false")
+                       || Strutil::iequals(trimmed, "no")
+                       || Strutil::iequals(trimmed, "off")) {
+                ui_state.use_ocio = false;
+            }
+        }
+
+        if (read_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_DISPLAY", value)) {
+            ui_state.use_ocio     = true;
+            ui_state.ocio_display = std::string(Strutil::strip(value));
+        }
+        if (read_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW", value)) {
+            ui_state.use_ocio  = true;
+            ui_state.ocio_view = std::string(Strutil::strip(value));
+        }
+        if (read_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE",
+                           value)) {
+            ui_state.use_ocio               = true;
+            ui_state.ocio_image_color_space = std::string(
+                Strutil::strip(value));
+        }
+    }
+
+    void begin_developer_screenshot_request(DeveloperUiState& developer_ui,
+                                            ViewerState& viewer)
+    {
+#if !defined(NDEBUG)
+        if (!developer_ui.request_screenshot || developer_ui.screenshot_busy)
+            return;
+        developer_ui.request_screenshot  = false;
+        developer_ui.screenshot_busy     = true;
+        developer_ui.screenshot_due_time = ImGui::GetTime() + 3.0;
+        viewer.last_error.clear();
+        viewer.status_message
+            = "Screenshot queued; capturing main window in 3 seconds";
+        print("imiv: developer screenshot queued (3 second delay)\n");
+#else
+        (void)developer_ui;
+        (void)viewer;
+#endif
+    }
+
+    void draw_developer_windows(DeveloperUiState& developer_ui)
+    {
+#if !defined(NDEBUG)
+        if (developer_ui.show_imgui_demo_window)
+            ImGui::ShowDemoWindow(&developer_ui.show_imgui_demo_window);
+        if (developer_ui.show_imgui_style_editor) {
+            if (ImGui::Begin("Dear ImGui Style Editor",
+                             &developer_ui.show_imgui_style_editor)) {
+                ImGui::ShowStyleEditor();
+            }
+            ImGui::End();
+        }
+        if (developer_ui.show_imgui_metrics_window) {
+            ImGui::ShowMetricsWindow(&developer_ui.show_imgui_metrics_window);
+        }
+        if (developer_ui.show_imgui_debug_log_window) {
+            ImGui::ShowDebugLogWindow(
+                &developer_ui.show_imgui_debug_log_window);
+        }
+        if (developer_ui.show_imgui_id_stack_window) {
+            ImGui::ShowIDStackToolWindow(
+                &developer_ui.show_imgui_id_stack_window);
+        }
+        if (developer_ui.show_imgui_about_window) {
+            ImGui::ShowAboutWindow(&developer_ui.show_imgui_about_window);
+        }
+#else
+        (void)developer_ui;
+#endif
     }
 
 }  // namespace
@@ -338,7 +445,8 @@ force_center_glfw_window(GLFWwindow* window)
 
 void
 draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
-               const AppFonts& fonts, bool& request_exit
+               DeveloperUiState& developer_ui, const AppFonts& fonts,
+               bool& request_exit
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                ,
                bool* show_test_engine_windows
@@ -384,17 +492,21 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
     }
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_DRAG_OVERLAY"))
         viewer.drag_overlay_active = true;
+    apply_test_engine_ocio_overrides(ui_state);
 
-    collect_viewer_shortcuts(viewer, ui_state, actions, request_exit);
+    collect_viewer_shortcuts(viewer, ui_state, developer_ui, actions,
+                             request_exit);
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     const bool show_test_menu = show_test_engine_windows != nullptr
                                 && env_flag_is_truthy(
                                     "IMIV_IMGUI_TEST_ENGINE_SHOW_MENU");
-    draw_viewer_main_menu(viewer, ui_state, actions, request_exit,
+    draw_viewer_main_menu(viewer, ui_state, developer_ui, actions, request_exit,
                           show_test_menu, show_test_engine_windows);
 #else
-    draw_viewer_main_menu(viewer, ui_state, actions, request_exit);
+    draw_viewer_main_menu(viewer, ui_state, developer_ui, actions,
+                          request_exit);
 #endif
+    begin_developer_screenshot_request(developer_ui, viewer);
     execute_viewer_frame_actions(viewer, ui_state, actions
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
                                  ,
@@ -467,8 +579,40 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
         ImGui::EndPopup();
     }
 
+    draw_developer_windows(developer_ui);
     draw_drag_drop_overlay(viewer);
 }
+
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+void
+process_developer_post_render_actions(DeveloperUiState& developer_ui,
+                                      ViewerState& viewer,
+                                      VulkanState& vk_state)
+{
+#    if !defined(NDEBUG)
+    if (!developer_ui.screenshot_busy)
+        return;
+    if (ImGui::GetTime() < developer_ui.screenshot_due_time)
+        return;
+
+    std::string out_path;
+    if (!capture_main_viewport_screenshot_action(vk_state, viewer, out_path)) {
+        if (viewer.last_error.empty())
+            viewer.last_error = "screenshot capture failed";
+        print(stderr, "imiv: developer screenshot failed: {}\n",
+              viewer.last_error);
+    } else {
+        print("imiv: developer screenshot saved {}\n", out_path);
+    }
+    developer_ui.screenshot_busy     = false;
+    developer_ui.screenshot_due_time = -1.0;
+#    else
+    (void)developer_ui;
+    (void)viewer;
+    (void)vk_state;
+#    endif
+}
+#endif
 
 const char*
 image_window_title()

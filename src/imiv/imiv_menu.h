@@ -16,6 +16,8 @@ struct GLFWwindow;
 
 namespace Imiv {
 
+struct DeveloperUiState;
+
 struct ViewerFrameActions {
     bool open_requested                = false;
     bool save_as_requested             = false;
@@ -45,9 +47,11 @@ struct ViewerFrameActions {
 
 void
 collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
+                         DeveloperUiState& developer_ui,
                          ViewerFrameActions& actions, bool& request_exit);
 void
 draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
+                      DeveloperUiState& developer_ui,
                       ViewerFrameActions& actions, bool& request_exit
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                       ,

@@ -15,6 +15,18 @@ struct GLFWwindow;
 
 namespace Imiv {
 
+struct DeveloperUiState {
+    bool show_imgui_demo_window      = false;
+    bool show_imgui_style_editor     = false;
+    bool show_imgui_metrics_window   = false;
+    bool show_imgui_debug_log_window = false;
+    bool show_imgui_id_stack_window  = false;
+    bool show_imgui_about_window     = false;
+    bool request_screenshot          = false;
+    bool screenshot_busy             = false;
+    double screenshot_due_time       = -1.0;
+};
+
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
 struct ViewerStateJsonWriteContext {
     const ViewerState* viewer          = nullptr;
@@ -41,7 +53,8 @@ set_glfw_error_callback();
 
 void
 draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
-               const AppFonts& fonts, bool& request_exit
+               DeveloperUiState& developer_ui, const AppFonts& fonts,
+               bool& request_exit
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                ,
                bool* show_test_engine_windows
@@ -51,5 +64,12 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
                GLFWwindow* window, VulkanState& vk_state
 #endif
 );
+
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+void
+process_developer_post_render_actions(DeveloperUiState& developer_ui,
+                                      ViewerState& viewer,
+                                      VulkanState& vk_state);
+#endif
 
 }  // namespace Imiv

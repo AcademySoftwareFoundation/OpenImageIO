@@ -122,6 +122,13 @@ namespace {
             if (c >= '0' && c <= '9')
                 return static_cast<ImGuiKey>(ImGuiKey_0 + (c - '0'));
         }
+        if (token.size() >= 2 && token[0] == 'f') {
+            const char* digits = token.c_str() + 1;
+            char* end          = nullptr;
+            const long index   = std::strtol(digits, &end, 10);
+            if (end != digits && *end == '\0' && index >= 1 && index <= 12)
+                return static_cast<ImGuiKey>(ImGuiKey_F1 + (index - 1));
+        }
 
         if (token == "comma")
             return ImGuiKey_Comma;
@@ -345,7 +352,9 @@ namespace {
 
     bool write_layout_dump_json(ImGuiTestContext* ctx,
                                 const std::filesystem::path& out_path,
-                                bool include_items, int depth)
+                                bool include_items, int depth,
+                                const std::vector<ImGuiWindow*>* extra_windows
+                                = nullptr)
     {
         if (depth <= 0)
             depth = 1;
@@ -385,8 +394,17 @@ namespace {
                   ? g_test_engine_hooks.image_window_title
                   : "Image";
         const char* window_names[] = {
-            "##MainMenuBar",  image_window_title, "iv Info",
-            "iv Preferences", "iv Preview",
+            "##MainMenuBar",
+            image_window_title,
+            "iv Info",
+            "iv Preferences",
+            "iv Preview",
+            "Dear ImGui Demo",
+            "Dear ImGui Style Editor",
+            "Dear ImGui Metrics/Debugger",
+            "Dear ImGui Debug Log",
+            "Dear ImGui ID Stack Tool",
+            "About Dear ImGui",
         };
         windows.reserve(IM_ARRAYSIZE(window_names));
         for (const char* window_name : window_names) {
@@ -403,6 +421,23 @@ namespace {
             }
             if (!duplicate)
                 windows.push_back({ win });
+        }
+        if (extra_windows != nullptr) {
+            for (ImGuiWindow* extra_window : *extra_windows) {
+                if (extra_window == nullptr)
+                    continue;
+                bool duplicate = false;
+                for (const WindowDumpEntry& existing : windows) {
+                    if (existing.info.Window == extra_window) {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (duplicate)
+                    continue;
+                windows.push_back({ ctx->ItemInfo(extra_window->ID,
+                                                  ImGuiTestOpFlags_NoError) });
+            }
         }
         if (windows.empty()) {
             std::fclose(f);
@@ -706,6 +741,61 @@ namespace {
         }
     }
 
+    void imiv_test_developer_menu_metrics(ImGuiTestContext* ctx)
+    {
+#    if defined(NDEBUG)
+        ctx->LogInfo(
+            "developer menu regression skipped: not available in release build");
+        return;
+#    else
+        ctx->Yield(3);
+        const ImGuiTestItemInfo developer_menu
+            = ctx->ItemInfo("##MainMenuBar##MenuBar/Developer",
+                            ImGuiTestOpFlags_NoError);
+        if (developer_menu.ID == 0 || developer_menu.Window == nullptr) {
+            ctx->LogError(
+                "developer menu regression: Developer menu item not found");
+            mark_test_error(ctx);
+            return;
+        }
+
+        ctx->LogInfo("developer menu regression: opening Developer menu");
+        ctx->ItemClick("##MainMenuBar##MenuBar/Developer");
+        ctx->Yield(1);
+        ctx->LogInfo("developer menu regression: clicking ImGui Demo");
+        ctx->ItemClick("//$FOCUSED/ImGui Demo");
+        ctx->Yield(2);
+
+        const ImGuiTestItemInfo demo_window
+            = ctx->WindowInfo("Dear ImGui Demo", ImGuiTestOpFlags_NoError);
+        if (demo_window.ID == 0 || demo_window.Window == nullptr) {
+            ctx->LogError("developer menu regression: demo window did not "
+                          "open");
+            mark_test_error(ctx);
+            return;
+        }
+
+        std::string out_value;
+        if (!read_env_value("IMIV_IMGUI_TEST_ENGINE_DEVELOPER_MENU_LAYOUT_OUT",
+                            out_value)
+            || out_value.empty()) {
+            out_value = "developer_menu_metrics_layout.json";
+        }
+
+        int depth = env_int_value(
+            "IMIV_IMGUI_TEST_ENGINE_DEVELOPER_MENU_LAYOUT_DEPTH", 8);
+        if (depth <= 0)
+            depth = 1;
+        const bool include_items = env_flag_is_truthy(
+            "IMIV_IMGUI_TEST_ENGINE_DEVELOPER_MENU_LAYOUT_ITEMS");
+        std::vector<ImGuiWindow*> extra_windows = { demo_window.Window };
+        if (!write_layout_dump_json(ctx, std::filesystem::path(out_value),
+                                    include_items, depth, &extra_windows)) {
+            return;
+        }
+#    endif
+    }
+
     ImGuiTest* register_imiv_smoke_tests(ImGuiTestEngine* engine)
     {
         ImGuiTest* t = IM_REGISTER_TEST(engine, "imiv", "smoke_screenshot");
@@ -724,6 +814,14 @@ namespace {
     {
         ImGuiTest* t = IM_REGISTER_TEST(engine, "imiv", "dump_viewer_state");
         t->TestFunc  = imiv_test_dump_viewer_state;
+        return t;
+    }
+
+    ImGuiTest* register_imiv_developer_menu_tests(ImGuiTestEngine* engine)
+    {
+        ImGuiTest* t = IM_REGISTER_TEST(engine, "imiv",
+                                        "developer_menu_metrics_window");
+        t->TestFunc  = imiv_test_developer_menu_metrics;
         return t;
     }
 #endif
@@ -752,6 +850,8 @@ gather_test_engine_config()
           && !state_out.empty();
     cfg.state_dump = env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_STATE_DUMP")
                      || has_state_out;
+    cfg.developer_menu_metrics = env_flag_is_truthy(
+        "IMIV_IMGUI_TEST_ENGINE_DEVELOPER_MENU_METRICS");
     cfg.state_dump_out = has_state_out ? state_out : "viewer_state.json";
 
     std::string junit_out;
@@ -764,12 +864,13 @@ gather_test_engine_config()
 
     cfg.want_test_engine = env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE")
                            || cfg.auto_screenshot || cfg.layout_dump
-                           || cfg.state_dump || cfg.junit_xml;
+                           || cfg.state_dump || cfg.developer_menu_metrics
+                           || cfg.junit_xml;
 #if defined(IMGUI_ENABLE_TEST_ENGINE) && !defined(NDEBUG)
     cfg.want_test_engine = true;
 #endif
     cfg.automation_mode = cfg.auto_screenshot || cfg.layout_dump
-                          || cfg.state_dump;
+                          || cfg.state_dump || cfg.developer_menu_metrics;
     cfg.exit_on_finish = env_flag_is_truthy(
                              "IMIV_IMGUI_TEST_ENGINE_EXIT_ON_FINISH")
                          || cfg.automation_mode;
@@ -835,6 +936,11 @@ test_engine_start(TestEngineRuntime& runtime, TestEngineConfig& config,
     if (config.state_dump) {
         ImGuiTest* dump = register_imiv_state_dump_tests(engine);
         ImGuiTestEngine_QueueTest(engine, dump);
+        config.has_work = true;
+    }
+    if (config.developer_menu_metrics) {
+        ImGuiTest* menu_test = register_imiv_developer_menu_tests(engine);
+        ImGuiTestEngine_QueueTest(engine, menu_test);
         config.has_work = true;
     }
 #else

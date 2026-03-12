@@ -12,16 +12,17 @@
 namespace Imiv {
 
 struct TestEngineConfig {
-    bool want_test_engine = false;
-    bool trace            = false;
-    bool auto_screenshot  = false;
-    bool layout_dump      = false;
-    bool state_dump       = false;
-    bool junit_xml        = false;
-    bool automation_mode  = false;
-    bool exit_on_finish   = false;
-    bool has_work         = false;
-    bool show_windows     = false;
+    bool want_test_engine       = false;
+    bool trace                  = false;
+    bool auto_screenshot        = false;
+    bool layout_dump            = false;
+    bool state_dump             = false;
+    bool developer_menu_metrics = false;
+    bool junit_xml              = false;
+    bool automation_mode        = false;
+    bool exit_on_finish         = false;
+    bool has_work               = false;
+    bool show_windows           = false;
     std::string junit_xml_out;
     std::string state_dump_out;
 };
