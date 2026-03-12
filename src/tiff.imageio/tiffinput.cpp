@@ -1973,9 +1973,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
             for (int c = 0; c < planes; ++c) { /* planes==1 for contig */
                 if (TIFFReadScanline(m_tif, &m_scratch[0], m_next_scanline, c)
                     < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
                     errorfmt("{}", oiio_tiff_last_error());
-#endif
                     return false;
                 }
             }
@@ -1989,9 +1987,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadScanline(m_tif, m_scratch.data(), y) < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
-#endif
             return false;
         }
         size_t n(m_spec.width);
@@ -2023,9 +2019,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     // only do one TIFFReadScanline.
     for (int c = 0; c < planes; ++c) { /* planes==1 for contig */
         if (TIFFReadScanline(m_tif, &readbuf[plane_bytes * c], y, c) < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
-#endif
             return false;
         }
     }
@@ -2388,9 +2382,7 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadTile(m_tif, m_scratch.data(), x, y, z, 0) < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
-#endif
             return false;
         }
         if (m_bitspersample <= 8)
@@ -2405,11 +2397,12 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
         // Not palette
         imagesize_t plane_bytes = m_spec.tile_pixels() * m_spec.format.size();
         int planes              = m_separate ? m_inputchannels : 1;
-        std::vector<unsigned char> scratch2(m_separate ? m_spec.tile_bytes()
+        std::vector<unsigned char> scratch2(m_separate ? plane_bytes * planes
                                                        : 0);
         // Where to read?  Directly into user data if no channel shuffling
         // or bit shifting is needed, otherwise into scratch space.
-        unsigned char* readbuf = (no_bit_convert && !m_separate)
+        unsigned char* readbuf = (no_bit_convert && !m_separate
+                                  && m_inputchannels == m_spec.nchannels)
                                      ? (unsigned char*)data.data()
                                      : m_scratch.data();
         // Perform the reads.  Note that for contig, planes==1, so it will
@@ -2417,9 +2410,7 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             if (TIFFReadTile(m_tif, &readbuf[plane_bytes * c], x, y, z, c)
                 < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
                 errorfmt("{}", oiio_tiff_last_error());
-#endif
                 return false;
             }
         if (m_bitspersample < 8) {
