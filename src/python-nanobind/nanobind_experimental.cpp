@@ -61,9 +61,7 @@ NB_MODULE(_nanobind_experimental, m)
         .def("contains", &roi_contains_roi, "other"_a)
         .def_prop_ro_static("All", [](nb::handle) { return ROI::All(); })
         .def("__str__",
-             [](const ROI& roi_) {
-                 return Strutil::fmt::format("{}", roi_);
-             })
+             [](const ROI& roi_) { return Strutil::fmt::format("{}", roi_); })
         .def("copy", [](const ROI& self) { return self; })
         .def(nb::self == nb::self)
         .def(nb::self != nb::self);
