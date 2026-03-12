@@ -205,6 +205,10 @@ clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
     if (ui_state.gamma < 0.1f)
         ui_state.gamma = 0.1f;
     ui_state.offset = std::clamp(ui_state.offset, -1.0f, 1.0f);
+    ui_state.ocio_config_source
+        = std::clamp(ui_state.ocio_config_source,
+                     static_cast<int>(OcioConfigSource::Global),
+                     static_cast<int>(OcioConfigSource::User));
     if (ui_state.ocio_display.empty())
         ui_state.ocio_display = "default";
     if (ui_state.ocio_view.empty())
@@ -291,6 +295,9 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
         } else if (key == "use_ocio") {
             if (parse_bool_value(value, bool_value))
                 ui_state.use_ocio = bool_value;
+        } else if (key == "ocio_config_source") {
+            if (parse_int_value(value, int_value))
+                ui_state.ocio_config_source = int_value;
         } else if (key == "max_memory_ic_mb") {
             if (parse_int_value(value, int_value))
                 ui_state.max_memory_ic_mb = int_value;
@@ -319,6 +326,8 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
         } else if (key == "ocio_image_color_space") {
             ui_state.ocio_image_color_space = std::string(
                 Strutil::strip(value));
+        } else if (key == "ocio_user_config_path") {
+            ui_state.ocio_user_config_path = std::string(Strutil::strip(value));
         } else if (key == "sort_mode") {
             if (parse_int_value(value, int_value)) {
                 int_value        = std::clamp(int_value, 0, 3);
@@ -387,6 +396,7 @@ save_persistent_state(const PlaceholderUiState& ui_state,
            << "\n";
     output << "slide_loop=" << (ui_state.slide_loop ? 1 : 0) << "\n";
     output << "use_ocio=" << (ui_state.use_ocio ? 1 : 0) << "\n";
+    output << "ocio_config_source=" << ui_state.ocio_config_source << "\n";
     output << "max_memory_ic_mb=" << ui_state.max_memory_ic_mb << "\n";
     output << "slide_duration_seconds=" << ui_state.slide_duration_seconds
            << "\n";
@@ -398,6 +408,8 @@ save_persistent_state(const PlaceholderUiState& ui_state,
     output << "ocio_display=" << ui_state.ocio_display << "\n";
     output << "ocio_view=" << ui_state.ocio_view << "\n";
     output << "ocio_image_color_space=" << ui_state.ocio_image_color_space
+           << "\n";
+    output << "ocio_user_config_path=" << ui_state.ocio_user_config_path
            << "\n";
     output << "sort_mode=" << static_cast<int>(viewer.sort_mode) << "\n";
     output << "sort_reverse=" << (viewer.sort_reverse ? 1 : 0) << "\n";

@@ -542,9 +542,10 @@ run(const AppConfig& config)
         ui_state.ocio_view = run_config.ocio_view;
     if (!run_config.ocio_image_color_space.empty())
         ui_state.ocio_image_color_space = run_config.ocio_image_color_space;
-    ui_state.use_ocio = (!run_config.ocio_display.empty()
-                         || !run_config.ocio_view.empty()
-                         || !run_config.ocio_image_color_space.empty());
+    if (!run_config.ocio_display.empty() || !run_config.ocio_view.empty()
+        || !run_config.ocio_image_color_space.empty()) {
+        ui_state.use_ocio = true;
+    }
     reset_per_image_preview_state(ui_state);
     clamp_placeholder_ui_state(ui_state);
     if (ui_state.use_ocio) {

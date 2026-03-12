@@ -296,23 +296,67 @@ if (NOT APPLE)
     endif ()
 
     set (_imiv_has_runtime_glslang OFF)
+    set (_imiv_runtime_glslang_explanation "")
+    set (_imiv_glslang_search_hints)
+    set (_imiv_windows_static_crt OFF)
+    if (WIN32 AND MSVC)
+        string (TOUPPER "${CMAKE_BUILD_TYPE}" _imiv_build_type_upper)
+        set (_imiv_msvc_runtime_flags
+             "${CMAKE_MSVC_RUNTIME_LIBRARY} ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${_imiv_build_type_upper}}")
+        if (_imiv_msvc_runtime_flags MATCHES "MultiThreaded(Debug)?"
+            OR _imiv_msvc_runtime_flags MATCHES "(^|[ /;])MTd?($|[ /;])")
+            set (_imiv_windows_static_crt ON)
+        endif ()
+    endif ()
     if (OIIO_IMIV_VULKAN_SDK)
-        set (OIIO_IMIV_GLSLANG_INCLUDE_DIR
-             "${OIIO_IMIV_VULKAN_SDK}/include")
-        set (OIIO_IMIV_GLSLANG_LIBRARY
-             "${OIIO_IMIV_VULKAN_SDK}/lib/libglslang.so")
-        set (OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY
-             "${OIIO_IMIV_VULKAN_SDK}/lib/libglslang-default-resource-limits.so")
-        if (EXISTS "${OIIO_IMIV_GLSLANG_INCLUDE_DIR}/glslang/Include/glslang_c_interface.h"
-            AND EXISTS "${OIIO_IMIV_GLSLANG_LIBRARY}"
-            AND EXISTS "${OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY}")
-            add_library (imiv_glslang_external SHARED IMPORTED)
+        list (APPEND _imiv_glslang_search_hints
+              "${OIIO_IMIV_VULKAN_SDK}/include"
+              "${OIIO_IMIV_VULKAN_SDK}/Include"
+              "${OIIO_IMIV_VULKAN_SDK}/lib"
+              "${OIIO_IMIV_VULKAN_SDK}/Lib"
+              "${OIIO_IMIV_VULKAN_SDK}/lib64")
+    endif ()
+
+    if (WIN32 AND _imiv_windows_static_crt
+        AND NOT (OIIO_IMIV_GLSLANG_INCLUDE_DIR
+                 AND OIIO_IMIV_GLSLANG_LIBRARY
+                 AND OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY))
+        set (_imiv_runtime_glslang_explanation
+             "(runtime shader compilation disabled; Vulkan SDK glslang libraries use /MD and are incompatible with this /MT build; use /MD or provide custom glslang libraries built with the same MSVC runtime)")
+    else ()
+        find_path (OIIO_IMIV_GLSLANG_INCLUDE_DIR
+                   NAMES glslang/Include/glslang_c_interface.h
+                   HINTS ${_imiv_glslang_search_hints}
+                   PATH_SUFFIXES include Include)
+        set (_imiv_glslang_saved_library_suffixes "${CMAKE_FIND_LIBRARY_SUFFIXES}")
+        if (WIN32)
+            set (CMAKE_FIND_LIBRARY_SUFFIXES .lib .dll.a)
+        elseif (APPLE)
+            set (CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
+        else ()
+            set (CMAKE_FIND_LIBRARY_SUFFIXES .so)
+        endif ()
+        find_library (OIIO_IMIV_GLSLANG_LIBRARY
+                      NAMES glslang glslangd libglslang
+                      HINTS ${_imiv_glslang_search_hints}
+                      PATH_SUFFIXES lib Lib lib64)
+        find_library (OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY
+                      NAMES glslang-default-resource-limits
+                            glslang-default-resource-limitsd
+                            libglslang-default-resource-limits
+                      HINTS ${_imiv_glslang_search_hints}
+                      PATH_SUFFIXES lib Lib lib64)
+        set (CMAKE_FIND_LIBRARY_SUFFIXES "${_imiv_glslang_saved_library_suffixes}")
+        if (OIIO_IMIV_GLSLANG_INCLUDE_DIR
+            AND OIIO_IMIV_GLSLANG_LIBRARY
+            AND OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY)
+            add_library (imiv_glslang_external UNKNOWN IMPORTED)
             set_target_properties (
                 imiv_glslang_external PROPERTIES
                     IMPORTED_LOCATION "${OIIO_IMIV_GLSLANG_LIBRARY}"
                     INTERFACE_INCLUDE_DIRECTORIES
                         "${OIIO_IMIV_GLSLANG_INCLUDE_DIR}")
-            add_library (imiv_glslang_resource_limits_external SHARED IMPORTED)
+            add_library (imiv_glslang_resource_limits_external UNKNOWN IMPORTED)
             set_target_properties (
                 imiv_glslang_resource_limits_external PROPERTIES
                     IMPORTED_LOCATION
@@ -323,10 +367,42 @@ if (NOT APPLE)
                   imiv_glslang_external
                   imiv_glslang_resource_limits_external)
             set (_imiv_has_runtime_glslang ON)
+            record_build_dependency (GLSLANG_RUNTIME FOUND)
+        else ()
+            set (_imiv_runtime_glslang_missing)
+            if (NOT OIIO_IMIV_GLSLANG_INCLUDE_DIR)
+                list (APPEND _imiv_runtime_glslang_missing
+                      "glslang/Include/glslang_c_interface.h")
+            endif ()
+            if (NOT OIIO_IMIV_GLSLANG_LIBRARY)
+                list (APPEND _imiv_runtime_glslang_missing "glslang library")
+            endif ()
+            if (NOT OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY)
+                list (APPEND _imiv_runtime_glslang_missing
+                      "glslang-default-resource-limits library")
+            endif ()
+            string (REPLACE ";" ", " _imiv_runtime_glslang_missing_text
+                    "${_imiv_runtime_glslang_missing}")
+            if (OIIO_IMIV_VULKAN_SDK)
+                set (_imiv_runtime_glslang_explanation
+                     "(runtime shader compilation disabled; missing ${_imiv_runtime_glslang_missing_text}; searched ${OIIO_IMIV_VULKAN_SDK} and default paths)")
+            else ()
+                set (_imiv_runtime_glslang_explanation
+                     "(runtime shader compilation disabled; missing ${_imiv_runtime_glslang_missing_text}; set OIIO_IMIV_VULKAN_SDK or VULKAN_SDK)")
+            endif ()
         endif ()
+    endif ()
+    if (NOT _imiv_has_runtime_glslang)
+        record_build_dependency (
+            GLSLANG_RUNTIME NOTFOUND
+            NOT_FOUND_EXPLANATION "${_imiv_runtime_glslang_explanation}")
     endif ()
 else ()
     set (_imiv_has_runtime_glslang OFF)
+    record_build_dependency (
+        GLSLANG_RUNTIME NOTFOUND
+        NOT_FOUND_EXPLANATION
+            "(runtime shader compilation disabled on Metal backend)")
 endif ()
 
 if (MSVC)

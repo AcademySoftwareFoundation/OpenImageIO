@@ -4,9 +4,13 @@
 
 #include "imiv_ui.h"
 
+#include "imiv_file_dialog.h"
+#include "imiv_ocio.h"
 #include "imiv_test_engine.h"
 
 #include <algorithm>
+#include <cstring>
+#include <filesystem>
 #include <string>
 #include <utility>
 
@@ -113,6 +117,36 @@ namespace {
         ImGui::PopTextWrapPos();
     }
 
+    bool input_text_string(const char* label, std::string& value)
+    {
+        char buffer[4096];
+        const size_t copy_size = std::min(value.size(), sizeof(buffer) - 1u);
+        std::memcpy(buffer, value.data(), copy_size);
+        buffer[copy_size]  = '\0';
+        const bool changed = ImGui::InputText(label, buffer, sizeof(buffer));
+        if (changed)
+            value.assign(buffer);
+        return changed;
+    }
+
+    std::string ocio_config_dialog_default_path(const PlaceholderUiState& ui)
+    {
+        if (!ui.ocio_user_config_path.empty()) {
+            const std::filesystem::path user_path(ui.ocio_user_config_path);
+            if (user_path.has_parent_path())
+                return user_path.parent_path().string();
+        }
+
+        OcioConfigSelection selection;
+        resolve_ocio_config_selection(ui, selection);
+        if (!selection.resolved_path.empty()) {
+            const std::filesystem::path resolved_path(selection.resolved_path);
+            if (resolved_path.has_parent_path())
+                return resolved_path.parent_path().string();
+        }
+        return std::string();
+    }
+
 }  // namespace
 
 void
@@ -188,7 +222,7 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window)
                                             ImGui::GetContentRegionAvail().y
                                                 - close_height - 4.0f);
         ImGui::BeginChild("##iv_prefs_body", ImVec2(0.0f, body_height), false,
-                          ImGuiWindowFlags_NoScrollbar);
+                          ImGuiWindowFlags_None);
 
         ImGui::Checkbox("Pixel view follows mouse",
                         &ui.pixelview_follows_mouse);
@@ -225,6 +259,71 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window)
         ImGui::InputInt("##pref_slide_delay", &ui.slide_duration_seconds);
         ImGui::SameLine();
         ImGui::TextUnformatted("s");
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::TextUnformatted("OCIO config");
+        int ocio_source = ui.ocio_config_source;
+        if (ImGui::RadioButton("Global##ocio_cfg_global", &ocio_source,
+                               static_cast<int>(OcioConfigSource::Global))) {
+            ui.ocio_config_source = ocio_source;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Local##ocio_cfg_local", &ocio_source,
+                               static_cast<int>(OcioConfigSource::Local))) {
+            ui.ocio_config_source = ocio_source;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("User##ocio_cfg_user", &ocio_source,
+                               static_cast<int>(OcioConfigSource::User))) {
+            ui.ocio_config_source = ocio_source;
+        }
+
+        ImGui::TextUnformatted("User path");
+        ImGui::SetNextItemWidth(
+            std::max(80.0f, ImGui::GetContentRegionAvail().x - 84.0f));
+        input_text_string("##pref_ocio_user_config_path",
+                          ui.ocio_user_config_path);
+        ImGui::SameLine();
+        if (ImGui::Button("Browse##pref_ocio_user_config")) {
+            const FileDialog::DialogReply reply
+                = FileDialog::open_ocio_config_file(
+                    ocio_config_dialog_default_path(ui));
+            if (reply.result == FileDialog::Result::Okay
+                && !reply.path.empty()) {
+                ui.ocio_user_config_path = reply.path;
+                ui.ocio_config_source    = static_cast<int>(
+                    OcioConfigSource::User);
+            }
+        }
+
+        OcioConfigSelection ocio_selection;
+        resolve_ocio_config_selection(ui, ocio_selection);
+        ImGui::TextUnformatted("Resolved source");
+        ImGui::SameLine();
+        ImGui::TextUnformatted(
+            ocio_config_source_name(ocio_selection.resolved_source));
+        if (ocio_selection.resolved_source == OcioConfigSource::Global) {
+            const char* suffix = ocio_selection.uses_raw_fallback
+                                     ? "($OCIO unset, OCIO raw fallback)"
+                                     : "($OCIO)";
+            ImGui::SameLine();
+            ImGui::TextUnformatted(suffix);
+        }
+        if (!ocio_selection.resolved_path.empty()) {
+            ImGui::TextUnformatted("Resolved path");
+            ImGui::PushTextWrapPos(0.0f);
+            ImGui::TextUnformatted(ocio_selection.resolved_path.c_str());
+            ImGui::PopTextWrapPos();
+        } else if (ocio_selection.resolved_source == OcioConfigSource::Global
+                   && !ocio_selection.env_value.empty()) {
+            ImGui::TextUnformatted("OCIO env");
+            ImGui::PushTextWrapPos(0.0f);
+            ImGui::TextUnformatted(ocio_selection.env_value.c_str());
+            ImGui::PopTextWrapPos();
+        }
 
         ImGui::EndChild();
         clamp_placeholder_ui_state(ui);
