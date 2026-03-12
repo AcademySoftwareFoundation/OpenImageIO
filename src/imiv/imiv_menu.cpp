@@ -5,6 +5,7 @@
 #include "imiv_menu.h"
 
 #include "imiv_actions.h"
+#include "imiv_frame.h"
 #include "imiv_ocio.h"
 
 #include <algorithm>
@@ -31,6 +32,7 @@ namespace {
 
 void
 collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
+                         DeveloperUiState& developer_ui,
                          ViewerFrameActions& actions, bool& request_exit)
 {
     const bool has_image         = !viewer.image.path.empty();
@@ -54,6 +56,10 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
         ui_state.show_preferences_window = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Q))
         request_exit = true;
+#if !defined(NDEBUG)
+    if (app_shortcut(ImGuiKey_F12) && !developer_ui.screenshot_busy)
+        developer_ui.request_screenshot = true;
+#endif
     if (app_shortcut(ImGuiKey_PageUp))
         actions.prev_requested = true;
     if (app_shortcut(ImGuiKey_PageDown))
@@ -143,6 +149,7 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
 
 void
 draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
+                      DeveloperUiState& developer_ui,
                       ViewerFrameActions& actions, bool& request_exit
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                       ,
@@ -460,6 +467,36 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
             ImGui::OpenPopup("About imiv");
         ImGui::EndMenu();
     }
+
+#if !defined(NDEBUG)
+    if (ImGui::BeginMenu("Developer")) {
+        ImGui::MenuItem("ImGui Demo", nullptr,
+                        &developer_ui.show_imgui_demo_window);
+        ImGui::MenuItem("ImGui Style Editor", nullptr,
+                        &developer_ui.show_imgui_style_editor);
+        ImGui::MenuItem("ImGui Metrics/Debugger", nullptr,
+                        &developer_ui.show_imgui_metrics_window);
+        ImGui::MenuItem("ImGui Debug Log", nullptr,
+                        &developer_ui.show_imgui_debug_log_window);
+        ImGui::MenuItem("ImGui ID Stack Tool", nullptr,
+                        &developer_ui.show_imgui_id_stack_window);
+        ImGui::MenuItem("ImGui About", nullptr,
+                        &developer_ui.show_imgui_about_window);
+        ImGui::Separator();
+        if (ImGui::MenuItem("Capture Main Window", "F12", false,
+                            !developer_ui.screenshot_busy)) {
+            developer_ui.request_screenshot = true;
+        }
+#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+        if (show_test_engine_windows != nullptr) {
+            ImGui::Separator();
+            ImGui::MenuItem("Test Engine Windows", nullptr,
+                            show_test_engine_windows);
+        }
+#    endif
+        ImGui::EndMenu();
+    }
+#endif
 
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     if (show_test_engine_windows != nullptr && show_test_menu

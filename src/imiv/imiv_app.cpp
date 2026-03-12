@@ -7,6 +7,7 @@
 #include "imiv_drag_drop.h"
 #include "imiv_file_dialog.h"
 #include "imiv_frame.h"
+#include "imiv_menu.h"
 #include "imiv_navigation.h"
 #include "imiv_ocio.h"
 #include "imiv_test_engine.h"
@@ -529,6 +530,7 @@ run(const AppConfig& config)
 
     ViewerState viewer;
     PlaceholderUiState ui_state;
+    DeveloperUiState developer_ui;
     std::string prefs_error;
     if (!load_persistent_state(ui_state, viewer, prefs_error)) {
         print(stderr, "imiv: failed to load preferences: {}\n", prefs_error);
@@ -646,7 +648,7 @@ run(const AppConfig& config)
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        draw_viewer_ui(viewer, ui_state, fonts, request_exit
+        draw_viewer_ui(viewer, ui_state, developer_ui, fonts, request_exit
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
                        ,
                        test_engine_show_windows_ptr(test_engine_runtime)
@@ -678,6 +680,7 @@ run(const AppConfig& config)
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
+        process_developer_post_render_actions(developer_ui, viewer, vk_state);
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
         test_engine_post_swap(test_engine_runtime);
 #    endif

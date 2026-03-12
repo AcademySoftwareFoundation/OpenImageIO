@@ -201,10 +201,20 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
     if (!texture.source_ready)
         return true;
 
+    const bool had_ocio_ready                  = vk_state.ocio.ready;
+    const OcioShaderRuntime* old_ocio_runtime  = vk_state.ocio.runtime;
+    const std::string old_ocio_shader_cache_id = vk_state.ocio.shader_cache_id;
     if (controls.use_ocio != 0
         && !ensure_ocio_preview_resources(vk_state, image, ui_state, controls,
                                           error_message)) {
         return false;
+    }
+    if (controls.use_ocio != 0
+        && (had_ocio_ready != vk_state.ocio.ready
+            || old_ocio_runtime != vk_state.ocio.runtime
+            || old_ocio_shader_cache_id != vk_state.ocio.shader_cache_id)) {
+        texture.preview_dirty        = true;
+        texture.preview_params_valid = false;
     }
 
     if (!poll_texture_preview_submission(vk_state, texture, controls, false,

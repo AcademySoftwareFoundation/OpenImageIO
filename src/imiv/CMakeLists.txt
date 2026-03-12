@@ -14,6 +14,12 @@ set (OIIO_IMIV_NFD_LIBRARY_RELEASE "" CACHE FILEPATH
      "Optional explicit nativefiledialog release library path")
 set (OIIO_IMIV_NFD_LIBRARY_DEBUG "" CACHE FILEPATH
      "Optional explicit nativefiledialog debug library path")
+set (OIIO_IMIV_GLSLANG_INCLUDE_DIR "" CACHE PATH
+     "Optional explicit include directory containing glslang headers for imiv runtime shader compilation")
+set (OIIO_IMIV_GLSLANG_LIBRARY "" CACHE FILEPATH
+     "Optional explicit glslang library path for imiv runtime shader compilation")
+set (OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY "" CACHE FILEPATH
+     "Optional explicit glslang-default-resource-limits library path for imiv runtime shader compilation")
 option (OIIO_IMIV_USE_NATIVEFILEDIALOG
         "Use nativefiledialog-extended for imiv file open/save actions" ON)
 option (OIIO_IMIV_ENABLE_IMGUI_TEST_ENGINE
@@ -192,6 +198,7 @@ endif ()
 
 set (_imiv_imgui_sources
      "${OIIO_IMIV_IMGUI_ROOT}/imgui.cpp"
+     "${OIIO_IMIV_IMGUI_ROOT}/imgui_demo.cpp"
      "${OIIO_IMIV_IMGUI_ROOT}/imgui_draw.cpp"
      "${OIIO_IMIV_IMGUI_ROOT}/imgui_tables.cpp"
      "${OIIO_IMIV_IMGUI_ROOT}/imgui_widgets.cpp"
@@ -298,6 +305,19 @@ if (NOT APPLE)
     set (_imiv_has_runtime_glslang OFF)
     set (_imiv_runtime_glslang_explanation "")
     set (_imiv_glslang_search_hints)
+    set (_imiv_glslang_package_roots)
+    foreach (_imiv_prefix IN LISTS CMAKE_PREFIX_PATH)
+        if (_imiv_prefix)
+            list (APPEND _imiv_glslang_package_roots "${_imiv_prefix}")
+            list (APPEND _imiv_glslang_search_hints
+                  "${_imiv_prefix}"
+                  "${_imiv_prefix}/include"
+                  "${_imiv_prefix}/Include"
+                  "${_imiv_prefix}/lib"
+                  "${_imiv_prefix}/Lib"
+                  "${_imiv_prefix}/lib64")
+        endif ()
+    endforeach ()
     set (_imiv_windows_static_crt OFF)
     if (WIN32 AND MSVC)
         string (TOUPPER "${CMAKE_BUILD_TYPE}" _imiv_build_type_upper)
@@ -309,6 +329,7 @@ if (NOT APPLE)
         endif ()
     endif ()
     if (OIIO_IMIV_VULKAN_SDK)
+        list (APPEND _imiv_glslang_package_roots "${OIIO_IMIV_VULKAN_SDK}")
         list (APPEND _imiv_glslang_search_hints
               "${OIIO_IMIV_VULKAN_SDK}/include"
               "${OIIO_IMIV_VULKAN_SDK}/Include"
@@ -317,17 +338,99 @@ if (NOT APPLE)
               "${OIIO_IMIV_VULKAN_SDK}/lib64")
     endif ()
 
-    if (WIN32 AND _imiv_windows_static_crt
-        AND NOT (OIIO_IMIV_GLSLANG_INCLUDE_DIR
-                 AND OIIO_IMIV_GLSLANG_LIBRARY
-                 AND OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY))
+    set (_imiv_glslang_include_dir "${OIIO_IMIV_GLSLANG_INCLUDE_DIR}")
+    set (_imiv_glslang_library "${OIIO_IMIV_GLSLANG_LIBRARY}")
+    set (_imiv_glslang_default_limits_library
+         "${OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY}")
+    set (_imiv_glslang_manual_override OFF)
+    if (_imiv_glslang_include_dir
+        AND _imiv_glslang_library
+        AND _imiv_glslang_default_limits_library)
+        set (_imiv_glslang_manual_override ON)
+    endif ()
+
+    set (_imiv_glslang_package_found OFF)
+    if (NOT _imiv_glslang_manual_override)
+        find_package (glslang CONFIG QUIET
+                      PATHS ${_imiv_glslang_package_roots})
+        if (glslang_FOUND
+            AND TARGET glslang::glslang
+            AND TARGET glslang::glslang-default-resource-limits)
+            set (_imiv_glslang_package_found ON)
+        endif ()
+    endif ()
+
+    set (_imiv_glslang_from_vulkan_sdk OFF)
+    if (_imiv_glslang_package_found AND OIIO_IMIV_VULKAN_SDK)
+        file (TO_CMAKE_PATH "${OIIO_IMIV_VULKAN_SDK}" _imiv_vulkan_sdk_path)
+        file (TO_CMAKE_PATH "${glslang_DIR}" _imiv_glslang_dir_norm)
+        string (FIND "${_imiv_glslang_dir_norm}" "${_imiv_vulkan_sdk_path}"
+                     _imiv_glslang_dir_pos)
+        if (_imiv_glslang_dir_pos EQUAL 0)
+            set (_imiv_glslang_from_vulkan_sdk ON)
+        endif ()
+    elseif (OIIO_IMIV_VULKAN_SDK
+        AND _imiv_glslang_include_dir
+        AND _imiv_glslang_library
+        AND _imiv_glslang_default_limits_library)
+        file (TO_CMAKE_PATH "${OIIO_IMIV_VULKAN_SDK}" _imiv_vulkan_sdk_path)
+        set (_imiv_glslang_from_vulkan_sdk ON)
+        foreach (_imiv_glslang_path
+                 "${_imiv_glslang_include_dir}"
+                 "${_imiv_glslang_library}"
+                 "${_imiv_glslang_default_limits_library}")
+            file (TO_CMAKE_PATH "${_imiv_glslang_path}" _imiv_glslang_path_norm)
+            string (FIND "${_imiv_glslang_path_norm}" "${_imiv_vulkan_sdk_path}"
+                         _imiv_glslang_path_pos)
+            if (NOT _imiv_glslang_path_pos EQUAL 0)
+                set (_imiv_glslang_from_vulkan_sdk OFF)
+                break ()
+            endif ()
+        endforeach ()
+    endif ()
+
+    if (WIN32 AND _imiv_windows_static_crt AND _imiv_glslang_from_vulkan_sdk)
         set (_imiv_runtime_glslang_explanation
-             "(runtime shader compilation disabled; Vulkan SDK glslang libraries use /MD and are incompatible with this /MT build; use /MD or provide custom glslang libraries built with the same MSVC runtime)")
+             "(runtime shader compilation disabled; Vulkan SDK glslang libraries use /MD and are incompatible with this /MT build; use /MD or provide custom glslang libraries built with the same MSVC runtime via CMAKE_PREFIX_PATH or OIIO_IMIV_GLSLANG_* paths)")
+    elseif (_imiv_glslang_package_found)
+        list (APPEND _imiv_link_libs
+              glslang::glslang
+              glslang::glslang-default-resource-limits)
+        set (_imiv_has_runtime_glslang ON)
+        message (STATUS "imiv: using glslang package from ${glslang_DIR}")
+        if (DEFINED glslang_VERSION)
+            record_build_dependency (GLSLANG_RUNTIME FOUND VERSION "${glslang_VERSION}")
+        else ()
+            record_build_dependency (GLSLANG_RUNTIME FOUND)
+        endif ()
+    elseif (_imiv_glslang_include_dir
+            AND _imiv_glslang_library
+            AND _imiv_glslang_default_limits_library)
+        add_library (imiv_glslang_external UNKNOWN IMPORTED)
+        set_target_properties (
+            imiv_glslang_external PROPERTIES
+                IMPORTED_LOCATION "${_imiv_glslang_library}"
+                INTERFACE_INCLUDE_DIRECTORIES
+                    "${_imiv_glslang_include_dir}")
+        add_library (imiv_glslang_resource_limits_external UNKNOWN IMPORTED)
+        set_target_properties (
+            imiv_glslang_resource_limits_external PROPERTIES
+                IMPORTED_LOCATION
+                    "${_imiv_glslang_default_limits_library}"
+                INTERFACE_INCLUDE_DIRECTORIES
+                    "${_imiv_glslang_include_dir}")
+        list (APPEND _imiv_link_libs
+              imiv_glslang_external
+              imiv_glslang_resource_limits_external)
+        set (_imiv_has_runtime_glslang ON)
+        message (STATUS "imiv: using glslang from explicit include/library paths")
+        record_build_dependency (GLSLANG_RUNTIME FOUND)
     else ()
-        find_path (OIIO_IMIV_GLSLANG_INCLUDE_DIR
+        find_path (_imiv_glslang_include_dir
                    NAMES glslang/Include/glslang_c_interface.h
                    HINTS ${_imiv_glslang_search_hints}
-                   PATH_SUFFIXES include Include)
+                   PATH_SUFFIXES include Include
+                   NO_CACHE)
         set (_imiv_glslang_saved_library_suffixes "${CMAKE_FIND_LIBRARY_SUFFIXES}")
         if (WIN32)
             set (CMAKE_FIND_LIBRARY_SUFFIXES .lib .dll.a)
@@ -336,59 +439,70 @@ if (NOT APPLE)
         else ()
             set (CMAKE_FIND_LIBRARY_SUFFIXES .so)
         endif ()
-        find_library (OIIO_IMIV_GLSLANG_LIBRARY
+        find_library (_imiv_glslang_library
                       NAMES glslang glslangd libglslang
                       HINTS ${_imiv_glslang_search_hints}
-                      PATH_SUFFIXES lib Lib lib64)
-        find_library (OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY
+                      PATH_SUFFIXES lib Lib lib64
+                      NO_CACHE)
+        find_library (_imiv_glslang_default_limits_library
                       NAMES glslang-default-resource-limits
                             glslang-default-resource-limitsd
                             libglslang-default-resource-limits
                       HINTS ${_imiv_glslang_search_hints}
-                      PATH_SUFFIXES lib Lib lib64)
+                      PATH_SUFFIXES lib Lib lib64
+                      NO_CACHE)
         set (CMAKE_FIND_LIBRARY_SUFFIXES "${_imiv_glslang_saved_library_suffixes}")
-        if (OIIO_IMIV_GLSLANG_INCLUDE_DIR
-            AND OIIO_IMIV_GLSLANG_LIBRARY
-            AND OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY)
+        if (_imiv_glslang_include_dir
+            AND _imiv_glslang_library
+            AND _imiv_glslang_default_limits_library)
             add_library (imiv_glslang_external UNKNOWN IMPORTED)
             set_target_properties (
                 imiv_glslang_external PROPERTIES
-                    IMPORTED_LOCATION "${OIIO_IMIV_GLSLANG_LIBRARY}"
+                    IMPORTED_LOCATION "${_imiv_glslang_library}"
                     INTERFACE_INCLUDE_DIRECTORIES
-                        "${OIIO_IMIV_GLSLANG_INCLUDE_DIR}")
+                        "${_imiv_glslang_include_dir}")
             add_library (imiv_glslang_resource_limits_external UNKNOWN IMPORTED)
             set_target_properties (
                 imiv_glslang_resource_limits_external PROPERTIES
                     IMPORTED_LOCATION
-                        "${OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY}"
+                        "${_imiv_glslang_default_limits_library}"
                     INTERFACE_INCLUDE_DIRECTORIES
-                        "${OIIO_IMIV_GLSLANG_INCLUDE_DIR}")
+                        "${_imiv_glslang_include_dir}")
             list (APPEND _imiv_link_libs
                   imiv_glslang_external
                   imiv_glslang_resource_limits_external)
             set (_imiv_has_runtime_glslang ON)
+            message (STATUS "imiv: using glslang discovered from include/library search paths")
             record_build_dependency (GLSLANG_RUNTIME FOUND)
-        else ()
-            set (_imiv_runtime_glslang_missing)
-            if (NOT OIIO_IMIV_GLSLANG_INCLUDE_DIR)
-                list (APPEND _imiv_runtime_glslang_missing
-                      "glslang/Include/glslang_c_interface.h")
-            endif ()
-            if (NOT OIIO_IMIV_GLSLANG_LIBRARY)
-                list (APPEND _imiv_runtime_glslang_missing "glslang library")
-            endif ()
-            if (NOT OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY)
-                list (APPEND _imiv_runtime_glslang_missing
-                      "glslang-default-resource-limits library")
-            endif ()
-            string (REPLACE ";" ", " _imiv_runtime_glslang_missing_text
-                    "${_imiv_runtime_glslang_missing}")
-            if (OIIO_IMIV_VULKAN_SDK)
+        endif ()
+    endif ()
+
+    if (NOT _imiv_has_runtime_glslang)
+        if (NOT _imiv_glslang_include_dir)
+            list (APPEND _imiv_runtime_glslang_missing
+                  "glslang/Include/glslang_c_interface.h")
+        endif ()
+        if (NOT _imiv_glslang_library)
+            list (APPEND _imiv_runtime_glslang_missing "glslang library")
+        endif ()
+        if (NOT _imiv_glslang_default_limits_library)
+            list (APPEND _imiv_runtime_glslang_missing
+                  "glslang-default-resource-limits library")
+        endif ()
+        string (REPLACE ";" ", " _imiv_runtime_glslang_missing_text
+                "${_imiv_runtime_glslang_missing}")
+        if (_imiv_runtime_glslang_explanation STREQUAL "")
+            if (CMAKE_PREFIX_PATH)
+                string (REPLACE ";" ", " _imiv_glslang_prefix_path_text
+                        "${CMAKE_PREFIX_PATH}")
+                set (_imiv_runtime_glslang_explanation
+                     "(runtime shader compilation disabled; missing ${_imiv_runtime_glslang_missing_text}; searched CMAKE_PREFIX_PATH=${_imiv_glslang_prefix_path_text}, Vulkan SDK hints, and default paths)")
+            elseif (OIIO_IMIV_VULKAN_SDK)
                 set (_imiv_runtime_glslang_explanation
                      "(runtime shader compilation disabled; missing ${_imiv_runtime_glslang_missing_text}; searched ${OIIO_IMIV_VULKAN_SDK} and default paths)")
             else ()
                 set (_imiv_runtime_glslang_explanation
-                     "(runtime shader compilation disabled; missing ${_imiv_runtime_glslang_missing_text}; set OIIO_IMIV_VULKAN_SDK or VULKAN_SDK)")
+                     "(runtime shader compilation disabled; missing ${_imiv_runtime_glslang_missing_text}; set CMAKE_PREFIX_PATH, OIIO_IMIV_VULKAN_SDK, or OIIO_IMIV_GLSLANG_* paths)")
             endif ()
         endif ()
     endif ()
@@ -579,4 +693,86 @@ if (TARGET imiv
         message (STATUS
                  "imiv: OIIO_IMIV_ADD_UPLOAD_SMOKE_CTEST requested but no bash executable was found")
     endif ()
+endif ()
+
+set (_imiv_ocio_live_update_config
+     "${PROJECT_SOURCE_DIR}/temp/studio-config-all-views-v4.0.0_aces-v2.0_ocio-v2.5.ocio")
+if (TARGET imiv
+        AND OIIO_BUILD_TESTS
+        AND BUILD_TESTING
+        AND Python3_EXECUTABLE
+        AND _imiv_test_engine_sources
+        AND _imiv_has_runtime_glslang
+        AND EXISTS "${_imiv_ocio_live_update_config}")
+    add_test (
+        NAME imiv_ocio_live_update_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_live_update_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            --oiiotool "$<TARGET_FILE:oiiotool>"
+            --idiff "$<TARGET_FILE:idiff>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_update_regression"
+            --image "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_update_regression/ocio_live_input.exr"
+            --ocio-config "${_imiv_ocio_live_update_config}")
+    set_tests_properties (
+        imiv_ocio_live_update_regression PROPERTIES
+            LABELS "imiv;imiv_ocio;gui"
+            TIMEOUT 300)
+
+    add_test (
+        NAME imiv_ocio_live_display_update_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_live_update_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            --oiiotool "$<TARGET_FILE:oiiotool>"
+            --idiff "$<TARGET_FILE:idiff>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_display_update_regression"
+            --image "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_display_update_regression/ocio_live_input.exr"
+            --ocio-config "${_imiv_ocio_live_update_config}"
+            --display "sRGB - Display"
+            --target-display "Display P3 - Display"
+            --raw-view "Un-tone-mapped"
+            --target-view "Un-tone-mapped")
+    set_tests_properties (
+        imiv_ocio_live_display_update_regression PROPERTIES
+            LABELS "imiv;imiv_ocio;gui"
+            TIMEOUT 300)
+elseif (TARGET imiv
+        AND OIIO_BUILD_TESTS
+        AND BUILD_TESTING)
+    message (STATUS
+             "imiv: live OCIO update regression test not added (requires Python3, ImGui Test Engine, runtime glslang, and temp OCIO config)")
+endif ()
+
+if (TARGET imiv
+        AND OIIO_BUILD_TESTS
+        AND BUILD_TESTING
+        AND Python3_EXECUTABLE
+        AND _imiv_test_engine_sources)
+    add_test (
+        NAME imiv_developer_menu_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_developer_menu_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/developer_menu_regression"
+            --open "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png")
+    set_tests_properties (
+        imiv_developer_menu_regression PROPERTIES
+            LABELS "imiv;imiv_debug;gui"
+            TIMEOUT 120
+            SKIP_RETURN_CODE 77)
+elseif (TARGET imiv
+        AND OIIO_BUILD_TESTS
+        AND BUILD_TESTING)
+    message (STATUS
+             "imiv: developer menu regression test not added (requires Python3 and ImGui Test Engine)")
 endif ()

@@ -66,6 +66,10 @@ set_full_screen_mode(GLFWwindow* window, ViewerState& viewer, bool enable,
 void
 fit_window_to_image_action(GLFWwindow* window, ViewerState& viewer,
                            PlaceholderUiState& ui_state);
+bool
+capture_main_viewport_screenshot_action(VulkanState& vk_state,
+                                        ViewerState& viewer,
+                                        std::string& out_path);
 #endif
 
 }  // namespace Imiv

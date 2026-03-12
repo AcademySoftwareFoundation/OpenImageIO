@@ -83,6 +83,16 @@ def main() -> int:
     ap.add_argument("--trace", action="store_true", help="Enable test engine trace logs")
     ap.add_argument("--show-drag-overlay", action="store_true",
                     help="Force the drag-and-drop dimming overlay during automation")
+    ap.add_argument("--ocio-use", default="",
+                    help="Optional OCIO enable override for automation (true/false)")
+    ap.add_argument("--ocio-display", default="",
+                    help="Optional live OCIO display override for automation")
+    ap.add_argument("--ocio-view", default="",
+                    help="Optional live OCIO view override for automation")
+    ap.add_argument("--ocio-image-color-space", default="",
+                    help="Optional live OCIO image color space override for automation")
+    ap.add_argument("--ocio-apply-frame", type=int, default=0,
+                    help="Frame number at which automation OCIO overrides should begin")
     ap.add_argument("--key-chord", default="",
                     help="Optional ImGui key chord before capture/layout, e.g. ctrl+i or ctrl+0")
     ap.add_argument("--mouse-pos", nargs=2, type=float, metavar=("X", "Y"), default=None,
@@ -139,6 +149,17 @@ def main() -> int:
 
     if args.show_drag_overlay:
         env["IMIV_IMGUI_TEST_ENGINE_SHOW_DRAG_OVERLAY"] = "1"
+
+    if args.ocio_use:
+        env["IMIV_IMGUI_TEST_ENGINE_OCIO_USE"] = args.ocio_use
+    if args.ocio_display:
+        env["IMIV_IMGUI_TEST_ENGINE_OCIO_DISPLAY"] = args.ocio_display
+    if args.ocio_view:
+        env["IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW"] = args.ocio_view
+    if args.ocio_image_color_space:
+        env["IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE"] = args.ocio_image_color_space
+    if args.ocio_apply_frame > 0:
+        env["IMIV_IMGUI_TEST_ENGINE_OCIO_APPLY_FRAME"] = str(args.ocio_apply_frame)
 
     if args.key_chord:
         env["IMIV_IMGUI_TEST_ENGINE_KEY_CHORD"] = args.key_chord
