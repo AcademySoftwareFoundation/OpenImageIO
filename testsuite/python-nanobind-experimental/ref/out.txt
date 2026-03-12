@@ -1,4 +1,4 @@
-module: _nanobind_experimental
+module: OpenImageIO
 version: 3.2.0.1dev
 roi: 1 4 2 6 0 1 0 10000
 contains (1,2): True
