@@ -50,6 +50,11 @@ install (FILES ${detail_headers}
          COMPONENT developer)
 
 if (OIIO_INTERNALIZE_FMT OR fmt_LOCAL_BUILD)
+    if (NOT FMT_INCLUDE_DIR OR FMT_INCLUDE_DIR STREQUAL "FMT_INCLUDE_DIR-NOTFOUND")
+        message (FATAL_ERROR
+                 "OIIO_INTERNALIZE_FMT is enabled but FMT_INCLUDE_DIR could not "
+                 "be determined from the imported fmt targets.")
+    endif ()
     set (fmt_headers_base_names)
     foreach (header_name core.h format-inl.h format.h ostream.h printf.h
              std.h base.h chrono.h)
@@ -57,6 +62,11 @@ if (OIIO_INTERNALIZE_FMT OR fmt_LOCAL_BUILD)
              list (APPEND fmt_headers_base_names ${header_name})
         endif ()
     endforeach ()
+    if (NOT fmt_headers_base_names)
+        message (FATAL_ERROR
+                 "OIIO_INTERNALIZE_FMT is enabled, but no fmt headers were found "
+                 "under ${FMT_INCLUDE_DIR}/fmt")
+    endif ()
     set (fmt_internal_directory ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
     list (TRANSFORM fmt_headers_base_names
           PREPEND ${FMT_INCLUDE_DIR}/fmt/

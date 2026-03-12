@@ -1,0 +1,10 @@
+module: _nanobind_experimental
+version: 3.2.0.1dev
+roi: 1 4 2 6 0 1 0 10000
+contains (1,2): True
+contains (5,2): False
+contains other: False
+union: 0 4 1 6 0 1 0 10000
+intersection: 1 2 2 3 0 1 0 10000
+ROI.All defined: False
+copy equals: True
