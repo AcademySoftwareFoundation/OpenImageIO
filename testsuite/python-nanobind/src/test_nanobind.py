@@ -18,7 +18,7 @@ from test_roi import run  # noqa: E402
 
 
 def load_package(build_root: pathlib.Path):
-    package_root = build_root / "lib/python/nanobind-experimental"
+    package_root = build_root / "lib/python/nanobind"
     if not (package_root / "OpenImageIO" / "__init__.py").exists():
         raise RuntimeError(f"Could not find OpenImageIO package in {package_root}")
 

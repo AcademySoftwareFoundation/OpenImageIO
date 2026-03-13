@@ -42,7 +42,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Python >= 3.9 (tested through 3.13).
      * pybind11 >= 2.7 (tested through 3.0)
      * NumPy (tested through 2.2.4)
-    * For the experimental nanobind migration backend:
+    * For the nanobind (WIP) migration backend:
         * nanobind discoverable by CMake, or installed in the active Python
           environment so `python -m nanobind --cmake_dir` works
  * If you want support for PNG files:
@@ -162,7 +162,7 @@ Make wrapper (`make PkgName_ROOT=...`).
 
 `OIIO_PYTHON_BINDINGS_BACKEND=pybind11|nanobind|both` : Select which Python
 binding backend(s) to configure. `both` keeps the existing pybind11 module and
-also builds the experimental nanobind module.
+also builds the nanobind (WIP) module.
 
 `OIIO_BUILD_TESTS=0` : Omits building tests (you probably don't need them
 unless you are a developer of OIIO or want to verify that your build
@@ -254,7 +254,7 @@ Additionally, a few helpful modifiers alter some build-time options:
 | make USE_QT=0 ...             |  Skip anything that needs Qt                                              |
 | make MYCC=xx MYCXX=yy ...     |  Use custom compilers                                                     |
 | make USE_PYTHON=0 ...         |  Don't build the Python binding                                           |
-| make OIIO_PYTHON_BINDINGS_BACKEND=both ... | Build the existing pybind11 bindings and the experimental nanobind module |
+| make OIIO_PYTHON_BINDINGS_BACKEND=both ... | Build the existing pybind11 bindings and the nanobind (WIP) module |
 | make BUILD_SHARED_LIBS=0      |  Build static library instead of shared                                   |
 | make IGNORE_HOMEBREWED_DEPS=1 |  Ignore homebrew-managed dependencies                                     |
 | make LINKSTATIC=1 ...         |  Link with static external libraries when possible                        |

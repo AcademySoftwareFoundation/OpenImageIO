@@ -2,56 +2,29 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/strutil.h>
-
-#include <nanobind/nanobind.h>
-#include <nanobind/operators.h>
-#include <nanobind/stl/string.h>
-
-namespace nb = nanobind;
-using namespace nb::literals;
-
-namespace PyOpenImageIO {
-
-OIIO_NAMESPACE_USING
+#include "py_oiio.h"
 
 namespace {
 
-    bool roi_contains_coord(const ROI& roi, int x, int y, int z, int ch)
-    {
-        return roi.contains(x, y, z, ch);
-    }
+OIIO_NAMESPACE_USING
+
+bool
+roi_contains_coord(const ROI& roi, int x, int y, int z, int ch)
+{
+    return roi.contains(x, y, z, ch);
+}
 
 
-    bool roi_contains_roi(const ROI& roi, const ROI& other)
-    {
-        return roi.contains(other);
-    }
-
-
-    ROI imagespec_get_roi(const ImageSpec& spec) { return get_roi(spec); }
-
-
-    ROI imagespec_get_roi_full(const ImageSpec& spec)
-    {
-        return get_roi_full(spec);
-    }
-
-
-    void imagespec_set_roi(ImageSpec& spec, const ROI& roi)
-    {
-        set_roi(spec, roi);
-    }
-
-
-    void imagespec_set_roi_full(ImageSpec& spec, const ROI& roi)
-    {
-        set_roi_full(spec, roi);
-    }
+bool
+roi_contains_roi(const ROI& roi, const ROI& other)
+{
+    return roi.contains(other);
+}
 
 }  // namespace
 
+
+namespace PyOpenImageIO {
 
 void
 declare_roi(nb::module_& m)
@@ -86,30 +59,8 @@ declare_roi(nb::module_& m)
         .def(nb::self == nb::self)
         .def(nb::self != nb::self);
 
-    nb::class_<ImageSpec>(m, "ImageSpec")
-        .def(nb::init<>())
-        .def_rw("x", &ImageSpec::x)
-        .def_rw("y", &ImageSpec::y)
-        .def_rw("z", &ImageSpec::z)
-        .def_rw("width", &ImageSpec::width)
-        .def_rw("height", &ImageSpec::height)
-        .def_rw("depth", &ImageSpec::depth)
-        .def_rw("full_x", &ImageSpec::full_x)
-        .def_rw("full_y", &ImageSpec::full_y)
-        .def_rw("full_z", &ImageSpec::full_z)
-        .def_rw("full_width", &ImageSpec::full_width)
-        .def_rw("full_height", &ImageSpec::full_height)
-        .def_rw("full_depth", &ImageSpec::full_depth)
-        .def_rw("nchannels", &ImageSpec::nchannels)
-        .def_prop_ro("roi", &imagespec_get_roi)
-        .def_prop_ro("roi_full", &imagespec_get_roi_full);
-
     m.def("union", &roi_union);
     m.def("intersection", &roi_intersection);
-    m.def("get_roi", &get_roi);
-    m.def("get_roi_full", &get_roi_full);
-    m.def("set_roi", &imagespec_set_roi);
-    m.def("set_roi_full", &imagespec_set_roi_full);
 }
 
 }  // namespace PyOpenImageIO
