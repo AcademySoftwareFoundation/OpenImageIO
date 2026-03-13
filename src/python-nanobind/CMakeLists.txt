@@ -16,6 +16,7 @@ setup_python_module_nanobind (
     TARGET    PyOpenImageIONanobindExperimental
     MODULE    _nanobind_experimental
     SOURCES   ${nanobind_experimental_srcs}
+    LIBS      OpenImageIO
 )
 
 if (OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "nanobind")

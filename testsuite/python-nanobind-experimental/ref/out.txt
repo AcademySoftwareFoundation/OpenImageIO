@@ -8,3 +8,7 @@ union: 0 4 1 6 0 1 0 10000
 intersection: 1 2 2 3 0 1 0 10000
 ROI.All defined: False
 copy equals: True
+spec roi: 10 40 20 60 0 1 0 3
+spec roi_full: 8 42 18 62 0 1 0 3
+updated roi: 12 16 22 26 0 1 0 3
+updated roi_full: 7 19 17 29 0 1 0 3
