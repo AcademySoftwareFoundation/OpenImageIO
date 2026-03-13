@@ -186,19 +186,13 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     const int height    = (m_dib_header.height >= 0) ? m_dib_header.height
                                                      : -m_dib_header.height;
     m_spec = ImageSpec(m_dib_header.width, height, nchannels, TypeDesc::UINT8);
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 }))
+        return false;
+
     if (m_dib_header.hres > 0 && m_dib_header.vres > 0) {
         m_spec.attribute("XResolution", (int)m_dib_header.hres);
         m_spec.attribute("YResolution", (int)m_dib_header.vres);
         m_spec.attribute("ResolutionUnit", "m");
-    }
-    if (m_spec.width < 1 || m_spec.height < 1 || m_spec.nchannels < 1
-        || m_spec.image_bytes() < 1
-        || m_spec.image_pixels() > std::numeric_limits<uint32_t>::max()) {
-        errorfmt(
-            "Invalid image size {} x {} ({} chans, {}), is likely corrupted",
-            m_spec.width, m_spec.height, m_spec.nchannels, m_spec.format);
-        close();
-        return false;
     }
 
     // Compute channel shifts & masks (only relevant for 16bpp case)
@@ -309,8 +303,8 @@ BmpInput::read_rle_image()
     m_uncompressed.clear();
     m_uncompressed.resize(m_spec.image_pixels());
     // Note: the clear+resize zeroes out the buffer
-    bool ok = true;
-    int y = 0, x = 0;
+    bool ok   = true;
+    int64_t y = 0, x = 0;
     while (ok) {
         // Strutil::print("currently at {},{}\n", x, y);
         unsigned char rle_pair[2];
