@@ -28,8 +28,8 @@ from . import _OpenImageIO as _ext  # noqa: E402
 from ._OpenImageIO import *  # type: ignore # noqa: E402, F401, F403
 
 __doc__ = """
-OpenImageIO experimental Python package exposing nanobind migration bindings.
-The production bindings are not installed in this configuration.
+OpenImageIO Python package exposing the nanobind migration bindings.
+The production pybind11 bindings are not installed in this configuration.
 """[1:-1]
 
 __version__ = getattr(_ext, "__version__", "")
