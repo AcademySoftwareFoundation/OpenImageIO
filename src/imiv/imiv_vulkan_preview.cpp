@@ -168,6 +168,19 @@ destroy_texture_preview_submit_resources(VulkanState& vk_state,
 }
 
 bool
+quiesce_texture_preview_submission(VulkanState& vk_state,
+                                   VulkanTexture& texture,
+                                   std::string& error_message)
+{
+    error_message.clear();
+    if (!texture.preview_submit_pending)
+        return true;
+    return poll_texture_preview_submission(vk_state, texture,
+                                           texture.preview_submit_controls,
+                                           true, error_message);
+}
+
+bool
 preview_controls_equal(const PreviewControls& a, const PreviewControls& b)
 {
     return std::abs(a.exposure - b.exposure) < 1.0e-6f
@@ -192,6 +205,7 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
     }
 
     error_message.clear();
+    PreviewControls effective_controls = controls;
     if (!poll_texture_upload_submission(vk_state, texture, false,
                                         error_message)) {
         if (error_message.empty())
@@ -205,11 +219,22 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
     const OcioShaderRuntime* old_ocio_runtime  = vk_state.ocio.runtime;
     const std::string old_ocio_shader_cache_id = vk_state.ocio.shader_cache_id;
     if (controls.use_ocio != 0
-        && !ensure_ocio_preview_resources(vk_state, image, ui_state, controls,
-                                          error_message)) {
-        return false;
+        && !ensure_ocio_preview_resources(vk_state, texture, image, ui_state,
+                                          controls, error_message)) {
+        // When OCIO is unavailable, keep the image visible by falling back to
+        // the standard preview shader instead of failing the whole preview
+        // update.
+        if (!quiesce_texture_preview_submission(vk_state, texture,
+                                                error_message)) {
+            return false;
+        }
+        destroy_ocio_preview_resources(vk_state);
+        effective_controls.use_ocio  = 0;
+        texture.preview_dirty        = true;
+        texture.preview_params_valid = false;
+        error_message.clear();
     }
-    if (controls.use_ocio != 0
+    if (effective_controls.use_ocio != 0
         && (had_ocio_ready != vk_state.ocio.ready
             || old_ocio_runtime != vk_state.ocio.runtime
             || old_ocio_shader_cache_id != vk_state.ocio.shader_cache_id)) {
@@ -217,15 +242,16 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
         texture.preview_params_valid = false;
     }
 
-    if (!poll_texture_preview_submission(vk_state, texture, controls, false,
-                                         error_message)) {
+    if (!poll_texture_preview_submission(vk_state, texture, effective_controls,
+                                         false, error_message)) {
         if (error_message.empty())
             return true;
         return false;
     }
 
     if (texture.preview_params_valid
-        && preview_controls_equal(texture.last_preview_controls, controls)
+        && preview_controls_equal(texture.last_preview_controls,
+                                  effective_controls)
         && !texture.preview_dirty) {
         return true;
     }
@@ -320,7 +346,7 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
     vkCmdSetViewport(command_buffer, 0, 1, &vp);
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
     const bool use_ocio_pipeline
-        = controls.use_ocio != 0 && vk_state.ocio.ready
+        = effective_controls.use_ocio != 0 && vk_state.ocio.ready
           && vk_state.ocio.pipeline != VK_NULL_HANDLE
           && vk_state.ocio.pipeline_layout != VK_NULL_HANDLE
           && vk_state.ocio.descriptor_set != VK_NULL_HANDLE;
@@ -341,13 +367,13 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
     }
 
     PreviewPushConstants push = {};
-    push.exposure             = controls.exposure;
-    push.gamma                = std::max(0.01f, controls.gamma);
-    push.offset               = controls.offset;
-    push.color_mode           = controls.color_mode;
-    push.channel              = controls.channel;
-    push.use_ocio             = controls.use_ocio;
-    push.orientation          = controls.orientation;
+    push.exposure             = effective_controls.exposure;
+    push.gamma                = std::max(0.01f, effective_controls.gamma);
+    push.offset               = effective_controls.offset;
+    push.color_mode           = effective_controls.color_mode;
+    push.channel              = effective_controls.channel;
+    push.use_ocio             = effective_controls.use_ocio;
+    push.orientation          = effective_controls.orientation;
     vkCmdPushConstants(command_buffer, pipeline_layout,
                        VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push), &push);
     vkCmdDraw(command_buffer, 3, 1, 0, 0);
@@ -395,7 +421,7 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
     }
 
     texture.preview_submit_pending  = true;
-    texture.preview_submit_controls = controls;
+    texture.preview_submit_controls = effective_controls;
     return true;
 }
 

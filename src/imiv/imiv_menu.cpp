@@ -314,6 +314,29 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
             const bool ocio_menu_data_ok = query_ocio_menu_data(
                 ui_state, ocio_color_spaces, ocio_displays, ocio_views,
                 resolved_display, resolved_view, ocio_error);
+            if (ocio_menu_data_ok) {
+                const auto contains = [](const std::vector<std::string>& values,
+                                         const std::string& value) {
+                    return std::find(values.begin(), values.end(), value)
+                           != values.end();
+                };
+                if (ui_state.ocio_image_color_space.empty()
+                    || (ui_state.ocio_image_color_space != "auto"
+                        && !contains(ocio_color_spaces,
+                                     ui_state.ocio_image_color_space))) {
+                    ui_state.ocio_image_color_space = "auto";
+                }
+                if (ui_state.ocio_display.empty()
+                    || (ui_state.ocio_display != "default"
+                        && ui_state.ocio_display != resolved_display)) {
+                    ui_state.ocio_display = "default";
+                    ui_state.ocio_view    = "default";
+                } else if (ui_state.ocio_view.empty()
+                           || (ui_state.ocio_view != "default"
+                               && ui_state.ocio_view != resolved_view)) {
+                    ui_state.ocio_view = "default";
+                }
+            }
             if (ImGui::BeginMenu("Image color space")) {
                 if (!ocio_menu_data_ok) {
                     ImGui::MenuItem(ocio_error.c_str(), nullptr, false, false);

@@ -755,6 +755,42 @@ if (TARGET imiv
         AND BUILD_TESTING
         AND Python3_EXECUTABLE
         AND _imiv_test_engine_sources)
+    if (EXISTS "${_imiv_ocio_live_update_config}")
+        add_test (
+            NAME imiv_ocio_config_source_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_config_source_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_config_source_regression"
+                --ocio-config "${_imiv_ocio_live_update_config}")
+        set_tests_properties (
+            imiv_ocio_config_source_regression PROPERTIES
+                LABELS "imiv;imiv_ocio;gui"
+                TIMEOUT 240
+                RUN_SERIAL TRUE)
+    else ()
+        message (STATUS
+                 "imiv: OCIO config-source regression test not added (missing temp OCIO config)")
+    endif ()
+
+    add_test (
+        NAME imiv_ocio_missing_fallback_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_missing_fallback_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_missing_fallback_regression"
+            --open "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png")
+    set_tests_properties (
+        imiv_ocio_missing_fallback_regression PROPERTIES
+            LABELS "imiv;imiv_ocio;gui"
+            TIMEOUT 180)
+
     add_test (
         NAME imiv_developer_menu_regression
         COMMAND

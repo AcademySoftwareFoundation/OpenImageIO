@@ -499,6 +499,8 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
     OverlayPanelRect panel;
     if (!ui_state.show_pixelview_window || !map.valid)
         return panel;
+    if (ui_state.show_area_probe_window && viewer.area_probe_drag_active)
+        return panel;
 
     std::vector<std::string> lines;
     std::vector<ImU32> line_colors;
