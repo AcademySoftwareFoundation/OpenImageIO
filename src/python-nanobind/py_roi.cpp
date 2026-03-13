@@ -3,8 +3,6 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/imageio.h>
-#include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/strutil.h>
 
 #include <nanobind/nanobind.h>
@@ -13,58 +11,51 @@
 
 namespace nb = nanobind;
 using namespace nb::literals;
+
+namespace PyOpenImageIO {
+
 OIIO_NAMESPACE_USING
 
 namespace {
 
-bool
-roi_contains_coord(const ROI& roi, int x, int y, int z, int ch)
-{
-    return roi.contains(x, y, z, ch);
-}
+    bool roi_contains_coord(const ROI& roi, int x, int y, int z, int ch)
+    {
+        return roi.contains(x, y, z, ch);
+    }
 
 
-bool
-roi_contains_roi(const ROI& roi, const ROI& other)
-{
-    return roi.contains(other);
-}
+    bool roi_contains_roi(const ROI& roi, const ROI& other)
+    {
+        return roi.contains(other);
+    }
 
 
-ROI
-imagespec_get_roi(const ImageSpec& spec)
-{
-    return get_roi(spec);
-}
+    ROI imagespec_get_roi(const ImageSpec& spec) { return get_roi(spec); }
 
 
-ROI
-imagespec_get_roi_full(const ImageSpec& spec)
-{
-    return get_roi_full(spec);
-}
+    ROI imagespec_get_roi_full(const ImageSpec& spec)
+    {
+        return get_roi_full(spec);
+    }
 
 
-void
-imagespec_set_roi(ImageSpec& spec, const ROI& roi)
-{
-    set_roi(spec, roi);
-}
+    void imagespec_set_roi(ImageSpec& spec, const ROI& roi)
+    {
+        set_roi(spec, roi);
+    }
 
 
-void
-imagespec_set_roi_full(ImageSpec& spec, const ROI& roi)
-{
-    set_roi_full(spec, roi);
-}
+    void imagespec_set_roi_full(ImageSpec& spec, const ROI& roi)
+    {
+        set_roi_full(spec, roi);
+    }
 
 }  // namespace
 
 
-NB_MODULE(_nanobind_experimental, m)
+void
+declare_roi(nb::module_& m)
 {
-    m.doc() = "Experimental OpenImageIO nanobind bindings.";
-
     nb::class_<ROI> roi(m, "ROI");
     roi.def_rw("xbegin", &ROI::xbegin)
         .def_rw("xend", &ROI::xend)
@@ -119,5 +110,6 @@ NB_MODULE(_nanobind_experimental, m)
     m.def("get_roi_full", &get_roi_full);
     m.def("set_roi", &imagespec_set_roi);
     m.def("set_roi_full", &imagespec_set_roi_full);
-    m.attr("__version__") = OIIO_VERSION_STRING;
 }
+
+}  // namespace PyOpenImageIO
