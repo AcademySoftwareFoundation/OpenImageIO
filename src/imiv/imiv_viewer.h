@@ -19,7 +19,7 @@ enum class ImageSortMode : uint8_t {
     ByFileDate  = 3
 };
 
-enum class OcioConfigSource : uint8_t { Global = 0, Local = 1, User = 2 };
+enum class OcioConfigSource : uint8_t { Global = 0, BuiltIn = 1, User = 2 };
 
 struct ViewerState {
     LoadedImage image;

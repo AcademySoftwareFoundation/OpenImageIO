@@ -583,8 +583,9 @@ namespace {
         return true;
     }
 
-    void apply_test_engine_mouse_actions(ImGuiTestContext* ctx)
+    int apply_test_engine_mouse_actions(ImGuiTestContext* ctx)
     {
+        int held_button         = -1;
         ImGuiKeyChord key_chord = 0;
         if (env_read_key_chord_value("IMIV_IMGUI_TEST_ENGINE_KEY_CHORD",
                                      key_chord)) {
@@ -640,6 +641,44 @@ namespace {
                                     static_cast<ImGuiMouseButton>(drag_button));
             ctx->Yield(1);
         }
+        float hold_drag_dx = 0.0f;
+        float hold_drag_dy = 0.0f;
+        const bool have_hold_drag_dx
+            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_DX",
+                                   hold_drag_dx);
+        const bool have_hold_drag_dy
+            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_DY",
+                                   hold_drag_dy);
+        if (have_hold_drag_dx || have_hold_drag_dy) {
+            int drag_button = 0;
+            if (!env_read_int_value(
+                    "IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_BUTTON",
+                    drag_button)) {
+                drag_button = 0;
+            }
+            drag_button           = std::clamp(drag_button, 0, 4);
+            const int hold_frames = std::max(
+                0,
+                env_int_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_FRAMES", 1));
+            ctx->MouseDown(static_cast<ImGuiMouseButton>(drag_button));
+            ctx->Yield(1);
+            const ImVec2 current_pos = ImGui::GetIO().MousePos;
+            ctx->MouseMoveToPos(ImVec2(
+                current_pos.x + (have_hold_drag_dx ? hold_drag_dx : 0.0f),
+                current_pos.y + (have_hold_drag_dy ? hold_drag_dy : 0.0f)));
+            if (hold_frames > 0)
+                ctx->Yield(hold_frames);
+            held_button = drag_button;
+        }
+        return held_button;
+    }
+
+    void release_test_engine_held_mouse(ImGuiTestContext* ctx, int held_button)
+    {
+        if (held_button < 0)
+            return;
+        ctx->MouseUp(static_cast<ImGuiMouseButton>(held_button));
+        ctx->Yield(1);
     }
 
     void imiv_test_smoke_screenshot(ImGuiTestContext* ctx)
@@ -647,7 +686,7 @@ namespace {
         const int delay_frames = env_int_value(
             "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_DELAY_FRAMES", 3);
         ctx->Yield(delay_frames);
-        apply_test_engine_mouse_actions(ctx);
+        const int held_button = apply_test_engine_mouse_actions(ctx);
 
         const int frames_to_capture
             = env_int_value("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_FRAMES", 1);
@@ -690,8 +729,38 @@ namespace {
                 if (!capture_main_viewport_screenshot(ctx, nullptr))
                     return;
             }
+            std::string layout_out_value;
+            if (read_env_value(
+                    "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_LAYOUT_OUT",
+                    layout_out_value)
+                && !layout_out_value.empty()) {
+                const bool include_items = env_flag_is_truthy(
+                    "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_LAYOUT_ITEMS");
+                int depth = env_int_value(
+                    "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_LAYOUT_DEPTH", 8);
+                if (depth <= 0)
+                    depth = 1;
+                if (!write_layout_dump_json(
+                        ctx, std::filesystem::path(layout_out_value),
+                        include_items, depth)) {
+                    release_test_engine_held_mouse(ctx, held_button);
+                    return;
+                }
+            }
+            std::string state_out_value;
+            if (read_env_value(
+                    "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_STATE_OUT",
+                    state_out_value)
+                && !state_out_value.empty()) {
+                if (!write_viewer_state_json(ctx, std::filesystem::path(
+                                                      state_out_value))) {
+                    release_test_engine_held_mouse(ctx, held_button);
+                    return;
+                }
+            }
             ctx->Yield(1);
         }
+        release_test_engine_held_mouse(ctx, held_button);
     }
 
     void imiv_test_dump_layout_json(ImGuiTestContext* ctx)
@@ -700,7 +769,7 @@ namespace {
             = env_int_value("IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DELAY_FRAMES",
                             3);
         ctx->Yield(delay_frames);
-        apply_test_engine_mouse_actions(ctx);
+        const int held_button = apply_test_engine_mouse_actions(ctx);
 
         const bool include_items = env_flag_is_truthy(
             "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS");
@@ -717,8 +786,10 @@ namespace {
 
         if (!write_layout_dump_json(ctx, std::filesystem::path(out_value),
                                     include_items, depth)) {
+            release_test_engine_held_mouse(ctx, held_button);
             return;
         }
+        release_test_engine_held_mouse(ctx, held_button);
     }
 
     void imiv_test_dump_viewer_state(ImGuiTestContext* ctx)
@@ -727,7 +798,7 @@ namespace {
             = env_int_value("IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_DELAY_FRAMES",
                             3);
         ctx->Yield(delay_frames);
-        apply_test_engine_mouse_actions(ctx);
+        const int held_button = apply_test_engine_mouse_actions(ctx);
         ctx->Yield(1);
 
         std::string out_value;
@@ -737,8 +808,10 @@ namespace {
         }
 
         if (!write_viewer_state_json(ctx, std::filesystem::path(out_value))) {
+            release_test_engine_held_mouse(ctx, held_button);
             return;
         }
+        release_test_engine_held_mouse(ctx, held_button);
     }
 
     void imiv_test_developer_menu_metrics(ImGuiTestContext* ctx)

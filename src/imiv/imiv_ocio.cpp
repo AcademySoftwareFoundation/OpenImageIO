@@ -17,27 +17,25 @@ namespace Imiv {
 
 namespace {
 
-    std::filesystem::path executable_directory_path()
-    {
-        const std::string program_path = OIIO::Sysutil::this_program_path();
-        if (program_path.empty())
-            return std::filesystem::path();
-        return std::filesystem::path(program_path).parent_path();
-    }
-
-    std::filesystem::path local_ocio_config_path()
-    {
-        const std::filesystem::path exe_dir = executable_directory_path();
-        if (exe_dir.empty())
-            return std::filesystem::path();
-        return exe_dir / "ocio" / "config.ocio";
-    }
+    std::string builtin_ocio_config_path() { return "ocio://default"; }
 
     OcioConfigSource ocio_config_source_from_int(int value)
     {
         value = std::clamp(value, static_cast<int>(OcioConfigSource::Global),
                            static_cast<int>(OcioConfigSource::User));
         return static_cast<OcioConfigSource>(value);
+    }
+
+    bool ocio_source_string_is_usable(std::string_view value)
+    {
+        const std::string trimmed = std::string(OIIO::Strutil::strip(value));
+        if (trimmed.empty())
+            return false;
+        if (OIIO::Strutil::istarts_with(trimmed, "ocio://"))
+            return true;
+        std::error_code ec;
+        return std::filesystem::exists(std::filesystem::path(trimmed), ec)
+               && !ec;
     }
 
     OcioUniformType map_ocio_uniform_type(OCIO::UniformDataType type)
@@ -105,16 +103,12 @@ namespace {
         error_message.clear();
         config.reset();
         try {
-            if (selection.resolved_source == OcioConfigSource::Global) {
-                config = OCIO::Config::CreateFromEnv();
-            } else {
-                if (selection.resolved_path.empty()) {
-                    error_message = "OCIO config path is empty";
-                    return false;
-                }
-                config = OCIO::Config::CreateFromFile(
-                    selection.resolved_path.c_str());
+            if (selection.resolved_path.empty()) {
+                error_message = "OCIO config path is empty";
+                return false;
             }
+            config = OCIO::Config::CreateFromFile(
+                selection.resolved_path.c_str());
         } catch (const OCIO::Exception& e) {
             error_message = e.what();
             return false;
@@ -537,7 +531,7 @@ ocio_config_source_name(OcioConfigSource source)
 {
     switch (source) {
     case OcioConfigSource::Global: return "global";
-    case OcioConfigSource::Local: return "local";
+    case OcioConfigSource::BuiltIn: return "builtin";
     case OcioConfigSource::User: return "user";
     default: return "global";
     }
@@ -552,14 +546,12 @@ resolve_ocio_config_selection(const PlaceholderUiState& ui_state,
         ui_state.ocio_config_source);
     selection.env_value = std::string(
         OIIO::Strutil::strip(OIIO::Sysutil::getenv("OCIO")));
+    const bool env_is_usable = ocio_source_string_is_usable(
+        selection.env_value);
 
     const std::string user_path = std::string(
         OIIO::Strutil::strip(ui_state.ocio_user_config_path));
-    const std::filesystem::path local_path = local_ocio_config_path();
     std::error_code ec;
-    const bool local_exists = !local_path.empty()
-                              && std::filesystem::exists(local_path, ec) && !ec;
-    ec.clear();
     const bool user_exists
         = !user_path.empty()
           && std::filesystem::exists(std::filesystem::path(user_path), ec)
@@ -567,41 +559,36 @@ resolve_ocio_config_selection(const PlaceholderUiState& ui_state,
 
     switch (selection.requested_source) {
     case OcioConfigSource::Global:
-        selection.resolved_source = OcioConfigSource::Global;
-        break;
-    case OcioConfigSource::Local:
-        if (local_exists) {
-            selection.resolved_source = OcioConfigSource::Local;
-            selection.resolved_path   = local_path.lexically_normal().string();
-        } else {
+        if (env_is_usable) {
             selection.resolved_source = OcioConfigSource::Global;
+            selection.resolved_path   = selection.env_value;
+        } else {
+            selection.resolved_source  = OcioConfigSource::BuiltIn;
+            selection.resolved_path    = builtin_ocio_config_path();
+            selection.fallback_applied = true;
         }
+        break;
+    case OcioConfigSource::BuiltIn:
+        selection.resolved_source = OcioConfigSource::BuiltIn;
+        selection.resolved_path   = builtin_ocio_config_path();
         break;
     case OcioConfigSource::User:
         if (user_exists) {
             selection.resolved_source = OcioConfigSource::User;
             selection.resolved_path
                 = std::filesystem::path(user_path).lexically_normal().string();
-        } else if (local_exists) {
-            selection.resolved_source = OcioConfigSource::Local;
-            selection.resolved_path   = local_path.lexically_normal().string();
         } else {
-            selection.resolved_source = OcioConfigSource::Global;
+            selection.resolved_source  = OcioConfigSource::BuiltIn;
+            selection.resolved_path    = builtin_ocio_config_path();
+            selection.fallback_applied = true;
         }
         break;
     default: selection.resolved_source = OcioConfigSource::Global; break;
     }
 
-    if (selection.resolved_source == OcioConfigSource::Global) {
-        selection.uses_raw_fallback = selection.env_value.empty();
-        selection.selection_key     = OIIO::Strutil::fmt::format(
-            "{}:{}", ocio_config_source_name(selection.resolved_source),
-            selection.uses_raw_fallback ? "(raw)" : selection.env_value);
-    } else {
-        selection.selection_key = OIIO::Strutil::fmt::format(
-            "{}:{}", ocio_config_source_name(selection.resolved_source),
-            selection.resolved_path);
-    }
+    selection.selection_key = OIIO::Strutil::fmt::format(
+        "{}:{}", ocio_config_source_name(selection.resolved_source),
+        selection.resolved_path);
 }
 
 void

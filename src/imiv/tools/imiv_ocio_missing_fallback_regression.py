@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression check for imiv fallback when no OCIO config is available."""
+"""Regression check for builtin OCIO fallback when $OCIO is unavailable."""
 
 from __future__ import annotations
 
@@ -18,6 +18,10 @@ ERROR_PATTERNS = (
     "fatal Vulkan error",
     "error: imiv exited with code",
 )
+
+
+SOURCE_GLOBAL = 0
+SOURCE_BUILTIN = 1
 
 
 def _default_binary(repo_root: Path) -> Path:
@@ -65,6 +69,23 @@ def _fail(message: str) -> int:
     return 1
 
 
+def _write_prefs(config_home: Path, *, ocio_config_source: int) -> Path:
+    prefs_dir = config_home / "OpenImageIO" / "imiv"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+    prefs_path = prefs_dir / "imiv_prefs.ini"
+    prefs_text = (
+        "# imiv preferences\n"
+        "use_ocio=1\n"
+        f"ocio_config_source={ocio_config_source}\n"
+        "ocio_display=default\n"
+        "ocio_view=default\n"
+        "ocio_image_color_space=auto\n"
+        "ocio_user_config_path=\n"
+    )
+    prefs_path.write_text(prefs_text, encoding="utf-8")
+    return prefs_path
+
+
 def _run_case(
     repo_root: Path,
     runner: Path,
@@ -74,7 +95,6 @@ def _run_case(
     image_path: Path,
     out_dir: Path,
     name: str,
-    ocio_use: bool,
     trace: bool,
 ) -> tuple[Path, Path]:
     screenshot_path = out_dir / f"{name}.png"
@@ -88,8 +108,6 @@ def _run_case(
         str(cwd),
         "--open",
         str(image_path),
-        "--ocio-use",
-        "true" if ocio_use else "false",
         "--screenshot-out",
         str(screenshot_path),
     ]
@@ -150,47 +168,53 @@ if __name__ == "__main__":
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    env = _load_env_from_script(Path(args.env_script).expanduser())
-    env.pop("OCIO", None)
-    env["IMIV_CONFIG_HOME"] = str(out_dir / "config_home")
+    base_env = _load_env_from_script(Path(args.env_script).expanduser())
+    base_env.pop("OCIO", None)
+
+    global_cfg = out_dir / "cfg_global"
+    _write_prefs(global_cfg, ocio_config_source=SOURCE_GLOBAL)
+    global_env = dict(base_env)
+    global_env["IMIV_CONFIG_HOME"] = str(global_cfg)
+
+    builtin_cfg = out_dir / "cfg_builtin"
+    _write_prefs(builtin_cfg, ocio_config_source=SOURCE_BUILTIN)
+    builtin_env = dict(base_env)
+    builtin_env["IMIV_CONFIG_HOME"] = str(builtin_cfg)
 
     try:
-        off_png, off_log = _run_case(
+        global_png, global_log = _run_case(
             repo_root,
             runner,
             exe,
             cwd,
-            env,
+            global_env,
             image_path,
             out_dir,
-            "ocio_off",
-            False,
+            "global_builtin_fallback",
             args.trace,
         )
-        on_png, on_log = _run_case(
+        builtin_png, builtin_log = _run_case(
             repo_root,
             runner,
             exe,
             cwd,
-            env,
+            builtin_env,
             image_path,
             out_dir,
-            "ocio_on",
-            True,
+            "builtin",
             args.trace,
         )
     except (subprocess.SubprocessError, RuntimeError) as exc:
         raise SystemExit(_fail(str(exc)))
 
-    if not filecmp.cmp(off_png, on_png, shallow=False):
+    if not filecmp.cmp(global_png, builtin_png, shallow=False):
         raise SystemExit(
             _fail(
-                "missing-OCIO fallback changed rendered output; expected "
-                "Use OCIO on/off to match when no config is available"
+                "global OCIO source did not match explicit builtin source when $OCIO was unavailable"
             )
         )
 
-    print("off:", off_png)
-    print("on:", on_png)
-    print("off_log:", off_log)
-    print("on_log:", on_log)
+    print("global_builtin_fallback:", global_png)
+    print("builtin:", builtin_png)
+    print("global_builtin_fallback_log:", global_log)
+    print("builtin_log:", builtin_log)

@@ -55,7 +55,7 @@ struct OcioTextureBlueprint {
 struct OcioConfigSelection {
     OcioConfigSource requested_source = OcioConfigSource::Global;
     OcioConfigSource resolved_source  = OcioConfigSource::Global;
-    bool uses_raw_fallback            = false;
+    bool fallback_applied             = false;
     std::string env_value;
     std::string resolved_path;
     std::string selection_key;
