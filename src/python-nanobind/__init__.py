@@ -5,7 +5,6 @@
 import os
 import sys
 import platform
-import subprocess
 
 _here = os.path.abspath(os.path.dirname(__file__))
 
@@ -34,12 +33,5 @@ The production pybind11 bindings are not installed in this configuration.
 
 __version__ = getattr(_ext, "__version__", "")
 
-
-def _call_program(name, args):
-    bin_dir = os.path.join(os.path.dirname(__file__), "bin")
-    return subprocess.call([os.path.join(bin_dir, name)] + args)
-
-
-def _command_line():
-    name = os.path.basename(sys.argv[0])
-    raise SystemExit(_call_program(name, sys.argv[1:]))
+# TODO: Restore the Python CLI entry-point trampolines when the nanobind
+# package ships the full wheel-style bin/lib/share layout.
