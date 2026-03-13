@@ -10,9 +10,11 @@ import importlib
 import pathlib
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "common"))
+sys.path.insert(
+    0, str(pathlib.Path(__file__).resolve().parents[2] / "python-roi" / "src")
+)
 
-from roi_shared import run  # noqa: E402
+from test_roi import run  # noqa: E402
 
 
 def load_package(build_root: pathlib.Path):
