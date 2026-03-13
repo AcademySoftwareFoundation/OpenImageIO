@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression check for OCIO config-source selection and startup fallback."""
+"""Regression check for OCIO config-source selection and builtin fallback."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -20,6 +19,11 @@ ERROR_PATTERNS = (
     "fatal Vulkan error",
     "error: imiv exited with code",
 )
+
+
+SOURCE_GLOBAL = 0
+SOURCE_BUILTIN = 1
+SOURCE_USER = 2
 
 
 def _default_binary(repo_root: Path) -> Path:
@@ -293,32 +297,6 @@ def _images_equal(idiff: Path, lhs: Path, rhs: Path) -> bool:
     raise RuntimeError(f"idiff failed for '{lhs.name}' vs '{rhs.name}': {proc.stdout}")
 
 
-@contextmanager
-def _staged_local_config(exe: Path, config_path: Path):
-    ocio_dir = exe.parent / "ocio"
-    local_config = ocio_dir / "config.ocio"
-    backup_path = None
-    had_original = local_config.exists()
-    if had_original:
-        backup_path = ocio_dir / "config.ocio.imiv-test-backup"
-        shutil.copy2(local_config, backup_path)
-    ocio_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(config_path, local_config)
-    try:
-        yield local_config
-    finally:
-        if had_original and backup_path is not None and backup_path.exists():
-            shutil.copy2(backup_path, local_config)
-            backup_path.unlink()
-        else:
-            if local_config.exists():
-                local_config.unlink()
-            try:
-                ocio_dir.rmdir()
-            except OSError:
-                pass
-
-
 if __name__ == "__main__":
     repo_root = Path(__file__).resolve().parents[3]
     default_env_script = repo_root / "build_u" / "imiv_env.sh"
@@ -356,6 +334,7 @@ if __name__ == "__main__":
             raise SystemExit(_fail(f"oiiotool not found: {oiiotool}"))
         oiiotool = Path(found)
     oiiotool = oiiotool.resolve()
+
     idiff = Path(args.idiff).expanduser()
     if not idiff.exists():
         found = shutil.which(str(idiff))
@@ -369,55 +348,37 @@ if __name__ == "__main__":
     image_path = out_dir / "ocio_source_fixture.exr"
     _generate_probe_image(oiiotool, image_path)
 
-    display_name = "sRGB - Display"
-    view_name = "Un-tone-mapped"
-    image_color_space = "ACEScg"
+    external_display = "sRGB - Display"
+    external_view = "Un-tone-mapped"
+    external_color_space = "ACEScg"
+
+    builtin_display = "default"
+    builtin_view = "default"
+    builtin_color_space = "auto"
 
     base_env = _load_env_from_script(Path(args.env_script).expanduser())
     base_env.pop("OCIO", None)
-
-    local_ocio_dir = exe.parent / "ocio"
-    local_ocio_config = local_ocio_dir / "config.ocio"
-    if local_ocio_config.exists():
-        raise SystemExit(
-            _fail(
-                f"local OCIO config already exists and would make this test ambiguous: "
-                f"{local_ocio_config}"
-            )
-        )
 
     baseline_cfg = out_dir / "cfg_baseline"
     _write_prefs(
         baseline_cfg,
         use_ocio=False,
-        ocio_config_source=0,
-        ocio_display=display_name,
-        ocio_view=view_name,
-        ocio_image_color_space=image_color_space,
+        ocio_config_source=SOURCE_GLOBAL,
+        ocio_display=builtin_display,
+        ocio_view=builtin_view,
+        ocio_image_color_space=builtin_color_space,
     )
     baseline_env = dict(base_env)
     baseline_env["IMIV_CONFIG_HOME"] = str(baseline_cfg)
-
-    persisted_missing_cfg = out_dir / "cfg_missing"
-    _write_prefs(
-        persisted_missing_cfg,
-        use_ocio=True,
-        ocio_config_source=0,
-        ocio_display=display_name,
-        ocio_view=view_name,
-        ocio_image_color_space=image_color_space,
-    )
-    persisted_missing_env = dict(base_env)
-    persisted_missing_env["IMIV_CONFIG_HOME"] = str(persisted_missing_cfg)
 
     global_cfg = out_dir / "cfg_global"
     _write_prefs(
         global_cfg,
         use_ocio=True,
-        ocio_config_source=0,
-        ocio_display=display_name,
-        ocio_view=view_name,
-        ocio_image_color_space=image_color_space,
+        ocio_config_source=SOURCE_GLOBAL,
+        ocio_display=external_display,
+        ocio_view=external_view,
+        ocio_image_color_space=external_color_space,
     )
     global_env = dict(base_env)
     global_env["IMIV_CONFIG_HOME"] = str(global_cfg)
@@ -427,10 +388,10 @@ if __name__ == "__main__":
     _write_prefs(
         global_default_cfg,
         use_ocio=True,
-        ocio_config_source=0,
+        ocio_config_source=SOURCE_GLOBAL,
         ocio_display="default",
         ocio_view="default",
-        ocio_image_color_space=image_color_space,
+        ocio_image_color_space=external_color_space,
     )
     global_default_env = dict(base_env)
     global_default_env["IMIV_CONFIG_HOME"] = str(global_default_cfg)
@@ -440,69 +401,68 @@ if __name__ == "__main__":
     _write_prefs(
         global_invalid_cfg,
         use_ocio=True,
-        ocio_config_source=0,
+        ocio_config_source=SOURCE_GLOBAL,
         ocio_display="Missing Display",
         ocio_view="Missing View",
-        ocio_image_color_space=image_color_space,
+        ocio_image_color_space=external_color_space,
     )
     global_invalid_env = dict(base_env)
     global_invalid_env["IMIV_CONFIG_HOME"] = str(global_invalid_cfg)
     global_invalid_env["OCIO"] = str(ocio_config)
 
-    local_missing_global_cfg = out_dir / "cfg_local_missing_global"
+    global_builtin_cfg = out_dir / "cfg_global_builtin"
     _write_prefs(
-        local_missing_global_cfg,
+        global_builtin_cfg,
         use_ocio=True,
-        ocio_config_source=1,
-        ocio_display=display_name,
-        ocio_view=view_name,
-        ocio_image_color_space=image_color_space,
+        ocio_config_source=SOURCE_GLOBAL,
+        ocio_display=builtin_display,
+        ocio_view=builtin_view,
+        ocio_image_color_space=builtin_color_space,
     )
-    local_missing_global_env = dict(base_env)
-    local_missing_global_env["IMIV_CONFIG_HOME"] = str(local_missing_global_cfg)
-    local_missing_global_env["OCIO"] = str(ocio_config)
+    global_builtin_env = dict(base_env)
+    global_builtin_env["IMIV_CONFIG_HOME"] = str(global_builtin_cfg)
+
+    builtin_cfg = out_dir / "cfg_builtin"
+    _write_prefs(
+        builtin_cfg,
+        use_ocio=True,
+        ocio_config_source=SOURCE_BUILTIN,
+        ocio_display=builtin_display,
+        ocio_view=builtin_view,
+        ocio_image_color_space=builtin_color_space,
+    )
+    builtin_env = dict(base_env)
+    builtin_env["IMIV_CONFIG_HOME"] = str(builtin_cfg)
 
     user_cfg = out_dir / "cfg_user"
     _write_prefs(
         user_cfg,
         use_ocio=True,
-        ocio_config_source=2,
-        ocio_display=display_name,
-        ocio_view=view_name,
-        ocio_image_color_space=image_color_space,
+        ocio_config_source=SOURCE_USER,
+        ocio_display=external_display,
+        ocio_view=external_view,
+        ocio_image_color_space=external_color_space,
         ocio_user_config_path=str(ocio_config),
     )
     user_env = dict(base_env)
     user_env["IMIV_CONFIG_HOME"] = str(user_cfg)
 
-    user_missing_global_cfg = out_dir / "cfg_user_missing_global"
+    user_missing_builtin_cfg = out_dir / "cfg_user_missing_builtin"
     _write_prefs(
-        user_missing_global_cfg,
+        user_missing_builtin_cfg,
         use_ocio=True,
-        ocio_config_source=2,
-        ocio_display=display_name,
-        ocio_view=view_name,
-        ocio_image_color_space=image_color_space,
+        ocio_config_source=SOURCE_USER,
+        ocio_display=builtin_display,
+        ocio_view=builtin_view,
+        ocio_image_color_space=builtin_color_space,
         ocio_user_config_path=str(out_dir / "missing_user_config.ocio"),
     )
-    user_missing_global_env = dict(base_env)
-    user_missing_global_env["IMIV_CONFIG_HOME"] = str(user_missing_global_cfg)
-    user_missing_global_env["OCIO"] = str(ocio_config)
+    user_missing_builtin_env = dict(base_env)
+    user_missing_builtin_env["IMIV_CONFIG_HOME"] = str(user_missing_builtin_cfg)
 
     try:
         baseline_png, baseline_layout, baseline_log = _run_case(
             repo_root, runner, exe, cwd, baseline_env, image_path, out_dir, "baseline", args.trace
-        )
-        missing_png, missing_layout, missing_log = _run_case(
-            repo_root,
-            runner,
-            exe,
-            cwd,
-            persisted_missing_env,
-            image_path,
-            out_dir,
-            "persisted_missing",
-            args.trace,
         )
         global_png, global_layout, global_log = _run_case(
             repo_root, runner, exe, cwd, global_env, image_path, out_dir, "global", args.trace
@@ -529,92 +489,55 @@ if __name__ == "__main__":
             "global_invalid_selection",
             args.trace,
         )
-        local_missing_global_png, local_missing_global_layout, local_missing_global_log = _run_case(
+        global_builtin_png, global_builtin_layout, global_builtin_log = _run_case(
             repo_root,
             runner,
             exe,
             cwd,
-            local_missing_global_env,
+            global_builtin_env,
             image_path,
             out_dir,
-            "local_missing_global",
+            "global_builtin_fallback",
+            args.trace,
+        )
+        builtin_png, builtin_layout, builtin_log = _run_case(
+            repo_root,
+            runner,
+            exe,
+            cwd,
+            builtin_env,
+            image_path,
+            out_dir,
+            "builtin",
             args.trace,
         )
         user_png, user_layout, user_log = _run_case(
             repo_root, runner, exe, cwd, user_env, image_path, out_dir, "user", args.trace
         )
-        user_missing_global_png, user_missing_global_layout, user_missing_global_log = _run_case(
+        user_missing_builtin_png, user_missing_builtin_layout, user_missing_builtin_log = _run_case(
             repo_root,
             runner,
             exe,
             cwd,
-            user_missing_global_env,
+            user_missing_builtin_env,
             image_path,
             out_dir,
-            "user_missing_global",
+            "user_missing_builtin",
             args.trace,
         )
-        with _staged_local_config(exe, ocio_config):
-            local_cfg = out_dir / "cfg_local"
-            _write_prefs(
-                local_cfg,
-                use_ocio=True,
-                ocio_config_source=1,
-                ocio_display=display_name,
-                ocio_view=view_name,
-                ocio_image_color_space=image_color_space,
-            )
-            local_env = dict(base_env)
-            local_env["IMIV_CONFIG_HOME"] = str(local_cfg)
-            local_png, local_layout, local_log = _run_case(
-                repo_root,
-                runner,
-                exe,
-                cwd,
-                local_env,
-                image_path,
-                out_dir,
-                "local",
-                args.trace,
-            )
-            user_missing_local_cfg = out_dir / "cfg_user_missing_local"
-            _write_prefs(
-                user_missing_local_cfg,
-                use_ocio=True,
-                ocio_config_source=2,
-                ocio_display=display_name,
-                ocio_view=view_name,
-                ocio_image_color_space=image_color_space,
-                ocio_user_config_path=str(out_dir / "missing_user_config.ocio"),
-            )
-            user_missing_local_env = dict(base_env)
-            user_missing_local_env["IMIV_CONFIG_HOME"] = str(user_missing_local_cfg)
-            user_missing_local_png, user_missing_local_layout, user_missing_local_log = _run_case(
-                repo_root,
-                runner,
-                exe,
-                cwd,
-                user_missing_local_env,
-                image_path,
-                out_dir,
-                "user_missing_local",
-                args.trace,
-            )
     except (subprocess.SubprocessError, RuntimeError) as exc:
         raise SystemExit(_fail(str(exc)))
 
     baseline_crop = out_dir / "baseline_crop.png"
-    missing_crop = out_dir / "persisted_missing_crop.png"
     global_crop = out_dir / "global_crop.png"
     global_default_crop = out_dir / "global_default_crop.png"
     global_invalid_crop = out_dir / "global_invalid_selection_crop.png"
-    local_missing_global_crop = out_dir / "local_missing_global_crop.png"
-    local_crop = out_dir / "local_crop.png"
+    global_builtin_crop = out_dir / "global_builtin_fallback_crop.png"
+    builtin_crop = out_dir / "builtin_crop.png"
     user_crop = out_dir / "user_crop.png"
-    user_missing_global_crop = out_dir / "user_missing_global_crop.png"
-    user_missing_local_crop = out_dir / "user_missing_local_crop.png"
+    user_missing_builtin_crop = out_dir / "user_missing_builtin_crop.png"
+
     _crop_image(oiiotool, baseline_png, _image_crop_rect(baseline_layout), baseline_crop)
-    _crop_image(oiiotool, missing_png, _image_crop_rect(missing_layout), missing_crop)
     _crop_image(oiiotool, global_png, _image_crop_rect(global_layout), global_crop)
     _crop_image(
         oiiotool,
@@ -630,82 +553,55 @@ if __name__ == "__main__":
     )
     _crop_image(
         oiiotool,
-        local_missing_global_png,
-        _image_crop_rect(local_missing_global_layout),
-        local_missing_global_crop,
+        global_builtin_png,
+        _image_crop_rect(global_builtin_layout),
+        global_builtin_crop,
     )
-    _crop_image(oiiotool, local_png, _image_crop_rect(local_layout), local_crop)
+    _crop_image(oiiotool, builtin_png, _image_crop_rect(builtin_layout), builtin_crop)
     _crop_image(oiiotool, user_png, _image_crop_rect(user_layout), user_crop)
     _crop_image(
         oiiotool,
-        user_missing_global_png,
-        _image_crop_rect(user_missing_global_layout),
-        user_missing_global_crop,
+        user_missing_builtin_png,
+        _image_crop_rect(user_missing_builtin_layout),
+        user_missing_builtin_crop,
     )
-    _crop_image(
-        oiiotool,
-        user_missing_local_png,
-        _image_crop_rect(user_missing_local_layout),
-        user_missing_local_crop,
-    )
-
-    if not _images_equal(idiff, baseline_crop, missing_crop):
-        raise SystemExit(
-            _fail(
-                "persisted startup Use OCIO did not fall back cleanly when no "
-                "config was available"
-            )
-        )
 
     if _images_equal(idiff, baseline_crop, global_crop):
         raise SystemExit(
             _fail(
-                "global OCIO source matched non-OCIO baseline; expected a "
-                "real OCIO transform result"
+                "global OCIO source matched non-OCIO baseline; expected a real OCIO transform result"
             )
         )
     if not _images_equal(idiff, global_default_crop, global_invalid_crop):
         raise SystemExit(
             _fail(
-                "invalid persisted display/view selection did not fall back "
-                "to the active config defaults"
+                "invalid persisted display/view selection did not fall back to the active config defaults"
             )
         )
-
-    if not _images_equal(idiff, global_crop, local_crop):
-        raise SystemExit(_fail("local OCIO source output differs from global"))
     if not _images_equal(idiff, global_crop, user_crop):
         raise SystemExit(_fail("user OCIO source output differs from global"))
-    if not _images_equal(idiff, global_crop, local_missing_global_crop):
+    if not _images_equal(idiff, global_builtin_crop, builtin_crop):
         raise SystemExit(
-            _fail("local source did not fall back to global when local config was missing")
+            _fail("global source did not fall back to builtin when $OCIO was missing")
         )
-    if not _images_equal(idiff, global_crop, user_missing_global_crop):
+    if not _images_equal(idiff, builtin_crop, user_missing_builtin_crop):
         raise SystemExit(
-            _fail("user source did not fall back to global when user/local configs were missing")
-        )
-    if not _images_equal(idiff, local_crop, user_missing_local_crop):
-        raise SystemExit(
-            _fail("user source did not fall back to local when user config was missing")
+            _fail("user source did not fall back to builtin when user config was missing")
         )
 
     print("baseline:", baseline_png)
-    print("persisted_missing:", missing_png)
     print("global:", global_png)
     print("global_default:", global_default_png)
     print("global_invalid_selection:", global_invalid_png)
-    print("local_missing_global:", local_missing_global_png)
-    print("local:", local_png)
+    print("global_builtin_fallback:", global_builtin_png)
+    print("builtin:", builtin_png)
     print("user:", user_png)
-    print("user_missing_global:", user_missing_global_png)
-    print("user_missing_local:", user_missing_local_png)
+    print("user_missing_builtin:", user_missing_builtin_png)
     print("baseline_log:", baseline_log)
-    print("persisted_missing_log:", missing_log)
     print("global_log:", global_log)
     print("global_default_log:", global_default_log)
     print("global_invalid_selection_log:", global_invalid_log)
-    print("local_missing_global_log:", local_missing_global_log)
-    print("local_log:", local_log)
+    print("global_builtin_fallback_log:", global_builtin_log)
+    print("builtin_log:", builtin_log)
     print("user_log:", user_log)
-    print("user_missing_global_log:", user_missing_global_log)
-    print("user_missing_local_log:", user_missing_local_log)
+    print("user_missing_builtin_log:", user_missing_builtin_log)

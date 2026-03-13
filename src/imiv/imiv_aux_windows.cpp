@@ -139,7 +139,11 @@ namespace {
 
         OcioConfigSelection selection;
         resolve_ocio_config_selection(ui, selection);
-        if (!selection.resolved_path.empty()) {
+        if ((selection.resolved_source == OcioConfigSource::User
+             || selection.resolved_source == OcioConfigSource::Global)
+            && !selection.resolved_path.empty()) {
+            if (Strutil::istarts_with(selection.resolved_path, "ocio://"))
+                return std::string();
             const std::filesystem::path resolved_path(selection.resolved_path);
             if (resolved_path.has_parent_path())
                 return resolved_path.parent_path().string();
@@ -271,8 +275,8 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window)
             ui.ocio_config_source = ocio_source;
         }
         ImGui::SameLine();
-        if (ImGui::RadioButton("Local##ocio_cfg_local", &ocio_source,
-                               static_cast<int>(OcioConfigSource::Local))) {
+        if (ImGui::RadioButton("Built-in##ocio_cfg_builtin", &ocio_source,
+                               static_cast<int>(OcioConfigSource::BuiltIn))) {
             ui.ocio_config_source = ocio_source;
         }
         ImGui::SameLine();
@@ -305,20 +309,23 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window)
         ImGui::SameLine();
         ImGui::TextUnformatted(
             ocio_config_source_name(ocio_selection.resolved_source));
-        if (ocio_selection.resolved_source == OcioConfigSource::Global) {
-            const char* suffix = ocio_selection.uses_raw_fallback
-                                     ? "($OCIO unset, OCIO raw fallback)"
-                                     : "($OCIO)";
+        if (ocio_selection.requested_source == OcioConfigSource::Global
+            && ocio_selection.resolved_source == OcioConfigSource::BuiltIn) {
             ImGui::SameLine();
-            ImGui::TextUnformatted(suffix);
+            ImGui::TextUnformatted("($OCIO missing or invalid, fallback)");
+        } else if (ocio_selection.requested_source == OcioConfigSource::User
+                   && ocio_selection.fallback_applied) {
+            ImGui::SameLine();
+            ImGui::TextUnformatted("(user config missing, fallback)");
         }
         if (!ocio_selection.resolved_path.empty()) {
             ImGui::TextUnformatted("Resolved path");
             ImGui::PushTextWrapPos(0.0f);
             ImGui::TextUnformatted(ocio_selection.resolved_path.c_str());
             ImGui::PopTextWrapPos();
-        } else if (ocio_selection.resolved_source == OcioConfigSource::Global
-                   && !ocio_selection.env_value.empty()) {
+        }
+        if (ocio_selection.resolved_source == OcioConfigSource::Global
+            && !ocio_selection.env_value.empty()) {
             ImGui::TextUnformatted("OCIO env");
             ImGui::PushTextWrapPos(0.0f);
             ImGui::TextUnformatted(ocio_selection.env_value.c_str());

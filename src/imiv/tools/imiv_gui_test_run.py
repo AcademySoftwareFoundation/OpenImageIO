@@ -109,6 +109,12 @@ def main() -> int:
                     help="Optional mouse drag delta before capture/layout")
     ap.add_argument("--mouse-drag-button", type=int, default=0,
                     help="Mouse button index for --mouse-drag")
+    ap.add_argument("--mouse-drag-hold", nargs=2, type=float, metavar=("DX", "DY"), default=None,
+                    help="Optional mouse drag delta that stays held through capture/layout")
+    ap.add_argument("--mouse-drag-hold-button", type=int, default=0,
+                    help="Mouse button index for --mouse-drag-hold")
+    ap.add_argument("--mouse-drag-hold-frames", type=int, default=1,
+                    help="Frames to keep the held drag active before capture/layout")
     args = ap.parse_args()
 
     exe = _resolve_path(args.bin, repo_root)
@@ -128,6 +134,7 @@ def main() -> int:
     want_state = bool(args.state_json_out)
     want_svg = bool(args.svg_out)
     want_junit = bool(args.junit_out)
+    same_test_hold_capture = want_screenshot and bool(args.mouse_drag_hold)
 
     if not (want_screenshot or want_layout or want_state):
         print(
@@ -188,6 +195,12 @@ def main() -> int:
         env["IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_DY"] = str(args.mouse_drag[1])
         env["IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_BUTTON"] = str(args.mouse_drag_button)
 
+    if args.mouse_drag_hold:
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_DX"] = str(args.mouse_drag_hold[0])
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_DY"] = str(args.mouse_drag_hold[1])
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_BUTTON"] = str(args.mouse_drag_hold_button)
+        env["IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_FRAMES"] = str(max(0, args.mouse_drag_hold_frames))
+
     if want_screenshot:
         out = _resolve_path(args.screenshot_out, repo_root)
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -198,7 +211,7 @@ def main() -> int:
         if args.screenshot_save_all:
             env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_SAVE_ALL"] = "1"
 
-    if want_layout:
+    if want_layout and not same_test_hold_capture:
         out = _resolve_path(layout_json_out, repo_root)
         out.parent.mkdir(parents=True, exist_ok=True)
         env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP"] = "1"
@@ -208,7 +221,7 @@ def main() -> int:
         if args.layout_items or args.svg_items or (want_svg and not args.svg_no_items):
             env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS"] = "1"
 
-    if want_state:
+    if want_state and not same_test_hold_capture:
         out = _resolve_path(args.state_json_out, repo_root)
         out.parent.mkdir(parents=True, exist_ok=True)
         env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP"] = "1"
@@ -221,14 +234,44 @@ def main() -> int:
         env["IMIV_IMGUI_TEST_ENGINE_JUNIT_XML"] = "1"
         env["IMIV_IMGUI_TEST_ENGINE_JUNIT_OUT"] = str(junit_out)
 
-    print(f"run: {exe}")
-    print(f"cwd: {run_cwd}")
-    rc = subprocess.run(
-        [str(exe), "-F"], cwd=str(run_cwd), env=env, check=False
-    ).returncode
+    def _run_once(run_env: dict[str, str]) -> int:
+        print(f"run: {exe}")
+        print(f"cwd: {run_cwd}")
+        return subprocess.run(
+            [str(exe), "-F"], cwd=str(run_cwd), env=run_env, check=False
+        ).returncode
+
+    rc = _run_once(env)
     if rc != 0:
         print(f"error: imiv exited with code {rc}", file=sys.stderr)
         return rc
+
+    if same_test_hold_capture and (want_layout or want_state):
+        dump_env = dict(env)
+        dump_env.pop("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT", None)
+        dump_env.pop("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_OUT", None)
+        dump_env.pop("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_FRAMES", None)
+        dump_env.pop("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_DELAY_FRAMES", None)
+        dump_env.pop("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_SAVE_ALL", None)
+        if want_layout:
+            out = _resolve_path(layout_json_out, repo_root)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            dump_env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP"] = "1"
+            dump_env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_OUT"] = str(out)
+            dump_env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DEPTH"] = str(max(1, args.layout_depth))
+            dump_env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DELAY_FRAMES"] = str(max(0, args.layout_delay_frames))
+            if args.layout_items or args.svg_items or (want_svg and not args.svg_no_items):
+                dump_env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS"] = "1"
+        if want_state:
+            out = _resolve_path(args.state_json_out, repo_root)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            dump_env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP"] = "1"
+            dump_env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_OUT"] = str(out)
+            dump_env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_DELAY_FRAMES"] = str(max(0, args.state_delay_frames))
+        rc = _run_once(dump_env)
+        if rc != 0:
+            print(f"error: imiv exited with code {rc} during held-drag dump pass", file=sys.stderr)
+            return rc
 
     if want_svg:
         if not want_layout:

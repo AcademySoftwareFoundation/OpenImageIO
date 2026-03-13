@@ -806,6 +806,21 @@ if (TARGET imiv
             LABELS "imiv;imiv_debug;gui"
             TIMEOUT 120
             SKIP_RETURN_CODE 77)
+
+    add_test (
+        NAME imiv_area_probe_closeup_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_area_probe_closeup_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/area_probe_closeup_regression"
+            --open "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png")
+    set_tests_properties (
+        imiv_area_probe_closeup_regression PROPERTIES
+            LABELS "imiv;gui"
+            TIMEOUT 120)
 elseif (TARGET imiv
         AND OIIO_BUILD_TESTS
         AND BUILD_TESTING)
