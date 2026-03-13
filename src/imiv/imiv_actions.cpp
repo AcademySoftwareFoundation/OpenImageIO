@@ -46,6 +46,41 @@ namespace {
         reset_area_probe_overlay(viewer);
     }
 
+    void calc_subimage_from_zoom(const LoadedImage& image, int& subimage,
+                                 float& zoom)
+    {
+        const int rel_subimage = static_cast<int>(
+            std::trunc(std::log2(std::max(1.0e-6f, 1.0f / zoom))));
+        subimage = std::clamp(image.subimage + rel_subimage, 0,
+                              image.nsubimages - 1);
+        if (!(image.subimage == 0 && zoom > 1.0f)
+            && !(image.subimage == image.nsubimages - 1 && zoom < 1.0f)) {
+            const float pow_zoom = std::pow(2.0f,
+                                            static_cast<float>(rel_subimage));
+            zoom *= pow_zoom;
+        }
+    }
+
+    void restore_view_after_subimage_load(ViewerState& viewer, float zoom,
+                                          const ImVec2& norm_scroll)
+    {
+        int display_width  = viewer.image.width;
+        int display_height = viewer.image.height;
+        oriented_image_dimensions(viewer.image, display_width, display_height);
+        viewer.zoom        = zoom;
+        viewer.fit_request = false;
+        const ImVec2 image_size(static_cast<float>(display_width) * viewer.zoom,
+                                static_cast<float>(display_height)
+                                    * viewer.zoom);
+        sync_view_scroll_from_display_scroll(
+            viewer,
+            ImVec2(std::clamp(norm_scroll.x, 0.0f, 1.0f) * image_size.x,
+                   std::clamp(norm_scroll.y, 0.0f, 1.0f) * image_size.y),
+            image_size);
+        viewer.scroll_sync_frames_left
+            = std::max(viewer.scroll_sync_frames_left, 2);
+    }
+
     std::filesystem::path executable_directory_path()
     {
         const std::string program_path = Sysutil::this_program_path();
@@ -642,11 +677,41 @@ change_subimage_action(VulkanState& vk_state, ViewerState& viewer,
         viewer.last_error.clear();
         return;
     }
-    const int target_subimage = viewer.image.subimage + delta;
-    if (target_subimage < 0 || target_subimage >= viewer.image.nsubimages)
-        return;
-    load_viewer_image(vk_state, viewer, &ui_state, viewer.image.path,
-                      target_subimage, viewer.image.miplevel);
+    viewer.pending_auto_subimage = -1;
+    bool ok                      = false;
+    if (delta < 0) {
+        if (viewer.image.miplevel > 0) {
+            viewer.auto_subimage = false;
+            ok = load_viewer_image(vk_state, viewer, &ui_state,
+                                   viewer.image.path, viewer.image.subimage,
+                                   viewer.image.miplevel - 1);
+        } else if (viewer.image.subimage > 0) {
+            viewer.auto_subimage = false;
+            ok = load_viewer_image(vk_state, viewer, &ui_state,
+                                   viewer.image.path, viewer.image.subimage - 1,
+                                   0);
+        } else if (viewer.image.nsubimages > 1) {
+            viewer.auto_subimage  = true;
+            viewer.status_message = "Auto subimage enabled";
+            viewer.last_error.clear();
+        }
+    } else if (delta > 0) {
+        if (viewer.auto_subimage) {
+            viewer.auto_subimage = false;
+            ok = load_viewer_image(vk_state, viewer, &ui_state,
+                                   viewer.image.path, 0, 0);
+        } else if (viewer.image.miplevel < viewer.image.nmiplevels - 1) {
+            ok = load_viewer_image(vk_state, viewer, &ui_state,
+                                   viewer.image.path, viewer.image.subimage,
+                                   viewer.image.miplevel + 1);
+        } else if (viewer.image.subimage < viewer.image.nsubimages - 1) {
+            ok = load_viewer_image(vk_state, viewer, &ui_state,
+                                   viewer.image.path, viewer.image.subimage + 1,
+                                   0);
+        }
+    }
+    if (ok)
+        viewer.last_error.clear();
 }
 
 void
@@ -661,8 +726,50 @@ change_miplevel_action(VulkanState& vk_state, ViewerState& viewer,
     const int target_mip = viewer.image.miplevel + delta;
     if (target_mip < 0 || target_mip >= viewer.image.nmiplevels)
         return;
+    viewer.auto_subimage         = false;
+    viewer.pending_auto_subimage = -1;
     load_viewer_image(vk_state, viewer, &ui_state, viewer.image.path,
                       viewer.image.subimage, target_mip);
+}
+
+void
+queue_auto_subimage_from_zoom(ViewerState& viewer)
+{
+    viewer.pending_auto_subimage = -1;
+    if (!viewer.auto_subimage || viewer.image.path.empty()
+        || viewer.image.nsubimages <= 1) {
+        return;
+    }
+    int target_subimage = viewer.image.subimage;
+    float adjusted_zoom = viewer.zoom;
+    calc_subimage_from_zoom(viewer.image, target_subimage, adjusted_zoom);
+    if (target_subimage == viewer.image.subimage)
+        return;
+    viewer.pending_auto_subimage             = target_subimage;
+    viewer.pending_auto_subimage_zoom        = adjusted_zoom;
+    viewer.pending_auto_subimage_norm_scroll = viewer.norm_scroll;
+}
+
+bool
+apply_pending_auto_subimage_action(VulkanState& vk_state, ViewerState& viewer,
+                                   PlaceholderUiState& ui_state)
+{
+    if (viewer.pending_auto_subimage < 0 || viewer.image.path.empty())
+        return false;
+    const int target_subimage     = viewer.pending_auto_subimage;
+    const float adjusted_zoom     = viewer.pending_auto_subimage_zoom;
+    const ImVec2 preserved_scroll = viewer.pending_auto_subimage_norm_scroll;
+    const bool auto_mode          = viewer.auto_subimage;
+    viewer.pending_auto_subimage  = -1;
+    if (target_subimage < 0 || target_subimage >= viewer.image.nsubimages)
+        return false;
+    if (!load_viewer_image(vk_state, viewer, &ui_state, viewer.image.path,
+                           target_subimage, 0)) {
+        return false;
+    }
+    viewer.auto_subimage = auto_mode;
+    restore_view_after_subimage_load(viewer, adjusted_zoom, preserved_scroll);
+    return true;
 }
 
 bool

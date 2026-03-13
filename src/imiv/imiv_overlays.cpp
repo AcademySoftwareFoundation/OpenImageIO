@@ -433,9 +433,15 @@ namespace {
             "{}  {:.2f}:{:.2f}  exp {:+.1f}  gam {:.2f}  off {:+.2f}", mode,
             z_num, z_den, ui.exposure, ui.gamma, ui.offset);
         if (viewer.image.nsubimages > 1) {
-            text += Strutil::fmt::format("  subimg {}/{}",
-                                         viewer.image.subimage + 1,
-                                         viewer.image.nsubimages);
+            if (viewer.auto_subimage) {
+                text += Strutil::fmt::format("  subimg AUTO ({}/{})",
+                                             viewer.image.subimage + 1,
+                                             viewer.image.nsubimages);
+            } else {
+                text += Strutil::fmt::format("  subimg {}/{}",
+                                             viewer.image.subimage + 1,
+                                             viewer.image.nsubimages);
+            }
         }
         if (viewer.image.nmiplevels > 1) {
             text += Strutil::fmt::format("  MIP {}/{}",

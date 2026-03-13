@@ -58,6 +58,11 @@ change_subimage_action(VulkanState& vk_state, ViewerState& viewer,
 void
 change_miplevel_action(VulkanState& vk_state, ViewerState& viewer,
                        PlaceholderUiState& ui_state, int delta);
+void
+queue_auto_subimage_from_zoom(ViewerState& viewer);
+bool
+apply_pending_auto_subimage_action(VulkanState& vk_state, ViewerState& viewer,
+                                   PlaceholderUiState& ui_state);
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
 void

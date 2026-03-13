@@ -36,9 +36,15 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
                          ViewerFrameActions& actions, bool& request_exit)
 {
     const bool has_image         = !viewer.image.path.empty();
-    const bool can_prev_subimage = has_image && viewer.image.subimage > 0;
+    const bool can_prev_subimage = has_image
+                                   && (viewer.image.miplevel > 0
+                                       || viewer.image.subimage > 0
+                                       || viewer.image.nsubimages > 1);
     const bool can_next_subimage
-        = has_image && (viewer.image.subimage + 1 < viewer.image.nsubimages);
+        = has_image
+          && (viewer.auto_subimage
+              || viewer.image.miplevel + 1 < viewer.image.nmiplevels
+              || viewer.image.subimage + 1 < viewer.image.nsubimages);
 
     const ImGuiIO& global_io = ImGui::GetIO();
     const bool no_mods       = !global_io.KeyCtrl && !global_io.KeyAlt
@@ -158,9 +164,15 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
 )
 {
     const bool has_image         = !viewer.image.path.empty();
-    const bool can_prev_subimage = has_image && viewer.image.subimage > 0;
+    const bool can_prev_subimage = has_image
+                                   && (viewer.image.miplevel > 0
+                                       || viewer.image.subimage > 0
+                                       || viewer.image.nsubimages > 1);
     const bool can_next_subimage
-        = has_image && (viewer.image.subimage + 1 < viewer.image.nsubimages);
+        = has_image
+          && (viewer.auto_subimage
+              || viewer.image.miplevel + 1 < viewer.image.nmiplevels
+              || viewer.image.subimage + 1 < viewer.image.nsubimages);
     const bool can_prev_mip = has_image && viewer.image.miplevel > 0;
     const bool can_next_mip
         = has_image && (viewer.image.miplevel + 1 < viewer.image.nmiplevels);
