@@ -32,17 +32,21 @@ constexpr size_t k_max_recent_images        = 16;
 void
 reset_view_navigation_state(ViewerState& viewer)
 {
-    viewer.scroll                  = ImVec2(0.0f, 0.0f);
-    viewer.norm_scroll             = ImVec2(0.5f, 0.5f);
-    viewer.max_scroll              = ImVec2(0.0f, 0.0f);
-    viewer.zoom_pivot_screen       = ImVec2(0.0f, 0.0f);
-    viewer.zoom_pivot_source_uv    = ImVec2(0.5f, 0.5f);
-    viewer.zoom_pivot_pending      = false;
-    viewer.zoom_pivot_frames_left  = 0;
-    viewer.scroll_sync_frames_left = 2;
-    viewer.pan_drag_active         = false;
-    viewer.zoom_drag_active        = false;
-    viewer.drag_prev_mouse         = ImVec2(0.0f, 0.0f);
+    viewer.scroll                            = ImVec2(0.0f, 0.0f);
+    viewer.norm_scroll                       = ImVec2(0.5f, 0.5f);
+    viewer.max_scroll                        = ImVec2(0.0f, 0.0f);
+    viewer.zoom_pivot_screen                 = ImVec2(0.0f, 0.0f);
+    viewer.zoom_pivot_source_uv              = ImVec2(0.5f, 0.5f);
+    viewer.zoom_pivot_pending                = false;
+    viewer.zoom_pivot_frames_left            = 0;
+    viewer.scroll_sync_frames_left           = 2;
+    viewer.auto_subimage                     = false;
+    viewer.pending_auto_subimage             = -1;
+    viewer.pending_auto_subimage_zoom        = 1.0f;
+    viewer.pending_auto_subimage_norm_scroll = ImVec2(0.5f, 0.5f);
+    viewer.pan_drag_active                   = false;
+    viewer.zoom_drag_active                  = false;
+    viewer.drag_prev_mouse                   = ImVec2(0.0f, 0.0f);
 }
 
 

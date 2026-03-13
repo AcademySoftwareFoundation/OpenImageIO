@@ -92,7 +92,7 @@ void
 compute_zoom_pivot(const ImageCoordinateMap& map, const ImVec2& mouse_screen,
                    bool prefer_mouse_position, ImVec2& out_anchor_screen,
                    ImVec2& out_source_uv);
-void
+bool
 apply_zoom_request(const ImageCoordinateMap& map, ViewerState& viewer,
                    PlaceholderUiState& ui_state,
                    const PendingZoomRequest& request,

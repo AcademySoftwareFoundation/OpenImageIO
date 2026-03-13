@@ -295,23 +295,23 @@ compute_zoom_pivot(const ImageCoordinateMap& map, const ImVec2& mouse_screen,
         out_source_uv = ImVec2(0.5f, 0.5f);
 }
 
-void
+bool
 apply_zoom_request(const ImageCoordinateMap& map, ViewerState& viewer,
                    PlaceholderUiState& ui_state,
                    const PendingZoomRequest& request,
                    const ImVec2& mouse_screen)
 {
     if (!map.valid)
-        return;
+        return false;
     if (!request.snap_to_one && std::abs(request.scale - 1.0f) < 1.0e-6f)
-        return;
+        return false;
 
     const float new_zoom = request.snap_to_one
                                ? 1.0f
                                : std::clamp(viewer.zoom * request.scale, 0.05f,
                                             64.0f);
     if (std::abs(new_zoom - viewer.zoom) < 1.0e-6f)
-        return;
+        return false;
 
     ImVec2 anchor_screen(0.0f, 0.0f);
     ImVec2 source_uv(0.5f, 0.5f);
@@ -322,6 +322,7 @@ apply_zoom_request(const ImageCoordinateMap& map, ViewerState& viewer,
     ui_state.fit_image_to_window = false;
     viewer.fit_request           = false;
     queue_zoom_pivot(viewer, anchor_screen, source_uv);
+    return true;
 }
 
 void

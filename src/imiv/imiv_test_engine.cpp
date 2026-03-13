@@ -687,6 +687,11 @@ namespace {
             "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_DELAY_FRAMES", 3);
         ctx->Yield(delay_frames);
         const int held_button = apply_test_engine_mouse_actions(ctx);
+        const int post_action_delay
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_POST_ACTION_DELAY_FRAMES",
+                            0);
+        if (post_action_delay > 0)
+            ctx->Yield(post_action_delay);
 
         const int frames_to_capture
             = env_int_value("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_FRAMES", 1);
@@ -770,6 +775,11 @@ namespace {
                             3);
         ctx->Yield(delay_frames);
         const int held_button = apply_test_engine_mouse_actions(ctx);
+        const int post_action_delay
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_POST_ACTION_DELAY_FRAMES",
+                            0);
+        if (post_action_delay > 0)
+            ctx->Yield(post_action_delay);
 
         const bool include_items = env_flag_is_truthy(
             "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS");
@@ -799,6 +809,11 @@ namespace {
                             3);
         ctx->Yield(delay_frames);
         const int held_button = apply_test_engine_mouse_actions(ctx);
+        const int post_action_delay
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_POST_ACTION_DELAY_FRAMES",
+                            0);
+        if (post_action_delay > 0)
+            ctx->Yield(post_action_delay);
         ctx->Yield(1);
 
         std::string out_value;

@@ -271,6 +271,8 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
     test_engine_json_write_escaped(f, viewer.image.path.c_str());
     std::fputs(",\n  \"zoom\": ", f);
     std::fprintf(f, "%.6f", static_cast<double>(viewer.zoom));
+    std::fputs(",\n  \"auto_subimage\": ", f);
+    std::fputs(viewer.auto_subimage ? "true" : "false", f);
     std::fputs(",\n  \"scroll\": ", f);
     test_engine_json_write_vec2(f, viewer.scroll);
     std::fputs(",\n  \"norm_scroll\": ", f);
@@ -283,6 +285,10 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
     std::fprintf(f, "%d", static_cast<int>(viewer.loaded_image_paths.size()));
     std::fputs(",\n  \"current_image_index\": ", f);
     std::fprintf(f, "%d", viewer.current_path_index);
+    std::fputs(",\n  \"subimage\": ", f);
+    std::fprintf(f, "%d", viewer.image.subimage);
+    std::fputs(",\n  \"miplevel\": ", f);
+    std::fprintf(f, "%d", viewer.image.miplevel);
     std::fputs(",\n  \"drag_overlay_active\": ", f);
     std::fputs(viewer.drag_overlay_active ? "true" : "false", f);
     std::fputs(",\n  \"area_probe_drag_active\": ", f);
@@ -515,6 +521,7 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
     );
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
     process_pending_drop_paths(vk_state, viewer, ui_state);
+    (void)apply_pending_auto_subimage_action(vk_state, viewer, ui_state);
 #endif
     clamp_placeholder_ui_state(ui_state);
 

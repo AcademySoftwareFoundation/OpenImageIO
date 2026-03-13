@@ -4,6 +4,7 @@
 
 #include "imiv_image_view.h"
 
+#include "imiv_actions.h"
 #include "imiv_test_engine.h"
 
 #include <algorithm>
@@ -476,10 +477,15 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
             request_zoom_scale(pending_zoom, scale, true);
         }
 
-        apply_zoom_request(coord_map, viewer, ui_state, pending_zoom, mouse);
+        const bool zoom_changed = apply_zoom_request(coord_map, viewer,
+                                                     ui_state, pending_zoom,
+                                                     mouse);
 
         if (apply_forced_probe_from_env(viewer))
             viewer.probe_valid = true;
+
+        if (zoom_changed)
+            queue_auto_subimage_from_zoom(viewer);
 
         const OverlayPanelRect pixel_panel
             = draw_pixel_closeup_overlay(viewer, ui_state, coord_map,

@@ -821,6 +821,22 @@ if (TARGET imiv
         imiv_area_probe_closeup_regression PROPERTIES
             LABELS "imiv;gui"
             TIMEOUT 120)
+
+    add_test (
+        NAME imiv_auto_subimage_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_auto_subimage_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            --oiiotool "$<TARGET_FILE:oiiotool>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/auto_subimage_regression"
+            --image "${CMAKE_BINARY_DIR}/imiv_captures/auto_subimage_regression/auto_subimages.tif")
+    set_tests_properties (
+        imiv_auto_subimage_regression PROPERTIES
+            LABELS "imiv;gui"
+            TIMEOUT 180)
 elseif (TARGET imiv
         AND OIIO_BUILD_TESTS
         AND BUILD_TESTING)
