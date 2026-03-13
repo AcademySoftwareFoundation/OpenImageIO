@@ -320,13 +320,18 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
 bool
 preview_controls_equal(const PreviewControls& a, const PreviewControls& b);
 bool
+quiesce_texture_preview_submission(VulkanState& vk_state,
+                                   VulkanTexture& texture,
+                                   std::string& error_message);
+bool
 update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
                        const LoadedImage* image,
                        const PlaceholderUiState& ui_state,
                        const PreviewControls& controls,
                        std::string& error_message);
 bool
-ensure_ocio_preview_resources(VulkanState& vk_state, const LoadedImage* image,
+ensure_ocio_preview_resources(VulkanState& vk_state, VulkanTexture& texture,
+                              const LoadedImage* image,
                               const PlaceholderUiState& ui_state,
                               const PreviewControls& controls,
                               std::string& error_message);

@@ -561,10 +561,12 @@ run(const AppConfig& config)
         std::string ocio_preflight_error;
         if (!preflight_ocio_runtime_shader(ui_state, nullptr,
                                            ocio_preflight_error)) {
-            viewer.last_error = Strutil::fmt::format(
-                "OCIO runtime shader preflight failed: {}",
-                ocio_preflight_error);
-            print(stderr, "imiv: {}\n", viewer.last_error);
+            ui_state.use_ocio = false;
+            if (verbose_logging) {
+                print("imiv: OCIO preflight unavailable, using standard "
+                      "preview fallback: {}\n",
+                      ocio_preflight_error);
+            }
         }
     }
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AUX_WINDOWS")) {

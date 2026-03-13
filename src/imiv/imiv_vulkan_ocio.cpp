@@ -795,7 +795,8 @@ destroy_ocio_preview_resources(VulkanState& vk_state)
 }
 
 bool
-ensure_ocio_preview_resources(VulkanState& vk_state, const LoadedImage* image,
+ensure_ocio_preview_resources(VulkanState& vk_state, VulkanTexture& texture,
+                              const LoadedImage* image,
                               const PlaceholderUiState& ui_state,
                               const PreviewControls& controls,
                               std::string& error_message)
@@ -822,6 +823,9 @@ ensure_ocio_preview_resources(VulkanState& vk_state, const LoadedImage* image,
         return update_ocio_uniform_buffer_resource(vk_state, controls,
                                                    error_message);
 
+    if (!quiesce_texture_preview_submission(vk_state, texture, error_message)) {
+        return false;
+    }
     destroy_ocio_preview_resources(vk_state);
     if (!ensure_ocio_shader_runtime(ui_state, image, vk_state.ocio.runtime,
                                     error_message)) {

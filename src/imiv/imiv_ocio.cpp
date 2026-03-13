@@ -151,6 +151,86 @@ namespace {
         return std::string();
     }
 
+    bool config_has_display(const OCIO::ConstConfigRcPtr& config,
+                            std::string_view display_name)
+    {
+        if (!config)
+            return false;
+        const std::string trimmed = std::string(
+            OIIO::Strutil::strip(display_name));
+        if (trimmed.empty())
+            return false;
+        const int num_displays = config->getNumDisplays();
+        for (int i = 0; i < num_displays; ++i) {
+            const char* config_display = config->getDisplay(i);
+            if (config_display == nullptr || config_display[0] == '\0')
+                continue;
+            if (trimmed == config_display)
+                return true;
+        }
+        return false;
+    }
+
+    bool config_has_view(const OCIO::ConstConfigRcPtr& config,
+                         std::string_view display_name,
+                         std::string_view view_name)
+    {
+        if (!config)
+            return false;
+        const std::string display = std::string(
+            OIIO::Strutil::strip(display_name));
+        const std::string view = std::string(OIIO::Strutil::strip(view_name));
+        if (display.empty() || view.empty())
+            return false;
+        const int num_views = config->getNumViews(display.c_str());
+        for (int i = 0; i < num_views; ++i) {
+            const char* config_view = config->getView(display.c_str(), i);
+            if (config_view == nullptr || config_view[0] == '\0')
+                continue;
+            if (view == config_view)
+                return true;
+        }
+        return false;
+    }
+
+    std::string
+    resolve_default_display_name(const OCIO::ConstConfigRcPtr& config)
+    {
+        if (!config)
+            return {};
+        const char* display_name = config->getDefaultDisplay();
+        if (display_name != nullptr && display_name[0] != '\0')
+            return display_name;
+        const int num_displays = config->getNumDisplays();
+        for (int i = 0; i < num_displays; ++i) {
+            const char* fallback_name = config->getDisplay(i);
+            if (fallback_name != nullptr && fallback_name[0] != '\0')
+                return fallback_name;
+        }
+        return {};
+    }
+
+    std::string resolve_default_view_name(const OCIO::ConstConfigRcPtr& config,
+                                          std::string_view display_name)
+    {
+        if (!config)
+            return {};
+        const std::string display = std::string(
+            OIIO::Strutil::strip(display_name));
+        if (display.empty())
+            return {};
+        const char* view_name = config->getDefaultView(display.c_str());
+        if (view_name != nullptr && view_name[0] != '\0')
+            return view_name;
+        const int num_views = config->getNumViews(display.c_str());
+        for (int i = 0; i < num_views; ++i) {
+            const char* fallback_name = config->getView(display.c_str(), i);
+            if (fallback_name != nullptr && fallback_name[0] != '\0')
+                return fallback_name;
+        }
+        return {};
+    }
+
     std::string resolve_input_color_space(const PlaceholderUiState& ui_state,
                                           const LoadedImage* image,
                                           const OCIO::ConstConfigRcPtr& config)
@@ -162,7 +242,6 @@ namespace {
                                            ui_state.ocio_image_color_space);
             if (!matched.empty())
                 return matched;
-            return ui_state.ocio_image_color_space;
         }
 
         if (image != nullptr) {
@@ -178,25 +257,22 @@ namespace {
     std::string resolve_display_name(const PlaceholderUiState& ui_state,
                                      const OCIO::ConstConfigRcPtr& config)
     {
-        if (!ui_state.ocio_display.empty()
-            && ui_state.ocio_display != "default")
+        if (!ui_state.ocio_display.empty() && ui_state.ocio_display != "default"
+            && config_has_display(config, ui_state.ocio_display)) {
             return ui_state.ocio_display;
-        if (!config)
-            return {};
-        const char* display_name = config->getDefaultDisplay();
-        return display_name ? display_name : std::string();
+        }
+        return resolve_default_display_name(config);
     }
 
     std::string resolve_view_name(const PlaceholderUiState& ui_state,
                                   const OCIO::ConstConfigRcPtr& config,
                                   const std::string& display_name)
     {
-        if (!ui_state.ocio_view.empty() && ui_state.ocio_view != "default")
+        if (!ui_state.ocio_view.empty() && ui_state.ocio_view != "default"
+            && config_has_view(config, display_name, ui_state.ocio_view)) {
             return ui_state.ocio_view;
-        if (!config || display_name.empty())
-            return {};
-        const char* view_name = config->getDefaultView(display_name.c_str());
-        return view_name ? view_name : std::string();
+        }
+        return resolve_default_view_name(config, display_name);
     }
 
     bool write_uniform_bytes(std::vector<unsigned char>& uniform_bytes,
