@@ -143,7 +143,8 @@ ICOInput::open(const std::string& name, ImageSpec& newspec,
     }
 
     // default to subimage #0, according to convention
-    bool ok = seek_subimage(0, 0);
+    m_subimage = -1;
+    bool ok    = seek_subimage(0, 0);
     if (ok)
         newspec = spec();
     else
@@ -230,8 +231,11 @@ ICOInput::seek_subimage(int subimage, int miplevel)
 
         png_set_sig_bytes(m_png, 8);  // already read 8 bytes
 
-        PNG_pvt::read_info(m_png, m_info, m_bpp, m_color_type, m_interlace_type,
-                           m_bg, m_spec, true);
+        if (!PNG_pvt::read_info(m_png, m_info, m_bpp, m_color_type,
+                                m_interlace_type, m_bg, m_spec, true))
+            return false;
+        if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 }))
+            return false;
 
         m_spec.attribute("oiio:BitsPerSample", m_bpp / m_spec.nchannels);
 
@@ -261,6 +265,13 @@ ICOInput::seek_subimage(int subimage, int miplevel)
               << (int)subimg.numColours << ", p#" << (int)subimg.planes << ":"
               << (int)bmi.planes << "\n";*/
 
+    m_spec = ImageSpec((int)subimg.width, (int)subimg.height,
+                       4,                 // always RGBA
+                       TypeDesc::UINT8);  // 4- and 16-bit are expanded to 8bpp
+    m_spec.default_channel_names();
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 }))
+        return false;
+
     // copy off values for later use
     m_bpp = bmi.bpp;
     // some sanity checking
@@ -278,10 +289,6 @@ ICOInput::seek_subimage(int subimage, int miplevel)
                          ? 256
                          : (int)subimg.numColours;
 
-    m_spec = ImageSpec((int)subimg.width, (int)subimg.height,
-                       4,                 // always RGBA
-                       TypeDesc::UINT8);  // 4- and 16-bit are expanded to 8bpp
-    m_spec.default_channel_names();
     // add 1 bit for < 32bpp images due to the 1-bit alpha mask
     m_spec.attribute("oiio:BitsPerSample",
                      m_bpp / m_spec.nchannels + (m_bpp == 32 ? 0 : 1));
@@ -363,7 +370,12 @@ ICOInput::readimg()
                 m_buf[k + 1] = pe->g;
                 m_buf[k + 2] = pe->b;
                 // 2 pixels per byte
-                pe = &palette[scanline[x / 2] & 0x0F];
+                index = scanline[x / 2] & 0x0F;
+                if (index >= m_palette_size) {
+                    errorfmt("Possible corruption: index exceeds palette size");
+                    return false;
+                }
+                pe = &palette[index];
                 if (x == m_spec.width - 1)
                     break;  // avoid buffer overflows
                 x++;
@@ -427,6 +439,11 @@ ICOInput::readimg()
                 return false;
             for (int x = 0; x < m_spec.width; x += 8) {
                 for (int b = 0; b < 8; b++) {  // bit
+                    // If width is not a multiple of 8, we must be careful not
+                    // to write out of bounds by looking at bits that don't
+                    // correspond to image pixels.
+                    if (x + 7 - b >= m_spec.width)
+                        continue;
                     k = y * m_spec.width * 4 + (x + 7 - b) * 4;
                     if (scanline[x / 8] & (1 << b))
                         m_buf[k + 3] = 0;
