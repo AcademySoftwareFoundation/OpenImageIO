@@ -116,7 +116,7 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
     const float viewport_h = std::max(64.0f,
                                       content_avail.y - status_bar_height);
 
-    const ImVec2 viewport_padding(8.0f, 8.0f);
+    const ImVec2 viewport_padding(0.0f, 0.0f);
     ImageViewportLayout image_layout;
     int display_width  = 0;
     int display_height = 0;
@@ -374,6 +374,9 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
             && image_canvas_accepts_mouse
             && ImGui::IsMouseDown(ImGuiMouseButton_Left)
             && have_selection_source_uv) {
+            clear_image_selection(viewer);
+            if (area_probe_mode)
+                reset_area_probe_overlay(viewer);
             viewer.selection_press_active      = true;
             viewer.selection_drag_active       = false;
             viewer.selection_drag_start_uv     = selection_source_uv;
@@ -397,21 +400,6 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
                     viewer.area_probe_drag_start_uv
                         = viewer.selection_drag_start_uv;
                     viewer.area_probe_drag_end_uv = viewer.selection_drag_end_uv;
-                    if (viewer.selection_drag_active) {
-                        int xbegin = 0;
-                        int ybegin = 0;
-                        int xend   = 0;
-                        int yend   = 0;
-                        if (source_uv_to_pixel(coord_map,
-                                               viewer.selection_drag_start_uv,
-                                               xbegin, ybegin)
-                            && source_uv_to_pixel(coord_map,
-                                                  viewer.selection_drag_end_uv,
-                                                  xend, yend)) {
-                            update_area_probe_overlay(viewer, xbegin, ybegin,
-                                                      xend, yend);
-                        }
-                    }
                 }
             } else {
                 const bool had_drag = viewer.selection_drag_active;
