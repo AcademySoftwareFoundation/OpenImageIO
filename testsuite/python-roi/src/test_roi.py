@@ -59,20 +59,7 @@ def run(oiio):
     print ("ROI.intersection(A,B) =", oiio.intersection(A,B))
     print ("")
 
-    spec = oiio.ImageSpec()
-    spec.x = 0
-    spec.y = 0
-    spec.z = 0
-    spec.width = 640
-    spec.height = 480
-    spec.depth = 1
-    spec.full_x = 0
-    spec.full_y = 0
-    spec.full_z = 0
-    spec.full_width = 640
-    spec.full_height = 480
-    spec.full_depth = 1
-    spec.nchannels = 3
+    spec = oiio.ImageSpec(640, 480, 3, oiio.UINT8)
     print ("Spec's roi is", oiio.get_roi(spec))
     oiio.set_roi (spec, oiio.ROI(3, 5, 7, 9))
     oiio.set_roi_full (spec, oiio.ROI(13, 15, 17, 19))

@@ -48,6 +48,13 @@ declare_imagespec(nb::module_& m)
     // binding.
     nb::class_<ImageSpec>(m, "ImageSpec")
         .def(nb::init<>())
+        .def("__init__",
+             [](ImageSpec* self, int xres, int yres, int nchans, int format) {
+                 new (self)
+                     ImageSpec(xres, yres, nchans,
+                               TypeDesc(static_cast<TypeDesc::BASETYPE>(
+                                   format)));
+             })
         .def_rw("x", &ImageSpec::x)
         .def_rw("y", &ImageSpec::y)
         .def_rw("z", &ImageSpec::z)
@@ -68,6 +75,7 @@ declare_imagespec(nb::module_& m)
     m.def("get_roi_full", &imagespec_get_roi_full);
     m.def("set_roi", &imagespec_set_roi);
     m.def("set_roi_full", &imagespec_set_roi_full);
+    m.attr("UINT8") = static_cast<int>(TypeDesc::UINT8);
 }
 
 }  // namespace PyOpenImageIO
