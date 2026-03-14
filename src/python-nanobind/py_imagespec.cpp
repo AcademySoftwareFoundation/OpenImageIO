@@ -9,30 +9,30 @@ namespace {
 OIIO_NAMESPACE_USING
 
 ROI
-imagespec_get_roi(const OpenImageIO::v3_1::ImageSpec& spec)
+imagespec_get_roi(const ImageSpec& spec)
 {
-    return OpenImageIO::v3_1::get_roi(spec);
+    return get_roi(spec);
 }
 
 
 ROI
-imagespec_get_roi_full(const OpenImageIO::v3_1::ImageSpec& spec)
+imagespec_get_roi_full(const ImageSpec& spec)
 {
-    return OpenImageIO::v3_1::get_roi_full(spec);
+    return get_roi_full(spec);
 }
 
 
 void
-imagespec_set_roi(OpenImageIO::v3_1::ImageSpec& spec, const ROI& roi)
+imagespec_set_roi(ImageSpec& spec, const ROI& roi)
 {
-    OpenImageIO::v3_1::set_roi(spec, roi);
+    set_roi(spec, roi);
 }
 
 
 void
-imagespec_set_roi_full(OpenImageIO::v3_1::ImageSpec& spec, const ROI& roi)
+imagespec_set_roi_full(ImageSpec& spec, const ROI& roi)
 {
-    OpenImageIO::v3_1::set_roi_full(spec, roi);
+    set_roi_full(spec, roi);
 }
 
 }  // namespace
