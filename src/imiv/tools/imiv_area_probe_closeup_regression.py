@@ -57,6 +57,18 @@ def _load_env_from_script(script_path: Path) -> dict[str, str]:
     return env
 
 
+def _area_probe_is_initialized(state: dict) -> bool:
+    lines = state.get("area_probe_lines", [])
+    if not lines:
+        return False
+    for line in lines:
+        if line == "Area Probe:":
+            continue
+        if "-----" in line:
+            return False
+    return True
+
+
 def main() -> int:
     repo_root = _repo_root()
     default_env_script = repo_root / "build_u" / "imiv_env.sh"
@@ -151,8 +163,8 @@ def main() -> int:
             if isinstance(debug, str):
                 item_debug_labels.append(debug)
 
-    if "text: Area Probe overlay" not in item_debug_labels:
-        return _fail("Area Probe overlay was not present during held-drag capture")
+    if not _area_probe_is_initialized(state):
+        return _fail("Area Probe statistics were not initialized during held-drag capture")
     if "text: Pixel Closeup overlay" in item_debug_labels:
         return _fail("Pixel Closeup overlay was visible during held-drag capture")
 

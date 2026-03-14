@@ -56,16 +56,26 @@ struct ViewerState {
     ImVec2 area_probe_drag_start_uv = ImVec2(0.0f, 0.0f);
     ImVec2 area_probe_drag_end_uv   = ImVec2(0.0f, 0.0f);
     std::vector<std::string> area_probe_lines;
-    bool pan_drag_active           = false;
-    bool zoom_drag_active          = false;
-    ImVec2 drag_prev_mouse         = ImVec2(0.0f, 0.0f);
-    bool fullscreen_applied        = false;
-    int windowed_x                 = 100;
-    int windowed_y                 = 100;
-    int windowed_width             = 1600;
-    int windowed_height            = 900;
-    double slide_last_advance_time = 0.0;
-    bool drag_overlay_active       = false;
+    bool selection_active              = false;
+    int selection_xbegin               = 0;
+    int selection_ybegin               = 0;
+    int selection_xend                 = 0;
+    int selection_yend                 = 0;
+    bool selection_press_active        = false;
+    bool selection_drag_active         = false;
+    ImVec2 selection_drag_start_uv     = ImVec2(0.0f, 0.0f);
+    ImVec2 selection_drag_end_uv       = ImVec2(0.0f, 0.0f);
+    ImVec2 selection_drag_start_screen = ImVec2(0.0f, 0.0f);
+    bool pan_drag_active               = false;
+    bool zoom_drag_active              = false;
+    ImVec2 drag_prev_mouse             = ImVec2(0.0f, 0.0f);
+    bool fullscreen_applied            = false;
+    int windowed_x                     = 100;
+    int windowed_y                     = 100;
+    int windowed_width                 = 1600;
+    int windowed_height                = 900;
+    double slide_last_advance_time     = 0.0;
+    bool drag_overlay_active           = false;
     std::vector<std::string> pending_drop_paths;
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
     VulkanTexture texture;
@@ -115,6 +125,13 @@ struct PlaceholderUiState {
 
 void
 reset_view_navigation_state(ViewerState& viewer);
+bool
+has_image_selection(const ViewerState& viewer);
+void
+clear_image_selection(ViewerState& viewer);
+void
+set_image_selection(ViewerState& viewer, int xbegin, int ybegin, int xend,
+                    int yend);
 void
 clamp_placeholder_ui_state(PlaceholderUiState& ui_state);
 void

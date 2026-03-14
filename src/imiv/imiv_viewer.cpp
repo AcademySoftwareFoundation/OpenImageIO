@@ -44,9 +44,67 @@ reset_view_navigation_state(ViewerState& viewer)
     viewer.pending_auto_subimage             = -1;
     viewer.pending_auto_subimage_zoom        = 1.0f;
     viewer.pending_auto_subimage_norm_scroll = ImVec2(0.5f, 0.5f);
+    viewer.selection_active                  = false;
+    viewer.selection_xbegin                  = 0;
+    viewer.selection_ybegin                  = 0;
+    viewer.selection_xend                    = 0;
+    viewer.selection_yend                    = 0;
+    viewer.selection_press_active            = false;
+    viewer.selection_drag_active             = false;
+    viewer.selection_drag_start_uv           = ImVec2(0.0f, 0.0f);
+    viewer.selection_drag_end_uv             = ImVec2(0.0f, 0.0f);
+    viewer.selection_drag_start_screen       = ImVec2(0.0f, 0.0f);
     viewer.pan_drag_active                   = false;
     viewer.zoom_drag_active                  = false;
     viewer.drag_prev_mouse                   = ImVec2(0.0f, 0.0f);
+}
+
+bool
+has_image_selection(const ViewerState& viewer)
+{
+    return viewer.selection_active
+           && viewer.selection_xend > viewer.selection_xbegin
+           && viewer.selection_yend > viewer.selection_ybegin;
+}
+
+void
+clear_image_selection(ViewerState& viewer)
+{
+    viewer.selection_active            = false;
+    viewer.selection_xbegin            = 0;
+    viewer.selection_ybegin            = 0;
+    viewer.selection_xend              = 0;
+    viewer.selection_yend              = 0;
+    viewer.selection_press_active      = false;
+    viewer.selection_drag_active       = false;
+    viewer.selection_drag_start_uv     = ImVec2(0.0f, 0.0f);
+    viewer.selection_drag_end_uv       = ImVec2(0.0f, 0.0f);
+    viewer.selection_drag_start_screen = ImVec2(0.0f, 0.0f);
+}
+
+void
+set_image_selection(ViewerState& viewer, int xbegin, int ybegin, int xend,
+                    int yend)
+{
+    if (viewer.image.width <= 0 || viewer.image.height <= 0) {
+        clear_image_selection(viewer);
+        return;
+    }
+
+    const int xmin = std::clamp(std::min(xbegin, xend), 0, viewer.image.width);
+    const int xmax = std::clamp(std::max(xbegin, xend), 0, viewer.image.width);
+    const int ymin = std::clamp(std::min(ybegin, yend), 0, viewer.image.height);
+    const int ymax = std::clamp(std::max(ybegin, yend), 0, viewer.image.height);
+    if (xmax <= xmin || ymax <= ymin) {
+        clear_image_selection(viewer);
+        return;
+    }
+
+    viewer.selection_active = true;
+    viewer.selection_xbegin = xmin;
+    viewer.selection_ybegin = ymin;
+    viewer.selection_xend   = xmax;
+    viewer.selection_yend   = ymax;
 }
 
 

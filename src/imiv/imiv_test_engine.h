@@ -79,5 +79,8 @@ update_test_engine_mouse_space(const ImVec2& viewport_min,
                                const ImVec2& image_max);
 void
 register_layout_dump_synthetic_item(const char* kind, const char* label);
+void
+register_layout_dump_synthetic_rect(const char* kind, const char* label,
+                                    const ImVec2& min, const ImVec2& max);
 
 }  // namespace Imiv

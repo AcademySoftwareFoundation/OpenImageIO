@@ -28,6 +28,12 @@ save_window_as_dialog_action(ViewerState& viewer);
 void
 save_selection_as_dialog_action(ViewerState& viewer);
 void
+select_all_image_action(ViewerState& viewer,
+                        const PlaceholderUiState& ui_state);
+void
+deselect_selection_action(ViewerState& viewer,
+                          const PlaceholderUiState& ui_state);
+void
 set_sort_mode_action(ViewerState& viewer, ImageSortMode mode);
 void
 toggle_sort_reverse_action(ViewerState& viewer);

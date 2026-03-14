@@ -584,8 +584,10 @@ run(const AppConfig& config)
         ui_state.show_preview_window = true;
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PIXEL"))
         ui_state.show_pixelview_window = true;
-    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AREA"))
+    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AREA")) {
         ui_state.show_area_probe_window = true;
+        ui_state.mouse_mode             = 3;
+    }
     if (ui_state.dark_palette)
         ImGui::StyleColorsDark();
     else

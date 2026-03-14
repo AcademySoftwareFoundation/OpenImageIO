@@ -355,6 +355,43 @@ namespace {
         draw_list->AddLine(ImVec2(p1.x, p1.y - corner_size), p1, color, 1.0f);
     }
 
+    bool image_selection_rect_to_screen(const ViewerState& viewer,
+                                        const ImageCoordinateMap& map,
+                                        ImVec2& out_min, ImVec2& out_max)
+    {
+        if (!has_image_selection(viewer) || !map.valid
+            || viewer.image.width <= 0 || viewer.image.height <= 0) {
+            return false;
+        }
+
+        const float x0 = static_cast<float>(viewer.selection_xbegin)
+                         / static_cast<float>(viewer.image.width);
+        const float x1 = static_cast<float>(viewer.selection_xend)
+                         / static_cast<float>(viewer.image.width);
+        const float y0 = static_cast<float>(viewer.selection_ybegin)
+                         / static_cast<float>(viewer.image.height);
+        const float y1 = static_cast<float>(viewer.selection_yend)
+                         / static_cast<float>(viewer.image.height);
+
+        const ImVec2 corners_uv[] = { ImVec2(x0, y0), ImVec2(x1, y0),
+                                      ImVec2(x1, y1), ImVec2(x0, y1) };
+        ImVec2 screen_corners[4];
+        for (int i = 0; i < 4; ++i) {
+            if (!source_uv_to_screen(map, corners_uv[i], screen_corners[i]))
+                return false;
+        }
+
+        out_min = screen_corners[0];
+        out_max = screen_corners[0];
+        for (int i = 1; i < 4; ++i) {
+            out_min.x = std::min(out_min.x, screen_corners[i].x);
+            out_min.y = std::min(out_min.y, screen_corners[i].y);
+            out_max.x = std::max(out_max.x, screen_corners[i].x);
+            out_max.y = std::max(out_max.y, screen_corners[i].y);
+        }
+        return true;
+    }
+
     const char* channel_view_name(int mode)
     {
         switch (mode) {
@@ -493,6 +530,21 @@ update_area_probe_overlay(ViewerState& viewer, int xbegin, int ybegin, int xend,
 
     build_area_probe_result_lines(viewer.image, min_values, max_values,
                                   avg_values, viewer.area_probe_lines);
+}
+
+void
+sync_area_probe_to_selection(ViewerState& viewer,
+                             const PlaceholderUiState& ui_state)
+{
+    if (!ui_state.show_area_probe_window || !has_image_selection(viewer)) {
+        reset_area_probe_overlay(viewer);
+        return;
+    }
+
+    update_area_probe_overlay(viewer, viewer.selection_xbegin,
+                              viewer.selection_ybegin,
+                              viewer.selection_xend - 1,
+                              viewer.selection_yend - 1);
 }
 
 OverlayPanelRect
@@ -821,8 +873,48 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
     panel.valid = true;
     panel.min   = closeup_min;
     panel.max   = ImVec2(closeup_min.x + text_panel_w, closeup_min.y + total_h);
-    register_layout_dump_synthetic_item("text", "Pixel Closeup overlay");
+    register_layout_dump_synthetic_rect("text", "Pixel Closeup overlay",
+                                        panel.min, panel.max);
     return panel;
+}
+
+void
+draw_image_selection_overlay(const ViewerState& viewer,
+                             const ImageCoordinateMap& map)
+{
+    if (!map.valid)
+        return;
+
+    ImVec2 rect_min(0.0f, 0.0f);
+    ImVec2 rect_max(0.0f, 0.0f);
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    draw_list->PushClipRect(map.viewport_rect_min, map.viewport_rect_max, true);
+    if (viewer.selection_drag_active) {
+        ImVec2 start_screen(0.0f, 0.0f);
+        ImVec2 end_screen(0.0f, 0.0f);
+        if (source_uv_to_screen(map, viewer.selection_drag_start_uv,
+                                start_screen)
+            && source_uv_to_screen(map, viewer.selection_drag_end_uv,
+                                   end_screen)) {
+            rect_min = ImVec2(std::min(start_screen.x, end_screen.x),
+                              std::min(start_screen.y, end_screen.y));
+            rect_max = ImVec2(std::max(start_screen.x, end_screen.x),
+                              std::max(start_screen.y, end_screen.y));
+            draw_list->AddRectFilled(rect_min, rect_max,
+                                     IM_COL32(72, 196, 255, 42), 0.0f);
+            draw_list->AddRect(rect_min, rect_max, IM_COL32(72, 196, 255, 255),
+                               0.0f, 0, 1.2f);
+        }
+    } else if (image_selection_rect_to_screen(viewer, map, rect_min, rect_max)) {
+        draw_list->AddRect(rect_min, rect_max, IM_COL32(72, 196, 255, 255),
+                           0.0f, 0, 1.2f);
+    } else {
+        draw_list->PopClipRect();
+        return;
+    }
+    draw_list->PopClipRect();
+    register_layout_dump_synthetic_rect("rect", "Image selection overlay",
+                                        rect_min, rect_max);
 }
 
 void
@@ -835,28 +927,6 @@ draw_area_probe_overlay(const ViewerState& viewer,
     (void)pixel_overlay_panel;
     if (!ui_state.show_area_probe_window || !map.valid)
         return;
-
-    if (viewer.area_probe_drag_active) {
-        ImVec2 start_screen(0.0f, 0.0f);
-        ImVec2 end_screen(0.0f, 0.0f);
-        if (source_uv_to_screen(map, viewer.area_probe_drag_start_uv,
-                                start_screen)
-            && source_uv_to_screen(map, viewer.area_probe_drag_end_uv,
-                                   end_screen)) {
-            const ImVec2 rect_min(std::min(start_screen.x, end_screen.x),
-                                  std::min(start_screen.y, end_screen.y));
-            const ImVec2 rect_max(std::max(start_screen.x, end_screen.x),
-                                  std::max(start_screen.y, end_screen.y));
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
-            draw_list->PushClipRect(map.viewport_rect_min,
-                                    map.viewport_rect_max, true);
-            draw_list->AddRectFilled(rect_min, rect_max,
-                                     IM_COL32(52, 128, 255, 76), 0.0f);
-            draw_list->AddRect(rect_min, rect_max, IM_COL32(96, 176, 255, 220),
-                               0.0f, 0, 1.2f);
-            draw_list->PopClipRect();
-        }
-    }
 
     std::vector<std::string> lines = viewer.area_probe_lines;
     if (lines.empty()) {
@@ -883,9 +953,13 @@ draw_area_probe_overlay(const ViewerState& viewer,
     const float border_margin = 9.0f;
     ImVec2 preferred(clip_min_x + border_margin,
                      clip_max_y - panel_h - border_margin);
-    draw_overlay_text_panel(lines, preferred, map.viewport_rect_min,
-                            map.viewport_rect_max, fonts.mono);
-    register_layout_dump_synthetic_item("text", "Area Probe overlay");
+    const OverlayPanelRect panel
+        = draw_overlay_text_panel(lines, preferred, map.viewport_rect_min,
+                                  map.viewport_rect_max, fonts.mono);
+    if (panel.valid) {
+        register_layout_dump_synthetic_rect("text", "Area Probe overlay",
+                                            panel.min, panel.max);
+    }
 }
 
 void

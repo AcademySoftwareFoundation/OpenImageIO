@@ -34,6 +34,9 @@ void
 update_area_probe_overlay(ViewerState& viewer, int xbegin, int ybegin, int xend,
                           int yend);
 void
+sync_area_probe_to_selection(ViewerState& viewer,
+                             const PlaceholderUiState& ui_state);
+void
 draw_padded_message(const char* message, float x_pad = 10.0f,
                     float y_pad = 6.0f);
 void
@@ -54,6 +57,9 @@ draw_area_probe_overlay(const ViewerState& viewer,
                         const ImageCoordinateMap& map,
                         const OverlayPanelRect& pixel_overlay_panel,
                         const AppFonts& fonts);
+void
+draw_image_selection_overlay(const ViewerState& viewer,
+                             const ImageCoordinateMap& map);
 void
 draw_embedded_status_bar(const ViewerState& viewer, PlaceholderUiState& ui);
 
