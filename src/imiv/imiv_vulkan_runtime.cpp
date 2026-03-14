@@ -133,8 +133,6 @@ frame_render(VulkanState& vk_state, ImDrawData* draw_data)
     VkResult err;
     VkSemaphore image_acquired_semaphore
         = wd->FrameSemaphores[wd->SemaphoreIndex].ImageAcquiredSemaphore;
-    VkSemaphore render_complete_semaphore
-        = wd->FrameSemaphores[wd->SemaphoreIndex].RenderCompleteSemaphore;
     err = vkAcquireNextImageKHR(vk_state.device, wd->Swapchain, UINT64_MAX,
                                 image_acquired_semaphore, VK_NULL_HANDLE,
                                 &wd->FrameIndex);
@@ -143,6 +141,11 @@ frame_render(VulkanState& vk_state, ImDrawData* draw_data)
         return;
     }
     check_vk_result(err);
+
+    const uint32_t render_complete_index = std::min<uint32_t>(
+        wd->FrameIndex, static_cast<uint32_t>(wd->FrameSemaphores.Size - 1));
+    VkSemaphore render_complete_semaphore
+        = wd->FrameSemaphores[render_complete_index].RenderCompleteSemaphore;
 
     ImGui_ImplVulkanH_Frame* fd = &wd->Frames[wd->FrameIndex];
     {
@@ -206,8 +209,10 @@ frame_present(VulkanState& vk_state)
     if (vk_state.swapchain_rebuild)
         return;
 
+    const uint32_t render_complete_index = std::min<uint32_t>(
+        wd->FrameIndex, static_cast<uint32_t>(wd->FrameSemaphores.Size - 1));
     VkSemaphore render_complete_semaphore
-        = wd->FrameSemaphores[wd->SemaphoreIndex].RenderCompleteSemaphore;
+        = wd->FrameSemaphores[render_complete_index].RenderCompleteSemaphore;
     VkPresentInfoKHR info   = {};
     info.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     info.waitSemaphoreCount = 1;

@@ -56,6 +56,14 @@ namespace Imiv {
 
 namespace {
 
+    void apply_imgui_style_defaults()
+    {
+        ImGuiStyle& style      = ImGui::GetStyle();
+        style.WindowBorderSize = 0.0f;
+        style.ChildBorderSize  = 0.0f;
+        style.PopupBorderSize  = 0.0f;
+        style.FrameBorderSize  = 0.0f;
+    }
 
     std::filesystem::path executable_directory_path()
     {
@@ -430,6 +438,7 @@ run(const AppConfig& config)
     io.IniFilename       = "imiv.ini";
     const AppFonts fonts = setup_app_fonts(verbose_logging);
     ImGui::StyleColorsDark();
+    apply_imgui_style_defaults();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGuiStyle& style                 = ImGui::GetStyle();
         style.WindowRounding              = 0.0f;
@@ -592,6 +601,7 @@ run(const AppConfig& config)
         ImGui::StyleColorsDark();
     else
         ImGui::StyleColorsLight();
+    apply_imgui_style_defaults();
 
     if (!run_config.input_paths.empty()) {
         append_loaded_image_paths(viewer, run_config.input_paths);
@@ -671,6 +681,7 @@ run(const AppConfig& config)
                 ImGui::StyleColorsDark();
             else
                 ImGui::StyleColorsLight();
+            apply_imgui_style_defaults();
             applied_dark_palette = ui_state.dark_palette;
         }
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
