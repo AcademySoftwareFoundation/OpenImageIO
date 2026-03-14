@@ -9,6 +9,10 @@ from __future__ import annotations
 import pathlib
 import sys
 
+# runtest.py executes this file as a script, not as part of a Python package,
+# so relative imports are not available here. Add the ROI test directory and
+# shared helper directory to sys.path explicitly, then import the canonical ROI
+# test body plus the helper that loads the staged nanobind package from build/.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "common"))
 sys.path.insert(
     0, str(pathlib.Path(__file__).resolve().parents[2] / "python-roi" / "src")

@@ -76,6 +76,9 @@ def run(oiio):
 
 
 def main() -> int:
+    # Keep the real import-and-execute path in main() so this file still runs
+    # as the standalone pybind11 ROI test, while the nanobind ROI runner can
+    # import and reuse run(oiio) without immediately executing the test.
     import OpenImageIO as oiio
 
     try:
