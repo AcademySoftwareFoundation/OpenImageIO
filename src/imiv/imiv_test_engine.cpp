@@ -635,10 +635,15 @@ namespace {
                                     drag_button)) {
                 drag_button = 0;
             }
-            drag_button = std::clamp(drag_button, 0, 4);
-            ctx->MouseDragWithDelta(ImVec2(have_drag_dx ? drag_dx : 0.0f,
-                                           have_drag_dy ? drag_dy : 0.0f),
-                                    static_cast<ImGuiMouseButton>(drag_button));
+            drag_button              = std::clamp(drag_button, 0, 4);
+            const ImVec2 current_pos = ImGui::GetIO().MousePos;
+            ctx->MouseDown(static_cast<ImGuiMouseButton>(drag_button));
+            ctx->Yield(1);
+            ctx->MouseMoveToPos(
+                ImVec2(current_pos.x + (have_drag_dx ? drag_dx : 0.0f),
+                       current_pos.y + (have_drag_dy ? drag_dy : 0.0f)));
+            ctx->Yield(1);
+            ctx->MouseUp(static_cast<ImGuiMouseButton>(drag_button));
             ctx->Yield(1);
         }
         float hold_drag_dx = 0.0f;
@@ -1185,6 +1190,23 @@ register_layout_dump_synthetic_item(const char* kind, const char* label)
 
     const ImVec2 min = ImGui::GetItemRectMin();
     const ImVec2 max = ImGui::GetItemRectMax();
+    register_layout_dump_synthetic_rect(kind, label, min, max);
+#else
+    (void)kind;
+    (void)label;
+#endif
+}
+
+void
+register_layout_dump_synthetic_rect(const char* kind, const char* label,
+                                    const ImVec2& min, const ImVec2& max)
+{
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
+    if (!layout_dump_items_enabled())
+        return;
+    ImGuiContext* ui_ctx = ImGui::GetCurrentContext();
+    if (ui_ctx == nullptr)
+        return;
     if (max.x <= min.x || max.y <= min.y)
         return;
 
@@ -1212,6 +1234,8 @@ register_layout_dump_synthetic_item(const char* kind, const char* label)
 #else
     (void)kind;
     (void)label;
+    (void)min;
+    (void)max;
 #endif
 }
 

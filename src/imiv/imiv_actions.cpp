@@ -487,6 +487,38 @@ save_selection_as_dialog_action(ViewerState& viewer)
 }
 
 void
+select_all_image_action(ViewerState& viewer, const PlaceholderUiState& ui_state)
+{
+    if (viewer.image.path.empty()) {
+        viewer.status_message = "No image loaded";
+        viewer.last_error.clear();
+        return;
+    }
+    set_image_selection(viewer, 0, 0, viewer.image.width, viewer.image.height);
+    sync_area_probe_to_selection(viewer, ui_state);
+    viewer.status_message = Strutil::fmt::format("Selected full image ({}x{})",
+                                                 viewer.image.width,
+                                                 viewer.image.height);
+    viewer.last_error.clear();
+}
+
+void
+deselect_selection_action(ViewerState& viewer,
+                          const PlaceholderUiState& ui_state)
+{
+    if (!has_image_selection(viewer)) {
+        sync_area_probe_to_selection(viewer, ui_state);
+        viewer.status_message = "No selection";
+        viewer.last_error.clear();
+        return;
+    }
+    clear_image_selection(viewer);
+    sync_area_probe_to_selection(viewer, ui_state);
+    viewer.status_message = "Selection cleared";
+    viewer.last_error.clear();
+}
+
+void
 set_sort_mode_action(ViewerState& viewer, ImageSortMode mode)
 {
     viewer.sort_mode = mode;

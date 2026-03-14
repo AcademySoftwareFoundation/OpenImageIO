@@ -343,6 +343,23 @@ def main() -> int:
         )
         if args.screenshot_save_all:
             env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_SAVE_ALL"] = "1"
+        if same_test_hold_capture and want_layout:
+            layout_out = _resolve_path(layout_json_out, repo_root)
+            layout_out.parent.mkdir(parents=True, exist_ok=True)
+            env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_LAYOUT_OUT"] = str(
+                layout_out
+            )
+            env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_LAYOUT_DEPTH"] = str(
+                max(1, args.layout_depth)
+            )
+            if args.layout_items or args.svg_items or (want_svg and not args.svg_no_items):
+                env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_LAYOUT_ITEMS"] = "1"
+        if same_test_hold_capture and want_state:
+            state_out = _resolve_path(args.state_json_out, repo_root)
+            state_out.parent.mkdir(parents=True, exist_ok=True)
+            env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_STATE_OUT"] = str(
+                state_out
+            )
 
     if want_layout and not same_test_hold_capture:
         out = _resolve_path(layout_json_out, repo_root)
@@ -386,40 +403,16 @@ def main() -> int:
         return rc
 
     if same_test_hold_capture and (want_layout or want_state):
-        dump_env = dict(env)
-        dump_env.pop("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT", None)
-        dump_env.pop("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_OUT", None)
-        dump_env.pop("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_FRAMES", None)
-        dump_env.pop("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_DELAY_FRAMES", None)
-        dump_env.pop("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_SAVE_ALL", None)
         if want_layout:
-            out = _resolve_path(layout_json_out, repo_root)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            dump_env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP"] = "1"
-            dump_env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_OUT"] = str(out)
-            dump_env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DEPTH"] = str(
-                max(1, args.layout_depth)
-            )
-            dump_env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DELAY_FRAMES"] = str(
-                max(0, args.layout_delay_frames)
-            )
-            if args.layout_items or args.svg_items or (want_svg and not args.svg_no_items):
-                dump_env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS"] = "1"
+            layout_path = _resolve_path(layout_json_out, repo_root)
+            if not layout_path.exists():
+                print(f"error: layout output not found: {layout_path}", file=sys.stderr)
+                return 2
         if want_state:
-            out = _resolve_path(args.state_json_out, repo_root)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            dump_env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP"] = "1"
-            dump_env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_OUT"] = str(out)
-            dump_env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_DELAY_FRAMES"] = str(
-                max(0, args.state_delay_frames)
-            )
-        rc = _run_once(dump_env)
-        if rc != 0:
-            print(
-                f"error: imiv exited with code {rc} during held-drag dump pass",
-                file=sys.stderr,
-            )
-            return rc
+            state_path = _resolve_path(args.state_json_out, repo_root)
+            if not state_path.exists():
+                print(f"error: state output not found: {state_path}", file=sys.stderr)
+                return 2
 
     if want_svg:
         if not want_layout:

@@ -9,6 +9,7 @@
 #include "imiv_image_view.h"
 #include "imiv_menu.h"
 #include "imiv_test_engine.h"
+#include "imiv_ui.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -293,6 +294,13 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
     std::fputs(viewer.drag_overlay_active ? "true" : "false", f);
     std::fputs(",\n  \"area_probe_drag_active\": ", f);
     std::fputs(viewer.area_probe_drag_active ? "true" : "false", f);
+    std::fputs(",\n  \"selection_active\": ", f);
+    std::fputs(has_image_selection(viewer) ? "true" : "false", f);
+    std::fputs(",\n  \"selection_bounds\": [", f);
+    std::fprintf(f, "%d,%d,%d,%d", viewer.selection_xbegin,
+                 viewer.selection_ybegin, viewer.selection_xend,
+                 viewer.selection_yend);
+    std::fputs("]", f);
     std::fputs(",\n  \"image_size\": [", f);
     std::fprintf(f, "%d,%d", viewer.image.width, viewer.image.height);
     std::fputs("],\n  \"display_size\": [", f);
@@ -487,14 +495,19 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
         ui_state.show_preview_window = true;
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PIXEL"))
         ui_state.show_pixelview_window = true;
-    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AREA"))
+    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AREA")) {
         ui_state.show_area_probe_window = true;
+        ui_state.mouse_mode             = 3;
+        sync_area_probe_to_selection(viewer, ui_state);
+    }
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AUX_WINDOWS")) {
         ui_state.show_info_window        = true;
         ui_state.show_preferences_window = true;
         ui_state.show_preview_window     = true;
         ui_state.show_pixelview_window   = true;
         ui_state.show_area_probe_window  = true;
+        ui_state.mouse_mode              = 3;
+        sync_area_probe_to_selection(viewer, ui_state);
     }
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_DRAG_OVERLAY"))
         viewer.drag_overlay_active = true;

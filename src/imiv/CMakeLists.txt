@@ -837,6 +837,20 @@ if (TARGET imiv
         imiv_auto_subimage_regression PROPERTIES
             LABELS "imiv;gui"
             TIMEOUT 180)
+
+    add_test (
+        NAME imiv_selection_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_selection_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/selection_regression")
+    set_tests_properties (
+        imiv_selection_regression PROPERTIES
+            LABELS "imiv;gui"
+            TIMEOUT 180)
 elseif (TARGET imiv
         AND OIIO_BUILD_TESTS
         AND BUILD_TESTING)

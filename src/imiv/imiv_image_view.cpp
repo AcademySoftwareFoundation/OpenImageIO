@@ -14,6 +14,8 @@
 
 #include <imgui.h>
 
+#include <OpenImageIO/strutil.h>
+
 namespace Imiv {
 
 namespace {
@@ -313,12 +315,14 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
             }
         }
 
-        const ImGuiIO& io          = ImGui::GetIO();
-        const ImVec2 mouse         = io.MousePos;
-        const bool area_probe_mode = ui_state.show_area_probe_window;
-        const bool mouse_in_image  = point_in_rect(mouse,
-                                                   coord_map.image_rect_min,
-                                                   coord_map.image_rect_max);
+        const ImGuiIO& io                 = ImGui::GetIO();
+        const ImVec2 mouse                = io.MousePos;
+        const bool area_probe_mode        = ui_state.show_area_probe_window;
+        const bool selection_capable_mode = (ui_state.mouse_mode == 3)
+                                            || area_probe_mode;
+        const bool mouse_in_image = point_in_rect(mouse,
+                                                  coord_map.image_rect_min,
+                                                  coord_map.image_rect_max);
         const bool mouse_in_viewport
             = point_in_rect(mouse, coord_map.viewport_rect_min,
                             coord_map.viewport_rect_max);
@@ -341,6 +345,11 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
         const ImVec2 clamped_mouse
             = clamp_pos_to_rect(mouse, coord_map.image_rect_min,
                                 coord_map.image_rect_max);
+        ImVec2 selection_source_uv(0.5f, 0.5f);
+        const bool have_selection_source_uv
+            = screen_to_source_uv(coord_map, clamped_mouse,
+                                  selection_source_uv);
+        bool selection_consumed_left_release = false;
 
         ImVec2 source_uv(0.0f, 0.0f);
         int px = 0;
@@ -360,39 +369,95 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
             viewer.probe_channels.clear();
         }
 
-        if (area_probe_mode) {
-            ImVec2 area_source_uv(0.5f, 0.5f);
-            const bool have_area_source_uv
-                = screen_to_source_uv(coord_map, clamped_mouse, area_source_uv);
-            const bool area_probe_accepts_mouse
-                = viewport_accepts_mouse || image_canvas_accepts_mouse
-                  || viewer.area_probe_drag_active;
-            if (!viewer.area_probe_drag_active && area_probe_accepts_mouse
-                && ImGui::IsMouseDown(ImGuiMouseButton_Left)
-                && have_area_source_uv) {
-                viewer.area_probe_drag_active   = true;
-                viewer.area_probe_drag_start_uv = area_source_uv;
-                viewer.area_probe_drag_end_uv   = area_source_uv;
-            }
-            if (viewer.area_probe_drag_active && have_area_source_uv)
-                viewer.area_probe_drag_end_uv = area_source_uv;
-            if (viewer.area_probe_drag_active) {
-                int xbegin = 0;
-                int ybegin = 0;
-                int xend   = 0;
-                int yend   = 0;
-                if (source_uv_to_pixel(coord_map,
-                                       viewer.area_probe_drag_start_uv, xbegin,
-                                       ybegin)
-                    && source_uv_to_pixel(coord_map,
-                                          viewer.area_probe_drag_end_uv, xend,
-                                          yend)) {
-                    update_area_probe_overlay(viewer, xbegin, ybegin, xend,
-                                              yend);
+        const bool selection_can_start = selection_capable_mode && !io.KeyAlt;
+        if (!viewer.selection_press_active && selection_can_start
+            && image_canvas_accepts_mouse
+            && ImGui::IsMouseDown(ImGuiMouseButton_Left)
+            && have_selection_source_uv) {
+            viewer.selection_press_active      = true;
+            viewer.selection_drag_active       = false;
+            viewer.selection_drag_start_uv     = selection_source_uv;
+            viewer.selection_drag_end_uv       = selection_source_uv;
+            viewer.selection_drag_start_screen = mouse;
+        }
+        if (viewer.selection_press_active) {
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                if (have_selection_source_uv)
+                    viewer.selection_drag_end_uv = selection_source_uv;
+                if (!viewer.selection_drag_active
+                    && (std::abs(mouse.x - viewer.selection_drag_start_screen.x)
+                            >= 3.0f
+                        || std::abs(mouse.y
+                                    - viewer.selection_drag_start_screen.y)
+                               >= 3.0f)) {
+                    viewer.selection_drag_active = true;
                 }
-                if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
-                    viewer.area_probe_drag_active = false;
+                if (area_probe_mode) {
+                    viewer.area_probe_drag_active = viewer.selection_drag_active;
+                    viewer.area_probe_drag_start_uv
+                        = viewer.selection_drag_start_uv;
+                    viewer.area_probe_drag_end_uv = viewer.selection_drag_end_uv;
+                    if (viewer.selection_drag_active) {
+                        int xbegin = 0;
+                        int ybegin = 0;
+                        int xend   = 0;
+                        int yend   = 0;
+                        if (source_uv_to_pixel(coord_map,
+                                               viewer.selection_drag_start_uv,
+                                               xbegin, ybegin)
+                            && source_uv_to_pixel(coord_map,
+                                                  viewer.selection_drag_end_uv,
+                                                  xend, yend)) {
+                            update_area_probe_overlay(viewer, xbegin, ybegin,
+                                                      xend, yend);
+                        }
+                    }
+                }
+            } else {
+                const bool had_drag = viewer.selection_drag_active;
+                if (had_drag) {
+                    int xbegin = 0;
+                    int ybegin = 0;
+                    int xend   = 0;
+                    int yend   = 0;
+                    if (source_uv_to_pixel(coord_map,
+                                           viewer.selection_drag_start_uv,
+                                           xbegin, ybegin)
+                        && source_uv_to_pixel(coord_map,
+                                              viewer.selection_drag_end_uv,
+                                              xend, yend)) {
+                        set_image_selection(viewer, xbegin, ybegin, xend + 1,
+                                            yend + 1);
+                        sync_area_probe_to_selection(viewer, ui_state);
+                        viewer.status_message = OIIO::Strutil::fmt::format(
+                            "Selection: ({}, {}) - ({}, {})",
+                            viewer.selection_xbegin, viewer.selection_ybegin,
+                            viewer.selection_xend, viewer.selection_yend);
+                        viewer.last_error.clear();
+                    }
+                    selection_consumed_left_release = true;
+                } else if ((selection_capable_mode || area_probe_mode)
+                           && (viewport_accepts_mouse
+                               || image_canvas_accepts_mouse)) {
+                    clear_image_selection(viewer);
+                    sync_area_probe_to_selection(viewer, ui_state);
+                    viewer.status_message = "Selection cleared";
+                    viewer.last_error.clear();
+                    selection_consumed_left_release = true;
+                }
+                viewer.selection_press_active      = false;
+                viewer.selection_drag_active       = false;
+                viewer.selection_drag_start_screen = ImVec2(0.0f, 0.0f);
+                viewer.area_probe_drag_active      = false;
             }
+        }
+        if (!viewer.selection_press_active && selection_capable_mode
+            && empty_viewport_clicked_left) {
+            clear_image_selection(viewer);
+            sync_area_probe_to_selection(viewer, ui_state);
+            viewer.status_message = "Selection cleared";
+            viewer.last_error.clear();
+            selection_consumed_left_release = true;
         }
 
         bool want_pan       = false;
@@ -424,8 +489,9 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
                     && (image_canvas_clicked_left || image_canvas_clicked_right
                         || empty_viewport_clicked_left
                         || empty_viewport_clicked_right)) {
-                    if (image_canvas_clicked_left
-                        || empty_viewport_clicked_left) {
+                    if (!selection_consumed_left_release
+                        && (image_canvas_clicked_left
+                            || empty_viewport_clicked_left)) {
                         request_zoom_scale(pending_zoom, 2.0f, true);
                     }
                     if (image_canvas_clicked_right
@@ -435,6 +501,8 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
                 }
             }
         }
+
+        draw_image_selection_overlay(viewer, coord_map);
 
         if (want_pan) {
             if (!viewer.pan_drag_active) {

@@ -33,6 +33,8 @@ struct ViewerFrameActions {
     bool next_mip_requested            = false;
     bool save_window_as_requested      = false;
     bool save_selection_as_requested   = false;
+    bool select_all_requested          = false;
+    bool deselect_selection_requested  = false;
     bool fit_window_to_image_requested = false;
     bool recenter_requested            = false;
     bool delete_from_disk_requested    = false;
