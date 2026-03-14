@@ -46,10 +46,8 @@ def run(oiio):
 
     print ("r contains (10,10) (expect yes): ", r.contains(10,10))
     print ("r contains (1000,10) (expect no): ", r.contains(1000,10))
-    print ("r contains roi(10,20,10,20,0,1,0,1) (expect yes): ",
-           r.contains(oiio.ROI(10,20,10,20,0,1,0,1)))
-    print ("r contains roi(1010,1020,10,20,0,1,0,1) (expect no): ",
-           r.contains(oiio.ROI(1010,1020,10,20,0,1,0,1)))
+    print ("r contains roi(10,20,10,20,0,1,0,1) (expect yes): ", r.contains(oiio.ROI(10,20,10,20,0,1,0,1)))
+    print ("r contains roi(1010,1020,10,20,0,1,0,1) (expect no): ", r.contains(oiio.ROI(1010,1020,10,20,0,1,0,1)))
 
     A = oiio.ROI (0, 10, 0, 8, 0, 1, 0, 4)
     B = oiio.ROI (5, 15, -1, 10, 0, 1, 0, 4)
@@ -71,7 +69,9 @@ def run(oiio):
     r2.xbegin = 42
     print ("r1 =", r1)
     print ("r2 =", r2)
+    
     print ("")
+
     print ("Done.")
 
 
