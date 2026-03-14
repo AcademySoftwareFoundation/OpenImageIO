@@ -69,7 +69,7 @@ def run(oiio):
     r2.xbegin = 42
     print ("r1 =", r1)
     print ("r2 =", r2)
-    
+
     print ("")
 
     print ("Done.")
