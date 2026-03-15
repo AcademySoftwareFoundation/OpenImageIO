@@ -11,5 +11,6 @@ NB_MODULE(_OpenImageIO, m)
 
     PyOpenImageIO::declare_roi(m);
     PyOpenImageIO::declare_imagespec(m);
+    PyOpenImageIO::declare_typedesc(m);
     m.attr("__version__") = OIIO_VERSION_STRING;
 }

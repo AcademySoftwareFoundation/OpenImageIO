@@ -6,12 +6,8 @@
 
 from __future__ import annotations
 
-import OpenImageIO as oiio
-
-
-
 # Test that every expected enum value of BASETYPE exists
-def basetype_enum_test():
+def basetype_enum_test(oiio):
     try:
         oiio.UNKNOWN
         oiio.NONE
@@ -43,7 +39,7 @@ def basetype_enum_test():
 
 
 # Test that every expected enum value of AGGREGATE exists
-def aggregate_enum_test():
+def aggregate_enum_test(oiio):
     try:
         oiio.NOSEMANTICS
         oiio.SCALAR
@@ -58,7 +54,7 @@ def aggregate_enum_test():
 
 
 # Test that every expected enum value of VECSEMANTICS exists
-def vecsemantics_enum_test():
+def vecsemantics_enum_test(oiio):
     try:
         oiio.NOXFORM
         oiio.COLOR
@@ -74,7 +70,7 @@ def vecsemantics_enum_test():
         print ("Failed VECSEMANTICS")
 
 # print the details of a type t
-def breakdown_test(t: oiio.TypeDesc, name="", verbose=True):
+def breakdown_test(t, name="", verbose=True):
     print ("type '%s'" % name)
     print ("    c_str \"" + t.c_str() + "\"")
     if verbose:
@@ -91,14 +87,11 @@ def breakdown_test(t: oiio.TypeDesc, name="", verbose=True):
         print ("    basesize =", t.basesize())
 
 
-######################################################################
-# main test starts here
-
-try:
+def run(oiio):
     # Test that all the enum values exist
-    basetype_enum_test()
-    aggregate_enum_test()
-    vecsemantics_enum_test()
+    basetype_enum_test(oiio)
+    aggregate_enum_test(oiio)
+    vecsemantics_enum_test(oiio)
     print ("")
 
     # Exercise the different constructors, make sure they create the
@@ -177,6 +170,20 @@ try:
     print ("")
 
     print ("Done.")
-except Exception as detail:
-    print ("Unknown exception:", detail)
 
+
+def main() -> int:
+    # Keep the real import-and-execute path in main() so this file still runs
+    # as the standalone pybind11 TypeDesc test, while the nanobind TypeDesc
+    # runner can import and reuse run(oiio) without immediately executing it.
+    import OpenImageIO as oiio
+
+    try:
+        run(oiio)
+    except Exception as detail:
+        print ("Unknown exception:", detail)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
