@@ -9,6 +9,9 @@ from __future__ import annotations
 import OpenImageIO as oiio
 
 
+######################################################################
+# main test starts here
+
 try:
     r = oiio.ROI()
     print ("undefined ROI() =", r)
