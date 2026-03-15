@@ -6,18 +6,11 @@
 
 from __future__ import annotations
 
-import pathlib
-import sys
-
-if len(sys.argv) > 1:
-    build_root = pathlib.Path(sys.argv[1]).resolve()
-    sys.path.insert(0, str(build_root / "lib/python/site-packages"))
-
 import OpenImageIO as oiio
 
 
 # Test that every expected enum value of BASETYPE exists
-def basetype_enum_test(oiio):
+def basetype_enum_test():
     try:
         oiio.UNKNOWN
         oiio.NONE
@@ -49,7 +42,7 @@ def basetype_enum_test(oiio):
 
 
 # Test that every expected enum value of AGGREGATE exists
-def aggregate_enum_test(oiio):
+def aggregate_enum_test():
     try:
         oiio.NOSEMANTICS
         oiio.SCALAR
@@ -64,7 +57,7 @@ def aggregate_enum_test(oiio):
 
 
 # Test that every expected enum value of VECSEMANTICS exists
-def vecsemantics_enum_test(oiio):
+def vecsemantics_enum_test():
     try:
         oiio.NOXFORM
         oiio.COLOR
@@ -97,11 +90,15 @@ def breakdown_test(t, name="", verbose=True):
         print ("    elementsize =", t.elementsize())
         print ("    basesize =", t.basesize())
 
+
+######################################################################
+# main test starts here
+
 try:
     # Test that all the enum values exist
-    basetype_enum_test(oiio)
-    aggregate_enum_test(oiio)
-    vecsemantics_enum_test(oiio)
+    basetype_enum_test()
+    aggregate_enum_test()
+    vecsemantics_enum_test()
     print ("")
 
     # Exercise the different constructors, make sure they create the
