@@ -2278,6 +2278,7 @@ protected:
     ///   attribute.
     /// * The total uncompressed pixel data size is expected to be within the
     ///   `"limit:imagesize_MB"` OIIO attribute.
+    /// * The full_{width,height,depth} are valid and within the range.
     ///
     bool check_open (const ImageSpec &spec,
                      ROI range = {0, 65535, 0, 65535, 0, 1, 0, 4},
