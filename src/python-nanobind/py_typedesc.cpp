@@ -97,12 +97,10 @@ declare_typedesc(nb::module_& m)
 
     nb::class_<TypeDesc>(m, "TypeDesc")
         .def_prop_rw(
-            "basetype",
-            [](TypeDesc t) { return BASETYPE(t.basetype); },
+            "basetype", [](TypeDesc t) { return BASETYPE(t.basetype); },
             [](TypeDesc& t, BASETYPE b) { typedesc_property(t, b); })
         .def_prop_rw(
-            "aggregate",
-            [](TypeDesc t) { return AGGREGATE(t.aggregate); },
+            "aggregate", [](TypeDesc t) { return AGGREGATE(t.aggregate); },
             [](TypeDesc& t, AGGREGATE b) { typedesc_property(t, b); })
         .def_prop_rw(
             "vecsemantics",
@@ -116,7 +114,8 @@ declare_typedesc(nb::module_& m)
         .def(nb::init<BASETYPE, AGGREGATE, VECSEMANTICS>())
         .def(nb::init<BASETYPE, AGGREGATE, VECSEMANTICS, int>())
         .def(nb::init<const char*>())
-        .def("c_str", [](const TypeDesc& self) { return std::string(self.c_str()); })
+        .def("c_str",
+             [](const TypeDesc& self) { return std::string(self.c_str()); })
         .def("numelements", &TypeDesc::numelements)
         .def("basevalues", &TypeDesc::basevalues)
         .def("size", &TypeDesc::size)
@@ -124,14 +123,31 @@ declare_typedesc(nb::module_& m)
         .def("elementsize", &TypeDesc::elementsize)
         .def("basesize", &TypeDesc::basesize)
         .def("fromstring",
-             [](TypeDesc& t, const char* typestring) { t.fromstring(typestring); })
+             [](TypeDesc& t, const char* typestring) {
+                 t.fromstring(typestring);
+             })
         .def("equivalent", &TypeDesc::equivalent)
         .def("unarray", &TypeDesc::unarray)
-        .def("is_vec2", &TypeDesc::is_vec2)
-        .def("is_vec3", &TypeDesc::is_vec3)
-        .def("is_vec4", &TypeDesc::is_vec4)
-        .def("is_box2", &TypeDesc::is_box2)
-        .def("is_box3", &TypeDesc::is_box3)
+        .def("is_vec2",
+             [](const TypeDesc& t, BASETYPE b = TypeDesc::FLOAT) {
+                 return t.is_vec2(b);
+             })
+        .def("is_vec3",
+             [](const TypeDesc& t, BASETYPE b = TypeDesc::FLOAT) {
+                 return t.is_vec3(b);
+             })
+        .def("is_vec4",
+             [](const TypeDesc& t, BASETYPE b = TypeDesc::FLOAT) {
+                 return t.is_vec4(b);
+             })
+        .def("is_box2",
+             [](const TypeDesc& t, BASETYPE b = TypeDesc::FLOAT) {
+                 return t.is_box2(b);
+             })
+        .def("is_box3",
+             [](const TypeDesc& t, BASETYPE b = TypeDesc::FLOAT) {
+                 return t.is_box3(b);
+             })
         .def_static("all_types_equal",
                     [](const std::vector<TypeDesc>& types) {
                         return TypeDesc::all_types_equal(types);
@@ -139,10 +155,12 @@ declare_typedesc(nb::module_& m)
         .def(nb::self == nb::self)
         .def(nb::self != nb::self)
         .def("__str__", [](TypeDesc t) { return std::string(t.c_str()); })
-        .def("__repr__",
-             [](TypeDesc t) {
-                 return Strutil::fmt::format("<TypeDesc '{}'>", t.c_str());
-             });
+        .def("__repr__", [](TypeDesc t) {
+            return Strutil::fmt::format("<TypeDesc '{}'>", t.c_str());
+        });
+
+    nb::implicitly_convertible<BASETYPE, TypeDesc>();
+    nb::implicitly_convertible<nb::str, TypeDesc>();
 
     m.attr("UNKNOWN")   = nb::cast(TypeDesc::UNKNOWN);
     m.attr("NONE")      = nb::cast(TypeDesc::NONE);

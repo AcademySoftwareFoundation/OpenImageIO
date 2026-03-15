@@ -50,8 +50,8 @@ declare_imagespec(nb::module_& m)
         .def(nb::init<>())
         .def("__init__",
              [](ImageSpec* self, int xres, int yres, int nchans,
-                TypeDesc::BASETYPE format) {
-                 new (self) ImageSpec(xres, yres, nchans, TypeDesc(format));
+                const TypeDesc& format) {
+                 new (self) ImageSpec(xres, yres, nchans, format);
              })
         .def_rw("x", &ImageSpec::x)
         .def_rw("y", &ImageSpec::y)

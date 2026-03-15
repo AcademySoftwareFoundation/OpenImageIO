@@ -6,6 +6,9 @@
 
 from __future__ import annotations
 
+import pathlib
+import sys
+
 # Test that every expected enum value of BASETYPE exists
 def basetype_enum_test(oiio):
     try:
@@ -135,6 +138,44 @@ def run(oiio):
     print ("equivalent(vector,float)", oiio.TypeDesc.equivalent(oiio.TypeDesc("vector"), oiio.TypeDesc("float")))
     print ("")
 
+    # Exercise property mutation and helper methods that are easy to miss in
+    # binding ports because they are not just plain constructors/accessors.
+    t_mut = oiio.TypeDesc()
+    t_mut.basetype = oiio.FLOAT
+    t_mut.aggregate = oiio.VEC3
+    t_mut.vecsemantics = oiio.COLOR
+    t_mut.arraylen = 2
+    breakdown_test (t_mut, "mutated FLOAT, VEC3, COLOR, array of 2")
+    t_from = oiio.TypeDesc()
+    t_from.fromstring("point")
+    breakdown_test (t_from, "fromstring('point')", verbose=False)
+    t_unarray = oiio.TypeDesc("float[2]")
+    t_unarray.unarray()
+    print ("after unarray('float[2]') =", t_unarray)
+    print ("vector is_vec2,is_vec3,is_vec4 =",
+           oiio.TypeDesc("vector").is_vec2(oiio.FLOAT),
+           oiio.TypeDesc("vector").is_vec3(oiio.FLOAT),
+           oiio.TypeDesc("vector").is_vec4(oiio.FLOAT))
+    print ("box2i is_box2,is_box3 =",
+           oiio.TypeDesc("box2i").is_box2(oiio.INT),
+           oiio.TypeDesc("box2i").is_box3(oiio.INT))
+    print ("all_types_equal([uint8,uint8]) =",
+           oiio.TypeDesc.all_types_equal([oiio.TypeDesc("uint8"),
+                                          oiio.TypeDesc("uint8")]))
+    print ("all_types_equal([uint8,uint16]) =",
+           oiio.TypeDesc.all_types_equal([oiio.TypeDesc("uint8"),
+                                          oiio.TypeDesc("uint16")]))
+    print ("repr(TypeFloat) =", repr(oiio.TypeFloat))
+    print ("")
+
+    # Exercise implicit conversion paths used by the production pybind11
+    # binding: BASETYPE -> TypeDesc and Python str -> TypeDesc.
+    implicit_enum_spec = oiio.ImageSpec(8, 9, 3, oiio.UINT8)
+    implicit_str_spec = oiio.ImageSpec(8, 9, 3, "uint8")
+    print ("implicit enum ImageSpec roi =", implicit_enum_spec.roi)
+    print ("implicit str ImageSpec roi =", implicit_str_spec.roi)
+    print ("")
+
     # Test the pre-constructed types
     breakdown_test (oiio.TypeFloat,    "TypeFloat",    verbose=False)
     breakdown_test (oiio.TypeColor,    "TypeColor",    verbose=False)
@@ -176,6 +217,10 @@ def main() -> int:
     # Keep the real import-and-execute path in main() so this file still runs
     # as the standalone pybind11 TypeDesc test, while the nanobind TypeDesc
     # runner can import and reuse run(oiio) without immediately executing it.
+    if len(sys.argv) > 1:
+        build_root = pathlib.Path(sys.argv[1]).resolve()
+        sys.path.insert(0, str(build_root / "lib/python/site-packages"))
+
     import OpenImageIO as oiio
 
     try:
