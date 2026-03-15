@@ -418,7 +418,7 @@ def runtest (command: str, outputs: list[str], failureok: int=0) -> int :
     err = 0
 #    print ("working dir = " + tmpdir)
     os.chdir (srcdir)
-    for out in outputs:
+    for out in ("out.txt", "out.err.txt", "out-nanobind.txt"):
         if os.path.exists(out):
             os.remove(out)
     open ("out.txt", "w").close()    # truncate out.txt
