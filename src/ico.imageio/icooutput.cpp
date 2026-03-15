@@ -291,16 +291,16 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
     // write subimage header
     ico_subimage subimg;
     memset(&subimg, 0, sizeof(subimg));
-    subimg.width  = m_spec.width;
-    subimg.height = m_spec.height;
-    subimg.bpp    = m_bpp;
+    subimg.w   = m_spec.width < 256 ? m_spec.width : 0;
+    subimg.h   = m_spec.height < 256 ? m_spec.height : 0;
+    subimg.bpp = m_bpp;
     if (!m_want_png)
         subimg.len = sizeof(ico_bitmapinfo)  // for PNG images this is zero
                      + (m_xor_slb + m_and_slb) * m_spec.height;
     subimg.ofs = m_offset;
     if (bigendian()) {
-        swap_endian(&subimg.width);
-        swap_endian(&subimg.height);
+        swap_endian(&subimg.w);
+        swap_endian(&subimg.h);
         swap_endian(&subimg.planes);
         swap_endian(&subimg.bpp);
         swap_endian(&subimg.len);

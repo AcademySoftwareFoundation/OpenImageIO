@@ -184,8 +184,8 @@ ICOInput::seek_subimage(int subimage, int miplevel)
     if (bigendian()) {
         // ICOs are little endian
         swap_endian(&subimg.bpp);
-        swap_endian(&subimg.width);
-        swap_endian(&subimg.height);
+        swap_endian(&subimg.w);
+        swap_endian(&subimg.h);
         swap_endian(&subimg.len);
         swap_endian(&subimg.ofs);
         swap_endian(&subimg.numColours);
@@ -265,11 +265,13 @@ ICOInput::seek_subimage(int subimage, int miplevel)
               << (int)subimg.numColours << ", p#" << (int)subimg.planes << ":"
               << (int)bmi.planes << "\n";*/
 
-    m_spec = ImageSpec((int)subimg.width, (int)subimg.height,
-                       4,                 // always RGBA
+    // Note: true ico images (not the ones that are PNG, handled above)
+    // have max resolution of 256, stored in the subimage record as uint8_t,
+    // but where 0 really means 256.
+    m_spec = ImageSpec(subimg.width(), subimg.height(), 4 /* always RGBA */,
                        TypeDesc::UINT8);  // 4- and 16-bit are expanded to 8bpp
     m_spec.default_channel_names();
-    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 }))
+    if (!check_open(m_spec, { 0, 256, 0, 256, 0, 1, 0, 4 }))
         return false;
 
     // copy off values for later use
