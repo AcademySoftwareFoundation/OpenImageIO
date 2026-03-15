@@ -13,6 +13,7 @@
 #include <fstream>
 #include <limits>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -26,8 +27,11 @@ using namespace OIIO;
 
 namespace Imiv {
 
-constexpr const char* k_imiv_prefs_filename = "imiv_prefs.ini";
-constexpr size_t k_max_recent_images        = 16;
+constexpr const char* k_imiv_settings_filename     = "imiv.inf";
+constexpr const char* k_imiv_legacy_prefs_filename = "imiv_prefs.ini";
+constexpr const char* k_imiv_legacy_imgui_filename = "imiv.ini";
+constexpr const char* k_imiv_app_section_name      = "[ImivApp][State]";
+constexpr size_t k_max_recent_images               = 16;
 
 void
 reset_view_navigation_state(ViewerState& viewer)
@@ -167,7 +171,13 @@ parse_float_value(const std::string& value, float& out)
 std::filesystem::path
 legacy_prefs_file_path()
 {
-    return std::filesystem::path(k_imiv_prefs_filename);
+    return std::filesystem::path(k_imiv_legacy_prefs_filename);
+}
+
+std::filesystem::path
+legacy_imgui_ini_file_path()
+{
+    return std::filesystem::path(k_imiv_legacy_imgui_filename);
 }
 
 std::filesystem::path
@@ -207,21 +217,35 @@ prefs_directory_path()
 }
 
 std::filesystem::path
-prefs_file_path()
+config_dir_legacy_prefs_file_path()
 {
     const std::filesystem::path prefs_dir = prefs_directory_path();
     if (prefs_dir.empty())
         return legacy_prefs_file_path();
-    return prefs_dir / k_imiv_prefs_filename;
+    return prefs_dir / k_imiv_legacy_prefs_filename;
 }
 
 std::filesystem::path
-prefs_file_path_for_load()
+persistent_state_file_path()
 {
-    const std::filesystem::path prefs_path = prefs_file_path();
+    const std::filesystem::path prefs_dir = prefs_directory_path();
+    if (prefs_dir.empty())
+        return std::filesystem::path(k_imiv_settings_filename);
+    return prefs_dir / k_imiv_settings_filename;
+}
+
+std::filesystem::path
+persistent_state_file_path_for_load()
+{
+    const std::filesystem::path prefs_path = persistent_state_file_path();
     std::error_code ec;
     if (std::filesystem::exists(prefs_path, ec))
         return prefs_path;
+    const std::filesystem::path legacy_config_path
+        = config_dir_legacy_prefs_file_path();
+    ec.clear();
+    if (std::filesystem::exists(legacy_config_path, ec))
+        return legacy_config_path;
     return legacy_prefs_file_path();
 }
 
@@ -261,6 +285,8 @@ clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
         ui_state.mouse_mode = 0;
     if (ui_state.mouse_mode > 4)
         ui_state.mouse_mode = 4;
+    ui_state.style_preset = static_cast<int>(
+        sanitize_app_style_preset(ui_state.style_preset));
     if (ui_state.subimage_index < 0)
         ui_state.subimage_index = 0;
     if (ui_state.miplevel_index < 0)
@@ -297,7 +323,7 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
                       std::string& error_message)
 {
     error_message.clear();
-    const std::filesystem::path path = prefs_file_path_for_load();
+    const std::filesystem::path path = persistent_state_file_path_for_load();
     std::error_code ec;
     if (!std::filesystem::exists(path, ec))
         return true;
@@ -310,9 +336,18 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
     }
 
     std::string line;
+    bool in_app_section = false;
+    bool saw_sections   = false;
     while (std::getline(input, line)) {
         const std::string trimmed = std::string(Strutil::strip(line));
         if (trimmed.empty() || trimmed[0] == '#')
+            continue;
+        if (trimmed.front() == '[') {
+            saw_sections   = true;
+            in_app_section = (trimmed == k_imiv_app_section_name);
+            continue;
+        }
+        if (saw_sections && !in_app_section)
             continue;
 
         const size_t eq = trimmed.find('=');
@@ -336,7 +371,12 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
                 ui_state.linear_interpolation = bool_value;
         } else if (key == "dark_palette") {
             if (parse_bool_value(value, bool_value))
-                ui_state.dark_palette = bool_value;
+                ui_state.style_preset = static_cast<int>(
+                    bool_value ? AppStylePreset::ImGuiDark
+                               : AppStylePreset::ImGuiLight);
+        } else if (key == "style_preset") {
+            if (parse_int_value(value, int_value))
+                ui_state.style_preset = int_value;
         } else if (key == "auto_mipmap") {
             if (parse_bool_value(value, bool_value))
                 ui_state.auto_mipmap = bool_value;
@@ -417,10 +457,11 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
 
 bool
 save_persistent_state(const PlaceholderUiState& ui_state,
-                      const ViewerState& viewer, std::string& error_message)
+                      const ViewerState& viewer, const char* imgui_ini_text,
+                      size_t imgui_ini_size, std::string& error_message)
 {
     error_message.clear();
-    const std::filesystem::path path      = prefs_file_path();
+    const std::filesystem::path path      = persistent_state_file_path();
     const std::filesystem::path temp_path = path.string() + ".tmp";
     std::error_code ec;
     if (!path.parent_path().empty()) {
@@ -440,14 +481,22 @@ save_persistent_state(const PlaceholderUiState& ui_state,
         return false;
     }
 
-    output << "# imiv preferences\n";
+    if (imgui_ini_text != nullptr && imgui_ini_size > 0) {
+        output.write(imgui_ini_text,
+                     static_cast<std::streamsize>(imgui_ini_size));
+        if (imgui_ini_text[imgui_ini_size - 1] != '\n')
+            output << "\n";
+        output << "\n";
+    }
+
+    output << k_imiv_app_section_name << "\n";
     output << "pixelview_follows_mouse="
            << (ui_state.pixelview_follows_mouse ? 1 : 0) << "\n";
     output << "pixelview_left_corner="
            << (ui_state.pixelview_left_corner ? 1 : 0) << "\n";
     output << "linear_interpolation=" << (ui_state.linear_interpolation ? 1 : 0)
            << "\n";
-    output << "dark_palette=" << (ui_state.dark_palette ? 1 : 0) << "\n";
+    output << "style_preset=" << ui_state.style_preset << "\n";
     output << "auto_mipmap=" << (ui_state.auto_mipmap ? 1 : 0) << "\n";
     output << "fit_image_to_window=" << (ui_state.fit_image_to_window ? 1 : 0)
            << "\n";

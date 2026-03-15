@@ -184,7 +184,6 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
         ImTextureRef closeup_texture_ref;
         bool has_main_texture           = false;
         bool has_closeup_texture        = false;
-        bool image_canvas_pressed       = false;
         bool image_canvas_hovered       = false;
         bool image_canvas_active        = false;
         PendingZoomRequest pending_zoom = shortcut_zoom_request;
@@ -260,11 +259,10 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
         coord_map.window_pos = ImGui::GetWindowPos();
         if (has_main_texture && coord_map.valid) {
             ImGui::SetCursorScreenPos(coord_map.image_rect_min);
-            image_canvas_pressed = ImGui::InvisibleButton(
-                "##image_canvas", image_size,
-                ImGuiButtonFlags_MouseButtonLeft
-                    | ImGuiButtonFlags_MouseButtonRight
-                    | ImGuiButtonFlags_MouseButtonMiddle);
+            ImGui::InvisibleButton("##image_canvas", image_size,
+                                   ImGuiButtonFlags_MouseButtonLeft
+                                       | ImGuiButtonFlags_MouseButtonRight
+                                       | ImGuiButtonFlags_MouseButtonMiddle);
             image_canvas_hovered = ImGui::IsItemHovered(
                 ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
             image_canvas_active = ImGui::IsItemActive();
@@ -318,11 +316,10 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
         const ImGuiIO& io                 = ImGui::GetIO();
         const ImVec2 mouse                = io.MousePos;
         const bool area_probe_mode        = ui_state.show_area_probe_window;
-        const bool selection_capable_mode = (ui_state.mouse_mode == 3)
-                                            || area_probe_mode;
-        const bool mouse_in_image = point_in_rect(mouse,
-                                                  coord_map.image_rect_min,
-                                                  coord_map.image_rect_max);
+        const bool selection_capable_mode = area_probe_mode;
+        const bool mouse_in_image         = point_in_rect(mouse,
+                                                          coord_map.image_rect_min,
+                                                          coord_map.image_rect_max);
         const bool mouse_in_viewport
             = point_in_rect(mouse, coord_map.viewport_rect_min,
                             coord_map.viewport_rect_max);
@@ -332,16 +329,9 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
                                             && mouse_in_viewport;
         const bool image_canvas_accepts_mouse = image_canvas_hovered
                                                 || image_canvas_active;
-        const bool image_canvas_clicked_left
-            = image_canvas_pressed && io.MouseReleased[ImGuiMouseButton_Left];
-        const bool image_canvas_clicked_right
-            = image_canvas_pressed && io.MouseReleased[ImGuiMouseButton_Right];
         const bool empty_viewport_clicked_left
             = viewport_accepts_mouse && !mouse_in_image
               && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-        const bool empty_viewport_clicked_right
-            = viewport_accepts_mouse && !mouse_in_image
-              && ImGui::IsMouseClicked(ImGuiMouseButton_Right);
         const ImVec2 clamped_mouse
             = clamp_pos_to_rect(mouse, coord_map.image_rect_min,
                                 coord_map.image_rect_max);
@@ -349,7 +339,6 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
         const bool have_selection_source_uv
             = screen_to_source_uv(coord_map, clamped_mouse,
                                   selection_source_uv);
-        bool selection_consumed_left_release = false;
 
         ImVec2 source_uv(0.0f, 0.0f);
         int px = 0;
@@ -423,7 +412,6 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
                             viewer.selection_xend, viewer.selection_yend);
                         viewer.last_error.clear();
                     }
-                    selection_consumed_left_release = true;
                 } else if ((selection_capable_mode || area_probe_mode)
                            && (viewport_accepts_mouse
                                || image_canvas_accepts_mouse)) {
@@ -431,7 +419,6 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
                     sync_area_probe_to_selection(viewer, ui_state);
                     viewer.status_message = "Selection cleared";
                     viewer.last_error.clear();
-                    selection_consumed_left_release = true;
                 }
                 viewer.selection_press_active      = false;
                 viewer.selection_drag_active       = false;
@@ -445,7 +432,6 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
             sync_area_probe_to_selection(viewer, ui_state);
             viewer.status_message = "Selection cleared";
             viewer.last_error.clear();
-            selection_consumed_left_release = true;
         }
 
         bool want_pan       = false;
@@ -455,38 +441,23 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
             if (ui_state.mouse_mode == 1) {
                 want_pan = (!area_probe_mode
                             && ImGui::IsMouseDown(ImGuiMouseButton_Left))
-                           || ImGui::IsMouseDown(ImGuiMouseButton_Right)
                            || ImGui::IsMouseDown(ImGuiMouseButton_Middle);
             } else if (ui_state.mouse_mode == 0) {
+                const bool want_left_pan
+                    = !area_probe_mode
+                      && ImGui::IsMouseDown(ImGuiMouseButton_Left)
+                      && (viewer.pan_drag_active || image_canvas_accepts_mouse
+                          || viewport_accepts_mouse);
                 const bool want_middle_pan
                     = ImGui::IsMouseDown(ImGuiMouseButton_Middle)
                       && (viewer.pan_drag_active || image_canvas_accepts_mouse
                           || viewport_accepts_mouse);
-                const bool want_alt_left_pan
-                    = !area_probe_mode && io.KeyAlt
-                      && ImGui::IsMouseDown(ImGuiMouseButton_Left)
-                      && (viewer.pan_drag_active || image_canvas_accepts_mouse
-                          || viewport_accepts_mouse);
-                want_pan       = want_middle_pan || want_alt_left_pan;
-                want_zoom_drag = io.KeyAlt
+                want_pan       = want_left_pan || want_middle_pan;
+                want_zoom_drag = !area_probe_mode
                                  && ImGui::IsMouseDown(ImGuiMouseButton_Right)
                                  && (viewer.zoom_drag_active
                                      || image_canvas_accepts_mouse
                                      || viewport_accepts_mouse);
-                if (!area_probe_mode && !io.KeyAlt
-                    && (image_canvas_clicked_left || image_canvas_clicked_right
-                        || empty_viewport_clicked_left
-                        || empty_viewport_clicked_right)) {
-                    if (!selection_consumed_left_release
-                        && (image_canvas_clicked_left
-                            || empty_viewport_clicked_left)) {
-                        request_zoom_scale(pending_zoom, 2.0f, true);
-                    }
-                    if (image_canvas_clicked_right
-                        || empty_viewport_clicked_right) {
-                        request_zoom_scale(pending_zoom, 0.5f, true);
-                    }
-                }
             }
         }
 
@@ -519,7 +490,7 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
             } else {
                 const float dx    = mouse.x - viewer.drag_prev_mouse.x;
                 const float dy    = mouse.y - viewer.drag_prev_mouse.y;
-                const float scale = 1.0f + 0.005f * (dx + dy);
+                const float scale = 1.0f + 0.005f * (dy - dx);
                 if (scale > 0.0f)
                     request_zoom_scale(pending_zoom, scale, true);
                 viewer.drag_prev_mouse = mouse;

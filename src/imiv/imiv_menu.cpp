@@ -29,20 +29,6 @@ namespace {
                                    | ImGuiInputFlags_RouteUnlessBgFocused);
     }
 
-    void set_area_sample_mode(ViewerState& viewer, PlaceholderUiState& ui_state,
-                              bool enabled)
-    {
-        ui_state.show_area_probe_window = enabled;
-        if (enabled) {
-            ui_state.mouse_mode = 3;
-            sync_area_probe_to_selection(viewer, ui_state);
-        } else {
-            if (ui_state.mouse_mode == 3)
-                ui_state.mouse_mode = 0;
-            reset_area_probe_overlay(viewer);
-        }
-    }
-
 }  // namespace
 
 void
@@ -152,8 +138,8 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
     if (no_mods && app_shortcut(ImGuiKey_P))
         ui_state.show_pixelview_window = !ui_state.show_pixelview_window;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_A))
-        set_area_sample_mode(viewer, ui_state,
-                             !ui_state.show_area_probe_window);
+        set_area_sample_enabled(viewer, ui_state,
+                                !ui_state.show_area_probe_window);
     if (app_shortcut(ImGuiMod_Shift | ImGuiKey_LeftBracket))
         ui_state.exposure -= 0.5f;
     if (app_shortcut(ImGuiKey_LeftBracket))
@@ -252,6 +238,20 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
         ImGui::Separator();
         if (ImGui::MenuItem("Exit", "Ctrl+Q"))
             request_exit = true;
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Select")) {
+        bool area_sample_enabled = ui_state.show_area_probe_window;
+        if (ImGui::MenuItem("Toggle Area Sample", "Ctrl+A",
+                            &area_sample_enabled)) {
+            set_area_sample_enabled(viewer, ui_state, area_sample_enabled);
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Select All", "Ctrl+Shift+A", false, has_image))
+            actions.select_all_requested = true;
+        if (ImGui::MenuItem("Deselect", "Ctrl+D", false, has_selection))
+            actions.deselect_selection_requested = true;
         ImGui::EndMenu();
     }
 
@@ -514,20 +514,6 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
             actions.flip_horizontal_requested = true;
         if (ImGui::MenuItem("Flip Vertical"))
             actions.flip_vertical_requested = true;
-        ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Selection")) {
-        bool area_sample_enabled = ui_state.show_area_probe_window;
-        if (ImGui::MenuItem("Toggle Area Sample", "Ctrl+A",
-                            &area_sample_enabled)) {
-            set_area_sample_mode(viewer, ui_state, area_sample_enabled);
-        }
-        ImGui::Separator();
-        if (ImGui::MenuItem("Select All", "Ctrl+Shift+A", false, has_image))
-            actions.select_all_requested = true;
-        if (ImGui::MenuItem("Deselect", "Ctrl+D", false, has_selection))
-            actions.deselect_selection_requested = true;
         ImGui::EndMenu();
     }
 

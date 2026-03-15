@@ -4,9 +4,11 @@
 
 #pragma once
 
+#include "imiv_style.h"
 #include "imiv_types.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -98,7 +100,6 @@ struct PlaceholderUiState {
     bool pixelview_follows_mouse  = false;
     bool pixelview_left_corner    = true;
     bool linear_interpolation     = false;
-    bool dark_palette             = true;
     bool auto_mipmap              = false;
     bool image_window_force_dock  = true;
 
@@ -111,6 +112,7 @@ struct PlaceholderUiState {
     int miplevel_index         = 0;
     int color_mode             = 0;
     int mouse_mode             = 0;
+    int style_preset           = static_cast<int>(AppStylePreset::ImGuiDark);
 
     float exposure = 0.0f;
     float gamma    = 1.0f;
@@ -136,12 +138,17 @@ void
 clamp_placeholder_ui_state(PlaceholderUiState& ui_state);
 void
 reset_per_image_preview_state(PlaceholderUiState& ui_state);
+std::filesystem::path
+persistent_state_file_path_for_load();
+std::filesystem::path
+legacy_imgui_ini_file_path();
 bool
 load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
                       std::string& error_message);
 bool
 save_persistent_state(const PlaceholderUiState& ui_state,
-                      const ViewerState& viewer, std::string& error_message);
+                      const ViewerState& viewer, const char* imgui_ini_text,
+                      size_t imgui_ini_size, std::string& error_message);
 int
 clamp_orientation(int orientation);
 void

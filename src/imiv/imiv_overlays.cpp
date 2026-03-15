@@ -4,6 +4,7 @@
 
 #include "imiv_ui.h"
 
+#include "imiv_actions.h"
 #include "imiv_test_engine.h"
 
 #include <algorithm>
@@ -421,14 +422,14 @@ namespace {
     const char* mouse_mode_name(int mode)
     {
         switch (mode) {
-        case 0: return "Zoom";
+        case 0: return "Navigate";
         case 1: return "Pan";
         case 2: return "Wipe";
-        case 3: return "Select";
+        case 3: return "Area Sample";
         case 4: return "Annotate";
         default: break;
         }
-        return "Zoom";
+        return "Navigate";
     }
 
     std::string status_image_text(const ViewerState& viewer)
@@ -963,7 +964,7 @@ draw_area_probe_overlay(const ViewerState& viewer,
 }
 
 void
-draw_embedded_status_bar(const ViewerState& viewer, PlaceholderUiState& ui)
+draw_embedded_status_bar(ViewerState& viewer, PlaceholderUiState& ui)
 {
     const std::string img_text  = status_image_text(viewer);
     const std::string view_text = status_view_text(viewer, ui);
@@ -1008,12 +1009,28 @@ draw_embedded_status_bar(const ViewerState& viewer, PlaceholderUiState& ui)
         }
 
         if (ui.show_mouse_mode_selector) {
-            static const char* mouse_modes[] = { "Zoom", "Pan", "Wipe",
-                                                 "Select", "Annotate" };
             ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-1.0f);
-            ImGui::Combo("##mouse_mode", &ui.mouse_mode, mouse_modes,
-                         IM_ARRAYSIZE(mouse_modes));
+            if (ui.show_area_probe_window) {
+                ImGui::TextUnformatted("Area Sample");
+                register_layout_dump_synthetic_item("text", "Area Sample");
+            } else {
+                static const char* mouse_modes[] = { "Navigate", "Pan", "Wipe",
+                                                     "Annotate" };
+                static const int mouse_mode_values[] = { 0, 1, 2, 4 };
+                int combo_index                      = 0;
+                for (int i = 0; i < IM_ARRAYSIZE(mouse_mode_values); ++i) {
+                    if (ui.mouse_mode == mouse_mode_values[i]) {
+                        combo_index = i;
+                        break;
+                    }
+                }
+                ImGui::SetNextItemWidth(-1.0f);
+                if (ImGui::Combo("##mouse_mode", &combo_index, mouse_modes,
+                                 IM_ARRAYSIZE(mouse_modes))) {
+                    set_mouse_mode_action(viewer, ui,
+                                          mouse_mode_values[combo_index]);
+                }
+            }
         }
 
         ImGui::EndTable();

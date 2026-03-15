@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import argparse
-import filecmp
+import json
+import math
 import os
 import shlex
 import shutil
@@ -69,12 +70,38 @@ def _fail(message: str) -> int:
     return 1
 
 
+def _default_oiiotool(repo_root: Path) -> Path:
+    candidates = [
+        repo_root / "build_u" / "bin" / "oiiotool",
+        repo_root / "build" / "bin" / "oiiotool",
+        Path("/mnt/f/UBc/Release/bin/oiiotool"),
+        Path("/mnt/f/UBc/Debug/bin/oiiotool"),
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return Path("oiiotool")
+
+
+def _default_idiff(repo_root: Path) -> Path:
+    candidates = [
+        repo_root / "build_u" / "bin" / "idiff",
+        repo_root / "build" / "bin" / "idiff",
+        Path("/mnt/f/UBc/Release/bin/idiff"),
+        Path("/mnt/f/UBc/Debug/bin/idiff"),
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return Path("idiff")
+
+
 def _write_prefs(config_home: Path, *, ocio_config_source: int) -> Path:
     prefs_dir = config_home / "OpenImageIO" / "imiv"
     prefs_dir.mkdir(parents=True, exist_ok=True)
-    prefs_path = prefs_dir / "imiv_prefs.ini"
+    prefs_path = prefs_dir / "imiv.inf"
     prefs_text = (
-        "# imiv preferences\n"
+        "[ImivApp][State]\n"
         "use_ocio=1\n"
         f"ocio_config_source={ocio_config_source}\n"
         "ocio_display=default\n"
@@ -98,6 +125,7 @@ def _run_case(
     trace: bool,
 ) -> tuple[Path, Path]:
     screenshot_path = out_dir / f"{name}.png"
+    layout_path = out_dir / f"{name}.json"
     log_path = out_dir / f"{name}.log"
     cmd = [
         sys.executable,
@@ -110,6 +138,9 @@ def _run_case(
         str(image_path),
         "--screenshot-out",
         str(screenshot_path),
+        "--layout-json-out",
+        str(layout_path),
+        "--layout-items",
     ]
     if trace:
         cmd.append("--trace")
@@ -128,12 +159,99 @@ def _run_case(
         raise RuntimeError(f"{name}: runner exited with code {proc.returncode}")
     if not screenshot_path.exists():
         raise RuntimeError(f"{name}: screenshot not written")
+    if not layout_path.exists():
+        raise RuntimeError(f"{name}: layout json not written")
 
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
     for pattern in ERROR_PATTERNS:
         if pattern in log_text:
             raise RuntimeError(f"{name}: found runtime error pattern: {pattern}")
-    return screenshot_path, log_path
+    return screenshot_path, layout_path, log_path
+
+
+def _image_crop_rect(layout_path: Path) -> tuple[int, int, int, int]:
+    data = json.loads(layout_path.read_text(encoding="utf-8"))
+    image_window = None
+    for window in data.get("windows", []):
+        if window.get("name") == "Image":
+            image_window = window
+            break
+    if image_window is None:
+        raise RuntimeError(f"{layout_path.name}: missing Image window")
+
+    viewport_id = image_window.get("viewport_id")
+    origin_x = float(image_window["rect"]["min"][0])
+    origin_y = float(image_window["rect"]["min"][1])
+    for window in data.get("windows", []):
+        if window.get("viewport_id") != viewport_id:
+            continue
+        rect = window.get("rect")
+        if not rect:
+            continue
+        origin_x = min(origin_x, float(rect["min"][0]))
+        origin_y = min(origin_y, float(rect["min"][1]))
+
+    items = image_window.get("items", [])
+    best_rect = None
+    best_area = -1.0
+    for item in items:
+        rect = item.get("rect_clipped") or item.get("rect_full")
+        if not rect:
+            continue
+        min_v = rect.get("min")
+        max_v = rect.get("max")
+        if not min_v or not max_v:
+            continue
+        width = max(0.0, float(max_v[0]) - float(min_v[0]))
+        height = max(0.0, float(max_v[1]) - float(min_v[1]))
+        area = width * height
+        if area > best_area:
+            best_area = area
+            best_rect = rect
+
+    if best_rect is None:
+        rect = image_window.get("rect")
+        if not rect:
+            raise RuntimeError(f"{layout_path.name}: missing crop rect")
+        best_rect = rect
+
+    x0 = int(math.floor(float(best_rect["min"][0]) - origin_x)) + 1
+    y0 = int(math.floor(float(best_rect["min"][1]) - origin_y)) + 1
+    x1 = int(math.ceil(float(best_rect["max"][0]) - origin_x)) - 2
+    y1 = int(math.ceil(float(best_rect["max"][1]) - origin_y)) - 2
+    if x1 <= x0 or y1 <= y0:
+        raise RuntimeError(f"{layout_path.name}: invalid crop rect")
+    return x0, y0, x1, y1
+
+
+def _crop_image(
+    oiiotool: Path, source: Path, crop_rect: tuple[int, int, int, int], dest: Path
+) -> None:
+    x0, y0, x1, y1 = crop_rect
+    cmd = [
+        str(oiiotool),
+        str(source),
+        "--crop",
+        f"{x0},{y0},{x1},{y1}",
+        "-o",
+        str(dest),
+    ]
+    subprocess.run(cmd, check=True)
+
+
+def _images_equal(idiff: Path, lhs: Path, rhs: Path) -> bool:
+    proc = subprocess.run(
+        [str(idiff), "-a", str(lhs), str(rhs)],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if proc.returncode == 0:
+        return True
+    if proc.returncode in (1, 2):
+        return False
+    raise RuntimeError(f"idiff failed for '{lhs.name}' vs '{rhs.name}': {proc.stdout}")
 
 
 if __name__ == "__main__":
@@ -142,12 +260,16 @@ if __name__ == "__main__":
     default_out = repo_root / "build_u" / "imiv_captures" / "ocio_missing_fallback_regression"
     default_env_script = repo_root / "build_u" / "imiv_env.sh"
     default_runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
+    default_oiiotool = _default_oiiotool(repo_root)
+    default_idiff = _default_idiff(repo_root)
 
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument("--env-script", default=str(default_env_script), help="Optional shell env setup script")
     ap.add_argument("--open", default=str(default_image), help="Image to open")
+    ap.add_argument("--oiiotool", default=str(default_oiiotool), help="oiiotool executable")
+    ap.add_argument("--idiff", default=str(default_idiff), help="idiff executable")
     ap.add_argument("--out-dir", default=str(default_out), help="Output directory")
     ap.add_argument("--trace", action="store_true", help="Enable test engine trace")
     args = ap.parse_args()
@@ -164,6 +286,16 @@ if __name__ == "__main__":
     runner = default_runner.resolve()
     if not runner.exists():
         raise SystemExit(_fail(f"runner not found: {runner}"))
+    oiiotool = Path(args.oiiotool).expanduser()
+    if not oiiotool.exists() and shutil.which(str(oiiotool)) is None:
+        raise SystemExit(_fail(f"oiiotool not found: {oiiotool}"))
+    idiff = Path(args.idiff).expanduser()
+    if not idiff.exists():
+        found = shutil.which(str(idiff))
+        if not found:
+            raise SystemExit(_fail(f"idiff not found: {idiff}"))
+        idiff = Path(found)
+    idiff = idiff.resolve()
 
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -182,7 +314,7 @@ if __name__ == "__main__":
     builtin_env["IMIV_CONFIG_HOME"] = str(builtin_cfg)
 
     try:
-        global_png, global_log = _run_case(
+        global_png, global_layout, global_log = _run_case(
             repo_root,
             runner,
             exe,
@@ -193,7 +325,7 @@ if __name__ == "__main__":
             "global_builtin_fallback",
             args.trace,
         )
-        builtin_png, builtin_log = _run_case(
+        builtin_png, builtin_layout, builtin_log = _run_case(
             repo_root,
             runner,
             exe,
@@ -207,7 +339,19 @@ if __name__ == "__main__":
     except (subprocess.SubprocessError, RuntimeError) as exc:
         raise SystemExit(_fail(str(exc)))
 
-    if not filecmp.cmp(global_png, builtin_png, shallow=False):
+    global_crop = out_dir / "global_builtin_fallback.crop.png"
+    builtin_crop = out_dir / "builtin.crop.png"
+    try:
+        _crop_image(
+            oiiotool, global_png, _image_crop_rect(global_layout), global_crop
+        )
+        _crop_image(
+            oiiotool, builtin_png, _image_crop_rect(builtin_layout), builtin_crop
+        )
+    except (subprocess.SubprocessError, RuntimeError) as exc:
+        raise SystemExit(_fail(str(exc)))
+
+    if not _images_equal(idiff, global_crop, builtin_crop):
         raise SystemExit(
             _fail(
                 "global OCIO source did not match explicit builtin source when $OCIO was unavailable"

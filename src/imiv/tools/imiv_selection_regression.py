@@ -189,12 +189,20 @@ def _area_probe_is_initialized(state: dict) -> bool:
     return True
 
 
+def _area_probe_is_reset(state: dict) -> bool:
+    return all(
+        "-----" in line or line == "Area Probe:"
+        for line in state.get("area_probe_lines", [])
+    )
+
+
 def main() -> int:
     repo_root = _repo_root()
     runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
     default_env_script = repo_root / "build_u" / "imiv_env.sh"
     default_out_dir = repo_root / "build_u" / "imiv_captures" / "selection_regression"
     default_drag_image = default_out_dir / "selection_drag_input.tif"
+    default_pan_image = default_out_dir / "selection_pan_input.tif"
     default_viewport_image = default_out_dir / "selection_viewport_input.tif"
 
     ap = argparse.ArgumentParser(description=__doc__)
@@ -213,6 +221,11 @@ def main() -> int:
         "--drag-image",
         default=str(default_drag_image),
         help="Generated fixture used for drag/image-click selection cases",
+    )
+    ap.add_argument(
+        "--pan-image",
+        default=str(default_pan_image),
+        help="Generated large fixture used for pan/no-selection case",
     )
     ap.add_argument(
         "--viewport-image",
@@ -235,10 +248,12 @@ def main() -> int:
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     drag_image = Path(args.drag_image).expanduser().resolve()
+    pan_image = Path(args.pan_image).expanduser().resolve()
     viewport_image = Path(args.viewport_image).expanduser().resolve()
 
     try:
         _generate_fixture(oiiotool, drag_image, 320, 240)
+        _generate_fixture(oiiotool, pan_image, 3072, 2048)
         _generate_fixture(oiiotool, viewport_image, 320, 32)
     except subprocess.SubprocessError as exc:
         return _fail(f"failed to generate selection fixtures: {exc}")
@@ -325,6 +340,43 @@ def main() -> int:
             area_env,
             args.trace,
         )
+        area_sample_pan_baseline_state, _ = _run_case(
+            repo_root,
+            runner,
+            exe,
+            cwd,
+            pan_image,
+            out_dir,
+            "area_sample_pan_baseline",
+            [],
+            env,
+            area_env,
+            args.trace,
+        )
+        toggle_area_off_pan_state, _ = _run_case(
+            repo_root,
+            runner,
+            exe,
+            cwd,
+            pan_image,
+            out_dir,
+            "toggle_area_off_left_drag_pan",
+            [
+                "--key-chord",
+                "ctrl+a",
+                "--mouse-pos-image-rel",
+                "0.50",
+                "0.50",
+                "--mouse-drag",
+                "180",
+                "120",
+                "--mouse-drag-button",
+                "0",
+            ],
+            env,
+            area_env,
+            args.trace,
+        )
     except (RuntimeError, subprocess.SubprocessError) as exc:
         return _fail(str(exc))
 
@@ -333,6 +385,8 @@ def main() -> int:
         ("select_all", select_all_state),
         ("deselect_image_click", deselect_image_state),
         ("deselect_viewport_click", deselect_viewport_state),
+        ("area_sample_pan_baseline", area_sample_pan_baseline_state),
+        ("toggle_area_off_left_drag_pan", toggle_area_off_pan_state),
     ):
         if not state.get("image_loaded", False):
             return _fail(f"{name}: image not loaded")
@@ -373,7 +427,7 @@ def main() -> int:
             "deselect_image_click: selection bounds were not cleared: "
             f"{deselect_image_state.get('selection_bounds')}"
         )
-    if not all("-----" in line or line == "Area Probe:" for line in deselect_image_state.get("area_probe_lines", [])):
+    if not _area_probe_is_reset(deselect_image_state):
         return _fail("deselect_image_click: area probe was not reset")
 
     if deselect_viewport_state.get("selection_active", False):
@@ -383,13 +437,42 @@ def main() -> int:
             "deselect_viewport_click: selection bounds were not cleared: "
             f"{deselect_viewport_state.get('selection_bounds')}"
         )
-    if not all("-----" in line or line == "Area Probe:" for line in deselect_viewport_state.get("area_probe_lines", [])):
+    if not _area_probe_is_reset(deselect_viewport_state):
         return _fail("deselect_viewport_click: area probe was not reset")
+
+    if toggle_area_off_pan_state.get("selection_active", False):
+        return _fail("toggle_area_off_left_drag_pan: selection became active")
+    if any(int(v) != 0 for v in toggle_area_off_pan_state.get("selection_bounds", [])):
+        return _fail(
+            "toggle_area_off_left_drag_pan: selection bounds were not cleared: "
+            f"{toggle_area_off_pan_state.get('selection_bounds')}"
+        )
+    if not _area_probe_is_reset(toggle_area_off_pan_state):
+        return _fail("toggle_area_off_left_drag_pan: area probe was not reset")
+
+    baseline_scroll = [
+        float(v) for v in area_sample_pan_baseline_state.get("scroll", [0.0, 0.0])
+    ]
+    toggle_pan_scroll = [
+        float(v) for v in toggle_area_off_pan_state.get("scroll", [0.0, 0.0])
+    ]
+    if len(baseline_scroll) != 2 or len(toggle_pan_scroll) != 2:
+        return _fail("toggle_area_off_left_drag_pan: scroll state missing")
+    if baseline_scroll == toggle_pan_scroll:
+        return _fail(
+            "toggle_area_off_left_drag_pan: left drag did not pan the image: "
+            f"baseline={baseline_scroll}, after_drag={toggle_pan_scroll}"
+        )
 
     print("drag_select:", drag_state["_state_path"])
     print("select_all:", select_all_state["_state_path"])
     print("deselect_image_click:", deselect_image_state["_state_path"])
     print("deselect_viewport_click:", deselect_viewport_state["_state_path"])
+    print(
+        "area_sample_pan_baseline:",
+        area_sample_pan_baseline_state["_state_path"],
+    )
+    print("toggle_area_off_left_drag_pan:", toggle_area_off_pan_state["_state_path"])
     print("artifacts:", out_dir)
     return 0
 

@@ -519,6 +519,35 @@ deselect_selection_action(ViewerState& viewer,
 }
 
 void
+set_area_sample_enabled(ViewerState& viewer, PlaceholderUiState& ui_state,
+                        bool enabled)
+{
+    ui_state.show_area_probe_window = enabled;
+    if (enabled) {
+        ui_state.mouse_mode = 3;
+        sync_area_probe_to_selection(viewer, ui_state);
+        return;
+    }
+
+    if (ui_state.mouse_mode == 3)
+        ui_state.mouse_mode = 0;
+    clear_image_selection(viewer);
+    reset_area_probe_overlay(viewer);
+}
+
+void
+set_mouse_mode_action(ViewerState& viewer, PlaceholderUiState& ui_state,
+                      int mouse_mode)
+{
+    ui_state.mouse_mode = std::clamp(mouse_mode, 0, 4);
+    if (ui_state.mouse_mode == 3)
+        ui_state.mouse_mode = 0;
+    if (ui_state.show_area_probe_window) {
+        set_area_sample_enabled(viewer, ui_state, false);
+    }
+}
+
+void
 set_sort_mode_action(ViewerState& viewer, ImageSortMode mode)
 {
     viewer.sort_mode = mode;

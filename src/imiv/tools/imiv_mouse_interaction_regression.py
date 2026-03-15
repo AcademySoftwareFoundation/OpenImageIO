@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-"""Regression check for imiv click-zoom and middle-drag pan."""
+#!/ usr / bin / env python3
+"""Regression check for imiv drag navigation and area-sample gating."""
 
 from __future__ import annotations
 
@@ -111,26 +111,38 @@ def main() -> int:
         args.cwd,
         args.trace,
     )
-    left_click = _run_case(
+    left_drag = _run_case(
         sys.executable,
         runner,
         repo_root,
         out_dir,
         image_path,
-        "left_click_zoom_in",
-        ["--mouse-click", "0"],
+        "left_drag_pan",
+        ["--mouse-drag-button", "0", "--mouse-drag", "120", "80"],
         args.bin,
         args.cwd,
         args.trace,
     )
-    right_click = _run_case(
+    right_drag_zoom_in = _run_case(
         sys.executable,
         runner,
         repo_root,
         out_dir,
         image_path,
-        "right_click_zoom_out",
-        ["--mouse-click", "1"],
+        "right_drag_zoom_in",
+        ["--mouse-drag-button", "1", "--mouse-drag", "0", "120"],
+        args.bin,
+        args.cwd,
+        args.trace,
+    )
+    right_drag_zoom_out = _run_case(
+        sys.executable,
+        runner,
+        repo_root,
+        out_dir,
+        image_path,
+        "right_drag_zoom_out",
+        ["--mouse-drag-button", "1", "--mouse-drag", "0", "-120"],
         args.bin,
         args.cwd,
         args.trace,
@@ -150,26 +162,34 @@ def main() -> int:
 
     for name, state in (
         ("baseline", baseline),
-        ("left_click", left_click),
-        ("right_click", right_click),
+        ("left_drag", left_drag),
+        ("right_drag_zoom_in", right_drag_zoom_in),
+        ("right_drag_zoom_out", right_drag_zoom_out),
         ("middle_drag", middle_drag),
     ):
         if not state.get("image_loaded", False):
             return _fail(f"{name}: image not loaded")
 
     baseline_zoom = float(baseline["zoom"])
-    left_zoom = float(left_click["zoom"])
-    right_zoom = float(right_click["zoom"])
+    left_zoom = float(left_drag["zoom"])
+    right_zoom_in = float(right_drag_zoom_in["zoom"])
+    right_zoom_out = float(right_drag_zoom_out["zoom"])
     middle_zoom = float(middle_drag["zoom"])
     if abs(baseline_zoom - 1.0) > 1.0e-3:
         return _fail(f"baseline zoom expected 1.0, got {baseline_zoom:.6f}")
-    if left_zoom <= baseline_zoom + 1.0e-3:
+    if abs(left_zoom - baseline_zoom) > 1.0e-3:
         return _fail(
-            f"left click did not zoom in: baseline={baseline_zoom:.6f}, left={left_zoom:.6f}"
+            f"left drag changed zoom unexpectedly: baseline={baseline_zoom:.6f}, left={left_zoom:.6f}"
         )
-    if right_zoom >= baseline_zoom - 1.0e-3:
+    if right_zoom_in <= baseline_zoom + 1.0e-3:
         return _fail(
-            f"right click did not zoom out: baseline={baseline_zoom:.6f}, right={right_zoom:.6f}"
+            "right drag zoom-in did not increase zoom: "
+            f"baseline={baseline_zoom:.6f}, right_in={right_zoom_in:.6f}"
+        )
+    if right_zoom_out >= baseline_zoom - 1.0e-3:
+        return _fail(
+            "right drag zoom-out did not decrease zoom: "
+            f"baseline={baseline_zoom:.6f}, right_out={right_zoom_out:.6f}"
         )
     if abs(middle_zoom - baseline_zoom) > 1.0e-3:
         return _fail(
@@ -177,7 +197,15 @@ def main() -> int:
         )
 
     baseline_scroll = baseline["scroll"]
+    left_scroll = left_drag["scroll"]
     middle_scroll = middle_drag["scroll"]
+    left_dx = abs(float(left_scroll[0]) - float(baseline_scroll[0]))
+    left_dy = abs(float(left_scroll[1]) - float(baseline_scroll[1]))
+    if max(left_dx, left_dy) <= 1.0:
+        return _fail(
+            "left drag did not change scroll enough: "
+            f"baseline={baseline_scroll}, left={left_scroll}"
+        )
     scroll_dx = abs(float(middle_scroll[0]) - float(baseline_scroll[0]))
     scroll_dy = abs(float(middle_scroll[1]) - float(baseline_scroll[1]))
     if max(scroll_dx, scroll_dy) <= 1.0:
@@ -186,16 +214,21 @@ def main() -> int:
             f"baseline={baseline_scroll}, middle={middle_scroll}"
         )
 
-    if left_click["screenshot_sha256"] == baseline["screenshot_sha256"]:
-        return _fail("left click screenshot matches baseline")
-    if right_click["screenshot_sha256"] == baseline["screenshot_sha256"]:
-        return _fail("right click screenshot matches baseline")
+    if left_drag.get("selection_active", False):
+        return _fail("left drag created a selection while area sample was off")
+    if left_drag["screenshot_sha256"] == baseline["screenshot_sha256"]:
+        return _fail("left drag screenshot matches baseline")
+    if right_drag_zoom_in["screenshot_sha256"] == baseline["screenshot_sha256"]:
+        return _fail("right drag zoom-in screenshot matches baseline")
+    if right_drag_zoom_out["screenshot_sha256"] == baseline["screenshot_sha256"]:
+        return _fail("right drag zoom-out screenshot matches baseline")
     if middle_drag["screenshot_sha256"] == baseline["screenshot_sha256"]:
         return _fail("middle drag screenshot matches baseline")
 
     print("baseline zoom:", f"{baseline_zoom:.6f}", "scroll:", baseline_scroll)
-    print("left click zoom:", f"{left_zoom:.6f}")
-    print("right click zoom:", f"{right_zoom:.6f}")
+    print("left drag zoom:", f"{left_zoom:.6f}", "scroll:", left_scroll)
+    print("right drag zoom in:", f"{right_zoom_in:.6f}")
+    print("right drag zoom out:", f"{right_zoom_out:.6f}")
     print("middle drag zoom:", f"{middle_zoom:.6f}", "scroll:", middle_scroll)
     print("artifacts:", out_dir)
     return 0
