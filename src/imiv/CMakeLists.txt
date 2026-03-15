@@ -81,6 +81,7 @@ set (_imiv_core_sources
      imiv_ocio.cpp
      imiv_overlays.cpp
      imiv_shader_compile.cpp
+     imiv_style.cpp
      imiv_ui.cpp
      imiv_viewer.cpp
      imiv_vulkan_setup.cpp

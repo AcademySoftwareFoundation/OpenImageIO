@@ -122,9 +122,9 @@ def _write_prefs(
 ) -> Path:
     prefs_dir = config_home / "OpenImageIO" / "imiv"
     prefs_dir.mkdir(parents=True, exist_ok=True)
-    prefs_path = prefs_dir / "imiv_prefs.ini"
+    prefs_path = prefs_dir / "imiv.inf"
     prefs_text = (
-        "# imiv preferences\n"
+        "[ImivApp][State]\n"
         f"use_ocio={1 if use_ocio else 0}\n"
         f"ocio_config_source={ocio_config_source}\n"
         f"ocio_display={ocio_display}\n"

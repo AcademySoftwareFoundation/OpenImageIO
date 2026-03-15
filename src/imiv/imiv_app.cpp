@@ -10,6 +10,7 @@
 #include "imiv_menu.h"
 #include "imiv_navigation.h"
 #include "imiv_ocio.h"
+#include "imiv_style.h"
 #include "imiv_test_engine.h"
 #include "imiv_types.h"
 #include "imiv_ui.h"
@@ -55,15 +56,6 @@ using namespace OIIO;
 namespace Imiv {
 
 namespace {
-
-    void apply_imgui_style_defaults()
-    {
-        ImGuiStyle& style      = ImGui::GetStyle();
-        style.WindowBorderSize = 0.0f;
-        style.ChildBorderSize  = 0.0f;
-        style.PopupBorderSize  = 0.0f;
-        style.FrameBorderSize  = 0.0f;
-    }
 
     std::filesystem::path executable_directory_path()
     {
@@ -435,10 +427,25 @@ run(const AppConfig& config)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    io.IniFilename       = "imiv.ini";
+    io.IniFilename       = nullptr;
     const AppFonts fonts = setup_app_fonts(verbose_logging);
-    ImGui::StyleColorsDark();
-    apply_imgui_style_defaults();
+    apply_imgui_app_style(AppStylePreset::ImGuiDark);
+    const std::filesystem::path settings_load_path
+        = persistent_state_file_path_for_load();
+    std::error_code settings_load_ec;
+    if (settings_load_path.filename() == "imiv.inf"
+        && std::filesystem::exists(settings_load_path, settings_load_ec)
+        && !settings_load_ec) {
+        ImGui::LoadIniSettingsFromDisk(settings_load_path.string().c_str());
+    } else {
+        const std::filesystem::path legacy_imgui_path
+            = legacy_imgui_ini_file_path();
+        settings_load_ec.clear();
+        if (std::filesystem::exists(legacy_imgui_path, settings_load_ec)
+            && !settings_load_ec) {
+            ImGui::LoadIniSettingsFromDisk(legacy_imgui_path.string().c_str());
+        }
+    }
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGuiStyle& style                 = ImGui::GetStyle();
         style.WindowRounding              = 0.0f;
@@ -597,11 +604,8 @@ run(const AppConfig& config)
         ui_state.show_area_probe_window = true;
         ui_state.mouse_mode             = 3;
     }
-    if (ui_state.dark_palette)
-        ImGui::StyleColorsDark();
-    else
-        ImGui::StyleColorsLight();
-    apply_imgui_style_defaults();
+    set_area_sample_enabled(viewer, ui_state, ui_state.show_area_probe_window);
+    apply_imgui_app_style(sanitize_app_style_preset(ui_state.style_preset));
 
     if (!run_config.input_paths.empty()) {
         append_loaded_image_paths(viewer, run_config.input_paths);
@@ -634,8 +638,17 @@ run(const AppConfig& config)
     glfwPollEvents();
     force_center_glfw_window(window);
 
+    auto save_combined_settings = [&](std::string& save_error_message) {
+        size_t imgui_ini_size      = 0;
+        const char* imgui_ini_text = ImGui::SaveIniSettingsToMemory(
+            &imgui_ini_size);
+        io.WantSaveIniSettings = false;
+        return save_persistent_state(ui_state, viewer, imgui_ini_text,
+                                     imgui_ini_size, save_error_message);
+    };
+
     bool request_exit         = false;
-    bool applied_dark_palette = ui_state.dark_palette;
+    int applied_style_preset  = ui_state.style_preset;
     int startup_center_frames = 90;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -676,13 +689,12 @@ run(const AppConfig& config)
 #    endif
                            ,
                        window, vk_state);
-        if (ui_state.dark_palette != applied_dark_palette) {
-            if (ui_state.dark_palette)
-                ImGui::StyleColorsDark();
-            else
-                ImGui::StyleColorsLight();
-            apply_imgui_style_defaults();
-            applied_dark_palette = ui_state.dark_palette;
+        if (ui_state.style_preset != applied_style_preset) {
+            ui_state.style_preset = static_cast<int>(
+                sanitize_app_style_preset(ui_state.style_preset));
+            apply_imgui_app_style(
+                sanitize_app_style_preset(ui_state.style_preset));
+            applied_style_preset = ui_state.style_preset;
         }
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
         test_engine_maybe_show_windows(test_engine_runtime, test_engine_cfg);
@@ -713,12 +725,19 @@ run(const AppConfig& config)
         if (test_engine_should_close(test_engine_runtime, test_engine_cfg))
             glfwSetWindowShouldClose(window, GLFW_TRUE);
 #    endif
+        if (io.WantSaveIniSettings) {
+            std::string save_error_message;
+            if (!save_combined_settings(save_error_message)) {
+                print(stderr, "imiv: failed to save preferences: {}\n",
+                      save_error_message);
+            }
+        }
         if (request_exit)
             glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
     std::string prefs_save_error;
-    if (!save_persistent_state(ui_state, viewer, prefs_save_error))
+    if (!save_combined_settings(prefs_save_error))
         print(stderr, "imiv: failed to save preferences: {}\n",
               prefs_save_error);
 

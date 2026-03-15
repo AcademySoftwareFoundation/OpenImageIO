@@ -487,31 +487,10 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
     }
 #endif
 
-    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_INFO"))
-        ui_state.show_info_window = true;
-    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PREFS"))
-        ui_state.show_preferences_window = true;
-    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PREVIEW"))
-        ui_state.show_preview_window = true;
-    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_PIXEL"))
-        ui_state.show_pixelview_window = true;
-    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AREA")) {
-        ui_state.show_area_probe_window = true;
-        ui_state.mouse_mode             = 3;
-        sync_area_probe_to_selection(viewer, ui_state);
-    }
-    if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_AUX_WINDOWS")) {
-        ui_state.show_info_window        = true;
-        ui_state.show_preferences_window = true;
-        ui_state.show_preview_window     = true;
-        ui_state.show_pixelview_window   = true;
-        ui_state.show_area_probe_window  = true;
-        ui_state.mouse_mode              = 3;
-        sync_area_probe_to_selection(viewer, ui_state);
-    }
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_DRAG_OVERLAY"))
         viewer.drag_overlay_active = true;
     apply_test_engine_ocio_overrides(ui_state);
+    set_area_sample_enabled(viewer, ui_state, ui_state.show_area_probe_window);
 
     collect_viewer_shortcuts(viewer, ui_state, developer_ui, actions,
                              request_exit);

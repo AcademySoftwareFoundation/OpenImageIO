@@ -34,6 +34,12 @@ void
 deselect_selection_action(ViewerState& viewer,
                           const PlaceholderUiState& ui_state);
 void
+set_area_sample_enabled(ViewerState& viewer, PlaceholderUiState& ui_state,
+                        bool enabled);
+void
+set_mouse_mode_action(ViewerState& viewer, PlaceholderUiState& ui_state,
+                      int mouse_mode);
+void
 set_sort_mode_action(ViewerState& viewer, ImageSortMode mode);
 void
 toggle_sort_reverse_action(ViewerState& viewer);

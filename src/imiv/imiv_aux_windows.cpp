@@ -246,7 +246,24 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window)
 
         ImGui::Spacing();
         ImGui::Checkbox("Linear interpolation", &ui.linear_interpolation);
-        ImGui::Checkbox("Dark palette", &ui.dark_palette);
+        const AppStylePreset current_style_preset = sanitize_app_style_preset(
+            ui.style_preset);
+        if (ImGui::BeginCombo("UI style",
+                              app_style_preset_name(current_style_preset))) {
+            for (int preset_value = static_cast<int>(AppStylePreset::IvLight);
+                 preset_value <= static_cast<int>(AppStylePreset::ImGuiClassic);
+                 ++preset_value) {
+                const AppStylePreset preset = static_cast<AppStylePreset>(
+                    preset_value);
+                const bool selected = preset == current_style_preset;
+                if (ImGui::Selectable(app_style_preset_name(preset), selected)) {
+                    ui.style_preset = preset_value;
+                }
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
         ImGui::Checkbox("Generate mipmaps (requires restart)", &ui.auto_mipmap);
 
         ImGui::Spacing();

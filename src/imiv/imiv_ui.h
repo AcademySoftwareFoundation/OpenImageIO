@@ -61,6 +61,6 @@ void
 draw_image_selection_overlay(const ViewerState& viewer,
                              const ImageCoordinateMap& map);
 void
-draw_embedded_status_bar(const ViewerState& viewer, PlaceholderUiState& ui);
+draw_embedded_status_bar(ViewerState& viewer, PlaceholderUiState& ui);
 
 }  // namespace Imiv
