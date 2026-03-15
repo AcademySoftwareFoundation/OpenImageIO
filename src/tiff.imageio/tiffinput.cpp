@@ -1990,7 +1990,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                           out->m_spec.width,
                                           out->m_rowsperstrip, &ok);
                 if (out->m_photometric == PHOTOMETRIC_MINISWHITE)
-                    out->invert_photometric(stripvals * stripchans, data);
+                    out->invert_photometric(stripvals, data);
             };
             if (parallelize) {
                 // Push the rest of the work onto the thread pool queue
