@@ -247,9 +247,6 @@ macro (oiio_add_all_tests)
             python-imageinput python-imagebufalgo
             IMAGEDIR oiio-images
             )
-        if (OIIO_BUILD_PYTHON_NANOBIND)
-            oiio_add_tests (python-roi-nanobind python-typedesc-nanobind)
-        endif ()
     endif ()
 
     oiio_add_tests (oiiotool-color

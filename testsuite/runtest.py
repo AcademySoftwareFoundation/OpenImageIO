@@ -82,6 +82,13 @@ if str(mytest).endswith('.batch') :
 test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
                             os.path.join(OIIO_TESTSUITE_ROOT, mytest))
 
+# Python tests listed here also run against the staged nanobind package when
+# it exists in the current build tree.
+nanobind_python_tests = {
+    "python-roi",
+    "python-typedesc",
+}
+
 def oiio_app (app: str) -> str:
     if (platform.system () != 'Windows' or options.devenv_config == ""):
         cmd = os.path.join(OIIO_BUILD_ROOT, "bin", app) + " "
@@ -101,6 +108,7 @@ ociover = os.getenv('OCIO_VERSION_OVERRIDE', ociover)
 
 command = ""
 outputs = [ "out.txt" ]    # default
+ref_name_overrides = {}
 
 # The image comparison thresholds are tricky to remember. Here's the key:
 # A test fails if more than `failpercent` of pixel values differ by more
@@ -354,16 +362,18 @@ def oiiotool (args: str, silent: bool=False, concat: bool=True, failureok: bool=
 # the identical name, and if that fails, it will look for alternatives of
 # the form "basename-*.ext" (or ANY match in the ref directory, if anymatch
 # is True).
-def checkref (name: str, refdirlist: list[str]) -> tuple[bool, str]:
+def checkref (name: str, refdirlist: list[str], refname: str|None=None) -> tuple[bool, str]:
     # Break the output into prefix+extension
-    (prefix, extension) = os.path.splitext(name)
+    if refname is None:
+        refname = name
+    (prefix, extension) = os.path.splitext(refname)
     ok = 0
     for ref in refdirlist :
         # We will first compare name to ref/name, and if that fails, we will
         # compare it to everything else that matches ref/prefix-*.extension.
         # That allows us to have multiple matching variants for different
         # platforms, etc.
-        defaulttest = os.path.join(ref,name)
+        defaulttest = os.path.join(ref,refname)
         if anymatch :
             pattern = "*.*"
         else :
@@ -437,7 +447,8 @@ def runtest (command: str, outputs: list[str], failureok: int=0) -> int :
             if os.path.exists('crlf.txt') :
                 os.remove('crlf.txt')
 
-        (ok, testfile) = checkref (out, refdirlist)
+        refname = ref_name_overrides.get(out, out)
+        (ok, testfile) = checkref (out, refdirlist, refname=refname)
 
         if ok :
             if extension in image_extensions :
@@ -477,12 +488,41 @@ def runtest (command: str, outputs: list[str], failureok: int=0) -> int :
 
 
 #
-# Read the individual run.py file for this test, which will define 
+# Read the individual run.py file for this test, which will define
 # command and outputs.
 #
 with open(os.path.join(test_source_dir,"run.py")) as f:
     code = compile(f.read(), "run.py", 'exec')
     exec (code)
+
+# For tests that have a nanobind port, run the same canonical Python test
+# body a second time against the staged nanobind package from the current
+# build tree. Keep the output separate so failures still indicate which
+# backend mismatched the shared reference output.
+nanobind_package = os.path.join(
+    OIIO_BUILD_ROOT, "lib", "python", "nanobind", "OpenImageIO", "__init__.py"
+)
+if mytest in nanobind_python_tests and os.path.exists(nanobind_package):
+    nanobind_runner = make_relpath(
+        os.path.join(OIIO_TESTSUITE_ROOT, "common", "run_nanobind_python_test.py"),
+        tmpdir,
+    )
+    command += " ; " + (
+        pythonbin
+        + " "
+        + nanobind_runner
+        + " "
+        + mytest
+        + " "
+        + OIIO_BUILD_ROOT
+        + " > out-nanobind.txt"
+    )
+    # Example of final command for `python-roi` would be:
+    # python src/test_roi.py > out.txt ; \
+    # python ../../../testsuite/common/run_nanobind_python_test.py \
+    #   python-roi ../.. > out-nanobind.txt
+    outputs.append("out-nanobind.txt")
+    ref_name_overrides["out-nanobind.txt"] = "out.txt"
 
 # Allow a little more slop for slight pixel differences when in DEBUG
 # mode or when running on remote CI machines.
