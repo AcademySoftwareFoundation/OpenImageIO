@@ -5,4 +5,4 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
-command += pythonbin + " src/test_typedesc.py > out.txt"
+command += pythonbin + " src/test_typedesc.py " + OIIO_BUILD_ROOT + " > out.txt"
