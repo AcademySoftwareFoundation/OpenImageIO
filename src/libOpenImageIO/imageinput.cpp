@@ -1610,7 +1610,7 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
                 spec.full_width, spec.full_height, spec.full_depth);
         else
             errorfmt(
-                "{} image full_display resolution may not exceed {}x{}, but the file appears to be {}x{}. Possible corrupt input?",
+                "{} image full/display resolution may not exceed {}x{}, but the file appears to be {}x{}. Possible corrupt input?",
                 format_name(), range.width(), range.height(), spec.full_width,
                 spec.full_height);
         return false;
