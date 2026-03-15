@@ -443,6 +443,11 @@ public:
     ///             If nonzero, accept untiled images.
     /// - `int accept_unmipped` :
     ///             If nonzero, accept unmipped images.
+    /// - `int statistics:level` :
+    ///             Verbosity of statistics auto-printed. (Default: 0)
+    /// - `int forcefloat` :
+    ///             If set to nonzero, all image tiles will be converted to
+    ///             `float` type when stored in the image cache. (Default: 0)
     /// - `int failure_retries` :
     ///             How many times to retry a read failure.
     /// - `int deduplicate` :
@@ -453,6 +458,8 @@ public:
     /// - `string substitute_image` :
     ///             If supplied, an image to substatute for all texture
     ///             references.
+    /// - `int unassociatedalpha` :
+    ///             When nonzero, leave input images with unassociated alpha.
     /// - `int max_errors_per_file` :
     ///             Limits how many errors to issue for each file. (default:
     ///             100)
