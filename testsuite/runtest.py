@@ -13,6 +13,7 @@ import difflib
 import filecmp
 import shutil
 import shlex
+from typing import Optional
 
 from optparse import OptionParser
 
@@ -369,7 +370,7 @@ def oiiotool (args: str, silent: bool=False, concat: bool=True, failureok: bool=
 # the identical name, and if that fails, it will look for alternatives of
 # the form "basename-*.ext" (or ANY match in the ref directory, if anymatch
 # is True).
-def checkref (name: str, refdirlist: list[str], refname: str|None=None) -> tuple[bool, str]:
+def checkref (name: str, refdirlist: list[str], refname: Optional[str]=None) -> tuple[bool, str]:
     # Break the output into prefix+extension
     if refname is None:
         refname = name
