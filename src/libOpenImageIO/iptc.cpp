@@ -103,8 +103,10 @@ OIIO_NAMESPACE_3_1_BEGIN
 bool
 decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
 {
+    if (!iptc || length <= 0)
+        return false;
     return decode_iptc_iim(string_view(reinterpret_cast<const char*>(iptc),
-                                       length),
+                                       static_cast<size_t>(length)),
                            spec);
 }
 

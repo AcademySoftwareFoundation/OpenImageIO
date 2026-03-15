@@ -62,8 +62,9 @@ my_error_exit(j_common_ptr cinfo)
 {
     /* cinfo->err really points to a my_error_mgr struct, so coerce pointer */
     JpgInput::my_error_ptr myerr = (JpgInput::my_error_ptr)cinfo->err;
+    OIIO_ASSERT(myerr);
 
-    if (myerr && myerr->jpginput)
+    if (myerr->jpginput)
         myerr->jpginput->jpegerror(myerr, true);
 
     /* Return control to the setjmp point */
@@ -76,8 +77,9 @@ static void
 my_output_message(j_common_ptr cinfo)
 {
     JpgInput::my_error_ptr myerr = (JpgInput::my_error_ptr)cinfo->err;
+    OIIO_ASSERT(myerr);
 
-    if (myerr && myerr->jpginput)
+    if (myerr->jpginput)
         myerr->jpginput->jpegerror(myerr, false);
 
     // This function is called only for non-fatal problems, so we don't
@@ -269,15 +271,15 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         m_spec.attribute(JPEG_SUBSAMPLING_ATTR, subsampling);
 
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list; m; m = m->next) {
-        if (m->marker == (JPEG_APP0 + 1)
-            && !strcmp((const char*)m->data, "Exif")) {
+        if (m->marker == (JPEG_APP0 + 1) && m->data_length >= 4
+            && !strncmp((const char*)m->data, "Exif", 4)) {
             // The block starts with "Exif\0\0", so skip 6 bytes to get
             // to the start of the actual Exif data TIFF directory
             decode_exif(string_view((char*)m->data + 6, m->data_length - 6),
                         m_spec);
         } else if (m->marker == (JPEG_APP0 + 1) && m->data_length >= 28
-                   && !strcmp((const char*)m->data,
-                              "http://ns.adobe.com/xap/1.0/")) {  //NOSONAR
+                   && !strncmp((const char*)m->data,
+                               "http://ns.adobe.com/xap/1.0/", 28)) {  //NOSONAR
             std::string xml((const char*)m->data, m->data_length);
             decode_xmp(xml, m_spec);
         } else if (m->marker == (JPEG_APP0 + 13) && m->data_length >= 13
@@ -646,17 +648,17 @@ JpgInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     }
 
-    int nscanlines     = yend - ybegin;
+    int64_t nscanlines = yend - ybegin;
     size_t sl_bytes    = m_spec.scanline_bytes(true /*native*/);
     JSAMPLE** readdata = OIIO_ALLOCA(JSAMPLE*, nscanlines);
-    for (int i = 0; i < nscanlines; ++i)
+    for (int64_t i = 0; i < nscanlines; ++i)
         readdata[i] = reinterpret_cast<JSAMPLE*>(&data[i * sl_bytes]);
 
     if (m_cmyk) {
         // If the file's data is CMYK, read into a 4-channel buffer, then
         // we'll have to convert.
         m_cmyk_buf.resize(m_spec.width * 4 * nscanlines);
-        for (int i = 0; i < nscanlines; ++i)
+        for (int64_t i = 0; i < nscanlines; ++i)
             readdata[i] = reinterpret_cast<JSAMPLE*>(m_cmyk_buf.data()
                                                      + i * m_spec.width * 4);
         OIIO_DASSERT(m_spec.nchannels == 3);
@@ -685,7 +687,7 @@ JpgInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     m_next_scanline = yend;
 
     if (m_cmyk) {
-        for (int i = 0; i < nscanlines; ++i)
+        for (int64_t i = 0; i < nscanlines; ++i)
             cmyk_to_rgb(make_cspan(readdata[i], m_spec.width * 4),
                         span_cast<unsigned char>(data).subspan(
                             m_spec.width * 3 * i, m_spec.width * 3));
@@ -755,7 +757,8 @@ JpgInput::jpeg_decode_iptc(string_view buf)
                          + static_cast<unsigned char>(buf[1]);
     buf.remove_prefix(2);
 
-    // Truncate to smaller of segment size and buffer size
+    // Ensure the declared segment size does not exceed the remaining buffer,
+    // then restrict buf to exactly segmentsize bytes.
     if (segmentsize > buf.size())
         return false;
     buf = buf.substr(0, segmentsize);
