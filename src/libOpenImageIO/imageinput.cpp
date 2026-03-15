@@ -1539,31 +1539,30 @@ bool
 ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
 {
     // Check for sensible resolutions, etc.
-    if ((m_spec.width <= 0 || m_spec.height <= 0 || m_spec.depth <= 0
-         || m_spec.nchannels <= 0)
-        && !supports("noimage")) {
+    if (spec.width == 0 && spec.height == 0 && spec.nchannels == 0
+        && supports("noimage")) {
+        // ok!
+    } else if (spec.width <= 0 || spec.height <= 0 || spec.depth <= 0
+               || spec.nchannels <= 0) {
         errorfmt(
-            "{} image resolution must be at least 1x1, but the file specified {}x{}. Possible corrupt input?",
-            format_name(), m_spec.width, m_spec.height);
+            "{} image resolution must be at least 1x1, but the file specified {}x{}x{}, {} chans. Possible corrupt input?",
+            format_name(), spec.width, spec.height, spec.depth, spec.nchannels);
         return false;
     }
-    if (m_spec.depth > 1) {
-        if (m_spec.width > range.width() || m_spec.height > range.height()
-            || m_spec.depth > range.depth()) {
+    if (spec.width > range.width() || spec.height > range.height()
+        || spec.depth > range.depth()) {
+        if (spec.depth > 1) {
             errorfmt(
                 "{} image resolution may not exceed {}x{}x{}, but the file appears to be {}x{}x{}. Possible corrupt input?",
                 format_name(), range.width(), range.height(), range.depth(),
-                m_spec.width, m_spec.height, m_spec.depth);
-            return false;
-        }
-    } else {
-        if (m_spec.width > range.width() || m_spec.height > range.height()) {
+                spec.width, spec.height, spec.depth);
+        } else if (spec.width > range.width() || spec.height > range.height()) {
             errorfmt(
                 "{} image resolution may not exceed {}x{}, but the file appears to be {}x{}. Possible corrupt input?",
-                format_name(), range.width(), range.height(), m_spec.width,
-                m_spec.height);
-            return false;
+                format_name(), range.width(), range.height(), spec.width,
+                spec.height);
         }
+        return false;
     }
     if (spec.nchannels > range.nchannels()) {
         errorfmt(
@@ -1585,12 +1584,37 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
             "Uncompressed image size {:.1f} MB exceeds the {} MB limit.\n"
             "Image claimed to be {}x{}, {}-channel {}. Possible corrupt input?\n"
             "If this is a valid file, raise the OIIO attribute \"limits:imagesize_MB\".",
-            float(m_spec.image_bytes(true)) / float(1024 * 1024),
-            OIIO::pvt::limit_imagesize_MB, m_spec.width, m_spec.height,
-            m_spec.nchannels, m_spec.format);
+            float(spec.image_bytes(true)) / float(1024 * 1024),
+            OIIO::pvt::limit_imagesize_MB, spec.width, spec.height,
+            spec.nchannels, spec.format);
         return false;
     }
 
+    // Check for invalid full_* values for sensibility
+    if (spec.full_width == 0 && spec.full_height == 0 && spec.full_depth == 0
+        && supports("noimage")) {
+        // ok!
+    } else if (spec.full_width <= 0 || spec.full_height <= 0
+               || spec.full_depth <= 0) {
+        errorfmt(
+            "{} image full/display resolution must be at least 1x1, but the file specified {}x{}x{}. Possible corrupt input?",
+            format_name(), spec.full_width, spec.full_height, spec.full_depth);
+        return false;
+    }
+    if (spec.full_width > range.width() || spec.full_height > range.height()
+        || spec.full_depth > range.depth()) {
+        if (spec.full_depth > 1)
+            errorfmt(
+                "{} image full/display resolution may not exceed {}x{}x{}, but the file appears to be {}x{}x{}. Possible corrupt input?",
+                format_name(), range.width(), range.height(), range.depth(),
+                spec.full_width, spec.full_height, spec.full_depth);
+        else
+            errorfmt(
+                "{} image full/display resolution may not exceed {}x{}, but the file appears to be {}x{}. Possible corrupt input?",
+                format_name(), range.width(), range.height(), spec.full_width,
+                spec.full_height);
+        return false;
+    }
     return true;  // all is ok
 }
 
