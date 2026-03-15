@@ -248,7 +248,7 @@ macro (oiio_add_all_tests)
             IMAGEDIR oiio-images
             )
         if (OIIO_BUILD_PYTHON_NANOBIND)
-            oiio_add_tests (python-roi-nanobind)
+            oiio_add_tests (python-roi-nanobind python-typedesc-nanobind)
         endif ()
     endif ()
 
