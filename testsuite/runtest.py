@@ -12,6 +12,7 @@ import subprocess
 import difflib
 import filecmp
 import shutil
+import shlex
 
 from optparse import OptionParser
 
@@ -52,6 +53,12 @@ def make_relpath (path: str, start: str=os.curdir) -> str:
     "Wrapper around os.path.relpath which always uses '/' as the separator."
     p = os.path.relpath (path, start)
     return p if platform.system() != 'Windows' else p.replace ('\\', '/')
+
+
+def shell_quote(arg: str) -> str:
+    if platform.system() == 'Windows':
+        return subprocess.list2cmdline([arg])
+    return shlex.quote(arg)
 
 # Try to figure out where some key things are. Go by env variables set by
 # the cmake tests, but if those aren't set, assume somebody is running
@@ -410,6 +417,9 @@ def runtest (command: str, outputs: list[str], failureok: int=0) -> int :
     err = 0
 #    print ("working dir = " + tmpdir)
     os.chdir (srcdir)
+    for out in outputs:
+        if os.path.exists(out):
+            os.remove(out)
     open ("out.txt", "w").close()    # truncate out.txt
     open ("out.err.txt", "w").close()    # truncate out.txt
     if os.path.isfile("debug.log") :
@@ -503,24 +513,43 @@ nanobind_package = os.path.join(
     OIIO_BUILD_ROOT, "lib", "python", "nanobind", "OpenImageIO", "__init__.py"
 )
 if mytest in nanobind_python_tests and os.path.exists(nanobind_package):
-    nanobind_runner = make_relpath(
-        os.path.join(OIIO_TESTSUITE_ROOT, "common", "run_nanobind_python_test.py"),
+    nanobind_test_scripts = sorted(glob.glob(os.path.join(test_source_dir, "src", "*.py")))
+    if len(nanobind_test_scripts) != 1:
+        raise RuntimeError(
+            "Expected exactly one Python test script under "
+            + os.path.join(test_source_dir, "src")
+            + ", found "
+            + str(len(nanobind_test_scripts))
+        )
+    nanobind_test_script = make_relpath(nanobind_test_scripts[0], tmpdir)
+    nanobind_package_root = make_relpath(
+        os.path.join(OIIO_BUILD_ROOT, "lib", "python", "nanobind"),
         tmpdir,
     )
-    command += " ; " + (
-        pythonbin
-        + " "
-        + nanobind_runner
-        + " "
-        + mytest
-        + " "
-        + OIIO_BUILD_ROOT
+    # Re-run the same canonical test script as a standalone program, but
+    # with the staged nanobind package inserted first on sys.path so
+    # `import OpenImageIO` resolves to the nanobind backend.
+    nanobind_code = (
+        "import runpy, sys\n"
+        + "sys.path.insert(0, "
+        + repr(nanobind_package_root)
+        + ")\n"
+        + "runpy.run_path("
+        + repr(nanobind_test_script)
+        + ", run_name='__main__')\n"
+    )
+    command += (
+        " ; "
+        + shell_quote(pythonbin)
+        + " -c "
+        + shell_quote(nanobind_code)
         + " > out-nanobind.txt"
     )
     # Example of final command for `python-roi` would be:
     # python src/test_roi.py > out.txt ; \
-    # python ../../../testsuite/common/run_nanobind_python_test.py \
-    #   python-roi ../.. > out-nanobind.txt
+    # python -c 'import runpy, sys
+    # sys.path.insert(0, "../../lib/python/nanobind")
+    # runpy.run_path("src/test_roi.py", run_name="__main__")' > out-nanobind.txt
     outputs.append("out-nanobind.txt")
     ref_name_overrides["out-nanobind.txt"] = "out.txt"
 
