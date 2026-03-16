@@ -117,7 +117,7 @@ ensure_ocio_shader_runtime(const PlaceholderUiState& ui_state,
                            std::string& error_message);
 bool
 build_ocio_uniform_buffer(OcioShaderRuntime& runtime,
-                          const PreviewControls& controls,
+                          const RendererPreviewControls& controls,
                           std::vector<unsigned char>& uniform_bytes,
                           std::string& error_message);
 bool

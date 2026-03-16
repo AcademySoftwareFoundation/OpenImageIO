@@ -232,6 +232,8 @@ struct VulkanState {
     VkInstance instance                             = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debug_messenger        = VK_NULL_HANDLE;
     uint32_t api_version                            = VK_API_VERSION_1_0;
+    int framebuffer_width                           = 0;
+    int framebuffer_height                          = 0;
     VkPhysicalDevice physical_device                = VK_NULL_HANDLE;
     VkDevice device                                 = VK_NULL_HANDLE;
     uint32_t queue_family                           = static_cast<uint32_t>(-1);

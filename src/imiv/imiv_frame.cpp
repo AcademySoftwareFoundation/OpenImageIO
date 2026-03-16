@@ -21,12 +21,6 @@
 
 #include <imgui.h>
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-#    define GLFW_INCLUDE_NONE
-#    define GLFW_INCLUDE_VULKAN
-#    include <GLFW/glfw3.h>
-#endif
-
 #include <OpenImageIO/strutil.h>
 
 using namespace OIIO;
@@ -189,11 +183,6 @@ namespace {
 
 
 
-void
-glfw_error_callback(int error, const char* description)
-{
-    print(stderr, "imiv: GLFW error {}: {}\n", error, description);
-}
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
 void
 test_engine_json_write_escaped(FILE* f, const char* s)
@@ -369,94 +358,6 @@ setup_image_window_policy(ImGuiID dockspace_id, bool force_dock)
 
 
 
-bool
-primary_monitor_workarea(int& x, int& y, int& w, int& h)
-{
-    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-    if (monitor == nullptr)
-        return false;
-#if defined(GLFW_VERSION_MAJOR)  \
-    && ((GLFW_VERSION_MAJOR > 3) \
-        || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 3))
-    glfwGetMonitorWorkarea(monitor, &x, &y, &w, &h);
-    if (w > 0 && h > 0)
-        return true;
-#endif
-    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-    if (mode == nullptr)
-        return false;
-    x = 0;
-    y = 0;
-    w = mode->width;
-    h = mode->height;
-    return (w > 0 && h > 0);
-}
-
-bool
-centered_glfw_window_pos(GLFWwindow* window, int& out_pos_x, int& out_pos_y,
-                         int& out_window_w, int& out_window_h)
-{
-    out_pos_x    = 0;
-    out_pos_y    = 0;
-    out_window_w = 0;
-    out_window_h = 0;
-    if (window == nullptr)
-        return false;
-    int monitor_x = 0;
-    int monitor_y = 0;
-    int monitor_w = 0;
-    int monitor_h = 0;
-    if (!primary_monitor_workarea(monitor_x, monitor_y, monitor_w, monitor_h)) {
-        return false;
-    }
-    int window_w = 0;
-    int window_h = 0;
-    glfwGetWindowSize(window, &window_w, &window_h);
-    if (window_w <= 0 || window_h <= 0)
-        return false;
-    int frame_left   = 0;
-    int frame_top    = 0;
-    int frame_right  = 0;
-    int frame_bottom = 0;
-    glfwGetWindowFrameSize(window, &frame_left, &frame_top, &frame_right,
-                           &frame_bottom);
-    const int outer_w = window_w + frame_left + frame_right;
-    const int outer_h = window_h + frame_top + frame_bottom;
-    out_pos_x = monitor_x + std::max(0, (monitor_w - outer_w) / 2) + frame_left;
-    out_pos_y = monitor_y + std::max(0, (monitor_h - outer_h) / 2) + frame_top;
-    out_window_w = window_w;
-    out_window_h = window_h;
-    return true;
-}
-
-void
-center_glfw_window(GLFWwindow* window)
-{
-    int pos_x    = 0;
-    int pos_y    = 0;
-    int window_w = 0;
-    int window_h = 0;
-    if (!centered_glfw_window_pos(window, pos_x, pos_y, window_w, window_h)) {
-        return;
-    }
-    glfwSetWindowPos(window, pos_x, pos_y);
-}
-
-void
-force_center_glfw_window(GLFWwindow* window)
-{
-    int pos_x    = 0;
-    int pos_y    = 0;
-    int window_w = 0;
-    int window_h = 0;
-    if (!centered_glfw_window_pos(window, pos_x, pos_y, window_w, window_h)) {
-        return;
-    }
-    glfwSetWindowMonitor(window, nullptr, pos_x, pos_y, window_w, window_h,
-                         GLFW_DONT_CARE);
-    glfwSetWindowPos(window, pos_x, pos_y);
-}
-
 void
 draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
                DeveloperUiState& developer_ui, const AppFonts& fonts,
@@ -618,13 +519,5 @@ image_window_title()
 {
     return k_image_window_title;
 }
-
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-void
-set_glfw_error_callback()
-{
-    glfwSetErrorCallback(glfw_error_callback);
-}
-#endif
 
 }  // namespace Imiv

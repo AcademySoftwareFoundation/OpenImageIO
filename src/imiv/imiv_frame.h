@@ -43,15 +43,6 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
 const char*
 image_window_title();
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-void
-center_glfw_window(GLFWwindow* window);
-void
-force_center_glfw_window(GLFWwindow* window);
-void
-set_glfw_error_callback();
-#endif
-
 void
 draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
                DeveloperUiState& developer_ui, const AppFonts& fonts,
