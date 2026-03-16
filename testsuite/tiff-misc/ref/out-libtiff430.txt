@@ -54,5 +54,7 @@ gps.tif              :   64 x   64, 3 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     tiff:RowsPerStrip: 32
+iconvert ERROR copying "src/crash-cmyk-e12b.tif" to "out.tif" :
+	Decoding error at scanline 0
 Comparing "check1.tif" and "ref/check1.tif"
 PASS
