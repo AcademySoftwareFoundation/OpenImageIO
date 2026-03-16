@@ -4,8 +4,8 @@
 
 #pragma once
 
+#include "imiv_renderer.h"
 #include "imiv_style.h"
-#include "imiv_types.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -79,9 +79,7 @@ struct ViewerState {
     double slide_last_advance_time     = 0.0;
     bool drag_overlay_active           = false;
     std::vector<std::string> pending_drop_paths;
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-    VulkanTexture texture;
-#endif
+    RendererTexture texture;
 };
 
 struct PlaceholderUiState {

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "imiv_types.h"
+#include "imiv_renderer.h"
 #include "imiv_viewer.h"
 
 #include <string>
@@ -16,7 +16,7 @@ struct GLFWwindow;
 namespace Imiv {
 
 bool
-load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
+load_viewer_image(RendererState& renderer_state, ViewerState& viewer,
                   PlaceholderUiState* ui_state, const std::string& path,
                   int requested_subimage, int requested_miplevel);
 void
@@ -44,36 +44,37 @@ set_sort_mode_action(ViewerState& viewer, ImageSortMode mode);
 void
 toggle_sort_reverse_action(ViewerState& viewer);
 bool
-advance_slide_show_action(VulkanState& vk_state, ViewerState& viewer,
+advance_slide_show_action(RendererState& renderer_state, ViewerState& viewer,
                           PlaceholderUiState& ui_state);
 void
 toggle_slide_show_action(PlaceholderUiState& ui_state, ViewerState& viewer);
 void
-open_image_dialog_action(VulkanState& vk_state, ViewerState& viewer,
+open_image_dialog_action(RendererState& renderer_state, ViewerState& viewer,
                          PlaceholderUiState& ui_state, int requested_subimage,
                          int requested_miplevel);
 void
-reload_current_image_action(VulkanState& vk_state, ViewerState& viewer,
+reload_current_image_action(RendererState& renderer_state, ViewerState& viewer,
                             PlaceholderUiState& ui_state);
 void
-close_current_image_action(VulkanState& vk_state, ViewerState& viewer,
+close_current_image_action(RendererState& renderer_state, ViewerState& viewer,
                            PlaceholderUiState& ui_state);
 void
-next_sibling_image_action(VulkanState& vk_state, ViewerState& viewer,
+next_sibling_image_action(RendererState& renderer_state, ViewerState& viewer,
                           PlaceholderUiState& ui_state, int delta);
 void
-toggle_image_action(VulkanState& vk_state, ViewerState& viewer,
+toggle_image_action(RendererState& renderer_state, ViewerState& viewer,
                     PlaceholderUiState& ui_state);
 void
-change_subimage_action(VulkanState& vk_state, ViewerState& viewer,
+change_subimage_action(RendererState& renderer_state, ViewerState& viewer,
                        PlaceholderUiState& ui_state, int delta);
 void
-change_miplevel_action(VulkanState& vk_state, ViewerState& viewer,
+change_miplevel_action(RendererState& renderer_state, ViewerState& viewer,
                        PlaceholderUiState& ui_state, int delta);
 void
 queue_auto_subimage_from_zoom(ViewerState& viewer);
 bool
-apply_pending_auto_subimage_action(VulkanState& vk_state, ViewerState& viewer,
+apply_pending_auto_subimage_action(RendererState& renderer_state,
+                                   ViewerState& viewer,
                                    PlaceholderUiState& ui_state);
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
@@ -84,7 +85,7 @@ void
 fit_window_to_image_action(GLFWwindow* window, ViewerState& viewer,
                            PlaceholderUiState& ui_state);
 bool
-capture_main_viewport_screenshot_action(VulkanState& vk_state,
+capture_main_viewport_screenshot_action(RendererState& renderer_state,
                                         ViewerState& viewer,
                                         std::string& out_path);
 #endif

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "imiv_renderer.h"
 #include "imiv_ui.h"
 
 #include <filesystem>
@@ -61,7 +62,7 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
 #endif
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
                ,
-               GLFWwindow* window, VulkanState& vk_state
+               GLFWwindow* window, RendererState& renderer_state
 #endif
 );
 
@@ -69,7 +70,7 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
 void
 process_developer_post_render_actions(DeveloperUiState& developer_ui,
                                       ViewerState& viewer,
-                                      VulkanState& vk_state);
+                                      RendererState& renderer_state);
 #endif
 
 }  // namespace Imiv

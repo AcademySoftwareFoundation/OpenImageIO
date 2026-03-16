@@ -94,7 +94,7 @@ uninstall_drag_drop(GLFWwindow* window)
 }
 
 void
-process_pending_drop_paths(VulkanState& vk_state, ViewerState& viewer,
+process_pending_drop_paths(RendererState& vk_state, ViewerState& viewer,
                            PlaceholderUiState& ui_state)
 {
     if (viewer.pending_drop_paths.empty())

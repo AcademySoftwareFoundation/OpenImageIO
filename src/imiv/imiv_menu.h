@@ -5,6 +5,7 @@
 #pragma once
 
 #include "imiv_navigation.h"
+#include "imiv_renderer.h"
 #include "imiv_types.h"
 #include "imiv_viewer.h"
 
@@ -65,7 +66,7 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
                              ViewerFrameActions& actions
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
                              ,
-                             GLFWwindow* window, VulkanState& vk_state
+                             GLFWwindow* window, RendererState& renderer_state
 #endif
 );
 
