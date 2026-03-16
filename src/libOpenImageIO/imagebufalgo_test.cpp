@@ -199,6 +199,8 @@ test_zero_fill()
 
     // Timing
     Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     ImageBuf buf_rgba_float(ImageSpec(1000, 1000, 4, TypeFloat));
     ImageBuf buf_rgba_uint8(ImageSpec(1000, 1000, 4, TypeUInt8));
     ImageBuf buf_rgba_half(ImageSpec(1000, 1000, 4, TypeHalf));
@@ -258,6 +260,8 @@ test_copy()
 
     // Timing
     Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     ImageSpec spec_rgba_float(1000, 1000, 4, TypeFloat);
     ImageSpec spec_rgba_uint8(1000, 1000, 4, TypeUInt8);
     ImageSpec spec_rgba_half(1000, 1000, 4, TypeHalf);
@@ -596,6 +600,8 @@ test_over(TypeDesc dtype = TypeFloat)
 
     // Timing
     Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     ImageSpec onekfloat(1000, 1000, 4, TypeFloat);
     BG = filled_image(BGval, 1000, 1000);
     FG = filled_image({ 0.0f, 0.0f, 0.0f, 0.0f }, 1000, 1000);
@@ -649,6 +655,8 @@ test_resample()
 
     // Timing
     Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     bench.units(Benchmarker::Unit::ms);
 
     ImageSpec spec_hd_rgba_f(1920, 1080, 4, TypeFloat);
@@ -1318,6 +1326,8 @@ test_simple_perpixel()
         // Timing test: how much more expensive is the perpixel_op than the
         // fully optimized per-type version?
         Benchmarker bench;
+        bench.trials(ntrials);
+        bench.iterations(iterations);
         bench.units(Benchmarker::Unit::ms);
         ImageBuf af(ImageSpec(2048, 2048, 4, TypeFloat));
         ImageBuf bf(ImageSpec(2048, 2048, 4, TypeFloat));
@@ -1597,6 +1607,11 @@ main(int argc, char** argv)
     // will override this, since it comes before the getargs() call.
     iterations /= 10;
     ntrials = 1;
+#endif
+#if !defined(NDEBUG)
+    // For debug+CI combination runs, reduce to truly one iteration.
+    if (Strutil::stoi(Sysutil::getenv("OpenImageIO_CI")) != 0)
+        iterations = 1;
 #endif
 
     getargs(argc, argv);

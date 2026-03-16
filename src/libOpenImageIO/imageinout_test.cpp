@@ -27,6 +27,9 @@ static std::string onlyformat = Sysutil::getenv("IMAGEINOUTTEST_ONLY_FORMAT");
 static bool nodelete          = false;  // Don't delete the test files
 static bool enable_fpe        = false;  // Throw exceptions on FP errors.
 
+static int ntrials    = 5;
+static int iterations = 1;
+
 
 
 static void
@@ -44,6 +47,9 @@ getargs(int argc, char* argv[])
       .help("Enable floating point exceptions.");
     ap.arg("--onlyformat %s:FORMAT", &onlyformat)
       .help("Test only one format");
+    ap.arg("--iterations %d", &iterations)
+      .help(Strutil::format("Number of benchmark iterations per trial (default: {})", iterations));
+    ap.arg("--trials %d", &ntrials).help("Number of benchmark trials");
 
     ap.parse_args(argc, (const char**)argv);
     // clang-format on
@@ -561,8 +567,8 @@ benchmark_tile_sizes(string_view extension, TypeDesc datatype,
 
     Benchmarker bench;
     bench.units(Benchmarker::Unit::ms);
-    bench.iterations(1);
-    bench.trials(5);
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     print("\nBenchmarking write/read for {} under different tile sizes\n",
           extension);
 
@@ -606,6 +612,19 @@ benchmark_tile_sizes(string_view extension, TypeDesc datatype,
 int
 main(int argc, char* argv[])
 {
+#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
+    // For the sake of test time, reduce the default number of benchmark
+    // trials for DEBUG, CI, and code coverage builds. Explicit use of
+    // --trials or --iterations will override this, since it comes before the
+    // getargs() call.
+    ntrials = 1;
+#endif
+#if !defined(NDEBUG)
+    // For debug+CI combination runs, reduce to truly one iteration.
+    if (Strutil::stoi(Sysutil::getenv("OpenImageIO_CI")) != 0)
+        iterations = 1;
+#endif
+
     getargs(argc, argv);
 
     if (enable_fpe) {
