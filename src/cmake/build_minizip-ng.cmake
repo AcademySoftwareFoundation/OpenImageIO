@@ -9,7 +9,8 @@
 
 set_cache (minizip-ng_BUILD_VERSION 4.0.10 "minizip-ng version for local builds")
 set (minizip-ng_GIT_REPOSITORY "https://github.com/zlib-ng/minizip-ng")
-set (minizip-ng_GIT_TAG "${minizip-ng_BUILD_VERSION}") 
+set (minizip-ng_GIT_TAG "${minizip-ng_BUILD_VERSION}")
+set (minizip-ng_GIT_COMMIT "f3ed731e27a97e30dffe076ed5e0537daae5c1bd")
 
 set_cache (minizip-ng_BUILD_SHARED_LIBS OFF
            DOC "Should a local minizip-ng build, if necessary, build shared libraries" ADVANCED)
@@ -21,6 +22,7 @@ build_dependency_with_cmake(minizip-ng
     VERSION         ${minizip-ng_BUILD_VERSION}
     GIT_REPOSITORY  ${minizip-ng_GIT_REPOSITORY}
     GIT_TAG         ${minizip-ng_GIT_TAG}
+    GIT_COMMIT      ${minizip-ng_GIT_COMMIT}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${minizip-ng_BUILD_SHARED_LIBS}
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON
