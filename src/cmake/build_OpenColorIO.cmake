@@ -9,6 +9,7 @@
 set_cache (OpenColorIO_BUILD_VERSION 2.5.1 "OpenColorIO version for local builds")
 set (OpenColorIO_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/OpenColorIO")
 set (OpenColorIO_GIT_TAG "v${OpenColorIO_BUILD_VERSION}")
+set (OpenColorIO_GIT_COMMIT "004f80009653fa322c1133ba2c57b8ed526599c9")
 set_cache (OpenColorIO_BUILD_SHARED_LIBS  OFF
            DOC "Should a local OpenColorIO build, if necessary, build shared libraries" ADVANCED)
 # We would prefer to build a static OCIO, but haven't figured out how to make
@@ -34,6 +35,7 @@ build_dependency_with_cmake(OpenColorIO
     VERSION         ${OpenColorIO_BUILD_VERSION}
     GIT_REPOSITORY  ${OpenColorIO_GIT_REPOSITORY}
     GIT_TAG         ${OpenColorIO_GIT_TAG}
+    GIT_COMMIT      ${OpenColorIO_GIT_COMMIT}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${OpenColorIO_BUILD_SHARED_LIBS}
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON

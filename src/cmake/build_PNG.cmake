@@ -9,6 +9,7 @@
 set_cache (PNG_BUILD_VERSION 1.6.50 "PNG version for local builds")
 super_set (PNG_BUILD_GIT_REPOSITORY "https://github.com/pnggroup/libpng")
 super_set (PNG_BUILD_GIT_TAG "v${PNG_BUILD_VERSION}")
+super_set (PNG_BUILD_GIT_COMMIT "2b978915d82377df13fcbb1fb56660195ded868a")
 super_set (PNG_BUILD_EXTRA_CMAKE_ARGS "")
 set_cache (PNG_BUILD_SHARED_LIBS OFF
            DOC "Should execute a local PNG build, if necessary, build shared libraries" ADVANCED)
@@ -35,6 +36,7 @@ build_dependency_with_cmake (PNG
     VERSION         ${PNG_BUILD_VERSION}
     GIT_REPOSITORY  ${PNG_BUILD_GIT_REPOSITORY}
     GIT_TAG         ${PNG_BUILD_GIT_TAG}
+    GIT_COMMIT      ${PNG_BUILD_GIT_COMMIT}
     CMAKE_ARGS
         -D PNG_SHARED=${PNG_BUILD_SHARED_LIBS}
         -D PNG_STATIC=ON

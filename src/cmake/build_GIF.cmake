@@ -12,6 +12,7 @@
 set_cache (GIF_BUILD_VERSION "5.2.1" "GIFLIB version for local builds")
 super_set (GIF_BUILD_GIT_REPOSITORY "https://git.code.sf.net/p/giflib/code")
 super_set (GIF_BUILD_GIT_TAG "${GIF_BUILD_VERSION}")
+super_set (GIF_BUILD_GIT_COMMIT "52b62de83d5facbbbde042b85bf3f61182e3bebd")
 set_cache (GIF_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should execute a local GIFLIB build; if necessary, build shared libraries" ADVANCED)
 
@@ -22,6 +23,7 @@ build_dependency_with_cmake(GIF
     VERSION         ${GIF_BUILD_VERSION}
     GIT_REPOSITORY  ${GIF_BUILD_GIT_REPOSITORY}
     GIT_TAG         ${GIF_BUILD_GIT_TAG}
+    GIT_COMMIT      ${GIF_BUILD_GIT_COMMIT}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${GIF_BUILD_SHARED_LIBS}
 )

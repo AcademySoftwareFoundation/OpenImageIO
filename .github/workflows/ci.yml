@@ -56,6 +56,7 @@ jobs:
       depcmds: ${{ matrix.depcmds }}
       extra_artifacts: ${{ matrix.extra_artifacts }}
       fmt_ver: ${{ matrix.fmt_ver }}
+      fmt_commit: ${{ matrix.fmt_commit }}
       opencolorio_ver: ${{ matrix.opencolorio_ver }}
       openexr_ver: ${{ matrix.openexr_ver }}
       pybind11_ver: ${{ matrix.pybind11_ver }}
@@ -92,11 +93,13 @@ jobs:
             python_ver: 3.9
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
+            fmt_commit: b6f4ceaed0a0a24ccf575fab6c56dd50ccf6f1a9
             opencolorio_ver: v2.3.0
             pybind11_ver: v2.9.0
             setenvs: export FREETYPE_VERSION=VER-2-12-0
                             BUILD_PNG_VERSION=1.6.30
                             WebP_BUILD_VERSION=1.5.0
+                            WebP_GIT_COMMIT=a4d7a715337ded4451fec90ff8ce79728e04126c
             optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
           - desc: VP2022 clang13/C++17 py39 avx2 exr3.1 ocio2.3
             nametag: linux-vfx2022.clang13
@@ -112,6 +115,7 @@ jobs:
             python_ver: 3.9
             simd: "avx2,f16c"
             fmt_ver: 9.1.0
+            fmt_commit: a33701196adfad74917046096bf5a2aa0ab0bb50
             setenvs: export FREETYPE_VERSION=VER-2-12-0
                             BUILD_PNG_VERSION=1.6.30
             optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
@@ -124,6 +128,7 @@ jobs:
             old_node: 1
             cxx_std: 17
             fmt_ver: 7.0.1
+            fmt_commit: f19b1a521ee8b606dedcadfda69fd10ddf882753
             opencolorio_ver: v2.3.0
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
@@ -146,6 +151,7 @@ jobs:
             cxx_compiler: clang++
             cxx_std: 17
             fmt_ver: 7.0.1
+            fmt_commit: f19b1a521ee8b606dedcadfda69fd10ddf882753
             opencolorio_ver: v2.3.0
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
@@ -168,6 +174,7 @@ jobs:
             old_node: 1
             cxx_std: 17
             fmt_ver: 7.0.1
+            fmt_commit: f19b1a521ee8b606dedcadfda69fd10ddf882753
             opencolorio_ver: v2.3.0
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
@@ -205,6 +212,7 @@ jobs:
       depcmds: ${{ matrix.depcmds }}
       extra_artifacts: ${{ matrix.extra_artifacts }}
       fmt_ver: ${{ matrix.fmt_ver }}
+      fmt_commit: ${{ matrix.fmt_commit }}
       opencolorio_ver: ${{ matrix.opencolorio_ver }}
       openexr_ver: ${{ matrix.openexr_ver }}
       pybind11_ver: ${{ matrix.pybind11_ver }}
@@ -238,8 +246,10 @@ jobs:
             python_ver: "3.10"
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
+            fmt_commit: f5e54359df4c26b6230fc61d38aa294581393084
             pybind11_ver: v2.10.0
             setenvs: export PUGIXML_VERSION=v1.13
+                            FREETYPE_VERSION=VER-2-13-0
             optional_deps_append: 'LibRaw;Ptex;Qt6'
           - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.3 qt5.15
             nametag: linux-vfx2023.icc
@@ -249,6 +259,7 @@ jobs:
             python_ver: "3.10"
             # simd: "avx2,f16c"
             fmt_ver: 7.1.3
+            fmt_commit: 7bdf0628b1276379886c7f6dda2cef2b3b374f0b
             # icc MUST use this older FMT version
             pybind11_ver: v2.9.0
             setenvs: export USE_ICC=1 USE_OPENVDB=0 USE_OPENCV=0
@@ -282,6 +293,7 @@ jobs:
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
+            fmt_commit: f5e54359df4c26b6230fc61d38aa294581393084
             pybind11_ver: v2.12.0
             setenvs: export PUGIXML_VERSION=v1.14
             optional_deps_append: "LibRaw"
@@ -295,6 +307,7 @@ jobs:
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
+            fmt_commit: f5e54359df4c26b6230fc61d38aa294581393084
             pybind11_ver: v2.12.0
             setenvs: export PUGIXML_VERSION=v1.14
             optional_deps_append: "LibRaw"
@@ -306,6 +319,7 @@ jobs:
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 11.2.0
+            fmt_commit: 40626af88bd7df9a5fb80be7b25ac85b122d6c21
             pybind11_ver: v2.13.6
             benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.15
@@ -320,6 +334,7 @@ jobs:
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 11.2.0
+            fmt_commit: 40626af88bd7df9a5fb80be7b25ac85b122d6c21
             pybind11_ver: v2.13.6
             setenvs: export PUGIXML_VERSION=v1.15
             optional_deps_append: "openjph;Qt6"
@@ -372,6 +387,7 @@ jobs:
             container: aswf/ci-oiio:2025
             build_type: RelWithDebInfo
             fmt_ver: 11.1.4
+            fmt_commit: 123913715afeb8a437e6388b4473fcc4753e1c9a
             python_ver: "3.11"
             pybind11_ver: v3.0.0
             simd: "avx2,f16c"
@@ -401,6 +417,7 @@ jobs:
       depcmds: ${{ matrix.depcmds }}
       extra_artifacts: ${{ matrix.extra_artifacts }}
       fmt_ver: ${{ matrix.fmt_ver }}
+      fmt_commit: ${{ matrix.fmt_commit }}
       opencolorio_ver: ${{ matrix.opencolorio_ver }}
       openexr_ver: ${{ matrix.openexr_ver }}
       pybind11_ver: ${{ matrix.pybind11_ver }}
@@ -453,6 +470,7 @@ jobs:
             cxx_compiler: g++-13
             cxx_std: 20
             fmt_ver: 12.1.0
+            fmt_commit: 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
             opencolorio_ver: v2.5.0
             openexr_ver: v3.4.3
             pybind11_ver: v3.0.2
@@ -495,9 +513,9 @@ jobs:
                             WEBP_VERSION=main
                             OIIO_CMAKE_FLAGS="-DOIIO_HARDENING=2"
                             EXTRA_DEP_PACKAGES="python3.12-dev python3-numpy"
-                            USE_OPENVDB=0
                             FREETYPE_VERSION=master
-                            QT_VERSION=0 INSTALL_OPENCV=0
+                            OpenImageIO_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS=ON
+                            QT_VERSION=0 INSTALL_OPENCV=0 USE_OPENVDB=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
@@ -524,6 +542,7 @@ jobs:
             cc_compiler: clang
             cxx_std: 17
             fmt_ver: 10.1.1
+            fmt_commit: f5e54359df4c26b6230fc61d38aa294581393084
             opencolorio_ver: v2.3.0
             openexr_ver: v3.1.13
             pybind11_ver: v2.12.0
@@ -537,6 +556,7 @@ jobs:
             cxx_compiler: g++-14
             cxx_std: 20
             fmt_ver: 12.1.0
+            fmt_commit: 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
             opencolorio_ver: v2.5.0
             openexr_ver: v3.4.3
             pybind11_ver: v3.0.2
@@ -558,6 +578,7 @@ jobs:
             cxx_compiler: clang++-18
             cxx_std: 20
             fmt_ver: 12.1.0
+            fmt_commit: 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
             opencolorio_ver: v2.5.0
             openexr_ver: v3.4.3
             pybind11_ver: v3.0.2
@@ -592,6 +613,7 @@ jobs:
       depcmds: ${{ matrix.depcmds }}
       extra_artifacts: ${{ matrix.extra_artifacts }}
       fmt_ver: ${{ matrix.fmt_ver }}
+      fmt_commit: ${{ matrix.fmt_commit }}
       opencolorio_ver: ${{ matrix.opencolorio_ver }}
       openexr_ver: ${{ matrix.openexr_ver }}
       pybind11_ver: ${{ matrix.pybind11_ver }}
@@ -673,6 +695,7 @@ jobs:
       depcmds: ${{ matrix.depcmds }}
       extra_artifacts: ${{ matrix.extra_artifacts }}
       fmt_ver: ${{ matrix.fmt_ver }}
+      fmt_commit: ${{ matrix.fmt_commit }}
       opencolorio_ver: ${{ matrix.opencolorio_ver }}
       openexr_ver: ${{ matrix.openexr_ver }}
       pybind11_ver: ${{ matrix.pybind11_ver }}

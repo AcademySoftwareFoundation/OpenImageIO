@@ -6,10 +6,11 @@
 # Freetype by hand!
 ######################################################################
 
-set_cache (Freetype_BUILD_VERSION 2.13.2 "Freetype version for local builds")
+set_cache (Freetype_BUILD_VERSION 2.14.1 "Freetype version for local builds")
 set (Freetype_GIT_REPOSITORY "https://github.com/freetype/freetype")
-set (Freetype_GIT_TAG "VER-2-13-2")
-set_cache (Freetype_BUILD_SHARED_LIBS  OFF
+set (Freetype_GIT_TAG "VER-2-14-1")
+set (Freetype_GIT_COMMIT "526ec5c47b9ebccc4754c85ac0c0cdf7c85a5e9b")
+set_cache (Freetype_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local Freetype build, if necessary, build shared libraries" ADVANCED)
 # We would prefer to build a static Freetype, but haven't figured out how to make
 # it all work with the static dependencies, it just makes things complicated
@@ -27,6 +28,7 @@ build_dependency_with_cmake(Freetype
     VERSION         ${Freetype_BUILD_VERSION}
     GIT_REPOSITORY  ${Freetype_GIT_REPOSITORY}
     GIT_TAG         ${Freetype_GIT_TAG}
+    GIT_COMMIT      ${Freetype_GIT_COMMIT}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${Freetype_BUILD_SHARED_LIBS}
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON

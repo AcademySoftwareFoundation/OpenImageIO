@@ -35,6 +35,8 @@ on:
         type: string
       fmt_ver:
         type: string
+      fmt_commit:
+        type: string
       opencolorio_ver:
         type: string
       openexr_ver:
@@ -109,6 +111,7 @@ jobs:
       CTEST_TEST_TIMEOUT: ${{inputs.ctest_test_timeout}}
       USE_SIMD: ${{inputs.simd}}
       fmt_BUILD_VERSION: ${{inputs.fmt_ver}}
+      fmt_GIT_COMMIT: ${{inputs.fmt_commit}}
       OPENCOLORIO_VERSION: ${{inputs.opencolorio_ver}}
       OPENEXR_VERSION: ${{inputs.openexr_ver}}
       PYBIND11_VERSION: ${{inputs.pybind11_ver}}
