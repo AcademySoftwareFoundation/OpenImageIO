@@ -6,6 +6,7 @@
 set_cache (OpenEXR_BUILD_VERSION 3.3.5 "OpenEXR version for local builds")
 set (OpenEXR_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/OpenEXR")
 set (OpenEXR_GIT_TAG "v${OpenEXR_BUILD_VERSION}")
+set (OpenEXR_GIT_COMMIT "6661cb40c6fa8d332f142e660e25ac96675c15bd")
 set_cache (OpenEXR_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local OpenEXR build, if necessary, build shared libraries" ADVANCED)
 
@@ -15,6 +16,7 @@ build_dependency_with_cmake(OpenEXR
     VERSION         ${OpenEXR_BUILD_VERSION}
     GIT_REPOSITORY  ${OpenEXR_GIT_REPOSITORY}
     GIT_TAG         ${OpenEXR_GIT_TAG}
+    GIT_COMMIT      ${OpenEXR_GIT_COMMIT}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${OpenEXR_BUILD_SHARED_LIBS}
         -D OPENEXR_FORCE_INTERNAL_DEFLATE=ON

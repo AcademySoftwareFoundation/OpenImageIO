@@ -9,6 +9,7 @@
 set_cache (TIFF_BUILD_VERSION 4.7.1 "TIFF version for local builds")
 set (TIFF_GIT_REPOSITORY "https://gitlab.com/libtiff/libtiff.git")
 set_cache (TIFF_GIT_TAG "v${TIFF_BUILD_VERSION}" "Git branch or tag")
+set (TIFF_GIT_COMMIT "5fe20d0e9aba49a6a350ed533459d1505203838f")
 set_cache (TIFF_BUILD_SHARED_LIBS  ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            "Should a local TIFF build, if necessary, build shared libraries" ADVANCED)
 
@@ -32,6 +33,7 @@ build_dependency_with_cmake(TIFF
     VERSION         ${TIFF_BUILD_VERSION}
     GIT_REPOSITORY  ${TIFF_GIT_REPOSITORY}
     GIT_TAG         ${TIFF_GIT_TAG}
+    GIT_COMMIT      ${TIFF_GIT_COMMIT}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${TIFF_BUILD_SHARED_LIBS}
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON
