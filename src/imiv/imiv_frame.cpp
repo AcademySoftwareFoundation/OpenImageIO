@@ -366,7 +366,8 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
                ,
                bool* show_test_engine_windows
 #endif
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
                ,
                GLFWwindow* window, RendererState& vk_state
 #endif
@@ -376,7 +377,8 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
     reset_test_engine_mouse_space();
     ViewerFrameActions actions;
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
     if (window != nullptr) {
         std::string fullscreen_error;
         set_full_screen_mode(window, viewer, ui_state.full_screen_mode,
@@ -407,12 +409,14 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
 #endif
     begin_developer_screenshot_request(developer_ui, viewer);
     execute_viewer_frame_actions(viewer, ui_state, actions
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
                                  ,
                                  window, vk_state
 #endif
     );
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
     process_pending_drop_paths(vk_state, viewer, ui_state);
     (void)apply_pending_auto_subimage_action(vk_state, viewer, ui_state);
 #endif
@@ -426,7 +430,6 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
         ui_state.miplevel_index = 0;
     }
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
     if (!viewer.image.path.empty()) {
         RendererPreviewControls preview_controls = {};
         preview_controls.exposure                = ui_state.exposure;
@@ -447,7 +450,6 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
                 viewer.last_error = preview_error;
         }
     }
-#endif
 
     const ImGuiID main_dockspace_id = begin_main_dockspace_host();
     setup_image_window_policy(main_dockspace_id,
@@ -471,8 +473,7 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::TextUnformatted("imiv (Dear ImGui port of iv)");
         register_layout_dump_synthetic_item("text", "About imiv title");
-        ImGui::TextUnformatted(
-            "Image viewer port built with Dear ImGui and Vulkan.");
+        ImGui::TextUnformatted("Image viewer port built with Dear ImGui.");
         register_layout_dump_synthetic_item("text", "About imiv body");
         if (ImGui::Button("Close"))
             ImGui::CloseCurrentPopup();
@@ -483,7 +484,8 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
     draw_drag_drop_overlay(viewer);
 }
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
 void
 process_developer_post_render_actions(DeveloperUiState& developer_ui,
                                       ViewerState& viewer,

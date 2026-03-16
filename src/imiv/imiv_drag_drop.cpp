@@ -14,15 +14,16 @@
 
 #include <imgui.h>
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
 #    define GLFW_INCLUDE_NONE
-#    define GLFW_INCLUDE_VULKAN
 #    include <GLFW/glfw3.h>
 #endif
 
 namespace Imiv {
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
 namespace {
 
     void on_dnd_drag_enter(GLFWwindow* window, const dnd_glfw::DragEvent& event,

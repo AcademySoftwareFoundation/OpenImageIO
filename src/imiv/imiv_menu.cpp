@@ -568,29 +568,22 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
 void
 execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
                              ViewerFrameActions& actions
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
                              ,
                              GLFWwindow* window, RendererState& vk_state
 #endif
 )
 {
     if (actions.open_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         open_image_dialog_action(vk_state, viewer, ui_state,
                                  ui_state.subimage_index,
                                  ui_state.miplevel_index);
-#else
-        set_placeholder_status(viewer, "Open image");
-#endif
         actions.open_requested = false;
     }
     if (!actions.recent_open_path.empty()) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         load_viewer_image(vk_state, viewer, &ui_state, actions.recent_open_path,
                           ui_state.subimage_index, ui_state.miplevel_index);
-#else
-        set_placeholder_status(viewer, "Open recent image");
-#endif
         actions.recent_open_path.clear();
     }
     if (actions.clear_recent_requested) {
@@ -600,75 +593,39 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
         actions.clear_recent_requested = false;
     }
     if (actions.reload_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         reload_current_image_action(vk_state, viewer, ui_state);
-#else
-        set_placeholder_status(viewer, "Reload image");
-#endif
         actions.reload_requested = false;
     }
     if (actions.close_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         close_current_image_action(vk_state, viewer, ui_state);
-#else
-        set_placeholder_status(viewer, "Close image");
-#endif
         actions.close_requested = false;
     }
     if (actions.prev_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         next_sibling_image_action(vk_state, viewer, ui_state, -1);
-#else
-        set_placeholder_status(viewer, "Previous Image");
-#endif
         actions.prev_requested = false;
     }
     if (actions.next_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         next_sibling_image_action(vk_state, viewer, ui_state, 1);
-#else
-        set_placeholder_status(viewer, "Next Image");
-#endif
         actions.next_requested = false;
     }
     if (actions.toggle_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         toggle_image_action(vk_state, viewer, ui_state);
-#else
-        set_placeholder_status(viewer, "Toggle image");
-#endif
         actions.toggle_requested = false;
     }
     if (actions.prev_subimage_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         change_subimage_action(vk_state, viewer, ui_state, -1);
-#else
-        set_placeholder_status(viewer, "Prev Subimage");
-#endif
         actions.prev_subimage_requested = false;
     }
     if (actions.next_subimage_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         change_subimage_action(vk_state, viewer, ui_state, 1);
-#else
-        set_placeholder_status(viewer, "Next Subimage");
-#endif
         actions.next_subimage_requested = false;
     }
     if (actions.prev_mip_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         change_miplevel_action(vk_state, viewer, ui_state, -1);
-#else
-        set_placeholder_status(viewer, "Prev MIP level");
-#endif
         actions.prev_mip_requested = false;
     }
     if (actions.next_mip_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         change_miplevel_action(vk_state, viewer, ui_state, 1);
-#else
-        set_placeholder_status(viewer, "Next MIP level");
-#endif
         actions.next_mip_requested = false;
     }
     if (actions.save_as_requested) {
@@ -692,16 +649,11 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
         actions.deselect_selection_requested = false;
     }
     if (actions.fit_window_to_image_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         fit_window_to_image_action(window, viewer, ui_state);
-#else
-        viewer.status_message = "Fit window to image is unavailable";
-#endif
         actions.fit_window_to_image_requested = false;
     }
     if (actions.full_screen_toggle_requested) {
         ui_state.full_screen_mode = !ui_state.full_screen_mode;
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         std::string fullscreen_error;
         set_full_screen_mode(window, viewer, ui_state.full_screen_mode,
                              fullscreen_error);
@@ -714,11 +666,9 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
                                         : "Exited full screen";
             viewer.last_error.clear();
         }
-#endif
         actions.full_screen_toggle_requested = false;
     }
     if (actions.delete_from_disk_requested) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
         if (!viewer.image.path.empty()) {
             const std::string to_delete = viewer.image.path;
             close_current_image_action(vk_state, viewer, ui_state);
@@ -734,7 +684,6 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
                          : "Delete failed";
             }
         }
-#endif
         actions.delete_from_disk_requested = false;
     }
     if (actions.rotate_left_requested || actions.rotate_right_requested
@@ -778,7 +727,6 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
         actions.flip_vertical_requested   = false;
     }
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
     if (ui_state.slide_show_running && !viewer.image.path.empty()
         && !viewer.loaded_image_paths.empty()) {
         const double now = ImGui::GetTime();
@@ -792,9 +740,6 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
     } else {
         viewer.slide_last_advance_time = 0.0;
     }
-#else
-    viewer.slide_last_advance_time = 0.0;
-#endif
 }
 
 }  // namespace Imiv

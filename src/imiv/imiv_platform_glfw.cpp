@@ -308,6 +308,12 @@ platform_glfw_make_context_current(GLFWwindow* window)
     glfwMakeContextCurrent(window);
 }
 
+void*
+platform_glfw_get_proc_address(const char* name)
+{
+    return reinterpret_cast<void*>(glfwGetProcAddress(name));
+}
+
 void
 platform_glfw_swap_buffers(GLFWwindow* window)
 {

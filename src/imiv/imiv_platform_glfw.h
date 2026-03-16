@@ -43,6 +43,8 @@ GLFWwindow*
 platform_glfw_get_current_context();
 void
 platform_glfw_make_context_current(GLFWwindow* window);
+void*
+platform_glfw_get_proc_address(const char* name);
 void
 platform_glfw_swap_buffers(GLFWwindow* window);
 void

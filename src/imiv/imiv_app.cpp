@@ -195,16 +195,16 @@ run(const AppConfig& config)
     const bool log_imgui_texture_updates = env_flag_is_truthy(
         "IMIV_DEBUG_IMGUI_TEXTURES");
 
-#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
     TestEngineConfig test_engine_cfg = gather_test_engine_config();
     TestEngineRuntime test_engine_runtime;
-#    else
+#else
     bool want_test_engine
         = env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE")
           || env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT")
           || env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP")
           || env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_JUNIT_XML");
-#    endif
+#endif
 
     std::string startup_error;
     if (!platform_glfw_init(verbose_logging, startup_error)) {
@@ -364,14 +364,14 @@ run(const AppConfig& config)
               FileDialog::available() ? "enabled" : "disabled");
     }
 
-#    if !defined(IMGUI_ENABLE_TEST_ENGINE)
+#if !defined(IMGUI_ENABLE_TEST_ENGINE)
     if (want_test_engine) {
         print(stderr,
               "imiv: IMIV_IMGUI_TEST_ENGINE requested but support is not "
               "compiled in. Configure with "
               "-DOIIO_IMIV_ENABLE_IMGUI_TEST_ENGINE=ON.\n");
     }
-#    endif
+#endif
 
     if (run_config.open_dialog) {
         FileDialog::DialogReply reply = FileDialog::open_image_files("");
@@ -469,11 +469,12 @@ run(const AppConfig& config)
         viewer.status_message = "Open an image to start preview";
     }
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
     install_drag_drop(window, viewer);
 #endif
 
-#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
     ViewerStateJsonWriteContext test_engine_state_ctx = { &viewer, &ui_state };
     TestEngineHooks test_engine_hooks;
     test_engine_hooks.image_window_title       = image_window_title();
@@ -483,7 +484,7 @@ run(const AppConfig& config)
         = write_test_engine_viewer_state_json;
     test_engine_hooks.write_viewer_state_user_data = &test_engine_state_ctx;
     test_engine_start(test_engine_runtime, test_engine_cfg, test_engine_hooks);
-#    endif
+#endif
 
     platform_glfw_show_window(window);
     platform_glfw_poll_events();
@@ -525,16 +526,17 @@ run(const AppConfig& config)
         platform_glfw_imgui_new_frame();
         ImGui::NewFrame();
         draw_viewer_ui(viewer, ui_state, developer_ui, fonts, request_exit
-#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
                        ,
                        test_engine_show_windows_ptr(test_engine_runtime)
-#    endif
-#    if defined(IMIV_BACKEND_VULKAN_GLFW)
+#endif
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
                            ,
                        window, renderer_state);
-#    else
-                       );
-#    endif
+#else
+        );
+#endif
         if (ui_state.style_preset != applied_style_preset) {
             ui_state.style_preset = static_cast<int>(
                 sanitize_app_style_preset(ui_state.style_preset));
@@ -542,9 +544,9 @@ run(const AppConfig& config)
                 sanitize_app_style_preset(ui_state.style_preset));
             applied_style_preset = ui_state.style_preset;
         }
-#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
         test_engine_maybe_show_windows(test_engine_runtime, test_engine_cfg);
-#    endif
+#endif
 
         ImGui::Render();
         ImDrawData* draw_data        = ImGui::GetDrawData();
@@ -560,20 +562,21 @@ run(const AppConfig& config)
             ImGui::RenderPlatformWindowsDefault();
             renderer_finish_platform_windows(renderer_state);
         }
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
         process_developer_post_render_actions(developer_ui, viewer,
                                               renderer_state);
 #endif
-#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
         test_engine_post_swap(test_engine_runtime);
-#    endif
+#endif
         if (!main_is_minimized)
             renderer_frame_present(renderer_state);
 
-#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
         if (test_engine_should_close(test_engine_runtime, test_engine_cfg))
             platform_glfw_request_close(window);
-#    endif
+#endif
         if (io.WantSaveIniSettings) {
             std::string save_error_message;
             if (!save_combined_settings(save_error_message)) {
@@ -596,18 +599,19 @@ run(const AppConfig& config)
               prefs_save_error);
 
     renderer_destroy_texture(renderer_state, viewer.texture);
-#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_stop(test_engine_runtime);
-#    endif
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#endif
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
     uninstall_drag_drop(window);
 #endif
     renderer_imgui_shutdown();
     platform_glfw_imgui_shutdown();
     ImGui::DestroyContext();
-#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_destroy(test_engine_runtime);
-#    endif
+#endif
 
     renderer_cleanup_window(renderer_state);
     renderer_cleanup(renderer_state);
