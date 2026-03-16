@@ -6,6 +6,7 @@
 #include <cstdio>
 
 #include <OpenImageIO/Imath.h>
+#include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
@@ -13,6 +14,9 @@
 #include <OpenImageIO/ustring.h>
 
 using namespace OIIO;
+
+static int ntrials    = 5;
+static int iterations = 0;
 
 
 
@@ -60,6 +64,8 @@ test_format()
                      "3 3.140000 3.14");
 
     Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     bench.indent (2);
     bench.units (Benchmarker::Unit::ns);
     char buffer[256];
@@ -481,6 +487,8 @@ test_comparisons()
     OIIO_CHECK_ASSERT(iless("abc", "ABD"));
 
     Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     bench.indent (2);
     bench.units (Benchmarker::Unit::ns);
     std::string abc = "abcdefghijklmnopqrstuvwxyz";
@@ -753,6 +761,8 @@ test_concat()
                      Strutil::fmt::format("{}{}", longstring, longstring));
 
     Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     bench.indent (2);
     bench.units (Benchmarker::Unit::ns);
     std::string foostr("foo"), barstr("bar");
@@ -981,6 +991,8 @@ test_numeric_conversion()
     // implemented directly as calls to stoi, stoui, stof.
 
     Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     bench.indent (2);
     bench.units (Benchmarker::Unit::ns);
     const char* numcstr = "123.45";
@@ -1721,9 +1733,42 @@ test_eval_as_bool()
 
 
 
-int
-main(int /*argc*/, char* /*argv*/[])
+static void
+getargs(int argc, char* argv[])
 {
+    // clang-format off
+    ArgParse ap;
+    ap.intro("strutil_test -- unit test and benchmarks for OpenImageIO/strutil.h\n" OIIO_INTRO_STRING)
+      .usage("strutil_test [options]");
+
+    ap.arg("--iterations %d", &iterations)
+      .help(Strutil::format("Number of iterations (default: {})", iterations));
+    ap.arg("--trials %d", &ntrials).help("Number of trials");
+
+    ap.parse_args(argc, (const char**)argv);
+    // clang-format on
+}
+
+
+
+int
+main(int argc, char* argv[])
+{
+#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
+    // For the sake of test time, reduce the default number of benchmark
+    // trials for DEBUG, CI, and code coverage builds. Explicit use of
+    // --trials or --iterations will override this, since it comes before the
+    // getargs() call.
+    ntrials = 1;
+#endif
+#if !defined(NDEBUG)
+    // For debug+CI combination runs, reduce to truly one iteration.
+    if (Strutil::stoi(Sysutil::getenv("OpenImageIO_CI")) != 0)
+        iterations = 1;
+#endif
+
+    getargs(argc, argv);
+
     test_format();
     test_format_custom();
     test_memformat();
