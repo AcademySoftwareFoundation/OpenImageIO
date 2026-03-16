@@ -424,8 +424,20 @@ run(const AppConfig& config)
     clamp_placeholder_ui_state(ui_state);
     if (ui_state.use_ocio) {
         std::string ocio_preflight_error;
-        if (!preflight_ocio_runtime_shader(ui_state, nullptr,
-                                           ocio_preflight_error)) {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+        const bool ocio_preflight_ok
+            = preflight_ocio_runtime_shader(ui_state, nullptr,
+                                            ocio_preflight_error);
+#elif defined(IMIV_BACKEND_OPENGL_GLFW)
+        const bool ocio_preflight_ok
+            = preflight_ocio_runtime_shader_glsl(ui_state, nullptr,
+                                                 ocio_preflight_error);
+#else
+        ocio_preflight_error
+            = "OCIO preview is not implemented on this renderer";
+        const bool ocio_preflight_ok = false;
+#endif
+        if (!ocio_preflight_ok) {
             ui_state.use_ocio = false;
             if (verbose_logging) {
                 print("imiv: OCIO preflight unavailable, using standard "
@@ -606,6 +618,10 @@ run(const AppConfig& config)
     || defined(IMIV_BACKEND_OPENGL_GLFW)
     uninstall_drag_drop(window);
 #endif
+#if defined(IMIV_BACKEND_OPENGL_GLFW)
+    renderer_cleanup_window(renderer_state);
+    renderer_cleanup(renderer_state);
+#endif
     renderer_imgui_shutdown();
     platform_glfw_imgui_shutdown();
     ImGui::DestroyContext();
@@ -613,8 +629,10 @@ run(const AppConfig& config)
     test_engine_destroy(test_engine_runtime);
 #endif
 
+#if !defined(IMIV_BACKEND_OPENGL_GLFW)
     renderer_cleanup_window(renderer_state);
     renderer_cleanup(renderer_state);
+#endif
     platform_glfw_destroy_window(window);
     platform_glfw_terminate();
     return EXIT_SUCCESS;

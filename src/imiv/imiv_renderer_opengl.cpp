@@ -4,6 +4,7 @@
 
 #include "imiv_renderer_backend.h"
 
+#include "imiv_ocio.h"
 #include "imiv_platform_glfw.h"
 #include "imiv_viewer.h"
 
@@ -11,9 +12,12 @@
 #include <imgui_impl_opengl3_loader.h>
 
 #include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/strutil.h>
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -56,6 +60,27 @@
 #ifndef GL_TEXTURE0
 #    define GL_TEXTURE0 0x84C0
 #endif
+#ifndef GL_TEXTURE_1D
+#    define GL_TEXTURE_1D 0x0DE0
+#endif
+#ifndef GL_TEXTURE_3D
+#    define GL_TEXTURE_3D 0x806F
+#endif
+#ifndef GL_R32F
+#    define GL_R32F 0x822E
+#endif
+#ifndef GL_RGB32F
+#    define GL_RGB32F 0x8815
+#endif
+#ifndef GL_TEXTURE_WRAP_R
+#    define GL_TEXTURE_WRAP_R 0x8072
+#endif
+#ifndef GL_RED
+#    define GL_RED 0x1903
+#endif
+#ifndef GL_RGB
+#    define GL_RGB 0x1907
+#endif
 
 namespace Imiv {
 
@@ -69,6 +94,7 @@ struct RendererTextureBackendState {
     bool preview_dirty                            = true;
     bool preview_params_valid                     = false;
     RendererPreviewControls last_preview_controls = {};
+    std::string last_ocio_shader_cache_id;
 };
 
 struct BasicPreviewProgram {
@@ -86,12 +112,46 @@ struct BasicPreviewProgram {
 };
 
 struct OcioPreviewProgram {
+    struct TextureDesc {
+        GLuint texture_id      = 0;
+        GLenum target          = 0;
+        GLint sampler_location = -1;
+        GLint texture_unit     = 0;
+    };
+
+    struct UniformDesc {
+        std::string name;
+        OCIO::GpuShaderDesc::UniformData data;
+        GLint location = -1;
+    };
+
+    GLuint program                = 0;
+    GLint source_sampler_location = -1;
+    GLint input_channels_location = -1;
+    GLint offset_location         = -1;
+    GLint color_mode_location     = -1;
+    GLint channel_location        = -1;
+    GLint orientation_location    = -1;
+    OcioShaderRuntime* runtime    = nullptr;
+    std::string shader_cache_id;
+    std::vector<TextureDesc> textures;
+    std::vector<UniformDesc> uniforms;
     bool ready = false;
 };
 
-using GlUniform1fProc       = void(APIENTRY*)(GLint location, GLfloat v0);
-using GlDrawArraysProc      = void(APIENTRY*)(GLenum mode, GLint first,
+using GlUniform1fProc  = void(APIENTRY*)(GLint location, GLfloat v0);
+using GlUniform3fProc  = void(APIENTRY*)(GLint location, GLfloat v0, GLfloat v1,
+                                        GLfloat v2);
+using GlUniform1fvProc = void(APIENTRY*)(GLint location, GLsizei count,
+                                         const GLfloat* value);
+using GlUniform1ivProc = void(APIENTRY*)(GLint location, GLsizei count,
+                                         const GLint* value);
+using GlDrawArraysProc = void(APIENTRY*)(GLenum mode, GLint first,
                                          GLsizei count);
+using GlTexImage1DProc = void(APIENTRY*)(GLenum target, GLint level,
+                                         GLint internalformat, GLsizei width,
+                                         GLint border, GLenum format,
+                                         GLenum type, const void* pixels);
 using GlGenFramebuffersProc = void(APIENTRY*)(GLsizei n, GLuint* framebuffers);
 using GlBindFramebufferProc = void(APIENTRY*)(GLenum target,
                                               GLuint framebuffer);
@@ -101,15 +161,25 @@ using GlFramebufferTexture2DProc
     = void(APIENTRY*)(GLenum target, GLenum attachment, GLenum textarget,
                       GLuint texture, GLint level);
 using GlCheckFramebufferStatusProc = GLenum(APIENTRY*)(GLenum target);
+using GlTexImage3DProc             = void(APIENTRY*)(GLenum target, GLint level,
+                                         GLint internalformat, GLsizei width,
+                                         GLsizei height, GLsizei depth,
+                                         GLint border, GLenum format,
+                                         GLenum type, const void* pixels);
 
 struct OpenGlExtraProcs {
     GlUniform1fProc Uniform1f                           = nullptr;
+    GlUniform3fProc Uniform3f                           = nullptr;
+    GlUniform1fvProc Uniform1fv                         = nullptr;
+    GlUniform1ivProc Uniform1iv                         = nullptr;
     GlDrawArraysProc DrawArrays                         = nullptr;
+    GlTexImage1DProc TexImage1D                         = nullptr;
     GlGenFramebuffersProc GenFramebuffers               = nullptr;
     GlBindFramebufferProc BindFramebuffer               = nullptr;
     GlDeleteFramebuffersProc DeleteFramebuffers         = nullptr;
     GlFramebufferTexture2DProc FramebufferTexture2D     = nullptr;
     GlCheckFramebufferStatusProc CheckFramebufferStatus = nullptr;
+    GlTexImage3DProc TexImage3D                         = nullptr;
     bool ready                                          = false;
 };
 
@@ -130,6 +200,11 @@ namespace {
     {
         return static_cast<RendererBackendState*>(renderer_state.backend);
     }
+
+    bool ensure_basic_preview_program(RendererBackendState& state,
+                                      std::string& error_message);
+    bool ensure_preview_framebuffer(RendererBackendState& state,
+                                    std::string& error_message);
 
     const RendererTextureBackendState*
     texture_backend_state(const RendererTexture& texture)
@@ -166,7 +241,7 @@ namespace {
                && std::abs(a.gamma - b.gamma) < 1.0e-6f
                && std::abs(a.offset - b.offset) < 1.0e-6f
                && a.color_mode == b.color_mode && a.channel == b.channel
-               && a.orientation == b.orientation;
+               && a.use_ocio == b.use_ocio && a.orientation == b.orientation;
     }
 
     template<class ProcT>
@@ -186,7 +261,15 @@ namespace {
             return true;
         return load_gl_proc("glUniform1f", state.extra_procs.Uniform1f,
                             error_message)
+               && load_gl_proc("glUniform3f", state.extra_procs.Uniform3f,
+                               error_message)
+               && load_gl_proc("glUniform1fv", state.extra_procs.Uniform1fv,
+                               error_message)
+               && load_gl_proc("glUniform1iv", state.extra_procs.Uniform1iv,
+                               error_message)
                && load_gl_proc("glDrawArrays", state.extra_procs.DrawArrays,
+                               error_message)
+               && load_gl_proc("glTexImage1D", state.extra_procs.TexImage1D,
                                error_message)
                && load_gl_proc("glGenFramebuffers",
                                state.extra_procs.GenFramebuffers, error_message)
@@ -200,6 +283,8 @@ namespace {
                                error_message)
                && load_gl_proc("glCheckFramebufferStatus",
                                state.extra_procs.CheckFramebufferStatus,
+                               error_message)
+               && load_gl_proc("glTexImage3D", state.extra_procs.TexImage3D,
                                error_message)
                && ((state.extra_procs.ready = true), true);
     }
@@ -263,6 +348,451 @@ namespace {
         program.channel_location        = -1;
         program.orientation_location    = -1;
         program.ready                   = false;
+    }
+
+    void destroy_ocio_preview_resources(OcioPreviewProgram& program)
+    {
+        for (const OcioPreviewProgram::TextureDesc& texture :
+             program.textures) {
+            if (texture.texture_id != 0)
+                glDeleteTextures(1, &texture.texture_id);
+        }
+        program.textures.clear();
+        program.uniforms.clear();
+        if (program.program != 0) {
+            glDeleteProgram(program.program);
+            program.program = 0;
+        }
+        program.source_sampler_location = -1;
+        program.input_channels_location = -1;
+        program.offset_location         = -1;
+        program.color_mode_location     = -1;
+        program.channel_location        = -1;
+        program.orientation_location    = -1;
+        program.shader_cache_id.clear();
+        program.ready = false;
+    }
+
+    void destroy_ocio_preview_program(OcioPreviewProgram& program)
+    {
+        destroy_ocio_preview_resources(program);
+        destroy_ocio_shader_runtime(program.runtime);
+    }
+
+    GLenum gl_filter_for_ocio(OcioInterpolation interpolation)
+    {
+        return interpolation == OcioInterpolation::Nearest ? GL_NEAREST
+                                                           : GL_LINEAR;
+    }
+
+    GLenum gl_target_for_ocio(OcioTextureDimensions dimensions)
+    {
+        switch (dimensions) {
+        case OcioTextureDimensions::Tex1D: return GL_TEXTURE_1D;
+        case OcioTextureDimensions::Tex3D: return GL_TEXTURE_3D;
+        case OcioTextureDimensions::Tex2D:
+        default: return GL_TEXTURE_2D;
+        }
+    }
+
+    void set_ocio_texture_parameters(GLenum target, GLenum filter)
+    {
+        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, filter);
+        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, filter);
+        glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        if (target != GL_TEXTURE_1D)
+            glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        if (target == GL_TEXTURE_3D)
+            glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    }
+
+    bool upload_ocio_texture(RendererBackendState& state,
+                             const OcioTextureBlueprint& blueprint,
+                             GLint texture_unit, GLuint program,
+                             OcioPreviewProgram::TextureDesc& texture_desc,
+                             std::string& error_message)
+    {
+        const GLenum target = gl_target_for_ocio(blueprint.dimensions);
+        const GLenum filter = gl_filter_for_ocio(blueprint.interpolation);
+        const GLenum format = blueprint.channel == OcioTextureChannel::Red
+                                  ? GL_RED
+                                  : GL_RGB;
+        const GLint internal_format = blueprint.channel
+                                              == OcioTextureChannel::Red
+                                          ? GL_R32F
+                                          : GL_RGB32F;
+
+        GLuint texture_id = 0;
+        glGenTextures(1, &texture_id);
+        if (texture_id == 0) {
+            error_message = "failed to create OpenGL OCIO LUT texture";
+            return false;
+        }
+
+        glActiveTexture(GL_TEXTURE0 + texture_unit);
+        glBindTexture(target, texture_id);
+        set_ocio_texture_parameters(target, filter);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        const float* values = blueprint.values.empty()
+                                  ? nullptr
+                                  : blueprint.values.data();
+        if (values == nullptr) {
+            glDeleteTextures(1, &texture_id);
+            error_message = "missing OCIO LUT values";
+            return false;
+        }
+
+        if (target == GL_TEXTURE_3D) {
+            state.extra_procs.TexImage3D(target, 0, internal_format,
+                                         static_cast<GLsizei>(blueprint.width),
+                                         static_cast<GLsizei>(blueprint.height),
+                                         static_cast<GLsizei>(blueprint.depth),
+                                         0, format, GL_FLOAT, values);
+        } else if (target == GL_TEXTURE_2D) {
+            glTexImage2D(target, 0, internal_format,
+                         static_cast<GLsizei>(blueprint.width),
+                         static_cast<GLsizei>(blueprint.height), 0, format,
+                         GL_FLOAT, values);
+        } else {
+            state.extra_procs.TexImage1D(target, 0, internal_format,
+                                         static_cast<GLsizei>(blueprint.width),
+                                         0, format, GL_FLOAT, values);
+        }
+
+        const GLenum err = glGetError();
+        if (err != GL_NO_ERROR) {
+            glDeleteTextures(1, &texture_id);
+            error_message = "OpenGL OCIO texture upload failed";
+            return false;
+        }
+
+        const GLint sampler_location
+            = glGetUniformLocation(program, blueprint.sampler_name.c_str());
+        if (sampler_location < 0) {
+            glDeleteTextures(1, &texture_id);
+            error_message = "missing OpenGL OCIO sampler uniform: "
+                            + blueprint.sampler_name;
+            return false;
+        }
+
+        texture_desc.texture_id       = texture_id;
+        texture_desc.target           = target;
+        texture_desc.sampler_location = sampler_location;
+        texture_desc.texture_unit     = texture_unit;
+        return true;
+    }
+
+    bool set_ocio_uniform(GLint location,
+                          const OCIO::GpuShaderDesc::UniformData& data,
+                          OpenGlExtraProcs& extra_procs,
+                          std::string& error_message)
+    {
+        if (location < 0)
+            return true;
+
+        switch (data.m_type) {
+        case OCIO::UNIFORM_DOUBLE:
+            extra_procs.Uniform1f(location,
+                                  data.m_getDouble
+                                      ? static_cast<float>(data.m_getDouble())
+                                      : 0.0f);
+            return true;
+        case OCIO::UNIFORM_BOOL: {
+            const GLint value = data.m_getBool && data.m_getBool() ? 1 : 0;
+            glUniform1i(location, value);
+            return true;
+        }
+        case OCIO::UNIFORM_FLOAT3:
+            if (data.m_getFloat3) {
+                const OCIO::Float3& value = data.m_getFloat3();
+                extra_procs.Uniform3f(location, static_cast<float>(value[0]),
+                                      static_cast<float>(value[1]),
+                                      static_cast<float>(value[2]));
+            } else {
+                extra_procs.Uniform3f(location, 0.0f, 0.0f, 0.0f);
+            }
+            return true;
+        case OCIO::UNIFORM_VECTOR_FLOAT:
+            if (data.m_vectorFloat.m_getSize
+                && data.m_vectorFloat.m_getVector) {
+                extra_procs.Uniform1fv(location,
+                                       static_cast<GLsizei>(
+                                           data.m_vectorFloat.m_getSize()),
+                                       data.m_vectorFloat.m_getVector());
+            }
+            return true;
+        case OCIO::UNIFORM_VECTOR_INT:
+            if (data.m_vectorInt.m_getSize && data.m_vectorInt.m_getVector) {
+                extra_procs.Uniform1iv(location,
+                                       static_cast<GLsizei>(
+                                           data.m_vectorInt.m_getSize()),
+                                       data.m_vectorInt.m_getVector());
+            }
+            return true;
+        case OCIO::UNIFORM_UNKNOWN:
+        default:
+            error_message = "unsupported OpenGL OCIO uniform type";
+            return false;
+        }
+    }
+
+    bool build_ocio_fragment_source(const OcioShaderBlueprint& blueprint,
+                                    std::string& shader_source,
+                                    std::string& error_message)
+    {
+        shader_source.clear();
+        error_message.clear();
+        if (!blueprint.enabled || !blueprint.valid
+            || blueprint.shader_text.empty()) {
+            error_message = "OpenGL OCIO shader blueprint is invalid";
+            return false;
+        }
+
+        shader_source = OIIO::Strutil::fmt::format(
+            R"glsl(
+in vec2 uv_in;
+out vec4 out_color;
+
+uniform sampler2D u_source_image;
+uniform int u_input_channels;
+uniform float u_offset;
+uniform int u_color_mode;
+uniform int u_channel;
+uniform int u_orientation;
+
+vec2 display_to_source_uv(vec2 uv, int orientation)
+{{
+    if (orientation == 2)
+        return vec2(1.0 - uv.x, uv.y);
+    if (orientation == 3)
+        return vec2(1.0 - uv.x, 1.0 - uv.y);
+    if (orientation == 4)
+        return vec2(uv.x, 1.0 - uv.y);
+    if (orientation == 5)
+        return vec2(uv.y, uv.x);
+    if (orientation == 6)
+        return vec2(uv.y, 1.0 - uv.x);
+    if (orientation == 7)
+        return vec2(1.0 - uv.y, 1.0 - uv.x);
+    if (orientation == 8)
+        return vec2(1.0 - uv.y, uv.x);
+    return uv;
+}}
+
+float selected_channel(vec4 c, int channel)
+{{
+    if (channel == 1)
+        return c.r;
+    if (channel == 2)
+        return c.g;
+    if (channel == 3)
+        return c.b;
+    if (channel == 4)
+        return c.a;
+    return c.r;
+}}
+
+vec3 heatmap(float x)
+{{
+    float t = clamp(x, 0.0, 1.0);
+    vec3 a = vec3(0.0, 0.0, 0.5);
+    vec3 b = vec3(0.0, 0.9, 1.0);
+    vec3 c = vec3(1.0, 1.0, 0.0);
+    vec3 d = vec3(1.0, 0.0, 0.0);
+    if (t < 0.33)
+        return mix(a, b, t / 0.33);
+    if (t < 0.66)
+        return mix(b, c, (t - 0.33) / 0.33);
+    return mix(c, d, (t - 0.66) / 0.34);
+}}
+
+{}
+
+void main()
+{{
+    vec2 src_uv = display_to_source_uv(uv_in, u_orientation);
+    vec4 c = texture(u_source_image, src_uv);
+    c.rgb += vec3(u_offset);
+
+    if (u_color_mode == 1) {{
+        c.a = 1.0;
+    }} else if (u_color_mode == 2) {{
+        float v = selected_channel(c, u_channel);
+        c = vec4(v, v, v, 1.0);
+    }} else if (u_color_mode == 3) {{
+        float y = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+        c = vec4(y, y, y, 1.0);
+    }} else if (u_color_mode == 4) {{
+        float v = selected_channel(c, u_channel);
+        c = vec4(heatmap(v), 1.0);
+    }}
+
+    if (u_channel > 0 && u_color_mode != 2 && u_color_mode != 4) {{
+        float v = selected_channel(c, u_channel);
+        c = vec4(v, v, v, 1.0);
+    }}
+
+    if (u_input_channels == 1 && u_color_mode <= 1)
+        c = vec4(c.rrr, 1.0);
+    else if (u_input_channels == 2 && u_color_mode == 0)
+        c = vec4(c.rrr, c.a);
+    else if (u_input_channels == 2 && u_color_mode == 1)
+        c = vec4(c.rrr, 1.0);
+
+    out_color = {}(c);
+}}
+)glsl",
+            blueprint.shader_text, blueprint.function_name);
+        return true;
+    }
+
+    bool ensure_ocio_preview_program(RendererBackendState& state,
+                                     const PlaceholderUiState& ui_state,
+                                     const LoadedImage* image,
+                                     std::string& error_message)
+    {
+        if (!ensure_basic_preview_program(state, error_message)
+            || !ensure_extra_procs(state, error_message)) {
+            return false;
+        }
+        if (!ensure_ocio_shader_runtime_glsl(ui_state, image,
+                                             state.ocio_preview.runtime,
+                                             error_message)) {
+            return false;
+        }
+        if (state.ocio_preview.runtime == nullptr
+            || state.ocio_preview.runtime->shader_desc == nullptr) {
+            error_message = "OpenGL OCIO runtime is not initialized";
+            return false;
+        }
+
+        const OcioShaderBlueprint& blueprint
+            = state.ocio_preview.runtime->blueprint;
+        if (state.ocio_preview.ready
+            && state.ocio_preview.shader_cache_id
+                   == blueprint.shader_cache_id) {
+            return true;
+        }
+
+        destroy_ocio_preview_resources(state.ocio_preview);
+
+        std::string fragment_source;
+        if (!build_ocio_fragment_source(blueprint, fragment_source,
+                                        error_message)) {
+            return false;
+        }
+
+        static const char* vertex_source = R"glsl(
+out vec2 uv_in;
+
+void main()
+{
+    vec2 pos = vec2(-1.0, -1.0);
+    if (gl_VertexID == 1)
+        pos = vec2(3.0, -1.0);
+    else if (gl_VertexID == 2)
+        pos = vec2(-1.0, 3.0);
+
+    uv_in = pos * 0.5 + 0.5;
+    gl_Position = vec4(pos, 0.0, 1.0);
+}
+)glsl";
+
+        GLuint vertex_shader   = glCreateShader(GL_VERTEX_SHADER);
+        GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+        if (vertex_shader == 0 || fragment_shader == 0) {
+            if (vertex_shader != 0)
+                glDeleteShader(vertex_shader);
+            if (fragment_shader != 0)
+                glDeleteShader(fragment_shader);
+            error_message = "failed to create OpenGL OCIO shader objects";
+            return false;
+        }
+
+        const char* vertex_sources[]   = { state.glsl_version, "\n",
+                                           vertex_source };
+        const char* fragment_sources[] = { state.glsl_version, "\n",
+                                           fragment_source.c_str() };
+        bool ok = compile_shader(vertex_shader, vertex_sources, 3,
+                                 error_message)
+                  && compile_shader(fragment_shader, fragment_sources, 3,
+                                    error_message);
+        if (!ok) {
+            glDeleteShader(vertex_shader);
+            glDeleteShader(fragment_shader);
+            return false;
+        }
+
+        GLuint program = glCreateProgram();
+        if (program == 0) {
+            glDeleteShader(vertex_shader);
+            glDeleteShader(fragment_shader);
+            error_message = "failed to create OpenGL OCIO program";
+            return false;
+        }
+
+        glAttachShader(program, vertex_shader);
+        glAttachShader(program, fragment_shader);
+        ok = link_program(program, error_message);
+        glDetachShader(program, vertex_shader);
+        glDetachShader(program, fragment_shader);
+        glDeleteShader(vertex_shader);
+        glDeleteShader(fragment_shader);
+        if (!ok) {
+            glDeleteProgram(program);
+            return false;
+        }
+
+        state.ocio_preview.program = program;
+        state.ocio_preview.source_sampler_location
+            = glGetUniformLocation(program, "u_source_image");
+        state.ocio_preview.input_channels_location
+            = glGetUniformLocation(program, "u_input_channels");
+        state.ocio_preview.offset_location = glGetUniformLocation(program,
+                                                                  "u_offset");
+        state.ocio_preview.color_mode_location
+            = glGetUniformLocation(program, "u_color_mode");
+        state.ocio_preview.channel_location = glGetUniformLocation(program,
+                                                                   "u_channel");
+        state.ocio_preview.orientation_location
+            = glGetUniformLocation(program, "u_orientation");
+
+        const auto& ocio_textures = blueprint.textures;
+        state.ocio_preview.textures.reserve(ocio_textures.size());
+        for (size_t i = 0; i < ocio_textures.size(); ++i) {
+            OcioPreviewProgram::TextureDesc texture_desc;
+            if (!upload_ocio_texture(state, ocio_textures[i],
+                                     static_cast<GLint>(i + 1), program,
+                                     texture_desc, error_message)) {
+                destroy_ocio_preview_resources(state.ocio_preview);
+                return false;
+            }
+            state.ocio_preview.textures.push_back(std::move(texture_desc));
+        }
+
+        const unsigned num_uniforms
+            = state.ocio_preview.runtime->shader_desc->getNumUniforms();
+        state.ocio_preview.uniforms.reserve(num_uniforms);
+        for (unsigned idx = 0; idx < num_uniforms; ++idx) {
+            OCIO::GpuShaderDesc::UniformData data;
+            const char* name
+                = state.ocio_preview.runtime->shader_desc->getUniform(idx,
+                                                                      data);
+            OcioPreviewProgram::UniformDesc uniform;
+            if (name != nullptr)
+                uniform.name = name;
+            uniform.data     = data;
+            uniform.location = uniform.name.empty()
+                                   ? -1
+                                   : glGetUniformLocation(program,
+                                                          uniform.name.c_str());
+            state.ocio_preview.uniforms.push_back(std::move(uniform));
+        }
+
+        state.ocio_preview.shader_cache_id = blueprint.shader_cache_id;
+        state.ocio_preview.ready           = true;
+        error_message.clear();
+        return true;
     }
 
     bool ensure_basic_preview_program(RendererBackendState& state,
@@ -503,11 +1033,10 @@ void main()
         return false;
     }
 
-    bool render_preview_texture(RendererBackendState& state,
-                                RendererTextureBackendState& texture_state,
-                                GLuint target_texture,
-                                const RendererPreviewControls& controls,
-                                std::string& error_message)
+    bool render_basic_preview_texture(
+        RendererBackendState& state, RendererTextureBackendState& texture_state,
+        GLuint target_texture, const RendererPreviewControls& controls,
+        std::string& error_message)
     {
         if (!ensure_basic_preview_program(state, error_message)
             || !ensure_preview_framebuffer(state, error_message)) {
@@ -560,6 +1089,95 @@ void main()
             return true;
         }
         error_message = "OpenGL preview draw failed";
+        return false;
+    }
+
+    bool render_ocio_preview_texture(RendererBackendState& state,
+                                     RendererTextureBackendState& texture_state,
+                                     GLuint target_texture,
+                                     const RendererPreviewControls& controls,
+                                     std::string& error_message)
+    {
+        if (!ensure_preview_framebuffer(state, error_message)
+            || !state.ocio_preview.ready
+            || state.ocio_preview.runtime == nullptr
+            || state.ocio_preview.runtime->shader_desc == nullptr
+            || !state.basic_preview.ready) {
+            error_message = "OpenGL OCIO preview state is not initialized";
+            return false;
+        }
+
+        state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER,
+                                          state.preview_framebuffer);
+        state.extra_procs.FramebufferTexture2D(GL_FRAMEBUFFER,
+                                               GL_COLOR_ATTACHMENT0,
+                                               GL_TEXTURE_2D, target_texture,
+                                               0);
+        if (state.extra_procs.CheckFramebufferStatus(GL_FRAMEBUFFER)
+            != GL_FRAMEBUFFER_COMPLETE) {
+            state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER, 0);
+            error_message = "OpenGL preview framebuffer is incomplete";
+            return false;
+        }
+
+        if (state.ocio_preview.runtime->exposure_property) {
+            state.ocio_preview.runtime->exposure_property->setValue(
+                static_cast<double>(controls.exposure));
+        }
+        if (state.ocio_preview.runtime->gamma_property) {
+            const double gamma
+                = 1.0 / std::max(1.0e-6, static_cast<double>(controls.gamma));
+            state.ocio_preview.runtime->gamma_property->setValue(gamma);
+        }
+
+        glViewport(0, 0, texture_state.width, texture_state.height);
+        glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        glUseProgram(state.ocio_preview.program);
+        glBindVertexArray(state.basic_preview.fullscreen_triangle_vao);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture_state.source_texture);
+        glUniform1i(state.ocio_preview.source_sampler_location, 0);
+        glUniform1i(state.ocio_preview.input_channels_location,
+                    texture_state.input_channels);
+        state.extra_procs.Uniform1f(state.ocio_preview.offset_location,
+                                    controls.offset);
+        glUniform1i(state.ocio_preview.color_mode_location,
+                    controls.color_mode);
+        glUniform1i(state.ocio_preview.channel_location, controls.channel);
+        glUniform1i(state.ocio_preview.orientation_location,
+                    controls.orientation);
+
+        for (const OcioPreviewProgram::TextureDesc& texture :
+             state.ocio_preview.textures) {
+            glActiveTexture(GL_TEXTURE0 + texture.texture_unit);
+            glBindTexture(texture.target, texture.texture_id);
+            glUniform1i(texture.sampler_location, texture.texture_unit);
+        }
+        for (const OcioPreviewProgram::UniformDesc& uniform :
+             state.ocio_preview.uniforms) {
+            if (!set_ocio_uniform(uniform.location, uniform.data,
+                                  state.extra_procs, error_message)) {
+                glBindVertexArray(0);
+                glUseProgram(0);
+                state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER, 0);
+                return false;
+            }
+        }
+
+        state.extra_procs.DrawArrays(GL_TRIANGLES, 0, 3);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindVertexArray(0);
+        glUseProgram(0);
+        state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER, 0);
+        const GLenum err = glGetError();
+        if (err == GL_NO_ERROR) {
+            error_message.clear();
+            return true;
+        }
+        error_message = "OpenGL OCIO preview draw failed";
         return false;
     }
 
@@ -763,9 +1381,6 @@ renderer_backend_update_preview_texture(RendererState& renderer_state,
                                         const RendererPreviewControls& controls,
                                         std::string& error_message)
 {
-    (void)image;
-    (void)ui_state;
-
     RendererBackendState* state                = backend_state(renderer_state);
     RendererTextureBackendState* texture_state = texture_backend_state(texture);
     if (state == nullptr || state->window == nullptr
@@ -774,29 +1389,63 @@ renderer_backend_update_preview_texture(RendererState& renderer_state,
         return false;
     }
 
+    RendererPreviewControls effective_controls = controls;
+    std::string ocio_shader_cache_id;
+    bool use_ocio_preview = false;
+
+    platform_glfw_make_context_current(state->window);
+    if (controls.use_ocio != 0) {
+        if (ensure_ocio_preview_program(*state, ui_state, image,
+                                        error_message)) {
+            use_ocio_preview     = true;
+            ocio_shader_cache_id = state->ocio_preview.shader_cache_id;
+        } else {
+            if (!error_message.empty()) {
+                std::cerr << "imiv: OpenGL OCIO fallback: " << error_message
+                          << "\n";
+            }
+            effective_controls.use_ocio = 0;
+            ocio_shader_cache_id.clear();
+            error_message.clear();
+        }
+    }
+
     if (!texture_state->preview_dirty && texture_state->preview_params_valid
         && preview_controls_equal(texture_state->last_preview_controls,
-                                  controls)) {
+                                  effective_controls)
+        && texture_state->last_ocio_shader_cache_id == ocio_shader_cache_id) {
         texture.preview_initialized = true;
         error_message.clear();
         return true;
     }
 
-    platform_glfw_make_context_current(state->window);
-    if (!render_preview_texture(*state, *texture_state,
-                                texture_state->preview_linear_texture, controls,
-                                error_message)
-        || !render_preview_texture(*state, *texture_state,
-                                   texture_state->preview_nearest_texture,
-                                   controls, error_message)) {
+    const bool ok = use_ocio_preview
+                        ? render_ocio_preview_texture(
+                              *state, *texture_state,
+                              texture_state->preview_linear_texture,
+                              effective_controls, error_message)
+                              && render_ocio_preview_texture(
+                                  *state, *texture_state,
+                                  texture_state->preview_nearest_texture,
+                                  effective_controls, error_message)
+                        : render_basic_preview_texture(
+                              *state, *texture_state,
+                              texture_state->preview_linear_texture,
+                              effective_controls, error_message)
+                              && render_basic_preview_texture(
+                                  *state, *texture_state,
+                                  texture_state->preview_nearest_texture,
+                                  effective_controls, error_message);
+    if (!ok) {
         texture.preview_initialized = false;
         return false;
     }
 
-    texture_state->preview_dirty         = false;
-    texture_state->preview_params_valid  = true;
-    texture_state->last_preview_controls = controls;
-    texture.preview_initialized          = true;
+    texture_state->preview_dirty             = false;
+    texture_state->preview_params_valid      = true;
+    texture_state->last_preview_controls     = effective_controls;
+    texture_state->last_ocio_shader_cache_id = ocio_shader_cache_id;
+    texture.preview_initialized              = true;
     error_message.clear();
     return true;
 }
@@ -882,6 +1531,7 @@ renderer_backend_cleanup(RendererState& renderer_state)
     if (state != nullptr) {
         if (state->window != nullptr)
             platform_glfw_make_context_current(state->window);
+        destroy_ocio_preview_program(state->ocio_preview);
         destroy_basic_preview_program(state->basic_preview);
         if (state->preview_framebuffer != 0 && state->extra_procs.ready) {
             state->extra_procs.DeleteFramebuffers(1,
@@ -1015,13 +1665,47 @@ renderer_backend_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                                 unsigned int* pixels, void* user_data)
 {
     (void)viewport_id;
-    (void)x;
-    (void)y;
-    (void)w;
-    (void)h;
-    (void)pixels;
-    (void)user_data;
-    return false;
+    RendererState* renderer_state = reinterpret_cast<RendererState*>(user_data);
+    if (renderer_state == nullptr || pixels == nullptr || w <= 0 || h <= 0)
+        return false;
+
+    RendererBackendState* state = backend_state(*renderer_state);
+    if (state == nullptr || state->window == nullptr)
+        return false;
+
+    int framebuffer_width  = 0;
+    int framebuffer_height = 0;
+    platform_glfw_make_context_current(state->window);
+    platform_glfw_get_framebuffer_size(state->window, framebuffer_width,
+                                       framebuffer_height);
+    if (framebuffer_width <= 0 || framebuffer_height <= 0)
+        return false;
+    if (x < 0 || y < 0 || x + w > framebuffer_width
+        || y + h > framebuffer_height) {
+        return false;
+    }
+
+    const int read_y = framebuffer_height - (y + h);
+    if (read_y < 0)
+        return false;
+
+    std::vector<unsigned char> readback(static_cast<size_t>(w)
+                                        * static_cast<size_t>(h) * 4);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(x, read_y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, readback.data());
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+
+    unsigned char* dst_bytes = reinterpret_cast<unsigned char*>(pixels);
+    for (int row = 0; row < h; ++row) {
+        const size_t src_offset = static_cast<size_t>(h - 1 - row)
+                                  * static_cast<size_t>(w) * 4;
+        const size_t dst_offset = static_cast<size_t>(row)
+                                  * static_cast<size_t>(w) * 4;
+        std::memcpy(dst_bytes + dst_offset, readback.data() + src_offset,
+                    static_cast<size_t>(w) * 4);
+    }
+    return true;
 }
 
 }  // namespace Imiv
