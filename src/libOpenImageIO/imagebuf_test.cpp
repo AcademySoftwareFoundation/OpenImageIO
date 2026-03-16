@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebuf.h>
@@ -15,6 +16,9 @@
 #include <iostream>
 
 using namespace OIIO;
+
+static int ntrials    = 5;
+static int iterations = 0;
 
 
 
@@ -402,6 +406,8 @@ time_get_pixels()
 {
     std::cout << "\nTesting set_pixels, get_pixels:\n";
     Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     const int nchans = 4;
     const int xres = 2000, yres = 1000;
     ImageBuf A(ImageSpec(xres, yres, nchans, TypeDesc::FLOAT));
@@ -609,6 +615,8 @@ time_iterators()
     ImageBufAlgo::fill(img, { 0.25f, 0.5f, 0.75f, 1.0f });
 
     Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     double sum = 0.0f;
     bench("Read traversal with ConstIterator", [&]() {
         sum = 0.0f;
@@ -711,9 +719,42 @@ test_iterator_concurrency()
 
 
 
-int
-main(int /*argc*/, char* /*argv*/[])
+static void
+getargs(int argc, char* argv[])
 {
+    // clang-format off
+    ArgParse ap;
+    ap.intro("imagebuf_test -- unit test and benchmarks for OpenImageIO/imagebuf.h\n" OIIO_INTRO_STRING)
+      .usage("imagebuf_test [options]");
+
+    ap.arg("--iterations %d", &iterations)
+      .help(Strutil::format("Number of iterations (default: {})", iterations));
+    ap.arg("--trials %d", &ntrials).help("Number of trials");
+
+    ap.parse_args(argc, (const char**)argv);
+    // clang-format on
+}
+
+
+
+int
+main(int argc, char* argv[])
+{
+#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
+    // For the sake of test time, reduce the default number of benchmark
+    // trials for DEBUG, CI, and code coverage builds. Explicit use of
+    // --trials or --iterations will override this, since it comes before the
+    // getargs() call.
+    ntrials = 1;
+#endif
+#if !defined(NDEBUG)
+    // For debug+CI combination runs, reduce to truly one iteration.
+    if (Strutil::stoi(Sysutil::getenv("OpenImageIO_CI")) != 0)
+        iterations = 1;
+#endif
+
+    getargs(argc, argv);
+
     // Some miscellaneous things that aren't strictly ImageBuf, but this is
     // as good a place to verify them as any.
     test_wrapmodes();
