@@ -10,7 +10,8 @@
 #include <filesystem>
 #include <string>
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
 struct GLFWwindow;
 #endif
 
@@ -51,13 +52,15 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
                ,
                bool* show_test_engine_windows
 #endif
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
                ,
                GLFWwindow* window, RendererState& renderer_state
 #endif
 );
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
 void
 process_developer_post_render_actions(DeveloperUiState& developer_ui,
                                       ViewerState& viewer,

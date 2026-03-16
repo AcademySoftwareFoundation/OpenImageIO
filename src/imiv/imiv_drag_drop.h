@@ -7,13 +7,15 @@
 #include "imiv_renderer.h"
 #include "imiv_viewer.h"
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
 struct GLFWwindow;
 #endif
 
 namespace Imiv {
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
 void
 install_drag_drop(GLFWwindow* window, ViewerState& viewer);
 void

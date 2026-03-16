@@ -11,7 +11,8 @@
 
 #include <string>
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
 struct GLFWwindow;
 #endif
 
@@ -64,7 +65,8 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
 void
 execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
                              ViewerFrameActions& actions
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
                              ,
                              GLFWwindow* window, RendererState& renderer_state
 #endif
