@@ -28,12 +28,53 @@ option (OIIO_IMIV_ADD_UPLOAD_SMOKE_CTEST
         "Add an optional CTest entry that generates/upload-tests the imiv corpus" OFF)
 set (OIIO_IMIV_VULKAN_SDK "$ENV{VULKAN_SDK}" CACHE PATH
      "Optional Vulkan SDK root path used to locate Vulkan package for imiv")
+set (_imiv_default_renderer "vulkan")
+if (APPLE)
+    set (_imiv_default_renderer "metal")
+endif ()
+set (OIIO_IMIV_RENDERER "auto" CACHE STRING
+     "Renderer backend for imiv (auto, vulkan, metal, opengl)")
+set_property (CACHE OIIO_IMIV_RENDERER PROPERTY STRINGS
+              auto vulkan metal opengl)
 
 check_is_enabled (imiv imiv_enabled)
 if (NOT imiv_enabled)
     message (STATUS "Disabling imiv")
     return ()
 endif ()
+
+string (TOLOWER "${OIIO_IMIV_RENDERER}" _imiv_renderer_request)
+if (_imiv_renderer_request STREQUAL ""
+    OR _imiv_renderer_request STREQUAL "auto")
+    set (_imiv_selected_renderer "${_imiv_default_renderer}")
+elseif (_imiv_renderer_request STREQUAL "vulkan"
+        OR _imiv_renderer_request STREQUAL "metal"
+        OR _imiv_renderer_request STREQUAL "opengl")
+    set (_imiv_selected_renderer "${_imiv_renderer_request}")
+else ()
+    message (FATAL_ERROR
+             "imiv: unsupported OIIO_IMIV_RENDERER='${OIIO_IMIV_RENDERER}' "
+             "(expected auto, vulkan, metal, or opengl)")
+endif ()
+
+if (_imiv_selected_renderer STREQUAL "metal" AND NOT APPLE)
+    message (FATAL_ERROR
+             "imiv: OIIO_IMIV_RENDERER=metal requires APPLE")
+endif ()
+
+set (_imiv_renderer_is_vulkan OFF)
+set (_imiv_renderer_is_metal OFF)
+set (_imiv_renderer_is_opengl OFF)
+if (_imiv_selected_renderer STREQUAL "vulkan")
+    set (_imiv_renderer_is_vulkan ON)
+elseif (_imiv_selected_renderer STREQUAL "metal")
+    set (_imiv_renderer_is_metal ON)
+elseif (_imiv_selected_renderer STREQUAL "opengl")
+    set (_imiv_renderer_is_opengl ON)
+endif ()
+
+message (STATUS
+         "imiv: selected renderer backend = glfw+${_imiv_selected_renderer}")
 
 set (_imiv_imgui_required_files
      "${OIIO_IMIV_IMGUI_ROOT}/imgui.h"
@@ -43,10 +84,25 @@ set (_imiv_imgui_required_files
      "${OIIO_IMIV_IMGUI_ROOT}/imgui_widgets.cpp"
      "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_glfw.h"
      "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_glfw.cpp")
-if (NOT APPLE)
+set (_imiv_imgui_renderer_sources)
+if (_imiv_renderer_is_vulkan)
     list (APPEND _imiv_imgui_required_files
           "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_vulkan.h"
           "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_vulkan.cpp")
+    list (APPEND _imiv_imgui_renderer_sources
+          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_vulkan.cpp")
+elseif (_imiv_renderer_is_metal)
+    list (APPEND _imiv_imgui_required_files
+          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_metal.h"
+          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_metal.mm")
+    list (APPEND _imiv_imgui_renderer_sources
+          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_metal.mm")
+elseif (_imiv_renderer_is_opengl)
+    list (APPEND _imiv_imgui_required_files
+          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_opengl3.h"
+          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_opengl3.cpp")
+    list (APPEND _imiv_imgui_renderer_sources
+          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_opengl3.cpp")
 endif ()
 set (_imiv_imgui_found ON)
 foreach (_imiv_required_file ${_imiv_imgui_required_files})
@@ -67,12 +123,10 @@ if (NOT _imiv_imgui_found)
 endif ()
 record_build_dependency (ImGui FOUND)
 
-set (_imiv_core_sources
+set (_imiv_shared_sources
      imiv_actions.cpp
      imiv_app.cpp
      imiv_aux_windows.cpp
-     imiv_capture.cpp
-     imiv_drag_drop.cpp
      imiv_file_dialog.cpp
      imiv_frame.cpp
      imiv_image_view.cpp
@@ -83,21 +137,50 @@ set (_imiv_core_sources
      imiv_renderer.cpp
      imiv_shader_compile.cpp
      imiv_style.cpp
+     imiv_upload_types.cpp
      imiv_ui.cpp
      imiv_viewer.cpp
+     imiv_main.cpp)
+
+set (_imiv_test_engine_integration_sources
+     imiv_test_engine.cpp)
+
+set (_imiv_platform_glfw_sources
+     imiv_drag_drop.cpp
+     imiv_platform_glfw.cpp)
+if (APPLE)
+    list (APPEND _imiv_platform_glfw_sources
+          external/dnd_glfw/dnd_glfw_macos.mm)
+endif ()
+
+set (_imiv_renderer_vulkan_sources
+     imiv_renderer_vulkan.cpp
+     imiv_capture.cpp
      imiv_vulkan_setup.cpp
      imiv_vulkan_ocio.cpp
      imiv_vulkan_preview.cpp
      imiv_vulkan_runtime.cpp
      imiv_vulkan_texture.cpp
-     imiv_vulkan_window.cpp
-     imiv_test_engine.cpp
-     imiv_main.cpp)
+     imiv_vulkan_window.cpp)
 
-if (APPLE)
-    list (APPEND _imiv_core_sources
-          external/dnd_glfw/dnd_glfw_macos.mm)
+set (_imiv_renderer_metal_sources
+     imiv_renderer_metal.mm)
+set (_imiv_renderer_opengl_sources
+     imiv_renderer_opengl.cpp)
+set (_imiv_renderer_selected_sources)
+if (_imiv_renderer_is_vulkan)
+    set (_imiv_renderer_selected_sources ${_imiv_renderer_vulkan_sources})
+elseif (_imiv_renderer_is_metal)
+    set (_imiv_renderer_selected_sources ${_imiv_renderer_metal_sources})
+elseif (_imiv_renderer_is_opengl)
+    set (_imiv_renderer_selected_sources ${_imiv_renderer_opengl_sources})
 endif ()
+
+set (_imiv_core_sources
+     ${_imiv_shared_sources}
+     ${_imiv_test_engine_integration_sources}
+     ${_imiv_platform_glfw_sources}
+     ${_imiv_renderer_selected_sources})
 
 set (_imiv_shader_src "${CMAKE_CURRENT_SOURCE_DIR}/shaders/imiv_upload_to_rgba.comp")
 set (_imiv_preview_vert_src "${CMAKE_CURRENT_SOURCE_DIR}/shaders/imiv_preview.vert")
@@ -110,7 +193,7 @@ set (_imiv_preview_vert_spv "${CMAKE_CURRENT_BINARY_DIR}/imiv_preview.vert.spv")
 set (_imiv_preview_frag_spv "${CMAKE_CURRENT_BINARY_DIR}/imiv_preview.frag.spv")
 set (_imiv_shader_outputs)
 
-if (NOT APPLE)
+if (_imiv_renderer_is_vulkan)
     find_program (OIIO_IMIV_GLSLC_EXECUTABLE
                   NAMES glslc
                   HINTS
@@ -204,11 +287,8 @@ set (_imiv_imgui_sources
      "${OIIO_IMIV_IMGUI_ROOT}/imgui_draw.cpp"
      "${OIIO_IMIV_IMGUI_ROOT}/imgui_tables.cpp"
      "${OIIO_IMIV_IMGUI_ROOT}/imgui_widgets.cpp"
-     "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_glfw.cpp")
-if (NOT APPLE)
-    list (APPEND _imiv_imgui_sources
-          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_vulkan.cpp")
-endif ()
+     "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_glfw.cpp"
+     ${_imiv_imgui_renderer_sources})
 
 set (_imiv_test_engine_sources)
 set (_imiv_test_engine_dir "")
@@ -260,16 +340,16 @@ set (_imiv_link_libs
      OpenImageIO
      $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
      $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>)
-if (NOT APPLE)
-    find_package (glfw3 CONFIG QUIET)
-    if (TARGET glfw)
-        list (APPEND _imiv_link_libs glfw)
-    else ()
-        message (STATUS
-                 "\n\n   WARNING: glfw not found -- 'imiv' will not be built!\n")
-        return ()
-    endif ()
+find_package (glfw3 CONFIG QUIET)
+if (TARGET glfw)
+    list (APPEND _imiv_link_libs glfw)
+else ()
+    message (STATUS
+             "\n\n   WARNING: glfw not found -- 'imiv' will not be built!\n")
+    return ()
+endif ()
 
+if (_imiv_renderer_is_vulkan)
     find_package (Vulkan QUIET)
     if (Vulkan_FOUND)
         record_build_dependency (Vulkan FOUND VERSION "${Vulkan_VERSION}")
@@ -513,12 +593,48 @@ if (NOT APPLE)
             GLSLANG_RUNTIME NOTFOUND
             NOT_FOUND_EXPLANATION "${_imiv_runtime_glslang_explanation}")
     endif ()
-else ()
+elseif (_imiv_renderer_is_metal)
     set (_imiv_has_runtime_glslang OFF)
     record_build_dependency (
         GLSLANG_RUNTIME NOTFOUND
         NOT_FOUND_EXPLANATION
             "(runtime shader compilation disabled on Metal backend)")
+    find_library (OIIO_IMIV_COCOA_FRAMEWORK Cocoa)
+    find_library (OIIO_IMIV_METAL_FRAMEWORK Metal)
+    find_library (OIIO_IMIV_QUARTZCORE_FRAMEWORK QuartzCore)
+    if (NOT OIIO_IMIV_COCOA_FRAMEWORK
+        OR NOT OIIO_IMIV_METAL_FRAMEWORK
+        OR NOT OIIO_IMIV_QUARTZCORE_FRAMEWORK)
+        message (STATUS
+                 "\n\n   WARNING: Metal frameworks not found -- 'imiv' will not be built!\n")
+        return ()
+    endif ()
+    list (APPEND _imiv_link_libs
+          ${OIIO_IMIV_COCOA_FRAMEWORK}
+          ${OIIO_IMIV_METAL_FRAMEWORK}
+          ${OIIO_IMIV_QUARTZCORE_FRAMEWORK})
+elseif (_imiv_renderer_is_opengl)
+    set (_imiv_has_runtime_glslang OFF)
+    record_build_dependency (
+        GLSLANG_RUNTIME NOTFOUND
+        NOT_FOUND_EXPLANATION
+            "(runtime shader compilation disabled on OpenGL backend)")
+    find_package (OpenGL QUIET)
+    if (TARGET OpenGL::GL)
+        list (APPEND _imiv_link_libs OpenGL::GL)
+    elseif (TARGET OpenGL::OpenGL)
+        list (APPEND _imiv_link_libs OpenGL::OpenGL)
+    else ()
+        message (STATUS
+                 "\n\n   WARNING: OpenGL not found -- 'imiv' will not be built!\n")
+        return ()
+    endif ()
+else ()
+    set (_imiv_has_runtime_glslang OFF)
+    record_build_dependency (
+        GLSLANG_RUNTIME NOTFOUND
+        NOT_FOUND_EXPLANATION
+            "(runtime shader compilation disabled on selected backend)")
 endif ()
 
 if (MSVC)
@@ -546,8 +662,17 @@ fancy_add_executable (
 source_group ("imgui" FILES ${_imiv_imgui_sources})
 source_group ("imgui_te" FILES
               ${_imiv_test_engine_sources}
-              "${CMAKE_CURRENT_SOURCE_DIR}/imiv_test_engine.cpp"
+              ${_imiv_test_engine_integration_sources}
               "${CMAKE_CURRENT_SOURCE_DIR}/imiv_test_engine.h")
+source_group ("imiv\\shared" FILES ${_imiv_shared_sources})
+source_group ("imiv\\platform\\glfw" FILES ${_imiv_platform_glfw_sources})
+source_group ("imiv\\renderer\\vulkan" FILES ${_imiv_renderer_vulkan_sources})
+if (_imiv_renderer_metal_sources)
+    source_group ("imiv\\renderer\\metal" FILES ${_imiv_renderer_metal_sources})
+endif ()
+if (_imiv_renderer_opengl_sources)
+    source_group ("imiv\\renderer\\opengl" FILES ${_imiv_renderer_opengl_sources})
+endif ()
 
 if (TARGET imiv)
     target_compile_definitions (imiv PRIVATE IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
@@ -558,15 +683,16 @@ if (TARGET imiv)
     else ()
         target_compile_definitions (imiv PRIVATE IMIV_HAS_COMPUTE_UPLOAD_SHADERS=0)
     endif ()
-    if (APPLE)
-        target_compile_definitions (imiv PRIVATE IMIV_BACKEND_METAL_GLFW=1)
-        find_library (OIIO_IMIV_COCOA_FRAMEWORK Cocoa)
-        if (OIIO_IMIV_COCOA_FRAMEWORK)
-            target_link_libraries (imiv PRIVATE ${OIIO_IMIV_COCOA_FRAMEWORK})
-        endif ()
-    else ()
+    if (_imiv_renderer_is_vulkan)
         target_compile_definitions (imiv PRIVATE IMIV_BACKEND_VULKAN_GLFW=1
                                                   $<$<CONFIG:Debug>:IMIV_VULKAN_VALIDATION=1>)
+    elseif (_imiv_renderer_is_metal)
+        target_compile_definitions (imiv PRIVATE IMIV_BACKEND_METAL_GLFW=1)
+    elseif (_imiv_renderer_is_opengl)
+        target_compile_definitions (imiv PRIVATE IMIV_BACKEND_OPENGL_GLFW=1)
+        if (APPLE)
+            target_compile_definitions (imiv PRIVATE GL_SILENCE_DEPRECATION)
+        endif ()
     endif ()
     if (_imiv_has_runtime_glslang)
         target_compile_definitions (imiv PRIVATE IMIV_HAS_GLSLANG_RUNTIME=1)

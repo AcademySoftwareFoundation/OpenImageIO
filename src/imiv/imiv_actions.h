@@ -9,7 +9,8 @@
 
 #include <string>
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
 struct GLFWwindow;
 #endif
 
@@ -77,7 +78,6 @@ apply_pending_auto_subimage_action(RendererState& renderer_state,
                                    ViewerState& viewer,
                                    PlaceholderUiState& ui_state);
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
 void
 set_full_screen_mode(GLFWwindow* window, ViewerState& viewer, bool enable,
                      std::string& error_message);
@@ -88,6 +88,5 @@ bool
 capture_main_viewport_screenshot_action(RendererState& renderer_state,
                                         ViewerState& viewer,
                                         std::string& out_path);
-#endif
 
 }  // namespace Imiv

@@ -9,10 +9,7 @@
 
 namespace Imiv {
 
-enum class RenderBackend {
-    VulkanGlfw = 0,
-    MetalGlfw  = 1
-};
+enum class RenderBackend { VulkanGlfw = 0, MetalGlfw = 1, OpenGLGlfw = 2 };
 
 struct AppConfig {
     bool verbose         = false;
@@ -29,8 +26,11 @@ struct AppConfig {
     std::vector<std::string> input_paths;
 };
 
-RenderBackend default_backend();
-const char* backend_name(RenderBackend backend);
-int run(const AppConfig& config);
+RenderBackend
+default_backend();
+const char*
+backend_name(RenderBackend backend);
+int
+run(const AppConfig& config);
 
 }  // namespace Imiv

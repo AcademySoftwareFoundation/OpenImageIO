@@ -10,6 +10,8 @@
 
 #include <string>
 
+struct GLFWwindow;
+
 namespace Imiv {
 
 struct ViewerState;
@@ -20,9 +22,20 @@ using RendererState           = VulkanState;
 using RendererTexture         = VulkanTexture;
 using RendererPreviewControls = PreviewControls;
 #else
-struct RendererState {};
+struct RendererBackendState;
+struct RendererTextureBackendState;
 
-struct RendererTexture {};
+struct RendererState {
+    RendererBackendState* backend = nullptr;
+    float clear_color[4]          = { 0.08f, 0.08f, 0.08f, 1.0f };
+    int framebuffer_width         = 0;
+    int framebuffer_height        = 0;
+};
+
+struct RendererTexture {
+    RendererTextureBackendState* backend = nullptr;
+    bool preview_initialized             = false;
+};
 
 struct RendererPreviewControls {
     float exposure           = 0.0f;
@@ -72,6 +85,9 @@ renderer_setup_device(RendererState& renderer_state,
 bool
 renderer_setup_window(RendererState& renderer_state, int width, int height,
                       std::string& error_message);
+bool
+renderer_create_surface(RendererState& renderer_state, GLFWwindow* window,
+                        std::string& error_message);
 void
 renderer_destroy_surface(RendererState& renderer_state);
 void
@@ -80,6 +96,25 @@ void
 renderer_cleanup(RendererState& renderer_state);
 bool
 renderer_wait_idle(RendererState& renderer_state, std::string& error_message);
+bool
+renderer_imgui_init(RendererState& renderer_state, std::string& error_message);
+void
+renderer_imgui_shutdown();
+void
+renderer_imgui_new_frame(RendererState& renderer_state);
+bool
+renderer_needs_main_window_resize(RendererState& renderer_state, int width,
+                                  int height);
+void
+renderer_resize_main_window(RendererState& renderer_state, int width,
+                            int height);
+void
+renderer_set_main_clear_color(RendererState& renderer_state, float r, float g,
+                              float b, float a);
+void
+renderer_prepare_platform_windows(RendererState& renderer_state);
+void
+renderer_finish_platform_windows(RendererState& renderer_state);
 void
 renderer_frame_render(RendererState& renderer_state, ImDrawData* draw_data);
 void

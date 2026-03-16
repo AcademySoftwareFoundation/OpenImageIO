@@ -16,7 +16,8 @@
 #include <system_error>
 #include <vector>
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
+    || defined(IMIV_BACKEND_OPENGL_GLFW)
 #    define GLFW_INCLUDE_NONE
 #    include <GLFW/glfw3.h>
 #endif
@@ -32,7 +33,6 @@ using namespace OIIO;
 
 namespace Imiv {
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
 namespace {
 
     void clear_loaded_image_state(ViewerState& viewer)
@@ -98,11 +98,11 @@ namespace {
 
         std::tm local_tm      = {};
         const std::time_t now = std::time(nullptr);
-#    if defined(_WIN32)
+#if defined(_WIN32)
         localtime_s(&local_tm, &now);
-#    else
+#else
         localtime_r(&now, &local_tm);
-#    endif
+#endif
 
         char timestamp[64] = {};
         if (std::strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S",
@@ -123,7 +123,6 @@ namespace {
     }
 
 }  // namespace
-#endif
 
 bool
 read_env_value(const char* name, std::string& out_value)
@@ -399,7 +398,6 @@ save_as_dialog_action(ViewerState& viewer)
     }
 }
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
 void
 set_full_screen_mode(GLFWwindow* window, ViewerState& viewer, bool enable,
                      std::string& error_message)
@@ -679,9 +677,9 @@ close_current_image_action(RendererState& vk_state, ViewerState& viewer,
 {
     const std::string closing_path = viewer.image.path;
     const int closing_index        = viewer.current_path_index;
-#    if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
     quiesce_viewer_texture_lifetime(vk_state, viewer.texture);
-#    endif
+#endif
     renderer_destroy_texture(vk_state, viewer.texture);
     remove_loaded_image_path(viewer, closing_path);
     if (!viewer.loaded_image_paths.empty()) {
@@ -847,8 +845,12 @@ capture_main_viewport_screenshot_action(RendererState& vk_state,
     out_path.clear();
     viewer.last_error.clear();
 
-    const int width  = std::max(0, vk_state.window_data.Width);
-    const int height = std::max(0, vk_state.window_data.Height);
+    int width  = std::max(0, vk_state.framebuffer_width);
+    int height = std::max(0, vk_state.framebuffer_height);
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+    width  = std::max(width, vk_state.window_data.Width);
+    height = std::max(height, vk_state.window_data.Height);
+#endif
     if (width <= 0 || height <= 0) {
         viewer.last_error = "screenshot failed: main viewport size is invalid";
         return false;
@@ -897,7 +899,5 @@ capture_main_viewport_screenshot_action(RendererState& vk_state,
     viewer.last_error.clear();
     return true;
 }
-
-#endif
 
 }  // namespace Imiv

@@ -10,6 +10,7 @@
 #include "imiv_menu.h"
 #include "imiv_navigation.h"
 #include "imiv_ocio.h"
+#include "imiv_platform_glfw.h"
 #include "imiv_renderer.h"
 #include "imiv_style.h"
 #include "imiv_test_engine.h"
@@ -36,14 +37,6 @@
 #include <vector>
 
 #include <imgui.h>
-
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-#    include <imgui_impl_glfw.h>
-#    include <imgui_impl_vulkan.h>
-#    define GLFW_INCLUDE_NONE
-#    define GLFW_INCLUDE_VULKAN
-#    include <GLFW/glfw3.h>
-#endif
 
 #include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
@@ -147,125 +140,6 @@ namespace {
                || Strutil::iequals(trimmed, "yes")
                || Strutil::iequals(trimmed, "on");
     }
-
-
-
-    int env_int_value(const char* name, int fallback)
-    {
-        std::string value;
-        if (!read_env_value(name, value) || value.empty())
-            return fallback;
-        char* end = nullptr;
-        long x    = std::strtol(value.c_str(), &end, 10);
-        if (end == value.c_str())
-            return fallback;
-        if (x < 0)
-            return 0;
-        if (x > 1000000)
-            return 1000000;
-        return static_cast<int>(x);
-    }
-
-    bool env_var_is_nonempty(const char* name)
-    {
-        std::string value;
-        return read_env_value(name, value) && !value.empty();
-    }
-
-
-
-    enum class GlfwPlatformPreference : uint8_t {
-        Auto    = 0,
-        X11     = 1,
-        Wayland = 2
-    };
-
-
-
-    GlfwPlatformPreference glfw_platform_preference()
-    {
-        std::string value;
-        if (!read_env_value("IMIV_GLFW_PLATFORM", value) || value.empty())
-            return GlfwPlatformPreference::Auto;
-        if (Strutil::iequals(value, "x11"))
-            return GlfwPlatformPreference::X11;
-        if (Strutil::iequals(value, "wayland"))
-            return GlfwPlatformPreference::Wayland;
-        return GlfwPlatformPreference::Auto;
-    }
-
-
-
-    const char* glfw_platform_name(int platform)
-    {
-#if defined(IMIV_BACKEND_VULKAN_GLFW) && defined(GLFW_VERSION_MAJOR) \
-    && ((GLFW_VERSION_MAJOR > 3)                                     \
-        || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4))
-        switch (platform) {
-#    if defined(GLFW_PLATFORM_WIN32)
-        case GLFW_PLATFORM_WIN32: return "win32";
-#    endif
-#    if defined(GLFW_PLATFORM_COCOA)
-        case GLFW_PLATFORM_COCOA: return "cocoa";
-#    endif
-#    if defined(GLFW_PLATFORM_WAYLAND)
-        case GLFW_PLATFORM_WAYLAND: return "wayland";
-#    endif
-#    if defined(GLFW_PLATFORM_X11)
-        case GLFW_PLATFORM_X11: return "x11";
-#    endif
-#    if defined(GLFW_PLATFORM_NULL)
-        case GLFW_PLATFORM_NULL: return "null";
-#    endif
-        default: break;
-        }
-#else
-        (void)platform;
-#endif
-        return "unknown";
-    }
-
-
-
-    void configure_glfw_platform_preference(bool verbose_logging)
-    {
-#if defined(IMIV_BACKEND_VULKAN_GLFW) && !defined(_WIN32) \
-    && !defined(__APPLE__) && defined(GLFW_VERSION_MAJOR) \
-    && ((GLFW_VERSION_MAJOR > 3)                          \
-        || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4))
-        const GlfwPlatformPreference preference = glfw_platform_preference();
-        if (preference == GlfwPlatformPreference::X11) {
-#    if defined(GLFW_PLATFORM) && defined(GLFW_PLATFORM_X11)
-            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
-            if (verbose_logging)
-                print("imiv: GLFW platform preference = x11\n");
-#    endif
-            return;
-        }
-        if (preference == GlfwPlatformPreference::Wayland) {
-#    if defined(GLFW_PLATFORM) && defined(GLFW_PLATFORM_WAYLAND)
-            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
-            if (verbose_logging)
-                print("imiv: GLFW platform preference = wayland\n");
-#    endif
-            return;
-        }
-
-        const bool have_x11_display     = env_var_is_nonempty("DISPLAY");
-        const bool have_wayland_display = env_var_is_nonempty(
-            "WAYLAND_DISPLAY");
-        if (have_x11_display && have_wayland_display) {
-#    if defined(GLFW_PLATFORM) && defined(GLFW_PLATFORM_X11)
-            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
-            if (verbose_logging) {
-                print("imiv: GLFW auto-selected x11 for platform windows "
-                      "(DISPLAY and WAYLAND_DISPLAY are both present)\n");
-            }
-#    endif
-        }
-#endif
-    }
-
 }  // namespace
 
 
@@ -275,6 +149,8 @@ default_backend()
 {
 #if defined(IMIV_BACKEND_METAL_GLFW)
     return RenderBackend::MetalGlfw;
+#elif defined(IMIV_BACKEND_OPENGL_GLFW)
+    return RenderBackend::OpenGLGlfw;
 #elif defined(IMIV_BACKEND_VULKAN_GLFW)
     return RenderBackend::VulkanGlfw;
 #else
@@ -288,6 +164,7 @@ backend_name(RenderBackend backend)
     switch (backend) {
     case RenderBackend::VulkanGlfw: return "glfw+vulkan";
     case RenderBackend::MetalGlfw: return "glfw+metal";
+    case RenderBackend::OpenGLGlfw: return "glfw+opengl";
     }
     return "unknown";
 }
@@ -295,12 +172,6 @@ backend_name(RenderBackend backend)
 int
 run(const AppConfig& config)
 {
-#if !defined(IMIV_BACKEND_VULKAN_GLFW)
-    print(stderr, "imiv: backend '{}' is not implemented yet in this build\n",
-          backend_name(default_backend()));
-    (void)config;
-    return EXIT_FAILURE;
-#else
     AppConfig run_config = config;
     run_config.input_paths.erase(
         std::remove_if(run_config.input_paths.begin(),
@@ -335,69 +206,67 @@ run(const AppConfig& config)
           || env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_JUNIT_XML");
 #    endif
 
-    set_glfw_error_callback();
-    configure_glfw_platform_preference(verbose_logging);
-    if (!glfwInit()) {
-        print(stderr, "imiv: glfwInit failed\n");
+    std::string startup_error;
+    if (!platform_glfw_init(verbose_logging, startup_error)) {
+        print(stderr, "imiv: {}\n", startup_error);
         return EXIT_FAILURE;
     }
 
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-    GLFWwindow* window = glfwCreateWindow(1600, 900, "imiv", nullptr, nullptr);
-    if (!window) {
-        print(stderr, "imiv: failed to create GLFW window\n");
-        glfwTerminate();
+    GLFWwindow* window = platform_glfw_create_main_window(1600, 900, "imiv",
+                                                          startup_error);
+    if (window == nullptr) {
+        print(stderr, "imiv: {}\n", startup_error);
+        platform_glfw_terminate();
         return EXIT_FAILURE;
     }
-    center_glfw_window(window);
 
-    if (!glfwVulkanSupported()) {
-        print(stderr, "imiv: GLFW reports Vulkan is not supported\n");
-        glfwDestroyWindow(window);
-        glfwTerminate();
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+    if (!platform_glfw_supports_vulkan(startup_error)) {
+        print(stderr, "imiv: {}\n", startup_error);
+        platform_glfw_destroy_window(window);
+        platform_glfw_terminate();
         return EXIT_FAILURE;
     }
+#endif
 
     IMGUI_CHECKVERSION();
     if (!ImGui::CreateContext()) {
         print(stderr, "imiv: failed to create Dear ImGui context\n");
-        glfwDestroyWindow(window);
-        glfwTerminate();
+        platform_glfw_destroy_window(window);
+        platform_glfw_terminate();
         return EXIT_FAILURE;
     }
 
     RendererState renderer_state;
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
     renderer_state.verbose_logging           = verbose_logging;
     renderer_state.verbose_validation_output = verbose_validation_output;
     renderer_state.log_imgui_texture_updates = log_imgui_texture_updates;
+#else
+    (void)verbose_validation_output;
+    (void)log_imgui_texture_updates;
+#endif
     ImVector<const char*> instance_extensions;
-    uint32_t glfw_extension_count = 0;
-    const char** glfw_extensions  = glfwGetRequiredInstanceExtensions(
-        &glfw_extension_count);
-    for (uint32_t i = 0; i < glfw_extension_count; ++i)
-        instance_extensions.push_back(glfw_extensions[i]);
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+    platform_glfw_collect_vulkan_instance_extensions(instance_extensions);
+#endif
 
-    std::string startup_error;
     if (!renderer_setup_instance(renderer_state, instance_extensions,
                                  startup_error)) {
         print(stderr, "imiv: {}\n", startup_error);
         renderer_cleanup(renderer_state);
         ImGui::DestroyContext();
-        glfwDestroyWindow(window);
-        glfwTerminate();
+        platform_glfw_destroy_window(window);
+        platform_glfw_terminate();
         return EXIT_FAILURE;
     }
 
-    VkResult err = glfwCreateWindowSurface(renderer_state.instance, window,
-                                           renderer_state.allocator,
-                                           &renderer_state.surface);
-    if (err != VK_SUCCESS) {
-        print(stderr, "imiv: glfwCreateWindowSurface failed\n");
+    if (!renderer_create_surface(renderer_state, window, startup_error)) {
+        print(stderr, "imiv: {}\n", startup_error);
         renderer_cleanup(renderer_state);
         ImGui::DestroyContext();
-        glfwDestroyWindow(window);
-        glfwTerminate();
+        platform_glfw_destroy_window(window);
+        platform_glfw_terminate();
         return EXIT_FAILURE;
     }
 
@@ -406,22 +275,23 @@ run(const AppConfig& config)
         renderer_destroy_surface(renderer_state);
         renderer_cleanup(renderer_state);
         ImGui::DestroyContext();
-        glfwDestroyWindow(window);
-        glfwTerminate();
+        platform_glfw_destroy_window(window);
+        platform_glfw_terminate();
         return EXIT_FAILURE;
     }
 
     int framebuffer_width  = 0;
     int framebuffer_height = 0;
-    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+    platform_glfw_get_framebuffer_size(window, framebuffer_width,
+                                       framebuffer_height);
     if (!renderer_setup_window(renderer_state, framebuffer_width,
                                framebuffer_height, startup_error)) {
         print(stderr, "imiv: {}\n", startup_error);
         renderer_cleanup_window(renderer_state);
         renderer_cleanup(renderer_state);
         ImGui::DestroyContext();
-        glfwDestroyWindow(window);
-        glfwTerminate();
+        platform_glfw_destroy_window(window);
+        platform_glfw_terminate();
         return EXIT_FAILURE;
     }
 
@@ -453,33 +323,15 @@ run(const AppConfig& config)
         style.WindowRounding              = 0.0f;
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
-    ImGui_ImplGlfw_InitForVulkan(window, true);
-
-    ImGui_ImplVulkan_InitInfo init_info = {};
-    init_info.ApiVersion                = renderer_state.api_version;
-    init_info.Instance                  = renderer_state.instance;
-    init_info.PhysicalDevice            = renderer_state.physical_device;
-    init_info.Device                    = renderer_state.device;
-    init_info.QueueFamily               = renderer_state.queue_family;
-    init_info.Queue                     = renderer_state.queue;
-    init_info.PipelineCache             = renderer_state.pipeline_cache;
-    init_info.DescriptorPool            = renderer_state.descriptor_pool;
-    init_info.MinImageCount             = renderer_state.min_image_count;
-    init_info.ImageCount                = renderer_state.window_data.ImageCount;
-    init_info.Allocator                 = renderer_state.allocator;
-    init_info.PipelineInfoMain.RenderPass
-        = renderer_state.window_data.RenderPass;
-    init_info.PipelineInfoMain.Subpass     = 0;
-    init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    init_info.CheckVkResultFn              = check_vk_result;
-    if (!ImGui_ImplVulkan_Init(&init_info)) {
-        print(stderr, "imiv: ImGui_ImplVulkan_Init failed\n");
-        ImGui_ImplGlfw_Shutdown();
+    platform_glfw_imgui_init(window);
+    if (!renderer_imgui_init(renderer_state, startup_error)) {
+        print(stderr, "imiv: {}\n", startup_error);
+        platform_glfw_imgui_shutdown();
         renderer_cleanup_window(renderer_state);
         renderer_cleanup(renderer_state);
         ImGui::DestroyContext();
-        glfwDestroyWindow(window);
-        glfwTerminate();
+        platform_glfw_destroy_window(window);
+        platform_glfw_terminate();
         return EXIT_FAILURE;
     }
 
@@ -487,17 +339,11 @@ run(const AppConfig& config)
         = (io.BackendFlags & ImGuiBackendFlags_PlatformHasViewports) != 0;
     const bool renderer_has_viewports
         = (io.BackendFlags & ImGuiBackendFlags_RendererHasViewports) != 0;
-#    if defined(IMIV_BACKEND_VULKAN_GLFW) && defined(GLFW_VERSION_MAJOR) \
-        && ((GLFW_VERSION_MAJOR > 3)                                     \
-            || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4))
-    const int selected_glfw_platform = glfwGetPlatform();
-#    else
-    const int selected_glfw_platform = 0;
-#    endif
+    const int selected_glfw_platform = platform_glfw_selected_platform();
     if (verbose_logging) {
         print("imiv: GLFW selected platform={} imgui_viewports platform={} "
               "renderer={}\n",
-              glfw_platform_name(selected_glfw_platform),
+              platform_glfw_name(selected_glfw_platform),
               platform_has_viewports ? "yes" : "no",
               renderer_has_viewports ? "yes" : "no");
     }
@@ -623,7 +469,9 @@ run(const AppConfig& config)
         viewer.status_message = "Open an image to start preview";
     }
 
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
     install_drag_drop(window, viewer);
+#endif
 
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
     ViewerStateJsonWriteContext test_engine_state_ctx = { &viewer, &ui_state };
@@ -637,8 +485,8 @@ run(const AppConfig& config)
     test_engine_start(test_engine_runtime, test_engine_cfg, test_engine_hooks);
 #    endif
 
-    glfwShowWindow(window);
-    glfwPollEvents();
+    platform_glfw_show_window(window);
+    platform_glfw_poll_events();
     force_center_glfw_window(window);
 
     auto save_combined_settings = [&](std::string& save_error_message) {
@@ -653,8 +501,8 @@ run(const AppConfig& config)
     bool request_exit         = false;
     int applied_style_preset  = ui_state.style_preset;
     int startup_center_frames = 90;
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
+    while (!platform_glfw_should_close(window)) {
+        platform_glfw_poll_events();
         if (startup_center_frames > 0) {
             center_glfw_window(window);
             --startup_center_frames;
@@ -662,37 +510,31 @@ run(const AppConfig& config)
 
         int fb_width  = 0;
         int fb_height = 0;
-        glfwGetFramebufferSize(window, &fb_width, &fb_height);
+        platform_glfw_get_framebuffer_size(window, fb_width, fb_height);
         if (fb_width > 0 && fb_height > 0
-            && (renderer_state.swapchain_rebuild
-                || renderer_state.window_data.Width != fb_width
-                || renderer_state.window_data.Height != fb_height)) {
-            ImGui_ImplVulkan_SetMinImageCount(renderer_state.min_image_count);
-            ImGui_ImplVulkanH_CreateOrResizeWindow(
-                renderer_state.instance, renderer_state.physical_device,
-                renderer_state.device, &renderer_state.window_data,
-                renderer_state.queue_family, renderer_state.allocator, fb_width,
-                fb_height, renderer_state.min_image_count,
-                VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-            name_window_frame_objects(renderer_state);
-            renderer_state.window_data.FrameIndex = 0;
-            renderer_state.swapchain_rebuild      = false;
+            && renderer_needs_main_window_resize(renderer_state, fb_width,
+                                                 fb_height)) {
+            renderer_resize_main_window(renderer_state, fb_width, fb_height);
         }
-        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0) {
-            ImGui_ImplGlfw_Sleep(10);
+        if (platform_glfw_is_iconified(window)) {
+            platform_glfw_sleep(10);
             continue;
         }
 
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
+        renderer_imgui_new_frame(renderer_state);
+        platform_glfw_imgui_new_frame();
         ImGui::NewFrame();
         draw_viewer_ui(viewer, ui_state, developer_ui, fonts, request_exit
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
                        ,
                        test_engine_show_windows_ptr(test_engine_runtime)
 #    endif
+#    if defined(IMIV_BACKEND_VULKAN_GLFW)
                            ,
                        window, renderer_state);
+#    else
+                       );
+#    endif
         if (ui_state.style_preset != applied_style_preset) {
             ui_state.style_preset = static_cast<int>(
                 sanitize_app_style_preset(ui_state.style_preset));
@@ -708,18 +550,20 @@ run(const AppConfig& config)
         ImDrawData* draw_data        = ImGui::GetDrawData();
         const bool main_is_minimized = (draw_data->DisplaySize.x <= 0.0f
                                         || draw_data->DisplaySize.y <= 0.0f);
-        renderer_state.window_data.ClearValue.color.float32[0] = 0.08f;
-        renderer_state.window_data.ClearValue.color.float32[1] = 0.08f;
-        renderer_state.window_data.ClearValue.color.float32[2] = 0.08f;
-        renderer_state.window_data.ClearValue.color.float32[3] = 1.0f;
+        renderer_set_main_clear_color(renderer_state, 0.08f, 0.08f, 0.08f,
+                                      1.0f);
         if (!main_is_minimized)
             renderer_frame_render(renderer_state, draw_data);
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            renderer_prepare_platform_windows(renderer_state);
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
+            renderer_finish_platform_windows(renderer_state);
         }
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
         process_developer_post_render_actions(developer_ui, viewer,
                                               renderer_state);
+#endif
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
         test_engine_post_swap(test_engine_runtime);
 #    endif
@@ -728,7 +572,7 @@ run(const AppConfig& config)
 
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
         if (test_engine_should_close(test_engine_runtime, test_engine_cfg))
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
+            platform_glfw_request_close(window);
 #    endif
         if (io.WantSaveIniSettings) {
             std::string save_error_message;
@@ -738,7 +582,7 @@ run(const AppConfig& config)
             }
         }
         if (request_exit)
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
+            platform_glfw_request_close(window);
     }
 
     std::string prefs_save_error;
@@ -755,9 +599,11 @@ run(const AppConfig& config)
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_stop(test_engine_runtime);
 #    endif
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
     uninstall_drag_drop(window);
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+#endif
+    renderer_imgui_shutdown();
+    platform_glfw_imgui_shutdown();
     ImGui::DestroyContext();
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_destroy(test_engine_runtime);
@@ -765,10 +611,9 @@ run(const AppConfig& config)
 
     renderer_cleanup_window(renderer_state);
     renderer_cleanup(renderer_state);
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    platform_glfw_destroy_window(window);
+    platform_glfw_terminate();
     return EXIT_SUCCESS;
-#endif
 }
 
 }  // namespace Imiv
