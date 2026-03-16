@@ -18,6 +18,8 @@ namespace OCIO = OCIO_NAMESPACE;
 
 namespace Imiv {
 
+enum class OcioShaderTarget : uint8_t { Vulkan = 0, OpenGL };
+
 enum class OcioUniformType : uint8_t {
     Unknown = 0,
     Double,
@@ -84,7 +86,8 @@ struct OcioShaderBlueprint {
 };
 
 struct OcioShaderRuntime {
-    bool enabled = false;
+    bool enabled            = false;
+    OcioShaderTarget target = OcioShaderTarget::Vulkan;
     OcioShaderBlueprint blueprint;
     OCIO::ConstConfigRcPtr config;
     OCIO::ConstProcessorRcPtr processor;
@@ -116,6 +119,11 @@ ensure_ocio_shader_runtime(const PlaceholderUiState& ui_state,
                            OcioShaderRuntime*& runtime,
                            std::string& error_message);
 bool
+ensure_ocio_shader_runtime_glsl(const PlaceholderUiState& ui_state,
+                                const LoadedImage* image,
+                                OcioShaderRuntime*& runtime,
+                                std::string& error_message);
+bool
 build_ocio_uniform_buffer(OcioShaderRuntime& runtime,
                           const RendererPreviewControls& controls,
                           std::vector<unsigned char>& uniform_bytes,
@@ -139,5 +147,9 @@ bool
 preflight_ocio_runtime_shader(const PlaceholderUiState& ui_state,
                               const LoadedImage* image,
                               std::string& error_message);
+bool
+preflight_ocio_runtime_shader_glsl(const PlaceholderUiState& ui_state,
+                                   const LoadedImage* image,
+                                   std::string& error_message);
 
 }  // namespace Imiv

@@ -836,52 +836,93 @@ if (TARGET imiv
         AND BUILD_TESTING
         AND Python3_EXECUTABLE
         AND _imiv_test_engine_sources
-        AND _imiv_has_runtime_glslang
         AND EXISTS "${_imiv_ocio_live_update_config}")
-    add_test (
-        NAME imiv_ocio_live_update_regression
-        COMMAND
-            "${Python3_EXECUTABLE}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_live_update_regression.py"
-            --bin "$<TARGET_FILE:imiv>"
-            --cwd "$<TARGET_FILE_DIR:imiv>"
-            --oiiotool "$<TARGET_FILE:oiiotool>"
-            --idiff "$<TARGET_FILE:idiff>"
-            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
-            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_update_regression"
-            --image "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_update_regression/ocio_live_input.exr"
-            --ocio-config "${_imiv_ocio_live_update_config}")
-    set_tests_properties (
-        imiv_ocio_live_update_regression PROPERTIES
-            LABELS "imiv;imiv_ocio;gui"
-            TIMEOUT 300)
+    if (_imiv_renderer_is_vulkan AND _imiv_has_runtime_glslang)
+        add_test (
+            NAME imiv_ocio_live_update_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_live_update_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --idiff "$<TARGET_FILE:idiff>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_update_regression"
+                --image "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_update_regression/ocio_live_input.exr"
+                --ocio-config "${_imiv_ocio_live_update_config}")
+        set_tests_properties (
+            imiv_ocio_live_update_regression PROPERTIES
+                LABELS "imiv;imiv_ocio;gui"
+                TIMEOUT 300)
 
-    add_test (
-        NAME imiv_ocio_live_display_update_regression
-        COMMAND
-            "${Python3_EXECUTABLE}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_live_update_regression.py"
-            --bin "$<TARGET_FILE:imiv>"
-            --cwd "$<TARGET_FILE_DIR:imiv>"
-            --oiiotool "$<TARGET_FILE:oiiotool>"
-            --idiff "$<TARGET_FILE:idiff>"
-            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
-            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_display_update_regression"
-            --image "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_display_update_regression/ocio_live_input.exr"
-            --ocio-config "${_imiv_ocio_live_update_config}"
-            --display "sRGB - Display"
-            --target-display "Display P3 - Display"
-            --raw-view "Un-tone-mapped"
-            --target-view "Un-tone-mapped")
-    set_tests_properties (
-        imiv_ocio_live_display_update_regression PROPERTIES
-            LABELS "imiv;imiv_ocio;gui"
-            TIMEOUT 300)
+        add_test (
+            NAME imiv_ocio_live_display_update_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_live_update_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --idiff "$<TARGET_FILE:idiff>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_display_update_regression"
+                --image "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_display_update_regression/ocio_live_input.exr"
+                --ocio-config "${_imiv_ocio_live_update_config}"
+                --display "sRGB - Display"
+                --target-display "Display P3 - Display"
+                --raw-view "Un-tone-mapped"
+                --target-view "Un-tone-mapped")
+        set_tests_properties (
+            imiv_ocio_live_display_update_regression PROPERTIES
+                LABELS "imiv;imiv_ocio;gui"
+                TIMEOUT 300)
+    elseif (_imiv_renderer_is_opengl)
+        add_test (
+            NAME imiv_opengl_ocio_live_update_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_live_update_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --idiff "$<TARGET_FILE:idiff>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/opengl_ocio_live_update_regression"
+                --image "${CMAKE_BINARY_DIR}/imiv_captures/opengl_ocio_live_update_regression/ocio_live_input.exr"
+                --ocio-config "${_imiv_ocio_live_update_config}")
+        set_tests_properties (
+            imiv_opengl_ocio_live_update_regression PROPERTIES
+                LABELS "imiv;imiv_ocio;imiv_opengl;gui"
+                TIMEOUT 300)
+
+        add_test (
+            NAME imiv_opengl_ocio_live_display_update_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_live_update_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --idiff "$<TARGET_FILE:idiff>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/opengl_ocio_live_display_update_regression"
+                --image "${CMAKE_BINARY_DIR}/imiv_captures/opengl_ocio_live_display_update_regression/ocio_live_input.exr"
+                --ocio-config "${_imiv_ocio_live_update_config}"
+                --display "sRGB - Display"
+                --target-display "Display P3 - Display"
+                --raw-view "Un-tone-mapped"
+                --target-view "Un-tone-mapped")
+        set_tests_properties (
+            imiv_opengl_ocio_live_display_update_regression PROPERTIES
+                LABELS "imiv;imiv_ocio;imiv_opengl;gui"
+                TIMEOUT 300)
+    endif ()
 elseif (TARGET imiv
         AND OIIO_BUILD_TESTS
         AND BUILD_TESTING)
     message (STATUS
-             "imiv: live OCIO update regression test not added (requires Python3, ImGui Test Engine, runtime glslang, and temp OCIO config)")
+             "imiv: live OCIO update regression test not added (requires Python3, ImGui Test Engine, temp OCIO config, and either Vulkan runtime glslang or the OpenGL renderer)")
 endif ()
 
 if (TARGET imiv
@@ -889,6 +930,23 @@ if (TARGET imiv
         AND BUILD_TESTING
         AND Python3_EXECUTABLE
         AND _imiv_test_engine_sources)
+    if (_imiv_renderer_is_opengl)
+        add_test (
+            NAME imiv_opengl_smoke_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_opengl_smoke_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/opengl_smoke_regression"
+                --open "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png")
+        set_tests_properties (
+            imiv_opengl_smoke_regression PROPERTIES
+                LABELS "imiv;imiv_opengl;gui"
+                TIMEOUT 180)
+    endif ()
+
     if (EXISTS "${_imiv_ocio_live_update_config}")
         add_test (
             NAME imiv_ocio_config_source_regression

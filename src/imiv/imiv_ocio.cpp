@@ -411,11 +411,13 @@ namespace {
 
     bool build_ocio_shader_runtime_internal(const PlaceholderUiState& ui_state,
                                             const LoadedImage* image,
+                                            OcioShaderTarget target,
                                             OcioShaderRuntime& runtime,
                                             std::string& error_message)
     {
         runtime                          = {};
         runtime.enabled                  = ui_state.use_ocio;
+        runtime.target                   = target;
         runtime.blueprint.enabled        = ui_state.use_ocio;
         runtime.blueprint.wrapper_offset = ui_state.offset;
 
@@ -482,15 +484,20 @@ namespace {
             OCIO::OPTIMIZATION_DEFAULT);
 
         runtime.shader_desc = OCIO::GpuShaderDesc::CreateShaderDesc();
-        runtime.shader_desc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_VK_4_6);
+        if (target == OcioShaderTarget::OpenGL)
+            runtime.shader_desc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_1_3);
+        else
+            runtime.shader_desc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_VK_4_6);
         runtime.shader_desc->setFunctionName(
             runtime.blueprint.function_name.c_str());
         runtime.shader_desc->setResourcePrefix(
             runtime.blueprint.resource_prefix.c_str());
-        runtime.shader_desc->setAllowTexture1D(false);
-        runtime.shader_desc->setDescriptorSetIndex(
-            runtime.blueprint.descriptor_set_index,
-            runtime.blueprint.texture_binding_start);
+        if (target == OcioShaderTarget::Vulkan) {
+            runtime.shader_desc->setAllowTexture1D(false);
+            runtime.shader_desc->setDescriptorSetIndex(
+                runtime.blueprint.descriptor_set_index,
+                runtime.blueprint.texture_binding_start);
+        }
         runtime.gpu_processor->extractGpuShaderInfo(runtime.shader_desc);
 
         if (!populate_ocio_shader_blueprint(ui_state, runtime.processor,
@@ -606,8 +613,9 @@ build_ocio_shader_blueprint(const PlaceholderUiState& ui_state,
 {
     OcioShaderRuntime runtime;
     try {
-        if (!build_ocio_shader_runtime_internal(ui_state, image, runtime,
-                                                error_message)) {
+        if (!build_ocio_shader_runtime_internal(ui_state, image,
+                                                OcioShaderTarget::Vulkan,
+                                                runtime, error_message)) {
             reset_ocio_shader_blueprint(blueprint);
             blueprint.enabled = ui_state.use_ocio;
             return false;
@@ -622,57 +630,83 @@ build_ocio_shader_blueprint(const PlaceholderUiState& ui_state,
     }
 }
 
+namespace {
+
+    bool ensure_ocio_shader_runtime_for_target(
+        const PlaceholderUiState& ui_state, const LoadedImage* image,
+        OcioShaderTarget target, OcioShaderRuntime*& runtime,
+        std::string& error_message)
+    {
+        error_message.clear();
+        if (!ui_state.use_ocio) {
+            destroy_ocio_shader_runtime(runtime);
+            return true;
+        }
+
+        OcioConfigSelection config_selection;
+        resolve_ocio_config_selection(ui_state, config_selection);
+        OCIO::ConstConfigRcPtr config;
+        if (!load_ocio_config_from_selection(config_selection, config,
+                                             error_message)) {
+            return false;
+        }
+        const std::string desired_input
+            = resolve_input_color_space(ui_state, image, config);
+        if (runtime != nullptr && runtime->target == target
+            && runtime->blueprint.config_selection_key
+                   == config_selection.selection_key
+            && runtime->blueprint.input_color_space == desired_input
+            && ((ui_state.ocio_display.empty()
+                 && runtime->blueprint.display.empty())
+                || ui_state.ocio_display == "default"
+                || runtime->blueprint.display == ui_state.ocio_display)
+            && ((ui_state.ocio_view.empty() && runtime->blueprint.view.empty())
+                || ui_state.ocio_view == "default"
+                || runtime->blueprint.view == ui_state.ocio_view)) {
+            runtime->blueprint.wrapper_offset = ui_state.offset;
+            return true;
+        }
+
+        OcioShaderRuntime* rebuilt = new OcioShaderRuntime();
+        try {
+            if (!build_ocio_shader_runtime_internal(ui_state, image, target,
+                                                    *rebuilt, error_message)) {
+                delete rebuilt;
+                return false;
+            }
+        } catch (const OCIO::Exception& e) {
+            error_message = e.what();
+            delete rebuilt;
+            return false;
+        }
+
+        destroy_ocio_shader_runtime(runtime);
+        runtime = rebuilt;
+        return true;
+    }
+
+}  // namespace
+
 bool
 ensure_ocio_shader_runtime(const PlaceholderUiState& ui_state,
                            const LoadedImage* image,
                            OcioShaderRuntime*& runtime,
                            std::string& error_message)
 {
-    error_message.clear();
-    if (!ui_state.use_ocio) {
-        destroy_ocio_shader_runtime(runtime);
-        return true;
-    }
+    return ensure_ocio_shader_runtime_for_target(ui_state, image,
+                                                 OcioShaderTarget::Vulkan,
+                                                 runtime, error_message);
+}
 
-    OcioConfigSelection config_selection;
-    resolve_ocio_config_selection(ui_state, config_selection);
-    OCIO::ConstConfigRcPtr config;
-    if (!load_ocio_config_from_selection(config_selection, config,
-                                         error_message)) {
-        return false;
-    }
-    const std::string desired_input = resolve_input_color_space(ui_state, image,
-                                                                config);
-    if (runtime != nullptr
-        && runtime->blueprint.config_selection_key
-               == config_selection.selection_key
-        && runtime->blueprint.input_color_space == desired_input
-        && ((ui_state.ocio_display.empty() && runtime->blueprint.display.empty())
-            || ui_state.ocio_display == "default"
-            || runtime->blueprint.display == ui_state.ocio_display)
-        && ((ui_state.ocio_view.empty() && runtime->blueprint.view.empty())
-            || ui_state.ocio_view == "default"
-            || runtime->blueprint.view == ui_state.ocio_view)) {
-        runtime->blueprint.wrapper_offset = ui_state.offset;
-        return true;
-    }
-
-    OcioShaderRuntime* rebuilt = new OcioShaderRuntime();
-    try {
-        if (!build_ocio_shader_runtime_internal(ui_state, image, *rebuilt,
-                                                error_message)) {
-            delete rebuilt;
-            return false;
-        }
-    } catch (const OCIO::Exception& e) {
-        error_message = e.what();
-        delete rebuilt;
-        return false;
-    }
-
-    destroy_ocio_shader_runtime(runtime);
-    runtime = rebuilt;
-    return true;
+bool
+ensure_ocio_shader_runtime_glsl(const PlaceholderUiState& ui_state,
+                                const LoadedImage* image,
+                                OcioShaderRuntime*& runtime,
+                                std::string& error_message)
+{
+    return ensure_ocio_shader_runtime_for_target(ui_state, image,
+                                                 OcioShaderTarget::OpenGL,
+                                                 runtime, error_message);
 }
 
 bool
@@ -983,6 +1017,18 @@ preflight_ocio_runtime_shader(const PlaceholderUiState& ui_state,
         return true;
     return compile_ocio_preview_fragment_spirv(blueprint, spirv_words,
                                                error_message);
+}
+
+bool
+preflight_ocio_runtime_shader_glsl(const PlaceholderUiState& ui_state,
+                                   const LoadedImage* image,
+                                   std::string& error_message)
+{
+    OcioShaderRuntime* runtime = nullptr;
+    const bool ok = ensure_ocio_shader_runtime_glsl(ui_state, image, runtime,
+                                                    error_message);
+    destroy_ocio_shader_runtime(runtime);
+    return ok;
 }
 
 }  // namespace Imiv
