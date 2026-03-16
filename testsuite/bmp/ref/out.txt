@@ -301,3 +301,6 @@ Full command line was:
 oiiotool ERROR: read : "src/palette32bit-corrupt.bmp": BMP error: bad BPP (32) for palette image -- presumed corrupt file
 Full command line was:
 > oiiotool --info -v -a --hash src/palette32bit-corrupt.bmp
+oiiotool ERROR: read : "src/huge-width.bmp": bmp image resolution may not exceed 65536x65536, but the file appears to be 536870911x8. Possible corrupt input?
+Full command line was:
+> oiiotool --info -v -a --hash src/huge-width.bmp
