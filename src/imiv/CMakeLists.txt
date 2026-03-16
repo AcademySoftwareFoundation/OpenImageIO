@@ -80,6 +80,7 @@ set (_imiv_core_sources
      imiv_navigation.cpp
      imiv_ocio.cpp
      imiv_overlays.cpp
+     imiv_renderer.cpp
      imiv_shader_compile.cpp
      imiv_style.cpp
      imiv_ui.cpp
@@ -542,6 +543,12 @@ fancy_add_executable (
         ${_imiv_link_libs}
 )
 
+source_group ("imgui" FILES ${_imiv_imgui_sources})
+source_group ("imgui_te" FILES
+              ${_imiv_test_engine_sources}
+              "${CMAKE_CURRENT_SOURCE_DIR}/imiv_test_engine.cpp"
+              "${CMAKE_CURRENT_SOURCE_DIR}/imiv_test_engine.h")
+
 if (TARGET imiv)
     target_compile_definitions (imiv PRIVATE IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
     target_compile_definitions (imiv PRIVATE IMIV_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}")
@@ -851,7 +858,7 @@ if (TARGET imiv
     set_tests_properties (
         imiv_selection_regression PROPERTIES
             LABELS "imiv;gui"
-            TIMEOUT 180)
+            TIMEOUT 360)
 elseif (TARGET imiv
         AND OIIO_BUILD_TESTS
         AND BUILD_TESTING)

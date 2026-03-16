@@ -10,6 +10,7 @@
 #include "imiv_menu.h"
 #include "imiv_navigation.h"
 #include "imiv_ocio.h"
+#include "imiv_renderer.h"
 #include "imiv_style.h"
 #include "imiv_test_engine.h"
 #include "imiv_types.h"
@@ -366,10 +367,10 @@ run(const AppConfig& config)
         return EXIT_FAILURE;
     }
 
-    VulkanState vk_state;
-    vk_state.verbose_logging           = verbose_logging;
-    vk_state.verbose_validation_output = verbose_validation_output;
-    vk_state.log_imgui_texture_updates = log_imgui_texture_updates;
+    RendererState renderer_state;
+    renderer_state.verbose_logging           = verbose_logging;
+    renderer_state.verbose_validation_output = verbose_validation_output;
+    renderer_state.log_imgui_texture_updates = log_imgui_texture_updates;
     ImVector<const char*> instance_extensions;
     uint32_t glfw_extension_count = 0;
     const char** glfw_extensions  = glfwGetRequiredInstanceExtensions(
@@ -378,31 +379,32 @@ run(const AppConfig& config)
         instance_extensions.push_back(glfw_extensions[i]);
 
     std::string startup_error;
-    if (!setup_vulkan_instance(vk_state, instance_extensions, startup_error)) {
+    if (!renderer_setup_instance(renderer_state, instance_extensions,
+                                 startup_error)) {
         print(stderr, "imiv: {}\n", startup_error);
-        cleanup_vulkan(vk_state);
+        renderer_cleanup(renderer_state);
         ImGui::DestroyContext();
         glfwDestroyWindow(window);
         glfwTerminate();
         return EXIT_FAILURE;
     }
 
-    VkResult err = glfwCreateWindowSurface(vk_state.instance, window,
-                                           vk_state.allocator,
-                                           &vk_state.surface);
+    VkResult err = glfwCreateWindowSurface(renderer_state.instance, window,
+                                           renderer_state.allocator,
+                                           &renderer_state.surface);
     if (err != VK_SUCCESS) {
         print(stderr, "imiv: glfwCreateWindowSurface failed\n");
-        cleanup_vulkan(vk_state);
+        renderer_cleanup(renderer_state);
         ImGui::DestroyContext();
         glfwDestroyWindow(window);
         glfwTerminate();
         return EXIT_FAILURE;
     }
 
-    if (!setup_vulkan_device(vk_state, startup_error)) {
+    if (!renderer_setup_device(renderer_state, startup_error)) {
         print(stderr, "imiv: {}\n", startup_error);
-        destroy_vulkan_surface(vk_state);
-        cleanup_vulkan(vk_state);
+        renderer_destroy_surface(renderer_state);
+        renderer_cleanup(renderer_state);
         ImGui::DestroyContext();
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -412,11 +414,11 @@ run(const AppConfig& config)
     int framebuffer_width  = 0;
     int framebuffer_height = 0;
     glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
-    if (!setup_vulkan_window(vk_state, framebuffer_width, framebuffer_height,
-                             startup_error)) {
+    if (!renderer_setup_window(renderer_state, framebuffer_width,
+                               framebuffer_height, startup_error)) {
         print(stderr, "imiv: {}\n", startup_error);
-        cleanup_vulkan_window(vk_state);
-        cleanup_vulkan(vk_state);
+        renderer_cleanup_window(renderer_state);
+        renderer_cleanup(renderer_state);
         ImGui::DestroyContext();
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -453,27 +455,28 @@ run(const AppConfig& config)
     }
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
-    ImGui_ImplVulkan_InitInfo init_info    = {};
-    init_info.ApiVersion                   = vk_state.api_version;
-    init_info.Instance                     = vk_state.instance;
-    init_info.PhysicalDevice               = vk_state.physical_device;
-    init_info.Device                       = vk_state.device;
-    init_info.QueueFamily                  = vk_state.queue_family;
-    init_info.Queue                        = vk_state.queue;
-    init_info.PipelineCache                = vk_state.pipeline_cache;
-    init_info.DescriptorPool               = vk_state.descriptor_pool;
-    init_info.MinImageCount                = vk_state.min_image_count;
-    init_info.ImageCount                   = vk_state.window_data.ImageCount;
-    init_info.Allocator                    = vk_state.allocator;
-    init_info.PipelineInfoMain.RenderPass  = vk_state.window_data.RenderPass;
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.ApiVersion                = renderer_state.api_version;
+    init_info.Instance                  = renderer_state.instance;
+    init_info.PhysicalDevice            = renderer_state.physical_device;
+    init_info.Device                    = renderer_state.device;
+    init_info.QueueFamily               = renderer_state.queue_family;
+    init_info.Queue                     = renderer_state.queue;
+    init_info.PipelineCache             = renderer_state.pipeline_cache;
+    init_info.DescriptorPool            = renderer_state.descriptor_pool;
+    init_info.MinImageCount             = renderer_state.min_image_count;
+    init_info.ImageCount                = renderer_state.window_data.ImageCount;
+    init_info.Allocator                 = renderer_state.allocator;
+    init_info.PipelineInfoMain.RenderPass
+        = renderer_state.window_data.RenderPass;
     init_info.PipelineInfoMain.Subpass     = 0;
     init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     init_info.CheckVkResultFn              = check_vk_result;
     if (!ImGui_ImplVulkan_Init(&init_info)) {
         print(stderr, "imiv: ImGui_ImplVulkan_Init failed\n");
         ImGui_ImplGlfw_Shutdown();
-        cleanup_vulkan_window(vk_state);
-        cleanup_vulkan(vk_state);
+        renderer_cleanup_window(renderer_state);
+        renderer_cleanup(renderer_state);
         ImGui::DestroyContext();
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -609,7 +612,7 @@ run(const AppConfig& config)
 
     if (!run_config.input_paths.empty()) {
         append_loaded_image_paths(viewer, run_config.input_paths);
-        if (!load_viewer_image(vk_state, viewer, &ui_state,
+        if (!load_viewer_image(renderer_state, viewer, &ui_state,
                                run_config.input_paths[0],
                                ui_state.subimage_index,
                                ui_state.miplevel_index)) {
@@ -626,8 +629,8 @@ run(const AppConfig& config)
     ViewerStateJsonWriteContext test_engine_state_ctx = { &viewer, &ui_state };
     TestEngineHooks test_engine_hooks;
     test_engine_hooks.image_window_title       = image_window_title();
-    test_engine_hooks.screen_capture           = imiv_vulkan_screen_capture;
-    test_engine_hooks.screen_capture_user_data = &vk_state;
+    test_engine_hooks.screen_capture           = renderer_screen_capture;
+    test_engine_hooks.screen_capture_user_data = &renderer_state;
     test_engine_hooks.write_viewer_state_json
         = write_test_engine_viewer_state_json;
     test_engine_hooks.write_viewer_state_user_data = &test_engine_state_ctx;
@@ -661,18 +664,19 @@ run(const AppConfig& config)
         int fb_height = 0;
         glfwGetFramebufferSize(window, &fb_width, &fb_height);
         if (fb_width > 0 && fb_height > 0
-            && (vk_state.swapchain_rebuild
-                || vk_state.window_data.Width != fb_width
-                || vk_state.window_data.Height != fb_height)) {
-            ImGui_ImplVulkan_SetMinImageCount(vk_state.min_image_count);
+            && (renderer_state.swapchain_rebuild
+                || renderer_state.window_data.Width != fb_width
+                || renderer_state.window_data.Height != fb_height)) {
+            ImGui_ImplVulkan_SetMinImageCount(renderer_state.min_image_count);
             ImGui_ImplVulkanH_CreateOrResizeWindow(
-                vk_state.instance, vk_state.physical_device, vk_state.device,
-                &vk_state.window_data, vk_state.queue_family,
-                vk_state.allocator, fb_width, fb_height,
-                vk_state.min_image_count, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-            name_window_frame_objects(vk_state);
-            vk_state.window_data.FrameIndex = 0;
-            vk_state.swapchain_rebuild      = false;
+                renderer_state.instance, renderer_state.physical_device,
+                renderer_state.device, &renderer_state.window_data,
+                renderer_state.queue_family, renderer_state.allocator, fb_width,
+                fb_height, renderer_state.min_image_count,
+                VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+            name_window_frame_objects(renderer_state);
+            renderer_state.window_data.FrameIndex = 0;
+            renderer_state.swapchain_rebuild      = false;
         }
         if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0) {
             ImGui_ImplGlfw_Sleep(10);
@@ -688,7 +692,7 @@ run(const AppConfig& config)
                        test_engine_show_windows_ptr(test_engine_runtime)
 #    endif
                            ,
-                       window, vk_state);
+                       window, renderer_state);
         if (ui_state.style_preset != applied_style_preset) {
             ui_state.style_preset = static_cast<int>(
                 sanitize_app_style_preset(ui_state.style_preset));
@@ -704,22 +708,23 @@ run(const AppConfig& config)
         ImDrawData* draw_data        = ImGui::GetDrawData();
         const bool main_is_minimized = (draw_data->DisplaySize.x <= 0.0f
                                         || draw_data->DisplaySize.y <= 0.0f);
-        vk_state.window_data.ClearValue.color.float32[0] = 0.08f;
-        vk_state.window_data.ClearValue.color.float32[1] = 0.08f;
-        vk_state.window_data.ClearValue.color.float32[2] = 0.08f;
-        vk_state.window_data.ClearValue.color.float32[3] = 1.0f;
+        renderer_state.window_data.ClearValue.color.float32[0] = 0.08f;
+        renderer_state.window_data.ClearValue.color.float32[1] = 0.08f;
+        renderer_state.window_data.ClearValue.color.float32[2] = 0.08f;
+        renderer_state.window_data.ClearValue.color.float32[3] = 1.0f;
         if (!main_is_minimized)
-            frame_render(vk_state, draw_data);
+            renderer_frame_render(renderer_state, draw_data);
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
-        process_developer_post_render_actions(developer_ui, viewer, vk_state);
+        process_developer_post_render_actions(developer_ui, viewer,
+                                              renderer_state);
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
         test_engine_post_swap(test_engine_runtime);
 #    endif
         if (!main_is_minimized)
-            frame_present(vk_state);
+            renderer_frame_present(renderer_state);
 
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
         if (test_engine_should_close(test_engine_runtime, test_engine_cfg))
@@ -741,10 +746,12 @@ run(const AppConfig& config)
         print(stderr, "imiv: failed to save preferences: {}\n",
               prefs_save_error);
 
-    err = vkDeviceWaitIdle(vk_state.device);
-    check_vk_result(err);
+    if (!renderer_wait_idle(renderer_state, prefs_save_error)
+        && !prefs_save_error.empty())
+        print(stderr, "imiv: failed to wait for renderer idle: {}\n",
+              prefs_save_error);
 
-    destroy_texture(vk_state, viewer.texture);
+    renderer_destroy_texture(renderer_state, viewer.texture);
 #    if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_stop(test_engine_runtime);
 #    endif
@@ -756,8 +763,8 @@ run(const AppConfig& config)
     test_engine_destroy(test_engine_runtime);
 #    endif
 
-    cleanup_vulkan_window(vk_state);
-    cleanup_vulkan(vk_state);
+    renderer_cleanup_window(renderer_state);
+    renderer_cleanup(renderer_state);
     glfwDestroyWindow(window);
     glfwTerminate();
     return EXIT_SUCCESS;

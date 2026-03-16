@@ -166,33 +166,41 @@ env_flag_is_truthy(const char* name)
     return Strutil::iequals(trimmed, "true") || Strutil::iequals(trimmed, "yes")
            || Strutil::iequals(trimmed, "on");
 }
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
 bool
-viewer_texture_has_gpu_lifetime(const VulkanTexture& texture)
+viewer_texture_has_gpu_lifetime(const RendererTexture& texture)
 {
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
     return texture.image != VK_NULL_HANDLE
            || texture.source_image != VK_NULL_HANDLE
            || texture.set != VK_NULL_HANDLE
            || texture.nearest_mag_set != VK_NULL_HANDLE
            || texture.pixelview_set != VK_NULL_HANDLE
            || texture.upload_submit_pending || texture.preview_submit_pending;
+#else
+    (void)texture;
+    return false;
+#endif
 }
 
 void
-quiesce_viewer_texture_lifetime(VulkanState& vk_state,
-                                const VulkanTexture& texture)
+quiesce_viewer_texture_lifetime(RendererState& renderer_state,
+                                const RendererTexture& texture)
 {
-    if (vk_state.device == VK_NULL_HANDLE
+#if defined(IMIV_BACKEND_VULKAN_GLFW)
+    if (renderer_state.device == VK_NULL_HANDLE
         || !viewer_texture_has_gpu_lifetime(texture)) {
         return;
     }
-    VkResult err = vkDeviceWaitIdle(vk_state.device);
+    VkResult err = vkDeviceWaitIdle(renderer_state.device);
     check_vk_result(err);
-}
+#else
+    (void)renderer_state;
+    (void)texture;
 #endif
+}
 
 bool
-load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
+load_viewer_image(RendererState& vk_state, ViewerState& viewer,
                   PlaceholderUiState* ui_state, const std::string& path,
                   int requested_subimage, int requested_miplevel)
 {
@@ -207,16 +215,14 @@ load_viewer_image(VulkanState& vk_state, ViewerState& viewer,
         print(stderr, "imiv: {}\n", viewer.last_error);
         return false;
     }
-    VulkanTexture texture;
-    if (!create_texture(vk_state, loaded, texture, error)) {
+    RendererTexture texture;
+    if (!renderer_create_texture(vk_state, loaded, texture, error)) {
         viewer.last_error = Strutil::fmt::format("upload failed: {}", error);
         print(stderr, "imiv: {}\n", viewer.last_error);
         return false;
     }
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
     quiesce_viewer_texture_lifetime(vk_state, viewer.texture);
-#endif
-    destroy_texture(vk_state, viewer.texture);
+    renderer_destroy_texture(vk_state, viewer.texture);
     if (ui_state != nullptr && should_reset_preview_on_load(viewer, path))
         reset_per_image_preview_state(*ui_state);
     viewer.image       = std::move(loaded);
@@ -567,7 +573,7 @@ toggle_sort_reverse_action(ViewerState& viewer)
 }
 
 bool
-advance_slide_show_action(VulkanState& vk_state, ViewerState& viewer,
+advance_slide_show_action(RendererState& vk_state, ViewerState& viewer,
                           PlaceholderUiState& ui_state)
 {
     if (!ui_state.slide_show_running || viewer.loaded_image_paths.empty()
@@ -606,7 +612,7 @@ toggle_slide_show_action(PlaceholderUiState& ui_state, ViewerState& viewer)
 }
 
 void
-open_image_dialog_action(VulkanState& vk_state, ViewerState& viewer,
+open_image_dialog_action(RendererState& vk_state, ViewerState& viewer,
                          PlaceholderUiState& ui_state, int requested_subimage,
                          int requested_miplevel)
 {
@@ -655,7 +661,7 @@ open_image_dialog_action(VulkanState& vk_state, ViewerState& viewer,
 }
 
 void
-reload_current_image_action(VulkanState& vk_state, ViewerState& viewer,
+reload_current_image_action(RendererState& vk_state, ViewerState& viewer,
                             PlaceholderUiState& ui_state)
 {
     if (viewer.image.path.empty()) {
@@ -668,7 +674,7 @@ reload_current_image_action(VulkanState& vk_state, ViewerState& viewer,
 }
 
 void
-close_current_image_action(VulkanState& vk_state, ViewerState& viewer,
+close_current_image_action(RendererState& vk_state, ViewerState& viewer,
                            PlaceholderUiState& ui_state)
 {
     const std::string closing_path = viewer.image.path;
@@ -676,7 +682,7 @@ close_current_image_action(VulkanState& vk_state, ViewerState& viewer,
 #    if defined(IMIV_BACKEND_VULKAN_GLFW)
     quiesce_viewer_texture_lifetime(vk_state, viewer.texture);
 #    endif
-    destroy_texture(vk_state, viewer.texture);
+    renderer_destroy_texture(vk_state, viewer.texture);
     remove_loaded_image_path(viewer, closing_path);
     if (!viewer.loaded_image_paths.empty()) {
         const int replacement_index
@@ -698,7 +704,7 @@ close_current_image_action(VulkanState& vk_state, ViewerState& viewer,
 }
 
 void
-next_sibling_image_action(VulkanState& vk_state, ViewerState& viewer,
+next_sibling_image_action(RendererState& vk_state, ViewerState& viewer,
                           PlaceholderUiState& ui_state, int delta)
 {
     std::string path;
@@ -713,7 +719,7 @@ next_sibling_image_action(VulkanState& vk_state, ViewerState& viewer,
 }
 
 void
-toggle_image_action(VulkanState& vk_state, ViewerState& viewer,
+toggle_image_action(RendererState& vk_state, ViewerState& viewer,
                     PlaceholderUiState& ui_state)
 {
     if (viewer.last_path_index < 0
@@ -730,7 +736,7 @@ toggle_image_action(VulkanState& vk_state, ViewerState& viewer,
 }
 
 void
-change_subimage_action(VulkanState& vk_state, ViewerState& viewer,
+change_subimage_action(RendererState& vk_state, ViewerState& viewer,
                        PlaceholderUiState& ui_state, int delta)
 {
     if (viewer.image.path.empty()) {
@@ -776,7 +782,7 @@ change_subimage_action(VulkanState& vk_state, ViewerState& viewer,
 }
 
 void
-change_miplevel_action(VulkanState& vk_state, ViewerState& viewer,
+change_miplevel_action(RendererState& vk_state, ViewerState& viewer,
                        PlaceholderUiState& ui_state, int delta)
 {
     if (viewer.image.path.empty()) {
@@ -812,7 +818,7 @@ queue_auto_subimage_from_zoom(ViewerState& viewer)
 }
 
 bool
-apply_pending_auto_subimage_action(VulkanState& vk_state, ViewerState& viewer,
+apply_pending_auto_subimage_action(RendererState& vk_state, ViewerState& viewer,
                                    PlaceholderUiState& ui_state)
 {
     if (viewer.pending_auto_subimage < 0 || viewer.image.path.empty())
@@ -834,7 +840,7 @@ apply_pending_auto_subimage_action(VulkanState& vk_state, ViewerState& viewer,
 }
 
 bool
-capture_main_viewport_screenshot_action(VulkanState& vk_state,
+capture_main_viewport_screenshot_action(RendererState& vk_state,
                                         ViewerState& viewer,
                                         std::string& out_path)
 {
@@ -860,8 +866,8 @@ capture_main_viewport_screenshot_action(VulkanState& vk_state,
 
     std::vector<unsigned int> pixels(static_cast<size_t>(width)
                                      * static_cast<size_t>(height));
-    if (!imiv_vulkan_screen_capture(ImGui::GetMainViewport()->ID, 0, 0, width,
-                                    height, pixels.data(), &vk_state)) {
+    if (!renderer_screen_capture(ImGui::GetMainViewport()->ID, 0, 0, width,
+                                 height, pixels.data(), &vk_state)) {
         viewer.last_error = "screenshot failed: framebuffer readback failed";
         return false;
     }

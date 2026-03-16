@@ -570,7 +570,7 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
                              ViewerFrameActions& actions
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
                              ,
-                             GLFWwindow* window, VulkanState& vk_state
+                             GLFWwindow* window, RendererState& vk_state
 #endif
 )
 {

@@ -467,7 +467,7 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
 #endif
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
                ,
-               GLFWwindow* window, VulkanState& vk_state
+               GLFWwindow* window, RendererState& vk_state
 #endif
 )
 {
@@ -527,21 +527,21 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW)
     if (!viewer.image.path.empty()) {
-        PreviewControls preview_controls      = {};
-        preview_controls.exposure             = ui_state.exposure;
-        preview_controls.gamma                = ui_state.gamma;
-        preview_controls.offset               = ui_state.offset;
-        preview_controls.color_mode           = ui_state.color_mode;
-        preview_controls.channel              = ui_state.current_channel;
-        preview_controls.use_ocio             = ui_state.use_ocio ? 1 : 0;
-        preview_controls.orientation          = viewer.image.orientation;
-        preview_controls.linear_interpolation = ui_state.linear_interpolation
-                                                    ? 1
-                                                    : 0;
+        RendererPreviewControls preview_controls = {};
+        preview_controls.exposure                = ui_state.exposure;
+        preview_controls.gamma                   = ui_state.gamma;
+        preview_controls.offset                  = ui_state.offset;
+        preview_controls.color_mode              = ui_state.color_mode;
+        preview_controls.channel                 = ui_state.current_channel;
+        preview_controls.use_ocio                = ui_state.use_ocio ? 1 : 0;
+        preview_controls.orientation             = viewer.image.orientation;
+        preview_controls.linear_interpolation    = ui_state.linear_interpolation
+                                                       ? 1
+                                                       : 0;
         std::string preview_error;
-        if (!update_preview_texture(vk_state, viewer.texture, &viewer.image,
-                                    ui_state, preview_controls,
-                                    preview_error)) {
+        if (!renderer_update_preview_texture(vk_state, viewer.texture,
+                                             &viewer.image, ui_state,
+                                             preview_controls, preview_error)) {
             if (!preview_error.empty())
                 viewer.last_error = preview_error;
         }
@@ -586,7 +586,7 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
 void
 process_developer_post_render_actions(DeveloperUiState& developer_ui,
                                       ViewerState& viewer,
-                                      VulkanState& vk_state)
+                                      RendererState& vk_state)
 {
 #    if !defined(NDEBUG)
     if (!developer_ui.screenshot_busy)

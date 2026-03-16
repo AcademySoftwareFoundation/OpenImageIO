@@ -5,6 +5,7 @@
 #include "imiv_image_view.h"
 
 #include "imiv_actions.h"
+#include "imiv_renderer.h"
 #include "imiv_test_engine.h"
 
 #include <algorithm>
@@ -187,31 +188,9 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
         bool image_canvas_hovered       = false;
         bool image_canvas_active        = false;
         PendingZoomRequest pending_zoom = shortcut_zoom_request;
-
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-        const bool texture_ready_for_display
-            = viewer.texture.preview_initialized;
-        VkDescriptorSet main_set = ui_state.linear_interpolation
-                                       ? viewer.texture.set
-                                       : viewer.texture.nearest_mag_set;
-        if (main_set == VK_NULL_HANDLE)
-            main_set = viewer.texture.set;
-        if (texture_ready_for_display && main_set != VK_NULL_HANDLE) {
-            main_texture_ref = ImTextureRef(static_cast<ImTextureID>(
-                reinterpret_cast<uintptr_t>(main_set)));
-            has_main_texture = true;
-        }
-        if (texture_ready_for_display
-            && viewer.texture.pixelview_set != VK_NULL_HANDLE) {
-            closeup_texture_ref = ImTextureRef(static_cast<ImTextureID>(
-                reinterpret_cast<uintptr_t>(viewer.texture.pixelview_set)));
-            has_closeup_texture = true;
-        } else if (texture_ready_for_display
-                   && viewer.texture.set != VK_NULL_HANDLE) {
-            closeup_texture_ref = main_texture_ref;
-            has_closeup_texture = true;
-        }
-#endif
+        renderer_get_viewer_texture_refs(viewer, ui_state, main_texture_ref,
+                                         has_main_texture, closeup_texture_ref,
+                                         has_closeup_texture);
         ImageCoordinateMap coord_map;
         coord_map.source_width  = viewer.image.width;
         coord_map.source_height = viewer.image.height;
