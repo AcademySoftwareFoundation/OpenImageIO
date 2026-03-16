@@ -44,6 +44,10 @@ if (APPLE)
                DOC "Set relative priority of finding frameworks vs. regular libraries" ADVANCED)
 endif ()
 
+set_option (${PROJECT_NAME}_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS
+            "Allow dependency auto-build to use unverified tags -- Dangerous" OFF)
+
+
 # Track all build deps we find with checked_find_package
 set (CFP_ALL_BUILD_DEPS_FOUND "")
 set (CFP_EXTERNAL_BUILD_DEPS_FOUND "")
@@ -629,10 +633,9 @@ macro (build_dependency_with_cmake pkgname)
 
     unset (${pkgname}_GIT_CLONE_ARGS)
     unset (_pkg_exec_quiet)
-    if (NOT "${pkg_GIT_TAG}" STREQUAL "" AND "${_pkg_GIT_COMMIT}" STREQUAL "")
-        # If a tag was specified, but not a specific commit, do a shallow
-        # clone.
-        list (APPEND ${pkgname}_GIT_CLONE_ARGS -b ${pkg_GIT_TAG} --depth 1)
+    if (NOT "${_pkg_GIT_TAG}" STREQUAL "")
+        # If a tag or branch is specified, do a shallow clone for efficiency.
+        list (APPEND ${pkgname}_GIT_CLONE_ARGS -b ${_pkg_GIT_TAG} --depth 1)
     endif ()
     if (_pkg_QUIET OR "${_pkg_QUIET}" STREQUAL "")
         list (APPEND ${pkgname}_GIT_CLONE_ARGS -q ERROR_VARIABLE ${pkgname}_clone_errors)
@@ -654,14 +657,47 @@ macro (build_dependency_with_cmake pkgname)
             message (FATAL_ERROR "Could not download ${_pkg_GIT_REPOSITORY}")
         endif ()
     endif ()
-    if ("${_pkg_GIT_COMMIT}" STREQUAL "")
+    # Checkout and verify the source against the expected commit hash to
+    # guard against tag tampering in upstream repositories.
+    if (${PROJECT_NAME}_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS
+            AND NOT "${_pkg_GIT_TAG}" STREQUAL "")
+        # Special case for CI bleeding edge test, which sets
+        # ${PROJECT_NAME}_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS to force
+        # the unsafe practice of allowing main/master testing.
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_TAG}
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        ${_pkg_exec_quiet})
+    elseif (NOT "${_pkg_GIT_TAG}" STREQUAL "" AND NOT "${_pkg_GIT_COMMIT}" STREQUAL "")
+        # Both tag and commit: checkout tag, verify it matches expected commit.
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_TAG}
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        ${_pkg_exec_quiet})
+        execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        OUTPUT_VARIABLE _pkg_actual_commit
+                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if (NOT "${_pkg_actual_commit}" STREQUAL "${_pkg_GIT_COMMIT}")
+            message (FATAL_ERROR
+                "${pkgname}: Tag ${_pkg_GIT_TAG} resolved to commit "
+                "${_pkg_actual_commit}, but expected ${_pkg_GIT_COMMIT}. "
+                "This may indicate the tag was tampered with or moved.")
+        endif ()
+    elseif (NOT "${_pkg_GIT_COMMIT}" STREQUAL "")
+        # Only commit hash specified: checkout that commit directly.
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_COMMIT}
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        ${_pkg_exec_quiet})
+    elseif (NOT "${_pkg_GIT_TAG}" STREQUAL "")
+        # Only tag, no commit pin — warn about missing verification.
+        message (WARNING
+            "${pkgname}: No GIT_COMMIT specified to verify tag ${_pkg_GIT_TAG}. "
+            "Consider pinning a commit hash for supply chain security.")
         execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_TAG}
                         WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
                         ${_pkg_exec_quiet})
     else ()
-        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_COMMIT}
-                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
-                        ${_pkg_exec_quiet})
+        message (FATAL_ERROR
+            "${pkgname}: Neither GIT_TAG nor GIT_COMMIT was specified.")
     endif ()
 
     # Configure the package
