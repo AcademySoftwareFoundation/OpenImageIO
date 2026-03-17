@@ -66,7 +66,7 @@ case "${backend}" in
 esac
 
 if [[ -z "${build_dir}" ]]; then
-    build_dir="${repo_root}/build_${backend}"
+    build_dir="${repo_root}/build"
 fi
 if [[ -z "${out_dir}" ]]; then
     out_dir="${build_dir}/imiv_captures/${backend}_verify"
@@ -142,6 +142,9 @@ case "${backend}" in
 esac
 
 cmd=(python3 "${runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime" --open "${image_path}")
+if [[ -f "${build_dir}/imiv_env.sh" ]]; then
+    cmd+=(--env-script "${build_dir}/imiv_env.sh")
+fi
 if [[ ${trace} -ne 0 ]]; then
     cmd+=(--trace)
 fi
