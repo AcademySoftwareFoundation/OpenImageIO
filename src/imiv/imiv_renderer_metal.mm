@@ -350,10 +350,10 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                                     sampler source_sampler [[sampler(0)]],
                                     constant PreviewUniforms& uniforms [[buffer(0)]])
 {
-    // Metal offscreen preview textures currently land rotated 180 degrees
-    // relative to the source image unless we normalize the fullscreen-triangle
-    // UVs here before applying the shared orientation transform.
-    float2 display_uv = float2(1.0 - in.uv.x, 1.0 - in.uv.y);
+    // Metal's texture sampling origin differs from the existing preview UV
+    // convention here only on the vertical axis. Normalize Y before applying
+    // the shared orientation transform.
+    float2 display_uv = float2(in.uv.x, 1.0 - in.uv.y);
     float2 src_uv = display_to_source_uv(display_uv, uniforms.orientation);
     float4 rgba = source_texture.sample(source_sampler, src_uv);
     rgba.r += uniforms.offset;
