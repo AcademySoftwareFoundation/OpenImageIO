@@ -1043,6 +1043,23 @@ if (TARGET imiv
         imiv_selection_regression PROPERTIES
             LABELS "imiv;gui"
             TIMEOUT 360)
+
+    if (_imiv_renderer_is_opengl)
+        add_test (
+            NAME imiv_opengl_selection_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_opengl_selection_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/opengl_selection_regression")
+        set_tests_properties (
+            imiv_opengl_selection_regression PROPERTIES
+                LABELS "imiv;imiv_opengl;gui"
+                TIMEOUT 360)
+    endif ()
 elseif (TARGET imiv
         AND OIIO_BUILD_TESTS
         AND BUILD_TESTING)
