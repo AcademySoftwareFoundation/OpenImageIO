@@ -47,6 +47,28 @@ def _default_binary(repo_root: Path) -> Path:
     return candidates[0]
 
 
+def _default_env_script(repo_root: Path, exe: Path | None = None) -> Path:
+    candidates: list[Path] = []
+    if exe is not None:
+        exe = exe.resolve()
+        candidates.extend(
+            [
+                exe.parent / "imiv_env.sh",
+                exe.parent.parent / "imiv_env.sh",
+            ]
+        )
+    candidates.extend(
+        [
+            repo_root / "build" / "imiv_env.sh",
+            repo_root / "build_u" / "imiv_env.sh",
+        ]
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
 def _load_env_from_script(script_path: Path) -> dict[str, str]:
     env = dict(os.environ)
     if not script_path.exists() or shutil.which("bash") is None:
@@ -177,8 +199,6 @@ def _selection_has_area(state: dict) -> bool:
 def main() -> int:
     repo_root = _repo_root()
     runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
-    default_env_script = repo_root / "build_u" / "imiv_env.sh"
-    default_out_dir = repo_root / "build_u" / "imiv_captures" / "metal_smoke_regression"
     default_image = repo_root / "ASWF" / "logos" / "openimageio-stacked-gradient.png"
 
     ap = argparse.ArgumentParser(description=__doc__)
@@ -186,10 +206,10 @@ def main() -> int:
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
         "--env-script",
-        default=str(default_env_script),
+        default="",
         help="Optional shell env setup script",
     )
-    ap.add_argument("--out-dir", default=str(default_out_dir), help="Output directory")
+    ap.add_argument("--out-dir", default="", help="Output directory")
     ap.add_argument("--open", default=str(default_image), help="Image to open")
     ap.add_argument("--trace", action="store_true", help="Enable runner tracing")
     args = ap.parse_args()
@@ -200,7 +220,10 @@ def main() -> int:
         return 2
 
     cwd = Path(args.cwd).resolve() if args.cwd else exe.parent.resolve()
-    out_dir = Path(args.out_dir).resolve()
+    if args.out_dir:
+        out_dir = Path(args.out_dir).resolve()
+    else:
+        out_dir = exe.parent.parent / "imiv_captures" / "metal_smoke_regression"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     open_path = Path(args.open).resolve()
@@ -208,7 +231,12 @@ def main() -> int:
         print(f"error: image not found: {open_path}", file=sys.stderr)
         return 2
 
-    env = _load_env_from_script(Path(args.env_script).resolve())
+    env_script = (
+        Path(args.env_script).resolve()
+        if args.env_script
+        else _default_env_script(repo_root, exe)
+    )
+    env = _load_env_from_script(env_script)
 
     startup_state, startup_layout, _ = _run_case(
         repo_root,
