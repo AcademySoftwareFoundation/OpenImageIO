@@ -5,6 +5,7 @@
 #include "imiv_renderer_backend.h"
 
 #include "imiv_platform_glfw.h"
+#include "imiv_viewer.h"
 
 #include <imgui_impl_metal.h>
 
@@ -427,7 +428,7 @@ renderer_backend_get_viewer_texture_refs(const ViewerState& viewer,
         main_texture = state->preview_linear_texture;
     if (main_texture != nil) {
         main_texture_ref = ImTextureRef(static_cast<ImTextureID>(
-            static_cast<intptr_t>((__bridge void*)main_texture)));
+            reinterpret_cast<uintptr_t>((__bridge void*)main_texture)));
         has_main_texture = true;
     }
 
@@ -436,7 +437,7 @@ renderer_backend_get_viewer_texture_refs(const ViewerState& viewer,
         closeup_texture = state->preview_linear_texture;
     if (closeup_texture != nil) {
         closeup_texture_ref = ImTextureRef(static_cast<ImTextureID>(
-            static_cast<intptr_t>((__bridge void*)closeup_texture)));
+            reinterpret_cast<uintptr_t>((__bridge void*)closeup_texture)));
         has_closeup_texture = true;
     }
     return has_main_texture || has_closeup_texture;
