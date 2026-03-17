@@ -294,7 +294,7 @@ private:
 
     void set_type_desc();
     //Setup m_specs and m_channels
-    void setup();
+    bool setup();
     void fill_channel_names(ImageSpec& spec, bool transparency);
 
     //Read a row of channel data
@@ -619,9 +619,11 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
     // Set m_type_desc to the appropriate TypeDesc
     set_type_desc();
     // Setup ImageSpecs and m_channels
-    setup();
+    bool ok = true;
+    ok &= setup();
 
-    bool ok = seek_subimage(0, 0);
+    if (ok)
+        ok &= seek_subimage(0, 0);
     if (ok)
         newspec = spec();
     else
@@ -1468,7 +1470,9 @@ PSDInput::load_layers()
     ok &= read_bige<int16_t>(layer_info.layer_count);
     if (layer_info.layer_count < 0) {
         m_image_data.transparency = true;
-        layer_info.layer_count    = -layer_info.layer_count;
+        if (layer_info.layer_count == -32768)
+            return false;  // will overflow when negated
+        layer_info.layer_count = -layer_info.layer_count;
     }
     m_layers.resize(layer_info.layer_count);
     for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count;
@@ -1639,6 +1643,7 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     channel_info.row_pos.resize(height);
     channel_info.row_length = (width * m_header.depth + 7) / 8;
 
+    bool ok = true;
     switch (channel_info.compression) {
     case Compression_Raw:
         if (height) {
@@ -1687,7 +1692,7 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         if (!ioread(compressed_data.data(), channel_info.data_length))
             return false;
 
-        decompress_zip(compressed_data, channel_info.decompressed_data);
+        ok = decompress_zip(compressed_data, channel_info.decompressed_data);
     } break;
     case Compression_ZIP_Predict: {
         // We subtract the compression marker from the data length
@@ -1704,16 +1709,18 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         if (!ioread(compressed_data.data(), channel_info.data_length))
             return false;
 
-        decompress_zip_prediction(compressed_data,
-                                  channel_info.decompressed_data, width,
-                                  height);
+        ok = decompress_zip_prediction(compressed_data,
+                                       channel_info.decompressed_data, width,
+                                       height);
     } break;
     default:
         errorfmt("[Layer Channel] unsupported compression {}",
                  channel_info.compression);
         return false;
     }
-    return true;
+    if (!ok)
+        errorfmt("Error during layer decompression. Possible corrupt file?");
+    return ok;
 }
 
 
@@ -1853,7 +1860,9 @@ PSDInput::load_layers_16_32(uint64_t length)
     ok &= read_bige<int16_t>(layer_info.layer_count);
     if (layer_info.layer_count < 0) {
         m_image_data.transparency = true;
-        layer_info.layer_count    = -layer_info.layer_count;
+        if (layer_info.layer_count == -32768)
+            return false;  // will overflow when negated
+        layer_info.layer_count = -layer_info.layer_count;
     }
     m_layers.resize(layer_info.layer_count);
     for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count;
@@ -1893,6 +1902,22 @@ PSDInput::load_image_data()
         errorfmt("[Image Data Section] unsupported compression {:d}",
                  compression);
         return false;
+    }
+    // Validate that the file has enough channels for its color mode.
+    // mode_channel_count gives the minimum channels required; if the layer
+    // info section indicated transparency, we need one more channel.
+    {
+        int required = (m_header.color_mode <= ColorMode_Lab)
+                           ? (int)mode_channel_count[m_header.color_mode]
+                           : 0;
+        if (m_image_data.transparency)
+            required++;
+        if (m_header.channel_count < required) {
+            errorfmt(
+                "[Image Data Section] channel count {} is too few for color mode {}",
+                m_header.channel_count, m_header.color_mode);
+            return false;
+        }
     }
     m_image_data.channel_info.resize(m_header.channel_count);
     // setup some generic properties and read any RLE lengths
@@ -1938,7 +1963,7 @@ PSDInput::load_image_data()
 
 
 
-void
+bool
 PSDInput::setup()
 {
     // raw_channel_count is the number of channels in the file
@@ -2012,6 +2037,8 @@ PSDInput::setup()
         if (layer.name.size())
             spec.attribute("oiio:subimagename", layer.name);
     }
+
+    return true;
 }
 
 
@@ -2297,6 +2324,7 @@ bool
 PSDInput::decompress_zip(span<char> src, span<char> dest)
 {
     z_stream stream {};
+    stream.zalloc    = Z_NULL;
     stream.zfree     = Z_NULL;
     stream.opaque    = Z_NULL;
     stream.avail_in  = src.size();
@@ -2306,26 +2334,29 @@ PSDInput::decompress_zip(span<char> src, span<char> dest)
 
     if (inflateInit(&stream) != Z_OK) {
         errorfmt(
-            "zip compression inflate init failed with: src_size={}, dst_size={}",
-            src.size(), dest.size());
+            "zip compression inflate init failed with: src_size={}, dst_size={} {}",
+            src.size(), dest.size(), stream.msg ? stream.msg : "");
         return false;
     }
 
+    bool ok = true;
     if (inflate(&stream, Z_FINISH) != Z_STREAM_END) {
         errorfmt(
-            "unable to decode zip compressed data: src_size={}, dst_size={}",
-            src.size(), dest.size());
-        return false;
+            "unable to decode zip compressed data: src_size={}, dst_size={} {}",
+            src.size(), dest.size(), stream.msg ? stream.msg : "");
+        ok = false;
     }
 
+    // Note: call inflateEnd even if ok == false, because we need to clean up.
     if (inflateEnd(&stream) != Z_OK) {
-        errorfmt(
-            "zip compression inflate cleanup failed with: src_size={}, dst_size={}",
-            src.size(), dest.size());
-        return false;
+        if (ok)  // message only if this was the first error
+            errorfmt(
+                "zip compression inflate cleanup failed with: src_size={}, dst_size={} {}",
+                src.size(), dest.size(), stream.msg ? stream.msg : "");
+        ok = false;
     }
 
-    return true;
+    return ok;
 }
 
 
@@ -2342,6 +2373,8 @@ PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
 
     switch (m_header.depth) {
     case 8:
+        if ((height - 1) * width + (width - 1) >= dest.size())
+            return false;  // going to exceed the dest bounds
         for (uint64_t y = 0; y < height; ++y) {
             // Index x beginning at one since we look behind to calculate
             // the offset
@@ -2355,6 +2388,8 @@ PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
         // prediction decoding to work correctly
         span<uint16_t> destView(reinterpret_cast<uint16_t*>(dest.data()),
                                 dest.size() / 2);
+        if ((height - 1) * width + (width - 1) >= destView.size())
+            return false;  // going to exceed the dest bounds
         if (!bigendian())
             byteswap_span(destView);
 
@@ -2373,6 +2408,8 @@ PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
         for (uint64_t y = 0; y < height; ++y) {
             ++index;
             for (uint64_t x = 1; x < (width * sizeof(float)); ++x) {
+                if (index >= dest.size())
+                    return false;  // going to exceed the dest bounds
                 uint8_t value = dest[index] + dest[index - 1];
                 dest[index]   = value;
                 ++index;
