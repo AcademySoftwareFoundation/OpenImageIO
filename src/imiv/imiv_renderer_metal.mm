@@ -4,6 +4,7 @@
 
 #include "imiv_renderer_backend.h"
 
+#include "imiv_ocio.h"
 #include "imiv_platform_glfw.h"
 #include "imiv_viewer.h"
 
@@ -24,6 +25,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -42,6 +44,32 @@ struct RendererTextureBackendState {
     std::vector<float> source_rgba_pixels;
 };
 
+struct MetalOcioTextureBinding {
+    std::string texture_name;
+    std::string sampler_name;
+    __strong id<MTLTexture> texture = nil;
+    __strong id<MTLSamplerState> sampler = nil;
+    NSUInteger texture_index = 0;
+    NSUInteger sampler_index = 0;
+};
+
+struct MetalOcioVectorUniformBinding {
+    std::string name;
+    OcioUniformType type = OcioUniformType::Unknown;
+    std::vector<unsigned char> bytes;
+    NSUInteger buffer_index = 0;
+};
+
+struct MetalOcioPreviewState {
+    OcioShaderRuntime* runtime = nullptr;
+    __strong id<MTLLibrary> library = nil;
+    __strong id<MTLRenderPipelineState> pipeline = nil;
+    std::vector<MetalOcioTextureBinding> textures;
+    std::vector<MetalOcioVectorUniformBinding> vector_uniforms;
+    std::string shader_cache_id;
+    bool ready = false;
+};
+
 struct RendererBackendState {
     GLFWwindow* window                           = nullptr;
     id<MTLDevice> device                         = nil;
@@ -55,6 +83,7 @@ struct RendererBackendState {
     __strong id<MTLRenderPipelineState> preview_pipeline = nil;
     __strong id<MTLSamplerState> linear_sampler  = nil;
     __strong id<MTLSamplerState> nearest_sampler = nil;
+    MetalOcioPreviewState ocio_preview;
     bool imgui_initialized                       = false;
 };
 
@@ -207,6 +236,335 @@ build_rgba_float_pixels(const LoadedImage& image,
         }
         src += channels;
     }
+    return true;
+}
+
+void
+rgb_to_rgba(const float* rgb_values, size_t value_count,
+            std::vector<float>& rgba_values)
+{
+    rgba_values.clear();
+    if (rgb_values == nullptr || value_count == 0)
+        return;
+    rgba_values.reserve((value_count / 3u) * 4u);
+    for (size_t i = 0; i + 2 < value_count; i += 3) {
+        rgba_values.push_back(rgb_values[i + 0]);
+        rgba_values.push_back(rgb_values[i + 1]);
+        rgba_values.push_back(rgb_values[i + 2]);
+        rgba_values.push_back(1.0f);
+    }
+}
+
+id<MTLSamplerState>
+create_sampler_state(id<MTLDevice> device, OcioInterpolation interpolation)
+{
+    if (device == nil)
+        return nil;
+    MTLSamplerDescriptor* descriptor = [[MTLSamplerDescriptor alloc] init];
+    if (interpolation == OcioInterpolation::Nearest) {
+        descriptor.minFilter = MTLSamplerMinMagFilterNearest;
+        descriptor.magFilter = MTLSamplerMinMagFilterNearest;
+    } else {
+        descriptor.minFilter = MTLSamplerMinMagFilterLinear;
+        descriptor.magFilter = MTLSamplerMinMagFilterLinear;
+    }
+    descriptor.sAddressMode = MTLSamplerAddressModeClampToEdge;
+    descriptor.tAddressMode = MTLSamplerAddressModeClampToEdge;
+    descriptor.rAddressMode = MTLSamplerAddressModeClampToEdge;
+    return [device newSamplerStateWithDescriptor:descriptor];
+}
+
+bool
+create_ocio_texture(id<MTLDevice> device, const OcioTextureBlueprint& blueprint,
+                    id<MTLTexture>& texture, std::string& error_message)
+{
+    texture = nil;
+    if (device == nil) {
+        error_message = "Metal OCIO device is not initialized";
+        return false;
+    }
+    if (blueprint.values.empty()) {
+        error_message = "missing Metal OCIO LUT values";
+        return false;
+    }
+
+    std::vector<float> adapted_values;
+    const float* values = nullptr;
+    MTLTextureDescriptor* descriptor = [[MTLTextureDescriptor alloc] init];
+    descriptor.mipmapLevelCount      = 1;
+
+    if (blueprint.dimensions == OcioTextureDimensions::Tex3D) {
+        if (blueprint.width == 0 || blueprint.height == 0
+            || blueprint.depth == 0) {
+            error_message = "invalid Metal OCIO 3D LUT dimensions";
+            return false;
+        }
+        rgb_to_rgba(blueprint.values.data(), blueprint.values.size(),
+                    adapted_values);
+        values                = adapted_values.data();
+        descriptor.textureType = MTLTextureType3D;
+        descriptor.pixelFormat = MTLPixelFormatRGBA32Float;
+        descriptor.width       = blueprint.width;
+        descriptor.height      = blueprint.height;
+        descriptor.depth       = blueprint.depth;
+        texture = [device newTextureWithDescriptor:descriptor];
+        if (texture == nil) {
+            error_message = "failed to create Metal OCIO 3D LUT texture";
+            return false;
+        }
+        [texture replaceRegion:MTLRegionMake3D(0, 0, 0, blueprint.width,
+                                               blueprint.height,
+                                               blueprint.depth)
+                   mipmapLevel:0
+                         slice:0
+                     withBytes:values
+                   bytesPerRow:static_cast<NSUInteger>(blueprint.width)
+                               * 4u * sizeof(float)
+                 bytesPerImage:static_cast<NSUInteger>(blueprint.width)
+                               * static_cast<NSUInteger>(blueprint.height)
+                               * 4u * sizeof(float)];
+        error_message.clear();
+        return true;
+    }
+
+    if (blueprint.width == 0 || blueprint.height == 0) {
+        error_message = "invalid Metal OCIO LUT dimensions";
+        return false;
+    }
+
+    const bool red_channel = blueprint.channel == OcioTextureChannel::Red;
+    if (red_channel) {
+        adapted_values = blueprint.values;
+    } else {
+        rgb_to_rgba(blueprint.values.data(), blueprint.values.size(),
+                    adapted_values);
+    }
+    values = adapted_values.data();
+
+    descriptor.textureType = blueprint.dimensions == OcioTextureDimensions::Tex1D
+                                 ? MTLTextureType1D
+                                 : MTLTextureType2D;
+    descriptor.pixelFormat = red_channel ? MTLPixelFormatR32Float
+                                         : MTLPixelFormatRGBA32Float;
+    descriptor.width       = blueprint.width;
+    descriptor.height      = blueprint.dimensions == OcioTextureDimensions::Tex1D
+                                 ? 1u
+                                 : blueprint.height;
+    descriptor.depth       = 1;
+    texture                = [device newTextureWithDescriptor:descriptor];
+    if (texture == nil) {
+        error_message = "failed to create Metal OCIO LUT texture";
+        return false;
+    }
+    [texture replaceRegion:MTLRegionMake3D(0, 0, 0, descriptor.width,
+                                           descriptor.height, 1)
+               mipmapLevel:0
+                 withBytes:values
+               bytesPerRow:static_cast<NSUInteger>(descriptor.width)
+                           * static_cast<NSUInteger>(red_channel ? 1u : 4u)
+                           * sizeof(float)];
+    error_message.clear();
+    return true;
+}
+
+void
+destroy_ocio_preview_resources(MetalOcioPreviewState& state)
+{
+    for (MetalOcioTextureBinding& texture : state.textures) {
+        texture.texture = nil;
+        texture.sampler = nil;
+    }
+    state.textures.clear();
+    state.vector_uniforms.clear();
+    state.library       = nil;
+    state.pipeline      = nil;
+    state.shader_cache_id.clear();
+    state.ready = false;
+}
+
+void
+destroy_ocio_preview_program(MetalOcioPreviewState& state)
+{
+    destroy_ocio_preview_resources(state);
+    destroy_ocio_shader_runtime(state.runtime);
+}
+
+void
+align_uniform_bytes(std::vector<unsigned char>& bytes, size_t alignment)
+{
+    if (alignment <= 1)
+        return;
+    const size_t remainder = bytes.size() % alignment;
+    if (remainder == 0)
+        return;
+    bytes.resize(bytes.size() + (alignment - remainder), 0);
+}
+
+std::string
+uniform_count_name(const std::string& name)
+{
+    return name + "_count";
+}
+
+OcioUniformType
+metal_ocio_uniform_type(OCIO::UniformDataType type)
+{
+    switch (type) {
+    case OCIO::UNIFORM_DOUBLE: return OcioUniformType::Double;
+    case OCIO::UNIFORM_BOOL: return OcioUniformType::Bool;
+    case OCIO::UNIFORM_FLOAT3: return OcioUniformType::Float3;
+    case OCIO::UNIFORM_VECTOR_FLOAT: return OcioUniformType::VectorFloat;
+    case OCIO::UNIFORM_VECTOR_INT: return OcioUniformType::VectorInt;
+    case OCIO::UNIFORM_UNKNOWN:
+    default: return OcioUniformType::Unknown;
+    }
+}
+
+bool
+build_ocio_scalar_uniform_bytes(OcioShaderRuntime& runtime,
+                                std::vector<unsigned char>& bytes,
+                                std::string& error_message)
+{
+    bytes.clear();
+    error_message.clear();
+    if (runtime.shader_desc == nullptr)
+        return true;
+
+    const unsigned num_uniforms = runtime.shader_desc->getNumUniforms();
+    size_t max_alignment        = 4;
+    for (unsigned idx = 0; idx < num_uniforms; ++idx) {
+        OCIO::GpuShaderDesc::UniformData data;
+        runtime.shader_desc->getUniform(idx, data);
+        switch (data.m_type) {
+        case OCIO::UNIFORM_DOUBLE: {
+            align_uniform_bytes(bytes, 4);
+            const float value = data.m_getDouble
+                                    ? static_cast<float>(data.m_getDouble())
+                                    : 0.0f;
+            const unsigned char* src
+                = reinterpret_cast<const unsigned char*>(&value);
+            bytes.insert(bytes.end(), src, src + sizeof(value));
+            break;
+        }
+        case OCIO::UNIFORM_BOOL: {
+            align_uniform_bytes(bytes, 4);
+            const int32_t value = (data.m_getBool && data.m_getBool()) ? 1 : 0;
+            const unsigned char* src
+                = reinterpret_cast<const unsigned char*>(&value);
+            bytes.insert(bytes.end(), src, src + sizeof(value));
+            break;
+        }
+        case OCIO::UNIFORM_FLOAT3: {
+            align_uniform_bytes(bytes, 16);
+            max_alignment = std::max(max_alignment, size_t(16));
+            float packed[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+            if (data.m_getFloat3) {
+                const OCIO::Float3& value = data.m_getFloat3();
+                packed[0]                 = value[0];
+                packed[1]                 = value[1];
+                packed[2]                 = value[2];
+            }
+            const unsigned char* src
+                = reinterpret_cast<const unsigned char*>(packed);
+            bytes.insert(bytes.end(), src, src + sizeof(packed));
+            break;
+        }
+        case OCIO::UNIFORM_VECTOR_FLOAT: {
+            align_uniform_bytes(bytes, 4);
+            const int32_t count = data.m_vectorFloat.m_getSize
+                                      ? data.m_vectorFloat.m_getSize()
+                                      : 0;
+            const unsigned char* src
+                = reinterpret_cast<const unsigned char*>(&count);
+            bytes.insert(bytes.end(), src, src + sizeof(count));
+            break;
+        }
+        case OCIO::UNIFORM_VECTOR_INT: {
+            align_uniform_bytes(bytes, 4);
+            const int32_t count = data.m_vectorInt.m_getSize
+                                      ? data.m_vectorInt.m_getSize()
+                                      : 0;
+            const unsigned char* src
+                = reinterpret_cast<const unsigned char*>(&count);
+            bytes.insert(bytes.end(), src, src + sizeof(count));
+            break;
+        }
+        case OCIO::UNIFORM_UNKNOWN:
+        default:
+            error_message = "unsupported Metal OCIO uniform type";
+            return false;
+        }
+    }
+
+    align_uniform_bytes(bytes, max_alignment);
+    return true;
+}
+
+bool
+build_ocio_vector_uniform_bindings(OcioShaderRuntime& runtime,
+                                   std::vector<MetalOcioVectorUniformBinding>& bindings,
+                                   std::string& error_message)
+{
+    bindings.clear();
+    error_message.clear();
+    if (runtime.shader_desc == nullptr)
+        return true;
+
+    NSUInteger buffer_index      = 2;
+    const unsigned num_uniforms  = runtime.shader_desc->getNumUniforms();
+    for (unsigned idx = 0; idx < num_uniforms; ++idx) {
+        OCIO::GpuShaderDesc::UniformData data;
+        const char* name = runtime.shader_desc->getUniform(idx, data);
+        if (data.m_type != OCIO::UNIFORM_VECTOR_FLOAT
+            && data.m_type != OCIO::UNIFORM_VECTOR_INT) {
+            continue;
+        }
+
+        MetalOcioVectorUniformBinding binding;
+        if (name != nullptr)
+            binding.name = name;
+        binding.type         = metal_ocio_uniform_type(data.m_type);
+        binding.buffer_index = buffer_index++;
+
+        if (data.m_type == OCIO::UNIFORM_VECTOR_FLOAT) {
+            const int count = data.m_vectorFloat.m_getSize
+                                  ? data.m_vectorFloat.m_getSize()
+                                  : 0;
+            if (count > 0 && data.m_vectorFloat.m_getVector) {
+                const float* src = data.m_vectorFloat.m_getVector();
+                const unsigned char* begin
+                    = reinterpret_cast<const unsigned char*>(src);
+                binding.bytes.assign(begin,
+                                     begin + static_cast<size_t>(count)
+                                                 * sizeof(float));
+            } else {
+                const float dummy = 0.0f;
+                const unsigned char* begin
+                    = reinterpret_cast<const unsigned char*>(&dummy);
+                binding.bytes.assign(begin, begin + sizeof(dummy));
+            }
+        } else {
+            const int count = data.m_vectorInt.m_getSize
+                                  ? data.m_vectorInt.m_getSize()
+                                  : 0;
+            if (count > 0 && data.m_vectorInt.m_getVector) {
+                const int* src = data.m_vectorInt.m_getVector();
+                const unsigned char* begin
+                    = reinterpret_cast<const unsigned char*>(src);
+                binding.bytes.assign(begin,
+                                     begin + static_cast<size_t>(count)
+                                                 * sizeof(int));
+            } else {
+                const int dummy = 0;
+                const unsigned char* begin
+                    = reinterpret_cast<const unsigned char*>(&dummy);
+                binding.bytes.assign(begin, begin + sizeof(dummy));
+            }
+        }
+
+        bindings.push_back(std::move(binding));
+    }
+
     return true;
 }
 
@@ -474,6 +832,506 @@ create_preview_pipeline(RendererBackendState& state, std::string& error_message)
 }
 
 bool
+build_ocio_preview_shader_source(const OcioShaderRuntime& runtime,
+                                 std::string& shader_source,
+                                 std::string& error_message)
+{
+    shader_source.clear();
+    error_message.clear();
+    if (runtime.shader_desc == nullptr || !runtime.blueprint.enabled
+        || runtime.blueprint.shader_text.empty()) {
+        error_message = "Metal OCIO shader blueprint is invalid";
+        return false;
+    }
+
+    std::ostringstream uniforms_struct;
+    std::ostringstream uniform_bindings;
+    std::ostringstream texture_bindings;
+    std::ostringstream call_params;
+    bool has_uniform_struct = false;
+    bool need_separator     = false;
+    NSUInteger vector_buffer_index = 2;
+
+    const unsigned num_uniforms = runtime.shader_desc->getNumUniforms();
+    for (unsigned idx = 0; idx < num_uniforms; ++idx) {
+        OCIO::GpuShaderDesc::UniformData data;
+        const char* uniform_name = runtime.shader_desc->getUniform(idx, data);
+        if (uniform_name == nullptr || uniform_name[0] == '\0') {
+            error_message = "Metal OCIO uniform name is missing";
+            return false;
+        }
+
+        switch (data.m_type) {
+        case OCIO::UNIFORM_DOUBLE:
+            uniforms_struct << "    float " << uniform_name << ";\n";
+            if (need_separator)
+                call_params << ", ";
+            call_params << "ocioUniformData." << uniform_name;
+            need_separator     = true;
+            has_uniform_struct = true;
+            break;
+        case OCIO::UNIFORM_BOOL:
+            uniforms_struct << "    int " << uniform_name << ";\n";
+            if (need_separator)
+                call_params << ", ";
+            call_params << "(ocioUniformData." << uniform_name << " != 0)";
+            need_separator     = true;
+            has_uniform_struct = true;
+            break;
+        case OCIO::UNIFORM_FLOAT3:
+            uniforms_struct << "    float4 " << uniform_name << ";\n";
+            if (need_separator)
+                call_params << ", ";
+            call_params << "ocioUniformData." << uniform_name << ".xyz";
+            need_separator     = true;
+            has_uniform_struct = true;
+            break;
+        case OCIO::UNIFORM_VECTOR_FLOAT:
+            uniforms_struct << "    int " << uniform_count_name(uniform_name)
+                            << ";\n";
+            uniform_bindings << ",    constant float* " << uniform_name
+                             << " [[buffer(" << vector_buffer_index++
+                             << ")]]\n";
+            if (need_separator)
+                call_params << ", ";
+            call_params << uniform_name << ", ocioUniformData."
+                        << uniform_count_name(uniform_name);
+            need_separator     = true;
+            has_uniform_struct = true;
+            break;
+        case OCIO::UNIFORM_VECTOR_INT:
+            uniforms_struct << "    int " << uniform_count_name(uniform_name)
+                            << ";\n";
+            uniform_bindings << ",    constant int* " << uniform_name
+                             << " [[buffer(" << vector_buffer_index++
+                             << ")]]\n";
+            if (need_separator)
+                call_params << ", ";
+            call_params << uniform_name << ", ocioUniformData."
+                        << uniform_count_name(uniform_name);
+            need_separator     = true;
+            has_uniform_struct = true;
+            break;
+        case OCIO::UNIFORM_UNKNOWN:
+        default:
+            error_message = "unsupported Metal OCIO uniform type";
+            return false;
+        }
+    }
+
+    NSUInteger texture_index = 1;
+    for (unsigned idx = 0; idx < runtime.shader_desc->getNum3DTextures();
+         ++idx) {
+        const char* texture_name = nullptr;
+        const char* sampler_name = nullptr;
+        unsigned edge_len        = 0;
+        OCIO::Interpolation interpolation = OCIO::INTERP_DEFAULT;
+        runtime.shader_desc->get3DTexture(idx, texture_name, sampler_name,
+                                          edge_len, interpolation);
+        if (texture_name == nullptr || sampler_name == nullptr) {
+            error_message = "Metal OCIO 3D LUT binding is missing";
+            return false;
+        }
+        texture_bindings << ",    texture3d<float> " << texture_name
+                         << " [[texture(" << texture_index << ")]]\n"
+                         << ",    sampler " << sampler_name << " [[sampler("
+                         << texture_index << ")]]\n";
+        if (need_separator)
+            call_params << ", ";
+        call_params << texture_name << ", " << sampler_name;
+        need_separator = true;
+        ++texture_index;
+    }
+
+    for (unsigned idx = 0; idx < runtime.shader_desc->getNumTextures();
+         ++idx) {
+        const char* texture_name = nullptr;
+        const char* sampler_name = nullptr;
+        unsigned width           = 0;
+        unsigned height          = 0;
+        OCIO::GpuShaderDesc::TextureType channel
+            = OCIO::GpuShaderDesc::TEXTURE_RGB_CHANNEL;
+        OCIO::GpuShaderCreator::TextureDimensions dimensions
+            = OCIO::GpuShaderCreator::TextureDimensions::TEXTURE_2D;
+        OCIO::Interpolation interpolation = OCIO::INTERP_DEFAULT;
+        runtime.shader_desc->getTexture(idx, texture_name, sampler_name, width,
+                                        height, channel, dimensions,
+                                        interpolation);
+        if (texture_name == nullptr || sampler_name == nullptr) {
+            error_message = "Metal OCIO LUT binding is missing";
+            return false;
+        }
+        texture_bindings
+            << ",    "
+            << (dimensions
+                        == OCIO::GpuShaderCreator::TextureDimensions::TEXTURE_2D
+                    ? "texture2d<float> "
+                    : "texture1d<float> ")
+            << texture_name << " [[texture(" << texture_index << ")]]\n"
+            << ",    sampler " << sampler_name << " [[sampler("
+            << texture_index << ")]]\n";
+        if (need_separator)
+            call_params << ", ";
+        call_params << texture_name << ", " << sampler_name;
+        need_separator = true;
+        ++texture_index;
+    }
+
+    if (need_separator)
+        call_params << ", ";
+    call_params << "rgba";
+
+    std::ostringstream source;
+    source << R"metal(#include <metal_stdlib>
+using namespace metal;
+
+struct VertexOut {
+    float4 position [[position]];
+    float2 uv;
+};
+
+struct PreviewUniforms {
+    float offset;
+    int color_mode;
+    int channel;
+    int input_channels;
+    int orientation;
+};
+)metal";
+
+    if (has_uniform_struct) {
+        source << "\nstruct OcioUniformData {\n" << uniforms_struct.str()
+               << "};\n";
+    }
+
+    source << R"metal(
+vertex VertexOut imivOcioPreviewVertex(uint vertex_id [[vertex_id]])
+{
+    const float2 positions[3] = { float2(-1.0, -1.0), float2(3.0, -1.0), float2(-1.0, 3.0) };
+    const float2 uvs[3] = { float2(0.0, 0.0), float2(2.0, 0.0), float2(0.0, 2.0) };
+    VertexOut out;
+    out.position = float4(positions[vertex_id], 0.0, 1.0);
+    out.uv = uvs[vertex_id];
+    return out;
+}
+
+inline float selected_channel(float4 rgba, int channel)
+{
+    if (channel == 1) return rgba.r;
+    if (channel == 2) return rgba.g;
+    if (channel == 3) return rgba.b;
+    if (channel == 4) return rgba.a;
+    return rgba.r;
+}
+
+inline float3 heatmap(float x)
+{
+    float t = clamp(x, 0.0, 1.0);
+    float3 a = float3(0.0, 0.0, 0.5);
+    float3 b = float3(0.0, 0.9, 1.0);
+    float3 c = float3(1.0, 1.0, 0.0);
+    float3 d = float3(1.0, 0.0, 0.0);
+    if (t < 0.33)
+        return mix(a, b, t / 0.33);
+    if (t < 0.66)
+        return mix(b, c, (t - 0.33) / 0.33);
+    return mix(c, d, (t - 0.66) / 0.34);
+}
+
+inline float2 display_to_source_uv(float2 uv, int orientation)
+{
+    switch (orientation) {
+    case 2: return float2(1.0 - uv.x, uv.y);
+    case 3: return float2(1.0 - uv.x, 1.0 - uv.y);
+    case 4: return float2(uv.x, 1.0 - uv.y);
+    case 5: return float2(uv.y, uv.x);
+    case 6: return float2(uv.y, 1.0 - uv.x);
+    case 7: return float2(1.0 - uv.y, 1.0 - uv.x);
+    case 8: return float2(1.0 - uv.y, uv.x);
+    default: return uv;
+    }
+}
+)metal";
+
+    source << runtime.blueprint.shader_text << "\n";
+    source << "fragment float4 imivOcioPreviewFragment(\n"
+           << "    VertexOut in [[stage_in]],\n"
+           << "    texture2d<float> source_texture [[texture(0)]],\n"
+           << "    sampler source_sampler [[sampler(0)]],\n"
+           << "    constant PreviewUniforms& preview [[buffer(0)]]\n";
+    if (has_uniform_struct) {
+        source << ",    constant OcioUniformData& ocioUniformData [[buffer(1)]]\n";
+    }
+    source << uniform_bindings.str();
+    source << texture_bindings.str();
+    source << ")\n{\n"
+           << "    float2 display_uv = float2(in.uv.x, 1.0 - in.uv.y);\n"
+           << "    float2 src_uv = display_to_source_uv(display_uv, preview.orientation);\n"
+           << "    float4 rgba = source_texture.sample(source_sampler, src_uv);\n"
+           << "    rgba.rgb += float3(preview.offset);\n"
+           << "    if (preview.color_mode == 1) {\n"
+           << "        rgba.a = 1.0;\n"
+           << "    } else if (preview.color_mode == 2) {\n"
+           << "        float value = selected_channel(rgba, preview.channel);\n"
+           << "        rgba = float4(value, value, value, 1.0);\n"
+           << "    } else if (preview.color_mode == 3) {\n"
+           << "        float value = dot(rgba.rgb, float3(0.2126, 0.7152, 0.0722));\n"
+           << "        rgba = float4(value, value, value, 1.0);\n"
+           << "    } else if (preview.color_mode == 4) {\n"
+           << "        float value = selected_channel(rgba, preview.channel);\n"
+           << "        rgba = float4(heatmap(value), 1.0);\n"
+           << "    }\n"
+           << "    if (preview.channel > 0 && preview.color_mode != 2 && preview.color_mode != 4) {\n"
+           << "        float value = selected_channel(rgba, preview.channel);\n"
+           << "        rgba = float4(value, value, value, 1.0);\n"
+           << "    }\n"
+           << "    if (preview.input_channels == 1 && preview.color_mode <= 1) {\n"
+           << "        rgba = float4(rgba.rrr, 1.0);\n"
+           << "    } else if (preview.input_channels == 2 && preview.color_mode == 0) {\n"
+           << "        rgba = float4(rgba.rrr, rgba.a);\n"
+           << "    } else if (preview.input_channels == 2 && preview.color_mode == 1) {\n"
+           << "        rgba = float4(rgba.rrr, 1.0);\n"
+           << "    }\n"
+           << "    return " << runtime.blueprint.function_name << "("
+           << call_params.str() << ");\n"
+           << "}\n";
+
+    shader_source = source.str();
+    return true;
+}
+
+bool
+upload_ocio_texture(id<MTLDevice> device, const OcioTextureBlueprint& blueprint,
+                    NSUInteger texture_index, MetalOcioTextureBinding& binding,
+                    std::string& error_message)
+{
+    binding               = {};
+    binding.texture_name  = blueprint.texture_name;
+    binding.sampler_name  = blueprint.sampler_name;
+    binding.texture_index = texture_index;
+    binding.sampler_index = texture_index;
+    if (!create_ocio_texture(device, blueprint, binding.texture, error_message))
+        return false;
+    binding.sampler = create_sampler_state(device, blueprint.interpolation);
+    if (binding.sampler == nil) {
+        binding.texture = nil;
+        error_message   = "failed to create Metal OCIO sampler state";
+        return false;
+    }
+    return true;
+}
+
+bool
+ensure_ocio_preview_program(RendererBackendState& state,
+                            const PlaceholderUiState& ui_state,
+                            const LoadedImage* image,
+                            std::string& error_message)
+{
+    if (!ensure_ocio_shader_runtime_metal(ui_state, image,
+                                          state.ocio_preview.runtime,
+                                          error_message)) {
+        return false;
+    }
+    if (state.ocio_preview.runtime == nullptr
+        || state.ocio_preview.runtime->shader_desc == nullptr) {
+        error_message = "Metal OCIO runtime is not initialized";
+        return false;
+    }
+
+    const OcioShaderBlueprint& blueprint
+        = state.ocio_preview.runtime->blueprint;
+    if (state.ocio_preview.ready
+        && state.ocio_preview.shader_cache_id == blueprint.shader_cache_id) {
+        return true;
+    }
+
+    destroy_ocio_preview_resources(state.ocio_preview);
+
+    std::string shader_source;
+    if (!build_ocio_preview_shader_source(*state.ocio_preview.runtime,
+                                          shader_source, error_message)) {
+        return false;
+    }
+
+    NSError* error = nil;
+    MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
+    if (@available(macOS 10.13, *))
+        [options setLanguageVersion:MTLLanguageVersion2_0];
+    [options setFastMathEnabled:NO];
+    state.ocio_preview.library = [state.device
+        newLibraryWithSource:[NSString stringWithUTF8String:shader_source.c_str()]
+                     options:options
+                       error:&error];
+    if (state.ocio_preview.library == nil) {
+        error_message = (error != nil && error.localizedDescription != nil)
+                            ? std::string(error.localizedDescription.UTF8String)
+                            : "failed to compile Metal OCIO shader";
+        return false;
+    }
+
+    id<MTLFunction> vertex_function = [state.ocio_preview.library
+        newFunctionWithName:@"imivOcioPreviewVertex"];
+    id<MTLFunction> fragment_function = [state.ocio_preview.library
+        newFunctionWithName:@"imivOcioPreviewFragment"];
+    if (vertex_function == nil || fragment_function == nil) {
+        error_message = "failed to create Metal OCIO shader functions";
+        return false;
+    }
+
+    MTLRenderPipelineDescriptor* descriptor
+        = [[MTLRenderPipelineDescriptor alloc] init];
+    descriptor.vertexFunction                  = vertex_function;
+    descriptor.fragmentFunction                = fragment_function;
+    descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+    state.ocio_preview.pipeline = [state.device
+        newRenderPipelineStateWithDescriptor:descriptor
+                                       error:&error];
+    if (state.ocio_preview.pipeline == nil) {
+        error_message = (error != nil && error.localizedDescription != nil)
+                            ? std::string(error.localizedDescription.UTF8String)
+                            : "failed to create Metal OCIO pipeline";
+        return false;
+    }
+
+    state.ocio_preview.textures.clear();
+    NSUInteger texture_index = 1;
+    for (const OcioTextureBlueprint& texture : blueprint.textures) {
+        if (texture.dimensions != OcioTextureDimensions::Tex3D)
+            continue;
+        MetalOcioTextureBinding binding;
+        if (!upload_ocio_texture(state.device, texture, texture_index++,
+                                 binding, error_message)) {
+            destroy_ocio_preview_resources(state.ocio_preview);
+            return false;
+        }
+        state.ocio_preview.textures.push_back(std::move(binding));
+    }
+    for (const OcioTextureBlueprint& texture : blueprint.textures) {
+        if (texture.dimensions == OcioTextureDimensions::Tex3D)
+            continue;
+        MetalOcioTextureBinding binding;
+        if (!upload_ocio_texture(state.device, texture, texture_index++,
+                                 binding, error_message)) {
+            destroy_ocio_preview_resources(state.ocio_preview);
+            return false;
+        }
+        state.ocio_preview.textures.push_back(std::move(binding));
+    }
+
+    if (!build_ocio_vector_uniform_bindings(*state.ocio_preview.runtime,
+                                            state.ocio_preview.vector_uniforms,
+                                            error_message)) {
+        destroy_ocio_preview_resources(state.ocio_preview);
+        return false;
+    }
+
+    state.ocio_preview.shader_cache_id = blueprint.shader_cache_id;
+    state.ocio_preview.ready           = true;
+    error_message.clear();
+    return true;
+}
+
+bool
+render_ocio_preview_texture(RendererBackendState& state,
+                            RendererTextureBackendState& texture_state,
+                            id<MTLTexture> target_texture,
+                            id<MTLSamplerState> source_sampler,
+                            const RendererPreviewControls& controls,
+                            std::string& error_message)
+{
+    if (state.command_queue == nil || state.ocio_preview.pipeline == nil
+        || source_sampler == nil || texture_state.source_texture == nil
+        || target_texture == nil || state.ocio_preview.runtime == nullptr) {
+        error_message = "Metal OCIO preview state is not initialized";
+        return false;
+    }
+
+    if (state.ocio_preview.runtime->exposure_property) {
+        state.ocio_preview.runtime->exposure_property->setValue(
+            static_cast<double>(controls.exposure));
+    }
+    if (state.ocio_preview.runtime->gamma_property) {
+        const double gamma
+            = 1.0 / std::max(1.0e-6, static_cast<double>(controls.gamma));
+        state.ocio_preview.runtime->gamma_property->setValue(gamma);
+    }
+
+    MetalPreviewUniforms preview_uniforms;
+    preview_uniforms.offset         = controls.offset;
+    preview_uniforms.color_mode     = controls.color_mode;
+    preview_uniforms.channel        = controls.channel;
+    preview_uniforms.input_channels = texture_state.input_channels;
+    preview_uniforms.orientation    = controls.orientation;
+
+    std::vector<unsigned char> scalar_uniform_bytes;
+    if (!build_ocio_scalar_uniform_bytes(*state.ocio_preview.runtime,
+                                         scalar_uniform_bytes,
+                                         error_message)) {
+        return false;
+    }
+    if (!build_ocio_vector_uniform_bindings(*state.ocio_preview.runtime,
+                                            state.ocio_preview.vector_uniforms,
+                                            error_message)) {
+        return false;
+    }
+
+    id<MTLCommandBuffer> command_buffer = [state.command_queue commandBuffer];
+    if (command_buffer == nil) {
+        error_message = "failed to create Metal OCIO command buffer";
+        return false;
+    }
+
+    MTLRenderPassDescriptor* pass = [MTLRenderPassDescriptor renderPassDescriptor];
+    pass.colorAttachments[0].texture     = target_texture;
+    pass.colorAttachments[0].loadAction  = MTLLoadActionDontCare;
+    pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+    id<MTLRenderCommandEncoder> encoder = [command_buffer
+        renderCommandEncoderWithDescriptor:pass];
+    if (encoder == nil) {
+        error_message = "failed to create Metal OCIO encoder";
+        return false;
+    }
+
+    [encoder setRenderPipelineState:state.ocio_preview.pipeline];
+    [encoder setFragmentTexture:texture_state.source_texture atIndex:0];
+    [encoder setFragmentSamplerState:source_sampler atIndex:0];
+    [encoder setFragmentBytes:&preview_uniforms
+                       length:sizeof(preview_uniforms)
+                      atIndex:0];
+    if (!scalar_uniform_bytes.empty()) {
+        [encoder setFragmentBytes:scalar_uniform_bytes.data()
+                           length:scalar_uniform_bytes.size()
+                          atIndex:1];
+    }
+
+    for (const MetalOcioVectorUniformBinding& binding :
+         state.ocio_preview.vector_uniforms) {
+        [encoder setFragmentBytes:binding.bytes.data()
+                           length:binding.bytes.size()
+                          atIndex:binding.buffer_index];
+    }
+    for (const MetalOcioTextureBinding& binding : state.ocio_preview.textures) {
+        [encoder setFragmentTexture:binding.texture atIndex:binding.texture_index];
+        [encoder setFragmentSamplerState:binding.sampler
+                                 atIndex:binding.sampler_index];
+    }
+
+    [encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                vertexStart:0
+                vertexCount:3];
+    [encoder endEncoding];
+    [command_buffer commit];
+    [command_buffer waitUntilCompleted];
+    if (command_buffer.status != MTLCommandBufferStatusCompleted) {
+        error_message = "Metal OCIO preview render failed";
+        return false;
+    }
+    error_message.clear();
+    return true;
+}
+
+bool
 render_preview_texture(RendererBackendState& state,
                        RendererTextureBackendState& texture_state,
                        id<MTLTexture> target_texture,
@@ -646,9 +1504,6 @@ renderer_backend_update_preview_texture(RendererState& renderer_state,
                                         const RendererPreviewControls& controls,
                                         std::string& error_message)
 {
-    (void)image;
-    (void)ui_state;
-
     RendererBackendState* renderer_backend = backend_state(renderer_state);
     RendererTextureBackendState* texture_state = texture_backend_state(texture);
     if (renderer_backend == nullptr || texture_state == nullptr) {
@@ -657,23 +1512,43 @@ renderer_backend_update_preview_texture(RendererState& renderer_state,
     }
 
     RendererPreviewControls effective_controls = controls;
-    effective_controls.use_ocio                = 0;
     if (!texture_state->preview_dirty && texture_state->preview_params_valid
         && preview_controls_equal(texture_state->last_preview_controls,
-                                  effective_controls)) {
+                                  effective_controls)
+        && effective_controls.use_ocio == 0) {
         texture.preview_initialized = true;
         error_message.clear();
         return true;
     }
 
-    if (!render_preview_texture(*renderer_backend, *texture_state,
-                                texture_state->preview_linear_texture,
-                                renderer_backend->linear_sampler,
-                                effective_controls, error_message)
-        || !render_preview_texture(*renderer_backend, *texture_state,
-                                   texture_state->preview_nearest_texture,
-                                   renderer_backend->nearest_sampler,
-                                   effective_controls, error_message)) {
+    bool used_ocio = false;
+    if (effective_controls.use_ocio != 0) {
+        std::string ocio_error;
+        if (ensure_ocio_preview_program(*renderer_backend, ui_state, image,
+                                        ocio_error)
+            && render_ocio_preview_texture(*renderer_backend, *texture_state,
+                                           texture_state->preview_linear_texture,
+                                           renderer_backend->linear_sampler,
+                                           effective_controls, ocio_error)
+            && render_ocio_preview_texture(*renderer_backend, *texture_state,
+                                           texture_state->preview_nearest_texture,
+                                           renderer_backend->nearest_sampler,
+                                           effective_controls, ocio_error)) {
+            used_ocio = true;
+        } else {
+            effective_controls.use_ocio = 0;
+        }
+    }
+
+    if (!used_ocio
+        && (!render_preview_texture(*renderer_backend, *texture_state,
+                                    texture_state->preview_linear_texture,
+                                    renderer_backend->linear_sampler,
+                                    effective_controls, error_message)
+            || !render_preview_texture(*renderer_backend, *texture_state,
+                                       texture_state->preview_nearest_texture,
+                                       renderer_backend->nearest_sampler,
+                                       effective_controls, error_message))) {
         texture.preview_initialized = false;
         return false;
     }
@@ -799,7 +1674,10 @@ renderer_backend_cleanup_window(RendererState& renderer_state)
 void
 renderer_backend_cleanup(RendererState& renderer_state)
 {
-    delete backend_state(renderer_state);
+    if (RendererBackendState* state = backend_state(renderer_state)) {
+        destroy_ocio_preview_program(state->ocio_preview);
+        delete state;
+    }
     renderer_state.backend = nullptr;
 }
 

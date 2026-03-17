@@ -486,6 +486,8 @@ namespace {
         runtime.shader_desc = OCIO::GpuShaderDesc::CreateShaderDesc();
         if (target == OcioShaderTarget::OpenGL)
             runtime.shader_desc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_1_3);
+        else if (target == OcioShaderTarget::Metal)
+            runtime.shader_desc->setLanguage(OCIO::GPU_LANGUAGE_MSL_2_0);
         else
             runtime.shader_desc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_VK_4_6);
         runtime.shader_desc->setFunctionName(
@@ -706,6 +708,17 @@ ensure_ocio_shader_runtime_glsl(const PlaceholderUiState& ui_state,
 {
     return ensure_ocio_shader_runtime_for_target(ui_state, image,
                                                  OcioShaderTarget::OpenGL,
+                                                 runtime, error_message);
+}
+
+bool
+ensure_ocio_shader_runtime_metal(const PlaceholderUiState& ui_state,
+                                 const LoadedImage* image,
+                                 OcioShaderRuntime*& runtime,
+                                 std::string& error_message)
+{
+    return ensure_ocio_shader_runtime_for_target(ui_state, image,
+                                                 OcioShaderTarget::Metal,
                                                  runtime, error_message);
 }
 
@@ -1027,6 +1040,18 @@ preflight_ocio_runtime_shader_glsl(const PlaceholderUiState& ui_state,
     OcioShaderRuntime* runtime = nullptr;
     const bool ok = ensure_ocio_shader_runtime_glsl(ui_state, image, runtime,
                                                     error_message);
+    destroy_ocio_shader_runtime(runtime);
+    return ok;
+}
+
+bool
+preflight_ocio_runtime_shader_metal(const PlaceholderUiState& ui_state,
+                                    const LoadedImage* image,
+                                    std::string& error_message)
+{
+    OcioShaderRuntime* runtime = nullptr;
+    const bool ok = ensure_ocio_shader_runtime_metal(ui_state, image, runtime,
+                                                     error_message);
     destroy_ocio_shader_runtime(runtime);
     return ok;
 }

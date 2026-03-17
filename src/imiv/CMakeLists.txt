@@ -978,6 +978,24 @@ if (TARGET imiv
             imiv_metal_screenshot_regression PROPERTIES
                 LABELS "imiv;imiv_metal;gui"
                 TIMEOUT 180)
+
+        if (TARGET oiiotool)
+            add_test (
+                NAME imiv_metal_orientation_regression
+                COMMAND
+                    "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_metal_orientation_regression.py"
+                    --bin "$<TARGET_FILE:imiv>"
+                    --cwd "$<TARGET_FILE_DIR:imiv>"
+                    --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                    --oiiotool "$<TARGET_FILE:oiiotool>"
+                    --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/metal_orientation_regression"
+                    --open "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png")
+            set_tests_properties (
+                imiv_metal_orientation_regression PROPERTIES
+                    LABELS "imiv;imiv_metal;gui"
+                    TIMEOUT 180)
+        endif ()
     endif ()
 
     if (EXISTS "${_imiv_ocio_live_update_config}")
