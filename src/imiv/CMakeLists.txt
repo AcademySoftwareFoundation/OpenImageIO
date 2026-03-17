@@ -596,9 +596,15 @@ if (_imiv_renderer_is_vulkan)
 elseif (_imiv_renderer_is_metal)
     set (_imiv_has_runtime_glslang OFF)
     record_build_dependency (
+        Vulkan NOTFOUND
+        NOT_FOUND_EXPLANATION
+            "(not required on Metal backend; select OIIO_IMIV_RENDERER=vulkan to check MoltenVK/Vulkan support)")
+    record_build_dependency (
         GLSLANG_RUNTIME NOTFOUND
         NOT_FOUND_EXPLANATION
-            "(runtime shader compilation disabled on Metal backend)")
+            "(runtime shader compilation not checked on Metal backend; only required for Vulkan runtime OCIO shaders)")
+    message (STATUS
+             "imiv: skipping Vulkan runtime shader tool discovery on Metal backend")
     find_library (OIIO_IMIV_COCOA_FRAMEWORK Cocoa)
     find_library (OIIO_IMIV_METAL_FRAMEWORK Metal)
     find_library (OIIO_IMIV_QUARTZCORE_FRAMEWORK QuartzCore)
@@ -616,9 +622,15 @@ elseif (_imiv_renderer_is_metal)
 elseif (_imiv_renderer_is_opengl)
     set (_imiv_has_runtime_glslang OFF)
     record_build_dependency (
+        Vulkan NOTFOUND
+        NOT_FOUND_EXPLANATION
+            "(not required on OpenGL backend; select OIIO_IMIV_RENDERER=vulkan to check Vulkan support)")
+    record_build_dependency (
         GLSLANG_RUNTIME NOTFOUND
         NOT_FOUND_EXPLANATION
-            "(runtime shader compilation disabled on OpenGL backend)")
+            "(runtime shader compilation not checked on OpenGL backend; only required for Vulkan runtime OCIO shaders)")
+    message (STATUS
+             "imiv: skipping Vulkan runtime shader tool discovery on OpenGL backend")
     find_package (OpenGL QUIET)
     if (TARGET OpenGL::GL)
         list (APPEND _imiv_link_libs OpenGL::GL)
@@ -632,9 +644,15 @@ elseif (_imiv_renderer_is_opengl)
 else ()
     set (_imiv_has_runtime_glslang OFF)
     record_build_dependency (
+        Vulkan NOTFOUND
+        NOT_FOUND_EXPLANATION
+            "(not required on selected backend)")
+    record_build_dependency (
         GLSLANG_RUNTIME NOTFOUND
         NOT_FOUND_EXPLANATION
-            "(runtime shader compilation disabled on selected backend)")
+            "(runtime shader compilation not checked on selected backend)")
+    message (STATUS
+             "imiv: skipping Vulkan runtime shader tool discovery on selected backend")
 endif ()
 
 if (MSVC)
