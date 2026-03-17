@@ -828,16 +828,51 @@ renderer_backend_screen_capture(ImGuiID viewport_id, int x, int y, int w,
 
     const int texture_width  = static_cast<int>(texture.width);
     const int texture_height = static_cast<int>(texture.height);
-    if (x < 0 || y < 0 || x + w > texture_width || y + h > texture_height)
+    int window_width         = 0;
+    int window_height        = 0;
+    if (state->window != nullptr)
+        glfwGetWindowSize(state->window, &window_width, &window_height);
+
+    const double scale_x = (window_width > 0)
+                               ? static_cast<double>(texture_width)
+                                     / static_cast<double>(window_width)
+                               : 1.0;
+    const double scale_y = (window_height > 0)
+                               ? static_cast<double>(texture_height)
+                                     / static_cast<double>(window_height)
+                               : 1.0;
+    const bool logical_rect = (window_width > 0 && window_height > 0 && w > 0
+                               && h > 0 && w <= window_width
+                               && h <= window_height
+                               && (std::abs(scale_x - 1.0) > 1.0e-3
+                                   || std::abs(scale_y - 1.0) > 1.0e-3));
+
+    const int src_x = logical_rect
+                          ? static_cast<int>(std::lround(x * scale_x))
+                          : x;
+    const int src_y = logical_rect
+                          ? static_cast<int>(std::lround(y * scale_y))
+                          : y;
+    const int src_w = logical_rect
+                          ? std::max(1, static_cast<int>(std::lround(
+                                           static_cast<double>(w) * scale_x)))
+                          : w;
+    const int src_h = logical_rect
+                          ? std::max(1, static_cast<int>(std::lround(
+                                           static_cast<double>(h) * scale_y)))
+                          : h;
+    if (src_x < 0 || src_y < 0 || src_x + src_w > texture_width
+        || src_y + src_h > texture_height) {
         return false;
+    }
 
     [state->current_encoder endEncoding];
     state->current_encoder = nil;
 
     const NSUInteger bytes_per_pixel = 4;
     const NSUInteger row_bytes = align_up(
-        static_cast<NSUInteger>(w) * bytes_per_pixel, 256);
-    const NSUInteger buffer_size = row_bytes * static_cast<NSUInteger>(h);
+        static_cast<NSUInteger>(src_w) * bytes_per_pixel, 256);
+    const NSUInteger buffer_size = row_bytes * static_cast<NSUInteger>(src_h);
 
     id<MTLBuffer> readback_buffer = [state->device
         newBufferWithLength:buffer_size
@@ -850,8 +885,8 @@ renderer_backend_screen_capture(ImGuiID viewport_id, int x, int y, int w,
     if (blit == nil)
         return false;
 
-    const MTLOrigin origin = MTLOriginMake(x, y, 0);
-    const MTLSize size     = MTLSizeMake(w, h, 1);
+    const MTLOrigin origin = MTLOriginMake(src_x, src_y, 0);
+    const MTLSize size     = MTLSizeMake(src_w, src_h, 1);
     [blit copyFromTexture:texture
               sourceSlice:0
               sourceLevel:0
@@ -876,15 +911,28 @@ renderer_backend_screen_capture(ImGuiID viewport_id, int x, int y, int w,
         return false;
 
     unsigned char* dst_bytes = reinterpret_cast<unsigned char*>(pixels);
+    const double sample_scale_x = static_cast<double>(src_w)
+                                  / static_cast<double>(w);
+    const double sample_scale_y = static_cast<double>(src_h)
+                                  / static_cast<double>(h);
     for (int row = 0; row < h; ++row) {
-        const unsigned char* src_row
-            = src_bytes + static_cast<size_t>(row)
-                              * static_cast<size_t>(row_bytes);
         unsigned char* dst_row = dst_bytes
                                  + static_cast<size_t>(row)
                                        * static_cast<size_t>(w) * 4;
+        const int sample_row = std::clamp(
+            static_cast<int>(std::floor((static_cast<double>(row) + 0.5)
+                                        * sample_scale_y)),
+            0, src_h - 1);
+        const unsigned char* src_row
+            = src_bytes + static_cast<size_t>(sample_row)
+                              * static_cast<size_t>(row_bytes);
         for (int col = 0; col < w; ++col) {
-            const unsigned char* src = src_row + static_cast<size_t>(col) * 4;
+            const int sample_col = std::clamp(
+                static_cast<int>(std::floor((static_cast<double>(col) + 0.5)
+                                            * sample_scale_x)),
+                0, src_w - 1);
+            const unsigned char* src
+                = src_row + static_cast<size_t>(sample_col) * 4;
             unsigned char* dst       = dst_row + static_cast<size_t>(col) * 4;
             dst[0]                   = src[2];
             dst[1]                   = src[1];
