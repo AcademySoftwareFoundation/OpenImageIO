@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+backend="metal"
+build_dir=""
+out_dir=""
+jobs="${IMIV_JOBS:-8}"
+image_path="${repo_root}/ASWF/logos/openimageio-stacked-gradient.png"
+trace=0
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --backend)
+            backend="$2"
+            shift 2
+            ;;
+        --build-dir)
+            build_dir="$2"
+            shift 2
+            ;;
+        --out-dir)
+            out_dir="$2"
+            shift 2
+            ;;
+        --jobs)
+            jobs="$2"
+            shift 2
+            ;;
+        --image)
+            image_path="$2"
+            shift 2
+            ;;
+        --trace)
+            trace=1
+            shift
+            ;;
+        -h|--help)
+            cat <<USAGE
+Usage: src/imiv/tools/imiv_macos_backend_verify.sh [options]
+
+Options:
+  --backend metal|opengl   Backend to configure and verify (default: metal)
+  --build-dir DIR          CMake build directory
+  --out-dir DIR            Output/log directory
+  --jobs N                 Parallel build jobs (default: IMIV_JOBS or 8)
+  --image PATH             Image to open for smoke runs
+  --trace                  Enable test-runner trace output
+USAGE
+            exit 0
+            ;;
+        *)
+            echo "error: unknown argument: $1" >&2
+            exit 2
+            ;;
+    esac
+done
+
+case "${backend}" in
+    metal|opengl)
+        ;;
+    *)
+        echo "error: unsupported backend '${backend}'; use metal or opengl" >&2
+        exit 2
+        ;;
+esac
+
+if [[ -z "${build_dir}" ]]; then
+    build_dir="${repo_root}/build_${backend}"
+fi
+if [[ -z "${out_dir}" ]]; then
+    out_dir="${build_dir}/imiv_captures/${backend}_verify"
+fi
+
+mkdir -p "${out_dir}"
+system_info_log="${out_dir}/system_info.txt"
+configure_log="${out_dir}/cmake_configure.log"
+build_log="${out_dir}/cmake_build.log"
+runner_log="${out_dir}/verify_runner.log"
+
+{
+    date
+    echo "repo_root=${repo_root}"
+    echo "backend=${backend}"
+    echo "build_dir=${build_dir}"
+    echo "out_dir=${out_dir}"
+    echo "image_path=${image_path}"
+    echo
+    uname -a || true
+    if command -v sw_vers >/dev/null 2>&1; then
+        echo
+        sw_vers || true
+    fi
+    if command -v sysctl >/dev/null 2>&1; then
+        echo
+        sysctl -n machdep.cpu.brand_string 2>/dev/null || true
+    fi
+    echo
+    xcode-select -p 2>/dev/null || true
+    echo
+    cmake --version || true
+    echo
+    clang++ --version || true
+    echo
+    python3 --version || true
+    echo
+    ninja --version || true
+    echo
+    echo "OCIO=${OCIO-}"
+    echo "VULKAN_SDK=${VULKAN_SDK-}"
+} > "${system_info_log}"
+
+cmake -S "${repo_root}" -B "${build_dir}" -D OIIO_IMIV_RENDERER="${backend}" \
+    2>&1 | tee "${configure_log}"
+cmake --build "${build_dir}" --target imiv --parallel "${jobs}" \
+    2>&1 | tee "${build_log}"
+
+bin_path=""
+for candidate in \
+    "${build_dir}/bin/imiv" \
+    "${build_dir}/src/imiv/imiv" \
+    "${build_dir}/Release/imiv" \
+    "${build_dir}/Debug/imiv"; do
+    if [[ -x "${candidate}" ]]; then
+        bin_path="${candidate}"
+        break
+    fi
+done
+if [[ -z "${bin_path}" ]]; then
+    echo "error: could not locate built imiv binary under ${build_dir}" >&2
+    exit 1
+fi
+
+runner_py=""
+case "${backend}" in
+    metal)
+        runner_py="${repo_root}/src/imiv/tools/imiv_metal_smoke_regression.py"
+        ;;
+    opengl)
+        runner_py="${repo_root}/src/imiv/tools/imiv_opengl_smoke_regression.py"
+        ;;
+esac
+
+cmd=(python3 "${runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime" --open "${image_path}")
+if [[ ${trace} -ne 0 ]]; then
+    cmd+=(--trace)
+fi
+"${cmd[@]}" 2>&1 | tee "${runner_log}"
+
+echo
+echo "Verification logs written to: ${out_dir}"
+echo "  system:    ${system_info_log}"
+echo "  configure: ${configure_log}"
+echo "  build:     ${build_log}"
+echo "  runner:    ${runner_log}"
+echo "  runtime:   ${out_dir}/runtime"

@@ -190,6 +190,7 @@ Current gaps:
 - no screenshot/readback
 - no OCIO path
 - no GPU-native Metal preview pipeline yet
+- no Metal-specific `ctest` target yet
 
 Planned direction:
 
@@ -204,6 +205,16 @@ Important constraints:
 - Dear ImGui Metal currently samples textures linearly, so nearest/closeup
   behavior is only partial until Metal-specific sampler control or a dedicated
   closeup preview path is added
+
+Manual verification:
+
+- backend configure/build/run wrapper:
+  - [imiv_macos_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_macos_backend_verify.sh)
+- Metal smoke regression without screenshot/readback dependency:
+  - [imiv_metal_smoke_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_smoke_regression.py)
+
+These are intended for macOS iteration until Metal-specific readback and
+automated `ctest` coverage exist.
 
 ## Feature Mapping Rules
 
