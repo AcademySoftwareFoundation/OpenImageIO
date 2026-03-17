@@ -428,6 +428,10 @@ run(const AppConfig& config)
         const bool ocio_preflight_ok
             = preflight_ocio_runtime_shader(ui_state, nullptr,
                                             ocio_preflight_error);
+#elif defined(IMIV_BACKEND_METAL_GLFW)
+        const bool ocio_preflight_ok
+            = preflight_ocio_runtime_shader_metal(ui_state, nullptr,
+                                                  ocio_preflight_error);
 #elif defined(IMIV_BACKEND_OPENGL_GLFW)
         const bool ocio_preflight_ok
             = preflight_ocio_runtime_shader_glsl(ui_state, nullptr,

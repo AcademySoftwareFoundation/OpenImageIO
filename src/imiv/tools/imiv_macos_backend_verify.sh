@@ -78,6 +78,7 @@ configure_log="${out_dir}/cmake_configure.log"
 build_log="${out_dir}/cmake_build.log"
 runner_log="${out_dir}/verify_runner.log"
 screenshot_runner_log="${out_dir}/verify_screenshot.log"
+orientation_runner_log="${out_dir}/verify_orientation.log"
 
 {
     date
@@ -134,10 +135,12 @@ fi
 
 runner_py=""
 screenshot_runner_py=""
+orientation_runner_py=""
 case "${backend}" in
     metal)
         runner_py="${repo_root}/src/imiv/tools/imiv_metal_smoke_regression.py"
         screenshot_runner_py="${repo_root}/src/imiv/tools/imiv_metal_screenshot_regression.py"
+        orientation_runner_py="${repo_root}/src/imiv/tools/imiv_metal_orientation_regression.py"
         ;;
     opengl)
         runner_py="${repo_root}/src/imiv/tools/imiv_opengl_smoke_regression.py"
@@ -164,6 +167,22 @@ if [[ -n "${screenshot_runner_py}" ]]; then
     "${screenshot_cmd[@]}" 2>&1 | tee "${screenshot_runner_log}"
 fi
 
+if [[ -n "${orientation_runner_py}" ]]; then
+    orientation_cmd=(python3 "${orientation_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime_orientation" --open "${image_path}")
+    if [[ -x "${build_dir}/bin/oiiotool" ]]; then
+        orientation_cmd+=(--oiiotool "${build_dir}/bin/oiiotool")
+    elif [[ -x "${build_dir}/src/oiiotool/oiiotool" ]]; then
+        orientation_cmd+=(--oiiotool "${build_dir}/src/oiiotool/oiiotool")
+    fi
+    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
+        orientation_cmd+=(--env-script "${build_dir}/imiv_env.sh")
+    fi
+    if [[ ${trace} -ne 0 ]]; then
+        orientation_cmd+=(--trace)
+    fi
+    "${orientation_cmd[@]}" 2>&1 | tee "${orientation_runner_log}"
+fi
+
 echo
 echo "Verification logs written to: ${out_dir}"
 echo "  system:    ${system_info_log}"
@@ -173,5 +192,9 @@ echo "  runner:    ${runner_log}"
 if [[ -n "${screenshot_runner_py}" ]]; then
 echo "  screenshot:${screenshot_runner_log}"
 echo "  runtime+ss:${out_dir}/runtime_screenshot"
+fi
+if [[ -n "${orientation_runner_py}" ]]; then
+echo "  orient:    ${orientation_runner_log}"
+echo "  runtime+or:${out_dir}/runtime_orientation"
 fi
 echo "  runtime:   ${out_dir}/runtime"

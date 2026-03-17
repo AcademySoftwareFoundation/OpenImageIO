@@ -182,26 +182,25 @@ Current scope:
 - Metal device / command queue creation
 - CAMetalLayer setup
 - Dear ImGui Metal backend hookup
-- CPU preview generation uploaded into Metal textures
-- basic preview controls through the shared renderer contract
+- GPU-native Metal preview rendering for the shared preview controls
+- Metal screenshot/readback for GUI verification
+- initial Metal OCIO runtime path using OCIO MSL output
 
 Current gaps:
 
-- no OCIO path
-- no GPU-native Metal preview pipeline yet
-- screenshot/readback is implemented for manual macOS verification, but not yet
-  broadly covered by regular automated tests
+- Metal OCIO still needs broader macOS validation
+- nearest/closeup behavior is still partial because Dear ImGui Metal samples
+  textures linearly
+- no Metal live-OCIO regression coverage yet
 
 Planned direction:
 
 - use backend-native Metal rendering
 - do not try to reuse Vulkan pipeline code directly
-- OCIO should later use OCIO MSL output, not the Vulkan shader path
+- keep Metal OCIO on the MSL path, not the Vulkan shader path
 
 Important constraints:
 
-- the current Metal path is a bring-up path for immediate macOS verification,
-  not the final performance path
 - Dear ImGui Metal currently samples textures linearly, so nearest/closeup
   behavior is only partial until Metal-specific sampler control or a dedicated
   closeup preview path is added
@@ -214,14 +213,14 @@ Manual verification:
   - [imiv_metal_smoke_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_smoke_regression.py)
 - Metal screenshot smoke regression:
   - [imiv_metal_screenshot_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_screenshot_regression.py)
+- Metal orientation regression:
+  - [imiv_metal_orientation_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_orientation_regression.py)
 
 Current automated coverage:
 
 - when configured with `OIIO_IMIV_RENDERER=metal`, `ctest` can run:
   - `imiv_metal_screenshot_regression`
-
-These are intended for macOS iteration until Metal-specific readback and
-automated `ctest` coverage exist.
+  - `imiv_metal_orientation_regression`
 
 ## Feature Mapping Rules
 
@@ -240,7 +239,6 @@ These should stay consistent across backends where the feature exists.
    - exposure/gamma/offset
 3. Backend-specific gaps should degrade explicitly, not silently.
    Examples:
-   - Metal currently disables OCIO
    - non-implemented screenshot paths should report that clearly
 
 ## Current Priority Order
