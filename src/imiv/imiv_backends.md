@@ -67,14 +67,14 @@ Legend:
 |---|---|---|---|
 | App bootstrap and main window | Yes | Yes | Yes |
 | Dear ImGui backend | Yes | Yes | Yes |
-| Direct image upload | Yes | Yes | No |
-| Preview rendering | Yes | Yes | No |
-| Exposure / gamma / offset | Yes | Yes | No |
-| Channel / luma / heatmap modes | Yes | Yes | No |
-| Orientation-aware preview | Yes | Yes | No |
-| Linear / nearest preview sampling | Yes | Yes | No |
-| Pixel closeup window | Yes | Yes | No |
-| Area Sample / selection UI | Yes | Yes | No |
+| Direct image upload | Yes | Yes | Partial |
+| Preview rendering | Yes | Yes | Partial |
+| Exposure / gamma / offset | Yes | Yes | Partial |
+| Channel / luma / heatmap modes | Yes | Yes | Partial |
+| Orientation-aware preview | Yes | Yes | Partial |
+| Linear / nearest preview sampling | Yes | Yes | Partial |
+| Pixel closeup window | Yes | Yes | Partial |
+| Area Sample / selection UI | Yes | Yes | Partial |
 | Drag and drop | Yes | Yes | Yes |
 | Screenshot / readback | Yes | Yes | No |
 | OCIO display/view | Yes | Yes | No |
@@ -145,8 +145,6 @@ Current design:
 
 Current gaps:
 
-- no live OCIO display/view update regression equivalent to Vulkan yet
-- no dedicated OpenGL selection/interaction regression target yet
 - no Metal-equivalent backend parity to compare against
 
 Current coverage:
@@ -158,19 +156,21 @@ Current coverage:
 - OCIO config selection and builtin/global/user fallback
 - OCIO GLSL preview path
 - OpenGL-only screenshot smoke regression
+- OpenGL live OCIO update regressions
+- OpenGL selection regression target
 
 OCIO notes:
 
 - startup preflight for OpenGL now validates the OCIO runtime/config path
   without using Vulkan SPIR-V compilation
-- OpenGL OCIO regressions currently rely on the shared config/fallback tests,
-  not the Vulkan-only runtime-glslang live-update tests
+- OpenGL OCIO regressions now include dedicated live view/display switching
+  coverage without relying on Vulkan runtime glslang
 
 ## Metal
 
 Status:
 
-- `Skeleton`
+- `Development`
 
 Implementation:
 
@@ -182,19 +182,28 @@ Current scope:
 - Metal device / command queue creation
 - CAMetalLayer setup
 - Dear ImGui Metal backend hookup
+- CPU preview generation uploaded into Metal textures
+- basic preview controls through the shared renderer contract
 
 Current gaps:
 
-- no image upload
-- no preview rendering
 - no screenshot/readback
 - no OCIO path
+- no GPU-native Metal preview pipeline yet
 
 Planned direction:
 
 - use backend-native Metal rendering
 - do not try to reuse Vulkan pipeline code directly
 - OCIO should later use OCIO MSL output, not the Vulkan shader path
+
+Important constraints:
+
+- the current Metal path is a bring-up path for immediate macOS verification,
+  not the final performance path
+- Dear ImGui Metal currently samples textures linearly, so nearest/closeup
+  behavior is only partial until Metal-specific sampler control or a dedicated
+  closeup preview path is added
 
 ## Feature Mapping Rules
 
