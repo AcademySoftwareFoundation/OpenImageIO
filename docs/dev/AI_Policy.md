@@ -67,10 +67,10 @@ describe it to others.
 
 **Disclosure is required.** Use of coding assistants to generate more than de
 minimis changes should have a short disclosure in the PR submission comments.
-Commits should have a "Assisted-by: " sign-off as a minimum. Ideally, the PR
-description will also have a summary of what tool was used, for what purpose,
-and paraphrase the gist of the key prompts or direction of the dialog. A full
-log is not necessary; a short summary will do.
+Commits should have a "Assisted-by: TOOL / MODEL" line as a minimum. Ideally,
+the PR description will also have a summary of what tool was used, for what
+purpose, and paraphrase the gist of the key prompts or direction of the
+dialog. A full log is not necessary; a short summary will do.
 
 There are several reasons for this disclosure/documentation, even though it
 will sometimes be inconvenient:
