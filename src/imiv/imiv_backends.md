@@ -76,7 +76,7 @@ Legend:
 | Pixel closeup window | Yes | Yes | Partial |
 | Area Sample / selection UI | Yes | Yes | Partial |
 | Drag and drop | Yes | Yes | Yes |
-| Screenshot / readback | Yes | Yes | No |
+| Screenshot / readback | Yes | Yes | Partial |
 | OCIO display/view | Yes | Yes | No |
 | Runtime OCIO config switching | Yes | Partial | No |
 | Automated GUI regression coverage | Yes | Partial | No |
@@ -187,10 +187,11 @@ Current scope:
 
 Current gaps:
 
-- no screenshot/readback
 - no OCIO path
 - no GPU-native Metal preview pipeline yet
 - no Metal-specific `ctest` target yet
+- screenshot/readback is implemented for manual macOS verification, but not yet
+  covered by regular automated tests
 
 Planned direction:
 
@@ -212,6 +213,8 @@ Manual verification:
   - [imiv_macos_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_macos_backend_verify.sh)
 - Metal smoke regression without screenshot/readback dependency:
   - [imiv_metal_smoke_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_smoke_regression.py)
+- Metal screenshot smoke regression:
+  - [imiv_metal_screenshot_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_screenshot_regression.py)
 
 These are intended for macOS iteration until Metal-specific readback and
 automated `ctest` coverage exist.

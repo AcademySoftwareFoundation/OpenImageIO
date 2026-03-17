@@ -77,6 +77,7 @@ system_info_log="${out_dir}/system_info.txt"
 configure_log="${out_dir}/cmake_configure.log"
 build_log="${out_dir}/cmake_build.log"
 runner_log="${out_dir}/verify_runner.log"
+screenshot_runner_log="${out_dir}/verify_screenshot.log"
 
 {
     date
@@ -132,9 +133,11 @@ if [[ -z "${bin_path}" ]]; then
 fi
 
 runner_py=""
+screenshot_runner_py=""
 case "${backend}" in
     metal)
         runner_py="${repo_root}/src/imiv/tools/imiv_metal_smoke_regression.py"
+        screenshot_runner_py="${repo_root}/src/imiv/tools/imiv_metal_screenshot_regression.py"
         ;;
     opengl)
         runner_py="${repo_root}/src/imiv/tools/imiv_opengl_smoke_regression.py"
@@ -150,10 +153,25 @@ if [[ ${trace} -ne 0 ]]; then
 fi
 "${cmd[@]}" 2>&1 | tee "${runner_log}"
 
+if [[ -n "${screenshot_runner_py}" ]]; then
+    screenshot_cmd=(python3 "${screenshot_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime_screenshot" --open "${image_path}")
+    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
+        screenshot_cmd+=(--env-script "${build_dir}/imiv_env.sh")
+    fi
+    if [[ ${trace} -ne 0 ]]; then
+        screenshot_cmd+=(--trace)
+    fi
+    "${screenshot_cmd[@]}" 2>&1 | tee "${screenshot_runner_log}"
+fi
+
 echo
 echo "Verification logs written to: ${out_dir}"
 echo "  system:    ${system_info_log}"
 echo "  configure: ${configure_log}"
 echo "  build:     ${build_log}"
 echo "  runner:    ${runner_log}"
+if [[ -n "${screenshot_runner_py}" ]]; then
+echo "  screenshot:${screenshot_runner_log}"
+echo "  runtime+ss:${out_dir}/runtime_screenshot"
+fi
 echo "  runtime:   ${out_dir}/runtime"
