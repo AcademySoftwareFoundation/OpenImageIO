@@ -30,6 +30,7 @@
 namespace Imiv {
 
 struct RendererTextureBackendState {
+    __strong id<MTLTexture> source_texture          = nil;
     __strong id<MTLTexture> preview_linear_texture  = nil;
     __strong id<MTLTexture> preview_nearest_texture = nil;
     int width                                       = 0;
@@ -39,7 +40,6 @@ struct RendererTextureBackendState {
     bool preview_params_valid                       = false;
     RendererPreviewControls last_preview_controls   = {};
     std::vector<float> source_rgba_pixels;
-    std::vector<float> preview_rgba_pixels;
 };
 
 struct RendererBackendState {
@@ -51,7 +51,22 @@ struct RendererBackendState {
     id<CAMetalDrawable> current_drawable         = nil;
     id<MTLCommandBuffer> current_command_buffer  = nil;
     id<MTLRenderCommandEncoder> current_encoder  = nil;
+    __strong id<MTLLibrary> preview_library      = nil;
+    __strong id<MTLRenderPipelineState> preview_pipeline = nil;
+    __strong id<MTLSamplerState> linear_sampler  = nil;
+    __strong id<MTLSamplerState> nearest_sampler = nil;
     bool imgui_initialized                       = false;
+};
+
+struct MetalPreviewUniforms {
+    float exposure       = 0.0f;
+    float gamma          = 1.0f;
+    float offset         = 0.0f;
+    int color_mode       = 0;
+    int channel          = 0;
+    int input_channels   = 0;
+    int orientation      = 1;
+    int _padding         = 0;
 };
 
 namespace {
@@ -195,178 +210,44 @@ build_rgba_float_pixels(const LoadedImage& image,
     return true;
 }
 
-inline float
-selected_channel(const float* rgba, int channel)
+bool
+create_source_texture(id<MTLDevice> device, int width, int height,
+                      const std::vector<float>& rgba_pixels,
+                      id<MTLTexture>& texture, std::string& error_message)
 {
-    if (channel == 1)
-        return rgba[0];
-    if (channel == 2)
-        return rgba[1];
-    if (channel == 3)
-        return rgba[2];
-    if (channel == 4)
-        return rgba[3];
-    return rgba[0];
-}
-
-void
-heatmap(float x, float* rgb)
-{
-    const float t = std::clamp(x, 0.0f, 1.0f);
-    const float a[3] = { 0.0f, 0.0f, 0.5f };
-    const float b[3] = { 0.0f, 0.9f, 1.0f };
-    const float c[3] = { 1.0f, 1.0f, 0.0f };
-    const float d[3] = { 1.0f, 0.0f, 0.0f };
-    const float* lhs = a;
-    const float* rhs = b;
-    float u          = 0.0f;
-    if (t < 0.33f) {
-        lhs = a;
-        rhs = b;
-        u   = t / 0.33f;
-    } else if (t < 0.66f) {
-        lhs = b;
-        rhs = c;
-        u   = (t - 0.33f) / 0.33f;
-    } else {
-        lhs = c;
-        rhs = d;
-        u   = (t - 0.66f) / 0.34f;
+    texture = nil;
+    if (device == nil || width <= 0 || height <= 0) {
+        error_message = "invalid Metal source texture parameters";
+        return false;
     }
-    rgb[0] = lhs[0] + (rhs[0] - lhs[0]) * u;
-    rgb[1] = lhs[1] + (rhs[1] - lhs[1]) * u;
-    rgb[2] = lhs[2] + (rhs[2] - lhs[2]) * u;
-}
-
-inline void
-display_to_source_uv(float u, float v, int orientation, float& src_u,
-                     float& src_v)
-{
-    if (orientation == 2) {
-        src_u = 1.0f - u;
-        src_v = v;
-    } else if (orientation == 3) {
-        src_u = 1.0f - u;
-        src_v = 1.0f - v;
-    } else if (orientation == 4) {
-        src_u = u;
-        src_v = 1.0f - v;
-    } else if (orientation == 5) {
-        src_u = v;
-        src_v = u;
-    } else if (orientation == 6) {
-        src_u = v;
-        src_v = 1.0f - u;
-    } else if (orientation == 7) {
-        src_u = 1.0f - v;
-        src_v = 1.0f - u;
-    } else if (orientation == 8) {
-        src_u = 1.0f - v;
-        src_v = u;
-    } else {
-        src_u = u;
-        src_v = v;
+    const size_t expected = static_cast<size_t>(width) * height * 4;
+    if (rgba_pixels.size() != expected) {
+        error_message = "invalid Metal source pixel buffer size";
+        return false;
     }
-}
-
-inline const float*
-sample_source_pixel(const RendererTextureBackendState& state, float u, float v)
-{
-    const int sx = std::clamp(static_cast<int>(u * state.width), 0,
-                              state.width - 1);
-    const int sy = std::clamp(static_cast<int>(v * state.height), 0,
-                              state.height - 1);
-    const size_t offset = (static_cast<size_t>(sy) * state.width
-                           + static_cast<size_t>(sx))
-                          * 4;
-    return state.source_rgba_pixels.data() + offset;
-}
-
-void
-generate_preview_pixels(const RendererTextureBackendState& state,
-                        const RendererPreviewControls& controls,
-                        std::vector<float>& preview_pixels)
-{
-    preview_pixels.assign(static_cast<size_t>(state.width) * state.height * 4,
-                          1.0f);
-    const float exposure_scale = std::exp2(controls.exposure);
-    const float gamma          = std::max(controls.gamma, 0.01f);
-
-    for (int y = 0; y < state.height; ++y) {
-        const float v = (static_cast<float>(y) + 0.5f)
-                        / static_cast<float>(state.height);
-        for (int x = 0; x < state.width; ++x) {
-            const float u = (static_cast<float>(x) + 0.5f)
-                            / static_cast<float>(state.width);
-            float src_u = u;
-            float src_v = v;
-            display_to_source_uv(u, v, controls.orientation, src_u, src_v);
-
-            const float* src = sample_source_pixel(state, src_u, src_v);
-            float rgba[4]    = { src[0], src[1], src[2], src[3] };
-            rgba[0] += controls.offset;
-            rgba[1] += controls.offset;
-            rgba[2] += controls.offset;
-
-            if (controls.color_mode == 1) {
-                rgba[3] = 1.0f;
-            } else if (controls.color_mode == 2) {
-                const float value = selected_channel(rgba, controls.channel);
-                rgba[0]           = value;
-                rgba[1]           = value;
-                rgba[2]           = value;
-                rgba[3]           = 1.0f;
-            } else if (controls.color_mode == 3) {
-                const float value = rgba[0] * 0.2126f + rgba[1] * 0.7152f
-                                    + rgba[2] * 0.0722f;
-                rgba[0] = value;
-                rgba[1] = value;
-                rgba[2] = value;
-                rgba[3] = 1.0f;
-            } else if (controls.color_mode == 4) {
-                const float value = selected_channel(rgba, controls.channel);
-                heatmap(value, rgba);
-                rgba[3] = 1.0f;
-            }
-
-            if (controls.channel > 0 && controls.color_mode != 2
-                && controls.color_mode != 4) {
-                const float value = selected_channel(rgba, controls.channel);
-                rgba[0]           = value;
-                rgba[1]           = value;
-                rgba[2]           = value;
-                rgba[3]           = 1.0f;
-            }
-
-            if (state.input_channels == 1 && controls.color_mode <= 1) {
-                rgba[1] = rgba[0];
-                rgba[2] = rgba[0];
-                rgba[3] = 1.0f;
-            } else if (state.input_channels == 2 && controls.color_mode == 0) {
-                rgba[1] = rgba[0];
-                rgba[2] = rgba[0];
-            } else if (state.input_channels == 2 && controls.color_mode == 1) {
-                rgba[1] = rgba[0];
-                rgba[2] = rgba[0];
-                rgba[3] = 1.0f;
-            }
-
-            rgba[0] = std::pow(std::max(rgba[0] * exposure_scale, 0.0f),
-                               1.0f / gamma);
-            rgba[1] = std::pow(std::max(rgba[1] * exposure_scale, 0.0f),
-                               1.0f / gamma);
-            rgba[2] = std::pow(std::max(rgba[2] * exposure_scale, 0.0f),
-                               1.0f / gamma);
-
-            const size_t dst_offset = (static_cast<size_t>(y) * state.width
-                                       + static_cast<size_t>(x))
-                                      * 4;
-            preview_pixels[dst_offset + 0] = rgba[0];
-            preview_pixels[dst_offset + 1] = rgba[1];
-            preview_pixels[dst_offset + 2] = rgba[2];
-            preview_pixels[dst_offset + 3] = rgba[3];
-        }
+    MTLTextureDescriptor* descriptor
+        = [MTLTextureDescriptor
+            texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA32Float
+                                         width:static_cast<NSUInteger>(width)
+                                        height:static_cast<NSUInteger>(height)
+                                     mipmapped:NO];
+    descriptor.usage       = MTLTextureUsageShaderRead;
+    descriptor.storageMode = MTLStorageModeShared;
+    texture          = [device newTextureWithDescriptor:descriptor];
+    if (texture == nil) {
+        error_message = "failed to create Metal source texture";
+        return false;
     }
+    const MTLRegion region
+        = MTLRegionMake2D(0, 0, static_cast<NSUInteger>(width),
+                          static_cast<NSUInteger>(height));
+    [texture replaceRegion:region
+               mipmapLevel:0
+                 withBytes:rgba_pixels.data()
+               bytesPerRow:static_cast<NSUInteger>(width * 4
+                                                   * sizeof(float))];
+    error_message.clear();
+    return true;
 }
 
 bool
@@ -380,11 +261,11 @@ create_preview_texture(id<MTLDevice> device, int width, int height,
     }
     MTLTextureDescriptor* descriptor
         = [MTLTextureDescriptor
-            texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA32Float
+            texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
                                          width:static_cast<NSUInteger>(width)
                                         height:static_cast<NSUInteger>(height)
                                      mipmapped:NO];
-    descriptor.usage = MTLTextureUsageShaderRead;
+    descriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
     texture          = [device newTextureWithDescriptor:descriptor];
     if (texture == nil) {
         error_message = "failed to create Metal preview texture";
@@ -394,26 +275,258 @@ create_preview_texture(id<MTLDevice> device, int width, int height,
     return true;
 }
 
-bool
-upload_preview_pixels(id<MTLTexture> texture, int width, int height,
-                      const std::vector<float>& preview_pixels,
-                      std::string& error_message)
+NSString*
+preview_shader_source()
 {
-    if (texture == nil || width <= 0 || height <= 0) {
-        error_message = "invalid Metal texture upload state";
+    static const char* source = R"metal(
+#include <metal_stdlib>
+using namespace metal;
+
+struct VertexOut {
+    float4 position [[position]];
+    float2 uv;
+};
+
+struct PreviewUniforms {
+    float exposure;
+    float gamma;
+    float offset;
+    int color_mode;
+    int channel;
+    int input_channels;
+    int orientation;
+    int _padding;
+};
+
+vertex VertexOut imivPreviewVertex(uint vertex_id [[vertex_id]])
+{
+    const float2 positions[3] = { float2(-1.0, -1.0), float2(3.0, -1.0), float2(-1.0, 3.0) };
+    const float2 uvs[3] = { float2(0.0, 0.0), float2(2.0, 0.0), float2(0.0, 2.0) };
+    VertexOut out;
+    out.position = float4(positions[vertex_id], 0.0, 1.0);
+    out.uv = uvs[vertex_id];
+    return out;
+}
+
+inline float selected_channel(float4 rgba, int channel)
+{
+    if (channel == 1) return rgba.r;
+    if (channel == 2) return rgba.g;
+    if (channel == 3) return rgba.b;
+    if (channel == 4) return rgba.a;
+    return rgba.r;
+}
+
+inline float3 heatmap(float x)
+{
+    float t = clamp(x, 0.0, 1.0);
+    float3 a = float3(0.0, 0.0, 0.5);
+    float3 b = float3(0.0, 0.9, 1.0);
+    float3 c = float3(1.0, 1.0, 0.0);
+    float3 d = float3(1.0, 0.0, 0.0);
+    if (t < 0.33)
+        return mix(a, b, t / 0.33);
+    if (t < 0.66)
+        return mix(b, c, (t - 0.33) / 0.33);
+    return mix(c, d, (t - 0.66) / 0.34);
+}
+
+inline float2 display_to_source_uv(float2 uv, int orientation)
+{
+    switch (orientation) {
+    case 2: return float2(1.0 - uv.x, uv.y);
+    case 3: return float2(1.0 - uv.x, 1.0 - uv.y);
+    case 4: return float2(uv.x, 1.0 - uv.y);
+    case 5: return float2(uv.y, uv.x);
+    case 6: return float2(uv.y, 1.0 - uv.x);
+    case 7: return float2(1.0 - uv.y, 1.0 - uv.x);
+    case 8: return float2(1.0 - uv.y, uv.x);
+    default: return uv;
+    }
+}
+
+fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
+                                    texture2d<float> source_texture [[texture(0)]],
+                                    sampler source_sampler [[sampler(0)]],
+                                    constant PreviewUniforms& uniforms [[buffer(0)]])
+{
+    float2 src_uv = display_to_source_uv(in.uv, uniforms.orientation);
+    float4 rgba = source_texture.sample(source_sampler, src_uv);
+    rgba.r += uniforms.offset;
+    rgba.g += uniforms.offset;
+    rgba.b += uniforms.offset;
+
+    if (uniforms.color_mode == 1) {
+        rgba.a = 1.0;
+    } else if (uniforms.color_mode == 2) {
+        float value = selected_channel(rgba, uniforms.channel);
+        rgba = float4(value, value, value, 1.0);
+    } else if (uniforms.color_mode == 3) {
+        float value = dot(rgba.rgb, float3(0.2126, 0.7152, 0.0722));
+        rgba = float4(value, value, value, 1.0);
+    } else if (uniforms.color_mode == 4) {
+        float value = selected_channel(rgba, uniforms.channel);
+        rgba = float4(heatmap(value), 1.0);
+    }
+
+    if (uniforms.channel > 0 && uniforms.color_mode != 2 && uniforms.color_mode != 4) {
+        float value = selected_channel(rgba, uniforms.channel);
+        rgba = float4(value, value, value, 1.0);
+    }
+
+    if (uniforms.input_channels == 1 && uniforms.color_mode <= 1) {
+        rgba.g = rgba.r;
+        rgba.b = rgba.r;
+        rgba.a = 1.0;
+    } else if (uniforms.input_channels == 2 && uniforms.color_mode == 0) {
+        rgba.g = rgba.r;
+        rgba.b = rgba.r;
+    } else if (uniforms.input_channels == 2 && uniforms.color_mode == 1) {
+        rgba.g = rgba.r;
+        rgba.b = rgba.r;
+        rgba.a = 1.0;
+    }
+
+    float exposure_scale = exp2(uniforms.exposure);
+    float inv_gamma = 1.0 / max(uniforms.gamma, 0.01f);
+    rgba.rgb = pow(max(rgba.rgb * exposure_scale, float3(0.0)), float3(inv_gamma));
+    rgba.rgb = clamp(rgba.rgb, 0.0, 1.0);
+    rgba.a = clamp(rgba.a, 0.0, 1.0);
+    return rgba;
+}
+)metal";
+    return [NSString stringWithUTF8String:source];
+}
+
+bool
+create_preview_pipeline(RendererBackendState& state, std::string& error_message)
+{
+    if (state.device == nil) {
+        error_message = "Metal device is not initialized";
         return false;
     }
-    const size_t expected = static_cast<size_t>(width) * height * 4;
-    if (preview_pixels.size() != expected) {
-        error_message = "invalid Metal preview pixel buffer size";
+    NSError* error = nil;
+    MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
+    state.preview_library = [state.device
+        newLibraryWithSource:preview_shader_source()
+                     options:options
+                       error:&error];
+    if (state.preview_library == nil) {
+        error_message = (error != nil && error.localizedDescription != nil)
+                            ? std::string(
+                                  error.localizedDescription.UTF8String)
+                            : "failed to compile Metal preview shader";
         return false;
     }
-    const MTLRegion region = MTLRegionMake2D(0, 0, static_cast<NSUInteger>(width),
-                                             static_cast<NSUInteger>(height));
-    [texture replaceRegion:region
-               mipmapLevel:0
-                 withBytes:preview_pixels.data()
-               bytesPerRow:static_cast<NSUInteger>(width * 4 * sizeof(float))];
+
+    id<MTLFunction> vertex_function = [state.preview_library
+        newFunctionWithName:@"imivPreviewVertex"];
+    id<MTLFunction> fragment_function = [state.preview_library
+        newFunctionWithName:@"imivPreviewFragment"];
+    if (vertex_function == nil || fragment_function == nil) {
+        error_message = "failed to create Metal preview shader functions";
+        return false;
+    }
+
+    MTLRenderPipelineDescriptor* descriptor
+        = [[MTLRenderPipelineDescriptor alloc] init];
+    descriptor.vertexFunction                 = vertex_function;
+    descriptor.fragmentFunction               = fragment_function;
+    descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+    state.preview_pipeline = [state.device
+        newRenderPipelineStateWithDescriptor:descriptor
+                                       error:&error];
+    if (state.preview_pipeline == nil) {
+        error_message = (error != nil && error.localizedDescription != nil)
+                            ? std::string(
+                                  error.localizedDescription.UTF8String)
+                            : "failed to create Metal preview pipeline";
+        return false;
+    }
+
+    MTLSamplerDescriptor* linear_descriptor = [[MTLSamplerDescriptor alloc] init];
+    linear_descriptor.minFilter             = MTLSamplerMinMagFilterLinear;
+    linear_descriptor.magFilter             = MTLSamplerMinMagFilterLinear;
+    linear_descriptor.sAddressMode          = MTLSamplerAddressModeClampToEdge;
+    linear_descriptor.tAddressMode          = MTLSamplerAddressModeClampToEdge;
+    state.linear_sampler = [state.device
+        newSamplerStateWithDescriptor:linear_descriptor];
+
+    MTLSamplerDescriptor* nearest_descriptor = [[MTLSamplerDescriptor alloc] init];
+    nearest_descriptor.minFilter             = MTLSamplerMinMagFilterNearest;
+    nearest_descriptor.magFilter             = MTLSamplerMinMagFilterNearest;
+    nearest_descriptor.sAddressMode          = MTLSamplerAddressModeClampToEdge;
+    nearest_descriptor.tAddressMode          = MTLSamplerAddressModeClampToEdge;
+    state.nearest_sampler = [state.device
+        newSamplerStateWithDescriptor:nearest_descriptor];
+
+    if (state.linear_sampler == nil || state.nearest_sampler == nil) {
+        error_message = "failed to create Metal preview samplers";
+        return false;
+    }
+
+    error_message.clear();
+    return true;
+}
+
+bool
+render_preview_texture(RendererBackendState& state,
+                       RendererTextureBackendState& texture_state,
+                       id<MTLTexture> target_texture,
+                       id<MTLSamplerState> sampler_state,
+                       const RendererPreviewControls& controls,
+                       std::string& error_message)
+{
+    if (state.command_queue == nil || state.preview_pipeline == nil
+        || sampler_state == nil || texture_state.source_texture == nil
+        || target_texture == nil) {
+        error_message = "Metal preview pipeline state is not initialized";
+        return false;
+    }
+
+    MetalPreviewUniforms uniforms;
+    uniforms.exposure       = controls.exposure;
+    uniforms.gamma          = std::max(controls.gamma, 0.01f);
+    uniforms.offset         = controls.offset;
+    uniforms.color_mode     = controls.color_mode;
+    uniforms.channel        = controls.channel;
+    uniforms.input_channels = texture_state.input_channels;
+    uniforms.orientation    = controls.orientation;
+
+    id<MTLCommandBuffer> command_buffer = [state.command_queue commandBuffer];
+    if (command_buffer == nil) {
+        error_message = "failed to create Metal preview command buffer";
+        return false;
+    }
+
+    MTLRenderPassDescriptor* pass = [MTLRenderPassDescriptor renderPassDescriptor];
+    pass.colorAttachments[0].texture     = target_texture;
+    pass.colorAttachments[0].loadAction  = MTLLoadActionDontCare;
+    pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+    id<MTLRenderCommandEncoder> encoder = [command_buffer
+        renderCommandEncoderWithDescriptor:pass];
+    if (encoder == nil) {
+        error_message = "failed to create Metal preview encoder";
+        return false;
+    }
+
+    [encoder setRenderPipelineState:state.preview_pipeline];
+    [encoder setFragmentTexture:texture_state.source_texture atIndex:0];
+    [encoder setFragmentSamplerState:sampler_state atIndex:0];
+    [encoder setFragmentBytes:&uniforms
+                       length:sizeof(uniforms)
+                      atIndex:0];
+    [encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                vertexStart:0
+                vertexCount:3];
+    [encoder endEncoding];
+    [command_buffer commit];
+    [command_buffer waitUntilCompleted];
+    if (command_buffer.status != MTLCommandBufferStatusCompleted) {
+        error_message = "Metal preview render failed";
+        return false;
+    }
     error_message.clear();
     return true;
 }
@@ -475,12 +588,17 @@ renderer_backend_create_texture(RendererState& renderer_state,
 
     if (!build_rgba_float_pixels(image, texture_state->source_rgba_pixels,
                                  error_message)
+        || !create_source_texture(state->device, image.width, image.height,
+                                  texture_state->source_rgba_pixels,
+                                  texture_state->source_texture,
+                                  error_message)
         || !create_preview_texture(state->device, image.width, image.height,
                                    texture_state->preview_linear_texture,
                                    error_message)
         || !create_preview_texture(state->device, image.width, image.height,
                                    texture_state->preview_nearest_texture,
                                    error_message)) {
+        texture_state->source_texture          = nil;
         texture_state->preview_linear_texture  = nil;
         texture_state->preview_nearest_texture = nil;
         delete texture_state;
@@ -508,6 +626,7 @@ renderer_backend_destroy_texture(RendererState& renderer_state,
         texture.preview_initialized = false;
         return;
     }
+    state->source_texture          = nil;
     state->preview_linear_texture  = nil;
     state->preview_nearest_texture = nil;
     delete state;
@@ -523,12 +642,12 @@ renderer_backend_update_preview_texture(RendererState& renderer_state,
                                         const RendererPreviewControls& controls,
                                         std::string& error_message)
 {
-    (void)renderer_state;
     (void)image;
     (void)ui_state;
 
+    RendererBackendState* renderer_backend = backend_state(renderer_state);
     RendererTextureBackendState* texture_state = texture_backend_state(texture);
-    if (texture_state == nullptr) {
+    if (renderer_backend == nullptr || texture_state == nullptr) {
         error_message = "Metal preview state is not initialized";
         return false;
     }
@@ -543,16 +662,14 @@ renderer_backend_update_preview_texture(RendererState& renderer_state,
         return true;
     }
 
-    generate_preview_pixels(*texture_state, effective_controls,
-                            texture_state->preview_rgba_pixels);
-    if (!upload_preview_pixels(texture_state->preview_linear_texture,
-                               texture_state->width, texture_state->height,
-                               texture_state->preview_rgba_pixels,
-                               error_message)
-        || !upload_preview_pixels(texture_state->preview_nearest_texture,
-                                  texture_state->width, texture_state->height,
-                                  texture_state->preview_rgba_pixels,
-                                  error_message)) {
+    if (!render_preview_texture(*renderer_backend, *texture_state,
+                                texture_state->preview_linear_texture,
+                                renderer_backend->linear_sampler,
+                                effective_controls, error_message)
+        || !render_preview_texture(*renderer_backend, *texture_state,
+                                   texture_state->preview_nearest_texture,
+                                   renderer_backend->nearest_sampler,
+                                   effective_controls, error_message)) {
         texture.preview_initialized = false;
         return false;
     }
@@ -623,6 +740,8 @@ renderer_backend_setup_device(RendererState& renderer_state,
         error_message = "failed to create Metal command queue";
         return false;
     }
+    if (!create_preview_pipeline(*state, error_message))
+        return false;
     error_message.clear();
     return true;
 }

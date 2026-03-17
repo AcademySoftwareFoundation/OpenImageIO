@@ -79,7 +79,7 @@ Legend:
 | Screenshot / readback | Yes | Yes | Partial |
 | OCIO display/view | Yes | Yes | No |
 | Runtime OCIO config switching | Yes | Partial | No |
-| Automated GUI regression coverage | Yes | Partial | No |
+| Automated GUI regression coverage | Yes | Partial | Partial |
 
 ## Vulkan
 
@@ -189,9 +189,8 @@ Current gaps:
 
 - no OCIO path
 - no GPU-native Metal preview pipeline yet
-- no Metal-specific `ctest` target yet
 - screenshot/readback is implemented for manual macOS verification, but not yet
-  covered by regular automated tests
+  broadly covered by regular automated tests
 
 Planned direction:
 
@@ -215,6 +214,11 @@ Manual verification:
   - [imiv_metal_smoke_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_smoke_regression.py)
 - Metal screenshot smoke regression:
   - [imiv_metal_screenshot_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_screenshot_regression.py)
+
+Current automated coverage:
+
+- when configured with `OIIO_IMIV_RENDERER=metal`, `ctest` can run:
+  - `imiv_metal_screenshot_regression`
 
 These are intended for macOS iteration until Metal-specific readback and
 automated `ctest` coverage exist.
