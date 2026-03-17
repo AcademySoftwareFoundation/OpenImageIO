@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -80,6 +81,17 @@ ensure_backend_state(RendererState& renderer_state)
         return true;
     renderer_state.backend = new RendererBackendState();
     return renderer_state.backend != nullptr;
+}
+
+NSUInteger
+align_up(NSUInteger value, NSUInteger alignment)
+{
+    if (alignment == 0)
+        return value;
+    const NSUInteger remainder = value % alignment;
+    if (remainder == 0)
+        return value;
+    return value + (alignment - remainder);
 }
 
 void
@@ -632,7 +644,7 @@ renderer_backend_setup_window(RendererState& renderer_state, int width,
     state->layer                  = [CAMetalLayer layer];
     state->layer.device           = state->device;
     state->layer.pixelFormat      = MTLPixelFormatBGRA8Unorm;
-    state->layer.framebufferOnly  = YES;
+    state->layer.framebufferOnly  = NO;
     ns_window.contentView.layer   = state->layer;
     ns_window.contentView.wantsLayer = YES;
     state->render_pass            = [MTLRenderPassDescriptor new];
@@ -782,10 +794,11 @@ renderer_backend_frame_present(RendererState& renderer_state)
 {
     RendererBackendState* state = backend_state(renderer_state);
     if (state == nullptr || state->current_command_buffer == nil
-        || state->current_encoder == nil || state->current_drawable == nil) {
+        || state->current_drawable == nil) {
         return;
     }
-    [state->current_encoder endEncoding];
+    if (state->current_encoder != nil)
+        [state->current_encoder endEncoding];
     [state->current_command_buffer presentDrawable:state->current_drawable];
     [state->current_command_buffer commit];
     state->current_encoder        = nil;
@@ -798,13 +811,91 @@ renderer_backend_screen_capture(ImGuiID viewport_id, int x, int y, int w,
                                 int h, unsigned int* pixels, void* user_data)
 {
     (void)viewport_id;
-    (void)x;
-    (void)y;
-    (void)w;
-    (void)h;
-    (void)pixels;
-    (void)user_data;
-    return false;
+    RendererState* renderer_state = reinterpret_cast<RendererState*>(user_data);
+    if (renderer_state == nullptr || pixels == nullptr || w <= 0 || h <= 0)
+        return false;
+
+    RendererBackendState* state = backend_state(*renderer_state);
+    if (state == nullptr || state->current_drawable == nil
+        || state->current_command_buffer == nil
+        || state->current_encoder == nil) {
+        return false;
+    }
+
+    id<MTLTexture> texture = state->current_drawable.texture;
+    if (texture == nil)
+        return false;
+
+    const int texture_width  = static_cast<int>(texture.width);
+    const int texture_height = static_cast<int>(texture.height);
+    if (x < 0 || y < 0 || x + w > texture_width || y + h > texture_height)
+        return false;
+
+    [state->current_encoder endEncoding];
+    state->current_encoder = nil;
+
+    const NSUInteger bytes_per_pixel = 4;
+    const NSUInteger row_bytes = align_up(
+        static_cast<NSUInteger>(w) * bytes_per_pixel, 256);
+    const NSUInteger buffer_size = row_bytes * static_cast<NSUInteger>(h);
+
+    id<MTLBuffer> readback_buffer = [state->device
+        newBufferWithLength:buffer_size
+                    options:MTLResourceStorageModeShared];
+    if (readback_buffer == nil)
+        return false;
+
+    id<MTLBlitCommandEncoder> blit = [state->current_command_buffer
+        blitCommandEncoder];
+    if (blit == nil)
+        return false;
+
+    const MTLOrigin origin = MTLOriginMake(x, y, 0);
+    const MTLSize size     = MTLSizeMake(w, h, 1);
+    [blit copyFromTexture:texture
+              sourceSlice:0
+              sourceLevel:0
+             sourceOrigin:origin
+               sourceSize:size
+                 toBuffer:readback_buffer
+        destinationOffset:0
+   destinationBytesPerRow:row_bytes
+ destinationBytesPerImage:buffer_size];
+    [blit endEncoding];
+
+    [state->current_command_buffer presentDrawable:state->current_drawable];
+    [state->current_command_buffer commit];
+    [state->current_command_buffer waitUntilCompleted];
+
+    if (state->current_command_buffer.status != MTLCommandBufferStatusCompleted)
+        return false;
+
+    const unsigned char* src_bytes = static_cast<const unsigned char*>(
+        [readback_buffer contents]);
+    if (src_bytes == nullptr)
+        return false;
+
+    unsigned char* dst_bytes = reinterpret_cast<unsigned char*>(pixels);
+    for (int row = 0; row < h; ++row) {
+        const unsigned char* src_row
+            = src_bytes + static_cast<size_t>(row)
+                              * static_cast<size_t>(row_bytes);
+        unsigned char* dst_row = dst_bytes
+                                 + static_cast<size_t>(row)
+                                       * static_cast<size_t>(w) * 4;
+        for (int col = 0; col < w; ++col) {
+            const unsigned char* src = src_row + static_cast<size_t>(col) * 4;
+            unsigned char* dst       = dst_row + static_cast<size_t>(col) * 4;
+            dst[0]                   = src[2];
+            dst[1]                   = src[1];
+            dst[2]                   = src[0];
+            dst[3]                   = src[3];
+        }
+    }
+
+    state->current_command_buffer = nil;
+    state->current_drawable       = nil;
+    return true;
 }
 
 }  // namespace Imiv
