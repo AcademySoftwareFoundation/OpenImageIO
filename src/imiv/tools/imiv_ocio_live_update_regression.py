@@ -64,17 +64,8 @@ def _default_idiff(repo_root: Path) -> Path:
     return Path("idiff")
 
 
-def _default_ocio_config(repo_root: Path) -> Path:
-    preferred = (
-        repo_root
-        / "temp"
-        / "studio-config-all-views-v4.0.0_aces-v2.0_ocio-v2.5.ocio"
-    )
-    if preferred.exists():
-        return preferred
-    for candidate in sorted((repo_root / "temp").glob("*.ocio")):
-        return candidate
-    return preferred
+def _default_ocio_config(_: Path) -> str:
+    return ""
 
 
 def _resolve_existing_tool(requested: str, fallback: Path) -> Path:
@@ -86,6 +77,15 @@ def _resolve_existing_tool(requested: str, fallback: Path) -> Path:
     if fallback.exists():
         return fallback.resolve()
     return candidate
+
+
+def _resolve_ocio_config_argument(value: str) -> str:
+    candidate = str(value).strip()
+    if not candidate:
+        return ""
+    if candidate.startswith("ocio://"):
+        return candidate
+    return str(Path(candidate).expanduser().resolve())
 
 
 def _load_env_from_script(script_path: Path) -> dict[str, str]:
@@ -375,9 +375,13 @@ def main() -> int:
         args.oiiotool, _default_oiiotool(repo_root)
     )
     idiff = _resolve_existing_tool(args.idiff, _default_idiff(repo_root))
-    ocio_config = Path(args.ocio_config).resolve()
-    if not ocio_config.exists():
-        return _fail(f"OCIO config not found: {ocio_config}")
+    ocio_config = _resolve_ocio_config_argument(args.ocio_config)
+    if not ocio_config:
+        return _fail("OCIO config not specified; pass --ocio-config for live-update coverage")
+    if not ocio_config.startswith("ocio://"):
+        ocio_config_path = Path(ocio_config)
+        if not ocio_config_path.exists():
+            return _fail(f"OCIO config not found: {ocio_config_path}")
 
     run_cwd = Path(args.cwd).resolve() if args.cwd else exe.parent.resolve()
     out_dir = Path(args.out_dir).resolve()
@@ -389,7 +393,7 @@ def main() -> int:
 
     env = _load_env_from_script(Path(args.env_script).resolve())
     env["IMIV_CONFIG_HOME"] = str(config_home)
-    env["OCIO"] = str(ocio_config)
+    env["OCIO"] = ocio_config
 
     target_display = args.target_display if args.target_display else args.display
 

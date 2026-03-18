@@ -67,17 +67,15 @@ def _default_idiff(repo_root: Path) -> Path:
     return Path("idiff")
 
 
-def _default_ocio_config(repo_root: Path) -> Path:
-    preferred = (
-        repo_root
-        / "temp"
-        / "studio-config-all-views-v4.0.0_aces-v2.0_ocio-v2.5.ocio"
-    )
-    if preferred.exists():
-        return preferred
-    for candidate in sorted((repo_root / "temp").glob("*.ocio")):
+def _default_ocio_config(repo_root: Path) -> str:
+    return "ocio://default"
+
+
+def _resolve_ocio_config_argument(value: str) -> str:
+    candidate = str(value).strip()
+    if candidate.startswith("ocio://"):
         return candidate
-    return preferred
+    return str(Path(candidate).expanduser().resolve())
 
 
 def _load_env_from_script(script_path: Path) -> dict[str, str]:
@@ -381,9 +379,11 @@ if __name__ == "__main__":
     if not runner.exists():
         raise SystemExit(_fail(f"runner not found: {runner}"))
 
-    ocio_config = Path(args.ocio_config).expanduser().resolve()
-    if not ocio_config.exists():
-        raise SystemExit(_fail(f"OCIO config not found: {ocio_config}"))
+    ocio_config = _resolve_ocio_config_argument(args.ocio_config)
+    if not ocio_config.startswith("ocio://"):
+        ocio_config_path = Path(ocio_config)
+        if not ocio_config_path.exists():
+            raise SystemExit(_fail(f"OCIO config not found: {ocio_config_path}"))
 
     oiiotool = Path(args.oiiotool).expanduser()
     if not oiiotool.exists():
@@ -406,9 +406,14 @@ if __name__ == "__main__":
     image_path = out_dir / "ocio_source_fixture.exr"
     _generate_probe_image(oiiotool, image_path)
 
-    external_display = "sRGB - Display"
-    external_view = "Un-tone-mapped"
-    external_color_space = "ACEScg"
+    if ocio_config.startswith("ocio://"):
+        external_display = "default"
+        external_view = "default"
+        external_color_space = "auto"
+    else:
+        external_display = "sRGB - Display"
+        external_view = "Un-tone-mapped"
+        external_color_space = "ACEScg"
 
     builtin_display = "default"
     builtin_view = "default"
@@ -440,7 +445,7 @@ if __name__ == "__main__":
     )
     global_env = dict(base_env)
     global_env["IMIV_CONFIG_HOME"] = str(global_cfg)
-    global_env["OCIO"] = str(ocio_config)
+    global_env["OCIO"] = ocio_config
 
     global_default_cfg = out_dir / "cfg_global_default"
     _write_prefs(
@@ -453,7 +458,7 @@ if __name__ == "__main__":
     )
     global_default_env = dict(base_env)
     global_default_env["IMIV_CONFIG_HOME"] = str(global_default_cfg)
-    global_default_env["OCIO"] = str(ocio_config)
+    global_default_env["OCIO"] = ocio_config
 
     global_invalid_cfg = out_dir / "cfg_global_invalid_selection"
     _write_prefs(
@@ -466,7 +471,7 @@ if __name__ == "__main__":
     )
     global_invalid_env = dict(base_env)
     global_invalid_env["IMIV_CONFIG_HOME"] = str(global_invalid_cfg)
-    global_invalid_env["OCIO"] = str(ocio_config)
+    global_invalid_env["OCIO"] = ocio_config
 
     global_builtin_cfg = out_dir / "cfg_global_builtin"
     _write_prefs(
@@ -500,7 +505,7 @@ if __name__ == "__main__":
         ocio_display=external_display,
         ocio_view=external_view,
         ocio_image_color_space=external_color_space,
-        ocio_user_config_path=str(ocio_config),
+        ocio_user_config_path=ocio_config,
     )
     user_env = dict(base_env)
     user_env["IMIV_CONFIG_HOME"] = str(user_cfg)

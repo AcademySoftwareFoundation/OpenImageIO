@@ -560,11 +560,7 @@ resolve_ocio_config_selection(const PlaceholderUiState& ui_state,
 
     const std::string user_path = std::string(
         OIIO::Strutil::strip(ui_state.ocio_user_config_path));
-    std::error_code ec;
-    const bool user_exists
-        = !user_path.empty()
-          && std::filesystem::exists(std::filesystem::path(user_path), ec)
-          && !ec;
+    const bool user_exists = ocio_source_string_is_usable(user_path);
 
     switch (selection.requested_source) {
     case OcioConfigSource::Global:

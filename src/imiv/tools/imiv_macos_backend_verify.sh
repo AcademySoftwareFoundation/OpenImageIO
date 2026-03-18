@@ -7,6 +7,7 @@ build_dir=""
 out_dir=""
 jobs="${IMIV_JOBS:-8}"
 image_path="${repo_root}/ASWF/logos/openimageio-stacked-gradient.png"
+ocio_config=""
 trace=0
 
 while [[ $# -gt 0 ]]; do
@@ -31,6 +32,10 @@ while [[ $# -gt 0 ]]; do
             image_path="$2"
             shift 2
             ;;
+        --ocio-config)
+            ocio_config="$2"
+            shift 2
+            ;;
         --trace)
             trace=1
             shift
@@ -45,6 +50,7 @@ Options:
   --out-dir DIR            Output/log directory
   --jobs N                 Parallel build jobs (default: IMIV_JOBS or 8)
   --image PATH             Image to open for smoke runs
+  --ocio-config PATH|URI   Optional external OCIO config for live-update checks
   --trace                  Enable test-runner trace output
 USAGE
             exit 0
@@ -91,6 +97,7 @@ ocio_live_display_runner_log="${out_dir}/verify_ocio_live_display.log"
     echo "build_dir=${build_dir}"
     echo "out_dir=${out_dir}"
     echo "image_path=${image_path}"
+    echo "ocio_config=${ocio_config}"
     echo
     uname -a || true
     if command -v sw_vers >/dev/null 2>&1; then
@@ -227,9 +234,10 @@ for candidate in \
     fi
 done
 
-ocio_config_path="${repo_root}/temp/studio-config-all-views-v4.0.0_aces-v2.0_ocio-v2.5.ocio"
-if [[ ! -f "${ocio_config_path}" ]]; then
-    ocio_config_path=""
+ocio_config_path="ocio://default"
+ocio_live_config_path=""
+if [[ -n "${ocio_config}" ]]; then
+    ocio_live_config_path="${ocio_config}"
 fi
 
 if [[ -n "${ocio_missing_runner_py}" ]]; then
@@ -268,16 +276,13 @@ if [[ -n "${ocio_config_source_runner_py}" && -n "${ocio_config_path}" ]]; then
     if ! "${ocio_config_cmd[@]}" 2>&1 | tee "${ocio_config_source_runner_log}"; then
         verify_failed=1
     fi
-elif [[ -n "${ocio_config_source_runner_py}" ]]; then
-    echo "skip: OCIO config-source regression not run because temp OCIO config was not found" \
-        | tee "${ocio_config_source_runner_log}"
 fi
 
-if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_path}" && -n "${idiff_path}" ]]; then
+if [[ -n "${ocio_live_runner_py}" && -n "${ocio_live_config_path}" && -n "${oiiotool_path}" && -n "${idiff_path}" ]]; then
     ocio_live_image="${out_dir}/runtime_ocio_live/ocio_live_input.exr"
     mkdir -p "${out_dir}/runtime_ocio_live" "${out_dir}/runtime_ocio_live_display"
 
-    ocio_live_cmd=(python3 "${ocio_live_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --oiiotool "${oiiotool_path}" --idiff "${idiff_path}" --out-dir "${out_dir}/runtime_ocio_live" --image "${ocio_live_image}" --ocio-config "${ocio_config_path}")
+    ocio_live_cmd=(python3 "${ocio_live_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --oiiotool "${oiiotool_path}" --idiff "${idiff_path}" --out-dir "${out_dir}/runtime_ocio_live" --image "${ocio_live_image}" --ocio-config "${ocio_live_config_path}")
     if [[ -f "${build_dir}/imiv_env.sh" ]]; then
         ocio_live_cmd+=(--env-script "${build_dir}/imiv_env.sh")
     fi
@@ -288,7 +293,7 @@ if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_
         verify_failed=1
     fi
 
-    ocio_live_display_cmd=(python3 "${ocio_live_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --oiiotool "${oiiotool_path}" --idiff "${idiff_path}" --out-dir "${out_dir}/runtime_ocio_live_display" --image "${out_dir}/runtime_ocio_live_display/ocio_live_input.exr" --ocio-config "${ocio_config_path}" --display "sRGB - Display" --target-display "Display P3 - Display" --raw-view "Un-tone-mapped" --target-view "Un-tone-mapped")
+    ocio_live_display_cmd=(python3 "${ocio_live_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --oiiotool "${oiiotool_path}" --idiff "${idiff_path}" --out-dir "${out_dir}/runtime_ocio_live_display" --image "${out_dir}/runtime_ocio_live_display/ocio_live_input.exr" --ocio-config "${ocio_live_config_path}" --display "sRGB - Display" --target-display "Display P3 - Display" --raw-view "Un-tone-mapped" --target-view "Un-tone-mapped")
     if [[ -f "${build_dir}/imiv_env.sh" ]]; then
         ocio_live_display_cmd+=(--env-script "${build_dir}/imiv_env.sh")
     fi
@@ -300,8 +305,8 @@ if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_
     fi
 elif [[ -n "${ocio_live_runner_py}" ]]; then
     {
-        if [[ -z "${ocio_config_path}" ]]; then
-            echo "skip: Metal OCIO live regressions not run because temp OCIO config was not found"
+        if [[ -z "${ocio_live_config_path}" ]]; then
+            echo "skip: Metal OCIO live regressions not run because --ocio-config was not provided"
         elif [[ -z "${oiiotool_path}" ]]; then
             echo "skip: Metal OCIO live regressions not run because oiiotool was not found in ${build_dir}"
         elif [[ -z "${idiff_path}" ]]; then
@@ -332,7 +337,7 @@ if [[ -n "${ocio_config_source_runner_py}" && -n "${ocio_config_path}" ]]; then
 echo "  ocio-src:  ${ocio_config_source_runner_log}"
 echo "  runtime+os:${out_dir}/runtime_ocio_config_source"
 fi
-if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_path}" && -n "${idiff_path}" ]]; then
+if [[ -n "${ocio_live_runner_py}" ]]; then
 echo "  ocio-live: ${ocio_live_runner_log}"
 echo "  runtime+ol:${out_dir}/runtime_ocio_live"
 echo "  ocio-disp: ${ocio_live_display_runner_log}"
