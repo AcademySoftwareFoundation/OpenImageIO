@@ -28,5 +28,9 @@ command += info_command("mono-8bit.avif", safematch=True)
 command += oiiotool("--pattern checker:color1=1:color2=0 64x64 1 -d uint10 -o mono-10bit.avif")
 command += info_command("mono-10bit.avif", safematch=True)
 
+# Test non-multiple-of-64 dimensions
+command += oiiotool("--pattern fill:color=0.5,0.5,0.5 47x31 3 -o odd-size.avif")
+command += info_command("odd-size.avif", safematch=True)
+
 # avif conversion is expected to fail if libheif is built without AV1 support
 failureok = 1
