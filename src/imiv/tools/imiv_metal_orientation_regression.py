@@ -174,6 +174,8 @@ def _crop_image(
             str(source),
             "--cut",
             f"{x0},{y0},{x1},{y1}",
+            "--ch",
+            "R,G,B",
             "-o",
             str(dest),
         ],
@@ -188,6 +190,8 @@ def _resize_image(oiiotool: Path, source: Path, width: int, height: int, dest: P
             str(source),
             "--resize",
             f"{width}x{height}",
+            "--ch",
+            "R,G,B",
             "-o",
             str(dest),
         ],
@@ -210,6 +214,7 @@ def _transform_image(
         cmd.append("--flip")
     if flop:
         cmd.append("--flop")
+    cmd.extend(["--ch", "R,G,B"])
     cmd.extend(["-o", str(dest)])
     subprocess.run(cmd, check=True)
 
