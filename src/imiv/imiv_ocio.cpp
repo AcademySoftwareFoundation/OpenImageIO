@@ -580,8 +580,13 @@ resolve_ocio_config_selection(const PlaceholderUiState& ui_state,
     case OcioConfigSource::User:
         if (user_exists) {
             selection.resolved_source = OcioConfigSource::User;
-            selection.resolved_path
-                = std::filesystem::path(user_path).lexically_normal().string();
+            if (OIIO::Strutil::istarts_with(user_path, "ocio://")) {
+                selection.resolved_path = user_path;
+            } else {
+                selection.resolved_path
+                    = std::filesystem::path(user_path).lexically_normal()
+                          .string();
+            }
         } else {
             selection.resolved_source  = OcioConfigSource::BuiltIn;
             selection.resolved_path    = builtin_ocio_config_path();

@@ -850,14 +850,16 @@ endif ()
 set (OIIO_IMIV_TEST_OCIO_CONFIG ""
      CACHE STRING
            "Optional external OCIO config for imiv live-update regressions")
-set (_imiv_ocio_live_update_config "${OIIO_IMIV_TEST_OCIO_CONFIG}")
+set (_imiv_ocio_live_update_config "ocio://default")
+if (NOT "${OIIO_IMIV_TEST_OCIO_CONFIG}" STREQUAL "")
+    set (_imiv_ocio_live_update_config "${OIIO_IMIV_TEST_OCIO_CONFIG}")
+endif ()
 set (_imiv_ocio_config_source_input "ocio://default")
 if (TARGET imiv
         AND OIIO_BUILD_TESTS
         AND BUILD_TESTING
         AND Python3_EXECUTABLE
-        AND _imiv_test_engine_sources
-        AND NOT "${_imiv_ocio_live_update_config}" STREQUAL "")
+        AND _imiv_test_engine_sources)
     if (_imiv_renderer_is_vulkan AND _imiv_has_runtime_glslang)
         add_test (
             NAME imiv_ocio_live_update_regression
@@ -871,7 +873,8 @@ if (TARGET imiv
                 --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
                 --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_update_regression"
                 --image "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_update_regression/ocio_live_input.exr"
-                --ocio-config "${_imiv_ocio_live_update_config}")
+                --ocio-config "${_imiv_ocio_live_update_config}"
+                --switch-mode view)
         set_tests_properties (
             imiv_ocio_live_update_regression PROPERTIES
                 LABELS "imiv;imiv_ocio;gui"
@@ -890,10 +893,7 @@ if (TARGET imiv
                 --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_display_update_regression"
                 --image "${CMAKE_BINARY_DIR}/imiv_captures/ocio_live_display_update_regression/ocio_live_input.exr"
                 --ocio-config "${_imiv_ocio_live_update_config}"
-                --display "sRGB - Display"
-                --target-display "Display P3 - Display"
-                --raw-view "Un-tone-mapped"
-                --target-view "Un-tone-mapped")
+                --switch-mode display)
         set_tests_properties (
             imiv_ocio_live_display_update_regression PROPERTIES
                 LABELS "imiv;imiv_ocio;gui"
@@ -911,7 +911,8 @@ if (TARGET imiv
                 --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
                 --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/opengl_ocio_live_update_regression"
                 --image "${CMAKE_BINARY_DIR}/imiv_captures/opengl_ocio_live_update_regression/ocio_live_input.exr"
-                --ocio-config "${_imiv_ocio_live_update_config}")
+                --ocio-config "${_imiv_ocio_live_update_config}"
+                --switch-mode view)
         set_tests_properties (
             imiv_opengl_ocio_live_update_regression PROPERTIES
                 LABELS "imiv;imiv_ocio;imiv_opengl;gui"
@@ -930,10 +931,7 @@ if (TARGET imiv
                 --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/opengl_ocio_live_display_update_regression"
                 --image "${CMAKE_BINARY_DIR}/imiv_captures/opengl_ocio_live_display_update_regression/ocio_live_input.exr"
                 --ocio-config "${_imiv_ocio_live_update_config}"
-                --display "sRGB - Display"
-                --target-display "Display P3 - Display"
-                --raw-view "Un-tone-mapped"
-                --target-view "Un-tone-mapped")
+                --switch-mode display)
         set_tests_properties (
             imiv_opengl_ocio_live_display_update_regression PROPERTIES
                 LABELS "imiv;imiv_ocio;imiv_opengl;gui"
@@ -951,7 +949,8 @@ if (TARGET imiv
                 --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
                 --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/metal_ocio_live_update_regression"
                 --image "${CMAKE_BINARY_DIR}/imiv_captures/metal_ocio_live_update_regression/ocio_live_input.exr"
-                --ocio-config "${_imiv_ocio_live_update_config}")
+                --ocio-config "${_imiv_ocio_live_update_config}"
+                --switch-mode view)
         set_tests_properties (
             imiv_metal_ocio_live_update_regression PROPERTIES
                 LABELS "imiv;imiv_ocio;imiv_metal;gui"
@@ -970,20 +969,12 @@ if (TARGET imiv
                 --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/metal_ocio_live_display_update_regression"
                 --image "${CMAKE_BINARY_DIR}/imiv_captures/metal_ocio_live_display_update_regression/ocio_live_input.exr"
                 --ocio-config "${_imiv_ocio_live_update_config}"
-                --display "sRGB - Display"
-                --target-display "Display P3 - Display"
-                --raw-view "Un-tone-mapped"
-                --target-view "Un-tone-mapped")
+                --switch-mode display)
         set_tests_properties (
             imiv_metal_ocio_live_display_update_regression PROPERTIES
                 LABELS "imiv;imiv_ocio;imiv_metal;gui"
                 TIMEOUT 300)
     endif ()
-elseif (TARGET imiv
-        AND OIIO_BUILD_TESTS
-        AND BUILD_TESTING)
-    message (STATUS
-             "imiv: live OCIO update regression test not added (set OIIO_IMIV_TEST_OCIO_CONFIG to an external config if you want this coverage)")
 endif ()
 
 if (TARGET imiv
