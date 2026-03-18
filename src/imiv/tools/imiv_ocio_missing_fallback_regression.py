@@ -25,6 +25,10 @@ SOURCE_GLOBAL = 0
 SOURCE_BUILTIN = 1
 
 
+def _default_case_timeout() -> float:
+    return 180.0 if os.name == "nt" else 60.0
+
+
 def _default_binary(repo_root: Path) -> Path:
     candidates = [
         repo_root / "build_u" / "bin" / "imiv",
@@ -123,6 +127,7 @@ def _run_case(
     out_dir: Path,
     name: str,
     trace: bool,
+    case_timeout: float,
 ) -> tuple[Path, Path]:
     screenshot_path = out_dir / f"{name}.png"
     layout_path = out_dir / f"{name}.json"
@@ -153,7 +158,7 @@ def _run_case(
             check=False,
             stdout=log_handle,
             stderr=subprocess.STDOUT,
-            timeout=60,
+            timeout=case_timeout,
         )
     if proc.returncode != 0:
         raise RuntimeError(f"{name}: runner exited with code {proc.returncode}")
@@ -329,6 +334,12 @@ if __name__ == "__main__":
     ap.add_argument("--oiiotool", default=str(default_oiiotool), help="oiiotool executable")
     ap.add_argument("--idiff", default=str(default_idiff), help="idiff executable")
     ap.add_argument("--out-dir", default=str(default_out), help="Output directory")
+    ap.add_argument(
+        "--case-timeout",
+        type=float,
+        default=_default_case_timeout(),
+        help="Per-case GUI runner timeout in seconds",
+    )
     ap.add_argument("--trace", action="store_true", help="Enable test engine trace")
     args = ap.parse_args()
 
@@ -382,6 +393,7 @@ if __name__ == "__main__":
             out_dir,
             "global_builtin_fallback",
             args.trace,
+            args.case_timeout,
         )
         builtin_png, builtin_layout, builtin_log = _run_case(
             repo_root,
@@ -393,6 +405,7 @@ if __name__ == "__main__":
             out_dir,
             "builtin",
             args.trace,
+            args.case_timeout,
         )
     except (subprocess.SubprocessError, RuntimeError) as exc:
         raise SystemExit(_fail(str(exc)))

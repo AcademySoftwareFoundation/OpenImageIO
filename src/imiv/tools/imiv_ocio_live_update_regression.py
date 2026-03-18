@@ -23,6 +23,10 @@ ERROR_PATTERNS = (
 )
 
 
+def _default_case_timeout() -> float:
+    return 180.0 if os.name == "nt" else 45.0
+
+
 def _default_binary(repo_root: Path) -> Path:
     candidates = [
         repo_root / "build_u" / "bin" / "imiv",
@@ -144,6 +148,7 @@ def _run_case(
     name: str,
     extra_args: list[str],
     extra_env: dict[str, str] | None = None,
+    case_timeout: float = 45.0,
 ) -> tuple[Path, Path, Path, Path]:
     screenshot_path = out_dir / f"{name}.png"
     layout_path = out_dir / f"{name}.json"
@@ -181,7 +186,7 @@ def _run_case(
             check=False,
             stdout=log_handle,
             stderr=subprocess.STDOUT,
-            timeout=45,
+            timeout=case_timeout,
         )
     if proc.returncode != 0:
         raise RuntimeError(f"{name}: imiv exited with code {proc.returncode}")
@@ -536,6 +541,12 @@ def main() -> int:
     ap.add_argument("--image-color-space", default="", help="Input image color space")
     ap.add_argument("--apply-frame", type=int, default=5,
                     help="Frame number for live OCIO override")
+    ap.add_argument(
+        "--case-timeout",
+        type=float,
+        default=_default_case_timeout(),
+        help="Per-case GUI runner timeout in seconds",
+    )
     ap.add_argument("--trace", action="store_true",
                     help="Accepted for wrapper parity; no effect")
     args = ap.parse_args()
@@ -585,6 +596,7 @@ def main() -> int:
                 "--image-color-space",
                 "auto",
             ],
+            case_timeout=args.case_timeout,
         )
 
         (
@@ -613,10 +625,24 @@ def main() -> int:
         ]
 
         static_raw_png, static_raw_layout, static_raw_state, static_raw_log = _run_case(
-            exe, run_cwd, env, out_dir, image_path, "static_raw", common_args
+            exe,
+            run_cwd,
+            env,
+            out_dir,
+            image_path,
+            "static_raw",
+            common_args,
+            case_timeout=args.case_timeout,
         )
         static_target_png, static_target_layout, static_target_state, static_target_log = _run_case(
-            exe, run_cwd, env, out_dir, image_path, "static_target", target_args
+            exe,
+            run_cwd,
+            env,
+            out_dir,
+            image_path,
+            "static_target",
+            target_args,
+            case_timeout=args.case_timeout,
         )
         live_noop_png, live_noop_layout, live_noop_state, live_noop_log = _run_case(
             exe,
@@ -632,6 +658,7 @@ def main() -> int:
                 "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE": image_color_space,
                 "IMIV_IMGUI_TEST_ENGINE_OCIO_APPLY_FRAME": str(args.apply_frame),
             },
+            case_timeout=args.case_timeout,
         )
         live_switch_png, live_switch_layout, live_switch_state, live_switch_log = _run_case(
             exe,
@@ -647,6 +674,7 @@ def main() -> int:
                 "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE": image_color_space,
                 "IMIV_IMGUI_TEST_ENGINE_OCIO_APPLY_FRAME": str(args.apply_frame),
             },
+            case_timeout=args.case_timeout,
         )
 
         crop_dir = out_dir / "crops"

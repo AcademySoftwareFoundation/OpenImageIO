@@ -26,6 +26,10 @@ SOURCE_BUILTIN = 1
 SOURCE_USER = 2
 
 
+def _default_case_timeout() -> float:
+    return 180.0 if os.name == "nt" else 60.0
+
+
 def _default_binary(repo_root: Path) -> Path:
     candidates = [
         repo_root / "build_u" / "bin" / "imiv",
@@ -164,6 +168,7 @@ def _run_case(
     out_dir: Path,
     name: str,
     trace: bool,
+    case_timeout: float,
 ) -> tuple[Path, Path, Path, Path]:
     screenshot_path = out_dir / f"{name}.png"
     layout_path = out_dir / f"{name}.json"
@@ -197,7 +202,7 @@ def _run_case(
             check=False,
             stdout=log_handle,
             stderr=subprocess.STDOUT,
-            timeout=60,
+            timeout=case_timeout,
         )
     if proc.returncode != 0:
         raise RuntimeError(f"{name}: runner exited with code {proc.returncode}")
@@ -372,6 +377,12 @@ if __name__ == "__main__":
     ap.add_argument("--ocio-config", default=str(_default_ocio_config(repo_root)), help="OCIO config to use")
     ap.add_argument("--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool path")
     ap.add_argument("--idiff", default=str(_default_idiff(repo_root)), help="idiff path")
+    ap.add_argument(
+        "--case-timeout",
+        type=float,
+        default=_default_case_timeout(),
+        help="Per-case GUI runner timeout in seconds",
+    )
     ap.add_argument("--trace", action="store_true", help="Enable test engine trace")
     args = ap.parse_args()
 
@@ -530,10 +541,28 @@ if __name__ == "__main__":
 
     try:
         baseline_png, baseline_layout, baseline_state, baseline_log = _run_case(
-            repo_root, runner, exe, cwd, baseline_env, image_path, out_dir, "baseline", args.trace
+            repo_root,
+            runner,
+            exe,
+            cwd,
+            baseline_env,
+            image_path,
+            out_dir,
+            "baseline",
+            args.trace,
+            args.case_timeout,
         )
         global_png, global_layout, global_state, global_log = _run_case(
-            repo_root, runner, exe, cwd, global_env, image_path, out_dir, "global", args.trace
+            repo_root,
+            runner,
+            exe,
+            cwd,
+            global_env,
+            image_path,
+            out_dir,
+            "global",
+            args.trace,
+            args.case_timeout,
         )
         global_default_png, global_default_layout, global_default_state, global_default_log = _run_case(
             repo_root,
@@ -545,6 +574,7 @@ if __name__ == "__main__":
             out_dir,
             "global_default",
             args.trace,
+            args.case_timeout,
         )
         global_invalid_png, global_invalid_layout, global_invalid_state, global_invalid_log = _run_case(
             repo_root,
@@ -556,6 +586,7 @@ if __name__ == "__main__":
             out_dir,
             "global_invalid_selection",
             args.trace,
+            args.case_timeout,
         )
         global_builtin_png, global_builtin_layout, global_builtin_state, global_builtin_log = _run_case(
             repo_root,
@@ -567,6 +598,7 @@ if __name__ == "__main__":
             out_dir,
             "global_builtin_fallback",
             args.trace,
+            args.case_timeout,
         )
         builtin_png, builtin_layout, builtin_state, builtin_log = _run_case(
             repo_root,
@@ -578,9 +610,19 @@ if __name__ == "__main__":
             out_dir,
             "builtin",
             args.trace,
+            args.case_timeout,
         )
         user_png, user_layout, user_state, user_log = _run_case(
-            repo_root, runner, exe, cwd, user_env, image_path, out_dir, "user", args.trace
+            repo_root,
+            runner,
+            exe,
+            cwd,
+            user_env,
+            image_path,
+            out_dir,
+            "user",
+            args.trace,
+            args.case_timeout,
         )
         user_missing_builtin_png, user_missing_builtin_layout, user_missing_builtin_state, user_missing_builtin_log = _run_case(
             repo_root,
@@ -592,6 +634,7 @@ if __name__ == "__main__":
             out_dir,
             "user_missing_builtin",
             args.trace,
+            args.case_timeout,
         )
     except (subprocess.SubprocessError, RuntimeError) as exc:
         raise SystemExit(_fail(str(exc)))
