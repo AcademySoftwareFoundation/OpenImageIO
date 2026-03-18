@@ -196,6 +196,7 @@ HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
 #else
     uint8_t* hdata = m_himage.get_plane(hchannel, &hystride);
 #endif
+    // The heif data buffer may be padded for alignment, hystride accounts for that.
     hdata += hystride * (y - m_spec.y);
     if (m_bitdepth == 10 || m_bitdepth == 12) {
         const uint16_t* data16  = static_cast<const uint16_t*>(data);
@@ -211,7 +212,8 @@ HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
             }
         }
     } else {
-        memcpy(hdata, data, hystride);
+        memcpy(hdata, data,
+               m_spec.width * m_spec.nchannels * m_spec.format.size());
     }
     return true;
 }
