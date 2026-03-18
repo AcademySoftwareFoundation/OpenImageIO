@@ -118,7 +118,11 @@ ocio_live_display_runner_log="${out_dir}/verify_ocio_live_display.log"
 
 cmake -S "${repo_root}" -B "${build_dir}" -D OIIO_IMIV_RENDERER="${backend}" \
     2>&1 | tee "${configure_log}"
-cmake --build "${build_dir}" --target imiv --parallel "${jobs}" \
+build_targets=(imiv)
+if [[ "${backend}" == "metal" ]]; then
+    build_targets+=(oiiotool idiff)
+fi
+cmake --build "${build_dir}" --target "${build_targets[@]}" --parallel "${jobs}" \
     2>&1 | tee "${build_log}"
 
 bin_path=""
@@ -166,6 +170,8 @@ if [[ ${trace} -ne 0 ]]; then
 fi
 "${cmd[@]}" 2>&1 | tee "${runner_log}"
 
+verify_failed=0
+
 if [[ -n "${screenshot_runner_py}" ]]; then
     screenshot_cmd=(python3 "${screenshot_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime_screenshot" --open "${image_path}")
     if [[ -f "${build_dir}/imiv_env.sh" ]]; then
@@ -174,7 +180,9 @@ if [[ -n "${screenshot_runner_py}" ]]; then
     if [[ ${trace} -ne 0 ]]; then
         screenshot_cmd+=(--trace)
     fi
-    "${screenshot_cmd[@]}" 2>&1 | tee "${screenshot_runner_log}"
+    if ! "${screenshot_cmd[@]}" 2>&1 | tee "${screenshot_runner_log}"; then
+        verify_failed=1
+    fi
 fi
 
 if [[ -n "${orientation_runner_py}" ]]; then
@@ -190,7 +198,9 @@ if [[ -n "${orientation_runner_py}" ]]; then
     if [[ ${trace} -ne 0 ]]; then
         orientation_cmd+=(--trace)
     fi
-    "${orientation_cmd[@]}" 2>&1 | tee "${orientation_runner_log}"
+    if ! "${orientation_cmd[@]}" 2>&1 | tee "${orientation_runner_log}"; then
+        verify_failed=1
+    fi
 fi
 
 oiiotool_path=""
@@ -236,7 +246,9 @@ if [[ -n "${ocio_missing_runner_py}" ]]; then
     if [[ ${trace} -ne 0 ]]; then
         ocio_missing_cmd+=(--trace)
     fi
-    "${ocio_missing_cmd[@]}" 2>&1 | tee "${ocio_missing_runner_log}"
+    if ! "${ocio_missing_cmd[@]}" 2>&1 | tee "${ocio_missing_runner_log}"; then
+        verify_failed=1
+    fi
 fi
 
 if [[ -n "${ocio_config_source_runner_py}" && -n "${ocio_config_path}" ]]; then
@@ -253,7 +265,9 @@ if [[ -n "${ocio_config_source_runner_py}" && -n "${ocio_config_path}" ]]; then
     if [[ ${trace} -ne 0 ]]; then
         ocio_config_cmd+=(--trace)
     fi
-    "${ocio_config_cmd[@]}" 2>&1 | tee "${ocio_config_source_runner_log}"
+    if ! "${ocio_config_cmd[@]}" 2>&1 | tee "${ocio_config_source_runner_log}"; then
+        verify_failed=1
+    fi
 fi
 
 if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_path}" && -n "${idiff_path}" ]]; then
@@ -267,7 +281,9 @@ if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_
     if [[ ${trace} -ne 0 ]]; then
         ocio_live_cmd+=(--trace)
     fi
-    "${ocio_live_cmd[@]}" 2>&1 | tee "${ocio_live_runner_log}"
+    if ! "${ocio_live_cmd[@]}" 2>&1 | tee "${ocio_live_runner_log}"; then
+        verify_failed=1
+    fi
 
     ocio_live_display_cmd=(python3 "${ocio_live_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --oiiotool "${oiiotool_path}" --idiff "${idiff_path}" --out-dir "${out_dir}/runtime_ocio_live_display" --image "${out_dir}/runtime_ocio_live_display/ocio_live_input.exr" --ocio-config "${ocio_config_path}" --display "sRGB - Display" --target-display "Display P3 - Display" --raw-view "Un-tone-mapped" --target-view "Un-tone-mapped")
     if [[ -f "${build_dir}/imiv_env.sh" ]]; then
@@ -276,7 +292,9 @@ if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_
     if [[ ${trace} -ne 0 ]]; then
         ocio_live_display_cmd+=(--trace)
     fi
-    "${ocio_live_display_cmd[@]}" 2>&1 | tee "${ocio_live_display_runner_log}"
+    if ! "${ocio_live_display_cmd[@]}" 2>&1 | tee "${ocio_live_display_runner_log}"; then
+        verify_failed=1
+    fi
 fi
 
 echo
@@ -308,3 +326,5 @@ echo "  ocio-disp: ${ocio_live_display_runner_log}"
 echo "  runtime+od:${out_dir}/runtime_ocio_live_display"
 fi
 echo "  runtime:   ${out_dir}/runtime"
+
+exit "${verify_failed}"

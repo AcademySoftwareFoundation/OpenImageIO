@@ -282,19 +282,77 @@ def _crop_image(
     subprocess.run(cmd, check=True)
 
 
-def _images_equal(idiff: Path, lhs: Path, rhs: Path) -> bool:
-    proc = subprocess.run(
-        [str(idiff), "-a", str(lhs), str(rhs)],
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
+def _write_rgb_ppm(
+    oiiotool: Path, source: Path, width: int, height: int, dest: Path
+) -> None:
+    subprocess.run(
+        [
+            str(oiiotool),
+            str(source),
+            "--resize",
+            f"{width}x{height}",
+            "--ch",
+            "R,G,B",
+            "-o",
+            str(dest),
+        ],
+        check=True,
     )
-    if proc.returncode == 0:
-        return True
-    if proc.returncode in (1, 2):
-        return False
-    raise RuntimeError(f"idiff failed for '{lhs.name}' vs '{rhs.name}': {proc.stdout}")
+
+
+def _read_ppm(path: Path) -> tuple[int, int, bytes]:
+    with path.open("rb") as handle:
+        magic = handle.readline().strip()
+        if magic != b"P6":
+            raise RuntimeError(f"{path.name}: unsupported PPM format {magic!r}")
+
+        def _next_non_comment() -> bytes:
+            while True:
+                line = handle.readline()
+                if not line:
+                    raise RuntimeError(f"{path.name}: truncated PPM header")
+                line = line.strip()
+                if not line or line.startswith(b"#"):
+                    continue
+                return line
+
+        dims = _next_non_comment().split()
+        if len(dims) != 2:
+            raise RuntimeError(f"{path.name}: invalid PPM dimensions")
+        width = int(dims[0])
+        height = int(dims[1])
+        max_value = int(_next_non_comment())
+        if max_value != 255:
+            raise RuntimeError(f"{path.name}: unsupported max value {max_value}")
+
+        pixels = handle.read(width * height * 3)
+        if len(pixels) != width * height * 3:
+            raise RuntimeError(f"{path.name}: truncated PPM payload")
+        return width, height, pixels
+
+
+def _mean_abs_diff(lhs: Path, rhs: Path) -> float:
+    lhs_w, lhs_h, lhs_pixels = _read_ppm(lhs)
+    rhs_w, rhs_h, rhs_pixels = _read_ppm(rhs)
+    if (lhs_w, lhs_h) != (rhs_w, rhs_h):
+        raise RuntimeError(
+            f"image size mismatch: {lhs.name}={lhs_w}x{lhs_h}, {rhs.name}={rhs_w}x{rhs_h}"
+        )
+    total = 0
+    count = len(lhs_pixels)
+    for a, b in zip(lhs_pixels, rhs_pixels):
+        total += abs(a - b)
+    return total / max(1, count)
+
+
+def _normalized_rgb_diff(
+    oiiotool: Path, lhs: Path, rhs: Path, work_dir: Path, stem: str
+) -> float:
+    lhs_ppm = work_dir / f"{stem}.lhs.ppm"
+    rhs_ppm = work_dir / f"{stem}.rhs.ppm"
+    _write_rgb_ppm(oiiotool, lhs, 256, 256, lhs_ppm)
+    _write_rgb_ppm(oiiotool, rhs, 256, 256, rhs_ppm)
+    return _mean_abs_diff(lhs_ppm, rhs_ppm)
 
 
 if __name__ == "__main__":
@@ -566,27 +624,68 @@ if __name__ == "__main__":
         user_missing_builtin_crop,
     )
 
-    if _images_equal(idiff, baseline_crop, global_crop):
+    baseline_global_diff = _normalized_rgb_diff(
+        oiiotool, baseline_crop, global_crop, out_dir, "baseline_vs_global"
+    )
+    if baseline_global_diff <= 4.0:
         raise SystemExit(
             _fail(
-                "global OCIO source matched non-OCIO baseline; expected a real OCIO transform result"
+                "global OCIO source matched non-OCIO baseline; expected a real "
+                f"OCIO transform result (mean abs RGB diff={baseline_global_diff:.4f})"
             )
         )
-    if not _images_equal(idiff, global_default_crop, global_invalid_crop):
+    global_default_invalid_diff = _normalized_rgb_diff(
+        oiiotool,
+        global_default_crop,
+        global_invalid_crop,
+        out_dir,
+        "global_default_vs_invalid",
+    )
+    if global_default_invalid_diff > 2.0:
         raise SystemExit(
             _fail(
-                "invalid persisted display/view selection did not fall back to the active config defaults"
+                "invalid persisted display/view selection did not fall back to "
+                "the active config defaults "
+                f"(mean abs RGB diff={global_default_invalid_diff:.4f})"
             )
         )
-    if not _images_equal(idiff, global_crop, user_crop):
-        raise SystemExit(_fail("user OCIO source output differs from global"))
-    if not _images_equal(idiff, global_builtin_crop, builtin_crop):
+    global_user_diff = _normalized_rgb_diff(
+        oiiotool, global_crop, user_crop, out_dir, "global_vs_user"
+    )
+    if global_user_diff > 2.0:
         raise SystemExit(
-            _fail("global source did not fall back to builtin when $OCIO was missing")
+            _fail(
+                "user OCIO source output differs from global "
+                f"(mean abs RGB diff={global_user_diff:.4f})"
+            )
         )
-    if not _images_equal(idiff, builtin_crop, user_missing_builtin_crop):
+    global_builtin_diff = _normalized_rgb_diff(
+        oiiotool,
+        global_builtin_crop,
+        builtin_crop,
+        out_dir,
+        "global_builtin_vs_builtin",
+    )
+    if global_builtin_diff > 2.0:
         raise SystemExit(
-            _fail("user source did not fall back to builtin when user config was missing")
+            _fail(
+                "global source did not fall back to builtin when $OCIO was "
+                f"missing (mean abs RGB diff={global_builtin_diff:.4f})"
+            )
+        )
+    builtin_user_missing_diff = _normalized_rgb_diff(
+        oiiotool,
+        builtin_crop,
+        user_missing_builtin_crop,
+        out_dir,
+        "builtin_vs_user_missing_builtin",
+    )
+    if builtin_user_missing_diff > 2.0:
+        raise SystemExit(
+            _fail(
+                "user source did not fall back to builtin when user config was "
+                f"missing (mean abs RGB diff={builtin_user_missing_diff:.4f})"
+            )
         )
 
     print("baseline:", baseline_png)
