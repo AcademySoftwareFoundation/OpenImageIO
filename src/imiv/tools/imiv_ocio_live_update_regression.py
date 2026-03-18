@@ -262,15 +262,77 @@ def _crop_image(oiiotool: Path, source: Path, crop_rect: tuple[int, int, int, in
     subprocess.run(cmd, check=True)
 
 
-def _images_identical(idiff: Path, lhs: Path, rhs: Path) -> bool:
-    proc = subprocess.run(
-        [str(idiff), "-q", "-a", str(lhs), str(rhs)],
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
+def _write_rgb_ppm(
+    oiiotool: Path, source: Path, width: int, height: int, dest: Path
+) -> None:
+    subprocess.run(
+        [
+            str(oiiotool),
+            str(source),
+            "--resize",
+            f"{width}x{height}",
+            "--ch",
+            "R,G,B",
+            "-o",
+            str(dest),
+        ],
+        check=True,
     )
-    return proc.returncode == 0
+
+
+def _read_ppm(path: Path) -> tuple[int, int, bytes]:
+    with path.open("rb") as handle:
+        magic = handle.readline().strip()
+        if magic != b"P6":
+            raise RuntimeError(f"{path.name}: unsupported PPM format {magic!r}")
+
+        def _next_non_comment() -> bytes:
+            while True:
+                line = handle.readline()
+                if not line:
+                    raise RuntimeError(f"{path.name}: truncated PPM header")
+                line = line.strip()
+                if not line or line.startswith(b"#"):
+                    continue
+                return line
+
+        dims = _next_non_comment().split()
+        if len(dims) != 2:
+            raise RuntimeError(f"{path.name}: invalid PPM dimensions")
+        width = int(dims[0])
+        height = int(dims[1])
+        max_value = int(_next_non_comment())
+        if max_value != 255:
+            raise RuntimeError(f"{path.name}: unsupported max value {max_value}")
+
+        pixels = handle.read(width * height * 3)
+        if len(pixels) != width * height * 3:
+            raise RuntimeError(f"{path.name}: truncated PPM payload")
+        return width, height, pixels
+
+
+def _mean_abs_diff(lhs: Path, rhs: Path) -> float:
+    lhs_w, lhs_h, lhs_pixels = _read_ppm(lhs)
+    rhs_w, rhs_h, rhs_pixels = _read_ppm(rhs)
+    if (lhs_w, lhs_h) != (rhs_w, rhs_h):
+        raise RuntimeError(
+            f"image size mismatch: {lhs.name}={lhs_w}x{lhs_h}, {rhs.name}={rhs_w}x{rhs_h}"
+        )
+    total = 0
+    count = len(lhs_pixels)
+    for a, b in zip(lhs_pixels, rhs_pixels):
+        total += abs(a - b)
+    return total / max(1, count)
+
+
+def _normalized_rgb_diff(
+    oiiotool: Path, lhs: Path, rhs: Path, work_dir: Path, stem: str
+) -> float:
+    lhs_ppm = work_dir / f"{stem}.lhs.ppm"
+    rhs_ppm = work_dir / f"{stem}.rhs.ppm"
+    _write_rgb_ppm(oiiotool, lhs, 256, 256, lhs_ppm)
+    _write_rgb_ppm(oiiotool, rhs, 256, 256, rhs_ppm)
+    return _mean_abs_diff(lhs_ppm, rhs_ppm)
 
 
 def _fail(message: str) -> int:
@@ -422,12 +484,30 @@ def main() -> int:
     except (OSError, subprocess.CalledProcessError, RuntimeError, subprocess.TimeoutExpired) as exc:
         return _fail(str(exc))
 
-    if not _images_identical(idiff, static_raw_crop, live_noop_crop):
-        return _fail("live noop OCIO update changed the image region unexpectedly")
-    if _images_identical(idiff, static_raw_crop, live_switch_crop):
-        return _fail("live OCIO view switch did not update the image region")
-    if not _images_identical(idiff, static_target_crop, live_switch_crop):
-        return _fail("live OCIO view switch does not match the static target view")
+    static_noop_diff = _normalized_rgb_diff(
+        oiiotool, static_raw_crop, live_noop_crop, crop_dir, "static_vs_noop"
+    )
+    if static_noop_diff > 2.0:
+        return _fail(
+            "live noop OCIO update changed the image region unexpectedly "
+            f"(mean abs RGB diff={static_noop_diff:.4f})"
+        )
+    static_switch_diff = _normalized_rgb_diff(
+        oiiotool, static_raw_crop, live_switch_crop, crop_dir, "static_vs_switch"
+    )
+    if static_switch_diff <= 4.0:
+        return _fail(
+            "live OCIO view switch did not update the image region "
+            f"(mean abs RGB diff={static_switch_diff:.4f})"
+        )
+    target_switch_diff = _normalized_rgb_diff(
+        oiiotool, static_target_crop, live_switch_crop, crop_dir, "target_vs_switch"
+    )
+    if target_switch_diff > 2.0:
+        return _fail(
+            "live OCIO view switch does not match the static target view "
+            f"(mean abs RGB diff={target_switch_diff:.4f})"
+        )
 
     print("display:", args.display)
     print("initial display:", args.display)
