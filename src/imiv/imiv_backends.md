@@ -205,8 +205,12 @@ Important constraints:
 
 Manual verification:
 
-- backend configure/build/run wrapper:
+- canonical cross-platform backend verifier:
+  - [imiv_backend_verify.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_backend_verify.py)
+- compatibility frontends:
   - [imiv_macos_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_macos_backend_verify.sh)
+  - [imiv_linux_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_linux_backend_verify.sh)
+  - [imiv_windows_backend_verify.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_windows_backend_verify.py)
 - Metal smoke regression without screenshot/readback dependency:
   - [imiv_metal_smoke_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_smoke_regression.py)
 - Metal screenshot smoke regression:
