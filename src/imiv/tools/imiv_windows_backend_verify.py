@@ -9,6 +9,18 @@ Intended usage from an active Python environment, e.g. a uv venv:
     --config Debug ^
     --out-dir windows_verify ^
     --trace
+
+If you invoke this from the repo root with `uv run`, use `--no-project`:
+
+  uv run --no-project python src\\imiv\\tools\\imiv_windows_backend_verify.py ^
+    --backend vulkan ^
+    --build-dir build ^
+    --config Debug ^
+    --out-dir windows_verify ^
+    --trace
+
+Without `--no-project`, uv will try to build/install the repository's
+`OpenImageIO` Python package first because this checkout has a `pyproject.toml`.
 """
 
 from __future__ import annotations
