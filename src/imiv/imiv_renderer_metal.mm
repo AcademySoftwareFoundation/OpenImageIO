@@ -848,9 +848,12 @@ build_ocio_preview_shader_source(const OcioShaderRuntime& runtime,
     std::ostringstream uniforms_struct;
     std::ostringstream uniform_bindings;
     std::ostringstream texture_bindings;
+    std::ostringstream texture_call_params;
+    std::ostringstream uniform_call_params;
     std::ostringstream call_params;
-    bool has_uniform_struct = false;
-    bool need_separator     = false;
+    bool has_uniform_struct     = false;
+    bool uniform_need_separator = false;
+    bool texture_need_separator = false;
     NSUInteger vector_buffer_index = 2;
 
     const unsigned num_uniforms = runtime.shader_desc->getNumUniforms();
@@ -865,27 +868,29 @@ build_ocio_preview_shader_source(const OcioShaderRuntime& runtime,
         switch (data.m_type) {
         case OCIO::UNIFORM_DOUBLE:
             uniforms_struct << "    float " << uniform_name << ";\n";
-            if (need_separator)
-                call_params << ", ";
-            call_params << "ocioUniformData." << uniform_name;
-            need_separator     = true;
-            has_uniform_struct = true;
+            if (uniform_need_separator)
+                uniform_call_params << ", ";
+            uniform_call_params << "ocioUniformData." << uniform_name;
+            uniform_need_separator = true;
+            has_uniform_struct     = true;
             break;
         case OCIO::UNIFORM_BOOL:
             uniforms_struct << "    int " << uniform_name << ";\n";
-            if (need_separator)
-                call_params << ", ";
-            call_params << "(ocioUniformData." << uniform_name << " != 0)";
-            need_separator     = true;
-            has_uniform_struct = true;
+            if (uniform_need_separator)
+                uniform_call_params << ", ";
+            uniform_call_params << "(ocioUniformData." << uniform_name
+                                << " != 0)";
+            uniform_need_separator = true;
+            has_uniform_struct     = true;
             break;
         case OCIO::UNIFORM_FLOAT3:
             uniforms_struct << "    float4 " << uniform_name << ";\n";
-            if (need_separator)
-                call_params << ", ";
-            call_params << "ocioUniformData." << uniform_name << ".xyz";
-            need_separator     = true;
-            has_uniform_struct = true;
+            if (uniform_need_separator)
+                uniform_call_params << ", ";
+            uniform_call_params << "ocioUniformData." << uniform_name
+                                << ".xyz";
+            uniform_need_separator = true;
+            has_uniform_struct     = true;
             break;
         case OCIO::UNIFORM_VECTOR_FLOAT:
             uniforms_struct << "    int " << uniform_count_name(uniform_name)
@@ -893,12 +898,12 @@ build_ocio_preview_shader_source(const OcioShaderRuntime& runtime,
             uniform_bindings << ",    constant float* " << uniform_name
                              << " [[buffer(" << vector_buffer_index++
                              << ")]]\n";
-            if (need_separator)
-                call_params << ", ";
-            call_params << uniform_name << ", ocioUniformData."
-                        << uniform_count_name(uniform_name);
-            need_separator     = true;
-            has_uniform_struct = true;
+            if (uniform_need_separator)
+                uniform_call_params << ", ";
+            uniform_call_params << uniform_name << ", ocioUniformData."
+                                << uniform_count_name(uniform_name);
+            uniform_need_separator = true;
+            has_uniform_struct     = true;
             break;
         case OCIO::UNIFORM_VECTOR_INT:
             uniforms_struct << "    int " << uniform_count_name(uniform_name)
@@ -906,12 +911,12 @@ build_ocio_preview_shader_source(const OcioShaderRuntime& runtime,
             uniform_bindings << ",    constant int* " << uniform_name
                              << " [[buffer(" << vector_buffer_index++
                              << ")]]\n";
-            if (need_separator)
-                call_params << ", ";
-            call_params << uniform_name << ", ocioUniformData."
-                        << uniform_count_name(uniform_name);
-            need_separator     = true;
-            has_uniform_struct = true;
+            if (uniform_need_separator)
+                uniform_call_params << ", ";
+            uniform_call_params << uniform_name << ", ocioUniformData."
+                                << uniform_count_name(uniform_name);
+            uniform_need_separator = true;
+            has_uniform_struct     = true;
             break;
         case OCIO::UNIFORM_UNKNOWN:
         default:
@@ -937,10 +942,10 @@ build_ocio_preview_shader_source(const OcioShaderRuntime& runtime,
                          << " [[texture(" << texture_index << ")]]\n"
                          << ",    sampler " << sampler_name << " [[sampler("
                          << texture_index << ")]]\n";
-        if (need_separator)
-            call_params << ", ";
-        call_params << texture_name << ", " << sampler_name;
-        need_separator = true;
+        if (texture_need_separator)
+            texture_call_params << ", ";
+        texture_call_params << texture_name << ", " << sampler_name;
+        texture_need_separator = true;
         ++texture_index;
     }
 
@@ -971,14 +976,23 @@ build_ocio_preview_shader_source(const OcioShaderRuntime& runtime,
             << texture_name << " [[texture(" << texture_index << ")]]\n"
             << ",    sampler " << sampler_name << " [[sampler("
             << texture_index << ")]]\n";
-        if (need_separator)
-            call_params << ", ";
-        call_params << texture_name << ", " << sampler_name;
-        need_separator = true;
+        if (texture_need_separator)
+            texture_call_params << ", ";
+        texture_call_params << texture_name << ", " << sampler_name;
+        texture_need_separator = true;
         ++texture_index;
     }
 
-    if (need_separator)
+    if (!texture_call_params.str().empty()) {
+        call_params << texture_call_params.str();
+    }
+    if (!uniform_call_params.str().empty()) {
+        if (!call_params.str().empty())
+            call_params << ", ";
+        call_params << uniform_call_params.str();
+    }
+
+    if (!call_params.str().empty())
         call_params << ", ";
     call_params << "rgba";
 
