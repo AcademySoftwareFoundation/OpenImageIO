@@ -8,6 +8,7 @@
 #include "imiv_drag_drop.h"
 #include "imiv_image_view.h"
 #include "imiv_menu.h"
+#include "imiv_ocio.h"
 #include "imiv_test_engine.h"
 #include "imiv_ui.h"
 
@@ -17,6 +18,7 @@
 #include <filesystem>
 #include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <imgui.h>
@@ -218,6 +220,109 @@ test_engine_json_write_vec2(FILE* f, const ImVec2& v)
                  static_cast<double>(v.y));
 }
 
+void
+test_engine_json_write_string_array(FILE* f,
+                                    const std::vector<std::string>& values)
+{
+    std::fputc('[', f);
+    for (size_t i = 0, e = values.size(); i < e; ++i) {
+        if (i > 0)
+            std::fputs(", ", f);
+        test_engine_json_write_escaped(f, values[i].c_str());
+    }
+    std::fputc(']', f);
+}
+
+void
+test_engine_json_write_ocio_state(FILE* f, const PlaceholderUiState& ui_state)
+{
+    OcioConfigSelection config_selection;
+    resolve_ocio_config_selection(ui_state, config_selection);
+
+    std::vector<std::string> image_color_spaces;
+    std::vector<std::string> displays;
+    std::vector<std::string> views;
+    std::vector<std::pair<std::string, std::vector<std::string>>>
+        views_by_display;
+    std::string resolved_display;
+    std::string resolved_view;
+    std::string menu_error;
+    const bool menu_data_ok = query_ocio_menu_data(ui_state, image_color_spaces,
+                                                   displays, views,
+                                                   resolved_display,
+                                                   resolved_view, menu_error);
+
+    if (menu_data_ok) {
+        views_by_display.reserve(displays.size());
+        for (const std::string& display_name : displays) {
+            PlaceholderUiState probe_state = ui_state;
+            probe_state.ocio_display       = display_name;
+            probe_state.ocio_view          = "default";
+
+            std::vector<std::string> probe_color_spaces;
+            std::vector<std::string> probe_displays;
+            std::vector<std::string> probe_views;
+            std::string probe_resolved_display;
+            std::string probe_resolved_view;
+            std::string probe_error;
+            if (query_ocio_menu_data(probe_state, probe_color_spaces,
+                                     probe_displays, probe_views,
+                                     probe_resolved_display,
+                                     probe_resolved_view, probe_error)) {
+                views_by_display.emplace_back(display_name,
+                                              std::move(probe_views));
+            } else {
+                views_by_display.emplace_back(display_name,
+                                              std::vector<std::string>());
+            }
+        }
+    }
+
+    std::fputs(",\n  \"ocio\": {\n", f);
+    std::fputs("    \"use_ocio\": ", f);
+    std::fputs(ui_state.use_ocio ? "true" : "false", f);
+    std::fputs(",\n    \"requested_source\": ", f);
+    test_engine_json_write_escaped(
+        f, ocio_config_source_name(config_selection.requested_source));
+    std::fputs(",\n    \"resolved_source\": ", f);
+    test_engine_json_write_escaped(
+        f, ocio_config_source_name(config_selection.resolved_source));
+    std::fputs(",\n    \"fallback_applied\": ", f);
+    std::fputs(config_selection.fallback_applied ? "true" : "false", f);
+    std::fputs(",\n    \"resolved_config_path\": ", f);
+    test_engine_json_write_escaped(f, config_selection.resolved_path.c_str());
+    std::fputs(",\n    \"display\": ", f);
+    test_engine_json_write_escaped(f, ui_state.ocio_display.c_str());
+    std::fputs(",\n    \"view\": ", f);
+    test_engine_json_write_escaped(f, ui_state.ocio_view.c_str());
+    std::fputs(",\n    \"image_color_space\": ", f);
+    test_engine_json_write_escaped(f, ui_state.ocio_image_color_space.c_str());
+    std::fputs(",\n    \"resolved_display\": ", f);
+    test_engine_json_write_escaped(f, resolved_display.c_str());
+    std::fputs(",\n    \"resolved_view\": ", f);
+    test_engine_json_write_escaped(f, resolved_view.c_str());
+    std::fputs(",\n    \"menu_data_ok\": ", f);
+    std::fputs(menu_data_ok ? "true" : "false", f);
+    std::fputs(",\n    \"menu_error\": ", f);
+    test_engine_json_write_escaped(f, menu_error.c_str());
+    std::fputs(",\n    \"available_image_color_spaces\": ", f);
+    test_engine_json_write_string_array(f, image_color_spaces);
+    std::fputs(",\n    \"available_displays\": ", f);
+    test_engine_json_write_string_array(f, displays);
+    std::fputs(",\n    \"available_views\": ", f);
+    test_engine_json_write_string_array(f, views);
+    std::fputs(",\n    \"views_by_display\": {\n", f);
+    for (size_t i = 0, e = views_by_display.size(); i < e; ++i) {
+        if (i > 0)
+            std::fputs(",\n", f);
+        std::fputs("      ", f);
+        test_engine_json_write_escaped(f, views_by_display[i].first.c_str());
+        std::fputs(": ", f);
+        test_engine_json_write_string_array(f, views_by_display[i].second);
+    }
+    std::fputs("\n    }\n  }", f);
+}
+
 bool
 write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
                                     void* user_data, std::string& error_message)
@@ -303,6 +408,7 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
         test_engine_json_write_escaped(f, viewer.area_probe_lines[i].c_str());
     }
     std::fputs("]", f);
+    test_engine_json_write_ocio_state(f, ui_state);
     std::fputs("\n}\n", f);
     std::fflush(f);
     std::fclose(f);

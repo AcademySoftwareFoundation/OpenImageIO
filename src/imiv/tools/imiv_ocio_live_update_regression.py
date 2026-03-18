@@ -65,7 +65,7 @@ def _default_idiff(repo_root: Path) -> Path:
 
 
 def _default_ocio_config(_: Path) -> str:
-    return ""
+    return "ocio://default"
 
 
 def _resolve_existing_tool(requested: str, fallback: Path) -> Path:
@@ -144,9 +144,10 @@ def _run_case(
     name: str,
     extra_args: list[str],
     extra_env: dict[str, str] | None = None,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path]:
     screenshot_path = out_dir / f"{name}.png"
     layout_path = out_dir / f"{name}.json"
+    state_path = out_dir / f"{name}.state.json"
     log_path = out_dir / f"{name}.log"
     exe_cmd = [str(exe), "-F", *extra_args, str(image_path)]
 
@@ -164,6 +165,9 @@ def _run_case(
             "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_OUT": str(layout_path),
             "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS": "1",
             "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DELAY_FRAMES": "10",
+            "IMIV_IMGUI_TEST_ENGINE_STATE_DUMP": "1",
+            "IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_OUT": str(state_path),
+            "IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_DELAY_FRAMES": "10",
         }
     )
     if extra_env:
@@ -185,13 +189,171 @@ def _run_case(
         raise RuntimeError(f"{name}: screenshot not written")
     if not layout_path.exists():
         raise RuntimeError(f"{name}: layout json not written")
+    if not state_path.exists():
+        raise RuntimeError(f"{name}: state json not written")
 
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
     for pattern in ERROR_PATTERNS:
         if pattern in log_text:
             raise RuntimeError(f"{name}: found runtime error pattern: {pattern}")
 
-    return screenshot_path, layout_path, log_path
+    return screenshot_path, layout_path, state_path, log_path
+
+
+def _json_load(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = str(item).strip()
+        if text:
+            result.append(text)
+    return result
+
+
+def _views_by_display(ocio_state: dict) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {}
+    raw = ocio_state.get("views_by_display")
+    if not isinstance(raw, dict):
+        return result
+    for key, value in raw.items():
+        display_name = str(key).strip()
+        if not display_name:
+            continue
+        result[display_name] = _string_list(value)
+    return result
+
+
+def _pick_first_other(values: list[str], current: str) -> str:
+    for value in values:
+        if value != current:
+            return value
+    return ""
+
+
+def _display_priority(display_name: str, current_display: str) -> tuple[int, str]:
+    name = display_name.lower()
+    score = 100
+    if display_name == current_display:
+        score += 1000
+    if "hdr" in name or "2100" in name or "pq" in name or "st2084" in name:
+        score -= 50
+    if "p3" in name:
+        score -= 20
+    if "1886" in name or "gamma 2.2" in name:
+        score += 10
+    return score, display_name
+
+
+def _pick_image_color_space(
+    requested: str, available_color_spaces: list[str]
+) -> str:
+    text = requested.strip()
+    if text:
+        return text
+    if "ACEScg" in available_color_spaces:
+        return "ACEScg"
+    return "auto"
+
+
+def _resolve_live_targets(args: argparse.Namespace, probe_state_path: Path) -> tuple[str, str, str, str, str]:
+    state_data = _json_load(probe_state_path)
+    ocio_state = state_data.get("ocio")
+    if not isinstance(ocio_state, dict):
+        raise RuntimeError(f"{probe_state_path.name}: missing ocio state block")
+    if not bool(ocio_state.get("menu_data_ok")):
+        raise RuntimeError(
+            "OCIO menu data unavailable: "
+            + str(ocio_state.get("menu_error", "")).strip()
+        )
+
+    displays = _string_list(ocio_state.get("available_displays"))
+    available_color_spaces = _string_list(
+        ocio_state.get("available_image_color_spaces")
+    )
+    display_views = _views_by_display(ocio_state)
+
+    resolved_display = str(ocio_state.get("resolved_display", "")).strip()
+    resolved_view = str(ocio_state.get("resolved_view", "")).strip()
+    if not resolved_display:
+        resolved_display = "default"
+    if not resolved_view:
+        resolved_view = "default"
+
+    requested_display = args.display.strip()
+    if requested_display and (
+        requested_display == "default" or requested_display in displays
+    ):
+        initial_display = requested_display
+    else:
+        initial_display = resolved_display
+
+    current_views = display_views.get(resolved_display, [])
+    requested_view = args.raw_view.strip()
+    if requested_view and (
+        requested_view == "default" or requested_view in current_views
+    ):
+        initial_view = requested_view
+    else:
+        initial_view = resolved_view
+
+    image_color_space = _pick_image_color_space(
+        args.image_color_space, available_color_spaces
+    )
+
+    switch_mode = args.switch_mode
+    if switch_mode == "auto":
+        if args.target_display.strip():
+            switch_mode = "display"
+        else:
+            target_views = display_views.get(initial_display, [])
+            switch_mode = (
+                "view"
+                if _pick_first_other(target_views, initial_view)
+                else "display"
+            )
+
+    if switch_mode == "view":
+        target_display = args.target_display.strip() or initial_display
+        target_views = display_views.get(target_display, [])
+        target_view = args.target_view.strip()
+        if not target_view:
+            target_view = _pick_first_other(target_views, initial_view)
+        if not target_view:
+            raise RuntimeError(
+                "no alternate OCIO view is available in the active config"
+            )
+    elif switch_mode == "display":
+        target_display = args.target_display.strip()
+        if not target_display:
+            ranked_displays = sorted(
+                displays, key=lambda value: _display_priority(value, initial_display)
+            )
+            target_display = _pick_first_other(ranked_displays, initial_display)
+        if not target_display:
+            raise RuntimeError(
+                "no alternate OCIO display is available in the active config"
+            )
+        target_views = display_views.get(target_display, [])
+        target_view = args.target_view.strip()
+        if not target_view:
+            target_view = (
+                initial_view if initial_view in target_views else "default"
+            )
+    else:
+        raise RuntimeError(f"unsupported switch mode: {switch_mode}")
+
+    return (
+        initial_display,
+        initial_view,
+        target_display,
+        target_view,
+        image_color_space,
+    )
 
 
 def _image_crop_rect(layout_path: Path) -> tuple[int, int, int, int]:
@@ -355,14 +517,23 @@ def main() -> int:
     ap.add_argument("--env-script", default=str(default_env_script), help="Optional shell env script")
     ap.add_argument("--out-dir", default=str(default_out), help="Artifact directory")
     ap.add_argument("--image", default=str(default_image), help="Generated input image path")
-    ap.add_argument("--ocio-config", default=str(default_config), help="OCIO config path")
-    ap.add_argument("--display", default="sRGB - Display", help="Initial OCIO display")
+    ap.add_argument(
+        "--ocio-config",
+        default=str(default_config),
+        help="OCIO config path or URI",
+    )
+    ap.add_argument(
+        "--switch-mode",
+        choices=("auto", "view", "display"),
+        default="view",
+        help="How to choose the live OCIO switch target",
+    )
+    ap.add_argument("--display", default="", help="Initial OCIO display")
     ap.add_argument("--target-display", default="",
-                    help="Target OCIO display (defaults to --display)")
-    ap.add_argument("--raw-view", default="Raw", help="Initial OCIO view")
-    ap.add_argument("--target-view", default="ACES 2.0 - SDR 100 nits (Rec.709)",
-                    help="Live switch target OCIO view")
-    ap.add_argument("--image-color-space", default="ACEScg", help="Input image color space")
+                    help="Target OCIO display")
+    ap.add_argument("--raw-view", default="", help="Initial OCIO view")
+    ap.add_argument("--target-view", default="", help="Live switch target OCIO view")
+    ap.add_argument("--image-color-space", default="", help="Input image color space")
     ap.add_argument("--apply-frame", type=int, default=5,
                     help="Frame number for live OCIO override")
     args = ap.parse_args()
@@ -375,9 +546,8 @@ def main() -> int:
         args.oiiotool, _default_oiiotool(repo_root)
     )
     idiff = _resolve_existing_tool(args.idiff, _default_idiff(repo_root))
+    _ = idiff
     ocio_config = _resolve_ocio_config_argument(args.ocio_config)
-    if not ocio_config:
-        return _fail("OCIO config not specified; pass --ocio-config for live-update coverage")
     if not ocio_config.startswith("ocio://"):
         ocio_config_path = Path(ocio_config)
         if not ocio_config_path.exists():
@@ -395,35 +565,58 @@ def main() -> int:
     env["IMIV_CONFIG_HOME"] = str(config_home)
     env["OCIO"] = ocio_config
 
-    target_display = args.target_display if args.target_display else args.display
-
-    common_args = [
-        "--display",
-        args.display,
-        "--view",
-        args.raw_view,
-        "--image-color-space",
-        args.image_color_space,
-    ]
-    target_args = [
-        "--display",
-        target_display,
-        "--view",
-        args.target_view,
-        "--image-color-space",
-        args.image_color_space,
-    ]
-
     try:
         _generate_probe_image(oiiotool, image_path)
 
-        static_raw_png, static_raw_layout, static_raw_log = _run_case(
+        _, _, probe_state, probe_log = _run_case(
+            exe,
+            run_cwd,
+            env,
+            out_dir,
+            image_path,
+            "probe_menu",
+            [
+                "--display",
+                "default",
+                "--view",
+                "default",
+                "--image-color-space",
+                "auto",
+            ],
+        )
+
+        (
+            initial_display,
+            initial_view,
+            target_display,
+            target_view,
+            image_color_space,
+        ) = _resolve_live_targets(args, probe_state)
+
+        common_args = [
+            "--display",
+            initial_display,
+            "--view",
+            initial_view,
+            "--image-color-space",
+            image_color_space,
+        ]
+        target_args = [
+            "--display",
+            target_display,
+            "--view",
+            target_view,
+            "--image-color-space",
+            image_color_space,
+        ]
+
+        static_raw_png, static_raw_layout, static_raw_state, static_raw_log = _run_case(
             exe, run_cwd, env, out_dir, image_path, "static_raw", common_args
         )
-        static_target_png, static_target_layout, static_target_log = _run_case(
+        static_target_png, static_target_layout, static_target_state, static_target_log = _run_case(
             exe, run_cwd, env, out_dir, image_path, "static_target", target_args
         )
-        live_noop_png, live_noop_layout, live_noop_log = _run_case(
+        live_noop_png, live_noop_layout, live_noop_state, live_noop_log = _run_case(
             exe,
             run_cwd,
             env,
@@ -432,13 +625,13 @@ def main() -> int:
             "live_noop_raw",
             common_args,
             {
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_DISPLAY": args.display,
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW": args.raw_view,
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE": args.image_color_space,
+                "IMIV_IMGUI_TEST_ENGINE_OCIO_DISPLAY": initial_display,
+                "IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW": initial_view,
+                "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE": image_color_space,
                 "IMIV_IMGUI_TEST_ENGINE_OCIO_APPLY_FRAME": str(args.apply_frame),
             },
         )
-        live_switch_png, live_switch_layout, live_switch_log = _run_case(
+        live_switch_png, live_switch_layout, live_switch_state, live_switch_log = _run_case(
             exe,
             run_cwd,
             env,
@@ -448,8 +641,8 @@ def main() -> int:
             common_args,
             {
                 "IMIV_IMGUI_TEST_ENGINE_OCIO_DISPLAY": target_display,
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW": args.target_view,
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE": args.image_color_space,
+                "IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW": target_view,
+                "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE": image_color_space,
                 "IMIV_IMGUI_TEST_ENGINE_OCIO_APPLY_FRAME": str(args.apply_frame),
             },
         )
@@ -513,12 +706,13 @@ def main() -> int:
             f"(mean abs RGB diff={target_switch_diff:.4f})"
         )
 
-    print("display:", args.display)
-    print("initial display:", args.display)
+    print("probe log:", probe_log)
+    print("display:", initial_display)
+    print("initial display:", initial_display)
     print("target display:", target_display)
-    print("initial view:", args.raw_view)
-    print("target view:", args.target_view)
-    print("image color space:", args.image_color_space)
+    print("initial view:", initial_view)
+    print("target view:", target_view)
+    print("image color space:", image_color_space)
     print("OCIO config:", ocio_config)
     print("static raw:", static_raw_png)
     print("static target:", static_target_png)
@@ -528,6 +722,14 @@ def main() -> int:
     print("crop static target:", static_target_crop)
     print("crop live noop:", live_noop_crop)
     print("crop live switch:", live_switch_crop)
+    print(
+        "state dumps:",
+        probe_state,
+        static_raw_state,
+        static_target_state,
+        live_noop_state,
+        live_switch_state,
+    )
     print("logs:", static_raw_log, static_target_log, live_noop_log, live_switch_log)
     print("artifacts:", out_dir)
     return 0
