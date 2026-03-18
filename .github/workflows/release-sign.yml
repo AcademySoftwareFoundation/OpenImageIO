@@ -49,13 +49,13 @@ jobs:
         shell: bash
 
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Create archive
         run: git archive --format=tar.gz -o ${OPENIMAGEIO_TARBALL} --prefix ${OPENIMAGEIO_PREFIX} ${TAG}
 
       - name: Sign archive with Sigstore
-        uses: sigstore/gh-action-sigstore-python@f514d46b907ebcd5bedc05145c03b69c1edd8b46 # v3.0.0
+        uses: sigstore/gh-action-sigstore-python@a5caf349bc536fbef3668a10ed7f5cd309a4b53d # v3.2.0
         with:
           inputs: ${{ env.OPENIMAGEIO_TARBALL }}
           upload-signing-artifacts: false
