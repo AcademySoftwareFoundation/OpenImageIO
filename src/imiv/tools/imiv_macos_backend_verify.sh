@@ -268,6 +268,9 @@ if [[ -n "${ocio_config_source_runner_py}" && -n "${ocio_config_path}" ]]; then
     if ! "${ocio_config_cmd[@]}" 2>&1 | tee "${ocio_config_source_runner_log}"; then
         verify_failed=1
     fi
+elif [[ -n "${ocio_config_source_runner_py}" ]]; then
+    echo "skip: OCIO config-source regression not run because temp OCIO config was not found" \
+        | tee "${ocio_config_source_runner_log}"
 fi
 
 if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_path}" && -n "${idiff_path}" ]]; then
@@ -295,6 +298,16 @@ if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_
     if ! "${ocio_live_display_cmd[@]}" 2>&1 | tee "${ocio_live_display_runner_log}"; then
         verify_failed=1
     fi
+elif [[ -n "${ocio_live_runner_py}" ]]; then
+    {
+        if [[ -z "${ocio_config_path}" ]]; then
+            echo "skip: Metal OCIO live regressions not run because temp OCIO config was not found"
+        elif [[ -z "${oiiotool_path}" ]]; then
+            echo "skip: Metal OCIO live regressions not run because oiiotool was not found in ${build_dir}"
+        elif [[ -z "${idiff_path}" ]]; then
+            echo "skip: Metal OCIO live regressions not run because idiff was not found in ${build_dir}"
+        fi
+    } | tee "${ocio_live_runner_log}"
 fi
 
 echo
