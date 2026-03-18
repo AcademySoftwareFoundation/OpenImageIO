@@ -536,6 +536,8 @@ def main() -> int:
     ap.add_argument("--image-color-space", default="", help="Input image color space")
     ap.add_argument("--apply-frame", type=int, default=5,
                     help="Frame number for live OCIO override")
+    ap.add_argument("--trace", action="store_true",
+                    help="Accepted for wrapper parity; no effect")
     args = ap.parse_args()
 
     exe = Path(args.bin).resolve()

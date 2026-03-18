@@ -25,6 +25,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -1548,6 +1549,10 @@ renderer_backend_update_preview_texture(RendererState& renderer_state,
                                            effective_controls, ocio_error)) {
             used_ocio = true;
         } else {
+            if (!ocio_error.empty()) {
+                std::cerr << "imiv: Metal OCIO fallback: " << ocio_error
+                          << "\n";
+            }
             effective_controls.use_ocio = 0;
         }
     }
