@@ -164,9 +164,10 @@ def _run_case(
     out_dir: Path,
     name: str,
     trace: bool,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path]:
     screenshot_path = out_dir / f"{name}.png"
     layout_path = out_dir / f"{name}.json"
+    state_path = out_dir / f"{name}.state.json"
     log_path = out_dir / f"{name}.log"
     cmd = [
         sys.executable,
@@ -182,6 +183,8 @@ def _run_case(
         "--layout-json-out",
         str(layout_path),
         "--layout-items",
+        "--state-json-out",
+        str(state_path),
     ]
     if trace:
         cmd.append("--trace")
@@ -202,12 +205,14 @@ def _run_case(
         raise RuntimeError(f"{name}: screenshot not written")
     if not layout_path.exists():
         raise RuntimeError(f"{name}: layout json not written")
+    if not state_path.exists():
+        raise RuntimeError(f"{name}: state json not written")
 
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
     for pattern in ERROR_PATTERNS:
         if pattern in log_text:
             raise RuntimeError(f"{name}: found runtime error pattern: {pattern}")
-    return screenshot_path, layout_path, log_path
+    return screenshot_path, layout_path, state_path, log_path
 
 
 def _image_crop_rect(layout_path: Path) -> tuple[int, int, int, int]:
@@ -524,13 +529,13 @@ if __name__ == "__main__":
     user_missing_builtin_env["IMIV_CONFIG_HOME"] = str(user_missing_builtin_cfg)
 
     try:
-        baseline_png, baseline_layout, baseline_log = _run_case(
+        baseline_png, baseline_layout, baseline_state, baseline_log = _run_case(
             repo_root, runner, exe, cwd, baseline_env, image_path, out_dir, "baseline", args.trace
         )
-        global_png, global_layout, global_log = _run_case(
+        global_png, global_layout, global_state, global_log = _run_case(
             repo_root, runner, exe, cwd, global_env, image_path, out_dir, "global", args.trace
         )
-        global_default_png, global_default_layout, global_default_log = _run_case(
+        global_default_png, global_default_layout, global_default_state, global_default_log = _run_case(
             repo_root,
             runner,
             exe,
@@ -541,7 +546,7 @@ if __name__ == "__main__":
             "global_default",
             args.trace,
         )
-        global_invalid_png, global_invalid_layout, global_invalid_log = _run_case(
+        global_invalid_png, global_invalid_layout, global_invalid_state, global_invalid_log = _run_case(
             repo_root,
             runner,
             exe,
@@ -552,7 +557,7 @@ if __name__ == "__main__":
             "global_invalid_selection",
             args.trace,
         )
-        global_builtin_png, global_builtin_layout, global_builtin_log = _run_case(
+        global_builtin_png, global_builtin_layout, global_builtin_state, global_builtin_log = _run_case(
             repo_root,
             runner,
             exe,
@@ -563,7 +568,7 @@ if __name__ == "__main__":
             "global_builtin_fallback",
             args.trace,
         )
-        builtin_png, builtin_layout, builtin_log = _run_case(
+        builtin_png, builtin_layout, builtin_state, builtin_log = _run_case(
             repo_root,
             runner,
             exe,
@@ -574,10 +579,10 @@ if __name__ == "__main__":
             "builtin",
             args.trace,
         )
-        user_png, user_layout, user_log = _run_case(
+        user_png, user_layout, user_state, user_log = _run_case(
             repo_root, runner, exe, cwd, user_env, image_path, out_dir, "user", args.trace
         )
-        user_missing_builtin_png, user_missing_builtin_layout, user_missing_builtin_log = _run_case(
+        user_missing_builtin_png, user_missing_builtin_layout, user_missing_builtin_state, user_missing_builtin_log = _run_case(
             repo_root,
             runner,
             exe,
@@ -709,3 +714,11 @@ if __name__ == "__main__":
     print("builtin_log:", builtin_log)
     print("user_log:", user_log)
     print("user_missing_builtin_log:", user_missing_builtin_log)
+    print("baseline_state:", baseline_state)
+    print("global_state:", global_state)
+    print("global_default_state:", global_default_state)
+    print("global_invalid_selection_state:", global_invalid_state)
+    print("global_builtin_fallback_state:", global_builtin_state)
+    print("builtin_state:", builtin_state)
+    print("user_state:", user_state)
+    print("user_missing_builtin_state:", user_missing_builtin_state)
