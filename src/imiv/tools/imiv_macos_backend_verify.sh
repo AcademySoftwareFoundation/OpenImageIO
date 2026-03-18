@@ -79,6 +79,10 @@ build_log="${out_dir}/cmake_build.log"
 runner_log="${out_dir}/verify_runner.log"
 screenshot_runner_log="${out_dir}/verify_screenshot.log"
 orientation_runner_log="${out_dir}/verify_orientation.log"
+ocio_missing_runner_log="${out_dir}/verify_ocio_missing.log"
+ocio_config_source_runner_log="${out_dir}/verify_ocio_config_source.log"
+ocio_live_runner_log="${out_dir}/verify_ocio_live.log"
+ocio_live_display_runner_log="${out_dir}/verify_ocio_live_display.log"
 
 {
     date
@@ -136,11 +140,17 @@ fi
 runner_py=""
 screenshot_runner_py=""
 orientation_runner_py=""
+ocio_missing_runner_py=""
+ocio_config_source_runner_py=""
+ocio_live_runner_py=""
 case "${backend}" in
     metal)
         runner_py="${repo_root}/src/imiv/tools/imiv_metal_smoke_regression.py"
         screenshot_runner_py="${repo_root}/src/imiv/tools/imiv_metal_screenshot_regression.py"
         orientation_runner_py="${repo_root}/src/imiv/tools/imiv_metal_orientation_regression.py"
+        ocio_missing_runner_py="${repo_root}/src/imiv/tools/imiv_ocio_missing_fallback_regression.py"
+        ocio_config_source_runner_py="${repo_root}/src/imiv/tools/imiv_ocio_config_source_regression.py"
+        ocio_live_runner_py="${repo_root}/src/imiv/tools/imiv_ocio_live_update_regression.py"
         ;;
     opengl)
         runner_py="${repo_root}/src/imiv/tools/imiv_opengl_smoke_regression.py"
@@ -183,6 +193,92 @@ if [[ -n "${orientation_runner_py}" ]]; then
     "${orientation_cmd[@]}" 2>&1 | tee "${orientation_runner_log}"
 fi
 
+oiiotool_path=""
+for candidate in \
+    "${build_dir}/bin/oiiotool" \
+    "${build_dir}/src/oiiotool/oiiotool" \
+    "${build_dir}/Release/oiiotool" \
+    "${build_dir}/Debug/oiiotool"; do
+    if [[ -x "${candidate}" ]]; then
+        oiiotool_path="${candidate}"
+        break
+    fi
+done
+
+idiff_path=""
+for candidate in \
+    "${build_dir}/bin/idiff" \
+    "${build_dir}/src/idiff/idiff" \
+    "${build_dir}/Release/idiff" \
+    "${build_dir}/Debug/idiff"; do
+    if [[ -x "${candidate}" ]]; then
+        idiff_path="${candidate}"
+        break
+    fi
+done
+
+ocio_config_path="${repo_root}/temp/studio-config-all-views-v4.0.0_aces-v2.0_ocio-v2.5.ocio"
+if [[ ! -f "${ocio_config_path}" ]]; then
+    ocio_config_path=""
+fi
+
+if [[ -n "${ocio_missing_runner_py}" ]]; then
+    ocio_missing_cmd=(python3 "${ocio_missing_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime_ocio_missing" --open "${image_path}")
+    if [[ -n "${oiiotool_path}" ]]; then
+        ocio_missing_cmd+=(--oiiotool "${oiiotool_path}")
+    fi
+    if [[ -n "${idiff_path}" ]]; then
+        ocio_missing_cmd+=(--idiff "${idiff_path}")
+    fi
+    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
+        ocio_missing_cmd+=(--env-script "${build_dir}/imiv_env.sh")
+    fi
+    if [[ ${trace} -ne 0 ]]; then
+        ocio_missing_cmd+=(--trace)
+    fi
+    "${ocio_missing_cmd[@]}" 2>&1 | tee "${ocio_missing_runner_log}"
+fi
+
+if [[ -n "${ocio_config_source_runner_py}" && -n "${ocio_config_path}" ]]; then
+    ocio_config_cmd=(python3 "${ocio_config_source_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime_ocio_config_source" --ocio-config "${ocio_config_path}")
+    if [[ -n "${oiiotool_path}" ]]; then
+        ocio_config_cmd+=(--oiiotool "${oiiotool_path}")
+    fi
+    if [[ -n "${idiff_path}" ]]; then
+        ocio_config_cmd+=(--idiff "${idiff_path}")
+    fi
+    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
+        ocio_config_cmd+=(--env-script "${build_dir}/imiv_env.sh")
+    fi
+    if [[ ${trace} -ne 0 ]]; then
+        ocio_config_cmd+=(--trace)
+    fi
+    "${ocio_config_cmd[@]}" 2>&1 | tee "${ocio_config_source_runner_log}"
+fi
+
+if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_path}" && -n "${idiff_path}" ]]; then
+    ocio_live_image="${out_dir}/runtime_ocio_live/ocio_live_input.exr"
+    mkdir -p "${out_dir}/runtime_ocio_live" "${out_dir}/runtime_ocio_live_display"
+
+    ocio_live_cmd=(python3 "${ocio_live_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --oiiotool "${oiiotool_path}" --idiff "${idiff_path}" --out-dir "${out_dir}/runtime_ocio_live" --image "${ocio_live_image}" --ocio-config "${ocio_config_path}")
+    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
+        ocio_live_cmd+=(--env-script "${build_dir}/imiv_env.sh")
+    fi
+    if [[ ${trace} -ne 0 ]]; then
+        ocio_live_cmd+=(--trace)
+    fi
+    "${ocio_live_cmd[@]}" 2>&1 | tee "${ocio_live_runner_log}"
+
+    ocio_live_display_cmd=(python3 "${ocio_live_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --oiiotool "${oiiotool_path}" --idiff "${idiff_path}" --out-dir "${out_dir}/runtime_ocio_live_display" --image "${out_dir}/runtime_ocio_live_display/ocio_live_input.exr" --ocio-config "${ocio_config_path}" --display "sRGB - Display" --target-display "Display P3 - Display" --raw-view "Un-tone-mapped" --target-view "Un-tone-mapped")
+    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
+        ocio_live_display_cmd+=(--env-script "${build_dir}/imiv_env.sh")
+    fi
+    if [[ ${trace} -ne 0 ]]; then
+        ocio_live_display_cmd+=(--trace)
+    fi
+    "${ocio_live_display_cmd[@]}" 2>&1 | tee "${ocio_live_display_runner_log}"
+fi
+
 echo
 echo "Verification logs written to: ${out_dir}"
 echo "  system:    ${system_info_log}"
@@ -196,5 +292,19 @@ fi
 if [[ -n "${orientation_runner_py}" ]]; then
 echo "  orient:    ${orientation_runner_log}"
 echo "  runtime+or:${out_dir}/runtime_orientation"
+fi
+if [[ -n "${ocio_missing_runner_py}" ]]; then
+echo "  ocio-miss: ${ocio_missing_runner_log}"
+echo "  runtime+om:${out_dir}/runtime_ocio_missing"
+fi
+if [[ -n "${ocio_config_source_runner_py}" && -n "${ocio_config_path}" ]]; then
+echo "  ocio-src:  ${ocio_config_source_runner_log}"
+echo "  runtime+os:${out_dir}/runtime_ocio_config_source"
+fi
+if [[ -n "${ocio_live_runner_py}" && -n "${ocio_config_path}" && -n "${oiiotool_path}" && -n "${idiff_path}" ]]; then
+echo "  ocio-live: ${ocio_live_runner_log}"
+echo "  runtime+ol:${out_dir}/runtime_ocio_live"
+echo "  ocio-disp: ${ocio_live_display_runner_log}"
+echo "  runtime+od:${out_dir}/runtime_ocio_live_display"
 fi
 echo "  runtime:   ${out_dir}/runtime"

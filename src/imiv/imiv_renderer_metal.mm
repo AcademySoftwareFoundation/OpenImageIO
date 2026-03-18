@@ -1159,11 +1159,17 @@ ensure_ocio_preview_program(RendererBackendState& state,
         [options setLanguageVersion:MTLLanguageVersion2_0];
 #if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) \
     && __MAC_OS_X_VERSION_MAX_ALLOWED >= 150000
-    if (@available(macOS 15.0, *))
+    if (@available(macOS 15.0, *)) {
         [options setMathMode:MTLMathModeSafe];
-    else
-#endif
+    } else {
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wdeprecated-declarations"
         [options setFastMathEnabled:NO];
+#    pragma clang diagnostic pop
+    }
+#else
+    [options setFastMathEnabled:NO];
+#endif
     state.ocio_preview.library = [state.device
         newLibraryWithSource:[NSString stringWithUTF8String:shader_source.c_str()]
                      options:options

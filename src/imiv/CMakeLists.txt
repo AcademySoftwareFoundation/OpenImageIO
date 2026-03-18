@@ -935,6 +935,46 @@ if (TARGET imiv
             imiv_opengl_ocio_live_display_update_regression PROPERTIES
                 LABELS "imiv;imiv_ocio;imiv_opengl;gui"
                 TIMEOUT 300)
+    elseif (_imiv_renderer_is_metal)
+        add_test (
+            NAME imiv_metal_ocio_live_update_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_live_update_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --idiff "$<TARGET_FILE:idiff>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/metal_ocio_live_update_regression"
+                --image "${CMAKE_BINARY_DIR}/imiv_captures/metal_ocio_live_update_regression/ocio_live_input.exr"
+                --ocio-config "${_imiv_ocio_live_update_config}")
+        set_tests_properties (
+            imiv_metal_ocio_live_update_regression PROPERTIES
+                LABELS "imiv;imiv_ocio;imiv_metal;gui"
+                TIMEOUT 300)
+
+        add_test (
+            NAME imiv_metal_ocio_live_display_update_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_live_update_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --idiff "$<TARGET_FILE:idiff>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/metal_ocio_live_display_update_regression"
+                --image "${CMAKE_BINARY_DIR}/imiv_captures/metal_ocio_live_display_update_regression/ocio_live_input.exr"
+                --ocio-config "${_imiv_ocio_live_update_config}"
+                --display "sRGB - Display"
+                --target-display "Display P3 - Display"
+                --raw-view "Un-tone-mapped"
+                --target-view "Un-tone-mapped")
+        set_tests_properties (
+            imiv_metal_ocio_live_display_update_regression PROPERTIES
+                LABELS "imiv;imiv_ocio;imiv_metal;gui"
+                TIMEOUT 300)
     endif ()
 elseif (TARGET imiv
         AND OIIO_BUILD_TESTS
