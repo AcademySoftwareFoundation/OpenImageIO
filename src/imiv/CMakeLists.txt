@@ -94,9 +94,9 @@ if (_imiv_renderer_is_vulkan)
 elseif (_imiv_renderer_is_metal)
     list (APPEND _imiv_imgui_required_files
           "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_metal.h"
-          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_metal.mm")
+          "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui_impl_metal_imiv.mm")
     list (APPEND _imiv_imgui_renderer_sources
-          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_metal.mm")
+          "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui_impl_metal_imiv.mm")
 elseif (_imiv_renderer_is_opengl)
     list (APPEND _imiv_imgui_required_files
           "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_opengl3.h"
@@ -1014,6 +1014,21 @@ if (TARGET imiv
                 TIMEOUT 180)
 
         if (TARGET oiiotool)
+            add_test (
+                NAME imiv_metal_sampling_regression
+                COMMAND
+                    "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_metal_sampling_regression.py"
+                    --bin "$<TARGET_FILE:imiv>"
+                    --cwd "$<TARGET_FILE_DIR:imiv>"
+                    --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                    --oiiotool "$<TARGET_FILE:oiiotool>"
+                    --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/metal_sampling_regression")
+            set_tests_properties (
+                imiv_metal_sampling_regression PROPERTIES
+                    LABELS "imiv;imiv_metal;gui"
+                    TIMEOUT 180)
+
             add_test (
                 NAME imiv_metal_orientation_regression
                 COMMAND

@@ -247,10 +247,9 @@ test_engine_json_write_ocio_state(FILE* f, const PlaceholderUiState& ui_state)
     std::string resolved_display;
     std::string resolved_view;
     std::string menu_error;
-    const bool menu_data_ok = query_ocio_menu_data(ui_state, image_color_spaces,
-                                                   displays, views,
-                                                   resolved_display,
-                                                   resolved_view, menu_error);
+    const bool menu_data_ok
+        = query_ocio_menu_data(ui_state, image_color_spaces, displays, views,
+                               resolved_display, resolved_view, menu_error);
 
     if (menu_data_ok) {
         views_by_display.reserve(displays.size());
@@ -282,11 +281,11 @@ test_engine_json_write_ocio_state(FILE* f, const PlaceholderUiState& ui_state)
     std::fputs("    \"use_ocio\": ", f);
     std::fputs(ui_state.use_ocio ? "true" : "false", f);
     std::fputs(",\n    \"requested_source\": ", f);
-    test_engine_json_write_escaped(
-        f, ocio_config_source_name(config_selection.requested_source));
+    test_engine_json_write_escaped(f, ocio_config_source_name(
+                                          config_selection.requested_source));
     std::fputs(",\n    \"resolved_source\": ", f);
-    test_engine_json_write_escaped(
-        f, ocio_config_source_name(config_selection.resolved_source));
+    test_engine_json_write_escaped(f, ocio_config_source_name(
+                                          config_selection.resolved_source));
     std::fputs(",\n    \"fallback_applied\": ", f);
     std::fputs(config_selection.fallback_applied ? "true" : "false", f);
     std::fputs(",\n    \"resolved_config_path\": ", f);
@@ -457,7 +456,7 @@ setup_image_window_policy(ImGuiID dockspace_id, bool force_dock)
 
     ImGuiWindowClass window_class;
     window_class.ClassId                  = ImGui::GetID("imiv.image.window");
-    window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoUndocking
+    window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoDockingSplit
                                             | ImGuiDockNodeFlags_AutoHideTabBar;
     ImGui::SetNextWindowClass(&window_class);
 }
