@@ -191,7 +191,6 @@ Current gaps:
 - Metal OCIO still needs broader macOS validation
 - nearest/closeup behavior is still partial because Dear ImGui Metal samples
   textures linearly
-- no Metal live-OCIO regression coverage yet
 
 Planned direction:
 
@@ -221,6 +220,8 @@ Current automated coverage:
 - when configured with `OIIO_IMIV_RENDERER=metal`, `ctest` can run:
   - `imiv_metal_screenshot_regression`
   - `imiv_metal_orientation_regression`
+  - `imiv_metal_ocio_live_update_regression`
+  - `imiv_metal_ocio_live_display_update_regression`
 
 ## Feature Mapping Rules
 
