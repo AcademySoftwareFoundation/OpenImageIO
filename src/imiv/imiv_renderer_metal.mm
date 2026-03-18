@@ -8,7 +8,7 @@
 #include "imiv_platform_glfw.h"
 #include "imiv_viewer.h"
 
-#include <imgui_impl_metal.h>
+#include "imiv_imgui_metal_extras.h"
 
 #define GLFW_INCLUDE_NONE
 #define GLFW_EXPOSE_NATIVE_COCOA
@@ -36,6 +36,8 @@ struct RendererTextureBackendState {
     __strong id<MTLTexture> source_texture          = nil;
     __strong id<MTLTexture> preview_linear_texture  = nil;
     __strong id<MTLTexture> preview_nearest_texture = nil;
+    ImTextureID preview_linear_tex_id               = ImTextureID_Invalid;
+    ImTextureID preview_nearest_tex_id              = ImTextureID_Invalid;
     int width                                       = 0;
     int height                                      = 0;
     int input_channels                              = 0;
@@ -1435,23 +1437,21 @@ renderer_backend_get_viewer_texture_refs(const ViewerState& viewer,
     if (state == nullptr || !viewer.texture.preview_initialized)
         return false;
 
-    id<MTLTexture> main_texture = ui_state.linear_interpolation != 0
-                                      ? state->preview_linear_texture
-                                      : state->preview_nearest_texture;
-    if (main_texture == nil)
-        main_texture = state->preview_linear_texture;
-    if (main_texture != nil) {
-        main_texture_ref = ImTextureRef(static_cast<ImTextureID>(
-            reinterpret_cast<uintptr_t>((__bridge void*)main_texture)));
+    ImTextureID main_texture_id = ui_state.linear_interpolation != 0
+                                      ? state->preview_linear_tex_id
+                                      : state->preview_nearest_tex_id;
+    if (main_texture_id == ImTextureID_Invalid)
+        main_texture_id = state->preview_linear_tex_id;
+    if (main_texture_id != ImTextureID_Invalid) {
+        main_texture_ref = ImTextureRef(main_texture_id);
         has_main_texture = true;
     }
 
-    id<MTLTexture> closeup_texture = state->preview_nearest_texture;
-    if (closeup_texture == nil)
-        closeup_texture = state->preview_linear_texture;
-    if (closeup_texture != nil) {
-        closeup_texture_ref = ImTextureRef(static_cast<ImTextureID>(
-            reinterpret_cast<uintptr_t>((__bridge void*)closeup_texture)));
+    ImTextureID closeup_texture_id = state->preview_nearest_tex_id;
+    if (closeup_texture_id == ImTextureID_Invalid)
+        closeup_texture_id = state->preview_linear_tex_id;
+    if (closeup_texture_id != ImTextureID_Invalid) {
+        closeup_texture_ref = ImTextureRef(closeup_texture_id);
         has_closeup_texture = true;
     }
     return has_main_texture || has_closeup_texture;
@@ -1494,6 +1494,28 @@ renderer_backend_create_texture(RendererState& renderer_state,
         return false;
     }
 
+    texture_state->preview_linear_tex_id = ImGui_ImplMetal_CreateUserTextureID(
+        texture_state->preview_linear_texture, state->linear_sampler);
+    texture_state->preview_nearest_tex_id = ImGui_ImplMetal_CreateUserTextureID(
+        texture_state->preview_nearest_texture, state->nearest_sampler);
+    if (texture_state->preview_linear_tex_id == ImTextureID_Invalid
+        || texture_state->preview_nearest_tex_id == ImTextureID_Invalid) {
+        if (texture_state->preview_linear_tex_id != ImTextureID_Invalid)
+            ImGui_ImplMetal_DestroyUserTextureID(
+                texture_state->preview_linear_tex_id);
+        if (texture_state->preview_nearest_tex_id != ImTextureID_Invalid)
+            ImGui_ImplMetal_DestroyUserTextureID(
+                texture_state->preview_nearest_tex_id);
+        texture_state->preview_linear_tex_id  = ImTextureID_Invalid;
+        texture_state->preview_nearest_tex_id = ImTextureID_Invalid;
+        texture_state->source_texture         = nil;
+        texture_state->preview_linear_texture = nil;
+        texture_state->preview_nearest_texture = nil;
+        error_message = "failed to create Metal ImGui texture bindings";
+        delete texture_state;
+        return false;
+    }
+
     texture_state->width          = image.width;
     texture_state->height         = image.height;
     texture_state->input_channels = image.nchannels;
@@ -1514,6 +1536,14 @@ renderer_backend_destroy_texture(RendererState& renderer_state,
     if (state == nullptr) {
         texture.preview_initialized = false;
         return;
+    }
+    if (state->preview_linear_tex_id != ImTextureID_Invalid) {
+        ImGui_ImplMetal_DestroyUserTextureID(state->preview_linear_tex_id);
+        state->preview_linear_tex_id = ImTextureID_Invalid;
+    }
+    if (state->preview_nearest_tex_id != ImTextureID_Invalid) {
+        ImGui_ImplMetal_DestroyUserTextureID(state->preview_nearest_tex_id);
+        state->preview_nearest_tex_id = ImTextureID_Invalid;
     }
     state->source_texture          = nil;
     state->preview_linear_texture  = nil;

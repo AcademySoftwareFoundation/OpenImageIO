@@ -84,6 +84,7 @@ configure_log="${out_dir}/cmake_configure.log"
 build_log="${out_dir}/cmake_build.log"
 runner_log="${out_dir}/verify_runner.log"
 screenshot_runner_log="${out_dir}/verify_screenshot.log"
+sampling_runner_log="${out_dir}/verify_sampling.log"
 orientation_runner_log="${out_dir}/verify_orientation.log"
 ocio_missing_runner_log="${out_dir}/verify_ocio_missing.log"
 ocio_config_source_runner_log="${out_dir}/verify_ocio_config_source.log"
@@ -150,6 +151,7 @@ fi
 
 runner_py=""
 screenshot_runner_py=""
+sampling_runner_py=""
 orientation_runner_py=""
 ocio_missing_runner_py=""
 ocio_config_source_runner_py=""
@@ -158,6 +160,7 @@ case "${backend}" in
     metal)
         runner_py="${repo_root}/src/imiv/tools/imiv_metal_smoke_regression.py"
         screenshot_runner_py="${repo_root}/src/imiv/tools/imiv_metal_screenshot_regression.py"
+        sampling_runner_py="${repo_root}/src/imiv/tools/imiv_metal_sampling_regression.py"
         orientation_runner_py="${repo_root}/src/imiv/tools/imiv_metal_orientation_regression.py"
         ocio_missing_runner_py="${repo_root}/src/imiv/tools/imiv_ocio_missing_fallback_regression.py"
         ocio_config_source_runner_py="${repo_root}/src/imiv/tools/imiv_ocio_config_source_regression.py"
@@ -176,39 +179,6 @@ if [[ ${trace} -ne 0 ]]; then
     cmd+=(--trace)
 fi
 "${cmd[@]}" 2>&1 | tee "${runner_log}"
-
-verify_failed=0
-
-if [[ -n "${screenshot_runner_py}" ]]; then
-    screenshot_cmd=(python3 "${screenshot_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime_screenshot" --open "${image_path}")
-    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
-        screenshot_cmd+=(--env-script "${build_dir}/imiv_env.sh")
-    fi
-    if [[ ${trace} -ne 0 ]]; then
-        screenshot_cmd+=(--trace)
-    fi
-    if ! "${screenshot_cmd[@]}" 2>&1 | tee "${screenshot_runner_log}"; then
-        verify_failed=1
-    fi
-fi
-
-if [[ -n "${orientation_runner_py}" ]]; then
-    orientation_cmd=(python3 "${orientation_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime_orientation" --open "${image_path}")
-    if [[ -x "${build_dir}/bin/oiiotool" ]]; then
-        orientation_cmd+=(--oiiotool "${build_dir}/bin/oiiotool")
-    elif [[ -x "${build_dir}/src/oiiotool/oiiotool" ]]; then
-        orientation_cmd+=(--oiiotool "${build_dir}/src/oiiotool/oiiotool")
-    fi
-    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
-        orientation_cmd+=(--env-script "${build_dir}/imiv_env.sh")
-    fi
-    if [[ ${trace} -ne 0 ]]; then
-        orientation_cmd+=(--trace)
-    fi
-    if ! "${orientation_cmd[@]}" 2>&1 | tee "${orientation_runner_log}"; then
-        verify_failed=1
-    fi
-fi
 
 oiiotool_path=""
 for candidate in \
@@ -233,6 +203,53 @@ for candidate in \
         break
     fi
 done
+
+verify_failed=0
+
+if [[ -n "${screenshot_runner_py}" ]]; then
+    screenshot_cmd=(python3 "${screenshot_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime_screenshot" --open "${image_path}")
+    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
+        screenshot_cmd+=(--env-script "${build_dir}/imiv_env.sh")
+    fi
+    if [[ ${trace} -ne 0 ]]; then
+        screenshot_cmd+=(--trace)
+    fi
+    if ! "${screenshot_cmd[@]}" 2>&1 | tee "${screenshot_runner_log}"; then
+        verify_failed=1
+    fi
+fi
+
+if [[ -n "${sampling_runner_py}" ]]; then
+    sampling_cmd=(python3 "${sampling_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime_sampling")
+    if [[ -n "${oiiotool_path}" ]]; then
+        sampling_cmd+=(--oiiotool "${oiiotool_path}")
+    fi
+    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
+        sampling_cmd+=(--env-script "${build_dir}/imiv_env.sh")
+    fi
+    if [[ ${trace} -ne 0 ]]; then
+        sampling_cmd+=(--trace)
+    fi
+    if ! "${sampling_cmd[@]}" 2>&1 | tee "${sampling_runner_log}"; then
+        verify_failed=1
+    fi
+fi
+
+if [[ -n "${orientation_runner_py}" ]]; then
+    orientation_cmd=(python3 "${orientation_runner_py}" --bin "${bin_path}" --cwd "$(dirname "${bin_path}")" --out-dir "${out_dir}/runtime_orientation" --open "${image_path}")
+    if [[ -n "${oiiotool_path}" ]]; then
+        orientation_cmd+=(--oiiotool "${oiiotool_path}")
+    fi
+    if [[ -f "${build_dir}/imiv_env.sh" ]]; then
+        orientation_cmd+=(--env-script "${build_dir}/imiv_env.sh")
+    fi
+    if [[ ${trace} -ne 0 ]]; then
+        orientation_cmd+=(--trace)
+    fi
+    if ! "${orientation_cmd[@]}" 2>&1 | tee "${orientation_runner_log}"; then
+        verify_failed=1
+    fi
+fi
 
 ocio_config_path="ocio://default"
 ocio_live_config_path="ocio://default"
@@ -324,6 +341,10 @@ echo "  runner:    ${runner_log}"
 if [[ -n "${screenshot_runner_py}" ]]; then
 echo "  screenshot:${screenshot_runner_log}"
 echo "  runtime+ss:${out_dir}/runtime_screenshot"
+fi
+if [[ -n "${sampling_runner_py}" ]]; then
+echo "  sampling:  ${sampling_runner_log}"
+echo "  runtime+sa:${out_dir}/runtime_sampling"
 fi
 if [[ -n "${orientation_runner_py}" ]]; then
 echo "  orient:    ${orientation_runner_log}"

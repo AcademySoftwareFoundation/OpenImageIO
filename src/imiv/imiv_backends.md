@@ -72,13 +72,13 @@ Legend:
 | Exposure / gamma / offset | Yes | Yes | Partial |
 | Channel / luma / heatmap modes | Yes | Yes | Partial |
 | Orientation-aware preview | Yes | Yes | Partial |
-| Linear / nearest preview sampling | Yes | Yes | Partial |
-| Pixel closeup window | Yes | Yes | Partial |
+| Linear / nearest preview sampling | Yes | Yes | Yes |
+| Pixel closeup window | Yes | Yes | Yes |
 | Area Sample / selection UI | Yes | Yes | Partial |
 | Drag and drop | Yes | Yes | Yes |
 | Screenshot / readback | Yes | Yes | Partial |
-| OCIO display/view | Yes | Yes | No |
-| Runtime OCIO config switching | Yes | Partial | No |
+| OCIO display/view | Yes | Yes | Yes |
+| Runtime OCIO config switching | Yes | Partial | Yes |
 | Automated GUI regression coverage | Yes | Partial | Partial |
 
 ## Vulkan
@@ -183,14 +183,14 @@ Current scope:
 - CAMetalLayer setup
 - Dear ImGui Metal backend hookup
 - GPU-native Metal preview rendering for the shared preview controls
+- backend-specific Dear ImGui Metal texture bindings with per-texture sampler
+  control
 - Metal screenshot/readback for GUI verification
-- initial Metal OCIO runtime path using OCIO MSL output
+- Metal OCIO runtime path using OCIO MSL output
 
 Current gaps:
 
 - Metal OCIO still needs broader macOS validation
-- nearest/closeup behavior is still partial because Dear ImGui Metal samples
-  textures linearly
 
 Planned direction:
 
@@ -200,9 +200,8 @@ Planned direction:
 
 Important constraints:
 
-- Dear ImGui Metal currently samples textures linearly, so nearest/closeup
-  behavior is only partial until Metal-specific sampler control or a dedicated
-  closeup preview path is added
+- keep Metal-specific sampler control in the local ImGui Metal backend fork
+  instead of assuming upstream Dear ImGui provides nearest sampling control
 
 Manual verification:
 
@@ -212,6 +211,8 @@ Manual verification:
   - [imiv_metal_smoke_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_smoke_regression.py)
 - Metal screenshot smoke regression:
   - [imiv_metal_screenshot_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_screenshot_regression.py)
+- Metal nearest vs linear sampling regression:
+  - [imiv_metal_sampling_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_sampling_regression.py)
 - Metal orientation regression:
   - [imiv_metal_orientation_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_orientation_regression.py)
 
@@ -219,6 +220,7 @@ Current automated coverage:
 
 - when configured with `OIIO_IMIV_RENDERER=metal`, `ctest` can run:
   - `imiv_metal_screenshot_regression`
+  - `imiv_metal_sampling_regression`
   - `imiv_metal_orientation_regression`
   - `imiv_metal_ocio_live_update_regression`
   - `imiv_metal_ocio_live_display_update_regression`
