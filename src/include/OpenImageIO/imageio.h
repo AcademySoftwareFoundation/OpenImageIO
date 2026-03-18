@@ -1779,10 +1779,10 @@ protected:
     ///
     /// * Whether the resolution and channel count are within the range
     ///   implied by `range`.
-    /// * Whether the channel count is within the `"limit:channels"` OIIO
+    /// * Whether the channel count is within the `"limits:channels"` OIIO
     ///   attribute.
     /// * The total uncompressed pixel data size is expected to be within the
-    ///   `"limit:imagesize_MB"` OIIO attribute.
+    ///   `"limits:imagesize_MB"` OIIO attribute.
     /// * The full_{width,height,depth} are valid and within the range.
     ///
     bool check_open (const ImageSpec &spec,
@@ -2693,7 +2693,7 @@ protected:
     bool iowrite(const void* buf, size_t itemsize, size_t nitems = 1);
 
     /// Helper: seek the proxy, akin to fseek. Return true on success, false
-    /// upon failure and issue an error message. (NOTE: this isionot the same
+    /// upon failure and issue an error message. (NOTE: this is not the same
     /// return value as std::fseek, which returns 0 on success.)
     bool ioseek(int64_t pos, int origin = SEEK_SET);
 
