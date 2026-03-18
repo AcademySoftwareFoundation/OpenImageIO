@@ -847,14 +847,17 @@ if (TARGET imiv
     endif ()
 endif ()
 
-set (_imiv_ocio_live_update_config
-     "${PROJECT_SOURCE_DIR}/temp/studio-config-all-views-v4.0.0_aces-v2.0_ocio-v2.5.ocio")
+set (OIIO_IMIV_TEST_OCIO_CONFIG ""
+     CACHE STRING
+           "Optional external OCIO config for imiv live-update regressions")
+set (_imiv_ocio_live_update_config "${OIIO_IMIV_TEST_OCIO_CONFIG}")
+set (_imiv_ocio_config_source_input "ocio://default")
 if (TARGET imiv
         AND OIIO_BUILD_TESTS
         AND BUILD_TESTING
         AND Python3_EXECUTABLE
         AND _imiv_test_engine_sources
-        AND EXISTS "${_imiv_ocio_live_update_config}")
+        AND NOT "${_imiv_ocio_live_update_config}" STREQUAL "")
     if (_imiv_renderer_is_vulkan AND _imiv_has_runtime_glslang)
         add_test (
             NAME imiv_ocio_live_update_regression
@@ -980,7 +983,7 @@ elseif (TARGET imiv
         AND OIIO_BUILD_TESTS
         AND BUILD_TESTING)
     message (STATUS
-             "imiv: live OCIO update regression test not added (requires Python3, ImGui Test Engine, temp OCIO config, and either Vulkan runtime glslang or the OpenGL renderer)")
+             "imiv: live OCIO update regression test not added (set OIIO_IMIV_TEST_OCIO_CONFIG to an external config if you want this coverage)")
 endif ()
 
 if (TARGET imiv
@@ -1038,26 +1041,21 @@ if (TARGET imiv
         endif ()
     endif ()
 
-    if (EXISTS "${_imiv_ocio_live_update_config}")
-        add_test (
-            NAME imiv_ocio_config_source_regression
-            COMMAND
-                "${Python3_EXECUTABLE}"
-                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_config_source_regression.py"
-                --bin "$<TARGET_FILE:imiv>"
-                --cwd "$<TARGET_FILE_DIR:imiv>"
-                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
-                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_config_source_regression"
-                --ocio-config "${_imiv_ocio_live_update_config}")
-        set_tests_properties (
-            imiv_ocio_config_source_regression PROPERTIES
-                LABELS "imiv;imiv_ocio;gui"
-                TIMEOUT 240
-                RUN_SERIAL TRUE)
-    else ()
-        message (STATUS
-                 "imiv: OCIO config-source regression test not added (missing temp OCIO config)")
-    endif ()
+    add_test (
+        NAME imiv_ocio_config_source_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_ocio_config_source_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/ocio_config_source_regression"
+            --ocio-config "${_imiv_ocio_config_source_input}")
+    set_tests_properties (
+        imiv_ocio_config_source_regression PROPERTIES
+            LABELS "imiv;imiv_ocio;gui"
+            TIMEOUT 240
+            RUN_SERIAL TRUE)
 
     add_test (
         NAME imiv_ocio_missing_fallback_regression
