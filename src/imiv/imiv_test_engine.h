@@ -84,5 +84,7 @@ register_layout_dump_synthetic_item(const char* kind, const char* label);
 void
 register_layout_dump_synthetic_rect(const char* kind, const char* label,
                                     const ImVec2& min, const ImVec2& max);
+void
+register_test_engine_item_label(const char* label, bool openable = false);
 
 }  // namespace Imiv

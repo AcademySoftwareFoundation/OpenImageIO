@@ -291,6 +291,7 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
             backend_label += " (not built)";
         }
         if (ImGui::BeginCombo("Renderer backend", backend_label.c_str())) {
+            register_test_engine_item_label("Renderer backend", true);
             const bool auto_selected = requested_backend == BackendKind::Auto;
             if (ImGui::Selectable("Auto", auto_selected)) {
                 ui.renderer_backend = static_cast<int>(BackendKind::Auto);
@@ -312,6 +313,8 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
                     ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
+        } else {
+            register_test_engine_item_label("Renderer backend", true);
         }
         ImGui::TextUnformatted("Current backend");
         ImGui::SameLine();

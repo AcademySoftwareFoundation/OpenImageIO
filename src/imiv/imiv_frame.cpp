@@ -5,6 +5,7 @@
 #include "imiv_frame.h"
 
 #include "imiv_actions.h"
+#include "imiv_backend.h"
 #include "imiv_drag_drop.h"
 #include "imiv_image_view.h"
 #include "imiv_menu.h"
@@ -322,6 +323,49 @@ test_engine_json_write_ocio_state(FILE* f, const PlaceholderUiState& ui_state)
     std::fputs("\n    }\n  }", f);
 }
 
+void
+test_engine_json_write_backend_state(FILE* f, const PlaceholderUiState& ui_state,
+                                     BackendKind active_backend)
+{
+    const BackendKind requested_backend = sanitize_backend_kind(
+        ui_state.renderer_backend);
+    const BackendKind next_launch_backend = resolve_backend_request(
+        requested_backend);
+    const bool requested_backend_compiled
+        = requested_backend == BackendKind::Auto
+          || backend_kind_is_compiled(requested_backend);
+
+    std::vector<std::string> compiled_backends;
+    std::vector<std::string> unavailable_backends;
+    compiled_backends.reserve(compiled_backend_info().size());
+    unavailable_backends.reserve(compiled_backend_info().size());
+    for (const BackendInfo& info : compiled_backend_info()) {
+        if (info.compiled)
+            compiled_backends.emplace_back(info.cli_name);
+        else
+            unavailable_backends.emplace_back(info.cli_name);
+    }
+
+    std::fputs(",\n  \"backend\": {\n", f);
+    std::fputs("    \"active\": ", f);
+    test_engine_json_write_escaped(f, backend_cli_name(active_backend));
+    std::fputs(",\n    \"active_runtime\": ", f);
+    test_engine_json_write_escaped(f, backend_runtime_name(active_backend));
+    std::fputs(",\n    \"requested\": ", f);
+    test_engine_json_write_escaped(f, backend_cli_name(requested_backend));
+    std::fputs(",\n    \"next_launch\": ", f);
+    test_engine_json_write_escaped(f, backend_cli_name(next_launch_backend));
+    std::fputs(",\n    \"requested_compiled\": ", f);
+    std::fputs(requested_backend_compiled ? "true" : "false", f);
+    std::fputs(",\n    \"restart_required\": ", f);
+    std::fputs(next_launch_backend != active_backend ? "true" : "false", f);
+    std::fputs(",\n    \"compiled\": ", f);
+    test_engine_json_write_string_array(f, compiled_backends);
+    std::fputs(",\n    \"not_compiled\": ", f);
+    test_engine_json_write_string_array(f, unavailable_backends);
+    std::fputs("\n  }", f);
+}
+
 bool
 write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
                                     void* user_data, std::string& error_message)
@@ -407,6 +451,7 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
         test_engine_json_write_escaped(f, viewer.area_probe_lines[i].c_str());
     }
     std::fputs("]", f);
+    test_engine_json_write_backend_state(f, ui_state, ctx->active_backend);
     test_engine_json_write_ocio_state(f, ui_state);
     std::fputs("\n}\n", f);
     std::fflush(f);

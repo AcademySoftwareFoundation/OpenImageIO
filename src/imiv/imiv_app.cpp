@@ -42,6 +42,7 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
@@ -148,6 +149,12 @@ namespace {
             return config.requested_backend;
         return sanitize_backend_kind(ui_state.renderer_backend);
     }
+
+    std::string build_main_window_title(BackendKind active_backend)
+    {
+        return Strutil::fmt::format("ImIv v.{} [{}]", OIIO_VERSION_STRING,
+                                    backend_cli_name(active_backend));
+    }
 }  // namespace
 
 
@@ -223,8 +230,9 @@ run(const AppConfig& config)
         return EXIT_FAILURE;
     }
 
+    const std::string window_title = build_main_window_title(active_backend);
     GLFWwindow* window = platform_glfw_create_main_window(
-        active_backend, 1600, 900, "imiv", startup_error);
+        active_backend, 1600, 900, window_title.c_str(), startup_error);
     if (window == nullptr) {
         print(stderr, "imiv: {}\n", startup_error);
         platform_glfw_terminate();
@@ -494,7 +502,8 @@ run(const AppConfig& config)
 #endif
 
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
-    ViewerStateJsonWriteContext test_engine_state_ctx = { &viewer, &ui_state };
+    ViewerStateJsonWriteContext test_engine_state_ctx = { &viewer, &ui_state,
+                                                          active_backend };
     TestEngineHooks test_engine_hooks;
     test_engine_hooks.image_window_title       = image_window_title();
     test_engine_hooks.screen_capture           = renderer_screen_capture;
