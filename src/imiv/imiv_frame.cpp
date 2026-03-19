@@ -501,8 +501,7 @@ setup_image_window_policy(ImGuiID dockspace_id, bool force_dock)
 
     ImGuiWindowClass window_class;
     window_class.ClassId                  = ImGui::GetID("imiv.image.window");
-    window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoDockingSplit
-                                            | ImGuiDockNodeFlags_AutoHideTabBar;
+    window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_AutoHideTabBar;
     ImGui::SetNextWindowClass(&window_class);
 }
 

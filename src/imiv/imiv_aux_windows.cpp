@@ -118,14 +118,6 @@ namespace {
         ImGui::PopTextWrapPos();
     }
 
-    std::string backend_combo_label(const BackendInfo& info)
-    {
-        std::string label = std::string(backend_display_name(info.kind));
-        if (!info.compiled)
-            label += " (not built)";
-        return label;
-    }
-
     bool input_text_string(const char* label, std::string& value)
     {
         char buffer[4096];
@@ -277,52 +269,85 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         ImGui::Checkbox("Generate mipmaps (requires restart)", &ui.auto_mipmap);
 
         ImGui::Spacing();
-        const BackendKind requested_backend = sanitize_backend_kind(
+        BackendKind requested_backend = sanitize_backend_kind(
             ui.renderer_backend);
+        const float spacing = ImGui::GetStyle().ItemSpacing.x;
+        const float row_width = ImGui::GetContentRegionAvail().x;
+        const float button_width = std::max(
+            1.0f, (row_width - spacing * 2.0f) / 3.0f);
+        bool have_backend_row_rect = false;
+        ImVec2 backend_row_min(0.0f, 0.0f);
+        ImVec2 backend_row_max(0.0f, 0.0f);
+        int backend_button_index = 0;
+        for (const BackendInfo& info : compiled_backend_info()) {
+            const bool selected = requested_backend == info.kind;
+            if (backend_button_index > 0)
+                ImGui::SameLine(0.0f, spacing);
+            ImGui::PushID(static_cast<int>(info.kind));
+            if (!info.compiled)
+                ImGui::BeginDisabled();
+            push_preview_active_button_style(selected);
+            if (ImGui::Button(backend_display_name(info.kind),
+                              ImVec2(button_width, 0.0f))
+                && info.compiled) {
+                ui.renderer_backend = static_cast<int>(info.kind);
+            }
+            pop_preview_active_button_style(selected);
+            if (!info.compiled)
+                ImGui::EndDisabled();
+            register_layout_dump_synthetic_item("button",
+                                                backend_display_name(info.kind));
+            const ImVec2 item_min = ImGui::GetItemRectMin();
+            const ImVec2 item_max = ImGui::GetItemRectMax();
+            if (!have_backend_row_rect) {
+                backend_row_min       = item_min;
+                backend_row_max       = item_max;
+                have_backend_row_rect = true;
+            } else {
+                backend_row_min.x = std::min(backend_row_min.x, item_min.x);
+                backend_row_min.y = std::min(backend_row_min.y, item_min.y);
+                backend_row_max.x = std::max(backend_row_max.x, item_max.x);
+                backend_row_max.y = std::max(backend_row_max.y, item_max.y);
+            }
+            ImGui::PopID();
+            ++backend_button_index;
+        }
+        if (have_backend_row_rect) {
+            register_layout_dump_synthetic_rect("button", "Renderer backend",
+                                                backend_row_min,
+                                                backend_row_max);
+        }
+
+        requested_backend = sanitize_backend_kind(ui.renderer_backend);
         const BackendKind next_launch_backend = resolve_backend_request(
             requested_backend);
         const bool requested_backend_compiled
             = requested_backend == BackendKind::Auto
               || backend_kind_is_compiled(requested_backend);
-        std::string backend_label
-            = std::string(backend_display_name(requested_backend));
-        if (requested_backend != BackendKind::Auto
-            && !requested_backend_compiled) {
-            backend_label += " (not built)";
-        }
-        if (ImGui::BeginCombo("Renderer backend", backend_label.c_str())) {
-            register_test_engine_item_label("Renderer backend", true);
-            const bool auto_selected = requested_backend == BackendKind::Auto;
-            if (ImGui::Selectable("Auto", auto_selected)) {
-                ui.renderer_backend = static_cast<int>(BackendKind::Auto);
-            }
-            if (auto_selected)
-                ImGui::SetItemDefaultFocus();
-            for (const BackendInfo& info : compiled_backend_info()) {
-                const bool selected = requested_backend == info.kind;
-                const std::string label = backend_combo_label(info);
-                if (!info.compiled)
-                    ImGui::BeginDisabled();
-                if (ImGui::Selectable(label.c_str(), selected)
-                    && info.compiled) {
-                    ui.renderer_backend = static_cast<int>(info.kind);
-                }
-                if (!info.compiled)
-                    ImGui::EndDisabled();
-                if (selected)
-                    ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
-        } else {
-            register_test_engine_item_label("Renderer backend", true);
-        }
+        const bool invalid_requested_backend = requested_backend != BackendKind::Auto
+                                              && !requested_backend_compiled;
+        if (requested_backend == BackendKind::Auto)
+            ImGui::TextUnformatted("Stored preference: Auto");
+        else
+            ImGui::Text("Stored preference: %s",
+                        backend_display_name(requested_backend));
+        ImGui::SameLine();
+        if (requested_backend == BackendKind::Auto)
+            ImGui::BeginDisabled();
+        if (ImGui::SmallButton("Reset to Auto"))
+            ui.renderer_backend = static_cast<int>(BackendKind::Auto);
+        register_layout_dump_synthetic_item("button", "Reset to Auto");
+        if (requested_backend == BackendKind::Auto)
+            ImGui::EndDisabled();
         ImGui::TextUnformatted("Current backend");
         ImGui::SameLine();
         ImGui::TextUnformatted(backend_display_name(active_backend));
-        if (requested_backend != BackendKind::Auto
-            && !requested_backend_compiled) {
+        ImGui::Text("Next launch backend: %s",
+                    backend_display_name(resolve_backend_request(
+                        sanitize_backend_kind(ui.renderer_backend))));
+        if (invalid_requested_backend) {
             ImGui::TextUnformatted(
-                "Requested backend is not built into this binary.");
+                "Requested backend is not built in this binary and will be ignored when Preferences closes.");
         } else if (next_launch_backend != active_backend) {
             ImGui::TextUnformatted("Backend change requires restart.");
         }
@@ -422,6 +447,11 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
     }
     ImGui::End();
     ImGui::PopStyleVar();
+    const BackendKind close_backend = sanitize_backend_kind(ui.renderer_backend);
+    if (!show_window && close_backend != BackendKind::Auto
+        && !backend_kind_is_compiled(close_backend)) {
+        ui.renderer_backend = static_cast<int>(BackendKind::Auto);
+    }
 }
 
 void
