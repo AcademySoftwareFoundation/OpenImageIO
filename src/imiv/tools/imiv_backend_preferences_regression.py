@@ -97,8 +97,7 @@ def _write_scenario(
     path: Path,
     runtime_dir_rel: str,
     *,
-    combo_center: tuple[float, float],
-    choice_points: dict[str, tuple[float, float]],
+    button_points: dict[str, tuple[float, float]],
 ) -> None:
     root = ET.Element("imiv-scenario")
     root.set("out_dir", runtime_dir_rel)
@@ -112,45 +111,24 @@ def _write_scenario(
     )
     _scenario_step(
         root,
-        "open_alternate_backend_combo",
-        mouse_pos=f"{combo_center[0]:.3f},{combo_center[1]:.3f}",
-        mouse_click_button=0,
-        post_action_delay_frames=1,
-    )
-    _scenario_step(
-        root,
         "select_alternate_backend",
-        mouse_pos=f"{choice_points['alternate'][0]:.3f},{choice_points['alternate'][1]:.3f}",
+        mouse_pos=f"{button_points['alternate'][0]:.3f},{button_points['alternate'][1]:.3f}",
         mouse_click_button=0,
         state=True,
         post_action_delay_frames=2,
-    )
-    _scenario_step(
-        root,
-        "open_active_backend_combo",
-        mouse_pos=f"{combo_center[0]:.3f},{combo_center[1]:.3f}",
-        mouse_click_button=0,
-        post_action_delay_frames=1,
     )
     _scenario_step(
         root,
         "select_active_backend",
-        mouse_pos=f"{choice_points['active'][0]:.3f},{choice_points['active'][1]:.3f}",
+        mouse_pos=f"{button_points['active'][0]:.3f},{button_points['active'][1]:.3f}",
         mouse_click_button=0,
         state=True,
         post_action_delay_frames=2,
     )
     _scenario_step(
         root,
-        "open_auto_backend_combo",
-        mouse_pos=f"{combo_center[0]:.3f},{combo_center[1]:.3f}",
-        mouse_click_button=0,
-        post_action_delay_frames=1,
-    )
-    _scenario_step(
-        root,
         "select_auto_backend",
-        mouse_pos=f"{choice_points['auto'][0]:.3f},{choice_points['auto'][1]:.3f}",
+        mouse_pos=f"{button_points['auto'][0]:.3f},{button_points['auto'][1]:.3f}",
         mouse_click_button=0,
         state=True,
         post_action_delay_frames=2,
@@ -184,7 +162,7 @@ def _load_state(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _find_combo_rect(layout: dict, label: str) -> dict:
+def _find_item_rect(layout: dict, label: str) -> dict:
     for window in layout.get("windows", []):
         if window.get("name") != "iv Preferences":
             continue
@@ -205,26 +183,17 @@ def _rect_center(rect: dict) -> tuple[float, float]:
     )
 
 
-def _backend_popup_choice_points(
-    combo_rect: dict, *, alternate_backend: str, active_backend: str
+def _backend_button_points(
+    layout: dict, *, alternate_backend: str, active_backend: str
 ) -> dict[str, tuple[float, float]]:
-    order = {"auto": 0, "vulkan": 1, "metal": 2, "opengl": 3}
-    rect_min = combo_rect.get("min", [0.0, 0.0])
-    rect_max = combo_rect.get("max", [0.0, 0.0])
-    min_x = float(rect_min[0])
-    min_y = float(rect_min[1])
-    max_x = float(rect_max[0])
-    max_y = float(rect_max[1])
-    row_h = max(1.0, max_y - min_y)
-    choice_x = min_x + max(24.0, (max_x - min_x) * 0.35)
-
-    def _point(name: str) -> tuple[float, float]:
-        return (choice_x, max_y + row_h * (order[name] + 0.5))
-
     return {
-        "alternate": _point(alternate_backend),
-        "active": _point(active_backend),
-        "auto": _point("auto"),
+        "alternate": _rect_center(
+            _find_item_rect(layout, _backend_display_name(alternate_backend))
+        ),
+        "active": _rect_center(
+            _find_item_rect(layout, _backend_display_name(active_backend))
+        ),
+        "auto": _rect_center(_find_item_rect(layout, "Reset to Auto")),
     }
 
 
@@ -380,10 +349,8 @@ def main() -> int:
         return _fail(f"probe runner exited with code {probe_proc.returncode}")
 
     probe_layout = json.loads(probe_layout_path.read_text(encoding="utf-8"))
-    combo_rect = _find_combo_rect(probe_layout, "Renderer backend")
-    combo_center = _rect_center(combo_rect)
-    choice_points = _backend_popup_choice_points(
-        combo_rect,
+    button_points = _backend_button_points(
+        probe_layout,
         alternate_backend=alternate_backend,
         active_backend=active_backend,
     )
@@ -392,8 +359,7 @@ def main() -> int:
     _write_scenario(
         scenario_path,
         runtime_dir_rel,
-        combo_center=combo_center,
-        choice_points=choice_points,
+        button_points=button_points,
     )
 
     cmd = [
