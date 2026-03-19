@@ -22,6 +22,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Iterable
 
@@ -71,6 +72,10 @@ def _write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def _format_elapsed(seconds: float) -> str:
+    return f"{seconds:.2f}s"
+
+
 def _run_capture(cmd: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> str:
     proc = subprocess.run(
         cmd,
@@ -97,9 +102,16 @@ def _run_logged(
     cwd: Path,
     log_path: Path,
     env: dict[str, str] | None = None,
-) -> int:
+    label: str | None = None,
+) -> tuple[int, float]:
     log_path.parent.mkdir(parents=True, exist_ok=True)
+    command_text = " ".join(shlex.quote(part) for part in cmd)
+    step_label = label or log_path.stem
+    start = time.monotonic()
     with log_path.open("w", encoding="utf-8") as log_handle:
+        header = f"==> {step_label}: {command_text}\n"
+        sys.stdout.write(header)
+        log_handle.write(header)
         proc = subprocess.Popen(
             cmd,
             cwd=str(cwd),
@@ -114,7 +126,12 @@ def _run_logged(
         for line in proc.stdout:
             sys.stdout.write(line)
             log_handle.write(line)
-        return proc.wait()
+        rc = proc.wait()
+        elapsed = time.monotonic() - start
+        footer = f"<== {step_label}: rc={rc} elapsed={_format_elapsed(elapsed)}\n"
+        sys.stdout.write(footer)
+        log_handle.write(footer)
+        return rc, elapsed
 
 
 def _candidate_paths(build_dir: Path, config: str, stem: str) -> Iterable[Path]:
@@ -185,6 +202,7 @@ def _base_py_cmd() -> list[str]:
 
 def _generic_smoke_runner_cmd(
     repo_root: Path,
+    backend: str,
     exe: Path,
     run_cwd: Path,
     out_dir: Path,
@@ -198,6 +216,8 @@ def _generic_smoke_runner_cmd(
         str(exe),
         "--cwd",
         str(run_cwd),
+        "--backend",
+        backend,
         "--open",
         str(image),
         "--screenshot-out",
@@ -216,6 +236,7 @@ def _generic_smoke_runner_cmd(
 def _script_cmd(
     script: Path,
     *,
+    backend: str,
     exe: Path,
     run_cwd: Path,
     out_dir: Path,
@@ -229,6 +250,8 @@ def _script_cmd(
         str(exe),
         "--cwd",
         str(run_cwd),
+        "--backend",
+        backend,
         "--out-dir",
         str(out_dir),
     ]
@@ -258,6 +281,7 @@ def _smoke_checks(
                 "smoke",
                 _script_cmd(
                     repo_root / "src" / "imiv" / "tools" / "imiv_metal_smoke_regression.py",
+                    backend=backend,
                     exe=exe,
                     run_cwd=run_cwd,
                     out_dir=out_dir / "runtime",
@@ -278,6 +302,7 @@ def _smoke_checks(
                     / "imiv"
                     / "tools"
                     / "imiv_metal_screenshot_regression.py",
+                    backend=backend,
                     exe=exe,
                     run_cwd=run_cwd,
                     out_dir=out_dir / "runtime_screenshot",
@@ -298,6 +323,7 @@ def _smoke_checks(
                     / "imiv"
                     / "tools"
                     / "imiv_metal_sampling_regression.py",
+                    backend=backend,
                     exe=exe,
                     run_cwd=run_cwd,
                     out_dir=out_dir / "runtime_sampling",
@@ -317,6 +343,7 @@ def _smoke_checks(
                     / "imiv"
                     / "tools"
                     / "imiv_metal_orientation_regression.py",
+                    backend=backend,
                     exe=exe,
                     run_cwd=run_cwd,
                     out_dir=out_dir / "runtime_orientation",
@@ -336,6 +363,7 @@ def _smoke_checks(
                 "smoke",
                 _script_cmd(
                     repo_root / "src" / "imiv" / "tools" / "imiv_opengl_smoke_regression.py",
+                    backend=backend,
                     exe=exe,
                     run_cwd=run_cwd,
                     out_dir=out_dir / "runtime",
@@ -356,6 +384,7 @@ def _smoke_checks(
             "smoke",
             _generic_smoke_runner_cmd(
                 repo_root,
+                backend,
                 exe,
                 run_cwd,
                 smoke_out,
@@ -369,7 +398,7 @@ def _smoke_checks(
     return checks
 
 
-def _selection_checks(
+def _ux_checks(
     repo_root: Path,
     backend: str,
     exe: Path,
@@ -379,27 +408,23 @@ def _selection_checks(
     env_script: Path | None,
     trace: bool,
 ) -> list[tuple[str, list[str], Path, dict[str, str] | None]]:
-    if backend == "metal":
-        return []
-    script = (
-        repo_root / "src" / "imiv" / "tools" / "imiv_opengl_selection_regression.py"
-        if backend == "opengl"
-        else repo_root / "src" / "imiv" / "tools" / "imiv_selection_regression.py"
-    )
+    script = repo_root / "src" / "imiv" / "tools" / "imiv_ux_actions_regression.py"
     cmd = _script_cmd(
         script,
+        backend=backend,
         exe=exe,
         run_cwd=run_cwd,
-        out_dir=out_dir / "runtime_selection",
+        out_dir=out_dir / "runtime_ux",
         trace=trace,
         extra=["--oiiotool", str(oiiotool)],
         env_script=env_script,
     )
-    return [("selection", cmd, out_dir / "verify_selection.log", None)]
+    return [("ux", cmd, out_dir / "verify_ux.log", None)]
 
 
 def _ocio_checks(
     repo_root: Path,
+    backend: str,
     exe: Path,
     run_cwd: Path,
     oiiotool: Path,
@@ -420,6 +445,7 @@ def _ocio_checks(
                 / "imiv"
                 / "tools"
                 / "imiv_ocio_missing_fallback_regression.py",
+                backend=backend,
                 exe=exe,
                 run_cwd=run_cwd,
                 out_dir=out_dir / "runtime_ocio_missing",
@@ -447,6 +473,7 @@ def _ocio_checks(
                 / "imiv"
                 / "tools"
                 / "imiv_ocio_config_source_regression.py",
+                backend=backend,
                 exe=exe,
                 run_cwd=run_cwd,
                 out_dir=out_dir / "runtime_ocio_config_source",
@@ -483,6 +510,7 @@ def _ocio_checks(
                     / "imiv"
                     / "tools"
                     / "imiv_ocio_live_update_regression.py",
+                    backend=backend,
                     exe=exe,
                     run_cwd=run_cwd,
                     out_dir=out_dir / runtime_dir,
@@ -657,6 +685,7 @@ def main() -> int:
     system_info_log = out_dir / "system_info.txt"
     configure_log = out_dir / "cmake_configure.log"
     build_log = out_dir / "cmake_build.log"
+    timings: list[tuple[str, float]] = []
 
     _write_text(system_info_log, _system_info_text(args, repo_root))
 
@@ -673,11 +702,19 @@ def main() -> int:
             str(build_dir),
             f"-DOIIO_IMIV_RENDERER={args.backend}",
         ]
-        if _run_logged(configure_cmd, cwd=repo_root, log_path=configure_log) != 0:
+        configure_rc, configure_elapsed = _run_logged(
+            configure_cmd,
+            cwd=repo_root,
+            log_path=configure_log,
+            label="configure",
+        )
+        timings.append(("configure", configure_elapsed))
+        if configure_rc != 0:
             print(f"error: configure failed, see {configure_log}", file=sys.stderr)
             return 1
     else:
         _write_text(configure_log, "skip: configure step skipped\n")
+        timings.append(("configure(skipped)", 0.0))
 
     if not args.skip_build:
         build_cmd = [
@@ -695,11 +732,19 @@ def main() -> int:
             "--parallel",
             str(max(1, args.jobs)),
         ])
-        if _run_logged(build_cmd, cwd=repo_root, log_path=build_log) != 0:
+        build_rc, build_elapsed = _run_logged(
+            build_cmd,
+            cwd=repo_root,
+            log_path=build_log,
+            label="build",
+        )
+        timings.append(("build", build_elapsed))
+        if build_rc != 0:
             print(f"error: build failed, see {build_log}", file=sys.stderr)
             return 1
     else:
         _write_text(build_log, "skip: build step skipped\n")
+        timings.append(("build(skipped)", 0.0))
 
     imiv = _find_program(build_dir, args.config, "imiv")
     oiiotool = _find_program(build_dir, args.config, "oiiotool")
@@ -732,7 +777,7 @@ def main() -> int:
         )
     )
     checks.extend(
-        _selection_checks(
+        _ux_checks(
             repo_root,
             args.backend,
             imiv,
@@ -746,6 +791,7 @@ def main() -> int:
     checks.extend(
         _ocio_checks(
             repo_root,
+            args.backend,
             imiv,
             run_cwd,
             oiiotool,
@@ -763,7 +809,14 @@ def main() -> int:
         env = dict(base_env)
         if env_override:
             env.update(env_override)
-        rc = _run_logged(cmd, cwd=repo_root, log_path=log_path, env=env)
+        rc, elapsed = _run_logged(
+            cmd,
+            cwd=repo_root,
+            log_path=log_path,
+            env=env,
+            label=name,
+        )
+        timings.append((name, elapsed))
         if rc != 0:
             failures.append(name)
 
@@ -774,9 +827,8 @@ def main() -> int:
     print(f"  build:       {build_log}")
     print(f"  smoke:       {out_dir / 'verify_smoke.log'}")
     print(f"  runtime+s:   {out_dir / 'runtime'}")
-    if args.backend != "metal":
-        print(f"  selection:   {out_dir / 'verify_selection.log'}")
-        print(f"  runtime+sel: {out_dir / 'runtime_selection'}")
+    print(f"  ux:          {out_dir / 'verify_ux.log'}")
+    print(f"  runtime+ux:  {out_dir / 'runtime_ux'}")
     if args.backend == "metal":
         print(f"  screenshot:  {out_dir / 'verify_screenshot.log'}")
         print(f"  runtime+ss:  {out_dir / 'runtime_screenshot'}")
@@ -792,6 +844,9 @@ def main() -> int:
     print(f"  runtime+ol:  {out_dir / 'runtime_ocio_live'}")
     print(f"  ocio-disp:   {out_dir / 'verify_ocio_live_display.log'}")
     print(f"  runtime+od:  {out_dir / 'runtime_ocio_live_display'}")
+    print("  timings:")
+    for name, elapsed in timings:
+        print(f"    {name:<18} {_format_elapsed(elapsed)}")
 
     if failures:
         print("")

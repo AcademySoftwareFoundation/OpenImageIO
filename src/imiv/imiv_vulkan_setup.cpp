@@ -16,7 +16,7 @@
 
 #include <imgui.h>
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_WITH_VULKAN)
 #    include <imgui_impl_glfw.h>
 #    include <imgui_impl_vulkan.h>
 #    define GLFW_INCLUDE_NONE
@@ -30,7 +30,7 @@ using namespace OIIO;
 
 namespace Imiv {
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_WITH_VULKAN)
 
 bool
 is_extension_available(const ImVector<VkExtensionProperties>& properties,

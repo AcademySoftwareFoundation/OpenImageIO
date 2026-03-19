@@ -287,6 +287,8 @@ clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
         ui_state.mouse_mode = 4;
     ui_state.style_preset = static_cast<int>(
         sanitize_app_style_preset(ui_state.style_preset));
+    ui_state.renderer_backend = static_cast<int>(
+        sanitize_backend_kind(ui_state.renderer_backend));
     if (ui_state.subimage_index < 0)
         ui_state.subimage_index = 0;
     if (ui_state.miplevel_index < 0)
@@ -377,6 +379,13 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
         } else if (key == "style_preset") {
             if (parse_int_value(value, int_value))
                 ui_state.style_preset = int_value;
+        } else if (key == "renderer_backend") {
+            BackendKind backend_kind = BackendKind::Auto;
+            if (parse_backend_kind(value, backend_kind)) {
+                ui_state.renderer_backend = static_cast<int>(backend_kind);
+            } else if (parse_int_value(value, int_value)) {
+                ui_state.renderer_backend = int_value;
+            }
         } else if (key == "auto_mipmap") {
             if (parse_bool_value(value, bool_value))
                 ui_state.auto_mipmap = bool_value;
@@ -497,6 +506,10 @@ save_persistent_state(const PlaceholderUiState& ui_state,
     output << "linear_interpolation=" << (ui_state.linear_interpolation ? 1 : 0)
            << "\n";
     output << "style_preset=" << ui_state.style_preset << "\n";
+    output << "renderer_backend="
+           << backend_cli_name(
+                  sanitize_backend_kind(ui_state.renderer_backend))
+           << "\n";
     output << "auto_mipmap=" << (ui_state.auto_mipmap ? 1 : 0) << "\n";
     output << "fit_image_to_window=" << (ui_state.fit_image_to_window ? 1 : 0)
            << "\n";

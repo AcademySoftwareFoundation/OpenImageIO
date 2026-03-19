@@ -76,6 +76,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
+    ap.add_argument(
+        "--backend",
+        default="",
+        help="Optional runtime backend override passed directly to imiv",
+    )
     ap.add_argument("--env-script", default=str(default_env_script), help="Optional shell env setup script")
     ap.add_argument("--open", default=str(default_image), help="Image to open")
     ap.add_argument("--out-dir", default=str(default_out), help="Output directory")
@@ -110,7 +115,10 @@ def main() -> int:
     if args.trace:
         env["IMIV_IMGUI_TEST_ENGINE_TRACE"] = "1"
 
-    cmd = [str(exe), str(image_path)]
+    cmd = [str(exe)]
+    if args.backend:
+        cmd.extend(["--backend", args.backend])
+    cmd.append(str(image_path))
     with log_path.open("w", encoding="utf-8") as log_handle:
         proc = subprocess.run(
             cmd,

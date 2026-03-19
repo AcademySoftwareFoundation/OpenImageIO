@@ -118,6 +118,7 @@ def _run_case(
     runner: Path,
     exe: Path,
     cwd: Path,
+    backend: str,
     image_path: Path,
     out_dir: Path,
     name: str,
@@ -136,11 +137,17 @@ def _run_case(
         str(exe),
         "--cwd",
         str(cwd),
-        "--open",
-        str(image_path),
-        "--state-json-out",
-        str(state_path),
     ]
+    if backend:
+        cmd.extend(["--backend", backend])
+    cmd.extend(
+        [
+            "--open",
+            str(image_path),
+            "--state-json-out",
+            str(state_path),
+        ]
+    )
     if trace:
         cmd.append("--trace")
     cmd.extend(extra_args)
@@ -194,6 +201,11 @@ def main() -> int:
     ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
+        "--backend",
+        default="",
+        help="Optional runtime backend override passed through to imiv",
+    )
+    ap.add_argument(
         "--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool executable"
     )
     ap.add_argument(
@@ -238,6 +250,7 @@ def main() -> int:
             runner,
             exe,
             cwd,
+            args.backend,
             image_path,
             out_dir,
             "baseline",
@@ -250,6 +263,7 @@ def main() -> int:
             runner,
             exe,
             cwd,
+            args.backend,
             image_path,
             out_dir,
             "enable_auto",
@@ -262,6 +276,7 @@ def main() -> int:
             runner,
             exe,
             cwd,
+            args.backend,
             image_path,
             out_dir,
             "auto_zoom_out",

@@ -69,6 +69,10 @@ def _load_env_from_script(script_path: Path) -> dict[str, str]:
     return env
 
 
+def _json_load(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def _fail(message: str) -> int:
     print(f"error: {message}", file=sys.stderr)
     return 1
@@ -122,15 +126,17 @@ def _run_case(
     runner: Path,
     exe: Path,
     cwd: Path,
+    backend: str,
     env: dict[str, str],
     image_path: Path,
     out_dir: Path,
     name: str,
     trace: bool,
     case_timeout: float,
-) -> tuple[Path, Path]:
+ ) -> tuple[Path, Path, Path, Path]:
     screenshot_path = out_dir / f"{name}.png"
     layout_path = out_dir / f"{name}.json"
+    state_path = out_dir / f"{name}.state.json"
     log_path = out_dir / f"{name}.log"
     cmd = [
         sys.executable,
@@ -139,14 +145,22 @@ def _run_case(
         str(exe),
         "--cwd",
         str(cwd),
-        "--open",
-        str(image_path),
-        "--screenshot-out",
-        str(screenshot_path),
-        "--layout-json-out",
-        str(layout_path),
-        "--layout-items",
     ]
+    if backend:
+        cmd.extend(["--backend", backend])
+    cmd.extend(
+        [
+            "--open",
+            str(image_path),
+            "--screenshot-out",
+            str(screenshot_path),
+            "--layout-json-out",
+            str(layout_path),
+            "--layout-items",
+            "--state-json-out",
+            str(state_path),
+        ]
+    )
     if trace:
         cmd.append("--trace")
 
@@ -166,12 +180,14 @@ def _run_case(
         raise RuntimeError(f"{name}: screenshot not written")
     if not layout_path.exists():
         raise RuntimeError(f"{name}: layout json not written")
+    if not state_path.exists():
+        raise RuntimeError(f"{name}: state json not written")
 
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
     for pattern in ERROR_PATTERNS:
         if pattern in log_text:
             raise RuntimeError(f"{name}: found runtime error pattern: {pattern}")
-    return screenshot_path, layout_path, log_path
+    return screenshot_path, layout_path, state_path, log_path
 
 
 def _image_crop_rect(layout_path: Path) -> tuple[int, int, int, int]:
@@ -317,6 +333,62 @@ def _normalized_rgb_diff(
     return _mean_abs_diff(lhs_ppm, rhs_ppm)
 
 
+def _validate_ocio_state(
+    name: str,
+    state_path: Path,
+    *,
+    image_path: Path,
+    expected_requested_source: str,
+    expected_resolved_source: str,
+    expected_fallback_applied: bool,
+) -> dict:
+    state = _json_load(state_path)
+    if not bool(state.get("image_loaded")):
+        raise RuntimeError(f"{name}: image was not loaded")
+    if str(state.get("image_path", "")).strip() != str(image_path):
+        raise RuntimeError(
+            f"{name}: unexpected image path {state.get('image_path', '')!r}"
+        )
+
+    ocio = state.get("ocio")
+    if not isinstance(ocio, dict):
+        raise RuntimeError(f"{name}: missing ocio state block")
+    if not bool(ocio.get("use_ocio")):
+        raise RuntimeError(f"{name}: use_ocio was not enabled")
+    if str(ocio.get("requested_source", "")).strip() != expected_requested_source:
+        raise RuntimeError(
+            f"{name}: unexpected requested_source="
+            f"{ocio.get('requested_source', '')!r}"
+        )
+    if str(ocio.get("resolved_source", "")).strip() != expected_resolved_source:
+        raise RuntimeError(
+            f"{name}: unexpected resolved_source="
+            f"{ocio.get('resolved_source', '')!r}"
+        )
+    if bool(ocio.get("fallback_applied")) != expected_fallback_applied:
+        raise RuntimeError(
+            f"{name}: unexpected fallback_applied="
+            f"{ocio.get('fallback_applied')!r}"
+        )
+    if str(ocio.get("resolved_config_path", "")).strip() != "ocio://default":
+        raise RuntimeError(
+            f"{name}: unexpected resolved_config_path="
+            f"{ocio.get('resolved_config_path', '')!r}"
+        )
+    if not bool(ocio.get("menu_data_ok")):
+        raise RuntimeError(
+            f"{name}: OCIO menu data unavailable: "
+            f"{str(ocio.get('menu_error', '')).strip()}"
+        )
+    resolved_display = str(ocio.get("resolved_display", "")).strip()
+    resolved_view = str(ocio.get("resolved_view", "")).strip()
+    if not resolved_display:
+        raise RuntimeError(f"{name}: resolved_display is empty")
+    if not resolved_view:
+        raise RuntimeError(f"{name}: resolved_view is empty")
+    return state
+
+
 if __name__ == "__main__":
     repo_root = Path(__file__).resolve().parents[3]
     default_image = repo_root / "ASWF" / "logos" / "openimageio-stacked-gradient.png"
@@ -329,6 +401,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
+    ap.add_argument(
+        "--backend",
+        default="",
+        help="Optional runtime backend override passed through to imiv",
+    )
     ap.add_argument("--env-script", default=str(default_env_script), help="Optional shell env setup script")
     ap.add_argument("--open", default=str(default_image), help="Image to open")
     ap.add_argument("--oiiotool", default=str(default_oiiotool), help="oiiotool executable")
@@ -383,11 +460,12 @@ if __name__ == "__main__":
     builtin_env["IMIV_CONFIG_HOME"] = str(builtin_cfg)
 
     try:
-        global_png, global_layout, global_log = _run_case(
+        global_png, global_layout, global_state, global_log = _run_case(
             repo_root,
             runner,
             exe,
             cwd,
+            args.backend,
             global_env,
             image_path,
             out_dir,
@@ -395,11 +473,12 @@ if __name__ == "__main__":
             args.trace,
             args.case_timeout,
         )
-        builtin_png, builtin_layout, builtin_log = _run_case(
+        builtin_png, builtin_layout, builtin_state, builtin_log = _run_case(
             repo_root,
             runner,
             exe,
             cwd,
+            args.backend,
             builtin_env,
             image_path,
             out_dir,
@@ -409,6 +488,41 @@ if __name__ == "__main__":
         )
     except (subprocess.SubprocessError, RuntimeError) as exc:
         raise SystemExit(_fail(str(exc)))
+
+    try:
+        global_state_data = _validate_ocio_state(
+            "global_builtin_fallback",
+            global_state,
+            image_path=image_path,
+            expected_requested_source="global",
+            expected_resolved_source="builtin",
+            expected_fallback_applied=True,
+        )
+        builtin_state_data = _validate_ocio_state(
+            "builtin",
+            builtin_state,
+            image_path=image_path,
+            expected_requested_source="builtin",
+            expected_resolved_source="builtin",
+            expected_fallback_applied=False,
+        )
+    except RuntimeError as exc:
+        raise SystemExit(_fail(str(exc)))
+
+    global_ocio = global_state_data["ocio"]
+    builtin_ocio = builtin_state_data["ocio"]
+    if (
+        str(global_ocio.get("resolved_display", "")).strip()
+        != str(builtin_ocio.get("resolved_display", "")).strip()
+        or str(global_ocio.get("resolved_view", "")).strip()
+        != str(builtin_ocio.get("resolved_view", "")).strip()
+    ):
+        raise SystemExit(
+            _fail(
+                "global_builtin_fallback: fallback did not resolve to the same "
+                "display/view as the explicit builtin source"
+            )
+        )
 
     global_crop = out_dir / "global_builtin_fallback.crop.png"
     builtin_crop = out_dir / "builtin.crop.png"
@@ -437,3 +551,5 @@ if __name__ == "__main__":
     print("builtin:", builtin_png)
     print("global_builtin_fallback_log:", global_log)
     print("builtin_log:", builtin_log)
+    print("global_builtin_fallback_state:", global_state)
+    print("builtin_state:", builtin_state)

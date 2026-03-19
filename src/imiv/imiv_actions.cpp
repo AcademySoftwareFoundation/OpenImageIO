@@ -168,34 +168,17 @@ env_flag_is_truthy(const char* name)
 bool
 viewer_texture_has_gpu_lifetime(const RendererTexture& texture)
 {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-    return texture.image != VK_NULL_HANDLE
-           || texture.source_image != VK_NULL_HANDLE
-           || texture.set != VK_NULL_HANDLE
-           || texture.nearest_mag_set != VK_NULL_HANDLE
-           || texture.pixelview_set != VK_NULL_HANDLE
-           || texture.upload_submit_pending || texture.preview_submit_pending;
-#else
-    (void)texture;
-    return false;
-#endif
+    return texture.backend != nullptr;
 }
 
 void
 quiesce_viewer_texture_lifetime(RendererState& renderer_state,
                                 const RendererTexture& texture)
 {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-    if (renderer_state.device == VK_NULL_HANDLE
-        || !viewer_texture_has_gpu_lifetime(texture)) {
+    if (!viewer_texture_has_gpu_lifetime(texture))
         return;
-    }
-    VkResult err = vkDeviceWaitIdle(renderer_state.device);
-    check_vk_result(err);
-#else
-    (void)renderer_state;
-    (void)texture;
-#endif
+    std::string error_message;
+    renderer_wait_idle(renderer_state, error_message);
 }
 
 bool
@@ -677,9 +660,7 @@ close_current_image_action(RendererState& vk_state, ViewerState& viewer,
 {
     const std::string closing_path = viewer.image.path;
     const int closing_index        = viewer.current_path_index;
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
     quiesce_viewer_texture_lifetime(vk_state, viewer.texture);
-#endif
     renderer_destroy_texture(vk_state, viewer.texture);
     remove_loaded_image_path(viewer, closing_path);
     if (!viewer.loaded_image_paths.empty()) {
@@ -847,10 +828,6 @@ capture_main_viewport_screenshot_action(RendererState& vk_state,
 
     int width  = std::max(0, vk_state.framebuffer_width);
     int height = std::max(0, vk_state.framebuffer_height);
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-    width  = std::max(width, vk_state.window_data.Width);
-    height = std::max(height, vk_state.window_data.Height);
-#endif
     if (width <= 0 || height <= 0) {
         viewer.last_error = "screenshot failed: main viewport size is invalid";
         return false;

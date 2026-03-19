@@ -15,6 +15,12 @@
 
 #include <OpenImageIO/strutil.h>
 
+#if USE_EXTERNAL_PUGIXML
+#    include "pugixml.hpp"
+#else
+#    include <OpenImageIO/detail/pugixml/pugixml.hpp>
+#endif
+
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
 #    include <imgui_te_context.h>
 #    include <imgui_te_engine.h>
@@ -111,6 +117,281 @@ namespace {
     {
         int out = 0;
         return env_read_int_value(name, out) ? out : fallback;
+    }
+
+    enum class TestEngineMouseTargetMode {
+        None,
+        Absolute,
+        WindowRel,
+        ImageRel
+    };
+
+    struct TestEngineSyntheticAction {
+        int delay_frames             = 0;
+        int post_action_delay_frames = 0;
+        bool has_key_chord           = false;
+        ImGuiKeyChord key_chord      = 0;
+        TestEngineMouseTargetMode mouse_target_mode
+            = TestEngineMouseTargetMode::None;
+        float mouse_x        = 0.0f;
+        float mouse_y        = 0.0f;
+        bool has_click       = false;
+        int click_button     = 0;
+        bool has_wheel       = false;
+        float wheel_x        = 0.0f;
+        float wheel_y        = 0.0f;
+        bool has_drag        = false;
+        float drag_dx        = 0.0f;
+        float drag_dy        = 0.0f;
+        int drag_button      = 0;
+        bool has_hold_drag   = false;
+        float hold_drag_dx   = 0.0f;
+        float hold_drag_dy   = 0.0f;
+        int hold_drag_button = 0;
+        int hold_drag_frames = 1;
+    };
+
+    struct TestEngineScenarioOcioStep {
+        bool has_use               = false;
+        bool use_ocio              = false;
+        bool has_display           = false;
+        bool has_view              = false;
+        bool has_image_color_space = false;
+        std::string display;
+        std::string view;
+        std::string image_color_space;
+    };
+
+    struct TestEngineScenarioCaptureStep {
+        bool screenshot   = false;
+        bool layout       = false;
+        bool state        = false;
+        bool layout_items = false;
+        int layout_depth  = 8;
+    };
+
+    struct TestEngineScenarioStep {
+        std::string name;
+        TestEngineSyntheticAction action;
+        TestEngineScenarioOcioStep ocio;
+        TestEngineScenarioCaptureStep capture;
+    };
+
+    struct TestEngineScenarioDefinition {
+        std::filesystem::path out_dir;
+        bool default_layout_items = false;
+        int default_layout_depth  = 8;
+        std::vector<TestEngineScenarioStep> steps;
+    };
+
+    bool parse_test_engine_key_chord(const std::string& value,
+                                     ImGuiKeyChord& out_chord);
+
+    bool parse_float_pair_value(string_view value, float& out_a, float& out_b)
+    {
+        std::vector<std::string> parts = Strutil::splits(value, ",", 2);
+        if (parts.size() != 2)
+            return false;
+        return parse_float_value(std::string(Strutil::strip(parts[0])), out_a)
+               && parse_float_value(std::string(Strutil::strip(parts[1])),
+                                    out_b);
+    }
+
+    bool parse_bool_attr(const pugi::xml_attribute& attr, bool& out)
+    {
+        return attr && parse_bool_value(attr.as_string(), out);
+    }
+
+    bool parse_int_attr(const pugi::xml_attribute& attr, int& out)
+    {
+        return attr && parse_int_value(attr.as_string(), out);
+    }
+
+    bool parse_float_pair_attr(const pugi::xml_attribute& attr, float& out_a,
+                               float& out_b)
+    {
+        return attr && parse_float_pair_value(attr.as_string(), out_a, out_b);
+    }
+
+    void set_process_env_value(const char* name, const std::string* value)
+    {
+        if (name == nullptr || name[0] == '\0')
+            return;
+#if defined(_WIN32)
+        _putenv_s(name, value ? value->c_str() : "");
+#else
+        if (value)
+            setenv(name, value->c_str(), 1);
+        else
+            unsetenv(name);
+#endif
+    }
+
+    bool load_test_engine_scenario(const std::filesystem::path& path,
+                                   TestEngineScenarioDefinition& out_scenario,
+                                   std::string& error_message)
+    {
+        out_scenario = TestEngineScenarioDefinition {};
+        error_message.clear();
+
+        pugi::xml_document doc;
+        const std::string path_string       = path.string();
+        const pugi::xml_parse_result result = doc.load_file(
+            path_string.c_str());
+        if (!result) {
+            error_message
+                = Strutil::fmt::format("failed to parse scenario XML '{}': {}",
+                                       path.string(), result.description());
+            return false;
+        }
+
+        const pugi::xml_node root = doc.child("imiv-scenario");
+        if (!root) {
+            error_message = Strutil::fmt::format(
+                "scenario file '{}' is missing <imiv-scenario> root",
+                path.string());
+            return false;
+        }
+
+        const pugi::xml_attribute out_dir_attr = root.attribute("out_dir");
+        if (!out_dir_attr || out_dir_attr.as_string()[0] == '\0') {
+            error_message = "scenario root requires non-empty out_dir attribute";
+            return false;
+        }
+        out_scenario.out_dir = std::filesystem::path(out_dir_attr.as_string());
+
+        int layout_depth = out_scenario.default_layout_depth;
+        if (parse_int_attr(root.attribute("layout_depth"), layout_depth)
+            && layout_depth > 0) {
+            out_scenario.default_layout_depth = layout_depth;
+        }
+        bool layout_items = false;
+        if (parse_bool_attr(root.attribute("layout_items"), layout_items))
+            out_scenario.default_layout_items = layout_items;
+
+        for (pugi::xml_node step_node = root.child("step"); step_node;
+             step_node                = step_node.next_sibling("step")) {
+            TestEngineScenarioStep step;
+            const pugi::xml_attribute name_attr = step_node.attribute("name");
+            if (!name_attr || name_attr.as_string()[0] == '\0') {
+                error_message
+                    = "scenario step is missing non-empty name attribute";
+                return false;
+            }
+            step.name = name_attr.as_string();
+
+            parse_int_attr(step_node.attribute("delay_frames"),
+                           step.action.delay_frames);
+            parse_int_attr(step_node.attribute("post_action_delay_frames"),
+                           step.action.post_action_delay_frames);
+
+            const pugi::xml_attribute key_chord_attr = step_node.attribute(
+                "key_chord");
+            if (key_chord_attr && key_chord_attr.as_string()[0] != '\0') {
+                if (!parse_test_engine_key_chord(key_chord_attr.as_string(),
+                                                 step.action.key_chord)) {
+                    error_message = Strutil::fmt::format(
+                        "scenario step '{}' has invalid key_chord '{}'",
+                        step.name, key_chord_attr.as_string());
+                    return false;
+                }
+                step.action.has_key_chord = true;
+            }
+
+            if (parse_float_pair_attr(step_node.attribute("mouse_pos"),
+                                      step.action.mouse_x,
+                                      step.action.mouse_y)) {
+                step.action.mouse_target_mode
+                    = TestEngineMouseTargetMode::Absolute;
+            } else if (parse_float_pair_attr(step_node.attribute(
+                                                 "mouse_pos_window_rel"),
+                                             step.action.mouse_x,
+                                             step.action.mouse_y)) {
+                step.action.mouse_target_mode
+                    = TestEngineMouseTargetMode::WindowRel;
+            } else if (parse_float_pair_attr(step_node.attribute(
+                                                 "mouse_pos_image_rel"),
+                                             step.action.mouse_x,
+                                             step.action.mouse_y)) {
+                step.action.mouse_target_mode
+                    = TestEngineMouseTargetMode::ImageRel;
+            }
+
+            if (parse_int_attr(step_node.attribute("mouse_click_button"),
+                               step.action.click_button)) {
+                step.action.has_click = true;
+            }
+            if (parse_float_pair_attr(step_node.attribute("mouse_wheel"),
+                                      step.action.wheel_x,
+                                      step.action.wheel_y)) {
+                step.action.has_wheel = true;
+            }
+            if (parse_float_pair_attr(step_node.attribute("mouse_drag"),
+                                      step.action.drag_dx,
+                                      step.action.drag_dy)) {
+                step.action.has_drag = true;
+                parse_int_attr(step_node.attribute("mouse_drag_button"),
+                               step.action.drag_button);
+            }
+            if (parse_float_pair_attr(step_node.attribute("mouse_drag_hold"),
+                                      step.action.hold_drag_dx,
+                                      step.action.hold_drag_dy)) {
+                step.action.has_hold_drag = true;
+                parse_int_attr(step_node.attribute("mouse_drag_hold_button"),
+                               step.action.hold_drag_button);
+                parse_int_attr(step_node.attribute("mouse_drag_hold_frames"),
+                               step.action.hold_drag_frames);
+            }
+
+            if (parse_bool_attr(step_node.attribute("ocio_use"),
+                                step.ocio.use_ocio)) {
+                step.ocio.has_use = true;
+            }
+            const pugi::xml_attribute ocio_display_attr = step_node.attribute(
+                "ocio_display");
+            if (ocio_display_attr && ocio_display_attr.as_string()[0] != '\0') {
+                step.ocio.has_display = true;
+                step.ocio.display     = ocio_display_attr.as_string();
+            }
+            const pugi::xml_attribute ocio_view_attr = step_node.attribute(
+                "ocio_view");
+            if (ocio_view_attr && ocio_view_attr.as_string()[0] != '\0') {
+                step.ocio.has_view = true;
+                step.ocio.view     = ocio_view_attr.as_string();
+            }
+            const pugi::xml_attribute ocio_cs_attr = step_node.attribute(
+                "ocio_image_color_space");
+            if (ocio_cs_attr && ocio_cs_attr.as_string()[0] != '\0') {
+                step.ocio.has_image_color_space = true;
+                step.ocio.image_color_space     = ocio_cs_attr.as_string();
+            }
+
+            parse_bool_attr(step_node.attribute("screenshot"),
+                            step.capture.screenshot);
+            parse_bool_attr(step_node.attribute("layout"), step.capture.layout);
+            parse_bool_attr(step_node.attribute("state"), step.capture.state);
+            step.capture.layout_items  = out_scenario.default_layout_items;
+            step.capture.layout_depth  = out_scenario.default_layout_depth;
+            bool layout_items_override = false;
+            if (parse_bool_attr(step_node.attribute("layout_items"),
+                                layout_items_override)) {
+                step.capture.layout_items = layout_items_override;
+            }
+            int layout_depth_override = step.capture.layout_depth;
+            if (parse_int_attr(step_node.attribute("layout_depth"),
+                               layout_depth_override)
+                && layout_depth_override > 0) {
+                step.capture.layout_depth = layout_depth_override;
+            }
+
+            out_scenario.steps.emplace_back(std::move(step));
+        }
+
+        if (out_scenario.steps.empty()) {
+            error_message = "scenario file does not contain any <step> entries";
+            return false;
+        }
+        return true;
     }
 
     ImGuiKey parse_test_engine_key_token(const std::string& token)
@@ -583,99 +864,219 @@ namespace {
         return true;
     }
 
-    int apply_test_engine_mouse_actions(ImGuiTestContext* ctx)
+    std::string sanitize_test_output_stem(const std::string& name)
     {
-        int held_button         = -1;
-        ImGuiKeyChord key_chord = 0;
-        if (env_read_key_chord_value("IMIV_IMGUI_TEST_ENGINE_KEY_CHORD",
-                                     key_chord)) {
-            ctx->KeyPress(key_chord);
+        std::string sanitized = name;
+        for (char& c : sanitized) {
+            const bool keep = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+                              || (c >= '0' && c <= '9') || c == '_' || c == '-'
+                              || c == '.';
+            if (!keep)
+                c = '_';
+        }
+        if (sanitized.empty())
+            sanitized = "step";
+        return sanitized;
+    }
+
+    void apply_test_engine_scenario_ocio_overrides(
+        const TestEngineScenarioOcioStep& ocio)
+    {
+        if (ocio.has_use) {
+            const std::string use_value = ocio.use_ocio ? "true" : "false";
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_USE",
+                                  &use_value);
+        }
+        if (ocio.has_display)
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_DISPLAY",
+                                  &ocio.display);
+        if (ocio.has_view)
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW",
+                                  &ocio.view);
+        if (ocio.has_image_color_space) {
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE",
+                &ocio.image_color_space);
+        }
+    }
+
+    bool write_test_engine_scenario_step_outputs(
+        ImGuiTestContext* ctx, const TestEngineScenarioDefinition& scenario,
+        const TestEngineScenarioStep& step)
+    {
+        const std::string stem = sanitize_test_output_stem(step.name);
+        const std::filesystem::path base_path = scenario.out_dir / stem;
+
+        if (step.capture.screenshot) {
+            const std::filesystem::path screenshot_path = base_path.string()
+                                                          + ".png";
+            const std::string screenshot_string = screenshot_path.string();
+            if (!capture_main_viewport_screenshot(ctx,
+                                                  screenshot_string.c_str())) {
+                return false;
+            }
+        }
+
+        if (step.capture.layout) {
+            const std::filesystem::path layout_path = base_path.string()
+                                                      + ".layout.json";
+            if (!write_layout_dump_json(ctx, layout_path,
+                                        step.capture.layout_items,
+                                        step.capture.layout_depth)) {
+                return false;
+            }
+        }
+
+        if (step.capture.state) {
+            const std::filesystem::path state_path = base_path.string()
+                                                     + ".state.json";
+            if (!write_viewer_state_json(ctx, state_path))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool resolve_action_mouse_pos(const TestEngineSyntheticAction& action,
+                                  ImVec2& out_pos)
+    {
+        out_pos = ImVec2(0.0f, 0.0f);
+        switch (action.mouse_target_mode) {
+        case TestEngineMouseTargetMode::Absolute:
+            out_pos = ImVec2(action.mouse_x, action.mouse_y);
+            return true;
+        case TestEngineMouseTargetMode::WindowRel:
+            if (g_test_engine_mouse_space.viewport_valid) {
+                out_pos = test_engine_rect_rel_pos(
+                    g_test_engine_mouse_space.viewport_min,
+                    g_test_engine_mouse_space.viewport_max, action.mouse_x,
+                    action.mouse_y);
+                return true;
+            }
+            return false;
+        case TestEngineMouseTargetMode::ImageRel:
+            if (g_test_engine_mouse_space.image_valid) {
+                out_pos = test_engine_rect_rel_pos(
+                    g_test_engine_mouse_space.image_min,
+                    g_test_engine_mouse_space.image_max, action.mouse_x,
+                    action.mouse_y);
+                return true;
+            }
+            return false;
+        case TestEngineMouseTargetMode::None:
+        default: return false;
+        }
+    }
+
+    int
+    apply_test_engine_synthetic_actions(ImGuiTestContext* ctx,
+                                        const TestEngineSyntheticAction& action)
+    {
+        int held_button = -1;
+        if (action.has_key_chord) {
+            ctx->KeyPress(action.key_chord);
             ctx->Yield(1);
         }
 
         ImVec2 mouse_pos(0.0f, 0.0f);
-        if (resolve_test_engine_mouse_pos(mouse_pos)) {
+        if (resolve_action_mouse_pos(action, mouse_pos)) {
             ctx->MouseMoveToPos(mouse_pos);
             ctx->Yield(1);
         }
 
-        int click_button = 0;
-        if (env_read_int_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_CLICK_BUTTON",
-                               click_button)) {
-            click_button = std::clamp(click_button, 0, 4);
+        if (action.has_click) {
+            const int click_button = std::clamp(action.click_button, 0, 4);
             ctx->MouseClick(static_cast<ImGuiMouseButton>(click_button));
             ctx->Yield(1);
         }
 
-        float wheel_x = 0.0f;
-        float wheel_y = 0.0f;
-        const bool have_wheel_x
-            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_WHEEL_X",
-                                   wheel_x);
-        const bool have_wheel_y
-            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_WHEEL_Y",
-                                   wheel_y);
-        if (have_wheel_x || have_wheel_y) {
-            ctx->MouseWheel(ImVec2(have_wheel_x ? wheel_x : 0.0f,
-                                   have_wheel_y ? wheel_y : 0.0f));
+        if (action.has_wheel) {
+            ctx->MouseWheel(ImVec2(action.wheel_x, action.wheel_y));
             ctx->Yield(1);
         }
 
-        float drag_dx = 0.0f;
-        float drag_dy = 0.0f;
-        const bool have_drag_dx
-            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_DX",
-                                   drag_dx);
-        const bool have_drag_dy
-            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_DY",
-                                   drag_dy);
-        if (have_drag_dx || have_drag_dy) {
-            int drag_button = 0;
-            if (!env_read_int_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_BUTTON",
-                                    drag_button)) {
-                drag_button = 0;
-            }
-            drag_button              = std::clamp(drag_button, 0, 4);
+        if (action.has_drag) {
+            const int drag_button    = std::clamp(action.drag_button, 0, 4);
             const ImVec2 current_pos = ImGui::GetIO().MousePos;
             ctx->MouseDown(static_cast<ImGuiMouseButton>(drag_button));
             ctx->Yield(1);
-            ctx->MouseMoveToPos(
-                ImVec2(current_pos.x + (have_drag_dx ? drag_dx : 0.0f),
-                       current_pos.y + (have_drag_dy ? drag_dy : 0.0f)));
+            ctx->MouseMoveToPos(ImVec2(current_pos.x + action.drag_dx,
+                                       current_pos.y + action.drag_dy));
             ctx->Yield(1);
             ctx->MouseUp(static_cast<ImGuiMouseButton>(drag_button));
             ctx->Yield(1);
         }
-        float hold_drag_dx = 0.0f;
-        float hold_drag_dy = 0.0f;
-        const bool have_hold_drag_dx
-            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_DX",
-                                   hold_drag_dx);
-        const bool have_hold_drag_dy
-            = env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_DY",
-                                   hold_drag_dy);
-        if (have_hold_drag_dx || have_hold_drag_dy) {
-            int drag_button = 0;
-            if (!env_read_int_value(
-                    "IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_BUTTON",
-                    drag_button)) {
-                drag_button = 0;
-            }
-            drag_button           = std::clamp(drag_button, 0, 4);
-            const int hold_frames = std::max(
-                0,
-                env_int_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_FRAMES", 1));
+        if (action.has_hold_drag) {
+            const int drag_button = std::clamp(action.hold_drag_button, 0, 4);
+            const int hold_frames = std::max(0, action.hold_drag_frames);
             ctx->MouseDown(static_cast<ImGuiMouseButton>(drag_button));
             ctx->Yield(1);
             const ImVec2 current_pos = ImGui::GetIO().MousePos;
-            ctx->MouseMoveToPos(ImVec2(
-                current_pos.x + (have_hold_drag_dx ? hold_drag_dx : 0.0f),
-                current_pos.y + (have_hold_drag_dy ? hold_drag_dy : 0.0f)));
+            ctx->MouseMoveToPos(ImVec2(current_pos.x + action.hold_drag_dx,
+                                       current_pos.y + action.hold_drag_dy));
             if (hold_frames > 0)
                 ctx->Yield(hold_frames);
             held_button = drag_button;
         }
         return held_button;
+    }
+
+    int apply_test_engine_mouse_actions(ImGuiTestContext* ctx)
+    {
+        TestEngineSyntheticAction action;
+        ImGuiKeyChord key_chord = 0;
+        if (env_read_key_chord_value("IMIV_IMGUI_TEST_ENGINE_KEY_CHORD",
+                                     key_chord)) {
+            action.has_key_chord = true;
+            action.key_chord     = key_chord;
+        }
+        if (env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_IMAGE_REL_X",
+                                 action.mouse_x)
+            && env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_IMAGE_REL_Y",
+                                    action.mouse_y)) {
+            action.mouse_target_mode = TestEngineMouseTargetMode::ImageRel;
+        } else if (env_read_float_value(
+                       "IMIV_IMGUI_TEST_ENGINE_MOUSE_WINDOW_REL_X",
+                       action.mouse_x)
+                   && env_read_float_value(
+                       "IMIV_IMGUI_TEST_ENGINE_MOUSE_WINDOW_REL_Y",
+                       action.mouse_y)) {
+            action.mouse_target_mode = TestEngineMouseTargetMode::WindowRel;
+        } else if (env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_X",
+                                        action.mouse_x)
+                   && env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_Y",
+                                           action.mouse_y)) {
+            action.mouse_target_mode = TestEngineMouseTargetMode::Absolute;
+        }
+        if (env_read_int_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_CLICK_BUTTON",
+                               action.click_button)) {
+            action.has_click = true;
+        }
+        if (env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_WHEEL_X",
+                                 action.wheel_x)
+            || env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_WHEEL_Y",
+                                    action.wheel_y)) {
+            action.has_wheel = true;
+        }
+        if (env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_DX",
+                                 action.drag_dx)
+            || env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_DY",
+                                    action.drag_dy)) {
+            action.has_drag = true;
+            env_read_int_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_DRAG_BUTTON",
+                               action.drag_button);
+        }
+        if (env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_DX",
+                                 action.hold_drag_dx)
+            || env_read_float_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_DY",
+                                    action.hold_drag_dy)) {
+            action.has_hold_drag = true;
+            env_read_int_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_DRAG_BUTTON",
+                               action.hold_drag_button);
+            action.hold_drag_frames
+                = env_int_value("IMIV_IMGUI_TEST_ENGINE_MOUSE_HOLD_FRAMES", 1);
+        }
+        return apply_test_engine_synthetic_actions(ctx, action);
     }
 
     void release_test_engine_held_mouse(ImGuiTestContext* ctx, int held_button)
@@ -834,6 +1235,71 @@ namespace {
         release_test_engine_held_mouse(ctx, held_button);
     }
 
+    void imiv_test_run_scenario(ImGuiTestContext* ctx)
+    {
+        std::string scenario_file_value;
+        if (!read_env_value("IMIV_IMGUI_TEST_ENGINE_SCENARIO_FILE",
+                            scenario_file_value)
+            || scenario_file_value.empty()) {
+            ctx->LogError(
+                "scenario: IMIV_IMGUI_TEST_ENGINE_SCENARIO_FILE is not set");
+            mark_test_error(ctx);
+            return;
+        }
+
+        TestEngineScenarioDefinition scenario;
+        std::string error_message;
+        if (!load_test_engine_scenario(std::filesystem::path(
+                                           scenario_file_value),
+                                       scenario, error_message)) {
+            ctx->LogError("scenario: %s", error_message.c_str());
+            mark_test_error(ctx);
+            return;
+        }
+
+        std::error_code ec;
+        std::filesystem::create_directories(scenario.out_dir, ec);
+        if (ec) {
+            ctx->LogError("scenario: failed to create output directory '%s': %s",
+                          scenario.out_dir.string().c_str(),
+                          ec.message().c_str());
+            mark_test_error(ctx);
+            return;
+        }
+
+        int held_button = -1;
+        for (const TestEngineScenarioStep& step : scenario.steps) {
+            release_test_engine_held_mouse(ctx, held_button);
+            held_button = -1;
+
+            ctx->LogInfo("scenario: step '%s'", step.name.c_str());
+
+            if (step.action.delay_frames > 0)
+                ctx->Yield(step.action.delay_frames);
+
+            apply_test_engine_scenario_ocio_overrides(step.ocio);
+            ctx->Yield(1);
+
+            held_button = apply_test_engine_synthetic_actions(ctx, step.action);
+
+            if (step.action.post_action_delay_frames > 0)
+                ctx->Yield(step.action.post_action_delay_frames);
+
+            if (step.capture.screenshot || step.capture.layout
+                || step.capture.state) {
+                if (!write_test_engine_scenario_step_outputs(ctx, scenario,
+                                                             step)) {
+                    release_test_engine_held_mouse(ctx, held_button);
+                    return;
+                }
+            }
+
+            release_test_engine_held_mouse(ctx, held_button);
+            held_button = -1;
+            ctx->Yield(1);
+        }
+    }
+
     void imiv_test_developer_menu_metrics(ImGuiTestContext* ctx)
     {
 #    if defined(NDEBUG)
@@ -917,6 +1383,13 @@ namespace {
         t->TestFunc  = imiv_test_developer_menu_metrics;
         return t;
     }
+
+    ImGuiTest* register_imiv_scenario_tests(ImGuiTestEngine* engine)
+    {
+        ImGuiTest* t = IM_REGISTER_TEST(engine, "imiv", "scenario");
+        t->TestFunc  = imiv_test_run_scenario;
+        return t;
+    }
 #endif
 
 }  // namespace
@@ -943,6 +1416,9 @@ gather_test_engine_config()
           && !state_out.empty();
     cfg.state_dump = env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_STATE_DUMP")
                      || has_state_out;
+    cfg.scenario_run = read_env_value("IMIV_IMGUI_TEST_ENGINE_SCENARIO_FILE",
+                                      cfg.scenario_file)
+                       && !cfg.scenario_file.empty();
     cfg.developer_menu_metrics = env_flag_is_truthy(
         "IMIV_IMGUI_TEST_ENGINE_DEVELOPER_MENU_METRICS");
     cfg.state_dump_out = has_state_out ? state_out : "viewer_state.json";
@@ -957,13 +1433,14 @@ gather_test_engine_config()
 
     cfg.want_test_engine = env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE")
                            || cfg.auto_screenshot || cfg.layout_dump
-                           || cfg.state_dump || cfg.developer_menu_metrics
-                           || cfg.junit_xml;
+                           || cfg.state_dump || cfg.scenario_run
+                           || cfg.developer_menu_metrics || cfg.junit_xml;
 #if defined(IMGUI_ENABLE_TEST_ENGINE) && !defined(NDEBUG)
     cfg.want_test_engine = true;
 #endif
     cfg.automation_mode = cfg.auto_screenshot || cfg.layout_dump
-                          || cfg.state_dump || cfg.developer_menu_metrics;
+                          || cfg.state_dump || cfg.scenario_run
+                          || cfg.developer_menu_metrics;
     cfg.exit_on_finish = env_flag_is_truthy(
                              "IMIV_IMGUI_TEST_ENGINE_EXIT_ON_FINISH")
                          || cfg.automation_mode;
@@ -1029,6 +1506,11 @@ test_engine_start(TestEngineRuntime& runtime, TestEngineConfig& config,
     if (config.state_dump) {
         ImGuiTest* dump = register_imiv_state_dump_tests(engine);
         ImGuiTestEngine_QueueTest(engine, dump);
+        config.has_work = true;
+    }
+    if (config.scenario_run) {
+        ImGuiTest* scenario = register_imiv_scenario_tests(engine);
+        ImGuiTestEngine_QueueTest(engine, scenario);
         config.has_work = true;
     }
     if (config.developer_menu_metrics) {

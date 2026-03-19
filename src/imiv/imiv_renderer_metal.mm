@@ -1425,12 +1425,12 @@ render_preview_texture(RendererBackendState& state,
 }  // namespace
 
 bool
-renderer_backend_get_viewer_texture_refs(const ViewerState& viewer,
-                                         const PlaceholderUiState& ui_state,
-                                         ImTextureRef& main_texture_ref,
-                                         bool& has_main_texture,
-                                         ImTextureRef& closeup_texture_ref,
-                                         bool& has_closeup_texture)
+metal_get_viewer_texture_refs(const ViewerState& viewer,
+                              const PlaceholderUiState& ui_state,
+                              ImTextureRef& main_texture_ref,
+                              bool& has_main_texture,
+                              ImTextureRef& closeup_texture_ref,
+                              bool& has_closeup_texture)
 {
     const RendererTextureBackendState* state = texture_backend_state(
         viewer.texture);
@@ -1458,10 +1458,14 @@ renderer_backend_get_viewer_texture_refs(const ViewerState& viewer,
 }
 
 bool
-renderer_backend_create_texture(RendererState& renderer_state,
-                                const LoadedImage& image,
-                                RendererTexture& texture,
-                                std::string& error_message)
+metal_texture_is_loading(const RendererTexture& texture)
+{
+    return texture.backend != nullptr && !texture.preview_initialized;
+}
+
+bool
+metal_create_texture(RendererState& renderer_state, const LoadedImage& image,
+                     RendererTexture& texture, std::string& error_message)
 {
     RendererBackendState* state = backend_state(renderer_state);
     if (state == nullptr || state->device == nil) {
@@ -1528,8 +1532,7 @@ renderer_backend_create_texture(RendererState& renderer_state,
 }
 
 void
-renderer_backend_destroy_texture(RendererState& renderer_state,
-                                 RendererTexture& texture)
+metal_destroy_texture(RendererState& renderer_state, RendererTexture& texture)
 {
     (void)renderer_state;
     RendererTextureBackendState* state = texture_backend_state(texture);
@@ -1554,12 +1557,12 @@ renderer_backend_destroy_texture(RendererState& renderer_state,
 }
 
 bool
-renderer_backend_update_preview_texture(RendererState& renderer_state,
-                                        RendererTexture& texture,
-                                        const LoadedImage* image,
-                                        const PlaceholderUiState& ui_state,
-                                        const RendererPreviewControls& controls,
-                                        std::string& error_message)
+metal_update_preview_texture(RendererState& renderer_state,
+                             RendererTexture& texture,
+                             const LoadedImage* image,
+                             const PlaceholderUiState& ui_state,
+                             const RendererPreviewControls& controls,
+                             std::string& error_message)
 {
     RendererBackendState* renderer_backend = backend_state(renderer_state);
     RendererTextureBackendState* texture_state = texture_backend_state(texture);
@@ -1623,9 +1626,9 @@ renderer_backend_update_preview_texture(RendererState& renderer_state,
 }
 
 bool
-renderer_backend_quiesce_texture_preview_submission(
-    RendererState& renderer_state, RendererTexture& texture,
-    std::string& error_message)
+metal_quiesce_texture_preview_submission(RendererState& renderer_state,
+                                         RendererTexture& texture,
+                                         std::string& error_message)
 {
     (void)renderer_state;
     (void)texture;
@@ -1634,9 +1637,9 @@ renderer_backend_quiesce_texture_preview_submission(
 }
 
 bool
-renderer_backend_setup_instance(RendererState& renderer_state,
-                                ImVector<const char*>& instance_extensions,
-                                std::string& error_message)
+metal_setup_instance(RendererState& renderer_state,
+                     ImVector<const char*>& instance_extensions,
+                     std::string& error_message)
 {
     (void)instance_extensions;
     if (!ensure_backend_state(renderer_state)) {
@@ -1648,9 +1651,8 @@ renderer_backend_setup_instance(RendererState& renderer_state,
 }
 
 bool
-renderer_backend_create_surface(RendererState& renderer_state,
-                                GLFWwindow* window,
-                                std::string& error_message)
+metal_create_surface(RendererState& renderer_state, GLFWwindow* window,
+                     std::string& error_message)
 {
     if (!ensure_backend_state(renderer_state)) {
         error_message = "failed to allocate Metal renderer state";
@@ -1662,8 +1664,8 @@ renderer_backend_create_surface(RendererState& renderer_state,
 }
 
 bool
-renderer_backend_setup_device(RendererState& renderer_state,
-                              std::string& error_message)
+metal_setup_device(RendererState& renderer_state,
+                   std::string& error_message)
 {
     RendererBackendState* state = backend_state(renderer_state);
     if (state == nullptr) {
@@ -1687,8 +1689,8 @@ renderer_backend_setup_device(RendererState& renderer_state,
 }
 
 bool
-renderer_backend_setup_window(RendererState& renderer_state, int width,
-                              int height, std::string& error_message)
+metal_setup_window(RendererState& renderer_state, int width, int height,
+                   std::string& error_message)
 {
     RendererBackendState* state = backend_state(renderer_state);
     if (state == nullptr || state->window == nullptr || state->device == nil) {
@@ -1715,14 +1717,14 @@ renderer_backend_setup_window(RendererState& renderer_state, int width,
 }
 
 void
-renderer_backend_destroy_surface(RendererState& renderer_state)
+metal_destroy_surface(RendererState& renderer_state)
 {
     if (RendererBackendState* state = backend_state(renderer_state))
         state->window = nullptr;
 }
 
 void
-renderer_backend_cleanup_window(RendererState& renderer_state)
+metal_cleanup_window(RendererState& renderer_state)
 {
     RendererBackendState* state = backend_state(renderer_state);
     if (state == nullptr)
@@ -1733,7 +1735,7 @@ renderer_backend_cleanup_window(RendererState& renderer_state)
 }
 
 void
-renderer_backend_cleanup(RendererState& renderer_state)
+metal_cleanup(RendererState& renderer_state)
 {
     if (RendererBackendState* state = backend_state(renderer_state)) {
         destroy_ocio_preview_program(state->ocio_preview);
@@ -1743,8 +1745,7 @@ renderer_backend_cleanup(RendererState& renderer_state)
 }
 
 bool
-renderer_backend_wait_idle(RendererState& renderer_state,
-                           std::string& error_message)
+metal_wait_idle(RendererState& renderer_state, std::string& error_message)
 {
     RendererBackendState* state = backend_state(renderer_state);
     if (state != nullptr && state->current_command_buffer != nil)
@@ -1754,8 +1755,7 @@ renderer_backend_wait_idle(RendererState& renderer_state,
 }
 
 bool
-renderer_backend_imgui_init(RendererState& renderer_state,
-                            std::string& error_message)
+metal_imgui_init(RendererState& renderer_state, std::string& error_message)
 {
     RendererBackendState* state = backend_state(renderer_state);
     if (state == nullptr || state->device == nil) {
@@ -1769,13 +1769,13 @@ renderer_backend_imgui_init(RendererState& renderer_state,
 }
 
 void
-renderer_backend_imgui_shutdown()
+metal_imgui_shutdown()
 {
     ImGui_ImplMetal_Shutdown();
 }
 
 void
-renderer_backend_imgui_new_frame(RendererState& renderer_state)
+metal_imgui_new_frame(RendererState& renderer_state)
 {
     RendererBackendState* state = backend_state(renderer_state);
     if (state == nullptr || state->layer == nil || state->render_pass == nil)
@@ -1797,16 +1797,15 @@ renderer_backend_imgui_new_frame(RendererState& renderer_state)
 }
 
 bool
-renderer_backend_needs_main_window_resize(RendererState& renderer_state,
-                                          int width, int height)
+metal_needs_main_window_resize(RendererState& renderer_state, int width,
+                               int height)
 {
     return renderer_state.framebuffer_width != width
            || renderer_state.framebuffer_height != height;
 }
 
 void
-renderer_backend_resize_main_window(RendererState& renderer_state, int width,
-                                    int height)
+metal_resize_main_window(RendererState& renderer_state, int width, int height)
 {
     renderer_state.framebuffer_width  = width;
     renderer_state.framebuffer_height = height;
@@ -1814,8 +1813,8 @@ renderer_backend_resize_main_window(RendererState& renderer_state, int width,
 }
 
 void
-renderer_backend_set_main_clear_color(RendererState& renderer_state, float r,
-                                      float g, float b, float a)
+metal_set_main_clear_color(RendererState& renderer_state, float r, float g,
+                           float b, float a)
 {
     renderer_state.clear_color[0] = r;
     renderer_state.clear_color[1] = g;
@@ -1824,20 +1823,19 @@ renderer_backend_set_main_clear_color(RendererState& renderer_state, float r,
 }
 
 void
-renderer_backend_prepare_platform_windows(RendererState& renderer_state)
+metal_prepare_platform_windows(RendererState& renderer_state)
 {
     (void)renderer_state;
 }
 
 void
-renderer_backend_finish_platform_windows(RendererState& renderer_state)
+metal_finish_platform_windows(RendererState& renderer_state)
 {
     (void)renderer_state;
 }
 
 void
-renderer_backend_frame_render(RendererState& renderer_state,
-                              ImDrawData* draw_data)
+metal_frame_render(RendererState& renderer_state, ImDrawData* draw_data)
 {
     RendererBackendState* state = backend_state(renderer_state);
     if (state == nullptr || state->current_drawable == nil
@@ -1852,7 +1850,7 @@ renderer_backend_frame_render(RendererState& renderer_state,
 }
 
 void
-renderer_backend_frame_present(RendererState& renderer_state)
+metal_frame_present(RendererState& renderer_state)
 {
     RendererBackendState* state = backend_state(renderer_state);
     if (state == nullptr || state->current_command_buffer == nil
@@ -1869,8 +1867,8 @@ renderer_backend_frame_present(RendererState& renderer_state)
 }
 
 bool
-renderer_backend_screen_capture(ImGuiID viewport_id, int x, int y, int w,
-                                int h, unsigned int* pixels, void* user_data)
+metal_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
+                     unsigned int* pixels, void* user_data)
 {
     (void)viewport_id;
     RendererState* renderer_state = reinterpret_cast<RendererState*>(user_data);
@@ -2006,6 +2004,45 @@ renderer_backend_screen_capture(ImGuiID viewport_id, int x, int y, int w,
     state->current_command_buffer = nil;
     state->current_drawable       = nil;
     return true;
+}
+
+}  // namespace Imiv
+
+namespace Imiv {
+
+const RendererBackendVTable k_metal_vtable = {
+    BackendKind::Metal,
+    metal_get_viewer_texture_refs,
+    metal_texture_is_loading,
+    metal_create_texture,
+    metal_destroy_texture,
+    metal_update_preview_texture,
+    metal_quiesce_texture_preview_submission,
+    metal_setup_instance,
+    metal_setup_device,
+    metal_setup_window,
+    metal_create_surface,
+    metal_destroy_surface,
+    metal_cleanup_window,
+    metal_cleanup,
+    metal_wait_idle,
+    metal_imgui_init,
+    metal_imgui_shutdown,
+    metal_imgui_new_frame,
+    metal_needs_main_window_resize,
+    metal_resize_main_window,
+    metal_set_main_clear_color,
+    metal_prepare_platform_windows,
+    metal_finish_platform_windows,
+    metal_frame_render,
+    metal_frame_present,
+    metal_screen_capture,
+};
+
+const RendererBackendVTable*
+renderer_backend_metal_vtable()
+{
+    return &k_metal_vtable;
 }
 
 }  // namespace Imiv

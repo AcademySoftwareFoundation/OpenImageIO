@@ -97,6 +97,7 @@ def _run_case(
     runner: Path,
     exe: Path,
     cwd: Path,
+    backend: str,
     out_dir: Path,
     name: str,
     env: dict[str, str],
@@ -120,11 +121,17 @@ def _run_case(
         str(exe),
         "--cwd",
         str(cwd),
-        "--state-json-out",
-        str(state_path),
-        "--post-action-delay-frames",
-        "2",
     ]
+    if backend:
+        cmd.extend(["--backend", backend])
+    cmd.extend(
+        [
+            "--state-json-out",
+            str(state_path),
+            "--post-action-delay-frames",
+            "2",
+        ]
+    )
     if want_layout:
         cmd.extend(
             [
@@ -205,6 +212,11 @@ def main() -> int:
     ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
+        "--backend",
+        default="",
+        help="Optional runtime backend override passed through to imiv",
+    )
+    ap.add_argument(
         "--env-script",
         default="",
         help="Optional shell env setup script",
@@ -243,6 +255,7 @@ def main() -> int:
         runner,
         exe,
         cwd,
+        args.backend,
         out_dir,
         "startup_empty",
         env,
@@ -263,6 +276,7 @@ def main() -> int:
         runner,
         exe,
         cwd,
+        args.backend,
         out_dir,
         "open_image",
         env,
@@ -288,6 +302,7 @@ def main() -> int:
         runner,
         exe,
         cwd,
+        args.backend,
         out_dir,
         "area_sample_drag",
         env,

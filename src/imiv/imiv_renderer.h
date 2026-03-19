@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "imiv_backend.h"
 #include "imiv_types.h"
 
 #include <imgui.h>
@@ -16,23 +17,26 @@ namespace Imiv {
 
 struct ViewerState;
 struct PlaceholderUiState;
+struct RendererBackendVTable;
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-using RendererState           = VulkanState;
-using RendererTexture         = VulkanTexture;
-using RendererPreviewControls = PreviewControls;
-#else
 struct RendererBackendState;
 struct RendererTextureBackendState;
 
 struct RendererState {
-    RendererBackendState* backend = nullptr;
-    float clear_color[4]          = { 0.08f, 0.08f, 0.08f, 1.0f };
-    int framebuffer_width         = 0;
-    int framebuffer_height        = 0;
+    const RendererBackendVTable* vtable = nullptr;
+    RendererBackendState* backend        = nullptr;
+    BackendKind active_backend           = BackendKind::Auto;
+    bool verbose_logging                 = false;
+    bool verbose_validation_output       = false;
+    bool log_imgui_texture_updates       = false;
+    float clear_color[4]                 = { 0.08f, 0.08f, 0.08f, 1.0f };
+    int framebuffer_width                = 0;
+    int framebuffer_height               = 0;
 };
 
 struct RendererTexture {
+    const RendererBackendVTable* vtable = nullptr;
+    BackendKind backend_kind            = BackendKind::Auto;
     RendererTextureBackendState* backend = nullptr;
     bool preview_initialized             = false;
 };
@@ -47,7 +51,13 @@ struct RendererPreviewControls {
     int orientation          = 1;
     int linear_interpolation = 0;
 };
-#endif
+
+void
+renderer_select_backend(RendererState& renderer_state, BackendKind backend);
+BackendKind
+renderer_active_backend(const RendererState& renderer_state);
+bool
+renderer_texture_is_loading(const RendererTexture& texture);
 
 void
 renderer_get_viewer_texture_refs(const ViewerState& viewer,
@@ -99,7 +109,7 @@ renderer_wait_idle(RendererState& renderer_state, std::string& error_message);
 bool
 renderer_imgui_init(RendererState& renderer_state, std::string& error_message);
 void
-renderer_imgui_shutdown();
+renderer_imgui_shutdown(RendererState& renderer_state);
 void
 renderer_imgui_new_frame(RendererState& renderer_state);
 bool

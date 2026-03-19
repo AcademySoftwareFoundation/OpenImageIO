@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "imiv_backend.h"
 #include "imiv_renderer.h"
 #include "imiv_style.h"
 
@@ -111,6 +112,7 @@ struct PlaceholderUiState {
     int color_mode             = 0;
     int mouse_mode             = 0;
     int style_preset           = static_cast<int>(AppStylePreset::ImGuiDark);
+    int renderer_backend       = static_cast<int>(BackendKind::Auto);
 
     float exposure = 0.0f;
     float gamma    = 1.0f;
