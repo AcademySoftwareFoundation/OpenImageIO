@@ -6,13 +6,13 @@
 
 #include <imgui.h>
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_WITH_VULKAN)
 #    include <imgui_impl_vulkan.h>
 #endif
 
 namespace Imiv {
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_WITH_VULKAN)
 
 bool
 setup_vulkan_window(VulkanState& vk_state, int width, int height,

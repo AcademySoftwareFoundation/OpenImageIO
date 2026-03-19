@@ -197,24 +197,25 @@ platform_glfw_terminate()
 }
 
 GLFWwindow*
-platform_glfw_create_main_window(int width, int height, const char* title,
+platform_glfw_create_main_window(BackendKind backend, int width, int height,
+                                 const char* title,
                                  std::string& error_message)
 {
-#if defined(IMIV_BACKEND_OPENGL_GLFW)
-#    if defined(__APPLE__)
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-#    else
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-#    endif
+    if (backend == BackendKind::OpenGL) {
+#if defined(__APPLE__)
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #else
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 #endif
+    } else {
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    }
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     GLFWwindow* window = glfwCreateWindow(width, height, title, nullptr,
                                           nullptr);
@@ -222,10 +223,10 @@ platform_glfw_create_main_window(int width, int height, const char* title,
         error_message = "failed to create GLFW window";
         return nullptr;
     }
-#if defined(IMIV_BACKEND_OPENGL_GLFW)
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
-#endif
+    if (backend == BackendKind::OpenGL) {
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+    }
     center_glfw_window(window);
     error_message.clear();
     return window;
@@ -261,15 +262,14 @@ platform_glfw_collect_vulkan_instance_extensions(
 }
 
 void
-platform_glfw_imgui_init(GLFWwindow* window)
+platform_glfw_imgui_init(GLFWwindow* window, BackendKind backend)
 {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-    ImGui_ImplGlfw_InitForVulkan(window, true);
-#elif defined(IMIV_BACKEND_OPENGL_GLFW)
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-#else
-    ImGui_ImplGlfw_InitForOther(window, true);
-#endif
+    switch (backend) {
+    case BackendKind::Vulkan: ImGui_ImplGlfw_InitForVulkan(window, true); break;
+    case BackendKind::OpenGL: ImGui_ImplGlfw_InitForOpenGL(window, true); break;
+    case BackendKind::Metal:
+    case BackendKind::Auto: ImGui_ImplGlfw_InitForOther(window, true); break;
+    }
 }
 
 void

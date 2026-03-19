@@ -58,6 +58,14 @@ getargs(int argc, char* argv[])
     ap.arg("--save-dialog")
       .help("Open a native file-save dialog and report the selected file path")
       .store_true();
+    ap.arg("--backend")
+      .help("Renderer backend request: auto, vulkan, metal, opengl")
+      .metavar("STRING")
+      .defaultval("")
+      .action(ArgParse::store());
+    ap.arg("--list-backends")
+      .help("List backend support compiled into this imiv binary and exit")
+      .store_true();
 
     ap.parse(argc, (const char**)argv);
     return ap;
@@ -71,9 +79,6 @@ main(int argc, char* argv[])
     Filesystem::convert_native_arguments(argc, (const char**)argv);
     ArgParse ap = getargs(argc, argv);
 
-    if (!ap["foreground_mode"].get<int>())
-        Sysutil::put_in_background();
-
     Imiv::AppConfig config;
     config.verbose                = ap["verbose"].get<int>() != 0;
     config.foreground_mode        = ap["foreground_mode"].get<int>() != 0;
@@ -81,9 +86,34 @@ main(int argc, char* argv[])
     config.rawcolor               = ap["rawcolor"].get<int>() != 0;
     config.open_dialog            = ap["open-dialog"].get<int>() != 0;
     config.save_dialog            = ap["save-dialog"].get<int>() != 0;
+    config.list_backends          = ap["list-backends"].get<int>() != 0;
     config.ocio_display           = ap["display"].as_string("");
     config.ocio_image_color_space = ap["image-color-space"].as_string("");
     config.ocio_view              = ap["view"].as_string("");
     config.input_paths            = ap["filename"].as_vec<std::string>();
+
+    const std::string backend_arg = ap["backend"].as_string("");
+    if (!backend_arg.empty()
+        && !Imiv::parse_backend_kind(backend_arg, config.requested_backend)) {
+        print(stderr,
+              "imiv: invalid backend '{}'; expected auto, vulkan, metal, or opengl\n",
+              backend_arg);
+        return EXIT_FAILURE;
+    }
+
+    if (config.list_backends) {
+        print("imiv backend support for this build:\n");
+        for (const Imiv::BackendInfo& info : Imiv::compiled_backend_info()) {
+            print("  {} ({}) : {}{}{}\n", info.display_name, info.cli_name,
+                  info.compiled ? "built" : "not built",
+                  info.active_build ? ", build default backend" : "",
+                  info.platform_default ? ", platform default" : "");
+        }
+        return EXIT_SUCCESS;
+    }
+
+    if (!config.foreground_mode)
+        Sysutil::put_in_background();
+
     return Imiv::run(config);
 }

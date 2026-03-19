@@ -11,7 +11,7 @@
 
 namespace Imiv {
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_WITH_VULKAN)
 
 namespace {
 

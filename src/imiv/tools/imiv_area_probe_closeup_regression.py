@@ -80,6 +80,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
+    ap.add_argument(
+        "--backend",
+        default="",
+        help="Optional runtime backend override passed through to imiv",
+    )
     ap.add_argument("--env-script", default=str(default_env_script), help="Optional shell env setup script")
     ap.add_argument("--out-dir", default=str(default_out_dir), help="Output directory")
     ap.add_argument("--open", default=str(default_image), help="Image to open")
@@ -115,30 +120,36 @@ def main() -> int:
         str(exe),
         "--cwd",
         str(cwd),
-        "--open",
-        str(image_path),
-        "--mouse-pos-image-rel",
-        "0.55",
-        "0.55",
-        "--mouse-drag-hold",
-        "120",
-        "80",
-        "--mouse-drag-hold-button",
-        "0",
-        "--mouse-drag-hold-frames",
-        "2",
-        "--screenshot-out",
-        str(screenshot_path),
-        "--layout-json-out",
-        str(layout_path),
-        "--layout-items",
-        "--svg-out",
-        str(svg_path),
-        "--svg-items",
-        "--svg-labels",
-        "--state-json-out",
-        str(state_path),
     ]
+    if args.backend:
+        cmd.extend(["--backend", args.backend])
+    cmd.extend(
+        [
+            "--open",
+            str(image_path),
+            "--mouse-pos-image-rel",
+            "0.55",
+            "0.55",
+            "--mouse-drag-hold",
+            "120",
+            "80",
+            "--mouse-drag-hold-button",
+            "0",
+            "--mouse-drag-hold-frames",
+            "2",
+            "--screenshot-out",
+            str(screenshot_path),
+            "--layout-json-out",
+            str(layout_path),
+            "--layout-items",
+            "--svg-out",
+            str(svg_path),
+            "--svg-items",
+            "--svg-labels",
+            "--state-json-out",
+            str(state_path),
+        ]
+    )
 
     proc = subprocess.run(
         cmd, cwd=str(repo_root), env=env, check=False, timeout=120

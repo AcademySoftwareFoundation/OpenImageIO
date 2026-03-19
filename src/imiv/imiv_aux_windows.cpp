@@ -4,6 +4,7 @@
 
 #include "imiv_ui.h"
 
+#include "imiv_backend.h"
 #include "imiv_file_dialog.h"
 #include "imiv_ocio.h"
 #include "imiv_test_engine.h"
@@ -117,6 +118,14 @@ namespace {
         ImGui::PopTextWrapPos();
     }
 
+    std::string backend_combo_label(const BackendInfo& info)
+    {
+        std::string label = std::string(backend_display_name(info.kind));
+        if (!info.compiled)
+            label += " (not built)";
+        return label;
+    }
+
     bool input_text_string(const char* label, std::string& value)
     {
         char buffer[4096];
@@ -214,7 +223,8 @@ draw_info_window(const ViewerState& viewer, bool& show_window)
 }
 
 void
-draw_preferences_window(PlaceholderUiState& ui, bool& show_window)
+draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
+                        BackendKind active_backend)
 {
     if (!show_window)
         return;
@@ -265,6 +275,57 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window)
             ImGui::EndCombo();
         }
         ImGui::Checkbox("Generate mipmaps (requires restart)", &ui.auto_mipmap);
+
+        ImGui::Spacing();
+        const BackendKind requested_backend = sanitize_backend_kind(
+            ui.renderer_backend);
+        const BackendKind next_launch_backend = resolve_backend_request(
+            requested_backend);
+        const bool requested_backend_compiled
+            = requested_backend == BackendKind::Auto
+              || backend_kind_is_compiled(requested_backend);
+        std::string backend_label
+            = std::string(backend_display_name(requested_backend));
+        if (requested_backend != BackendKind::Auto
+            && !requested_backend_compiled) {
+            backend_label += " (not built)";
+        }
+        if (ImGui::BeginCombo("Renderer backend", backend_label.c_str())) {
+            const bool auto_selected = requested_backend == BackendKind::Auto;
+            if (ImGui::Selectable("Auto", auto_selected)) {
+                ui.renderer_backend = static_cast<int>(BackendKind::Auto);
+            }
+            if (auto_selected)
+                ImGui::SetItemDefaultFocus();
+            for (const BackendInfo& info : compiled_backend_info()) {
+                const bool selected = requested_backend == info.kind;
+                const std::string label = backend_combo_label(info);
+                if (!info.compiled)
+                    ImGui::BeginDisabled();
+                if (ImGui::Selectable(label.c_str(), selected)
+                    && info.compiled) {
+                    ui.renderer_backend = static_cast<int>(info.kind);
+                }
+                if (!info.compiled)
+                    ImGui::EndDisabled();
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::TextUnformatted("Current backend");
+        ImGui::SameLine();
+        ImGui::TextUnformatted(backend_display_name(active_backend));
+        if (requested_backend != BackendKind::Auto
+            && !requested_backend_compiled) {
+            ImGui::TextUnformatted(
+                "Requested backend is not built into this binary.");
+        } else if (next_launch_backend != active_backend) {
+            ImGui::TextUnformatted("Backend change requires restart.");
+        }
+        if (requested_backend == BackendKind::Auto) {
+            ImGui::TextUnformatted("Auto selects the first available backend.");
+        }
 
         ImGui::Spacing();
         ImGui::TextUnformatted("Image Cache max memory (requires restart)");

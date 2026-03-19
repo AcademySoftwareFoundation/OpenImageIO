@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 ERROR_PATTERNS = (
@@ -107,6 +108,10 @@ def _load_env_from_script(script_path: Path) -> dict[str, str]:
     return env
 
 
+def _json_load(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def _fail(message: str) -> int:
     print(f"error: {message}", file=sys.stderr)
     return 1
@@ -163,16 +168,21 @@ def _run_case(
     runner: Path,
     exe: Path,
     cwd: Path,
+    backend: str,
     env: dict[str, str],
     image_path: Path,
     out_dir: Path,
     name: str,
     trace: bool,
     case_timeout: float,
-) -> tuple[Path, Path, Path, Path]:
-    screenshot_path = out_dir / f"{name}.png"
-    layout_path = out_dir / f"{name}.json"
-    state_path = out_dir / f"{name}.state.json"
+    *,
+    capture_screenshot: bool = True,
+    capture_layout: bool = True,
+    capture_state: bool = True,
+) -> tuple[Optional[Path], Optional[Path], Optional[Path], Path]:
+    screenshot_path = out_dir / f"{name}.png" if capture_screenshot else None
+    layout_path = out_dir / f"{name}.json" if capture_layout else None
+    state_path = out_dir / f"{name}.state.json" if capture_state else None
     log_path = out_dir / f"{name}.log"
     cmd = [
         sys.executable,
@@ -181,16 +191,16 @@ def _run_case(
         str(exe),
         "--cwd",
         str(cwd),
-        "--open",
-        str(image_path),
-        "--screenshot-out",
-        str(screenshot_path),
-        "--layout-json-out",
-        str(layout_path),
-        "--layout-items",
-        "--state-json-out",
-        str(state_path),
     ]
+    if backend:
+        cmd.extend(["--backend", backend])
+    cmd.extend(["--open", str(image_path)])
+    if screenshot_path is not None:
+        cmd.extend(["--screenshot-out", str(screenshot_path)])
+    if layout_path is not None:
+        cmd.extend(["--layout-json-out", str(layout_path), "--layout-items"])
+    if state_path is not None:
+        cmd.extend(["--state-json-out", str(state_path)])
     if trace:
         cmd.append("--trace")
 
@@ -206,11 +216,11 @@ def _run_case(
         )
     if proc.returncode != 0:
         raise RuntimeError(f"{name}: runner exited with code {proc.returncode}")
-    if not screenshot_path.exists():
+    if screenshot_path is not None and not screenshot_path.exists():
         raise RuntimeError(f"{name}: screenshot not written")
-    if not layout_path.exists():
+    if layout_path is not None and not layout_path.exists():
         raise RuntimeError(f"{name}: layout json not written")
-    if not state_path.exists():
+    if state_path is not None and not state_path.exists():
         raise RuntimeError(f"{name}: state json not written")
 
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
@@ -363,6 +373,96 @@ def _normalized_rgb_diff(
     return _mean_abs_diff(lhs_ppm, rhs_ppm)
 
 
+def _validate_ocio_state(
+    name: str,
+    state_path: Path,
+    *,
+    image_path: Path,
+    expected_use_ocio: bool,
+    expected_requested_source: str,
+    expected_resolved_source: str,
+    expected_fallback_applied: bool,
+    expected_resolved_config_path: str,
+) -> dict:
+    state = _json_load(state_path)
+    if not bool(state.get("image_loaded")):
+        raise RuntimeError(f"{name}: image was not loaded")
+    if str(state.get("image_path", "")).strip() != str(image_path):
+        raise RuntimeError(
+            f"{name}: unexpected image path {state.get('image_path', '')!r}"
+        )
+
+    ocio = state.get("ocio")
+    if not isinstance(ocio, dict):
+        raise RuntimeError(f"{name}: missing ocio state block")
+    if bool(ocio.get("use_ocio")) != expected_use_ocio:
+        raise RuntimeError(
+            f"{name}: unexpected use_ocio={ocio.get('use_ocio')!r}"
+        )
+    if str(ocio.get("requested_source", "")).strip() != expected_requested_source:
+        raise RuntimeError(
+            f"{name}: unexpected requested_source="
+            f"{ocio.get('requested_source', '')!r}"
+        )
+    if str(ocio.get("resolved_source", "")).strip() != expected_resolved_source:
+        raise RuntimeError(
+            f"{name}: unexpected resolved_source="
+            f"{ocio.get('resolved_source', '')!r}"
+        )
+    if bool(ocio.get("fallback_applied")) != expected_fallback_applied:
+        raise RuntimeError(
+            f"{name}: unexpected fallback_applied="
+            f"{ocio.get('fallback_applied')!r}"
+        )
+    if (
+        str(ocio.get("resolved_config_path", "")).strip()
+        != expected_resolved_config_path
+    ):
+        raise RuntimeError(
+            f"{name}: unexpected resolved_config_path="
+            f"{ocio.get('resolved_config_path', '')!r}"
+        )
+    if not bool(ocio.get("menu_data_ok")):
+        raise RuntimeError(
+            f"{name}: OCIO menu data unavailable: "
+            f"{str(ocio.get('menu_error', '')).strip()}"
+        )
+
+    displays = ocio.get("available_displays")
+    if not isinstance(displays, list) or not displays:
+        raise RuntimeError(f"{name}: available_displays is empty")
+    resolved_display = str(ocio.get("resolved_display", "")).strip()
+    if not resolved_display:
+        raise RuntimeError(f"{name}: resolved_display is empty")
+    if resolved_display not in [str(item).strip() for item in displays]:
+        raise RuntimeError(
+            f"{name}: resolved_display {resolved_display!r} is not in "
+            "available_displays"
+        )
+
+    views_by_display = ocio.get("views_by_display")
+    if not isinstance(views_by_display, dict):
+        raise RuntimeError(f"{name}: missing views_by_display")
+    display_views = views_by_display.get(resolved_display)
+    if not isinstance(display_views, list) or not display_views:
+        raise RuntimeError(
+            f"{name}: no views advertised for display {resolved_display!r}"
+        )
+    resolved_view = str(ocio.get("resolved_view", "")).strip()
+    if not resolved_view:
+        raise RuntimeError(f"{name}: resolved_view is empty")
+    if resolved_view not in [str(item).strip() for item in display_views]:
+        raise RuntimeError(
+            f"{name}: resolved_view {resolved_view!r} is not valid for "
+            f"display {resolved_display!r}"
+        )
+
+    color_spaces = ocio.get("available_image_color_spaces")
+    if not isinstance(color_spaces, list) or not color_spaces:
+        raise RuntimeError(f"{name}: available_image_color_spaces is empty")
+    return state
+
+
 if __name__ == "__main__":
     repo_root = Path(__file__).resolve().parents[3]
     default_env_script = repo_root / "build_u" / "imiv_env.sh"
@@ -372,6 +472,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
+    ap.add_argument(
+        "--backend",
+        default="",
+        help="Optional runtime backend override passed through to imiv",
+    )
     ap.add_argument("--env-script", default=str(default_env_script), help="Optional shell env setup script")
     ap.add_argument("--out-dir", default=str(default_out), help="Output directory")
     ap.add_argument("--ocio-config", default=str(_default_ocio_config(repo_root)), help="OCIO config to use")
@@ -539,12 +644,16 @@ if __name__ == "__main__":
     user_missing_builtin_env = dict(base_env)
     user_missing_builtin_env["IMIV_CONFIG_HOME"] = str(user_missing_builtin_cfg)
 
+    expected_builtin_config_path = "ocio://default"
+    expected_external_config_path = ocio_config
+
     try:
         baseline_png, baseline_layout, baseline_state, baseline_log = _run_case(
             repo_root,
             runner,
             exe,
             cwd,
+            args.backend,
             baseline_env,
             image_path,
             out_dir,
@@ -557,6 +666,7 @@ if __name__ == "__main__":
             runner,
             exe,
             cwd,
+            args.backend,
             global_env,
             image_path,
             out_dir,
@@ -569,6 +679,7 @@ if __name__ == "__main__":
             runner,
             exe,
             cwd,
+            args.backend,
             global_default_env,
             image_path,
             out_dir,
@@ -581,18 +692,23 @@ if __name__ == "__main__":
             runner,
             exe,
             cwd,
+            args.backend,
             global_invalid_env,
             image_path,
             out_dir,
             "global_invalid_selection",
             args.trace,
             args.case_timeout,
+            capture_screenshot=False,
+            capture_layout=False,
+            capture_state=True,
         )
         global_builtin_png, global_builtin_layout, global_builtin_state, global_builtin_log = _run_case(
             repo_root,
             runner,
             exe,
             cwd,
+            args.backend,
             global_builtin_env,
             image_path,
             out_dir,
@@ -605,6 +721,7 @@ if __name__ == "__main__":
             runner,
             exe,
             cwd,
+            args.backend,
             builtin_env,
             image_path,
             out_dir,
@@ -617,6 +734,7 @@ if __name__ == "__main__":
             runner,
             exe,
             cwd,
+            args.backend,
             user_env,
             image_path,
             out_dir,
@@ -629,6 +747,7 @@ if __name__ == "__main__":
             runner,
             exe,
             cwd,
+            args.backend,
             user_missing_builtin_env,
             image_path,
             out_dir,
@@ -639,10 +758,118 @@ if __name__ == "__main__":
     except (subprocess.SubprocessError, RuntimeError) as exc:
         raise SystemExit(_fail(str(exc)))
 
+    try:
+        baseline_state_data = _validate_ocio_state(
+            "baseline",
+            baseline_state,
+            image_path=image_path,
+            expected_use_ocio=False,
+            expected_requested_source="global",
+            expected_resolved_source="builtin",
+            expected_fallback_applied=True,
+            expected_resolved_config_path=expected_builtin_config_path,
+        )
+        global_state_data = _validate_ocio_state(
+            "global",
+            global_state,
+            image_path=image_path,
+            expected_use_ocio=True,
+            expected_requested_source="global",
+            expected_resolved_source="global",
+            expected_fallback_applied=False,
+            expected_resolved_config_path=expected_external_config_path,
+        )
+        global_default_state_data = _validate_ocio_state(
+            "global_default",
+            global_default_state,
+            image_path=image_path,
+            expected_use_ocio=True,
+            expected_requested_source="global",
+            expected_resolved_source="global",
+            expected_fallback_applied=False,
+            expected_resolved_config_path=expected_external_config_path,
+        )
+        global_invalid_state_data = _validate_ocio_state(
+            "global_invalid_selection",
+            global_invalid_state,
+            image_path=image_path,
+            expected_use_ocio=True,
+            expected_requested_source="global",
+            expected_resolved_source="global",
+            expected_fallback_applied=False,
+            expected_resolved_config_path=expected_external_config_path,
+        )
+        global_builtin_state_data = _validate_ocio_state(
+            "global_builtin_fallback",
+            global_builtin_state,
+            image_path=image_path,
+            expected_use_ocio=True,
+            expected_requested_source="global",
+            expected_resolved_source="builtin",
+            expected_fallback_applied=True,
+            expected_resolved_config_path=expected_builtin_config_path,
+        )
+        builtin_state_data = _validate_ocio_state(
+            "builtin",
+            builtin_state,
+            image_path=image_path,
+            expected_use_ocio=True,
+            expected_requested_source="builtin",
+            expected_resolved_source="builtin",
+            expected_fallback_applied=False,
+            expected_resolved_config_path=expected_builtin_config_path,
+        )
+        user_state_data = _validate_ocio_state(
+            "user",
+            user_state,
+            image_path=image_path,
+            expected_use_ocio=True,
+            expected_requested_source="user",
+            expected_resolved_source="user",
+            expected_fallback_applied=False,
+            expected_resolved_config_path=expected_external_config_path,
+        )
+        user_missing_builtin_state_data = _validate_ocio_state(
+            "user_missing_builtin",
+            user_missing_builtin_state,
+            image_path=image_path,
+            expected_use_ocio=True,
+            expected_requested_source="user",
+            expected_resolved_source="builtin",
+            expected_fallback_applied=True,
+            expected_resolved_config_path=expected_builtin_config_path,
+        )
+    except RuntimeError as exc:
+        raise SystemExit(_fail(str(exc)))
+
+    global_default_ocio = global_default_state_data["ocio"]
+    global_invalid_ocio = global_invalid_state_data["ocio"]
+    if (
+        str(global_invalid_ocio.get("display", "")).strip() != "Missing Display"
+        or str(global_invalid_ocio.get("view", "")).strip() != "Missing View"
+    ):
+        raise SystemExit(
+            _fail(
+                "global_invalid_selection: persisted invalid display/view were "
+                "not preserved in state output"
+            )
+        )
+    if (
+        str(global_invalid_ocio.get("resolved_display", "")).strip()
+        != str(global_default_ocio.get("resolved_display", "")).strip()
+        or str(global_invalid_ocio.get("resolved_view", "")).strip()
+        != str(global_default_ocio.get("resolved_view", "")).strip()
+    ):
+        raise SystemExit(
+            _fail(
+                "global_invalid_selection: invalid persisted display/view did "
+                "not resolve to the config defaults"
+            )
+        )
+
     baseline_crop = out_dir / "baseline_crop.png"
     global_crop = out_dir / "global_crop.png"
     global_default_crop = out_dir / "global_default_crop.png"
-    global_invalid_crop = out_dir / "global_invalid_selection_crop.png"
     global_builtin_crop = out_dir / "global_builtin_fallback_crop.png"
     builtin_crop = out_dir / "builtin_crop.png"
     user_crop = out_dir / "user_crop.png"
@@ -655,12 +882,6 @@ if __name__ == "__main__":
         global_default_png,
         _image_crop_rect(global_default_layout),
         global_default_crop,
-    )
-    _crop_image(
-        oiiotool,
-        global_invalid_png,
-        _image_crop_rect(global_invalid_layout),
-        global_invalid_crop,
     )
     _crop_image(
         oiiotool,
@@ -685,21 +906,6 @@ if __name__ == "__main__":
             _fail(
                 "global OCIO source matched non-OCIO baseline; expected a real "
                 f"OCIO transform result (mean abs RGB diff={baseline_global_diff:.4f})"
-            )
-        )
-    global_default_invalid_diff = _normalized_rgb_diff(
-        oiiotool,
-        global_default_crop,
-        global_invalid_crop,
-        out_dir,
-        "global_default_vs_invalid",
-    )
-    if global_default_invalid_diff > 2.0:
-        raise SystemExit(
-            _fail(
-                "invalid persisted display/view selection did not fall back to "
-                "the active config defaults "
-                f"(mean abs RGB diff={global_default_invalid_diff:.4f})"
             )
         )
     global_user_diff = _normalized_rgb_diff(
@@ -744,7 +950,6 @@ if __name__ == "__main__":
     print("baseline:", baseline_png)
     print("global:", global_png)
     print("global_default:", global_default_png)
-    print("global_invalid_selection:", global_invalid_png)
     print("global_builtin_fallback:", global_builtin_png)
     print("builtin:", builtin_png)
     print("user:", user_png)

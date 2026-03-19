@@ -37,6 +37,13 @@ def _resolve_path(path: str, root: Path) -> Path:
     return (root / p).resolve()
 
 
+def _path_for_imiv_output(path: Path, run_cwd: Path) -> str:
+    try:
+        return os.path.relpath(path, run_cwd)
+    except ValueError:
+        return str(path)
+
+
 def _default_binary(repo_root: Path) -> Path:
     candidates = [
         repo_root / "build_u" / "bin" / "imiv",
@@ -61,7 +68,18 @@ def main() -> int:
     ap.add_argument(
         "--cwd", default="", help="Working directory for imiv (default: binary dir)"
     )
+    ap.add_argument(
+        "--backend",
+        default="",
+        choices=("", "auto", "vulkan", "metal", "opengl"),
+        help="Optional runtime backend override passed to imiv",
+    )
     ap.add_argument("--open", default="", help="Optional image path to open at startup")
+    ap.add_argument(
+        "--scenario",
+        default="",
+        help="Optional XML scenario to execute in a single imiv launch",
+    )
 
     ap.add_argument(
         "--screenshot-out",
@@ -241,13 +259,38 @@ def main() -> int:
     want_screenshot = bool(args.screenshot_out)
     want_layout = bool(layout_json_out)
     want_state = bool(args.state_json_out)
+    want_scenario = bool(args.scenario)
     want_svg = bool(args.svg_out)
     want_junit = bool(args.junit_out)
     same_test_hold_capture = want_screenshot and bool(args.mouse_drag_hold)
 
-    if not (want_screenshot or want_layout or want_state):
+    if want_scenario:
+        if want_screenshot or want_layout or want_state or want_svg:
+            print(
+                "error: --scenario cannot be combined with direct screenshot/layout/state/svg outputs",
+                file=sys.stderr,
+            )
+            return 2
+        if (
+            args.key_chord
+            or args.mouse_pos
+            or args.mouse_pos_window_rel
+            or args.mouse_pos_image_rel
+            or args.mouse_click is not None
+            or args.mouse_wheel
+            or args.mouse_drag
+            or args.mouse_drag_hold
+            or args.post_action_delay_frames > 0
+        ):
+            print(
+                "error: --scenario manages synthetic input internally; do not combine it with direct key/mouse action flags",
+                file=sys.stderr,
+            )
+            return 2
+
+    if not (want_scenario or want_screenshot or want_layout or want_state):
         print(
-            "error: select at least one automation task: --screenshot-out, --layout-json-out, --state-json-out, or --svg-out",
+            "error: select at least one automation task: --scenario, --screenshot-out, --layout-json-out, --state-json-out, or --svg-out",
             file=sys.stderr,
         )
         return 2
@@ -259,6 +302,14 @@ def main() -> int:
     if args.open:
         open_path = _resolve_path(args.open, repo_root)
         env["IMIV_IMGUI_TEST_ENGINE_OPEN_PATH"] = str(open_path)
+    if args.scenario:
+        scenario_path = _resolve_path(args.scenario, repo_root)
+        if not scenario_path.exists():
+            print(f"error: scenario not found: {scenario_path}", file=sys.stderr)
+            return 2
+        env["IMIV_IMGUI_TEST_ENGINE_SCENARIO_FILE"] = _path_for_imiv_output(
+            scenario_path, run_cwd
+        )
 
     if args.trace:
         env["IMIV_IMGUI_TEST_ENGINE_TRACE"] = "1"
@@ -334,7 +385,9 @@ def main() -> int:
         out = _resolve_path(args.screenshot_out, repo_root)
         out.parent.mkdir(parents=True, exist_ok=True)
         env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT"] = "1"
-        env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_OUT"] = str(out)
+        env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_OUT"] = _path_for_imiv_output(
+            out, run_cwd
+        )
         env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_FRAMES"] = str(
             max(1, args.screenshot_frames)
         )
@@ -346,8 +399,8 @@ def main() -> int:
         if same_test_hold_capture and want_layout:
             layout_out = _resolve_path(layout_json_out, repo_root)
             layout_out.parent.mkdir(parents=True, exist_ok=True)
-            env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_LAYOUT_OUT"] = str(
-                layout_out
+            env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_LAYOUT_OUT"] = (
+                _path_for_imiv_output(layout_out, run_cwd)
             )
             env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_LAYOUT_DEPTH"] = str(
                 max(1, args.layout_depth)
@@ -357,15 +410,17 @@ def main() -> int:
         if same_test_hold_capture and want_state:
             state_out = _resolve_path(args.state_json_out, repo_root)
             state_out.parent.mkdir(parents=True, exist_ok=True)
-            env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_STATE_OUT"] = str(
-                state_out
+            env["IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_STATE_OUT"] = (
+                _path_for_imiv_output(state_out, run_cwd)
             )
 
     if want_layout and not same_test_hold_capture:
         out = _resolve_path(layout_json_out, repo_root)
         out.parent.mkdir(parents=True, exist_ok=True)
         env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP"] = "1"
-        env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_OUT"] = str(out)
+        env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_OUT"] = _path_for_imiv_output(
+            out, run_cwd
+        )
         env["IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DEPTH"] = str(
             max(1, args.layout_depth)
         )
@@ -379,7 +434,9 @@ def main() -> int:
         out = _resolve_path(args.state_json_out, repo_root)
         out.parent.mkdir(parents=True, exist_ok=True)
         env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP"] = "1"
-        env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_OUT"] = str(out)
+        env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_OUT"] = _path_for_imiv_output(
+            out, run_cwd
+        )
         env["IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_DELAY_FRAMES"] = str(
             max(0, args.state_delay_frames)
         )
@@ -388,13 +445,19 @@ def main() -> int:
         junit_out = _resolve_path(args.junit_out, repo_root)
         junit_out.parent.mkdir(parents=True, exist_ok=True)
         env["IMIV_IMGUI_TEST_ENGINE_JUNIT_XML"] = "1"
-        env["IMIV_IMGUI_TEST_ENGINE_JUNIT_OUT"] = str(junit_out)
+        env["IMIV_IMGUI_TEST_ENGINE_JUNIT_OUT"] = _path_for_imiv_output(
+            junit_out, run_cwd
+        )
 
     def _run_once(run_env: dict[str, str]) -> int:
         print(f"run: {exe}")
         print(f"cwd: {run_cwd}")
+        cmd = [str(exe)]
+        if args.backend:
+            cmd.extend(["--backend", args.backend])
+        cmd.append("-F")
         return subprocess.run(
-            [str(exe), "-F"], cwd=str(run_cwd), env=run_env, check=False
+            cmd, cwd=str(run_cwd), env=run_env, check=False
         ).returncode
 
     rc = _run_once(env)

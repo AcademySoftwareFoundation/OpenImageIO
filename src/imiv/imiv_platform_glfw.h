@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "imiv_backend.h"
+
 #include <imgui.h>
 
 #include <string>
@@ -18,7 +20,8 @@ void
 platform_glfw_terminate();
 
 GLFWwindow*
-platform_glfw_create_main_window(int width, int height, const char* title,
+platform_glfw_create_main_window(BackendKind backend, int width, int height,
+                                 const char* title,
                                  std::string& error_message);
 void
 platform_glfw_destroy_window(GLFWwindow* window);
@@ -30,7 +33,7 @@ platform_glfw_collect_vulkan_instance_extensions(
     ImVector<const char*>& instance_extensions);
 
 void
-platform_glfw_imgui_init(GLFWwindow* window);
+platform_glfw_imgui_init(GLFWwindow* window, BackendKind backend);
 void
 platform_glfw_imgui_shutdown();
 void

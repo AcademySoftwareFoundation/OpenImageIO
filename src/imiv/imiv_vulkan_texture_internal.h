@@ -8,7 +8,7 @@
 
 namespace Imiv {
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_WITH_VULKAN)
 
 void
 destroy_texture_upload_submit_resources(VulkanState& vk_state,

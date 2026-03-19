@@ -140,34 +140,17 @@ namespace {
                || Strutil::iequals(trimmed, "yes")
                || Strutil::iequals(trimmed, "on");
     }
+
+    BackendKind requested_backend_for_launch(const AppConfig& config,
+                                            const PlaceholderUiState& ui_state)
+    {
+        if (config.requested_backend != BackendKind::Auto)
+            return config.requested_backend;
+        return sanitize_backend_kind(ui_state.renderer_backend);
+    }
 }  // namespace
 
 
-
-RenderBackend
-default_backend()
-{
-#if defined(IMIV_BACKEND_METAL_GLFW)
-    return RenderBackend::MetalGlfw;
-#elif defined(IMIV_BACKEND_OPENGL_GLFW)
-    return RenderBackend::OpenGLGlfw;
-#elif defined(IMIV_BACKEND_VULKAN_GLFW)
-    return RenderBackend::VulkanGlfw;
-#else
-#    error "imiv backend policy macro is not configured"
-#endif
-}
-
-const char*
-backend_name(RenderBackend backend)
-{
-    switch (backend) {
-    case RenderBackend::VulkanGlfw: return "glfw+vulkan";
-    case RenderBackend::MetalGlfw: return "glfw+metal";
-    case RenderBackend::OpenGLGlfw: return "glfw+opengl";
-    }
-    return "unknown";
-}
 
 int
 run(const AppConfig& config)
@@ -186,6 +169,34 @@ run(const AppConfig& config)
         && read_env_value("IMIV_IMGUI_TEST_ENGINE_OPEN_PATH", startup_open_path)
         && !startup_open_path.empty()) {
         run_config.input_paths.push_back(startup_open_path);
+    }
+
+    ViewerState viewer;
+    PlaceholderUiState ui_state;
+    DeveloperUiState developer_ui;
+    viewer.rawcolor       = run_config.rawcolor;
+    viewer.no_autopremult = run_config.no_autopremult;
+    std::string prefs_error;
+    if (!load_persistent_state(ui_state, viewer, prefs_error)) {
+        print(stderr, "imiv: failed to load preferences: {}\n", prefs_error);
+        viewer.last_error
+            = Strutil::fmt::format("failed to load preferences: {}",
+                                   prefs_error);
+    }
+    const BackendKind requested_backend = requested_backend_for_launch(
+        run_config, ui_state);
+    const BackendKind active_backend = resolve_backend_request(
+        requested_backend);
+    if (active_backend == BackendKind::Auto) {
+        print(stderr, "imiv: no renderer backend is compiled into this build\n");
+        return EXIT_FAILURE;
+    }
+    if (requested_backend != BackendKind::Auto
+        && requested_backend != active_backend) {
+        print("imiv: requested backend '{}' is not compiled into this build; "
+              "using '{}'\n",
+              backend_cli_name(requested_backend),
+              backend_runtime_name(active_backend));
     }
 
     const bool verbose_logging = run_config.verbose;
@@ -212,22 +223,21 @@ run(const AppConfig& config)
         return EXIT_FAILURE;
     }
 
-    GLFWwindow* window = platform_glfw_create_main_window(1600, 900, "imiv",
-                                                          startup_error);
+    GLFWwindow* window = platform_glfw_create_main_window(
+        active_backend, 1600, 900, "imiv", startup_error);
     if (window == nullptr) {
         print(stderr, "imiv: {}\n", startup_error);
         platform_glfw_terminate();
         return EXIT_FAILURE;
     }
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-    if (!platform_glfw_supports_vulkan(startup_error)) {
+    if (active_backend == BackendKind::Vulkan
+        && !platform_glfw_supports_vulkan(startup_error)) {
         print(stderr, "imiv: {}\n", startup_error);
         platform_glfw_destroy_window(window);
         platform_glfw_terminate();
         return EXIT_FAILURE;
     }
-#endif
 
     IMGUI_CHECKVERSION();
     if (!ImGui::CreateContext()) {
@@ -238,18 +248,13 @@ run(const AppConfig& config)
     }
 
     RendererState renderer_state;
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+    renderer_select_backend(renderer_state, active_backend);
     renderer_state.verbose_logging           = verbose_logging;
     renderer_state.verbose_validation_output = verbose_validation_output;
     renderer_state.log_imgui_texture_updates = log_imgui_texture_updates;
-#else
-    (void)verbose_validation_output;
-    (void)log_imgui_texture_updates;
-#endif
     ImVector<const char*> instance_extensions;
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-    platform_glfw_collect_vulkan_instance_extensions(instance_extensions);
-#endif
+    if (active_backend == BackendKind::Vulkan)
+        platform_glfw_collect_vulkan_instance_extensions(instance_extensions);
 
     if (!renderer_setup_instance(renderer_state, instance_extensions,
                                  startup_error)) {
@@ -323,7 +328,7 @@ run(const AppConfig& config)
         style.WindowRounding              = 0.0f;
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
-    platform_glfw_imgui_init(window);
+    platform_glfw_imgui_init(window, active_backend);
     if (!renderer_imgui_init(renderer_state, startup_error)) {
         print(stderr, "imiv: {}\n", startup_error);
         platform_glfw_imgui_shutdown();
@@ -356,8 +361,16 @@ run(const AppConfig& config)
     }
 
     if (run_config.verbose) {
-        print("imiv: bootstrap initialized (backend policy: {})\n",
-              backend_name(default_backend()));
+        print("imiv: bootstrap initialized (backend: {})\n",
+              backend_runtime_name(active_backend));
+        for (const BackendInfo& info : compiled_backend_info()) {
+            print("imiv: backend {} ({}) compiled={} build_default={} "
+                  "platform_default={}\n",
+                  info.display_name, info.cli_name,
+                  info.compiled ? "yes" : "no",
+                  info.active_build ? "yes" : "no",
+                  info.platform_default ? "yes" : "no");
+        }
         print("imiv: startup queue has {} image path(s)\n",
               run_config.input_paths.size());
         print("imiv: native file dialogs: {}\n",
@@ -393,23 +406,10 @@ run(const AppConfig& config)
         else
             print(stderr, "imiv: save dialog failed: {}\n", reply.message);
     }
-
-    ViewerState viewer;
-    PlaceholderUiState ui_state;
-    DeveloperUiState developer_ui;
-    viewer.rawcolor       = run_config.rawcolor;
-    viewer.no_autopremult = run_config.no_autopremult;
     OIIO::attribute("imagebuf:use_imagecache", 1);
     if (std::shared_ptr<ImageCache> imagecache = ImageCache::create(true))
         imagecache->attribute("unassociatedalpha",
                               run_config.no_autopremult ? 1 : 0);
-    std::string prefs_error;
-    if (!load_persistent_state(ui_state, viewer, prefs_error)) {
-        print(stderr, "imiv: failed to load preferences: {}\n", prefs_error);
-        viewer.last_error
-            = Strutil::fmt::format("failed to load preferences: {}",
-                                   prefs_error);
-    }
     if (!run_config.ocio_display.empty())
         ui_state.ocio_display = run_config.ocio_display;
     if (!run_config.ocio_view.empty())
@@ -424,23 +424,26 @@ run(const AppConfig& config)
     clamp_placeholder_ui_state(ui_state);
     if (ui_state.use_ocio) {
         std::string ocio_preflight_error;
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-        const bool ocio_preflight_ok
-            = preflight_ocio_runtime_shader(ui_state, nullptr,
-                                            ocio_preflight_error);
-#elif defined(IMIV_BACKEND_METAL_GLFW)
-        const bool ocio_preflight_ok
-            = preflight_ocio_runtime_shader_metal(ui_state, nullptr,
-                                                  ocio_preflight_error);
-#elif defined(IMIV_BACKEND_OPENGL_GLFW)
-        const bool ocio_preflight_ok
-            = preflight_ocio_runtime_shader_glsl(ui_state, nullptr,
-                                                 ocio_preflight_error);
-#else
-        ocio_preflight_error
-            = "OCIO preview is not implemented on this renderer";
-        const bool ocio_preflight_ok = false;
-#endif
+        bool ocio_preflight_ok = false;
+        switch (active_backend) {
+        case BackendKind::Vulkan:
+            ocio_preflight_ok = preflight_ocio_runtime_shader(
+                ui_state, nullptr, ocio_preflight_error);
+            break;
+        case BackendKind::Metal:
+            ocio_preflight_ok = preflight_ocio_runtime_shader_metal(
+                ui_state, nullptr, ocio_preflight_error);
+            break;
+        case BackendKind::OpenGL:
+            ocio_preflight_ok = preflight_ocio_runtime_shader_glsl(
+                ui_state, nullptr, ocio_preflight_error);
+            break;
+        case BackendKind::Auto:
+            ocio_preflight_error
+                = "OCIO preview is not implemented on this renderer";
+            ocio_preflight_ok = false;
+            break;
+        }
         if (!ocio_preflight_ok) {
             ui_state.use_ocio = false;
             if (verbose_logging) {
@@ -546,13 +549,8 @@ run(const AppConfig& config)
                        ,
                        test_engine_show_windows_ptr(test_engine_runtime)
 #endif
-#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
-    || defined(IMIV_BACKEND_OPENGL_GLFW)
-                           ,
+                       ,
                        window, renderer_state);
-#else
-        );
-#endif
         if (ui_state.style_preset != applied_style_preset) {
             ui_state.style_preset = static_cast<int>(
                 sanitize_app_style_preset(ui_state.style_preset));
@@ -578,11 +576,8 @@ run(const AppConfig& config)
             ImGui::RenderPlatformWindowsDefault();
             renderer_finish_platform_windows(renderer_state);
         }
-#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
-    || defined(IMIV_BACKEND_OPENGL_GLFW)
         process_developer_post_render_actions(developer_ui, viewer,
                                               renderer_state);
-#endif
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
         test_engine_post_swap(test_engine_runtime);
 #endif
@@ -618,25 +613,22 @@ run(const AppConfig& config)
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_stop(test_engine_runtime);
 #endif
-#if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
-    || defined(IMIV_BACKEND_OPENGL_GLFW)
     uninstall_drag_drop(window);
-#endif
-#if defined(IMIV_BACKEND_OPENGL_GLFW)
-    renderer_cleanup_window(renderer_state);
-    renderer_cleanup(renderer_state);
-#endif
-    renderer_imgui_shutdown();
+    if (active_backend == BackendKind::OpenGL) {
+        renderer_cleanup_window(renderer_state);
+        renderer_cleanup(renderer_state);
+    }
+    renderer_imgui_shutdown(renderer_state);
     platform_glfw_imgui_shutdown();
     ImGui::DestroyContext();
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_destroy(test_engine_runtime);
 #endif
 
-#if !defined(IMIV_BACKEND_OPENGL_GLFW)
-    renderer_cleanup_window(renderer_state);
-    renderer_cleanup(renderer_state);
-#endif
+    if (active_backend != BackendKind::OpenGL) {
+        renderer_cleanup_window(renderer_state);
+        renderer_cleanup(renderer_state);
+    }
     platform_glfw_destroy_window(window);
     platform_glfw_terminate();
     return EXIT_SUCCESS;

@@ -824,6 +824,27 @@ build_ocio_uniform_buffer(OcioShaderRuntime& runtime,
     return true;
 }
 
+#if defined(IMIV_WITH_VULKAN)
+bool
+build_ocio_uniform_buffer(OcioShaderRuntime& runtime,
+                          const PreviewControls& controls,
+                          std::vector<unsigned char>& uniform_bytes,
+                          std::string& error_message)
+{
+    RendererPreviewControls renderer_controls;
+    renderer_controls.exposure             = controls.exposure;
+    renderer_controls.gamma                = controls.gamma;
+    renderer_controls.offset               = controls.offset;
+    renderer_controls.color_mode           = controls.color_mode;
+    renderer_controls.channel              = controls.channel;
+    renderer_controls.use_ocio             = controls.use_ocio;
+    renderer_controls.orientation          = controls.orientation;
+    renderer_controls.linear_interpolation = controls.linear_interpolation;
+    return build_ocio_uniform_buffer(runtime, renderer_controls,
+                                     uniform_bytes, error_message);
+}
+#endif
+
 bool
 query_ocio_menu_data(const PlaceholderUiState& ui_state,
                      std::vector<std::string>& image_color_spaces,

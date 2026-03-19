@@ -276,6 +276,7 @@ def _run_case(
     runner: Path,
     exe: Path,
     cwd: Path,
+    backend: str,
     base_env: dict[str, str],
     out_dir: Path,
     image_path: Path,
@@ -302,14 +303,20 @@ def _run_case(
         str(exe),
         "--cwd",
         str(cwd),
-        "--open",
-        str(image_path),
-        "--screenshot-out",
-        str(screenshot_path),
-        "--layout-json-out",
-        str(layout_path),
-        "--layout-items",
     ]
+    if backend:
+        cmd.extend(["--backend", backend])
+    cmd.extend(
+        [
+            "--open",
+            str(image_path),
+            "--screenshot-out",
+            str(screenshot_path),
+            "--layout-json-out",
+            str(layout_path),
+            "--layout-items",
+        ]
+    )
     if trace:
         cmd.append("--trace")
 
@@ -362,6 +369,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
+    ap.add_argument(
+        "--backend",
+        default="",
+        help="Optional runtime backend override passed through to imiv",
+    )
     ap.add_argument("--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool executable")
     ap.add_argument("--env-script", default="", help="Optional shell env setup script")
     ap.add_argument("--out-dir", default="", help="Output directory")
@@ -401,6 +413,7 @@ def main() -> int:
         runner,
         exe,
         cwd,
+        args.backend,
         base_env,
         out_dir,
         image_path,
@@ -413,6 +426,7 @@ def main() -> int:
         runner,
         exe,
         cwd,
+        args.backend,
         base_env,
         out_dir,
         image_path,

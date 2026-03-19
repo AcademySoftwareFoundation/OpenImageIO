@@ -11,6 +11,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -94,9 +95,7 @@ def _resolve_ocio_config_argument(value: str) -> str:
 
 def _load_env_from_script(script_path: Path) -> dict[str, str]:
     env = dict(os.environ)
-    if not script_path.exists():
-        return env
-    if shutil.which("bash") is None:
+    if not script_path.exists() or shutil.which("bash") is None:
         return env
 
     quoted = shlex.quote(str(script_path))
@@ -137,72 +136,6 @@ def _generate_probe_image(oiiotool: Path, image_path: Path) -> None:
         str(image_path),
     ]
     subprocess.run(cmd, check=True)
-
-
-def _run_case(
-    exe: Path,
-    cwd: Path,
-    env: dict[str, str],
-    out_dir: Path,
-    image_path: Path,
-    name: str,
-    extra_args: list[str],
-    extra_env: dict[str, str] | None = None,
-    case_timeout: float = 45.0,
-) -> tuple[Path, Path, Path, Path]:
-    screenshot_path = out_dir / f"{name}.png"
-    layout_path = out_dir / f"{name}.json"
-    state_path = out_dir / f"{name}.state.json"
-    log_path = out_dir / f"{name}.log"
-    exe_cmd = [str(exe), "-F", *extra_args, str(image_path)]
-
-    run_env = dict(env)
-    run_env.update(
-        {
-            "OCIO": run_env["OCIO"],
-            "IMIV_IMGUI_TEST_ENGINE": "1",
-            "IMIV_IMGUI_TEST_ENGINE_EXIT_ON_FINISH": "1",
-            "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT": "1",
-            "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_OUT": str(screenshot_path),
-            "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_DELAY_FRAMES": "10",
-            "IMIV_IMGUI_TEST_ENGINE_AUTOSSCREENSHOT_FRAMES": "1",
-            "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP": "1",
-            "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_OUT": str(layout_path),
-            "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS": "1",
-            "IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_DELAY_FRAMES": "10",
-            "IMIV_IMGUI_TEST_ENGINE_STATE_DUMP": "1",
-            "IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_OUT": str(state_path),
-            "IMIV_IMGUI_TEST_ENGINE_STATE_DUMP_DELAY_FRAMES": "10",
-        }
-    )
-    if extra_env:
-        run_env.update(extra_env)
-
-    with log_path.open("w", encoding="utf-8") as log_handle:
-        proc = subprocess.run(
-            exe_cmd,
-            cwd=str(cwd),
-            env=run_env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=case_timeout,
-        )
-    if proc.returncode != 0:
-        raise RuntimeError(f"{name}: imiv exited with code {proc.returncode}")
-    if not screenshot_path.exists():
-        raise RuntimeError(f"{name}: screenshot not written")
-    if not layout_path.exists():
-        raise RuntimeError(f"{name}: layout json not written")
-    if not state_path.exists():
-        raise RuntimeError(f"{name}: state json not written")
-
-    log_text = log_path.read_text(encoding="utf-8", errors="ignore")
-    for pattern in ERROR_PATTERNS:
-        if pattern in log_text:
-            raise RuntimeError(f"{name}: found runtime error pattern: {pattern}")
-
-    return screenshot_path, layout_path, state_path, log_path
 
 
 def _json_load(path: Path) -> dict:
@@ -265,7 +198,9 @@ def _pick_image_color_space(
     return "auto"
 
 
-def _resolve_live_targets(args: argparse.Namespace, probe_state_path: Path) -> tuple[str, str, str, str, str]:
+def _resolve_live_targets(
+    args: argparse.Namespace, probe_state_path: Path
+) -> tuple[str, str, str, str, str]:
     state_data = _json_load(probe_state_path)
     ocio_state = state_data.get("ocio")
     if not isinstance(ocio_state, dict):
@@ -346,9 +281,7 @@ def _resolve_live_targets(args: argparse.Namespace, probe_state_path: Path) -> t
         target_views = display_views.get(target_display, [])
         target_view = args.target_view.strip()
         if not target_view:
-            target_view = (
-                initial_view if initial_view in target_views else "default"
-            )
+            target_view = initial_view if initial_view in target_views else "default"
     else:
         raise RuntimeError(f"unsupported switch mode: {switch_mode}")
 
@@ -416,7 +349,12 @@ def _image_crop_rect(layout_path: Path) -> tuple[int, int, int, int]:
     return x0, y0, x1, y1
 
 
-def _crop_image(oiiotool: Path, source: Path, crop_rect: tuple[int, int, int, int], dest: Path) -> None:
+def _crop_image(
+    oiiotool: Path,
+    source: Path,
+    crop_rect: tuple[int, int, int, int],
+    dest: Path,
+) -> None:
     x0, y0, x1, y1 = crop_rect
     cmd = [
         str(oiiotool),
@@ -502,6 +440,220 @@ def _normalized_rgb_diff(
     return _mean_abs_diff(lhs_ppm, rhs_ppm)
 
 
+def _path_for_imiv_output(path: Path, run_cwd: Path) -> str:
+    try:
+        return os.path.relpath(path, run_cwd)
+    except ValueError:
+        return str(path)
+
+
+def _run_gui_case(
+    repo_root: Path,
+    runner: Path,
+    exe: Path,
+    run_cwd: Path,
+    backend: str,
+    env: dict[str, str],
+    image_path: Path,
+    out_dir: Path,
+    name: str,
+    extra_args: list[str],
+    case_timeout: float,
+    trace: bool,
+) -> tuple[Path, Path, Path, Path]:
+    screenshot_path = out_dir / f"{name}.png"
+    layout_path = out_dir / f"{name}.json"
+    state_path = out_dir / f"{name}.state.json"
+    log_path = out_dir / f"{name}.log"
+    cmd = [
+        sys.executable,
+        str(runner),
+        "--bin",
+        str(exe),
+        "--cwd",
+        str(run_cwd),
+    ]
+    if backend:
+        cmd.extend(["--backend", backend])
+    cmd.extend(
+        [
+            "--open",
+            str(image_path),
+            "--screenshot-out",
+            str(screenshot_path),
+            "--layout-json-out",
+            str(layout_path),
+            "--layout-items",
+            "--state-json-out",
+            str(state_path),
+            *extra_args,
+        ]
+    )
+    if trace:
+        cmd.append("--trace")
+
+    with log_path.open("w", encoding="utf-8") as log_handle:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(repo_root),
+            env=env,
+            check=False,
+            stdout=log_handle,
+            stderr=subprocess.STDOUT,
+            timeout=case_timeout,
+        )
+    if proc.returncode != 0:
+        raise RuntimeError(f"{name}: runner exited with code {proc.returncode}")
+    for path, label in (
+        (screenshot_path, "screenshot"),
+        (layout_path, "layout json"),
+        (state_path, "state json"),
+    ):
+        if not path.exists():
+            raise RuntimeError(f"{name}: {label} not written")
+
+    log_text = log_path.read_text(encoding="utf-8", errors="ignore")
+    for pattern in ERROR_PATTERNS:
+        if pattern in log_text:
+            raise RuntimeError(f"{name}: found runtime error pattern: {pattern}")
+    return screenshot_path, layout_path, state_path, log_path
+
+
+def _scenario_step(
+    root: ET.Element, name: str, **attrs: str | int | bool
+) -> None:
+    step = ET.SubElement(root, "step")
+    step.set("name", name)
+    for key, value in attrs.items():
+        if isinstance(value, bool):
+            step.set(key, "true" if value else "false")
+        else:
+            step.set(key, str(value))
+
+
+def _write_live_scenario(
+    path: Path,
+    runtime_dir_rel: str,
+    initial_display: str,
+    initial_view: str,
+    target_display: str,
+    target_view: str,
+    image_color_space: str,
+    apply_delay_frames: int,
+) -> None:
+    root = ET.Element("imiv-scenario")
+    root.set("out_dir", runtime_dir_rel)
+    root.set("layout_items", "true")
+
+    _scenario_step(
+        root,
+        "static_raw",
+        delay_frames=10,
+        ocio_use=True,
+        ocio_display=initial_display,
+        ocio_view=initial_view,
+        ocio_image_color_space=image_color_space,
+        screenshot=True,
+        layout=True,
+        state=True,
+        post_action_delay_frames=apply_delay_frames,
+    )
+    _scenario_step(
+        root,
+        "live_noop_raw",
+        ocio_use=True,
+        ocio_display=initial_display,
+        ocio_view=initial_view,
+        ocio_image_color_space=image_color_space,
+        screenshot=True,
+        layout=True,
+        state=True,
+        post_action_delay_frames=apply_delay_frames,
+    )
+    _scenario_step(
+        root,
+        "live_switch",
+        ocio_use=True,
+        ocio_display=target_display,
+        ocio_view=target_view,
+        ocio_image_color_space=image_color_space,
+        screenshot=True,
+        layout=True,
+        state=True,
+        post_action_delay_frames=apply_delay_frames,
+    )
+    _scenario_step(
+        root,
+        "static_target",
+        delay_frames=max(2, apply_delay_frames),
+        ocio_use=True,
+        ocio_display=target_display,
+        ocio_view=target_view,
+        ocio_image_color_space=image_color_space,
+        screenshot=True,
+        layout=True,
+        state=True,
+    )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
+
+
+def _run_scenario_case(
+    repo_root: Path,
+    runner: Path,
+    exe: Path,
+    run_cwd: Path,
+    backend: str,
+    env: dict[str, str],
+    image_path: Path,
+    out_dir: Path,
+    scenario_path: Path,
+    case_timeout: float,
+    trace: bool,
+) -> Path:
+    scenario_log = out_dir / "scenario.log"
+    cmd = [
+        sys.executable,
+        str(runner),
+        "--bin",
+        str(exe),
+        "--cwd",
+        str(run_cwd),
+    ]
+    if backend:
+        cmd.extend(["--backend", backend])
+    cmd.extend(
+        [
+            "--open",
+            str(image_path),
+            "--scenario",
+            str(scenario_path),
+        ]
+    )
+    if trace:
+        cmd.append("--trace")
+
+    with scenario_log.open("w", encoding="utf-8") as log_handle:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(repo_root),
+            env=env,
+            check=False,
+            stdout=log_handle,
+            stderr=subprocess.STDOUT,
+            timeout=case_timeout,
+        )
+    if proc.returncode != 0:
+        raise RuntimeError(f"scenario: runner exited with code {proc.returncode}")
+
+    log_text = scenario_log.read_text(encoding="utf-8", errors="ignore")
+    for pattern in ERROR_PATTERNS:
+        if pattern in log_text:
+            raise RuntimeError(f"scenario: found runtime error pattern: {pattern}")
+    return scenario_log
+
+
 def _fail(message: str) -> int:
     print(f"error: {message}", file=sys.stderr)
     return 1
@@ -509,6 +661,7 @@ def _fail(message: str) -> int:
 
 def main() -> int:
     repo_root = Path(__file__).resolve().parents[3]
+    runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
     default_out = repo_root / "build_u" / "imiv_captures" / "ocio_live_update_regression"
     default_env_script = repo_root / "build_u" / "imiv_env.sh"
     default_image = default_out / "ocio_live_input.exr"
@@ -517,6 +670,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
+    ap.add_argument(
+        "--backend",
+        default="",
+        help="Optional runtime backend override passed through to imiv",
+    )
     ap.add_argument("--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool executable")
     ap.add_argument("--idiff", default=str(_default_idiff(repo_root)), help="idiff executable")
     ap.add_argument("--env-script", default=str(default_env_script), help="Optional shell env script")
@@ -534,30 +692,32 @@ def main() -> int:
         help="How to choose the live OCIO switch target",
     )
     ap.add_argument("--display", default="", help="Initial OCIO display")
-    ap.add_argument("--target-display", default="",
-                    help="Target OCIO display")
+    ap.add_argument("--target-display", default="", help="Target OCIO display")
     ap.add_argument("--raw-view", default="", help="Initial OCIO view")
     ap.add_argument("--target-view", default="", help="Live switch target OCIO view")
     ap.add_argument("--image-color-space", default="", help="Input image color space")
-    ap.add_argument("--apply-frame", type=int, default=5,
-                    help="Frame number for live OCIO override")
+    ap.add_argument(
+        "--apply-frame",
+        type=int,
+        default=5,
+        help="Frames to wait after each live OCIO override before capture",
+    )
     ap.add_argument(
         "--case-timeout",
         type=float,
         default=_default_case_timeout(),
-        help="Per-case GUI runner timeout in seconds",
+        help="Per-launch GUI runner timeout in seconds",
     )
-    ap.add_argument("--trace", action="store_true",
-                    help="Accepted for wrapper parity; no effect")
+    ap.add_argument("--trace", action="store_true", help="Enable GUI runner trace")
     args = ap.parse_args()
 
     exe = Path(args.bin).resolve()
     if not exe.exists():
         return _fail(f"binary not found: {exe}")
+    if not runner.exists():
+        return _fail(f"runner not found: {runner}")
 
-    oiiotool = _resolve_existing_tool(
-        args.oiiotool, _default_oiiotool(repo_root)
-    )
+    oiiotool = _resolve_existing_tool(args.oiiotool, _default_oiiotool(repo_root))
     idiff = _resolve_existing_tool(args.idiff, _default_idiff(repo_root))
     _ = idiff
     ocio_config = _resolve_ocio_config_argument(args.ocio_config)
@@ -568,35 +728,38 @@ def main() -> int:
 
     run_cwd = Path(args.cwd).resolve() if args.cwd else exe.parent.resolve()
     out_dir = Path(args.out_dir).resolve()
+    runtime_dir = out_dir / "runtime"
     image_path = Path(args.image).resolve()
+    probe_config_home = out_dir / "config_home_probe"
+    scenario_config_home = out_dir / "config_home_runtime"
+    scenario_path = out_dir / "ocio_live.scenario.xml"
+
     shutil.rmtree(out_dir, ignore_errors=True)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    config_home = out_dir / "config_home"
-    config_home.mkdir(parents=True, exist_ok=True)
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    probe_config_home.mkdir(parents=True, exist_ok=True)
+    scenario_config_home.mkdir(parents=True, exist_ok=True)
 
     env = _load_env_from_script(Path(args.env_script).resolve())
-    env["IMIV_CONFIG_HOME"] = str(config_home)
     env["OCIO"] = ocio_config
 
     try:
         _generate_probe_image(oiiotool, image_path)
 
-        _, _, probe_state, probe_log = _run_case(
+        probe_env = dict(env)
+        probe_env["IMIV_CONFIG_HOME"] = str(probe_config_home)
+        _, _, probe_state, probe_log = _run_gui_case(
+            repo_root,
+            runner,
             exe,
             run_cwd,
-            env,
-            out_dir,
+            args.backend,
+            probe_env,
             image_path,
+            out_dir,
             "probe_menu",
-            [
-                "--display",
-                "default",
-                "--view",
-                "default",
-                "--image-color-space",
-                "auto",
-            ],
+            [],
             case_timeout=args.case_timeout,
+            trace=args.trace,
         )
 
         (
@@ -607,77 +770,66 @@ def main() -> int:
             image_color_space,
         ) = _resolve_live_targets(args, probe_state)
 
-        common_args = [
-            "--display",
+        runtime_dir_rel = _path_for_imiv_output(runtime_dir, run_cwd)
+        _write_live_scenario(
+            scenario_path,
+            runtime_dir_rel,
             initial_display,
-            "--view",
             initial_view,
-            "--image-color-space",
-            image_color_space,
-        ]
-        target_args = [
-            "--display",
             target_display,
-            "--view",
             target_view,
-            "--image-color-space",
             image_color_space,
+            max(0, args.apply_frame),
+        )
+
+        scenario_env = dict(env)
+        scenario_env["IMIV_CONFIG_HOME"] = str(scenario_config_home)
+        scenario_log = _run_scenario_case(
+            repo_root,
+            runner,
+            exe,
+            run_cwd,
+            args.backend,
+            scenario_env,
+            image_path,
+            out_dir,
+            scenario_path,
+            case_timeout=args.case_timeout,
+            trace=args.trace,
+        )
+
+        static_raw_png = runtime_dir / "static_raw.png"
+        static_raw_layout = runtime_dir / "static_raw.layout.json"
+        static_raw_state = runtime_dir / "static_raw.state.json"
+        static_target_png = runtime_dir / "static_target.png"
+        static_target_layout = runtime_dir / "static_target.layout.json"
+        static_target_state = runtime_dir / "static_target.state.json"
+        live_noop_png = runtime_dir / "live_noop_raw.png"
+        live_noop_layout = runtime_dir / "live_noop_raw.layout.json"
+        live_noop_state = runtime_dir / "live_noop_raw.state.json"
+        live_switch_png = runtime_dir / "live_switch.png"
+        live_switch_layout = runtime_dir / "live_switch.layout.json"
+        live_switch_state = runtime_dir / "live_switch.state.json"
+
+        required_paths = [
+            static_raw_png,
+            static_raw_layout,
+            static_raw_state,
+            static_target_png,
+            static_target_layout,
+            static_target_state,
+            live_noop_png,
+            live_noop_layout,
+            live_noop_state,
+            live_switch_png,
+            live_switch_layout,
+            live_switch_state,
         ]
+        for required in required_paths:
+            if not required.exists():
+                raise RuntimeError(f"scenario: expected output missing: {required}")
 
-        static_raw_png, static_raw_layout, static_raw_state, static_raw_log = _run_case(
-            exe,
-            run_cwd,
-            env,
-            out_dir,
-            image_path,
-            "static_raw",
-            common_args,
-            case_timeout=args.case_timeout,
-        )
-        static_target_png, static_target_layout, static_target_state, static_target_log = _run_case(
-            exe,
-            run_cwd,
-            env,
-            out_dir,
-            image_path,
-            "static_target",
-            target_args,
-            case_timeout=args.case_timeout,
-        )
-        live_noop_png, live_noop_layout, live_noop_state, live_noop_log = _run_case(
-            exe,
-            run_cwd,
-            env,
-            out_dir,
-            image_path,
-            "live_noop_raw",
-            common_args,
-            {
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_DISPLAY": initial_display,
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW": initial_view,
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE": image_color_space,
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_APPLY_FRAME": str(args.apply_frame),
-            },
-            case_timeout=args.case_timeout,
-        )
-        live_switch_png, live_switch_layout, live_switch_state, live_switch_log = _run_case(
-            exe,
-            run_cwd,
-            env,
-            out_dir,
-            image_path,
-            "live_switch",
-            common_args,
-            {
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_DISPLAY": target_display,
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW": target_view,
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE": image_color_space,
-                "IMIV_IMGUI_TEST_ENGINE_OCIO_APPLY_FRAME": str(args.apply_frame),
-            },
-            case_timeout=args.case_timeout,
-        )
-
-        crop_dir = out_dir / "crops"
+        crop_dir = runtime_dir / "crops"
         crop_dir.mkdir(parents=True, exist_ok=True)
         static_raw_crop = crop_dir / "static_raw.png"
         static_target_crop = crop_dir / "static_target.png"
@@ -719,6 +871,7 @@ def main() -> int:
             "live noop OCIO update changed the image region unexpectedly "
             f"(mean abs RGB diff={static_noop_diff:.4f})"
         )
+
     static_switch_diff = _normalized_rgb_diff(
         oiiotool, static_raw_crop, live_switch_crop, crop_dir, "static_vs_switch"
     )
@@ -727,16 +880,18 @@ def main() -> int:
             "live OCIO view switch did not update the image region "
             f"(mean abs RGB diff={static_switch_diff:.4f})"
         )
+
     target_switch_diff = _normalized_rgb_diff(
         oiiotool, static_target_crop, live_switch_crop, crop_dir, "target_vs_switch"
     )
     if target_switch_diff > 2.0:
         return _fail(
-            "live OCIO view switch does not match the static target view "
+            "live OCIO view switch does not match the settled target view "
             f"(mean abs RGB diff={target_switch_diff:.4f})"
         )
 
     print("probe log:", probe_log)
+    print("scenario log:", scenario_log)
     print("display:", initial_display)
     print("initial display:", initial_display)
     print("target display:", target_display)
@@ -760,7 +915,7 @@ def main() -> int:
         live_noop_state,
         live_switch_state,
     )
-    print("logs:", static_raw_log, static_target_log, live_noop_log, live_switch_log)
+    print("logs:", probe_log, scenario_log)
     print("artifacts:", out_dir)
     return 0
 

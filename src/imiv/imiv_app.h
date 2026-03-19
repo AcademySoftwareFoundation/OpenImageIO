@@ -4,12 +4,12 @@
 
 #pragma once
 
+#include "imiv_backend.h"
+
 #include <string>
 #include <vector>
 
 namespace Imiv {
-
-enum class RenderBackend { VulkanGlfw = 0, MetalGlfw = 1, OpenGLGlfw = 2 };
 
 struct AppConfig {
     bool verbose         = false;
@@ -18,6 +18,9 @@ struct AppConfig {
     bool no_autopremult  = false;
     bool open_dialog     = false;
     bool save_dialog     = false;
+    bool list_backends   = false;
+
+    BackendKind requested_backend = BackendKind::Auto;
 
     std::string ocio_display;
     std::string ocio_image_color_space;
@@ -26,10 +29,6 @@ struct AppConfig {
     std::vector<std::string> input_paths;
 };
 
-RenderBackend
-default_backend();
-const char*
-backend_name(RenderBackend backend);
 int
 run(const AppConfig& config);
 

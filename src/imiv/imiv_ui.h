@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "imiv_backend.h"
 #include "imiv_navigation.h"
 #include "imiv_viewer.h"
 
@@ -42,7 +43,8 @@ draw_padded_message(const char* message, float x_pad = 10.0f,
 void
 draw_info_window(const ViewerState& viewer, bool& show_window);
 void
-draw_preferences_window(PlaceholderUiState& ui, bool& show_window);
+draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
+                        BackendKind active_backend);
 void
 draw_preview_window(PlaceholderUiState& ui, bool& show_window);
 OverlayPanelRect

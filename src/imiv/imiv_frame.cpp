@@ -571,7 +571,8 @@ draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
     ImGui::End();
 
     draw_info_window(viewer, ui_state.show_info_window);
-    draw_preferences_window(ui_state, ui_state.show_preferences_window);
+    draw_preferences_window(ui_state, ui_state.show_preferences_window,
+                            renderer_active_backend(vk_state));
     draw_preview_window(ui_state, ui_state.show_preview_window);
 
     if (ImGui::BeginPopupModal("About imiv", nullptr,

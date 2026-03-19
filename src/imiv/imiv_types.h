@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "imiv_build_config.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -14,7 +16,7 @@
 #include <OpenImageIO/typedesc.h>
 #include <imgui.h>
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_WITH_VULKAN)
 #    include <imgui_impl_vulkan.h>
 #endif
 
@@ -59,7 +61,7 @@ struct LoadedImage {
     std::vector<std::pair<std::string, std::string>> longinfo_rows;
 };
 
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
+#if defined(IMIV_WITH_VULKAN)
 
 struct PlaceholderUiState;
 struct OcioShaderRuntime;

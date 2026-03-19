@@ -17,6 +17,7 @@ struct TestEngineConfig {
     bool auto_screenshot        = false;
     bool layout_dump            = false;
     bool state_dump             = false;
+    bool scenario_run           = false;
     bool developer_menu_metrics = false;
     bool junit_xml              = false;
     bool automation_mode        = false;
@@ -24,6 +25,7 @@ struct TestEngineConfig {
     bool has_work               = false;
     bool show_windows           = false;
     std::string junit_xml_out;
+    std::string scenario_file;
     std::string state_dump_out;
 };
 

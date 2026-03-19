@@ -97,6 +97,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
+    ap.add_argument(
+        "--backend",
+        default="",
+        help="Optional runtime backend override passed through to imiv",
+    )
     ap.add_argument("--env-script", default="", help="Optional shell env setup script")
     ap.add_argument("--out-dir", default="", help="Output directory")
     ap.add_argument("--open", default=str(default_image), help="Image to open")
@@ -141,16 +146,22 @@ def main() -> int:
         str(exe),
         "--cwd",
         str(cwd),
-        "--open",
-        str(image_path),
-        "--screenshot-out",
-        str(screenshot_path),
-        "--layout-json-out",
-        str(layout_path),
-        "--layout-items",
-        "--state-json-out",
-        str(state_path),
     ]
+    if args.backend:
+        cmd.extend(["--backend", args.backend])
+    cmd.extend(
+        [
+            "--open",
+            str(image_path),
+            "--screenshot-out",
+            str(screenshot_path),
+            "--layout-json-out",
+            str(layout_path),
+            "--layout-items",
+            "--state-json-out",
+            str(state_path),
+        ]
+    )
     if args.trace:
         cmd.append("--trace")
 

@@ -253,21 +253,13 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
                                 coord_map.image_rect_max);
             draw_list->PopClipRect();
         } else if (!has_main_texture) {
-#if defined(IMIV_BACKEND_VULKAN_GLFW)
-            const bool texture_loading
-                = viewer.texture.upload_submit_pending
-                  || viewer.texture.preview_submit_pending
-                  || (!viewer.texture.preview_initialized
-                      && viewer.texture.set != VK_NULL_HANDLE);
+            const bool texture_loading = renderer_texture_is_loading(
+                viewer.texture);
             ImGui::TextUnformatted(texture_loading ? "Loading texture"
                                                    : "No texture");
             register_layout_dump_synthetic_item("text", texture_loading
                                                             ? "Loading texture"
                                                             : "No texture");
-#else
-            ImGui::TextUnformatted("No texture");
-            register_layout_dump_synthetic_item("text", "No texture");
-#endif
         }
 
         if (ui_state.show_window_guides && coord_map.valid) {
