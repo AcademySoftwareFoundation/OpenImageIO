@@ -731,6 +731,20 @@ if (_imiv_selected_renderer STREQUAL "")
     endif ()
 endif ()
 
+set (_imiv_enabled_backend_count 0)
+if (_imiv_enabled_vulkan)
+    math (EXPR _imiv_enabled_backend_count
+          "${_imiv_enabled_backend_count} + 1")
+endif ()
+if (_imiv_enabled_metal)
+    math (EXPR _imiv_enabled_backend_count
+          "${_imiv_enabled_backend_count} + 1")
+endif ()
+if (_imiv_enabled_opengl)
+    math (EXPR _imiv_enabled_backend_count
+          "${_imiv_enabled_backend_count} + 1")
+endif ()
+
 set (_imiv_renderer_is_vulkan OFF)
 set (_imiv_renderer_is_metal OFF)
 set (_imiv_renderer_is_opengl OFF)
@@ -1317,6 +1331,25 @@ if (TARGET imiv
         imiv_ux_actions_regression PROPERTIES
             LABELS "imiv;gui"
             TIMEOUT 360)
+
+    if (_imiv_enabled_backend_count GREATER 1)
+        add_test (
+            NAME imiv_backend_preferences_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_backend_preferences_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                ${_imiv_ctest_default_backend_args}
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/backend_preferences_regression"
+                --open "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png")
+        set_tests_properties (
+            imiv_backend_preferences_regression PROPERTIES
+                LABELS "imiv;gui;imiv_backend"
+                TIMEOUT 180
+                SKIP_RETURN_CODE 77)
+    endif ()
 
     if (OIIO_IMIV_ADD_BACKEND_VERIFY_CTEST)
         if (_imiv_enabled_vulkan)

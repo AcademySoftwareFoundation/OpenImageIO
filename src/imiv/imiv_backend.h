@@ -40,5 +40,7 @@ bool
 backend_kind_is_compiled(BackendKind kind);
 const std::array<BackendInfo, 3>&
 compiled_backend_info();
+size_t
+compiled_backend_count();
 
 }  // namespace Imiv

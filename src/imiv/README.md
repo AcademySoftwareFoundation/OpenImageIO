@@ -108,6 +108,12 @@ cmake -S . -B build_u \
 ctest --test-dir build_u -N | rg imiv_backend_verify
 ```
 
+Focused backend-selector regression from a multi-backend build:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_backend_preferences_regression$'
+```
+
 Main output logs:
 
 - `verify_smoke.log`

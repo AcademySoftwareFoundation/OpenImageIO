@@ -131,6 +131,8 @@ namespace {
         int post_action_delay_frames = 0;
         bool has_key_chord           = false;
         ImGuiKeyChord key_chord      = 0;
+        std::string set_ref;
+        std::string item_click_ref;
         TestEngineMouseTargetMode mouse_target_mode
             = TestEngineMouseTargetMode::None;
         float mouse_x        = 0.0f;
@@ -297,6 +299,15 @@ namespace {
                 }
                 step.action.has_key_chord = true;
             }
+
+            const pugi::xml_attribute item_click_attr = step_node.attribute(
+                "item_click");
+            if (item_click_attr && item_click_attr.as_string()[0] != '\0')
+                step.action.item_click_ref = item_click_attr.as_string();
+            const pugi::xml_attribute set_ref_attr = step_node.attribute(
+                "set_ref");
+            if (set_ref_attr && set_ref_attr.as_string()[0] != '\0')
+                step.action.set_ref = set_ref_attr.as_string();
 
             if (parse_float_pair_attr(step_node.attribute("mouse_pos"),
                                       step.action.mouse_x,
@@ -975,6 +986,16 @@ namespace {
         int held_button = -1;
         if (action.has_key_chord) {
             ctx->KeyPress(action.key_chord);
+            ctx->Yield(1);
+        }
+
+        if (!action.set_ref.empty()) {
+            ctx->SetRef(action.set_ref.c_str());
+            ctx->Yield(1);
+        }
+
+        if (!action.item_click_ref.empty()) {
+            ctx->ItemClick(action.item_click_ref.c_str());
             ctx->Yield(1);
         }
 
@@ -1718,6 +1739,38 @@ register_layout_dump_synthetic_rect(const char* kind, const char* label,
     (void)label;
     (void)min;
     (void)max;
+#endif
+}
+
+void
+register_test_engine_item_label(const char* label, bool openable)
+{
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
+    if (label == nullptr || label[0] == '\0')
+        return;
+    ImGuiContext* ui_ctx = ImGui::GetCurrentContext();
+    if (ui_ctx == nullptr)
+        return;
+    const ImVec2 min = ImGui::GetItemRectMin();
+    const ImVec2 max = ImGui::GetItemRectMax();
+    if (max.x <= min.x || max.y <= min.y)
+        return;
+    const int ordinal = ++g_layout_dump_synthetic_item_counter;
+    char id_source[128] = {};
+    std::snprintf(id_source, sizeof(id_source), "##imiv_test_item_%d",
+                  ordinal);
+    const ImGuiID id = ImGui::GetID(id_source);
+    if (id == 0)
+        return;
+    const ImRect bb(min, max);
+    ImGuiItemStatusFlags flags = ImGuiItemStatusFlags_None;
+    if (openable)
+        flags |= ImGuiItemStatusFlags_Openable;
+    ImGuiTestEngineHook_ItemAdd(ui_ctx, id, bb, nullptr);
+    ImGuiTestEngineHook_ItemInfo(ui_ctx, id, label, flags);
+#else
+    (void)label;
+    (void)openable;
 #endif
 }
 

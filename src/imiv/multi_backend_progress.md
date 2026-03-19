@@ -61,6 +61,23 @@ Changed in this slice:
     - `imiv_backend_verify_vulkan`
     - `imiv_backend_verify_opengl`
     - `imiv_backend_verify_metal`
+- Backend state is now present in viewer-state JSON:
+  - `src/imiv/imiv_frame.h`
+  - `src/imiv/imiv_frame.cpp`
+  - includes:
+    - `active`
+    - `requested`
+    - `next_launch`
+    - `restart_required`
+    - compiled/unavailable backend lists
+- Added focused backend-selector regression:
+  - `src/imiv/tools/imiv_backend_preferences_regression.py`
+  - `src/imiv/CMakeLists.txt`
+  - verifies:
+    - selecting an alternate backend changes `requested` / `next_launch`
+    - restart-required semantics
+    - selecting active backend clears restart-required
+    - selecting `Auto` resolves back to the build default
 - Preferences UI now exposes renderer selection:
   - `src/imiv/imiv_aux_windows.cpp`
   - `src/imiv/imiv_ui.h`
@@ -89,10 +106,16 @@ Passed:
   - `imiv_opengl_smoke_regression.py --backend opengl ...`
 - Default-backend UX regression after the Preferences backend UI change:
   - `ctest --test-dir build_u -V -R '^imiv_ux_actions_regression$'`
+- Backend selector regression:
+  - `ctest --test-dir build_u -V -R '^imiv_backend_preferences_regression$'`
+- Optional backend-wide `ctest` registration path:
+  - `cmake -S . -B build_u ... -D OIIO_IMIV_ADD_BACKEND_VERIFY_CTEST=ON`
+  - `ctest --test-dir build_u -N | rg 'imiv_backend_verify|imiv_backend_preferences'`
+- Backend-wide non-default runtime verification from one build:
+  - `ctest --test-dir build_u -V -R '^imiv_backend_verify_opengl$'`
 
 Still not validated in this build tree:
 
-- `OIIO_IMIV_ADD_BACKEND_VERIFY_CTEST=ON` registration path
 - macOS Metal build with the new Preferences backend selector
 - Windows multi-backend runtime with the explicit backend test path
 
@@ -169,11 +192,25 @@ Then list them:
 ctest --test-dir build_u -N | rg imiv_backend_verify
 ```
 
+Proof that one Vulkan-default build can drive OpenGL through `ctest`:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_backend_verify_opengl$'
+```
+
+Focused backend selector regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_backend_preferences_regression$'
+```
+
 ## Remaining planned work
 
 - Validate `OIIO_IMIV_ADD_BACKEND_VERIFY_CTEST=ON`.
 - Validate the new Preferences backend selector on macOS and Windows.
 - If that is clean, the next backend-switch slice is:
+  - decide whether `imiv_backend_preferences_regression` should also be folded
+    into `imiv_backend_verify.py`
   - present more explicit availability status in Preferences
   - decide whether to duplicate more individual `ctest` cases per enabled
     backend, or keep the shared `imiv_backend_verify.py` path as the backend

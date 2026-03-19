@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "imiv_backend.h"
 #include "imiv_renderer.h"
 #include "imiv_ui.h"
 
@@ -33,6 +34,7 @@ struct DeveloperUiState {
 struct ViewerStateJsonWriteContext {
     const ViewerState* viewer          = nullptr;
     const PlaceholderUiState* ui_state = nullptr;
+    BackendKind active_backend         = BackendKind::Auto;
 };
 
 bool

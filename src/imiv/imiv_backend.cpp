@@ -186,4 +186,15 @@ compiled_backend_info()
     return info;
 }
 
+size_t
+compiled_backend_count()
+{
+    size_t count = 0;
+    for (const BackendInfo& info : compiled_backend_info()) {
+        if (info.compiled)
+            ++count;
+    }
+    return count;
+}
+
 }  // namespace Imiv
