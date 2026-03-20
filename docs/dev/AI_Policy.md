@@ -3,6 +3,7 @@ Proposed OpenImageIO Policy on AI Coding Assistants
 
 - first proposal as of 6-Mar-2026
 - revised 10-Mar-2026
+- revised 20-Mar-2026
 
 
 Use of "AI coding assistants" is permitted on this project, with the following
@@ -65,12 +66,16 @@ describe it to others.
 
 ### Disclosure
 
-**Disclosure is required.** Use of coding assistants to generate more than de
-minimis changes should have a short disclosure in the PR submission comments.
-Commits should have a "Assisted-by: TOOL / MODEL" line as a minimum. Ideally,
-the PR description will also have a summary of what tool was used, for what
-purpose, and paraphrase the gist of the key prompts or direction of the
-dialog. A full log is not necessary; a short summary will do.
+**Disclosure is required.** Patches that were written with the aid of AI
+coding assistants must have, at a minimum, the following line in the commit
+comment and PR description body:
+
+    Assisted-by: TOOL / MODEL
+
+Ideally, to the extent practical, the PR description should also have a brief
+description of how the tool was used, including the gist of key prompts or
+summarizing the direction of the dialog. A full log is not necessary; a short
+summary will do.
 
 There are several reasons for this disclosure/documentation, even though it
 will sometimes be inconvenient:
@@ -117,15 +122,17 @@ assistants is not an excuse to submit poor PRs or to externalize costs onto
 maintainers/reviewers (such as responsibility for understanding, testing, or
 fixing PRs that the human author does not have a full understanding of). 
 
+Maintainers are free to take counter-measures against submitters of sub-par
+PRs, or other violations of this policy, up to and including banning habitual
+abusers from future participation in the project.
+
 **We discourage use of AI tools to fix GitHub issues labeled as "good first
 issue" or for "Dev Days" work.** Cultivating and educating new contributors is
 important, and as such, we do not want people to swoop in and use automated
 tools to trivially solve tasks that were curated specifically for somebody to
-actually learn from.
-
-Maintainers are free to take counter-measures against submitters of sub-par
-PRs, or other violations of this policy, up to and including banning habitual
-abusers from future participation in the project.
+actually learn from. We expect each developer to implement at most one "good
+first issue" per Dev Days occasion, and we encourage you to solve the problem
+with your own brain to maximize the learning experience.
 
 ### Exceptions
 
@@ -133,7 +140,8 @@ This AI tool use policy is not meant to encompass cases such as:
 - "Smart auto-complete", spell-checking, grammar checking, or other uses that
   aren't really contributing substantively to authorship.
 - Use of LLMs to explain code or learn about the codebase, answer basic
-  programming questions, or help with background research.
+  programming questions, help with background research, or audit the code
+  for bugs that are subsequently confirmed and fixed by people.
 - Language translation for non-fluent English speakers or other accessibility
   accommodations.
 - Trivial or de-minimis fixes such as fixing a typo, obviously wrong variable
