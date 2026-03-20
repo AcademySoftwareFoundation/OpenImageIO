@@ -622,8 +622,8 @@ jobs:
           - desc: MacOS-15-Intel aclang17/C++17/py3.13
             runner: macos-15-intel
             nametag: MacOS-15-Intel
-            cc_compiler: clang
-            cxx_compiler: clang++
+            cc_compiler: /usr/bin/clang
+            cxx_compiler: /usr/bin/clang++
             cxx_std: 17
             python_ver: "3.14"
             simd: sse4.2,avx2
@@ -635,23 +635,23 @@ jobs:
           - desc: MacOS-14-ARM aclang15/C++20/py3.13
             runner: macos-14
             nametag: macos14-arm-py313
-            cc_compiler: clang
-            cxx_compiler: clang++
+            cc_compiler: /usr/bin/clang
+            cxx_compiler: /usr/bin/clang++
             cxx_std: 20
             python_ver: "3.13"
           - desc: MacOS-15-ARM aclang16/C++20/py3.13
             runner: macos-15
             nametag: macos15-arm-py313
-            cc_compiler: clang
-            cxx_compiler: clang++
+            cc_compiler: /usr/bin/clang
+            cxx_compiler: /usr/bin/clang++
             cxx_std: 20
             python_ver: "3.13"
             benchmark: 1
           - desc: MacOS-26-ARM aclang16/C++20/py3.13
             runner: macos-26
             nametag: macos26-arm-py313
-            cc_compiler: clang
-            cxx_compiler: clang++
+            cc_compiler: /usr/bin/clang
+            cxx_compiler: /usr/bin/clang++
             cxx_std: 20
             python_ver: "3.14"
             benchmark: 1
