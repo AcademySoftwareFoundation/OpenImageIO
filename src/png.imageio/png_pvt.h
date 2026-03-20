@@ -254,7 +254,9 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
                 = decode_icc_profile(make_cspan(profile_data, profile_length),
                                      spec, errormsg);
             if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
-                errorfmt("Could not decode ICC profile: {}\n", errormsg);
+                ImageInput* pnginput = (ImageInput*)png_get_io_ptr(sp);
+                pnginput->errorfmt("Could not decode ICC profile: {}\n",
+                                   errormsg);
                 return false;
             }
         }
