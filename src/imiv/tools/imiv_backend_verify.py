@@ -280,7 +280,11 @@ def _smoke_checks(
             (
                 "smoke",
                 _script_cmd(
-                    repo_root / "src" / "imiv" / "tools" / "imiv_metal_smoke_regression.py",
+                    repo_root
+                    / "src"
+                    / "imiv"
+                    / "tools"
+                    / "imiv_metal_screenshot_regression.py",
                     backend=backend,
                     exe=exe,
                     run_cwd=run_cwd,
@@ -290,68 +294,6 @@ def _smoke_checks(
                     env_script=env_script,
                 ),
                 out_dir / "verify_smoke.log",
-                None,
-            )
-        )
-        checks.append(
-            (
-                "screenshot",
-                _script_cmd(
-                    repo_root
-                    / "src"
-                    / "imiv"
-                    / "tools"
-                    / "imiv_metal_screenshot_regression.py",
-                    backend=backend,
-                    exe=exe,
-                    run_cwd=run_cwd,
-                    out_dir=out_dir / "runtime_screenshot",
-                    trace=trace,
-                    extra=["--open", str(image)],
-                    env_script=env_script,
-                ),
-                out_dir / "verify_screenshot.log",
-                None,
-            )
-        )
-        checks.append(
-            (
-                "sampling",
-                _script_cmd(
-                    repo_root
-                    / "src"
-                    / "imiv"
-                    / "tools"
-                    / "imiv_metal_sampling_regression.py",
-                    backend=backend,
-                    exe=exe,
-                    run_cwd=run_cwd,
-                    out_dir=out_dir / "runtime_sampling",
-                    trace=trace,
-                    env_script=env_script,
-                ),
-                out_dir / "verify_sampling.log",
-                None,
-            )
-        )
-        checks.append(
-            (
-                "orientation",
-                _script_cmd(
-                    repo_root
-                    / "src"
-                    / "imiv"
-                    / "tools"
-                    / "imiv_metal_orientation_regression.py",
-                    backend=backend,
-                    exe=exe,
-                    run_cwd=run_cwd,
-                    out_dir=out_dir / "runtime_orientation",
-                    trace=trace,
-                    extra=["--open", str(image)],
-                    env_script=env_script,
-                ),
-                out_dir / "verify_orientation.log",
                 None,
             )
         )
@@ -420,6 +362,30 @@ def _ux_checks(
         env_script=env_script,
     )
     return [("ux", cmd, out_dir / "verify_ux.log", None)]
+
+
+def _sampling_checks(
+    repo_root: Path,
+    backend: str,
+    exe: Path,
+    run_cwd: Path,
+    oiiotool: Path,
+    out_dir: Path,
+    env_script: Path | None,
+    trace: bool,
+) -> list[tuple[str, list[str], Path, dict[str, str] | None]]:
+    script = repo_root / "src" / "imiv" / "tools" / "imiv_sampling_regression.py"
+    cmd = _script_cmd(
+        script,
+        backend=backend,
+        exe=exe,
+        run_cwd=run_cwd,
+        out_dir=out_dir / "runtime_sampling",
+        trace=trace,
+        extra=["--oiiotool", str(oiiotool)],
+        env_script=env_script,
+    )
+    return [("sampling", cmd, out_dir / "verify_sampling.log", None)]
 
 
 def _rgb_checks(
@@ -832,6 +798,18 @@ def main() -> int:
         )
     )
     checks.extend(
+        _sampling_checks(
+            repo_root,
+            args.backend,
+            imiv,
+            run_cwd,
+            oiiotool,
+            out_dir,
+            env_script,
+            args.trace,
+        )
+    )
+    checks.extend(
         _ocio_checks(
             repo_root,
             args.backend,
@@ -848,7 +826,20 @@ def main() -> int:
     )
 
     failures: list[str] = []
+    smoke_failed = False
+    skip_after_smoke = {
+        "ocio_missing",
+        "ocio_config_source",
+        "ocio_live",
+        "ocio_live_display",
+    }
     for name, cmd, log_path, env_override in checks:
+        if smoke_failed and name in skip_after_smoke:
+            message = "skip: skipped because smoke failed\n"
+            _write_text(log_path, message)
+            sys.stdout.write(f"==> {name}: skipped because smoke failed\n")
+            timings.append((f"{name}(skipped)", 0.0))
+            continue
         env = dict(base_env)
         if env_override:
             env.update(env_override)
@@ -862,6 +853,8 @@ def main() -> int:
         timings.append((name, elapsed))
         if rc != 0:
             failures.append(name)
+            if name == "smoke":
+                smoke_failed = True
 
     print("")
     print(f"Verification logs written to: {out_dir}")
@@ -874,13 +867,8 @@ def main() -> int:
     print(f"  runtime+rgb: {out_dir / 'runtime_rgb'}")
     print(f"  ux:          {out_dir / 'verify_ux.log'}")
     print(f"  runtime+ux:  {out_dir / 'runtime_ux'}")
-    if args.backend == "metal":
-        print(f"  screenshot:  {out_dir / 'verify_screenshot.log'}")
-        print(f"  runtime+ss:  {out_dir / 'runtime_screenshot'}")
-        print(f"  sampling:    {out_dir / 'verify_sampling.log'}")
-        print(f"  runtime+sa:  {out_dir / 'runtime_sampling'}")
-        print(f"  orient:      {out_dir / 'verify_orientation.log'}")
-        print(f"  runtime+or:  {out_dir / 'runtime_orientation'}")
+    print(f"  sampling:    {out_dir / 'verify_sampling.log'}")
+    print(f"  runtime+sa:  {out_dir / 'runtime_sampling'}")
     print(f"  ocio-miss:   {out_dir / 'verify_ocio_missing.log'}")
     print(f"  runtime+om:  {out_dir / 'runtime_ocio_missing'}")
     print(f"  ocio-src:    {out_dir / 'verify_ocio_config_source.log'}")

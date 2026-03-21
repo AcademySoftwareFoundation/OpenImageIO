@@ -119,10 +119,11 @@ Main output logs:
 - `verify_smoke.log`
 - `verify_rgb.log`
 - `verify_ux.log`
-- `verify_screenshot.log`
 - `verify_sampling.log`
-- `verify_orientation.log`
 - `verify_ocio_missing.log`
 - `verify_ocio_config_source.log`
 - `verify_ocio_live.log`
 - `verify_ocio_live_display.log`
+
+Backend-specific specialized regressions such as Metal orientation still write
+their own dedicated logs outside the shared verifier.
