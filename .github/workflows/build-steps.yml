@@ -172,6 +172,9 @@ jobs:
       - name:  Install sonar-scanner and build-wrapper
         if: inputs.sonar == '1'
         uses: sonarsource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.PASSED_SONAR_TOKEN }}
       - name: Build
         if: inputs.skip_build != '1'
         shell: bash
