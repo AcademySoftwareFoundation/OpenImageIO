@@ -575,10 +575,15 @@ ImageBufImpl::~ImageBufImpl()
     // how to properly check for errors.
     if (!m_err.empty() /* Note: safe becausethis is the dtr */
         && OIIO::pvt::imagebuf_print_uncaught_errors) {
-        OIIO::print(
-            "An ImageBuf was destroyed with a pending error message that was never\n"
-            "retrieved via ImageBuf::geterror(). This was the error message:\n{}\n",
-            m_err);
+        try {
+            OIIO::print(
+                "An ImageBuf was destroyed with a pending error message that was never\n"
+                "retrieved via ImageBuf::geterror(). This was the error message:\n{}\n",
+                m_err);
+        } catch (...) {
+            // Swallow any exceptions (e.g., from fmt's fwrite_fully)
+            // to avoid std::terminate from throwing in a destructor.
+        }
     }
 }
 

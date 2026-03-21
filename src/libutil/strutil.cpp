@@ -201,10 +201,15 @@ struct ErrorHolder {
     ~ErrorHolder()
     {
         if (!error_msg.empty() && OIIO::pvt::oiio_print_uncaught_errors) {
-            OIIO::print(
-                "OpenImageIO exited with a pending error message that was never\n"
-                "retrieved via OIIO::geterror(). This was the error message:\n{}\n",
-                error_msg);
+            try {
+                OIIO::print(
+                    "OpenImageIO exited with a pending error message that was never\n"
+                    "retrieved via OIIO::geterror(). This was the error message:\n{}\n",
+                    error_msg);
+            } catch (...) {
+                // Swallow any exceptions (e.g., from fmt's fwrite_fully)
+                // to avoid std::terminate from throwing in a destructor.
+            }
         }
     }
 };
