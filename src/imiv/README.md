@@ -117,6 +117,7 @@ ctest --test-dir build_u -V -R '^imiv_backend_preferences_regression$'
 Main output logs:
 
 - `verify_smoke.log`
+- `verify_rgb.log`
 - `verify_ux.log`
 - `verify_screenshot.log`
 - `verify_sampling.log`
