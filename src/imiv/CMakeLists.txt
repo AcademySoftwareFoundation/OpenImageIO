@@ -1199,22 +1199,6 @@ if (TARGET imiv
 
         if (TARGET oiiotool)
             add_test (
-                NAME imiv_metal_sampling_regression
-                COMMAND
-                    "${Python3_EXECUTABLE}"
-                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_metal_sampling_regression.py"
-                    --bin "$<TARGET_FILE:imiv>"
-                    --cwd "$<TARGET_FILE_DIR:imiv>"
-                    --backend metal
-                    --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
-                    --oiiotool "$<TARGET_FILE:oiiotool>"
-                    --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/metal_sampling_regression")
-            set_tests_properties (
-                imiv_metal_sampling_regression PROPERTIES
-                    LABELS "imiv;imiv_metal;gui"
-                    TIMEOUT 180)
-
-            add_test (
                 NAME imiv_metal_orientation_regression
                 COMMAND
                     "${Python3_EXECUTABLE}"
@@ -1348,6 +1332,22 @@ if (TARGET imiv
         imiv_rgb_input_regression PROPERTIES
             LABELS "imiv;imiv_rgb;gui"
             TIMEOUT 120)
+
+    add_test (
+        NAME imiv_sampling_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_sampling_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_default_backend_args}
+            --oiiotool "$<TARGET_FILE:oiiotool>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/sampling_regression")
+    set_tests_properties (
+        imiv_sampling_regression PROPERTIES
+            LABELS "imiv;imiv_sampling;gui"
+            TIMEOUT 180)
 
     if (_imiv_enabled_backend_count GREATER 1)
         add_test (

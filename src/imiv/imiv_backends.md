@@ -209,6 +209,8 @@ Manual verification:
   - [imiv_backend_verify.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_backend_verify.py)
 - shared RGB-input regression:
   - [imiv_rgb_input_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_rgb_input_regression.py)
+- shared nearest-vs-linear sampling regression:
+  - [imiv_sampling_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_sampling_regression.py)
 - compatibility frontends:
   - [imiv_macos_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_macos_backend_verify.sh)
   - [imiv_linux_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_linux_backend_verify.sh)
@@ -217,8 +219,6 @@ Manual verification:
   - [imiv_metal_smoke_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_smoke_regression.py)
 - Metal screenshot smoke regression:
   - [imiv_metal_screenshot_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_screenshot_regression.py)
-- Metal nearest vs linear sampling regression:
-  - [imiv_metal_sampling_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_sampling_regression.py)
 - Metal orientation regression:
   - [imiv_metal_orientation_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_orientation_regression.py)
 
