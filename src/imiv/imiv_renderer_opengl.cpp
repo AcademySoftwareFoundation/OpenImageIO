@@ -132,6 +132,8 @@
 
 namespace Imiv {
 
+namespace {
+
 struct RendererTextureBackendState {
     GLuint source_texture                         = 0;
     GLuint preview_linear_texture                 = 0;
@@ -251,11 +253,9 @@ struct RendererBackendState {
     OcioPreviewProgram ocio_preview;
 };
 
-namespace {
-
     RendererBackendState* backend_state(RendererState& renderer_state)
     {
-        return static_cast<RendererBackendState*>(renderer_state.backend);
+        return reinterpret_cast<RendererBackendState*>(renderer_state.backend);
     }
 
     bool ensure_basic_preview_program(RendererBackendState& state,
@@ -266,19 +266,22 @@ namespace {
     const RendererTextureBackendState*
     texture_backend_state(const RendererTexture& texture)
     {
-        return static_cast<const RendererTextureBackendState*>(texture.backend);
+        return reinterpret_cast<const RendererTextureBackendState*>(
+            texture.backend);
     }
 
     RendererTextureBackendState* texture_backend_state(RendererTexture& texture)
     {
-        return static_cast<RendererTextureBackendState*>(texture.backend);
+        return reinterpret_cast<RendererTextureBackendState*>(texture.backend);
     }
 
     bool ensure_backend_state(RendererState& renderer_state)
     {
         if (renderer_state.backend != nullptr)
             return true;
-        renderer_state.backend = new RendererBackendState();
+        renderer_state.backend
+            = reinterpret_cast<::Imiv::RendererBackendState*>(
+                new RendererBackendState());
         return renderer_state.backend != nullptr;
     }
 
@@ -1461,8 +1464,6 @@ void main()
         return true;
     }
 
-}  // namespace
-
 bool
 opengl_get_viewer_texture_refs(const ViewerState& viewer,
                                const PlaceholderUiState& ui_state,
@@ -1552,7 +1553,8 @@ opengl_create_texture(RendererState& renderer_state, const LoadedImage& image,
         return false;
     }
 
-    texture.backend             = texture_state;
+    texture.backend             = reinterpret_cast<
+        ::Imiv::RendererTextureBackendState*>(texture_state);
     texture.preview_initialized = false;
     error_message.clear();
     return true;
@@ -1866,7 +1868,6 @@ bool
 opengl_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                       unsigned int* pixels, void* user_data)
 {
-    (void)viewport_id;
     RendererState* renderer_state = reinterpret_cast<RendererState*>(user_data);
     if (renderer_state == nullptr || pixels == nullptr || w <= 0 || h <= 0)
         return false;
@@ -1882,30 +1883,99 @@ opengl_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                                        framebuffer_height);
     if (framebuffer_width <= 0 || framebuffer_height <= 0)
         return false;
-    if (x < 0 || y < 0 || x + w > framebuffer_width
-        || y + h > framebuffer_height) {
-        return false;
+
+    int capture_x = x;
+    int capture_y = y;
+    int capture_w = w;
+    int capture_h = h;
+    ImGuiViewport* viewport = ImGui::FindViewportByID(viewport_id);
+    if (viewport != nullptr && viewport->Size.x > 0.0f
+        && viewport->Size.y > 0.0f) {
+        const double scale_x = static_cast<double>(framebuffer_width)
+                               / static_cast<double>(viewport->Size.x);
+        const double scale_y = static_cast<double>(framebuffer_height)
+                               / static_cast<double>(viewport->Size.y);
+        capture_x = static_cast<int>(std::lround(
+            (static_cast<double>(x) - static_cast<double>(viewport->Pos.x))
+            * scale_x));
+        capture_y = static_cast<int>(std::lround(
+            (static_cast<double>(y) - static_cast<double>(viewport->Pos.y))
+            * scale_y));
+        capture_w = std::max(1, static_cast<int>(std::lround(
+                                   static_cast<double>(w) * scale_x)));
+        capture_h = std::max(1, static_cast<int>(std::lround(
+                                   static_cast<double>(h) * scale_y)));
     }
 
-    const int read_y = framebuffer_height - (y + h);
+    if (capture_x < 0) {
+        capture_w += capture_x;
+        capture_x = 0;
+    }
+    if (capture_y < 0) {
+        capture_h += capture_y;
+        capture_y = 0;
+    }
+    if (capture_x < framebuffer_width && capture_y < framebuffer_height) {
+        capture_w = std::min(capture_w, framebuffer_width - capture_x);
+        capture_h = std::min(capture_h, framebuffer_height - capture_y);
+    }
+    if (capture_w <= 0 || capture_h <= 0)
+        return false;
+
+    const int read_y = framebuffer_height - (capture_y + capture_h);
     if (read_y < 0)
         return false;
 
-    std::vector<unsigned char> readback(static_cast<size_t>(w)
-                                        * static_cast<size_t>(h) * 4);
+    std::vector<unsigned char> readback(static_cast<size_t>(capture_w)
+                                        * static_cast<size_t>(capture_h) * 4);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glReadPixels(x, read_y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, readback.data());
+    glReadPixels(capture_x, read_y, capture_w, capture_h, GL_RGBA,
+                 GL_UNSIGNED_BYTE, readback.data());
     if (glGetError() != GL_NO_ERROR)
         return false;
 
     unsigned char* dst_bytes = reinterpret_cast<unsigned char*>(pixels);
+    if (capture_w == w && capture_h == h) {
+        for (int row = 0; row < h; ++row) {
+            const size_t src_offset = static_cast<size_t>(h - 1 - row)
+                                      * static_cast<size_t>(w) * 4;
+            const size_t dst_offset = static_cast<size_t>(row)
+                                      * static_cast<size_t>(w) * 4;
+            std::memcpy(dst_bytes + dst_offset, readback.data() + src_offset,
+                        static_cast<size_t>(w) * 4);
+        }
+        return true;
+    }
+
+    const double sample_scale_x = static_cast<double>(capture_w)
+                                  / static_cast<double>(w);
+    const double sample_scale_y = static_cast<double>(capture_h)
+                                  / static_cast<double>(h);
     for (int row = 0; row < h; ++row) {
-        const size_t src_offset = static_cast<size_t>(h - 1 - row)
-                                  * static_cast<size_t>(w) * 4;
-        const size_t dst_offset = static_cast<size_t>(row)
-                                  * static_cast<size_t>(w) * 4;
-        std::memcpy(dst_bytes + dst_offset, readback.data() + src_offset,
-                    static_cast<size_t>(w) * 4);
+        unsigned char* dst_row = dst_bytes
+                                 + static_cast<size_t>(row)
+                                       * static_cast<size_t>(w) * 4;
+        const int sample_row = std::clamp(
+            static_cast<int>(std::floor((static_cast<double>(row) + 0.5)
+                                        * sample_scale_y)),
+            0, capture_h - 1);
+        const unsigned char* src_row
+            = readback.data()
+              + static_cast<size_t>(capture_h - 1 - sample_row)
+                    * static_cast<size_t>(capture_w) * 4;
+        for (int col = 0; col < w; ++col) {
+            const int sample_col = std::clamp(
+                static_cast<int>(std::floor((static_cast<double>(col) + 0.5)
+                                            * sample_scale_x)),
+                0, capture_w - 1);
+            const unsigned char* src
+                = src_row + static_cast<size_t>(sample_col) * 4;
+            unsigned char* dst = dst_row + static_cast<size_t>(col) * 4;
+            dst[0]             = src[0];
+            dst[1]             = src[1];
+            dst[2]             = src[2];
+            dst[3]             = src[3];
+        }
     }
     return true;
 }
@@ -1939,6 +2009,7 @@ const RendererBackendVTable k_opengl_vtable = {
     opengl_screen_capture,
 };
 
+}  // namespace
 }  // namespace Imiv
 
 namespace Imiv {

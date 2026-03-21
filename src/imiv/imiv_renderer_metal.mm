@@ -33,6 +33,8 @@
 
 namespace Imiv {
 
+namespace {
+
 struct RendererTextureBackendState {
     __strong id<MTLTexture> source_texture          = nil;
     __strong id<MTLTexture> preview_linear_texture  = nil;
@@ -111,24 +113,23 @@ struct MetalUploadUniforms {
     uint32_t data_type         = 0;
 };
 
-namespace {
-
 RendererBackendState*
 backend_state(RendererState& renderer_state)
 {
-    return static_cast<RendererBackendState*>(renderer_state.backend);
+    return reinterpret_cast<RendererBackendState*>(renderer_state.backend);
 }
 
 const RendererTextureBackendState*
 texture_backend_state(const RendererTexture& texture)
 {
-    return static_cast<const RendererTextureBackendState*>(texture.backend);
+    return reinterpret_cast<const RendererTextureBackendState*>(
+        texture.backend);
 }
 
 RendererTextureBackendState*
 texture_backend_state(RendererTexture& texture)
 {
-    return static_cast<RendererTextureBackendState*>(texture.backend);
+    return reinterpret_cast<RendererTextureBackendState*>(texture.backend);
 }
 
 bool
@@ -136,7 +137,8 @@ ensure_backend_state(RendererState& renderer_state)
 {
     if (renderer_state.backend != nullptr)
         return true;
-    renderer_state.backend = new RendererBackendState();
+    renderer_state.backend = reinterpret_cast<::Imiv::RendererBackendState*>(
+        new RendererBackendState());
     return renderer_state.backend != nullptr;
 }
 
@@ -1631,8 +1633,6 @@ render_preview_texture(RendererBackendState& state,
     return true;
 }
 
-}  // namespace
-
 bool
 metal_get_viewer_texture_refs(const ViewerState& viewer,
                               const PlaceholderUiState& ui_state,
@@ -1732,7 +1732,8 @@ metal_create_texture(RendererState& renderer_state, const LoadedImage& image,
     texture_state->input_channels = image.nchannels;
     texture_state->preview_dirty  = true;
 
-    texture.backend             = texture_state;
+    texture.backend             = reinterpret_cast<
+        ::Imiv::RendererTextureBackendState*>(texture_state);
     texture.preview_initialized = false;
     error_message.clear();
     return true;
@@ -2214,6 +2215,7 @@ metal_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
     return true;
 }
 
+}  // namespace
 }  // namespace Imiv
 
 namespace Imiv {
