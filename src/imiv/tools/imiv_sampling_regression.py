@@ -129,24 +129,18 @@ def _write_scenario(path: Path, runtime_dir_rel: str) -> None:
     root.set("out_dir", runtime_dir_rel)
     root.set("layout_items", "true")
 
-    _scenario_step(root, "nearest", delay_frames=3, screenshot=True, layout=True)
     _scenario_step(
         root,
-        "open_preferences",
-        key_chord="ctrl+comma",
-        post_action_delay_frames=2,
-    )
-    _scenario_step(
-        root,
-        "enable_linear",
-        set_ref="iv Preferences",
-        item_click="Linear interpolation",
-        post_action_delay_frames=2,
+        "nearest",
+        delay_frames=3,
+        linear_interpolation=False,
+        screenshot=True,
+        layout=True,
     )
     _scenario_step(
         root,
         "linear",
-        key_chord="ctrl+comma",
+        linear_interpolation=True,
         post_action_delay_frames=2,
         screenshot=True,
         layout=True,

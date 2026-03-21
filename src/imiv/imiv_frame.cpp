@@ -130,6 +130,20 @@ namespace {
             ui_state.ocio_image_color_space = std::string(
                 Strutil::strip(value));
         }
+
+        if (read_env_value("IMIV_IMGUI_TEST_ENGINE_LINEAR_INTERPOLATION",
+                           value)) {
+            const string_view trimmed = Strutil::strip(value);
+            if (trimmed == "1" || Strutil::iequals(trimmed, "true")
+                || Strutil::iequals(trimmed, "yes")
+                || Strutil::iequals(trimmed, "on")) {
+                ui_state.linear_interpolation = true;
+            } else if (trimmed == "0" || Strutil::iequals(trimmed, "false")
+                       || Strutil::iequals(trimmed, "no")
+                       || Strutil::iequals(trimmed, "off")) {
+                ui_state.linear_interpolation = false;
+            }
+        }
     }
 
     void begin_developer_screenshot_request(DeveloperUiState& developer_ui,

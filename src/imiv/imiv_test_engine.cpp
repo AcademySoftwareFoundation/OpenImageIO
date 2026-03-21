@@ -159,6 +159,8 @@ namespace {
         bool has_display           = false;
         bool has_view              = false;
         bool has_image_color_space = false;
+        bool has_linear_interpolation = false;
+        bool linear_interpolation     = false;
         std::string display;
         std::string view;
         std::string image_color_space;
@@ -375,6 +377,10 @@ namespace {
             if (ocio_cs_attr && ocio_cs_attr.as_string()[0] != '\0') {
                 step.ocio.has_image_color_space = true;
                 step.ocio.image_color_space     = ocio_cs_attr.as_string();
+            }
+            if (parse_bool_attr(step_node.attribute("linear_interpolation"),
+                                step.ocio.linear_interpolation)) {
+                step.ocio.has_linear_interpolation = true;
             }
 
             parse_bool_attr(step_node.attribute("screenshot"),
@@ -908,6 +914,11 @@ namespace {
             set_process_env_value(
                 "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE",
                 &ocio.image_color_space);
+        }
+        if (ocio.has_linear_interpolation) {
+            const std::string value = ocio.linear_interpolation ? "1" : "0";
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_LINEAR_INTERPOLATION", &value);
         }
     }
 
