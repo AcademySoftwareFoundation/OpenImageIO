@@ -150,6 +150,13 @@ def _write_scenario(path: Path, runtime_dir_rel: str) -> None:
     ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
 
 
+def _path_for_imiv_output(path: Path, run_cwd: Path) -> str:
+    try:
+        return os.path.relpath(path, run_cwd)
+    except ValueError:
+        return str(path)
+
+
 def _image_crop_rect(layout_path: Path) -> tuple[int, int, int, int]:
     data = json.loads(layout_path.read_text(encoding="utf-8"))
     image_window = None
@@ -371,7 +378,9 @@ def main() -> int:
     _build_fixture(oiiotool, image_path)
 
     scenario_path = out_dir / "sampling.scenario.xml"
-    _write_scenario(scenario_path, runtime_dir_rel="runtime")
+    runtime_dir = out_dir / "runtime"
+    runtime_dir_rel = _path_for_imiv_output(runtime_dir, cwd)
+    _write_scenario(scenario_path, runtime_dir_rel=runtime_dir_rel)
 
     log_path = out_dir / "sampling.log"
     cmd = [
@@ -402,7 +411,6 @@ def main() -> int:
         print(f"error: runner exited with code {proc.returncode}", file=sys.stderr)
         return 1
 
-    runtime_dir = out_dir / "runtime"
     nearest_screenshot = runtime_dir / "nearest.png"
     nearest_layout = runtime_dir / "nearest.layout.json"
     linear_screenshot = runtime_dir / "linear.png"
