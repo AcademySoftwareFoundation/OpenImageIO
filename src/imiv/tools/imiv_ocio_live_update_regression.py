@@ -177,6 +177,24 @@ def _pick_first_other(values: list[str], current: str) -> str:
     return ""
 
 
+def _pick_preferred_target_view(values: list[str], current: str) -> str:
+    ranked: list[str] = []
+    for value in values:
+        if value == current:
+            continue
+        lowered = value.lower()
+        penalty = 0
+        if "raw" in lowered:
+            penalty += 100
+        if "video" in lowered:
+            penalty += 40
+        ranked.append((penalty, value))
+    if not ranked:
+        return ""
+    ranked.sort(key=lambda item: (item[0], item[1]))
+    return ranked[0][1]
+
+
 def _display_priority(display_name: str, current_display: str) -> tuple[int, str]:
     name = display_name.lower()
     score = 100
@@ -285,7 +303,13 @@ def _resolve_live_targets(
         target_views = display_views.get(target_display, [])
         target_view = args.target_view.strip()
         if not target_view:
-            target_view = initial_view if initial_view in target_views else "default"
+            target_view = _pick_preferred_target_view(target_views, initial_view)
+            if not target_view:
+                target_view = (
+                    target_views[0]
+                    if target_views
+                    else ("default" if initial_view != "default" else initial_view)
+                )
     else:
         raise RuntimeError(f"unsupported switch mode: {switch_mode}")
 
@@ -881,7 +905,7 @@ def main() -> int:
     )
     if static_switch_diff <= 4.0:
         return _fail(
-            "live OCIO view switch did not update the image region "
+            f"live OCIO {switch_mode} switch did not update the image region "
             f"(mean abs RGB diff={static_switch_diff:.4f})"
         )
 
@@ -890,7 +914,7 @@ def main() -> int:
     )
     if target_switch_diff > 2.0:
         return _fail(
-            "live OCIO view switch does not match the settled target view "
+            f"live OCIO {switch_mode} switch does not match the settled target state "
             f"(mean abs RGB diff={target_switch_diff:.4f})"
         )
 
