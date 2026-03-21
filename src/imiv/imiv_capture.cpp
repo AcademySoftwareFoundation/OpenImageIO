@@ -3,11 +3,13 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "imiv_types.h"
+#include "imiv_renderer.h"
 
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace Imiv {
 
@@ -414,9 +416,15 @@ bool
 imiv_vulkan_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                            unsigned int* pixels, void* user_data)
 {
-    VulkanState* vk_state = reinterpret_cast<VulkanState*>(user_data);
-    if (vk_state == nullptr)
+    if (pixels == nullptr || w <= 0 || h <= 0)
         return false;
+
+    // renderer_screen_capture() forwards the owning RendererState as user data.
+    RendererState* renderer_state = reinterpret_cast<RendererState*>(user_data);
+    if (renderer_state == nullptr || renderer_state->backend == nullptr)
+        return false;
+    VulkanState* vk_state = reinterpret_cast<VulkanState*>(
+        renderer_state->backend);
 
     int capture_x = x;
     int capture_y = y;
@@ -457,8 +465,55 @@ imiv_vulkan_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                              vk_state->window_data.Height - capture_y);
     }
 
-    return capture_swapchain_region_rgba8(*vk_state, capture_x, capture_y,
-                                          capture_w, capture_h, pixels);
+    if (capture_w <= 0 || capture_h <= 0)
+        return false;
+
+    if (capture_w == w && capture_h == h)
+        return capture_swapchain_region_rgba8(*vk_state, capture_x, capture_y,
+                                              capture_w, capture_h, pixels);
+
+    std::vector<unsigned int> captured_pixels(static_cast<size_t>(capture_w)
+                                              * static_cast<size_t>(capture_h));
+    if (!capture_swapchain_region_rgba8(*vk_state, capture_x, capture_y,
+                                        capture_w, capture_h,
+                                        captured_pixels.data())) {
+        return false;
+    }
+
+    const unsigned char* src_bytes = reinterpret_cast<const unsigned char*>(
+        captured_pixels.data());
+    unsigned char* dst_bytes = reinterpret_cast<unsigned char*>(pixels);
+    const double sample_scale_x = static_cast<double>(capture_w)
+                                  / static_cast<double>(w);
+    const double sample_scale_y = static_cast<double>(capture_h)
+                                  / static_cast<double>(h);
+    for (int row = 0; row < h; ++row) {
+        unsigned char* dst_row = dst_bytes
+                                 + static_cast<size_t>(row)
+                                       * static_cast<size_t>(w) * 4;
+        const int sample_row = std::clamp(
+            static_cast<int>(std::floor((static_cast<double>(row) + 0.5)
+                                        * sample_scale_y)),
+            0, capture_h - 1);
+        const unsigned char* src_row
+            = src_bytes + static_cast<size_t>(sample_row)
+                              * static_cast<size_t>(capture_w) * 4;
+        for (int col = 0; col < w; ++col) {
+            const int sample_col = std::clamp(
+                static_cast<int>(std::floor((static_cast<double>(col) + 0.5)
+                                            * sample_scale_x)),
+                0, capture_w - 1);
+            const unsigned char* src
+                = src_row + static_cast<size_t>(sample_col) * 4;
+            unsigned char* dst = dst_row + static_cast<size_t>(col) * 4;
+            dst[0]             = src[0];
+            dst[1]             = src[1];
+            dst[2]             = src[2];
+            dst[3]             = src[3];
+        }
+    }
+
+    return true;
 }
 
 #endif

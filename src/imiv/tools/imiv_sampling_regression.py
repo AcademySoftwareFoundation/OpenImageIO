@@ -181,7 +181,8 @@ def _image_crop_rect(layout_path: Path) -> tuple[int, int, int, int]:
 
     chosen_rect = None
     for item in image_window.get("items", []):
-        if item.get("debug") == "image: Image":
+        debug = item.get("debug") or ""
+        if debug == "image: Image" or "image_canvas" in debug:
             chosen_rect = item.get("rect_clipped") or item.get("rect_full")
             break
 
