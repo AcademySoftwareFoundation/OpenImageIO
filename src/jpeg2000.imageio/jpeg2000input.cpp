@@ -83,6 +83,45 @@ j2k_associateAlpha(T* data, int size, int channels, int alpha_channel,
 
 
 
+#ifdef USE_OPENJPH
+// A wrapper for ojph::infile_base to use OIIO's IOProxy
+class jph_infile : public ojph::infile_base {
+private:
+    Filesystem::IOProxy* ioproxy;
+
+public:
+    jph_infile(Filesystem::IOProxy* iop) { ioproxy = iop; }
+    ~jph_infile()
+    {
+        // if (ioproxy != NULL)
+        //   ioproxy->close();
+    }
+
+    //read reads size bytes, returns the number of bytes read
+    size_t read(void* ptr, size_t size) { return ioproxy->read(ptr, size); }
+    //seek returns 0 on success
+    int seek(ojph::si64 offset, enum infile_base::seek origin)
+    {
+        return ioproxy->seek(offset, origin);
+    }
+    ojph::si64 tell() { return ioproxy->tell(); };
+    bool eof()
+    {
+        int64_t pos = ioproxy->tell();
+        if (pos < 0)
+            return false;  // Error condition, not EOF
+        return pos == static_cast<int64_t>(ioproxy->size());
+    }
+    void close()
+    {
+        ioproxy->close();
+        ioproxy = NULL;
+    };
+};
+#endif
+
+
+
 class Jpeg2000Input final : public ImageInput {
 public:
     Jpeg2000Input() { init(); }
@@ -108,6 +147,9 @@ private:
     opj_codec_t* m_codec;
     opj_stream_t* m_stream;
     bool m_keep_unassociated_alpha;  // Do not convert unassociated alpha
+#ifdef USE_OPENJPH
+    std::unique_ptr<jph_infile> m_jphinfile;
+#endif
 
     void init(void);
 
@@ -235,6 +277,9 @@ Jpeg2000Input::init(void)
     m_codec                   = NULL;
     m_stream                  = NULL;
     m_keep_unassociated_alpha = false;
+#ifdef USE_OPENJPH
+    m_jphinfile.reset();
+#endif
     ioproxy_clear();
 }
 
@@ -255,42 +300,6 @@ Jpeg2000Input::valid_file(Filesystem::IOProxy* ioproxy) const
 }
 
 #ifdef USE_OPENJPH
-// A wrapper for ojph::infile_base to use OIIO's IOProxy
-class jph_infile : public ojph::infile_base {
-private:
-    Filesystem::IOProxy* ioproxy;
-
-public:
-    jph_infile(Filesystem::IOProxy* iop) { ioproxy = iop; }
-    ~jph_infile()
-    {
-        // if (ioproxy != NULL)
-        //   ioproxy->close();
-    }
-
-    //read reads size bytes, returns the number of bytes read
-    size_t read(void* ptr, size_t size) { return ioproxy->read(ptr, size); }
-    //seek returns 0 on success
-    int seek(ojph::si64 offset, enum infile_base::seek origin)
-    {
-        return ioproxy->seek(offset, origin);
-    }
-    ojph::si64 tell() { return ioproxy->tell(); };
-    bool eof()
-    {
-        int64_t pos = ioproxy->tell();
-        if (pos < 0)
-            return false;  // Error condition, not EOF
-        return pos == static_cast<int64_t>(ioproxy->size());
-    }
-    void close()
-    {
-        ioproxy->close();
-        ioproxy = NULL;
-    };
-};
-
-
 
 // Convert a 32-bit signed integer to a 16-bit signed integer, with special
 // handling for special numbers (NaN, Infinity, etc.) if requested.
@@ -484,7 +493,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
         return false;
 
 #ifdef USE_OPENJPH
-    jph_infile* jphinfile              = new jph_infile(ioproxy());
+    m_jphinfile.reset(new jph_infile(ioproxy()));
     ojph_reader                        = true;
     ojph::message_error* default_error = ojph::get_error();
     // Disable the default OpenJPH error stream to prevent unwanted error output.
@@ -494,14 +503,13 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     try {
         Oiio_Reader_Error_handler error_handler(default_error);
         ojph::configure_error(&error_handler);
-        codestream.read_headers(jphinfile);
+        codestream.read_headers(m_jphinfile.get());
         return ojph_read_header();
     } catch (const std::runtime_error& e) {
         ojph::configure_error(default_error);
         ojph_reader = false;
+        m_jphinfile.reset();
     }
-    delete jphinfile;
-
 #endif  // USE_OPENJPH
 
     ioseek(0);
