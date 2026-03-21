@@ -1122,6 +1122,7 @@ static ExrMeta exr_meta_translation[] = {
     ExrMeta("XResolution", "xDensity", TypeFloat),
     ExrMeta("ExposureTime", "expTime", TypeFloat),
     ExrMeta("FNumber", "aperture", TypeFloat),
+    ExrMeta("ISOSpeed", "isoSpeed", TypeFloat),
     ExrMeta("oiio:subimagename", "name", TypeString),
     ExrMeta("openexr:dwaCompressionLevel", "dwaCompressionLevel", TypeFloat),
     ExrMeta("smpte:TimeCode", "timeCode", TypeTimeCode),
