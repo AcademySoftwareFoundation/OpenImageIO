@@ -1332,6 +1332,23 @@ if (TARGET imiv
             LABELS "imiv;gui"
             TIMEOUT 360)
 
+    add_test (
+        NAME imiv_rgb_input_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_rgb_input_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_default_backend_args}
+            --oiiotool "$<TARGET_FILE:oiiotool>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/rgb_input_regression"
+            --source-image "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png")
+    set_tests_properties (
+        imiv_rgb_input_regression PROPERTIES
+            LABELS "imiv;imiv_rgb;gui"
+            TIMEOUT 120)
+
     if (_imiv_enabled_backend_count GREATER 1)
         add_test (
             NAME imiv_backend_preferences_regression

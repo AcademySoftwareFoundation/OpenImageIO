@@ -422,6 +422,36 @@ def _ux_checks(
     return [("ux", cmd, out_dir / "verify_ux.log", None)]
 
 
+def _rgb_checks(
+    repo_root: Path,
+    backend: str,
+    exe: Path,
+    run_cwd: Path,
+    oiiotool: Path,
+    out_dir: Path,
+    source_image: Path,
+    env_script: Path | None,
+    trace: bool,
+) -> list[tuple[str, list[str], Path, dict[str, str] | None]]:
+    script = repo_root / "src" / "imiv" / "tools" / "imiv_rgb_input_regression.py"
+    cmd = _script_cmd(
+        script,
+        backend=backend,
+        exe=exe,
+        run_cwd=run_cwd,
+        out_dir=out_dir / "runtime_rgb",
+        trace=trace,
+        extra=[
+            "--oiiotool",
+            str(oiiotool),
+            "--source-image",
+            str(source_image),
+        ],
+        env_script=env_script,
+    )
+    return [("rgb", cmd, out_dir / "verify_rgb.log", None)]
+
+
 def _ocio_checks(
     repo_root: Path,
     backend: str,
@@ -777,6 +807,19 @@ def main() -> int:
         )
     )
     checks.extend(
+        _rgb_checks(
+            repo_root,
+            args.backend,
+            imiv,
+            run_cwd,
+            oiiotool,
+            out_dir,
+            image_path,
+            env_script,
+            args.trace,
+        )
+    )
+    checks.extend(
         _ux_checks(
             repo_root,
             args.backend,
@@ -827,6 +870,8 @@ def main() -> int:
     print(f"  build:       {build_log}")
     print(f"  smoke:       {out_dir / 'verify_smoke.log'}")
     print(f"  runtime+s:   {out_dir / 'runtime'}")
+    print(f"  rgb:         {out_dir / 'verify_rgb.log'}")
+    print(f"  runtime+rgb: {out_dir / 'runtime_rgb'}")
     print(f"  ux:          {out_dir / 'verify_ux.log'}")
     print(f"  runtime+ux:  {out_dir / 'runtime_ux'}")
     if args.backend == "metal":

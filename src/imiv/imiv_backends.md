@@ -207,6 +207,8 @@ Manual verification:
 
 - canonical cross-platform backend verifier:
   - [imiv_backend_verify.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_backend_verify.py)
+- shared RGB-input regression:
+  - [imiv_rgb_input_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_rgb_input_regression.py)
 - compatibility frontends:
   - [imiv_macos_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_macos_backend_verify.sh)
   - [imiv_linux_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_linux_backend_verify.sh)
