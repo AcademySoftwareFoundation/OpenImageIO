@@ -4,6 +4,7 @@
 
 #include "imiv_types.h"
 
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -413,11 +414,51 @@ bool
 imiv_vulkan_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                            unsigned int* pixels, void* user_data)
 {
-    (void)viewport_id;
     VulkanState* vk_state = reinterpret_cast<VulkanState*>(user_data);
     if (vk_state == nullptr)
         return false;
-    return capture_swapchain_region_rgba8(*vk_state, x, y, w, h, pixels);
+
+    int capture_x = x;
+    int capture_y = y;
+    int capture_w = w;
+    int capture_h = h;
+    ImGuiViewport* viewport = ImGui::FindViewportByID(viewport_id);
+    if (viewport != nullptr && vk_state->window_data.Width > 0
+        && vk_state->window_data.Height > 0 && viewport->Size.x > 0.0f
+        && viewport->Size.y > 0.0f) {
+        const double scale_x = static_cast<double>(vk_state->window_data.Width)
+                               / static_cast<double>(viewport->Size.x);
+        const double scale_y = static_cast<double>(vk_state->window_data.Height)
+                               / static_cast<double>(viewport->Size.y);
+        capture_x = static_cast<int>(std::lround(
+            (static_cast<double>(x) - static_cast<double>(viewport->Pos.x))
+            * scale_x));
+        capture_y = static_cast<int>(std::lround(
+            (static_cast<double>(y) - static_cast<double>(viewport->Pos.y))
+            * scale_y));
+        capture_w = std::max(1, static_cast<int>(std::lround(
+                                   static_cast<double>(w) * scale_x)));
+        capture_h = std::max(1, static_cast<int>(std::lround(
+                                   static_cast<double>(h) * scale_y)));
+    }
+
+    if (capture_x < 0) {
+        capture_w += capture_x;
+        capture_x = 0;
+    }
+    if (capture_y < 0) {
+        capture_h += capture_y;
+        capture_y = 0;
+    }
+    if (capture_x < vk_state->window_data.Width
+        && capture_y < vk_state->window_data.Height) {
+        capture_w = std::min(capture_w, vk_state->window_data.Width - capture_x);
+        capture_h = std::min(capture_h,
+                             vk_state->window_data.Height - capture_y);
+    }
+
+    return capture_swapchain_region_rgba8(*vk_state, capture_x, capture_y,
+                                          capture_w, capture_h, pixels);
 }
 
 #endif

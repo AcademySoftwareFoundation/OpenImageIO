@@ -60,6 +60,9 @@
 #ifndef GL_TEXTURE0
 #    define GL_TEXTURE0 0x84C0
 #endif
+#ifndef GL_UNPACK_ROW_LENGTH
+#    define GL_UNPACK_ROW_LENGTH 0x0CF2
+#endif
 #ifndef GL_TEXTURE_1D
 #    define GL_TEXTURE_1D 0x0DE0
 #endif
@@ -69,8 +72,53 @@
 #ifndef GL_R32F
 #    define GL_R32F 0x822E
 #endif
+#ifndef GL_R8
+#    define GL_R8 0x8229
+#endif
+#ifndef GL_R16
+#    define GL_R16 0x822A
+#endif
+#ifndef GL_R16F
+#    define GL_R16F 0x822D
+#endif
+#ifndef GL_RG
+#    define GL_RG 0x8227
+#endif
+#ifndef GL_RG8
+#    define GL_RG8 0x822B
+#endif
+#ifndef GL_RG16
+#    define GL_RG16 0x822C
+#endif
+#ifndef GL_RG16F
+#    define GL_RG16F 0x822F
+#endif
+#ifndef GL_RG32F
+#    define GL_RG32F 0x8230
+#endif
 #ifndef GL_RGB32F
 #    define GL_RGB32F 0x8815
+#endif
+#ifndef GL_RGB8
+#    define GL_RGB8 0x8051
+#endif
+#ifndef GL_RGB16
+#    define GL_RGB16 0x8054
+#endif
+#ifndef GL_RGB16F
+#    define GL_RGB16F 0x881B
+#endif
+#ifndef GL_RGBA8
+#    define GL_RGBA8 0x8058
+#endif
+#ifndef GL_RGBA16
+#    define GL_RGBA16 0x805B
+#endif
+#ifndef GL_RGBA16F
+#    define GL_RGBA16F 0x881A
+#endif
+#ifndef GL_HALF_FLOAT
+#    define GL_HALF_FLOAT 0x140B
 #endif
 #ifndef GL_TEXTURE_WRAP_R
 #    define GL_TEXTURE_WRAP_R 0x8072
@@ -95,6 +143,15 @@ struct RendererTextureBackendState {
     bool preview_params_valid                     = false;
     RendererPreviewControls last_preview_controls = {};
     std::string last_ocio_shader_cache_id;
+};
+
+struct SourceTextureUploadDesc {
+    GLint internal_format                 = GL_RGBA32F;
+    GLenum format                         = GL_RGBA;
+    GLenum type                           = GL_FLOAT;
+    const void* pixels                    = nullptr;
+    GLint unpack_row_length               = 0;
+    std::vector<float> fallback_rgba_data = {};
 };
 
 struct BasicPreviewProgram {
@@ -612,6 +669,8 @@ void main()
 {{
     vec2 src_uv = display_to_source_uv(uv_in, u_orientation);
     vec4 c = texture(u_source_image, src_uv);
+    if (u_input_channels == 2)
+        c = vec4(c.rrr, c.g);
     c.rgb += vec3(u_offset);
 
     if (u_color_mode == 1) {{
@@ -882,6 +941,8 @@ void main()
 {
     vec2 src_uv = display_to_source_uv(uv_in, u_orientation);
     vec4 c = texture(u_source_image, src_uv);
+    if (u_input_channels == 2)
+        c = vec4(c.rrr, c.g);
     c.rgb += vec3(u_offset);
 
     if (u_color_mode == 1) {
@@ -1009,9 +1070,10 @@ void main()
         return false;
     }
 
-    bool allocate_texture_storage(GLuint texture_id, GLint filter, int width,
-                                  int height, const float* rgba_pixels,
-                                  std::string& error_message)
+    bool allocate_source_texture_storage(GLuint texture_id, GLint filter,
+                                         int width, int height,
+                                         const SourceTextureUploadDesc& upload,
+                                         std::string& error_message)
     {
         glBindTexture(GL_TEXTURE_2D, texture_id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
@@ -1021,8 +1083,10 @@ void main()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA,
-                     GL_FLOAT, rgba_pixels);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, upload.unpack_row_length);
+        glTexImage2D(GL_TEXTURE_2D, 0, upload.internal_format, width, height, 0,
+                     upload.format, upload.type, upload.pixels);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
         const GLenum err = glGetError();
         glBindTexture(GL_TEXTURE_2D, 0);
         if (err == GL_NO_ERROR) {
@@ -1030,6 +1094,29 @@ void main()
             return true;
         }
         error_message = "OpenGL texture upload failed";
+        return false;
+    }
+
+    bool allocate_preview_texture_storage(GLuint texture_id, GLint filter,
+                                          int width, int height,
+                                          std::string& error_message)
+    {
+        glBindTexture(GL_TEXTURE_2D, texture_id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA,
+                     GL_FLOAT, nullptr);
+        const GLenum err = glGetError();
+        glBindTexture(GL_TEXTURE_2D, 0);
+        if (err == GL_NO_ERROR) {
+            error_message.clear();
+            return true;
+        }
+        error_message = "OpenGL texture allocation failed";
         return false;
     }
 
@@ -1257,6 +1344,123 @@ void main()
         return true;
     }
 
+    bool describe_native_source_upload(const LoadedImage& image,
+                                       SourceTextureUploadDesc& upload,
+                                       std::string& error_message)
+    {
+        upload = {};
+        if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0) {
+            error_message = "invalid source image dimensions";
+            return false;
+        }
+
+        const int channel_count = image.nchannels;
+        if (channel_count > 4) {
+            if (!build_rgba_float_pixels(image, upload.fallback_rgba_data,
+                                         error_message)) {
+                return false;
+            }
+            upload.pixels            = upload.fallback_rgba_data.data();
+            upload.unpack_row_length = image.width;
+            error_message.clear();
+            return true;
+        }
+
+        const size_t pixel_stride = image.channel_bytes
+                                    * static_cast<size_t>(channel_count);
+        if (pixel_stride == 0 || image.row_pitch_bytes == 0
+            || image.row_pitch_bytes
+                   < static_cast<size_t>(image.width) * pixel_stride) {
+            error_message = "invalid source stride for OpenGL upload";
+            return false;
+        }
+
+        if (image.row_pitch_bytes % pixel_stride != 0) {
+            if (!build_rgba_float_pixels(image, upload.fallback_rgba_data,
+                                         error_message)) {
+                return false;
+            }
+            upload.pixels            = upload.fallback_rgba_data.data();
+            upload.unpack_row_length = image.width;
+            error_message.clear();
+            return true;
+        }
+
+        const GLint row_length   = static_cast<GLint>(image.row_pitch_bytes
+                                                      / pixel_stride);
+        upload.pixels            = image.pixels.data();
+        upload.unpack_row_length = row_length;
+
+        switch (image.nchannels) {
+        case 1: upload.format = GL_RED; break;
+        case 2: upload.format = GL_RG; break;
+        case 3: upload.format = GL_RGB; break;
+        case 4: upload.format = GL_RGBA; break;
+        default: break;
+        }
+
+        switch (image.type) {
+        case UploadDataType::UInt8:
+            upload.type = GL_UNSIGNED_BYTE;
+            switch (image.nchannels) {
+            case 1: upload.internal_format = GL_R8; break;
+            case 2: upload.internal_format = GL_RG8; break;
+            case 3: upload.internal_format = GL_RGB8; break;
+            case 4: upload.internal_format = GL_RGBA8; break;
+            default: break;
+            }
+            break;
+        case UploadDataType::UInt16:
+            upload.type = GL_UNSIGNED_SHORT;
+            switch (image.nchannels) {
+            case 1: upload.internal_format = GL_R16; break;
+            case 2: upload.internal_format = GL_RG16; break;
+            case 3: upload.internal_format = GL_RGB16; break;
+            case 4: upload.internal_format = GL_RGBA16; break;
+            default: break;
+            }
+            break;
+        case UploadDataType::Half:
+            upload.type = GL_HALF_FLOAT;
+            switch (image.nchannels) {
+            case 1: upload.internal_format = GL_R16F; break;
+            case 2: upload.internal_format = GL_RG16F; break;
+            case 3: upload.internal_format = GL_RGB16F; break;
+            case 4: upload.internal_format = GL_RGBA16F; break;
+            default: break;
+            }
+            break;
+        case UploadDataType::Float:
+            upload.type = GL_FLOAT;
+            switch (image.nchannels) {
+            case 1: upload.internal_format = GL_R32F; break;
+            case 2: upload.internal_format = GL_RG32F; break;
+            case 3: upload.internal_format = GL_RGB32F; break;
+            case 4: upload.internal_format = GL_RGBA32F; break;
+            default: break;
+            }
+            break;
+        case UploadDataType::UInt32:
+        case UploadDataType::Double:
+            if (!build_rgba_float_pixels(image, upload.fallback_rgba_data,
+                                         error_message)) {
+                return false;
+            }
+            upload.internal_format   = GL_RGBA32F;
+            upload.format            = GL_RGBA;
+            upload.type              = GL_FLOAT;
+            upload.pixels            = upload.fallback_rgba_data.data();
+            upload.unpack_row_length = image.width;
+            error_message.clear();
+            return true;
+        case UploadDataType::Unknown:
+        default: error_message = "unsupported source pixel type"; return false;
+        }
+
+        error_message.clear();
+        return true;
+    }
+
 }  // namespace
 
 bool
@@ -1308,8 +1512,8 @@ opengl_create_texture(RendererState& renderer_state, const LoadedImage& image,
         return false;
     }
 
-    std::vector<float> rgba_pixels;
-    if (!build_rgba_float_pixels(image, rgba_pixels, error_message))
+    SourceTextureUploadDesc upload;
+    if (!describe_native_source_upload(image, upload, error_message))
         return false;
 
     auto* texture_state = new RendererTextureBackendState();
@@ -1329,15 +1533,15 @@ opengl_create_texture(RendererState& renderer_state, const LoadedImage& image,
     if (texture_state->source_texture == 0
         || texture_state->preview_linear_texture == 0
         || texture_state->preview_nearest_texture == 0
-        || !allocate_texture_storage(texture_state->source_texture, GL_NEAREST,
-                                     image.width, image.height,
-                                     rgba_pixels.data(), error_message)
-        || !allocate_texture_storage(texture_state->preview_linear_texture,
-                                     GL_LINEAR, image.width, image.height,
-                                     nullptr, error_message)
-        || !allocate_texture_storage(texture_state->preview_nearest_texture,
-                                     GL_NEAREST, image.width, image.height,
-                                     nullptr, error_message)) {
+        || !allocate_source_texture_storage(texture_state->source_texture,
+                                            GL_NEAREST, image.width,
+                                            image.height, upload, error_message)
+        || !allocate_preview_texture_storage(
+            texture_state->preview_linear_texture, GL_LINEAR, image.width,
+            image.height, error_message)
+        || !allocate_preview_texture_storage(
+            texture_state->preview_nearest_texture, GL_NEAREST, image.width,
+            image.height, error_message)) {
         if (texture_state->source_texture != 0)
             glDeleteTextures(1, &texture_state->source_texture);
         if (texture_state->preview_linear_texture != 0)
@@ -1480,8 +1684,7 @@ opengl_setup_instance(RendererState& renderer_state,
 }
 
 bool
-opengl_setup_device(RendererState& renderer_state,
-                    std::string& error_message)
+opengl_setup_device(RendererState& renderer_state, std::string& error_message)
 {
     if (backend_state(renderer_state) == nullptr) {
         error_message = "OpenGL renderer state is not initialized";

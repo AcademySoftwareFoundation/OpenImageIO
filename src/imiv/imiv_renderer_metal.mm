@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -44,7 +45,6 @@ struct RendererTextureBackendState {
     bool preview_dirty                              = true;
     bool preview_params_valid                       = false;
     RendererPreviewControls last_preview_controls   = {};
-    std::vector<float> source_rgba_pixels;
 };
 
 struct MetalOcioTextureBinding {
@@ -84,6 +84,7 @@ struct RendererBackendState {
     id<MTLRenderCommandEncoder> current_encoder  = nil;
     __strong id<MTLLibrary> preview_library      = nil;
     __strong id<MTLRenderPipelineState> preview_pipeline = nil;
+    __strong id<MTLComputePipelineState> upload_pipeline = nil;
     __strong id<MTLSamplerState> linear_sampler  = nil;
     __strong id<MTLSamplerState> nearest_sampler = nil;
     MetalOcioPreviewState ocio_preview;
@@ -99,6 +100,15 @@ struct MetalPreviewUniforms {
     int input_channels   = 0;
     int orientation      = 1;
     int _padding         = 0;
+};
+
+struct MetalUploadUniforms {
+    uint32_t width             = 0;
+    uint32_t height            = 0;
+    uint32_t row_pitch_bytes   = 0;
+    uint32_t pixel_stride_bytes = 0;
+    uint32_t channel_count     = 0;
+    uint32_t data_type         = 0;
 };
 
 namespace {
@@ -167,78 +177,68 @@ preview_controls_equal(const RendererPreviewControls& a,
 }
 
 bool
-build_rgba_float_pixels(const LoadedImage& image,
-                        std::vector<float>& rgba_pixels,
-                        std::string& error_message)
+prepare_source_upload(const LoadedImage& image, const unsigned char*& upload_ptr,
+                      size_t& upload_bytes, UploadDataType& upload_type,
+                      size_t& channel_bytes, size_t& row_pitch_bytes,
+                      std::vector<unsigned char>& converted_pixels,
+                      std::string& error_message)
 {
-    using namespace OIIO;
-
     error_message.clear();
-    rgba_pixels.clear();
-    if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0) {
+    converted_pixels.clear();
+    if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0
+        || image.pixels.empty()) {
         error_message = "invalid source image dimensions";
         return false;
     }
 
-    const TypeDesc format = upload_data_type_to_typedesc(image.type);
-    if (format == TypeUnknown) {
+    upload_type     = image.type;
+    channel_bytes   = image.channel_bytes;
+    row_pitch_bytes = image.row_pitch_bytes;
+    upload_ptr      = image.pixels.data();
+    upload_bytes    = image.pixels.size();
+
+    if (upload_type == UploadDataType::Unknown) {
         error_message = "unsupported source pixel type";
         return false;
     }
 
-    const size_t width         = static_cast<size_t>(image.width);
-    const size_t height        = static_cast<size_t>(image.height);
-    const size_t channels      = static_cast<size_t>(image.nchannels);
-    const size_t min_row_pitch = width * channels * image.channel_bytes;
-    if (image.row_pitch_bytes < min_row_pitch) {
+    const size_t channel_count = static_cast<size_t>(image.nchannels);
+    if (upload_type == UploadDataType::Double) {
+        const size_t value_count = image.pixels.size() / sizeof(double);
+        converted_pixels.resize(value_count * sizeof(float));
+        const double* src = reinterpret_cast<const double*>(image.pixels.data());
+        float* dst = reinterpret_cast<float*>(converted_pixels.data());
+        for (size_t i = 0; i < value_count; ++i)
+            dst[i] = static_cast<float>(src[i]);
+        upload_type     = UploadDataType::Float;
+        channel_bytes   = sizeof(float);
+        row_pitch_bytes = static_cast<size_t>(image.width) * channel_count
+                          * channel_bytes;
+        upload_ptr   = converted_pixels.data();
+        upload_bytes = converted_pixels.size();
+    }
+
+    const size_t pixel_stride_bytes = channel_bytes * channel_count;
+    if (pixel_stride_bytes == 0 || row_pitch_bytes == 0
+        || row_pitch_bytes
+               < static_cast<size_t>(image.width) * pixel_stride_bytes) {
         error_message = "invalid source row pitch";
         return false;
     }
 
-    ImageSpec spec(image.width, image.height, image.nchannels, format);
-    ImageBuf source(spec);
-    const auto* begin = reinterpret_cast<const std::byte*>(
-        image.pixels.data());
-    const cspan<std::byte> byte_span(begin, image.pixels.size());
-    const stride_t xstride = static_cast<stride_t>(image.nchannels
-                                                   * image.channel_bytes);
-    const stride_t ystride = static_cast<stride_t>(image.row_pitch_bytes);
-    if (!source.set_pixels(ROI::All(), format, byte_span, begin, xstride,
-                           ystride, AutoStride)) {
-        error_message = source.geterror().empty() ? "failed to stage image data"
-                                                  : source.geterror();
+    const size_t required_bytes = row_pitch_bytes * static_cast<size_t>(image.height);
+    if (upload_bytes < required_bytes) {
+        error_message = "source pixel buffer is smaller than declared stride";
         return false;
     }
 
-    std::vector<float> source_pixels(width * height * channels, 0.0f);
-    if (!source.get_pixels(ROI::All(), TypeFloat, source_pixels.data())) {
-        error_message = source.geterror().empty()
-                            ? "failed to convert image pixels to float"
-                            : source.geterror();
+    upload_bytes = required_bytes;
+    if (row_pitch_bytes > std::numeric_limits<uint32_t>::max()
+        || pixel_stride_bytes > std::numeric_limits<uint32_t>::max()) {
+        error_message = "source image stride exceeds Metal upload limits";
         return false;
     }
 
-    rgba_pixels.assign(width * height * 4, 1.0f);
-    for (size_t pixel = 0, src = 0; pixel < width * height; ++pixel) {
-        float* dst = &rgba_pixels[pixel * 4];
-        if (channels == 1) {
-            dst[0] = source_pixels[src + 0];
-            dst[1] = source_pixels[src + 0];
-            dst[2] = source_pixels[src + 0];
-            dst[3] = 1.0f;
-        } else if (channels == 2) {
-            dst[0] = source_pixels[src + 0];
-            dst[1] = source_pixels[src + 0];
-            dst[2] = source_pixels[src + 0];
-            dst[3] = source_pixels[src + 1];
-        } else {
-            dst[0] = source_pixels[src + 0];
-            dst[1] = source_pixels[src + 1];
-            dst[2] = source_pixels[src + 2];
-            dst[3] = (channels >= 4) ? source_pixels[src + 3] : 1.0f;
-        }
-        src += channels;
-    }
     return true;
 }
 
@@ -573,17 +573,11 @@ build_ocio_vector_uniform_bindings(OcioShaderRuntime& runtime,
 
 bool
 create_source_texture(id<MTLDevice> device, int width, int height,
-                      const std::vector<float>& rgba_pixels,
                       id<MTLTexture>& texture, std::string& error_message)
 {
     texture = nil;
     if (device == nil || width <= 0 || height <= 0) {
         error_message = "invalid Metal source texture parameters";
-        return false;
-    }
-    const size_t expected = static_cast<size_t>(width) * height * 4;
-    if (rgba_pixels.size() != expected) {
-        error_message = "invalid Metal source pixel buffer size";
         return false;
     }
     MTLTextureDescriptor* descriptor
@@ -592,21 +586,236 @@ create_source_texture(id<MTLDevice> device, int width, int height,
                                          width:static_cast<NSUInteger>(width)
                                         height:static_cast<NSUInteger>(height)
                                      mipmapped:NO];
-    descriptor.usage       = MTLTextureUsageShaderRead;
-    descriptor.storageMode = MTLStorageModeShared;
+    descriptor.usage       = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
+    descriptor.storageMode = MTLStorageModePrivate;
     texture          = [device newTextureWithDescriptor:descriptor];
     if (texture == nil) {
         error_message = "failed to create Metal source texture";
         return false;
     }
-    const MTLRegion region
-        = MTLRegionMake2D(0, 0, static_cast<NSUInteger>(width),
-                          static_cast<NSUInteger>(height));
-    [texture replaceRegion:region
-               mipmapLevel:0
-                 withBytes:rgba_pixels.data()
-               bytesPerRow:static_cast<NSUInteger>(width * 4
-                                                   * sizeof(float))];
+    error_message.clear();
+    return true;
+}
+
+NSString*
+upload_shader_source()
+{
+    static const char* source = R"metal(
+#include <metal_stdlib>
+using namespace metal;
+
+struct UploadUniforms {
+    uint width;
+    uint height;
+    uint row_pitch_bytes;
+    uint pixel_stride_bytes;
+    uint channel_count;
+    uint data_type;
+};
+
+constant uint IMIV_DATA_U8  = 0u;
+constant uint IMIV_DATA_U16 = 1u;
+constant uint IMIV_DATA_U32 = 2u;
+constant uint IMIV_DATA_F16 = 3u;
+constant uint IMIV_DATA_F32 = 4u;
+constant uint IMIV_DATA_F64 = 5u;
+
+inline uint read_byte(const device uchar* src_bytes, uint byte_offset)
+{
+    return uint(src_bytes[byte_offset]);
+}
+
+inline uint read_u16(const device uchar* src_bytes, uint byte_offset)
+{
+    return read_byte(src_bytes, byte_offset)
+           | (read_byte(src_bytes, byte_offset + 1u) << 8u);
+}
+
+inline uint read_u32(const device uchar* src_bytes, uint byte_offset)
+{
+    return read_byte(src_bytes, byte_offset)
+           | (read_byte(src_bytes, byte_offset + 1u) << 8u)
+           | (read_byte(src_bytes, byte_offset + 2u) << 16u)
+           | (read_byte(src_bytes, byte_offset + 3u) << 24u);
+}
+
+inline float decode_channel(const device uchar* src_bytes,
+                            constant UploadUniforms& upload,
+                            uint pixel_offset, uint channel_index)
+{
+    uint channel_bytes = 1u;
+    if (upload.data_type == IMIV_DATA_U16 || upload.data_type == IMIV_DATA_F16)
+        channel_bytes = 2u;
+    else if (upload.data_type == IMIV_DATA_U32
+             || upload.data_type == IMIV_DATA_F32)
+        channel_bytes = 4u;
+    else if (upload.data_type == IMIV_DATA_F64)
+        channel_bytes = 8u;
+
+    const uint byte_offset = pixel_offset + channel_index * channel_bytes;
+    if (upload.data_type == IMIV_DATA_U8)
+        return float(read_byte(src_bytes, byte_offset)) * (1.0f / 255.0f);
+    if (upload.data_type == IMIV_DATA_U16)
+        return float(read_u16(src_bytes, byte_offset)) * (1.0f / 65535.0f);
+    if (upload.data_type == IMIV_DATA_U32)
+        return float(read_u32(src_bytes, byte_offset))
+               * (1.0f / 4294967295.0f);
+    if (upload.data_type == IMIV_DATA_F16)
+        return float(as_type<half>(ushort(read_u16(src_bytes, byte_offset))));
+    if (upload.data_type == IMIV_DATA_F32)
+        return as_type<float>(read_u32(src_bytes, byte_offset));
+    return 0.0f;
+}
+
+inline float4 decode_pixel(const device uchar* src_bytes,
+                           constant UploadUniforms& upload, uint pixel_offset)
+{
+    if (upload.channel_count == 0u)
+        return float4(0.0f, 0.0f, 0.0f, 1.0f);
+    if (upload.channel_count == 1u) {
+        const float g = decode_channel(src_bytes, upload, pixel_offset, 0u);
+        return float4(g, g, g, 1.0f);
+    }
+    if (upload.channel_count == 2u) {
+        const float g = decode_channel(src_bytes, upload, pixel_offset, 0u);
+        const float a = decode_channel(src_bytes, upload, pixel_offset, 1u);
+        return float4(g, g, g, a);
+    }
+    const float r = decode_channel(src_bytes, upload, pixel_offset, 0u);
+    const float g = decode_channel(src_bytes, upload, pixel_offset, 1u);
+    const float b = decode_channel(src_bytes, upload, pixel_offset, 2u);
+    float a = 1.0f;
+    if (upload.channel_count >= 4u)
+        a = decode_channel(src_bytes, upload, pixel_offset, 3u);
+    return float4(r, g, b, a);
+}
+
+kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]],
+                                      constant UploadUniforms& upload [[buffer(1)]],
+                                      texture2d<float, access::write> dst_texture [[texture(0)]],
+                                      uint2 gid [[thread_position_in_grid]])
+{
+    if (gid.x >= upload.width || gid.y >= upload.height)
+        return;
+    const uint pixel_offset = gid.y * upload.row_pitch_bytes
+                              + gid.x * upload.pixel_stride_bytes;
+    dst_texture.write(decode_pixel(src_bytes, upload, pixel_offset), gid);
+}
+)metal";
+    return [NSString stringWithUTF8String:source];
+}
+
+bool
+create_upload_pipeline(RendererBackendState& state, std::string& error_message)
+{
+    if (state.device == nil) {
+        error_message = "Metal device is not initialized";
+        return false;
+    }
+    NSError* error = nil;
+    MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
+    id<MTLLibrary> library = [state.device newLibraryWithSource:upload_shader_source()
+                                                        options:options
+                                                          error:&error];
+    if (library == nil) {
+        error_message = (error != nil && error.localizedDescription != nil)
+                            ? std::string(error.localizedDescription.UTF8String)
+                            : "failed to compile Metal upload shader";
+        return false;
+    }
+
+    id<MTLFunction> function = [library newFunctionWithName:@"imivUploadToSourceTexture"];
+    if (function == nil) {
+        error_message = "failed to create Metal upload shader function";
+        return false;
+    }
+
+    state.upload_pipeline = [state.device newComputePipelineStateWithFunction:function
+                                                                         error:&error];
+    if (state.upload_pipeline == nil) {
+        error_message = (error != nil && error.localizedDescription != nil)
+                            ? std::string(error.localizedDescription.UTF8String)
+                            : "failed to create Metal upload pipeline";
+        return false;
+    }
+
+    error_message.clear();
+    return true;
+}
+
+bool
+upload_source_texture(RendererBackendState& state, const LoadedImage& image,
+                      id<MTLTexture> texture, std::string& error_message)
+{
+    if (state.device == nil || state.command_queue == nil || texture == nil
+        || state.upload_pipeline == nil) {
+        error_message = "Metal upload pipeline is not initialized";
+        return false;
+    }
+
+    std::vector<unsigned char> converted_pixels;
+    const unsigned char* upload_ptr = nullptr;
+    size_t upload_bytes             = 0;
+    UploadDataType upload_type      = UploadDataType::Unknown;
+    size_t channel_bytes            = 0;
+    size_t row_pitch_bytes          = 0;
+    if (!prepare_source_upload(image, upload_ptr, upload_bytes, upload_type,
+                               channel_bytes, row_pitch_bytes, converted_pixels,
+                               error_message)) {
+        return false;
+    }
+
+    id<MTLBuffer> source_buffer = [state.device newBufferWithBytes:upload_ptr
+                                                            length:static_cast<NSUInteger>(upload_bytes)
+                                                           options:MTLResourceStorageModeShared];
+    if (source_buffer == nil) {
+        error_message = "failed to create Metal source upload buffer";
+        return false;
+    }
+
+    MetalUploadUniforms uniforms = {};
+    uniforms.width              = static_cast<uint32_t>(image.width);
+    uniforms.height             = static_cast<uint32_t>(image.height);
+    uniforms.row_pitch_bytes    = static_cast<uint32_t>(row_pitch_bytes);
+    uniforms.pixel_stride_bytes = static_cast<uint32_t>(channel_bytes
+                                                        * static_cast<size_t>(image.nchannels));
+    uniforms.channel_count      = static_cast<uint32_t>(std::max(0, image.nchannels));
+    uniforms.data_type          = static_cast<uint32_t>(upload_type);
+
+    id<MTLCommandBuffer> command_buffer = [state.command_queue commandBuffer];
+    if (command_buffer == nil) {
+        error_message = "failed to create Metal upload command buffer";
+        return false;
+    }
+
+    id<MTLComputeCommandEncoder> encoder = [command_buffer computeCommandEncoder];
+    if (encoder == nil) {
+        error_message = "failed to create Metal upload command encoder";
+        return false;
+    }
+
+    [encoder setComputePipelineState:state.upload_pipeline];
+    [encoder setBuffer:source_buffer offset:0 atIndex:0];
+    [encoder setBytes:&uniforms length:sizeof(uniforms) atIndex:1];
+    [encoder setTexture:texture atIndex:0];
+
+    const MTLSize threads_per_group = MTLSizeMake(16, 16, 1);
+    const MTLSize threadgroups = MTLSizeMake(
+        (static_cast<NSUInteger>(image.width) + threads_per_group.width - 1)
+            / threads_per_group.width,
+        (static_cast<NSUInteger>(image.height) + threads_per_group.height - 1)
+            / threads_per_group.height,
+        1);
+    [encoder dispatchThreadgroups:threadgroups
+           threadsPerThreadgroup:threads_per_group];
+    [encoder endEncoding];
+    [command_buffer commit];
+    [command_buffer waitUntilCompleted];
+    if (command_buffer.status != MTLCommandBufferStatusCompleted) {
+        error_message = "Metal source upload compute dispatch failed";
+        return false;
+    }
+
     error_message.clear();
     return true;
 }
@@ -1479,11 +1688,9 @@ metal_create_texture(RendererState& renderer_state, const LoadedImage& image,
         return false;
     }
 
-    if (!build_rgba_float_pixels(image, texture_state->source_rgba_pixels,
-                                 error_message)
-        || !create_source_texture(state->device, image.width, image.height,
-                                  texture_state->source_rgba_pixels,
-                                  texture_state->source_texture,
+    if (!create_source_texture(state->device, image.width, image.height,
+                               texture_state->source_texture, error_message)
+        || !upload_source_texture(*state, image, texture_state->source_texture,
                                   error_message)
         || !create_preview_texture(state->device, image.width, image.height,
                                    texture_state->preview_linear_texture,
@@ -1682,7 +1889,8 @@ metal_setup_device(RendererState& renderer_state,
         error_message = "failed to create Metal command queue";
         return false;
     }
-    if (!create_preview_pipeline(*state, error_message))
+    if (!create_preview_pipeline(*state, error_message)
+        || !create_upload_pipeline(*state, error_message))
         return false;
     error_message.clear();
     return true;
