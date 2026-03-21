@@ -118,6 +118,30 @@ choose_instance_api_version()
 
 
 const char*
+portability_enumeration_extension_name()
+{
+#    ifdef VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+    return VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
+#    else
+    return "VK_KHR_portability_enumeration";
+#    endif
+}
+
+
+
+const char*
+portability_subset_extension_name()
+{
+#    ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+    return VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME;
+#    else
+    return "VK_KHR_portability_subset";
+#    endif
+}
+
+
+
+const char*
 physical_device_type_name(VkPhysicalDeviceType type)
 {
     switch (type) {
@@ -1218,11 +1242,11 @@ setup_vulkan_instance(VulkanState& vk_state,
         append_unique_extension(
             instance_extensions,
             VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-#    ifdef VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+#    ifdef VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
     if (is_extension_available(instance_properties,
-                               VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
+                               portability_enumeration_extension_name())) {
         append_unique_extension(instance_extensions,
-                                VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+                                portability_enumeration_extension_name());
         instance_ci.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     }
 #    endif
@@ -1316,11 +1340,11 @@ setup_vulkan_device(VulkanState& vk_state, std::string& error_message)
         error_message = "vkEnumerateDeviceExtensionProperties failed";
         return false;
     }
-#    ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
     if (is_extension_available(device_properties,
-                               VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME))
-        device_extensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
-#    endif
+                               portability_subset_extension_name())) {
+        append_unique_extension(device_extensions,
+                                portability_subset_extension_name());
+    }
 
     const float queue_priority[]     = { 1.0f };
     VkDeviceQueueCreateInfo queue_ci = {};
