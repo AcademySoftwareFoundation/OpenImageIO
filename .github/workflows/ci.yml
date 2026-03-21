@@ -333,10 +333,10 @@ jobs:
                             UHDR_CMAKE_CXX_COMPILER=g++
             # Building libuhdr with icx results in test failures
             optional_deps_append: "LibRaw;Ptex;openjph;Qt6"
-          - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.4
+          - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2026
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2026
+            container: aswf/ci-oiio:2026.3
             cxx_std: 20
             python_ver: "3.13"
             simd: "avx2,f16c"
