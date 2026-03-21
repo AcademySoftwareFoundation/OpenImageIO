@@ -118,8 +118,12 @@ def _load_env_from_script(script_path: Path) -> dict[str, str]:
     return env
 
 
-def _generate_probe_image(oiiotool: Path, image_path: Path) -> None:
+def _generate_probe_image(repo_root: Path, oiiotool: Path, image_path: Path) -> None:
     image_path.parent.mkdir(parents=True, exist_ok=True)
+    chart_image = repo_root / "testsuite" / "imiv" / "images" / "CC988_ACEScg.exr"
+    if chart_image.exists():
+        shutil.copyfile(chart_image, image_path)
+        return
     cmd = [
         str(oiiotool),
         "--create",
@@ -743,7 +747,7 @@ def main() -> int:
     env["OCIO"] = ocio_config
 
     try:
-        _generate_probe_image(oiiotool, image_path)
+        _generate_probe_image(repo_root, oiiotool, image_path)
 
         probe_env = dict(env)
         probe_env["IMIV_CONFIG_HOME"] = str(probe_config_home)

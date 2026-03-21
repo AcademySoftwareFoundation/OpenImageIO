@@ -143,8 +143,12 @@ def _write_prefs(
     return prefs_path
 
 
-def _generate_probe_image(oiiotool: Path, image_path: Path) -> None:
+def _generate_probe_image(repo_root: Path, oiiotool: Path, image_path: Path) -> None:
     image_path.parent.mkdir(parents=True, exist_ok=True)
+    chart_image = repo_root / "testsuite" / "imiv" / "images" / "CC988_ACEScg.exr"
+    if chart_image.exists():
+        shutil.copyfile(chart_image, image_path)
+        return
     cmd = [
         str(oiiotool),
         "--create",
@@ -525,7 +529,7 @@ if __name__ == "__main__":
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     image_path = out_dir / "ocio_source_fixture.exr"
-    _generate_probe_image(oiiotool, image_path)
+    _generate_probe_image(repo_root, oiiotool, image_path)
 
     if ocio_config.startswith("ocio://"):
         external_display = "default"
