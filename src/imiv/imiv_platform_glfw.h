@@ -16,6 +16,8 @@ namespace Imiv {
 
 bool
 platform_glfw_init(bool verbose_logging, std::string& error_message);
+bool
+platform_glfw_is_initialized();
 void
 platform_glfw_terminate();
 

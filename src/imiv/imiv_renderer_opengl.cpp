@@ -225,6 +225,7 @@ using GlTexImage3DProc             = void(APIENTRY*)(GLenum target, GLint level,
                                          GLsizei height, GLsizei depth,
                                          GLint border, GLenum format,
                                          GLenum type, const void* pixels);
+using GlReadBufferProc             = void(APIENTRY*)(GLenum src);
 
 struct OpenGlExtraProcs {
     GlUniform1fProc Uniform1f                           = nullptr;
@@ -239,6 +240,7 @@ struct OpenGlExtraProcs {
     GlFramebufferTexture2DProc FramebufferTexture2D     = nullptr;
     GlCheckFramebufferStatusProc CheckFramebufferStatus = nullptr;
     GlTexImage3DProc TexImage3D                         = nullptr;
+    GlReadBufferProc ReadBuffer                         = nullptr;
     bool ready                                          = false;
 };
 
@@ -345,6 +347,8 @@ struct RendererBackendState {
                                state.extra_procs.CheckFramebufferStatus,
                                error_message)
                && load_gl_proc("glTexImage3D", state.extra_procs.TexImage3D,
+                               error_message)
+               && load_gl_proc("glReadBuffer", state.extra_procs.ReadBuffer,
                                error_message)
                && ((state.extra_procs.ready = true), true);
     }
@@ -1884,10 +1888,11 @@ opengl_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
     if (framebuffer_width <= 0 || framebuffer_height <= 0)
         return false;
 
-    int capture_x = x;
-    int capture_y = y;
-    int capture_w = w;
-    int capture_h = h;
+    int capture_x         = x;
+    int capture_y         = y;
+    int capture_w         = w;
+    int capture_h         = h;
+    bool use_full_capture = false;
     ImGuiViewport* viewport = ImGui::FindViewportByID(viewport_id);
     if (viewport != nullptr && viewport->Size.x > 0.0f
         && viewport->Size.y > 0.0f) {
@@ -1905,22 +1910,33 @@ opengl_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                                    static_cast<double>(w) * scale_x)));
         capture_h = std::max(1, static_cast<int>(std::lround(
                                    static_cast<double>(h) * scale_y)));
+    } else if (x < 0 || y < 0) {
+        use_full_capture = true;
     }
 
-    if (capture_x < 0) {
-        capture_w += capture_x;
+    if (!use_full_capture) {
+        if (capture_x < 0) {
+            capture_w += capture_x;
+            capture_x = 0;
+        }
+        if (capture_y < 0) {
+            capture_h += capture_y;
+            capture_y = 0;
+        }
+        if (capture_x < framebuffer_width && capture_y < framebuffer_height) {
+            capture_w = std::min(capture_w, framebuffer_width - capture_x);
+            capture_h = std::min(capture_h, framebuffer_height - capture_y);
+        }
+        if (capture_w <= 0 || capture_h <= 0)
+            use_full_capture = true;
+    }
+
+    if (use_full_capture) {
         capture_x = 0;
-    }
-    if (capture_y < 0) {
-        capture_h += capture_y;
         capture_y = 0;
+        capture_w = std::max(1, framebuffer_width);
+        capture_h = std::max(1, framebuffer_height);
     }
-    if (capture_x < framebuffer_width && capture_y < framebuffer_height) {
-        capture_w = std::min(capture_w, framebuffer_width - capture_x);
-        capture_h = std::min(capture_h, framebuffer_height - capture_y);
-    }
-    if (capture_w <= 0 || capture_h <= 0)
-        return false;
 
     const int read_y = framebuffer_height - (capture_y + capture_h);
     if (read_y < 0)
@@ -1928,10 +1944,23 @@ opengl_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
 
     std::vector<unsigned char> readback(static_cast<size_t>(capture_w)
                                         * static_cast<size_t>(capture_h) * 4);
+    while (glGetError() != GL_NO_ERROR) {
+    }
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glReadPixels(capture_x, read_y, capture_w, capture_h, GL_RGBA,
-                 GL_UNSIGNED_BYTE, readback.data());
-    if (glGetError() != GL_NO_ERROR)
+    bool read_ok = false;
+    const GLenum read_buffers[] = { GL_BACK, GL_FRONT };
+    for (GLenum read_buffer : read_buffers) {
+        state->extra_procs.ReadBuffer(read_buffer);
+        glReadPixels(capture_x, read_y, capture_w, capture_h, GL_RGBA,
+                     GL_UNSIGNED_BYTE, readback.data());
+        if (glGetError() == GL_NO_ERROR) {
+            read_ok = true;
+            break;
+        }
+        while (glGetError() != GL_NO_ERROR) {
+        }
+    }
+    if (!read_ok)
         return false;
 
     unsigned char* dst_bytes = reinterpret_cast<unsigned char*>(pixels);
@@ -1980,8 +2009,22 @@ opengl_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
     return true;
 }
 
+bool
+opengl_probe_runtime_support(std::string& error_message)
+{
+    GLFWwindow* window = platform_glfw_create_main_window(
+        BackendKind::OpenGL, 64, 64, "imiv.opengl.probe", error_message);
+    if (window == nullptr)
+        return false;
+    platform_glfw_make_context_current(nullptr);
+    platform_glfw_destroy_window(window);
+    error_message.clear();
+    return true;
+}
+
 const RendererBackendVTable k_opengl_vtable = {
     BackendKind::OpenGL,
+    opengl_probe_runtime_support,
     opengl_get_viewer_texture_refs,
     opengl_texture_is_loading,
     opengl_create_texture,

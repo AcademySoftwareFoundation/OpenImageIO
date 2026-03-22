@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <string>
 #include <string_view>
 
 namespace Imiv {
@@ -18,6 +19,13 @@ struct BackendInfo {
     bool compiled           = false;
     bool active_build       = false;
     bool platform_default   = false;
+};
+
+struct BackendRuntimeInfo {
+    BackendInfo build_info;
+    bool available = false;
+    bool probed    = false;
+    std::string unavailable_reason;
 };
 
 BackendKind
@@ -37,9 +45,22 @@ platform_default_backend_kind();
 BackendKind
 resolve_backend_request(BackendKind requested_kind);
 bool
+refresh_runtime_backend_info(bool verbose_logging,
+                             std::string& error_message);
+void
+clear_runtime_backend_info();
+bool
+runtime_backend_info_valid();
+bool
+backend_kind_is_available(BackendKind kind);
+std::string_view
+backend_unavailable_reason(BackendKind kind);
+bool
 backend_kind_is_compiled(BackendKind kind);
 const std::array<BackendInfo, 3>&
 compiled_backend_info();
+const std::array<BackendRuntimeInfo, 3>&
+runtime_backend_info();
 size_t
 compiled_backend_count();
 

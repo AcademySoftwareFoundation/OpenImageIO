@@ -2215,6 +2215,18 @@ metal_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
     return true;
 }
 
+bool
+metal_probe_runtime_support(std::string& error_message)
+{
+    id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+    if (device == nil) {
+        error_message = "Metal device is unavailable";
+        return false;
+    }
+    error_message.clear();
+    return true;
+}
+
 }  // namespace
 }  // namespace Imiv
 
@@ -2222,6 +2234,7 @@ namespace Imiv {
 
 const RendererBackendVTable k_metal_vtable = {
     BackendKind::Metal,
+    metal_probe_runtime_support,
     metal_get_viewer_texture_refs,
     metal_texture_is_loading,
     metal_create_texture,

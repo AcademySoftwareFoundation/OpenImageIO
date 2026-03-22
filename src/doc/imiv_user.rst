@@ -53,7 +53,8 @@ image list. For example::
          --view "ACES 2.0 - SDR 100 nits (Rec.709)" \
          --image-color-space ACEScg image.exr
 
-To see which renderer backends were compiled into the current binary::
+To see which renderer backends were compiled into the current binary and which
+of those are currently usable on this machine::
 
     imiv --list-backends
 
@@ -80,13 +81,15 @@ Use :program:`imiv --help` to print the option summary for the current build.
 
     The command-line request takes precedence over the saved backend
     preference. If the requested backend was not compiled into the current
-    binary, :program:`imiv` falls back to the resolved default backend and
-    prints a message.
+    binary, or was compiled but is not currently available at runtime,
+    :program:`imiv` falls back to the resolved default backend and prints a
+    message.
 
 .. option:: --list-backends
 
     Print the backend support compiled into the current :program:`imiv`
-    binary, then exit.
+    binary, including runtime availability and any unavailability reason, then
+    exit.
 
 .. option:: --display NAME
 

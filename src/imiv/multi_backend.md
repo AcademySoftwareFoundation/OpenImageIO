@@ -76,10 +76,13 @@ Core types:
 
 - `BackendKind`
 - `BackendInfo`
+- `BackendRuntimeInfo`
 
 The runtime model answers:
 
 - which backends are compiled in
+- which compiled backends are currently available
+- why a compiled backend is unavailable
 - which backend is the build default
 - which backend is the platform default
 - which backend was requested
@@ -89,13 +92,17 @@ Launch-time selection precedence:
 
 1. CLI `--backend`
 2. saved `renderer_backend` preference
-3. configured default renderer
-4. platform-default compiled backend
-5. first compiled backend fallback
+3. configured default renderer, if runtime-available
+4. platform-default compiled backend, if runtime-available
+5. first runtime-available compiled backend fallback
 
-The current implementation resolves only against compiled backends. It does
-not yet expose detailed runtime availability or per-backend failure reasons in
-the registry.
+Runtime availability is probed through the renderer/backend seam and cached in
+the backend registry. The current implementation exposes per-backend
+availability and unavailability reasons to:
+
+- `--list-backends`
+- Preferences
+- test-engine state JSON
 
 
 ## CLI
@@ -112,7 +119,8 @@ Entry point:
 Behavior:
 
 - `--backend` overrides the saved preference for that launch only
-- `--list-backends` prints compiled backend support and exits
+- `--list-backends` prints compiled backend support, runtime availability, and
+  any unavailability reason, then exits
 
 
 ## Preferences UX
@@ -124,10 +132,13 @@ Implemented in:
 Behavior:
 
 - backend selection is shown as equal-width buttons
-- `Auto` plus compiled backend choices are exposed
+- runtime-available compiled backend choices are selectable
+- compiled but runtime-unavailable backends are shown disabled with a reason
 - changing the requested backend updates the next-launch backend
 - the current process keeps using the already-active backend
 - the UI shows a restart-required note when the next launch would differ
+- invalid or unavailable persisted backend requests are reset to `Auto` when
+  Preferences closes
 
 Persistence:
 

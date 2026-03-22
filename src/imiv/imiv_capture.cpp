@@ -426,10 +426,11 @@ imiv_vulkan_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
     VulkanState* vk_state = reinterpret_cast<VulkanState*>(
         renderer_state->backend);
 
-    int capture_x = x;
-    int capture_y = y;
-    int capture_w = w;
-    int capture_h = h;
+    int capture_x         = x;
+    int capture_y         = y;
+    int capture_w         = w;
+    int capture_h         = h;
+    bool use_full_capture = false;
     ImGuiViewport* viewport = ImGui::FindViewportByID(viewport_id);
     if (viewport != nullptr && vk_state->window_data.Width > 0
         && vk_state->window_data.Height > 0 && viewport->Size.x > 0.0f
@@ -448,25 +449,36 @@ imiv_vulkan_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                                    static_cast<double>(w) * scale_x)));
         capture_h = std::max(1, static_cast<int>(std::lround(
                                    static_cast<double>(h) * scale_y)));
+    } else if (x < 0 || y < 0) {
+        use_full_capture = true;
     }
 
-    if (capture_x < 0) {
-        capture_w += capture_x;
+    if (!use_full_capture) {
+        if (capture_x < 0) {
+            capture_w += capture_x;
+            capture_x = 0;
+        }
+        if (capture_y < 0) {
+            capture_h += capture_y;
+            capture_y = 0;
+        }
+        if (capture_x < vk_state->window_data.Width
+            && capture_y < vk_state->window_data.Height) {
+            capture_w = std::min(capture_w,
+                                 vk_state->window_data.Width - capture_x);
+            capture_h = std::min(capture_h,
+                                 vk_state->window_data.Height - capture_y);
+        }
+        if (capture_w <= 0 || capture_h <= 0)
+            use_full_capture = true;
+    }
+
+    if (use_full_capture) {
         capture_x = 0;
-    }
-    if (capture_y < 0) {
-        capture_h += capture_y;
         capture_y = 0;
+        capture_w = std::max(1, vk_state->window_data.Width);
+        capture_h = std::max(1, vk_state->window_data.Height);
     }
-    if (capture_x < vk_state->window_data.Width
-        && capture_y < vk_state->window_data.Height) {
-        capture_w = std::min(capture_w, vk_state->window_data.Width - capture_x);
-        capture_h = std::min(capture_h,
-                             vk_state->window_data.Height - capture_y);
-    }
-
-    if (capture_w <= 0 || capture_h <= 0)
-        return false;
 
     if (capture_w == w && capture_h == h)
         return capture_swapchain_region_rgba8(*vk_state, capture_x, capture_y,

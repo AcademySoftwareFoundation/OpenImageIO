@@ -67,6 +67,18 @@ renderer_active_backend(const RendererState& renderer_state)
 }
 
 bool
+renderer_probe_backend_runtime_support(BackendKind backend,
+                                       std::string& error_message)
+{
+    const RendererBackendVTable* vtable = renderer_backend_vtable(backend);
+    if (vtable == nullptr || vtable->probe_runtime_support == nullptr) {
+        error_message = "renderer backend is unavailable";
+        return false;
+    }
+    return vtable->probe_runtime_support(error_message);
+}
+
+bool
 renderer_texture_is_loading(const RendererTexture& texture)
 {
     const RendererBackendVTable* vtable = texture_dispatch_vtable(texture);

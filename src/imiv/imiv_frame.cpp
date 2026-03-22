@@ -348,16 +348,29 @@ test_engine_json_write_backend_state(FILE* f, const PlaceholderUiState& ui_state
     const bool requested_backend_compiled
         = requested_backend == BackendKind::Auto
           || backend_kind_is_compiled(requested_backend);
+    const bool requested_backend_available
+        = requested_backend == BackendKind::Auto
+          || backend_kind_is_available(requested_backend);
 
     std::vector<std::string> compiled_backends;
+    std::vector<std::string> not_compiled_backends;
+    std::vector<std::string> available_backends;
     std::vector<std::string> unavailable_backends;
-    compiled_backends.reserve(compiled_backend_info().size());
-    unavailable_backends.reserve(compiled_backend_info().size());
-    for (const BackendInfo& info : compiled_backend_info()) {
-        if (info.compiled)
-            compiled_backends.emplace_back(info.cli_name);
+    compiled_backends.reserve(runtime_backend_info().size());
+    not_compiled_backends.reserve(runtime_backend_info().size());
+    available_backends.reserve(runtime_backend_info().size());
+    unavailable_backends.reserve(runtime_backend_info().size());
+    for (const BackendRuntimeInfo& info : runtime_backend_info()) {
+        if (info.build_info.compiled)
+            compiled_backends.emplace_back(info.build_info.cli_name);
         else
-            unavailable_backends.emplace_back(info.cli_name);
+            not_compiled_backends.emplace_back(info.build_info.cli_name);
+        if (!info.build_info.compiled)
+            continue;
+        if (info.available)
+            available_backends.emplace_back(info.build_info.cli_name);
+        else
+            unavailable_backends.emplace_back(info.build_info.cli_name);
     }
 
     std::fputs(",\n  \"backend\": {\n", f);
@@ -371,12 +384,34 @@ test_engine_json_write_backend_state(FILE* f, const PlaceholderUiState& ui_state
     test_engine_json_write_escaped(f, backend_cli_name(next_launch_backend));
     std::fputs(",\n    \"requested_compiled\": ", f);
     std::fputs(requested_backend_compiled ? "true" : "false", f);
+    std::fputs(",\n    \"requested_available\": ", f);
+    std::fputs(requested_backend_available ? "true" : "false", f);
     std::fputs(",\n    \"restart_required\": ", f);
     std::fputs(next_launch_backend != active_backend ? "true" : "false", f);
+    std::fputs(",\n    \"availability_probed\": ", f);
+    std::fputs(runtime_backend_info_valid() ? "true" : "false", f);
     std::fputs(",\n    \"compiled\": ", f);
     test_engine_json_write_string_array(f, compiled_backends);
-    std::fputs(",\n    \"not_compiled\": ", f);
+    std::fputs(",\n    \"available\": ", f);
+    test_engine_json_write_string_array(f, available_backends);
+    std::fputs(",\n    \"unavailable\": ", f);
     test_engine_json_write_string_array(f, unavailable_backends);
+    std::fputs(",\n    \"not_compiled\": ", f);
+    test_engine_json_write_string_array(f, not_compiled_backends);
+    std::fputs(",\n    \"unavailable_reason\": {\n", f);
+    bool first_reason = true;
+    for (const BackendRuntimeInfo& info : runtime_backend_info()) {
+        if (!info.build_info.compiled || info.available)
+            continue;
+        if (!first_reason)
+            std::fputs(",\n", f);
+        first_reason = false;
+        std::fputs("      ", f);
+        test_engine_json_write_escaped(f, info.build_info.cli_name);
+        std::fputs(": ", f);
+        test_engine_json_write_escaped(f, info.unavailable_reason.c_str());
+    }
+    std::fputs("\n    }", f);
     std::fputs("\n  }", f);
 }
 

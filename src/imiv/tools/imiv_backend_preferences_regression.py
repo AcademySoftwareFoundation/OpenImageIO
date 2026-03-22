@@ -93,73 +93,27 @@ def _backend_display_name(name: str) -> str:
     raise RuntimeError(f"unsupported backend name: {name}")
 
 
-def _write_scenario(
-    path: Path,
-    runtime_dir_rel: str,
-    *,
-    button_points: dict[str, tuple[float, float]],
-) -> None:
-    root = ET.Element("imiv-scenario")
-    root.set("out_dir", runtime_dir_rel)
-
-    _scenario_step(
-        root,
-        "open_preferences",
-        key_chord="ctrl+comma",
-        state=True,
-        post_action_delay_frames=2,
-    )
-    _scenario_step(
-        root,
-        "select_alternate_backend",
-        mouse_pos=f"{button_points['alternate'][0]:.3f},{button_points['alternate'][1]:.3f}",
-        mouse_click_button=0,
-        state=True,
-        post_action_delay_frames=2,
-    )
-    _scenario_step(
-        root,
-        "select_active_backend",
-        mouse_pos=f"{button_points['active'][0]:.3f},{button_points['active'][1]:.3f}",
-        mouse_click_button=0,
-        state=True,
-        post_action_delay_frames=2,
-    )
-    _scenario_step(
-        root,
-        "select_auto_backend",
-        mouse_pos=f"{button_points['auto'][0]:.3f},{button_points['auto'][1]:.3f}",
-        mouse_click_button=0,
-        state=True,
-        post_action_delay_frames=2,
-    )
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
+def _backend_test_item_ref(name: str) -> str:
+    lowered = name.strip().lower()
+    if lowered == "auto":
+        return "pref-backend:auto"
+    return f"pref-backend:{lowered}"
 
 
-def _parse_list_backends(output: str) -> tuple[list[str], str]:
-    built: list[str] = []
-    build_default = ""
-    line_re = re.compile(r"^\s+([A-Za-z0-9]+)\s+\(([^)]+)\)\s+:\s+(.*)$")
-    for raw_line in output.splitlines():
-        match = line_re.match(raw_line)
-        if not match:
-            continue
-        _display_name, cli_name, description = match.groups()
-        cli_name = cli_name.strip().lower()
-        description = description.strip().lower()
-        if "built" in description and "not built" not in description:
-            built.append(cli_name)
-        if "build default backend" in description:
-            build_default = cli_name
-    return built, build_default
+def _layout_viewport_origin_and_size(layout: dict) -> tuple[float, float, float, float]:
+    display_size = layout.get("display_size", [0.0, 0.0])
+    width = float(display_size[0]) if len(display_size) >= 2 else 0.0
+    height = float(display_size[1]) if len(display_size) >= 2 else 0.0
+    if width <= 0.0 or height <= 0.0:
+        raise RuntimeError("layout is missing a valid display_size")
 
+    windows = layout.get("windows", [])
+    if not isinstance(windows, list) or not windows:
+        raise RuntimeError("layout does not contain any windows")
 
-def _load_state(path: Path) -> dict:
-    if not path.exists():
-        raise RuntimeError(f"state file not written: {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    min_x = min(float(window.get("rect", {}).get("min", [0.0, 0.0])[0]) for window in windows)
+    min_y = min(float(window.get("rect", {}).get("min", [0.0, 0.0])[1]) for window in windows)
+    return min_x, min_y, width, height
 
 
 def _find_item_rect(layout: dict, label: str) -> dict:
@@ -183,18 +137,140 @@ def _rect_center(rect: dict) -> tuple[float, float]:
     )
 
 
+def _point_to_window_rel(
+    point: tuple[float, float], *, viewport_origin_x: float, viewport_origin_y: float, viewport_width: float, viewport_height: float
+) -> tuple[float, float]:
+    return (
+        (point[0] - viewport_origin_x) / viewport_width,
+        (point[1] - viewport_origin_y) / viewport_height,
+    )
+
+
 def _backend_button_points(
     layout: dict, *, alternate_backend: str, active_backend: str
 ) -> dict[str, tuple[float, float]]:
+    viewport_origin_x, viewport_origin_y, viewport_width, viewport_height = (
+        _layout_viewport_origin_and_size(layout)
+    )
     return {
-        "alternate": _rect_center(
-            _find_item_rect(layout, _backend_display_name(alternate_backend))
+        "alternate": _point_to_window_rel(
+            _rect_center(
+                _find_item_rect(layout, _backend_display_name(alternate_backend))
+            ),
+            viewport_origin_x=viewport_origin_x,
+            viewport_origin_y=viewport_origin_y,
+            viewport_width=viewport_width,
+            viewport_height=viewport_height,
         ),
-        "active": _rect_center(
-            _find_item_rect(layout, _backend_display_name(active_backend))
+        "active": _point_to_window_rel(
+            _rect_center(_find_item_rect(layout, _backend_display_name(active_backend))),
+            viewport_origin_x=viewport_origin_x,
+            viewport_origin_y=viewport_origin_y,
+            viewport_width=viewport_width,
+            viewport_height=viewport_height,
         ),
-        "auto": _rect_center(_find_item_rect(layout, "Reset to Auto")),
+        "auto": _point_to_window_rel(
+            _rect_center(_find_item_rect(layout, "Reset to Auto")),
+            viewport_origin_x=viewport_origin_x,
+            viewport_origin_y=viewport_origin_y,
+            viewport_width=viewport_width,
+            viewport_height=viewport_height,
+        ),
     }
+
+
+def _write_scenario(
+    path: Path,
+    runtime_dir_rel: str,
+    *,
+    button_points: dict[str, tuple[float, float]],
+) -> None:
+    root = ET.Element("imiv-scenario")
+    root.set("out_dir", runtime_dir_rel)
+
+    _scenario_step(
+        root,
+        "open_preferences",
+        key_chord="ctrl+comma",
+        state=True,
+        post_action_delay_frames=2,
+    )
+    _scenario_step(
+        root,
+        "select_alternate_backend",
+        mouse_pos_window_rel=f"{button_points['alternate'][0]:.6f},{button_points['alternate'][1]:.6f}",
+        mouse_click_button=0,
+        state=True,
+        post_action_delay_frames=2,
+    )
+    _scenario_step(
+        root,
+        "select_active_backend",
+        mouse_pos_window_rel=f"{button_points['active'][0]:.6f},{button_points['active'][1]:.6f}",
+        mouse_click_button=0,
+        state=True,
+        post_action_delay_frames=2,
+    )
+    _scenario_step(
+        root,
+        "select_auto_backend",
+        mouse_pos_window_rel=f"{button_points['auto'][0]:.6f},{button_points['auto'][1]:.6f}",
+        mouse_click_button=0,
+        state=True,
+        post_action_delay_frames=2,
+    )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
+
+
+def _parse_list_backends(output: str) -> tuple[list[str], list[str], str, str, list[str]]:
+    built: list[str] = []
+    available: list[str] = []
+    build_default = ""
+    platform_default = ""
+    listed_order: list[str] = []
+    line_re = re.compile(r"^\s+([A-Za-z0-9]+)\s+\(([^)]+)\)\s+:\s+(.*)$")
+    for raw_line in output.splitlines():
+        match = line_re.match(raw_line)
+        if not match:
+            continue
+        _display_name, cli_name, description = match.groups()
+        cli_name = cli_name.strip().lower()
+        description = description.strip().lower()
+        listed_order.append(cli_name)
+        if "built" in description and "not built" not in description:
+            built.append(cli_name)
+        if "available" in description and "unavailable" not in description:
+            available.append(cli_name)
+        if "build default backend" in description:
+            build_default = cli_name
+        if "platform default" in description:
+            platform_default = cli_name
+    return built, available, build_default, platform_default, listed_order
+
+
+def _resolve_auto_backend(
+    *,
+    available_backends: list[str],
+    build_default_backend: str,
+    platform_default_backend: str,
+    listed_order: list[str],
+) -> str:
+    if build_default_backend and build_default_backend in available_backends:
+        return build_default_backend
+    if platform_default_backend and platform_default_backend in available_backends:
+        return platform_default_backend
+    for name in listed_order:
+        if name in available_backends:
+            return name
+    raise RuntimeError("no runtime-available backend found")
+
+
+def _load_state(path: Path) -> dict:
+    if not path.exists():
+        raise RuntimeError(f"state file not written: {path}")
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _assert_backend_state(
@@ -289,23 +365,42 @@ def main() -> int:
     )
     if list_proc.returncode != 0:
         return _fail(f"--list-backends exited with code {list_proc.returncode}")
-    compiled_backends, build_default_backend = _parse_list_backends(list_proc.stdout)
+    (
+        compiled_backends,
+        available_backends,
+        build_default_backend,
+        platform_default_backend,
+        listed_order,
+    ) = _parse_list_backends(list_proc.stdout)
     if len(compiled_backends) < 2:
         print("skip: backend preferences regression requires at least two compiled backends")
         return 77
     if not build_default_backend:
         return _fail("could not determine build default backend from --list-backends")
+    if len(available_backends) < 2:
+        print(
+            "skip: backend preferences regression requires at least two runtime-available backends"
+        )
+        return 77
+    auto_backend = _resolve_auto_backend(
+        available_backends=available_backends,
+        build_default_backend=build_default_backend,
+        platform_default_backend=platform_default_backend,
+        listed_order=listed_order,
+    )
 
-    active_backend = args.backend.strip().lower() if args.backend else build_default_backend
+    active_backend = args.backend.strip().lower() if args.backend else auto_backend
     if active_backend not in compiled_backends:
         return _fail(f"requested active backend is not compiled: {active_backend}")
+    if active_backend not in available_backends:
+        return _fail(f"requested active backend is not runtime-available: {active_backend}")
 
     alternate_backend = next(
-        (name for name in compiled_backends if name != active_backend),
+        (name for name in available_backends if name != active_backend),
         "",
     )
     if not alternate_backend:
-        print("skip: backend preferences regression requires an alternate compiled backend")
+        print("skip: backend preferences regression requires an alternate runtime-available backend")
         return 77
 
     config_home = out_dir / "config_home"
@@ -402,8 +497,8 @@ def main() -> int:
         label="open_preferences",
         active_backend=active_backend,
         requested_backend="auto",
-        next_launch_backend=build_default_backend,
-        restart_required=(build_default_backend != active_backend),
+        next_launch_backend=auto_backend,
+        restart_required=(auto_backend != active_backend),
         compiled_backends=compiled_backends,
     )
     _assert_backend_state(
@@ -429,8 +524,8 @@ def main() -> int:
         label="select_auto_backend",
         active_backend=active_backend,
         requested_backend="auto",
-        next_launch_backend=build_default_backend,
-        restart_required=(build_default_backend != active_backend),
+        next_launch_backend=auto_backend,
+        restart_required=(auto_backend != active_backend),
         compiled_backends=compiled_backends,
     )
 

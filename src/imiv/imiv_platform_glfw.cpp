@@ -22,6 +22,8 @@ namespace Imiv {
 
 namespace {
 
+    bool g_glfw_initialized = false;
+
     enum class GlfwPlatformPreference : uint8_t {
         Auto    = 0,
         X11     = 1,
@@ -180,9 +182,14 @@ namespace {
 bool
 platform_glfw_init(bool verbose_logging, std::string& error_message)
 {
+    if (g_glfw_initialized) {
+        error_message.clear();
+        return true;
+    }
     glfwSetErrorCallback(glfw_error_callback);
     configure_glfw_platform_preference(verbose_logging);
     if (glfwInit()) {
+        g_glfw_initialized = true;
         error_message.clear();
         return true;
     }
@@ -190,9 +197,18 @@ platform_glfw_init(bool verbose_logging, std::string& error_message)
     return false;
 }
 
+bool
+platform_glfw_is_initialized()
+{
+    return g_glfw_initialized;
+}
+
 void
 platform_glfw_terminate()
 {
+    if (!g_glfw_initialized)
+        return;
+    g_glfw_initialized = false;
     glfwTerminate();
 }
 
