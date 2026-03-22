@@ -6,6 +6,7 @@
 
 #if IMIV_WITH_VULKAN
 
+#    include "imiv_platform_glfw.h"
 #    include "imiv_viewer.h"
 
 #    include <imgui_impl_vulkan.h>
@@ -409,8 +410,15 @@ vulkan_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                                       user_data);
 }
 
+bool
+vulkan_probe_runtime_support(std::string& error_message)
+{
+    return platform_glfw_supports_vulkan(error_message);
+}
+
 const RendererBackendVTable k_vulkan_vtable = {
     BackendKind::Vulkan,
+    vulkan_probe_runtime_support,
     vulkan_get_viewer_texture_refs,
     vulkan_texture_is_loading,
     vulkan_create_texture,

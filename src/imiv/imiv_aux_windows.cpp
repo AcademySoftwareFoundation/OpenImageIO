@@ -279,24 +279,31 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         ImVec2 backend_row_min(0.0f, 0.0f);
         ImVec2 backend_row_max(0.0f, 0.0f);
         int backend_button_index = 0;
-        for (const BackendInfo& info : compiled_backend_info()) {
-            const bool selected = requested_backend == info.kind;
+        for (const BackendRuntimeInfo& info : runtime_backend_info()) {
+            const bool selected = requested_backend == info.build_info.kind;
             if (backend_button_index > 0)
                 ImGui::SameLine(0.0f, spacing);
-            ImGui::PushID(static_cast<int>(info.kind));
-            if (!info.compiled)
+            ImGui::PushID(static_cast<int>(info.build_info.kind));
+            const bool enabled = info.build_info.compiled && info.available;
+            if (!enabled)
                 ImGui::BeginDisabled();
             push_preview_active_button_style(selected);
-            if (ImGui::Button(backend_display_name(info.kind),
+            if (ImGui::Button(backend_display_name(info.build_info.kind),
                               ImVec2(button_width, 0.0f))
-                && info.compiled) {
-                ui.renderer_backend = static_cast<int>(info.kind);
+                && enabled) {
+                ui.renderer_backend = static_cast<int>(info.build_info.kind);
+            }
+            {
+                const std::string test_label = std::string("pref-backend:")
+                                               + backend_cli_name(
+                                                   info.build_info.kind);
+                register_test_engine_item_label(test_label.c_str());
             }
             pop_preview_active_button_style(selected);
-            if (!info.compiled)
+            if (!enabled)
                 ImGui::EndDisabled();
             register_layout_dump_synthetic_item("button",
-                                                backend_display_name(info.kind));
+                                                backend_display_name(info.build_info.kind));
             const ImVec2 item_min = ImGui::GetItemRectMin();
             const ImVec2 item_max = ImGui::GetItemRectMax();
             if (!have_backend_row_rect) {
@@ -324,8 +331,14 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         const bool requested_backend_compiled
             = requested_backend == BackendKind::Auto
               || backend_kind_is_compiled(requested_backend);
+        const bool requested_backend_available
+            = requested_backend == BackendKind::Auto
+              || backend_kind_is_available(requested_backend);
         const bool invalid_requested_backend = requested_backend != BackendKind::Auto
                                               && !requested_backend_compiled;
+        const bool unavailable_requested_backend
+            = requested_backend != BackendKind::Auto
+              && requested_backend_compiled && !requested_backend_available;
         if (requested_backend == BackendKind::Auto)
             ImGui::TextUnformatted("Stored preference: Auto");
         else
@@ -336,6 +349,7 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
             ImGui::BeginDisabled();
         if (ImGui::SmallButton("Reset to Auto"))
             ui.renderer_backend = static_cast<int>(BackendKind::Auto);
+        register_test_engine_item_label("pref-backend:auto");
         register_layout_dump_synthetic_item("button", "Reset to Auto");
         if (requested_backend == BackendKind::Auto)
             ImGui::EndDisabled();
@@ -348,11 +362,34 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         if (invalid_requested_backend) {
             ImGui::TextUnformatted(
                 "Requested backend is not built in this binary and will be ignored when Preferences closes.");
+        } else if (unavailable_requested_backend) {
+            const std::string_view unavailable_reason = backend_unavailable_reason(
+                requested_backend);
+            if (unavailable_reason.empty()) {
+                ImGui::TextUnformatted(
+                    "Requested backend is unavailable at runtime and will be ignored when Preferences closes.");
+            } else {
+                ImGui::TextWrapped(
+                    "Requested backend is unavailable at runtime (%s) and will be ignored when Preferences closes.",
+                    std::string(unavailable_reason).c_str());
+            }
         } else if (next_launch_backend != active_backend) {
             ImGui::TextUnformatted("Backend change requires restart.");
         }
         if (requested_backend == BackendKind::Auto) {
             ImGui::TextUnformatted("Auto selects the first available backend.");
+        }
+        for (const BackendRuntimeInfo& info : runtime_backend_info()) {
+            if (!info.build_info.compiled || info.available)
+                continue;
+            if (info.unavailable_reason.empty()) {
+                ImGui::Text("%s unavailable",
+                            info.build_info.display_name);
+            } else {
+                ImGui::TextWrapped("%s unavailable: %s",
+                                   info.build_info.display_name,
+                                   info.unavailable_reason.c_str());
+            }
         }
 
         ImGui::Spacing();
@@ -449,7 +486,8 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
     ImGui::PopStyleVar();
     const BackendKind close_backend = sanitize_backend_kind(ui.renderer_backend);
     if (!show_window && close_backend != BackendKind::Auto
-        && !backend_kind_is_compiled(close_backend)) {
+        && (!backend_kind_is_compiled(close_backend)
+            || !backend_kind_is_available(close_backend))) {
         ui.renderer_backend = static_cast<int>(BackendKind::Auto);
     }
 }

@@ -116,27 +116,28 @@ The startup sequence in `src/imiv/imiv_app.cpp` is:
 
 1. `imiv_main.cpp` parses CLI arguments into `AppConfig`.
 2. `run()` loads persistent app state with `load_persistent_state()`.
-3. `run()` resolves the requested backend with
+3. `run()` initializes GLFW and refreshes runtime backend availability.
+4. `run()` resolves the requested backend with
    `requested_backend_for_launch()` and `resolve_backend_request()`.
-4. GLFW is initialized and the main window is created.
-5. The Dear ImGui context is created and configured:
+5. The main window is created for the resolved backend.
+6. The Dear ImGui context is created and configured:
 
    * `ImGuiConfigFlags_NavEnableKeyboard`
    * `ImGuiConfigFlags_DockingEnable`
    * `ImGuiConfigFlags_ViewportsEnable`
 
-6. Fonts and the base application style are loaded.
-7. Dear ImGui layout data is loaded from disk with
+7. Fonts and the base application style are loaded.
+8. Dear ImGui layout data is loaded from disk with
    `ImGui::LoadIniSettingsFromDisk()`.
-8. The selected renderer backend is initialized:
+9. The selected renderer backend is initialized:
 
    * instance/device setup;
    * swapchain or drawable setup;
    * backend-specific Dear ImGui renderer bootstrap.
 
-9. Optional OCIO preview support is preflighted for the active backend.
-10. Startup images are loaded with `load_viewer_image()`.
-11. Drag and drop and optional Dear ImGui Test Engine hooks are installed.
+10. Optional OCIO preview support is preflighted for the active backend.
+11. Startup images are loaded with `load_viewer_image()`.
+12. Drag and drop and optional Dear ImGui Test Engine hooks are installed.
 
 Main loop
 ---------

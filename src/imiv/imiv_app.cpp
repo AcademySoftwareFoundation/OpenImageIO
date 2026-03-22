@@ -192,19 +192,6 @@ run(const AppConfig& config)
     }
     const BackendKind requested_backend = requested_backend_for_launch(
         run_config, ui_state);
-    const BackendKind active_backend = resolve_backend_request(
-        requested_backend);
-    if (active_backend == BackendKind::Auto) {
-        print(stderr, "imiv: no renderer backend is compiled into this build\n");
-        return EXIT_FAILURE;
-    }
-    if (requested_backend != BackendKind::Auto
-        && requested_backend != active_backend) {
-        print("imiv: requested backend '{}' is not compiled into this build; "
-              "using '{}'\n",
-              backend_cli_name(requested_backend),
-              backend_runtime_name(active_backend));
-    }
 
     const bool verbose_logging = run_config.verbose;
     const bool verbose_validation_output
@@ -228,6 +215,50 @@ run(const AppConfig& config)
     if (!platform_glfw_init(verbose_logging, startup_error)) {
         print(stderr, "imiv: {}\n", startup_error);
         return EXIT_FAILURE;
+    }
+
+    refresh_runtime_backend_info(verbose_logging, startup_error);
+
+    const BackendKind active_backend = resolve_backend_request(
+        requested_backend);
+    if (active_backend == BackendKind::Auto) {
+        if (compiled_backend_count() == 0) {
+            print(stderr,
+                  "imiv: no renderer backend is compiled into this build\n");
+        } else {
+            print(stderr,
+                  "imiv: no compiled renderer backend is currently available\n");
+            for (const BackendRuntimeInfo& info : runtime_backend_info()) {
+                if (!info.build_info.compiled || info.available)
+                    continue;
+                print(stderr, "imiv:   {} unavailable: {}\n",
+                      info.build_info.display_name,
+                      info.unavailable_reason.empty()
+                          ? "backend is unavailable"
+                          : info.unavailable_reason);
+            }
+        }
+        platform_glfw_terminate();
+        return EXIT_FAILURE;
+    }
+    if (requested_backend != BackendKind::Auto
+        && requested_backend != active_backend) {
+        if (!backend_kind_is_compiled(requested_backend)) {
+            print("imiv: requested backend '{}' is not compiled into this "
+                  "build; using '{}'\n",
+                  backend_cli_name(requested_backend),
+                  backend_runtime_name(active_backend));
+        } else {
+            const std::string_view unavailable_reason
+                = backend_unavailable_reason(requested_backend);
+            print("imiv: requested backend '{}' is unavailable at runtime{}; "
+                  "using '{}'\n",
+                  backend_cli_name(requested_backend),
+                  unavailable_reason.empty()
+                      ? ""
+                      : Strutil::fmt::format(" ({})", unavailable_reason),
+                  backend_runtime_name(active_backend));
+        }
     }
 
     const std::string window_title = build_main_window_title(active_backend);
@@ -371,13 +402,18 @@ run(const AppConfig& config)
     if (run_config.verbose) {
         print("imiv: bootstrap initialized (backend: {})\n",
               backend_runtime_name(active_backend));
-        for (const BackendInfo& info : compiled_backend_info()) {
-            print("imiv: backend {} ({}) compiled={} build_default={} "
-                  "platform_default={}\n",
-                  info.display_name, info.cli_name,
-                  info.compiled ? "yes" : "no",
-                  info.active_build ? "yes" : "no",
-                  info.platform_default ? "yes" : "no");
+        for (const BackendRuntimeInfo& info : runtime_backend_info()) {
+            print("imiv: backend {} ({}) compiled={} available={} "
+                  "build_default={} platform_default={}{}\n",
+                  info.build_info.display_name, info.build_info.cli_name,
+                  info.build_info.compiled ? "yes" : "no",
+                  info.available ? "yes" : "no",
+                  info.build_info.active_build ? "yes" : "no",
+                  info.build_info.platform_default ? "yes" : "no",
+                  (!info.available && !info.unavailable_reason.empty())
+                      ? Strutil::fmt::format(" reason='{}'",
+                                             info.unavailable_reason)
+                      : std::string());
         }
         print("imiv: startup queue has {} image path(s)\n",
               run_config.input_paths.size());

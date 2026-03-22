@@ -905,7 +905,7 @@ def main() -> int:
     )
     if static_switch_diff <= 4.0:
         return _fail(
-            f"live OCIO {switch_mode} switch did not update the image region "
+            f"live OCIO {args.switch_mode} switch did not update the image region "
             f"(mean abs RGB diff={static_switch_diff:.4f})"
         )
 
@@ -914,7 +914,7 @@ def main() -> int:
     )
     if target_switch_diff > 2.0:
         return _fail(
-            f"live OCIO {switch_mode} switch does not match the settled target state "
+            f"live OCIO {args.switch_mode} switch does not match the settled target state "
             f"(mean abs RGB diff={target_switch_diff:.4f})"
         )
 

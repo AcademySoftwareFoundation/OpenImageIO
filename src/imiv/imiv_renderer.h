@@ -57,6 +57,9 @@ renderer_select_backend(RendererState& renderer_state, BackendKind backend);
 BackendKind
 renderer_active_backend(const RendererState& renderer_state);
 bool
+renderer_probe_backend_runtime_support(BackendKind backend,
+                                       std::string& error_message);
+bool
 renderer_texture_is_loading(const RendererTexture& texture);
 
 void

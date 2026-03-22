@@ -8,6 +8,7 @@
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
 using namespace OIIO;
@@ -102,12 +103,32 @@ main(int argc, char* argv[])
     }
 
     if (config.list_backends) {
+        std::string probe_error;
+        if (!Imiv::refresh_runtime_backend_info(config.verbose, probe_error)
+            && config.verbose && !probe_error.empty()) {
+            print(stderr, "imiv: backend availability probe setup failed: {}\n",
+                  probe_error);
+        }
         print("imiv backend support for this build:\n");
-        for (const Imiv::BackendInfo& info : Imiv::compiled_backend_info()) {
-            print("  {} ({}) : {}{}{}\n", info.display_name, info.cli_name,
-                  info.compiled ? "built" : "not built",
-                  info.active_build ? ", build default backend" : "",
-                  info.platform_default ? ", platform default" : "");
+        for (const Imiv::BackendRuntimeInfo& info : Imiv::runtime_backend_info()) {
+            std::string description = info.build_info.compiled ? "built"
+                                                               : "not built";
+            if (info.build_info.compiled) {
+                if (info.available) {
+                    description += ", available";
+                } else if (!info.unavailable_reason.empty()) {
+                    description += Strutil::fmt::format(
+                        ", unavailable: {}", info.unavailable_reason);
+                } else {
+                    description += ", unavailable";
+                }
+            }
+            if (info.build_info.active_build)
+                description += ", build default backend";
+            if (info.build_info.platform_default)
+                description += ", platform default";
+            print("  {} ({}) : {}\n", info.build_info.display_name,
+                  info.build_info.cli_name, description);
         }
         return EXIT_SUCCESS;
     }
