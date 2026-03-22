@@ -19,10 +19,13 @@ Current backend selection is:
 - platform: `GLFW`
 - renderer: `Vulkan`, `Metal`, or `OpenGL`
 
-Selected by CMake:
+Compiled by CMake with:
 
 ```text
--D OIIO_IMIV_RENDERER=auto|vulkan|metal|opengl
+-D OIIO_IMIV_ENABLE_VULKAN=AUTO|ON|OFF
+-D OIIO_IMIV_ENABLE_METAL=AUTO|ON|OFF
+-D OIIO_IMIV_ENABLE_OPENGL=AUTO|ON|OFF
+-D OIIO_IMIV_DEFAULT_RENDERER=auto|vulkan|metal|opengl
 ```
 
 Current default selection:
@@ -33,7 +36,8 @@ Current default selection:
 ## Support Levels
 
 - `Primary`: expected to carry the full `imiv` feature set
-- `Development`: intended to become usable, but still missing visible features
+- `Supported`: expected to work in the current shared verifier and participate
+  in normal backend validation
 - `Skeleton`: bootstrap only; not yet a real viewer backend
 
 ## Shared-Code Rules
@@ -60,26 +64,29 @@ These rules are intentional and should stay true as backend work continues.
 Legend:
 
 - `Yes`: implemented and expected to work
-- `Partial`: implemented with known gaps
 - `No`: not implemented
 
 | Feature | Vulkan | OpenGL | Metal |
 |---|---|---|---|
 | App bootstrap and main window | Yes | Yes | Yes |
 | Dear ImGui backend | Yes | Yes | Yes |
-| Direct image upload | Yes | Yes | Partial |
-| Preview rendering | Yes | Yes | Partial |
-| Exposure / gamma / offset | Yes | Yes | Partial |
-| Channel / luma / heatmap modes | Yes | Yes | Partial |
-| Orientation-aware preview | Yes | Yes | Partial |
+| Direct image upload | Yes | Yes | Yes |
+| Preview rendering | Yes | Yes | Yes |
+| Exposure / gamma / offset | Yes | Yes | Yes |
+| Channel / luma / heatmap modes | Yes | Yes | Yes |
+| Orientation-aware preview | Yes | Yes | Yes |
 | Linear / nearest preview sampling | Yes | Yes | Yes |
 | Pixel closeup window | Yes | Yes | Yes |
-| Area Sample / selection UI | Yes | Yes | Partial |
+| Area Sample / selection UI | Yes | Yes | Yes |
 | Drag and drop | Yes | Yes | Yes |
-| Screenshot / readback | Yes | Yes | Partial |
+| Screenshot / readback | Yes | Yes | Yes |
 | OCIO display/view | Yes | Yes | Yes |
-| Runtime OCIO config switching | Yes | Partial | Yes |
-| Automated GUI regression coverage | Yes | Partial | Partial |
+| Runtime OCIO config switching | Yes | Yes | Yes |
+| Automated GUI regression coverage | Yes | Yes | Yes |
+
+Current note:
+
+- the shared macOS backend verifier is green on Vulkan, OpenGL, and Metal
 
 ## Vulkan
 
@@ -115,7 +122,7 @@ Notes:
 
 Status:
 
-- `Development`
+- `Supported`
 
 Implementation:
 
@@ -143,10 +150,6 @@ Current design:
 - no compute stage
 - no SPIR-V stage
 
-Current gaps:
-
-- no Metal-equivalent backend parity to compare against
-
 Current coverage:
 
 - direct source upload
@@ -159,6 +162,10 @@ Current coverage:
 - OpenGL live OCIO update regressions
 - OpenGL selection regression target
 
+Current note:
+
+- the shared backend verifier is green on macOS OpenGL
+
 OCIO notes:
 
 - startup preflight for OpenGL now validates the OCIO runtime/config path
@@ -170,7 +177,7 @@ OCIO notes:
 
 Status:
 
-- `Development`
+- `Supported`
 
 Implementation:
 
@@ -187,10 +194,6 @@ Current scope:
   control
 - Metal screenshot/readback for GUI verification
 - Metal OCIO runtime path using OCIO MSL output
-
-Current gaps:
-
-- Metal OCIO still needs broader macOS validation
 
 Planned direction:
 
@@ -224,12 +227,16 @@ Manual verification:
 
 Current automated coverage:
 
-- when configured with `OIIO_IMIV_RENDERER=metal`, `ctest` can run:
+- when Metal is compiled into the current build, `ctest` can run:
   - `imiv_metal_screenshot_regression`
   - `imiv_metal_sampling_regression`
   - `imiv_metal_orientation_regression`
   - `imiv_metal_ocio_live_update_regression`
   - `imiv_metal_ocio_live_display_update_regression`
+
+Current note:
+
+- the shared backend verifier is green on macOS Metal
 
 ## Feature Mapping Rules
 
@@ -253,11 +260,9 @@ These should stay consistent across backends where the feature exists.
 ## Current Priority Order
 
 1. Keep Vulkan stable as the reference backend.
-2. Finish OpenGL bring-up enough to support real GUI validation:
-   - expand OpenGL-specific regression coverage beyond smoke
-   - add live OCIO update coverage
-3. Keep OpenGL OCIO GLSL path aligned with Vulkan behavior.
-4. Use the Metal skeleton as the macOS landing point for real backend work.
+2. Keep OpenGL behavior aligned with Vulkan where features overlap.
+3. Keep Metal behavior aligned with Vulkan where features overlap.
+4. Preserve green shared-suite coverage on macOS for all compiled backends.
 5. Do not let shared app code regress back into Vulkan-only assumptions.
 
 ## Change Checklist

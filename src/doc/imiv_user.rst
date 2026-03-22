@@ -28,6 +28,10 @@ The user-facing workflow is intentionally still smaller than the developer and
 test material, because not every historical :program:`iv` feature is wired up
 yet.
 
+Current multi-backend builds can include Vulkan, Metal, and OpenGL in the same
+binary. On supported platforms, the active backend may be selected per-launch
+with ``--backend`` or persistently from the Preferences window.
+
 
 Using `imiv`
 ============
@@ -216,6 +220,11 @@ Example::
     ocio_display=default
     ocio_view=default
     recent_image=/shots/plate.0001.exr
+
+The Preferences window exposes backend selection as equal-width buttons for
+the compiled backends, plus ``Auto``. Changing the backend preference updates
+the next-launch backend and shows a restart-required note. The active backend
+for the current process does not change until the next launch.
 
 
 Current limitations

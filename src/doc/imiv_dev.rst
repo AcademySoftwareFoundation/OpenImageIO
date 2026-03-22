@@ -565,11 +565,11 @@ The current development roles are:
 * Vulkan:
   reference backend for renderer-side feature parity and regression coverage.
 * Metal:
-  native macOS backend using a Metal/MSL path, still being widened through
-  validation and regression coverage.
+  native macOS backend using a Metal/MSL path and participating in the shared
+  backend verifier.
 * OpenGL:
-  development backend that intentionally stays on a native GLSL,
-  non-compute path rather than reusing the Vulkan compute/SPIR-V pipeline.
+  native GLSL, non-compute backend that also participates in the shared
+  backend verifier rather than reusing the Vulkan compute/SPIR-V pipeline.
 
 When a new feature requires renderer work, the safest default is to land it on
 Vulkan first, then bring the other backends to matching behavior.
@@ -679,14 +679,15 @@ Vulkan
     generated OCIO shaders.
 
 OpenGL
-    stays on native GLSL. It converts CPU image data to RGBA float pixels,
-    uploads them as GL textures, and renders preview textures through a small
-    fullscreen-triangle program.
+    stays on native GLSL. It uploads supported source formats directly as GL
+    textures, using native ``R/RG/RGB/RGBA`` uploads where possible, and
+    renders preview textures through a small fullscreen-triangle program.
 
 Metal
-    stays on native MSL. It also converts CPU image data to RGBA float pixels,
-    uploads them into Metal textures, and renders preview textures through a
-    native Metal pipeline.
+    stays on native MSL. It uploads typed source pixel data into a Metal
+    buffer, runs a compute upload pass to normalize the source into the
+    backend sampling format, and renders preview textures through a native
+    Metal pipeline.
 
 The OpenGL and Metal paths are intentionally not copies of the Vulkan compute
 pipeline. That keeps each backend aligned with its native toolchain and makes
@@ -748,6 +749,13 @@ macOS build with Metal default and OpenGL also compiled::
       -D OIIO_IMIV_ENABLE_VULKAN=AUTO \
       -D OIIO_IMIV_DEFAULT_RENDERER=metal \
       -D OIIO_IMIV_ENABLE_IMGUI_TEST_ENGINE=ON
+
+At the time of this writing, the shared backend verifier is green on macOS for
+all three compiled backends:
+
+* Vulkan
+* Metal
+* OpenGL
 
 The test-engine sources are discovered either from
 `OIIO_IMIV_TEST_ENGINE_ROOT` or from the `IMGUI_TEST_ENGINE_ROOT`
