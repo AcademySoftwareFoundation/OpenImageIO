@@ -38,8 +38,10 @@ regression suite. But it does **not** yet claim full parity with
 In particular:
 
 * Vulkan is currently the reference backend for renderer-side feature work.
-* Metal and OpenGL are active development backends with some backend-specific
-  gaps and validation still in progress.
+* Current macOS multi-backend verification is green on Vulkan, Metal, and
+  OpenGL in the shared backend suite.
+* Multi-backend builds can expose backend selection through both the command
+  line and the Preferences window, with restart-on-next-launch semantics.
 * Some legacy :program:`iv` workflows are still intentionally marked as
   incomplete or behaviorally different.
 

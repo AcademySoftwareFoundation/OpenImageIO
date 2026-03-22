@@ -161,6 +161,7 @@ OCIO overrides:
 * `ocio_display`
 * `ocio_view`
 * `ocio_image_color_space`
+* `linear_interpolation`
 
 Capture flags:
 
@@ -312,19 +313,28 @@ Metal::
       --out-dir Testing/verify_metal \
       --trace
 
-This wrapper fans out into the focused regression scripts for smoke, UX,
-sampling/orientation where available, OCIO fallback/config-source/live-update
-coverage, and stores the resulting logs in files such as:
+This wrapper fans out into the focused regression scripts for smoke, RGB-input
+coverage, UX, nearest-vs-linear sampling, and OCIO
+fallback/config-source/live-update coverage, and stores the resulting logs in
+files such as:
 
 * `verify_smoke.log`
+* `verify_rgb.log`
 * `verify_ux.log`
-* `verify_screenshot.log`
 * `verify_sampling.log`
-* `verify_orientation.log`
 * `verify_ocio_missing.log`
 * `verify_ocio_config_source.log`
 * `verify_ocio_live.log`
 * `verify_ocio_live_display.log`
+
+Backend-specific specialized regressions such as Metal screenshot and
+orientation remain available, but they are not part of the common shared suite.
+
+Current status:
+
+* the shared backend verifier is green on macOS for Vulkan, OpenGL, and Metal
+* focused backend-specific regressions remain useful when debugging a renderer
+  issue outside the common suite
 
 
 CTest integration
