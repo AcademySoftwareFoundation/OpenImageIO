@@ -78,7 +78,7 @@ private:
 
     /// Helper: read the RLA header and scanline offset table.
     ///
-    inline bool read_header();
+    bool read_header();
 
     /// Helper: read and decode a single channel group consisting of
     /// channels [first_channel .. first_channel+num_channels-1], which
@@ -175,7 +175,7 @@ RLAInput::open(const std::string& name, ImageSpec& newspec)
 
 
 
-inline bool
+bool
 RLAInput::read_header()
 {
     // Read the image header, which should have the same exact layout as
@@ -200,6 +200,17 @@ RLAInput::read_header()
     }
     if (m_rla.NumOfChannelBits == 0)
         m_rla.NumOfChannelBits = 8;  // apparently, this can happen
+
+    if (m_rla.NumOfMatteBits == 0 && m_rla.NumOfMatteChannels > 0) {
+        errorfmt("{} matte channels but 0 matte bits. Possible corrupt input?",
+                 m_rla.NumOfMatteChannels);
+        return false;
+    }
+    if (m_rla.NumOfAuxBits == 0 && m_rla.NumOfAuxChannels > 0) {
+        errorfmt("{} aux channels but 0 aux bits. Possible corrupt input?",
+                 m_rla.NumOfAuxChannels);
+        return false;
+    }
 
     // Immediately following the header is the scanline offset table --
     // one uint32_t for each scanline, giving absolute offsets (from the
@@ -308,6 +319,15 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     m_spec.full_depth  = 1;
     m_spec.full_x      = m_rla.WindowLeft;
     m_spec.full_y      = m_spec.full_height - 1 - m_rla.WindowTop;
+
+    // Check validity of resolutions. The width and height are the difference
+    // between left and right (and top/down) coordinates, which are both
+    // int16_t, giving a maximum of 2^16-1 resolution in each direction. And
+    // the max number of channels is up to 3 color, up to 3 matte, and up to
+    // 256 auxiliary channels.
+    if (!check_open(m_spec, { 0, (1 << 16) - 1, 0, (1 << 16) - 1, 0, 1, 0,
+                              3 + 3 + 256 }))
+        return false;
 
     // set channel formats and stride
     int z_channel = -1;
@@ -480,7 +500,7 @@ RLAInput::decode_rle_span(unsigned char* buf, int n, int stride,
 {
     size_t e = 0;
     while (n > 0 && e < elen) {
-        signed char count = (signed char)encoded[e++];
+        int count = (signed char)encoded[e++];
         if (count >= 0) {
             // run count positive: value repeated count+1 times
             for (int i = 0; i <= count && n && e < elen;
@@ -578,6 +598,14 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
         }
     }
 
+    int bytes_per_chan = ceil2(std::max(int(num_bits), 8)) / 8;
+    if (size_t(offset + (m_spec.width - 1) * pixelsize
+               + num_channels * bytes_per_chan)
+        > m_buf.size()) {
+        errorfmt("Probably corrupt file (buffer overrun avoided)");
+        return false;  // Probably corrupt? Would have overrun
+    }
+
     // If we're little endian, swap endianness in place for 2- and
     // 4-byte pixel data.
     if (littleendian()) {
@@ -604,15 +632,7 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
     // OIIO conventions.
     if (num_bits == 8 || num_bits == 16 || num_bits == 32) {
         // ok -- no rescaling needed
-    }
-    int bytes_per_chan = ceil2(std::max(int(num_bits), 8)) / 8;
-    if (size_t(offset + (m_spec.width - 1) * pixelsize
-               + num_channels * bytes_per_chan)
-        > m_buf.size()) {
-        errorfmt("Probably corrupt file (buffer overrun avoided)");
-        return false;  // Probably corrupt? Would have overrun
-    }
-    if (num_bits == 10) {
+    } else if (num_bits == 10) {
         // fast, common case -- use templated hard-code
         for (int x = 0; x < m_spec.width; ++x) {
             uint16_t* b = (uint16_t*)(&m_buf[offset + x * pixelsize]);
@@ -658,7 +678,13 @@ RLAInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     y = m_spec.height - (y - m_spec.y) - 1;
 
     // Seek to scanline start, based on the scanline offset table
-    ioseek(m_sot[y]);
+    if (y < 0 || y >= m_spec.height) {
+        // Invalid scanline
+        return false;
+    }
+    OIIO_DASSERT(m_sot.size() == size_t(m_spec.height));
+    if (!ioseek(m_sot[y]))
+        return false;
 
     // Now decode and interleave the channels.
     // The channels are non-interleaved (i.e. rrrrrgggggbbbbb...).
