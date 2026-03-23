@@ -42,6 +42,7 @@ Issues = "https://github.com/AcademySoftwareFoundation/OpenImageIO/issues"
 
 [project.scripts]
 # Use the convention below to expose CLI tools as Python scripts.
+idiff = "OpenImageIO:_command_line"
 maketx = "OpenImageIO:_command_line"
 oiiotool = "OpenImageIO:_command_line"
 
