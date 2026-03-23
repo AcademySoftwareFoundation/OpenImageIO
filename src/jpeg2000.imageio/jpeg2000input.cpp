@@ -147,9 +147,6 @@ private:
     opj_codec_t* m_codec;
     opj_stream_t* m_stream;
     bool m_keep_unassociated_alpha;  // Do not convert unassociated alpha
-#ifdef USE_OPENJPH
-    std::unique_ptr<jph_infile> m_jphinfile;
-#endif
 
     void init(void);
 
@@ -243,6 +240,7 @@ private:                               // OJPH code
     std::vector<unsigned char> m_buf;  // Buffer the image pixels
     int buffer_bpp;                    // Bytes per pixel in the buffer
     ojph::codestream codestream;       // The HTJ2K codestream
+    std::unique_ptr<jph_infile> m_jphinfile;
 #endif
 };
 
