@@ -202,12 +202,12 @@ RLAInput::read_header()
         m_rla.NumOfChannelBits = 8;  // apparently, this can happen
 
     if (m_rla.NumOfMatteBits == 0 && m_rla.NumOfMatteChannels > 0) {
-        errorfmt("{} matte channels but 0 matte bits. Possible corrupt input?\n",
+        errorfmt("{} matte channels but 0 matte bits. Possible corrupt input?",
                  m_rla.NumOfMatteChannels);
         return false;
     }
     if (m_rla.NumOfAuxBits == 0 && m_rla.NumOfAuxChannels > 0) {
-        errorfmt("{} aux channels but 0 aux bits. Possible corrupt input?\n",
+        errorfmt("{} aux channels but 0 aux bits. Possible corrupt input?",
                  m_rla.NumOfAuxChannels);
         return false;
     }
