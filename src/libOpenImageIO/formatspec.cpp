@@ -935,7 +935,7 @@ ImageSpec::metadata_val(const ParamValue& p, bool human)
     if (human) {
         const ExplanationTableEntry* exp = nullptr;
         for (const auto& e : explanation)
-            if (Strutil::iequals(e.oiioname, p.name()))
+            if (e.oiioname && Strutil::iequals(e.oiioname, p.name()))
                 exp = &e;
         std::string nice;
         if (!exp && Strutil::istarts_with(p.name(), "Canon:")) {
@@ -943,7 +943,7 @@ ImageSpec::metadata_val(const ParamValue& p, bool human)
                 if (Strutil::iequals(e.oiioname, p.name()))
                     exp = &e;
         }
-        if (exp)
+        if (exp && exp->explainer)
             nice = exp->explainer(p, exp->extradata);
         if (ptype.elementtype() == TypeRational) {
             for (int i = 0, n = (int)ptype.numelements(); i < n; ++i) {
