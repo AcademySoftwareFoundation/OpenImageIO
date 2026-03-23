@@ -1,9 +1,7 @@
 Proposed OpenImageIO Policy on AI Coding Assistants
 ===================================================
 
-- first proposal as of 6-Mar-2026
-- revised 10-Mar-2026
-- revised 20-Mar-2026
+- Initial policy merged 23-Mar-2026
 
 
 Use of "AI coding assistants" is permitted on this project, with the following
