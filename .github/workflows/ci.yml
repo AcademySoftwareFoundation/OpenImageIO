@@ -43,7 +43,7 @@ jobs:
   aswf-old:
     if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "(old) ${{matrix.desc}}"
-    uses: ./.github/workflows/build-steps.yml
+    uses: ./.github/workflows/build-steps-old.yml
     with:
       nametag: ${{ matrix.nametag || 'unnamed!' }}
       runner: ${{ matrix.runner || 'ubuntu-latest' }}
