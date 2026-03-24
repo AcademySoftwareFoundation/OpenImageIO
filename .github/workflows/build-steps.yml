@@ -256,7 +256,23 @@ jobs:
             time make sphinx
       - name: Upload testsuite debugging artifacts
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        if: ${{ failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '' }}
+        if: ${{ inputs.old_node != '1' && (failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '') }}
+        with:
+          name: oiio-${{github.job}}-${{inputs.nametag}}
+          path: |
+            build/cmake-save
+            build/compat_reports
+            build/sphinx
+            build/benchmarks
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+            ${{ inputs.extra_artifacts }}
+      - name: Upload testsuite debugging artifacts-OLD
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        if: ${{ inputs.old_node == '1' && (failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '') }}
         with:
           name: oiio-${{github.job}}-${{inputs.nametag}}
           path: |
