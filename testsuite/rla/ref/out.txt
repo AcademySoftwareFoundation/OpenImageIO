@@ -307,19 +307,19 @@ Reading ../oiio-images/rla/imgmake_rgba_nc8.rla
     rla:WhitePoint: 0.31, 0.31, 0.316
 Comparing "../oiio-images/rla/imgmake_rgba_nc8.rla" and "imgmake_rgba_nc8.rla"
 PASS
-oiiotool ERROR: read : "../oiio-images/rla/crash1.rla": Read error: malformed RLE record
+oiiotool ERROR: read : "../oiio-images/rla/crash1.rla": 3 aux channels but 0 aux bits. Possible corrupt input?
 Full command line was:
 > oiiotool ../oiio-images/rla/crash1.rla -o crash1.exr
-oiiotool ERROR: read : "../oiio-images/rla/crash2.rla": Read error: not enough data in scanline 73, channel 0
+oiiotool ERROR: read : "../oiio-images/rla/crash2.rla": 1 aux channels but 0 aux bits. Possible corrupt input?
 Full command line was:
 > oiiotool ../oiio-images/rla/crash2.rla -o crash2.exr
-oiiotool ERROR: read : "src/crash-1629.rla": Read error: malformed RLE record
+oiiotool ERROR: read : "src/crash-1629.rla": rla image full/display resolution must be at least 1x1, but the file specified -16639x256x1. Possible corrupt input?
 Full command line was:
 > oiiotool src/crash-1629.rla -o crash3.exr
-oiiotool ERROR: read : "src/crash-3951.rla": Read error: couldn't read RLE data span
+oiiotool ERROR: read : "src/crash-3951.rla": rla image full/display resolution must be at least 1x1, but the file specified 3834x-31743x1. Possible corrupt input?
 Full command line was:
 > oiiotool src/crash-3951.rla -o crash4.exr
-oiiotool ERROR: read : "src/crash-1.rla": Probably corrupt file (buffer overrun avoided)
+oiiotool ERROR: read : "src/crash-1.rla": rla image full/display resolution must be at least 1x1, but the file specified -281x18999x1. Possible corrupt input?
 Full command line was:
 > oiiotool src/crash-1.rla -o crash5.exr
 Comparing "rlacrop.rla" and "ref/rlacrop.rla"

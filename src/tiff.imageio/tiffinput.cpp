@@ -238,8 +238,10 @@ private:
     // like we think the file is hopelessly corrupted.
     bool readspec(bool read_meta = true);
 
-    // Figure out all the photometric-related aspects of the header
-    void readspec_photometric();
+    // Figure out all the photometric-related aspects of the header.
+    // Return true if all is fine, false if something really bad happens,
+    // like we think the file is invalid or hopelessly corrupted.
+    bool readspec_photometric();
 
     // Convert planar separate to contiguous data format
     void separate_to_contig(size_t nplanes, size_t nvals,
@@ -1205,6 +1207,7 @@ TIFFInput::readspec(bool read_meta)
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
     m_spec.attribute("oiio:BitsPerSample", (int)m_bitspersample);
 
+    m_spec.set_format(TypeDesc::UNKNOWN);
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
     switch (m_bitspersample) {
@@ -1233,8 +1236,7 @@ TIFFInput::readspec(bool read_meta)
         else if (sampleformat == SAMPLEFORMAT_IEEEFP) {
             m_spec.set_format(TypeDesc::HALF);
             // Adobe extension, see http://chriscox.org/TIFFTN3d1.pdf
-        } else
-            m_spec.set_format(TypeDesc::UNKNOWN);
+        }
         break;
     case 24:
         // Make 24 bit look like 32 bit
@@ -1245,8 +1247,6 @@ TIFFInput::readspec(bool read_meta)
             m_spec.set_format(TypeDesc::UINT32);
         else if (sampleformat == SAMPLEFORMAT_INT)
             m_spec.set_format(TypeDesc::INT32);
-        else
-            m_spec.set_format(TypeDesc::UNKNOWN);
         break;
     case 64:
         if (sampleformat == SAMPLEFORMAT_IEEEFP)
@@ -1254,7 +1254,15 @@ TIFFInput::readspec(bool read_meta)
         else
             m_spec.set_format(TypeDesc::UNKNOWN);
         break;
-    default: m_spec.set_format(TypeDesc::UNKNOWN); break;
+    default:
+        errorfmt("Invalid bits per sample ({})", m_bitspersample);
+        return false;
+    }
+
+    if (m_spec.format == TypeUnknown) {
+        errorfmt("Invalid sampleformat value ({}) for {} bits per sample",
+                 sampleformat, m_bitspersample);
+        return false;
     }
 
     // Use the table for all the obvious things that can be mindlessly
@@ -1278,7 +1286,8 @@ TIFFInput::readspec(bool read_meta)
     TIFFGetField(m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
     m_spec.attribute("tiff:PhotometricInterpretation", (int)m_photometric);
 
-    readspec_photometric();
+    if (!readspec_photometric())
+        return false;
 
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
     m_separate = (m_planarconfig == PLANARCONFIG_SEPARATE
@@ -1579,7 +1588,7 @@ TIFFInput::readspec(bool read_meta)
 
 
 
-void
+bool
 TIFFInput::readspec_photometric()
 {
     switch (m_photometric) {
@@ -1651,6 +1660,12 @@ TIFFInput::readspec_photometric()
         m_spec.attribute("tiff:ColorSpace", "LOGLUV");
         break;
     case PHOTOMETRIC_PALETTE: {
+        if (m_bitspersample > 16) {
+            errorfmt(
+                "Palette images only support <= 16 bits per sample (was {})",
+                m_bitspersample);
+            return false;
+        }
         m_spec.attribute("tiff:ColorSpace", "palette");
         // Read the color map
         unsigned short *r = NULL, *g = NULL, *b = NULL;
@@ -1710,6 +1725,8 @@ TIFFInput::readspec_photometric()
         m_spec.attribute("oiio:ColorSpace",
                          m_spec.get_string_attribute("tiff:ColorSpace"));
     }
+
+    return true;
 }
 
 
@@ -1973,9 +1990,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
             for (int c = 0; c < planes; ++c) { /* planes==1 for contig */
                 if (TIFFReadScanline(m_tif, &m_scratch[0], m_next_scanline, c)
                     < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
                     errorfmt("{}", oiio_tiff_last_error());
-#endif
                     return false;
                 }
             }
@@ -1989,9 +2004,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadScanline(m_tif, m_scratch.data(), y) < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
-#endif
             return false;
         }
         size_t n(m_spec.width);
@@ -2023,9 +2036,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     // only do one TIFFReadScanline.
     for (int c = 0; c < planes; ++c) { /* planes==1 for contig */
         if (TIFFReadScanline(m_tif, &readbuf[plane_bytes * c], y, c) < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
-#endif
             return false;
         }
     }
@@ -2387,9 +2398,7 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadTile(m_tif, m_scratch.data(), x, y, z, 0) < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
-#endif
             return false;
         }
         if (m_bitspersample <= 8)
@@ -2404,11 +2413,12 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
         // Not palette
         imagesize_t plane_bytes = m_spec.tile_pixels() * m_spec.format.size();
         int planes              = m_separate ? m_inputchannels : 1;
-        std::vector<unsigned char> scratch2(m_separate ? m_spec.tile_bytes()
+        std::vector<unsigned char> scratch2(m_separate ? plane_bytes * planes
                                                        : 0);
         // Where to read?  Directly into user data if no channel shuffling
         // or bit shifting is needed, otherwise into scratch space.
-        unsigned char* readbuf = (no_bit_convert && !m_separate)
+        unsigned char* readbuf = (no_bit_convert && !m_separate
+                                  && m_inputchannels == m_spec.nchannels)
                                      ? (unsigned char*)data.data()
                                      : m_scratch.data();
         // Perform the reads.  Note that for contig, planes==1, so it will
@@ -2416,9 +2426,7 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             if (TIFFReadTile(m_tif, &readbuf[plane_bytes * c], x, y, z, c)
                 < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
                 errorfmt("{}", oiio_tiff_last_error());
-#endif
                 return false;
             }
         if (m_bitspersample < 8) {

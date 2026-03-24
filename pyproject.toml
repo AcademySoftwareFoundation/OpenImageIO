@@ -45,6 +45,7 @@ Issues = "https://github.com/AcademySoftwareFoundation/OpenImageIO/issues"
 
 [project.scripts]
 # Use the convention below to expose CLI tools as Python scripts.
+idiff = "OpenImageIO:_command_line"
 maketx = "OpenImageIO:_command_line"
 oiiotool = "OpenImageIO:_command_line"
 
@@ -116,6 +117,8 @@ skip = [
 test-command = "oiiotool --buildinfo"
 
 [tool.cibuildwheel.macos.environment]
+CC = "/usr/bin/clang"
+CXX = "/usr/bin/clang++"
 SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1"
 # Optimize for size (not speed).
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"

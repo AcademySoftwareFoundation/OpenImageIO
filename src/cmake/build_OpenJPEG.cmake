@@ -5,6 +5,7 @@
 set_cache (OpenJPEG_BUILD_VERSION 2.5.4 "OpenJPEG version for local builds")
 set (OpenJPEG_GIT_REPOSITORY "https://github.com/uclouvain/openjpeg.git")
 set (OpenJPEG_GIT_TAG "v${OpenJPEG_BUILD_VERSION}")
+set (OpenJPEG_GIT_COMMIT "6c4a29b00211eb0430fa0e5e890f1ce5c80f409f")
 set_cache (OpenJPEG_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local OpenJPEG build, if necessary, build shared libraries" ADVANCED)
 
@@ -15,6 +16,7 @@ build_dependency_with_cmake(OpenJPEG
     VERSION         ${OpenJPEG_BUILD_VERSION}
     GIT_REPOSITORY  ${OpenJPEG_GIT_REPOSITORY}
     GIT_TAG         ${OpenJPEG_GIT_TAG}
+    GIT_COMMIT      ${OpenJPEG_GIT_COMMIT}
     CMAKE_ARGS
         -D BUILD_CODEC=OFF 
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON

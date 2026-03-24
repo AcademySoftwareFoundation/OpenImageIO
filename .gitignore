@@ -10,6 +10,7 @@ _coverage/
 .idea
 .vs
 .vscode
+.cache
 .cproject
 .project
 .DS_Store

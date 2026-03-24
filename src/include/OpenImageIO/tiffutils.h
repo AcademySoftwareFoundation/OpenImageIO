@@ -210,6 +210,9 @@ OIIO_API bool gps_tag_lookup (string_view name, int &tag,
 /// metadata without having to duplicate functionality within each
 /// plugin.  Note that IIM is actually considered obsolete and is
 /// replaced by an XML scheme called XMP.
+OIIO_API bool decode_iptc_iim (string_view iptc, ImageSpec &spec);
+
+// DEPRECATED(3.2) -- unsafe version
 OIIO_API bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
 
 /// Find all the IPTC-amenable metadata in spec and assemble it into an
