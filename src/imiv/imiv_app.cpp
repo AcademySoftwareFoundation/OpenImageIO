@@ -142,6 +142,58 @@ namespace {
                || Strutil::iequals(trimmed, "on");
     }
 
+    bool parse_bool_value(string_view value, bool& out_value)
+    {
+        const string_view trimmed = Strutil::strip(value);
+        if (trimmed.empty())
+            return false;
+        if (trimmed == "1" || Strutil::iequals(trimmed, "true")
+            || Strutil::iequals(trimmed, "yes")
+            || Strutil::iequals(trimmed, "on")) {
+            out_value = true;
+            return true;
+        }
+        if (trimmed == "0" || Strutil::iequals(trimmed, "false")
+            || Strutil::iequals(trimmed, "no")
+            || Strutil::iequals(trimmed, "off")) {
+            out_value = false;
+            return true;
+        }
+        return false;
+    }
+
+    bool default_developer_mode_enabled()
+    {
+#if defined(NDEBUG)
+        return false;
+#else
+        return true;
+#endif
+    }
+
+    bool resolve_developer_mode_enabled(const AppConfig& config,
+                                        bool verbose_logging)
+    {
+        bool enabled = default_developer_mode_enabled();
+
+        std::string env_value;
+        if (read_env_value("OIIO_DEVMODE", env_value)) {
+            bool parsed_value = false;
+            if (parse_bool_value(env_value, parsed_value)) {
+                enabled = parsed_value;
+            } else if (verbose_logging) {
+                print(stderr,
+                      "imiv: ignoring invalid OIIO_DEVMODE value '{}'; "
+                      "expected 0/1/true/false/on/off/yes/no\n",
+                      env_value);
+            }
+        }
+
+        if (config.developer_mode_explicit)
+            enabled = config.developer_mode;
+        return enabled;
+    }
+
     BackendKind requested_backend_for_launch(const AppConfig& config,
                                             const PlaceholderUiState& ui_state)
     {
@@ -199,6 +251,8 @@ run(const AppConfig& config)
           || env_flag_is_truthy("IMIV_VULKAN_VERBOSE_VALIDATION");
     const bool log_imgui_texture_updates = env_flag_is_truthy(
         "IMIV_DEBUG_IMGUI_TEXTURES");
+    developer_ui.enabled = resolve_developer_mode_enabled(run_config,
+                                                          verbose_logging);
 
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     TestEngineConfig test_engine_cfg = gather_test_engine_config();
@@ -402,6 +456,8 @@ run(const AppConfig& config)
     if (run_config.verbose) {
         print("imiv: bootstrap initialized (backend: {})\n",
               backend_runtime_name(active_backend));
+        print("imiv: developer mode: {}\n",
+              developer_ui.enabled ? "enabled" : "disabled");
         for (const BackendRuntimeInfo& info : runtime_backend_info()) {
             print("imiv: backend {} ({}) compiled={} available={} "
                   "build_default={} platform_default={}{}\n",

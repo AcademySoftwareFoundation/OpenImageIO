@@ -114,6 +114,18 @@ Focused backend-selector regression from a multi-backend build:
 ctest --test-dir build_u -V -R '^imiv_backend_preferences_regression$'
 ```
 
+Focused developer-menu regression:
+
+```bash
+ctest --test-dir build -V -R '^imiv_developer_menu_regression$'
+```
+
+Runtime developer mode controls:
+
+- `--devmode` enables the `Developer` menu for the current launch
+- `OIIO_DEVMODE=1|0|true|false|on|off|yes|no` overrides the default
+- Debug builds default to developer mode on
+
 Main output logs:
 
 - `verify_smoke.log`

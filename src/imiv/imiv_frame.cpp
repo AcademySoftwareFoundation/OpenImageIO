@@ -149,7 +149,8 @@ namespace {
     void begin_developer_screenshot_request(DeveloperUiState& developer_ui,
                                             ViewerState& viewer)
     {
-#if !defined(NDEBUG)
+        if (!developer_ui.enabled)
+            return;
         if (!developer_ui.request_screenshot || developer_ui.screenshot_busy)
             return;
         developer_ui.request_screenshot  = false;
@@ -159,15 +160,12 @@ namespace {
         viewer.status_message
             = "Screenshot queued; capturing main window in 3 seconds";
         print("imiv: developer screenshot queued (3 second delay)\n");
-#else
-        (void)developer_ui;
-        (void)viewer;
-#endif
     }
 
     void draw_developer_windows(DeveloperUiState& developer_ui)
     {
-#if !defined(NDEBUG)
+        if (!developer_ui.enabled)
+            return;
         if (developer_ui.show_imgui_demo_window)
             ImGui::ShowDemoWindow(&developer_ui.show_imgui_demo_window);
         if (developer_ui.show_imgui_style_editor) {
@@ -191,9 +189,6 @@ namespace {
         if (developer_ui.show_imgui_about_window) {
             ImGui::ShowAboutWindow(&developer_ui.show_imgui_about_window);
         }
-#else
-        (void)developer_ui;
-#endif
     }
 
 }  // namespace
@@ -690,7 +685,8 @@ process_developer_post_render_actions(DeveloperUiState& developer_ui,
                                       ViewerState& viewer,
                                       RendererState& vk_state)
 {
-#    if !defined(NDEBUG)
+    if (!developer_ui.enabled)
+        return;
     if (!developer_ui.screenshot_busy)
         return;
     if (ImGui::GetTime() < developer_ui.screenshot_due_time)
@@ -707,11 +703,6 @@ process_developer_post_render_actions(DeveloperUiState& developer_ui,
     }
     developer_ui.screenshot_busy     = false;
     developer_ui.screenshot_due_time = -1.0;
-#    else
-    (void)developer_ui;
-    (void)viewer;
-    (void)vk_state;
-#    endif
 }
 #endif
 

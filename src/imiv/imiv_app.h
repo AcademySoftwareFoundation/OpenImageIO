@@ -19,6 +19,8 @@ struct AppConfig {
     bool open_dialog     = false;
     bool save_dialog     = false;
     bool list_backends   = false;
+    bool developer_mode  = false;
+    bool developer_mode_explicit = false;
 
     BackendKind requested_backend = BackendKind::Auto;
 

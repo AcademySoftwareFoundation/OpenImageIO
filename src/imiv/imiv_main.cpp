@@ -67,6 +67,9 @@ getargs(int argc, char* argv[])
     ap.arg("--list-backends")
       .help("List backend support compiled into this imiv binary and exit")
       .store_true();
+    ap.arg("--devmode")
+      .help("Enable Developer menu and developer tools")
+      .store_true();
 
     ap.parse(argc, (const char**)argv);
     return ap;
@@ -88,6 +91,8 @@ main(int argc, char* argv[])
     config.open_dialog            = ap["open-dialog"].get<int>() != 0;
     config.save_dialog            = ap["save-dialog"].get<int>() != 0;
     config.list_backends          = ap["list-backends"].get<int>() != 0;
+    config.developer_mode         = ap["devmode"].get<int>() != 0;
+    config.developer_mode_explicit = config.developer_mode;
     config.ocio_display           = ap["display"].as_string("");
     config.ocio_image_color_space = ap["image-color-space"].as_string("");
     config.ocio_view              = ap["view"].as_string("");
