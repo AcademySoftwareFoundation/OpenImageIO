@@ -19,6 +19,7 @@ struct GLFWwindow;
 namespace Imiv {
 
 struct DeveloperUiState {
+    bool enabled                     = false;
     bool show_imgui_demo_window      = false;
     bool show_imgui_style_editor     = false;
     bool show_imgui_metrics_window   = false;

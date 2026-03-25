@@ -108,7 +108,7 @@ The C++ side registers several built-in Dear ImGui Test Engine tests:
 * `imiv/scenario`
   XML-driven multi-step scenario execution.
 * `imiv/developer_menu_metrics_window`
-  focused debug-build regression around the Developer menu.
+  focused regression around the runtime-enabled `Developer` menu.
 
 Most users should drive those modes through the Python wrappers, but it is
 useful to know that the wrappers are not inventing separate automation paths;
@@ -222,6 +222,10 @@ That style is useful when:
 * the test needs direct control over ImGui references;
 * you are building a reusable primitive before deciding whether it belongs in
   the higher-level XML scenario format.
+
+The Python wrapper for this regression enables developer mode explicitly with
+`OIIO_DEVMODE=1`, so the same test path is valid in both Debug and Release
+builds when Dear ImGui Test Engine support is compiled in.
 
 
 Automation artifacts

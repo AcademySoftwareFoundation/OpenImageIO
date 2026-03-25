@@ -220,8 +220,16 @@ configured across launches, it usually belongs here.
 `DeveloperUiState`
 ------------------
 
-`DeveloperUiState` is more temporary. It drives debug-only windows and delayed
-actions such as the manual screenshot flow in the `Developer` menu.
+`DeveloperUiState` is more temporary. It drives the runtime-controlled
+`Developer` menu, its auxiliary Dear ImGui diagnostic windows, and delayed
+actions such as the manual screenshot flow.
+
+The effective developer-mode policy is resolved in `imiv_app.cpp`:
+
+* Debug builds default to developer mode enabled;
+* Release builds default to developer mode disabled;
+* `OIIO_DEVMODE` overrides the build default when set to a boolean value;
+* `--devmode` overrides both and forces developer mode on for that launch.
 
 Combined settings file
 ----------------------
@@ -269,7 +277,7 @@ The current order is:
 10. build the dockspace host window;
 11. draw the main image window;
 12. draw auxiliary windows and popups;
-13. draw debug-only Dear ImGui diagnostic windows and the drag overlay.
+13. draw developer-mode Dear ImGui diagnostic windows and the drag overlay.
 
 Two design choices here are important:
 
@@ -327,7 +335,7 @@ The main windows are:
 * `iv Preferences`;
 * `Preview`;
 * the `About imiv` modal;
-* optional debug-only Dear ImGui diagnostics from the `Developer` menu.
+* optional Dear ImGui diagnostics from the runtime-enabled `Developer` menu.
 
 Auxiliary windows in `src/imiv/imiv_aux_windows.cpp` use
 `ImGuiCond_FirstUseEver` defaults. After that, Dear ImGui layout persistence

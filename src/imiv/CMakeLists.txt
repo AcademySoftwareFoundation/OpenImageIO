@@ -1263,9 +1263,8 @@ if (TARGET imiv
             --open "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png")
     set_tests_properties (
         imiv_developer_menu_regression PROPERTIES
-            LABELS "imiv;imiv_debug;gui"
-            TIMEOUT 120
-            SKIP_RETURN_CODE 77)
+            LABELS "imiv;imiv_devmode;gui"
+            TIMEOUT 120)
 
     add_test (
         NAME imiv_area_probe_closeup_regression

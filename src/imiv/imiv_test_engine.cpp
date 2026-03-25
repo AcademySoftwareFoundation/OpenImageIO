@@ -1334,11 +1334,6 @@ namespace {
 
     void imiv_test_developer_menu_metrics(ImGuiTestContext* ctx)
     {
-#    if defined(NDEBUG)
-        ctx->LogInfo(
-            "developer menu regression skipped: not available in release build");
-        return;
-#    else
         ctx->Yield(3);
         const ImGuiTestItemInfo developer_menu
             = ctx->ItemInfo("##MainMenuBar##MenuBar/Developer",
@@ -1384,7 +1379,6 @@ namespace {
                                     include_items, depth, &extra_windows)) {
             return;
         }
-#    endif
     }
 
     ImGuiTest* register_imiv_smoke_tests(ImGuiTestEngine* engine)

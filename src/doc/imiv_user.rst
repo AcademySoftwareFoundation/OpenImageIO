@@ -91,6 +91,14 @@ Use :program:`imiv --help` to print the option summary for the current build.
     binary, including runtime availability and any unavailability reason, then
     exit.
 
+.. option:: --devmode
+
+    Enable the `Developer` menu and its auxiliary Dear ImGui diagnostic tools
+    for this launch.
+
+    In Debug builds, developer mode is enabled by default. In Release builds,
+    it is disabled by default unless requested explicitly.
+
 .. option:: --display NAME
 
     Set the initial OCIO display selection.
@@ -228,6 +236,11 @@ The Preferences window exposes backend selection as equal-width buttons for
 the compiled backends, plus ``Auto``. Changing the backend preference updates
 the next-launch backend and shows a restart-required note. The active backend
 for the current process does not change until the next launch.
+
+Developer mode may also be controlled by the ``OIIO_DEVMODE`` environment
+variable. Acceptable values include ``1``, ``0``, ``true``, ``false``, ``on``,
+``off``, ``yes``, and ``no``. The command-line ``--devmode`` flag takes
+precedence over the environment variable.
 
 
 Current limitations

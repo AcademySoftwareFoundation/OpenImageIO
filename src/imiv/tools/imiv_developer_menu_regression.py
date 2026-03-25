@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression check for the debug-only Developer menu in imiv."""
+"""Regression check for the runtime-enabled Developer menu in imiv."""
 
 from __future__ import annotations
 
@@ -19,7 +19,6 @@ ERROR_PATTERNS = (
     "fatal Vulkan error",
     "developer menu regression: demo window did not open",
 )
-SKIP_MARKER = "developer menu regression skipped: not available in release build"
 
 
 def _default_binary(repo_root: Path) -> Path:
@@ -104,6 +103,7 @@ def main() -> int:
     env = _load_env_from_script(Path(args.env_script).expanduser())
     env.update(
         {
+            "OIIO_DEVMODE": "1",
             "IMIV_IMGUI_TEST_ENGINE": "1",
             "IMIV_IMGUI_TEST_ENGINE_EXIT_ON_FINISH": "1",
             "IMIV_IMGUI_TEST_ENGINE_DEVELOPER_MENU_METRICS": "1",
@@ -134,10 +134,6 @@ def main() -> int:
         return _fail(f"imiv exited with code {proc.returncode}")
 
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
-    if SKIP_MARKER in log_text:
-        print("skip: developer menu not available in this build")
-        return 77
-
     for pattern in ERROR_PATTERNS:
         if pattern in log_text:
             return _fail(f"found runtime error pattern: {pattern}")

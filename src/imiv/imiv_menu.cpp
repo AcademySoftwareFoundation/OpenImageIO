@@ -68,10 +68,10 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
         ui_state.show_preferences_window = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Q))
         request_exit = true;
-#if !defined(NDEBUG)
-    if (app_shortcut(ImGuiKey_F12) && !developer_ui.screenshot_busy)
+    if (developer_ui.enabled && app_shortcut(ImGuiKey_F12)
+        && !developer_ui.screenshot_busy) {
         developer_ui.request_screenshot = true;
-#endif
+    }
     if (app_shortcut(ImGuiKey_PageUp))
         actions.prev_requested = true;
     if (app_shortcut(ImGuiKey_PageDown))
@@ -523,8 +523,7 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
         ImGui::EndMenu();
     }
 
-#if !defined(NDEBUG)
-    if (ImGui::BeginMenu("Developer")) {
+    if (developer_ui.enabled && ImGui::BeginMenu("Developer")) {
         ImGui::MenuItem("ImGui Demo", nullptr,
                         &developer_ui.show_imgui_demo_window);
         ImGui::MenuItem("ImGui Style Editor", nullptr,
@@ -551,8 +550,6 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
 #    endif
         ImGui::EndMenu();
     }
-#endif
-
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     if (show_test_engine_windows != nullptr && show_test_menu
         && ImGui::BeginMenu("Tests")) {
