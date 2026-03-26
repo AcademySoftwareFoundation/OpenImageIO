@@ -114,6 +114,12 @@ Focused backend-selector regression from a multi-backend build:
 ctest --test-dir build_u -V -R '^imiv_backend_preferences_regression$'
 ```
 
+Focused multi-view regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_multiview_regression$'
+```
+
 Focused developer-menu regression:
 
 ```bash

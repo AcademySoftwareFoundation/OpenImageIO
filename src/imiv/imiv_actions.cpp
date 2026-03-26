@@ -183,8 +183,9 @@ quiesce_viewer_texture_lifetime(RendererState& renderer_state,
 
 bool
 load_viewer_image(RendererState& vk_state, ViewerState& viewer,
-                  PlaceholderUiState* ui_state, const std::string& path,
-                  int requested_subimage, int requested_miplevel)
+                  ImageLibraryState& library, PlaceholderUiState* ui_state,
+                  const std::string& path, int requested_subimage,
+                  int requested_miplevel)
 {
     viewer.last_error.clear();
     const std::string previous_path = viewer.image.path;
@@ -227,14 +228,19 @@ load_viewer_image(RendererState& vk_state, ViewerState& viewer,
         }
     }
     int loaded_index = -1;
-    add_loaded_image_path(viewer, viewer.image.path, &loaded_index);
+    add_loaded_image_path(library, viewer.image.path, &loaded_index);
+    viewer.loaded_image_paths = library.loaded_image_paths;
+    viewer.recent_images      = library.recent_images;
+    viewer.sort_mode          = library.sort_mode;
+    viewer.sort_reverse       = library.sort_reverse;
     if (!previous_path.empty() && previous_index >= 0
         && previous_path != viewer.image.path
         && previous_index != loaded_index) {
         viewer.last_path_index = previous_index;
     }
     viewer.current_path_index = loaded_index;
-    add_recent_image_path(viewer, viewer.image.path);
+    add_recent_image_path(library, viewer.image.path);
+    viewer.recent_images = library.recent_images;
     viewer.status_message = Strutil::fmt::format(
         "Loaded {} ({}x{}, {} channels, {}, subimage {}/{}, mip {}/{})",
         viewer.image.path, viewer.image.width, viewer.image.height,
@@ -270,12 +276,13 @@ parent_directory_for_dialog(const std::string& path)
 }
 
 std::string
-open_dialog_default_path(const ViewerState& viewer)
+open_dialog_default_path(const ViewerState& viewer,
+                         const ImageLibraryState& library)
 {
     if (!viewer.image.path.empty())
         return parent_directory_for_dialog(viewer.image.path);
-    if (!viewer.recent_images.empty())
-        return parent_directory_for_dialog(viewer.recent_images.front());
+    if (!library.recent_images.empty())
+        return parent_directory_for_dialog(library.recent_images.front());
     return std::string();
 }
 
@@ -358,14 +365,15 @@ save_as_dialog_action(ViewerState& viewer)
         return;
     }
 
-    const std::string default_path = open_dialog_default_path(viewer);
+    const ImageLibraryState empty_library;
+    const std::string default_path = open_dialog_default_path(viewer,
+                                                              empty_library);
     const std::string default_name = save_dialog_default_name(viewer);
     FileDialog::DialogReply reply  = FileDialog::save_image_file(default_path,
                                                                  default_name);
     if (reply.result == FileDialog::Result::Okay) {
         std::string error;
         if (save_loaded_image(viewer.image, reply.path, error)) {
-            add_recent_image_path(viewer, reply.path);
             viewer.status_message = Strutil::fmt::format("Saved {}",
                                                          reply.path);
             viewer.last_error.clear();
@@ -535,34 +543,53 @@ set_mouse_mode_action(ViewerState& viewer, PlaceholderUiState& ui_state,
 }
 
 void
-set_sort_mode_action(ViewerState& viewer, ImageSortMode mode)
+set_sort_mode_action(ImageLibraryState& library,
+                     const std::vector<ViewerState*>& viewers,
+                     ImageSortMode mode)
 {
-    viewer.sort_mode = mode;
-    sort_loaded_image_paths(viewer);
-    viewer.status_message = "Image list sort mode changed";
-    viewer.last_error.clear();
+    library.sort_mode = mode;
+    sort_loaded_image_paths(library, viewers);
+    for (ViewerState* viewer : viewers) {
+        if (viewer == nullptr)
+            continue;
+        viewer->sort_mode          = library.sort_mode;
+        viewer->sort_reverse       = library.sort_reverse;
+        viewer->loaded_image_paths = library.loaded_image_paths;
+        viewer->status_message     = "Image list sort mode changed";
+        viewer->last_error.clear();
+    }
 }
 
 void
-toggle_sort_reverse_action(ViewerState& viewer)
+toggle_sort_reverse_action(ImageLibraryState& library,
+                           const std::vector<ViewerState*>& viewers)
 {
-    viewer.sort_reverse = !viewer.sort_reverse;
-    sort_loaded_image_paths(viewer);
-    viewer.status_message = viewer.sort_reverse ? "Image list order reversed"
-                                                : "Image list order restored";
-    viewer.last_error.clear();
+    library.sort_reverse = !library.sort_reverse;
+    sort_loaded_image_paths(library, viewers);
+    for (ViewerState* viewer : viewers) {
+        if (viewer == nullptr)
+            continue;
+        viewer->sort_mode          = library.sort_mode;
+        viewer->sort_reverse       = library.sort_reverse;
+        viewer->loaded_image_paths = library.loaded_image_paths;
+        viewer->status_message
+            = library.sort_reverse ? "Image list order reversed"
+                                   : "Image list order restored";
+        viewer->last_error.clear();
+    }
 }
 
 bool
 advance_slide_show_action(RendererState& vk_state, ViewerState& viewer,
+                          ImageLibraryState& library,
                           PlaceholderUiState& ui_state)
 {
-    if (!ui_state.slide_show_running || viewer.loaded_image_paths.empty()
+    if (!ui_state.slide_show_running || library.loaded_image_paths.empty()
         || viewer.image.path.empty()) {
         return false;
     }
 
-    const int count = static_cast<int>(viewer.loaded_image_paths.size());
+    const int count = static_cast<int>(library.loaded_image_paths.size());
     if (count <= 0 || viewer.current_path_index < 0)
         return false;
 
@@ -574,9 +601,10 @@ advance_slide_show_action(RendererState& vk_state, ViewerState& viewer,
     }
 
     std::string next_path;
-    if (!pick_loaded_image_path(viewer, 1, next_path) || next_path.empty())
+    if (!pick_loaded_image_path(library, viewer, 1, next_path)
+        || next_path.empty())
         return false;
-    return load_viewer_image(vk_state, viewer, &ui_state, next_path,
+    return load_viewer_image(vk_state, viewer, library, &ui_state, next_path,
                              viewer.image.subimage, viewer.image.miplevel);
 }
 
@@ -594,41 +622,43 @@ toggle_slide_show_action(PlaceholderUiState& ui_state, ViewerState& viewer)
 
 void
 open_image_dialog_action(RendererState& vk_state, ViewerState& viewer,
+                         ImageLibraryState& library,
                          PlaceholderUiState& ui_state, int requested_subimage,
                          int requested_miplevel)
 {
     FileDialog::DialogReply reply = FileDialog::open_image_files(
-        open_dialog_default_path(viewer));
+        open_dialog_default_path(viewer, library));
     if (reply.result == FileDialog::Result::Okay) {
         if (reply.paths.empty() && !reply.path.empty())
             reply.paths.push_back(reply.path);
 
         int first_added_index = -1;
-        append_loaded_image_paths(viewer, reply.paths, &first_added_index);
+        append_loaded_image_paths(library, reply.paths, &first_added_index);
+        viewer.loaded_image_paths = library.loaded_image_paths;
 
         std::string target_path;
         if (first_added_index >= 0
             && first_added_index
-                   < static_cast<int>(viewer.loaded_image_paths.size())) {
-            target_path = viewer.loaded_image_paths[static_cast<size_t>(
+                   < static_cast<int>(library.loaded_image_paths.size())) {
+            target_path = library.loaded_image_paths[static_cast<size_t>(
                 first_added_index)];
         } else {
             for (const std::string& path : reply.paths) {
-                if (!set_current_loaded_image_path(viewer, path))
+                if (!set_current_loaded_image_path(library, viewer, path))
                     continue;
                 if (viewer.current_path_index < 0
                     || viewer.current_path_index >= static_cast<int>(
-                           viewer.loaded_image_paths.size())) {
+                           library.loaded_image_paths.size())) {
                     continue;
                 }
-                target_path = viewer.loaded_image_paths[static_cast<size_t>(
+                target_path = library.loaded_image_paths[static_cast<size_t>(
                     viewer.current_path_index)];
                 break;
             }
         }
 
         if (!target_path.empty()) {
-            load_viewer_image(vk_state, viewer, &ui_state, target_path,
+            load_viewer_image(vk_state, viewer, library, &ui_state, target_path,
                               requested_subimage, requested_miplevel);
         } else {
             viewer.last_error = "No selected image paths were accepted";
@@ -643,6 +673,7 @@ open_image_dialog_action(RendererState& vk_state, ViewerState& viewer,
 
 void
 reload_current_image_action(RendererState& vk_state, ViewerState& viewer,
+                            ImageLibraryState& library,
                             PlaceholderUiState& ui_state)
 {
     if (viewer.image.path.empty()) {
@@ -650,72 +681,65 @@ reload_current_image_action(RendererState& vk_state, ViewerState& viewer,
         viewer.last_error.clear();
         return;
     }
-    load_viewer_image(vk_state, viewer, &ui_state, viewer.image.path,
+    load_viewer_image(vk_state, viewer, library, &ui_state, viewer.image.path,
                       viewer.image.subimage, viewer.image.miplevel);
 }
 
 void
 close_current_image_action(RendererState& vk_state, ViewerState& viewer,
+                           ImageLibraryState& library,
                            PlaceholderUiState& ui_state)
 {
-    const std::string closing_path = viewer.image.path;
-    const int closing_index        = viewer.current_path_index;
     quiesce_viewer_texture_lifetime(vk_state, viewer.texture);
     renderer_destroy_texture(vk_state, viewer.texture);
-    remove_loaded_image_path(viewer, closing_path);
-    if (!viewer.loaded_image_paths.empty()) {
-        const int replacement_index
-            = std::clamp(closing_index, 0,
-                         static_cast<int>(viewer.loaded_image_paths.size())
-                             - 1);
-        const std::string replacement_path
-            = viewer.loaded_image_paths[static_cast<size_t>(replacement_index)];
-        clear_loaded_image_state(viewer);
-        viewer.last_error.clear();
-        load_viewer_image(vk_state, viewer, &ui_state, replacement_path,
-                          ui_state.subimage_index, ui_state.miplevel_index);
-        return;
-    }
-
     clear_loaded_image_state(viewer);
+    viewer.loaded_image_paths = library.loaded_image_paths;
+    viewer.recent_images      = library.recent_images;
+    viewer.sort_mode          = library.sort_mode;
+    viewer.sort_reverse       = library.sort_reverse;
+    viewer.current_path_index = -1;
+    viewer.last_path_index    = -1;
     viewer.last_error.clear();
     viewer.status_message = "Closed current image";
 }
 
 void
 next_sibling_image_action(RendererState& vk_state, ViewerState& viewer,
+                          ImageLibraryState& library,
                           PlaceholderUiState& ui_state, int delta)
 {
     std::string path;
-    if (!pick_loaded_image_path(viewer, delta, path)) {
+    if (!pick_loaded_image_path(library, viewer, delta, path)) {
         viewer.status_message = (delta < 0) ? "Previous image unavailable"
                                             : "Next image unavailable";
         viewer.last_error.clear();
         return;
     }
-    load_viewer_image(vk_state, viewer, &ui_state, path, viewer.image.subimage,
-                      viewer.image.miplevel);
+    load_viewer_image(vk_state, viewer, library, &ui_state, path,
+                      viewer.image.subimage, viewer.image.miplevel);
 }
 
 void
 toggle_image_action(RendererState& vk_state, ViewerState& viewer,
+                    ImageLibraryState& library,
                     PlaceholderUiState& ui_state)
 {
     if (viewer.last_path_index < 0
         || viewer.last_path_index
-               >= static_cast<int>(viewer.loaded_image_paths.size())) {
+               >= static_cast<int>(library.loaded_image_paths.size())) {
         viewer.status_message = "No toggled image available";
         viewer.last_error.clear();
         return;
     }
     const std::string toggle_path
-        = viewer.loaded_image_paths[static_cast<size_t>(viewer.last_path_index)];
-    load_viewer_image(vk_state, viewer, &ui_state, toggle_path,
+        = library.loaded_image_paths[static_cast<size_t>(viewer.last_path_index)];
+    load_viewer_image(vk_state, viewer, library, &ui_state, toggle_path,
                       viewer.image.subimage, viewer.image.miplevel);
 }
 
 void
 change_subimage_action(RendererState& vk_state, ViewerState& viewer,
+                       ImageLibraryState& library,
                        PlaceholderUiState& ui_state, int delta)
 {
     if (viewer.image.path.empty()) {
@@ -728,12 +752,12 @@ change_subimage_action(RendererState& vk_state, ViewerState& viewer,
     if (delta < 0) {
         if (viewer.image.miplevel > 0) {
             viewer.auto_subimage = false;
-            ok = load_viewer_image(vk_state, viewer, &ui_state,
+            ok = load_viewer_image(vk_state, viewer, library, &ui_state,
                                    viewer.image.path, viewer.image.subimage,
                                    viewer.image.miplevel - 1);
         } else if (viewer.image.subimage > 0) {
             viewer.auto_subimage = false;
-            ok = load_viewer_image(vk_state, viewer, &ui_state,
+            ok = load_viewer_image(vk_state, viewer, library, &ui_state,
                                    viewer.image.path, viewer.image.subimage - 1,
                                    0);
         } else if (viewer.image.nsubimages > 1) {
@@ -744,14 +768,14 @@ change_subimage_action(RendererState& vk_state, ViewerState& viewer,
     } else if (delta > 0) {
         if (viewer.auto_subimage) {
             viewer.auto_subimage = false;
-            ok = load_viewer_image(vk_state, viewer, &ui_state,
+            ok = load_viewer_image(vk_state, viewer, library, &ui_state,
                                    viewer.image.path, 0, 0);
         } else if (viewer.image.miplevel < viewer.image.nmiplevels - 1) {
-            ok = load_viewer_image(vk_state, viewer, &ui_state,
+            ok = load_viewer_image(vk_state, viewer, library, &ui_state,
                                    viewer.image.path, viewer.image.subimage,
                                    viewer.image.miplevel + 1);
         } else if (viewer.image.subimage < viewer.image.nsubimages - 1) {
-            ok = load_viewer_image(vk_state, viewer, &ui_state,
+            ok = load_viewer_image(vk_state, viewer, library, &ui_state,
                                    viewer.image.path, viewer.image.subimage + 1,
                                    0);
         }
@@ -762,6 +786,7 @@ change_subimage_action(RendererState& vk_state, ViewerState& viewer,
 
 void
 change_miplevel_action(RendererState& vk_state, ViewerState& viewer,
+                       ImageLibraryState& library,
                        PlaceholderUiState& ui_state, int delta)
 {
     if (viewer.image.path.empty()) {
@@ -774,7 +799,7 @@ change_miplevel_action(RendererState& vk_state, ViewerState& viewer,
         return;
     viewer.auto_subimage         = false;
     viewer.pending_auto_subimage = -1;
-    load_viewer_image(vk_state, viewer, &ui_state, viewer.image.path,
+    load_viewer_image(vk_state, viewer, library, &ui_state, viewer.image.path,
                       viewer.image.subimage, target_mip);
 }
 
@@ -798,6 +823,7 @@ queue_auto_subimage_from_zoom(ViewerState& viewer)
 
 bool
 apply_pending_auto_subimage_action(RendererState& vk_state, ViewerState& viewer,
+                                   ImageLibraryState& library,
                                    PlaceholderUiState& ui_state)
 {
     if (viewer.pending_auto_subimage < 0 || viewer.image.path.empty())
@@ -809,7 +835,7 @@ apply_pending_auto_subimage_action(RendererState& vk_state, ViewerState& viewer,
     viewer.pending_auto_subimage  = -1;
     if (target_subimage < 0 || target_subimage >= viewer.image.nsubimages)
         return false;
-    if (!load_viewer_image(vk_state, viewer, &ui_state, viewer.image.path,
+    if (!load_viewer_image(vk_state, viewer, library, &ui_state, viewer.image.path,
                            target_subimage, 0)) {
         return false;
     }

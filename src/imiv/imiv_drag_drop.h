@@ -22,6 +22,7 @@ void
 uninstall_drag_drop(GLFWwindow* window);
 void
 process_pending_drop_paths(RendererState& renderer_state, ViewerState& viewer,
+                           ImageLibraryState& library,
                            PlaceholderUiState& ui_state);
 #endif
 

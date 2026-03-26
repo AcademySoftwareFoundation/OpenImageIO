@@ -188,19 +188,38 @@ new work easier to reason about.
 `ViewerState`
 -------------
 
-`ViewerState` in `src/imiv/imiv_viewer.h` is the runtime model for the loaded
-image and its current interaction state. It owns:
+`ViewerState` in `src/imiv/imiv_viewer.h` is the per-view runtime model for the
+currently displayed image and its interaction state. It owns:
 
 * the current `LoadedImage`;
 * status and error text;
 * zoom, scroll, zoom pivot, and fit behavior;
 * selection and area-probe state;
-* the loaded-image list and recent-image list;
+* the current loaded-image index within the shared library;
 * windowed/fullscreen placement;
 * the current `RendererTexture`.
 
-If state is tied to the currently loaded image or to navigation through that
-image, it usually belongs here.
+If state is tied to one image pane and its navigation state, it usually
+belongs here.
+
+`ImageLibraryState` and `MultiViewWorkspace`
+--------------------------------------------
+
+The first multi-view slice introduces two more shared state buckets in
+`src/imiv/imiv_viewer.h`:
+
+* `ImageLibraryState`
+  owns the shared loaded-image queue, recent-image history, and sort mode;
+* `MultiViewWorkspace`
+  owns the open image windows, the active view id, and Image List visibility.
+
+Each `ImageViewWindow` owns one `ViewerState`. The main `Image` window is the
+primary view. Additional `Image N` windows are created from
+`File -> New view from current image` or by double-clicking entries in the
+Image List window.
+
+This split matters: queue history is now global to the workspace, but image
+interaction state remains per view.
 
 `PlaceholderUiState`
 --------------------
@@ -216,6 +235,12 @@ image, it usually belongs here.
 
 If state describes how the UI should look or how preview rendering should be
 configured across launches, it usually belongs here.
+
+At the moment, this also means preview controls are still shared across all
+open image views. Exposure, gamma, offset, interpolation, and OCIO selection
+remain global UI state rather than per-view state. Splitting those controls
+into per-view state is a follow-up task, not part of the first multi-view
+milestone.
 
 `DeveloperUiState`
 ------------------
@@ -241,8 +266,8 @@ layout state together in a single `imiv.inf` file.
 
 * the Dear ImGui `.ini` text first, straight from
   `ImGui::SaveIniSettingsToMemory()`;
-* then an `ImivApp` settings section with `PlaceholderUiState` and a small
-  amount of `ViewerState`.
+* then an `ImivApp` settings section with `PlaceholderUiState`,
+  `ImageLibraryState`, and a small amount of `ViewerState`.
 
 This is worth preserving. It gives :program:`imiv` one file for:
 
@@ -273,10 +298,11 @@ The current order is:
 6. execute queued state mutations with `execute_viewer_frame_actions()`;
 7. process drag and drop and auto-subimage work;
 8. clamp UI state;
-9. update the renderer preview texture from the current preview controls;
+9. update the renderer preview texture for the active view from the current
+   preview controls;
 10. build the dockspace host window;
-11. draw the main image window;
-12. draw auxiliary windows and popups;
+11. draw the main image window and any secondary `Image N` windows;
+12. draw the Image List window, auxiliary windows, and popups;
 13. draw developer-mode Dear ImGui diagnostic windows and the drag overlay.
 
 Two design choices here are important:
@@ -309,6 +335,14 @@ The main image window:
 * is assigned to the dockspace with `ImGui::SetNextWindowDockID()`;
 * uses `ImGuiWindowClass` to request `ImGuiDockNodeFlags_AutoHideTabBar`.
 
+Secondary image windows:
+
+* are named `Image N`;
+* are created as ordinary Dear ImGui windows with the same image-window class;
+* are forced into the main dockspace on first creation;
+* currently use `ImGuiDockNodeFlags_NoUndocking`;
+* inherit the same shared preview/renderer policy as the primary view.
+
 Why there is no `DockBuilder`
 -----------------------------
 
@@ -331,6 +365,8 @@ The main windows are:
 
 * the dockspace host window;
 * the `Image` window;
+* zero or more `Image N` windows;
+* `Image List`;
 * `iv Info`;
 * `iv Preferences`;
 * `Preview`;

@@ -18,8 +18,9 @@ namespace Imiv {
 
 bool
 load_viewer_image(RendererState& renderer_state, ViewerState& viewer,
-                  PlaceholderUiState* ui_state, const std::string& path,
-                  int requested_subimage, int requested_miplevel);
+                  ImageLibraryState& library, PlaceholderUiState* ui_state,
+                  const std::string& path, int requested_subimage,
+                  int requested_miplevel);
 void
 set_placeholder_status(ViewerState& viewer, const char* action);
 void
@@ -41,41 +42,53 @@ void
 set_mouse_mode_action(ViewerState& viewer, PlaceholderUiState& ui_state,
                       int mouse_mode);
 void
-set_sort_mode_action(ViewerState& viewer, ImageSortMode mode);
+set_sort_mode_action(ImageLibraryState& library,
+                     const std::vector<ViewerState*>& viewers,
+                     ImageSortMode mode);
 void
-toggle_sort_reverse_action(ViewerState& viewer);
+toggle_sort_reverse_action(ImageLibraryState& library,
+                           const std::vector<ViewerState*>& viewers);
 bool
 advance_slide_show_action(RendererState& renderer_state, ViewerState& viewer,
+                          ImageLibraryState& library,
                           PlaceholderUiState& ui_state);
 void
 toggle_slide_show_action(PlaceholderUiState& ui_state, ViewerState& viewer);
 void
 open_image_dialog_action(RendererState& renderer_state, ViewerState& viewer,
+                         ImageLibraryState& library,
                          PlaceholderUiState& ui_state, int requested_subimage,
                          int requested_miplevel);
 void
 reload_current_image_action(RendererState& renderer_state, ViewerState& viewer,
+                            ImageLibraryState& library,
                             PlaceholderUiState& ui_state);
 void
 close_current_image_action(RendererState& renderer_state, ViewerState& viewer,
+                           ImageLibraryState& library,
                            PlaceholderUiState& ui_state);
 void
 next_sibling_image_action(RendererState& renderer_state, ViewerState& viewer,
+                          ImageLibraryState& library,
                           PlaceholderUiState& ui_state, int delta);
 void
 toggle_image_action(RendererState& renderer_state, ViewerState& viewer,
+                    ImageLibraryState& library,
                     PlaceholderUiState& ui_state);
 void
 change_subimage_action(RendererState& renderer_state, ViewerState& viewer,
+                       ImageLibraryState& library,
                        PlaceholderUiState& ui_state, int delta);
 void
 change_miplevel_action(RendererState& renderer_state, ViewerState& viewer,
+                       ImageLibraryState& library,
                        PlaceholderUiState& ui_state, int delta);
 void
 queue_auto_subimage_from_zoom(ViewerState& viewer);
 bool
 apply_pending_auto_subimage_action(RendererState& renderer_state,
                                    ViewerState& viewer,
+                                   ImageLibraryState& library,
                                    PlaceholderUiState& ui_state);
 
 void

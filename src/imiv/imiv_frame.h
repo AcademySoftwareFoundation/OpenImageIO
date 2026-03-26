@@ -34,6 +34,7 @@ struct DeveloperUiState {
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
 struct ViewerStateJsonWriteContext {
     const ViewerState* viewer          = nullptr;
+    const MultiViewWorkspace* workspace = nullptr;
     const PlaceholderUiState* ui_state = nullptr;
     BackendKind active_backend         = BackendKind::Auto;
 };
@@ -48,7 +49,8 @@ const char*
 image_window_title();
 
 void
-draw_viewer_ui(ViewerState& viewer, PlaceholderUiState& ui_state,
+draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
+               PlaceholderUiState& ui_state,
                DeveloperUiState& developer_ui, const AppFonts& fonts,
                bool& request_exit
 #if defined(IMGUI_ENABLE_TEST_ENGINE)

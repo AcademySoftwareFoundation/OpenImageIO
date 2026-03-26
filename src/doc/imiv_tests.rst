@@ -260,6 +260,7 @@ already includes fields such as:
 
 * `image_loaded`, `image_path`, `zoom`, and `fit_image_to_window`
 * selection and Area Sample state
+* multi-view state (`view_count`, `active_view_id`, `active_view_docked`)
 * backend state (`active`, `requested`, `next_launch`, compiled backends)
 * OCIO state (requested source, resolved source, resolved config path,
   display/view, available menus)
@@ -270,6 +271,9 @@ Example excerpt::
       "image_loaded": true,
       "zoom": 1.000000,
       "selection_active": false,
+      "view_count": 2,
+      "active_view_id": 2,
+      "active_view_docked": true,
       "backend": {
         "active": "vulkan",
         "requested": "auto",
@@ -354,6 +358,10 @@ List the :program:`imiv` tests::
 Run a focused UI regression::
 
     ctest --test-dir build_u -V -R '^imiv_ux_actions_regression$'
+
+Run the focused multi-view regression::
+
+    ctest --test-dir build_u -V -R '^imiv_multiview_regression$'
 
 Run the backend-preference regression::
 

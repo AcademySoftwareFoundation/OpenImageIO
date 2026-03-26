@@ -60,6 +60,9 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
         actions.close_requested = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_S) && has_image)
         actions.save_as_requested = true;
+    if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N)
+        && has_image)
+        actions.new_view_requested = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_A) && has_image)
         actions.select_all_requested = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_D) && has_selection)
@@ -162,8 +165,11 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
 
 void
 draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
+                      ImageLibraryState& library,
+                      const std::vector<ViewerState*>& viewers,
                       DeveloperUiState& developer_ui,
-                      ViewerFrameActions& actions, bool& request_exit
+                      ViewerFrameActions& actions, bool& request_exit,
+                      bool& show_image_list_window
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                       ,
                       bool show_test_menu, bool* show_test_engine_windows
@@ -193,11 +199,11 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
             actions.open_requested = true;
 
         if (ImGui::BeginMenu("Open recent...")) {
-            if (viewer.recent_images.empty()) {
+            if (library.recent_images.empty()) {
                 ImGui::MenuItem("No recent files", nullptr, false, false);
             } else {
-                for (size_t i = 0; i < viewer.recent_images.size(); ++i) {
-                    const std::string& recent = viewer.recent_images[i];
+                for (size_t i = 0; i < library.recent_images.size(); ++i) {
+                    const std::string& recent = library.recent_images[i];
                     const std::string label
                         = Strutil::fmt::format("{}: {}##imiv_recent_{}", i + 1,
                                                recent, i);
@@ -207,7 +213,7 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Clear recent list", nullptr, false,
-                                !viewer.recent_images.empty())) {
+                                !library.recent_images.empty())) {
                 actions.clear_recent_requested = true;
             }
             ImGui::EndMenu();
@@ -226,10 +232,9 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
             actions.save_selection_as_requested = true;
         }
         ImGui::Separator();
-        if (ImGui::MenuItem("Move to new window", nullptr, false, has_image)) {
-            viewer.status_message
-                = "Move to new window is not available in imiv yet";
-        }
+        if (ImGui::MenuItem("New view from current image", "Ctrl+Shift+N",
+                            false, has_image))
+            actions.new_view_requested = true;
         if (ImGui::MenuItem("Delete from disk", "Delete", false, has_image))
             actions.delete_from_disk_requested = true;
         ImGui::Separator();
@@ -256,6 +261,8 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
     }
 
     if (ImGui::BeginMenu("View")) {
+        ImGui::MenuItem("Image List", nullptr, &show_image_list_window);
+        ImGui::Separator();
         if (ImGui::MenuItem("Previous Image", "PgUp"))
             actions.prev_requested = true;
         if (ImGui::MenuItem("Next Image", "PgDown"))
@@ -493,15 +500,17 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
 
         if (ImGui::BeginMenu("Sort")) {
             if (ImGui::MenuItem("By Name"))
-                set_sort_mode_action(viewer, ImageSortMode::ByName);
+                set_sort_mode_action(library, viewers, ImageSortMode::ByName);
             if (ImGui::MenuItem("By File Path"))
-                set_sort_mode_action(viewer, ImageSortMode::ByPath);
+                set_sort_mode_action(library, viewers, ImageSortMode::ByPath);
             if (ImGui::MenuItem("By Image Date"))
-                set_sort_mode_action(viewer, ImageSortMode::ByImageDate);
+                set_sort_mode_action(library, viewers,
+                                     ImageSortMode::ByImageDate);
             if (ImGui::MenuItem("By File Date"))
-                set_sort_mode_action(viewer, ImageSortMode::ByFileDate);
+                set_sort_mode_action(library, viewers,
+                                     ImageSortMode::ByFileDate);
             if (ImGui::MenuItem("Reverse current order"))
-                toggle_sort_reverse_action(viewer);
+                toggle_sort_reverse_action(library, viewers);
             ImGui::EndMenu();
         }
 
@@ -564,6 +573,8 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
 
 void
 execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
+                             ImageLibraryState& library,
+                             MultiViewWorkspace* workspace,
                              ViewerFrameActions& actions
 #if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
     || defined(IMIV_BACKEND_OPENGL_GLFW)
@@ -573,56 +584,62 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
 )
 {
     if (actions.open_requested) {
-        open_image_dialog_action(vk_state, viewer, ui_state,
+        open_image_dialog_action(vk_state, viewer, library, ui_state,
                                  ui_state.subimage_index,
                                  ui_state.miplevel_index);
         actions.open_requested = false;
     }
     if (!actions.recent_open_path.empty()) {
-        load_viewer_image(vk_state, viewer, &ui_state, actions.recent_open_path,
+        load_viewer_image(vk_state, viewer, library, &ui_state,
+                          actions.recent_open_path,
                           ui_state.subimage_index, ui_state.miplevel_index);
         actions.recent_open_path.clear();
     }
     if (actions.clear_recent_requested) {
-        viewer.recent_images.clear();
+        library.recent_images.clear();
+        if (workspace != nullptr) {
+            sync_workspace_library_state(*workspace, viewer, library);
+        } else {
+            viewer.recent_images.clear();
+        }
         viewer.status_message = "Cleared recent files list";
         viewer.last_error.clear();
         actions.clear_recent_requested = false;
     }
     if (actions.reload_requested) {
-        reload_current_image_action(vk_state, viewer, ui_state);
+        reload_current_image_action(vk_state, viewer, library, ui_state);
         actions.reload_requested = false;
     }
     if (actions.close_requested) {
-        close_current_image_action(vk_state, viewer, ui_state);
+        close_current_image_action(vk_state, viewer, library, ui_state);
         actions.close_requested = false;
     }
     if (actions.prev_requested) {
-        next_sibling_image_action(vk_state, viewer, ui_state, -1);
+        next_sibling_image_action(vk_state, viewer, library, ui_state, -1);
         actions.prev_requested = false;
     }
     if (actions.next_requested) {
-        next_sibling_image_action(vk_state, viewer, ui_state, 1);
+        next_sibling_image_action(vk_state, viewer, library, ui_state, 1);
         actions.next_requested = false;
     }
     if (actions.toggle_requested) {
-        toggle_image_action(vk_state, viewer, ui_state);
+        toggle_image_action(vk_state, viewer, library, ui_state);
         actions.toggle_requested = false;
     }
     if (actions.prev_subimage_requested) {
-        change_subimage_action(vk_state, viewer, ui_state, -1);
+        change_subimage_action(vk_state, viewer, library, ui_state, -1);
         actions.prev_subimage_requested = false;
     }
     if (actions.next_subimage_requested) {
-        change_subimage_action(vk_state, viewer, ui_state, 1);
+        change_subimage_action(vk_state, viewer, library, ui_state, 1);
         actions.next_subimage_requested = false;
     }
     if (actions.prev_mip_requested) {
-        change_miplevel_action(vk_state, viewer, ui_state, -1);
+        change_miplevel_action(vk_state, viewer, library, ui_state, -1);
         actions.prev_mip_requested = false;
     }
     if (actions.next_mip_requested) {
-        change_miplevel_action(vk_state, viewer, ui_state, 1);
+        change_miplevel_action(vk_state, viewer, library, ui_state, 1);
         actions.next_mip_requested = false;
     }
     if (actions.save_as_requested) {
@@ -668,9 +685,10 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
     if (actions.delete_from_disk_requested) {
         if (!viewer.image.path.empty()) {
             const std::string to_delete = viewer.image.path;
-            close_current_image_action(vk_state, viewer, ui_state);
+            close_current_image_action(vk_state, viewer, library, ui_state);
             std::error_code ec;
             if (std::filesystem::remove(to_delete, ec)) {
+                remove_loaded_image_path(library, &viewer, to_delete);
                 viewer.status_message = Strutil::fmt::format("Deleted {}",
                                                              to_delete);
                 viewer.last_error.clear();
@@ -683,6 +701,22 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
         }
         actions.delete_from_disk_requested = false;
     }
+    if (actions.new_view_requested && workspace != nullptr
+        && !viewer.image.path.empty()) {
+        ImageViewWindow& new_view = append_image_view(*workspace);
+        new_view.viewer.loaded_image_paths = library.loaded_image_paths;
+        new_view.viewer.recent_images      = library.recent_images;
+        new_view.viewer.sort_mode          = library.sort_mode;
+        new_view.viewer.sort_reverse       = library.sort_reverse;
+        new_view.request_focus             = true;
+        if (load_viewer_image(vk_state, new_view.viewer, library, &ui_state,
+                              viewer.image.path, viewer.image.subimage,
+                              viewer.image.miplevel)) {
+            workspace->active_view_id = new_view.id;
+            sync_workspace_library_state(*workspace, viewer, library);
+        }
+    }
+    actions.new_view_requested = false;
     if (actions.rotate_left_requested || actions.rotate_right_requested
         || actions.flip_horizontal_requested
         || actions.flip_vertical_requested) {
@@ -731,12 +765,16 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
             viewer.slide_last_advance_time = now;
         const double delay = std::max(1, ui_state.slide_duration_seconds);
         if (now - viewer.slide_last_advance_time >= delay) {
-            (void)advance_slide_show_action(vk_state, viewer, ui_state);
+            (void)advance_slide_show_action(vk_state, viewer, library,
+                                            ui_state);
             viewer.slide_last_advance_time = now;
         }
     } else {
         viewer.slide_last_advance_time = 0.0;
     }
+
+    if (workspace != nullptr)
+        sync_workspace_library_state(*workspace, viewer, library);
 }
 
 }  // namespace Imiv
