@@ -39,6 +39,7 @@ struct ViewerFrameActions {
     bool deselect_selection_requested  = false;
     bool fit_window_to_image_requested = false;
     bool recenter_requested            = false;
+    bool new_view_requested            = false;
     bool delete_from_disk_requested    = false;
     bool full_screen_toggle_requested  = false;
     bool rotate_left_requested         = false;
@@ -55,8 +56,11 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
                          ViewerFrameActions& actions, bool& request_exit);
 void
 draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
+                      ImageLibraryState& library,
+                      const std::vector<ViewerState*>& viewers,
                       DeveloperUiState& developer_ui,
-                      ViewerFrameActions& actions, bool& request_exit
+                      ViewerFrameActions& actions, bool& request_exit,
+                      bool& show_image_list_window
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                       ,
                       bool show_test_menu, bool* show_test_engine_windows
@@ -64,6 +68,8 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
 );
 void
 execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
+                             ImageLibraryState& library,
+                             MultiViewWorkspace* workspace,
                              ViewerFrameActions& actions
 #if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
     || defined(IMIV_BACKEND_OPENGL_GLFW)

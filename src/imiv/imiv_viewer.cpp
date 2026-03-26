@@ -322,7 +322,7 @@ reset_per_image_preview_state(PlaceholderUiState& ui_state)
 
 bool
 load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
-                      std::string& error_message)
+                      ImageLibraryState& library, std::string& error_message)
 {
     error_message.clear();
     const std::filesystem::path path = persistent_state_file_path_for_load();
@@ -443,13 +443,14 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
         } else if (key == "sort_mode") {
             if (parse_int_value(value, int_value)) {
                 int_value        = std::clamp(int_value, 0, 3);
-                viewer.sort_mode = static_cast<ImageSortMode>(int_value);
+                library.sort_mode = static_cast<ImageSortMode>(int_value);
             }
         } else if (key == "sort_reverse") {
             if (parse_bool_value(value, bool_value))
-                viewer.sort_reverse = bool_value;
+                library.sort_reverse = bool_value;
         } else if (key == "recent_image") {
-            add_recent_image_path(viewer, std::string(Strutil::strip(value)));
+            add_recent_image_path(library,
+                                  std::string(Strutil::strip(value)));
         }
     }
 
@@ -466,8 +467,10 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
 
 bool
 save_persistent_state(const PlaceholderUiState& ui_state,
-                      const ViewerState& viewer, const char* imgui_ini_text,
-                      size_t imgui_ini_size, std::string& error_message)
+                      const ViewerState& viewer,
+                      const ImageLibraryState& library,
+                      const char* imgui_ini_text, size_t imgui_ini_size,
+                      std::string& error_message)
 {
     error_message.clear();
     const std::filesystem::path path      = persistent_state_file_path();
@@ -536,9 +539,9 @@ save_persistent_state(const PlaceholderUiState& ui_state,
            << "\n";
     output << "ocio_user_config_path=" << ui_state.ocio_user_config_path
            << "\n";
-    output << "sort_mode=" << static_cast<int>(viewer.sort_mode) << "\n";
-    output << "sort_reverse=" << (viewer.sort_reverse ? 1 : 0) << "\n";
-    for (const std::string& recent : viewer.recent_images)
+    output << "sort_mode=" << static_cast<int>(library.sort_mode) << "\n";
+    output << "sort_reverse=" << (library.sort_reverse ? 1 : 0) << "\n";
+    for (const std::string& recent : library.recent_images)
         output << "recent_image=" << recent << "\n";
     output.flush();
     if (!output) {
@@ -987,7 +990,7 @@ sort_image_path_list(std::vector<std::string>& paths, ImageSortMode sort_mode,
 }
 
 bool
-add_loaded_image_path(ViewerState& viewer, const std::string& path,
+add_loaded_image_path(ImageLibraryState& library, const std::string& path,
                       int* out_index)
 {
     if (out_index != nullptr)
@@ -996,10 +999,10 @@ add_loaded_image_path(ViewerState& viewer, const std::string& path,
     if (normalized.empty())
         return false;
 
-    int index = find_path_index(viewer.loaded_image_paths, normalized);
+    int index = find_path_index(library.loaded_image_paths, normalized);
     if (index < 0) {
-        viewer.loaded_image_paths.push_back(normalized);
-        index = static_cast<int>(viewer.loaded_image_paths.size()) - 1;
+        library.loaded_image_paths.push_back(normalized);
+        index = static_cast<int>(library.loaded_image_paths.size()) - 1;
     }
     if (out_index != nullptr)
         *out_index = index;
@@ -1007,7 +1010,7 @@ add_loaded_image_path(ViewerState& viewer, const std::string& path,
 }
 
 bool
-append_loaded_image_paths(ViewerState& viewer,
+append_loaded_image_paths(ImageLibraryState& library,
                           const std::vector<std::string>& paths,
                           int* out_first_added_index)
 {
@@ -1020,9 +1023,9 @@ append_loaded_image_paths(ViewerState& viewer,
         const std::string normalized = normalize_path_for_viewer_list(path);
         if (normalized.empty())
             continue;
-        if (find_path_index(viewer.loaded_image_paths, normalized) >= 0)
+        if (find_path_index(library.loaded_image_paths, normalized) >= 0)
             continue;
-        viewer.loaded_image_paths.push_back(normalized);
+        library.loaded_image_paths.push_back(normalized);
         if (first_added_path.empty())
             first_added_path = normalized;
         added_any = true;
@@ -1032,41 +1035,45 @@ append_loaded_image_paths(ViewerState& viewer,
         return false;
 
     if (out_first_added_index != nullptr && !first_added_path.empty())
-        *out_first_added_index = find_path_index(viewer.loaded_image_paths,
+        *out_first_added_index = find_path_index(library.loaded_image_paths,
                                                  first_added_path);
     return true;
 }
 
 bool
-remove_loaded_image_path(ViewerState& viewer, const std::string& path)
+remove_loaded_image_path(ImageLibraryState& library, ViewerState* viewer,
+                         const std::string& path)
 {
     const std::string normalized = normalize_path_for_viewer_list(path);
-    const int remove_index       = find_path_index(viewer.loaded_image_paths,
+    const int remove_index       = find_path_index(library.loaded_image_paths,
                                                    normalized);
     if (remove_index < 0)
         return false;
 
-    viewer.loaded_image_paths.erase(viewer.loaded_image_paths.begin()
-                                    + remove_index);
-    if (viewer.current_path_index == remove_index) {
-        viewer.current_path_index = -1;
-    } else if (viewer.current_path_index > remove_index) {
-        --viewer.current_path_index;
-    }
+    library.loaded_image_paths.erase(library.loaded_image_paths.begin()
+                                     + remove_index);
+    if (viewer != nullptr) {
+        if (viewer->current_path_index == remove_index) {
+            viewer->current_path_index = -1;
+        } else if (viewer->current_path_index > remove_index) {
+            --viewer->current_path_index;
+        }
 
-    if (viewer.last_path_index == remove_index) {
-        viewer.last_path_index = -1;
-    } else if (viewer.last_path_index > remove_index) {
-        --viewer.last_path_index;
+        if (viewer->last_path_index == remove_index) {
+            viewer->last_path_index = -1;
+        } else if (viewer->last_path_index > remove_index) {
+            --viewer->last_path_index;
+        }
     }
     return true;
 }
 
 bool
-set_current_loaded_image_path(ViewerState& viewer, const std::string& path)
+set_current_loaded_image_path(const ImageLibraryState& library,
+                              ViewerState& viewer, const std::string& path)
 {
     const std::string normalized = normalize_path_for_viewer_list(path);
-    const int new_index          = find_path_index(viewer.loaded_image_paths,
+    const int new_index          = find_path_index(library.loaded_image_paths,
                                                    normalized);
     if (new_index < 0)
         return false;
@@ -1078,58 +1085,195 @@ set_current_loaded_image_path(ViewerState& viewer, const std::string& path)
 }
 
 bool
-pick_loaded_image_path(const ViewerState& viewer, int delta,
+pick_loaded_image_path(const ImageLibraryState& library,
+                       const ViewerState& viewer, int delta,
                        std::string& out_path)
 {
     out_path.clear();
-    if (viewer.loaded_image_paths.empty() || viewer.current_path_index < 0)
+    if (library.loaded_image_paths.empty() || viewer.current_path_index < 0)
         return false;
-    const int count = static_cast<int>(viewer.loaded_image_paths.size());
+    const int count = static_cast<int>(library.loaded_image_paths.size());
     int index       = viewer.current_path_index + delta;
     while (index < 0)
         index += count;
     index %= count;
-    out_path = viewer.loaded_image_paths[static_cast<size_t>(index)];
+    out_path = library.loaded_image_paths[static_cast<size_t>(index)];
     return !out_path.empty();
 }
 
 void
-sort_loaded_image_paths(ViewerState& viewer)
+sort_loaded_image_paths(ImageLibraryState& library,
+                        const std::vector<ViewerState*>& viewers)
 {
-    const std::string current_path = viewer.image.path;
-    const std::string last_path
-        = (viewer.last_path_index >= 0
-           && viewer.last_path_index
-                  < static_cast<int>(viewer.loaded_image_paths.size()))
-              ? viewer.loaded_image_paths[static_cast<size_t>(
-                    viewer.last_path_index)]
-              : std::string();
+    std::vector<std::string> current_paths;
+    std::vector<std::string> last_paths;
+    current_paths.reserve(viewers.size());
+    last_paths.reserve(viewers.size());
+    for (const ViewerState* viewer : viewers) {
+        current_paths.emplace_back(viewer != nullptr ? viewer->image.path
+                                                     : std::string());
+        const std::string last_path
+            = (viewer != nullptr && viewer->last_path_index >= 0
+               && viewer->last_path_index
+                      < static_cast<int>(library.loaded_image_paths.size()))
+                  ? library.loaded_image_paths[static_cast<size_t>(
+                        viewer->last_path_index)]
+                  : std::string();
+        last_paths.emplace_back(last_path);
+    }
 
-    sort_image_path_list(viewer.loaded_image_paths, viewer.sort_mode,
-                         viewer.sort_reverse);
-    viewer.current_path_index
-        = find_path_index(viewer.loaded_image_paths,
-                          normalize_path_for_viewer_list(current_path));
-    viewer.last_path_index
-        = find_path_index(viewer.loaded_image_paths,
-                          normalize_path_for_viewer_list(last_path));
+    sort_image_path_list(library.loaded_image_paths, library.sort_mode,
+                         library.sort_reverse);
+    for (size_t i = 0, e = viewers.size(); i < e; ++i) {
+        ViewerState* viewer = viewers[i];
+        if (viewer == nullptr)
+            continue;
+        viewer->current_path_index
+            = find_path_index(library.loaded_image_paths,
+                              normalize_path_for_viewer_list(current_paths[i]));
+        viewer->last_path_index
+            = find_path_index(library.loaded_image_paths,
+                              normalize_path_for_viewer_list(last_paths[i]));
+    }
 }
 
 
 
 void
-add_recent_image_path(ViewerState& viewer, const std::string& path)
+add_recent_image_path(ImageLibraryState& library, const std::string& path)
 {
     const std::string normalized = normalize_path_for_viewer_list(path);
     if (normalized.empty())
         return;
 
-    auto it = std::remove(viewer.recent_images.begin(),
-                          viewer.recent_images.end(), normalized);
-    viewer.recent_images.erase(it, viewer.recent_images.end());
-    viewer.recent_images.insert(viewer.recent_images.begin(), normalized);
-    if (viewer.recent_images.size() > k_max_recent_images)
-        viewer.recent_images.resize(k_max_recent_images);
+    auto it = std::remove(library.recent_images.begin(),
+                          library.recent_images.end(), normalized);
+    library.recent_images.erase(it, library.recent_images.end());
+    library.recent_images.insert(library.recent_images.begin(), normalized);
+    if (library.recent_images.size() > k_max_recent_images)
+        library.recent_images.resize(k_max_recent_images);
+}
+
+namespace {
+
+void
+copy_viewer_library_state(ViewerState& dst, const ViewerState& src,
+                          const ImageLibraryState& library)
+{
+    const std::string current_path = dst.image.path;
+    const std::string last_path
+        = (dst.last_path_index >= 0
+           && dst.last_path_index < static_cast<int>(src.loaded_image_paths.size()))
+              ? src.loaded_image_paths[static_cast<size_t>(dst.last_path_index)]
+              : std::string();
+    dst.loaded_image_paths = library.loaded_image_paths;
+    dst.recent_images      = library.recent_images;
+    dst.sort_mode          = library.sort_mode;
+    dst.sort_reverse       = library.sort_reverse;
+    dst.current_path_index = find_path_index(
+        dst.loaded_image_paths, normalize_path_for_viewer_list(current_path));
+    dst.last_path_index = find_path_index(
+        dst.loaded_image_paths, normalize_path_for_viewer_list(last_path));
+}
+
+}  // namespace
+
+ImageViewWindow&
+ensure_primary_image_view(MultiViewWorkspace& workspace)
+{
+    if (workspace.view_windows.empty()) {
+        std::unique_ptr<ImageViewWindow> view(new ImageViewWindow());
+        view->id                  = workspace.next_view_id++;
+        workspace.active_view_id  = view->id;
+        workspace.view_windows.push_back(std::move(view));
+    }
+    return *workspace.view_windows.front();
+}
+
+ImageViewWindow*
+find_image_view(MultiViewWorkspace& workspace, int view_id)
+{
+    for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        if (view != nullptr && view->id == view_id)
+            return view.get();
+    }
+    return nullptr;
+}
+
+const ImageViewWindow*
+find_image_view(const MultiViewWorkspace& workspace, int view_id)
+{
+    for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        if (view != nullptr && view->id == view_id)
+            return view.get();
+    }
+    return nullptr;
+}
+
+ImageViewWindow*
+active_image_view(MultiViewWorkspace& workspace)
+{
+    ImageViewWindow* active = find_image_view(workspace, workspace.active_view_id);
+    if (active != nullptr)
+        return active;
+    if (workspace.view_windows.empty())
+        return nullptr;
+    workspace.active_view_id = workspace.view_windows.front()->id;
+    return workspace.view_windows.front().get();
+}
+
+const ImageViewWindow*
+active_image_view(const MultiViewWorkspace& workspace)
+{
+    const ImageViewWindow* active = find_image_view(workspace,
+                                                    workspace.active_view_id);
+    if (active != nullptr)
+        return active;
+    return workspace.view_windows.empty() ? nullptr
+                                          : workspace.view_windows.front().get();
+}
+
+ImageViewWindow&
+append_image_view(MultiViewWorkspace& workspace)
+{
+    std::unique_ptr<ImageViewWindow> view(new ImageViewWindow());
+    view->id = workspace.next_view_id++;
+    workspace.view_windows.push_back(std::move(view));
+    return *workspace.view_windows.back();
+}
+
+void
+sync_workspace_library_state(MultiViewWorkspace& workspace,
+                             const ViewerState& source_view,
+                             const ImageLibraryState& library)
+{
+    for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        if (view == nullptr)
+            continue;
+        copy_viewer_library_state(view->viewer, source_view, library);
+    }
+}
+
+void
+erase_closed_image_views(MultiViewWorkspace& workspace)
+{
+    if (workspace.view_windows.size() <= 1)
+        return;
+
+    workspace.view_windows.erase(
+        std::remove_if(workspace.view_windows.begin(),
+                       workspace.view_windows.end(),
+                       [&](const std::unique_ptr<ImageViewWindow>& view) {
+                           return view != nullptr && !view->open
+                                  && view.get()
+                                         != workspace.view_windows.front().get();
+                       }),
+        workspace.view_windows.end());
+
+    if (find_image_view(workspace, workspace.active_view_id) == nullptr) {
+        const ImageViewWindow& primary = ensure_primary_image_view(workspace);
+        workspace.active_view_id       = primary.id;
+    }
 }
 
 

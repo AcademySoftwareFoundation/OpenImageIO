@@ -1316,6 +1316,22 @@ if (TARGET imiv
             TIMEOUT 360)
 
     add_test (
+        NAME imiv_multiview_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_multiview_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_default_backend_args}
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/multiview_regression"
+            --open "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png")
+    set_tests_properties (
+        imiv_multiview_regression PROPERTIES
+            LABELS "imiv;gui;imiv_multiview"
+            TIMEOUT 180)
+
+    add_test (
         NAME imiv_rgb_input_regression
         COMMAND
             "${Python3_EXECUTABLE}"

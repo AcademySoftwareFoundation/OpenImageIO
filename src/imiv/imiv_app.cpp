@@ -230,13 +230,15 @@ run(const AppConfig& config)
         run_config.input_paths.push_back(startup_open_path);
     }
 
-    ViewerState viewer;
+    MultiViewWorkspace workspace;
+    ImageLibraryState library;
     PlaceholderUiState ui_state;
+    ViewerState& viewer = ensure_primary_image_view(workspace).viewer;
     DeveloperUiState developer_ui;
     viewer.rawcolor       = run_config.rawcolor;
     viewer.no_autopremult = run_config.no_autopremult;
     std::string prefs_error;
-    if (!load_persistent_state(ui_state, viewer, prefs_error)) {
+    if (!load_persistent_state(ui_state, viewer, library, prefs_error)) {
         print(stderr, "imiv: failed to load preferences: {}\n", prefs_error);
         viewer.last_error
             = Strutil::fmt::format("failed to load preferences: {}",
@@ -576,8 +578,9 @@ run(const AppConfig& config)
     apply_imgui_app_style(sanitize_app_style_preset(ui_state.style_preset));
 
     if (!run_config.input_paths.empty()) {
-        append_loaded_image_paths(viewer, run_config.input_paths);
-        if (!load_viewer_image(renderer_state, viewer, &ui_state,
+        append_loaded_image_paths(library, run_config.input_paths);
+        viewer.loaded_image_paths = library.loaded_image_paths;
+        if (!load_viewer_image(renderer_state, viewer, library, &ui_state,
                                run_config.input_paths[0],
                                ui_state.subimage_index,
                                ui_state.miplevel_index)) {
@@ -594,7 +597,8 @@ run(const AppConfig& config)
 #endif
 
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
-    ViewerStateJsonWriteContext test_engine_state_ctx = { &viewer, &ui_state,
+    ViewerStateJsonWriteContext test_engine_state_ctx = { &viewer, &workspace,
+                                                          &ui_state,
                                                           active_backend };
     TestEngineHooks test_engine_hooks;
     test_engine_hooks.image_window_title       = image_window_title();
@@ -615,7 +619,7 @@ run(const AppConfig& config)
         const char* imgui_ini_text = ImGui::SaveIniSettingsToMemory(
             &imgui_ini_size);
         io.WantSaveIniSettings = false;
-        return save_persistent_state(ui_state, viewer, imgui_ini_text,
+        return save_persistent_state(ui_state, viewer, library, imgui_ini_text,
                                      imgui_ini_size, save_error_message);
     };
 
@@ -645,7 +649,8 @@ run(const AppConfig& config)
         renderer_imgui_new_frame(renderer_state);
         platform_glfw_imgui_new_frame();
         ImGui::NewFrame();
-        draw_viewer_ui(viewer, ui_state, developer_ui, fonts, request_exit
+        draw_viewer_ui(workspace, library, ui_state, developer_ui, fonts,
+                       request_exit
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                        ,
                        test_engine_show_windows_ptr(test_engine_runtime)
@@ -677,7 +682,12 @@ run(const AppConfig& config)
             ImGui::RenderPlatformWindowsDefault();
             renderer_finish_platform_windows(renderer_state);
         }
-        process_developer_post_render_actions(developer_ui, viewer,
+        process_developer_post_render_actions(developer_ui,
+                                              active_image_view(workspace)
+                                                  != nullptr
+                                                  ? active_image_view(workspace)
+                                                        ->viewer
+                                                  : viewer,
                                               renderer_state);
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
         test_engine_post_swap(test_engine_runtime);
@@ -710,7 +720,11 @@ run(const AppConfig& config)
         print(stderr, "imiv: failed to wait for renderer idle: {}\n",
               prefs_save_error);
 
-    renderer_destroy_texture(renderer_state, viewer.texture);
+    for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        if (view == nullptr)
+            continue;
+        renderer_destroy_texture(renderer_state, view->viewer.texture);
+    }
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_stop(test_engine_runtime);
 #endif

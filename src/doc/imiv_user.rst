@@ -177,6 +177,36 @@ Common shortcuts:
 The `Tools` menu also exposes slideshow, sort-order, and orientation actions.
 
 
+Multiple views and image list
+=============================
+
+The current multi-view workflow is centered on shared loaded-image history and
+per-window image panes.
+
+Useful actions:
+
+* `File -> New view from current image`
+  duplicates the current image into a new `Image N` window.
+* `View -> Image List`
+  opens a dockable window showing the current loaded-image queue.
+
+The `Image List` window currently supports:
+
+* single-click
+  load the chosen image into the active image view;
+* double-click
+  open the chosen image in a new image view window.
+
+The main `Image` window remains the primary docked image pane. Additional
+`Image N` windows are currently created docked into the main dockspace.
+Undocking those image views is intentionally disabled in this first slice.
+
+This is the first multi-view milestone. View windows already have independent
+loaded images, zoom, scroll, and selection state, but preview controls are
+still shared. Exposure, gamma, offset, interpolation, and OCIO display/view
+choices are not yet stored per window.
+
+
 Color management
 ================
 
@@ -248,10 +278,12 @@ Current limitations
 
 At the time of this writing, notable differences from :program:`iv` include:
 
-* `Move to new window` is still a placeholder action.
 * Fullscreen behavior does not yet exactly match :program:`iv`.
 * Opening the same file repeatedly does not currently create duplicate loaded
   image entries.
+* Multi-view image windows are available, but preview controls such as
+  exposure, gamma, offset, interpolation, and OCIO display/view are still
+  shared state rather than per-view state.
 * Some older :program:`iv` mouse modes are not yet a priority for the Dear
   ImGui port.
 

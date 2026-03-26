@@ -96,6 +96,7 @@ uninstall_drag_drop(GLFWwindow* window)
 
 void
 process_pending_drop_paths(RendererState& vk_state, ViewerState& viewer,
+                           ImageLibraryState& library,
                            PlaceholderUiState& ui_state)
 {
     if (viewer.pending_drop_paths.empty())
@@ -105,24 +106,25 @@ process_pending_drop_paths(RendererState& vk_state, ViewerState& viewer,
     drop_paths.swap(viewer.pending_drop_paths);
 
     int first_added_index = -1;
-    append_loaded_image_paths(viewer, drop_paths, &first_added_index);
+    append_loaded_image_paths(library, drop_paths, &first_added_index);
+    viewer.loaded_image_paths = library.loaded_image_paths;
 
     std::string target_path;
     if (first_added_index >= 0
         && first_added_index
-               < static_cast<int>(viewer.loaded_image_paths.size())) {
+               < static_cast<int>(library.loaded_image_paths.size())) {
         target_path
-            = viewer.loaded_image_paths[static_cast<size_t>(first_added_index)];
+            = library.loaded_image_paths[static_cast<size_t>(first_added_index)];
     } else {
         for (const std::string& path : drop_paths) {
-            if (!set_current_loaded_image_path(viewer, path))
+            if (!set_current_loaded_image_path(library, viewer, path))
                 continue;
             if (viewer.current_path_index < 0
                 || viewer.current_path_index
-                       >= static_cast<int>(viewer.loaded_image_paths.size())) {
+                       >= static_cast<int>(library.loaded_image_paths.size())) {
                 continue;
             }
-            target_path = viewer.loaded_image_paths[static_cast<size_t>(
+            target_path = library.loaded_image_paths[static_cast<size_t>(
                 viewer.current_path_index)];
             break;
         }
@@ -134,7 +136,7 @@ process_pending_drop_paths(RendererState& vk_state, ViewerState& viewer,
         return;
     }
 
-    (void)load_viewer_image(vk_state, viewer, &ui_state, target_path,
+    (void)load_viewer_image(vk_state, viewer, library, &ui_state, target_path,
                             ui_state.subimage_index, ui_state.miplevel_index);
 }
 #endif
