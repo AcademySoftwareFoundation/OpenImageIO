@@ -62,6 +62,14 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
         actions.close_requested = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_S) && has_image)
         actions.save_as_requested = true;
+    if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiMod_Alt
+                     | ImGuiKey_S)
+        && has_selection) {
+        actions.export_selection_as_requested = true;
+    } else if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S)
+               && has_image) {
+        actions.save_window_as_requested = true;
+    }
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_S)
         && has_selection) {
         actions.save_selection_as_requested = true;
@@ -234,11 +242,16 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
         ImGui::Separator();
         if (ImGui::MenuItem("Save As...", "Ctrl+S", false, has_image))
             actions.save_as_requested = true;
-        if (ImGui::MenuItem("Save Window As...", nullptr, false, has_image))
+        if (ImGui::MenuItem("Export As...", "Ctrl+Shift+S", false,
+                            has_image))
             actions.save_window_as_requested = true;
         if (ImGui::MenuItem("Save Selection As...", "Ctrl+Alt+S", false,
                             has_selection)) {
             actions.save_selection_as_requested = true;
+        }
+        if (ImGui::MenuItem("Export Selection As...", "Ctrl+Shift+Alt+S",
+                            false, has_selection)) {
+            actions.export_selection_as_requested = true;
         }
         ImGui::Separator();
         if (ImGui::MenuItem("New view from current image", "Ctrl+Shift+N",
@@ -661,12 +674,16 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
         actions.save_as_requested = false;
     }
     if (actions.save_window_as_requested) {
-        save_window_as_dialog_action(viewer);
+        save_window_as_dialog_action(viewer, ui_state);
         actions.save_window_as_requested = false;
     }
     if (actions.save_selection_as_requested) {
         save_selection_as_dialog_action(viewer);
         actions.save_selection_as_requested = false;
+    }
+    if (actions.export_selection_as_requested) {
+        export_selection_as_dialog_action(viewer, ui_state);
+        actions.export_selection_as_requested = false;
     }
     if (actions.select_all_requested) {
         select_all_image_action(viewer, ui_state);

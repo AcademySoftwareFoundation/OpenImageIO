@@ -235,6 +235,15 @@ Recent focused GUI regressions in `src/imiv/tools/` include:
 * `imiv_save_selection_regression.py`
   GUI-driven `Save Selection As...` crop export, including selected ROI and
   orientation-baked CPU output validation.
+* `imiv_export_selection_regression.py`
+  GUI-driven `Export Selection As...` export, including selection crop and
+  view-recipe baking for channel/color mode and exposure/gamma/offset.
+* `imiv_save_window_regression.py`
+  GUI-driven `Export As...` export, including view-recipe baking for
+  channel/color mode and exposure/gamma/offset.
+* `imiv_save_window_ocio_regression.py`
+  GUI-driven `Export As...` OCIO export, including view-baked display/view
+  validation against `oiiotool --ociodisplay`.
 
 
 Direct Dear ImGui Test Engine usage

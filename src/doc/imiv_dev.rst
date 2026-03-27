@@ -225,17 +225,30 @@ That mirror step is intentional. It keeps most existing Dear ImGui code
 procedural while establishing one durable place for future `Save View As...`
 or CPU-side export processing.
 
-The first real CPU export path is now `Save Selection As...`. It does not yet
-consume the full `ViewRecipe`; instead, it is intentionally narrower:
+The first full view-recipe CPU export path is now `Export As...`.
+
+It currently:
+
+* reconstructs an oriented RGBA image from the loaded source pixels;
+* applies the current view recipe for exposure, gamma, offset, channel/color
+  display, and OCIO display/view state;
+* writes the resulting oriented RGBA view image through OIIO.
+
+That makes `ViewRecipe` an actual preview/export seam rather than only runtime
+UI state.
+
+`Export Selection As...` is the matching cropped variant. It uses the current
+selection rectangle in source pixel space, builds a cropped source `ImageBuf`,
+then runs the same view-recipe export path on that cropped image.
+
+`Save Selection As...` remains intentionally narrower:
 
 * it reconstructs an `ImageBuf` from the loaded source pixels;
 * crops the selected ROI;
 * bakes source orientation with `ImageBufAlgo::reorient()`;
 * writes the result through OIIO.
 
-That makes it a useful end-to-end test seam for GUI-driven CPU processing
-without prematurely locking `Save View As...` to the wrong recipe-baking
-semantics.
+That keeps one export path source-oriented and one export path view-oriented.
 
 `ImageLibraryState` and `MultiViewWorkspace`
 --------------------------------------------

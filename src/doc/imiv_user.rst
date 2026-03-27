@@ -159,12 +159,31 @@ Exporting images
 ================
 
 The current export actions are still smaller than :program:`iv`, but
-:program:`imiv` now has one real GUI-driven CPU export path:
+:program:`imiv` now has three real GUI-driven CPU export paths:
+
+* `File -> Export As...`
+  writes the current image pane as an oriented RGBA view export;
+* `Ctrl+Shift+S`
+  invokes the same action directly;
 
 * `File -> Save Selection As...`
   writes the current pixel selection to a new file;
 * `Ctrl+Alt+S`
   invokes the same action directly.
+* `File -> Export Selection As...`
+  writes the selected pixel region as an oriented RGBA view export;
+* `Ctrl+Shift+Alt+S`
+  invokes the same action directly.
+
+`Export As...` currently exports:
+
+* the current image with orientation baked to the saved output;
+* the active view recipe for exposure, gamma, offset, channel/color display,
+  and OCIO display/view if OCIO is enabled.
+
+It is intentionally a view export, not a source-preserving rewrite. The saved
+image is written as an oriented RGBA result and may differ in channel count and
+numeric type from the original source image.
 
 `Save Selection As...` currently exports:
 
@@ -175,8 +194,12 @@ It does not yet bake the full per-view recipe. In particular, exposure, gamma,
 offset, channel/color display choices, and OCIO display/view state are still
 preview-only at export time.
 
-`Save Window As...` is also not yet a full per-view export. It still behaves
-like a regular `Save As...` path rather than baking the active view recipe.
+`Export Selection As...` currently exports:
+
+* the selected pixel rectangle from the current image;
+* the image with its stored orientation baked to the saved output; and
+* the active view recipe for exposure, gamma, offset, channel/color display,
+  and OCIO display/view if OCIO is enabled.
 
 
 Viewing, navigation, and inspection

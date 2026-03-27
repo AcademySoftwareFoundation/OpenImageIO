@@ -163,6 +163,24 @@ Focused Save Selection export regression:
 ctest --test-dir build_u -V -R '^imiv_save_selection_regression$'
 ```
 
+Focused Export Selection As regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_export_selection_regression$'
+```
+
+Focused Export As regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_save_window_regression$'
+```
+
+Focused Export As OCIO regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_save_window_ocio_regression$'
+```
+
 Focused developer-menu regression:
 
 ```bash
