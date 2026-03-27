@@ -192,6 +192,7 @@ new work easier to reason about.
 currently displayed image and its interaction state. It owns:
 
 * the current `LoadedImage`;
+* the current `ViewRecipe`;
 * status and error text;
 * zoom, scroll, zoom pivot, and fit behavior;
 * selection and area-probe state;
@@ -201,6 +202,40 @@ currently displayed image and its interaction state. It owns:
 
 If state is tied to one image pane and its navigation state, it usually
 belongs here.
+
+`ViewRecipe`
+------------
+
+`ViewRecipe` in `src/imiv/imiv_viewer.h` is the per-view preview/export recipe.
+It currently owns the presentation settings that should travel with one image
+view:
+
+* exposure, gamma, and offset;
+* interpolation mode;
+* channel and color-mode selection;
+* OCIO enable state;
+* OCIO display, view, and image-color-space choices.
+
+This is the current source of truth for per-view preview state. At runtime,
+the active view's recipe is copied into the UI editing state before menus and
+tool windows are drawn, then copied back into the active `ViewerState` after
+UI edits are applied.
+
+That mirror step is intentional. It keeps most existing Dear ImGui code
+procedural while establishing one durable place for future `Save View As...`
+or CPU-side export processing.
+
+The first real CPU export path is now `Save Selection As...`. It does not yet
+consume the full `ViewRecipe`; instead, it is intentionally narrower:
+
+* it reconstructs an `ImageBuf` from the loaded source pixels;
+* crops the selected ROI;
+* bakes source orientation with `ImageBufAlgo::reorient()`;
+* writes the result through OIIO.
+
+That makes it a useful end-to-end test seam for GUI-driven CPU processing
+without prematurely locking `Save View As...` to the wrong recipe-baking
+semantics.
 
 `ImageLibraryState` and `MultiViewWorkspace`
 --------------------------------------------
@@ -216,31 +251,71 @@ The first multi-view slice introduces two more shared state buckets in
 Each `ImageViewWindow` owns one `ViewerState`. The main `Image` window is the
 primary view. Additional `Image N` windows are created from
 `File -> New view from current image` or by double-clicking entries in the
-Image List window.
+Image List window. Folder-open startup and `File -> Open Folder...` also feed
+the same shared loaded-image library rather than creating a separate browsing
+mode.
 
 This split matters: queue history is now global to the workspace, but image
 interaction state remains per view.
 
+That same shared library path now covers startup multi-open, `Open Folder...`,
+and multi-file drag/drop. There is one queue model, not separate browsing and
+drop-import modes.
+
+The `Image List` window now also exposes per-row workspace state rather than
+being a passive history view:
+
+* `>` marks the image shown in the active image view;
+* `[N]` reports how many open image views currently show that path;
+* a small inline close button appears for rows visible in the active view;
+* the row popup menu routes the shared-library actions:
+  `Open in active view`, `Open in new view`, `Close in active view`,
+  `Close in all views`, and `Remove from session`.
+
+Those actions are implemented against the shared `ImageLibraryState` plus the
+current `MultiViewWorkspace`. `Close` mutates view bindings only. `Remove`
+edits the shared session queue and then retargets or clears any views that
+were showing the removed path.
+
+Folder-open path filtering
+--------------------------
+
+The current folder-open path is intentionally cheap:
+
+* it scans one directory non-recursively;
+* it filters candidate files by the readable extension set reported by OIIO's
+  plugin registry;
+* it does not open every file just to decide whether it belongs in the queue.
+
+That is the right default for folders containing many ordinary still images.
+It is only a queue-building filter, not a guarantee that every accepted file
+will decode successfully later.
+
 `PlaceholderUiState`
 --------------------
 
-`PlaceholderUiState` is the persistent UI and preview configuration. It owns:
+`PlaceholderUiState` is the persistent global UI configuration plus the
+active-view editing mirror. It owns:
 
 * visibility toggles for auxiliary windows;
-* preview controls such as exposure, gamma, offset, and color mode;
-* image presentation options such as interpolation and fit-to-window;
-* OCIO choices;
+* global presentation and app settings such as fit-to-window;
+* global OCIO config-source selection and user-config path;
 * saved backend preference for the next launch;
 * docking policy state such as `image_window_force_dock`.
 
 If state describes how the UI should look or how preview rendering should be
-configured across launches, it usually belongs here.
+configured across launches for the application as a whole, it usually belongs
+here.
 
-At the moment, this also means preview controls are still shared across all
-open image views. Exposure, gamma, offset, interpolation, and OCIO selection
-remain global UI state rather than per-view state. Splitting those controls
-into per-view state is a follow-up task, not part of the first multi-view
-milestone.
+Preview controls such as exposure, gamma, offset, interpolation, channel
+selection, and OCIO display/view no longer live here as the source of truth.
+They are mirrored into `PlaceholderUiState` only while editing the active
+view, then written back to that view's `ViewRecipe`.
+
+The focused `imiv_view_recipe_regression.py` regression exists specifically to
+lock that behavior down: it opens multiple image views, edits one view's
+recipe, switches active views, and verifies that the inactive view's recipe
+state stays unchanged.
 
 `DeveloperUiState`
 ------------------
@@ -267,14 +342,15 @@ layout state together in a single `imiv.inf` file.
 * the Dear ImGui `.ini` text first, straight from
   `ImGui::SaveIniSettingsToMemory()`;
 * then an `ImivApp` settings section with `PlaceholderUiState`,
-  `ImageLibraryState`, and a small amount of `ViewerState`.
+  the primary view's `ViewRecipe`, `ImageLibraryState`, and a small amount of
+  `ViewerState`.
 
 This is worth preserving. It gives :program:`imiv` one file for:
 
 * dock/layout state;
 * window placement;
 * renderer preference;
-* preview defaults;
+* preview defaults from the primary view recipe;
 * recent-image history.
 
 The `IMIV_CONFIG_HOME` environment variable exists mainly for isolated local
@@ -297,20 +373,21 @@ The current order is:
 5. queue any developer screenshot work;
 6. execute queued state mutations with `execute_viewer_frame_actions()`;
 7. process drag and drop and auto-subimage work;
-8. clamp UI state;
-9. update the renderer preview texture for the active view from the current
-   preview controls;
-10. build the dockspace host window;
-11. draw the main image window and any secondary `Image N` windows;
-12. draw the Image List window, auxiliary windows, and popups;
+8. sync the active view recipe into the UI mirror and clamp state;
+9. build the dockspace host window;
+10. draw the main image window and any secondary `Image N` windows, each with
+    its own copied `ViewRecipe`;
+11. draw the Image List window, auxiliary windows, and popups;
+12. write any UI edits from the active view back into its `ViewRecipe`;
 13. draw developer-mode Dear ImGui diagnostic windows and the drag overlay.
 
 Two design choices here are important:
 
 * visible state changes are not scattered through menu items and shortcut
   handlers;
-* preview texture updates happen before the image window asks for texture
-  references, so the window code can stay renderer-neutral.
+* per-view preview texture updates happen inside the image-window loop using
+  each view's own recipe, so the window code can stay renderer-neutral while
+  still supporting independent view settings.
 
 
 Docking, windows, and viewports
@@ -341,22 +418,23 @@ Secondary image windows:
 * are created as ordinary Dear ImGui windows with the same image-window class;
 * are forced into the main dockspace on first creation;
 * currently use `ImGuiDockNodeFlags_NoUndocking`;
-* inherit the same shared preview/renderer policy as the primary view.
+* share the same renderer backend as the primary view, but keep their own
+  `ViewerState` and `ViewRecipe`.
 
-Why there is no `DockBuilder`
------------------------------
+Initial dock layout policy
+--------------------------
 
-:program:`imiv` does not currently use `DockBuilder`.
+:program:`imiv` still avoids programmatic dock trees for most windows, but the
+current multi-view slice makes one deliberate exception:
 
-That is deliberate. The viewer relies on:
+* if `Image List` becomes visible for a multi-file load and no saved layout for
+  that window exists yet, `imiv` uses a small `DockBuilder` split to create a
+  right-side pane of roughly 200 pixels;
+* the primary `Image` window is docked into the remaining left-side node;
+* later layout changes are still owned by Dear ImGui settings persistence.
 
-* a simple dockspace host;
-* persistent Dear ImGui layout state loaded from disk;
-* a small policy flag, `image_window_force_dock`, to keep the main image
-  window docked until the user explicitly undocks it.
-
-This keeps layout behavior on public docking API calls and avoids baking a
-programmatic layout tree into the code.
+This keeps the default presentation usable for multi-image loads without
+turning the whole application into a hard-coded dock tree.
 
 Window model
 ------------
@@ -738,6 +816,41 @@ The OpenGL and Metal paths are intentionally not copies of the Vulkan compute
 pipeline. That keeps each backend aligned with its native toolchain and makes
 backend failures easier to diagnose.
 
+
+Huge images and proxy recommendation
+====================================
+
+The current load path is still a full-image viewer path, not a true proxy or
+tile-on-demand design.
+
+Today, `read_image_file()` in `src/imiv/imiv_viewer.cpp` does create an
+`ImageCache`, but it then reads the whole image into `LoadedImage`, builds
+metadata/long-info rows from that loaded image, and the renderer uploads a
+full source texture for the active backend.
+
+Implications:
+
+* `max_memory_ic_mb` is useful as an ImageCache tuning knob, but it does not
+  make :program:`imiv` a true huge-image viewer;
+* the current path is appropriate for ordinary still images and regression
+  work, but it is not the right long-term design for very large plates,
+  stitched panoramas, or other images that should stay sparse on the CPU and
+  GPU.
+
+Recommendation for future work:
+
+* do not extend the current `LoadedImage -> full backend texture` path to
+  chase huge-image support;
+* introduce a dedicated proxy/tiled path instead, backed by OIIO
+  `ImageCache`/ImageBuf proxy access or a similar sparse-image abstraction;
+* keep `ViewRecipe` independent from that storage choice so the same per-view
+  recipe can drive either full-image preview or a future tile/proxy backend;
+* keep CPU export and `Save View As...` built on `ViewRecipe`, not on backend
+  texture state.
+
+That separation is the important design guardrail: image storage strategy for
+huge files should change independently from per-view preview/export semantics.
+
 OCIO integration
 ----------------
 
@@ -855,8 +968,10 @@ Common examples in the current code are:
 * draw-list rendering:
   `ImDrawList::AddImage()`.
 
-Current production `src/imiv` sources do not include `imgui_internal.h`.
-That is worth preserving.
+Current production `src/imiv` sources still use Dear ImGui public API first.
+There is now one explicit exception in `imiv_frame.cpp` for the initial
+`Image List` dock split, which uses `imgui_internal.h` `DockBuilder` helpers.
+That exception should stay narrow.
 
 Maintenance-sensitive integrations
 ----------------------------------

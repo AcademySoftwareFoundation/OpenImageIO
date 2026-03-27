@@ -155,6 +155,30 @@ Useful browsing actions:
 * `Ctrl+W` closes the current image.
 
 
+Exporting images
+================
+
+The current export actions are still smaller than :program:`iv`, but
+:program:`imiv` now has one real GUI-driven CPU export path:
+
+* `File -> Save Selection As...`
+  writes the current pixel selection to a new file;
+* `Ctrl+Alt+S`
+  invokes the same action directly.
+
+`Save Selection As...` currently exports:
+
+* the selected pixel rectangle from the loaded source image; and
+* the image with its stored orientation baked to the saved output.
+
+It does not yet bake the full per-view recipe. In particular, exposure, gamma,
+offset, channel/color display choices, and OCIO display/view state are still
+preview-only at export time.
+
+`Save Window As...` is also not yet a full per-view export. It still behaves
+like a regular `Save As...` path rather than baking the active view recipe.
+
+
 Viewing, navigation, and inspection
 ===================================
 
@@ -185,10 +209,17 @@ per-window image panes.
 
 Useful actions:
 
+* `File -> Open Folder...`
+  scans one directory and queues the supported image files it contains.
 * `File -> New view from current image`
   duplicates the current image into a new `Image N` window.
 * `View -> Image List`
   opens a dockable window showing the current loaded-image queue.
+
+`Open Folder...` is currently a non-recursive scan. It uses the readable file
+extensions reported by the OpenImageIO plugin registry as a cheap prefilter,
+so large flat folders do not need to be probed by opening every file just to
+build the queue.
 
 The `Image List` window currently supports:
 
@@ -196,15 +227,52 @@ The `Image List` window currently supports:
   load the chosen image into the active image view;
 * double-click
   open the chosen image in a new image view window.
+* active-view marker
+  `>` marks the image currently shown in the active image window;
+* open-count badge
+  `[N]` shows how many open image views currently display that image;
+* inline close button
+  rows that are visible in the active image view show a small `x` button;
+* right-click context menu
+  provides `Open in active view`, `Open in new view`,
+  `Close in active view`, `Close in all views`, and
+  `Remove from session`.
+
+`Close` and `Remove` are intentionally different:
+
+* `Close in active view`
+  only clears that image from the active image window;
+* `Close in all views`
+  clears it from every currently open image window;
+* `Remove from session`
+  removes it from the shared loaded-image queue without touching the file on
+  disk.
 
 The main `Image` window remains the primary docked image pane. Additional
 `Image N` windows are currently created docked into the main dockspace.
 Undocking those image views is intentionally disabled in this first slice.
 
+When more than one image is loaded into the queue, `Image List` becomes
+visible automatically and defaults to a narrow docked pane on the right side
+of the main image area. Its dock position and size may still be saved by Dear
+ImGui layout persistence, but its open/closed visibility is not treated as a
+persistent preference.
+
 This is the first multi-view milestone. View windows already have independent
-loaded images, zoom, scroll, and selection state, but preview controls are
-still shared. Exposure, gamma, offset, interpolation, and OCIO display/view
-choices are not yet stored per window.
+loaded images, zoom, scroll, selection state, and preview recipe state.
+Exposure, gamma, offset, interpolation, channel/color display, and OCIO
+display/view/image-color-space choices are now stored per window at runtime.
+
+The current persistence model is still simpler than the runtime model:
+
+* :program:`imiv` saves the primary/default view recipe in `imiv.inf`;
+* it does not yet persist the full multi-window workspace or every secondary
+  view's recipe across launches.
+
+Multi-file drag and drop feeds the same shared loaded-image queue as startup
+multi-open and `Open Folder...`. That means dropped files immediately appear
+in `Image List` and participate in the same per-view open/close/remove
+workflow.
 
 
 Color management
@@ -247,7 +315,7 @@ overridden with the `IMIV_CONFIG_HOME` environment variable. In that case,
 Saved state currently includes:
 
 * Dear ImGui docking/window layout;
-* viewer and preview preferences;
+* viewer and preview defaults for the primary view;
 * backend preference (`renderer_backend`);
 * OCIO settings;
 * recent images and sort mode.
@@ -281,9 +349,9 @@ At the time of this writing, notable differences from :program:`iv` include:
 * Fullscreen behavior does not yet exactly match :program:`iv`.
 * Opening the same file repeatedly does not currently create duplicate loaded
   image entries.
-* Multi-view image windows are available, but preview controls such as
-  exposure, gamma, offset, interpolation, and OCIO display/view are still
-  shared state rather than per-view state.
+* Multi-view image windows have per-view preview controls at runtime, but
+  :program:`imiv` does not yet persist a full multi-window workspace across
+  launches.
 * Some older :program:`iv` mouse modes are not yet a priority for the Dear
   ImGui port.
 

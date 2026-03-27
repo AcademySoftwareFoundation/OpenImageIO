@@ -120,6 +120,49 @@ Focused multi-view regression:
 ctest --test-dir build_u -V -R '^imiv_multiview_regression$'
 ```
 
+Focused multi-file Image List regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_image_list_regression$'
+```
+
+Focused Image List interaction regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_image_list_interaction_regression$'
+```
+
+This covers:
+
+- Image List single-click into the active view
+- open-in-new-view
+- close-in-active-view
+- remove-from-session
+
+Focused folder-open regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_open_folder_regression$'
+```
+
+Focused drag/drop regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_drag_drop_regression$'
+```
+
+Focused per-view recipe regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_view_recipe_regression$'
+```
+
+Focused Save Selection export regression:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_save_selection_regression$'
+```
+
 Focused developer-menu regression:
 
 ```bash

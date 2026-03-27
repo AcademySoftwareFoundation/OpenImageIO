@@ -207,6 +207,44 @@ namespace {
         return Strutil::fmt::format("ImIv v.{} [{}]", OIIO_VERSION_STRING,
                                     backend_cli_name(active_backend));
     }
+
+    std::vector<std::string>
+    expand_startup_input_paths(const AppConfig& config, bool verbose_logging,
+                               ImageSortMode sort_mode, bool sort_reverse)
+    {
+        std::vector<std::string> expanded;
+        for (const std::string& input_path : config.input_paths) {
+            std::error_code ec;
+            const std::filesystem::path path(input_path);
+            if (std::filesystem::is_directory(path, ec) && !ec) {
+                std::vector<std::string> directory_paths;
+                std::string error_message;
+                if (!collect_directory_image_paths(input_path,
+                                                  sort_mode, sort_reverse,
+                                                  directory_paths,
+                                                  error_message)) {
+                    print(stderr, "imiv: {}\n", error_message);
+                    continue;
+                }
+                if (directory_paths.empty()) {
+                    print(stderr,
+                          "imiv: no supported image files found in '{}'\n",
+                          input_path);
+                    continue;
+                }
+                expanded.insert(expanded.end(), directory_paths.begin(),
+                                directory_paths.end());
+                continue;
+            }
+            if (ec && verbose_logging) {
+                print(stderr,
+                      "imiv: ignoring directory probe error for '{}': {}\n",
+                      input_path, ec.message());
+            }
+            expanded.push_back(input_path);
+        }
+        return expanded;
+    }
 }  // namespace
 
 
@@ -229,7 +267,6 @@ run(const AppConfig& config)
         && !startup_open_path.empty()) {
         run_config.input_paths.push_back(startup_open_path);
     }
-
     MultiViewWorkspace workspace;
     ImageLibraryState library;
     PlaceholderUiState ui_state;
@@ -244,6 +281,10 @@ run(const AppConfig& config)
             = Strutil::fmt::format("failed to load preferences: {}",
                                    prefs_error);
     }
+    run_config.input_paths = expand_startup_input_paths(run_config,
+                                                        run_config.verbose,
+                                                        library.sort_mode,
+                                                        library.sort_reverse);
     const BackendKind requested_backend = requested_backend_for_launch(
         run_config, ui_state);
 
@@ -512,19 +553,21 @@ run(const AppConfig& config)
     if (std::shared_ptr<ImageCache> imagecache = ImageCache::create(true))
         imagecache->attribute("unassociatedalpha",
                               run_config.no_autopremult ? 1 : 0);
+    reset_view_recipe(viewer.recipe);
     if (!run_config.ocio_display.empty())
-        ui_state.ocio_display = run_config.ocio_display;
+        viewer.recipe.ocio_display = run_config.ocio_display;
     if (!run_config.ocio_view.empty())
-        ui_state.ocio_view = run_config.ocio_view;
+        viewer.recipe.ocio_view = run_config.ocio_view;
     if (!run_config.ocio_image_color_space.empty())
-        ui_state.ocio_image_color_space = run_config.ocio_image_color_space;
+        viewer.recipe.ocio_image_color_space = run_config.ocio_image_color_space;
     if (!run_config.ocio_display.empty() || !run_config.ocio_view.empty()
         || !run_config.ocio_image_color_space.empty()) {
-        ui_state.use_ocio = true;
+        viewer.recipe.use_ocio = true;
     }
-    reset_per_image_preview_state(ui_state);
+    clamp_view_recipe(viewer.recipe);
+    apply_view_recipe_to_ui_state(viewer.recipe, ui_state);
     clamp_placeholder_ui_state(ui_state);
-    if (ui_state.use_ocio) {
+    if (viewer.recipe.use_ocio) {
         std::string ocio_preflight_error;
         bool ocio_preflight_ok = false;
         switch (active_backend) {
@@ -547,7 +590,8 @@ run(const AppConfig& config)
             break;
         }
         if (!ocio_preflight_ok) {
-            ui_state.use_ocio = false;
+            viewer.recipe.use_ocio = false;
+            apply_view_recipe_to_ui_state(viewer.recipe, ui_state);
             if (verbose_logging) {
                 print("imiv: OCIO preflight unavailable, using standard "
                       "preview fallback: {}\n",

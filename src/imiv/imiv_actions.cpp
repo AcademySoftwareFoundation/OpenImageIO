@@ -25,6 +25,7 @@
 #include <imgui.h>
 
 #include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
@@ -122,6 +123,82 @@ namespace {
         return path;
     }
 
+    std::vector<ViewerState*>
+    collect_action_target_viewers(MultiViewWorkspace* workspace,
+                                  ViewerState& active_view)
+    {
+        std::vector<ViewerState*> viewers;
+        if (workspace == nullptr) {
+            viewers.push_back(&active_view);
+            return viewers;
+        }
+        viewers.reserve(workspace->view_windows.size());
+        for (const std::unique_ptr<ImageViewWindow>& view : workspace->view_windows) {
+            if (view != nullptr)
+                viewers.push_back(&view->viewer);
+        }
+        if (viewers.empty())
+            viewers.push_back(&active_view);
+        return viewers;
+    }
+
+    bool
+    open_directory_into_library(RendererState& renderer_state,
+                                ViewerState& viewer,
+                                ImageLibraryState& library,
+                                PlaceholderUiState& ui_state,
+                                MultiViewWorkspace* workspace,
+                                const std::string& directory_path)
+    {
+        std::vector<std::string> folder_paths;
+        std::string error_message;
+        if (!collect_directory_image_paths(directory_path, library.sort_mode,
+                                           library.sort_reverse, folder_paths,
+                                           error_message)) {
+            viewer.last_error = error_message;
+            viewer.status_message.clear();
+            return false;
+        }
+        if (folder_paths.empty()) {
+            viewer.last_error = Strutil::fmt::format(
+                "No supported image files found in '{}'", directory_path);
+            viewer.status_message.clear();
+            return false;
+        }
+
+        append_loaded_image_paths(library, folder_paths);
+        const std::vector<ViewerState*> viewers
+            = collect_action_target_viewers(workspace, viewer);
+        sort_loaded_image_paths(library, viewers);
+        if (workspace != nullptr)
+            sync_workspace_library_state(*workspace, viewer, library);
+        else {
+            viewer.loaded_image_paths = library.loaded_image_paths;
+            viewer.recent_images      = library.recent_images;
+            viewer.sort_mode          = library.sort_mode;
+            viewer.sort_reverse       = library.sort_reverse;
+        }
+
+        for (const std::string& candidate : folder_paths) {
+            if (!set_current_loaded_image_path(library, viewer, candidate))
+                continue;
+            if (load_viewer_image(renderer_state, viewer, library, &ui_state,
+                                  candidate, ui_state.subimage_index,
+                                  ui_state.miplevel_index)) {
+                viewer.status_message = Strutil::fmt::format(
+                    "Opened folder {} ({} supported images)", directory_path,
+                    folder_paths.size());
+                return true;
+            }
+        }
+
+        if (viewer.last_error.empty()) {
+            viewer.last_error = Strutil::fmt::format(
+                "Failed to load any image from '{}'", directory_path);
+        }
+        return false;
+    }
+
 }  // namespace
 
 bool
@@ -206,8 +283,8 @@ load_viewer_image(RendererState& vk_state, ViewerState& viewer,
     }
     quiesce_viewer_texture_lifetime(vk_state, viewer.texture);
     renderer_destroy_texture(vk_state, viewer.texture);
-    if (ui_state != nullptr && should_reset_preview_on_load(viewer, path))
-        reset_per_image_preview_state(*ui_state);
+    if (should_reset_preview_on_load(viewer, path))
+        reset_per_image_preview_state(viewer.recipe);
     viewer.image       = std::move(loaded);
     viewer.texture     = std::move(texture);
     viewer.zoom        = 1.0f;
@@ -286,16 +363,130 @@ open_dialog_default_path(const ViewerState& viewer,
     return std::string();
 }
 
-std::string
-save_dialog_default_name(const ViewerState& viewer)
-{
+    std::string
+    save_dialog_default_name(const ViewerState& viewer)
+    {
     if (viewer.image.path.empty())
         return "image.exr";
     std::filesystem::path p(viewer.image.path);
     if (p.filename().empty())
         return "image.exr";
     return p.filename().string();
-}
+    }
+
+    std::string
+    save_selection_default_name(const ViewerState& viewer)
+    {
+        if (viewer.image.path.empty())
+            return "selection.exr";
+        std::filesystem::path p(viewer.image.path);
+        const std::string stem = p.stem().empty() ? "selection" : p.stem().string();
+        const std::string ext  = p.extension().empty() ? ".exr" : p.extension().string();
+        return stem + "_selection" + ext;
+    }
+
+    bool
+    imagebuf_from_loaded_image(const LoadedImage& image, ImageBuf& out,
+                               std::string& error_message)
+    {
+        error_message.clear();
+        const TypeDesc format = upload_data_type_to_typedesc(image.type);
+        if (format == TypeUnknown) {
+            error_message = "unsupported source pixel type";
+            return false;
+        }
+        if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0) {
+            error_message = "no valid image is loaded";
+            return false;
+        }
+
+        const size_t width         = static_cast<size_t>(image.width);
+        const size_t height        = static_cast<size_t>(image.height);
+        const size_t channels      = static_cast<size_t>(image.nchannels);
+        const size_t min_row_pitch = width * channels * image.channel_bytes;
+        if (image.row_pitch_bytes < min_row_pitch) {
+            error_message = "image row pitch is invalid";
+            return false;
+        }
+        const size_t required_bytes = image.row_pitch_bytes * height;
+        if (image.pixels.size() < required_bytes) {
+            error_message = "image pixel buffer is incomplete";
+            return false;
+        }
+
+        ImageSpec spec(image.width, image.height, image.nchannels, format);
+        if (image.channel_names.size() == channels)
+            spec.channelnames = image.channel_names;
+        spec.attribute("Orientation", image.orientation);
+        if (!image.metadata_color_space.empty())
+            spec.attribute("oiio:ColorSpace", image.metadata_color_space);
+
+        out.reset(spec);
+        const std::byte* begin = reinterpret_cast<const std::byte*>(
+            image.pixels.data());
+        const cspan<std::byte> byte_span(begin, image.pixels.size());
+        const stride_t xstride = static_cast<stride_t>(image.nchannels
+                                                       * image.channel_bytes);
+        const stride_t ystride = static_cast<stride_t>(image.row_pitch_bytes);
+        if (!out.set_pixels(ROI::All(), format, byte_span, begin, xstride,
+                            ystride, AutoStride)) {
+            error_message = out.geterror();
+            if (error_message.empty())
+                error_message = "failed to copy source pixels into ImageBuf";
+            return false;
+        }
+        return true;
+    }
+
+    bool
+    save_selection_image(const LoadedImage& image, const ViewerState& viewer,
+                         const std::string& path, std::string& error_message)
+    {
+        error_message.clear();
+        if (path.empty()) {
+            error_message = "save path is empty";
+            return false;
+        }
+        if (!has_image_selection(viewer)) {
+            error_message = "no active selection";
+            return false;
+        }
+
+        ImageBuf source;
+        if (!imagebuf_from_loaded_image(image, source, error_message))
+            return false;
+
+        const ROI selection_roi(viewer.selection_xbegin, viewer.selection_xend,
+                                viewer.selection_ybegin, viewer.selection_yend,
+                                0, 1, 0, image.nchannels);
+        ImageBuf result = ImageBufAlgo::cut(source, selection_roi);
+        if (result.has_error()) {
+            error_message = result.geterror();
+            if (error_message.empty())
+                error_message = "failed to crop selected image region";
+            return false;
+        }
+
+        if (image.orientation != 1) {
+            ImageBuf oriented = ImageBufAlgo::reorient(result);
+            if (oriented.has_error()) {
+                error_message = oriented.geterror();
+                if (error_message.empty())
+                    error_message = "failed to orient selection export";
+                return false;
+            }
+            result = std::move(oriented);
+        }
+
+        result.specmod().attribute("Orientation", 1);
+        if (!result.write(path, result.spec().format)) {
+            error_message = result.geterror();
+            if (error_message.empty())
+                error_message = "image write failed";
+            return false;
+        }
+        return true;
+    }
 
 bool
 save_loaded_image(const LoadedImage& image, const std::string& path,
@@ -478,7 +669,39 @@ save_window_as_dialog_action(ViewerState& viewer)
 void
 save_selection_as_dialog_action(ViewerState& viewer)
 {
-    save_as_dialog_action(viewer);
+    if (viewer.image.path.empty()) {
+        viewer.last_error = "No image loaded to save";
+        return;
+    }
+    if (!has_image_selection(viewer)) {
+        viewer.last_error = "No selection to save";
+        return;
+    }
+
+    const ImageLibraryState empty_library;
+    const std::string default_path = open_dialog_default_path(viewer,
+                                                              empty_library);
+    const std::string default_name = save_selection_default_name(viewer);
+    FileDialog::DialogReply reply  = FileDialog::save_image_file(default_path,
+                                                                 default_name);
+    if (reply.result == FileDialog::Result::Okay) {
+        std::string error;
+        if (save_selection_image(viewer.image, viewer, reply.path, error)) {
+            const int width  = viewer.selection_xend - viewer.selection_xbegin;
+            const int height = viewer.selection_yend - viewer.selection_ybegin;
+            viewer.status_message = Strutil::fmt::format(
+                "Saved selection {} ({}x{})", reply.path, width, height);
+            viewer.last_error.clear();
+        } else {
+            viewer.last_error = Strutil::fmt::format("save failed: {}", error);
+        }
+    } else if (reply.result == FileDialog::Result::Cancel) {
+        viewer.status_message = "Save selection cancelled";
+        viewer.last_error.clear();
+    } else {
+        viewer.last_error = reply.message.empty() ? "Save dialog failed"
+                                                  : reply.message;
+    }
 }
 
 void
@@ -668,6 +891,31 @@ open_image_dialog_action(RendererState& vk_state, ViewerState& viewer,
         viewer.last_error.clear();
     } else {
         viewer.last_error = reply.message;
+    }
+}
+
+void
+open_folder_dialog_action(RendererState& renderer_state, ViewerState& viewer,
+                          ImageLibraryState& library,
+                          PlaceholderUiState& ui_state,
+                          MultiViewWorkspace* workspace)
+{
+    FileDialog::DialogReply reply = FileDialog::open_folder(
+        open_dialog_default_path(viewer, library));
+    if (reply.result == FileDialog::Result::Okay) {
+        if (!reply.path.empty()) {
+            open_directory_into_library(renderer_state, viewer, library,
+                                        ui_state, workspace, reply.path);
+        } else {
+            viewer.last_error = "No folder was selected";
+            viewer.status_message.clear();
+        }
+    } else if (reply.result == FileDialog::Result::Cancel) {
+        viewer.status_message = "Open folder cancelled";
+        viewer.last_error.clear();
+    } else {
+        viewer.last_error = reply.message;
+        viewer.status_message.clear();
     }
 }
 

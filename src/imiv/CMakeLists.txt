@@ -1031,6 +1031,14 @@ if (NOT "${OIIO_IMIV_TEST_OCIO_CONFIG}" STREQUAL "")
 endif ()
 set (_imiv_ocio_config_source_input "ocio://default")
 set (_imiv_ctest_default_backend_args --backend "${_imiv_selected_renderer}")
+set (_imiv_ctest_stable_ui_backend_args ${_imiv_ctest_default_backend_args})
+if (APPLE AND _imiv_enabled_metal)
+    set (_imiv_ctest_stable_ui_backend_args --backend metal)
+elseif ((TARGET OpenGL::GL OR TARGET OpenGL::OpenGL) AND _imiv_enabled_opengl)
+    set (_imiv_ctest_stable_ui_backend_args --backend opengl)
+elseif (_imiv_enabled_vulkan)
+    set (_imiv_ctest_stable_ui_backend_args --backend vulkan)
+endif ()
 if (TARGET imiv
         AND OIIO_BUILD_TESTS
         AND BUILD_TESTING
@@ -1329,6 +1337,98 @@ if (TARGET imiv
     set_tests_properties (
         imiv_multiview_regression PROPERTIES
             LABELS "imiv;gui;imiv_multiview"
+            TIMEOUT 180)
+
+    add_test (
+        NAME imiv_image_list_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_image_list_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_default_backend_args}
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/image_list_regression")
+    set_tests_properties (
+        imiv_image_list_regression PROPERTIES
+            LABELS "imiv;gui;imiv_multiview"
+            TIMEOUT 180)
+
+    add_test (
+        NAME imiv_image_list_interaction_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_image_list_interaction_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_stable_ui_backend_args}
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/image_list_interaction_regression")
+    set_tests_properties (
+        imiv_image_list_interaction_regression PROPERTIES
+            LABELS "imiv;gui;imiv_multiview"
+            TIMEOUT 180)
+
+    add_test (
+        NAME imiv_drag_drop_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_drag_drop_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_stable_ui_backend_args}
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/drag_drop_regression")
+    set_tests_properties (
+        imiv_drag_drop_regression PROPERTIES
+            LABELS "imiv;gui;imiv_multiview"
+            TIMEOUT 180)
+
+    add_test (
+        NAME imiv_view_recipe_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_view_recipe_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            ${_imiv_ctest_stable_ui_backend_args}
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/view_recipe_regression")
+    set_tests_properties (
+        imiv_view_recipe_regression PROPERTIES
+            LABELS "imiv;gui;imiv_multiview"
+            TIMEOUT 180)
+
+    add_test (
+        NAME imiv_open_folder_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_open_folder_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_default_backend_args}
+            --oiiotool "$<TARGET_FILE:oiiotool>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/open_folder_regression")
+    set_tests_properties (
+        imiv_open_folder_regression PROPERTIES
+            LABELS "imiv;gui;imiv_multiview"
+            TIMEOUT 180)
+
+    add_test (
+        NAME imiv_save_selection_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_save_selection_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_stable_ui_backend_args}
+            --oiiotool "$<TARGET_FILE:oiiotool>"
+            --idiff "$<TARGET_FILE:idiff>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/save_selection_regression")
+    set_tests_properties (
+        imiv_save_selection_regression PROPERTIES
+            LABELS "imiv;gui;imiv_export"
             TIMEOUT 180)
 
     add_test (

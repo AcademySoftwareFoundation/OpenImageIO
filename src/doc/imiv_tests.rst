@@ -141,6 +141,7 @@ Keyboard and item actions:
 * `key_chord`
 * `set_ref`
 * `item_click`
+* `item_double_click`
 
 Mouse positioning and input:
 
@@ -162,6 +163,20 @@ OCIO overrides:
 * `ocio_view`
 * `ocio_image_color_space`
 * `linear_interpolation`
+
+Per-view recipe overrides:
+
+* `view_activate_index`
+* `exposure`
+* `gamma`
+* `offset`
+
+Image List actions:
+
+* `image_list_select_index`
+* `image_list_open_new_view_index`
+* `image_list_close_active_index`
+* `image_list_remove_index`
 
 Capture flags:
 
@@ -196,6 +211,30 @@ Real examples live in:
 Key-chord strings use tokens such as `ctrl+a`, `alt+f`, `ctrl+period`,
 `pageup`, `f12`, `kpadd`, and similar spellings understood by the parser in
 `imiv_test_engine.cpp`.
+
+
+Focused regressions
+===================
+
+Recent focused GUI regressions in `src/imiv/tools/` include:
+
+* `imiv_multiview_regression.py`
+  secondary image-view creation and docked multi-view behavior;
+* `imiv_image_list_regression.py`
+  default Image List visibility and docked layout on multi-image startup;
+* `imiv_image_list_interaction_regression.py`
+  Image List single-click, open-in-new-view, close-in-active-view, and
+  remove-from-session behavior;
+* `imiv_open_folder_regression.py`
+  startup folder-open queue filtering for supported image files only;
+* `imiv_drag_drop_regression.py`
+  multi-file drag/drop into the shared loaded-image queue;
+* `imiv_view_recipe_regression.py`
+  per-view recipe isolation for exposure, gamma, offset, interpolation, and
+  OCIO state with multiple image views open.
+* `imiv_save_selection_regression.py`
+  GUI-driven `Save Selection As...` crop export, including selected ROI and
+  orientation-baked CPU output validation.
 
 
 Direct Dear ImGui Test Engine usage
@@ -260,7 +299,9 @@ already includes fields such as:
 
 * `image_loaded`, `image_path`, `zoom`, and `fit_image_to_window`
 * selection and Area Sample state
-* multi-view state (`view_count`, `active_view_id`, `active_view_docked`)
+* multi-view state (`view_count`, `active_view_id`, `active_view_docked`,
+  `image_list_visible`, `image_list_drawn`, `image_list_docked`,
+  `image_list_size`)
 * backend state (`active`, `requested`, `next_launch`, compiled backends)
 * OCIO state (requested source, resolved source, resolved config path,
   display/view, available menus)
@@ -274,6 +315,10 @@ Example excerpt::
       "view_count": 2,
       "active_view_id": 2,
       "active_view_docked": true,
+      "image_list_visible": true,
+      "image_list_drawn": true,
+      "image_list_docked": true,
+      "image_list_size": [200.000, 878.000],
       "backend": {
         "active": "vulkan",
         "requested": "auto",
@@ -363,6 +408,22 @@ Run the focused multi-view regression::
 
     ctest --test-dir build_u -V -R '^imiv_multiview_regression$'
 
+Run the focused multi-file Image List regression::
+
+    ctest --test-dir build_u -V -R '^imiv_image_list_regression$'
+
+Run the focused Image List interaction regression::
+
+    ctest --test-dir build_u -V -R '^imiv_image_list_interaction_regression$'
+
+Run the focused drag/drop regression::
+
+    ctest --test-dir build_u -V -R '^imiv_drag_drop_regression$'
+
+Run the focused per-view recipe regression::
+
+    ctest --test-dir build_u -V -R '^imiv_view_recipe_regression$'
+
 Run the backend-preference regression::
 
     ctest --test-dir build_u -V -R '^imiv_backend_preferences_regression$'
@@ -383,16 +444,21 @@ When adding new UI or UX behavior, the most durable workflow is usually:
 1. Make the feature observable.
    Add stable UI labels, a layout-dump synthetic marker, a viewer-state JSON
    field, or some combination of the three.
-2. Prefer state assertions over screenshot-only assertions.
+2. Prefer scenario-driven interactions in a single :program:`imiv` run.
+   The test engine supports attributes such as ``item_click`` and
+   ``item_double_click`` for stable, named widget interactions. It also
+   supports per-step overrides such as ``view_activate_index``, ``exposure``,
+   ``gamma``, and ``offset`` for view-local recipe tests.
+3. Prefer state assertions over screenshot-only assertions.
    Screenshots are valuable, but state dumps usually fail more clearly.
-3. Keep tests isolated.
+4. Keep tests isolated.
    Set `IMIV_CONFIG_HOME` in wrappers so preferences and recent-file history do
    not leak between runs.
-4. Reuse existing helpers.
+5. Reuse existing helpers.
    Generate fixtures with OIIO tools when practical, and build on
    `imiv_gui_test_run.py` or the existing focused regression scripts before
    inventing a new runner.
-5. Add backend coverage intentionally.
+6. Add backend coverage intentionally.
    If a feature is backend-sensitive, decide whether it needs a backend-wide
    verification entry, a focused regression, or both.
 

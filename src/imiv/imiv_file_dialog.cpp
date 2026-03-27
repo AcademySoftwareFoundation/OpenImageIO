@@ -18,6 +18,13 @@ namespace Imiv::FileDialog {
 
 namespace {
 
+    const char*
+    env_value(const char* name)
+    {
+        const char* value = std::getenv(name);
+        return (value != nullptr && value[0] != '\0') ? value : nullptr;
+    }
+
     const nfdu8filteritem_t k_image_filter[] = {
         { "Image Files",
           "avif,bmp,dpx,exr,gif,hdr,heic,jpg,jpeg,jxl,png,tif,tiff,tx,webp" }
@@ -113,6 +120,31 @@ open_image_files(const std::string& default_path)
 }
 
 DialogReply
+open_folder(const std::string& default_path)
+{
+    NfdThreadGuard guard;
+    if (!guard.initialized)
+        return map_error("nativefiledialog initialization failed");
+
+    nfdpickfolderu8args_t args = {};
+    args.defaultPath = default_path.empty() ? nullptr : default_path.c_str();
+
+    nfdu8char_t* selected_path = nullptr;
+    nfdresult_t result         = NFD_PickFolderU8_With(&selected_path, &args);
+    if (result == NFD_OKAY) {
+        DialogReply reply;
+        reply.result = Result::Okay;
+        if (selected_path != nullptr && selected_path[0] != '\0')
+            reply.path = selected_path;
+        NFD_FreePathU8(selected_path);
+        return reply;
+    }
+    if (result == NFD_CANCEL)
+        return DialogReply { Result::Cancel, std::string(), {}, std::string() };
+    return map_error("nativefiledialog folder dialog failed");
+}
+
+DialogReply
 open_ocio_config_file(const std::string& default_path)
 {
     NfdThreadGuard guard;
@@ -145,6 +177,13 @@ DialogReply
 save_image_file(const std::string& default_path,
                 const std::string& default_name)
 {
+    if (const char* override_path = env_value("IMIV_TEST_SAVE_IMAGE_PATH")) {
+        DialogReply reply;
+        reply.result = Result::Okay;
+        reply.path   = override_path;
+        return reply;
+    }
+
     NfdThreadGuard guard;
     if (!guard.initialized)
         return map_error("nativefiledialog initialization failed");
@@ -171,6 +210,17 @@ save_image_file(const std::string& default_path,
 }
 
 #else
+
+namespace {
+
+    const char*
+    env_value(const char* name)
+    {
+        const char* value = std::getenv(name);
+        return (value != nullptr && value[0] != '\0') ? value : nullptr;
+    }
+
+}  // namespace
 
 bool
 available()
@@ -210,6 +260,16 @@ open_ocio_config_file(const std::string& default_path)
                          "nativefiledialog integration is not configured" };
 }
 
+DialogReply
+open_folder(const std::string& default_path)
+{
+    (void)default_path;
+    return DialogReply { Result::Unsupported,
+                         std::string(),
+                         {},
+                         "nativefiledialog integration is not configured" };
+}
+
 
 
 DialogReply
@@ -218,6 +278,12 @@ save_image_file(const std::string& default_path,
 {
     (void)default_path;
     (void)default_name;
+    if (const char* override_path = env_value("IMIV_TEST_SAVE_IMAGE_PATH")) {
+        DialogReply reply;
+        reply.result = Result::Okay;
+        reply.path   = override_path;
+        return reply;
+    }
     return DialogReply { Result::Unsupported, std::string(),
                          "nativefiledialog integration is not configured" };
 }

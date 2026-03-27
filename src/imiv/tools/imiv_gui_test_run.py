@@ -74,7 +74,12 @@ def main() -> int:
         choices=("", "auto", "vulkan", "metal", "opengl"),
         help="Optional runtime backend override passed to imiv",
     )
-    ap.add_argument("--open", default="", help="Optional image path to open at startup")
+    ap.add_argument(
+        "--open",
+        action="append",
+        default=[],
+        help="Optional image path to open at startup; may be repeated",
+    )
     ap.add_argument(
         "--scenario",
         default="",
@@ -299,9 +304,7 @@ def main() -> int:
     env["IMIV_IMGUI_TEST_ENGINE"] = "1"
     env["IMIV_IMGUI_TEST_ENGINE_EXIT_ON_FINISH"] = "1"
 
-    if args.open:
-        open_path = _resolve_path(args.open, repo_root)
-        env["IMIV_IMGUI_TEST_ENGINE_OPEN_PATH"] = str(open_path)
+    open_paths = [_resolve_path(path, repo_root) for path in args.open if path]
     if args.scenario:
         scenario_path = _resolve_path(args.scenario, repo_root)
         if not scenario_path.exists():
@@ -456,6 +459,7 @@ def main() -> int:
         if args.backend:
             cmd.extend(["--backend", args.backend])
         cmd.append("-F")
+        cmd.extend(str(path) for path in open_paths)
         return subprocess.run(
             cmd, cwd=str(run_cwd), env=run_env, check=False
         ).returncode
