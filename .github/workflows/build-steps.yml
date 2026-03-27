@@ -35,6 +35,8 @@ on:
         type: string
       fmt_ver:
         type: string
+      fmt_commit:
+        type: string
       opencolorio_ver:
         type: string
       openexr_ver:
@@ -109,6 +111,7 @@ jobs:
       CTEST_TEST_TIMEOUT: ${{inputs.ctest_test_timeout}}
       USE_SIMD: ${{inputs.simd}}
       fmt_BUILD_VERSION: ${{inputs.fmt_ver}}
+      fmt_GIT_COMMIT: ${{inputs.fmt_commit}}
       OPENCOLORIO_VERSION: ${{inputs.opencolorio_ver}}
       OPENEXR_VERSION: ${{inputs.openexr_ver}}
       PYBIND11_VERSION: ${{inputs.pybind11_ver}}
@@ -122,6 +125,8 @@ jobs:
       # against and testing an optional dependency, but in fact are not.
       OpenImageIO_REQUIRED_DEPS: ${{inputs.required_deps}}
       OpenImageIO_OPTIONAL_DEPS: ${{inputs.optional_deps}}
+      SETENVS: ${{inputs.setenvs}}
+      DEPCMDS: ${{inputs.depcmds}}
 
     steps:
       - name: install nodejs20glibc2.17
@@ -129,18 +134,33 @@ jobs:
         run: |
           curl --silent https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.xz | tar -xJ --strip-components 1 -C /node20217 -f -
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: inputs.old_node != '1'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Checkout repo-OLD
+        if: inputs.old_node == '1'
+        # Must use an old checkout action for old containers
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
       - name: Build setup
         shell: bash
         run: |
-            ${{inputs.setenvs}}
+            eval "$SETENVS"
             src/build-scripts/ci-startup.bash
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
         shell: bash
         run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache-restore
+        if: inputs.old_node != '1'
         id: ccache-restore
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{inputs.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
+          restore-keys: ${{inputs.nametag}}
+      - name: ccache-restore-OLD
+        if: inputs.old_node == '1'
+        id: ccache-restore-old
+        # Must use an old cache restore action for old containers
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -150,7 +170,7 @@ jobs:
       - name: Dependencies
         shell: bash
         run: |
-            ${{inputs.depcmds}}
+            eval "$DEPCMDS"
             if [[ "$RUNNER_OS" == "Linux" ]]; then
                 src/build-scripts/gh-installdeps.bash
             elif [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -160,14 +180,14 @@ jobs:
             fi
       - name:  Install sonar-scanner and build-wrapper
         if: inputs.sonar == '1'
-        uses: sonarsource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
+        uses: sonarsource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
       - name: Build
         if: inputs.skip_build != '1'
         shell: bash
         run: src/build-scripts/ci-build.bash
       - name: Check out ABI standard
         if: inputs.abi_check != ''
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{inputs.abi_check}}
           path: abi_standard
@@ -180,7 +200,16 @@ jobs:
             src/build-scripts/ci-build.bash
             popd
       - name: ccache-save
+        if: inputs.old_node != '1'
         id: ccache-save
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{inputs.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
+      - name: ccache-save-OLD
+        if: inputs.old_node == '1'
+        id: ccache-save-old
+        # Must use an old cache action for old containers
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -208,10 +237,10 @@ jobs:
         run: |
             which sonar-scanner
             ls -l /__w/OpenImageIO/OpenImageIO/bw_output
-            echo "BUILD_OUTPUT_DIR is " "${{ env.BUILD_WRAPPER_OUT_DIR }}"
+            echo "BUILD_OUTPUT_DIR is ${BUILD_WRAPPER_OUT_DIR}"
             find . -name "*.gcov" -print
-            # sonar-scanner --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json"
-            time sonar-scanner --define sonar.host.url="${{ env.SONAR_SERVER_URL }}" --define sonar.cfamily.compile-commands="$BUILD_WRAPPER_OUT_DIR/compile_commands.json" --define sonar.cfamily.gcov.reportsPath="_coverage" --define sonar.cfamily.threads="$PARALLEL"
+            # sonar-scanner --define sonar.cfamily.compile-commands="${BUILD_WRAPPER_OUT_DIR}/compile_commands.json"
+            time sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.compile-commands="$BUILD_WRAPPER_OUT_DIR/compile_commands.json" --define sonar.cfamily.gcov.reportsPath="_coverage" --define sonar.cfamily.threads="$PARALLEL"
         # Consult https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/ for more information and options
       - name: Check ABI
         if: inputs.abi_check != ''
@@ -226,8 +255,24 @@ jobs:
             time make doxygen
             time make sphinx
       - name: Upload testsuite debugging artifacts
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: ${{ inputs.old_node != '1' && (failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '') }}
+        with:
+          name: oiio-${{github.job}}-${{inputs.nametag}}
+          path: |
+            build/cmake-save
+            build/compat_reports
+            build/sphinx
+            build/benchmarks
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+            ${{ inputs.extra_artifacts }}
+      - name: Upload testsuite debugging artifacts-OLD
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
-        if: ${{ failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '' }}
+        if: ${{ inputs.old_node == '1' && (failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '') }}
         with:
           name: oiio-${{github.job}}-${{inputs.nametag}}
           path: |

@@ -129,7 +129,9 @@ private:
     // information and adding attributes to spec.  This assumes it's in
     // the form of an IIM (Information Interchange Model), which is actually
     // considered obsolete and is replaced by an XML scheme called XMP.
-    void jpeg_decode_iptc(const unsigned char* buf);
+    // Return true if ok, false if there were corruptions or errors while
+    // decoding the iptc.
+    bool jpeg_decode_iptc(string_view buf);
 
     bool read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec);
 

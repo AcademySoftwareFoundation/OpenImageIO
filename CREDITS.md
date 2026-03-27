@@ -150,6 +150,7 @@ lg@openimageio.org
 * Lukas Schrangl
 * Lukasz Maliszewski
 * Luke Emrose
+* Lumina Wang
 * Lydia Zheng
 * M Joonas Pihlaja
 * Malcolm Humphreys

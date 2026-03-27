@@ -174,3 +174,9 @@ mono-10bit.avif      :   64 x   64, 1 channel, uint10 heif
     channel list: Y
     oiio:BitsPerSample: 10
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading odd-size.avif
+odd-size.avif        :   47 x   31, 3 channel, uint10 heif
+    SHA-1: C0F296BD3EAB348134B6E14962822895338AF73C
+    channel list: R, G, B
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "srgb_rec709_scene"

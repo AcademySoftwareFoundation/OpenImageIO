@@ -103,16 +103,26 @@ OIIO_NAMESPACE_3_1_BEGIN
 bool
 decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
 {
-    const unsigned char* buf = (const unsigned char*)iptc;
+    if (!iptc || length <= 0)
+        return false;
+    return decode_iptc_iim(string_view(reinterpret_cast<const char*>(iptc),
+                                       static_cast<size_t>(length)),
+                           spec);
+}
 
+
+
+bool
+decode_iptc_iim(string_view iptc, ImageSpec& spec)
+{
 #if DEBUG_IPTC_READ
-    std::cerr << "IPTC dump:\n";
-    for (int i = 0; i < std::min(length, 100); ++i) {
-        if (buf[i] >= ' ' && buf[i] < 128)
-            std::cerr << (char)buf[i] << ' ';
-        std::cerr << "(" << int(buf[i]) << ") ";
+    print(stderr, "IPTC dump (len={}):\n", iptc.size());
+    for (size_t i = 0; i < std::min(iptc.size(), size_t(1000)); ++i) {
+        if (iptc[i] >= ' ' && iptc[i] < 128)
+            print(stderr, "{:c} ", iptc[i]);
+        print(stderr, "({:d}) ", uint32_t(static_cast<unsigned char>(iptc[i])));
     }
-    std::cerr << "\n";
+    print(stderr, "\n");
 #endif
 
     // Now there are a series of data blocks.  Each one starts with 1C
@@ -121,28 +131,27 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
     // repeats until we've used up the whole segment buffer, or I guess
     // until we don't find another 1C 02 tag start.
     // N.B. I don't know why, but Picasa sometimes uses 1C 01 !
-    while (length >= 5 && buf[0] == 0x1c
-           && (buf[1] == 0x02 || buf[1] == 0x01)) {
-        int secondbyte = buf[1];
-        int tagtype    = buf[2];
-        int tagsize    = (buf[3] << 8) + buf[4];
-        buf += 5;
-        length -= 5;
-        tagsize = std::min(tagsize, length);
+    while (iptc.size() >= 5 && iptc[0] == 0x1c
+           && (iptc[1] == 0x02 || iptc[1] == 0x01)) {
+        int secondbyte = static_cast<unsigned char>(iptc[1]);
+        int tagtype    = static_cast<unsigned char>(iptc[2]);
+        size_t tagsize = (static_cast<unsigned char>(iptc[3]) << 8)
+                         + static_cast<unsigned char>(iptc[4]);
+        iptc.remove_prefix(5);
+        tagsize = std::min(tagsize, iptc.size());
 
 #if DEBUG_IPTC_READ
-        std::cerr << "iptc tag " << tagtype << ", size=" << tagsize << ":\n";
-        for (int i = 0; i < tagsize; ++i) {
-            if (buf[i] >= ' ')
-                std::cerr << (char)buf[i] << ' ';
-            std::cerr << "(" << (int)(unsigned char)buf[i] << ") ";
+        print(stderr, "iptc tag {}, size={}:\n", tagtype, tagsize);
+        for (size_t i = 0; i < tagsize; ++i) {
+            if (iptc[i] >= ' ')
+                print(stderr, "{:c} ", iptc[i]);
+            print(stderr, "({:d}) ", static_cast<unsigned char>(iptc[i]));
         }
-        std::cerr << "\n";
+        print(stderr, "\n");
 #endif
 
         if (secondbyte == 0x02) {
-            std::string s((const char*)buf, tagsize);
-
+            std::string s = iptc.substr(0, tagsize);
             for (int i = 0; iimtag[i].name; ++i) {
                 if (tagtype == iimtag[i].tag) {
                     if (iimtag[i].repeatable) {
@@ -169,8 +178,7 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
             }
         }
 
-        buf += tagsize;
-        length -= tagsize;
+        iptc.remove_prefix(tagsize);
     }
 
     return true;

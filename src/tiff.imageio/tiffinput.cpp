@@ -238,8 +238,10 @@ private:
     // like we think the file is hopelessly corrupted.
     bool readspec(bool read_meta = true);
 
-    // Figure out all the photometric-related aspects of the header
-    void readspec_photometric();
+    // Figure out all the photometric-related aspects of the header.
+    // Return true if all is fine, false if something really bad happens,
+    // like we think the file is invalid or hopelessly corrupted.
+    bool readspec_photometric();
 
     // Convert planar separate to contiguous data format
     void separate_to_contig(size_t nplanes, size_t nvals,
@@ -265,25 +267,37 @@ private:
     }
 
     OIIO_NODISCARD
-    TypeDesc tiffgetfieldtype(int tag)
+    TypeDesc tiffgetfieldtype(int tag, OIIO_MAYBE_UNUSED string_view name = "",
+                              int* readcount_             = nullptr,
+                              int* passcount_             = nullptr,
+                              TIFFDataType* tiffdatatype_ = nullptr)
     {
         auto field = find_field(tag);
         if (!field)
             return TypeUnknown;
-        TIFFDataType tiffdatatype = TIFFFieldDataType(field);
-        int passcount             = TIFFFieldPassCount(field);
-        int readcount             = TIFFFieldReadCount(field);
-        if (!passcount && readcount > 0)
-            return tiff_datatype_to_typedesc(tiffdatatype, readcount);
-        return TypeUnknown;
+        auto tiffdatatype = TIFFFieldDataType(field);
+        int readcount     = TIFFFieldReadCount(field);
+        int passcount     = TIFFFieldPassCount(field);
+        TypeDesc type     = tiff_datatype_to_typedesc(tiffdatatype,
+                                                      std::max(1, readcount));
+        if (readcount == TIFF_SPP)
+            type.arraylen = m_spec.nchannels;
+        if (readcount_)
+            *readcount_ = readcount;
+        if (passcount_)
+            *passcount_ = passcount;
+        if (tiffdatatype_)
+            *tiffdatatype_ = tiffdatatype;
+        return type;
     }
 
     OIIO_NODISCARD
     bool safe_tiffgetfield(string_view name OIIO_MAYBE_UNUSED, int tag,
                            TypeDesc expected, void* dest,
-                           const uint32_t* count = nullptr)
+                           uint32_t* count = nullptr)
     {
-        TypeDesc type = tiffgetfieldtype(tag);
+        int readcount = 0, passcount = 0;
+        TypeDesc type = tiffgetfieldtype(tag, name, &readcount, &passcount);
         // Caller expects a specific type and the tag doesn't match? Punt.
         if (expected != TypeUnknown && !equivalent(expected, type))
             return false;
@@ -292,8 +306,8 @@ private:
             return false;
 
         // TIFFDataType tiffdatatype = TIFFFieldDataType(field);
-        int passcount = TIFFFieldPassCount(field);
-        int readcount = TIFFFieldReadCount(field);
+        passcount = TIFFFieldPassCount(field);
+        readcount = TIFFFieldReadCount(field);
         if (!passcount && readcount > 0) {
             return TIFFGetField(m_tif, tag, dest);
         } else if (passcount && readcount <= 0) {
@@ -370,31 +384,120 @@ private:
             m_spec.attribute(name, TypeMatrix, f);
     }
 
-    // Get a float tiff tag field and put it into extra_params
-    void get_float_attribute(string_view name, int tag)
+    // Get a tiff tag field whose C type will match T, and put it into
+    // extra_params. If it must be a very specific TypeDesc, it can be
+    // supplied as expected_type. The hard part is that libtiff is horribly
+    // complicated because some tags have variable lengths, and there are even
+    // several different parameter passing conventions to the incredibly
+    // unsafe TIFFGetField function.
+    template<typename T>
+    void get_attribute_from_tag(string_view name, int tag,
+                                TypeDesc expected_type = TypeUnknown)
     {
-        float f[16];
-        if (safe_tiffgetfield(name, tag, TypeUnknown, f))
-            m_spec.attribute(name, f[0]);
-    }
-
-    // Get an int tiff tag field and put it into extra_params
-    void get_int_attribute(string_view name, int tag)
-    {
-        int i = 0;
-        if (safe_tiffgetfield(name, tag, TypeUnknown, &i))
-            m_spec.attribute(name, i);
-    }
-
-    // Get an int tiff tag field and put it into extra_params
-    void get_short_attribute(string_view name, int tag)
-    {
-        // Make room for two shorts, in case the tag is not the type we
-        // expect, and libtiff writes a long instead.
-        unsigned short s[2] = { 0, 0 };
-        if (safe_tiffgetfield(name, tag, TypeUInt16, &s)) {
-            int i = s[0];
-            m_spec.attribute(name, i);
+        int readcount = 0, passcount = 0;
+        TIFFDataType tiffdatatype = TIFF_NOTYPE;
+        TypeDesc oiiotype = tiffgetfieldtype(tag, name, &readcount, &passcount,
+                                             &tiffdatatype);
+        if (oiiotype == TypeUnknown)
+            return;
+        OIIO_ASSERT((readcount > 0 && passcount == 0)
+                    || (readcount == 0 && passcount == 0)
+                    || (readcount < 0 && passcount > 0));
+        oiiotype.basetype = BaseTypeFromC_v<T>;
+        if (expected_type != TypeUnknown) {
+            // If a specific OIIO type is demanded, skip if what we got
+            // doesn't really match in base type and total number of elements.
+            // But allow a ushort tag to make a int attribute.
+            if (oiiotype.basetype != expected_type.basetype)
+                return;
+            if (oiiotype.basevalues() != expected_type.basevalues())
+                return;
+            oiiotype = expected_type;
+        } else {
+            oiiotype.aggregate    = TypeDesc::SCALAR;
+            oiiotype.vecsemantics = TypeDesc::NOSEMANTICS;
+        }
+        if (readcount > 0 && passcount == 0) {
+            // We know how many are passed, so we pass TIFFGetField a pointer
+            // to where we want the (already sized) data to go.
+            OIIO_ASSERT(size_t(readcount) == oiiotype.basevalues());
+            if constexpr (std::is_same_v<T, uint16_t>) {
+                // Special case: we save a single tiff ushort as an int.
+                if (tiffdatatype == TIFF_SHORT && readcount == 1) {
+                    T val;
+                    if (TIFFGetField(m_tif, tag, &val))
+                        m_spec.attribute(name, int(val));
+                    return;
+                }
+                // Fun, there are some quirky special cases in libtiff where
+                // certain uint16[2] fields are retrieved with two pointers!
+                if (tiffdatatype == TIFF_SHORT && readcount == 2
+                    && (tag == TIFFTAG_PAGENUMBER
+                        || tag == TIFFTAG_HALFTONEHINTS
+                        || tag == TIFFTAG_DOTRANGE
+                        || tag == TIFFTAG_YCBCRSUBSAMPLING)) {
+                    T vals[2] = { 0, 0 };
+                    if (TIFFGetField(m_tif, tag, &(vals[0]), &(vals[1]))) {
+                        constexpr TypeDesc TypeUInt16_2(TypeDesc::UINT16, 2);
+                        m_spec.attribute(name, TypeUInt16_2, vals);
+                    }
+                    return;
+                }
+            }
+            if (readcount > 1) {
+                // If there are multiple values, we pass a T** and it puts the
+                // address of the real data in our pointer. There are very few
+                // TIFF tags like this.
+                const T* ptr = nullptr;
+                if (TIFFGetField(m_tif, tag, &ptr) && ptr)
+                    m_spec.attribute(name, oiiotype, ptr);
+                return;
+            } else {
+                // If there is just one value, we pass a pointer to our data,
+                // and libtiff fills it in.
+                T val;
+                if (TIFFGetField(m_tif, tag, &val))
+                    m_spec.attribute(name, oiiotype, &val);
+            }
+            return;
+        } else if (readcount == TIFF_VARIABLE) {
+            // Must pass a uin16_t to find out how many, and we get a data
+            // pointer instead of providing a pointer.
+            uint16_t count = 0;
+            const T* vals  = nullptr;
+            if (TIFFGetField(m_tif, tag, &count, &vals) && vals && count) {
+                oiiotype.unarray();
+                oiiotype.arraylen = count;
+                m_spec.attribute(name, oiiotype, make_span(vals, count));
+            }
+            return;
+        } else if (readcount == TIFF_VARIABLE2) {
+            // Must pass a uin32t_t to find out how many, and we get a data
+            // pointer instead of providing a pointer.
+            uint32_t count = 0;
+            const T* vals  = nullptr;
+            if (TIFFGetField(m_tif, tag, &count, &vals) && vals && count) {
+                if (count > 1)
+                    oiiotype.arraylen = count;
+                else
+                    oiiotype.unarray();
+                m_spec.attribute(name, oiiotype, make_span(vals, count));
+            }
+            return;
+        } else if (readcount == TIFF_SPP) {
+            // The number of values is equal to the number of channels.
+            uint32_t count = static_cast<uint32_t>(m_spec.nchannels);
+            const T* vals  = nullptr;
+            if (TIFFGetField(m_tif, tag, &vals) && vals) {
+                if (count > 1)
+                    oiiotype.arraylen = count;
+                else
+                    oiiotype.unarray();
+                m_spec.attribute(name, oiiotype, make_span(vals, count));
+            }
+            return;
+        } else {
+            // print("UNHANDLED CASE!\n");
         }
     }
 
@@ -416,14 +519,14 @@ private:
             get_string_attribute(oiioname, tifftag);
             return;
         } else if (tifftype == TIFF_SHORT) {
-            get_short_attribute(oiioname, tifftag);
+            get_attribute_from_tag<uint16_t>(oiioname, tifftag);
             return;
         } else if (tifftype == TIFF_LONG) {
-            get_int_attribute(oiioname, tifftag);
+            get_attribute_from_tag<int>(oiioname, tifftag);
             return;
         } else if (tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL
                    || tifftype == TIFF_FLOAT || tifftype == TIFF_DOUBLE) {
-            get_float_attribute(oiioname, tifftag);
+            get_attribute_from_tag<float>(oiioname, tifftag);
             return;
         }
         // special cases follow
@@ -1104,6 +1207,7 @@ TIFFInput::readspec(bool read_meta)
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
     m_spec.attribute("oiio:BitsPerSample", (int)m_bitspersample);
 
+    m_spec.set_format(TypeDesc::UNKNOWN);
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
     switch (m_bitspersample) {
@@ -1132,8 +1236,7 @@ TIFFInput::readspec(bool read_meta)
         else if (sampleformat == SAMPLEFORMAT_IEEEFP) {
             m_spec.set_format(TypeDesc::HALF);
             // Adobe extension, see http://chriscox.org/TIFFTN3d1.pdf
-        } else
-            m_spec.set_format(TypeDesc::UNKNOWN);
+        }
         break;
     case 24:
         // Make 24 bit look like 32 bit
@@ -1144,8 +1247,6 @@ TIFFInput::readspec(bool read_meta)
             m_spec.set_format(TypeDesc::UINT32);
         else if (sampleformat == SAMPLEFORMAT_INT)
             m_spec.set_format(TypeDesc::INT32);
-        else
-            m_spec.set_format(TypeDesc::UNKNOWN);
         break;
     case 64:
         if (sampleformat == SAMPLEFORMAT_IEEEFP)
@@ -1153,7 +1254,15 @@ TIFFInput::readspec(bool read_meta)
         else
             m_spec.set_format(TypeDesc::UNKNOWN);
         break;
-    default: m_spec.set_format(TypeDesc::UNKNOWN); break;
+    default:
+        errorfmt("Invalid bits per sample ({})", m_bitspersample);
+        return false;
+    }
+
+    if (m_spec.format == TypeUnknown) {
+        errorfmt("Invalid sampleformat value ({}) for {} bits per sample",
+                 sampleformat, m_bitspersample);
+        return false;
     }
 
     // Use the table for all the obvious things that can be mindlessly
@@ -1177,7 +1286,8 @@ TIFFInput::readspec(bool read_meta)
     TIFFGetField(m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
     m_spec.attribute("tiff:PhotometricInterpretation", (int)m_photometric);
 
-    readspec_photometric();
+    if (!readspec_photometric())
+        return false;
 
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
     m_separate = (m_planarconfig == PLANARCONFIG_SEPARATE
@@ -1295,11 +1405,13 @@ TIFFInput::readspec(bool read_meta)
     if (xdensity && ydensity)
         m_spec.attribute("PixelAspectRatio", ydensity / xdensity);
 
-    get_matrix_attribute("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA);
-    get_matrix_attribute("worldtoscreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN);
-    get_int_attribute("tiff:subfiletype", TIFFTAG_SUBFILETYPE);
-    // FIXME -- should subfiletype be "conventionized" and used for all
-    // plugins uniformly?
+    get_attribute_from_tag<float>("worldtocamera",
+                                  TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA,
+                                  TypeMatrix);
+    get_attribute_from_tag<float>("worldtoscreen",
+                                  TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN,
+                                  TypeMatrix);
+    get_attribute_from_tag<int>("tiff:subfiletype", TIFFTAG_SUBFILETYPE);
 
     // Special names for shadow maps
     char* s = NULL;
@@ -1356,6 +1468,21 @@ TIFFInput::readspec(bool read_meta)
         // that requires a TIFFSetDirectory to set things straight again.
         TIFFSetDirectory(m_tif, m_actual_subimage);
     }
+
+#if OIIO_TIFFLIB_VERSION >= 40200
+    // Search for an GPS IFD in the TIFF file, and if found, rummage
+    // around for GPS fields.
+    toff_t gpsoffset = 0;
+    if (TIFFGetField(m_tif, TIFFTAG_GPSIFD, &gpsoffset)) {
+        if (TIFFReadEXIFDirectory(m_tif, gpsoffset)) {
+            for (const auto& tag : tag_table("GPS"))
+                find_tag(tag.tifftag, tag.tifftype, tag.name);
+        }
+        // TIFFReadEXIFDirectory seems to do something to the internal state
+        // that requires a TIFFSetDirectory to set things straight again.
+        TIFFSetDirectory(m_tif, m_actual_subimage);
+    }
+#endif
 
     // Search for IPTC metadata in IIM form -- but older versions of
     // libtiff botch the size, so ignore it for very old libtiff.
@@ -1461,7 +1588,7 @@ TIFFInput::readspec(bool read_meta)
 
 
 
-void
+bool
 TIFFInput::readspec_photometric()
 {
     switch (m_photometric) {
@@ -1533,6 +1660,12 @@ TIFFInput::readspec_photometric()
         m_spec.attribute("tiff:ColorSpace", "LOGLUV");
         break;
     case PHOTOMETRIC_PALETTE: {
+        if (m_bitspersample > 16) {
+            errorfmt(
+                "Palette images only support <= 16 bits per sample (was {})",
+                m_bitspersample);
+            return false;
+        }
         m_spec.attribute("tiff:ColorSpace", "palette");
         // Read the color map
         unsigned short *r = NULL, *g = NULL, *b = NULL;
@@ -1592,6 +1725,8 @@ TIFFInput::readspec_photometric()
         m_spec.attribute("oiio:ColorSpace",
                          m_spec.get_string_attribute("tiff:ColorSpace"));
     }
+
+    return true;
 }
 
 
@@ -1855,9 +1990,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
             for (int c = 0; c < planes; ++c) { /* planes==1 for contig */
                 if (TIFFReadScanline(m_tif, &m_scratch[0], m_next_scanline, c)
                     < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
                     errorfmt("{}", oiio_tiff_last_error());
-#endif
                     return false;
                 }
             }
@@ -1871,9 +2004,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadScanline(m_tif, m_scratch.data(), y) < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
-#endif
             return false;
         }
         size_t n(m_spec.width);
@@ -1905,9 +2036,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     // only do one TIFFReadScanline.
     for (int c = 0; c < planes; ++c) { /* planes==1 for contig */
         if (TIFFReadScanline(m_tif, &readbuf[plane_bytes * c], y, c) < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
-#endif
             return false;
         }
     }
@@ -2138,8 +2267,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                           out->m_spec.width,
                                           out->m_rowsperstrip, &ok);
                 if (out->m_photometric == PHOTOMETRIC_MINISWHITE)
-                    out->invert_photometric(stripvals * stripchans,
-                                            data.data());
+                    out->invert_photometric(stripvals, data.data());
             };
             if (parallelize) {
                 // Push the rest of the work onto the thread pool queue
@@ -2270,9 +2398,7 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadTile(m_tif, m_scratch.data(), x, y, z, 0) < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
             errorfmt("{}", oiio_tiff_last_error());
-#endif
             return false;
         }
         if (m_bitspersample <= 8)
@@ -2287,11 +2413,12 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
         // Not palette
         imagesize_t plane_bytes = m_spec.tile_pixels() * m_spec.format.size();
         int planes              = m_separate ? m_inputchannels : 1;
-        std::vector<unsigned char> scratch2(m_separate ? m_spec.tile_bytes()
+        std::vector<unsigned char> scratch2(m_separate ? plane_bytes * planes
                                                        : 0);
         // Where to read?  Directly into user data if no channel shuffling
         // or bit shifting is needed, otherwise into scratch space.
-        unsigned char* readbuf = (no_bit_convert && !m_separate)
+        unsigned char* readbuf = (no_bit_convert && !m_separate
+                                  && m_inputchannels == m_spec.nchannels)
                                      ? (unsigned char*)data.data()
                                      : m_scratch.data();
         // Perform the reads.  Note that for contig, planes==1, so it will
@@ -2299,9 +2426,7 @@ TIFFInput::read_native_tile_locked(int subimage, int miplevel, int x, int y,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             if (TIFFReadTile(m_tif, &readbuf[plane_bytes * c], x, y, z, c)
                 < 0) {
-#if OIIO_TIFFLIB_VERSION < 40500
                 errorfmt("{}", oiio_tiff_last_error());
-#endif
                 return false;
             }
         if (m_bitspersample < 8) {

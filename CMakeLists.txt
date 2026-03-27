@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.18.2...4.0)
 
-set (OpenImageIO_VERSION "3.2.0.0")
+set (OpenImageIO_VERSION "3.2.0.1")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
      "Version override (use with caution)!")
 mark_as_advanced (OpenImageIO_VERSION_OVERRIDE)
@@ -273,7 +273,6 @@ endif ()
 # Disable building of certain tools when building Python wheels
 if (SKBUILD)
     set (ENABLE_iconvert OFF)
-    set (ENABLE_idiff OFF)
     set (ENABLE_igrep OFF)
     set (ENABLE_iinfo OFF)
     set (ENABLE_testtex OFF)

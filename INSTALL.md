@@ -17,7 +17,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++17 or higher (also builds with C++20 and C++23)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: gcc 9.3 - 14.2, clang 10 - 20, MSVS 2017 - 2022 (v19.14
+ * Compilers: gcc 9.3 - 14.2, clang 10 - 22, MSVS 2017 - 2022 (v19.14
    and up), Intel OneAPI C++ compiler 2022+.
  * CMake >= 3.18.2 (tested through 4.1)
  * Imath >= 3.1 (tested through 3.2 and main)
@@ -47,7 +47,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for camera "RAW" formats:
      * LibRaw >= 0.20 (tested though 0.22.0 and master)
  * If you want support for a wide variety of video formats:
-     * ffmpeg >= 4.0 (tested through 8.0)
+     * ffmpeg >= 4.0 (tested through 8.1)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 2.0 (tested through 2.5.4; we recommend 2.4 or higher
        for multithreading support)

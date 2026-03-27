@@ -907,6 +907,10 @@ TextureSystemImpl::attribute(string_view name, TypeDesc type, const void* val)
         unit_test_texture_blur = *(const float*)val;
         return true;
     }
+    if (name == "legacy_texture_blur" && type == TypeInt) {
+        m_legacy_texture_blur = (*(const int*)val != 0);
+        return true;
+    }
 
     // Maybe it's meant for the cache?
     return m_imagecache->attribute(name, type, val);
@@ -926,6 +930,7 @@ TextureSystemImpl::getattributetype(string_view name) const
         { "flip_t", TypeInt },
         { "max_tile_channels", TypeInt },
         { "stochastic", TypeInt },
+        { "legacy_texture_blur", TypeInt },
     };
     // clang-format on
 
@@ -973,6 +978,10 @@ TextureSystemImpl::getattribute(string_view name, TypeDesc type,
     }
     if (name == "stochastic" && type == TypeInt) {
         *(int*)val = m_stochastic;
+        return true;
+    }
+    if (name == "legacy_texture_blur" && type == TypeInt) {
+        *(int*)val = m_legacy_texture_blur;
         return true;
     }
 
@@ -1890,7 +1899,7 @@ adjust_width(float& dsdx, float& dtdx, float& dsdy, float& dtdy, float swidth,
 // back to this and solve it better.
 inline void
 adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
-            float tblur)
+            float tblur, bool legacy_textblur = false)
 {
     if (sblur + tblur != 0.0f /* avoid the work when blur is zero */) {
         // Carefully add blur to the right derivative components in the
@@ -1901,8 +1910,22 @@ adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
         fast_sincos(theta, &sintheta, &costheta);
         sintheta = fabsf(sintheta);
         costheta = fabsf(costheta);
-        majorlength += sblur * costheta + tblur * sintheta;
-        minorlength += sblur * sintheta + tblur * costheta;
+
+        if (legacy_textblur) {
+            // The legacy blur code just adds the blur to the major and minor
+            // axes, which is a crude approximation that is wrong at some angles
+            // but is very simple and fast.  I'm leaving it here as an option
+            // for now, in case the new code causes any unforeseen problems.
+            majorlength += sblur * costheta + tblur * sintheta;
+            minorlength += sblur * sintheta + tblur * costheta;
+        } else {
+            const float sintheta2 = sintheta * sintheta;
+            const float costheta2 = costheta * costheta;
+            const float sblur2    = sblur * sblur;
+            const float tblur2    = tblur * tblur;
+            majorlength += sqrtf(sblur2 * costheta2 + tblur2 * sintheta2);
+            minorlength += sqrtf(sblur2 * sintheta2 + tblur2 * costheta2);
+        }
 #if 1
         if (minorlength > majorlength) {
             // Wildly uneven sblur and tblur values might swap which axis is
@@ -2273,7 +2296,8 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
     // or bicubic texture probes, and therefore runtime!
     ellipse_axes(dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta);
 
-    adjust_blur(majorlength, minorlength, theta, options.sblur, options.tblur);
+    adjust_blur(majorlength, minorlength, theta, options.sblur, options.tblur,
+                m_legacy_texture_blur);
 
     float aspect, trueaspect;
     aspect = anisotropic_aspect(majorlength, minorlength, options, trueaspect);
@@ -3388,7 +3412,8 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     ellipse_axes(dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta, ABCF);
     std::cout << "  ellipse major " << majorlength << ", minor " << minorlength
               << ", theta " << theta << "\n";
-    adjust_blur(majorlength, minorlength, theta, sblur, tblur);
+    adjust_blur(majorlength, minorlength, theta, sblur, tblur,
+                m_legacy_texture_blur);
     std::cout << "  post " << sblur << ' ' << tblur << " blur: major "
               << majorlength << ", minor " << minorlength << "\n\n";
 

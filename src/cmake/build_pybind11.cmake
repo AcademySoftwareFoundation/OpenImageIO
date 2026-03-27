@@ -10,8 +10,8 @@ set_cache (pybind11_BUILD_VERSION 3.0.1 "pybind11 version for local builds")
 set (pybind11_GIT_REPOSITORY "https://github.com/pybind/pybind11")
 set_cache (pybind11_GIT_TAG "v${pybind11_BUILD_VERSION}"
            "pybind11 git tag to checkout")
-set_cache (pybind11_GIT_COMMIT ""
-           "pybind11 specific commit to checkout (overrides tag if set)")
+set_cache (pybind11_GIT_COMMIT "f5fbe867d2d26e4a0a9177a51f6e568868ad3dc8"
+           "pybind11 commit hash to verify tag against")
 set_cache (pybind11_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            "Should a local pybind11 build, if necessary, build shared libraries" ADVANCED)
 
@@ -21,6 +21,7 @@ build_dependency_with_cmake(pybind11
     VERSION         ${pybind11_BUILD_VERSION}
     GIT_REPOSITORY  ${pybind11_GIT_REPOSITORY}
     GIT_TAG         ${pybind11_GIT_TAG}
+    GIT_COMMIT      ${pybind11_GIT_COMMIT}
     CMAKE_ARGS
         -D PYBIND11_PYTHON_VERSION=${PYTHON3_VERSION}
         # Don't built unnecessary parts of Pybind11

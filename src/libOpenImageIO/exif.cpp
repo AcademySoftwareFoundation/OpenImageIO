@@ -426,7 +426,7 @@ static const TagInfo exif_tag_table[] = {
     { TIFFTAG_PHOTOMETRIC,	"Exif:Photometric",	TIFF_NOTYPE, 1 },
     { TIFFTAG_SAMPLESPERPIXEL,	"Exif:SamplesPerPixel",	TIFF_NOTYPE, 1 },
     { TIFFTAG_PLANARCONFIG,	"Exif:PlanarConfig",	TIFF_NOTYPE, 1 },
-    { TIFFTAG_YCBCRSUBSAMPLING,	"Exif:YCbCrSubsampling",TIFF_SHORT, 1 },
+    { TIFFTAG_YCBCRSUBSAMPLING,	"Exif:YCbCrSubsampling",TIFF_SHORT, 2 },
     { TIFFTAG_YCBCRPOSITIONING,	"Exif:YCbCrPositioning",TIFF_SHORT, 1 },
     // TIFF tags we may come across
     { TIFFTAG_ORIENTATION,	"Orientation",	TIFF_SHORT, 1 },
@@ -525,7 +525,7 @@ static const TagInfo exif_tag_table[] = {
     { EXIF_LENSMAKE,  "Exif:LensMake",         TIFF_ASCII, 0 },
     { EXIF_LENSMODEL,  "Exif:LensModel",        TIFF_ASCII, 0 },
     { EXIF_LENSSERIALNUMBER,  "Exif:LensSerialNumber", TIFF_ASCII, 0 },
-    { EXIF_GAMMA,  "Exif:Gamma", TIFF_RATIONAL, 0 },
+    { EXIF_GAMMA,  "Exif:Gamma", TIFF_RATIONAL, 1 },
     // Exif 3.0 additions follow
     { EXIF_IMAGETITLE, "Exif:ImageTitle", TIFF_ASCII, 0 },
     { EXIF_PHOTOGRAPHER, "Exif:Photographer", TIFF_ASCII, 0 },
@@ -826,10 +826,11 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
     const TagMap& exif_tagmap(exif_tagmap_ref());
     const TagMap& gps_tagmap(gps_tagmap_ref());
 
-    // Make a copy of the pointed-to TIFF directory, swab the components
-    // if necessary.
+    // Make a copy of the pointed-to TIFF directory, swab the components if
+    // necessary. We have to do this as a memcpy rather than an assignment
+    // because the pointer we're copying from may not be properly aligned.
     TIFFDirEntry dir;
-    memcpy(&dir, dirp, sizeof(TIFFDirEntry));
+    memcpy(&dir, (const void*)dirp, sizeof(TIFFDirEntry));
     unsigned int unswapped_tdir_offset = dir.tdir_offset;
     if (swab) {
         swap_endian(&dir.tdir_tag);
@@ -1550,6 +1551,21 @@ bool
 exif_tag_lookup(string_view name, int& tag, int& tifftype, int& count)
 {
     const TagInfo* e = exif_tagmap_ref().find(name);
+    if (!e)
+        return false;  // not found
+
+    tag      = e->tifftag;
+    tifftype = e->tifftype;
+    count    = e->tiffcount;
+    return true;
+}
+
+
+
+bool
+gps_tag_lookup(string_view name, int& tag, int& tifftype, int& count)
+{
+    const TagInfo* e = gps_tagmap_ref().find(name);
     if (!e)
         return false;  // not found
 
