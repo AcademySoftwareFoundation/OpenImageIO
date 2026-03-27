@@ -60,6 +60,11 @@ open_image_dialog_action(RendererState& renderer_state, ViewerState& viewer,
                          PlaceholderUiState& ui_state, int requested_subimage,
                          int requested_miplevel);
 void
+open_folder_dialog_action(RendererState& renderer_state, ViewerState& viewer,
+                          ImageLibraryState& library,
+                          PlaceholderUiState& ui_state,
+                          MultiViewWorkspace* workspace);
+void
 reload_current_image_action(RendererState& renderer_state, ViewerState& viewer,
                             ImageLibraryState& library,
                             PlaceholderUiState& ui_state);

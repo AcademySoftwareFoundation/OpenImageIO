@@ -17,12 +17,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <limits>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <OpenImageIO/strutil.h>
 
@@ -77,6 +79,21 @@ namespace {
                || Strutil::iequals(trimmed, "on");
     }
 
+    std::string normalize_image_list_path(const std::string& path)
+    {
+        if (path.empty())
+            return std::string();
+        std::filesystem::path fs_path(path);
+        std::error_code ec;
+        if (!fs_path.is_absolute()) {
+            const std::filesystem::path abs = std::filesystem::absolute(fs_path,
+                                                                        ec);
+            if (!ec)
+                fs_path = abs;
+        }
+        return fs_path.lexically_normal().string();
+    }
+
     bool debug_image_list_windows_enabled()
     {
         static int cached_value = -1;
@@ -85,6 +102,80 @@ namespace {
                                    ? 1
                                    : 0;
         return cached_value != 0;
+    }
+
+    bool image_list_tooltips_disabled()
+    {
+        static int cached_value = -1;
+        if (cached_value < 0) {
+            if (env_flag_is_truthy("IMIV_DISABLE_IMAGE_LIST_TOOLTIPS")) {
+                cached_value = 1;
+            } else {
+                std::string ignored;
+                cached_value = (read_env_value("WSL_INTEROP", ignored)
+                                || read_env_value("WSL_DISTRO_NAME", ignored))
+                                       ? 1
+                                       : 0;
+            }
+        }
+        return cached_value != 0;
+    }
+
+    void update_image_list_visibility_policy(MultiViewWorkspace& workspace,
+                                             const ImageLibraryState& library)
+    {
+        const int image_count = static_cast<int>(library.loaded_image_paths.size());
+        if (image_count <= 1) {
+            workspace.show_image_list_window   = false;
+            workspace.image_list_force_dock    = false;
+            workspace.last_library_image_count = image_count;
+            return;
+        }
+
+        if (image_count != workspace.last_library_image_count) {
+            workspace.show_image_list_window = true;
+            workspace.image_list_force_dock  = true;
+        }
+        workspace.last_library_image_count = image_count;
+    }
+
+    void ensure_image_list_default_layout(MultiViewWorkspace& workspace,
+                                          ImGuiID dockspace_id)
+    {
+        if (!workspace.show_image_list_window
+            || workspace.image_list_layout_initialized) {
+            return;
+        }
+
+        if (ImGui::FindWindowSettingsByID(
+                ImHashStr(k_image_list_window_title))
+            != nullptr) {
+            workspace.image_list_layout_initialized = true;
+            return;
+        }
+
+        ImGuiDockNode* dockspace_node = ImGui::DockBuilderGetNode(dockspace_id);
+        if (dockspace_node == nullptr || dockspace_node->Size.x <= 0.0f) {
+            return;
+        }
+
+        const float ratio
+            = std::clamp(200.0f / dockspace_node->Size.x, 0.12f, 0.35f);
+        ImGuiID image_list_dock_id = 0;
+        ImGuiID image_view_dock_id = dockspace_id;
+        ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, ratio,
+                                    &image_list_dock_id, &image_view_dock_id);
+        if (image_list_dock_id == 0 || image_view_dock_id == 0)
+            return;
+
+        workspace.image_view_dock_id = image_view_dock_id;
+        workspace.image_list_dock_id = image_list_dock_id;
+        workspace.image_list_force_dock = true;
+        ImGui::DockBuilderDockWindow(k_image_window_title, image_view_dock_id);
+        ImGui::DockBuilderDockWindow(k_image_list_window_title,
+                                     image_list_dock_id);
+        ImGui::DockBuilderFinish(dockspace_id);
+        workspace.image_list_layout_initialized = true;
     }
 
     int env_int_value(const char* name, int fallback)
@@ -104,6 +195,26 @@ namespace {
             return fallback;
         }
         return static_cast<int>(parsed);
+    }
+
+    float env_float_value(const char* name, float fallback,
+                          bool* found = nullptr)
+    {
+        if (found != nullptr)
+            *found = false;
+        std::string value;
+        if (!read_env_value(name, value))
+            return fallback;
+        const std::string trimmed = std::string(Strutil::strip(value));
+        if (trimmed.empty())
+            return fallback;
+        char* end   = nullptr;
+        float parsed = std::strtof(trimmed.c_str(), &end);
+        if (end == trimmed.c_str() || *end != '\0')
+            return fallback;
+        if (found != nullptr)
+            *found = true;
+        return parsed;
     }
 
     void apply_test_engine_ocio_overrides(PlaceholderUiState& ui_state)
@@ -155,6 +266,330 @@ namespace {
                 ui_state.linear_interpolation = false;
             }
         }
+    }
+
+    void apply_test_engine_view_activation_override(MultiViewWorkspace& workspace)
+    {
+        const int apply_frame
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_VIEW_APPLY_FRAME", -1);
+        if (apply_frame < 0 || ImGui::GetFrameCount() < apply_frame)
+            return;
+
+        const int activate_view_index = env_int_value(
+            "IMIV_IMGUI_TEST_ENGINE_ACTIVATE_VIEW_INDEX", -1);
+        if (activate_view_index >= 0
+            && activate_view_index
+                   < static_cast<int>(workspace.view_windows.size())) {
+            ImageViewWindow* target
+                = workspace.view_windows[static_cast<size_t>(activate_view_index)]
+                      .get();
+            if (target != nullptr) {
+                workspace.active_view_id = target->id;
+                target->request_focus    = true;
+            }
+        }
+    }
+
+    void apply_test_engine_view_recipe_overrides(PlaceholderUiState& ui_state)
+    {
+        const int apply_frame
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_VIEW_APPLY_FRAME", -1);
+        if (apply_frame < 0 || ImGui::GetFrameCount() < apply_frame)
+            return;
+
+        bool found = false;
+        const float exposure = env_float_value("IMIV_IMGUI_TEST_ENGINE_EXPOSURE",
+                                               ui_state.exposure, &found);
+        if (found)
+            ui_state.exposure = exposure;
+
+        const float gamma = env_float_value("IMIV_IMGUI_TEST_ENGINE_GAMMA",
+                                            ui_state.gamma, &found);
+        if (found)
+            ui_state.gamma = gamma;
+
+        const float offset = env_float_value("IMIV_IMGUI_TEST_ENGINE_OFFSET",
+                                             ui_state.offset, &found);
+        if (found)
+            ui_state.offset = offset;
+    }
+
+    bool activate_image_list_path(MultiViewWorkspace& workspace,
+                                  ImageLibraryState& library,
+                                  ViewerState& active_view,
+                                  PlaceholderUiState& ui_state,
+                                  RendererState& renderer_state,
+                                  const std::string& path)
+    {
+        if (!load_viewer_image(renderer_state, active_view, library, &ui_state,
+                               path, ui_state.subimage_index,
+                               ui_state.miplevel_index)) {
+            return false;
+        }
+        sync_workspace_library_state(workspace, active_view, library);
+        return true;
+    }
+
+    bool open_image_list_path_in_new_view(MultiViewWorkspace& workspace,
+                                          ImageLibraryState& library,
+                                          ViewerState& active_view,
+                                          PlaceholderUiState& ui_state,
+                                          RendererState& renderer_state,
+                                          const std::string& path)
+    {
+        ImageViewWindow& new_view = append_image_view(workspace);
+        new_view.viewer.loaded_image_paths = library.loaded_image_paths;
+        new_view.viewer.recent_images      = library.recent_images;
+        new_view.viewer.sort_mode          = library.sort_mode;
+        new_view.viewer.sort_reverse       = library.sort_reverse;
+        new_view.viewer.recipe             = active_view.recipe;
+        new_view.request_focus             = true;
+        if (!load_viewer_image(renderer_state, new_view.viewer, library,
+                               &ui_state, path, ui_state.subimage_index,
+                               ui_state.miplevel_index)) {
+            return false;
+        }
+        workspace.active_view_id = new_view.id;
+        sync_workspace_library_state(workspace, active_view, library);
+        return true;
+    }
+
+    bool image_view_is_showing_path(const ViewerState& viewer,
+                                    const std::string& normalized_path)
+    {
+        return !viewer.image.path.empty()
+               && normalize_image_list_path(viewer.image.path) == normalized_path;
+    }
+
+    int image_list_open_view_count(const MultiViewWorkspace& workspace,
+                                   const std::string& normalized_path)
+    {
+        int count = 0;
+        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+            if (view != nullptr
+                && image_view_is_showing_path(view->viewer, normalized_path)) {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    std::vector<int> image_list_open_view_ids(const MultiViewWorkspace& workspace,
+                                              const std::string& normalized_path)
+    {
+        std::vector<int> view_ids;
+        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+            if (view != nullptr
+                && image_view_is_showing_path(view->viewer, normalized_path)) {
+                view_ids.push_back(view->id);
+            }
+        }
+        return view_ids;
+    }
+
+    std::string image_list_open_view_badge(const MultiViewWorkspace& workspace,
+                                           const std::string& normalized_path)
+    {
+        const std::vector<int> view_ids = image_list_open_view_ids(workspace,
+                                                                   normalized_path);
+        if (view_ids.empty())
+            return std::string();
+        std::string joined;
+        for (size_t i = 0; i < view_ids.size(); ++i) {
+            if (i > 0)
+                joined += ",";
+            joined += Strutil::to_string(view_ids[i]);
+        }
+        return Strutil::fmt::format(" [v:{}]", joined);
+    }
+
+    void adjust_viewer_indices_after_remove(ViewerState& viewer, int remove_index)
+    {
+        if (viewer.current_path_index == remove_index) {
+            viewer.current_path_index = -1;
+        } else if (viewer.current_path_index > remove_index) {
+            --viewer.current_path_index;
+        }
+
+        if (viewer.last_path_index == remove_index) {
+            viewer.last_path_index = -1;
+        } else if (viewer.last_path_index > remove_index) {
+            --viewer.last_path_index;
+        }
+    }
+
+    bool close_image_list_path_in_active_view(MultiViewWorkspace& workspace,
+                                              ImageLibraryState& library,
+                                              ViewerState& active_view,
+                                              PlaceholderUiState& ui_state,
+                                              RendererState& renderer_state,
+                                              const std::string& path)
+    {
+        const std::string normalized_path = normalize_image_list_path(path);
+        if (!image_view_is_showing_path(active_view, normalized_path))
+            return false;
+        close_current_image_action(renderer_state, active_view, library,
+                                   ui_state);
+        sync_workspace_library_state(workspace, active_view, library);
+        active_view.status_message = Strutil::fmt::format("Closed {}", path);
+        active_view.last_error.clear();
+        return true;
+    }
+
+    bool close_image_list_path_in_all_views(MultiViewWorkspace& workspace,
+                                            ImageLibraryState& library,
+                                            ViewerState& active_view,
+                                            PlaceholderUiState& ui_state,
+                                            RendererState& renderer_state,
+                                            const std::string& path)
+    {
+        const std::string normalized_path = normalize_image_list_path(path);
+        bool closed_any                   = false;
+        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+            if (view == nullptr
+                || !image_view_is_showing_path(view->viewer, normalized_path)) {
+                continue;
+            }
+            close_current_image_action(renderer_state, view->viewer, library,
+                                       ui_state);
+            closed_any = true;
+        }
+        if (closed_any) {
+            active_view.status_message = Strutil::fmt::format(
+                "Closed {} in all views", path);
+            active_view.last_error.clear();
+        }
+        return closed_any;
+    }
+
+    bool remove_image_list_path_from_session(MultiViewWorkspace& workspace,
+                                             ImageLibraryState& library,
+                                             ViewerState& active_view,
+                                             PlaceholderUiState& ui_state,
+                                             RendererState& renderer_state,
+                                             const std::string& path)
+    {
+        const std::string normalized_path = normalize_image_list_path(path);
+        const auto it = std::find(library.loaded_image_paths.begin(),
+                                  library.loaded_image_paths.end(),
+                                  normalized_path);
+        if (it == library.loaded_image_paths.end())
+            return false;
+
+        const int remove_index = static_cast<int>(
+            std::distance(library.loaded_image_paths.begin(), it));
+        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+            if (view == nullptr
+                || !image_view_is_showing_path(view->viewer, normalized_path)) {
+                continue;
+            }
+            close_current_image_action(renderer_state, view->viewer, library,
+                                       ui_state);
+        }
+
+        library.loaded_image_paths.erase(it);
+        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+            if (view == nullptr)
+                continue;
+            adjust_viewer_indices_after_remove(view->viewer, remove_index);
+            view->viewer.loaded_image_paths = library.loaded_image_paths;
+            view->viewer.recent_images      = library.recent_images;
+            view->viewer.sort_mode          = library.sort_mode;
+            view->viewer.sort_reverse       = library.sort_reverse;
+        }
+        update_image_list_visibility_policy(workspace, library);
+        active_view.status_message = Strutil::fmt::format(
+            "Removed {} from session", path);
+        active_view.last_error.clear();
+        return true;
+    }
+
+    void apply_test_engine_image_list_overrides(MultiViewWorkspace& workspace,
+                                                ImageLibraryState& library,
+                                                ViewerState& active_view,
+                                                PlaceholderUiState& ui_state,
+                                                RendererState& renderer_state)
+    {
+        const int apply_frame
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_APPLY_FRAME",
+                            -1);
+        if (apply_frame < 0 || ImGui::GetFrameCount() != apply_frame)
+            return;
+
+        const int select_index
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_SELECT_INDEX",
+                            -1);
+        if (select_index >= 0
+            && select_index
+                   < static_cast<int>(library.loaded_image_paths.size())) {
+            activate_image_list_path(workspace, library, active_view, ui_state,
+                                     renderer_state,
+                                     library.loaded_image_paths[select_index]);
+        }
+
+        const int open_new_view_index = env_int_value(
+            "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_OPEN_NEW_VIEW_INDEX", -1);
+        if (open_new_view_index >= 0
+            && open_new_view_index
+                   < static_cast<int>(library.loaded_image_paths.size())) {
+            open_image_list_path_in_new_view(
+                workspace, library, active_view, ui_state, renderer_state,
+                library.loaded_image_paths[open_new_view_index]);
+        }
+
+        const int close_active_index = env_int_value(
+            "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_CLOSE_ACTIVE_INDEX", -1);
+        if (close_active_index >= 0
+            && close_active_index
+                   < static_cast<int>(library.loaded_image_paths.size())) {
+            close_image_list_path_in_active_view(
+                workspace, library, active_view, ui_state, renderer_state,
+                library.loaded_image_paths[close_active_index]);
+        }
+
+        const int remove_index = env_int_value(
+            "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_REMOVE_INDEX", -1);
+        if (remove_index >= 0
+            && remove_index
+                   < static_cast<int>(library.loaded_image_paths.size())) {
+            remove_image_list_path_from_session(
+                workspace, library, active_view, ui_state, renderer_state,
+                library.loaded_image_paths[remove_index]);
+        }
+    }
+
+    void apply_test_engine_drop_overrides(ViewerState& viewer)
+    {
+        const int apply_frame
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_DROP_APPLY_FRAME", -1);
+        if (apply_frame < 0 || ImGui::GetFrameCount() != apply_frame)
+            return;
+
+        std::string path_file;
+        if (!read_env_value("IMIV_IMGUI_TEST_ENGINE_DROP_PATHS_FILE", path_file))
+            return;
+        path_file = std::string(Strutil::strip(path_file));
+        if (path_file.empty())
+            return;
+
+        std::ifstream input(path_file);
+        if (!input)
+            return;
+
+        std::vector<std::string> drop_paths;
+        std::string line;
+        while (std::getline(input, line)) {
+            const std::string trimmed = std::string(Strutil::strip(line));
+            if (trimmed.empty())
+                continue;
+            drop_paths.emplace_back(trimmed);
+        }
+
+        if (drop_paths.empty())
+            return;
+
+        viewer.pending_drop_paths = std::move(drop_paths);
+        viewer.drag_overlay_active = false;
     }
 
     void begin_developer_screenshot_request(DeveloperUiState& developer_ui,
@@ -230,23 +665,42 @@ namespace {
     {
         static std::string s_last_logged_tooltip_path;
         bool showed_tooltip_this_frame = false;
+        workspace.image_list_was_drawn = false;
+        workspace.image_list_item_rects.clear();
 
         if (!workspace.show_image_list_window)
             return;
 
-        const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-        if (main_viewport != nullptr) {
-            ImGui::SetNextWindowPos(
-                ImVec2(main_viewport->WorkPos.x + 24.0f,
-                       main_viewport->WorkPos.y + 72.0f),
-                ImGuiCond_FirstUseEver);
+        if (workspace.image_list_dock_id != 0) {
+            ImGui::SetNextWindowDockID(
+                workspace.image_list_dock_id,
+                workspace.image_list_force_dock ? ImGuiCond_Always
+                                                : ImGuiCond_FirstUseEver);
+        } else {
+            const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+            if (main_viewport != nullptr) {
+                ImGui::SetNextWindowPos(
+                    ImVec2(main_viewport->WorkPos.x + 24.0f,
+                           main_viewport->WorkPos.y + 72.0f),
+                    ImGuiCond_FirstUseEver);
+            }
         }
-        ImGui::SetNextWindowSize(ImVec2(360.0f, 420.0f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(200.0f, 420.0f), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin(k_image_list_window_title,
                           &workspace.show_image_list_window)) {
+            workspace.image_list_was_drawn = true;
+            workspace.image_list_is_docked = ImGui::IsWindowDocked();
+            workspace.image_list_pos       = ImGui::GetWindowPos();
+            workspace.image_list_size      = ImGui::GetWindowSize();
             ImGui::End();
             return;
         }
+
+        workspace.image_list_was_drawn = true;
+        workspace.image_list_force_dock = !ImGui::IsWindowDocked();
+        workspace.image_list_is_docked  = ImGui::IsWindowDocked();
+        workspace.image_list_pos        = ImGui::GetWindowPos();
+        workspace.image_list_size       = ImGui::GetWindowSize();
 
         ImGui::Text("Loaded images: %d",
                     static_cast<int>(library.loaded_image_paths.size()));
@@ -256,6 +710,20 @@ namespace {
             ImGui::End();
             return;
         }
+
+        apply_test_engine_image_list_overrides(workspace, library, active_view,
+                                               ui_state, renderer_state);
+
+        enum class PendingImageListAction {
+            None = 0,
+            OpenInActiveView,
+            OpenInNewView,
+            CloseInActiveView,
+            CloseInAllViews,
+            RemoveFromSession
+        };
+        PendingImageListAction pending_action = PendingImageListAction::None;
+        std::string pending_action_path;
 
         if (ImGui::BeginChild("##image_list_items", ImVec2(0.0f, 0.0f), false,
                               ImGuiWindowFlags_HorizontalScrollbar)) {
@@ -267,53 +735,145 @@ namespace {
                                                  : fs_path.filename().string();
                 const bool selected
                     = active_view.current_path_index == static_cast<int>(i);
-                const ImGuiTreeNodeFlags flags
-                    = ImGuiTreeNodeFlags_Leaf
-                      | ImGuiTreeNodeFlags_NoTreePushOnOpen
-                      | ImGuiTreeNodeFlags_SpanAvailWidth
-                      | (selected ? ImGuiTreeNodeFlags_Selected : 0);
-                ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<intptr_t>(i)),
-                                  flags, "%d. %s", static_cast<int>(i + 1),
-                                  filename.c_str());
+                const bool active_view_image
+                    = image_view_is_showing_path(active_view, path);
+                const int open_count = image_list_open_view_count(workspace, path);
+                const std::string open_badge = image_list_open_view_badge(
+                    workspace, path);
+                const std::string item_label = Strutil::fmt::format(
+                    "{} {}. {}{}###imiv_image_list_item_{}",
+                    active_view_image ? ">" : " ",
+                    static_cast<int>(i + 1), filename, open_badge,
+                    static_cast<int>(i));
+                const std::string test_label = Strutil::fmt::format(
+                    "image_list_item_{}", static_cast<int>(i));
+                const std::string popup_id = Strutil::fmt::format(
+                    "imiv_image_list_popup_{}", static_cast<int>(i));
+                const std::string close_button_id = Strutil::fmt::format(
+                    "x##imiv_image_list_close_{}", static_cast<int>(i));
+                const float row_width = ImGui::GetContentRegionAvail().x;
+                const float close_width = active_view_image
+                                              ? ImGui::CalcTextSize("x").x
+                                                    + ImGui::GetStyle().FramePadding.x
+                                                          * 2.0f
+                                              : 0.0f;
+                const float label_width = std::max(
+                    1.0f, row_width
+                              - (active_view_image
+                                     ? close_width
+                                           + ImGui::GetStyle().ItemSpacing.x
+                                     : 0.0f));
+                ImGui::Selectable(item_label.c_str(), selected,
+                                  ImGuiSelectableFlags_AllowDoubleClick,
+                                  ImVec2(label_width, 0.0f));
+                register_test_engine_item_label(test_label.c_str(), false);
+                register_layout_dump_synthetic_item("selectable",
+                                                    test_label.c_str());
+                {
+                    const ImVec2 item_min = ImGui::GetItemRectMin();
+                    const ImVec2 item_max = ImGui::GetItemRectMax();
+                    workspace.image_list_item_rects.emplace_back(
+                        item_min.x, item_min.y, item_max.x, item_max.y);
+                }
                 if (ImGui::IsItemHovered() && filename != path) {
                     showed_tooltip_this_frame = true;
                     if (debug_image_list_windows_enabled()
                         && s_last_logged_tooltip_path != path) {
-                        print("imiv: Image List tooltip requested for '{}'\n",
+                        print("imiv: Image List tooltip {} for '{}'\n",
+                              image_list_tooltips_disabled() ? "suppressed"
+                                                             : "requested",
                               path);
                         s_last_logged_tooltip_path = path;
                     }
-                    ImGui::SetTooltip("%s", path.c_str());
+                    if (!image_list_tooltips_disabled())
+                        ImGui::SetTooltip("%s", path.c_str());
                 }
                 if (ImGui::IsItemClicked()) {
-                    if (load_viewer_image(renderer_state, active_view, library,
-                                          &ui_state, path, ui_state.subimage_index,
-                                          ui_state.miplevel_index)) {
-                        sync_workspace_library_state(workspace, active_view,
-                                                     library);
-                    }
+                    pending_action      = PendingImageListAction::OpenInActiveView;
+                    pending_action_path = path;
                 }
                 if (ImGui::IsItemHovered()
                     && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                    ImageViewWindow& new_view = append_image_view(workspace);
-                    new_view.viewer.loaded_image_paths = library.loaded_image_paths;
-                    new_view.viewer.recent_images      = library.recent_images;
-                    new_view.viewer.sort_mode          = library.sort_mode;
-                    new_view.viewer.sort_reverse       = library.sort_reverse;
-                    new_view.request_focus             = true;
-                    if (load_viewer_image(renderer_state, new_view.viewer,
-                                          library, &ui_state, path,
-                                          ui_state.subimage_index,
-                                          ui_state.miplevel_index)) {
-                        workspace.active_view_id = new_view.id;
-                        sync_workspace_library_state(workspace, active_view,
-                                                     library);
+                    pending_action      = PendingImageListAction::OpenInNewView;
+                    pending_action_path = path;
+                }
+                if (ImGui::BeginPopupContextItem(popup_id.c_str())) {
+                    if (ImGui::MenuItem("Open in active view")) {
+                        pending_action = PendingImageListAction::OpenInActiveView;
+                        pending_action_path = path;
+                    }
+                    if (ImGui::MenuItem("Open in new view")) {
+                        pending_action = PendingImageListAction::OpenInNewView;
+                        pending_action_path = path;
+                    }
+                    if (ImGui::MenuItem("Close in active view", nullptr, false,
+                                        active_view_image)) {
+                        pending_action = PendingImageListAction::CloseInActiveView;
+                        pending_action_path = path;
+                    }
+                    if (ImGui::MenuItem("Close in all views", nullptr, false,
+                                        open_count > 0)) {
+                        pending_action = PendingImageListAction::CloseInAllViews;
+                        pending_action_path = path;
+                    }
+                    if (ImGui::MenuItem("Remove from session")) {
+                        pending_action = PendingImageListAction::RemoveFromSession;
+                        pending_action_path = path;
+                    }
+                    ImGui::EndPopup();
+                }
+                if (active_view_image) {
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton(close_button_id.c_str())) {
+                        pending_action
+                            = PendingImageListAction::CloseInActiveView;
+                        pending_action_path = path;
                     }
                 }
             }
         }
         ImGui::EndChild();
         ImGui::End();
+
+        switch (pending_action) {
+        case PendingImageListAction::OpenInActiveView:
+            if (!pending_action_path.empty()) {
+                activate_image_list_path(workspace, library, active_view,
+                                         ui_state, renderer_state,
+                                         pending_action_path);
+            }
+            break;
+        case PendingImageListAction::OpenInNewView:
+            if (!pending_action_path.empty()) {
+                open_image_list_path_in_new_view(workspace, library,
+                                                 active_view, ui_state,
+                                                 renderer_state,
+                                                 pending_action_path);
+            }
+            break;
+        case PendingImageListAction::CloseInActiveView:
+            if (!pending_action_path.empty()) {
+                close_image_list_path_in_active_view(
+                    workspace, library, active_view, ui_state, renderer_state,
+                    pending_action_path);
+            }
+            break;
+        case PendingImageListAction::CloseInAllViews:
+            if (!pending_action_path.empty()) {
+                close_image_list_path_in_all_views(
+                    workspace, library, active_view, ui_state, renderer_state,
+                    pending_action_path);
+            }
+            break;
+        case PendingImageListAction::RemoveFromSession:
+            if (!pending_action_path.empty()) {
+                remove_image_list_path_from_session(
+                    workspace, library, active_view, ui_state, renderer_state,
+                    pending_action_path);
+            }
+            break;
+        case PendingImageListAction::None: break;
+        }
 
         if (!showed_tooltip_this_frame)
             s_last_logged_tooltip_path.clear();
@@ -538,6 +1098,34 @@ test_engine_json_write_backend_state(FILE* f, const PlaceholderUiState& ui_state
     std::fputs("\n  }", f);
 }
 
+void
+test_engine_json_write_view_recipe_state(FILE* f, const ViewerState& viewer)
+{
+    std::fputs(",\n  \"view_recipe\": {\n", f);
+    std::fputs("    \"use_ocio\": ", f);
+    std::fputs(viewer.recipe.use_ocio ? "true" : "false", f);
+    std::fputs(",\n    \"linear_interpolation\": ", f);
+    std::fputs(viewer.recipe.linear_interpolation ? "true" : "false", f);
+    std::fputs(",\n    \"current_channel\": ", f);
+    std::fprintf(f, "%d", viewer.recipe.current_channel);
+    std::fputs(",\n    \"color_mode\": ", f);
+    std::fprintf(f, "%d", viewer.recipe.color_mode);
+    std::fputs(",\n    \"exposure\": ", f);
+    std::fprintf(f, "%.6f", static_cast<double>(viewer.recipe.exposure));
+    std::fputs(",\n    \"gamma\": ", f);
+    std::fprintf(f, "%.6f", static_cast<double>(viewer.recipe.gamma));
+    std::fputs(",\n    \"offset\": ", f);
+    std::fprintf(f, "%.6f", static_cast<double>(viewer.recipe.offset));
+    std::fputs(",\n    \"ocio_display\": ", f);
+    test_engine_json_write_escaped(f, viewer.recipe.ocio_display.c_str());
+    std::fputs(",\n    \"ocio_view\": ", f);
+    test_engine_json_write_escaped(f, viewer.recipe.ocio_view.c_str());
+    std::fputs(",\n    \"ocio_image_color_space\": ", f);
+    test_engine_json_write_escaped(f,
+                                   viewer.recipe.ocio_image_color_space.c_str());
+    std::fputs("\n  }", f);
+}
+
 bool
 write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
                                     void* user_data, std::string& error_message)
@@ -567,12 +1155,22 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
         return false;
     }
 
-    const ViewerState& viewer          = *ctx->viewer;
+    const ImageViewWindow* state_view
+        = ctx->workspace != nullptr ? active_image_view(*ctx->workspace)
+                                    : nullptr;
+    const ViewerState& viewer = (state_view != nullptr) ? state_view->viewer
+                                                        : *ctx->viewer;
     const PlaceholderUiState& ui_state = *ctx->ui_state;
     int display_width                  = viewer.image.width;
     int display_height                 = viewer.image.height;
     if (!viewer.image.path.empty())
         oriented_image_dimensions(viewer.image, display_width, display_height);
+    ImVec2 viewport_origin(0.0f, 0.0f);
+    ImVec2 viewport_size(0.0f, 0.0f);
+    if (ImGuiViewport* viewport = ImGui::GetMainViewport()) {
+        viewport_origin = viewport->Pos;
+        viewport_size   = viewport->Size;
+    }
 
     std::fputs("{\n", f);
     std::fputs("  \"image_loaded\": ", f);
@@ -601,6 +1199,20 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
         ctx->workspace != nullptr
             ? static_cast<int>(ctx->workspace->view_windows.size())
             : 1);
+    std::fputs(",\n  \"loaded_view_count\": ", f);
+    {
+        int loaded_view_count = 0;
+        if (ctx->workspace != nullptr) {
+            for (const std::unique_ptr<ImageViewWindow>& view :
+                 ctx->workspace->view_windows) {
+                if (view != nullptr && !view->viewer.image.path.empty())
+                    ++loaded_view_count;
+            }
+        } else if (!viewer.image.path.empty()) {
+            loaded_view_count = 1;
+        }
+        std::fprintf(f, "%d", loaded_view_count);
+    }
     std::fputs(",\n  \"active_view_id\": ", f);
     std::fprintf(f, "%d",
                  ctx->workspace != nullptr ? ctx->workspace->active_view_id : 0);
@@ -613,6 +1225,64 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
                                                                       : "false",
                    f);
     }
+    std::fputs(",\n  \"image_list_visible\": ", f);
+    std::fputs((ctx->workspace != nullptr && ctx->workspace->show_image_list_window)
+                   ? "true"
+                   : "false",
+               f);
+    std::fputs(",\n  \"image_list_drawn\": ", f);
+    std::fputs((ctx->workspace != nullptr && ctx->workspace->image_list_was_drawn)
+                   ? "true"
+                   : "false",
+               f);
+    std::fputs(",\n  \"image_list_docked\": ", f);
+    std::fputs((ctx->workspace != nullptr && ctx->workspace->image_list_is_docked)
+                   ? "true"
+                   : "false",
+               f);
+    std::fputs(",\n  \"image_list_pos\": ", f);
+    test_engine_json_write_vec2(
+        f, ctx->workspace != nullptr ? ctx->workspace->image_list_pos
+                                     : ImVec2(0.0f, 0.0f));
+    std::fputs(",\n  \"image_list_size\": ", f);
+    test_engine_json_write_vec2(
+        f, ctx->workspace != nullptr ? ctx->workspace->image_list_size
+                                     : ImVec2(0.0f, 0.0f));
+    std::fputs(",\n  \"image_list_item_rects\": [", f);
+    if (ctx->workspace != nullptr) {
+        for (size_t i = 0; i < ctx->workspace->image_list_item_rects.size(); ++i) {
+            const ImVec4 rect = ctx->workspace->image_list_item_rects[i];
+            if (i > 0)
+                std::fputs(", ", f);
+            std::fputs("[", f);
+            std::fprintf(f, "%.3f,%.3f,%.3f,%.3f", static_cast<double>(rect.x),
+                         static_cast<double>(rect.y), static_cast<double>(rect.z),
+                         static_cast<double>(rect.w));
+            std::fputs("]", f);
+        }
+    }
+    std::fputs("]", f);
+    std::fputs(",\n  \"image_list_open_view_ids\": [", f);
+    if (ctx->workspace != nullptr) {
+        for (size_t i = 0;
+             i < ctx->viewer->loaded_image_paths.size();
+             ++i) {
+            if (i > 0)
+                std::fputs(", ", f);
+            const std::string normalized_path = normalize_image_list_path(
+                ctx->viewer->loaded_image_paths[i]);
+            const std::vector<int> view_ids = image_list_open_view_ids(
+                *ctx->workspace, normalized_path);
+            std::fputs("[", f);
+            for (size_t j = 0; j < view_ids.size(); ++j) {
+                if (j > 0)
+                    std::fputs(", ", f);
+                std::fprintf(f, "%d", view_ids[j]);
+            }
+            std::fputs("]", f);
+        }
+    }
+    std::fputs("]", f);
     std::fputs(",\n  \"subimage\": ", f);
     std::fprintf(f, "%d", viewer.image.subimage);
     std::fputs(",\n  \"miplevel\": ", f);
@@ -632,7 +1302,12 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
     std::fprintf(f, "%d,%d", viewer.image.width, viewer.image.height);
     std::fputs("],\n  \"display_size\": [", f);
     std::fprintf(f, "%d,%d", display_width, display_height);
-    std::fputs("],\n  \"orientation\": ", f);
+    std::fputs("]", f);
+    std::fputs(",\n  \"viewport_origin\": ", f);
+    test_engine_json_write_vec2(f, viewport_origin);
+    std::fputs(",\n  \"viewport_size\": ", f);
+    test_engine_json_write_vec2(f, viewport_size);
+    std::fputs(",\n  \"orientation\": ", f);
     std::fprintf(f, "%d", viewer.image.orientation);
     std::fputs(",\n  \"area_probe_lines\": [", f);
     for (size_t i = 0; i < viewer.area_probe_lines.size(); ++i) {
@@ -641,6 +1316,7 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
         test_engine_json_write_escaped(f, viewer.area_probe_lines[i].c_str());
     }
     std::fputs("]", f);
+    test_engine_json_write_view_recipe_state(f, viewer);
     test_engine_json_write_backend_state(f, ui_state, ctx->active_backend);
     test_engine_json_write_ocio_state(f, ui_state);
     std::fputs("\n}\n", f);
@@ -715,10 +1391,13 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
 )
 {
     ImageViewWindow& primary_view = ensure_primary_image_view(workspace);
+    apply_test_engine_view_activation_override(workspace);
     ImageViewWindow* active_view_window = active_image_view(workspace);
     if (active_view_window == nullptr)
         active_view_window = &primary_view;
+    const int frame_active_view_id = active_view_window->id;
     ViewerState& viewer = active_view_window->viewer;
+    apply_view_recipe_to_ui_state(viewer.recipe, ui_state);
     reset_layout_dump_synthetic_items();
     reset_test_engine_mouse_space();
     ViewerFrameActions actions;
@@ -741,7 +1420,9 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
     if (env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_SHOW_DRAG_OVERLAY"))
         primary_view.viewer.drag_overlay_active = true;
     apply_test_engine_ocio_overrides(ui_state);
+    apply_test_engine_view_recipe_overrides(ui_state);
     set_area_sample_enabled(viewer, ui_state, ui_state.show_area_probe_window);
+    update_image_list_visibility_policy(workspace, library);
 
     collect_viewer_shortcuts(viewer, ui_state, developer_ui, actions,
                              request_exit);
@@ -772,6 +1453,7 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
         viewer.pending_drop_paths.swap(primary_view.viewer.pending_drop_paths);
         primary_view.viewer.drag_overlay_active = false;
     }
+    apply_test_engine_drop_overrides(viewer);
     process_pending_drop_paths(vk_state, viewer, library, ui_state);
     sync_workspace_library_state(workspace, viewer, library);
     (void)apply_pending_auto_subimage_action(vk_state, viewer, library,
@@ -787,28 +1469,8 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
         ui_state.miplevel_index = 0;
     }
 
-    if (!viewer.image.path.empty()) {
-        RendererPreviewControls preview_controls = {};
-        preview_controls.exposure                = ui_state.exposure;
-        preview_controls.gamma                   = ui_state.gamma;
-        preview_controls.offset                  = ui_state.offset;
-        preview_controls.color_mode              = ui_state.color_mode;
-        preview_controls.channel                 = ui_state.current_channel;
-        preview_controls.use_ocio                = ui_state.use_ocio ? 1 : 0;
-        preview_controls.orientation             = viewer.image.orientation;
-        preview_controls.linear_interpolation    = ui_state.linear_interpolation
-                                                       ? 1
-                                                       : 0;
-        std::string preview_error;
-        if (!renderer_update_preview_texture(vk_state, viewer.texture,
-                                             &viewer.image, ui_state,
-                                             preview_controls, preview_error)) {
-            if (!preview_error.empty())
-                viewer.last_error = preview_error;
-        }
-    }
-
     const ImGuiID main_dockspace_id = begin_main_dockspace_host();
+    ensure_image_list_default_layout(workspace, main_dockspace_id);
     ImGuiWindowFlags main_window_flags = ImGuiWindowFlags_NoCollapse
                                          | ImGuiWindowFlags_NoScrollbar
                                          | ImGuiWindowFlags_NoScrollWithMouse;
@@ -816,14 +1478,40 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
         ImageViewWindow& image_view = *workspace.view_windows[i];
         const bool primary          = (image_view.id == primary_view.id);
         const bool active           = (image_view.id == workspace.active_view_id);
+        const ImGuiID image_dock_id
+            = workspace.image_view_dock_id != 0 ? workspace.image_view_dock_id
+                                                : main_dockspace_id;
         const bool force_dock = primary ? ui_state.image_window_force_dock
                                         : image_view.force_dock;
-        setup_image_window_policy(main_dockspace_id, force_dock);
+        setup_image_window_policy(image_dock_id, force_dock);
         if (image_view.request_focus) {
             ImGui::SetNextWindowFocus();
             image_view.request_focus = false;
         }
         const std::string title = image_view_window_title(image_view, primary);
+        PlaceholderUiState view_ui_state = ui_state;
+        apply_view_recipe_to_ui_state(image_view.viewer.recipe, view_ui_state);
+        clamp_placeholder_ui_state(view_ui_state);
+        if (!image_view.viewer.image.path.empty()) {
+            RendererPreviewControls preview_controls = {};
+            preview_controls.exposure                = view_ui_state.exposure;
+            preview_controls.gamma                   = view_ui_state.gamma;
+            preview_controls.offset                  = view_ui_state.offset;
+            preview_controls.color_mode              = view_ui_state.color_mode;
+            preview_controls.channel                 = view_ui_state.current_channel;
+            preview_controls.use_ocio                = view_ui_state.use_ocio ? 1 : 0;
+            preview_controls.orientation             = image_view.viewer.image.orientation;
+            preview_controls.linear_interpolation
+                = view_ui_state.linear_interpolation ? 1 : 0;
+            std::string preview_error;
+            if (!renderer_update_preview_texture(vk_state, image_view.viewer.texture,
+                                                 &image_view.viewer.image,
+                                                 view_ui_state, preview_controls,
+                                                 preview_error)) {
+                if (!preview_error.empty())
+                    image_view.viewer.last_error = preview_error;
+            }
+        }
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         bool open = image_view.open;
         ImGui::Begin(title.c_str(), primary ? nullptr : &open,
@@ -836,15 +1524,18 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
         }
         image_view.is_docked = ImGui::IsWindowDocked();
         if (primary) {
-            ui_state.image_window_force_dock = !image_view.is_docked;
+            view_ui_state.image_window_force_dock = !image_view.is_docked;
         } else {
             image_view.force_dock = !image_view.is_docked;
         }
-        draw_image_window_contents(image_view.viewer, ui_state, fonts,
+        draw_image_window_contents(image_view.viewer, view_ui_state, fonts,
                                    active ? actions.pending_zoom
                                           : PendingZoomRequest(),
                                    active && actions.recenter_requested);
         ImGui::End();
+        if (active) {
+            ui_state.image_window_force_dock = view_ui_state.image_window_force_dock;
+        }
     }
 
     for (const std::unique_ptr<ImageViewWindow>& image_view :
@@ -863,12 +1554,19 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
     active_view_window = active_image_view(workspace);
     if (active_view_window == nullptr)
         active_view_window = &ensure_primary_image_view(workspace);
+    if (active_view_window->id != frame_active_view_id) {
+        apply_view_recipe_to_ui_state(active_view_window->viewer.recipe,
+                                      ui_state);
+    }
     draw_image_list_window(workspace, library, active_view_window->viewer,
                            ui_state, vk_state);
     draw_info_window(active_view_window->viewer, ui_state.show_info_window);
     draw_preferences_window(ui_state, ui_state.show_preferences_window,
                             renderer_active_backend(vk_state));
     draw_preview_window(ui_state, ui_state.show_preview_window);
+    capture_view_recipe_from_ui_state(ui_state, active_view_window->viewer.recipe);
+    clamp_view_recipe(active_view_window->viewer.recipe);
+    apply_view_recipe_to_ui_state(active_view_window->viewer.recipe, ui_state);
 
     if (ImGui::BeginPopupModal("About imiv", nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {

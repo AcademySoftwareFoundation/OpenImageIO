@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "imiv_app.h"
+#include "imiv_file_dialog.h"
 
 #include <string>
 
@@ -56,6 +57,9 @@ getargs(int argc, char* argv[])
     ap.arg("--open-dialog")
       .help("Open a native file-open dialog and report the selected file path")
       .store_true();
+    ap.arg("--open-folder-dialog")
+      .help("Open a native folder dialog and report the selected folder path")
+      .store_true();
     ap.arg("--save-dialog")
       .help("Open a native file-save dialog and report the selected file path")
       .store_true();
@@ -89,6 +93,7 @@ main(int argc, char* argv[])
     config.no_autopremult         = ap["no-autopremult"].get<int>() != 0;
     config.rawcolor               = ap["rawcolor"].get<int>() != 0;
     config.open_dialog            = ap["open-dialog"].get<int>() != 0;
+    const bool open_folder_dialog = ap["open-folder-dialog"].get<int>() != 0;
     config.save_dialog            = ap["save-dialog"].get<int>() != 0;
     config.list_backends          = ap["list-backends"].get<int>() != 0;
     config.developer_mode         = ap["devmode"].get<int>() != 0;
@@ -136,6 +141,19 @@ main(int argc, char* argv[])
                   info.build_info.cli_name, description);
         }
         return EXIT_SUCCESS;
+    }
+
+    if (open_folder_dialog) {
+        Imiv::FileDialog::DialogReply reply = Imiv::FileDialog::open_folder("");
+        if (reply.result == Imiv::FileDialog::Result::Okay
+            && !reply.path.empty()) {
+            print("{}\n", reply.path);
+            return EXIT_SUCCESS;
+        }
+        if (reply.result == Imiv::FileDialog::Result::Cancel)
+            return EXIT_SUCCESS;
+        print(stderr, "imiv: {}\n", reply.message);
+        return EXIT_FAILURE;
     }
 
     if (!config.foreground_mode)

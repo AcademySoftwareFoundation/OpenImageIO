@@ -133,12 +133,15 @@ namespace {
         ImGuiKeyChord key_chord      = 0;
         std::string set_ref;
         std::string item_click_ref;
+        std::string item_double_click_ref;
         TestEngineMouseTargetMode mouse_target_mode
             = TestEngineMouseTargetMode::None;
         float mouse_x        = 0.0f;
         float mouse_y        = 0.0f;
         bool has_click       = false;
         int click_button     = 0;
+        bool has_double_click = false;
+        int double_click_button = 0;
         bool has_wheel       = false;
         float wheel_x        = 0.0f;
         float wheel_y        = 0.0f;
@@ -166,6 +169,28 @@ namespace {
         std::string image_color_space;
     };
 
+    struct TestEngineScenarioImageListStep {
+        bool has_select_index        = false;
+        int select_index             = 0;
+        bool has_open_new_view_index = false;
+        int open_new_view_index      = 0;
+        bool has_close_active_index  = false;
+        int close_active_index       = 0;
+        bool has_remove_index        = false;
+        int remove_index             = 0;
+    };
+
+    struct TestEngineScenarioViewStep {
+        bool has_activate_view_index = false;
+        int activate_view_index      = 0;
+        bool has_exposure            = false;
+        float exposure               = 0.0f;
+        bool has_gamma               = false;
+        float gamma                  = 1.0f;
+        bool has_offset              = false;
+        float offset                 = 0.0f;
+    };
+
     struct TestEngineScenarioCaptureStep {
         bool screenshot   = false;
         bool layout       = false;
@@ -178,6 +203,8 @@ namespace {
         std::string name;
         TestEngineSyntheticAction action;
         TestEngineScenarioOcioStep ocio;
+        TestEngineScenarioImageListStep image_list;
+        TestEngineScenarioViewStep view;
         TestEngineScenarioCaptureStep capture;
     };
 
@@ -209,6 +236,11 @@ namespace {
     bool parse_int_attr(const pugi::xml_attribute& attr, int& out)
     {
         return attr && parse_int_value(attr.as_string(), out);
+    }
+
+    bool parse_float_attr(const pugi::xml_attribute& attr, float& out)
+    {
+        return attr && parse_float_value(attr.as_string(), out);
     }
 
     bool parse_float_pair_attr(const pugi::xml_attribute& attr, float& out_a,
@@ -306,6 +338,12 @@ namespace {
                 "item_click");
             if (item_click_attr && item_click_attr.as_string()[0] != '\0')
                 step.action.item_click_ref = item_click_attr.as_string();
+            const pugi::xml_attribute item_double_click_attr
+                = step_node.attribute("item_double_click");
+            if (item_double_click_attr
+                && item_double_click_attr.as_string()[0] != '\0')
+                step.action.item_double_click_ref
+                    = item_double_click_attr.as_string();
             const pugi::xml_attribute set_ref_attr = step_node.attribute(
                 "set_ref");
             if (set_ref_attr && set_ref_attr.as_string()[0] != '\0')
@@ -333,6 +371,10 @@ namespace {
             if (parse_int_attr(step_node.attribute("mouse_click_button"),
                                step.action.click_button)) {
                 step.action.has_click = true;
+            }
+            if (parse_int_attr(step_node.attribute("mouse_double_click_button"),
+                               step.action.double_click_button)) {
+                step.action.has_double_click = true;
             }
             if (parse_float_pair_attr(step_node.attribute("mouse_wheel"),
                                       step.action.wheel_x,
@@ -381,6 +423,40 @@ namespace {
             if (parse_bool_attr(step_node.attribute("linear_interpolation"),
                                 step.ocio.linear_interpolation)) {
                 step.ocio.has_linear_interpolation = true;
+            }
+            if (parse_int_attr(step_node.attribute("image_list_select_index"),
+                               step.image_list.select_index)) {
+                step.image_list.has_select_index = true;
+            }
+            if (parse_int_attr(
+                    step_node.attribute("image_list_open_new_view_index"),
+                    step.image_list.open_new_view_index)) {
+                step.image_list.has_open_new_view_index = true;
+            }
+            if (parse_int_attr(
+                    step_node.attribute("image_list_close_active_index"),
+                    step.image_list.close_active_index)) {
+                step.image_list.has_close_active_index = true;
+            }
+            if (parse_int_attr(step_node.attribute("image_list_remove_index"),
+                               step.image_list.remove_index)) {
+                step.image_list.has_remove_index = true;
+            }
+            if (parse_int_attr(step_node.attribute("view_activate_index"),
+                               step.view.activate_view_index)) {
+                step.view.has_activate_view_index = true;
+            }
+            if (parse_float_attr(step_node.attribute("exposure"),
+                                 step.view.exposure)) {
+                step.view.has_exposure = true;
+            }
+            if (parse_float_attr(step_node.attribute("gamma"),
+                                 step.view.gamma)) {
+                step.view.has_gamma = true;
+            }
+            if (parse_float_attr(step_node.attribute("offset"),
+                                 step.view.offset)) {
+                step.view.has_offset = true;
             }
 
             parse_bool_attr(step_node.attribute("screenshot"),
@@ -896,29 +972,140 @@ namespace {
         return sanitized;
     }
 
-    void apply_test_engine_scenario_ocio_overrides(
-        const TestEngineScenarioOcioStep& ocio)
+    void apply_test_engine_scenario_overrides(
+        const TestEngineScenarioOcioStep& ocio,
+        const TestEngineScenarioImageListStep& image_list,
+        const TestEngineScenarioViewStep& view)
     {
         if (ocio.has_use) {
             const std::string use_value = ocio.use_ocio ? "true" : "false";
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_USE",
                                   &use_value);
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_USE", nullptr);
         }
-        if (ocio.has_display)
+        if (ocio.has_display) {
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_DISPLAY",
                                   &ocio.display);
-        if (ocio.has_view)
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_DISPLAY",
+                                  nullptr);
+        }
+        if (ocio.has_view) {
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW",
                                   &ocio.view);
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OCIO_VIEW", nullptr);
+        }
         if (ocio.has_image_color_space) {
             set_process_env_value(
                 "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE",
                 &ocio.image_color_space);
+        } else {
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_OCIO_IMAGE_COLOR_SPACE", nullptr);
         }
         if (ocio.has_linear_interpolation) {
             const std::string value = ocio.linear_interpolation ? "1" : "0";
             set_process_env_value(
                 "IMIV_IMGUI_TEST_ENGINE_LINEAR_INTERPOLATION", &value);
+        } else {
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_LINEAR_INTERPOLATION", nullptr);
+        }
+
+        const int next_frame = ImGui::GetFrameCount() + 1;
+        if (image_list.has_select_index || image_list.has_open_new_view_index
+            || image_list.has_close_active_index
+            || image_list.has_remove_index) {
+            const std::string frame_value = Strutil::fmt::format("{}",
+                                                                 next_frame);
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_APPLY_FRAME",
+                                  &frame_value);
+        }
+        if (image_list.has_select_index) {
+            const std::string index_value = Strutil::fmt::format(
+                "{}", image_list.select_index);
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_SELECT_INDEX",
+                                  &index_value);
+        } else {
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_SELECT_INDEX", nullptr);
+        }
+        if (image_list.has_open_new_view_index) {
+            const std::string index_value = Strutil::fmt::format(
+                "{}", image_list.open_new_view_index);
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_OPEN_NEW_VIEW_INDEX",
+                &index_value);
+        } else {
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_OPEN_NEW_VIEW_INDEX",
+                nullptr);
+        }
+        if (image_list.has_close_active_index) {
+            const std::string index_value = Strutil::fmt::format(
+                "{}", image_list.close_active_index);
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_CLOSE_ACTIVE_INDEX",
+                &index_value);
+        } else {
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_CLOSE_ACTIVE_INDEX",
+                nullptr);
+        }
+        if (image_list.has_remove_index) {
+            const std::string index_value = Strutil::fmt::format(
+                "{}", image_list.remove_index);
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_REMOVE_INDEX",
+                                  &index_value);
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_REMOVE_INDEX",
+                                  nullptr);
+        }
+
+        if (view.has_activate_view_index || view.has_exposure
+            || view.has_gamma || view.has_offset) {
+            const std::string frame_value = Strutil::fmt::format("{}",
+                                                                 next_frame);
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_VIEW_APPLY_FRAME",
+                                  &frame_value);
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_VIEW_APPLY_FRAME",
+                                  nullptr);
+        }
+        if (view.has_activate_view_index) {
+            const std::string index_value = Strutil::fmt::format(
+                "{}", view.activate_view_index);
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_ACTIVATE_VIEW_INDEX",
+                                  &index_value);
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_ACTIVATE_VIEW_INDEX",
+                                  nullptr);
+        }
+        if (view.has_exposure) {
+            const std::string exposure_value = Strutil::fmt::format(
+                "{}", static_cast<double>(view.exposure));
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_EXPOSURE",
+                                  &exposure_value);
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_EXPOSURE", nullptr);
+        }
+        if (view.has_gamma) {
+            const std::string gamma_value = Strutil::fmt::format(
+                "{}", static_cast<double>(view.gamma));
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_GAMMA",
+                                  &gamma_value);
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_GAMMA", nullptr);
+        }
+        if (view.has_offset) {
+            const std::string offset_value = Strutil::fmt::format(
+                "{}", static_cast<double>(view.offset));
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OFFSET",
+                                  &offset_value);
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OFFSET", nullptr);
         }
     }
 
@@ -1010,6 +1197,11 @@ namespace {
             ctx->Yield(1);
         }
 
+        if (!action.item_double_click_ref.empty()) {
+            ctx->ItemDoubleClick(action.item_double_click_ref.c_str());
+            ctx->Yield(1);
+        }
+
         ImVec2 mouse_pos(0.0f, 0.0f);
         if (resolve_action_mouse_pos(action, mouse_pos)) {
             ctx->MouseMoveToPos(mouse_pos);
@@ -1018,6 +1210,15 @@ namespace {
 
         if (action.has_click) {
             const int click_button = std::clamp(action.click_button, 0, 4);
+            ctx->MouseClick(static_cast<ImGuiMouseButton>(click_button));
+            ctx->Yield(1);
+        }
+
+        if (action.has_double_click) {
+            const int click_button = std::clamp(action.double_click_button, 0,
+                                                4);
+            ctx->MouseClick(static_cast<ImGuiMouseButton>(click_button));
+            ctx->Yield(1);
             ctx->MouseClick(static_cast<ImGuiMouseButton>(click_button));
             ctx->Yield(1);
         }
@@ -1309,7 +1510,8 @@ namespace {
             if (step.action.delay_frames > 0)
                 ctx->Yield(step.action.delay_frames);
 
-            apply_test_engine_scenario_ocio_overrides(step.ocio);
+            apply_test_engine_scenario_overrides(step.ocio, step.image_list,
+                                                 step.view);
             ctx->Yield(1);
 
             held_button = apply_test_engine_synthetic_actions(ctx, step.action);

@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <unordered_set>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -252,6 +253,70 @@ persistent_state_file_path_for_load()
 
 
 void
+clamp_view_recipe(ViewRecipe& recipe)
+{
+    if (recipe.current_channel < 0)
+        recipe.current_channel = 0;
+    if (recipe.current_channel > 4)
+        recipe.current_channel = 4;
+    if (recipe.color_mode < 0)
+        recipe.color_mode = 0;
+    if (recipe.color_mode > 4)
+        recipe.color_mode = 4;
+    if (recipe.gamma < 0.1f)
+        recipe.gamma = 0.1f;
+    recipe.offset = std::clamp(recipe.offset, -1.0f, 1.0f);
+    if (recipe.ocio_display.empty())
+        recipe.ocio_display = "default";
+    if (recipe.ocio_view.empty())
+        recipe.ocio_view = "default";
+    if (recipe.ocio_image_color_space.empty())
+        recipe.ocio_image_color_space = "auto";
+}
+
+void
+reset_view_recipe(ViewRecipe& recipe)
+{
+    recipe.current_channel = 0;
+    recipe.color_mode      = 0;
+    recipe.exposure        = 0.0f;
+    recipe.gamma           = 1.0f;
+    recipe.offset          = 0.0f;
+}
+
+void
+apply_view_recipe_to_ui_state(const ViewRecipe& recipe,
+                              PlaceholderUiState& ui_state)
+{
+    ui_state.use_ocio               = recipe.use_ocio;
+    ui_state.linear_interpolation   = recipe.linear_interpolation;
+    ui_state.current_channel        = recipe.current_channel;
+    ui_state.color_mode             = recipe.color_mode;
+    ui_state.exposure               = recipe.exposure;
+    ui_state.gamma                  = recipe.gamma;
+    ui_state.offset                 = recipe.offset;
+    ui_state.ocio_display           = recipe.ocio_display;
+    ui_state.ocio_view              = recipe.ocio_view;
+    ui_state.ocio_image_color_space = recipe.ocio_image_color_space;
+}
+
+void
+capture_view_recipe_from_ui_state(const PlaceholderUiState& ui_state,
+                                  ViewRecipe& recipe)
+{
+    recipe.use_ocio               = ui_state.use_ocio;
+    recipe.linear_interpolation   = ui_state.linear_interpolation;
+    recipe.current_channel        = ui_state.current_channel;
+    recipe.color_mode             = ui_state.color_mode;
+    recipe.exposure               = ui_state.exposure;
+    recipe.gamma                  = ui_state.gamma;
+    recipe.offset                 = ui_state.offset;
+    recipe.ocio_display           = ui_state.ocio_display;
+    recipe.ocio_view              = ui_state.ocio_view;
+    recipe.ocio_image_color_space = ui_state.ocio_image_color_space;
+}
+
+void
 clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
 {
     auto clamp_odd = [](int value, int min_value, int max_value) {
@@ -273,14 +338,6 @@ clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
     ui_state.closeup_avg_pixels = clamp_odd(ui_state.closeup_avg_pixels, 3, 25);
     if (ui_state.closeup_avg_pixels > ui_state.closeup_pixels)
         ui_state.closeup_avg_pixels = ui_state.closeup_pixels;
-    if (ui_state.current_channel < 0)
-        ui_state.current_channel = 0;
-    if (ui_state.current_channel > 4)
-        ui_state.current_channel = 4;
-    if (ui_state.color_mode < 0)
-        ui_state.color_mode = 0;
-    if (ui_state.color_mode > 4)
-        ui_state.color_mode = 4;
     if (ui_state.mouse_mode < 0)
         ui_state.mouse_mode = 0;
     if (ui_state.mouse_mode > 4)
@@ -293,29 +350,16 @@ clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
         ui_state.subimage_index = 0;
     if (ui_state.miplevel_index < 0)
         ui_state.miplevel_index = 0;
-    if (ui_state.gamma < 0.1f)
-        ui_state.gamma = 0.1f;
-    ui_state.offset = std::clamp(ui_state.offset, -1.0f, 1.0f);
     ui_state.ocio_config_source
         = std::clamp(ui_state.ocio_config_source,
                      static_cast<int>(OcioConfigSource::Global),
                      static_cast<int>(OcioConfigSource::User));
-    if (ui_state.ocio_display.empty())
-        ui_state.ocio_display = "default";
-    if (ui_state.ocio_view.empty())
-        ui_state.ocio_view = "default";
-    if (ui_state.ocio_image_color_space.empty())
-        ui_state.ocio_image_color_space = "auto";
 }
 
 void
-reset_per_image_preview_state(PlaceholderUiState& ui_state)
+reset_per_image_preview_state(ViewRecipe& recipe)
 {
-    ui_state.current_channel = 0;
-    ui_state.color_mode      = 0;
-    ui_state.exposure        = 0.0f;
-    ui_state.gamma           = 1.0f;
-    ui_state.offset          = 0.0f;
+    reset_view_recipe(recipe);
 }
 
 
@@ -370,7 +414,7 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
                 ui_state.pixelview_left_corner = bool_value;
         } else if (key == "linear_interpolation") {
             if (parse_bool_value(value, bool_value))
-                ui_state.linear_interpolation = bool_value;
+                viewer.recipe.linear_interpolation = bool_value;
         } else if (key == "dark_palette") {
             if (parse_bool_value(value, bool_value))
                 ui_state.style_preset = static_cast<int>(
@@ -406,7 +450,7 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
                 ui_state.slide_loop = bool_value;
         } else if (key == "use_ocio") {
             if (parse_bool_value(value, bool_value))
-                ui_state.use_ocio = bool_value;
+                viewer.recipe.use_ocio = bool_value;
         } else if (key == "ocio_config_source") {
             if (parse_int_value(value, int_value))
                 ui_state.ocio_config_source = int_value;
@@ -422,6 +466,12 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
         } else if (key == "closeup_avg_pixels") {
             if (parse_int_value(value, int_value))
                 ui_state.closeup_avg_pixels = int_value;
+        } else if (key == "current_channel") {
+            if (parse_int_value(value, int_value))
+                viewer.recipe.current_channel = int_value;
+        } else if (key == "color_mode") {
+            if (parse_int_value(value, int_value))
+                viewer.recipe.color_mode = int_value;
         } else if (key == "subimage_index") {
             if (parse_int_value(value, int_value))
                 ui_state.subimage_index = int_value;
@@ -431,12 +481,24 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
         } else if (key == "mouse_mode") {
             if (parse_int_value(value, int_value))
                 ui_state.mouse_mode = int_value;
+        } else if (key == "exposure") {
+            float float_value = 0.0f;
+            if (parse_float_value(value, float_value))
+                viewer.recipe.exposure = float_value;
+        } else if (key == "gamma") {
+            float float_value = 0.0f;
+            if (parse_float_value(value, float_value))
+                viewer.recipe.gamma = float_value;
+        } else if (key == "offset") {
+            float float_value = 0.0f;
+            if (parse_float_value(value, float_value))
+                viewer.recipe.offset = float_value;
         } else if (key == "ocio_display") {
-            ui_state.ocio_display = std::string(Strutil::strip(value));
+            viewer.recipe.ocio_display = std::string(Strutil::strip(value));
         } else if (key == "ocio_view") {
-            ui_state.ocio_view = std::string(Strutil::strip(value));
+            viewer.recipe.ocio_view = std::string(Strutil::strip(value));
         } else if (key == "ocio_image_color_space") {
-            ui_state.ocio_image_color_space = std::string(
+            viewer.recipe.ocio_image_color_space = std::string(
                 Strutil::strip(value));
         } else if (key == "ocio_user_config_path") {
             ui_state.ocio_user_config_path = std::string(Strutil::strip(value));
@@ -455,6 +517,8 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
     }
 
     clamp_placeholder_ui_state(ui_state);
+    clamp_view_recipe(viewer.recipe);
+    apply_view_recipe_to_ui_state(viewer.recipe, ui_state);
     if (!input.eof()) {
         error_message = Strutil::fmt::format("failed while reading '{}'",
                                              path.string());
@@ -506,8 +570,8 @@ save_persistent_state(const PlaceholderUiState& ui_state,
            << (ui_state.pixelview_follows_mouse ? 1 : 0) << "\n";
     output << "pixelview_left_corner="
            << (ui_state.pixelview_left_corner ? 1 : 0) << "\n";
-    output << "linear_interpolation=" << (ui_state.linear_interpolation ? 1 : 0)
-           << "\n";
+    output << "linear_interpolation="
+           << (viewer.recipe.linear_interpolation ? 1 : 0) << "\n";
     output << "style_preset=" << ui_state.style_preset << "\n";
     output << "renderer_backend="
            << backend_cli_name(
@@ -523,19 +587,24 @@ save_persistent_state(const PlaceholderUiState& ui_state,
     output << "slide_show_running=" << (ui_state.slide_show_running ? 1 : 0)
            << "\n";
     output << "slide_loop=" << (ui_state.slide_loop ? 1 : 0) << "\n";
-    output << "use_ocio=" << (ui_state.use_ocio ? 1 : 0) << "\n";
+    output << "use_ocio=" << (viewer.recipe.use_ocio ? 1 : 0) << "\n";
     output << "ocio_config_source=" << ui_state.ocio_config_source << "\n";
     output << "max_memory_ic_mb=" << ui_state.max_memory_ic_mb << "\n";
     output << "slide_duration_seconds=" << ui_state.slide_duration_seconds
            << "\n";
     output << "closeup_pixels=" << ui_state.closeup_pixels << "\n";
     output << "closeup_avg_pixels=" << ui_state.closeup_avg_pixels << "\n";
+    output << "current_channel=" << viewer.recipe.current_channel << "\n";
+    output << "color_mode=" << viewer.recipe.color_mode << "\n";
     output << "subimage_index=" << ui_state.subimage_index << "\n";
     output << "miplevel_index=" << ui_state.miplevel_index << "\n";
     output << "mouse_mode=" << ui_state.mouse_mode << "\n";
-    output << "ocio_display=" << ui_state.ocio_display << "\n";
-    output << "ocio_view=" << ui_state.ocio_view << "\n";
-    output << "ocio_image_color_space=" << ui_state.ocio_image_color_space
+    output << "exposure=" << viewer.recipe.exposure << "\n";
+    output << "gamma=" << viewer.recipe.gamma << "\n";
+    output << "offset=" << viewer.recipe.offset << "\n";
+    output << "ocio_display=" << viewer.recipe.ocio_display << "\n";
+    output << "ocio_view=" << viewer.recipe.ocio_view << "\n";
+    output << "ocio_image_color_space=" << viewer.recipe.ocio_image_color_space
            << "\n";
     output << "ocio_user_config_path=" << ui_state.ocio_user_config_path
            << "\n";
@@ -796,7 +865,6 @@ should_reset_preview_on_load(const ViewerState& viewer, const std::string& path)
     return current_path.lexically_normal() != next_path.lexically_normal();
 }
 
-
 int
 clamp_orientation(int orientation)
 {
@@ -830,8 +898,39 @@ has_supported_image_extension(const std::filesystem::path& path)
 {
     std::string ext = path.extension().string();
     Strutil::to_lower(ext);
-    return ext == ".exr" || ext == ".tif" || ext == ".tiff" || ext == ".png"
-           || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" || ext == ".hdr";
+    if (ext.empty())
+        return false;
+
+    static const std::unordered_set<std::string> readable_extensions = []() {
+        std::unordered_set<std::string> result;
+        const auto extension_map = get_extension_map();
+        const auto input_formats
+            = Strutil::splits(get_string_attribute("input_format_list"), ",");
+        std::unordered_set<std::string> readable_formats;
+        readable_formats.reserve(input_formats.size());
+        for (std::string format_name : input_formats) {
+            Strutil::to_lower(format_name);
+            if (!format_name.empty())
+                readable_formats.insert(std::move(format_name));
+        }
+
+        for (const auto& entry : extension_map) {
+            std::string format_name = entry.first;
+            Strutil::to_lower(format_name);
+            if (readable_formats.find(format_name) == readable_formats.end())
+                continue;
+            for (std::string one_ext : entry.second) {
+                Strutil::to_lower(one_ext);
+                if (one_ext.empty())
+                    continue;
+                if (one_ext.front() != '.')
+                    one_ext.insert(one_ext.begin(), '.');
+                result.insert(std::move(one_ext));
+            }
+        }
+        return result;
+    }();
+    return readable_extensions.find(ext) != readable_extensions.end();
 }
 
 bool
@@ -987,6 +1086,59 @@ sort_image_path_list(std::vector<std::string>& paths, ImageSortMode sort_mode,
 
     if (sort_reverse)
         std::reverse(paths.begin(), paths.end());
+}
+
+bool
+collect_directory_image_paths(const std::string& directory_path,
+                              ImageSortMode sort_mode, bool sort_reverse,
+                              std::vector<std::string>& out_paths,
+                              std::string& error_message)
+{
+    out_paths.clear();
+    error_message.clear();
+
+    std::error_code ec;
+    std::filesystem::path dir(directory_path);
+    if (dir.empty()) {
+        error_message = "directory path is empty";
+        return false;
+    }
+    if (!std::filesystem::exists(dir, ec) || ec) {
+        error_message = Strutil::fmt::format("directory '{}' does not exist",
+                                             dir.string());
+        return false;
+    }
+    if (!std::filesystem::is_directory(dir, ec) || ec) {
+        error_message = Strutil::fmt::format("'{}' is not a directory",
+                                             dir.string());
+        return false;
+    }
+
+    std::filesystem::directory_iterator it(
+        dir, std::filesystem::directory_options::skip_permission_denied, ec);
+    if (ec) {
+        error_message = Strutil::fmt::format("failed to scan '{}': {}",
+                                             dir.string(), ec.message());
+        return false;
+    }
+
+    for (; it != std::filesystem::directory_iterator(); it.increment(ec)) {
+        if (ec) {
+            ec.clear();
+            continue;
+        }
+        const std::filesystem::directory_entry& entry = *it;
+        if (!entry.is_regular_file(ec)) {
+            ec.clear();
+            continue;
+        }
+        if (!has_supported_image_extension(entry.path()))
+            continue;
+        out_paths.push_back(normalize_path_for_viewer_list(entry.path().string()));
+    }
+
+    sort_image_path_list(out_paths, sort_mode, sort_reverse);
+    return true;
 }
 
 bool

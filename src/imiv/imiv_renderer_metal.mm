@@ -175,7 +175,8 @@ preview_controls_equal(const RendererPreviewControls& a,
            && std::abs(a.gamma - b.gamma) < 1.0e-6f
            && std::abs(a.offset - b.offset) < 1.0e-6f
            && a.color_mode == b.color_mode && a.channel == b.channel
-           && a.use_ocio == b.use_ocio && a.orientation == b.orientation;
+           && a.use_ocio == b.use_ocio && a.orientation == b.orientation
+           && a.linear_interpolation == b.linear_interpolation;
 }
 
 bool

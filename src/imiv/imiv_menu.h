@@ -22,6 +22,7 @@ struct DeveloperUiState;
 
 struct ViewerFrameActions {
     bool open_requested                = false;
+    bool open_folder_requested         = false;
     bool save_as_requested             = false;
     bool clear_recent_requested        = false;
     bool reload_requested              = false;

@@ -54,12 +54,18 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
 
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_O))
         actions.open_requested = true;
+    if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_O))
+        actions.open_folder_requested = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_R) && has_image)
         actions.reload_requested = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_W) && has_image)
         actions.close_requested = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_S) && has_image)
         actions.save_as_requested = true;
+    if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_S)
+        && has_selection) {
+        actions.save_selection_as_requested = true;
+    }
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N)
         && has_image)
         actions.new_view_requested = true;
@@ -197,6 +203,8 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
     if (ImGui::BeginMenu("File")) {
         if (ImGui::MenuItem("Open...", "Ctrl+O"))
             actions.open_requested = true;
+        if (ImGui::MenuItem("Open Folder...", "Ctrl+Shift+O"))
+            actions.open_folder_requested = true;
 
         if (ImGui::BeginMenu("Open recent...")) {
             if (library.recent_images.empty()) {
@@ -228,7 +236,8 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
             actions.save_as_requested = true;
         if (ImGui::MenuItem("Save Window As...", nullptr, false, has_image))
             actions.save_window_as_requested = true;
-        if (ImGui::MenuItem("Save Selection As...", nullptr, false, has_image)) {
+        if (ImGui::MenuItem("Save Selection As...", "Ctrl+Alt+S", false,
+                            has_selection)) {
             actions.save_selection_as_requested = true;
         }
         ImGui::Separator();
@@ -589,6 +598,11 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
                                  ui_state.miplevel_index);
         actions.open_requested = false;
     }
+    if (actions.open_folder_requested) {
+        open_folder_dialog_action(vk_state, viewer, library, ui_state,
+                                  workspace);
+        actions.open_folder_requested = false;
+    }
     if (!actions.recent_open_path.empty()) {
         load_viewer_image(vk_state, viewer, library, &ui_state,
                           actions.recent_open_path,
@@ -708,6 +722,7 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
         new_view.viewer.recent_images      = library.recent_images;
         new_view.viewer.sort_mode          = library.sort_mode;
         new_view.viewer.sort_reverse       = library.sort_reverse;
+        new_view.viewer.recipe             = viewer.recipe;
         new_view.request_focus             = true;
         if (load_viewer_image(vk_state, new_view.viewer, library, &ui_state,
                               viewer.image.path, viewer.image.subimage,

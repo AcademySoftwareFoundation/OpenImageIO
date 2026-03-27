@@ -25,8 +25,22 @@ enum class ImageSortMode : uint8_t {
 
 enum class OcioConfigSource : uint8_t { Global = 0, BuiltIn = 1, User = 2 };
 
+struct ViewRecipe {
+    bool use_ocio             = false;
+    bool linear_interpolation = false;
+    int current_channel       = 0;
+    int color_mode            = 0;
+    float exposure            = 0.0f;
+    float gamma               = 1.0f;
+    float offset              = 0.0f;
+    std::string ocio_display  = "default";
+    std::string ocio_view     = "default";
+    std::string ocio_image_color_space = "auto";
+};
+
 struct ViewerState {
     LoadedImage image;
+    ViewRecipe recipe;
     std::string status_message;
     std::string last_error;
     bool rawcolor               = false;
@@ -102,9 +116,19 @@ struct ImageViewWindow {
 
 struct MultiViewWorkspace {
     std::vector<std::unique_ptr<ImageViewWindow>> view_windows;
-    int active_view_id         = 0;
-    int next_view_id           = 1;
+    int active_view_id          = 0;
+    int next_view_id            = 1;
+    int last_library_image_count = 0;
     bool show_image_list_window = false;
+    bool image_list_force_dock  = false;
+    bool image_list_layout_initialized = false;
+    ImGuiID image_view_dock_id  = 0;
+    ImGuiID image_list_dock_id  = 0;
+    bool image_list_was_drawn   = false;
+    bool image_list_is_docked   = false;
+    ImVec2 image_list_pos       = ImVec2(0.0f, 0.0f);
+    ImVec2 image_list_size      = ImVec2(0.0f, 0.0f);
+    std::vector<ImVec4> image_list_item_rects;
 };
 
 struct PlaceholderUiState {
@@ -150,6 +174,17 @@ struct PlaceholderUiState {
 };
 
 void
+clamp_view_recipe(ViewRecipe& recipe);
+void
+reset_view_recipe(ViewRecipe& recipe);
+void
+apply_view_recipe_to_ui_state(const ViewRecipe& recipe,
+                              PlaceholderUiState& ui_state);
+void
+capture_view_recipe_from_ui_state(const PlaceholderUiState& ui_state,
+                                  ViewRecipe& recipe);
+
+void
 reset_view_navigation_state(ViewerState& viewer);
 bool
 has_image_selection(const ViewerState& viewer);
@@ -161,7 +196,7 @@ set_image_selection(ViewerState& viewer, int xbegin, int ybegin, int xend,
 void
 clamp_placeholder_ui_state(PlaceholderUiState& ui_state);
 void
-reset_per_image_preview_state(PlaceholderUiState& ui_state);
+reset_per_image_preview_state(ViewRecipe& recipe);
 std::filesystem::path
 persistent_state_file_path_for_load();
 std::filesystem::path
@@ -185,6 +220,11 @@ bool
 load_image_for_compute(const std::string& path, int requested_subimage,
                        int requested_miplevel, bool rawcolor,
                        LoadedImage& image, std::string& error_message);
+bool
+collect_directory_image_paths(const std::string& directory_path,
+                              ImageSortMode sort_mode, bool sort_reverse,
+                              std::vector<std::string>& out_paths,
+                              std::string& error_message);
 bool
 should_reset_preview_on_load(const ViewerState& viewer,
                              const std::string& path);
