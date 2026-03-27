@@ -425,16 +425,18 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     int ret = m_processor->open_file(name.c_str());
 #endif
     if (ret != LIBRAW_SUCCESS) {
+        const char* err = libraw_strerror(ret);
         errorfmt("Could not open file \"{}\", {}", m_filename,
-                 libraw_strerror(ret));
+                 err ? err : "unknown error");
         return false;
     }
 
     OIIO_ASSERT(!m_unpacked);
     if (unpack) {
         if ((ret = m_processor->unpack()) != LIBRAW_SUCCESS) {
+            const char* err = libraw_strerror(ret);
             errorfmt("Could not unpack \"{}\", {}", m_filename,
-                     libraw_strerror(ret));
+                     err ? err : "unknown error");
             return false;
         }
         m_unpacked = true;
@@ -912,13 +914,15 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             // Get unadjusted max value (need to force a read first)
             ret = m_processor->raw2image_ex(/*subtract_black=*/true);
             if (ret != LIBRAW_SUCCESS) {
-                errorfmt("HighlightMode adjustment detection read failed");
-                errorfmt("{}", libraw_strerror(ret));
+                const char* err = libraw_strerror(ret);
+                errorfmt("HighlightMode adjustment detection read failed ({})",
+                         err ? err : "unknown error");
                 return false;
             }
             if (m_processor->adjust_maximum() != LIBRAW_SUCCESS) {
-                errorfmt("HighlightMode minimum adjustment failed");
-                errorfmt("{}", libraw_strerror(ret));
+                const char* err = libraw_strerror(ret);
+                errorfmt("HighlightMode minimum adjustment failed ({})",
+                         err ? err : "unknown error");
                 return false;
             }
             float unadjusted = m_processor->imgdata.color.maximum;
@@ -929,8 +933,9 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
 
             // Get new max value
             if (m_processor->adjust_maximum() != LIBRAW_SUCCESS) {
-                errorfmt("HighlightMode maximum adjustment failed");
-                errorfmt("{}", libraw_strerror(ret));
+                const char* err = libraw_strerror(ret);
+                errorfmt("HighlightMode maximum adjustment failed ({})",
+                         err ? err : "unknown error");
                 return false;
             }
             float adjusted = m_processor->imgdata.color.maximum;
@@ -1566,7 +1571,9 @@ RawInput::do_process()
     if (!m_image) {
         int ret = m_processor->dcraw_process();
         if (ret != LIBRAW_SUCCESS) {
-            errorfmt("Processing image failed, {}", libraw_strerror(ret));
+            const char* err = libraw_strerror(ret);
+            errorfmt("Processing image failed, {}",
+                     err ? err : "unknown error");
             return false;
         }
 

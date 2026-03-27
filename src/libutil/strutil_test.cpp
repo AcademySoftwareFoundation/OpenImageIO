@@ -1328,6 +1328,14 @@ test_string_view()
     Strutil::print("addr cstr={:p}, s={:p}, ustring={:p}, sr={:p}, c_str(sr)={:p}\n",
                      (void*)cstr, (void*)s.c_str(), (void*)ustring(cstr).c_str(), (void*)sr.data(),
                      (void*)OIIO::c_str(sr));
+
+    // Test some edge cases for fmt formatting
+    string_view empty(""), uninit;
+    Strutil::print("Test print empty string_view: '{}'\n", empty);
+    Strutil::print("Test print default initialized string_view: '{}'\n", uninit);
+    OIIO_CHECK_EQUAL(empty, uninit);
+    OIIO_CHECK_EQUAL(Strutil::format("{}", empty),
+                     Strutil::format("{}", uninit));
 }
 
 
