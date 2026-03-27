@@ -906,6 +906,85 @@ query_ocio_menu_data(const PlaceholderUiState& ui_state,
 }
 
 bool
+build_ocio_cpu_display_processor(const PlaceholderUiState& ui_state,
+                                 const LoadedImage* image, double exposure,
+                                 double gamma,
+                                 OCIO::ConstProcessorRcPtr& processor,
+                                 std::string& resolved_display,
+                                 std::string& resolved_view,
+                                 std::string& error_message)
+{
+    processor.reset();
+    resolved_display.clear();
+    resolved_view.clear();
+    error_message.clear();
+
+    try {
+        OcioConfigSelection config_selection;
+        resolve_ocio_config_selection(ui_state, config_selection);
+        OCIO::ConstConfigRcPtr config;
+        if (!load_ocio_config_from_selection(config_selection, config,
+                                             error_message)) {
+            return false;
+        }
+
+        const std::string input_color_space
+            = resolve_input_color_space(ui_state, image, config);
+        resolved_display = resolve_display_name(ui_state, config);
+        resolved_view    = resolve_view_name(ui_state, config, resolved_display);
+        if (input_color_space.empty() || resolved_display.empty()
+            || resolved_view.empty()) {
+            error_message = "Failed to resolve OCIO export transform";
+            return false;
+        }
+
+        OCIO::ConstColorSpaceRcPtr scene_linear_space
+            = config->getColorSpace("scene_linear");
+        if (!scene_linear_space) {
+            error_message = "Missing 'scene_linear' color space";
+            return false;
+        }
+
+        OCIO::ColorSpaceTransformRcPtr input_transform
+            = OCIO::ColorSpaceTransform::Create();
+        input_transform->setSrc(input_color_space.c_str());
+        input_transform->setDst(scene_linear_space->getName());
+
+        OCIO::ExposureContrastTransformRcPtr exposure_transform
+            = OCIO::ExposureContrastTransform::Create();
+        exposure_transform->setExposure(exposure);
+
+        OCIO::DisplayViewTransformRcPtr display_transform
+            = OCIO::DisplayViewTransform::Create();
+        display_transform->setSrc(scene_linear_space->getName());
+        display_transform->setDisplay(resolved_display.c_str());
+        display_transform->setView(resolved_view.c_str());
+
+        OCIO::ExposureContrastTransformRcPtr gamma_transform
+            = OCIO::ExposureContrastTransform::Create();
+        gamma_transform->setGamma(std::max(1.0e-6, gamma));
+        gamma_transform->setPivot(1.0);
+
+        OCIO::GroupTransformRcPtr group_transform
+            = OCIO::GroupTransform::Create();
+        group_transform->appendTransform(input_transform);
+        group_transform->appendTransform(exposure_transform);
+        group_transform->appendTransform(display_transform);
+        group_transform->appendTransform(gamma_transform);
+
+        processor = config->getProcessor(group_transform);
+        if (!processor) {
+            error_message = "OCIO CPU display processor is unavailable";
+            return false;
+        }
+        return true;
+    } catch (const OCIO::Exception& e) {
+        error_message = e.what();
+        return false;
+    }
+}
+
+bool
 build_ocio_preview_fragment_source(const OcioShaderBlueprint& blueprint,
                                    std::string& shader_source,
                                    std::string& error_message)

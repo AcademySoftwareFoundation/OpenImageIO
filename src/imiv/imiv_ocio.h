@@ -148,6 +148,14 @@ query_ocio_menu_data(const PlaceholderUiState& ui_state,
                      std::string& resolved_display, std::string& resolved_view,
                      std::string& error_message);
 bool
+build_ocio_cpu_display_processor(const PlaceholderUiState& ui_state,
+                                 const LoadedImage* image, double exposure,
+                                 double gamma,
+                                 OCIO::ConstProcessorRcPtr& processor,
+                                 std::string& resolved_display,
+                                 std::string& resolved_view,
+                                 std::string& error_message);
+bool
 build_ocio_preview_fragment_source(const OcioShaderBlueprint& blueprint,
                                    std::string& shader_source,
                                    std::string& error_message);

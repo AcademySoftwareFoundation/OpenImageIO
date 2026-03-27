@@ -26,9 +26,13 @@ set_placeholder_status(ViewerState& viewer, const char* action);
 void
 save_as_dialog_action(ViewerState& viewer);
 void
-save_window_as_dialog_action(ViewerState& viewer);
+save_window_as_dialog_action(ViewerState& viewer,
+                             const PlaceholderUiState& ui_state);
 void
 save_selection_as_dialog_action(ViewerState& viewer);
+void
+export_selection_as_dialog_action(ViewerState& viewer,
+                                  const PlaceholderUiState& ui_state);
 void
 select_all_image_action(ViewerState& viewer,
                         const PlaceholderUiState& ui_state);

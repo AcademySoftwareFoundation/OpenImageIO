@@ -1432,6 +1432,57 @@ if (TARGET imiv
             TIMEOUT 180)
 
     add_test (
+        NAME imiv_export_selection_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_export_selection_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_stable_ui_backend_args}
+            --oiiotool "$<TARGET_FILE:oiiotool>"
+            --idiff "$<TARGET_FILE:idiff>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/export_selection_regression")
+    set_tests_properties (
+        imiv_export_selection_regression PROPERTIES
+            LABELS "imiv;gui;imiv_export"
+            TIMEOUT 180)
+
+    add_test (
+        NAME imiv_save_window_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_save_window_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_stable_ui_backend_args}
+            --oiiotool "$<TARGET_FILE:oiiotool>"
+            --idiff "$<TARGET_FILE:idiff>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/save_window_regression")
+    set_tests_properties (
+        imiv_save_window_regression PROPERTIES
+            LABELS "imiv;gui;imiv_export"
+            TIMEOUT 180)
+
+    add_test (
+        NAME imiv_save_window_ocio_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_save_window_ocio_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_stable_ui_backend_args}
+            --oiiotool "$<TARGET_FILE:oiiotool>"
+            --idiff "$<TARGET_FILE:idiff>"
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/save_window_ocio_regression")
+    set_tests_properties (
+        imiv_save_window_ocio_regression PROPERTIES
+            LABELS "imiv;gui;imiv_export;imiv_ocio"
+            TIMEOUT 180)
+
+    add_test (
         NAME imiv_rgb_input_regression
         COMMAND
             "${Python3_EXECUTABLE}"
