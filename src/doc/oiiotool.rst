@@ -269,7 +269,7 @@ Control flow
 Scriptability is provided by the use of control flow statements.
 The usual programming constructs are supported:
 
-* Conditionals : `--if` *condition* `--then` *commands...* `--else` *commands...* `--endif`
+* Conditionals : `--if` *condition* *commands...* `--else` *commands...* `--endif`
 
 * General looping: `--while` *condition* *commands...* `--endwhile`
 
