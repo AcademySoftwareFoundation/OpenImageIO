@@ -179,6 +179,22 @@ tiff_data_size(const TIFFDirEntry& dir)
 
 
 TypeDesc
+tiff_datatype_to_typedesc(const TIFFDirEntry& dir)
+{
+    // Check for corrupt/invalid value
+#if defined(TIFF_VERSION_BIG)
+    if (dir.tdir_type > TIFF_IFD8)
+#else
+    if (dir.tdir_type > TIFF_IFD)
+#endif
+        return TypeUnknown;
+    return tiff_datatype_to_typedesc(TIFFDataType(dir.tdir_type),
+                                     dir.tdir_count);
+}
+
+
+
+TypeDesc
 tiff_datatype_to_typedesc(TIFFDataType tifftype, size_t tiffcount)
 {
     if (tiffcount == 1)
@@ -208,6 +224,7 @@ tiff_datatype_to_typedesc(TIFFDataType tifftype, size_t tiffcount)
     case TIFF_SLONG8: return TypeDesc(TypeDesc::INT64, tiffcount);
     case TIFF_IFD8: return TypeUnknown;
 #endif
+    default: break;
     }
     return TypeUnknown;
 }
