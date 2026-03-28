@@ -178,14 +178,6 @@ tiff_data_size(const TIFFDirEntry& dir)
 
 
 
-inline bool
-validate_TIFFDataType(TIFFDataType tifftype)
-{
-    return int(tifftype) <= TIFF_IFD8;
-}
-
-
-
 TypeDesc
 tiff_datatype_to_typedesc(const TIFFDirEntry& dir)
 {
