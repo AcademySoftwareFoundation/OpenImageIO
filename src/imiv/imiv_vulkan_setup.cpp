@@ -112,7 +112,9 @@ query_loader_api_version()
 uint32_t
 choose_instance_api_version()
 {
-    return std::min(vulkan_header_api_version(), query_loader_api_version());
+    return std::min(std::min(vulkan_header_api_version(),
+                             query_loader_api_version()),
+                    VK_API_VERSION_1_3);
 }
 
 
@@ -846,11 +848,11 @@ init_preview_resources(VulkanState& vk_state, std::string& error_message)
 
     VkDescriptorPoolSize preview_pool_size = {};
     preview_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    preview_pool_size.descriptorCount          = 64;
+    preview_pool_size.descriptorCount          = 256;
     VkDescriptorPoolCreateInfo preview_pool_ci = {};
     preview_pool_ci.sType   = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     preview_pool_ci.flags   = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    preview_pool_ci.maxSets = 64;
+    preview_pool_ci.maxSets = 256;
     preview_pool_ci.poolSizeCount = 1;
     preview_pool_ci.pPoolSizes    = &preview_pool_size;
     err = vkCreateDescriptorPool(vk_state.device, &preview_pool_ci,
@@ -1396,11 +1398,11 @@ setup_vulkan_device(VulkanState& vk_state, std::string& error_message)
                        "imiv.main.queue");
 
     VkDescriptorPoolSize pool_sizes[]
-        = { { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256 } };
+        = { { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 } };
     VkDescriptorPoolCreateInfo pool_ci = {};
     pool_ci.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_ci.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_ci.maxSets       = 256;
+    pool_ci.maxSets       = 1024;
     pool_ci.poolSizeCount = static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes));
     pool_ci.pPoolSizes    = pool_sizes;
     err = vkCreateDescriptorPool(vk_state.device, &pool_ci, vk_state.allocator,

@@ -1937,6 +1937,8 @@ register_layout_dump_synthetic_rect(const char* kind, const char* label,
                       kind ? kind : "item");
     }
 
+    if (ui_ctx->TestEngine == nullptr)
+        return;
     const ImRect bb(min, max);
     ImGuiTestEngineHook_ItemAdd(ui_ctx, id, bb, nullptr);
     ImGuiTestEngineHook_ItemInfo(ui_ctx, id, debug_label,
@@ -1968,6 +1970,8 @@ register_test_engine_item_label(const char* label, bool openable)
                   ordinal);
     const ImGuiID id = ImGui::GetID(id_source);
     if (id == 0)
+        return;
+    if (ui_ctx->TestEngine == nullptr)
         return;
     const ImRect bb(min, max);
     ImGuiItemStatusFlags flags = ImGuiItemStatusFlags_None;
