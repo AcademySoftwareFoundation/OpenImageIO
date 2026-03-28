@@ -919,7 +919,8 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
                          err ? err : "unknown error");
                 return false;
             }
-            if (m_processor->adjust_maximum() != LIBRAW_SUCCESS) {
+            ret = m_processor->adjust_maximum();
+            if (ret != LIBRAW_SUCCESS) {
                 const char* err = libraw_strerror(ret);
                 errorfmt("HighlightMode minimum adjustment failed ({})",
                          err ? err : "unknown error");
@@ -932,7 +933,8 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
                 = (old_max_thr == 0.0f) ? 1.0 : old_max_thr;
 
             // Get new max value
-            if (m_processor->adjust_maximum() != LIBRAW_SUCCESS) {
+            ret = m_processor->adjust_maximum();
+            if (ret != LIBRAW_SUCCESS) {
                 const char* err = libraw_strerror(ret);
                 errorfmt("HighlightMode maximum adjustment failed ({})",
                          err ? err : "unknown error");
