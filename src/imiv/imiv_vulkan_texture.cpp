@@ -3,6 +3,8 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "imiv_types.h"
+#include "imiv_loaded_image.h"
+#include "imiv_tiling.h"
 #include "imiv_vulkan_texture_internal.h"
 
 #include <algorithm>
@@ -27,6 +29,37 @@ namespace Imiv {
 #if defined(IMIV_WITH_VULKAN)
 
 namespace {
+
+    bool
+    env_flag_is_truthy(const char* name)
+    {
+        const char* value = std::getenv(name);
+        if (value == nullptr || value[0] == '\0')
+            return false;
+        return !(value[0] == '0' && value[1] == '\0');
+    }
+
+    bool
+    upload_stage_logging_enabled(const VulkanState& vk_state)
+    {
+        return vk_state.verbose_logging
+               || env_flag_is_truthy("IMIV_VULKAN_UPLOAD_STAGE_LOG");
+    }
+
+    void
+    log_upload_stage(const VulkanState& vk_state, const VulkanTexture& texture,
+                     const char* stage, const std::string& details = {})
+    {
+        if (!upload_stage_logging_enabled(vk_state))
+            return;
+        if (details.empty()) {
+            print(stderr, "imiv: Vulkan upload stage [{}] '{}'\n", stage,
+                  texture.debug_label);
+            return;
+        }
+        print(stderr, "imiv: Vulkan upload stage [{}] '{}' {}\n", stage,
+              texture.debug_label, details);
+    }
 
     bool nonblocking_fence_status(VkDevice device, VkFence fence,
                                   const char* context, bool& out_signaled,
@@ -178,6 +211,7 @@ poll_texture_upload_submission(VulkanState& vk_state, VulkanTexture& texture,
 
     VkResult err = VK_SUCCESS;
     if (wait_for_completion) {
+        log_upload_stage(vk_state, texture, "wait_begin");
         err = vkWaitForFences(vk_state.device, 1, &texture.upload_submit_fence,
                               VK_TRUE, UINT64_MAX);
     } else {
@@ -186,6 +220,10 @@ poll_texture_upload_submission(VulkanState& vk_state, VulkanTexture& texture,
             return false;
     }
     if (err != VK_SUCCESS) {
+        log_upload_stage(vk_state, texture,
+                         wait_for_completion ? "wait_error" : "poll_error",
+                         Strutil::fmt::format("vk_result={}",
+                                              static_cast<int>(err)));
         error_message = wait_for_completion
                             ? "vkWaitForFences failed for upload async submit"
                             : "vkGetFenceStatus failed for upload async submit";
@@ -196,6 +234,9 @@ poll_texture_upload_submission(VulkanState& vk_state, VulkanTexture& texture,
     texture.upload_submit_pending = false;
     texture.source_ready          = true;
     texture.preview_dirty         = true;
+    log_upload_stage(vk_state, texture,
+                     wait_for_completion ? "wait_complete"
+                                         : "poll_complete");
     destroy_texture_upload_submit_resources(vk_state, texture);
     return true;
 }
@@ -336,6 +377,7 @@ destroy_texture(VulkanState& vk_state, VulkanTexture& texture)
     }
     texture.width                = 0;
     texture.height               = 0;
+    texture.debug_label.clear();
     texture.source_ready         = false;
     texture.preview_initialized  = false;
     texture.preview_dirty        = false;
@@ -347,6 +389,7 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
                VulkanTexture& texture, std::string& error_message)
 {
     destroy_texture(vk_state, texture);
+    texture.debug_label = image.path;
 
     if (!vk_state.compute_upload_ready) {
         error_message = "compute upload path is not initialized";
@@ -407,17 +450,46 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         }
     }
 
-    const size_t pixel_stride_bytes = channel_bytes
-                                      * static_cast<size_t>(channel_count);
-    if (pixel_stride_bytes == 0 || row_pitch_bytes == 0
-        || row_pitch_bytes
-               < static_cast<size_t>(image.width) * pixel_stride_bytes) {
-        error_message = "invalid source stride for compute upload";
-        return false;
+    size_t pixel_stride_bytes = 0;
+    if (converted_pixels.empty()) {
+        LoadedImageLayout image_layout;
+        if (!describe_loaded_image_layout(image, image_layout, error_message)) {
+            if (error_message == "invalid source row pitch")
+                error_message = "invalid source stride for compute upload";
+            return false;
+        }
+        pixel_stride_bytes = image_layout.pixel_stride_bytes;
+    } else {
+        pixel_stride_bytes = channel_bytes * static_cast<size_t>(channel_count);
+        if (pixel_stride_bytes == 0 || row_pitch_bytes == 0
+            || row_pitch_bytes
+                   < static_cast<size_t>(image.width) * pixel_stride_bytes) {
+            error_message = "invalid source stride for compute upload";
+            return false;
+        }
     }
 
+    RowStripeUploadPlan stripe_plan;
+    if (!build_row_stripe_upload_plan(
+            row_pitch_bytes, pixel_stride_bytes, image.height,
+            std::max<uint32_t>(1, vk_state.max_storage_buffer_range),
+            std::max<uint32_t>(1,
+                               vk_state.min_storage_buffer_offset_alignment),
+            stripe_plan, error_message)) {
+        return false;
+    }
     const VkDeviceSize upload_size_aligned = static_cast<VkDeviceSize>(
-        (upload_bytes + 3u) & ~size_t(3));
+        stripe_plan.padded_upload_bytes);
+    log_upload_stage(vk_state, texture, "create_begin",
+                     Strutil::fmt::format(
+                         "{}x{} channels={} type={} row_pitch={} stripes={} "
+                         "stripe_rows={} aligned_row_pitch={} upload_bytes={} "
+                         "padded_upload_bytes={}",
+                         image.width, image.height, channel_count,
+                         upload_data_type_name(upload_type), row_pitch_bytes,
+                         stripe_plan.stripe_count, stripe_plan.stripe_rows,
+                         stripe_plan.aligned_row_pitch_bytes, upload_bytes,
+                         stripe_plan.padded_upload_bytes));
 
     VkBuffer staging_buffer        = VK_NULL_HANDLE;
     VkDeviceMemory staging_memory  = VK_NULL_HANDLE;
@@ -681,8 +753,14 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
             error_message = "vkMapMemory failed for staging buffer";
             break;
         }
-        std::memset(mapped, 0, static_cast<size_t>(upload_size_aligned));
-        std::memcpy(mapped, upload_ptr, upload_bytes);
+        if (!copy_rows_to_padded_buffer(
+                upload_ptr, upload_bytes, row_pitch_bytes, image.height,
+                stripe_plan.aligned_row_pitch_bytes,
+                reinterpret_cast<unsigned char*>(mapped),
+                static_cast<size_t>(upload_size_aligned), error_message)) {
+            vkUnmapMemory(vk_state.device, staging_memory);
+            break;
+        }
         vkUnmapMemory(vk_state.device, staging_memory);
 
         VkDescriptorSetAllocateInfo set_alloc = {};
@@ -734,7 +812,7 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         VkDescriptorBufferInfo source_buffer_info = {};
         source_buffer_info.buffer                 = source_buffer;
         source_buffer_info.offset                 = 0;
-        source_buffer_info.range                  = upload_size_aligned;
+        source_buffer_info.range = stripe_plan.descriptor_range_bytes;
 
         VkDescriptorImageInfo output_image_info = {};
         output_image_info.imageView             = texture.source_view;
@@ -746,7 +824,7 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         writes[0].dstSet               = compute_set;
         writes[0].dstBinding           = 0;
         writes[0].descriptorCount      = 1;
-        writes[0].descriptorType       = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        writes[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
         writes[0].pBufferInfo          = &source_buffer_info;
         writes[1].sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writes[1].dstSet               = compute_set;
@@ -877,23 +955,40 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         vkCmdBindPipeline(upload_command, VK_PIPELINE_BIND_POINT_COMPUTE,
                           use_fp64_pipeline ? vk_state.compute_pipeline_fp64
                                             : vk_state.compute_pipeline);
-        vkCmdBindDescriptorSets(upload_command, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                vk_state.compute_pipeline_layout, 0, 1,
-                                &compute_set, 0, nullptr);
+        for (uint32_t stripe_index = 0; stripe_index < stripe_plan.stripe_count;
+             ++stripe_index) {
+            const uint32_t stripe_y = stripe_index * stripe_plan.stripe_rows;
+            const uint32_t remaining_rows
+                = static_cast<uint32_t>(image.height) - stripe_y;
+            const uint32_t stripe_height = std::min(stripe_plan.stripe_rows,
+                                                    remaining_rows);
+            const uint32_t dynamic_offset = static_cast<uint32_t>(
+                stripe_plan.descriptor_range_bytes
+                * static_cast<size_t>(stripe_index));
 
-        UploadComputePushConstants push = {};
-        push.width                      = static_cast<uint32_t>(image.width);
-        push.height                     = static_cast<uint32_t>(image.height);
-        push.row_pitch_bytes = static_cast<uint32_t>(row_pitch_bytes);
-        push.pixel_stride    = static_cast<uint32_t>(pixel_stride_bytes);
-        push.channel_count   = static_cast<uint32_t>(channel_count);
-        push.data_type       = static_cast<uint32_t>(upload_type);
-        vkCmdPushConstants(upload_command, vk_state.compute_pipeline_layout,
-                           VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push), &push);
+            vkCmdBindDescriptorSets(upload_command,
+                                    VK_PIPELINE_BIND_POINT_COMPUTE,
+                                    vk_state.compute_pipeline_layout, 0, 1,
+                                    &compute_set, 1, &dynamic_offset);
 
-        const uint32_t group_x = (push.width + 15u) / 16u;
-        const uint32_t group_y = (push.height + 15u) / 16u;
-        vkCmdDispatch(upload_command, group_x, group_y, 1);
+            UploadComputePushConstants push = {};
+            push.width = static_cast<uint32_t>(image.width);
+            push.height = stripe_height;
+            push.row_pitch_bytes = static_cast<uint32_t>(
+                stripe_plan.aligned_row_pitch_bytes);
+            push.pixel_stride  = static_cast<uint32_t>(pixel_stride_bytes);
+            push.channel_count = static_cast<uint32_t>(channel_count);
+            push.data_type     = static_cast<uint32_t>(upload_type);
+            push.dst_x         = 0;
+            push.dst_y         = stripe_y;
+            vkCmdPushConstants(upload_command, vk_state.compute_pipeline_layout,
+                               VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push),
+                               &push);
+
+            const uint32_t group_x = (push.width + 15u) / 16u;
+            const uint32_t group_y = (push.height + 15u) / 16u;
+            vkCmdDispatch(upload_command, group_x, group_y, 1);
+        }
 
         VkImageMemoryBarrier to_shader = {};
         to_shader.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -929,12 +1024,21 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         submit.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submit.commandBufferCount = 1;
         submit.pCommandBuffers    = &upload_command;
+        log_upload_stage(vk_state, texture, "submit_begin",
+                         Strutil::fmt::format("command_buffer={} fence={}",
+                                              vk_handle_to_u64(upload_command),
+                                              vk_handle_to_u64(
+                                                  texture.upload_submit_fence)));
         err                       = vkQueueSubmit(vk_state.queue, 1, &submit,
                                                   texture.upload_submit_fence);
         if (err != VK_SUCCESS) {
+            log_upload_stage(vk_state, texture, "submit_error",
+                             Strutil::fmt::format("vk_result={}",
+                                                  static_cast<int>(err)));
             error_message = "vkQueueSubmit failed for upload update";
             break;
         }
+        log_upload_stage(vk_state, texture, "submit_complete");
         upload_command = VK_NULL_HANDLE;
 
         texture.upload_staging_buffer = staging_buffer;

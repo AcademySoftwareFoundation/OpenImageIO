@@ -5,6 +5,7 @@
 #include "imiv_actions.h"
 
 #include "imiv_file_dialog.h"
+#include "imiv_loaded_image.h"
 #include "imiv_ocio.h"
 #include "imiv_ui.h"
 
@@ -408,59 +409,6 @@ open_dialog_default_path(const ViewerState& viewer,
         const std::string stem = p.stem().empty() ? "window" : p.stem().string();
         const std::string ext  = p.extension().empty() ? ".exr" : p.extension().string();
         return stem + "_window" + ext;
-    }
-
-    bool
-    imagebuf_from_loaded_image(const LoadedImage& image, ImageBuf& out,
-                               std::string& error_message)
-    {
-        error_message.clear();
-        const TypeDesc format = upload_data_type_to_typedesc(image.type);
-        if (format == TypeUnknown) {
-            error_message = "unsupported source pixel type";
-            return false;
-        }
-        if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0) {
-            error_message = "no valid image is loaded";
-            return false;
-        }
-
-        const size_t width         = static_cast<size_t>(image.width);
-        const size_t height        = static_cast<size_t>(image.height);
-        const size_t channels      = static_cast<size_t>(image.nchannels);
-        const size_t min_row_pitch = width * channels * image.channel_bytes;
-        if (image.row_pitch_bytes < min_row_pitch) {
-            error_message = "image row pitch is invalid";
-            return false;
-        }
-        const size_t required_bytes = image.row_pitch_bytes * height;
-        if (image.pixels.size() < required_bytes) {
-            error_message = "image pixel buffer is incomplete";
-            return false;
-        }
-
-        ImageSpec spec(image.width, image.height, image.nchannels, format);
-        if (image.channel_names.size() == channels)
-            spec.channelnames = image.channel_names;
-        spec.attribute("Orientation", image.orientation);
-        if (!image.metadata_color_space.empty())
-            spec.attribute("oiio:ColorSpace", image.metadata_color_space);
-
-        out.reset(spec);
-        const std::byte* begin = reinterpret_cast<const std::byte*>(
-            image.pixels.data());
-        const cspan<std::byte> byte_span(begin, image.pixels.size());
-        const stride_t xstride = static_cast<stride_t>(image.nchannels
-                                                       * image.channel_bytes);
-        const stride_t ystride = static_cast<stride_t>(image.row_pitch_bytes);
-        if (!out.set_pixels(ROI::All(), format, byte_span, begin, xstride,
-                            ystride, AutoStride)) {
-            error_message = out.geterror();
-            if (error_message.empty())
-                error_message = "failed to copy source pixels into ImageBuf";
-            return false;
-        }
-        return true;
     }
 
     bool

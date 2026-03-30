@@ -169,6 +169,7 @@ set (_imiv_shared_sources
      imiv_file_dialog.cpp
      imiv_frame.cpp
      imiv_image_view.cpp
+     imiv_loaded_image.cpp
      imiv_menu.cpp
      imiv_navigation.cpp
      imiv_ocio.cpp
@@ -176,6 +177,7 @@ set (_imiv_shared_sources
      imiv_renderer.cpp
      imiv_shader_compile.cpp
      imiv_style.cpp
+     imiv_tiling.cpp
      imiv_upload_types.cpp
      imiv_ui.cpp
      imiv_viewer.cpp
@@ -1573,6 +1575,60 @@ if (TARGET imiv
         imiv_sampling_regression PROPERTIES
             LABELS "imiv;imiv_sampling;gui"
             TIMEOUT 180)
+
+    if (_imiv_enabled_vulkan)
+        add_test (
+            NAME imiv_large_image_switch_regression_vulkan
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_large_image_switch_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --backend vulkan
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/large_image_switch_regression_vulkan")
+        set_tests_properties (
+            imiv_large_image_switch_regression_vulkan PROPERTIES
+                LABELS "imiv;gui;imiv_vulkan;imiv_large"
+                TIMEOUT 300)
+    endif ()
+
+    if (_imiv_enabled_opengl)
+        add_test (
+            NAME imiv_large_image_switch_regression_opengl
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_large_image_switch_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --backend opengl
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/large_image_switch_regression_opengl")
+        set_tests_properties (
+            imiv_large_image_switch_regression_opengl PROPERTIES
+                LABELS "imiv;gui;imiv_opengl;imiv_large"
+                TIMEOUT 300)
+    endif ()
+
+    if (_imiv_enabled_metal)
+        add_test (
+            NAME imiv_large_image_switch_regression_metal
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_large_image_switch_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --backend metal
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/large_image_switch_regression_metal")
+        set_tests_properties (
+            imiv_large_image_switch_regression_metal PROPERTIES
+                LABELS "imiv;gui;imiv_metal;imiv_large"
+                TIMEOUT 300)
+    endif ()
 
     if (_imiv_enabled_backend_count GREATER 1)
         add_test (

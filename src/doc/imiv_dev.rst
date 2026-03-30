@@ -866,6 +866,33 @@ Recommendation for future work:
 That separation is the important design guardrail: image storage strategy for
 huge files should change independently from per-view preview/export semantics.
 
+The first implementation step toward that model is now in place for
+Vulkan/OpenGL/Metal:
+
+* `src/imiv/imiv_vulkan_texture.cpp` no longer binds the whole raw source
+  payload as one storage-buffer descriptor range;
+* the Vulkan upload path now pads row pitch to a device-safe alignment,
+  dispatches the compute upload in row stripes, and binds those stripes with
+  dynamic storage-buffer offsets;
+* `src/imiv/imiv_renderer_opengl.cpp` now allocates the source texture first
+  and uploads large images in row stripes via `glTexSubImage2D`, using the
+  same stripe planner to avoid one monolithic upload call; and
+* `src/imiv/imiv_renderer_metal.mm` now keeps the existing compute
+  normalization shader but dispatches it in row stripes, feeding it one
+  stripe-sized `MTLBuffer` at a time instead of one monolithic source buffer;
+* GPU normalization stays intact, including the current Vulkan RGB-to-RGBA
+  compute conversion path, the current Metal compute conversion path, and the
+  current OpenGL native-channel upload path.
+
+This is intentionally still a partial step:
+
+* the viewer still loads full source pixels into `LoadedImage`;
+* visible-region tile caching is still future work.
+
+So the immediate large-image Vulkan crash is addressed, OpenGL and Metal now
+use the same striped-upload seam, and the broader cross-backend tile/proxy
+architecture remains the next major renderer task.
+
 OCIO integration
 ----------------
 

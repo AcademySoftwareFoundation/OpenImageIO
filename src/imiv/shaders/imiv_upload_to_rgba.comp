@@ -23,6 +23,8 @@ layout(push_constant) uniform UploadPushConstants {
     uint pixel_stride_bytes;
     uint channel_count;
     uint data_type;
+    uint dst_x;
+    uint dst_y;
 } pc;
 
 const uint IMIV_DATA_U8  = 0u;
@@ -122,5 +124,5 @@ void main()
     const uint pixel_offset = gid.y * pc.row_pitch_bytes
                               + gid.x * pc.pixel_stride_bytes;
     const vec4 rgba         = decode_pixel(pixel_offset);
-    imageStore(dst_image, ivec2(gid), rgba);
+    imageStore(dst_image, ivec2(pc.dst_x + gid.x, pc.dst_y + gid.y), rgba);
 }
