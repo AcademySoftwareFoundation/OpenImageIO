@@ -244,6 +244,11 @@ Recent focused GUI regressions in `src/imiv/tools/` include:
 * `imiv_save_window_ocio_regression.py`
   GUI-driven `Export As...` OCIO export, including view-baked display/view
   validation against `oiiotool --ociodisplay`.
+* `imiv_large_image_switch_regression.py`
+  GPU-backend large-image queue switching. It currently has focused `ctest`
+  entries for Vulkan, OpenGL, and Metal where those backends are enabled,
+  forcing the striped upload path and verifying that next/previous image
+  navigation does not regress on large multi-image sessions.
 
 
 Direct Dear ImGui Test Engine usage
@@ -433,6 +438,10 @@ Run the focused per-view recipe regression::
 
     ctest --test-dir build_u -V -R '^imiv_view_recipe_regression$'
 
+Run the focused Vulkan/OpenGL/Metal large-image switch regressions::
+
+    ctest --test-dir build_u -V -R '^imiv_large_image_switch_regression_(vulkan|opengl|metal)$'
+
 Run the backend-preference regression::
 
     ctest --test-dir build_u -V -R '^imiv_backend_preferences_regression$'
@@ -468,6 +477,12 @@ When adding new UI or UX behavior, the most durable workflow is usually:
    `imiv_gui_test_run.py` or the existing focused regression scripts before
    inventing a new runner.
 6. Add backend coverage intentionally.
+   The large-image GPU regressions use
+   `IMIV_VULKAN_MAX_STORAGE_BUFFER_RANGE_OVERRIDE` and
+   `IMIV_OPENGL_MAX_UPLOAD_CHUNK_BYTES_OVERRIDE` and
+   `IMIV_METAL_MAX_UPLOAD_CHUNK_BYTES_OVERRIDE` internally so the striped
+   upload paths are exercised deterministically even on devices with larger
+   native limits.
    If a feature is backend-sensitive, decide whether it needs a backend-wide
    verification entry, a focused regression, or both.
 

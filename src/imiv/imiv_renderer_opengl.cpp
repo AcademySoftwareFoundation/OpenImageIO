@@ -4,8 +4,10 @@
 
 #include "imiv_renderer_backend.h"
 
+#include "imiv_loaded_image.h"
 #include "imiv_ocio.h"
 #include "imiv_platform_glfw.h"
+#include "imiv_tiling.h"
 #include "imiv_viewer.h"
 
 #include <imgui_impl_opengl3.h>
@@ -16,8 +18,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -153,6 +157,8 @@ struct SourceTextureUploadDesc {
     GLenum type                           = GL_FLOAT;
     const void* pixels                    = nullptr;
     GLint unpack_row_length               = 0;
+    size_t pixel_stride_bytes             = 0;
+    size_t row_pitch_bytes                = 0;
     std::vector<float> fallback_rgba_data = {};
 };
 
@@ -243,6 +249,37 @@ struct OpenGlExtraProcs {
     GlReadBufferProc ReadBuffer                         = nullptr;
     bool ready                                          = false;
 };
+
+constexpr size_t kDefaultOpenGlUploadChunkBytes = 64u * 1024u * 1024u;
+
+bool
+read_opengl_limit_override(const char* name, size_t& out_value)
+{
+    out_value         = 0;
+    const char* value = std::getenv(name);
+    if (value == nullptr || value[0] == '\0')
+        return false;
+    char* end              = nullptr;
+    unsigned long long raw = std::strtoull(value, &end, 10);
+    if (end == value || *end != '\0' || raw == 0
+        || raw > static_cast<unsigned long long>(
+                     std::numeric_limits<size_t>::max())) {
+        return false;
+    }
+    out_value = static_cast<size_t>(raw);
+    return true;
+}
+
+size_t
+opengl_max_upload_chunk_bytes()
+{
+    size_t override_value = 0;
+    if (read_opengl_limit_override("IMIV_OPENGL_MAX_UPLOAD_CHUNK_BYTES_OVERRIDE",
+                                   override_value)) {
+        return override_value;
+    }
+    return kDefaultOpenGlUploadChunkBytes;
+}
 
 struct RendererBackendState {
     GLFWwindow* window         = nullptr;
@@ -1083,6 +1120,20 @@ void main()
                                          const SourceTextureUploadDesc& upload,
                                          std::string& error_message)
     {
+        if (upload.pixels == nullptr || upload.pixel_stride_bytes == 0
+            || upload.row_pitch_bytes == 0 || upload.unpack_row_length <= 0) {
+            error_message = "invalid source upload descriptor";
+            return false;
+        }
+
+        RowStripeUploadPlan stripe_plan;
+        if (!build_row_stripe_upload_plan(
+                upload.row_pitch_bytes, upload.pixel_stride_bytes, height,
+                opengl_max_upload_chunk_bytes(), 1, stripe_plan,
+                error_message)) {
+            return false;
+        }
+
         glBindTexture(GL_TEXTURE_2D, texture_id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
@@ -1091,11 +1142,36 @@ void main()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, upload.unpack_row_length);
         glTexImage2D(GL_TEXTURE_2D, 0, upload.internal_format, width, height, 0,
-                     upload.format, upload.type, upload.pixels);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-        const GLenum err = glGetError();
+                     upload.format, upload.type, nullptr);
+        GLenum err = glGetError();
+        if (err == GL_NO_ERROR) {
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, upload.unpack_row_length);
+            const unsigned char* source_pixels
+                = reinterpret_cast<const unsigned char*>(upload.pixels);
+            for (uint32_t stripe_index = 0; stripe_index < stripe_plan.stripe_count;
+                 ++stripe_index) {
+                const int stripe_y = static_cast<int>(stripe_index
+                                                      * stripe_plan.stripe_rows);
+                const int stripe_height = std::min(
+                    static_cast<int>(stripe_plan.stripe_rows),
+                    height - stripe_y);
+                const void* stripe_pixels
+                    = source_pixels
+                      + static_cast<size_t>(stripe_y) * upload.row_pitch_bytes;
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, stripe_y, width,
+                                stripe_height, upload.format, upload.type,
+                                stripe_pixels);
+                err = glGetError();
+                if (err != GL_NO_ERROR) {
+                    error_message = stripe_plan.uses_multiple_stripes
+                                        ? "OpenGL striped texture upload failed"
+                                        : "OpenGL texture upload failed";
+                    break;
+                }
+            }
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        }
         glBindTexture(GL_TEXTURE_2D, 0);
         if (err == GL_NO_ERROR) {
             error_message.clear();
@@ -1295,30 +1371,13 @@ void main()
             return false;
         }
 
-        const size_t width         = static_cast<size_t>(image.width);
-        const size_t height        = static_cast<size_t>(image.height);
-        const size_t channels      = static_cast<size_t>(image.nchannels);
-        const size_t min_row_pitch = width * channels * image.channel_bytes;
-        if (image.row_pitch_bytes < min_row_pitch) {
-            error_message = "invalid source row pitch";
+        ImageBuf source;
+        if (!imagebuf_from_loaded_image(image, source, error_message))
             return false;
-        }
 
-        ImageSpec spec(image.width, image.height, image.nchannels, format);
-        ImageBuf source(spec);
-        const auto* begin = reinterpret_cast<const std::byte*>(
-            image.pixels.data());
-        const cspan<std::byte> byte_span(begin, image.pixels.size());
-        const stride_t xstride = static_cast<stride_t>(image.nchannels
-                                                       * image.channel_bytes);
-        const stride_t ystride = static_cast<stride_t>(image.row_pitch_bytes);
-        if (!source.set_pixels(ROI::All(), format, byte_span, begin, xstride,
-                               ystride, AutoStride)) {
-            error_message = source.geterror().empty()
-                                ? "failed to stage image data"
-                                : source.geterror();
-            return false;
-        }
+        const size_t width    = static_cast<size_t>(image.width);
+        const size_t height   = static_cast<size_t>(image.height);
+        const size_t channels = static_cast<size_t>(image.nchannels);
 
         std::vector<float> source_pixels(width * height * channels, 0.0f);
         if (!source.get_pixels(ROI::All(), TypeFloat, source_pixels.data())) {
@@ -1370,6 +1429,9 @@ void main()
             }
             upload.pixels            = upload.fallback_rgba_data.data();
             upload.unpack_row_length = image.width;
+            upload.pixel_stride_bytes = sizeof(float) * 4;
+            upload.row_pitch_bytes = static_cast<size_t>(image.width)
+                                     * upload.pixel_stride_bytes;
             error_message.clear();
             return true;
         }
@@ -1390,6 +1452,9 @@ void main()
             }
             upload.pixels            = upload.fallback_rgba_data.data();
             upload.unpack_row_length = image.width;
+            upload.pixel_stride_bytes = sizeof(float) * 4;
+            upload.row_pitch_bytes = static_cast<size_t>(image.width)
+                                     * upload.pixel_stride_bytes;
             error_message.clear();
             return true;
         }
@@ -1398,6 +1463,8 @@ void main()
                                                       / pixel_stride);
         upload.pixels            = image.pixels.data();
         upload.unpack_row_length = row_length;
+        upload.pixel_stride_bytes = pixel_stride;
+        upload.row_pitch_bytes    = image.row_pitch_bytes;
 
         switch (image.nchannels) {
         case 1: upload.format = GL_RED; break;
@@ -1459,6 +1526,9 @@ void main()
             upload.type              = GL_FLOAT;
             upload.pixels            = upload.fallback_rgba_data.data();
             upload.unpack_row_length = image.width;
+            upload.pixel_stride_bytes = sizeof(float) * 4;
+            upload.row_pitch_bytes = static_cast<size_t>(image.width)
+                                     * upload.pixel_stride_bytes;
             error_message.clear();
             return true;
         case UploadDataType::Unknown:

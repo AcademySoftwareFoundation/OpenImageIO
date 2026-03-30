@@ -4,8 +4,10 @@
 
 #include "imiv_renderer_backend.h"
 
+#include "imiv_loaded_image.h"
 #include "imiv_ocio.h"
 #include "imiv_platform_glfw.h"
+#include "imiv_tiling.h"
 #include "imiv_viewer.h"
 
 #include "imiv_imgui_metal_extras.h"
@@ -24,6 +26,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <limits>
@@ -107,11 +110,14 @@ struct MetalPreviewUniforms {
 struct MetalUploadUniforms {
     uint32_t width             = 0;
     uint32_t height            = 0;
+    uint32_t dst_y_offset      = 0;
     uint32_t row_pitch_bytes   = 0;
     uint32_t pixel_stride_bytes = 0;
     uint32_t channel_count     = 0;
     uint32_t data_type         = 0;
 };
+
+constexpr size_t kDefaultMetalUploadChunkBytes = 64u * 1024u * 1024u;
 
 RendererBackendState*
 backend_state(RendererState& renderer_state)
@@ -151,6 +157,35 @@ align_up(NSUInteger value, NSUInteger alignment)
     if (remainder == 0)
         return value;
     return value + (alignment - remainder);
+}
+
+bool
+read_metal_limit_override(const char* name, size_t& out_value)
+{
+    out_value         = 0;
+    const char* value = std::getenv(name);
+    if (value == nullptr || value[0] == '\0')
+        return false;
+    char* end              = nullptr;
+    unsigned long long raw = std::strtoull(value, &end, 10);
+    if (end == value || *end != '\0' || raw == 0
+        || raw > static_cast<unsigned long long>(
+                     std::numeric_limits<size_t>::max())) {
+        return false;
+    }
+    out_value = static_cast<size_t>(raw);
+    return true;
+}
+
+size_t
+metal_max_upload_chunk_bytes()
+{
+    size_t override_value = 0;
+    if (read_metal_limit_override("IMIV_METAL_MAX_UPLOAD_CHUNK_BYTES_OVERRIDE",
+                                  override_value)) {
+        return override_value;
+    }
+    return kDefaultMetalUploadChunkBytes;
 }
 
 void
@@ -222,20 +257,31 @@ prepare_source_upload(const LoadedImage& image, const unsigned char*& upload_ptr
     }
 
     const size_t pixel_stride_bytes = channel_bytes * channel_count;
-    if (pixel_stride_bytes == 0 || row_pitch_bytes == 0
-        || row_pitch_bytes
-               < static_cast<size_t>(image.width) * pixel_stride_bytes) {
-        error_message = "invalid source row pitch";
-        return false;
+    if (converted_pixels.empty()) {
+        LoadedImageLayout layout;
+        if (!describe_loaded_image_layout(image, layout, error_message)) {
+            if (error_message == "invalid source row pitch")
+                error_message = "invalid source row pitch";
+            return false;
+        }
+        row_pitch_bytes = image.row_pitch_bytes;
+        upload_bytes    = layout.required_bytes;
+    } else {
+        if (pixel_stride_bytes == 0 || row_pitch_bytes == 0
+            || row_pitch_bytes
+                   < static_cast<size_t>(image.width) * pixel_stride_bytes) {
+            error_message = "invalid source row pitch";
+            return false;
+        }
+        const size_t required_bytes = row_pitch_bytes
+                                      * static_cast<size_t>(image.height);
+        if (upload_bytes < required_bytes) {
+            error_message = "source pixel buffer is smaller than declared stride";
+            return false;
+        }
+        upload_bytes = required_bytes;
     }
 
-    const size_t required_bytes = row_pitch_bytes * static_cast<size_t>(image.height);
-    if (upload_bytes < required_bytes) {
-        error_message = "source pixel buffer is smaller than declared stride";
-        return false;
-    }
-
-    upload_bytes = required_bytes;
     if (row_pitch_bytes > std::numeric_limits<uint32_t>::max()
         || pixel_stride_bytes > std::numeric_limits<uint32_t>::max()) {
         error_message = "source image stride exceeds Metal upload limits";
@@ -610,6 +656,7 @@ using namespace metal;
 struct UploadUniforms {
     uint width;
     uint height;
+    uint dst_y_offset;
     uint row_pitch_bytes;
     uint pixel_stride_bytes;
     uint channel_count;
@@ -702,7 +749,8 @@ kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]
         return;
     const uint pixel_offset = gid.y * upload.row_pitch_bytes
                               + gid.x * upload.pixel_stride_bytes;
-    dst_texture.write(decode_pixel(src_bytes, upload, pixel_offset), gid);
+    dst_texture.write(decode_pixel(src_bytes, upload, pixel_offset),
+                      uint2(gid.x, gid.y + upload.dst_y_offset));
 }
 )metal";
     return [NSString stringWithUTF8String:source];
@@ -768,22 +816,15 @@ upload_source_texture(RendererBackendState& state, const LoadedImage& image,
         return false;
     }
 
-    id<MTLBuffer> source_buffer = [state.device newBufferWithBytes:upload_ptr
-                                                            length:static_cast<NSUInteger>(upload_bytes)
-                                                           options:MTLResourceStorageModeShared];
-    if (source_buffer == nil) {
-        error_message = "failed to create Metal source upload buffer";
+    const size_t pixel_stride_bytes = channel_bytes
+                                      * static_cast<size_t>(image.nchannels);
+    RowStripeUploadPlan stripe_plan;
+    if (!build_row_stripe_upload_plan(row_pitch_bytes, pixel_stride_bytes,
+                                      image.height,
+                                      metal_max_upload_chunk_bytes(), 1,
+                                      stripe_plan, error_message)) {
         return false;
     }
-
-    MetalUploadUniforms uniforms = {};
-    uniforms.width              = static_cast<uint32_t>(image.width);
-    uniforms.height             = static_cast<uint32_t>(image.height);
-    uniforms.row_pitch_bytes    = static_cast<uint32_t>(row_pitch_bytes);
-    uniforms.pixel_stride_bytes = static_cast<uint32_t>(channel_bytes
-                                                        * static_cast<size_t>(image.nchannels));
-    uniforms.channel_count      = static_cast<uint32_t>(std::max(0, image.nchannels));
-    uniforms.data_type          = static_cast<uint32_t>(upload_type);
 
     id<MTLCommandBuffer> command_buffer = [state.command_queue commandBuffer];
     if (command_buffer == nil) {
@@ -797,20 +838,59 @@ upload_source_texture(RendererBackendState& state, const LoadedImage& image,
         return false;
     }
 
+    NSMutableArray<id<MTLBuffer>>* stripe_buffers = [NSMutableArray array];
     [encoder setComputePipelineState:state.upload_pipeline];
-    [encoder setBuffer:source_buffer offset:0 atIndex:0];
-    [encoder setBytes:&uniforms length:sizeof(uniforms) atIndex:1];
     [encoder setTexture:texture atIndex:0];
 
     const MTLSize threads_per_group = MTLSizeMake(16, 16, 1);
-    const MTLSize threadgroups = MTLSizeMake(
-        (static_cast<NSUInteger>(image.width) + threads_per_group.width - 1)
-            / threads_per_group.width,
-        (static_cast<NSUInteger>(image.height) + threads_per_group.height - 1)
-            / threads_per_group.height,
-        1);
-    [encoder dispatchThreadgroups:threadgroups
-           threadsPerThreadgroup:threads_per_group];
+    for (uint32_t stripe_index = 0; stripe_index < stripe_plan.stripe_count;
+         ++stripe_index) {
+        const uint32_t stripe_y = stripe_index * stripe_plan.stripe_rows;
+        const uint32_t stripe_height = std::min(
+            stripe_plan.stripe_rows,
+            static_cast<uint32_t>(image.height) - stripe_y);
+        const size_t stripe_offset = static_cast<size_t>(stripe_y)
+                                     * row_pitch_bytes;
+        const size_t stripe_bytes = static_cast<size_t>(stripe_height)
+                                    * row_pitch_bytes;
+
+        id<MTLBuffer> source_buffer
+            = [state.device newBufferWithBytes:upload_ptr + stripe_offset
+                                        length:static_cast<NSUInteger>(stripe_bytes)
+                                       options:MTLResourceStorageModeShared];
+        if (source_buffer == nil) {
+            error_message = stripe_plan.uses_multiple_stripes
+                                ? "failed to create Metal striped upload buffer"
+                                : "failed to create Metal source upload buffer";
+            [encoder endEncoding];
+            return false;
+        }
+        [stripe_buffers addObject:source_buffer];
+
+        MetalUploadUniforms uniforms = {};
+        uniforms.width               = static_cast<uint32_t>(image.width);
+        uniforms.height              = stripe_height;
+        uniforms.dst_y_offset        = stripe_y;
+        uniforms.row_pitch_bytes     = static_cast<uint32_t>(row_pitch_bytes);
+        uniforms.pixel_stride_bytes  = static_cast<uint32_t>(
+            pixel_stride_bytes);
+        uniforms.channel_count = static_cast<uint32_t>(std::max(0,
+                                                                image.nchannels));
+        uniforms.data_type = static_cast<uint32_t>(upload_type);
+
+        [encoder setBuffer:source_buffer offset:0 atIndex:0];
+        [encoder setBytes:&uniforms length:sizeof(uniforms) atIndex:1];
+
+        const MTLSize threadgroups = MTLSizeMake(
+            (static_cast<NSUInteger>(image.width) + threads_per_group.width - 1)
+                / threads_per_group.width,
+            (static_cast<NSUInteger>(stripe_height)
+             + threads_per_group.height - 1)
+                / threads_per_group.height,
+            1);
+        [encoder dispatchThreadgroups:threadgroups
+               threadsPerThreadgroup:threads_per_group];
+    }
     [encoder endEncoding];
     [command_buffer commit];
     [command_buffer waitUntilCompleted];

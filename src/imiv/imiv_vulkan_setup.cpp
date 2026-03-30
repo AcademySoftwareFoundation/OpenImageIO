@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <limits>
@@ -116,6 +117,25 @@ query_loader_api_version()
             version = loader_version;
     }
     return version;
+}
+
+
+
+bool
+read_vulkan_limit_override(const char* name, uint32_t& out_value)
+{
+    out_value         = 0;
+    const char* value = std::getenv(name);
+    if (value == nullptr || value[0] == '\0')
+        return false;
+    char* end         = nullptr;
+    unsigned long raw = std::strtoul(value, &end, 10);
+    if (end == value || *end != '\0'
+        || raw > static_cast<unsigned long>(std::numeric_limits<uint32_t>::max())) {
+        return false;
+    }
+    out_value = static_cast<uint32_t>(raw);
+    return out_value > 0;
 }
 
 
@@ -636,18 +656,33 @@ select_physical_device_and_queue(VulkanState& vk_state,
     vk_state.physical_device = best_device;
     vk_state.queue_family    = best_queue_family;
     vk_state.max_image_dimension_2d = best_properties.limits.maxImageDimension2D;
+    vk_state.max_storage_buffer_range
+        = best_properties.limits.maxStorageBufferRange;
+    vk_state.min_storage_buffer_offset_alignment
+        = static_cast<uint32_t>(std::max<VkDeviceSize>(
+            1, best_properties.limits.minStorageBufferOffsetAlignment));
+    uint32_t storage_buffer_override = 0;
+    if (read_vulkan_limit_override(
+            "IMIV_VULKAN_MAX_STORAGE_BUFFER_RANGE_OVERRIDE",
+            storage_buffer_override)) {
+        vk_state.max_storage_buffer_range = std::min(
+            vk_state.max_storage_buffer_range, storage_buffer_override);
+    }
     if (!cache_queue_family_properties(vk_state, error_message))
         return false;
 
     if (vk_state.verbose_logging) {
         print("imiv: selected Vulkan device='{}' type={} api={}.{}.{} "
-              "queue_family={}\n",
+              "queue_family={} maxImageDimension2D={} "
+              "maxStorageBufferRange={} minStorageBufferOffsetAlignment={}\n",
               best_properties.deviceName,
               physical_device_type_name(best_properties.deviceType),
               VK_API_VERSION_MAJOR(best_properties.apiVersion),
               VK_API_VERSION_MINOR(best_properties.apiVersion),
               VK_API_VERSION_PATCH(best_properties.apiVersion),
-              vk_state.queue_family);
+              vk_state.queue_family, vk_state.max_image_dimension_2d,
+              vk_state.max_storage_buffer_range,
+              vk_state.min_storage_buffer_offset_alignment);
     }
     return true;
 }
@@ -1227,7 +1262,7 @@ init_compute_upload_resources(VulkanState& vk_state, std::string& error_message)
     }
 
     VkDescriptorPoolSize pool_sizes[2] = {};
-    pool_sizes[0].type                 = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    pool_sizes[0].type                 = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
     pool_sizes[0].descriptorCount      = 64;
     pool_sizes[1].type                 = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     pool_sizes[1].descriptorCount      = 64;
@@ -1251,7 +1286,7 @@ init_compute_upload_resources(VulkanState& vk_state, std::string& error_message)
 
     VkDescriptorSetLayoutBinding bindings[2] = {};
     bindings[0].binding                      = 0;
-    bindings[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
     bindings[0].descriptorCount = 1;
     bindings[0].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
     bindings[1].binding         = 1;

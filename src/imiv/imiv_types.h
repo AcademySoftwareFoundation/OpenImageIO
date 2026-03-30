@@ -105,6 +105,7 @@ struct VulkanTexture {
     VkCommandPool preview_command_pool      = VK_NULL_HANDLE;
     VkCommandBuffer preview_command_buffer  = VK_NULL_HANDLE;
     VkFence preview_submit_fence            = VK_NULL_HANDLE;
+    std::string debug_label;
     int width                               = 0;
     int height                              = 0;
     bool source_ready                       = false;
@@ -166,6 +167,7 @@ struct VulkanTexture {
                                                VK_NULL_HANDLE);
         preview_submit_fence   = std::exchange(other.preview_submit_fence,
                                                VK_NULL_HANDLE);
+        debug_label            = std::move(other.debug_label);
         width                  = std::exchange(other.width, 0);
         height                 = std::exchange(other.height, 0);
         source_ready           = std::exchange(other.source_ready, false);
@@ -190,6 +192,8 @@ struct UploadComputePushConstants {
     uint32_t pixel_stride    = 0;
     uint32_t channel_count   = 0;
     uint32_t data_type       = 0;
+    uint32_t dst_x           = 0;
+    uint32_t dst_y           = 0;
 };
 
 struct PreviewPushConstants {
@@ -257,6 +261,8 @@ struct VulkanState {
     bool compute_upload_ready                           = false;
     bool compute_supports_float64                       = false;
     VkFormat compute_output_format                      = VK_FORMAT_UNDEFINED;
+    uint32_t max_storage_buffer_range                   = 0;
+    uint32_t min_storage_buffer_offset_alignment        = 1;
     VkDescriptorPool compute_descriptor_pool            = VK_NULL_HANDLE;
     VkDescriptorSetLayout compute_descriptor_set_layout = VK_NULL_HANDLE;
     VkPipelineLayout compute_pipeline_layout            = VK_NULL_HANDLE;

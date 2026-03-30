@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include "imiv_loaded_image.h"
 #include "imiv_ui.h"
 
 #include <algorithm>
@@ -28,24 +29,13 @@ sample_loaded_pixel(const LoadedImage& image, int x, int y,
                     std::vector<double>& out_channels)
 {
     out_channels.clear();
-    if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0
-        || image.channel_bytes == 0) {
-        return false;
-    }
-    if (x < 0 || y < 0 || x >= image.width || y >= image.height)
+    const unsigned char* src = nullptr;
+    LoadedImageLayout layout;
+    if (!loaded_image_pixel_pointer(image, x, y, src, &layout))
         return false;
 
-    const size_t channels  = static_cast<size_t>(image.nchannels);
-    const size_t px_stride = channels * image.channel_bytes;
-    const size_t row_start = static_cast<size_t>(y) * image.row_pitch_bytes;
-    const size_t px_start  = static_cast<size_t>(x) * px_stride;
-    const size_t offset    = row_start + px_start;
-    if (offset + px_stride > image.pixels.size())
-        return false;
-
-    out_channels.resize(channels);
-    const unsigned char* src = image.pixels.data() + offset;
-    for (size_t c = 0; c < channels; ++c) {
+    out_channels.resize(static_cast<size_t>(image.nchannels));
+    for (size_t c = 0; c < out_channels.size(); ++c) {
         const unsigned char* channel_ptr = src + c * image.channel_bytes;
         double v                         = 0.0;
         switch (image.type) {

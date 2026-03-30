@@ -157,6 +157,12 @@ Focused per-view recipe regression:
 ctest --test-dir build_u -V -R '^imiv_view_recipe_regression$'
 ```
 
+Focused Vulkan/OpenGL/Metal large-image switch regressions:
+
+```bash
+ctest --test-dir build_u -V -R '^imiv_large_image_switch_regression_(vulkan|opengl|metal)$'
+```
+
 Focused Save Selection export regression:
 
 ```bash
