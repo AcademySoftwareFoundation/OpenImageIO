@@ -218,7 +218,28 @@ set (_imiv_shader_spv_16f_fp64 "${CMAKE_CURRENT_BINARY_DIR}/imiv_upload_to_rgba1
 set (_imiv_shader_spv_32f_fp64 "${CMAKE_CURRENT_BINARY_DIR}/imiv_upload_to_rgba32f_fp64.comp.spv")
 set (_imiv_preview_vert_spv "${CMAKE_CURRENT_BINARY_DIR}/imiv_preview.vert.spv")
 set (_imiv_preview_frag_spv "${CMAKE_CURRENT_BINARY_DIR}/imiv_preview.frag.spv")
+set (_imiv_shader_hdr_16f "${CMAKE_CURRENT_BINARY_DIR}/imiv_upload_to_rgba16f_spv.h")
+set (_imiv_shader_hdr_32f "${CMAKE_CURRENT_BINARY_DIR}/imiv_upload_to_rgba32f_spv.h")
+set (_imiv_shader_hdr_16f_fp64 "${CMAKE_CURRENT_BINARY_DIR}/imiv_upload_to_rgba16f_fp64_spv.h")
+set (_imiv_shader_hdr_32f_fp64 "${CMAKE_CURRENT_BINARY_DIR}/imiv_upload_to_rgba32f_fp64_spv.h")
+set (_imiv_preview_vert_hdr "${CMAKE_CURRENT_BINARY_DIR}/imiv_preview_vert_spv.h")
+set (_imiv_preview_frag_hdr "${CMAKE_CURRENT_BINARY_DIR}/imiv_preview_frag_spv.h")
 set (_imiv_shader_outputs)
+set (_imiv_embedded_shader_headers)
+
+function (_imiv_add_embedded_spirv_header input_spv output_hdr symbol_name)
+    add_custom_command (
+        OUTPUT "${output_hdr}"
+        COMMAND ${CMAKE_COMMAND}
+                -DINPUT="${input_spv}"
+                -DOUTPUT="${output_hdr}"
+                -DSYMBOL_NAME="${symbol_name}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/embed_spirv_header.cmake"
+        DEPENDS
+            "${input_spv}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/embed_spirv_header.cmake"
+        COMMENT "imiv: embedding Vulkan shader ${symbol_name}")
+endfunction ()
 
 if (_imiv_want_vulkan)
     find_program (OIIO_IMIV_GLSLC_EXECUTABLE
@@ -294,6 +315,30 @@ if (_imiv_want_vulkan)
                     -o "${_imiv_preview_frag_spv}"
             DEPENDS "${_imiv_preview_frag_src}"
             COMMENT "imiv: compiling Vulkan preview fragment shader")
+        _imiv_add_embedded_spirv_header (
+            "${_imiv_shader_spv_16f}"
+            "${_imiv_shader_hdr_16f}"
+            "g_imiv_upload_to_rgba16f_spv")
+        _imiv_add_embedded_spirv_header (
+            "${_imiv_shader_spv_32f}"
+            "${_imiv_shader_hdr_32f}"
+            "g_imiv_upload_to_rgba32f_spv")
+        _imiv_add_embedded_spirv_header (
+            "${_imiv_shader_spv_16f_fp64}"
+            "${_imiv_shader_hdr_16f_fp64}"
+            "g_imiv_upload_to_rgba16f_fp64_spv")
+        _imiv_add_embedded_spirv_header (
+            "${_imiv_shader_spv_32f_fp64}"
+            "${_imiv_shader_hdr_32f_fp64}"
+            "g_imiv_upload_to_rgba32f_fp64_spv")
+        _imiv_add_embedded_spirv_header (
+            "${_imiv_preview_vert_spv}"
+            "${_imiv_preview_vert_hdr}"
+            "g_imiv_preview_vert_spv")
+        _imiv_add_embedded_spirv_header (
+            "${_imiv_preview_frag_spv}"
+            "${_imiv_preview_frag_hdr}"
+            "g_imiv_preview_frag_spv")
         set (_imiv_shader_outputs
              "${_imiv_shader_spv_16f}"
              "${_imiv_shader_spv_32f}"
@@ -301,7 +346,16 @@ if (_imiv_want_vulkan)
              "${_imiv_shader_spv_32f_fp64}"
              "${_imiv_preview_vert_spv}"
              "${_imiv_preview_frag_spv}")
-        add_custom_target (imiv_shaders DEPENDS ${_imiv_shader_outputs})
+        set (_imiv_embedded_shader_headers
+             "${_imiv_shader_hdr_16f}"
+             "${_imiv_shader_hdr_32f}"
+             "${_imiv_shader_hdr_16f_fp64}"
+             "${_imiv_shader_hdr_32f_fp64}"
+             "${_imiv_preview_vert_hdr}"
+             "${_imiv_preview_frag_hdr}")
+        add_custom_target (imiv_shaders DEPENDS
+                           ${_imiv_shader_outputs}
+                           ${_imiv_embedded_shader_headers})
     else ()
         message (STATUS
                  "imiv: glslc not found; Vulkan compute upload shader generation disabled")
@@ -857,14 +911,14 @@ source_group ("imgui_te" FILES
               ${_imiv_test_engine_sources}
               ${_imiv_test_engine_integration_sources}
               "${CMAKE_CURRENT_SOURCE_DIR}/imiv_test_engine.h")
-source_group ("imiv\\shared" FILES ${_imiv_shared_sources})
-source_group ("imiv\\platform\\glfw" FILES ${_imiv_platform_glfw_sources})
-source_group ("imiv\\renderer\\vulkan" FILES ${_imiv_renderer_vulkan_sources})
+source_group ("Source Files" FILES ${_imiv_shared_sources})
+source_group ("Source Files\\platform\\glfw" FILES ${_imiv_platform_glfw_sources})
+source_group ("Source Files\\renderer\\vulkan" FILES ${_imiv_renderer_vulkan_sources})
 if (_imiv_renderer_metal_sources)
-    source_group ("imiv\\renderer\\metal" FILES ${_imiv_renderer_metal_sources})
+    source_group ("Source Files\\renderer\\metal" FILES ${_imiv_renderer_metal_sources})
 endif ()
 if (_imiv_renderer_opengl_sources)
-    source_group ("imiv\\renderer\\opengl" FILES ${_imiv_renderer_opengl_sources})
+    source_group ("Source Files\\renderer\\opengl" FILES ${_imiv_renderer_opengl_sources})
 endif ()
 
 if (TARGET imiv)
@@ -875,6 +929,11 @@ if (TARGET imiv)
         add_dependencies (imiv imiv_shaders)
     else ()
         target_compile_definitions (imiv PRIVATE IMIV_HAS_COMPUTE_UPLOAD_SHADERS=0)
+    endif ()
+    if (_imiv_embedded_shader_headers)
+        target_compile_definitions (imiv PRIVATE IMIV_HAS_EMBEDDED_VULKAN_SHADERS=1)
+    else ()
+        target_compile_definitions (imiv PRIVATE IMIV_HAS_EMBEDDED_VULKAN_SHADERS=0)
     endif ()
     if (_imiv_renderer_is_vulkan)
         target_compile_definitions (imiv PRIVATE IMIV_BACKEND_VULKAN_GLFW=1
