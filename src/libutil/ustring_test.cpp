@@ -169,6 +169,12 @@ test_ustring()
     OIIO_CHECK_EQUAL(whichtype, ustring("foo"));
     OIIO_CHECK_ASSERT((std::is_same<decltype(whichtype), ustring>::value));
     OIIO_CHECK_ASSERT(!(std::is_same<decltype(whichtype), const char*>::value));
+
+    // Test some edge cases for fmt formatting
+    Strutil::print("Test print empty ustring: '{}'\n", empty);
+    Strutil::print("Test print default initialized ustring: '{}'\n", uninit);
+    OIIO_CHECK_EQUAL(Strutil::format("{}", empty),
+                     Strutil::format("{}", uninit));
 }
 
 
