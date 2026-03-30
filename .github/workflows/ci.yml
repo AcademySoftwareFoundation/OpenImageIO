@@ -347,12 +347,11 @@ jobs:
           - desc: Sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2024.2
+            container: aswf/ci-oiio:2026.3
             cc_compiler: clang
             cxx_compiler: clang++
             build_type: Debug
-            opencolorio_ver: v2.4.2
-            python_ver: "3.11"
+            python_ver: "3.13"
             ctest_test_timeout: "1200"
             setenvs: export SANITIZE=address,undefined
                             OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DOIIO_HARDENING=3 -DUSE_PYTHON=0"
