@@ -811,8 +811,10 @@ Backend-specific shader paths
 
 Vulkan
     uses build-time SPIR-V for the static upload and preview shaders from
-    `src/imiv/shaders/`, with optional runtime shader compilation support for
-    generated OCIO shaders.
+    `src/imiv/shaders/`, embedded into generated headers at build time so the
+    final binary does not depend on external ``.spv`` files at runtime. OCIO
+    preview still uses optional runtime shader compilation support for the
+    generated OCIO fragment shader.
 
 OpenGL
     stays on native GLSL. It uploads supported source formats directly as GL

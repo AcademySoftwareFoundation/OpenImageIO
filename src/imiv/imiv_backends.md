@@ -109,7 +109,8 @@ Implementation:
 Constraints:
 
 - uses runtime shader compilation for OCIO
-- uses Vulkan SPIR-V pipelines
+- uses Vulkan SPIR-V pipelines embedded into the binary at build time for the
+  static upload/preview stages
 - remains the canonical backend for feature parity and regressions
 
 Notes:

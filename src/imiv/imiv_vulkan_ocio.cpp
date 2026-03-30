@@ -15,6 +15,12 @@
 #include <string>
 #include <vector>
 
+#if defined(IMIV_WITH_VULKAN) \
+    && defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
+    && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
+#    include "imiv_preview_vert_spv.h"
+#endif
+
 namespace Imiv {
 
 #if defined(IMIV_WITH_VULKAN)
@@ -96,6 +102,21 @@ namespace {
         return create_shader_module_from_words(device, allocator, words.data(),
                                                words.size(), shader_module,
                                                error_message, path.c_str());
+    }
+
+    bool create_shader_module_from_embedded_or_file(
+        VkDevice device, VkAllocationCallbacks* allocator,
+        const uint32_t* words, size_t word_count, const std::string& path,
+        const char* debug_name, VkShaderModule& shader_module,
+        std::string& error_message)
+    {
+        if (words != nullptr && word_count != 0) {
+            return create_shader_module_from_words(
+                device, allocator, words, word_count, shader_module,
+                error_message, debug_name);
+        }
+        return create_shader_module_from_file(device, allocator, path,
+                                              shader_module, error_message);
     }
 
     void destroy_ocio_texture(VulkanState& vk_state, OcioVulkanTexture& texture)
@@ -626,9 +647,19 @@ namespace {
 
         const std::string shader_vert = std::string(IMIV_SHADER_DIR)
                                         + "/imiv_preview.vert.spv";
-        if (!create_shader_module_from_file(vk_state.device, vk_state.allocator,
-                                            shader_vert, vert_module,
-                                            error_message)) {
+#    if defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
+        && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
+        const uint32_t* shader_vert_words = g_imiv_preview_vert_spv;
+        const size_t shader_vert_word_count
+            = g_imiv_preview_vert_spv_word_count;
+#    else
+        const uint32_t* shader_vert_words = nullptr;
+        const size_t shader_vert_word_count = 0;
+#    endif
+        if (!create_shader_module_from_embedded_or_file(
+                vk_state.device, vk_state.allocator, shader_vert_words,
+                shader_vert_word_count, shader_vert, "imiv.preview.vert",
+                vert_module, error_message)) {
             return false;
         }
         if (!create_shader_module_from_words(
