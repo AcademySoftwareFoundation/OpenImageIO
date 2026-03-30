@@ -159,7 +159,9 @@ OIIO_NAMESPACE_3_1_BEGIN
 /// obvious equivalent.
 OIIO_API TypeDesc tiff_datatype_to_typedesc (TIFFDataType tifftype, size_t tiffcount=1);
 
-OIIO_API TypeDesc tiff_datatype_to_typedesc (const TIFFDirEntry& dir);
+inline TypeDesc tiff_datatype_to_typedesc (const TIFFDirEntry& dir) {
+    return tiff_datatype_to_typedesc (TIFFDataType(dir.tdir_type), dir.tdir_count);
+}
 
 /// Return the data size (in bytes) of the TIFF type.
 OIIO_API size_t tiff_data_size (TIFFDataType tifftype);
