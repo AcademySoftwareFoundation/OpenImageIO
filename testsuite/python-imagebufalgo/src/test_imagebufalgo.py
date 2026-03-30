@@ -532,7 +532,7 @@ try:
     bad.clear()
 
     # fillholes_pushpull
-    b = test_iba (ImageBufAlgo.fillholes_pushpull, ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/ref/hole.tif"))
+    b = test_iba (ImageBufAlgo.fillholes_pushpull, ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/hole.tif"))
     write (b, "tahoe-filled.tif", oiio.UINT8)
 
     # over

@@ -111,9 +111,12 @@ command += oiiotool (  "-a --create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 
                      + "--siappend -trim -origin +0+0 -fullpixels -d uint8 -o trimsubimages.tif")
 
 # test hole filling
-command += oiiotool ("ref/hole.tif --fillholes -o tahoe-filled.tif")
+command += oiiotool ("src/hole.tif --fillholes -o tahoe-filled.tif")
 # test hole filling for a cropped image
 command += oiiotool ("-pattern checker 64x64+32+32 3 -ch R,G,B,A=1.0 -fullsize 128x128+0+0 --croptofull -fillholes -d uint8 -o growholes.tif")
+# test hole filling with offset data and data windows (issue #4942)
+command += oiiotool("--create 64x64-16-16 4 --fullsize 32x32+0+0 --box:color=1,0,0,1 0,0,31,31 --box:color=0,1,0,1 1,1,30,30 -d half -o data-offset-hole.exr --fillholes -o data-offset-hole-filled.exr")
+command += oiiotool("--create 64x64 4 --fullsize 32x32+16+16 --box:color=1,0,0,1 16,16,47,47 --box:color=0,1,0,1 17,17,46,46 -d half -o display-offset-hole.exr --fillholes -o display-offset-hole-filled.exr")
 
 # Test --min/--max
 command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 64x64 3 "
@@ -274,6 +277,7 @@ outputs = [
             "abs.exr", "absdiff.exr", "absdiffc.exr",
             "chsum.tif",
             "tahoe-filled.tif", "growholes.tif",
+            "data-offset-hole-filled.exr", "display-offset-hole-filled.exr",
             "rangecompress.tif", "rangeexpand.tif",
             "rangecompress-luma.tif", "rangeexpand-luma.tif",
             "min.exr", "cmin1.exr", "cmin2.exr",

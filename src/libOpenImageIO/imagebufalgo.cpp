@@ -1614,10 +1614,20 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
 
     // First, make a writable copy of the original image (converting
     // to float as a convenience) as the top level of the pyramid.
+    // Shift everything to origin (0,0) with full=data so that resize
+    // correctly maps the entire data extent between pyramid levels,
+    // even when the data window is offset from the display window.
     ImageSpec topspec = src.spec();
     topspec.set_format(TypeDesc::FLOAT);
-    ImageBuf* top = new ImageBuf(topspec);
-    paste(*top, topspec.x, topspec.y, topspec.z, 0, src);
+    topspec.full_x      = 0;
+    topspec.full_y      = 0;
+    topspec.full_width  = topspec.width;
+    topspec.full_height = topspec.height;
+    topspec.x           = 0;
+    topspec.y           = 0;
+    topspec.z           = 0;
+    ImageBuf* top       = new ImageBuf(topspec);
+    paste(*top, -src.spec().x, -src.spec().y, -src.spec().z, 0, src);
     pyramid.emplace_back(top);
 
     // Construct the rest of the pyramid by successive x/2 resizing and
