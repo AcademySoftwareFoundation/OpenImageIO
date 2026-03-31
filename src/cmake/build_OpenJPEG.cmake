@@ -5,7 +5,8 @@
 set_cache (OpenJPEG_BUILD_VERSION 2.5.4 "OpenJPEG version for local builds")
 set (OpenJPEG_GIT_REPOSITORY "https://github.com/uclouvain/openjpeg.git")
 set (OpenJPEG_GIT_TAG "v${OpenJPEG_BUILD_VERSION}")
-set (OpenJPEG_GIT_COMMIT "6c4a29b00211eb0430fa0e5e890f1ce5c80f409f")
+set_cache (OpenJPEG_GIT_COMMIT "6c4a29b00211eb0430fa0e5e890f1ce5c80f409f"
+           "commit hash to verify tag against")
 set_cache (OpenJPEG_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local OpenJPEG build, if necessary, build shared libraries" ADVANCED)
 
@@ -23,6 +24,8 @@ build_dependency_with_cmake(OpenJPEG
     )
 # Set some things up that we'll need for a subsequent find_package to work
 set (OpenJPEG_ROOT ${OpenJPEG_LOCAL_INSTALL_DIR})
+set (OpenJPEG_VERSION ${OpenJPEG_BUILD_VERSION})
+set (OPENJPEG_VERSION ${OpenJPEG_BUILD_VERSION})
 
 
 # Signal to caller that we need to find again at the installed location
