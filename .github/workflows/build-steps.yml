@@ -37,11 +37,17 @@ on:
         type: string
       fmt_commit:
         type: string
+      gcc_action_ver:
+        type: string
+      llvm_action_ver:
+        type: string
       opencolorio_ver:
         type: string
       openexr_ver:
         type: string
       pybind11_ver:
+        type: string
+      python_action_ver:
         type: string
       python_ver:
         type: string
@@ -79,6 +85,8 @@ on:
       required_deps:
         type: string
       optional_deps:
+        type: string
+      build_local_deps:
         type: string
     secrets:
         PASSED_GITHUB_TOKEN:
@@ -125,6 +133,7 @@ jobs:
       # against and testing an optional dependency, but in fact are not.
       OpenImageIO_REQUIRED_DEPS: ${{inputs.required_deps}}
       OpenImageIO_OPTIONAL_DEPS: ${{inputs.optional_deps}}
+      OpenImageIO_BUILD_LOCAL_DEPS: ${{inputs.build_local_deps}}
       SETENVS: ${{inputs.setenvs}}
       DEPCMDS: ${{inputs.depcmds}}
 
@@ -167,6 +176,22 @@ jobs:
           # path: ./ccache
           key: ${{inputs.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
           restore-keys: ${{inputs.nametag}}
+      - name: Install gcc
+        if: inputs.gcc_action_ver != ''
+        run: |
+            sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+            sudo apt-get update -y
+            sudo apt-get install -y g++-${{inputs.gcc_action_ver}}
+      - name: Install python
+        if: inputs.python_action_ver != ''
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ inputs.python_action_ver }}
+      - name: Install LLVM and Clang
+        if: inputs.llvm_action_ver != ''
+        uses: KyleMayes/install-llvm-action@ebc0426251bc40c7cd31162802432c68818ab8f0 # v2.0.9
+        with:
+          version: ${{ inputs.llvm_action_ver }}
       - name: Dependencies
         shell: bash
         run: |
