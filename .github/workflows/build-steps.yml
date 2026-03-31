@@ -178,9 +178,10 @@ jobs:
           restore-keys: ${{inputs.nametag}}
       - name: Install gcc
         if: inputs.gcc_action_ver != ''
-        uses: egor-tensin/setup-gcc@a2861a8b8538f49cf2850980acccf6b05a1b2ae4 # v2.0
-        with:
-          version: ${{ inputs.gcc_action_ver }}
+        run: |
+            sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+            sudo apt-get update -y
+            sudo apt-get install -y g++-${{inputs.gcc_action_ver}}
       - name: Install python
         if: inputs.python_action_ver != ''
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0

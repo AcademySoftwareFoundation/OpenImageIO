@@ -515,6 +515,8 @@ jobs:
             # Oldest gcc and versions of the dependencies that we support.
             nametag: linux-oldest-ubuntu
             runner: ubuntu-22.04
+            cc_compiler: gcc-9
+            cxx_compiler: g++-9
             cxx_std: 17
             fmt_ver: 9.0.0
             fmt_commit: c4ee726532178e556d923372f29163bd206d7732
