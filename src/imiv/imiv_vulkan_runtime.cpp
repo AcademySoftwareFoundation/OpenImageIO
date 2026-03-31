@@ -129,6 +129,11 @@ frame_render(VulkanState& vk_state, ImDrawData* draw_data)
     ImGui_ImplVulkanH_Window* wd = &vk_state.window_data;
     if (wd->Swapchain == VK_NULL_HANDLE)
         return;
+    if (vk_state.window_frame_submit_serials.size()
+        != static_cast<size_t>(wd->Frames.Size)) {
+        vk_state.window_frame_submit_serials.assign(
+            static_cast<size_t>(wd->Frames.Size), 0);
+    }
 
     VkResult err;
     const uint32_t semaphore_index = wd->SemaphoreIndex;
@@ -151,6 +156,15 @@ frame_render(VulkanState& vk_state, ImDrawData* draw_data)
         err = vkWaitForFences(vk_state.device, 1, &fd->Fence, VK_TRUE,
                               UINT64_MAX);
         check_vk_result(err);
+
+        const size_t frame_slot = static_cast<size_t>(wd->FrameIndex);
+        const uint64_t completed_serial
+            = vk_state.window_frame_submit_serials[frame_slot];
+        if (completed_serial > vk_state.completed_main_submit_serial) {
+            vk_state.completed_main_submit_serial = completed_serial;
+        }
+        vk_state.window_frame_submit_serials[frame_slot] = 0;
+        drain_retired_textures(vk_state, false);
 
         err = vkResetFences(vk_state.device, 1, &fd->Fence);
         check_vk_result(err);
@@ -194,6 +208,9 @@ frame_render(VulkanState& vk_state, ImDrawData* draw_data)
 
         err = vkEndCommandBuffer(fd->CommandBuffer);
         check_vk_result(err);
+        const uint64_t submit_serial = vk_state.next_main_submit_serial++;
+        vk_state.window_frame_submit_serials[static_cast<size_t>(wd->FrameIndex)]
+            = submit_serial;
         err = vkQueueSubmit(vk_state.queue, 1, &info, fd->Fence);
         check_vk_result(err);
     }

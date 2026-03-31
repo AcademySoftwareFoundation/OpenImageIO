@@ -1534,6 +1534,7 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
                                    active && actions.recenter_requested);
         ImGui::End();
         if (active) {
+            ui_state.fit_image_to_window = view_ui_state.fit_image_to_window;
             ui_state.image_window_force_dock = view_ui_state.image_window_force_dock;
         }
     }

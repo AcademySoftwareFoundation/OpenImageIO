@@ -231,6 +231,21 @@ def _write_scenario(path: Path, runtime_dir_rel: str) -> None:
         state=True,
         post_action_delay_frames=3,
     )
+    _scenario_step(
+        root,
+        "zoom_in_shortcut_after_fit",
+        key_chord="ctrl+shift+equal",
+        state=True,
+        post_action_delay_frames=3,
+    )
+    _scenario_step(
+        root,
+        "zoom_in_wheel_after_fit",
+        mouse_pos_image_rel="0.50,0.50",
+        mouse_wheel="0,1",
+        state=True,
+        post_action_delay_frames=3,
+    )
 
     tree = ET.ElementTree(root)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -390,6 +405,12 @@ def main() -> int:
         fit_image_to_window = _load_state(
             runtime_dir / "fit_image_to_window.state.json"
         )
+        zoom_in_shortcut_after_fit = _load_state(
+            runtime_dir / "zoom_in_shortcut_after_fit.state.json"
+        )
+        zoom_in_wheel_after_fit = _load_state(
+            runtime_dir / "zoom_in_wheel_after_fit.state.json"
+        )
     except RuntimeError as exc:
         return _fail(str(exc))
 
@@ -409,6 +430,8 @@ def main() -> int:
         ("zoom_in_right_drag", zoom_in_right_drag),
         ("zoom_out_right_drag", zoom_out_right_drag),
         ("fit_image_to_window", fit_image_to_window),
+        ("zoom_in_shortcut_after_fit", zoom_in_shortcut_after_fit),
+        ("zoom_in_wheel_after_fit", zoom_in_wheel_after_fit),
     )
     for name, state in states:
         if not state.get("image_loaded", False):
@@ -517,10 +540,37 @@ def main() -> int:
             f"fit={fit_zoom:.6f}, normal={normal_zoom:.6f}"
         )
 
+    shortcut_zoom = float(zoom_in_shortcut_after_fit.get("zoom", 0.0))
+    if shortcut_zoom <= fit_zoom + 1.0e-3:
+        return _fail(
+            "zoom_in_shortcut_after_fit: zoom did not increase from fit: "
+            f"fit={fit_zoom:.6f}, shortcut={shortcut_zoom:.6f}"
+        )
+    if bool(zoom_in_shortcut_after_fit.get("fit_image_to_window", False)):
+        return _fail(
+            "zoom_in_shortcut_after_fit: fit_image_to_window remained enabled"
+        )
+
+    wheel_zoom = float(zoom_in_wheel_after_fit.get("zoom", 0.0))
+    if wheel_zoom <= shortcut_zoom + 1.0e-3:
+        return _fail(
+            "zoom_in_wheel_after_fit: mouse wheel did not increase zoom: "
+            f"shortcut={shortcut_zoom:.6f}, wheel={wheel_zoom:.6f}"
+        )
+    if bool(zoom_in_wheel_after_fit.get("fit_image_to_window", False)):
+        return _fail(
+            "zoom_in_wheel_after_fit: fit_image_to_window remained enabled"
+        )
+
     print("select_drag:", select_drag["_state_path"])
     print("reselect_drag:", reselect_drag["_state_path"])
     print("normal_size:", normal_size["_state_path"])
     print("fit_image_to_window:", fit_image_to_window["_state_path"])
+    print(
+        "zoom_in_shortcut_after_fit:",
+        zoom_in_shortcut_after_fit["_state_path"],
+    )
+    print("zoom_in_wheel_after_fit:", zoom_in_wheel_after_fit["_state_path"])
     print("artifacts:", out_dir)
     return 0
 

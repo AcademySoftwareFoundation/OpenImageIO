@@ -1595,6 +1595,8 @@ setup_vulkan_device(VulkanState& vk_state, std::string& error_message)
 void
 cleanup_vulkan(VulkanState& vk_state)
 {
+    if (vk_state.device != VK_NULL_HANDLE)
+        drain_retired_textures(vk_state, true);
     if (vk_state.debug_messenger != VK_NULL_HANDLE) {
         PFN_vkDestroyDebugUtilsMessengerEXT destroy_fn
             = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(

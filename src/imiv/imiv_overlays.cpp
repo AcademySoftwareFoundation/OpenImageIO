@@ -227,51 +227,26 @@ namespace {
         }
     }
 
-    std::string format_probe_iv_float(double value)
+    std::string format_probe_display_value(double value)
     {
-        if (value < 10.0)
-            return Strutil::fmt::format("{:.3f}", value);
-        if (value < 100.0)
-            return Strutil::fmt::format("{:.2f}", value);
-        if (value < 1000.0)
-            return Strutil::fmt::format("{:.1f}", value);
-        return Strutil::fmt::format("{:.0f}", value);
-    }
+        if (!std::isfinite(value))
+            return Strutil::fmt::format("{:>8}", value);
 
-    std::string format_probe_integer_trunc(UploadDataType type, double value)
-    {
-        switch (type) {
-        case UploadDataType::UInt8:
-            return Strutil::fmt::format("{}",
-                                        static_cast<unsigned int>(
-                                            std::clamp(value, 0.0, 255.0)));
-        case UploadDataType::UInt16:
-            return Strutil::fmt::format("{}",
-                                        static_cast<unsigned int>(
-                                            std::clamp(value, 0.0, 65535.0)));
-        case UploadDataType::UInt32:
-            return Strutil::fmt::format("{}", static_cast<uint32_t>(
-                                                  std::clamp(value, 0.0,
-                                                             4294967295.0)));
-        default: break;
+        const double abs_value = std::abs(value);
+        if ((abs_value > 99999.0) || (abs_value > 0.0 && abs_value < 0.00001))
+            return Strutil::fmt::format("{: .1e}", value);
+
+        int digits_before_decimal = 1;
+        if (abs_value >= 1.0) {
+            digits_before_decimal
+                = static_cast<int>(std::floor(std::log10(abs_value))) + 1;
         }
-        return Strutil::fmt::format("{:.0f}", value);
-    }
+        digits_before_decimal = std::clamp(digits_before_decimal, 1, 5);
+        const int decimals    = std::clamp(6 - digits_before_decimal, 1, 5);
 
-    bool probe_type_is_integer(UploadDataType type)
-    {
-        return type == UploadDataType::UInt8 || type == UploadDataType::UInt16;
-    }
-
-    double probe_channel_integer_denominator(UploadDataType type)
-    {
-        switch (type) {
-        case UploadDataType::UInt8: return 255.0;
-        case UploadDataType::UInt16: return 65535.0;
-        case UploadDataType::UInt32: return 4294967295.0;
-        default: break;
-        }
-        return 1.0;
+        const std::string format
+            = Strutil::fmt::format("{{: .{}f}}", decimals);
+        return Strutil::fmt::format(format, value);
     }
 
     OverlayPanelRect
@@ -563,8 +538,6 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
 
     std::vector<std::string> lines;
     std::vector<ImU32> line_colors;
-    lines.emplace_back("Pixel Closeup:");
-    line_colors.emplace_back(IM_COL32(240, 242, 245, 255));
     if (viewer.image.path.empty()) {
         lines.emplace_back("No image loaded.");
         line_colors.emplace_back(IM_COL32(240, 242, 245, 255));
@@ -572,7 +545,7 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
         lines.emplace_back("Hover over image to inspect.");
         line_colors.emplace_back(IM_COL32(240, 242, 245, 255));
     } else {
-        lines.emplace_back(Strutil::fmt::format("          ({:d},{:d})",
+        lines.emplace_back(Strutil::fmt::format("X:  {:>7}       Y:  {:>7}",
                                                 viewer.probe_x,
                                                 viewer.probe_y));
         line_colors.emplace_back(IM_COL32(0, 255, 255, 220));
@@ -581,67 +554,37 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
         std::vector<double> max_values;
         std::vector<double> avg_values;
         int sample_count        = 0;
-        const bool integer_type = probe_type_is_integer(viewer.image.type);
-        const ProbeStatsSemantics preview_semantics
-            = integer_type ? ProbeStatsSemantics::RawStored
-                           : ProbeStatsSemantics::OIIOFloat;
         const bool have_stats
             = compute_area_stats(viewer.image, viewer.probe_x, viewer.probe_y,
                                  ui_state.closeup_avg_pixels, min_values,
                                  max_values, avg_values, sample_count,
-                                 preview_semantics);
+                                 ProbeStatsSemantics::OIIOFloat);
 
-        const double denom = probe_channel_integer_denominator(
-            viewer.image.type);
-        if (integer_type) {
-            lines.emplace_back("      Val    Norm   Min   Max   Avg");
-        } else {
-            lines.emplace_back("      Val    Min    Max    Avg");
-        }
+        lines.emplace_back("");
+        line_colors.emplace_back(IM_COL32(240, 242, 245, 255));
+        lines.emplace_back(Strutil::fmt::format(
+            "{:<2} {:>8} {:>8} {:>8} {:>8}", "", "Val", "Min", "Max",
+            "Avg"));
         line_colors.emplace_back(IM_COL32(255, 255, 160, 220));
         for (size_t c = 0; c < viewer.probe_channels.size(); ++c) {
             const std::string label
                 = pixel_preview_channel_label(viewer.image,
                                               static_cast<int>(c));
             const double semantic_value
-                = integer_type
-                      ? viewer.probe_channels[c]
-                      : probe_value_to_oiio_float(viewer.image.type,
-                                                  viewer.probe_channels[c]);
-            const std::string value
-                = integer_type
-                      ? format_probe_integer_trunc(viewer.image.type,
-                                                   viewer.probe_channels[c])
-                      : format_probe_iv_float(semantic_value);
+                = probe_value_to_oiio_float(viewer.image.type,
+                                            viewer.probe_channels[c]);
+            const std::string value = format_probe_display_value(semantic_value);
             if (have_stats && c < min_values.size() && c < max_values.size()
                 && c < avg_values.size()) {
-                if (integer_type && denom > 0.0) {
-                    lines.emplace_back(Strutil::fmt::format(
-                        "{:<2}: {:>5}  {:>6.3f}  {:>3}  {:>3}  {:>3}", label,
-                        value, viewer.probe_channels[c] / denom,
-                        format_probe_integer_trunc(viewer.image.type,
-                                                   min_values[c]),
-                        format_probe_integer_trunc(viewer.image.type,
-                                                   max_values[c]),
-                        format_probe_integer_trunc(viewer.image.type,
-                                                   avg_values[c])));
-                } else {
-                    lines.emplace_back(Strutil::fmt::format(
-                        "{:<2}: {:>6}  {:>6}  {:>6}  {:>6}", label, value,
-                        format_probe_iv_float(min_values[c]),
-                        format_probe_iv_float(max_values[c]),
-                        format_probe_iv_float(avg_values[c])));
-                }
+                lines.emplace_back(Strutil::fmt::format(
+                    "{:<2} {:>8} {:>8} {:>8} {:>8}", label, value,
+                    format_probe_display_value(min_values[c]),
+                    format_probe_display_value(max_values[c]),
+                    format_probe_display_value(avg_values[c])));
             } else {
-                if (integer_type) {
-                    lines.emplace_back(Strutil::fmt::format(
-                        "{:<2}: {:>5}  {:>6}  {:>3}  {:>3}  {:>3}", label,
-                        value, "-----", "---", "---", "---"));
-                } else {
-                    lines.emplace_back(Strutil::fmt::format(
-                        "{:<2}: {:>6}  {:>6}  {:>6}  {:>6}", label, value,
-                        "-----", "-----", "-----"));
-                }
+                lines.emplace_back(Strutil::fmt::format(
+                    "{:<2} {:>8} {:>8} {:>8} {:>8}", label, value, "-----",
+                    "-----", "-----"));
             }
             ImU32 channel_color = IM_COL32(220, 220, 220, 255);
             if (!label.empty()) {
@@ -666,9 +609,8 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
     const float text_to_window_gap  = 2.0f;
     const float text_wrap_w         = std::max(8.0f,
                                                closeup_window_size - text_pad_x * 2.0f);
-    ImFont* text_font          = fonts.mono ? fonts.mono : ImGui::GetFont();
-    const float text_font_size = text_font ? text_font->LegacySize
-                                           : ImGui::GetFontSize();
+    ImFont* text_font = fonts.mono ? fonts.mono : ImGui::GetFont();
+    const float text_font_size = 13.5f;
 
     float text_panel_h = text_pad_y * 2.0f;
     for (const std::string& line : lines) {

@@ -139,7 +139,7 @@ vulkan_destroy_texture(RendererState& renderer_state, RendererTexture& texture)
     VulkanTexture* vk_texture = reinterpret_cast<VulkanTexture*>(
         texture.backend);
     if (vk_state != nullptr && vk_texture != nullptr)
-        destroy_texture(*vk_state, *vk_texture);
+        retire_texture(*vk_state, *vk_texture);
     delete vk_texture;
 }
 
@@ -277,6 +277,7 @@ vulkan_wait_idle(RendererState& renderer_state, std::string& error_message)
     }
     const VkResult err = vkDeviceWaitIdle(vk_state->device);
     if (err == VK_SUCCESS) {
+        drain_retired_textures(*vk_state, true);
         error_message.clear();
         return true;
     }

@@ -470,7 +470,7 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
             viewer.zoom_drag_active = false;
         }
 
-        if (viewport_accepts_mouse && io.MouseWheel != 0.0f) {
+        if (image_canvas_accepts_mouse && io.MouseWheel != 0.0f) {
             const float scale = (io.MouseWheel > 0.0f) ? 1.1f : 0.9f;
             request_zoom_scale(pending_zoom, scale, true);
         }

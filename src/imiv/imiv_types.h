@@ -185,6 +185,11 @@ struct VulkanTexture {
     }
 };
 
+struct RetiredVulkanTexture {
+    VulkanTexture texture;
+    uint64_t retire_after_main_submit_serial = 0;
+};
+
 struct UploadComputePushConstants {
     uint32_t width           = 0;
     uint32_t height          = 0;
@@ -280,6 +285,10 @@ struct VulkanState {
     VkFence immediate_submit_fence                            = VK_NULL_HANDLE;
     PFN_vkSetDebugUtilsObjectNameEXT set_debug_object_name_fn = nullptr;
     uint32_t max_image_dimension_2d                           = 0;
+    uint64_t next_main_submit_serial                          = 1;
+    uint64_t completed_main_submit_serial                     = 0;
+    std::vector<uint64_t> window_frame_submit_serials;
+    std::vector<RetiredVulkanTexture> retired_textures;
 };
 
 void
@@ -324,6 +333,10 @@ set_vk_object_name(VulkanState& vk_state, VkObjectType object_type,
 
 void
 destroy_texture(VulkanState& vk_state, VulkanTexture& texture);
+void
+retire_texture(VulkanState& vk_state, VulkanTexture& texture);
+void
+drain_retired_textures(VulkanState& vk_state, bool force);
 bool
 create_texture(VulkanState& vk_state, const LoadedImage& image,
                VulkanTexture& texture, std::string& error_message);
