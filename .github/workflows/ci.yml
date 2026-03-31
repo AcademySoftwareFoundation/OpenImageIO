@@ -79,6 +79,7 @@ jobs:
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'DCMTK;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
+      build_local_deps: ${{ matrix.build_local_deps }}
     strategy:
       fail-fast: false
       matrix:
@@ -119,78 +120,6 @@ jobs:
             setenvs: export FREETYPE_VERSION=VER-2-12-0
                             BUILD_PNG_VERSION=1.6.30
             optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
-          - desc: oldest gcc9.3/C++17 py3.9 exr3.1 ocio2.3
-            # Oldest gcc and versions of the dependencies that we support.
-            nametag: linux-oldest
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2022
-            vfxyear: 2022
-            old_node: 1
-            cxx_std: 17
-            fmt_ver: 9.0.0
-            fmt_commit: c4ee726532178e556d923372f29163bd206d7732
-            opencolorio_ver: v2.3.0
-            openexr_ver: v3.1.0
-            pybind11_ver: v2.7.0
-            python_ver: 3.9
-            setenvs: export  CMAKE_VERSION=3.18.2
-                             PTEX_VERSION=v2.3.2
-                             WEBP_VERSION=v1.1.0
-                             PUGIXML_VERSION=v1.8
-                             BUILD_PNG_VERSION=1.6.0
-            depcmds: sudo rm -rf /usr/local/include/OpenEXR
-            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
-          - desc: oldest clang10/C++17 py3.9 exr3.1 ocio2.3
-            # Oldest clang and versions of the dependencies that we support.
-            nametag: linux-oldest-clang
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2022-clang10
-            vfxyear: 2021
-            old_node: 1
-            cc_compiler: clang
-            cxx_compiler: clang++
-            cxx_std: 17
-            fmt_ver: 9.0.0
-            fmt_commit: c4ee726532178e556d923372f29163bd206d7732
-            opencolorio_ver: v2.3.0
-            openexr_ver: v3.1.0
-            pybind11_ver: v2.7.0
-            python_ver: 3.9
-            setenvs: export  CMAKE_VERSION=3.18.2
-                             PTEX_VERSION=v2.3.2
-                             WEBP_VERSION=v1.1.0
-                             PUGIXML_VERSION=v1.8
-                             BUILD_PNG_VERSION=1.6.0
-            depcmds: sudo rm -rf /usr/local/include/OpenEXR
-            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
-          - desc: hobbled gcc9.3/C++17 py3.9 exr-3.1 no-sse
-            # Use the oldest supported versions of required dependencies, and
-            # disable most optional dependencies and features (no SSE or
-            # OpenCV, don't embed plugins).
-            nametag: linux-disabled
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2022
-            vfxyear: 2022
-            old_node: 1
-            cxx_std: 17
-            fmt_ver: 9.0.0
-            fmt_commit: c4ee726532178e556d923372f29163bd206d7732
-            opencolorio_ver: v2.3.0
-            openexr_ver: v3.1.0
-            pybind11_ver: v2.7.0
-            python_ver: 3.9
-            simd: 0
-            setenvs: export  EMBEDPLUGINS=0
-                             CMAKE_VERSION=3.18.2
-                             PTEX_VERSION=v2.3.2
-                             WEBP_VERSION=v1.1.0
-                             USE_JPEGTURBO=0
-                             USE_OPENCV=0
-                             FREETYPE_VERSION=VER-2-10-0
-                             PUGIXML_VERSION=v1.8
-                             BUILD_PNG_VERSION=1.6.0
-            depcmds: sudo rm -rf /usr/local/include/OpenEXR
-            required_deps: none
 
 
   #
@@ -234,6 +163,7 @@ jobs:
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'DCMTK;FFmpeg;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
+      build_local_deps: ${{ matrix.build_local_deps }}
     strategy:
       fail-fast: false
       matrix:
@@ -253,7 +183,7 @@ jobs:
           - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2024.2
+            container: aswf/ci-oiio:2024.6
             opencolorio_ver: v2.3.2
             python_ver: "3.11"
             simd: "avx2,f16c"
@@ -265,7 +195,7 @@ jobs:
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024.clang
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2024.2
+            container: aswf/ci-oiio:2024.6
             cc_compiler: clang
             cxx_compiler: clang++
             opencolorio_ver: v2.3.2
@@ -279,7 +209,7 @@ jobs:
           - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025
+            container: aswf/ci-oiio:2025.5
             cxx_std: 17
             python_ver: "3.11"
             simd: "avx2,f16c"
@@ -292,7 +222,7 @@ jobs:
           - desc: VFX2025 Debug gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025-debug
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025
+            container: aswf/ci-oiio:2025.5
             cxx_std: 17
             build_type: Debug
             ctest_test_timeout: "240"
@@ -306,7 +236,7 @@ jobs:
           # - desc: VFX2025 Static gcc11/C++17 py3.11 exr3.3 ocio2.4
           #   nametag: linux-vfx2025-static
           #   runner: ubuntu-latest
-          #   container: aswf/ci-oiio:2025
+          #   container: aswf/ci-oiio:2025.5
           #   cxx_std: 17
           #   python_ver: "3.11"
           #   simd: "avx2,f16c"
@@ -319,7 +249,7 @@ jobs:
           - desc: VFX2025 icx/C++17 py3.11 exr3.3 ocio2.4 qt5.15
             nametag: linux-vfx2025.icx
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025
+            container: aswf/ci-oiio:2025.5
             cc_compiler: icx
             cxx_compiler: icpx
             fmt_ver: 11.2.0
@@ -333,10 +263,10 @@ jobs:
                             UHDR_CMAKE_CXX_COMPILER=g++
             # Building libuhdr with icx results in test failures
             optional_deps_append: "LibRaw;Ptex;openjph;Qt6"
-          - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.4
+          - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2026
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2026
+            container: aswf/ci-oiio:2026.3
             cxx_std: 20
             python_ver: "3.13"
             simd: "avx2,f16c"
@@ -366,7 +296,7 @@ jobs:
           - desc: ABI check
             nametag: abi-check
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025
+            container: aswf/ci-oiio:2025.5
             build_type: RelWithDebInfo
             fmt_ver: 11.1.4
             fmt_commit: 123913715afeb8a437e6388b4473fcc4753e1c9a
@@ -417,10 +347,14 @@ jobs:
       ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
       coverage: ${{ matrix.coverage || 0 }}
       sonar: ${{ matrix.sonar || 0 }}
+      gcc_action_ver: ${{ matrix.gcc_action_ver }}
+      llvm_action_ver: ${{ matrix.llvm_action_ver }}
+      python_action_ver: ${{ matrix.python_action_ver }}
       # Override required_deps to be 'all' and explicitly list as optional
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;JXL;Nuke;OpenGL;openjph;OpenVDB;Ptex;pystring;Qt5;R3DSDK;' }}${{matrix.optional_deps_append}}
+      build_local_deps: ${{ matrix.build_local_deps }}
     strategy:
       fail-fast: false
       matrix:
@@ -511,8 +445,8 @@ jobs:
             cxx_std: 17
             python_ver: "3.10"
             simd: avx2,f16c
-            setenvs: export OpenImageIO_BUILD_LOCAL_DEPS=all
-                            OpenImageIO_DEPENDENCY_BUILD_VERBOSE=ON
+            build_local_deps: all
+            setenvs: export OpenImageIO_DEPENDENCY_BUILD_VERBOSE=ON
                             LIBRAW_VERSION=0.22.0
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
@@ -577,6 +511,104 @@ jobs:
                             FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
 
+          - desc: oldest gcc9/C++17 py3.9 exr3.1 ocio2.3
+            # Oldest gcc and versions of the dependencies that we support.
+            nametag: linux-oldest-ubuntu
+            runner: ubuntu-22.04
+            cc_compiler: gcc-9
+            cxx_compiler: g++-9
+            cxx_std: 17
+            fmt_ver: 9.0.0
+            fmt_commit: c4ee726532178e556d923372f29163bd206d7732
+            opencolorio_ver: v2.3.0
+            openexr_ver: v3.1.0
+            pybind11_ver: v2.7.0
+            python_ver: "3.9"
+            python_action_ver: "3.9"
+            gcc_action_ver: 9
+            setenvs: export  CMAKE_VERSION=3.18.2
+                             PTEX_VERSION=v2.3.2
+                             WEBP_VERSION=v1.1.0
+                             PUGIXML_VERSION=v1.8
+                             BUILD_PNG_VERSION=1.6.0
+                             PIP_SUFFIX=.9
+                             PIP_INSTALLS=numpy
+                             Robinmap_BUILD_VERSION=1.2.0
+                             Robinmap_GIT_COMMIT=68ff7325b3898fca267a103bad5c509e8861144d
+                             TIFF_BUILD_VERSION=4.0.0
+                             TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
+                            #  OpenJPEG_BUILD_VERSION=2.2.0
+                            #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
+            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
+            build_local_deps: 'TIFF'
+          - desc: oldest clang11/C++17 py3.9 exr3.1 ocio2.3
+            # Oldest clang and versions of the dependencies that we support.
+            nametag: linux-oldest-clang-ubuntu
+            runner: ubuntu-22.04
+            cxx_std: 17
+            fmt_ver: 9.0.0
+            fmt_commit: c4ee726532178e556d923372f29163bd206d7732
+            opencolorio_ver: v2.3.0
+            openexr_ver: v3.1.0
+            pybind11_ver: v2.7.0
+            python_ver: "3.9"
+            python_action_ver: "3.9"
+            llvm_action_ver: "11"
+            setenvs: export  CMAKE_VERSION=3.18.2
+                             PTEX_VERSION=v2.3.2
+                             WEBP_VERSION=v1.1.0
+                             PUGIXML_VERSION=v1.8
+                             BUILD_PNG_VERSION=1.6.0
+                             PIP_SUFFIX=.9
+                             PIP_INSTALLS=numpy
+                             OIIO_CC=clang
+                             OIIO_CXX=clang++
+                             Robinmap_BUILD_VERSION=1.2.0
+                             Robinmap_GIT_COMMIT=68ff7325b3898fca267a103bad5c509e8861144d
+                             TIFF_BUILD_VERSION=4.0.0
+                             TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
+                            #  OpenJPEG_BUILD_VERSION=2.2.0
+                            #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
+            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
+            build_local_deps: 'TIFF'
+
+          - desc: hobbled gcc9/C++17 py3.9 exr-3.1 no-sse
+            # Use the oldest supported versions of required dependencies, and
+            # disable most optional dependencies and features (no SSE or
+            # OpenCV, don't embed plugins).
+            nametag: linux-disabled-ubuntu
+            runner: ubuntu-22.04
+            cc_compiler: gcc-9
+            cxx_compiler: g++-9
+            cxx_std: 17
+            fmt_ver: 9.0.0
+            fmt_commit: c4ee726532178e556d923372f29163bd206d7732
+            opencolorio_ver: v2.3.0
+            openexr_ver: v3.1.0
+            pybind11_ver: v2.7.0
+            python_ver: "3.9"
+            python_action_ver: "3.9"
+            gcc_action_ver: 9
+            simd: 0
+            setenvs: export  EMBEDPLUGINS=0
+                             CMAKE_VERSION=3.18.2
+                             PTEX_VERSION=v2.3.2
+                             WEBP_VERSION=v1.1.0
+                             USE_JPEGTURBO=0
+                             USE_OPENCV=0
+                             USE_LIBUHDR=0
+                             FREETYPE_VERSION=VER-2-10-0
+                             PUGIXML_VERSION=v1.8
+                             BUILD_PNG_VERSION=1.6.0
+                             PIP_SUFFIX=.9
+                             PIP_INSTALLS=numpy
+                             Robinmap_BUILD_VERSION=1.2.0
+                             Robinmap_GIT_COMMIT=68ff7325b3898fca267a103bad5c509e8861144d
+                             TIFF_BUILD_VERSION=4.0.0
+                             TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
+            required_deps: none
+            build_local_deps: 'TIFF'
+
 
   #
   # MacOS Tests
@@ -618,6 +650,7 @@ jobs:
       # test in GHA CI.
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'Nuke;R3DSDK;' }}${{matrix.optional_deps_append}}
+      build_local_deps: ${{ matrix.build_local_deps }}
     strategy:
       fail-fast: false
       matrix:
@@ -700,6 +733,7 @@ jobs:
       # of exceptions in the future.
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;openjph;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
+      build_local_deps: ${{ matrix.build_local_deps }}
     strategy:
       fail-fast: false
       matrix:
