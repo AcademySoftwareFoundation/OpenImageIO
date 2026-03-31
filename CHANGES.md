@@ -1,3 +1,25 @@
+Release 3.0.17.0 (Apr 1, 2026) -- compared to 3.0.16.0
+---------------------------------------------------------
+  - *IBA*: Handle offset data windows in fillholes_pushpull [#5105](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5105)
+  - *texture*: Fix texture overblur with st-blur parameters [#5071](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5071) [#5080](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5080) (by Pascal Lecocq)
+  - *tiff*: Wrong number of values passed to invert_photometric [#5083](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5083)
+  - *ImageInput*: check_open fixes and new checks [#5087](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5087)
+  - *bmp*: Use check_open to guard against corrupt resolutions [#5086](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5086)
+  - *ico*: Various validity checks and error handling for corruptions [#5088](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5088)
+  - *psd*: Fixes against corrupt files with better validation [#5089](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5089)
+  - *rla*: Lots of additional validity checking and safety [#5094](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5094)
+  - *ImageSpec*: metadata_val improved safety [#5096](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5096)
+  - *build*: Include idiff in the python wheels we build [#5104](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5104)
+  - *ci*: Add CI test for MSVS 2026 [#5060](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5060)
+  - *ci*: On Mac Intel CI variant, don't install openvdb, for speed [#5065](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5065)
+  - *ci*: Fix broken Mac CI and wheel building by specifying full compiler paths [#5100](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5100) [#5101](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5101)
+  - *ci*: Update certificates to be able to install icc [#5122](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5122)
+  - *tests*: New ref outputs for heif no-avif, ffmpeg 8.1, and tiff-misc cases [#5079](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5079) [#5099](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5099) [#5112](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5112)
+  - *docs*: Fix typos and keep TextureSystem docs in sync with ImageCache [#5093](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5093) [#5085](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5085)
+  - *docs*: Fix misstatement about oiiotool `--if` [#5102](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5102)
+  - *admin*: Draft and update policy on use of AI coding assistants [#5072](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5072) [#5116](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5116)
+
+
 Release 3.0.16.0 (Mar 1, 2026) -- compared to 3.0.15.0
 -------------------------------------------------------
   - *oiiotool*: Fix expression BOTTOM when there are exactly two images [#5046](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5046)
