@@ -9,7 +9,8 @@
 set_cache (Robinmap_BUILD_VERSION 1.4.0 "Robinmap version for local builds")
 set (Robinmap_GIT_REPOSITORY "https://github.com/Tessil/robin-map")
 set (Robinmap_GIT_TAG "v${Robinmap_BUILD_VERSION}")
-set (Robinmap_GIT_COMMIT "4ec1bf19c6a96125ea22062f38c2cf5b958e448e")
+set_cache (Robinmap_GIT_COMMIT "4ec1bf19c6a96125ea22062f38c2cf5b958e448e"
+           "commit hash to verify tag against")
 
 build_dependency_with_cmake(Robinmap
     VERSION         ${Robinmap_BUILD_VERSION}
