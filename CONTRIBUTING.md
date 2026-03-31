@@ -1,3 +1,7 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->
+
+
 Contributing to OpenImageIO
 ===========================
 
@@ -76,6 +80,26 @@ Suspected security vulnerabilities should be reported by the same process.
 
 If confidentiality precludes a public question or issue for any reason, you
 may contact us privately at [security@openimageio.org](security@openimageio.org).
+
+
+Policy on AI Tools
+------------------
+
+Please read our [Policy on AI Coding Assistants](docs/dev/AI_Policy.md)
+before contributing or particpating in the project in any way mediated by "AI"
+assistants.
+
+High-level summary:
+- Human must always be in the loop, and is the responsible party for
+  the contents of a PR (including fully understanding and being able
+  to explain, defend, and modify it in response to review comments).
+- Interact with the project and community yourself, not by agent.
+- Disclose what tools you used and how. At a minimum, we require an
+  "Assisted-by: TOOL/MODEL" line in the commit comments and PR description.
+- Don't waste maintainer's time with low quality PRs.
+
+Please do read the whole [Policy on AI Coding Assistants](docs/dev/AI_Policy.md)
+for all the details.
 
 
 Contributor License Agreement (CLA) and Intellectual Property
@@ -238,33 +262,33 @@ repository. The protocol is like this:
 your own repository on GitHub, and then clone it to get a repository on your
 local machine.
 
-1. Edit, compile, and test your changes. Run clang-format (see the
+2. Edit, compile, and test your changes. Run clang-format (see the
 instructions on coding style below).
 
-1. Push your changes to your fork (each unrelated pull request to a separate
+3. Push your changes to your fork (each unrelated pull request to a separate
 "topic branch", please).
 
-1. Make a "pull request" on GitHub for your patch.
+4. Make a "pull request" on GitHub for your patch.
 
-2. If your patch will induce a major compatibility break, or has a design
+5. If your patch will induce a major compatibility break, or has a design
 component that deserves extended discussion or debate among the wider OIIO
 community, then it may be prudent to email oiio-dev pointing everybody to
 the pull request URL and discussing any issues you think are important.
 
-1. All pull requests automatically launch CI jobs on GitHub Actions to
+6. All pull requests automatically launch CI jobs on GitHub Actions to
 ensure that the build completes and that the tests suite runs correctly, for
 a variety of platform, compiler, library, and flag combinations. The status
 of the CI tests for your PR will be displayed on the GitHub PR page. We will
 not accept PRs that don't build cleanly or pass the existing testsuite.
 
-1. The reviewer will look over the code and critique on the "comments" area.
+7. The reviewer will look over the code and critique on the "comments" area.
 Reviewers may ask for changes, explain problems they found, congratulate the
 author on a clever solution, etc. But until somebody says "LGTM" (looks good
 to me), the code should not be committed. Sometimes this takes a few rounds
 of give and take. Please don't take it hard if your first try is not
 accepted. It happens to all of us.
 
-1. After approval, one of the senior developers (with commit approval to the
+8. After approval, one of the senior developers (with commit approval to the
 official main repository) will merge your fixes into the main branch.
 
 Please see the [Code Review](docs/dev/CodeReview.md) document for more
