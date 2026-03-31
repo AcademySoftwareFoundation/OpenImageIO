@@ -144,6 +144,8 @@ pull request (PR) mechanism.
   description of the major classes and their relationships.
 * [CONTRIBUTING](CONTRIBUTING.md) has detailed instructions about the
   development process.
+* [AI Policy](docs/dev/AI_Policy.md) decribes our policies on AI coding
+  assistance tools.
 * [ROADMAP](docs/ROADMAP.md) is a high-level overview of the current
   development priorities for the next annual release, expected in September,
   2024.
