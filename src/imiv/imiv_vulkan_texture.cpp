@@ -61,6 +61,150 @@ namespace {
               texture.debug_label, details);
     }
 
+    bool
+    texture_has_allocated_resources(const VulkanTexture& texture)
+    {
+        return texture.source_image != VK_NULL_HANDLE
+               || texture.source_view != VK_NULL_HANDLE
+               || texture.source_memory != VK_NULL_HANDLE
+               || texture.image != VK_NULL_HANDLE
+               || texture.view != VK_NULL_HANDLE
+               || texture.memory != VK_NULL_HANDLE
+               || texture.preview_framebuffer != VK_NULL_HANDLE
+               || texture.preview_source_set != VK_NULL_HANDLE
+               || texture.sampler != VK_NULL_HANDLE
+               || texture.nearest_mag_sampler != VK_NULL_HANDLE
+               || texture.pixelview_sampler != VK_NULL_HANDLE
+               || texture.set != VK_NULL_HANDLE
+               || texture.nearest_mag_set != VK_NULL_HANDLE
+               || texture.pixelview_set != VK_NULL_HANDLE
+               || texture.upload_staging_buffer != VK_NULL_HANDLE
+               || texture.upload_staging_memory != VK_NULL_HANDLE
+               || texture.upload_source_buffer != VK_NULL_HANDLE
+               || texture.upload_source_memory != VK_NULL_HANDLE
+               || texture.upload_compute_set != VK_NULL_HANDLE
+               || texture.upload_command_pool != VK_NULL_HANDLE
+               || texture.upload_command_buffer != VK_NULL_HANDLE
+               || texture.upload_submit_fence != VK_NULL_HANDLE
+               || texture.preview_command_pool != VK_NULL_HANDLE
+               || texture.preview_command_buffer != VK_NULL_HANDLE
+               || texture.preview_submit_fence != VK_NULL_HANDLE;
+    }
+
+    void
+    destroy_texture_now(VulkanState& vk_state, VulkanTexture& texture)
+    {
+        if (!texture_has_allocated_resources(texture)) {
+            texture.width                = 0;
+            texture.height               = 0;
+            texture.debug_label.clear();
+            texture.source_ready         = false;
+            texture.preview_initialized  = false;
+            texture.preview_dirty        = false;
+            texture.preview_params_valid = false;
+            return;
+        }
+
+        if (vk_state.verbose_logging) {
+            print("imiv: Vulkan texture destroy-now '{}'\n",
+                  texture.debug_label);
+        }
+
+        if (texture.upload_submit_pending
+            && texture.upload_submit_fence != VK_NULL_HANDLE) {
+            VkResult err = vkWaitForFences(vk_state.device, 1,
+                                           &texture.upload_submit_fence,
+                                           VK_TRUE, UINT64_MAX);
+            check_vk_result(err);
+            texture.upload_submit_pending = false;
+        }
+        if (texture.preview_submit_pending
+            && texture.preview_submit_fence != VK_NULL_HANDLE) {
+            VkResult err = vkWaitForFences(vk_state.device, 1,
+                                           &texture.preview_submit_fence,
+                                           VK_TRUE, UINT64_MAX);
+            check_vk_result(err);
+            texture.preview_submit_pending = false;
+        }
+        if (texture.pixelview_set != VK_NULL_HANDLE) {
+            ImGui_ImplVulkan_RemoveTexture(texture.pixelview_set);
+            texture.pixelview_set = VK_NULL_HANDLE;
+        }
+        if (texture.nearest_mag_set != VK_NULL_HANDLE) {
+            ImGui_ImplVulkan_RemoveTexture(texture.nearest_mag_set);
+            texture.nearest_mag_set = VK_NULL_HANDLE;
+        }
+        if (texture.set != VK_NULL_HANDLE) {
+            ImGui_ImplVulkan_RemoveTexture(texture.set);
+            texture.set = VK_NULL_HANDLE;
+        }
+        if (texture.preview_source_set != VK_NULL_HANDLE
+            && vk_state.preview_descriptor_pool != VK_NULL_HANDLE) {
+            vkFreeDescriptorSets(vk_state.device,
+                                 vk_state.preview_descriptor_pool, 1,
+                                 &texture.preview_source_set);
+            texture.preview_source_set = VK_NULL_HANDLE;
+        }
+        if (texture.preview_framebuffer != VK_NULL_HANDLE) {
+            vkDestroyFramebuffer(vk_state.device, texture.preview_framebuffer,
+                                 vk_state.allocator);
+            texture.preview_framebuffer = VK_NULL_HANDLE;
+        }
+        if (texture.sampler != VK_NULL_HANDLE) {
+            vkDestroySampler(vk_state.device, texture.sampler,
+                             vk_state.allocator);
+            texture.sampler = VK_NULL_HANDLE;
+        }
+        if (texture.nearest_mag_sampler != VK_NULL_HANDLE) {
+            vkDestroySampler(vk_state.device, texture.nearest_mag_sampler,
+                             vk_state.allocator);
+            texture.nearest_mag_sampler = VK_NULL_HANDLE;
+        }
+        if (texture.pixelview_sampler != VK_NULL_HANDLE) {
+            vkDestroySampler(vk_state.device, texture.pixelview_sampler,
+                             vk_state.allocator);
+            texture.pixelview_sampler = VK_NULL_HANDLE;
+        }
+        destroy_texture_upload_submit_resources(vk_state, texture);
+        destroy_texture_preview_submit_resources(vk_state, texture);
+        if (texture.view != VK_NULL_HANDLE) {
+            vkDestroyImageView(vk_state.device, texture.view,
+                               vk_state.allocator);
+            texture.view = VK_NULL_HANDLE;
+        }
+        if (texture.image != VK_NULL_HANDLE) {
+            vkDestroyImage(vk_state.device, texture.image,
+                           vk_state.allocator);
+            texture.image = VK_NULL_HANDLE;
+        }
+        if (texture.memory != VK_NULL_HANDLE) {
+            vkFreeMemory(vk_state.device, texture.memory, vk_state.allocator);
+            texture.memory = VK_NULL_HANDLE;
+        }
+        if (texture.source_view != VK_NULL_HANDLE) {
+            vkDestroyImageView(vk_state.device, texture.source_view,
+                               vk_state.allocator);
+            texture.source_view = VK_NULL_HANDLE;
+        }
+        if (texture.source_image != VK_NULL_HANDLE) {
+            vkDestroyImage(vk_state.device, texture.source_image,
+                           vk_state.allocator);
+            texture.source_image = VK_NULL_HANDLE;
+        }
+        if (texture.source_memory != VK_NULL_HANDLE) {
+            vkFreeMemory(vk_state.device, texture.source_memory,
+                         vk_state.allocator);
+            texture.source_memory = VK_NULL_HANDLE;
+        }
+        texture.width                = 0;
+        texture.height               = 0;
+        texture.debug_label.clear();
+        texture.source_ready         = false;
+        texture.preview_initialized  = false;
+        texture.preview_dirty        = false;
+        texture.preview_params_valid = false;
+    }
+
     bool nonblocking_fence_status(VkDevice device, VkFence fence,
                                   const char* context, bool& out_signaled,
                                   std::string& error_message)
@@ -293,95 +437,56 @@ find_memory_type_with_fallback(VkPhysicalDevice physical_device,
 void
 destroy_texture(VulkanState& vk_state, VulkanTexture& texture)
 {
-    if (texture.upload_submit_pending
-        && texture.upload_submit_fence != VK_NULL_HANDLE) {
-        VkResult err = vkWaitForFences(vk_state.device, 1,
-                                       &texture.upload_submit_fence, VK_TRUE,
-                                       UINT64_MAX);
-        check_vk_result(err);
-        texture.upload_submit_pending = false;
+    destroy_texture_now(vk_state, texture);
+}
+
+void
+retire_texture(VulkanState& vk_state, VulkanTexture& texture)
+{
+    if (!texture_has_allocated_resources(texture) || vk_state.device == VK_NULL_HANDLE) {
+        destroy_texture_now(vk_state, texture);
+        return;
     }
-    if (texture.preview_submit_pending
-        && texture.preview_submit_fence != VK_NULL_HANDLE) {
-        VkResult err = vkWaitForFences(vk_state.device, 1,
-                                       &texture.preview_submit_fence, VK_TRUE,
-                                       UINT64_MAX);
-        check_vk_result(err);
-        texture.preview_submit_pending = false;
+
+    RetiredVulkanTexture retired = {};
+    retired.texture              = std::move(texture);
+    retired.retire_after_main_submit_serial = vk_state.next_main_submit_serial;
+    if (vk_state.verbose_logging) {
+        print("imiv: Vulkan texture retire '{}' after main submit {}\n",
+              retired.texture.debug_label,
+              retired.retire_after_main_submit_serial);
     }
-    if (texture.pixelview_set != VK_NULL_HANDLE) {
-        ImGui_ImplVulkan_RemoveTexture(texture.pixelview_set);
-        texture.pixelview_set = VK_NULL_HANDLE;
+    vk_state.retired_textures.emplace_back(std::move(retired));
+}
+
+void
+drain_retired_textures(VulkanState& vk_state, bool force)
+{
+    if (vk_state.retired_textures.empty())
+        return;
+
+    size_t write_index = 0;
+    for (size_t i = 0, e = vk_state.retired_textures.size(); i < e; ++i) {
+        RetiredVulkanTexture& retired = vk_state.retired_textures[i];
+        const bool ready = force
+                           || vk_state.completed_main_submit_serial
+                                  >= retired.retire_after_main_submit_serial;
+        if (!ready) {
+            if (write_index != i)
+                vk_state.retired_textures[write_index] = std::move(retired);
+            ++write_index;
+            continue;
+        }
+        if (vk_state.verbose_logging) {
+            print("imiv: Vulkan texture retire-drain '{}' completed={} "
+                  "target={} force={}\n",
+                  retired.texture.debug_label,
+                  vk_state.completed_main_submit_serial,
+                  retired.retire_after_main_submit_serial, force ? 1 : 0);
+        }
+        destroy_texture_now(vk_state, retired.texture);
     }
-    if (texture.nearest_mag_set != VK_NULL_HANDLE) {
-        ImGui_ImplVulkan_RemoveTexture(texture.nearest_mag_set);
-        texture.nearest_mag_set = VK_NULL_HANDLE;
-    }
-    if (texture.set != VK_NULL_HANDLE) {
-        ImGui_ImplVulkan_RemoveTexture(texture.set);
-        texture.set = VK_NULL_HANDLE;
-    }
-    if (texture.preview_source_set != VK_NULL_HANDLE
-        && vk_state.preview_descriptor_pool != VK_NULL_HANDLE) {
-        vkFreeDescriptorSets(vk_state.device, vk_state.preview_descriptor_pool,
-                             1, &texture.preview_source_set);
-        texture.preview_source_set = VK_NULL_HANDLE;
-    }
-    if (texture.preview_framebuffer != VK_NULL_HANDLE) {
-        vkDestroyFramebuffer(vk_state.device, texture.preview_framebuffer,
-                             vk_state.allocator);
-        texture.preview_framebuffer = VK_NULL_HANDLE;
-    }
-    if (texture.sampler != VK_NULL_HANDLE) {
-        vkDestroySampler(vk_state.device, texture.sampler, vk_state.allocator);
-        texture.sampler = VK_NULL_HANDLE;
-    }
-    if (texture.nearest_mag_sampler != VK_NULL_HANDLE) {
-        vkDestroySampler(vk_state.device, texture.nearest_mag_sampler,
-                         vk_state.allocator);
-        texture.nearest_mag_sampler = VK_NULL_HANDLE;
-    }
-    if (texture.pixelview_sampler != VK_NULL_HANDLE) {
-        vkDestroySampler(vk_state.device, texture.pixelview_sampler,
-                         vk_state.allocator);
-        texture.pixelview_sampler = VK_NULL_HANDLE;
-    }
-    destroy_texture_upload_submit_resources(vk_state, texture);
-    destroy_texture_preview_submit_resources(vk_state, texture);
-    if (texture.view != VK_NULL_HANDLE) {
-        vkDestroyImageView(vk_state.device, texture.view, vk_state.allocator);
-        texture.view = VK_NULL_HANDLE;
-    }
-    if (texture.image != VK_NULL_HANDLE) {
-        vkDestroyImage(vk_state.device, texture.image, vk_state.allocator);
-        texture.image = VK_NULL_HANDLE;
-    }
-    if (texture.memory != VK_NULL_HANDLE) {
-        vkFreeMemory(vk_state.device, texture.memory, vk_state.allocator);
-        texture.memory = VK_NULL_HANDLE;
-    }
-    if (texture.source_view != VK_NULL_HANDLE) {
-        vkDestroyImageView(vk_state.device, texture.source_view,
-                           vk_state.allocator);
-        texture.source_view = VK_NULL_HANDLE;
-    }
-    if (texture.source_image != VK_NULL_HANDLE) {
-        vkDestroyImage(vk_state.device, texture.source_image,
-                       vk_state.allocator);
-        texture.source_image = VK_NULL_HANDLE;
-    }
-    if (texture.source_memory != VK_NULL_HANDLE) {
-        vkFreeMemory(vk_state.device, texture.source_memory,
-                     vk_state.allocator);
-        texture.source_memory = VK_NULL_HANDLE;
-    }
-    texture.width                = 0;
-    texture.height               = 0;
-    texture.debug_label.clear();
-    texture.source_ready         = false;
-    texture.preview_initialized  = false;
-    texture.preview_dirty        = false;
-    texture.preview_params_valid = false;
+    vk_state.retired_textures.resize(write_index);
 }
 
 bool

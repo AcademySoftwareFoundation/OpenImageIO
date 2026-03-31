@@ -769,6 +769,10 @@ run(const AppConfig& config)
             continue;
         renderer_destroy_texture(renderer_state, view->viewer.texture);
     }
+    if (!renderer_wait_idle(renderer_state, prefs_save_error)
+        && !prefs_save_error.empty())
+        print(stderr, "imiv: failed to finalize renderer idle: {}\n",
+              prefs_save_error);
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_stop(test_engine_runtime);
 #endif
