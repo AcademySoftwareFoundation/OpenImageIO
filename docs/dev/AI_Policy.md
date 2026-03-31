@@ -1,5 +1,5 @@
-Proposed OpenImageIO Policy on AI Coding Assistants
-===================================================
+Policy on AI Coding Assistants
+==============================
 
 - Initial policy merged 23-Mar-2026
 
@@ -8,11 +8,12 @@ Use of "AI coding assistants" is permitted on this project, with the following
 guidelines and principles.
 
 Summary of our core values:
-- Human always in the loop and is the responsible party.
-- You're still on the hook for fully understanding and standing behind what
-  you submit.
+- Human must always be in the loop, and is the responsible party for
+  the contents of a PR (including fully understanding and being able
+  to explain, defend, and modify it in response to review comments).
 - Interact with the project and community yourself, not by agent.
-- Disclose what tools you used and how.
+- Disclose what tools you used and how. At a minimum, we require an
+  "Assisted-by: TOOL/MODEL" line in the commit comments and PR description.
 - Don't waste maintainer's time with low quality PRs.
 
 The long version:
@@ -147,6 +148,17 @@ This AI tool use policy is not meant to encompass cases such as:
 - Reviewing your own code for mistakes prior to submitting a PR (as long as it
   isn't making the fixes for you).
 
+### Creative contributions -- out of scope
+
+This project repository contains code for tools, and their documentation. We
+don't really directly host any artistically creative work here, so we have not
+addressed additional policy issues that might come up in such a context.
+
+If you are representing a different project that is using this document for
+guidance or inspiration for your own policies, please be aware that you may
+have needs that are not covered by these policies but deserve well-crafted
+guidance.
+
 ### References and inspiration
 
 Our policy has been informed and inspired by the following efforts in other communities:
@@ -155,5 +167,4 @@ Our policy has been informed and inspired by the following efforts in other comm
 - [Linux Foundation policy on Generative AI](https://www.linuxfoundation.org/legal/generative-ai)
 - [Rust policy on rejecting burdensome PRs](https://github.com/rust-lang/compiler-team/issues/893)
 - The METR paper [Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/)
-
-
+- [GitHub Blog: Rethinking open source mentorship in the AI era](https://github.blog/open-source/maintainers/rethinking-open-source-mentorship-in-the-ai-era/)
