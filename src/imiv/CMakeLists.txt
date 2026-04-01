@@ -1289,6 +1289,22 @@ if (TARGET imiv
             imiv_opengl_smoke_regression PROPERTIES
                 LABELS "imiv;imiv_opengl;gui"
                 TIMEOUT 180)
+
+        add_test (
+            NAME imiv_opengl_multiopen_ocio_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_opengl_multiopen_ocio_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --backend opengl
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/opengl_multiopen_ocio_regression"
+                --open "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png")
+        set_tests_properties (
+            imiv_opengl_multiopen_ocio_regression PROPERTIES
+                LABELS "imiv;imiv_opengl;imiv_ocio;gui"
+                TIMEOUT 180)
     elseif (_imiv_renderer_is_metal)
         add_test (
             NAME imiv_metal_screenshot_regression

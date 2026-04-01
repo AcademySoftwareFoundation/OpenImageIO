@@ -243,6 +243,9 @@ Recent focused GUI regressions in `src/imiv/tools/` include:
 * `imiv_view_recipe_regression.py`
   per-view recipe isolation for exposure, gamma, offset, interpolation, and
   OCIO state with multiple image views open.
+* `imiv_opengl_multiopen_ocio_regression.py`
+  OpenGL multi-image startup with OCIO enabled, with a hard failure if the
+  runtime log reports `OpenGL OCIO preview draw failed`.
 * `imiv_save_selection_regression.py`
   GUI-driven `Save Selection As...` crop export, including selected ROI and
   orientation-baked CPU output validation.

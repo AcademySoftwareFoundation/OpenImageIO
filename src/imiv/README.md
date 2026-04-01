@@ -165,6 +165,17 @@ python3 src/imiv/tools/imiv_image_list_center_regression.py \
   --out-dir build/imiv_captures/image_list_center_regression
 ```
 
+Focused OpenGL multi-open OCIO regression:
+
+```bash
+python3 src/imiv/tools/imiv_opengl_multiopen_ocio_regression.py \
+  --bin build/bin/imiv \
+  --cwd build/bin \
+  --backend opengl \
+  --env-script build/imiv_env.sh \
+  --out-dir build/imiv_captures/opengl_multiopen_ocio_regression
+```
+
 Focused folder-open regression:
 
 ```bash
