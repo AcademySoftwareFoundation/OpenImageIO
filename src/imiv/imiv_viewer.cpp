@@ -823,6 +823,7 @@ load_image_for_compute(const std::string& path, int requested_subimage,
 
     image.path                 = path;
     image.metadata_color_space = extract_image_color_space_metadata(spec);
+    image.data_format_name     = std::string(spec.format.c_str());
     image.width                = spec.width;
     image.height               = spec.height;
     image.orientation          = clamp_orientation(

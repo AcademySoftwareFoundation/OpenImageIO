@@ -65,6 +65,28 @@ Compatibility note:
   treated as `OIIO_IMIV_DEFAULT_RENDERER`
 
 
+Embedded assets
+---------------
+
+Current multi-backend builds package two kinds of embedded runtime assets:
+
+- fonts:
+  - controlled by `OIIO_IMIV_EMBED_FONTS`
+  - default `ON`
+  - embeds `DroidSans.ttf` and `DroidSansMono.ttf`
+- Vulkan static shaders:
+  - embedded automatically when the Vulkan backend is compiled
+  - covers the fixed upload/preview SPIR-V shaders from `src/imiv/shaders/`
+
+This keeps one binary self-contained for the most common UI and static Vulkan
+renderer assets. It does **not** eliminate all runtime shader work:
+
+- Vulkan OCIO shaders are still generated at runtime from the active OCIO
+  configuration.
+- OpenGL still compiles GLSL at runtime.
+- Metal still compiles MSL source at runtime.
+
+
 ## Runtime Model
 
 The runtime backend metadata layer lives in:

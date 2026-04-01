@@ -108,6 +108,20 @@ cmake -S . -B build_u \
 ctest --test-dir build_u -N | rg imiv_backend_verify
 ```
 
+Embedded binary assets:
+
+- `OIIO_IMIV_EMBED_FONTS=ON` is the default and embeds `DroidSans.ttf` and
+  `DroidSansMono.ttf` into the `imiv` binary.
+- `OIIO_IMIV_EMBED_FONTS=OFF` keeps the older runtime `fonts/` directory
+  behavior, with fallback to Dear ImGui's default font if those files are not
+  present.
+- Vulkan static upload and preview shaders are embedded into the binary at
+  build time from `src/imiv/shaders/`.
+- Vulkan OCIO preview shaders are still generated at runtime from the active
+  OCIO configuration.
+- OpenGL and Metal continue to compile their native shader source at runtime;
+  they do not use embedded SPIR-V blobs.
+
 Focused backend-selector regression from a multi-backend build:
 
 ```bash
@@ -137,7 +151,19 @@ This covers:
 - Image List single-click into the active view
 - open-in-new-view
 - close-in-active-view
-- remove-from-session
+- remove-from-session, including the one-image-remaining case
+
+Focused Image List centering regression:
+
+```bash
+python3 src/imiv/tools/imiv_image_list_center_regression.py \
+  --bin build/bin/imiv \
+  --cwd build/bin \
+  --backend opengl \
+  --oiiotool build/bin/oiiotool \
+  --env-script build/imiv_env.sh \
+  --out-dir build/imiv_captures/image_list_center_regression
+```
 
 Focused folder-open regression:
 

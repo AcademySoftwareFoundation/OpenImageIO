@@ -111,6 +111,8 @@ Constraints:
 - uses runtime shader compilation for OCIO
 - uses Vulkan SPIR-V pipelines embedded into the binary at build time for the
   static upload/preview stages
+- keeps external `.spv` loading only as a fallback path for unusual build
+  layouts
 - remains the canonical backend for feature parity and regressions
 
 Notes:
@@ -137,6 +139,12 @@ Hard constraints:
 4. Direct source upload is preferred over a Vulkan-style upload/compute stage.
 5. OCIO must use OCIO GLSL output, not the Vulkan runtime shader
    path.
+
+Notes:
+
+- OpenGL does not use embedded binary shader blobs.
+- Static preview and OCIO shaders remain native GLSL source compiled at
+  runtime by the GL driver.
 
 Target API level:
 

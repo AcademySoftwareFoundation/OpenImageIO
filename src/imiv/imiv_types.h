@@ -45,6 +45,7 @@ map_spec_type_to_upload(OIIO::TypeDesc spec_type, UploadDataType& upload_type,
 struct LoadedImage {
     std::string path;
     std::string metadata_color_space;
+    std::string data_format_name;
     int width              = 0;
     int height             = 0;
     int orientation        = 1;

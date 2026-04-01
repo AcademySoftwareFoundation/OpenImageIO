@@ -298,10 +298,16 @@ def main() -> int:
 
     if int(remove_state.get("loaded_image_count", -1)) != 1:
         return _fail("remove-from-session did not shrink the session queue")
-    if bool(remove_state.get("image_list_visible", True)):
-        return _fail("Image List did not hide after the queue shrank to one image")
-    if int(remove_state.get("loaded_view_count", -1)) != 0:
-        return _fail("remove-from-session did not close views showing the removed image")
+    if not bool(remove_state.get("image_list_visible", False)):
+        return _fail(
+            "Image List did not remain visible after the queue shrank to one image"
+        )
+    if int(remove_state.get("loaded_view_count", -1)) != 1:
+        return _fail(
+            "remove-from-session did not keep the surviving image loaded in one view"
+        )
+    if _row_open_view_ids(remove_state, 0) != [1]:
+        return _fail("remaining Image List row did not report the primary view id")
 
     print(f"click_state: {click_state_path}")
     print(f"double_click_state: {double_click_state_path}")

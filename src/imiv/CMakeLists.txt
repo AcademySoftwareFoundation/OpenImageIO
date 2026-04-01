@@ -22,6 +22,8 @@ set (OIIO_IMIV_GLSLANG_DEFAULT_LIMITS_LIBRARY "" CACHE FILEPATH
      "Optional explicit glslang-default-resource-limits library path for imiv runtime shader compilation")
 option (OIIO_IMIV_USE_NATIVEFILEDIALOG
         "Use nativefiledialog-extended for imiv file open/save actions" ON)
+option (OIIO_IMIV_EMBED_FONTS
+        "Embed imiv UI and mono fonts into the binary" ON)
 option (OIIO_IMIV_ENABLE_IMGUI_TEST_ENGINE
         "Build imiv with Dear ImGui Test Engine integration when sources are available" ON)
 option (OIIO_IMIV_ADD_UPLOAD_SMOKE_CTEST
@@ -228,6 +230,11 @@ set (_imiv_preview_vert_hdr "${CMAKE_CURRENT_BINARY_DIR}/imiv_preview_vert_spv.h
 set (_imiv_preview_frag_hdr "${CMAKE_CURRENT_BINARY_DIR}/imiv_preview_frag_spv.h")
 set (_imiv_shader_outputs)
 set (_imiv_embedded_shader_headers)
+set (_imiv_font_ui_ttf "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans.ttf")
+set (_imiv_font_mono_ttf "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/DroidSansMono.ttf")
+set (_imiv_font_ui_hdr "${CMAKE_CURRENT_BINARY_DIR}/imiv_font_droidsans_ttf.h")
+set (_imiv_font_mono_hdr "${CMAKE_CURRENT_BINARY_DIR}/imiv_font_droidsansmono_ttf.h")
+set (_imiv_embedded_font_headers)
 
 function (_imiv_add_embedded_spirv_header input_spv output_hdr symbol_name)
     add_custom_command (
@@ -242,6 +249,36 @@ function (_imiv_add_embedded_spirv_header input_spv output_hdr symbol_name)
             "${CMAKE_CURRENT_SOURCE_DIR}/embed_spirv_header.cmake"
         COMMENT "imiv: embedding Vulkan shader ${symbol_name}")
 endfunction ()
+
+function (_imiv_add_embedded_binary_header input_bin output_hdr symbol_name)
+    add_custom_command (
+        OUTPUT "${output_hdr}"
+        COMMAND ${CMAKE_COMMAND}
+                -DINPUT="${input_bin}"
+                -DOUTPUT="${output_hdr}"
+                -DSYMBOL_NAME="${symbol_name}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/embed_binary_header.cmake"
+        DEPENDS
+            "${input_bin}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/embed_binary_header.cmake"
+        COMMENT "imiv: embedding binary asset ${symbol_name}")
+endfunction ()
+
+if (OIIO_IMIV_EMBED_FONTS)
+    if (NOT EXISTS "${_imiv_font_ui_ttf}" OR NOT EXISTS "${_imiv_font_mono_ttf}")
+        message (FATAL_ERROR
+                 "imiv: OIIO_IMIV_EMBED_FONTS=ON requires ${_imiv_font_ui_ttf} and ${_imiv_font_mono_ttf}")
+    endif ()
+    _imiv_add_embedded_binary_header ("${_imiv_font_ui_ttf}"
+                                      "${_imiv_font_ui_hdr}"
+                                      "g_imiv_font_droidsans_ttf")
+    _imiv_add_embedded_binary_header ("${_imiv_font_mono_ttf}"
+                                      "${_imiv_font_mono_hdr}"
+                                      "g_imiv_font_droidsansmono_ttf")
+    list (APPEND _imiv_embedded_font_headers
+          "${_imiv_font_ui_hdr}"
+          "${_imiv_font_mono_hdr}")
+endif ()
 
 if (_imiv_want_vulkan)
     find_program (OIIO_IMIV_GLSLC_EXECUTABLE
@@ -815,6 +852,7 @@ endif ()
 set (IMIV_WITH_VULKAN 0)
 set (IMIV_WITH_METAL 0)
 set (IMIV_WITH_OPENGL 0)
+set (IMIV_EMBED_FONTS 0)
 set (IMIV_BUILD_DEFAULT_BACKEND_KIND -1)
 if (_imiv_enabled_vulkan)
     set (IMIV_WITH_VULKAN 1)
@@ -824,6 +862,9 @@ if (_imiv_enabled_metal)
 endif ()
 if (_imiv_enabled_opengl)
     set (IMIV_WITH_OPENGL 1)
+endif ()
+if (OIIO_IMIV_EMBED_FONTS)
+    set (IMIV_EMBED_FONTS 1)
 endif ()
 if (_imiv_renderer_is_vulkan)
     set (IMIV_BUILD_DEFAULT_BACKEND_KIND 0)
@@ -860,7 +901,8 @@ set (_imiv_core_sources
      ${_imiv_shared_sources}
      ${_imiv_test_engine_integration_sources}
      ${_imiv_platform_glfw_sources}
-     ${_imiv_renderer_enabled_sources})
+     ${_imiv_renderer_enabled_sources}
+     ${_imiv_embedded_font_headers})
 
 set (_imiv_imgui_renderer_sources)
 if (_imiv_enabled_vulkan)
@@ -1016,40 +1058,38 @@ if (TARGET imiv)
         target_compile_definitions (imiv PRIVATE IMIV_HAS_NFD=0)
     endif ()
 
-    add_custom_command (
-        TARGET imiv POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans"
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans_Mono"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans.ttf"
-                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans/DroidSans.ttf"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans-Bold.ttf"
-                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans/DroidSans-Bold.ttf"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/droid-lic.txt"
-                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans/droid-lic.txt"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/DroidSansMono.ttf"
-                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans_Mono/DroidSansMono.ttf"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/droid-lic.txt"
-                "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans_Mono/droid-lic.txt"
-        VERBATIM)
+    if (NOT OIIO_IMIV_EMBED_FONTS)
+        add_custom_command (
+            TARGET imiv POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans"
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans_Mono"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans.ttf"
+                    "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans/DroidSans.ttf"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/droid-lic.txt"
+                    "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans/droid-lic.txt"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/DroidSansMono.ttf"
+                    "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans_Mono/DroidSansMono.ttf"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/droid-lic.txt"
+                    "$<TARGET_FILE_DIR:imiv>/fonts/Droid_Sans_Mono/droid-lic.txt"
+            VERBATIM)
 
-    install (FILES
-                 "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans.ttf"
-                 "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans-Bold.ttf"
-                 "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/droid-lic.txt"
-             DESTINATION
-                 "${CMAKE_INSTALL_BINDIR}/fonts/Droid_Sans")
-    install (FILES
-                 "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/DroidSansMono.ttf"
-                 "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/droid-lic.txt"
-             DESTINATION
-                 "${CMAKE_INSTALL_BINDIR}/fonts/Droid_Sans_Mono")
+        install (FILES
+                     "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/DroidSans.ttf"
+                     "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans/droid-lic.txt"
+                 DESTINATION
+                     "${CMAKE_INSTALL_BINDIR}/fonts/Droid_Sans")
+        install (FILES
+                     "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/DroidSansMono.ttf"
+                     "${PROJECT_SOURCE_DIR}/src/fonts/Droid_Sans_Mono/droid-lic.txt"
+                 DESTINATION
+                     "${CMAKE_INSTALL_BINDIR}/fonts/Droid_Sans_Mono")
+    endif ()
 endif ()
 
 if (MSVC)
@@ -1429,6 +1469,24 @@ if (TARGET imiv
         imiv_image_list_interaction_regression PROPERTIES
             LABELS "imiv;gui;imiv_multiview"
             TIMEOUT 180)
+
+    if (TARGET oiiotool)
+        add_test (
+            NAME imiv_image_list_center_regression
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_image_list_center_regression.py"
+                --bin "$<TARGET_FILE:imiv>"
+                --cwd "$<TARGET_FILE_DIR:imiv>"
+                --backend opengl
+                --oiiotool "$<TARGET_FILE:oiiotool>"
+                --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+                --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/image_list_center_regression")
+        set_tests_properties (
+            imiv_image_list_center_regression PROPERTIES
+                LABELS "imiv;gui;imiv_multiview"
+                TIMEOUT 180)
+    endif ()
 
     add_test (
         NAME imiv_drag_drop_regression

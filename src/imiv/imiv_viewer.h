@@ -50,6 +50,7 @@ struct ViewerState {
     ImVec2 scroll               = ImVec2(0.0f, 0.0f);
     ImVec2 norm_scroll          = ImVec2(0.5f, 0.5f);
     ImVec2 max_scroll           = ImVec2(0.0f, 0.0f);
+    ImVec2 last_viewport_size   = ImVec2(0.0f, 0.0f);
     ImVec2 zoom_pivot_screen    = ImVec2(0.0f, 0.0f);
     ImVec2 zoom_pivot_source_uv = ImVec2(0.5f, 0.5f);
     bool zoom_pivot_pending     = false;

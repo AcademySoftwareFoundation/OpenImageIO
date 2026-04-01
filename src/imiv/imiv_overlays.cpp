@@ -9,7 +9,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <cstdint>
+#include <filesystem>
 #include <limits>
 #include <string>
 #include <vector>
@@ -407,44 +409,79 @@ namespace {
         return "Navigate";
     }
 
+    std::string upper_ascii_copy(std::string value)
+    {
+        std::transform(value.begin(), value.end(), value.begin(),
+                       [](unsigned char c) { return std::toupper(c); });
+        return value;
+    }
+
+    std::string status_channel_layout_text(const LoadedImage& image)
+    {
+        switch (image.nchannels) {
+        case 1: return "GRAY";
+        case 2: return "RG";
+        case 3: return "RGB";
+        case 4: return "RGBA";
+        default: break;
+        }
+        return Strutil::fmt::format("{}CH", std::max(0, image.nchannels));
+    }
+
     std::string status_image_text(const ViewerState& viewer)
     {
         if (viewer.image.path.empty())
             return "No image loaded";
-        int current = 1;
-        int total   = 1;
-        if (!viewer.loaded_image_paths.empty()
-            && viewer.current_path_index >= 0) {
-            total   = static_cast<int>(viewer.loaded_image_paths.size());
-            current = viewer.current_path_index + 1;
-        }
-        return Strutil::fmt::format("({}/{}): {} ({}x{}, {} ch, {})", current,
-                                    total, viewer.image.path,
-                                    viewer.image.width, viewer.image.height,
-                                    viewer.image.nchannels,
-                                    upload_data_type_name(viewer.image.type));
+        const std::filesystem::path path(viewer.image.path);
+        const std::string filename = path.filename().empty()
+                                         ? viewer.image.path
+                                         : path.filename().string();
+        return filename;
     }
 
-    std::string status_view_text(const ViewerState& viewer,
-                                 const PlaceholderUiState& ui)
+    std::string status_specs_text(const ViewerState& viewer)
     {
         if (viewer.image.path.empty())
             return "";
 
-        std::string mode = color_mode_name(ui.color_mode);
-        if (ui.color_mode == 2 || ui.color_mode == 4) {
-            mode += Strutil::fmt::format(" {}", ui.current_channel);
-        } else {
-            mode += Strutil::fmt::format(" ({})",
-                                         channel_view_name(ui.current_channel));
+        std::string type_name = viewer.image.data_format_name;
+        if (type_name.empty()) {
+            type_name = std::string(
+                upload_data_type_to_typedesc(viewer.image.type).c_str());
         }
+        if (type_name.empty() || type_name == "unknown")
+            type_name = std::string(upload_data_type_name(viewer.image.type));
+        type_name = upper_ascii_copy(type_name);
+
+        return Strutil::fmt::format("{}x{}  {}  {}", viewer.image.width,
+                                    viewer.image.height,
+                                    status_channel_layout_text(viewer.image),
+                                    type_name);
+    }
+
+    std::string status_preview_text(const ViewerState& viewer,
+                                    const PlaceholderUiState& ui)
+    {
+        if (viewer.image.path.empty())
+            return "";
 
         const float zoom  = std::max(viewer.zoom, 0.00001f);
         const float z_num = zoom >= 1.0f ? zoom : 1.0f;
         const float z_den = zoom >= 1.0f ? 1.0f : (1.0f / zoom);
         std::string text  = Strutil::fmt::format(
-            "{}  {:.2f}:{:.2f}  exp {:+.1f}  gam {:.2f}  off {:+.2f}", mode,
+            "zoom {:.2f}:{:.2f}  exp {:+.1f}  gam {:.2f}  shift {:+.2f}",
             z_num, z_den, ui.exposure, ui.gamma, ui.offset);
+        if (ui.color_mode != 0 || ui.current_channel != 0) {
+            std::string mode = color_mode_name(ui.color_mode);
+            if (ui.color_mode == 2 || ui.color_mode == 4) {
+                mode += Strutil::fmt::format(" {}", ui.current_channel);
+            } else {
+                mode += Strutil::fmt::format(" ({})",
+                                             channel_view_name(
+                                                 ui.current_channel));
+            }
+            text += Strutil::fmt::format("  view {}", mode);
+        }
         if (viewer.image.nsubimages > 1) {
             if (viewer.auto_subimage) {
                 text += Strutil::fmt::format("  subimg AUTO ({}/{})",
@@ -908,11 +945,12 @@ draw_area_probe_overlay(const ViewerState& viewer,
 void
 draw_embedded_status_bar(ViewerState& viewer, PlaceholderUiState& ui)
 {
-    const std::string img_text  = status_image_text(viewer);
-    const std::string view_text = status_view_text(viewer, ui);
+    const std::string filename_text = status_image_text(viewer);
+    const std::string specs_text    = status_specs_text(viewer);
+    const std::string preview_text  = status_preview_text(viewer, ui);
     const bool show_progress    = false;
 
-    int columns = 2;
+    int columns = 3;
     if (show_progress)
         ++columns;
     if (ui.show_mouse_mode_selector)
@@ -923,10 +961,12 @@ draw_embedded_status_bar(ViewerState& viewer, PlaceholderUiState& ui)
                                   | ImGuiTableFlags_NoSavedSettings;
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 4.0f));
     if (ImGui::BeginTable("##imiv_status_bar", columns, table_flags)) {
-        ImGui::TableSetupColumn("Image", ImGuiTableColumnFlags_WidthStretch,
-                                2.5f);
-        ImGui::TableSetupColumn("View", ImGuiTableColumnFlags_WidthStretch,
-                                2.0f);
+        ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthStretch,
+                                2.2f);
+        ImGui::TableSetupColumn("Specs", ImGuiTableColumnFlags_WidthStretch,
+                                1.8f);
+        ImGui::TableSetupColumn("Preview", ImGuiTableColumnFlags_WidthStretch,
+                                2.2f);
         if (show_progress) {
             ImGui::TableSetupColumn("Load", ImGuiTableColumnFlags_WidthFixed,
                                     140.0f);
@@ -938,12 +978,16 @@ draw_embedded_status_bar(ViewerState& viewer, PlaceholderUiState& ui)
 
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        ImGui::TextUnformatted(img_text.c_str());
-        register_layout_dump_synthetic_item("text", img_text.c_str());
+        ImGui::TextUnformatted(filename_text.c_str());
+        register_layout_dump_synthetic_item("text", filename_text.c_str());
 
         ImGui::TableNextColumn();
-        ImGui::TextUnformatted(view_text.c_str());
-        register_layout_dump_synthetic_item("text", view_text.c_str());
+        ImGui::TextUnformatted(specs_text.c_str());
+        register_layout_dump_synthetic_item("text", specs_text.c_str());
+
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted(preview_text.c_str());
+        register_layout_dump_synthetic_item("text", preview_text.c_str());
 
         if (show_progress) {
             ImGui::TableNextColumn();
