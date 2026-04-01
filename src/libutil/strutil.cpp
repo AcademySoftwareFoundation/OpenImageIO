@@ -1005,7 +1005,9 @@ Strutil::utf8_to_utf16wstring(string_view str) noexcept
 #else
     try {
         OIIO_PRAGMA_WARNING_PUSH
-        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+#    if defined(__clang__) || OIIO_GNUC_VERSION >= 150000
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+#    endif
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
         OIIO_PRAGMA_WARNING_POP
         return conv.from_bytes(str.data(), str.data() + str.size());
@@ -1033,7 +1035,9 @@ Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 #else
     try {
         OIIO_PRAGMA_WARNING_PUSH
-        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+#    if defined(__clang__) || OIIO_GNUC_VERSION >= 150000
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+#    endif
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
         OIIO_PRAGMA_WARNING_POP
         return conv.to_bytes(str);
@@ -1058,7 +1062,9 @@ Strutil::utf16_to_utf8(const std::u16string& str) noexcept
 #else
     try {
         OIIO_PRAGMA_WARNING_PUSH
-        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+#    if defined(__clang__) || OIIO_GNUC_VERSION >= 150000
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+#    endif
         std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conv;
         return conv.to_bytes(str);
         OIIO_PRAGMA_WARNING_POP
