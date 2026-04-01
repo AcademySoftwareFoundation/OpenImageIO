@@ -280,15 +280,15 @@ being a passive history view:
 
 * `>` marks the image shown in the active image view;
 * `[N]` reports how many open image views currently show that path;
-* a small inline close button appears for rows visible in the active view;
+* a small inline `x` button removes that path from the session queue;
 * the row popup menu routes the shared-library actions:
   `Open in active view`, `Open in new view`, `Close in active view`,
   `Close in all views`, and `Remove from session`.
 
 Those actions are implemented against the shared `ImageLibraryState` plus the
 current `MultiViewWorkspace`. `Close` mutates view bindings only. `Remove`
-edits the shared session queue and then retargets or clears any views that
-were showing the removed path.
+edits the shared session queue and then retargets any affected views to the
+next surviving queue item, or clears them if the queue becomes empty.
 
 Folder-open path filtering
 --------------------------
@@ -927,6 +927,9 @@ Important cache variables from `src/imiv/CMakeLists.txt` include:
   compile test-engine support when sources are available.
 * `OIIO_IMIV_USE_NATIVEFILEDIALOG`
   enable native file-open/save integration.
+* `OIIO_IMIV_EMBED_FONTS`
+  embed the `DroidSans.ttf` and `DroidSansMono.ttf` runtime fonts into the
+  :program:`imiv` binary. This is enabled by default.
 * `OIIO_IMIV_ADD_BACKEND_VERIFY_CTEST`
   add the longer per-backend verification CTest entries.
 
@@ -949,6 +952,78 @@ macOS build with Metal default and OpenGL also compiled::
       -D OIIO_IMIV_ENABLE_VULKAN=AUTO \
       -D OIIO_IMIV_DEFAULT_RENDERER=metal \
       -D OIIO_IMIV_ENABLE_IMGUI_TEST_ENGINE=ON
+
+When `OIIO_IMIV_EMBED_FONTS=ON`, :program:`imiv` uses the embedded UI and mono
+fonts first and does not need an external `fonts/` directory at runtime.
+When it is `OFF`, :program:`imiv` tries to load those same fonts from the
+runtime `fonts/` directory and then falls back to Dear ImGui's default font if
+they are missing.
+
+
+Embedded binary assets
+======================
+
+:program:`imiv` now uses two build-time embedding paths for runtime assets that
+used to be external files.
+
+Fonts
+-----
+
+The `OIIO_IMIV_EMBED_FONTS` option controls whether the two fonts actually used
+by :program:`imiv` are compiled into the binary:
+
+* `src/fonts/Droid_Sans/DroidSans.ttf`
+* `src/fonts/Droid_Sans_Mono/DroidSansMono.ttf`
+
+`src/imiv/CMakeLists.txt` generates binary headers for those files through
+`src/imiv/embed_binary_header.cmake`. The generated headers live in the build
+directory and are included from `src/imiv/imiv_app.cpp` when
+`IMIV_EMBED_FONTS` is enabled in `imiv_build_config.h`.
+
+Runtime font loading order is:
+
+1. embedded font data, if the build enabled it;
+2. `fonts/` next to the executable;
+3. Dear ImGui's default font for the UI font, then the UI font again for the
+   mono slot if the mono font also could not be loaded.
+
+Static Vulkan shaders
+---------------------
+
+The static Vulkan upload and preview shaders are always embedded when the
+Vulkan backend is compiled. `src/imiv/CMakeLists.txt` first builds the SPIR-V
+files, then converts them into generated headers with
+`src/imiv/embed_spirv_header.cmake`.
+
+Those embedded headers cover the fixed-function Vulkan shader set in
+`src/imiv/shaders/`:
+
+* the upload compute shader variants;
+* the static preview vertex shader;
+* the static preview fragment shader.
+
+`src/imiv/imiv_vulkan_setup.cpp` and `src/imiv/imiv_vulkan_ocio.cpp` use the
+embedded SPIR-V words first and only fall back to `IMIV_SHADER_DIR` if needed.
+That fallback keeps unusual build layouts working, but normal packaged builds
+should no longer depend on external `.spv` files at runtime.
+
+What is not embedded
+--------------------
+
+Not every renderer-side asset is a static binary blob:
+
+* Vulkan OCIO preview still generates its fragment shader at runtime because it
+  depends on the active OCIO configuration and selected display/view.
+* OpenGL still compiles native GLSL source strings with the GL driver.
+* Metal still compiles embedded MSL source text at runtime.
+
+So the embedded-binary policy is intentionally narrow:
+
+* fonts are embedded to remove the runtime `fonts/` dependency by default;
+* static Vulkan SPIR-V is embedded to remove the runtime `.spv` dependency by
+  default;
+* dynamic OCIO and backend-native runtime shader generation remain runtime
+  features.
 
 At the time of this writing, the shared backend verifier is green on macOS for
 all three compiled backends:

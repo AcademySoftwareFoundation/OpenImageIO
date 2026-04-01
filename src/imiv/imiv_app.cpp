@@ -17,6 +17,7 @@
 #include "imiv_types.h"
 #include "imiv_ui.h"
 #include "imiv_viewer.h"
+#include "imiv_build_config.h"
 
 #include <algorithm>
 #include <array>
@@ -48,6 +49,11 @@
 
 using namespace OIIO;
 
+#if defined(IMIV_EMBED_FONTS) && IMIV_EMBED_FONTS
+#    include "imiv_font_droidsans_ttf.h"
+#    include "imiv_font_droidsansmono_ttf.h"
+#endif
+
 namespace Imiv {
 
 namespace {
@@ -70,30 +76,71 @@ namespace {
         return io.Fonts->AddFontFromFileTTF(path.string().c_str(), size_pixels);
     }
 
+    ImFont* load_embedded_font_if_present(const unsigned char* data,
+                                          size_t size_bytes,
+                                          float size_pixels)
+    {
+        if (data == nullptr || size_bytes == 0)
+            return nullptr;
+        ImGuiIO& io = ImGui::GetIO();
+        ImFontConfig config;
+        config.FontDataOwnedByAtlas = false;
+        return io.Fonts->AddFontFromMemoryTTF(
+            const_cast<unsigned char*>(data), static_cast<int>(size_bytes),
+            size_pixels, &config);
+    }
+
     AppFonts setup_app_fonts(bool verbose_logging)
     {
         AppFonts fonts;
         ImGuiIO& io = ImGui::GetIO();
+        const char* ui_font_source   = "missing";
+        const char* mono_font_source = "missing";
 
         const std::filesystem::path font_root = executable_directory_path()
                                                 / "fonts";
-        fonts.ui   = load_font_if_present(font_root / "Droid_Sans"
-                                              / "DroidSans.ttf",
-                                          16.0f);
-        fonts.mono = load_font_if_present(font_root / "Droid_Sans_Mono"
-                                              / "DroidSansMono.ttf",
-                                          16.0f);
-        if (!fonts.ui)
+        const std::filesystem::path ui_font_path
+            = font_root / "Droid_Sans" / "DroidSans.ttf";
+        const std::filesystem::path mono_font_path
+            = font_root / "Droid_Sans_Mono" / "DroidSansMono.ttf";
+
+#if defined(IMIV_EMBED_FONTS) && IMIV_EMBED_FONTS
+        fonts.ui = load_embedded_font_if_present(g_imiv_font_droidsans_ttf,
+                                                 g_imiv_font_droidsans_ttf_size,
+                                                 16.0f);
+        if (fonts.ui)
+            ui_font_source = "embedded";
+        fonts.mono = load_embedded_font_if_present(
+            g_imiv_font_droidsansmono_ttf, g_imiv_font_droidsansmono_ttf_size,
+            16.0f);
+        if (fonts.mono)
+            mono_font_source = "embedded";
+#endif
+
+        if (!fonts.ui) {
+            fonts.ui = load_font_if_present(ui_font_path, 16.0f);
+            if (fonts.ui)
+                ui_font_source = "file";
+        }
+        if (!fonts.mono) {
+            fonts.mono = load_font_if_present(mono_font_path, 16.0f);
+            if (fonts.mono)
+                mono_font_source = "file";
+        }
+        if (!fonts.ui) {
             fonts.ui = io.Fonts->AddFontDefault();
-        if (!fonts.mono)
+            ui_font_source = "default";
+        }
+        if (!fonts.mono) {
             fonts.mono = fonts.ui;
+            mono_font_source = (fonts.ui == fonts.mono && ui_font_source)
+                                   ? ui_font_source
+                                   : "default";
+        }
         io.FontDefault = fonts.ui;
 
-        if (verbose_logging) {
-            print("imiv: ui font={} mono font={}\n",
-                  fonts.ui ? "ready" : "missing",
-                  fonts.mono ? "ready" : "missing");
-        }
+        print("imiv: fonts ui={} mono={}\n", ui_font_source,
+              mono_font_source);
         return fonts;
     }
 

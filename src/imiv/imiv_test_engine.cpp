@@ -170,6 +170,8 @@ namespace {
     };
 
     struct TestEngineScenarioImageListStep {
+        bool has_visible             = false;
+        bool visible                 = false;
         bool has_select_index        = false;
         int select_index             = 0;
         bool has_open_new_view_index = false;
@@ -423,6 +425,10 @@ namespace {
             if (parse_bool_attr(step_node.attribute("linear_interpolation"),
                                 step.ocio.linear_interpolation)) {
                 step.ocio.has_linear_interpolation = true;
+            }
+            if (parse_bool_attr(step_node.attribute("image_list_visible"),
+                                step.image_list.visible)) {
+                step.image_list.has_visible = true;
             }
             if (parse_int_attr(step_node.attribute("image_list_select_index"),
                                step.image_list.select_index)) {
@@ -1015,13 +1021,22 @@ namespace {
         }
 
         const int next_frame = ImGui::GetFrameCount() + 1;
-        if (image_list.has_select_index || image_list.has_open_new_view_index
+        if (image_list.has_visible || image_list.has_select_index
+            || image_list.has_open_new_view_index
             || image_list.has_close_active_index
             || image_list.has_remove_index) {
             const std::string frame_value = Strutil::fmt::format("{}",
                                                                  next_frame);
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_APPLY_FRAME",
                                   &frame_value);
+        }
+        if (image_list.has_visible) {
+            const std::string value = image_list.visible ? "1" : "0";
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_VISIBLE",
+                                  &value);
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_VISIBLE",
+                                  nullptr);
         }
         if (image_list.has_select_index) {
             const std::string index_value = Strutil::fmt::format(

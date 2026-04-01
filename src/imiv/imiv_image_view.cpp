@@ -122,12 +122,20 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
     int display_width  = 0;
     int display_height = 0;
     if (!viewer.image.path.empty()) {
+        const ImVec2 child_size(content_avail.x, viewport_h);
+        if (viewer.last_viewport_size.x > 0.0f
+            && viewer.last_viewport_size.y > 0.0f
+            && (std::abs(child_size.x - viewer.last_viewport_size.x) > 0.5f
+                || std::abs(child_size.y - viewer.last_viewport_size.y)
+                       > 0.5f)) {
+            viewer.scroll_sync_frames_left
+                = std::max(viewer.scroll_sync_frames_left, 2);
+        }
         display_width  = viewer.image.width;
         display_height = viewer.image.height;
         oriented_image_dimensions(viewer.image, display_width, display_height);
         if ((viewer.fit_request || ui_state.fit_image_to_window)
             && display_width > 0 && display_height > 0) {
-            const ImVec2 child_size(content_avail.x, viewport_h);
             viewer.zoom = compute_fit_zoom(child_size, viewport_padding,
                                            display_width, display_height);
             viewer.zoom_pivot_pending     = false;
@@ -499,6 +507,7 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
     }
 
     ImGui::EndChild();
+    viewer.last_viewport_size = ImVec2(content_avail.x, viewport_h);
     ImGui::Separator();
     register_layout_dump_synthetic_item("divider", "Main viewport");
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 4.0f));

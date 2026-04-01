@@ -47,6 +47,12 @@ When the test engine is not compiled in, :program:`imiv` will warn if
 automation is requested through `IMIV_IMGUI_TEST_ENGINE*` environment
 variables.
 
+With the default build settings, focused regressions do not depend on an
+external `fonts/` directory or static Vulkan `.spv` files at runtime because
+those assets are embedded into the :program:`imiv` binary. OCIO preview
+regressions still depend on the runtime OCIO environment because the OCIO
+shader path is generated from the active configuration.
+
 
 Quick start
 ===========
@@ -173,6 +179,7 @@ Per-view recipe overrides:
 
 Image List actions:
 
+* `image_list_visible`
 * `image_list_select_index`
 * `image_list_open_new_view_index`
 * `image_list_close_active_index`
@@ -224,7 +231,11 @@ Recent focused GUI regressions in `src/imiv/tools/` include:
   default Image List visibility and docked layout on multi-image startup;
 * `imiv_image_list_interaction_regression.py`
   Image List single-click, open-in-new-view, close-in-active-view, and
-  remove-from-session behavior;
+  remove-from-session behavior, including keeping the list visible with one
+  remaining queue item;
+* `imiv_image_list_center_regression.py`
+  opening `Image List` after a single-image load preserves centered scroll
+  instead of snapping the image to the top-left;
 * `imiv_open_folder_regression.py`
   startup folder-open queue filtering for supported image files only;
 * `imiv_drag_drop_regression.py`

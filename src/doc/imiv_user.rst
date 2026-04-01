@@ -255,7 +255,8 @@ The `Image List` window currently supports:
 * open-count badge
   `[N]` shows how many open image views currently display that image;
 * inline close button
-  rows that are visible in the active image view show a small `x` button;
+  each row shows a small `x` button that removes that image from the current
+  session queue;
 * right-click context menu
   provides `Open in active view`, `Open in new view`,
   `Close in active view`, `Close in all views`, and
@@ -275,11 +276,24 @@ The main `Image` window remains the primary docked image pane. Additional
 `Image N` windows are currently created docked into the main dockspace.
 Undocking those image views is intentionally disabled in this first slice.
 
-When more than one image is loaded into the queue, `Image List` becomes
-visible automatically and defaults to a narrow docked pane on the right side
-of the main image area. Its dock position and size may still be saved by Dear
-ImGui layout persistence, but its open/closed visibility is not treated as a
-persistent preference.
+Current builds embed the `imiv` UI and mono fonts by default. If a build is
+configured without font embedding, :program:`imiv` first looks for the same
+fonts in its runtime `fonts/` directory and then falls back to Dear ImGui's
+default font if they are not present.
+
+Static Vulkan upload and preview shaders are also embedded into the binary at
+build time. That means normal Vulkan launches do not need separate `.spv`
+files next to the executable. OpenGL and Metal continue to compile their
+native shader source at runtime, and Vulkan OCIO preview still generates its
+backend shader at runtime because it depends on the active OCIO configuration.
+
+When the queue first grows beyond one image, `Image List` becomes visible
+automatically and defaults to a narrow docked pane on the right side of the
+main image area. If it is already open and the queue later shrinks to one
+remaining image, it stays open so the last session item can still be managed
+from the list. It hides automatically only when the queue becomes empty. Its
+dock position and size may still be saved by Dear ImGui layout persistence,
+but its open/closed visibility is not treated as a persistent preference.
 
 This is the first multi-view milestone. View windows already have independent
 loaded images, zoom, scroll, selection state, and preview recipe state.

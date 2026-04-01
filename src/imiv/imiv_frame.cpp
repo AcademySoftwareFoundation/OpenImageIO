@@ -79,6 +79,24 @@ namespace {
                || Strutil::iequals(trimmed, "on");
     }
 
+    bool parse_bool_value(const std::string& value, bool& out)
+    {
+        const string_view trimmed = Strutil::strip(value);
+        if (trimmed == "1" || Strutil::iequals(trimmed, "true")
+            || Strutil::iequals(trimmed, "yes")
+            || Strutil::iequals(trimmed, "on")) {
+            out = true;
+            return true;
+        }
+        if (trimmed == "0" || Strutil::iequals(trimmed, "false")
+            || Strutil::iequals(trimmed, "no")
+            || Strutil::iequals(trimmed, "off")) {
+            out = false;
+            return true;
+        }
+        return false;
+    }
+
     std::string normalize_image_list_path(const std::string& path)
     {
         if (path.empty())
@@ -125,14 +143,15 @@ namespace {
                                              const ImageLibraryState& library)
     {
         const int image_count = static_cast<int>(library.loaded_image_paths.size());
-        if (image_count <= 1) {
+        if (image_count <= 0) {
             workspace.show_image_list_window   = false;
             workspace.image_list_force_dock    = false;
             workspace.last_library_image_count = image_count;
             return;
         }
 
-        if (image_count != workspace.last_library_image_count) {
+        if (image_count > 1
+            && image_count != workspace.last_library_image_count) {
             workspace.show_image_list_window = true;
             workspace.image_list_force_dock  = true;
         }
@@ -469,6 +488,7 @@ namespace {
                                              RendererState& renderer_state,
                                              const std::string& path)
     {
+        const bool was_image_list_visible = workspace.show_image_list_window;
         const std::string normalized_path = normalize_image_list_path(path);
         const auto it = std::find(library.loaded_image_paths.begin(),
                                   library.loaded_image_paths.end(),
@@ -478,16 +498,26 @@ namespace {
 
         const int remove_index = static_cast<int>(
             std::distance(library.loaded_image_paths.begin(), it));
+        std::vector<ImageViewWindow*> affected_views;
         for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
             if (view == nullptr
                 || !image_view_is_showing_path(view->viewer, normalized_path)) {
                 continue;
             }
+            affected_views.push_back(view.get());
             close_current_image_action(renderer_state, view->viewer, library,
                                        ui_state);
         }
 
         library.loaded_image_paths.erase(it);
+        std::string replacement_path;
+        if (!library.loaded_image_paths.empty()) {
+            const int replacement_index = std::min(
+                remove_index,
+                static_cast<int>(library.loaded_image_paths.size()) - 1);
+            replacement_path
+                = library.loaded_image_paths[static_cast<size_t>(replacement_index)];
+        }
         for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
             if (view == nullptr)
                 continue;
@@ -497,11 +527,56 @@ namespace {
             view->viewer.sort_mode          = library.sort_mode;
             view->viewer.sort_reverse       = library.sort_reverse;
         }
+        if (!replacement_path.empty()) {
+            for (ImageViewWindow* view : affected_views) {
+                if (view == nullptr)
+                    continue;
+                load_viewer_image(renderer_state, view->viewer, library, &ui_state,
+                                  replacement_path, 0, 0);
+            }
+        }
+        bool any_view_loaded = false;
+        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+            if (view != nullptr && !view->viewer.image.path.empty()) {
+                any_view_loaded = true;
+                break;
+            }
+        }
+        if (!replacement_path.empty() && !any_view_loaded) {
+            ViewerState& primary_view = ensure_primary_image_view(workspace).viewer;
+            load_viewer_image(renderer_state, primary_view, library, &ui_state,
+                              replacement_path, 0, 0);
+        }
+        sync_workspace_library_state(workspace, active_view, library);
         update_image_list_visibility_policy(workspace, library);
+        if (was_image_list_visible && !library.loaded_image_paths.empty()) {
+            workspace.show_image_list_window = true;
+        }
         active_view.status_message = Strutil::fmt::format(
             "Removed {} from session", path);
         active_view.last_error.clear();
         return true;
+    }
+
+    void apply_test_engine_image_list_visibility_override(
+        MultiViewWorkspace& workspace)
+    {
+        const int apply_frame
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_APPLY_FRAME",
+                            -1);
+        if (apply_frame < 0 || ImGui::GetFrameCount() != apply_frame)
+            return;
+
+        std::string show_image_list_value;
+        if (read_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_VISIBLE",
+                           show_image_list_value)) {
+            bool visible = false;
+            if (parse_bool_value(show_image_list_value, visible)) {
+                workspace.show_image_list_window = visible;
+                if (visible)
+                    workspace.image_list_force_dock = true;
+            }
+        }
     }
 
     void apply_test_engine_image_list_overrides(MultiViewWorkspace& workspace,
@@ -752,17 +827,12 @@ namespace {
                 const std::string close_button_id = Strutil::fmt::format(
                     "x##imiv_image_list_close_{}", static_cast<int>(i));
                 const float row_width = ImGui::GetContentRegionAvail().x;
-                const float close_width = active_view_image
-                                              ? ImGui::CalcTextSize("x").x
-                                                    + ImGui::GetStyle().FramePadding.x
-                                                          * 2.0f
-                                              : 0.0f;
+                const float close_width = ImGui::CalcTextSize("x").x
+                                          + ImGui::GetStyle().FramePadding.x
+                                                * 2.0f;
                 const float label_width = std::max(
-                    1.0f, row_width
-                              - (active_view_image
-                                     ? close_width
-                                           + ImGui::GetStyle().ItemSpacing.x
-                                     : 0.0f));
+                    1.0f, row_width - (close_width
+                                       + ImGui::GetStyle().ItemSpacing.x));
                 ImGui::Selectable(item_label.c_str(), selected,
                                   ImGuiSelectableFlags_AllowDoubleClick,
                                   ImVec2(label_width, 0.0f));
@@ -822,13 +892,10 @@ namespace {
                     }
                     ImGui::EndPopup();
                 }
-                if (active_view_image) {
-                    ImGui::SameLine();
-                    if (ImGui::SmallButton(close_button_id.c_str())) {
-                        pending_action
-                            = PendingImageListAction::CloseInActiveView;
-                        pending_action_path = path;
-                    }
+                ImGui::SameLine();
+                if (ImGui::SmallButton(close_button_id.c_str())) {
+                    pending_action = PendingImageListAction::RemoveFromSession;
+                    pending_action_path = path;
                 }
             }
         }
@@ -1559,6 +1626,7 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
         apply_view_recipe_to_ui_state(active_view_window->viewer.recipe,
                                       ui_state);
     }
+    apply_test_engine_image_list_visibility_override(workspace);
     draw_image_list_window(workspace, library, active_view_window->viewer,
                            ui_state, vk_state);
     draw_info_window(active_view_window->viewer, ui_state.show_info_window);
