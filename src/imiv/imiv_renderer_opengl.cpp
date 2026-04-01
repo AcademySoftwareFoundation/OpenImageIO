@@ -138,6 +138,13 @@ namespace Imiv {
 
 namespace {
 
+void
+clear_gl_error_queue()
+{
+    while (glGetError() != GL_NO_ERROR) {
+    }
+}
+
 struct RendererTextureBackendState {
     GLuint source_texture                         = 0;
     GLuint preview_linear_texture                 = 0;
@@ -535,6 +542,7 @@ struct RendererBackendState {
         glBindTexture(target, texture_id);
         set_ocio_texture_parameters(target, filter);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        clear_gl_error_queue();
         const float* values = blueprint.values.empty()
                                   ? nullptr
                                   : blueprint.values.data();
@@ -1142,6 +1150,7 @@ void main()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        clear_gl_error_queue();
         glTexImage2D(GL_TEXTURE_2D, 0, upload.internal_format, width, height, 0,
                      upload.format, upload.type, nullptr);
         GLenum err = glGetError();
@@ -1192,6 +1201,7 @@ void main()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        clear_gl_error_queue();
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA,
                      GL_FLOAT, nullptr);
         const GLenum err = glGetError();
@@ -1230,6 +1240,7 @@ void main()
         glViewport(0, 0, texture_state.width, texture_state.height);
         glDisable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
+        clear_gl_error_queue();
         glUseProgram(state.basic_preview.program);
         glBindVertexArray(state.basic_preview.fullscreen_triangle_vao);
         glActiveTexture(GL_TEXTURE0);
@@ -1304,6 +1315,7 @@ void main()
         glViewport(0, 0, texture_state.width, texture_state.height);
         glDisable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
+        clear_gl_error_queue();
         glUseProgram(state.ocio_preview.program);
         glBindVertexArray(state.basic_preview.fullscreen_triangle_vao);
 
