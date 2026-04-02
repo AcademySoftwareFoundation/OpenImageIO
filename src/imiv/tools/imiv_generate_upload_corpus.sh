@@ -6,8 +6,8 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-out_dir="${1:-$repo_root/build_u/imiv_upload_corpus/images}"
-manifest_csv="${2:-$repo_root/build_u/imiv_upload_corpus/corpus_manifest.csv}"
+out_dir="${1:-$repo_root/build_u/testsuite/imiv/upload_corpus/images}"
+manifest_csv="${2:-$repo_root/build_u/testsuite/imiv/upload_corpus/corpus_manifest.csv}"
 oiiotool_bin="${OIIOTOOL_BIN:-$repo_root/build_u/bin/oiiotool}"
 
 if [[ ! -x "$oiiotool_bin" ]]; then
@@ -35,8 +35,8 @@ dimensions=(
 )
 
 channels=(
-    "rgb:3"
-    "rgba:4"
+    "rgb:3:0.85,0.35,0.15"
+    "rgba:4:0.10,0.80,0.95,0.75"
 )
 
 depths=(
@@ -54,7 +54,9 @@ for dim in "${dimensions[@]}"; do
     height="${dim#*x}"
     for ch_entry in "${channels[@]}"; do
         ch_name="${ch_entry%%:*}"
-        ch_count="${ch_entry#*:}"
+        rest="${ch_entry#*:}"
+        ch_count="${rest%%:*}"
+        color="${rest#*:}"
         for depth_entry in "${depths[@]}"; do
             depth_tag="${depth_entry%%:*}"
             rest="${depth_entry#*:}"
@@ -64,8 +66,9 @@ for dim in "${dimensions[@]}"; do
             file_name="${ch_name}_${depth_tag}_${width}x${height}.${extension}"
             file_path="${out_dir}/${file_name}"
 
-            "$oiiotool_bin" --create "${width}x${height}" "${ch_count}" \
-                -d "${depth_name}" -o "${file_path}"
+            "$oiiotool_bin" \
+                --pattern "constant:color=${color}" "${width}x${height}" \
+                "${ch_count}" -d "${depth_name}" -o "${file_path}"
 
             printf '%s,%s,%s,%s,%s,%s\n' \
                 "$file_path" "$width" "$height" "$ch_count" "$depth_name" \

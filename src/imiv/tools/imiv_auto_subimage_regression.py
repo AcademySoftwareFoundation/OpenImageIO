@@ -11,6 +11,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -177,6 +178,99 @@ def _run_case(
     return state
 
 
+def _path_for_imiv_output(path: Path, run_cwd: Path) -> str:
+    try:
+        return os.path.relpath(path, run_cwd)
+    except ValueError:
+        return str(path)
+
+
+def _write_scenario(path: Path, runtime_dir_rel: str) -> None:
+    root = ET.Element("imiv-scenario")
+    root.set("out_dir", runtime_dir_rel)
+
+    step = ET.SubElement(root, "step")
+    step.set("name", "enable_auto")
+    step.set("key_chord", "shift+comma")
+    step.set("state", "true")
+    step.set("post_action_delay_frames", "2")
+
+    step = ET.SubElement(root, "step")
+    step.set("name", "zoom_out")
+    step.set("key_chord", "ctrl+minus")
+    step.set("state", "true")
+    step.set("post_action_delay_frames", "3")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
+
+
+def _run_scenario(
+    repo_root: Path,
+    runner: Path,
+    exe: Path,
+    cwd: Path,
+    backend: str,
+    image_path: Path,
+    out_dir: Path,
+    scenario_path: Path,
+    env: dict[str, str],
+    trace: bool,
+) -> dict[str, dict]:
+    runtime_dir = out_dir / "runtime"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    config_home = out_dir / "cfg_scenario"
+    shutil.rmtree(config_home, ignore_errors=True)
+    cmd = [
+        sys.executable,
+        str(runner),
+        "--bin",
+        str(exe),
+        "--cwd",
+        str(cwd),
+    ]
+    if backend:
+        cmd.extend(["--backend", backend])
+    cmd.extend(
+        [
+            "--open",
+            str(image_path),
+            "--scenario",
+            str(scenario_path),
+        ]
+    )
+    if trace:
+        cmd.append("--trace")
+
+    case_env = dict(env)
+    case_env["IMIV_CONFIG_HOME"] = str(config_home)
+
+    with (out_dir / "scenario.log").open("w", encoding="utf-8") as log_handle:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(repo_root),
+            env=case_env,
+            check=False,
+            stdout=log_handle,
+            stderr=subprocess.STDOUT,
+            timeout=90,
+        )
+    if proc.returncode != 0:
+        raise RuntimeError(f"scenario: runner exited with code {proc.returncode}")
+
+    result: dict[str, dict] = {}
+    for step_name in ("enable_auto", "zoom_out"):
+        state_path = runtime_dir / f"{step_name}.state.json"
+        if not state_path.exists():
+            raise RuntimeError(f"scenario: missing state output for {step_name}")
+        with state_path.open("r", encoding="utf-8") as handle:
+            state = json.load(handle)
+        state["_state_path"] = str(state_path)
+        state["_log_path"] = str(out_dir / "scenario.log")
+        result[step_name] = state
+    return result
+
+
 def _calc_expected_subimage_from_zoom(
     current_subimage: int, nsubimages: int, zoom: float
 ) -> tuple[int, float]:
@@ -258,7 +352,10 @@ def main() -> int:
             env,
             args.trace,
         )
-        enabled = _run_case(
+        scenario_path = out_dir / "auto_subimage.scenario.xml"
+        runtime_dir = out_dir / "runtime"
+        _write_scenario(scenario_path, _path_for_imiv_output(runtime_dir, cwd))
+        scenario_states = _run_scenario(
             repo_root,
             runner,
             exe,
@@ -266,34 +363,12 @@ def main() -> int:
             args.backend,
             image_path,
             out_dir,
-            "enable_auto",
-            ["--key-chord", "shift+comma"],
+            scenario_path,
             env,
             args.trace,
         )
-        auto_zoom = _run_case(
-            repo_root,
-            runner,
-            exe,
-            cwd,
-            args.backend,
-            image_path,
-            out_dir,
-            "auto_zoom_out",
-            [
-                "--key-chord",
-                "shift+comma",
-                "--mouse-pos-window-rel",
-                "0.5",
-                "0.5",
-                "--mouse-click",
-                "1",
-                "--post-action-delay-frames",
-                "3",
-            ],
-            env,
-            args.trace,
-        )
+        enabled = scenario_states["enable_auto"]
+        auto_zoom = scenario_states["zoom_out"]
     except (RuntimeError, subprocess.SubprocessError) as exc:
         return _fail(str(exc))
 
@@ -319,7 +394,7 @@ def main() -> int:
         return _fail(f"enable_auto changed subimage unexpectedly: {enabled['subimage']}")
 
     expected_subimage, expected_zoom = _calc_expected_subimage_from_zoom(
-        current_subimage=0, nsubimages=4, zoom=baseline_zoom * 0.5
+        current_subimage=0, nsubimages=4, zoom=float(enabled["zoom"]) * 0.5
     )
     actual_subimage = int(auto_zoom["subimage"])
     actual_zoom = float(auto_zoom["zoom"])

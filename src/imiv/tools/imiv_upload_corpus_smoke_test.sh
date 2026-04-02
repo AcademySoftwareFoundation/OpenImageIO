@@ -6,8 +6,8 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-corpus_dir="${1:-$repo_root/build_u/imiv_upload_corpus/images}"
-result_dir="${2:-$repo_root/build_u/imiv_upload_corpus/results}"
+corpus_dir="${1:-$repo_root/build_u/testsuite/imiv/upload_corpus/images}"
+result_dir="${2:-$repo_root/build_u/testsuite/imiv/upload_corpus/results}"
 runner_py="${RUNNER_PY:-$repo_root/src/imiv/tools/imiv_gui_test_run.py}"
 python_bin="${PYTHON_BIN:-python3}"
 env_script="${IMIV_ENV_SCRIPT:-$repo_root/build_u/imiv_env.sh}"
