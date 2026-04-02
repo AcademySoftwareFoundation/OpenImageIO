@@ -82,6 +82,44 @@ endfunction ()
 
 
 
+# Helper: record the final status of a dependency that is discovered outside
+# checked_find_package(), so it still shows up in the dependency summary.
+macro (record_build_dependency pkgname)
+    cmake_parse_arguments(_pkg
+        "FOUND;NOTFOUND;REQUIRED"
+        "VERSION;NOT_FOUND_EXPLANATION"
+        ""
+        ${ARGN})
+    if ((_pkg_FOUND AND _pkg_NOTFOUND)
+        OR (NOT _pkg_FOUND AND NOT _pkg_NOTFOUND))
+        message (FATAL_ERROR
+                 "record_build_dependency(${pkgname}) requires exactly one of FOUND or NOTFOUND")
+    endif ()
+    set (_pkg_version "")
+    set (_pkg_not_found_explanation "")
+    if (DEFINED _pkg_VERSION)
+        set (_pkg_version "${_pkg_VERSION}")
+    endif ()
+    if (DEFINED _pkg_NOT_FOUND_EXPLANATION)
+        set (_pkg_not_found_explanation "${_pkg_NOT_FOUND_EXPLANATION}")
+    endif ()
+    set (${pkgname}_VERSION "${_pkg_version}")
+    set (${pkgname}_VERSION "${_pkg_version}" CACHE INTERNAL
+         "Recorded dependency version for ${pkgname}" FORCE)
+    set (${pkgname}_NOT_FOUND_EXPLANATION "${_pkg_not_found_explanation}")
+    set (${pkgname}_NOT_FOUND_EXPLANATION "${_pkg_not_found_explanation}"
+         CACHE INTERNAL "Recorded dependency explanation for ${pkgname}" FORCE)
+    set (${pkgname}_REQUIRED ${_pkg_REQUIRED})
+    set (${pkgname}_REQUIRED ${_pkg_REQUIRED} CACHE INTERNAL
+         "Recorded dependency required-ness for ${pkgname}" FORCE)
+    if (_pkg_FOUND)
+        set_property (GLOBAL APPEND PROPERTY OIIO_CFP_CUSTOM_BUILD_DEPS_FOUND ${pkgname})
+    else ()
+        set_property (GLOBAL APPEND PROPERTY OIIO_CFP_CUSTOM_BUILD_DEPS_NOTFOUND ${pkgname})
+    endif ()
+endmacro ()
+
+
 # Utility: if `condition` is true, append `addition` to variable `var`
 macro (string_append_if var condition addition)
     # message (STATUS "string_append_if ${var} ${condition}='${${condition}}' '${addition}'")
@@ -125,6 +163,16 @@ function (print_package_notfound_report)
             message (STATUS "    ${_msg}")
         endforeach ()
     endif ()
+    if (_cfp_custom_build_deps_found)
+        message (STATUS "${ColorBoldWhite}The following additional dependencies were found:${ColorReset}")
+        list (SORT _cfp_custom_build_deps_found CASE INSENSITIVE)
+        list (REMOVE_DUPLICATES _cfp_custom_build_deps_found)
+        foreach (_pkg IN LISTS _cfp_custom_build_deps_found)
+            set (_msg "${_pkg} ${${_pkg}_VERSION} ")
+            string_append_if (_msg ${_pkg}_REQUIRED " (REQUIRED)")
+            message (STATUS "    ${_msg}")
+        endforeach ()
+    endif ()
     if (CFP_ALL_BUILD_DEPS_BADVERSION)
         message (STATUS "${ColorBoldWhite}The following dependencies were found but were too old:${ColorReset}")
         list (SORT CFP_ALL_BUILD_DEPS_BADVERSION CASE INSENSITIVE)
@@ -132,7 +180,10 @@ function (print_package_notfound_report)
         foreach (_pkg IN LISTS CFP_ALL_BUILD_DEPS_BADVERSION)
             set (_msg "${_pkg}")
             string_append_if (_msg ${_pkg}_REQUIRED " (REQUIRED)")
-            string_append_if (_msg ${_pkg}_NOT_FOUND_EXPLANATION " ${_pkg}_NOT_FOUND_EXPLANATION")
+            if (DEFINED ${_pkg}_NOT_FOUND_EXPLANATION
+                AND NOT "${${_pkg}_NOT_FOUND_EXPLANATION}" STREQUAL "")
+                string (APPEND _msg " ${${_pkg}_NOT_FOUND_EXPLANATION}")
+            endif ()
             if (_pkg IN_LIST CFP_LOCALLY_BUILT_DEPS)
                 string (APPEND _msg " ${ColorMagenta}(${${_pkg}_VERSION} BUILT LOCALLY)${ColorReset} in ${${_pkg}_build_elapsed_time}s)${ColorReset}")
             endif ()
@@ -143,12 +194,15 @@ function (print_package_notfound_report)
          ${CFP_ALL_BUILD_DEPS_NOTFOUND} ${_cfp_custom_build_deps_notfound})
     if (_cfp_all_build_deps_notfound)
         message (STATUS "${ColorBoldWhite}The following dependencies were not found:${ColorReset}")
-        list (SORT CFP_ALL_BUILD_DEPS_NOTFOUND CASE INSENSITIVE)
-        list (REMOVE_DUPLICATES CFP_ALL_BUILD_DEPS_NOTFOUND)
-        foreach (_pkg IN LISTS CFP_ALL_BUILD_DEPS_NOTFOUND)
+        list (SORT _cfp_all_build_deps_notfound CASE INSENSITIVE)
+        list (REMOVE_DUPLICATES _cfp_all_build_deps_notfound)
+        foreach (_pkg IN LISTS _cfp_all_build_deps_notfound)
             set (_msg "${_pkg} ${_${_pkg}_version_range}")
             string_append_if (_msg ${_pkg}_REQUIRED " (REQUIRED)")
-            string_append_if (_msg ${_pkg}_NOT_FOUND_EXPLANATION " ${_pkg}_NOT_FOUND_EXPLANATION")
+            if (DEFINED ${_pkg}_NOT_FOUND_EXPLANATION
+                AND NOT "${${_pkg}_NOT_FOUND_EXPLANATION}" STREQUAL "")
+                string (APPEND _msg " ${${_pkg}_NOT_FOUND_EXPLANATION}")
+            endif ()
             if (_pkg IN_LIST CFP_LOCALLY_BUILT_DEPS)
                 string (APPEND _msg " ${ColorMagenta}(${${_pkg}_VERSION} BUILT LOCALLY in ${${_pkg}_build_elapsed_time}s)${ColorReset}")
             endif ()
