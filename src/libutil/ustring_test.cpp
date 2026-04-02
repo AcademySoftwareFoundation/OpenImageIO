@@ -167,6 +167,20 @@ test_ustring()
     OIIO_CHECK_EQUAL(whichtype, ustring("foo"));
     OIIO_CHECK_ASSERT((std::is_same<decltype(whichtype), ustring>::value));
     OIIO_CHECK_ASSERT(!(std::is_same<decltype(whichtype), const char*>::value));
+
+    // Test some edge cases for fmt formatting
+    Strutil::print("Test print empty ustring: '{}'\n", empty);
+    Strutil::print("Test print default initialized ustring: '{}'\n", uninit);
+    OIIO_CHECK_EQUAL(Strutil::format("{}", empty),
+                     Strutil::format("{}", uninit));
+
+    // Regression test: This specific string hashes to 0! This once caused a
+    // lot of trouble, because it couldn't rehash properly (every rehash also
+    // ended up at 0). When broken, this made an infinite loop inside
+    // ustring::make_unique().
+    const char* hash0
+        = "\t\n\n\t\301\350`O\217c85?\202\200\251r|}\304\351\2517\337K'\217C\240";
+    OIIO_CHECK_EQUAL(ustring(hash0).hash(), 13226272983328805811ULL);
 }
 
 

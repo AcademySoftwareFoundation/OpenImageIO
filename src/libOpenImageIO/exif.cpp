@@ -178,6 +178,12 @@ tiff_data_size(const TIFFDirEntry& dir)
 
 
 
+// N.B. We have to turn undefined behavior sanitizer off for this function
+// because ubsan will complain about tifftype being an invalid enum value in
+// cases where the value really is corrupted and invalid -- but the switch
+// statement here is nonetheless safe because it just returns TypeUnknown in
+// such cases.
+OIIO_NO_SANITIZE_UNDEFINED
 TypeDesc
 tiff_datatype_to_typedesc(TIFFDataType tifftype, size_t tiffcount)
 {
@@ -208,6 +214,7 @@ tiff_datatype_to_typedesc(TIFFDataType tifftype, size_t tiffcount)
     case TIFF_SLONG8: return TypeDesc(TypeDesc::INT64, tiffcount);
     case TIFF_IFD8: return TypeUnknown;
 #endif
+    default: break;
     }
     return TypeUnknown;
 }
