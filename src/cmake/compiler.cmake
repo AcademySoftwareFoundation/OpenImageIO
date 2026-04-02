@@ -617,6 +617,7 @@ if (PROJECT_IS_TOP_LEVEL)
                                "src/cineon.imageio/libcineon/*"
                                "src/dds.imageio/bcdec.h"
                                "src/gif.imageio/gif.h"
+                               "src/imiv/external/dnd_glfw/*"
                                "src/libutil/stb_sprintf.h"
          CACHE STRING "Glob patterns to exclude for clang-format")
     find_program (CLANG_FORMAT_EXE
