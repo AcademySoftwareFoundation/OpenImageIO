@@ -30,10 +30,12 @@ instructions!
 <!-- Put an 'x' in the boxes as you complete the checklist items -->
 
 - [ ] **I have read the guidelines** on [contributions](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/CONTRIBUTING.md) and [code review procedures](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/dev/CodeReview.md).
+- [ ] **I have read the [Policy on AI Coding Assistants](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/dev/AI_Policy.md)**
+  and if I used AI coding assistants, I have an `Assisted-by: TOOL / MODEL`
+  line in the pull request description above.
 - [ ] **I have updated the documentation** if my PR adds features or changes
   behavior.
-- [ ] **I am sure that this PR's changes are tested somewhere in the
-  testsuite**.
+- [ ] **I am sure that this PR's changes are tested in the testsuite**.
 - [ ] **I have run and passed the testsuite in CI** *before* submitting the
   PR, by pushing the changes to my fork and seeing that the automated CI
   passed there. (Exceptions: If most tests pass and you can't figure out why
