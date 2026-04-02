@@ -13,12 +13,12 @@ namespace Imiv {
 enum class BackendKind : int { Auto = -1, Vulkan = 0, Metal = 1, OpenGL = 2 };
 
 struct BackendInfo {
-    BackendKind kind        = BackendKind::Auto;
-    const char* cli_name    = "auto";
+    BackendKind kind         = BackendKind::Auto;
+    const char* cli_name     = "auto";
     const char* display_name = "Auto";
-    bool compiled           = false;
-    bool active_build       = false;
-    bool platform_default   = false;
+    bool compiled            = false;
+    bool active_build        = false;
+    bool platform_default    = false;
 };
 
 struct BackendRuntimeInfo {
@@ -45,8 +45,7 @@ platform_default_backend_kind();
 BackendKind
 resolve_backend_request(BackendKind requested_kind);
 bool
-refresh_runtime_backend_info(bool verbose_logging,
-                             std::string& error_message);
+refresh_runtime_backend_info(bool verbose_logging, std::string& error_message);
 void
 clear_runtime_backend_info();
 bool

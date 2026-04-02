@@ -62,8 +62,7 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
         actions.close_requested = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_S) && has_image)
         actions.save_as_requested = true;
-    if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiMod_Alt
-                     | ImGuiKey_S)
+    if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiMod_Alt | ImGuiKey_S)
         && has_selection) {
         actions.export_selection_as_requested = true;
     } else if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S)
@@ -74,8 +73,7 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
         && has_selection) {
         actions.save_selection_as_requested = true;
     }
-    if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N)
-        && has_image)
+    if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N) && has_image)
         actions.new_view_requested = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_A) && has_image)
         actions.select_all_requested = true;
@@ -242,15 +240,14 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
         ImGui::Separator();
         if (ImGui::MenuItem("Save As...", "Ctrl+S", false, has_image))
             actions.save_as_requested = true;
-        if (ImGui::MenuItem("Export As...", "Ctrl+Shift+S", false,
-                            has_image))
+        if (ImGui::MenuItem("Export As...", "Ctrl+Shift+S", false, has_image))
             actions.save_window_as_requested = true;
         if (ImGui::MenuItem("Save Selection As...", "Ctrl+Alt+S", false,
                             has_selection)) {
             actions.save_selection_as_requested = true;
         }
-        if (ImGui::MenuItem("Export Selection As...", "Ctrl+Shift+Alt+S",
-                            false, has_selection)) {
+        if (ImGui::MenuItem("Export Selection As...", "Ctrl+Shift+Alt+S", false,
+                            has_selection)) {
             actions.export_selection_as_requested = true;
         }
         ImGui::Separator();
@@ -572,13 +569,13 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
                             !developer_ui.screenshot_busy)) {
             developer_ui.request_screenshot = true;
         }
-#    if defined(IMGUI_ENABLE_TEST_ENGINE)
+#if defined(IMGUI_ENABLE_TEST_ENGINE)
         if (show_test_engine_windows != nullptr) {
             ImGui::Separator();
             ImGui::MenuItem("Test Engine Windows", nullptr,
                             show_test_engine_windows);
         }
-#    endif
+#endif
         ImGui::EndMenu();
     }
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
@@ -618,8 +615,8 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
     }
     if (!actions.recent_open_path.empty()) {
         load_viewer_image(vk_state, viewer, library, &ui_state,
-                          actions.recent_open_path,
-                          ui_state.subimage_index, ui_state.miplevel_index);
+                          actions.recent_open_path, ui_state.subimage_index,
+                          ui_state.miplevel_index);
         actions.recent_open_path.clear();
     }
     if (actions.clear_recent_requested) {
@@ -734,7 +731,7 @@ execute_viewer_frame_actions(ViewerState& viewer, PlaceholderUiState& ui_state,
     }
     if (actions.new_view_requested && workspace != nullptr
         && !viewer.image.path.empty()) {
-        ImageViewWindow& new_view = append_image_view(*workspace);
+        ImageViewWindow& new_view          = append_image_view(*workspace);
         new_view.viewer.loaded_image_paths = library.loaded_image_paths;
         new_view.viewer.recent_images      = library.recent_images;
         new_view.viewer.sort_mode          = library.sort_mode;

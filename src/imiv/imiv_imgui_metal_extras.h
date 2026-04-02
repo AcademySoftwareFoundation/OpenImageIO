@@ -11,8 +11,10 @@
 @protocol MTLTexture;
 @protocol MTLSamplerState;
 
-IMGUI_IMPL_API ImTextureID ImGui_ImplMetal_CreateUserTextureID(
-    id<MTLTexture> texture, id<MTLSamplerState> sampler_state);
-IMGUI_IMPL_API void ImGui_ImplMetal_DestroyUserTextureID(ImTextureID tex_id);
+IMGUI_IMPL_API ImTextureID
+ImGui_ImplMetal_CreateUserTextureID(id<MTLTexture> texture,
+                                    id<MTLSamplerState> sampler_state);
+IMGUI_IMPL_API void
+ImGui_ImplMetal_DestroyUserTextureID(ImTextureID tex_id);
 
 #endif

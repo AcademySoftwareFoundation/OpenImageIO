@@ -25,10 +25,10 @@ describe_loaded_image_layout(const LoadedImage& image,
         return false;
     }
 
-    const size_t width = static_cast<size_t>(image.width);
-    const size_t height = static_cast<size_t>(image.height);
-    const size_t channels = static_cast<size_t>(image.nchannels);
-    const size_t pixel_stride = channels * image.channel_bytes;
+    const size_t width         = static_cast<size_t>(image.width);
+    const size_t height        = static_cast<size_t>(image.height);
+    const size_t channels      = static_cast<size_t>(image.nchannels);
+    const size_t pixel_stride  = channels * image.channel_bytes;
     const size_t min_row_pitch = width * pixel_stride;
     if (pixel_stride == 0 || image.row_pitch_bytes < min_row_pitch) {
         error_message = "invalid source row pitch";
@@ -41,9 +41,9 @@ describe_loaded_image_layout(const LoadedImage& image,
         return false;
     }
 
-    layout.pixel_stride_bytes = pixel_stride;
+    layout.pixel_stride_bytes  = pixel_stride;
     layout.min_row_pitch_bytes = min_row_pitch;
-    layout.required_bytes = required_bytes;
+    layout.required_bytes      = required_bytes;
     return true;
 }
 
@@ -67,8 +67,9 @@ loaded_image_pixel_pointer(const LoadedImage& image, int x, int y,
         return false;
     }
 
-    const size_t row_start = static_cast<size_t>(y) * image.row_pitch_bytes;
-    const size_t pixel_start = static_cast<size_t>(x) * layout.pixel_stride_bytes;
+    const size_t row_start   = static_cast<size_t>(y) * image.row_pitch_bytes;
+    const size_t pixel_start = static_cast<size_t>(x)
+                               * layout.pixel_stride_bytes;
     const size_t offset = row_start + pixel_start;
     if (offset + layout.pixel_stride_bytes > image.pixels.size()) {
         if (error_message != nullptr)
@@ -107,7 +108,8 @@ imagebuf_from_loaded_image(const LoadedImage& image, ImageBuf& out,
         spec.attribute("oiio:ColorSpace", image.metadata_color_space);
 
     out.reset(spec);
-    const std::byte* begin = reinterpret_cast<const std::byte*>(image.pixels.data());
+    const std::byte* begin = reinterpret_cast<const std::byte*>(
+        image.pixels.data());
     const cspan<std::byte> byte_span(begin, layout.required_bytes);
     const stride_t xstride = static_cast<stride_t>(layout.pixel_stride_bytes);
     const stride_t ystride = static_cast<stride_t>(image.row_pitch_bytes);

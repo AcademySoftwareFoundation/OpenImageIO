@@ -12,14 +12,14 @@
 namespace Imiv {
 
 struct AppConfig {
-    bool verbose         = false;
-    bool foreground_mode = false;
-    bool rawcolor        = false;
-    bool no_autopremult  = false;
-    bool open_dialog     = false;
-    bool save_dialog     = false;
-    bool list_backends   = false;
-    bool developer_mode  = false;
+    bool verbose                 = false;
+    bool foreground_mode         = false;
+    bool rawcolor                = false;
+    bool no_autopremult          = false;
+    bool open_dialog             = false;
+    bool save_dialog             = false;
+    bool list_backends           = false;
+    bool developer_mode          = false;
     bool developer_mode_explicit = false;
 
     BackendKind requested_backend = BackendKind::Auto;

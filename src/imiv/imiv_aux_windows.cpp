@@ -271,10 +271,10 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         ImGui::Spacing();
         BackendKind requested_backend = sanitize_backend_kind(
             ui.renderer_backend);
-        const float spacing = ImGui::GetStyle().ItemSpacing.x;
-        const float row_width = ImGui::GetContentRegionAvail().x;
-        const float button_width = std::max(
-            1.0f, (row_width - spacing * 2.0f) / 3.0f);
+        const float spacing        = ImGui::GetStyle().ItemSpacing.x;
+        const float row_width      = ImGui::GetContentRegionAvail().x;
+        const float button_width   = std::max(1.0f, (row_width - spacing * 2.0f)
+                                                        / 3.0f);
         bool have_backend_row_rect = false;
         ImVec2 backend_row_min(0.0f, 0.0f);
         ImVec2 backend_row_max(0.0f, 0.0f);
@@ -303,7 +303,8 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
             if (!enabled)
                 ImGui::EndDisabled();
             register_layout_dump_synthetic_item("button",
-                                                backend_display_name(info.build_info.kind));
+                                                backend_display_name(
+                                                    info.build_info.kind));
             const ImVec2 item_min = ImGui::GetItemRectMin();
             const ImVec2 item_max = ImGui::GetItemRectMax();
             if (!have_backend_row_rect) {
@@ -334,8 +335,9 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         const bool requested_backend_available
             = requested_backend == BackendKind::Auto
               || backend_kind_is_available(requested_backend);
-        const bool invalid_requested_backend = requested_backend != BackendKind::Auto
-                                              && !requested_backend_compiled;
+        const bool invalid_requested_backend = requested_backend
+                                                   != BackendKind::Auto
+                                               && !requested_backend_compiled;
         const bool unavailable_requested_backend
             = requested_backend != BackendKind::Auto
               && requested_backend_compiled && !requested_backend_available;
@@ -363,8 +365,8 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
             ImGui::TextUnformatted(
                 "Requested backend is not built in this binary and will be ignored when Preferences closes.");
         } else if (unavailable_requested_backend) {
-            const std::string_view unavailable_reason = backend_unavailable_reason(
-                requested_backend);
+            const std::string_view unavailable_reason
+                = backend_unavailable_reason(requested_backend);
             if (unavailable_reason.empty()) {
                 ImGui::TextUnformatted(
                     "Requested backend is unavailable at runtime and will be ignored when Preferences closes.");
@@ -383,8 +385,7 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
             if (!info.build_info.compiled || info.available)
                 continue;
             if (info.unavailable_reason.empty()) {
-                ImGui::Text("%s unavailable",
-                            info.build_info.display_name);
+                ImGui::Text("%s unavailable", info.build_info.display_name);
             } else {
                 ImGui::TextWrapped("%s unavailable: %s",
                                    info.build_info.display_name,
@@ -484,7 +485,8 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
     }
     ImGui::End();
     ImGui::PopStyleVar();
-    const BackendKind close_backend = sanitize_backend_kind(ui.renderer_backend);
+    const BackendKind close_backend = sanitize_backend_kind(
+        ui.renderer_backend);
     if (!show_window && close_backend != BackendKind::Auto
         && (!backend_kind_is_compiled(close_backend)
             || !backend_kind_is_available(close_backend))) {

@@ -26,15 +26,15 @@ enum class ImageSortMode : uint8_t {
 enum class OcioConfigSource : uint8_t { Global = 0, BuiltIn = 1, User = 2 };
 
 struct ViewRecipe {
-    bool use_ocio             = false;
-    bool linear_interpolation = false;
-    int current_channel       = 0;
-    int color_mode            = 0;
-    float exposure            = 0.0f;
-    float gamma               = 1.0f;
-    float offset              = 0.0f;
-    std::string ocio_display  = "default";
-    std::string ocio_view     = "default";
+    bool use_ocio                      = false;
+    bool linear_interpolation          = false;
+    int current_channel                = 0;
+    int color_mode                     = 0;
+    float exposure                     = 0.0f;
+    float gamma                        = 1.0f;
+    float offset                       = 0.0f;
+    std::string ocio_display           = "default";
+    std::string ocio_view              = "default";
     std::string ocio_image_color_space = "auto";
 };
 
@@ -117,18 +117,18 @@ struct ImageViewWindow {
 
 struct MultiViewWorkspace {
     std::vector<std::unique_ptr<ImageViewWindow>> view_windows;
-    int active_view_id          = 0;
-    int next_view_id            = 1;
-    int last_library_image_count = 0;
-    bool show_image_list_window = false;
-    bool image_list_force_dock  = false;
+    int active_view_id                 = 0;
+    int next_view_id                   = 1;
+    int last_library_image_count       = 0;
+    bool show_image_list_window        = false;
+    bool image_list_force_dock         = false;
     bool image_list_layout_initialized = false;
-    ImGuiID image_view_dock_id  = 0;
-    ImGuiID image_list_dock_id  = 0;
-    bool image_list_was_drawn   = false;
-    bool image_list_is_docked   = false;
-    ImVec2 image_list_pos       = ImVec2(0.0f, 0.0f);
-    ImVec2 image_list_size      = ImVec2(0.0f, 0.0f);
+    ImGuiID image_view_dock_id         = 0;
+    ImGuiID image_list_dock_id         = 0;
+    bool image_list_was_drawn          = false;
+    bool image_list_is_docked          = false;
+    ImVec2 image_list_pos              = ImVec2(0.0f, 0.0f);
+    ImVec2 image_list_size             = ImVec2(0.0f, 0.0f);
     std::vector<ImVec4> image_list_item_rects;
 };
 
@@ -204,8 +204,7 @@ std::filesystem::path
 legacy_imgui_ini_file_path();
 bool
 load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
-                      ImageLibraryState& library,
-                      std::string& error_message);
+                      ImageLibraryState& library, std::string& error_message);
 bool
 save_persistent_state(const PlaceholderUiState& ui_state,
                       const ViewerState& viewer,

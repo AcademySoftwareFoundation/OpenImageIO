@@ -131,8 +131,9 @@ frame_render(VulkanState& vk_state, ImDrawData* draw_data)
         return;
     if (vk_state.window_frame_submit_serials.size()
         != static_cast<size_t>(wd->Frames.Size)) {
-        vk_state.window_frame_submit_serials.assign(
-            static_cast<size_t>(wd->Frames.Size), 0);
+        vk_state.window_frame_submit_serials.assign(static_cast<size_t>(
+                                                        wd->Frames.Size),
+                                                    0);
     }
 
     VkResult err;

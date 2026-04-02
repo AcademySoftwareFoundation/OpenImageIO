@@ -11,45 +11,44 @@ namespace Imiv {
 
 namespace {
 
-const RendererBackendVTable*
-renderer_backend_vtable(BackendKind kind)
-{
-    switch (kind) {
+    const RendererBackendVTable* renderer_backend_vtable(BackendKind kind)
+    {
+        switch (kind) {
 #if IMIV_WITH_VULKAN
-    case BackendKind::Vulkan: return renderer_backend_vulkan_vtable();
+        case BackendKind::Vulkan: return renderer_backend_vulkan_vtable();
 #else
-    case BackendKind::Vulkan: break;
+        case BackendKind::Vulkan: break;
 #endif
 #if IMIV_WITH_METAL
-    case BackendKind::Metal: return renderer_backend_metal_vtable();
+        case BackendKind::Metal: return renderer_backend_metal_vtable();
 #else
-    case BackendKind::Metal: break;
+        case BackendKind::Metal: break;
 #endif
 #if IMIV_WITH_OPENGL
-    case BackendKind::OpenGL: return renderer_backend_opengl_vtable();
+        case BackendKind::OpenGL: return renderer_backend_opengl_vtable();
 #else
-    case BackendKind::OpenGL: break;
+        case BackendKind::OpenGL: break;
 #endif
-    case BackendKind::Auto: break;
+        case BackendKind::Auto: break;
+        }
+        return nullptr;
     }
-    return nullptr;
-}
 
-const RendererBackendVTable*
-renderer_dispatch_vtable(const RendererState& renderer_state)
-{
-    if (renderer_state.vtable != nullptr)
-        return renderer_state.vtable;
-    return renderer_backend_vtable(renderer_state.active_backend);
-}
+    const RendererBackendVTable*
+    renderer_dispatch_vtable(const RendererState& renderer_state)
+    {
+        if (renderer_state.vtable != nullptr)
+            return renderer_state.vtable;
+        return renderer_backend_vtable(renderer_state.active_backend);
+    }
 
-const RendererBackendVTable*
-texture_dispatch_vtable(const RendererTexture& texture)
-{
-    if (texture.vtable != nullptr)
-        return texture.vtable;
-    return renderer_backend_vtable(texture.backend_kind);
-}
+    const RendererBackendVTable*
+    texture_dispatch_vtable(const RendererTexture& texture)
+    {
+        if (texture.vtable != nullptr)
+            return texture.vtable;
+        return renderer_backend_vtable(texture.backend_kind);
+    }
 
 }  // namespace
 
@@ -95,10 +94,10 @@ renderer_get_viewer_texture_refs(const ViewerState& viewer,
                                  ImTextureRef& closeup_texture_ref,
                                  bool& has_closeup_texture)
 {
-    main_texture_ref    = ImTextureRef();
-    closeup_texture_ref = ImTextureRef();
-    has_main_texture    = false;
-    has_closeup_texture = false;
+    main_texture_ref                    = ImTextureRef();
+    closeup_texture_ref                 = ImTextureRef();
+    has_main_texture                    = false;
+    has_closeup_texture                 = false;
     const RendererBackendVTable* vtable = texture_dispatch_vtable(
         viewer.texture);
     if (vtable == nullptr || vtable->get_viewer_texture_refs == nullptr)
@@ -319,10 +318,10 @@ void
 renderer_set_main_clear_color(RendererState& renderer_state, float r, float g,
                               float b, float a)
 {
-    renderer_state.clear_color[0] = r;
-    renderer_state.clear_color[1] = g;
-    renderer_state.clear_color[2] = b;
-    renderer_state.clear_color[3] = a;
+    renderer_state.clear_color[0]       = r;
+    renderer_state.clear_color[1]       = g;
+    renderer_state.clear_color[2]       = b;
+    renderer_state.clear_color[3]       = a;
     const RendererBackendVTable* vtable = renderer_dispatch_vtable(
         renderer_state);
     if (vtable != nullptr && vtable->set_main_clear_color != nullptr)

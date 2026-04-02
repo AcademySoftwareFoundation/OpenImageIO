@@ -15,8 +15,7 @@
 #include <string>
 #include <vector>
 
-#if defined(IMIV_WITH_VULKAN) \
-    && defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
+#if defined(IMIV_WITH_VULKAN) && defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
     && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
 #    include "imiv_preview_vert_spv.h"
 #endif
@@ -111,9 +110,9 @@ namespace {
         std::string& error_message)
     {
         if (words != nullptr && word_count != 0) {
-            return create_shader_module_from_words(
-                device, allocator, words, word_count, shader_module,
-                error_message, debug_name);
+            return create_shader_module_from_words(device, allocator, words,
+                                                   word_count, shader_module,
+                                                   error_message, debug_name);
         }
         return create_shader_module_from_file(device, allocator, path,
                                               shader_module, error_message);
@@ -650,10 +649,9 @@ namespace {
 #    if defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
         && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
         const uint32_t* shader_vert_words = g_imiv_preview_vert_spv;
-        const size_t shader_vert_word_count
-            = g_imiv_preview_vert_spv_word_count;
+        const size_t shader_vert_word_count = g_imiv_preview_vert_spv_word_count;
 #    else
-        const uint32_t* shader_vert_words = nullptr;
+        const uint32_t* shader_vert_words   = nullptr;
         const size_t shader_vert_word_count = 0;
 #    endif
         if (!create_shader_module_from_embedded_or_file(

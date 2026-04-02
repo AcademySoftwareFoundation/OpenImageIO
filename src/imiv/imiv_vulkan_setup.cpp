@@ -7,8 +7,8 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <string>
@@ -27,8 +27,7 @@
 
 #include <OpenImageIO/strutil.h>
 
-#if defined(IMIV_WITH_VULKAN) \
-    && defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
+#if defined(IMIV_WITH_VULKAN) && defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
     && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
 #    include "imiv_preview_frag_spv.h"
 #    include "imiv_preview_vert_spv.h"
@@ -131,7 +130,8 @@ read_vulkan_limit_override(const char* name, uint32_t& out_value)
     char* end         = nullptr;
     unsigned long raw = std::strtoul(value, &end, 10);
     if (end == value || *end != '\0'
-        || raw > static_cast<unsigned long>(std::numeric_limits<uint32_t>::max())) {
+        || raw > static_cast<unsigned long>(
+               std::numeric_limits<uint32_t>::max())) {
         return false;
     }
     out_value = static_cast<uint32_t>(raw);
@@ -658,15 +658,16 @@ select_physical_device_and_queue(VulkanState& vk_state,
     vk_state.max_image_dimension_2d = best_properties.limits.maxImageDimension2D;
     vk_state.max_storage_buffer_range
         = best_properties.limits.maxStorageBufferRange;
-    vk_state.min_storage_buffer_offset_alignment
-        = static_cast<uint32_t>(std::max<VkDeviceSize>(
+    vk_state.min_storage_buffer_offset_alignment = static_cast<uint32_t>(
+        std::max<VkDeviceSize>(
             1, best_properties.limits.minStorageBufferOffsetAlignment));
     uint32_t storage_buffer_override = 0;
     if (read_vulkan_limit_override(
             "IMIV_VULKAN_MAX_STORAGE_BUFFER_RANGE_OVERRIDE",
             storage_buffer_override)) {
-        vk_state.max_storage_buffer_range = std::min(
-            vk_state.max_storage_buffer_range, storage_buffer_override);
+        vk_state.max_storage_buffer_range
+            = std::min(vk_state.max_storage_buffer_range,
+                       storage_buffer_override);
     }
     if (!cache_queue_family_properties(vk_state, error_message))
         return false;
@@ -781,28 +782,28 @@ create_compute_pipeline(VulkanState& vk_state, const uint32_t* shader_words,
     if (shader_words != nullptr && shader_word_count != 0) {
         out_pipeline = VK_NULL_HANDLE;
 
-        VkShaderModule shader_module = VK_NULL_HANDLE;
+        VkShaderModule shader_module       = VK_NULL_HANDLE;
         VkShaderModuleCreateInfo shader_ci = {};
-        shader_ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        shader_ci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         shader_ci.codeSize = shader_word_count * sizeof(uint32_t);
         shader_ci.pCode    = shader_words;
-        VkResult err = vkCreateShaderModule(vk_state.device, &shader_ci,
-                                            vk_state.allocator,
-                                            &shader_module);
+        VkResult err       = vkCreateShaderModule(vk_state.device, &shader_ci,
+                                                  vk_state.allocator, &shader_module);
         if (err != VK_SUCCESS) {
-            error_message = Strutil::fmt::format(
-                "vkCreateShaderModule failed for '{}'", shader_label);
+            error_message
+                = Strutil::fmt::format("vkCreateShaderModule failed for '{}'",
+                                       shader_label);
             return false;
         }
 
         VkPipelineShaderStageCreateInfo stage_ci = {};
-        stage_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        stage_ci.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+        stage_ci.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        stage_ci.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
         stage_ci.module = shader_module;
         stage_ci.pName  = "main";
         VkComputePipelineCreateInfo pipeline_ci = {};
-        pipeline_ci.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        pipeline_ci.stage = stage_ci;
+        pipeline_ci.sType  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+        pipeline_ci.stage  = stage_ci;
         pipeline_ci.layout = vk_state.compute_pipeline_layout;
         err = vkCreateComputePipelines(vk_state.device, vk_state.pipeline_cache,
                                        1, &pipeline_ci, vk_state.allocator,
@@ -857,26 +858,24 @@ create_shader_module_from_file(VkDevice device,
 
 
 bool
-create_shader_module_from_embedded_or_file(VkDevice device,
-                                           VkAllocationCallbacks* allocator,
-                                           const uint32_t* shader_words,
-                                           size_t shader_word_count,
-                                           const std::string& shader_path,
-                                           const char* shader_label,
-                                           VkShaderModule& shader_module,
-                                           std::string& error_message)
+create_shader_module_from_embedded_or_file(
+    VkDevice device, VkAllocationCallbacks* allocator,
+    const uint32_t* shader_words, size_t shader_word_count,
+    const std::string& shader_path, const char* shader_label,
+    VkShaderModule& shader_module, std::string& error_message)
 {
     if (shader_words != nullptr && shader_word_count != 0) {
-        shader_module = VK_NULL_HANDLE;
+        shader_module                      = VK_NULL_HANDLE;
         VkShaderModuleCreateInfo shader_ci = {};
-        shader_ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        shader_ci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         shader_ci.codeSize = shader_word_count * sizeof(uint32_t);
         shader_ci.pCode    = shader_words;
-        VkResult err = vkCreateShaderModule(device, &shader_ci, allocator,
-                                            &shader_module);
+        VkResult err       = vkCreateShaderModule(device, &shader_ci, allocator,
+                                                  &shader_module);
         if (err != VK_SUCCESS) {
-            error_message = Strutil::fmt::format(
-                "vkCreateShaderModule failed for '{}'", shader_label);
+            error_message
+                = Strutil::fmt::format("vkCreateShaderModule failed for '{}'",
+                                       shader_label);
             shader_module = VK_NULL_HANDLE;
             return false;
         }
@@ -1050,18 +1049,18 @@ init_preview_resources(VulkanState& vk_state, std::string& error_message)
                                     + "/imiv_preview.vert.spv";
     const std::string shader_frag = std::string(IMIV_SHADER_DIR)
                                     + "/imiv_preview.frag.spv";
-#    if defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
-        && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
-    const uint32_t* shader_vert_words = g_imiv_preview_vert_spv;
+#        if defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
+            && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
+    const uint32_t* shader_vert_words   = g_imiv_preview_vert_spv;
     const size_t shader_vert_word_count = g_imiv_preview_vert_spv_word_count;
-    const uint32_t* shader_frag_words = g_imiv_preview_frag_spv;
+    const uint32_t* shader_frag_words   = g_imiv_preview_frag_spv;
     const size_t shader_frag_word_count = g_imiv_preview_frag_spv_word_count;
-#    else
-    const uint32_t* shader_vert_words = nullptr;
+#        else
+    const uint32_t* shader_vert_words   = nullptr;
     const size_t shader_vert_word_count = 0;
-    const uint32_t* shader_frag_words = nullptr;
+    const uint32_t* shader_frag_words   = nullptr;
     const size_t shader_frag_word_count = 0;
-#    endif
+#        endif
     VkShaderModule vert_module = VK_NULL_HANDLE;
     VkShaderModule frag_module = VK_NULL_HANDLE;
     if (!create_shader_module_from_embedded_or_file(
@@ -1234,13 +1233,13 @@ init_compute_upload_resources(VulkanState& vk_state, std::string& error_message)
                       + "/imiv_upload_to_rgba16f.comp.spv";
         shader_path_fp64 = std::string(IMIV_SHADER_DIR)
                            + "/imiv_upload_to_rgba16f_fp64.comp.spv";
-#    if defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
-        && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
-        shader_words      = g_imiv_upload_to_rgba16f_spv;
-        shader_word_count = g_imiv_upload_to_rgba16f_spv_word_count;
-        shader_words_fp64 = g_imiv_upload_to_rgba16f_fp64_spv;
+#        if defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
+            && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
+        shader_words           = g_imiv_upload_to_rgba16f_spv;
+        shader_word_count      = g_imiv_upload_to_rgba16f_spv_word_count;
+        shader_words_fp64      = g_imiv_upload_to_rgba16f_fp64_spv;
         shader_word_count_fp64 = g_imiv_upload_to_rgba16f_fp64_spv_word_count;
-#    endif
+#        endif
     } else if (has_format_features(vk_state.physical_device,
                                    VK_FORMAT_R32G32B32A32_SFLOAT, required)) {
         vk_state.compute_output_format = VK_FORMAT_R32G32B32A32_SFLOAT;
@@ -1248,13 +1247,13 @@ init_compute_upload_resources(VulkanState& vk_state, std::string& error_message)
                       + "/imiv_upload_to_rgba32f.comp.spv";
         shader_path_fp64 = std::string(IMIV_SHADER_DIR)
                            + "/imiv_upload_to_rgba32f_fp64.comp.spv";
-#    if defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
-        && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
-        shader_words      = g_imiv_upload_to_rgba32f_spv;
-        shader_word_count = g_imiv_upload_to_rgba32f_spv_word_count;
-        shader_words_fp64 = g_imiv_upload_to_rgba32f_fp64_spv;
+#        if defined(IMIV_HAS_EMBEDDED_VULKAN_SHADERS) \
+            && IMIV_HAS_EMBEDDED_VULKAN_SHADERS
+        shader_words           = g_imiv_upload_to_rgba32f_spv;
+        shader_word_count      = g_imiv_upload_to_rgba32f_spv_word_count;
+        shader_words_fp64      = g_imiv_upload_to_rgba32f_fp64_spv;
         shader_word_count_fp64 = g_imiv_upload_to_rgba32f_fp64_spv_word_count;
-#    endif
+#        endif
     } else {
         error_message
             = "no compute output format support for rgba16f/rgba32f storage image";
@@ -1262,10 +1261,10 @@ init_compute_upload_resources(VulkanState& vk_state, std::string& error_message)
     }
 
     VkDescriptorPoolSize pool_sizes[2] = {};
-    pool_sizes[0].type                 = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-    pool_sizes[0].descriptorCount      = 64;
-    pool_sizes[1].type                 = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    pool_sizes[1].descriptorCount      = 64;
+    pool_sizes[0].type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+    pool_sizes[0].descriptorCount = 64;
+    pool_sizes[1].type            = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    pool_sizes[1].descriptorCount = 64;
     VkDescriptorPoolCreateInfo pool_ci = {};
     pool_ci.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_ci.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
@@ -1341,11 +1340,12 @@ init_compute_upload_resources(VulkanState& vk_state, std::string& error_message)
 
     if (vk_state.compute_supports_float64) {
         std::string fp64_error;
-        if (!create_compute_pipeline(
-                vk_state, shader_words_fp64, shader_word_count_fp64,
-                shader_path_fp64, "imiv.upload_to_rgba.fp64",
-                "imiv.compute_upload.pipeline_fp64",
-                vk_state.compute_pipeline_fp64, fp64_error)) {
+        if (!create_compute_pipeline(vk_state, shader_words_fp64,
+                                     shader_word_count_fp64, shader_path_fp64,
+                                     "imiv.upload_to_rgba.fp64",
+                                     "imiv.compute_upload.pipeline_fp64",
+                                     vk_state.compute_pipeline_fp64,
+                                     fp64_error)) {
             print(stderr,
                   "imiv: fp64 compute pipeline unavailable, will fallback "
                   "double->float on CPU: {}\n",

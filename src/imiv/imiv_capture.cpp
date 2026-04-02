@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include "imiv_types.h"
 #include "imiv_renderer.h"
+#include "imiv_types.h"
 
 #include <cmath>
 #include <cstdio>
@@ -79,9 +79,9 @@ namespace {
     }
 
     bool capture_swapchain_region_rgba8_from_layout(
-        VulkanState& vk_state, int x, int y, int w, int h,
-        unsigned int* pixels, VkImageLayout source_layout,
-        const char* source_layout_name, std::string& error_message)
+        VulkanState& vk_state, int x, int y, int w, int h, unsigned int* pixels,
+        VkImageLayout source_layout, const char* source_layout_name,
+        std::string& error_message)
     {
         if (pixels == nullptr || w <= 0 || h <= 0) {
             error_message = "invalid Vulkan capture buffer or size";
@@ -94,7 +94,8 @@ namespace {
             return false;
         }
         if (x < 0 || y < 0 || x + w > wd->Width || y + h > wd->Height) {
-            error_message = "capture rectangle is outside the Vulkan swapchain image";
+            error_message
+                = "capture rectangle is outside the Vulkan swapchain image";
             return false;
         }
 
@@ -113,7 +114,8 @@ namespace {
 
         VkResult err = vkQueueWaitIdle(vk_state.queue);
         if (err != VK_SUCCESS) {
-            error_message = "vkQueueWaitIdle failed before Vulkan screen capture";
+            error_message
+                = "vkQueueWaitIdle failed before Vulkan screen capture";
             return false;
         }
 
@@ -131,8 +133,8 @@ namespace {
             buffer_ci.size               = full_buffer_size;
             buffer_ci.usage              = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             buffer_ci.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;
-            err = vkCreateBuffer(vk_state.device, &buffer_ci, vk_state.allocator,
-                                 &staging_buffer);
+            err = vkCreateBuffer(vk_state.device, &buffer_ci,
+                                 vk_state.allocator, &staging_buffer);
             if (err != VK_SUCCESS) {
                 error_message
                     = "vkCreateBuffer failed for Vulkan capture staging buffer";
@@ -179,7 +181,8 @@ namespace {
             }
 
             std::string immediate_error;
-            if (!begin_immediate_submit(vk_state, command_buf, immediate_error)) {
+            if (!begin_immediate_submit(vk_state, command_buf,
+                                        immediate_error)) {
                 error_message = immediate_error;
                 break;
             }
@@ -188,10 +191,10 @@ namespace {
             to_transfer.sType     = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             to_transfer.oldLayout = source_layout;
             to_transfer.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            to_transfer.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-            to_transfer.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-            to_transfer.image                           = image;
-            to_transfer.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+            to_transfer.srcQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
+            to_transfer.dstQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
+            to_transfer.image                       = image;
+            to_transfer.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             to_transfer.subresourceRange.baseMipLevel   = 0;
             to_transfer.subresourceRange.levelCount     = 1;
             to_transfer.subresourceRange.baseArrayLayer = 0;
@@ -199,16 +202,17 @@ namespace {
             to_transfer.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT
                                         | VK_ACCESS_MEMORY_WRITE_BIT;
             to_transfer.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            vkCmdPipelineBarrier(command_buf, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            vkCmdPipelineBarrier(command_buf,
+                                 VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                                  VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
                                  0, nullptr, 1, &to_transfer);
 
-            VkBufferImageCopy copy_region               = {};
-            copy_region.bufferOffset                    = 0;
-            copy_region.bufferRowLength                 = 0;
-            copy_region.bufferImageHeight               = 0;
-            copy_region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-            copy_region.imageSubresource.mipLevel       = 0;
+            VkBufferImageCopy copy_region           = {};
+            copy_region.bufferOffset                = 0;
+            copy_region.bufferRowLength             = 0;
+            copy_region.bufferImageHeight           = 0;
+            copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            copy_region.imageSubresource.mipLevel   = 0;
             copy_region.imageSubresource.baseArrayLayer = 0;
             copy_region.imageSubresource.layerCount     = 1;
             copy_region.imageOffset.x                   = 0;
@@ -222,15 +226,16 @@ namespace {
                                    staging_buffer, 1, &copy_region);
 
             VkImageMemoryBarrier restore_layout = {};
-            restore_layout.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            restore_layout.oldLayout           = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            restore_layout.newLayout           = source_layout;
+            restore_layout.sType     = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            restore_layout.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            restore_layout.newLayout = source_layout;
             restore_layout.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             restore_layout.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             restore_layout.image               = image;
-            restore_layout.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            restore_layout.subresourceRange.baseMipLevel = 0;
-            restore_layout.subresourceRange.levelCount   = 1;
+            restore_layout.subresourceRange.aspectMask
+                = VK_IMAGE_ASPECT_COLOR_BIT;
+            restore_layout.subresourceRange.baseMipLevel   = 0;
+            restore_layout.subresourceRange.levelCount     = 1;
             restore_layout.subresourceRange.baseArrayLayer = 0;
             restore_layout.subresourceRange.layerCount     = 1;
             restore_layout.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
@@ -246,27 +251,29 @@ namespace {
             command_buf = VK_NULL_HANDLE;
 
             void* mapped = nullptr;
-            err = vkMapMemory(vk_state.device, staging_memory, 0,
-                              full_buffer_size, 0, &mapped);
+            err          = vkMapMemory(vk_state.device, staging_memory, 0,
+                                       full_buffer_size, 0, &mapped);
             if (err != VK_SUCCESS || mapped == nullptr) {
                 error_message = "vkMapMemory failed for Vulkan capture readback";
                 break;
             }
 
-            const unsigned char* src = static_cast<const unsigned char*>(mapped);
+            const unsigned char* src = static_cast<const unsigned char*>(
+                mapped);
             for (int row = 0; row < h; ++row) {
                 const int src_y         = y + row;
                 const size_t src_offset = (static_cast<size_t>(src_y)
                                                * static_cast<size_t>(full_width)
                                            + static_cast<size_t>(x))
                                           * 4;
-                std::memcpy(
-                    pixels + static_cast<size_t>(row) * static_cast<size_t>(w),
-                    src + src_offset, static_cast<size_t>(w) * 4);
+                std::memcpy(pixels
+                                + static_cast<size_t>(row)
+                                      * static_cast<size_t>(w),
+                            src + src_offset, static_cast<size_t>(w) * 4);
             }
             vkUnmapMemory(vk_state.device, staging_memory);
 
-            const VkFormat format = wd->SurfaceFormat.format;
+            const VkFormat format  = wd->SurfaceFormat.format;
             const bool bgra_source = (format == VK_FORMAT_B8G8R8A8_UNORM
                                       || format == VK_FORMAT_B8G8R8A8_SRGB);
             if (bgra_source) {
@@ -282,14 +289,15 @@ namespace {
         } while (false);
 
         if (staging_buffer != VK_NULL_HANDLE)
-            vkDestroyBuffer(vk_state.device, staging_buffer, vk_state.allocator);
+            vkDestroyBuffer(vk_state.device, staging_buffer,
+                            vk_state.allocator);
         if (staging_memory != VK_NULL_HANDLE)
             vkFreeMemory(vk_state.device, staging_memory, vk_state.allocator);
 
         if (!ok && error_message.empty()) {
-            error_message
-                = std::string("unknown Vulkan screen capture failure from ")
-                  + source_layout_name;
+            error_message = std::string(
+                                "unknown Vulkan screen capture failure from ")
+                            + source_layout_name;
         }
         return ok;
     }
@@ -400,9 +408,10 @@ capture_swapchain_region_rgba8(VulkanState& vk_state, int x, int y, int w,
         return true;
     }
 
-    if (capture_swapchain_region_rgba8_from_layout(
-            vk_state, x, y, w, h, pixels, VK_IMAGE_LAYOUT_GENERAL,
-            "VK_IMAGE_LAYOUT_GENERAL", error_message)) {
+    if (capture_swapchain_region_rgba8_from_layout(vk_state, x, y, w, h, pixels,
+                                                   VK_IMAGE_LAYOUT_GENERAL,
+                                                   "VK_IMAGE_LAYOUT_GENERAL",
+                                                   error_message)) {
         return true;
     }
 
@@ -426,11 +435,11 @@ imiv_vulkan_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
     VulkanState* vk_state = reinterpret_cast<VulkanState*>(
         renderer_state->backend);
 
-    int capture_x         = x;
-    int capture_y         = y;
-    int capture_w         = w;
-    int capture_h         = h;
-    bool use_full_capture = false;
+    int capture_x           = x;
+    int capture_y           = y;
+    int capture_w           = w;
+    int capture_h           = h;
+    bool use_full_capture   = false;
     ImGuiViewport* viewport = ImGui::FindViewportByID(viewport_id);
     if (viewport != nullptr && vk_state->window_data.Width > 0
         && vk_state->window_data.Height > 0 && viewport->Size.x > 0.0f
@@ -446,9 +455,9 @@ imiv_vulkan_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
             (static_cast<double>(y) - static_cast<double>(viewport->Pos.y))
             * scale_y));
         capture_w = std::max(1, static_cast<int>(std::lround(
-                                   static_cast<double>(w) * scale_x)));
+                                    static_cast<double>(w) * scale_x)));
         capture_h = std::max(1, static_cast<int>(std::lround(
-                                   static_cast<double>(h) * scale_y)));
+                                    static_cast<double>(h) * scale_y)));
     } else if (x < 0 || y < 0) {
         use_full_capture = true;
     }
@@ -494,29 +503,29 @@ imiv_vulkan_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
 
     const unsigned char* src_bytes = reinterpret_cast<const unsigned char*>(
         captured_pixels.data());
-    unsigned char* dst_bytes = reinterpret_cast<unsigned char*>(pixels);
+    unsigned char* dst_bytes    = reinterpret_cast<unsigned char*>(pixels);
     const double sample_scale_x = static_cast<double>(capture_w)
                                   / static_cast<double>(w);
     const double sample_scale_y = static_cast<double>(capture_h)
                                   / static_cast<double>(h);
     for (int row = 0; row < h; ++row) {
-        unsigned char* dst_row = dst_bytes
-                                 + static_cast<size_t>(row)
-                                       * static_cast<size_t>(w) * 4;
-        const int sample_row = std::clamp(
-            static_cast<int>(std::floor((static_cast<double>(row) + 0.5)
-                                        * sample_scale_y)),
-            0, capture_h - 1);
-        const unsigned char* src_row
-            = src_bytes + static_cast<size_t>(sample_row)
-                              * static_cast<size_t>(capture_w) * 4;
+        unsigned char* dst_row
+            = dst_bytes + static_cast<size_t>(row) * static_cast<size_t>(w) * 4;
+        const int sample_row         = std::clamp(static_cast<int>(std::floor(
+                                              (static_cast<double>(row) + 0.5)
+                                              * sample_scale_y)),
+                                                  0, capture_h - 1);
+        const unsigned char* src_row = src_bytes
+                                       + static_cast<size_t>(sample_row)
+                                             * static_cast<size_t>(capture_w)
+                                             * 4;
         for (int col = 0; col < w; ++col) {
             const int sample_col = std::clamp(
                 static_cast<int>(std::floor((static_cast<double>(col) + 0.5)
                                             * sample_scale_x)),
                 0, capture_w - 1);
-            const unsigned char* src
-                = src_row + static_cast<size_t>(sample_col) * 4;
+            const unsigned char* src = src_row
+                                       + static_cast<size_t>(sample_col) * 4;
             unsigned char* dst = dst_row + static_cast<size_t>(col) * 4;
             dst[0]             = src[0];
             dst[1]             = src[1];

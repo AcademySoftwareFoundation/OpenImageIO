@@ -11,12 +11,12 @@
 namespace Imiv {
 
 struct RowStripeUploadPlan {
-    size_t aligned_row_pitch_bytes  = 0;
-    size_t descriptor_range_bytes   = 0;
-    size_t padded_upload_bytes      = 0;
-    uint32_t stripe_rows            = 0;
-    uint32_t stripe_count           = 0;
-    bool uses_multiple_stripes      = false;
+    size_t aligned_row_pitch_bytes = 0;
+    size_t descriptor_range_bytes  = 0;
+    size_t padded_upload_bytes     = 0;
+    uint32_t stripe_rows           = 0;
+    uint32_t stripe_count          = 0;
+    bool uses_multiple_stripes     = false;
 };
 
 bool

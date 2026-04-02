@@ -138,166 +138,163 @@ namespace Imiv {
 
 namespace {
 
-void
-clear_gl_error_queue()
-{
-    while (glGetError() != GL_NO_ERROR) {
+    void clear_gl_error_queue()
+    {
+        while (glGetError() != GL_NO_ERROR) {}
     }
-}
 
-struct RendererTextureBackendState {
-    GLuint source_texture                         = 0;
-    GLuint preview_linear_texture                 = 0;
-    GLuint preview_nearest_texture                = 0;
-    int width                                     = 0;
-    int height                                    = 0;
-    int input_channels                            = 0;
-    bool preview_dirty                            = true;
-    bool preview_params_valid                     = false;
-    RendererPreviewControls last_preview_controls = {};
-    std::string last_ocio_shader_cache_id;
-};
-
-struct SourceTextureUploadDesc {
-    GLint internal_format                 = GL_RGBA32F;
-    GLenum format                         = GL_RGBA;
-    GLenum type                           = GL_FLOAT;
-    const void* pixels                    = nullptr;
-    GLint unpack_row_length               = 0;
-    size_t pixel_stride_bytes             = 0;
-    size_t row_pitch_bytes                = 0;
-    std::vector<float> fallback_rgba_data = {};
-};
-
-struct BasicPreviewProgram {
-    GLuint program                 = 0;
-    GLuint fullscreen_triangle_vao = 0;
-    GLint source_sampler_location  = -1;
-    GLint input_channels_location  = -1;
-    GLint exposure_location        = -1;
-    GLint gamma_location           = -1;
-    GLint offset_location          = -1;
-    GLint color_mode_location      = -1;
-    GLint channel_location         = -1;
-    GLint orientation_location     = -1;
-    bool ready                     = false;
-};
-
-struct OcioPreviewProgram {
-    struct TextureDesc {
-        GLuint texture_id      = 0;
-        GLenum target          = 0;
-        GLint sampler_location = -1;
-        GLint texture_unit     = 0;
+    struct RendererTextureBackendState {
+        GLuint source_texture                         = 0;
+        GLuint preview_linear_texture                 = 0;
+        GLuint preview_nearest_texture                = 0;
+        int width                                     = 0;
+        int height                                    = 0;
+        int input_channels                            = 0;
+        bool preview_dirty                            = true;
+        bool preview_params_valid                     = false;
+        RendererPreviewControls last_preview_controls = {};
+        std::string last_ocio_shader_cache_id;
     };
 
-    struct UniformDesc {
-        std::string name;
-        OCIO::GpuShaderDesc::UniformData data;
-        GLint location = -1;
+    struct SourceTextureUploadDesc {
+        GLint internal_format                 = GL_RGBA32F;
+        GLenum format                         = GL_RGBA;
+        GLenum type                           = GL_FLOAT;
+        const void* pixels                    = nullptr;
+        GLint unpack_row_length               = 0;
+        size_t pixel_stride_bytes             = 0;
+        size_t row_pitch_bytes                = 0;
+        std::vector<float> fallback_rgba_data = {};
     };
 
-    GLuint program                = 0;
-    GLint source_sampler_location = -1;
-    GLint input_channels_location = -1;
-    GLint offset_location         = -1;
-    GLint color_mode_location     = -1;
-    GLint channel_location        = -1;
-    GLint orientation_location    = -1;
-    OcioShaderRuntime* runtime    = nullptr;
-    std::string shader_cache_id;
-    std::vector<TextureDesc> textures;
-    std::vector<UniformDesc> uniforms;
-    bool ready = false;
-};
+    struct BasicPreviewProgram {
+        GLuint program                 = 0;
+        GLuint fullscreen_triangle_vao = 0;
+        GLint source_sampler_location  = -1;
+        GLint input_channels_location  = -1;
+        GLint exposure_location        = -1;
+        GLint gamma_location           = -1;
+        GLint offset_location          = -1;
+        GLint color_mode_location      = -1;
+        GLint channel_location         = -1;
+        GLint orientation_location     = -1;
+        bool ready                     = false;
+    };
 
-using GlUniform1fProc  = void(APIENTRY*)(GLint location, GLfloat v0);
-using GlUniform3fProc  = void(APIENTRY*)(GLint location, GLfloat v0, GLfloat v1,
-                                        GLfloat v2);
-using GlUniform1fvProc = void(APIENTRY*)(GLint location, GLsizei count,
-                                         const GLfloat* value);
-using GlUniform1ivProc = void(APIENTRY*)(GLint location, GLsizei count,
-                                         const GLint* value);
-using GlDrawArraysProc = void(APIENTRY*)(GLenum mode, GLint first,
-                                         GLsizei count);
-using GlTexImage1DProc = void(APIENTRY*)(GLenum target, GLint level,
-                                         GLint internalformat, GLsizei width,
-                                         GLint border, GLenum format,
-                                         GLenum type, const void* pixels);
-using GlGenFramebuffersProc = void(APIENTRY*)(GLsizei n, GLuint* framebuffers);
-using GlBindFramebufferProc = void(APIENTRY*)(GLenum target,
-                                              GLuint framebuffer);
-using GlDeleteFramebuffersProc = void(APIENTRY*)(GLsizei n,
-                                                 const GLuint* framebuffers);
-using GlFramebufferTexture2DProc
-    = void(APIENTRY*)(GLenum target, GLenum attachment, GLenum textarget,
-                      GLuint texture, GLint level);
-using GlCheckFramebufferStatusProc = GLenum(APIENTRY*)(GLenum target);
-using GlTexImage3DProc             = void(APIENTRY*)(GLenum target, GLint level,
-                                         GLint internalformat, GLsizei width,
-                                         GLsizei height, GLsizei depth,
-                                         GLint border, GLenum format,
-                                         GLenum type, const void* pixels);
-using GlReadBufferProc             = void(APIENTRY*)(GLenum src);
+    struct OcioPreviewProgram {
+        struct TextureDesc {
+            GLuint texture_id      = 0;
+            GLenum target          = 0;
+            GLint sampler_location = -1;
+            GLint texture_unit     = 0;
+        };
 
-struct OpenGlExtraProcs {
-    GlUniform1fProc Uniform1f                           = nullptr;
-    GlUniform3fProc Uniform3f                           = nullptr;
-    GlUniform1fvProc Uniform1fv                         = nullptr;
-    GlUniform1ivProc Uniform1iv                         = nullptr;
-    GlDrawArraysProc DrawArrays                         = nullptr;
-    GlTexImage1DProc TexImage1D                         = nullptr;
-    GlGenFramebuffersProc GenFramebuffers               = nullptr;
-    GlBindFramebufferProc BindFramebuffer               = nullptr;
-    GlDeleteFramebuffersProc DeleteFramebuffers         = nullptr;
-    GlFramebufferTexture2DProc FramebufferTexture2D     = nullptr;
-    GlCheckFramebufferStatusProc CheckFramebufferStatus = nullptr;
-    GlTexImage3DProc TexImage3D                         = nullptr;
-    GlReadBufferProc ReadBuffer                         = nullptr;
-    bool ready                                          = false;
-};
+        struct UniformDesc {
+            std::string name;
+            OCIO::GpuShaderDesc::UniformData data;
+            GLint location = -1;
+        };
 
-constexpr size_t kDefaultOpenGlUploadChunkBytes = 64u * 1024u * 1024u;
+        GLuint program                = 0;
+        GLint source_sampler_location = -1;
+        GLint input_channels_location = -1;
+        GLint offset_location         = -1;
+        GLint color_mode_location     = -1;
+        GLint channel_location        = -1;
+        GLint orientation_location    = -1;
+        OcioShaderRuntime* runtime    = nullptr;
+        std::string shader_cache_id;
+        std::vector<TextureDesc> textures;
+        std::vector<UniformDesc> uniforms;
+        bool ready = false;
+    };
 
-bool
-read_opengl_limit_override(const char* name, size_t& out_value)
-{
-    out_value         = 0;
-    const char* value = std::getenv(name);
-    if (value == nullptr || value[0] == '\0')
-        return false;
-    char* end              = nullptr;
-    unsigned long long raw = std::strtoull(value, &end, 10);
-    if (end == value || *end != '\0' || raw == 0
-        || raw > static_cast<unsigned long long>(
-                     std::numeric_limits<size_t>::max())) {
-        return false;
+    using GlUniform1fProc  = void(APIENTRY*)(GLint location, GLfloat v0);
+    using GlUniform3fProc  = void(APIENTRY*)(GLint location, GLfloat v0,
+                                            GLfloat v1, GLfloat v2);
+    using GlUniform1fvProc = void(APIENTRY*)(GLint location, GLsizei count,
+                                             const GLfloat* value);
+    using GlUniform1ivProc = void(APIENTRY*)(GLint location, GLsizei count,
+                                             const GLint* value);
+    using GlDrawArraysProc = void(APIENTRY*)(GLenum mode, GLint first,
+                                             GLsizei count);
+    using GlTexImage1DProc
+        = void(APIENTRY*)(GLenum target, GLint level, GLint internalformat,
+                          GLsizei width, GLint border, GLenum format,
+                          GLenum type, const void* pixels);
+    using GlGenFramebuffersProc = void(APIENTRY*)(GLsizei n,
+                                                  GLuint* framebuffers);
+    using GlBindFramebufferProc = void(APIENTRY*)(GLenum target,
+                                                  GLuint framebuffer);
+    using GlDeleteFramebuffersProc
+        = void(APIENTRY*)(GLsizei n, const GLuint* framebuffers);
+    using GlFramebufferTexture2DProc
+        = void(APIENTRY*)(GLenum target, GLenum attachment, GLenum textarget,
+                          GLuint texture, GLint level);
+    using GlCheckFramebufferStatusProc = GLenum(APIENTRY*)(GLenum target);
+    using GlTexImage3DProc
+        = void(APIENTRY*)(GLenum target, GLint level, GLint internalformat,
+                          GLsizei width, GLsizei height, GLsizei depth,
+                          GLint border, GLenum format, GLenum type,
+                          const void* pixels);
+    using GlReadBufferProc = void(APIENTRY*)(GLenum src);
+
+    struct OpenGlExtraProcs {
+        GlUniform1fProc Uniform1f                           = nullptr;
+        GlUniform3fProc Uniform3f                           = nullptr;
+        GlUniform1fvProc Uniform1fv                         = nullptr;
+        GlUniform1ivProc Uniform1iv                         = nullptr;
+        GlDrawArraysProc DrawArrays                         = nullptr;
+        GlTexImage1DProc TexImage1D                         = nullptr;
+        GlGenFramebuffersProc GenFramebuffers               = nullptr;
+        GlBindFramebufferProc BindFramebuffer               = nullptr;
+        GlDeleteFramebuffersProc DeleteFramebuffers         = nullptr;
+        GlFramebufferTexture2DProc FramebufferTexture2D     = nullptr;
+        GlCheckFramebufferStatusProc CheckFramebufferStatus = nullptr;
+        GlTexImage3DProc TexImage3D                         = nullptr;
+        GlReadBufferProc ReadBuffer                         = nullptr;
+        bool ready                                          = false;
+    };
+
+    constexpr size_t kDefaultOpenGlUploadChunkBytes = 64u * 1024u * 1024u;
+
+    bool read_opengl_limit_override(const char* name, size_t& out_value)
+    {
+        out_value         = 0;
+        const char* value = std::getenv(name);
+        if (value == nullptr || value[0] == '\0')
+            return false;
+        char* end              = nullptr;
+        unsigned long long raw = std::strtoull(value, &end, 10);
+        if (end == value || *end != '\0' || raw == 0
+            || raw > static_cast<unsigned long long>(
+                   std::numeric_limits<size_t>::max())) {
+            return false;
+        }
+        out_value = static_cast<size_t>(raw);
+        return true;
     }
-    out_value = static_cast<size_t>(raw);
-    return true;
-}
 
-size_t
-opengl_max_upload_chunk_bytes()
-{
-    size_t override_value = 0;
-    if (read_opengl_limit_override("IMIV_OPENGL_MAX_UPLOAD_CHUNK_BYTES_OVERRIDE",
-                                   override_value)) {
-        return override_value;
+    size_t opengl_max_upload_chunk_bytes()
+    {
+        size_t override_value = 0;
+        if (read_opengl_limit_override(
+                "IMIV_OPENGL_MAX_UPLOAD_CHUNK_BYTES_OVERRIDE", override_value)) {
+            return override_value;
+        }
+        return kDefaultOpenGlUploadChunkBytes;
     }
-    return kDefaultOpenGlUploadChunkBytes;
-}
 
-struct RendererBackendState {
-    GLFWwindow* window         = nullptr;
-    GLFWwindow* backup_context = nullptr;
-    const char* glsl_version   = nullptr;
-    bool imgui_initialized     = false;
-    OpenGlExtraProcs extra_procs;
-    GLuint preview_framebuffer = 0;
-    BasicPreviewProgram basic_preview;
-    OcioPreviewProgram ocio_preview;
-};
+    struct RendererBackendState {
+        GLFWwindow* window         = nullptr;
+        GLFWwindow* backup_context = nullptr;
+        const char* glsl_version   = nullptr;
+        bool imgui_initialized     = false;
+        OpenGlExtraProcs extra_procs;
+        GLuint preview_framebuffer = 0;
+        BasicPreviewProgram basic_preview;
+        OcioPreviewProgram ocio_preview;
+    };
 
     RendererBackendState* backend_state(RendererState& renderer_state)
     {
@@ -325,9 +322,8 @@ struct RendererBackendState {
     {
         if (renderer_state.backend != nullptr)
             return true;
-        renderer_state.backend
-            = reinterpret_cast<::Imiv::RendererBackendState*>(
-                new RendererBackendState());
+        renderer_state.backend = reinterpret_cast<::Imiv::RendererBackendState*>(
+            new RendererBackendState());
         return renderer_state.backend != nullptr;
     }
 
@@ -1135,10 +1131,10 @@ void main()
         }
 
         RowStripeUploadPlan stripe_plan;
-        if (!build_row_stripe_upload_plan(
-                upload.row_pitch_bytes, upload.pixel_stride_bytes, height,
-                opengl_max_upload_chunk_bytes(), 1, stripe_plan,
-                error_message)) {
+        if (!build_row_stripe_upload_plan(upload.row_pitch_bytes,
+                                          upload.pixel_stride_bytes, height,
+                                          opengl_max_upload_chunk_bytes(), 1,
+                                          stripe_plan, error_message)) {
             return false;
         }
 
@@ -1158,16 +1154,16 @@ void main()
             glPixelStorei(GL_UNPACK_ROW_LENGTH, upload.unpack_row_length);
             const unsigned char* source_pixels
                 = reinterpret_cast<const unsigned char*>(upload.pixels);
-            for (uint32_t stripe_index = 0; stripe_index < stripe_plan.stripe_count;
-                 ++stripe_index) {
-                const int stripe_y = static_cast<int>(stripe_index
-                                                      * stripe_plan.stripe_rows);
-                const int stripe_height = std::min(
-                    static_cast<int>(stripe_plan.stripe_rows),
-                    height - stripe_y);
-                const void* stripe_pixels
-                    = source_pixels
-                      + static_cast<size_t>(stripe_y) * upload.row_pitch_bytes;
+            for (uint32_t stripe_index = 0;
+                 stripe_index < stripe_plan.stripe_count; ++stripe_index) {
+                const int stripe_y = static_cast<int>(
+                    stripe_index * stripe_plan.stripe_rows);
+                const int stripe_height
+                    = std::min(static_cast<int>(stripe_plan.stripe_rows),
+                               height - stripe_y);
+                const void* stripe_pixels = source_pixels
+                                            + static_cast<size_t>(stripe_y)
+                                                  * upload.row_pitch_bytes;
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, stripe_y, width,
                                 stripe_height, upload.format, upload.type,
                                 stripe_pixels);
@@ -1439,10 +1435,10 @@ void main()
                                          error_message)) {
                 return false;
             }
-            upload.pixels            = upload.fallback_rgba_data.data();
-            upload.unpack_row_length = image.width;
+            upload.pixels             = upload.fallback_rgba_data.data();
+            upload.unpack_row_length  = image.width;
             upload.pixel_stride_bytes = sizeof(float) * 4;
-            upload.row_pitch_bytes = static_cast<size_t>(image.width)
+            upload.row_pitch_bytes    = static_cast<size_t>(image.width)
                                      * upload.pixel_stride_bytes;
             error_message.clear();
             return true;
@@ -1462,19 +1458,19 @@ void main()
                                          error_message)) {
                 return false;
             }
-            upload.pixels            = upload.fallback_rgba_data.data();
-            upload.unpack_row_length = image.width;
+            upload.pixels             = upload.fallback_rgba_data.data();
+            upload.unpack_row_length  = image.width;
             upload.pixel_stride_bytes = sizeof(float) * 4;
-            upload.row_pitch_bytes = static_cast<size_t>(image.width)
+            upload.row_pitch_bytes    = static_cast<size_t>(image.width)
                                      * upload.pixel_stride_bytes;
             error_message.clear();
             return true;
         }
 
-        const GLint row_length   = static_cast<GLint>(image.row_pitch_bytes
-                                                      / pixel_stride);
-        upload.pixels            = image.pixels.data();
-        upload.unpack_row_length = row_length;
+        const GLint row_length    = static_cast<GLint>(image.row_pitch_bytes
+                                                       / pixel_stride);
+        upload.pixels             = image.pixels.data();
+        upload.unpack_row_length  = row_length;
         upload.pixel_stride_bytes = pixel_stride;
         upload.row_pitch_bytes    = image.row_pitch_bytes;
 
@@ -1533,13 +1529,13 @@ void main()
                                          error_message)) {
                 return false;
             }
-            upload.internal_format   = GL_RGBA32F;
-            upload.format            = GL_RGBA;
-            upload.type              = GL_FLOAT;
-            upload.pixels            = upload.fallback_rgba_data.data();
-            upload.unpack_row_length = image.width;
+            upload.internal_format    = GL_RGBA32F;
+            upload.format             = GL_RGBA;
+            upload.type               = GL_FLOAT;
+            upload.pixels             = upload.fallback_rgba_data.data();
+            upload.unpack_row_length  = image.width;
             upload.pixel_stride_bytes = sizeof(float) * 4;
-            upload.row_pitch_bytes = static_cast<size_t>(image.width)
+            upload.row_pitch_bytes    = static_cast<size_t>(image.width)
                                      * upload.pixel_stride_bytes;
             error_message.clear();
             return true;
@@ -1551,589 +1547,574 @@ void main()
         return true;
     }
 
-bool
-opengl_get_viewer_texture_refs(const ViewerState& viewer,
-                               const PlaceholderUiState& ui_state,
-                               ImTextureRef& main_texture_ref,
-                               bool& has_main_texture,
-                               ImTextureRef& closeup_texture_ref,
-                               bool& has_closeup_texture)
-{
-    const RendererTextureBackendState* state = texture_backend_state(
-        viewer.texture);
-    if (state == nullptr || !viewer.texture.preview_initialized)
-        return false;
+    bool opengl_get_viewer_texture_refs(const ViewerState& viewer,
+                                        const PlaceholderUiState& ui_state,
+                                        ImTextureRef& main_texture_ref,
+                                        bool& has_main_texture,
+                                        ImTextureRef& closeup_texture_ref,
+                                        bool& has_closeup_texture)
+    {
+        const RendererTextureBackendState* state = texture_backend_state(
+            viewer.texture);
+        if (state == nullptr || !viewer.texture.preview_initialized)
+            return false;
 
-    const GLuint main_texture = ui_state.linear_interpolation
-                                    ? state->preview_linear_texture
-                                    : state->preview_nearest_texture;
-    if (main_texture != 0) {
-        main_texture_ref = ImTextureRef(
-            static_cast<ImTextureID>(static_cast<intptr_t>(main_texture)));
-        has_main_texture = true;
+        const GLuint main_texture = ui_state.linear_interpolation
+                                        ? state->preview_linear_texture
+                                        : state->preview_nearest_texture;
+        if (main_texture != 0) {
+            main_texture_ref = ImTextureRef(
+                static_cast<ImTextureID>(static_cast<intptr_t>(main_texture)));
+            has_main_texture = true;
+        }
+
+        const GLuint closeup_texture = state->preview_nearest_texture != 0
+                                           ? state->preview_nearest_texture
+                                           : state->preview_linear_texture;
+        if (closeup_texture != 0) {
+            closeup_texture_ref = ImTextureRef(static_cast<ImTextureID>(
+                static_cast<intptr_t>(closeup_texture)));
+            has_closeup_texture = true;
+        }
+        return has_main_texture || has_closeup_texture;
     }
 
-    const GLuint closeup_texture = state->preview_nearest_texture != 0
-                                       ? state->preview_nearest_texture
-                                       : state->preview_linear_texture;
-    if (closeup_texture != 0) {
-        closeup_texture_ref = ImTextureRef(
-            static_cast<ImTextureID>(static_cast<intptr_t>(closeup_texture)));
-        has_closeup_texture = true;
-    }
-    return has_main_texture || has_closeup_texture;
-}
-
-bool
-opengl_texture_is_loading(const RendererTexture& texture)
-{
-    return texture.backend != nullptr && !texture.preview_initialized;
-}
-
-bool
-opengl_create_texture(RendererState& renderer_state, const LoadedImage& image,
-                      RendererTexture& texture, std::string& error_message)
-{
-    RendererBackendState* state = backend_state(renderer_state);
-    if (state == nullptr || state->window == nullptr) {
-        error_message = "OpenGL window is not initialized";
-        return false;
+    bool opengl_texture_is_loading(const RendererTexture& texture)
+    {
+        return texture.backend != nullptr && !texture.preview_initialized;
     }
 
-    SourceTextureUploadDesc upload;
-    if (!describe_native_source_upload(image, upload, error_message))
-        return false;
+    bool opengl_create_texture(RendererState& renderer_state,
+                               const LoadedImage& image,
+                               RendererTexture& texture,
+                               std::string& error_message)
+    {
+        RendererBackendState* state = backend_state(renderer_state);
+        if (state == nullptr || state->window == nullptr) {
+            error_message = "OpenGL window is not initialized";
+            return false;
+        }
 
-    auto* texture_state = new RendererTextureBackendState();
-    if (texture_state == nullptr) {
-        error_message = "failed to allocate OpenGL texture state";
-        return false;
-    }
+        SourceTextureUploadDesc upload;
+        if (!describe_native_source_upload(image, upload, error_message))
+            return false;
 
-    platform_glfw_make_context_current(state->window);
-    glGenTextures(1, &texture_state->source_texture);
-    glGenTextures(1, &texture_state->preview_linear_texture);
-    glGenTextures(1, &texture_state->preview_nearest_texture);
-    texture_state->width          = image.width;
-    texture_state->height         = image.height;
-    texture_state->input_channels = image.nchannels;
-    texture_state->preview_dirty  = true;
-    if (texture_state->source_texture == 0
-        || texture_state->preview_linear_texture == 0
-        || texture_state->preview_nearest_texture == 0
-        || !allocate_source_texture_storage(texture_state->source_texture,
-                                            GL_NEAREST, image.width,
-                                            image.height, upload, error_message)
-        || !allocate_preview_texture_storage(
-            texture_state->preview_linear_texture, GL_LINEAR, image.width,
-            image.height, error_message)
-        || !allocate_preview_texture_storage(
-            texture_state->preview_nearest_texture, GL_NEAREST, image.width,
-            image.height, error_message)) {
-        if (texture_state->source_texture != 0)
-            glDeleteTextures(1, &texture_state->source_texture);
-        if (texture_state->preview_linear_texture != 0)
-            glDeleteTextures(1, &texture_state->preview_linear_texture);
-        if (texture_state->preview_nearest_texture != 0)
-            glDeleteTextures(1, &texture_state->preview_nearest_texture);
-        delete texture_state;
-        return false;
-    }
+        auto* texture_state = new RendererTextureBackendState();
+        if (texture_state == nullptr) {
+            error_message = "failed to allocate OpenGL texture state";
+            return false;
+        }
 
-    texture.backend             = reinterpret_cast<
-        ::Imiv::RendererTextureBackendState*>(texture_state);
-    texture.preview_initialized = false;
-    error_message.clear();
-    return true;
-}
+        platform_glfw_make_context_current(state->window);
+        glGenTextures(1, &texture_state->source_texture);
+        glGenTextures(1, &texture_state->preview_linear_texture);
+        glGenTextures(1, &texture_state->preview_nearest_texture);
+        texture_state->width          = image.width;
+        texture_state->height         = image.height;
+        texture_state->input_channels = image.nchannels;
+        texture_state->preview_dirty  = true;
+        if (texture_state->source_texture == 0
+            || texture_state->preview_linear_texture == 0
+            || texture_state->preview_nearest_texture == 0
+            || !allocate_source_texture_storage(texture_state->source_texture,
+                                                GL_NEAREST, image.width,
+                                                image.height, upload,
+                                                error_message)
+            || !allocate_preview_texture_storage(
+                texture_state->preview_linear_texture, GL_LINEAR, image.width,
+                image.height, error_message)
+            || !allocate_preview_texture_storage(
+                texture_state->preview_nearest_texture, GL_NEAREST, image.width,
+                image.height, error_message)) {
+            if (texture_state->source_texture != 0)
+                glDeleteTextures(1, &texture_state->source_texture);
+            if (texture_state->preview_linear_texture != 0)
+                glDeleteTextures(1, &texture_state->preview_linear_texture);
+            if (texture_state->preview_nearest_texture != 0)
+                glDeleteTextures(1, &texture_state->preview_nearest_texture);
+            delete texture_state;
+            return false;
+        }
 
-void
-opengl_destroy_texture(RendererState& renderer_state, RendererTexture& texture)
-{
-    RendererTextureBackendState* state = texture_backend_state(texture);
-    RendererBackendState* renderer     = backend_state(renderer_state);
-    if (state == nullptr) {
+        texture.backend = reinterpret_cast<::Imiv::RendererTextureBackendState*>(
+            texture_state);
         texture.preview_initialized = false;
-        return;
-    }
-    if (renderer != nullptr && renderer->window != nullptr)
-        platform_glfw_make_context_current(renderer->window);
-    if (state->source_texture != 0)
-        glDeleteTextures(1, &state->source_texture);
-    if (state->preview_linear_texture != 0)
-        glDeleteTextures(1, &state->preview_linear_texture);
-    if (state->preview_nearest_texture != 0)
-        glDeleteTextures(1, &state->preview_nearest_texture);
-    delete state;
-    texture.backend             = nullptr;
-    texture.preview_initialized = false;
-}
-
-bool
-opengl_update_preview_texture(RendererState& renderer_state,
-                              RendererTexture& texture,
-                              const LoadedImage* image,
-                              const PlaceholderUiState& ui_state,
-                              const RendererPreviewControls& controls,
-                              std::string& error_message)
-{
-    RendererBackendState* state                = backend_state(renderer_state);
-    RendererTextureBackendState* texture_state = texture_backend_state(texture);
-    if (state == nullptr || state->window == nullptr
-        || texture_state == nullptr) {
-        error_message = "OpenGL preview state is not initialized";
-        return false;
+        error_message.clear();
+        return true;
     }
 
-    RendererPreviewControls effective_controls = controls;
-    std::string ocio_shader_cache_id;
-    bool use_ocio_preview = false;
+    void opengl_destroy_texture(RendererState& renderer_state,
+                                RendererTexture& texture)
+    {
+        RendererTextureBackendState* state = texture_backend_state(texture);
+        RendererBackendState* renderer     = backend_state(renderer_state);
+        if (state == nullptr) {
+            texture.preview_initialized = false;
+            return;
+        }
+        if (renderer != nullptr && renderer->window != nullptr)
+            platform_glfw_make_context_current(renderer->window);
+        if (state->source_texture != 0)
+            glDeleteTextures(1, &state->source_texture);
+        if (state->preview_linear_texture != 0)
+            glDeleteTextures(1, &state->preview_linear_texture);
+        if (state->preview_nearest_texture != 0)
+            glDeleteTextures(1, &state->preview_nearest_texture);
+        delete state;
+        texture.backend             = nullptr;
+        texture.preview_initialized = false;
+    }
 
-    platform_glfw_make_context_current(state->window);
-    if (controls.use_ocio != 0) {
-        if (ensure_ocio_preview_program(*state, ui_state, image,
-                                        error_message)) {
-            use_ocio_preview     = true;
-            ocio_shader_cache_id = state->ocio_preview.shader_cache_id;
-        } else {
-            if (!error_message.empty()) {
-                std::cerr << "imiv: OpenGL OCIO fallback: " << error_message
-                          << "\n";
+    bool opengl_update_preview_texture(RendererState& renderer_state,
+                                       RendererTexture& texture,
+                                       const LoadedImage* image,
+                                       const PlaceholderUiState& ui_state,
+                                       const RendererPreviewControls& controls,
+                                       std::string& error_message)
+    {
+        RendererBackendState* state = backend_state(renderer_state);
+        RendererTextureBackendState* texture_state = texture_backend_state(
+            texture);
+        if (state == nullptr || state->window == nullptr
+            || texture_state == nullptr) {
+            error_message = "OpenGL preview state is not initialized";
+            return false;
+        }
+
+        RendererPreviewControls effective_controls = controls;
+        std::string ocio_shader_cache_id;
+        bool use_ocio_preview = false;
+
+        platform_glfw_make_context_current(state->window);
+        if (controls.use_ocio != 0) {
+            if (ensure_ocio_preview_program(*state, ui_state, image,
+                                            error_message)) {
+                use_ocio_preview     = true;
+                ocio_shader_cache_id = state->ocio_preview.shader_cache_id;
+            } else {
+                if (!error_message.empty()) {
+                    std::cerr << "imiv: OpenGL OCIO fallback: " << error_message
+                              << "\n";
+                }
+                effective_controls.use_ocio = 0;
+                ocio_shader_cache_id.clear();
+                error_message.clear();
             }
-            effective_controls.use_ocio = 0;
-            ocio_shader_cache_id.clear();
+        }
+
+        if (!texture_state->preview_dirty && texture_state->preview_params_valid
+            && preview_controls_equal(texture_state->last_preview_controls,
+                                      effective_controls)
+            && texture_state->last_ocio_shader_cache_id
+                   == ocio_shader_cache_id) {
+            texture.preview_initialized = true;
             error_message.clear();
+            return true;
         }
-    }
 
-    if (!texture_state->preview_dirty && texture_state->preview_params_valid
-        && preview_controls_equal(texture_state->last_preview_controls,
-                                  effective_controls)
-        && texture_state->last_ocio_shader_cache_id == ocio_shader_cache_id) {
-        texture.preview_initialized = true;
-        error_message.clear();
-        return true;
-    }
-
-    const bool ok = use_ocio_preview
-                        ? render_ocio_preview_texture(
-                              *state, *texture_state,
-                              texture_state->preview_linear_texture,
-                              effective_controls, error_message)
-                              && render_ocio_preview_texture(
+        const bool ok = use_ocio_preview
+                            ? render_ocio_preview_texture(
                                   *state, *texture_state,
-                                  texture_state->preview_nearest_texture,
+                                  texture_state->preview_linear_texture,
                                   effective_controls, error_message)
-                        : render_basic_preview_texture(
-                              *state, *texture_state,
-                              texture_state->preview_linear_texture,
-                              effective_controls, error_message)
-                              && render_basic_preview_texture(
+                                  && render_ocio_preview_texture(
+                                      *state, *texture_state,
+                                      texture_state->preview_nearest_texture,
+                                      effective_controls, error_message)
+                            : render_basic_preview_texture(
                                   *state, *texture_state,
-                                  texture_state->preview_nearest_texture,
-                                  effective_controls, error_message);
-    if (!ok) {
-        texture.preview_initialized = false;
-        return false;
-    }
-
-    texture_state->preview_dirty             = false;
-    texture_state->preview_params_valid      = true;
-    texture_state->last_preview_controls     = effective_controls;
-    texture_state->last_ocio_shader_cache_id = ocio_shader_cache_id;
-    texture.preview_initialized              = true;
-    error_message.clear();
-    return true;
-}
-
-bool
-opengl_quiesce_texture_preview_submission(RendererState& renderer_state,
-                                          RendererTexture& texture,
-                                          std::string& error_message)
-{
-    (void)renderer_state;
-    (void)texture;
-    error_message.clear();
-    return true;
-}
-
-bool
-opengl_setup_instance(RendererState& renderer_state,
-                      ImVector<const char*>& instance_extensions,
-                      std::string& error_message)
-{
-    (void)instance_extensions;
-    if (!ensure_backend_state(renderer_state)) {
-        error_message = "failed to allocate OpenGL renderer state";
-        return false;
-    }
-    backend_state(renderer_state)->glsl_version = open_gl_glsl_version();
-    error_message.clear();
-    return true;
-}
-
-bool
-opengl_setup_device(RendererState& renderer_state, std::string& error_message)
-{
-    if (backend_state(renderer_state) == nullptr) {
-        error_message = "OpenGL renderer state is not initialized";
-        return false;
-    }
-    error_message.clear();
-    return true;
-}
-
-bool
-opengl_setup_window(RendererState& renderer_state, int width, int height,
-                    std::string& error_message)
-{
-    renderer_state.framebuffer_width  = width;
-    renderer_state.framebuffer_height = height;
-    error_message.clear();
-    return true;
-}
-
-bool
-opengl_create_surface(RendererState& renderer_state, GLFWwindow* window,
-                      std::string& error_message)
-{
-    if (!ensure_backend_state(renderer_state)) {
-        error_message = "failed to allocate OpenGL renderer state";
-        return false;
-    }
-    backend_state(renderer_state)->window = window;
-    error_message.clear();
-    return true;
-}
-
-void
-opengl_destroy_surface(RendererState& renderer_state)
-{
-    if (RendererBackendState* state = backend_state(renderer_state))
-        state->window = nullptr;
-}
-
-void
-opengl_cleanup_window(RendererState& renderer_state)
-{
-    (void)renderer_state;
-}
-
-void
-opengl_cleanup(RendererState& renderer_state)
-{
-    RendererBackendState* state = backend_state(renderer_state);
-    if (state != nullptr) {
-        if (state->window != nullptr)
-            platform_glfw_make_context_current(state->window);
-        destroy_ocio_preview_program(state->ocio_preview);
-        destroy_basic_preview_program(state->basic_preview);
-        if (state->preview_framebuffer != 0 && state->extra_procs.ready) {
-            state->extra_procs.DeleteFramebuffers(1,
-                                                  &state->preview_framebuffer);
-            state->preview_framebuffer = 0;
+                                  texture_state->preview_linear_texture,
+                                  effective_controls, error_message)
+                                  && render_basic_preview_texture(
+                                      *state, *texture_state,
+                                      texture_state->preview_nearest_texture,
+                                      effective_controls, error_message);
+        if (!ok) {
+            texture.preview_initialized = false;
+            return false;
         }
-    }
-    delete state;
-    renderer_state.backend = nullptr;
-}
 
-bool
-opengl_wait_idle(RendererState& renderer_state, std::string& error_message)
-{
-    (void)renderer_state;
-    error_message.clear();
-    return true;
-}
-
-bool
-opengl_imgui_init(RendererState& renderer_state, std::string& error_message)
-{
-    RendererBackendState* state = backend_state(renderer_state);
-    if (state == nullptr || state->window == nullptr) {
-        error_message = "OpenGL window is not initialized";
-        return false;
-    }
-    platform_glfw_make_context_current(state->window);
-    if (ImGui_ImplOpenGL3_Init(state->glsl_version)) {
-        state->imgui_initialized = true;
+        texture_state->preview_dirty             = false;
+        texture_state->preview_params_valid      = true;
+        texture_state->last_preview_controls     = effective_controls;
+        texture_state->last_ocio_shader_cache_id = ocio_shader_cache_id;
+        texture.preview_initialized              = true;
         error_message.clear();
         return true;
     }
-    error_message = "ImGui_ImplOpenGL3_Init failed";
-    return false;
-}
 
-void
-opengl_imgui_shutdown()
-{
-    ImGui_ImplOpenGL3_Shutdown();
-}
-
-void
-opengl_imgui_new_frame(RendererState& renderer_state)
-{
-    (void)renderer_state;
-    ImGui_ImplOpenGL3_NewFrame();
-}
-
-bool
-opengl_needs_main_window_resize(RendererState& renderer_state, int width,
-                                int height)
-{
-    return renderer_state.framebuffer_width != width
-           || renderer_state.framebuffer_height != height;
-}
-
-void
-opengl_resize_main_window(RendererState& renderer_state, int width, int height)
-{
-    renderer_state.framebuffer_width  = width;
-    renderer_state.framebuffer_height = height;
-}
-
-void
-opengl_set_main_clear_color(RendererState& renderer_state, float r, float g,
-                            float b, float a)
-{
-    renderer_state.clear_color[0] = r;
-    renderer_state.clear_color[1] = g;
-    renderer_state.clear_color[2] = b;
-    renderer_state.clear_color[3] = a;
-}
-
-void
-opengl_prepare_platform_windows(RendererState& renderer_state)
-{
-    RendererBackendState* state = backend_state(renderer_state);
-    if (state == nullptr)
-        return;
-    state->backup_context = platform_glfw_get_current_context();
-}
-
-void
-opengl_finish_platform_windows(RendererState& renderer_state)
-{
-    RendererBackendState* state = backend_state(renderer_state);
-    if (state == nullptr || state->backup_context == nullptr)
-        return;
-    platform_glfw_make_context_current(state->backup_context);
-    state->backup_context = nullptr;
-}
-
-void
-opengl_frame_render(RendererState& renderer_state, ImDrawData* draw_data)
-{
-    RendererBackendState* state = backend_state(renderer_state);
-    if (state == nullptr || state->window == nullptr)
-        return;
-
-    int display_w = 0;
-    int display_h = 0;
-    platform_glfw_get_framebuffer_size(state->window, display_w, display_h);
-    renderer_state.framebuffer_width  = display_w;
-    renderer_state.framebuffer_height = display_h;
-    glViewport(0, 0, display_w, display_h);
-    glClearColor(renderer_state.clear_color[0] * renderer_state.clear_color[3],
-                 renderer_state.clear_color[1] * renderer_state.clear_color[3],
-                 renderer_state.clear_color[2] * renderer_state.clear_color[3],
-                 renderer_state.clear_color[3]);
-    glClear(GL_COLOR_BUFFER_BIT);
-    ImGui_ImplOpenGL3_RenderDrawData(draw_data);
-}
-
-void
-opengl_frame_present(RendererState& renderer_state)
-{
-    RendererBackendState* state = backend_state(renderer_state);
-    if (state == nullptr || state->window == nullptr)
-        return;
-    platform_glfw_swap_buffers(state->window);
-}
-
-bool
-opengl_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
-                      unsigned int* pixels, void* user_data)
-{
-    RendererState* renderer_state = reinterpret_cast<RendererState*>(user_data);
-    if (renderer_state == nullptr || pixels == nullptr || w <= 0 || h <= 0)
-        return false;
-
-    RendererBackendState* state = backend_state(*renderer_state);
-    if (state == nullptr || state->window == nullptr)
-        return false;
-
-    int framebuffer_width  = 0;
-    int framebuffer_height = 0;
-    platform_glfw_make_context_current(state->window);
-    platform_glfw_get_framebuffer_size(state->window, framebuffer_width,
-                                       framebuffer_height);
-    if (framebuffer_width <= 0 || framebuffer_height <= 0)
-        return false;
-
-    int capture_x         = x;
-    int capture_y         = y;
-    int capture_w         = w;
-    int capture_h         = h;
-    bool use_full_capture = false;
-    ImGuiViewport* viewport = ImGui::FindViewportByID(viewport_id);
-    if (viewport != nullptr && viewport->Size.x > 0.0f
-        && viewport->Size.y > 0.0f) {
-        const double scale_x = static_cast<double>(framebuffer_width)
-                               / static_cast<double>(viewport->Size.x);
-        const double scale_y = static_cast<double>(framebuffer_height)
-                               / static_cast<double>(viewport->Size.y);
-        capture_x = static_cast<int>(std::lround(
-            (static_cast<double>(x) - static_cast<double>(viewport->Pos.x))
-            * scale_x));
-        capture_y = static_cast<int>(std::lround(
-            (static_cast<double>(y) - static_cast<double>(viewport->Pos.y))
-            * scale_y));
-        capture_w = std::max(1, static_cast<int>(std::lround(
-                                   static_cast<double>(w) * scale_x)));
-        capture_h = std::max(1, static_cast<int>(std::lround(
-                                   static_cast<double>(h) * scale_y)));
-    } else if (x < 0 || y < 0) {
-        use_full_capture = true;
+    bool opengl_quiesce_texture_preview_submission(RendererState& renderer_state,
+                                                   RendererTexture& texture,
+                                                   std::string& error_message)
+    {
+        (void)renderer_state;
+        (void)texture;
+        error_message.clear();
+        return true;
     }
 
-    if (!use_full_capture) {
-        if (capture_x < 0) {
-            capture_w += capture_x;
-            capture_x = 0;
+    bool opengl_setup_instance(RendererState& renderer_state,
+                               ImVector<const char*>& instance_extensions,
+                               std::string& error_message)
+    {
+        (void)instance_extensions;
+        if (!ensure_backend_state(renderer_state)) {
+            error_message = "failed to allocate OpenGL renderer state";
+            return false;
         }
-        if (capture_y < 0) {
-            capture_h += capture_y;
-            capture_y = 0;
+        backend_state(renderer_state)->glsl_version = open_gl_glsl_version();
+        error_message.clear();
+        return true;
+    }
+
+    bool opengl_setup_device(RendererState& renderer_state,
+                             std::string& error_message)
+    {
+        if (backend_state(renderer_state) == nullptr) {
+            error_message = "OpenGL renderer state is not initialized";
+            return false;
         }
-        if (capture_x < framebuffer_width && capture_y < framebuffer_height) {
-            capture_w = std::min(capture_w, framebuffer_width - capture_x);
-            capture_h = std::min(capture_h, framebuffer_height - capture_y);
+        error_message.clear();
+        return true;
+    }
+
+    bool opengl_setup_window(RendererState& renderer_state, int width,
+                             int height, std::string& error_message)
+    {
+        renderer_state.framebuffer_width  = width;
+        renderer_state.framebuffer_height = height;
+        error_message.clear();
+        return true;
+    }
+
+    bool opengl_create_surface(RendererState& renderer_state,
+                               GLFWwindow* window, std::string& error_message)
+    {
+        if (!ensure_backend_state(renderer_state)) {
+            error_message = "failed to allocate OpenGL renderer state";
+            return false;
         }
-        if (capture_w <= 0 || capture_h <= 0)
+        backend_state(renderer_state)->window = window;
+        error_message.clear();
+        return true;
+    }
+
+    void opengl_destroy_surface(RendererState& renderer_state)
+    {
+        if (RendererBackendState* state = backend_state(renderer_state))
+            state->window = nullptr;
+    }
+
+    void opengl_cleanup_window(RendererState& renderer_state)
+    {
+        (void)renderer_state;
+    }
+
+    void opengl_cleanup(RendererState& renderer_state)
+    {
+        RendererBackendState* state = backend_state(renderer_state);
+        if (state != nullptr) {
+            if (state->window != nullptr)
+                platform_glfw_make_context_current(state->window);
+            destroy_ocio_preview_program(state->ocio_preview);
+            destroy_basic_preview_program(state->basic_preview);
+            if (state->preview_framebuffer != 0 && state->extra_procs.ready) {
+                state->extra_procs.DeleteFramebuffers(
+                    1, &state->preview_framebuffer);
+                state->preview_framebuffer = 0;
+            }
+        }
+        delete state;
+        renderer_state.backend = nullptr;
+    }
+
+    bool opengl_wait_idle(RendererState& renderer_state,
+                          std::string& error_message)
+    {
+        (void)renderer_state;
+        error_message.clear();
+        return true;
+    }
+
+    bool opengl_imgui_init(RendererState& renderer_state,
+                           std::string& error_message)
+    {
+        RendererBackendState* state = backend_state(renderer_state);
+        if (state == nullptr || state->window == nullptr) {
+            error_message = "OpenGL window is not initialized";
+            return false;
+        }
+        platform_glfw_make_context_current(state->window);
+        if (ImGui_ImplOpenGL3_Init(state->glsl_version)) {
+            state->imgui_initialized = true;
+            error_message.clear();
+            return true;
+        }
+        error_message = "ImGui_ImplOpenGL3_Init failed";
+        return false;
+    }
+
+    void opengl_imgui_shutdown() { ImGui_ImplOpenGL3_Shutdown(); }
+
+    void opengl_imgui_new_frame(RendererState& renderer_state)
+    {
+        (void)renderer_state;
+        ImGui_ImplOpenGL3_NewFrame();
+    }
+
+    bool opengl_needs_main_window_resize(RendererState& renderer_state,
+                                         int width, int height)
+    {
+        return renderer_state.framebuffer_width != width
+               || renderer_state.framebuffer_height != height;
+    }
+
+    void opengl_resize_main_window(RendererState& renderer_state, int width,
+                                   int height)
+    {
+        renderer_state.framebuffer_width  = width;
+        renderer_state.framebuffer_height = height;
+    }
+
+    void opengl_set_main_clear_color(RendererState& renderer_state, float r,
+                                     float g, float b, float a)
+    {
+        renderer_state.clear_color[0] = r;
+        renderer_state.clear_color[1] = g;
+        renderer_state.clear_color[2] = b;
+        renderer_state.clear_color[3] = a;
+    }
+
+    void opengl_prepare_platform_windows(RendererState& renderer_state)
+    {
+        RendererBackendState* state = backend_state(renderer_state);
+        if (state == nullptr)
+            return;
+        state->backup_context = platform_glfw_get_current_context();
+    }
+
+    void opengl_finish_platform_windows(RendererState& renderer_state)
+    {
+        RendererBackendState* state = backend_state(renderer_state);
+        if (state == nullptr || state->backup_context == nullptr)
+            return;
+        platform_glfw_make_context_current(state->backup_context);
+        state->backup_context = nullptr;
+    }
+
+    void opengl_frame_render(RendererState& renderer_state,
+                             ImDrawData* draw_data)
+    {
+        RendererBackendState* state = backend_state(renderer_state);
+        if (state == nullptr || state->window == nullptr)
+            return;
+
+        int display_w = 0;
+        int display_h = 0;
+        platform_glfw_get_framebuffer_size(state->window, display_w, display_h);
+        renderer_state.framebuffer_width  = display_w;
+        renderer_state.framebuffer_height = display_h;
+        glViewport(0, 0, display_w, display_h);
+        glClearColor(
+            renderer_state.clear_color[0] * renderer_state.clear_color[3],
+            renderer_state.clear_color[1] * renderer_state.clear_color[3],
+            renderer_state.clear_color[2] * renderer_state.clear_color[3],
+            renderer_state.clear_color[3]);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(draw_data);
+    }
+
+    void opengl_frame_present(RendererState& renderer_state)
+    {
+        RendererBackendState* state = backend_state(renderer_state);
+        if (state == nullptr || state->window == nullptr)
+            return;
+        platform_glfw_swap_buffers(state->window);
+    }
+
+    bool opengl_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
+                               unsigned int* pixels, void* user_data)
+    {
+        RendererState* renderer_state = reinterpret_cast<RendererState*>(
+            user_data);
+        if (renderer_state == nullptr || pixels == nullptr || w <= 0 || h <= 0)
+            return false;
+
+        RendererBackendState* state = backend_state(*renderer_state);
+        if (state == nullptr || state->window == nullptr)
+            return false;
+
+        int framebuffer_width  = 0;
+        int framebuffer_height = 0;
+        platform_glfw_make_context_current(state->window);
+        platform_glfw_get_framebuffer_size(state->window, framebuffer_width,
+                                           framebuffer_height);
+        if (framebuffer_width <= 0 || framebuffer_height <= 0)
+            return false;
+
+        int capture_x           = x;
+        int capture_y           = y;
+        int capture_w           = w;
+        int capture_h           = h;
+        bool use_full_capture   = false;
+        ImGuiViewport* viewport = ImGui::FindViewportByID(viewport_id);
+        if (viewport != nullptr && viewport->Size.x > 0.0f
+            && viewport->Size.y > 0.0f) {
+            const double scale_x = static_cast<double>(framebuffer_width)
+                                   / static_cast<double>(viewport->Size.x);
+            const double scale_y = static_cast<double>(framebuffer_height)
+                                   / static_cast<double>(viewport->Size.y);
+            capture_x = static_cast<int>(std::lround(
+                (static_cast<double>(x) - static_cast<double>(viewport->Pos.x))
+                * scale_x));
+            capture_y = static_cast<int>(std::lround(
+                (static_cast<double>(y) - static_cast<double>(viewport->Pos.y))
+                * scale_y));
+            capture_w = std::max(1, static_cast<int>(std::lround(
+                                        static_cast<double>(w) * scale_x)));
+            capture_h = std::max(1, static_cast<int>(std::lround(
+                                        static_cast<double>(h) * scale_y)));
+        } else if (x < 0 || y < 0) {
             use_full_capture = true;
-    }
-
-    if (use_full_capture) {
-        capture_x = 0;
-        capture_y = 0;
-        capture_w = std::max(1, framebuffer_width);
-        capture_h = std::max(1, framebuffer_height);
-    }
-
-    const int read_y = framebuffer_height - (capture_y + capture_h);
-    if (read_y < 0)
-        return false;
-
-    std::vector<unsigned char> readback(static_cast<size_t>(capture_w)
-                                        * static_cast<size_t>(capture_h) * 4);
-    while (glGetError() != GL_NO_ERROR) {
-    }
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    bool read_ok = false;
-    const GLenum read_buffers[] = { GL_BACK, GL_FRONT };
-    for (GLenum read_buffer : read_buffers) {
-        state->extra_procs.ReadBuffer(read_buffer);
-        glReadPixels(capture_x, read_y, capture_w, capture_h, GL_RGBA,
-                     GL_UNSIGNED_BYTE, readback.data());
-        if (glGetError() == GL_NO_ERROR) {
-            read_ok = true;
-            break;
         }
-        while (glGetError() != GL_NO_ERROR) {
-        }
-    }
-    if (!read_ok)
-        return false;
 
-    unsigned char* dst_bytes = reinterpret_cast<unsigned char*>(pixels);
-    if (capture_w == w && capture_h == h) {
+        if (!use_full_capture) {
+            if (capture_x < 0) {
+                capture_w += capture_x;
+                capture_x = 0;
+            }
+            if (capture_y < 0) {
+                capture_h += capture_y;
+                capture_y = 0;
+            }
+            if (capture_x < framebuffer_width
+                && capture_y < framebuffer_height) {
+                capture_w = std::min(capture_w, framebuffer_width - capture_x);
+                capture_h = std::min(capture_h, framebuffer_height - capture_y);
+            }
+            if (capture_w <= 0 || capture_h <= 0)
+                use_full_capture = true;
+        }
+
+        if (use_full_capture) {
+            capture_x = 0;
+            capture_y = 0;
+            capture_w = std::max(1, framebuffer_width);
+            capture_h = std::max(1, framebuffer_height);
+        }
+
+        const int read_y = framebuffer_height - (capture_y + capture_h);
+        if (read_y < 0)
+            return false;
+
+        std::vector<unsigned char> readback(static_cast<size_t>(capture_w)
+                                            * static_cast<size_t>(capture_h)
+                                            * 4);
+        while (glGetError() != GL_NO_ERROR) {}
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        bool read_ok                = false;
+        const GLenum read_buffers[] = { GL_BACK, GL_FRONT };
+        for (GLenum read_buffer : read_buffers) {
+            state->extra_procs.ReadBuffer(read_buffer);
+            glReadPixels(capture_x, read_y, capture_w, capture_h, GL_RGBA,
+                         GL_UNSIGNED_BYTE, readback.data());
+            if (glGetError() == GL_NO_ERROR) {
+                read_ok = true;
+                break;
+            }
+            while (glGetError() != GL_NO_ERROR) {}
+        }
+        if (!read_ok)
+            return false;
+
+        unsigned char* dst_bytes = reinterpret_cast<unsigned char*>(pixels);
+        if (capture_w == w && capture_h == h) {
+            for (int row = 0; row < h; ++row) {
+                const size_t src_offset = static_cast<size_t>(h - 1 - row)
+                                          * static_cast<size_t>(w) * 4;
+                const size_t dst_offset = static_cast<size_t>(row)
+                                          * static_cast<size_t>(w) * 4;
+                std::memcpy(dst_bytes + dst_offset,
+                            readback.data() + src_offset,
+                            static_cast<size_t>(w) * 4);
+            }
+            return true;
+        }
+
+        const double sample_scale_x = static_cast<double>(capture_w)
+                                      / static_cast<double>(w);
+        const double sample_scale_y = static_cast<double>(capture_h)
+                                      / static_cast<double>(h);
         for (int row = 0; row < h; ++row) {
-            const size_t src_offset = static_cast<size_t>(h - 1 - row)
-                                      * static_cast<size_t>(w) * 4;
-            const size_t dst_offset = static_cast<size_t>(row)
-                                      * static_cast<size_t>(w) * 4;
-            std::memcpy(dst_bytes + dst_offset, readback.data() + src_offset,
-                        static_cast<size_t>(w) * 4);
+            unsigned char* dst_row = dst_bytes
+                                     + static_cast<size_t>(row)
+                                           * static_cast<size_t>(w) * 4;
+            const int sample_row = std::clamp(
+                static_cast<int>(std::floor((static_cast<double>(row) + 0.5)
+                                            * sample_scale_y)),
+                0, capture_h - 1);
+            const unsigned char* src_row
+                = readback.data()
+                  + static_cast<size_t>(capture_h - 1 - sample_row)
+                        * static_cast<size_t>(capture_w) * 4;
+            for (int col = 0; col < w; ++col) {
+                const int sample_col = std::clamp(
+                    static_cast<int>(std::floor((static_cast<double>(col) + 0.5)
+                                                * sample_scale_x)),
+                    0, capture_w - 1);
+                const unsigned char* src
+                    = src_row + static_cast<size_t>(sample_col) * 4;
+                unsigned char* dst = dst_row + static_cast<size_t>(col) * 4;
+                dst[0]             = src[0];
+                dst[1]             = src[1];
+                dst[2]             = src[2];
+                dst[3]             = src[3];
+            }
         }
         return true;
     }
 
-    const double sample_scale_x = static_cast<double>(capture_w)
-                                  / static_cast<double>(w);
-    const double sample_scale_y = static_cast<double>(capture_h)
-                                  / static_cast<double>(h);
-    for (int row = 0; row < h; ++row) {
-        unsigned char* dst_row = dst_bytes
-                                 + static_cast<size_t>(row)
-                                       * static_cast<size_t>(w) * 4;
-        const int sample_row = std::clamp(
-            static_cast<int>(std::floor((static_cast<double>(row) + 0.5)
-                                        * sample_scale_y)),
-            0, capture_h - 1);
-        const unsigned char* src_row
-            = readback.data()
-              + static_cast<size_t>(capture_h - 1 - sample_row)
-                    * static_cast<size_t>(capture_w) * 4;
-        for (int col = 0; col < w; ++col) {
-            const int sample_col = std::clamp(
-                static_cast<int>(std::floor((static_cast<double>(col) + 0.5)
-                                            * sample_scale_x)),
-                0, capture_w - 1);
-            const unsigned char* src
-                = src_row + static_cast<size_t>(sample_col) * 4;
-            unsigned char* dst = dst_row + static_cast<size_t>(col) * 4;
-            dst[0]             = src[0];
-            dst[1]             = src[1];
-            dst[2]             = src[2];
-            dst[3]             = src[3];
-        }
+    bool opengl_probe_runtime_support(std::string& error_message)
+    {
+        GLFWwindow* window = platform_glfw_create_main_window(
+            BackendKind::OpenGL, 64, 64, "imiv.opengl.probe", error_message);
+        if (window == nullptr)
+            return false;
+        platform_glfw_make_context_current(nullptr);
+        platform_glfw_destroy_window(window);
+        error_message.clear();
+        return true;
     }
-    return true;
-}
 
-bool
-opengl_probe_runtime_support(std::string& error_message)
-{
-    GLFWwindow* window = platform_glfw_create_main_window(
-        BackendKind::OpenGL, 64, 64, "imiv.opengl.probe", error_message);
-    if (window == nullptr)
-        return false;
-    platform_glfw_make_context_current(nullptr);
-    platform_glfw_destroy_window(window);
-    error_message.clear();
-    return true;
-}
-
-const RendererBackendVTable k_opengl_vtable = {
-    BackendKind::OpenGL,
-    opengl_probe_runtime_support,
-    opengl_get_viewer_texture_refs,
-    opengl_texture_is_loading,
-    opengl_create_texture,
-    opengl_destroy_texture,
-    opengl_update_preview_texture,
-    opengl_quiesce_texture_preview_submission,
-    opengl_setup_instance,
-    opengl_setup_device,
-    opengl_setup_window,
-    opengl_create_surface,
-    opengl_destroy_surface,
-    opengl_cleanup_window,
-    opengl_cleanup,
-    opengl_wait_idle,
-    opengl_imgui_init,
-    opengl_imgui_shutdown,
-    opengl_imgui_new_frame,
-    opengl_needs_main_window_resize,
-    opengl_resize_main_window,
-    opengl_set_main_clear_color,
-    opengl_prepare_platform_windows,
-    opengl_finish_platform_windows,
-    opengl_frame_render,
-    opengl_frame_present,
-    opengl_screen_capture,
-};
+    const RendererBackendVTable k_opengl_vtable = {
+        BackendKind::OpenGL,
+        opengl_probe_runtime_support,
+        opengl_get_viewer_texture_refs,
+        opengl_texture_is_loading,
+        opengl_create_texture,
+        opengl_destroy_texture,
+        opengl_update_preview_texture,
+        opengl_quiesce_texture_preview_submission,
+        opengl_setup_instance,
+        opengl_setup_device,
+        opengl_setup_window,
+        opengl_create_surface,
+        opengl_destroy_surface,
+        opengl_cleanup_window,
+        opengl_cleanup,
+        opengl_wait_idle,
+        opengl_imgui_init,
+        opengl_imgui_shutdown,
+        opengl_imgui_new_frame,
+        opengl_needs_main_window_resize,
+        opengl_resize_main_window,
+        opengl_set_main_clear_color,
+        opengl_prepare_platform_windows,
+        opengl_finish_platform_windows,
+        opengl_frame_render,
+        opengl_frame_present,
+        opengl_screen_capture,
+    };
 
 }  // namespace
 }  // namespace Imiv

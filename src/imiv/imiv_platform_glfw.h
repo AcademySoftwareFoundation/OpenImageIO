@@ -23,8 +23,7 @@ platform_glfw_terminate();
 
 GLFWwindow*
 platform_glfw_create_main_window(BackendKind backend, int width, int height,
-                                 const char* title,
-                                 std::string& error_message);
+                                 const char* title, std::string& error_message);
 void
 platform_glfw_destroy_window(GLFWwindow* window);
 

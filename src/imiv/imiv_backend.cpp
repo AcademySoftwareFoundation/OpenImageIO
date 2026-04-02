@@ -16,88 +16,84 @@
 namespace Imiv {
 namespace {
 
-BackendInfo
-make_backend_info(BackendKind kind, const char* cli_name,
-                  const char* display_name)
-{
-    BackendInfo info;
-    info.kind         = kind;
-    info.cli_name     = cli_name;
-    info.display_name = display_name;
-    switch (kind) {
-    case BackendKind::Vulkan: info.compiled = IMIV_WITH_VULKAN != 0; break;
-    case BackendKind::Metal: info.compiled = IMIV_WITH_METAL != 0; break;
-    case BackendKind::OpenGL: info.compiled = IMIV_WITH_OPENGL != 0; break;
-    case BackendKind::Auto: info.compiled = false; break;
+    BackendInfo make_backend_info(BackendKind kind, const char* cli_name,
+                                  const char* display_name)
+    {
+        BackendInfo info;
+        info.kind         = kind;
+        info.cli_name     = cli_name;
+        info.display_name = display_name;
+        switch (kind) {
+        case BackendKind::Vulkan: info.compiled = IMIV_WITH_VULKAN != 0; break;
+        case BackendKind::Metal: info.compiled = IMIV_WITH_METAL != 0; break;
+        case BackendKind::OpenGL: info.compiled = IMIV_WITH_OPENGL != 0; break;
+        case BackendKind::Auto: info.compiled = false; break;
+        }
+        info.active_build     = (kind == active_build_backend_kind());
+        info.platform_default = (kind == platform_default_backend_kind());
+        return info;
     }
-    info.active_build     = (kind == active_build_backend_kind());
-    info.platform_default = (kind == platform_default_backend_kind());
-    return info;
-}
 
-size_t
-backend_info_index(BackendKind kind)
-{
-    switch (kind) {
-    case BackendKind::Vulkan: return 0;
-    case BackendKind::Metal: return 1;
-    case BackendKind::OpenGL: return 2;
-    case BackendKind::Auto: break;
+    size_t backend_info_index(BackendKind kind)
+    {
+        switch (kind) {
+        case BackendKind::Vulkan: return 0;
+        case BackendKind::Metal: return 1;
+        case BackendKind::OpenGL: return 2;
+        case BackendKind::Auto: break;
+        }
+        return compiled_backend_info().size();
     }
-    return compiled_backend_info().size();
-}
 
-template<class Predicate>
-BackendKind
-resolve_backend_with_predicate(BackendKind requested_kind, Predicate predicate)
-{
-    if (requested_kind != BackendKind::Auto && predicate(requested_kind))
-        return requested_kind;
+    template<class Predicate>
+    BackendKind resolve_backend_with_predicate(BackendKind requested_kind,
+                                               Predicate predicate)
+    {
+        if (requested_kind != BackendKind::Auto && predicate(requested_kind))
+            return requested_kind;
 
-    const BackendKind build_default = active_build_backend_kind();
-    if (build_default != BackendKind::Auto && predicate(build_default))
-        return build_default;
+        const BackendKind build_default = active_build_backend_kind();
+        if (build_default != BackendKind::Auto && predicate(build_default))
+            return build_default;
 
-    const BackendKind platform_default = platform_default_backend_kind();
-    if (platform_default != BackendKind::Auto && predicate(platform_default))
-        return platform_default;
+        const BackendKind platform_default = platform_default_backend_kind();
+        if (platform_default != BackendKind::Auto
+            && predicate(platform_default))
+            return platform_default;
 
-    if (predicate(BackendKind::Vulkan))
-        return BackendKind::Vulkan;
-    if (predicate(BackendKind::Metal))
-        return BackendKind::Metal;
-    if (predicate(BackendKind::OpenGL))
-        return BackendKind::OpenGL;
+        if (predicate(BackendKind::Vulkan))
+            return BackendKind::Vulkan;
+        if (predicate(BackendKind::Metal))
+            return BackendKind::Metal;
+        if (predicate(BackendKind::OpenGL))
+            return BackendKind::OpenGL;
 
-    return BackendKind::Auto;
-}
-
-std::array<BackendRuntimeInfo, 3>&
-mutable_runtime_backend_info()
-{
-    static std::array<BackendRuntimeInfo, 3> info;
-    return info;
-}
-
-bool&
-runtime_backend_info_is_valid_flag()
-{
-    static bool valid = false;
-    return valid;
-}
-
-void
-reset_runtime_backend_info()
-{
-    std::array<BackendRuntimeInfo, 3>& info = mutable_runtime_backend_info();
-    const std::array<BackendInfo, 3>& compiled = compiled_backend_info();
-    for (size_t i = 0; i < info.size(); ++i) {
-        info[i].build_info          = compiled[i];
-        info[i].available           = compiled[i].compiled;
-        info[i].probed              = false;
-        info[i].unavailable_reason.clear();
+        return BackendKind::Auto;
     }
-}
+
+    std::array<BackendRuntimeInfo, 3>& mutable_runtime_backend_info()
+    {
+        static std::array<BackendRuntimeInfo, 3> info;
+        return info;
+    }
+
+    bool& runtime_backend_info_is_valid_flag()
+    {
+        static bool valid = false;
+        return valid;
+    }
+
+    void reset_runtime_backend_info()
+    {
+        std::array<BackendRuntimeInfo, 3>& info = mutable_runtime_backend_info();
+        const std::array<BackendInfo, 3>& compiled = compiled_backend_info();
+        for (size_t i = 0; i < info.size(); ++i) {
+            info[i].build_info = compiled[i];
+            info[i].available  = compiled[i].compiled;
+            info[i].probed     = false;
+            info[i].unavailable_reason.clear();
+        }
+    }
 
 }  // namespace
 

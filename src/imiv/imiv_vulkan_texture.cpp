@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include "imiv_types.h"
 #include "imiv_loaded_image.h"
 #include "imiv_tiling.h"
+#include "imiv_types.h"
 #include "imiv_vulkan_texture_internal.h"
 
 #include <algorithm>
@@ -30,8 +30,7 @@ namespace Imiv {
 
 namespace {
 
-    bool
-    env_flag_is_truthy(const char* name)
+    bool env_flag_is_truthy(const char* name)
     {
         const char* value = std::getenv(name);
         if (value == nullptr || value[0] == '\0')
@@ -39,16 +38,15 @@ namespace {
         return !(value[0] == '0' && value[1] == '\0');
     }
 
-    bool
-    upload_stage_logging_enabled(const VulkanState& vk_state)
+    bool upload_stage_logging_enabled(const VulkanState& vk_state)
     {
         return vk_state.verbose_logging
                || env_flag_is_truthy("IMIV_VULKAN_UPLOAD_STAGE_LOG");
     }
 
-    void
-    log_upload_stage(const VulkanState& vk_state, const VulkanTexture& texture,
-                     const char* stage, const std::string& details = {})
+    void log_upload_stage(const VulkanState& vk_state,
+                          const VulkanTexture& texture, const char* stage,
+                          const std::string& details = {})
     {
         if (!upload_stage_logging_enabled(vk_state))
             return;
@@ -61,8 +59,7 @@ namespace {
               texture.debug_label, details);
     }
 
-    bool
-    texture_has_allocated_resources(const VulkanTexture& texture)
+    bool texture_has_allocated_resources(const VulkanTexture& texture)
     {
         return texture.source_image != VK_NULL_HANDLE
                || texture.source_view != VK_NULL_HANDLE
@@ -91,12 +88,11 @@ namespace {
                || texture.preview_submit_fence != VK_NULL_HANDLE;
     }
 
-    void
-    destroy_texture_now(VulkanState& vk_state, VulkanTexture& texture)
+    void destroy_texture_now(VulkanState& vk_state, VulkanTexture& texture)
     {
         if (!texture_has_allocated_resources(texture)) {
-            texture.width                = 0;
-            texture.height               = 0;
+            texture.width  = 0;
+            texture.height = 0;
             texture.debug_label.clear();
             texture.source_ready         = false;
             texture.preview_initialized  = false;
@@ -173,8 +169,7 @@ namespace {
             texture.view = VK_NULL_HANDLE;
         }
         if (texture.image != VK_NULL_HANDLE) {
-            vkDestroyImage(vk_state.device, texture.image,
-                           vk_state.allocator);
+            vkDestroyImage(vk_state.device, texture.image, vk_state.allocator);
             texture.image = VK_NULL_HANDLE;
         }
         if (texture.memory != VK_NULL_HANDLE) {
@@ -196,8 +191,8 @@ namespace {
                          vk_state.allocator);
             texture.source_memory = VK_NULL_HANDLE;
         }
-        texture.width                = 0;
-        texture.height               = 0;
+        texture.width  = 0;
+        texture.height = 0;
         texture.debug_label.clear();
         texture.source_ready         = false;
         texture.preview_initialized  = false;
@@ -379,8 +374,7 @@ poll_texture_upload_submission(VulkanState& vk_state, VulkanTexture& texture,
     texture.source_ready          = true;
     texture.preview_dirty         = true;
     log_upload_stage(vk_state, texture,
-                     wait_for_completion ? "wait_complete"
-                                         : "poll_complete");
+                     wait_for_completion ? "wait_complete" : "poll_complete");
     destroy_texture_upload_submit_resources(vk_state, texture);
     return true;
 }
@@ -443,13 +437,14 @@ destroy_texture(VulkanState& vk_state, VulkanTexture& texture)
 void
 retire_texture(VulkanState& vk_state, VulkanTexture& texture)
 {
-    if (!texture_has_allocated_resources(texture) || vk_state.device == VK_NULL_HANDLE) {
+    if (!texture_has_allocated_resources(texture)
+        || vk_state.device == VK_NULL_HANDLE) {
         destroy_texture_now(vk_state, texture);
         return;
     }
 
-    RetiredVulkanTexture retired = {};
-    retired.texture              = std::move(texture);
+    RetiredVulkanTexture retired            = {};
+    retired.texture                         = std::move(texture);
     retired.retire_after_main_submit_serial = vk_state.next_main_submit_serial;
     if (vk_state.verbose_logging) {
         print("imiv: Vulkan texture retire '{}' after main submit {}\n",
@@ -468,7 +463,7 @@ drain_retired_textures(VulkanState& vk_state, bool force)
     size_t write_index = 0;
     for (size_t i = 0, e = vk_state.retired_textures.size(); i < e; ++i) {
         RetiredVulkanTexture& retired = vk_state.retired_textures[i];
-        const bool ready = force
+        const bool ready              = force
                            || vk_state.completed_main_submit_serial
                                   >= retired.retire_after_main_submit_serial;
         if (!ready) {
@@ -578,8 +573,7 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
     if (!build_row_stripe_upload_plan(
             row_pitch_bytes, pixel_stride_bytes, image.height,
             std::max<uint32_t>(1, vk_state.max_storage_buffer_range),
-            std::max<uint32_t>(1,
-                               vk_state.min_storage_buffer_offset_alignment),
+            std::max<uint32_t>(1, vk_state.min_storage_buffer_offset_alignment),
             stripe_plan, error_message)) {
         return false;
     }
@@ -929,14 +923,14 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         writes[0].dstSet               = compute_set;
         writes[0].dstBinding           = 0;
         writes[0].descriptorCount      = 1;
-        writes[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-        writes[0].pBufferInfo          = &source_buffer_info;
-        writes[1].sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writes[1].dstSet               = compute_set;
-        writes[1].dstBinding           = 1;
-        writes[1].descriptorCount      = 1;
-        writes[1].descriptorType       = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        writes[1].pImageInfo           = &output_image_info;
+        writes[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+        writes[0].pBufferInfo     = &source_buffer_info;
+        writes[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writes[1].dstSet          = compute_set;
+        writes[1].dstBinding      = 1;
+        writes[1].descriptorCount = 1;
+        writes[1].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        writes[1].pImageInfo      = &output_image_info;
         vkUpdateDescriptorSets(vk_state.device, 2, writes, 0, nullptr);
 
         VkSamplerCreateInfo sampler_ci  = {};
@@ -1063,10 +1057,10 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         for (uint32_t stripe_index = 0; stripe_index < stripe_plan.stripe_count;
              ++stripe_index) {
             const uint32_t stripe_y = stripe_index * stripe_plan.stripe_rows;
-            const uint32_t remaining_rows
-                = static_cast<uint32_t>(image.height) - stripe_y;
-            const uint32_t stripe_height = std::min(stripe_plan.stripe_rows,
-                                                    remaining_rows);
+            const uint32_t remaining_rows = static_cast<uint32_t>(image.height)
+                                            - stripe_y;
+            const uint32_t stripe_height  = std::min(stripe_plan.stripe_rows,
+                                                     remaining_rows);
             const uint32_t dynamic_offset = static_cast<uint32_t>(
                 stripe_plan.descriptor_range_bytes
                 * static_cast<size_t>(stripe_index));
@@ -1077,8 +1071,8 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
                                     &compute_set, 1, &dynamic_offset);
 
             UploadComputePushConstants push = {};
-            push.width = static_cast<uint32_t>(image.width);
-            push.height = stripe_height;
+            push.width           = static_cast<uint32_t>(image.width);
+            push.height          = stripe_height;
             push.row_pitch_bytes = static_cast<uint32_t>(
                 stripe_plan.aligned_row_pitch_bytes);
             push.pixel_stride  = static_cast<uint32_t>(pixel_stride_bytes);
@@ -1130,12 +1124,12 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         submit.commandBufferCount = 1;
         submit.pCommandBuffers    = &upload_command;
         log_upload_stage(vk_state, texture, "submit_begin",
-                         Strutil::fmt::format("command_buffer={} fence={}",
-                                              vk_handle_to_u64(upload_command),
-                                              vk_handle_to_u64(
-                                                  texture.upload_submit_fence)));
-        err                       = vkQueueSubmit(vk_state.queue, 1, &submit,
-                                                  texture.upload_submit_fence);
+                         Strutil::fmt::format(
+                             "command_buffer={} fence={}",
+                             vk_handle_to_u64(upload_command),
+                             vk_handle_to_u64(texture.upload_submit_fence)));
+        err = vkQueueSubmit(vk_state.queue, 1, &submit,
+                            texture.upload_submit_fence);
         if (err != VK_SUCCESS) {
             log_upload_stage(vk_state, texture, "submit_error",
                              Strutil::fmt::format("vk_result={}",

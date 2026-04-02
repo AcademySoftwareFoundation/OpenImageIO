@@ -82,16 +82,15 @@ next_sibling_image_action(RendererState& renderer_state, ViewerState& viewer,
                           PlaceholderUiState& ui_state, int delta);
 void
 toggle_image_action(RendererState& renderer_state, ViewerState& viewer,
-                    ImageLibraryState& library,
-                    PlaceholderUiState& ui_state);
+                    ImageLibraryState& library, PlaceholderUiState& ui_state);
 void
 change_subimage_action(RendererState& renderer_state, ViewerState& viewer,
-                       ImageLibraryState& library,
-                       PlaceholderUiState& ui_state, int delta);
+                       ImageLibraryState& library, PlaceholderUiState& ui_state,
+                       int delta);
 void
 change_miplevel_action(RendererState& renderer_state, ViewerState& viewer,
-                       ImageLibraryState& library,
-                       PlaceholderUiState& ui_state, int delta);
+                       ImageLibraryState& library, PlaceholderUiState& ui_state,
+                       int delta);
 void
 queue_auto_subimage_from_zoom(ViewerState& viewer);
 bool

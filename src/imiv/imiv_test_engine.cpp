@@ -136,32 +136,32 @@ namespace {
         std::string item_double_click_ref;
         TestEngineMouseTargetMode mouse_target_mode
             = TestEngineMouseTargetMode::None;
-        float mouse_x        = 0.0f;
-        float mouse_y        = 0.0f;
-        bool has_click       = false;
-        int click_button     = 0;
-        bool has_double_click = false;
+        float mouse_x           = 0.0f;
+        float mouse_y           = 0.0f;
+        bool has_click          = false;
+        int click_button        = 0;
+        bool has_double_click   = false;
         int double_click_button = 0;
-        bool has_wheel       = false;
-        float wheel_x        = 0.0f;
-        float wheel_y        = 0.0f;
-        bool has_drag        = false;
-        float drag_dx        = 0.0f;
-        float drag_dy        = 0.0f;
-        int drag_button      = 0;
-        bool has_hold_drag   = false;
-        float hold_drag_dx   = 0.0f;
-        float hold_drag_dy   = 0.0f;
-        int hold_drag_button = 0;
-        int hold_drag_frames = 1;
+        bool has_wheel          = false;
+        float wheel_x           = 0.0f;
+        float wheel_y           = 0.0f;
+        bool has_drag           = false;
+        float drag_dx           = 0.0f;
+        float drag_dy           = 0.0f;
+        int drag_button         = 0;
+        bool has_hold_drag      = false;
+        float hold_drag_dx      = 0.0f;
+        float hold_drag_dy      = 0.0f;
+        int hold_drag_button    = 0;
+        int hold_drag_frames    = 1;
     };
 
     struct TestEngineScenarioOcioStep {
-        bool has_use               = false;
-        bool use_ocio              = false;
-        bool has_display           = false;
-        bool has_view              = false;
-        bool has_image_color_space = false;
+        bool has_use                  = false;
+        bool use_ocio                 = false;
+        bool has_display              = false;
+        bool has_view                 = false;
+        bool has_image_color_space    = false;
         bool has_linear_interpolation = false;
         bool linear_interpolation     = false;
         std::string display;
@@ -434,14 +434,14 @@ namespace {
                                step.image_list.select_index)) {
                 step.image_list.has_select_index = true;
             }
-            if (parse_int_attr(
-                    step_node.attribute("image_list_open_new_view_index"),
-                    step.image_list.open_new_view_index)) {
+            if (parse_int_attr(step_node.attribute(
+                                   "image_list_open_new_view_index"),
+                               step.image_list.open_new_view_index)) {
                 step.image_list.has_open_new_view_index = true;
             }
-            if (parse_int_attr(
-                    step_node.attribute("image_list_close_active_index"),
-                    step.image_list.close_active_index)) {
+            if (parse_int_attr(step_node.attribute(
+                                   "image_list_close_active_index"),
+                               step.image_list.close_active_index)) {
                 step.image_list.has_close_active_index = true;
             }
             if (parse_int_attr(step_node.attribute("image_list_remove_index"),
@@ -1013,11 +1013,11 @@ namespace {
         }
         if (ocio.has_linear_interpolation) {
             const std::string value = ocio.linear_interpolation ? "1" : "0";
-            set_process_env_value(
-                "IMIV_IMGUI_TEST_ENGINE_LINEAR_INTERPOLATION", &value);
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_LINEAR_INTERPOLATION",
+                                  &value);
         } else {
-            set_process_env_value(
-                "IMIV_IMGUI_TEST_ENGINE_LINEAR_INTERPOLATION", nullptr);
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_LINEAR_INTERPOLATION",
+                                  nullptr);
         }
 
         const int next_frame = ImGui::GetFrameCount() + 1;
@@ -1027,8 +1027,8 @@ namespace {
             || image_list.has_remove_index) {
             const std::string frame_value = Strutil::fmt::format("{}",
                                                                  next_frame);
-            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_APPLY_FRAME",
-                                  &frame_value);
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_APPLY_FRAME", &frame_value);
         }
         if (image_list.has_visible) {
             const std::string value = image_list.visible ? "1" : "0";
@@ -1039,17 +1039,17 @@ namespace {
                                   nullptr);
         }
         if (image_list.has_select_index) {
-            const std::string index_value = Strutil::fmt::format(
-                "{}", image_list.select_index);
-            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_SELECT_INDEX",
-                                  &index_value);
+            const std::string index_value
+                = Strutil::fmt::format("{}", image_list.select_index);
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_SELECT_INDEX", &index_value);
         } else {
             set_process_env_value(
                 "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_SELECT_INDEX", nullptr);
         }
         if (image_list.has_open_new_view_index) {
-            const std::string index_value = Strutil::fmt::format(
-                "{}", image_list.open_new_view_index);
+            const std::string index_value
+                = Strutil::fmt::format("{}", image_list.open_new_view_index);
             set_process_env_value(
                 "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_OPEN_NEW_VIEW_INDEX",
                 &index_value);
@@ -1059,8 +1059,8 @@ namespace {
                 nullptr);
         }
         if (image_list.has_close_active_index) {
-            const std::string index_value = Strutil::fmt::format(
-                "{}", image_list.close_active_index);
+            const std::string index_value
+                = Strutil::fmt::format("{}", image_list.close_active_index);
             set_process_env_value(
                 "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_CLOSE_ACTIVE_INDEX",
                 &index_value);
@@ -1070,17 +1070,17 @@ namespace {
                 nullptr);
         }
         if (image_list.has_remove_index) {
-            const std::string index_value = Strutil::fmt::format(
-                "{}", image_list.remove_index);
-            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_REMOVE_INDEX",
-                                  &index_value);
+            const std::string index_value
+                = Strutil::fmt::format("{}", image_list.remove_index);
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_REMOVE_INDEX", &index_value);
         } else {
-            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_REMOVE_INDEX",
-                                  nullptr);
+            set_process_env_value(
+                "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_REMOVE_INDEX", nullptr);
         }
 
-        if (view.has_activate_view_index || view.has_exposure
-            || view.has_gamma || view.has_offset) {
+        if (view.has_activate_view_index || view.has_exposure || view.has_gamma
+            || view.has_offset) {
             const std::string frame_value = Strutil::fmt::format("{}",
                                                                  next_frame);
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_VIEW_APPLY_FRAME",
@@ -1090,8 +1090,8 @@ namespace {
                                   nullptr);
         }
         if (view.has_activate_view_index) {
-            const std::string index_value = Strutil::fmt::format(
-                "{}", view.activate_view_index);
+            const std::string index_value
+                = Strutil::fmt::format("{}", view.activate_view_index);
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_ACTIVATE_VIEW_INDEX",
                                   &index_value);
         } else {
@@ -1099,24 +1099,24 @@ namespace {
                                   nullptr);
         }
         if (view.has_exposure) {
-            const std::string exposure_value = Strutil::fmt::format(
-                "{}", static_cast<double>(view.exposure));
+            const std::string exposure_value
+                = Strutil::fmt::format("{}",
+                                       static_cast<double>(view.exposure));
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_EXPOSURE",
                                   &exposure_value);
         } else {
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_EXPOSURE", nullptr);
         }
         if (view.has_gamma) {
-            const std::string gamma_value = Strutil::fmt::format(
-                "{}", static_cast<double>(view.gamma));
-            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_GAMMA",
-                                  &gamma_value);
+            const std::string gamma_value
+                = Strutil::fmt::format("{}", static_cast<double>(view.gamma));
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_GAMMA", &gamma_value);
         } else {
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_GAMMA", nullptr);
         }
         if (view.has_offset) {
-            const std::string offset_value = Strutil::fmt::format(
-                "{}", static_cast<double>(view.offset));
+            const std::string offset_value
+                = Strutil::fmt::format("{}", static_cast<double>(view.offset));
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_OFFSET",
                                   &offset_value);
         } else {
@@ -1979,10 +1979,9 @@ register_test_engine_item_label(const char* label, bool openable)
     const ImVec2 max = ImGui::GetItemRectMax();
     if (max.x <= min.x || max.y <= min.y)
         return;
-    const int ordinal = ++g_layout_dump_synthetic_item_counter;
+    const int ordinal   = ++g_layout_dump_synthetic_item_counter;
     char id_source[128] = {};
-    std::snprintf(id_source, sizeof(id_source), "##imiv_test_item_%d",
-                  ordinal);
+    std::snprintf(id_source, sizeof(id_source), "##imiv_test_item_%d", ordinal);
     const ImGuiID id = ImGui::GetID(id_source);
     if (id == 0)
         return;

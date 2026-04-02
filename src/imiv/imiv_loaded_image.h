@@ -14,9 +14,9 @@
 namespace Imiv {
 
 struct LoadedImageLayout {
-    size_t pixel_stride_bytes = 0;
+    size_t pixel_stride_bytes  = 0;
     size_t min_row_pitch_bytes = 0;
-    size_t required_bytes = 0;
+    size_t required_bytes      = 0;
 };
 
 bool
@@ -28,7 +28,7 @@ bool
 loaded_image_pixel_pointer(const LoadedImage& image, int x, int y,
                            const unsigned char*& out_pixel,
                            LoadedImageLayout* out_layout = nullptr,
-                           std::string* error_message = nullptr);
+                           std::string* error_message    = nullptr);
 
 bool
 imagebuf_from_loaded_image(const LoadedImage& image, OIIO::ImageBuf& out,

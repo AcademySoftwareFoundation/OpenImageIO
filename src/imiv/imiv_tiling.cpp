@@ -18,8 +18,7 @@ namespace Imiv {
 
 namespace {
 
-    size_t
-    align_up_size(size_t value, size_t alignment)
+    size_t align_up_size(size_t value, size_t alignment)
     {
         if (alignment <= 1)
             return value;
@@ -81,7 +80,8 @@ build_row_stripe_upload_plan(size_t source_row_pitch_bytes,
     }
 
     const uint32_t stripe_rows = static_cast<uint32_t>(
-        std::min<size_t>(static_cast<size_t>(image_height), max_rows_per_stripe));
+        std::min<size_t>(static_cast<size_t>(image_height),
+                         max_rows_per_stripe));
     const size_t descriptor_range = aligned_row_pitch
                                     * static_cast<size_t>(stripe_rows);
     const uint32_t stripe_count = static_cast<uint32_t>(
@@ -134,8 +134,8 @@ copy_rows_to_padded_buffer(const unsigned char* source_pixels,
 
     const size_t required_source_bytes = source_row_pitch_bytes
                                          * static_cast<size_t>(image_height);
-    const size_t required_destination_bytes = padded_row_pitch_bytes
-                                              * static_cast<size_t>(image_height);
+    const size_t required_destination_bytes
+        = padded_row_pitch_bytes * static_cast<size_t>(image_height);
     if (source_pixels_size < required_source_bytes) {
         error_message = "source image buffer is smaller than declared row span";
         return false;

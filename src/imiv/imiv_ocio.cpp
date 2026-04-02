@@ -583,9 +583,9 @@ resolve_ocio_config_selection(const PlaceholderUiState& ui_state,
             if (OIIO::Strutil::istarts_with(user_path, "ocio://")) {
                 selection.resolved_path = user_path;
             } else {
-                selection.resolved_path
-                    = std::filesystem::path(user_path).lexically_normal()
-                          .string();
+                selection.resolved_path = std::filesystem::path(user_path)
+                                              .lexically_normal()
+                                              .string();
             }
         } else {
             selection.resolved_source  = OcioConfigSource::BuiltIn;
@@ -840,8 +840,8 @@ build_ocio_uniform_buffer(OcioShaderRuntime& runtime,
     renderer_controls.use_ocio             = controls.use_ocio;
     renderer_controls.orientation          = controls.orientation;
     renderer_controls.linear_interpolation = controls.linear_interpolation;
-    return build_ocio_uniform_buffer(runtime, renderer_controls,
-                                     uniform_bytes, error_message);
+    return build_ocio_uniform_buffer(runtime, renderer_controls, uniform_bytes,
+                                     error_message);
 }
 #endif
 
@@ -931,15 +931,15 @@ build_ocio_cpu_display_processor(const PlaceholderUiState& ui_state,
         const std::string input_color_space
             = resolve_input_color_space(ui_state, image, config);
         resolved_display = resolve_display_name(ui_state, config);
-        resolved_view    = resolve_view_name(ui_state, config, resolved_display);
+        resolved_view = resolve_view_name(ui_state, config, resolved_display);
         if (input_color_space.empty() || resolved_display.empty()
             || resolved_view.empty()) {
             error_message = "Failed to resolve OCIO export transform";
             return false;
         }
 
-        OCIO::ConstColorSpaceRcPtr scene_linear_space
-            = config->getColorSpace("scene_linear");
+        OCIO::ConstColorSpaceRcPtr scene_linear_space = config->getColorSpace(
+            "scene_linear");
         if (!scene_linear_space) {
             error_message = "Missing 'scene_linear' color space";
             return false;

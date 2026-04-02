@@ -34,8 +34,8 @@ namespace Imiv {
 
 namespace {
 
-    constexpr const char* k_dockspace_host_title = "imiv DockSpace";
-    constexpr const char* k_image_window_title   = "Image";
+    constexpr const char* k_dockspace_host_title    = "imiv DockSpace";
+    constexpr const char* k_image_window_title      = "Image";
     constexpr const char* k_image_list_window_title = "Image List";
 
     bool read_env_value(const char* name, std::string& out_value)
@@ -117,8 +117,8 @@ namespace {
         static int cached_value = -1;
         if (cached_value < 0)
             cached_value = env_flag_is_truthy("IMIV_DEBUG_IMAGE_LIST_WINDOWS")
-                                   ? 1
-                                   : 0;
+                               ? 1
+                               : 0;
         return cached_value != 0;
     }
 
@@ -132,8 +132,8 @@ namespace {
                 std::string ignored;
                 cached_value = (read_env_value("WSL_INTEROP", ignored)
                                 || read_env_value("WSL_DISTRO_NAME", ignored))
-                                       ? 1
-                                       : 0;
+                                   ? 1
+                                   : 0;
             }
         }
         return cached_value != 0;
@@ -142,7 +142,8 @@ namespace {
     void update_image_list_visibility_policy(MultiViewWorkspace& workspace,
                                              const ImageLibraryState& library)
     {
-        const int image_count = static_cast<int>(library.loaded_image_paths.size());
+        const int image_count = static_cast<int>(
+            library.loaded_image_paths.size());
         if (image_count <= 0) {
             workspace.show_image_list_window   = false;
             workspace.image_list_force_dock    = false;
@@ -166,8 +167,7 @@ namespace {
             return;
         }
 
-        if (ImGui::FindWindowSettingsByID(
-                ImHashStr(k_image_list_window_title))
+        if (ImGui::FindWindowSettingsByID(ImHashStr(k_image_list_window_title))
             != nullptr) {
             workspace.image_list_layout_initialized = true;
             return;
@@ -178,8 +178,8 @@ namespace {
             return;
         }
 
-        const float ratio
-            = std::clamp(200.0f / dockspace_node->Size.x, 0.12f, 0.35f);
+        const float ratio = std::clamp(200.0f / dockspace_node->Size.x, 0.12f,
+                                       0.35f);
         ImGuiID image_list_dock_id = 0;
         ImGuiID image_view_dock_id = dockspace_id;
         ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, ratio,
@@ -187,8 +187,8 @@ namespace {
         if (image_list_dock_id == 0 || image_view_dock_id == 0)
             return;
 
-        workspace.image_view_dock_id = image_view_dock_id;
-        workspace.image_list_dock_id = image_list_dock_id;
+        workspace.image_view_dock_id    = image_view_dock_id;
+        workspace.image_list_dock_id    = image_list_dock_id;
         workspace.image_list_force_dock = true;
         ImGui::DockBuilderDockWindow(k_image_window_title, image_view_dock_id);
         ImGui::DockBuilderDockWindow(k_image_list_window_title,
@@ -227,7 +227,7 @@ namespace {
         const std::string trimmed = std::string(Strutil::strip(value));
         if (trimmed.empty())
             return fallback;
-        char* end   = nullptr;
+        char* end    = nullptr;
         float parsed = std::strtof(trimmed.c_str(), &end);
         if (end == trimmed.c_str() || *end != '\0')
             return fallback;
@@ -287,20 +287,22 @@ namespace {
         }
     }
 
-    void apply_test_engine_view_activation_override(MultiViewWorkspace& workspace)
+    void
+    apply_test_engine_view_activation_override(MultiViewWorkspace& workspace)
     {
         const int apply_frame
             = env_int_value("IMIV_IMGUI_TEST_ENGINE_VIEW_APPLY_FRAME", -1);
         if (apply_frame < 0 || ImGui::GetFrameCount() < apply_frame)
             return;
 
-        const int activate_view_index = env_int_value(
-            "IMIV_IMGUI_TEST_ENGINE_ACTIVATE_VIEW_INDEX", -1);
+        const int activate_view_index
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_ACTIVATE_VIEW_INDEX", -1);
         if (activate_view_index >= 0
             && activate_view_index
                    < static_cast<int>(workspace.view_windows.size())) {
             ImageViewWindow* target
-                = workspace.view_windows[static_cast<size_t>(activate_view_index)]
+                = workspace
+                      .view_windows[static_cast<size_t>(activate_view_index)]
                       .get();
             if (target != nullptr) {
                 workspace.active_view_id = target->id;
@@ -356,7 +358,7 @@ namespace {
                                           RendererState& renderer_state,
                                           const std::string& path)
     {
-        ImageViewWindow& new_view = append_image_view(workspace);
+        ImageViewWindow& new_view          = append_image_view(workspace);
         new_view.viewer.loaded_image_paths = library.loaded_image_paths;
         new_view.viewer.recent_images      = library.recent_images;
         new_view.viewer.sort_mode          = library.sort_mode;
@@ -377,14 +379,16 @@ namespace {
                                     const std::string& normalized_path)
     {
         return !viewer.image.path.empty()
-               && normalize_image_list_path(viewer.image.path) == normalized_path;
+               && normalize_image_list_path(viewer.image.path)
+                      == normalized_path;
     }
 
     int image_list_open_view_count(const MultiViewWorkspace& workspace,
                                    const std::string& normalized_path)
     {
         int count = 0;
-        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        for (const std::unique_ptr<ImageViewWindow>& view :
+             workspace.view_windows) {
             if (view != nullptr
                 && image_view_is_showing_path(view->viewer, normalized_path)) {
                 ++count;
@@ -393,11 +397,13 @@ namespace {
         return count;
     }
 
-    std::vector<int> image_list_open_view_ids(const MultiViewWorkspace& workspace,
-                                              const std::string& normalized_path)
+    std::vector<int>
+    image_list_open_view_ids(const MultiViewWorkspace& workspace,
+                             const std::string& normalized_path)
     {
         std::vector<int> view_ids;
-        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        for (const std::unique_ptr<ImageViewWindow>& view :
+             workspace.view_windows) {
             if (view != nullptr
                 && image_view_is_showing_path(view->viewer, normalized_path)) {
                 view_ids.push_back(view->id);
@@ -409,8 +415,8 @@ namespace {
     std::string image_list_open_view_badge(const MultiViewWorkspace& workspace,
                                            const std::string& normalized_path)
     {
-        const std::vector<int> view_ids = image_list_open_view_ids(workspace,
-                                                                   normalized_path);
+        const std::vector<int> view_ids
+            = image_list_open_view_ids(workspace, normalized_path);
         if (view_ids.empty())
             return std::string();
         std::string joined;
@@ -422,7 +428,8 @@ namespace {
         return Strutil::fmt::format(" [v:{}]", joined);
     }
 
-    void adjust_viewer_indices_after_remove(ViewerState& viewer, int remove_index)
+    void adjust_viewer_indices_after_remove(ViewerState& viewer,
+                                            int remove_index)
     {
         if (viewer.current_path_index == remove_index) {
             viewer.current_path_index = -1;
@@ -464,7 +471,8 @@ namespace {
     {
         const std::string normalized_path = normalize_image_list_path(path);
         bool closed_any                   = false;
-        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        for (const std::unique_ptr<ImageViewWindow>& view :
+             workspace.view_windows) {
             if (view == nullptr
                 || !image_view_is_showing_path(view->viewer, normalized_path)) {
                 continue;
@@ -474,8 +482,8 @@ namespace {
             closed_any = true;
         }
         if (closed_any) {
-            active_view.status_message = Strutil::fmt::format(
-                "Closed {} in all views", path);
+            active_view.status_message
+                = Strutil::fmt::format("Closed {} in all views", path);
             active_view.last_error.clear();
         }
         return closed_any;
@@ -499,7 +507,8 @@ namespace {
         const int remove_index = static_cast<int>(
             std::distance(library.loaded_image_paths.begin(), it));
         std::vector<ImageViewWindow*> affected_views;
-        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        for (const std::unique_ptr<ImageViewWindow>& view :
+             workspace.view_windows) {
             if (view == nullptr
                 || !image_view_is_showing_path(view->viewer, normalized_path)) {
                 continue;
@@ -512,13 +521,15 @@ namespace {
         library.loaded_image_paths.erase(it);
         std::string replacement_path;
         if (!library.loaded_image_paths.empty()) {
-            const int replacement_index = std::min(
-                remove_index,
-                static_cast<int>(library.loaded_image_paths.size()) - 1);
-            replacement_path
-                = library.loaded_image_paths[static_cast<size_t>(replacement_index)];
+            const int replacement_index
+                = std::min(remove_index,
+                           static_cast<int>(library.loaded_image_paths.size())
+                               - 1);
+            replacement_path = library.loaded_image_paths[static_cast<size_t>(
+                replacement_index)];
         }
-        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        for (const std::unique_ptr<ImageViewWindow>& view :
+             workspace.view_windows) {
             if (view == nullptr)
                 continue;
             adjust_viewer_indices_after_remove(view->viewer, remove_index);
@@ -531,19 +542,21 @@ namespace {
             for (ImageViewWindow* view : affected_views) {
                 if (view == nullptr)
                     continue;
-                load_viewer_image(renderer_state, view->viewer, library, &ui_state,
-                                  replacement_path, 0, 0);
+                load_viewer_image(renderer_state, view->viewer, library,
+                                  &ui_state, replacement_path, 0, 0);
             }
         }
         bool any_view_loaded = false;
-        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        for (const std::unique_ptr<ImageViewWindow>& view :
+             workspace.view_windows) {
             if (view != nullptr && !view->viewer.image.path.empty()) {
                 any_view_loaded = true;
                 break;
             }
         }
         if (!replacement_path.empty() && !any_view_loaded) {
-            ViewerState& primary_view = ensure_primary_image_view(workspace).viewer;
+            ViewerState& primary_view
+                = ensure_primary_image_view(workspace).viewer;
             load_viewer_image(renderer_state, primary_view, library, &ui_state,
                               replacement_path, 0, 0);
         }
@@ -552,8 +565,8 @@ namespace {
         if (was_image_list_visible && !library.loaded_image_paths.empty()) {
             workspace.show_image_list_window = true;
         }
-        active_view.status_message = Strutil::fmt::format(
-            "Removed {} from session", path);
+        active_view.status_message
+            = Strutil::fmt::format("Removed {} from session", path);
         active_view.last_error.clear();
         return true;
     }
@@ -622,8 +635,9 @@ namespace {
                 library.loaded_image_paths[close_active_index]);
         }
 
-        const int remove_index = env_int_value(
-            "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_REMOVE_INDEX", -1);
+        const int remove_index
+            = env_int_value("IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_REMOVE_INDEX",
+                            -1);
         if (remove_index >= 0
             && remove_index
                    < static_cast<int>(library.loaded_image_paths.size())) {
@@ -663,7 +677,7 @@ namespace {
         if (drop_paths.empty())
             return;
 
-        viewer.pending_drop_paths = std::move(drop_paths);
+        viewer.pending_drop_paths  = std::move(drop_paths);
         viewer.drag_overlay_active = false;
     }
 
@@ -712,11 +726,13 @@ namespace {
         }
     }
 
-    std::vector<ViewerState*> collect_workspace_viewers(MultiViewWorkspace& workspace)
+    std::vector<ViewerState*>
+    collect_workspace_viewers(MultiViewWorkspace& workspace)
     {
         std::vector<ViewerState*> viewers;
         viewers.reserve(workspace.view_windows.size());
-        for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+        for (const std::unique_ptr<ImageViewWindow>& view :
+             workspace.view_windows) {
             if (view != nullptr)
                 viewers.push_back(&view->viewer);
         }
@@ -747,20 +763,20 @@ namespace {
             return;
 
         if (workspace.image_list_dock_id != 0) {
-            ImGui::SetNextWindowDockID(
-                workspace.image_list_dock_id,
-                workspace.image_list_force_dock ? ImGuiCond_Always
-                                                : ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowDockID(workspace.image_list_dock_id,
+                                       workspace.image_list_force_dock
+                                           ? ImGuiCond_Always
+                                           : ImGuiCond_FirstUseEver);
         } else {
             const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
             if (main_viewport != nullptr) {
-                ImGui::SetNextWindowPos(
-                    ImVec2(main_viewport->WorkPos.x + 24.0f,
-                           main_viewport->WorkPos.y + 72.0f),
-                    ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 24.0f,
+                                               main_viewport->WorkPos.y + 72.0f),
+                                        ImGuiCond_FirstUseEver);
             }
         }
-        ImGui::SetNextWindowSize(ImVec2(200.0f, 420.0f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(200.0f, 420.0f),
+                                 ImGuiCond_FirstUseEver);
         if (!ImGui::Begin(k_image_list_window_title,
                           &workspace.show_image_list_window)) {
             workspace.image_list_was_drawn = true;
@@ -771,7 +787,7 @@ namespace {
             return;
         }
 
-        workspace.image_list_was_drawn = true;
+        workspace.image_list_was_drawn  = true;
         workspace.image_list_force_dock = !ImGui::IsWindowDocked();
         workspace.image_list_is_docked  = ImGui::IsWindowDocked();
         workspace.image_list_pos        = ImGui::GetWindowPos();
@@ -802,37 +818,42 @@ namespace {
 
         if (ImGui::BeginChild("##image_list_items", ImVec2(0.0f, 0.0f), false,
                               ImGuiWindowFlags_HorizontalScrollbar)) {
-            for (size_t i = 0, e = library.loaded_image_paths.size(); i < e; ++i) {
+            for (size_t i = 0, e = library.loaded_image_paths.size(); i < e;
+                 ++i) {
                 const std::string& path = library.loaded_image_paths[i];
                 const std::filesystem::path fs_path(path);
                 const std::string filename = fs_path.filename().empty()
                                                  ? path
                                                  : fs_path.filename().string();
-                const bool selected
-                    = active_view.current_path_index == static_cast<int>(i);
+                const bool selected        = active_view.current_path_index
+                                      == static_cast<int>(i);
                 const bool active_view_image
                     = image_view_is_showing_path(active_view, path);
-                const int open_count = image_list_open_view_count(workspace, path);
-                const std::string open_badge = image_list_open_view_badge(
-                    workspace, path);
+                const int open_count = image_list_open_view_count(workspace,
+                                                                  path);
+                const std::string open_badge
+                    = image_list_open_view_badge(workspace, path);
                 const std::string item_label = Strutil::fmt::format(
                     "{} {}. {}{}###imiv_image_list_item_{}",
-                    active_view_image ? ">" : " ",
-                    static_cast<int>(i + 1), filename, open_badge,
-                    static_cast<int>(i));
-                const std::string test_label = Strutil::fmt::format(
-                    "image_list_item_{}", static_cast<int>(i));
-                const std::string popup_id = Strutil::fmt::format(
-                    "imiv_image_list_popup_{}", static_cast<int>(i));
-                const std::string close_button_id = Strutil::fmt::format(
-                    "x##imiv_image_list_close_{}", static_cast<int>(i));
-                const float row_width = ImGui::GetContentRegionAvail().x;
+                    active_view_image ? ">" : " ", static_cast<int>(i + 1),
+                    filename, open_badge, static_cast<int>(i));
+                const std::string test_label
+                    = Strutil::fmt::format("image_list_item_{}",
+                                           static_cast<int>(i));
+                const std::string popup_id
+                    = Strutil::fmt::format("imiv_image_list_popup_{}",
+                                           static_cast<int>(i));
+                const std::string close_button_id
+                    = Strutil::fmt::format("x##imiv_image_list_close_{}",
+                                           static_cast<int>(i));
+                const float row_width   = ImGui::GetContentRegionAvail().x;
                 const float close_width = ImGui::CalcTextSize("x").x
                                           + ImGui::GetStyle().FramePadding.x
                                                 * 2.0f;
-                const float label_width = std::max(
-                    1.0f, row_width - (close_width
-                                       + ImGui::GetStyle().ItemSpacing.x));
+                const float label_width
+                    = std::max(1.0f, row_width
+                                         - (close_width
+                                            + ImGui::GetStyle().ItemSpacing.x));
                 ImGui::Selectable(item_label.c_str(), selected,
                                   ImGuiSelectableFlags_AllowDoubleClick,
                                   ImVec2(label_width, 0.0f));
@@ -842,8 +863,10 @@ namespace {
                 {
                     const ImVec2 item_min = ImGui::GetItemRectMin();
                     const ImVec2 item_max = ImGui::GetItemRectMax();
-                    workspace.image_list_item_rects.emplace_back(
-                        item_min.x, item_min.y, item_max.x, item_max.y);
+                    workspace.image_list_item_rects.emplace_back(item_min.x,
+                                                                 item_min.y,
+                                                                 item_max.x,
+                                                                 item_max.y);
                 }
                 if (ImGui::IsItemHovered() && filename != path) {
                     showed_tooltip_this_frame = true;
@@ -859,7 +882,7 @@ namespace {
                         ImGui::SetTooltip("%s", path.c_str());
                 }
                 if (ImGui::IsItemClicked()) {
-                    pending_action      = PendingImageListAction::OpenInActiveView;
+                    pending_action = PendingImageListAction::OpenInActiveView;
                     pending_action_path = path;
                 }
                 if (ImGui::IsItemHovered()
@@ -869,7 +892,8 @@ namespace {
                 }
                 if (ImGui::BeginPopupContextItem(popup_id.c_str())) {
                     if (ImGui::MenuItem("Open in active view")) {
-                        pending_action = PendingImageListAction::OpenInActiveView;
+                        pending_action
+                            = PendingImageListAction::OpenInActiveView;
                         pending_action_path = path;
                     }
                     if (ImGui::MenuItem("Open in new view")) {
@@ -878,7 +902,8 @@ namespace {
                     }
                     if (ImGui::MenuItem("Close in active view", nullptr, false,
                                         active_view_image)) {
-                        pending_action = PendingImageListAction::CloseInActiveView;
+                        pending_action
+                            = PendingImageListAction::CloseInActiveView;
                         pending_action_path = path;
                     }
                     if (ImGui::MenuItem("Close in all views", nullptr, false,
@@ -887,7 +912,8 @@ namespace {
                         pending_action_path = path;
                     }
                     if (ImGui::MenuItem("Remove from session")) {
-                        pending_action = PendingImageListAction::RemoveFromSession;
+                        pending_action
+                            = PendingImageListAction::RemoveFromSession;
                         pending_action_path = path;
                     }
                     ImGui::EndPopup();
@@ -920,23 +946,26 @@ namespace {
             break;
         case PendingImageListAction::CloseInActiveView:
             if (!pending_action_path.empty()) {
-                close_image_list_path_in_active_view(
-                    workspace, library, active_view, ui_state, renderer_state,
-                    pending_action_path);
+                close_image_list_path_in_active_view(workspace, library,
+                                                     active_view, ui_state,
+                                                     renderer_state,
+                                                     pending_action_path);
             }
             break;
         case PendingImageListAction::CloseInAllViews:
             if (!pending_action_path.empty()) {
-                close_image_list_path_in_all_views(
-                    workspace, library, active_view, ui_state, renderer_state,
-                    pending_action_path);
+                close_image_list_path_in_all_views(workspace, library,
+                                                   active_view, ui_state,
+                                                   renderer_state,
+                                                   pending_action_path);
             }
             break;
         case PendingImageListAction::RemoveFromSession:
             if (!pending_action_path.empty()) {
-                remove_image_list_path_from_session(
-                    workspace, library, active_view, ui_state, renderer_state,
-                    pending_action_path);
+                remove_image_list_path_from_session(workspace, library,
+                                                    active_view, ui_state,
+                                                    renderer_state,
+                                                    pending_action_path);
             }
             break;
         case PendingImageListAction::None: break;
@@ -1088,7 +1117,8 @@ test_engine_json_write_ocio_state(FILE* f, const PlaceholderUiState& ui_state)
 }
 
 void
-test_engine_json_write_backend_state(FILE* f, const PlaceholderUiState& ui_state,
+test_engine_json_write_backend_state(FILE* f,
+                                     const PlaceholderUiState& ui_state,
                                      BackendKind active_backend)
 {
     const BackendKind requested_backend = sanitize_backend_kind(
@@ -1222,9 +1252,9 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
         return false;
     }
 
-    const ImageViewWindow* state_view
-        = ctx->workspace != nullptr ? active_image_view(*ctx->workspace)
-                                    : nullptr;
+    const ImageViewWindow* state_view = ctx->workspace != nullptr
+                                            ? active_image_view(*ctx->workspace)
+                                            : nullptr;
     const ViewerState& viewer = (state_view != nullptr) ? state_view->viewer
                                                         : *ctx->viewer;
     const PlaceholderUiState& ui_state = *ctx->ui_state;
@@ -1261,11 +1291,10 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
     std::fputs(",\n  \"current_image_index\": ", f);
     std::fprintf(f, "%d", viewer.current_path_index);
     std::fputs(",\n  \"view_count\": ", f);
-    std::fprintf(
-        f, "%d",
-        ctx->workspace != nullptr
-            ? static_cast<int>(ctx->workspace->view_windows.size())
-            : 1);
+    std::fprintf(f, "%d",
+                 ctx->workspace != nullptr
+                     ? static_cast<int>(ctx->workspace->view_windows.size())
+                     : 1);
     std::fputs(",\n  \"loaded_view_count\": ", f);
     {
         int loaded_view_count = 0;
@@ -1282,7 +1311,8 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
     }
     std::fputs(",\n  \"active_view_id\": ", f);
     std::fprintf(f, "%d",
-                 ctx->workspace != nullptr ? ctx->workspace->active_view_id : 0);
+                 ctx->workspace != nullptr ? ctx->workspace->active_view_id
+                                           : 0);
     std::fputs(",\n  \"active_view_docked\": ", f);
     {
         const ImageViewWindow* active_view
@@ -1293,37 +1323,42 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
                    f);
     }
     std::fputs(",\n  \"image_list_visible\": ", f);
-    std::fputs((ctx->workspace != nullptr && ctx->workspace->show_image_list_window)
+    std::fputs((ctx->workspace != nullptr
+                && ctx->workspace->show_image_list_window)
                    ? "true"
                    : "false",
                f);
     std::fputs(",\n  \"image_list_drawn\": ", f);
-    std::fputs((ctx->workspace != nullptr && ctx->workspace->image_list_was_drawn)
+    std::fputs((ctx->workspace != nullptr
+                && ctx->workspace->image_list_was_drawn)
                    ? "true"
                    : "false",
                f);
     std::fputs(",\n  \"image_list_docked\": ", f);
-    std::fputs((ctx->workspace != nullptr && ctx->workspace->image_list_is_docked)
+    std::fputs((ctx->workspace != nullptr
+                && ctx->workspace->image_list_is_docked)
                    ? "true"
                    : "false",
                f);
     std::fputs(",\n  \"image_list_pos\": ", f);
-    test_engine_json_write_vec2(
-        f, ctx->workspace != nullptr ? ctx->workspace->image_list_pos
-                                     : ImVec2(0.0f, 0.0f));
+    test_engine_json_write_vec2(f, ctx->workspace != nullptr
+                                       ? ctx->workspace->image_list_pos
+                                       : ImVec2(0.0f, 0.0f));
     std::fputs(",\n  \"image_list_size\": ", f);
-    test_engine_json_write_vec2(
-        f, ctx->workspace != nullptr ? ctx->workspace->image_list_size
-                                     : ImVec2(0.0f, 0.0f));
+    test_engine_json_write_vec2(f, ctx->workspace != nullptr
+                                       ? ctx->workspace->image_list_size
+                                       : ImVec2(0.0f, 0.0f));
     std::fputs(",\n  \"image_list_item_rects\": [", f);
     if (ctx->workspace != nullptr) {
-        for (size_t i = 0; i < ctx->workspace->image_list_item_rects.size(); ++i) {
+        for (size_t i = 0; i < ctx->workspace->image_list_item_rects.size();
+             ++i) {
             const ImVec4 rect = ctx->workspace->image_list_item_rects[i];
             if (i > 0)
                 std::fputs(", ", f);
             std::fputs("[", f);
             std::fprintf(f, "%.3f,%.3f,%.3f,%.3f", static_cast<double>(rect.x),
-                         static_cast<double>(rect.y), static_cast<double>(rect.z),
+                         static_cast<double>(rect.y),
+                         static_cast<double>(rect.z),
                          static_cast<double>(rect.w));
             std::fputs("]", f);
         }
@@ -1331,15 +1366,13 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
     std::fputs("]", f);
     std::fputs(",\n  \"image_list_open_view_ids\": [", f);
     if (ctx->workspace != nullptr) {
-        for (size_t i = 0;
-             i < ctx->viewer->loaded_image_paths.size();
-             ++i) {
+        for (size_t i = 0; i < ctx->viewer->loaded_image_paths.size(); ++i) {
             if (i > 0)
                 std::fputs(", ", f);
             const std::string normalized_path = normalize_image_list_path(
                 ctx->viewer->loaded_image_paths[i]);
-            const std::vector<int> view_ids = image_list_open_view_ids(
-                *ctx->workspace, normalized_path);
+            const std::vector<int> view_ids
+                = image_list_open_view_ids(*ctx->workspace, normalized_path);
             std::fputs("[", f);
             for (size_t j = 0; j < view_ids.size(); ++j) {
                 if (j > 0)
@@ -1443,9 +1476,8 @@ setup_image_window_policy(ImGuiID dockspace_id, bool force_dock)
 
 void
 draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
-               PlaceholderUiState& ui_state,
-               DeveloperUiState& developer_ui, const AppFonts& fonts,
-               bool& request_exit
+               PlaceholderUiState& ui_state, DeveloperUiState& developer_ui,
+               const AppFonts& fonts, bool& request_exit
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                ,
                bool* show_test_engine_windows
@@ -1463,13 +1495,13 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
     if (active_view_window == nullptr)
         active_view_window = &primary_view;
     const int frame_active_view_id = active_view_window->id;
-    ViewerState& viewer = active_view_window->viewer;
+    ViewerState& viewer            = active_view_window->viewer;
     apply_view_recipe_to_ui_state(viewer.recipe, ui_state);
     reset_layout_dump_synthetic_items();
     reset_test_engine_mouse_space();
     ViewerFrameActions actions;
-    std::vector<ViewerState*> workspace_viewers
-        = collect_workspace_viewers(workspace);
+    std::vector<ViewerState*> workspace_viewers = collect_workspace_viewers(
+        workspace);
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
     || defined(IMIV_BACKEND_OPENGL_GLFW)
@@ -1499,8 +1531,8 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
                                     "IMIV_IMGUI_TEST_ENGINE_SHOW_MENU");
     draw_viewer_main_menu(viewer, ui_state, library, workspace_viewers,
                           developer_ui, actions, request_exit,
-                          workspace.show_image_list_window,
-                          show_test_menu, show_test_engine_windows);
+                          workspace.show_image_list_window, show_test_menu,
+                          show_test_engine_windows);
 #else
     draw_viewer_main_menu(viewer, ui_state, library, workspace_viewers,
                           developer_ui, actions, request_exit,
@@ -1516,7 +1548,8 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
     );
 #if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \
     || defined(IMIV_BACKEND_OPENGL_GLFW)
-    if (&primary_view.viewer != &viewer && !primary_view.viewer.pending_drop_paths.empty()) {
+    if (&primary_view.viewer != &viewer
+        && !primary_view.viewer.pending_drop_paths.empty()) {
         viewer.pending_drop_paths.swap(primary_view.viewer.pending_drop_paths);
         primary_view.viewer.drag_overlay_active = false;
     }
@@ -1544,12 +1577,12 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
     for (size_t i = 0, e = workspace.view_windows.size(); i < e; ++i) {
         ImageViewWindow& image_view = *workspace.view_windows[i];
         const bool primary          = (image_view.id == primary_view.id);
-        const bool active           = (image_view.id == workspace.active_view_id);
-        const ImGuiID image_dock_id
-            = workspace.image_view_dock_id != 0 ? workspace.image_view_dock_id
-                                                : main_dockspace_id;
-        const bool force_dock = primary ? ui_state.image_window_force_dock
-                                        : image_view.force_dock;
+        const bool active = (image_view.id == workspace.active_view_id);
+        const ImGuiID image_dock_id = workspace.image_view_dock_id != 0
+                                          ? workspace.image_view_dock_id
+                                          : main_dockspace_id;
+        const bool force_dock       = primary ? ui_state.image_window_force_dock
+                                              : image_view.force_dock;
         setup_image_window_policy(image_dock_id, force_dock);
         if (image_view.request_focus) {
             ImGui::SetNextWindowFocus();
@@ -1565,16 +1598,16 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
             preview_controls.gamma                   = view_ui_state.gamma;
             preview_controls.offset                  = view_ui_state.offset;
             preview_controls.color_mode              = view_ui_state.color_mode;
-            preview_controls.channel                 = view_ui_state.current_channel;
-            preview_controls.use_ocio                = view_ui_state.use_ocio ? 1 : 0;
-            preview_controls.orientation             = image_view.viewer.image.orientation;
+            preview_controls.channel     = view_ui_state.current_channel;
+            preview_controls.use_ocio    = view_ui_state.use_ocio ? 1 : 0;
+            preview_controls.orientation = image_view.viewer.image.orientation;
             preview_controls.linear_interpolation
                 = view_ui_state.linear_interpolation ? 1 : 0;
             std::string preview_error;
-            if (!renderer_update_preview_texture(vk_state, image_view.viewer.texture,
-                                                 &image_view.viewer.image,
-                                                 view_ui_state, preview_controls,
-                                                 preview_error)) {
+            if (!renderer_update_preview_texture(
+                    vk_state, image_view.viewer.texture,
+                    &image_view.viewer.image, view_ui_state, preview_controls,
+                    preview_error)) {
                 if (!preview_error.empty())
                     image_view.viewer.last_error = preview_error;
             }
@@ -1586,7 +1619,8 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
         ImGui::PopStyleVar();
         image_view.open = open;
         if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)
-            || ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)) {
+            || ImGui::IsWindowHovered(
+                ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)) {
             workspace.active_view_id = image_view.id;
         }
         image_view.is_docked = ImGui::IsWindowDocked();
@@ -1602,7 +1636,8 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
         ImGui::End();
         if (active) {
             ui_state.fit_image_to_window = view_ui_state.fit_image_to_window;
-            ui_state.image_window_force_dock = view_ui_state.image_window_force_dock;
+            ui_state.image_window_force_dock
+                = view_ui_state.image_window_force_dock;
         }
     }
 
@@ -1633,7 +1668,8 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
     draw_preferences_window(ui_state, ui_state.show_preferences_window,
                             renderer_active_backend(vk_state));
     draw_preview_window(ui_state, ui_state.show_preview_window);
-    capture_view_recipe_from_ui_state(ui_state, active_view_window->viewer.recipe);
+    capture_view_recipe_from_ui_state(ui_state,
+                                      active_view_window->viewer.recipe);
     clamp_view_recipe(active_view_window->viewer.recipe);
     apply_view_recipe_to_ui_state(active_view_window->viewer.recipe, ui_state);
 

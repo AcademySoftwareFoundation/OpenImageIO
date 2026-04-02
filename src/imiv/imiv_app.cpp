@@ -4,6 +4,7 @@
 
 #include "imiv_app.h"
 #include "imiv_actions.h"
+#include "imiv_build_config.h"
 #include "imiv_drag_drop.h"
 #include "imiv_file_dialog.h"
 #include "imiv_frame.h"
@@ -17,7 +18,6 @@
 #include "imiv_types.h"
 #include "imiv_ui.h"
 #include "imiv_viewer.h"
-#include "imiv_build_config.h"
 
 #include <algorithm>
 #include <array>
@@ -77,30 +77,29 @@ namespace {
     }
 
     ImFont* load_embedded_font_if_present(const unsigned char* data,
-                                          size_t size_bytes,
-                                          float size_pixels)
+                                          size_t size_bytes, float size_pixels)
     {
         if (data == nullptr || size_bytes == 0)
             return nullptr;
         ImGuiIO& io = ImGui::GetIO();
         ImFontConfig config;
         config.FontDataOwnedByAtlas = false;
-        return io.Fonts->AddFontFromMemoryTTF(
-            const_cast<unsigned char*>(data), static_cast<int>(size_bytes),
-            size_pixels, &config);
+        return io.Fonts->AddFontFromMemoryTTF(const_cast<unsigned char*>(data),
+                                              static_cast<int>(size_bytes),
+                                              size_pixels, &config);
     }
 
     AppFonts setup_app_fonts(bool verbose_logging)
     {
         AppFonts fonts;
-        ImGuiIO& io = ImGui::GetIO();
+        ImGuiIO& io                  = ImGui::GetIO();
         const char* ui_font_source   = "missing";
         const char* mono_font_source = "missing";
 
         const std::filesystem::path font_root = executable_directory_path()
                                                 / "fonts";
-        const std::filesystem::path ui_font_path
-            = font_root / "Droid_Sans" / "DroidSans.ttf";
+        const std::filesystem::path ui_font_path = font_root / "Droid_Sans"
+                                                   / "DroidSans.ttf";
         const std::filesystem::path mono_font_path
             = font_root / "Droid_Sans_Mono" / "DroidSansMono.ttf";
 
@@ -110,9 +109,10 @@ namespace {
                                                  16.0f);
         if (fonts.ui)
             ui_font_source = "embedded";
-        fonts.mono = load_embedded_font_if_present(
-            g_imiv_font_droidsansmono_ttf, g_imiv_font_droidsansmono_ttf_size,
-            16.0f);
+        fonts.mono
+            = load_embedded_font_if_present(g_imiv_font_droidsansmono_ttf,
+                                            g_imiv_font_droidsansmono_ttf_size,
+                                            16.0f);
         if (fonts.mono)
             mono_font_source = "embedded";
 #endif
@@ -128,19 +128,18 @@ namespace {
                 mono_font_source = "file";
         }
         if (!fonts.ui) {
-            fonts.ui = io.Fonts->AddFontDefault();
+            fonts.ui       = io.Fonts->AddFontDefault();
             ui_font_source = "default";
         }
         if (!fonts.mono) {
-            fonts.mono = fonts.ui;
+            fonts.mono       = fonts.ui;
             mono_font_source = (fonts.ui == fonts.mono && ui_font_source)
                                    ? ui_font_source
                                    : "default";
         }
         io.FontDefault = fonts.ui;
 
-        print("imiv: fonts ui={} mono={}\n", ui_font_source,
-              mono_font_source);
+        print("imiv: fonts ui={} mono={}\n", ui_font_source, mono_font_source);
         return fonts;
     }
 
@@ -242,7 +241,7 @@ namespace {
     }
 
     BackendKind requested_backend_for_launch(const AppConfig& config,
-                                            const PlaceholderUiState& ui_state)
+                                             const PlaceholderUiState& ui_state)
     {
         if (config.requested_backend != BackendKind::Auto)
             return config.requested_backend;
@@ -255,9 +254,10 @@ namespace {
                                     backend_cli_name(active_backend));
     }
 
-    std::vector<std::string>
-    expand_startup_input_paths(const AppConfig& config, bool verbose_logging,
-                               ImageSortMode sort_mode, bool sort_reverse)
+    std::vector<std::string> expand_startup_input_paths(const AppConfig& config,
+                                                        bool verbose_logging,
+                                                        ImageSortMode sort_mode,
+                                                        bool sort_reverse)
     {
         std::vector<std::string> expanded;
         for (const std::string& input_path : config.input_paths) {
@@ -266,10 +266,10 @@ namespace {
             if (std::filesystem::is_directory(path, ec) && !ec) {
                 std::vector<std::string> directory_paths;
                 std::string error_message;
-                if (!collect_directory_image_paths(input_path,
-                                                  sort_mode, sort_reverse,
-                                                  directory_paths,
-                                                  error_message)) {
+                if (!collect_directory_image_paths(input_path, sort_mode,
+                                                   sort_reverse,
+                                                   directory_paths,
+                                                   error_message)) {
                     print(stderr, "imiv: {}\n", error_message);
                     continue;
                 }
@@ -328,12 +328,11 @@ run(const AppConfig& config)
             = Strutil::fmt::format("failed to load preferences: {}",
                                    prefs_error);
     }
-    run_config.input_paths = expand_startup_input_paths(run_config,
-                                                        run_config.verbose,
-                                                        library.sort_mode,
-                                                        library.sort_reverse);
-    const BackendKind requested_backend = requested_backend_for_launch(
-        run_config, ui_state);
+    run_config.input_paths
+        = expand_startup_input_paths(run_config, run_config.verbose,
+                                     library.sort_mode, library.sort_reverse);
+    const BackendKind requested_backend
+        = requested_backend_for_launch(run_config, ui_state);
 
     const bool verbose_logging = run_config.verbose;
     const bool verbose_validation_output
@@ -406,8 +405,9 @@ run(const AppConfig& config)
     }
 
     const std::string window_title = build_main_window_title(active_backend);
-    GLFWwindow* window = platform_glfw_create_main_window(
-        active_backend, 1600, 900, window_title.c_str(), startup_error);
+    GLFWwindow* window
+        = platform_glfw_create_main_window(active_backend, 1600, 900,
+                                           window_title.c_str(), startup_error);
     if (window == nullptr) {
         print(stderr, "imiv: {}\n", startup_error);
         platform_glfw_terminate();
@@ -619,16 +619,19 @@ run(const AppConfig& config)
         bool ocio_preflight_ok = false;
         switch (active_backend) {
         case BackendKind::Vulkan:
-            ocio_preflight_ok = preflight_ocio_runtime_shader(
-                ui_state, nullptr, ocio_preflight_error);
+            ocio_preflight_ok
+                = preflight_ocio_runtime_shader(ui_state, nullptr,
+                                                ocio_preflight_error);
             break;
         case BackendKind::Metal:
-            ocio_preflight_ok = preflight_ocio_runtime_shader_metal(
-                ui_state, nullptr, ocio_preflight_error);
+            ocio_preflight_ok
+                = preflight_ocio_runtime_shader_metal(ui_state, nullptr,
+                                                      ocio_preflight_error);
             break;
         case BackendKind::OpenGL:
-            ocio_preflight_ok = preflight_ocio_runtime_shader_glsl(
-                ui_state, nullptr, ocio_preflight_error);
+            ocio_preflight_ok
+                = preflight_ocio_runtime_shader_glsl(ui_state, nullptr,
+                                                     ocio_preflight_error);
             break;
         case BackendKind::Auto:
             ocio_preflight_error
@@ -688,9 +691,8 @@ run(const AppConfig& config)
 #endif
 
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
-    ViewerStateJsonWriteContext test_engine_state_ctx = { &viewer, &workspace,
-                                                          &ui_state,
-                                                          active_backend };
+    ViewerStateJsonWriteContext test_engine_state_ctx
+        = { &viewer, &workspace, &ui_state, active_backend };
     TestEngineHooks test_engine_hooks;
     test_engine_hooks.image_window_title       = image_window_title();
     test_engine_hooks.screen_capture           = renderer_screen_capture;
@@ -746,7 +748,7 @@ run(const AppConfig& config)
                        ,
                        test_engine_show_windows_ptr(test_engine_runtime)
 #endif
-                       ,
+                           ,
                        window, renderer_state);
         if (ui_state.style_preset != applied_style_preset) {
             ui_state.style_preset = static_cast<int>(
@@ -773,13 +775,12 @@ run(const AppConfig& config)
             ImGui::RenderPlatformWindowsDefault();
             renderer_finish_platform_windows(renderer_state);
         }
-        process_developer_post_render_actions(developer_ui,
-                                              active_image_view(workspace)
-                                                  != nullptr
-                                                  ? active_image_view(workspace)
-                                                        ->viewer
-                                                  : viewer,
-                                              renderer_state);
+        process_developer_post_render_actions(
+            developer_ui,
+            active_image_view(workspace) != nullptr
+                ? active_image_view(workspace)->viewer
+                : viewer,
+            renderer_state);
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
         test_engine_post_swap(test_engine_runtime);
 #endif
@@ -811,7 +812,8 @@ run(const AppConfig& config)
         print(stderr, "imiv: failed to wait for renderer idle: {}\n",
               prefs_save_error);
 
-    for (const std::unique_ptr<ImageViewWindow>& view : workspace.view_windows) {
+    for (const std::unique_ptr<ImageViewWindow>& view :
+         workspace.view_windows) {
         if (view == nullptr)
             continue;
         renderer_destroy_texture(renderer_state, view->viewer.texture);

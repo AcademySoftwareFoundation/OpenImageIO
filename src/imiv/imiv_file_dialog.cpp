@@ -18,8 +18,7 @@ namespace Imiv::FileDialog {
 
 namespace {
 
-    const char*
-    env_value(const char* name)
+    const char* env_value(const char* name)
     {
         const char* value = std::getenv(name);
         return (value != nullptr && value[0] != '\0') ? value : nullptr;
@@ -213,8 +212,7 @@ save_image_file(const std::string& default_path,
 
 namespace {
 
-    const char*
-    env_value(const char* name)
+    const char* env_value(const char* name)
     {
         const char* value = std::getenv(name);
         return (value != nullptr && value[0] != '\0') ? value : nullptr;

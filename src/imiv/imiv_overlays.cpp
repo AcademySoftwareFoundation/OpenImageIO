@@ -8,8 +8,8 @@
 #include "imiv_test_engine.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cctype>
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <limits>
@@ -246,8 +246,7 @@ namespace {
         digits_before_decimal = std::clamp(digits_before_decimal, 1, 5);
         const int decimals    = std::clamp(6 - digits_before_decimal, 1, 5);
 
-        const std::string format
-            = Strutil::fmt::format("{{: .{}f}}", decimals);
+        const std::string format = Strutil::fmt::format("{{: .{}f}}", decimals);
         return Strutil::fmt::format(format, value);
     }
 
@@ -469,16 +468,15 @@ namespace {
         const float z_num = zoom >= 1.0f ? zoom : 1.0f;
         const float z_den = zoom >= 1.0f ? 1.0f : (1.0f / zoom);
         std::string text  = Strutil::fmt::format(
-            "zoom {:.2f}:{:.2f}  exp {:+.1f}  gam {:.2f}  shift {:+.2f}",
-            z_num, z_den, ui.exposure, ui.gamma, ui.offset);
+            "zoom {:.2f}:{:.2f}  exp {:+.1f}  gam {:.2f}  shift {:+.2f}", z_num,
+            z_den, ui.exposure, ui.gamma, ui.offset);
         if (ui.color_mode != 0 || ui.current_channel != 0) {
             std::string mode = color_mode_name(ui.color_mode);
             if (ui.color_mode == 2 || ui.color_mode == 4) {
                 mode += Strutil::fmt::format(" {}", ui.current_channel);
             } else {
-                mode += Strutil::fmt::format(" ({})",
-                                             channel_view_name(
-                                                 ui.current_channel));
+                mode += Strutil::fmt::format(" ({})", channel_view_name(
+                                                          ui.current_channel));
             }
             text += Strutil::fmt::format("  view {}", mode);
         }
@@ -590,7 +588,7 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
         std::vector<double> min_values;
         std::vector<double> max_values;
         std::vector<double> avg_values;
-        int sample_count        = 0;
+        int sample_count = 0;
         const bool have_stats
             = compute_area_stats(viewer.image, viewer.probe_x, viewer.probe_y,
                                  ui_state.closeup_avg_pixels, min_values,
@@ -599,9 +597,9 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
 
         lines.emplace_back("");
         line_colors.emplace_back(IM_COL32(240, 242, 245, 255));
-        lines.emplace_back(Strutil::fmt::format(
-            "{:<2} {:>8} {:>8} {:>8} {:>8}", "", "Val", "Min", "Max",
-            "Avg"));
+        lines.emplace_back(Strutil::fmt::format("{:<2} {:>8} {:>8} {:>8} {:>8}",
+                                                "", "Val", "Min", "Max",
+                                                "Avg"));
         line_colors.emplace_back(IM_COL32(255, 255, 160, 220));
         for (size_t c = 0; c < viewer.probe_channels.size(); ++c) {
             const std::string label
@@ -610,7 +608,8 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
             const double semantic_value
                 = probe_value_to_oiio_float(viewer.image.type,
                                             viewer.probe_channels[c]);
-            const std::string value = format_probe_display_value(semantic_value);
+            const std::string value = format_probe_display_value(
+                semantic_value);
             if (have_stats && c < min_values.size() && c < max_values.size()
                 && c < avg_values.size()) {
                 lines.emplace_back(Strutil::fmt::format(
@@ -619,9 +618,9 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
                     format_probe_display_value(max_values[c]),
                     format_probe_display_value(avg_values[c])));
             } else {
-                lines.emplace_back(Strutil::fmt::format(
-                    "{:<2} {:>8} {:>8} {:>8} {:>8}", label, value, "-----",
-                    "-----", "-----"));
+                lines.emplace_back(
+                    Strutil::fmt::format("{:<2} {:>8} {:>8} {:>8} {:>8}", label,
+                                         value, "-----", "-----", "-----"));
             }
             ImU32 channel_color = IM_COL32(220, 220, 220, 255);
             if (!label.empty()) {
@@ -646,7 +645,7 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
     const float text_to_window_gap  = 2.0f;
     const float text_wrap_w         = std::max(8.0f,
                                                closeup_window_size - text_pad_x * 2.0f);
-    ImFont* text_font = fonts.mono ? fonts.mono : ImGui::GetFont();
+    ImFont* text_font          = fonts.mono ? fonts.mono : ImGui::GetFont();
     const float text_font_size = 13.5f;
 
     float text_panel_h = text_pad_y * 2.0f;
@@ -948,7 +947,7 @@ draw_embedded_status_bar(ViewerState& viewer, PlaceholderUiState& ui)
     const std::string filename_text = status_image_text(viewer);
     const std::string specs_text    = status_specs_text(viewer);
     const std::string preview_text  = status_preview_text(viewer, ui);
-    const bool show_progress    = false;
+    const bool show_progress        = false;
 
     int columns = 3;
     if (show_progress)

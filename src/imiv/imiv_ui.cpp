@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include "imiv_loaded_image.h"
 #include "imiv_ui.h"
+#include "imiv_loaded_image.h"
 
 #include <algorithm>
 #include <cstdint>

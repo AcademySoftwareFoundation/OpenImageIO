@@ -214,8 +214,7 @@ platform_glfw_terminate()
 
 GLFWwindow*
 platform_glfw_create_main_window(BackendKind backend, int width, int height,
-                                 const char* title,
-                                 std::string& error_message)
+                                 const char* title, std::string& error_message)
 {
     if (backend == BackendKind::OpenGL) {
 #if defined(__APPLE__)
@@ -230,7 +229,7 @@ platform_glfw_create_main_window(BackendKind backend, int width, int height,
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 #endif
     } else {
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     }
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     GLFWwindow* window = glfwCreateWindow(width, height, title, nullptr,

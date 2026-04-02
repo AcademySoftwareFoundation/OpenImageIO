@@ -88,27 +88,28 @@ main(int argc, char* argv[])
     ArgParse ap = getargs(argc, argv);
 
     Imiv::AppConfig config;
-    config.verbose                = ap["verbose"].get<int>() != 0;
-    config.foreground_mode        = ap["foreground_mode"].get<int>() != 0;
-    config.no_autopremult         = ap["no-autopremult"].get<int>() != 0;
-    config.rawcolor               = ap["rawcolor"].get<int>() != 0;
-    config.open_dialog            = ap["open-dialog"].get<int>() != 0;
-    const bool open_folder_dialog = ap["open-folder-dialog"].get<int>() != 0;
-    config.save_dialog            = ap["save-dialog"].get<int>() != 0;
-    config.list_backends          = ap["list-backends"].get<int>() != 0;
-    config.developer_mode         = ap["devmode"].get<int>() != 0;
+    config.verbose                 = ap["verbose"].get<int>() != 0;
+    config.foreground_mode         = ap["foreground_mode"].get<int>() != 0;
+    config.no_autopremult          = ap["no-autopremult"].get<int>() != 0;
+    config.rawcolor                = ap["rawcolor"].get<int>() != 0;
+    config.open_dialog             = ap["open-dialog"].get<int>() != 0;
+    const bool open_folder_dialog  = ap["open-folder-dialog"].get<int>() != 0;
+    config.save_dialog             = ap["save-dialog"].get<int>() != 0;
+    config.list_backends           = ap["list-backends"].get<int>() != 0;
+    config.developer_mode          = ap["devmode"].get<int>() != 0;
     config.developer_mode_explicit = config.developer_mode;
-    config.ocio_display           = ap["display"].as_string("");
-    config.ocio_image_color_space = ap["image-color-space"].as_string("");
-    config.ocio_view              = ap["view"].as_string("");
-    config.input_paths            = ap["filename"].as_vec<std::string>();
+    config.ocio_display            = ap["display"].as_string("");
+    config.ocio_image_color_space  = ap["image-color-space"].as_string("");
+    config.ocio_view               = ap["view"].as_string("");
+    config.input_paths             = ap["filename"].as_vec<std::string>();
 
     const std::string backend_arg = ap["backend"].as_string("");
     if (!backend_arg.empty()
         && !Imiv::parse_backend_kind(backend_arg, config.requested_backend)) {
-        print(stderr,
-              "imiv: invalid backend '{}'; expected auto, vulkan, metal, or opengl\n",
-              backend_arg);
+        print(
+            stderr,
+            "imiv: invalid backend '{}'; expected auto, vulkan, metal, or opengl\n",
+            backend_arg);
         return EXIT_FAILURE;
     }
 
@@ -120,15 +121,16 @@ main(int argc, char* argv[])
                   probe_error);
         }
         print("imiv backend support for this build:\n");
-        for (const Imiv::BackendRuntimeInfo& info : Imiv::runtime_backend_info()) {
+        for (const Imiv::BackendRuntimeInfo& info :
+             Imiv::runtime_backend_info()) {
             std::string description = info.build_info.compiled ? "built"
                                                                : "not built";
             if (info.build_info.compiled) {
                 if (info.available) {
                     description += ", available";
                 } else if (!info.unavailable_reason.empty()) {
-                    description += Strutil::fmt::format(
-                        ", unavailable: {}", info.unavailable_reason);
+                    description += Strutil::fmt::format(", unavailable: {}",
+                                                        info.unavailable_reason);
                 } else {
                     description += ", unavailable";
                 }
