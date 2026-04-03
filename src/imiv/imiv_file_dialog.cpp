@@ -14,6 +14,38 @@
 
 namespace Imiv::FileDialog {
 
+namespace {
+
+    NativeDialogScopeHook g_native_dialog_scope_hook = nullptr;
+    void* g_native_dialog_scope_user_data            = nullptr;
+
+    struct NativeDialogScopeGuard {
+        bool active = false;
+        NativeDialogScopeGuard()
+        {
+            if (g_native_dialog_scope_hook != nullptr) {
+                g_native_dialog_scope_hook(true,
+                                           g_native_dialog_scope_user_data);
+                active = true;
+            }
+        }
+        ~NativeDialogScopeGuard()
+        {
+            if (active && g_native_dialog_scope_hook != nullptr)
+                g_native_dialog_scope_hook(false,
+                                           g_native_dialog_scope_user_data);
+        }
+    };
+
+}  // namespace
+
+void
+set_native_dialog_scope_hook(NativeDialogScopeHook hook, void* user_data)
+{
+    g_native_dialog_scope_hook      = hook;
+    g_native_dialog_scope_user_data = user_data;
+}
+
 #if IMIV_HAS_NFD
 
 namespace {
@@ -80,6 +112,7 @@ open_image_file(const std::string& default_path)
 DialogReply
 open_image_files(const std::string& default_path)
 {
+    NativeDialogScopeGuard dialog_scope_guard;
     NfdThreadGuard guard;
     if (!guard.initialized)
         return map_error("nativefiledialog initialization failed");
@@ -121,6 +154,7 @@ open_image_files(const std::string& default_path)
 DialogReply
 open_folder(const std::string& default_path)
 {
+    NativeDialogScopeGuard dialog_scope_guard;
     NfdThreadGuard guard;
     if (!guard.initialized)
         return map_error("nativefiledialog initialization failed");
@@ -146,6 +180,7 @@ open_folder(const std::string& default_path)
 DialogReply
 open_ocio_config_file(const std::string& default_path)
 {
+    NativeDialogScopeGuard dialog_scope_guard;
     NfdThreadGuard guard;
     if (!guard.initialized)
         return map_error("nativefiledialog initialization failed");
@@ -183,6 +218,7 @@ save_image_file(const std::string& default_path,
         return reply;
     }
 
+    NativeDialogScopeGuard dialog_scope_guard;
     NfdThreadGuard guard;
     if (!guard.initialized)
         return map_error("nativefiledialog initialization failed");

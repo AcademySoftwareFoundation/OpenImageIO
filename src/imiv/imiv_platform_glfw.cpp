@@ -365,6 +365,21 @@ platform_glfw_is_iconified(GLFWwindow* window)
     return glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0;
 }
 
+bool
+platform_glfw_is_window_floating(GLFWwindow* window)
+{
+    return window != nullptr && glfwGetWindowAttrib(window, GLFW_FLOATING) != 0;
+}
+
+void
+platform_glfw_set_window_floating(GLFWwindow* window, bool floating)
+{
+    if (window == nullptr)
+        return;
+    glfwSetWindowAttrib(window, GLFW_FLOATING,
+                        floating ? GLFW_TRUE : GLFW_FALSE);
+}
+
 int
 platform_glfw_selected_platform()
 {

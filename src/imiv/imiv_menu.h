@@ -42,6 +42,7 @@ struct ViewerFrameActions {
     bool fit_window_to_image_requested = false;
     bool recenter_requested            = false;
     bool new_view_requested            = false;
+    bool reset_windows_requested       = false;
     bool delete_from_disk_requested    = false;
     bool full_screen_toggle_requested  = false;
     bool rotate_left_requested         = false;
@@ -62,7 +63,8 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
                       const std::vector<ViewerState*>& viewers,
                       DeveloperUiState& developer_ui,
                       ViewerFrameActions& actions, bool& request_exit,
-                      bool& show_image_list_window
+                      bool& show_image_list_window,
+                      bool& image_list_request_focus
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                       ,
                       bool show_test_menu, bool* show_test_engine_windows

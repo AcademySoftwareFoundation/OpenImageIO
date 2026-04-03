@@ -121,6 +121,7 @@ struct MultiViewWorkspace {
     int next_view_id                   = 1;
     int last_library_image_count       = 0;
     bool show_image_list_window        = false;
+    bool image_list_request_focus      = false;
     bool image_list_force_dock         = false;
     bool image_list_layout_initialized = false;
     ImGuiID image_view_dock_id         = 0;
@@ -138,10 +139,12 @@ struct PlaceholderUiState {
     bool show_preview_window      = false;
     bool show_pixelview_window    = false;
     bool show_area_probe_window   = false;
+    bool show_about_window        = false;
     bool show_window_guides       = false;
     bool show_mouse_mode_selector = false;
     bool fit_image_to_window      = false;
     bool full_screen_mode         = false;
+    bool window_always_on_top     = false;
     bool slide_show_running       = false;
     bool slide_loop               = true;
     bool use_ocio                 = false;
@@ -172,6 +175,7 @@ struct PlaceholderUiState {
     std::string ocio_view    = "default";
     std::string ocio_image_color_space = "auto";
     std::string ocio_user_config_path;
+    const char* focus_window_name = nullptr;
 };
 
 void

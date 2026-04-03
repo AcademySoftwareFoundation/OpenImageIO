@@ -18,8 +18,12 @@ struct DialogReply {
     std::string message;
 };
 
+using NativeDialogScopeHook = void (*)(bool begin_scope, void* user_data);
+
 bool
 available();
+void
+set_native_dialog_scope_hook(NativeDialogScopeHook hook, void* user_data);
 DialogReply
 open_image_file(const std::string& default_path);
 DialogReply

@@ -185,6 +185,8 @@ namespace {
     struct TestEngineScenarioViewStep {
         bool has_activate_view_index = false;
         int activate_view_index      = 0;
+        bool has_renderer_backend    = false;
+        std::string renderer_backend;
         bool has_exposure            = false;
         float exposure               = 0.0f;
         bool has_gamma               = false;
@@ -451,6 +453,13 @@ namespace {
             if (parse_int_attr(step_node.attribute("view_activate_index"),
                                step.view.activate_view_index)) {
                 step.view.has_activate_view_index = true;
+            }
+            const pugi::xml_attribute renderer_backend_attr
+                = step_node.attribute("renderer_backend");
+            if (renderer_backend_attr
+                && renderer_backend_attr.as_string()[0] != '\0') {
+                step.view.has_renderer_backend = true;
+                step.view.renderer_backend    = renderer_backend_attr.as_string();
             }
             if (parse_float_attr(step_node.attribute("exposure"),
                                  step.view.exposure)) {
@@ -1079,8 +1088,8 @@ namespace {
                 "IMIV_IMGUI_TEST_ENGINE_IMAGE_LIST_REMOVE_INDEX", nullptr);
         }
 
-        if (view.has_activate_view_index || view.has_exposure || view.has_gamma
-            || view.has_offset) {
+        if (view.has_activate_view_index || view.has_renderer_backend
+            || view.has_exposure || view.has_gamma || view.has_offset) {
             const std::string frame_value = Strutil::fmt::format("{}",
                                                                  next_frame);
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_VIEW_APPLY_FRAME",
@@ -1096,6 +1105,13 @@ namespace {
                                   &index_value);
         } else {
             set_process_env_value("IMIV_IMGUI_TEST_ENGINE_ACTIVATE_VIEW_INDEX",
+                                  nullptr);
+        }
+        if (view.has_renderer_backend) {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_RENDERER_BACKEND",
+                                  &view.renderer_backend);
+        } else {
+            set_process_env_value("IMIV_IMGUI_TEST_ENGINE_RENDERER_BACKEND",
                                   nullptr);
         }
         if (view.has_exposure) {

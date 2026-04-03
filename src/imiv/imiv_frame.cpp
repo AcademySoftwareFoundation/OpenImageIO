@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -37,6 +38,17 @@ namespace {
     constexpr const char* k_dockspace_host_title    = "imiv DockSpace";
     constexpr const char* k_image_window_title      = "Image";
     constexpr const char* k_image_list_window_title = "Image List";
+
+    bool consume_focus_request(PlaceholderUiState& ui_state,
+                               const char* window_name)
+    {
+        if (ui_state.focus_window_name == nullptr || window_name == nullptr)
+            return false;
+        if (std::strcmp(ui_state.focus_window_name, window_name) != 0)
+            return false;
+        ui_state.focus_window_name = nullptr;
+        return true;
+    }
 
     bool read_env_value(const char* name, std::string& out_value)
     {
@@ -197,6 +209,33 @@ namespace {
         workspace.image_list_layout_initialized = true;
     }
 
+    void reset_window_layouts(MultiViewWorkspace& workspace,
+                              PlaceholderUiState& ui_state,
+                              ImGuiID dockspace_id)
+    {
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::ClearIniSettings();
+        ImGui::DockBuilderRemoveNode(dockspace_id);
+        ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
+        if (viewport != nullptr)
+            ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
+        ImGui::DockBuilderFinish(dockspace_id);
+
+        ui_state.image_window_force_dock        = true;
+        workspace.image_view_dock_id            = dockspace_id;
+        workspace.image_list_dock_id            = 0;
+        workspace.image_list_layout_initialized = false;
+        workspace.image_list_force_dock = workspace.show_image_list_window;
+        for (const std::unique_ptr<ImageViewWindow>& view :
+             workspace.view_windows) {
+            if (view != nullptr) {
+                view->force_dock    = true;
+                view->request_focus = (view->id == workspace.active_view_id);
+            }
+        }
+        ImGui::GetIO().WantSaveIniSettings = true;
+    }
+
     int env_int_value(const char* name, int fallback)
     {
         std::string value;
@@ -317,6 +356,15 @@ namespace {
             = env_int_value("IMIV_IMGUI_TEST_ENGINE_VIEW_APPLY_FRAME", -1);
         if (apply_frame < 0 || ImGui::GetFrameCount() < apply_frame)
             return;
+
+        std::string backend_value;
+        if (read_env_value("IMIV_IMGUI_TEST_ENGINE_RENDERER_BACKEND",
+                           backend_value)) {
+            BackendKind backend_kind = BackendKind::Auto;
+            if (parse_backend_kind(backend_value, backend_kind)) {
+                ui_state.renderer_backend = static_cast<int>(backend_kind);
+            }
+        }
 
         bool found = false;
         const float exposure = env_float_value("IMIV_IMGUI_TEST_ENGINE_EXPOSURE",
@@ -752,7 +800,8 @@ namespace {
                                 ImageLibraryState& library,
                                 ViewerState& active_view,
                                 PlaceholderUiState& ui_state,
-                                RendererState& renderer_state)
+                                RendererState& renderer_state,
+                                bool reset_layout)
     {
         static std::string s_last_logged_tooltip_path;
         bool showed_tooltip_this_frame = false;
@@ -762,6 +811,10 @@ namespace {
         if (!workspace.show_image_list_window)
             return;
 
+        if (workspace.image_list_request_focus) {
+            ImGui::SetNextWindowFocus();
+            workspace.image_list_request_focus = false;
+        }
         if (workspace.image_list_dock_id != 0) {
             ImGui::SetNextWindowDockID(workspace.image_list_dock_id,
                                        workspace.image_list_force_dock
@@ -772,11 +825,13 @@ namespace {
             if (main_viewport != nullptr) {
                 ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 24.0f,
                                                main_viewport->WorkPos.y + 72.0f),
-                                        ImGuiCond_FirstUseEver);
+                                        reset_layout ? ImGuiCond_Always
+                                                     : ImGuiCond_FirstUseEver);
             }
         }
         ImGui::SetNextWindowSize(ImVec2(200.0f, 420.0f),
-                                 ImGuiCond_FirstUseEver);
+                                 reset_layout ? ImGuiCond_Always
+                                              : ImGuiCond_FirstUseEver);
         if (!ImGui::Begin(k_image_list_window_title,
                           &workspace.show_image_list_window)) {
             workspace.image_list_was_drawn = true;
@@ -1531,12 +1586,14 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
                                     "IMIV_IMGUI_TEST_ENGINE_SHOW_MENU");
     draw_viewer_main_menu(viewer, ui_state, library, workspace_viewers,
                           developer_ui, actions, request_exit,
-                          workspace.show_image_list_window, show_test_menu,
+                          workspace.show_image_list_window,
+                          workspace.image_list_request_focus, show_test_menu,
                           show_test_engine_windows);
 #else
     draw_viewer_main_menu(viewer, ui_state, library, workspace_viewers,
                           developer_ui, actions, request_exit,
-                          workspace.show_image_list_window);
+                          workspace.show_image_list_window,
+                          workspace.image_list_request_focus);
 #endif
     begin_developer_screenshot_request(developer_ui, viewer);
     execute_viewer_frame_actions(viewer, ui_state, library, &workspace, actions
@@ -1560,6 +1617,8 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
                                              ui_state);
 #endif
     clamp_placeholder_ui_state(ui_state);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 4.0f));
 
     if (!viewer.image.path.empty()) {
         ui_state.subimage_index = viewer.image.subimage;
@@ -1570,6 +1629,9 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
     }
 
     const ImGuiID main_dockspace_id = begin_main_dockspace_host();
+    if (actions.reset_windows_requested) {
+        reset_window_layouts(workspace, ui_state, main_dockspace_id);
+    }
     ensure_image_list_default_layout(workspace, main_dockspace_id);
     ImGuiWindowFlags main_window_flags = ImGuiWindowFlags_NoCollapse
                                          | ImGuiWindowFlags_NoScrollbar
@@ -1663,29 +1725,57 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
     }
     apply_test_engine_image_list_visibility_override(workspace);
     draw_image_list_window(workspace, library, active_view_window->viewer,
-                           ui_state, vk_state);
-    draw_info_window(active_view_window->viewer, ui_state.show_info_window);
+                           ui_state, vk_state, actions.reset_windows_requested);
+    if (consume_focus_request(ui_state, k_info_window_title))
+        ImGui::SetNextWindowFocus();
+    draw_info_window(active_view_window->viewer, ui_state.show_info_window,
+                     actions.reset_windows_requested);
+    if (consume_focus_request(ui_state, k_preferences_window_title))
+        ImGui::SetNextWindowFocus();
     draw_preferences_window(ui_state, ui_state.show_preferences_window,
-                            renderer_active_backend(vk_state));
-    draw_preview_window(ui_state, ui_state.show_preview_window);
+                            renderer_active_backend(vk_state),
+                            actions.reset_windows_requested);
+    if (consume_focus_request(ui_state, k_preview_window_title))
+        ImGui::SetNextWindowFocus();
+    draw_preview_window(ui_state, ui_state.show_preview_window,
+                        actions.reset_windows_requested);
     capture_view_recipe_from_ui_state(ui_state,
                                       active_view_window->viewer.recipe);
     clamp_view_recipe(active_view_window->viewer.recipe);
     apply_view_recipe_to_ui_state(active_view_window->viewer.recipe, ui_state);
 
-    if (ImGui::BeginPopupModal("About imiv", nullptr,
-                               ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::TextUnformatted("imiv (Dear ImGui port of iv)");
-        register_layout_dump_synthetic_item("text", "About imiv title");
-        ImGui::TextUnformatted("Image viewer port built with Dear ImGui.");
-        register_layout_dump_synthetic_item("text", "About imiv body");
-        if (ImGui::Button("Close"))
-            ImGui::CloseCurrentPopup();
-        ImGui::EndPopup();
+    if (ui_state.show_about_window) {
+        const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+        if (main_viewport != nullptr) {
+            ImGui::SetNextWindowPos(ImVec2(main_viewport->GetCenter().x,
+                                           main_viewport->GetCenter().y),
+                                    ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        }
+        if (consume_focus_request(ui_state, k_about_window_title))
+            ImGui::SetNextWindowFocus();
+        if (ImGui::Begin(k_about_window_title, &ui_state.show_about_window,
+                         ImGuiWindowFlags_AlwaysAutoResize
+                             | ImGuiWindowFlags_NoDocking)) {
+            ImGui::TextUnformatted("imiv is the image viewer for OpenImageIO.");
+            register_layout_dump_synthetic_item("text", "About imiv title");
+            ImGui::Separator();
+            ImGui::TextUnformatted(
+                "(c) Copyright Contributors to the OpenImageIO project.");
+            ImGui::TextUnformatted("See https://openimageio.org for details.");
+            ImGui::TextUnformatted("Dear ImGui port of iv.");
+            register_layout_dump_synthetic_item("text", "About imiv body");
+            if (ImGui::Button("OK") || ImGui::IsKeyPressed(ImGuiKey_Enter)
+                || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)) {
+                ui_state.show_about_window = false;
+            }
+            ImGui::SetItemDefaultFocus();
+        }
+        ImGui::End();
     }
 
     draw_developer_windows(developer_ui);
     draw_drag_drop_overlay(primary_view.viewer);
+    ImGui::PopStyleVar(2);
 }
 
 #if defined(IMIV_BACKEND_VULKAN_GLFW) || defined(IMIV_BACKEND_METAL_GLFW) \

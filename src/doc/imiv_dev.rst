@@ -461,7 +461,7 @@ The main windows are:
 * `iv Info`;
 * `iv Preferences`;
 * `Preview`;
-* the `About imiv` modal;
+* the `About imiv` window;
 * optional Dear ImGui diagnostics from the runtime-enabled `Developer` menu.
 
 Auxiliary windows in `src/imiv/imiv_aux_windows.cpp` use
@@ -503,6 +503,16 @@ Execution layer
 keeps file I/O, texture uploads, fullscreen changes, and navigation changes
 out of the immediate menu-building code.
 
+The same layer now also handles two window-management actions:
+
+* `Always on Top`
+  persists a simple boolean flag in `imiv.inf` and applies it to the main
+  GLFW window and any detached GLFW-backed ImGui viewport windows with
+  `GLFW_FLOATING`;
+* `Reset Windows`
+  clears live Dear ImGui ini settings, rebuilds the main dockspace, and
+  reapplies the standard auxiliary-window defaults for the current frame.
+
 Behavior layer
 --------------
 
@@ -525,6 +535,27 @@ When adding a feature, the normal path is:
 1. collect intent in menu or shortcut code;
 2. execute it in `execute_viewer_frame_actions()`;
 3. put the durable behavior in `imiv_actions.cpp` or shared helpers.
+
+
+Native dialog wrapper
+=====================
+
+`src/imiv/imiv_file_dialog.cpp` owns all native open/save/folder dialog calls.
+
+It also owns the temporary topmost suppression used by the `Always on Top`
+feature:
+
+* the app installs a lightweight begin/end callback once it has a live GLFW
+  window;
+* the file-dialog wrapper enters that scope before opening an NFD dialog and
+  leaves it afterward;
+* while the scope is active, the main GLFW window and any detached GLFW-backed
+  ImGui viewport windows have `GLFW_FLOATING` temporarily cleared;
+* after the dialog returns, the wrapper restores the persistent
+  `window_always_on_top` state.
+
+Keeping that logic in the dialog wrapper avoids threading platform window
+details through every individual open/save action.
 
 
 Image window and helper modules

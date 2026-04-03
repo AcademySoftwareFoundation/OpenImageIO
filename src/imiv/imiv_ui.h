@@ -15,6 +15,11 @@
 
 namespace Imiv {
 
+inline constexpr const char* k_info_window_title        = "iv Info";
+inline constexpr const char* k_preferences_window_title = "iv Preferences";
+inline constexpr const char* k_preview_window_title     = "iv Preview";
+inline constexpr const char* k_about_window_title       = "About imiv";
+
 struct AppFonts {
     ImFont* ui   = nullptr;
     ImFont* mono = nullptr;
@@ -41,12 +46,14 @@ void
 draw_padded_message(const char* message, float x_pad = 10.0f,
                     float y_pad = 6.0f);
 void
-draw_info_window(const ViewerState& viewer, bool& show_window);
+draw_info_window(const ViewerState& viewer, bool& show_window,
+                 bool reset_layout = false);
 void
 draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
-                        BackendKind active_backend);
+                        BackendKind active_backend, bool reset_layout = false);
 void
-draw_preview_window(PlaceholderUiState& ui, bool& show_window);
+draw_preview_window(PlaceholderUiState& ui, bool& show_window,
+                    bool reset_layout = false);
 OverlayPanelRect
 draw_pixel_closeup_overlay(const ViewerState& viewer,
                            PlaceholderUiState& ui_state,

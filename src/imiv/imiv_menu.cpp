@@ -79,8 +79,10 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
         actions.select_all_requested = true;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_D) && has_selection)
         actions.deselect_selection_requested = true;
-    if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Comma))
+    if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Comma)) {
         ui_state.show_preferences_window = true;
+        ui_state.focus_window_name       = k_preferences_window_title;
+    }
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_Q))
         request_exit = true;
     if (developer_ui.enabled && app_shortcut(ImGuiKey_F12)
@@ -148,8 +150,11 @@ collect_viewer_shortcuts(ViewerState& viewer, PlaceholderUiState& ui_state,
         ui_state.color_mode = 3;
     if (no_mods && app_shortcut(ImGuiKey_H))
         ui_state.color_mode = 4;
-    if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_I))
+    if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_I)) {
         ui_state.show_info_window = !ui_state.show_info_window;
+        if (ui_state.show_info_window)
+            ui_state.focus_window_name = k_info_window_title;
+    }
     if (no_mods && app_shortcut(ImGuiKey_P))
         ui_state.show_pixelview_window = !ui_state.show_pixelview_window;
     if (app_shortcut(ImGuiMod_Ctrl | ImGuiKey_A))
@@ -181,7 +186,8 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
                       const std::vector<ViewerState*>& viewers,
                       DeveloperUiState& developer_ui,
                       ViewerFrameActions& actions, bool& request_exit,
-                      bool& show_image_list_window
+                      bool& show_image_list_window,
+                      bool& image_list_request_focus
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
                       ,
                       bool show_test_menu, bool* show_test_engine_windows
@@ -257,8 +263,10 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
         if (ImGui::MenuItem("Delete from disk", "Delete", false, has_image))
             actions.delete_from_disk_requested = true;
         ImGui::Separator();
-        if (ImGui::MenuItem("Preferences...", "Ctrl+,"))
+        if (ImGui::MenuItem("Preferences...", "Ctrl+,")) {
             ui_state.show_preferences_window = true;
+            ui_state.focus_window_name       = k_preferences_window_title;
+        }
         ImGui::Separator();
         if (ImGui::MenuItem("Exit", "Ctrl+Q"))
             request_exit = true;
@@ -280,8 +288,6 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
     }
 
     if (ImGui::BeginMenu("View")) {
-        ImGui::MenuItem("Image List", nullptr, &show_image_list_window);
-        ImGui::Separator();
         if (ImGui::MenuItem("Previous Image", "PgUp"))
             actions.prev_requested = true;
         if (ImGui::MenuItem("Next Image", "PgDown"))
@@ -311,6 +317,11 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
         if (ImGui::MenuItem("Full screen", "Ctrl+F",
                             ui_state.full_screen_mode)) {
             actions.full_screen_toggle_requested = true;
+        }
+        const bool previous_image_list_visibility = show_image_list_window;
+        if (ImGui::MenuItem("Image List", nullptr, &show_image_list_window)) {
+            if (show_image_list_window && !previous_image_list_visibility)
+                image_list_request_focus = true;
         }
         ImGui::Separator();
 
@@ -497,12 +508,6 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
     }
 
     if (ImGui::BeginMenu("Tools")) {
-        ImGui::MenuItem("Image info...", "Ctrl+I", &ui_state.show_info_window);
-        ImGui::MenuItem("Preview controls...", nullptr,
-                        &ui_state.show_preview_window);
-        ImGui::MenuItem("Pixel closeup view...", "P",
-                        &ui_state.show_pixelview_window);
-
         if (ImGui::BeginMenu("Slide Show")) {
             if (ImGui::MenuItem("Start Slide Show", nullptr,
                                 ui_state.slide_show_running)) {
@@ -534,6 +539,21 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
         }
 
         ImGui::Separator();
+        const bool previous_info_visibility = ui_state.show_info_window;
+        if (ImGui::MenuItem("Image info...", "Ctrl+I",
+                            &ui_state.show_info_window)) {
+            if (ui_state.show_info_window && !previous_info_visibility)
+                ui_state.focus_window_name = k_info_window_title;
+        }
+        const bool previous_preview_visibility = ui_state.show_preview_window;
+        if (ImGui::MenuItem("Preview controls...", nullptr,
+                            &ui_state.show_preview_window)) {
+            if (ui_state.show_preview_window && !previous_preview_visibility)
+                ui_state.focus_window_name = k_preview_window_title;
+        }
+        ImGui::MenuItem("Pixel closeup view...", "P",
+                        &ui_state.show_pixelview_window);
+        ImGui::Separator();
         if (ImGui::MenuItem("Rotate Left", "Ctrl+Shift+L"))
             actions.rotate_left_requested = true;
         if (ImGui::MenuItem("Rotate Right", "Ctrl+Shift+R"))
@@ -545,9 +565,11 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
         ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu("Help")) {
-        if (ImGui::MenuItem("About"))
-            ImGui::OpenPopup("About imiv");
+    if (ImGui::BeginMenu("Window")) {
+        ImGui::MenuItem("Always on Top", nullptr,
+                        &ui_state.window_always_on_top);
+        if (ImGui::MenuItem("Reset Windows"))
+            actions.reset_windows_requested = true;
         ImGui::EndMenu();
     }
 
@@ -586,6 +608,14 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
         ImGui::EndMenu();
     }
 #endif
+
+    if (ImGui::BeginMenu("Help")) {
+        if (ImGui::MenuItem("About")) {
+            ui_state.show_about_window = true;
+            ui_state.focus_window_name = k_about_window_title;
+        }
+        ImGui::EndMenu();
+    }
 
     ImGui::EndMainMenuBar();
 }

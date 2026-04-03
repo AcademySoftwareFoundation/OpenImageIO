@@ -58,6 +58,13 @@ namespace Imiv {
 
 namespace {
 
+    struct NativeDialogWindowScope {
+        GLFWwindow* window            = nullptr;
+        PlaceholderUiState* ui_state  = nullptr;
+        int suspend_depth             = 0;
+        bool restore_floating_on_exit = false;
+    };
+
     std::filesystem::path executable_directory_path()
     {
         const std::string program_path = Sysutil::this_program_path();
@@ -252,6 +259,59 @@ namespace {
     {
         return Strutil::fmt::format("ImIv v.{} [{}]", OIIO_VERSION_STRING,
                                     backend_cli_name(active_backend));
+    }
+
+    void apply_glfw_topmost_state_to_platform_windows(GLFWwindow* main_window,
+                                                      bool always_on_top)
+    {
+        if (main_window != nullptr)
+            platform_glfw_set_window_floating(main_window, always_on_top);
+
+        ImGuiContext* ctx = ImGui::GetCurrentContext();
+        if (ctx == nullptr)
+            return;
+        if ((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+            == 0) {
+            return;
+        }
+
+        ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+        for (int i = 0; i < platform_io.Viewports.Size; ++i) {
+            ImGuiViewport* viewport = platform_io.Viewports[i];
+            if (viewport == nullptr || viewport->PlatformHandle == nullptr)
+                continue;
+            GLFWwindow* viewport_window = static_cast<GLFWwindow*>(
+                viewport->PlatformHandle);
+            platform_glfw_set_window_floating(viewport_window, always_on_top);
+        }
+    }
+
+    void native_dialog_scope_callback(bool begin_scope, void* user_data)
+    {
+        auto* scope = static_cast<NativeDialogWindowScope*>(user_data);
+        if (scope == nullptr || scope->window == nullptr
+            || scope->ui_state == nullptr)
+            return;
+
+        if (begin_scope) {
+            ++scope->suspend_depth;
+            if (scope->suspend_depth == 1
+                && scope->ui_state->window_always_on_top
+                && platform_glfw_is_window_floating(scope->window)) {
+                apply_glfw_topmost_state_to_platform_windows(scope->window,
+                                                             false);
+                scope->restore_floating_on_exit = true;
+            }
+            return;
+        }
+
+        if (scope->suspend_depth > 0)
+            --scope->suspend_depth;
+        if (scope->suspend_depth == 0 && scope->restore_floating_on_exit) {
+            apply_glfw_topmost_state_to_platform_windows(
+                scope->window, scope->ui_state->window_always_on_top);
+            scope->restore_floating_on_exit = false;
+        }
     }
 
     std::vector<std::string> expand_startup_input_paths(const AppConfig& config,
@@ -670,6 +730,12 @@ run(const AppConfig& config)
     }
     set_area_sample_enabled(viewer, ui_state, ui_state.show_area_probe_window);
     apply_imgui_app_style(sanitize_app_style_preset(ui_state.style_preset));
+    apply_glfw_topmost_state_to_platform_windows(window,
+                                                 ui_state.window_always_on_top);
+
+    NativeDialogWindowScope native_dialog_scope = { window, &ui_state };
+    FileDialog::set_native_dialog_scope_hook(native_dialog_scope_callback,
+                                             &native_dialog_scope);
 
     if (!run_config.input_paths.empty()) {
         append_loaded_image_paths(library, run_config.input_paths);
@@ -725,6 +791,10 @@ run(const AppConfig& config)
             center_glfw_window(window);
             --startup_center_frames;
         }
+        if (native_dialog_scope.suspend_depth == 0) {
+            apply_glfw_topmost_state_to_platform_windows(
+                window, ui_state.window_always_on_top);
+        }
 
         int fb_width  = 0;
         int fb_height = 0;
@@ -772,6 +842,10 @@ run(const AppConfig& config)
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             renderer_prepare_platform_windows(renderer_state);
             ImGui::UpdatePlatformWindows();
+            if (native_dialog_scope.suspend_depth == 0) {
+                apply_glfw_topmost_state_to_platform_windows(
+                    window, ui_state.window_always_on_top);
+            }
             ImGui::RenderPlatformWindowsDefault();
             renderer_finish_platform_windows(renderer_state);
         }
@@ -825,6 +899,7 @@ run(const AppConfig& config)
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     test_engine_stop(test_engine_runtime);
 #endif
+    FileDialog::set_native_dialog_scope_hook(nullptr, nullptr);
     uninstall_drag_drop(window);
     if (active_backend == BackendKind::OpenGL) {
         renderer_cleanup_window(renderer_state);

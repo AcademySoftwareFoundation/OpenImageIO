@@ -80,110 +80,12 @@ def _scenario_step(root: ET.Element, name: str, **attrs: str | int | bool) -> No
             step.set(key, str(value))
 
 
-def _backend_display_name(name: str) -> str:
-    lowered = name.strip().lower()
-    if lowered == "vulkan":
-        return "Vulkan"
-    if lowered == "metal":
-        return "Metal"
-    if lowered == "opengl":
-        return "OpenGL"
-    if lowered == "auto":
-        return "Auto"
-    raise RuntimeError(f"unsupported backend name: {name}")
-
-
-def _backend_test_item_ref(name: str) -> str:
-    lowered = name.strip().lower()
-    if lowered == "auto":
-        return "pref-backend:auto"
-    return f"pref-backend:{lowered}"
-
-
-def _layout_viewport_origin_and_size(layout: dict) -> tuple[float, float, float, float]:
-    display_size = layout.get("display_size", [0.0, 0.0])
-    width = float(display_size[0]) if len(display_size) >= 2 else 0.0
-    height = float(display_size[1]) if len(display_size) >= 2 else 0.0
-    if width <= 0.0 or height <= 0.0:
-        raise RuntimeError("layout is missing a valid display_size")
-
-    windows = layout.get("windows", [])
-    if not isinstance(windows, list) or not windows:
-        raise RuntimeError("layout does not contain any windows")
-
-    min_x = min(float(window.get("rect", {}).get("min", [0.0, 0.0])[0]) for window in windows)
-    min_y = min(float(window.get("rect", {}).get("min", [0.0, 0.0])[1]) for window in windows)
-    return min_x, min_y, width, height
-
-
-def _find_item_rect(layout: dict, label: str) -> dict:
-    for window in layout.get("windows", []):
-        if window.get("name") != "iv Preferences":
-            continue
-        for item in window.get("items", []):
-            if item.get("debug") == label:
-                rect = item.get("rect_full")
-                if isinstance(rect, dict):
-                    return rect
-    raise RuntimeError(f"layout does not contain Preferences item: {label}")
-
-
-def _rect_center(rect: dict) -> tuple[float, float]:
-    rect_min = rect.get("min", [0.0, 0.0])
-    rect_max = rect.get("max", [0.0, 0.0])
-    return (
-        (float(rect_min[0]) + float(rect_max[0])) * 0.5,
-        (float(rect_min[1]) + float(rect_max[1])) * 0.5,
-    )
-
-
-def _point_to_window_rel(
-    point: tuple[float, float], *, viewport_origin_x: float, viewport_origin_y: float, viewport_width: float, viewport_height: float
-) -> tuple[float, float]:
-    return (
-        (point[0] - viewport_origin_x) / viewport_width,
-        (point[1] - viewport_origin_y) / viewport_height,
-    )
-
-
-def _backend_button_points(
-    layout: dict, *, alternate_backend: str, active_backend: str
-) -> dict[str, tuple[float, float]]:
-    viewport_origin_x, viewport_origin_y, viewport_width, viewport_height = (
-        _layout_viewport_origin_and_size(layout)
-    )
-    return {
-        "alternate": _point_to_window_rel(
-            _rect_center(
-                _find_item_rect(layout, _backend_display_name(alternate_backend))
-            ),
-            viewport_origin_x=viewport_origin_x,
-            viewport_origin_y=viewport_origin_y,
-            viewport_width=viewport_width,
-            viewport_height=viewport_height,
-        ),
-        "active": _point_to_window_rel(
-            _rect_center(_find_item_rect(layout, _backend_display_name(active_backend))),
-            viewport_origin_x=viewport_origin_x,
-            viewport_origin_y=viewport_origin_y,
-            viewport_width=viewport_width,
-            viewport_height=viewport_height,
-        ),
-        "auto": _point_to_window_rel(
-            _rect_center(_find_item_rect(layout, "Reset to Auto")),
-            viewport_origin_x=viewport_origin_x,
-            viewport_origin_y=viewport_origin_y,
-            viewport_width=viewport_width,
-            viewport_height=viewport_height,
-        ),
-    }
-
-
 def _write_scenario(
     path: Path,
     runtime_dir_rel: str,
     *,
-    button_points: dict[str, tuple[float, float]],
+    alternate_backend: str,
+    active_backend: str,
 ) -> None:
     root = ET.Element("imiv-scenario")
     root.set("out_dir", runtime_dir_rel)
@@ -198,24 +100,21 @@ def _write_scenario(
     _scenario_step(
         root,
         "select_alternate_backend",
-        mouse_pos_window_rel=f"{button_points['alternate'][0]:.6f},{button_points['alternate'][1]:.6f}",
-        mouse_click_button=0,
+        renderer_backend=alternate_backend,
         state=True,
         post_action_delay_frames=2,
     )
     _scenario_step(
         root,
         "select_active_backend",
-        mouse_pos_window_rel=f"{button_points['active'][0]:.6f},{button_points['active'][1]:.6f}",
-        mouse_click_button=0,
+        renderer_backend=active_backend,
         state=True,
         post_action_delay_frames=2,
     )
     _scenario_step(
         root,
         "select_auto_backend",
-        mouse_pos_window_rel=f"{button_points['auto'][0]:.6f},{button_points['auto'][1]:.6f}",
-        mouse_click_button=0,
+        renderer_backend="auto",
         state=True,
         post_action_delay_frames=2,
     )
@@ -342,11 +241,8 @@ def main() -> int:
 
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    probe_dir = out_dir / "probe"
-    probe_dir.mkdir(parents=True, exist_ok=True)
     runtime_dir = out_dir / "runtime"
     runtime_dir.mkdir(parents=True, exist_ok=True)
-    probe_log_path = out_dir / "backend_preferences_probe.log"
     log_path = out_dir / "backend_preferences.log"
     scenario_path = out_dir / "backend_preferences.scenario.xml"
 
@@ -407,54 +303,12 @@ def main() -> int:
     _write_prefs(config_home)
     env["IMIV_CONFIG_HOME"] = str(config_home)
 
-    probe_layout_path = probe_dir / "preferences.layout.json"
-    probe_state_path = probe_dir / "preferences.state.json"
-    probe_cmd = [
-        sys.executable,
-        str(repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(run_cwd),
-        "--open",
-        str(image_path),
-        "--key-chord",
-        "ctrl+comma",
-        "--layout-json-out",
-        str(probe_layout_path),
-        "--layout-items",
-        "--state-json-out",
-        str(probe_state_path),
-    ]
-    if args.backend:
-        probe_cmd.extend(["--backend", active_backend])
-    if args.trace:
-        probe_cmd.append("--trace")
-    with probe_log_path.open("w", encoding="utf-8") as log_handle:
-        probe_proc = subprocess.run(
-            probe_cmd,
-            cwd=str(repo_root),
-            env=env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=120,
-        )
-    if probe_proc.returncode != 0:
-        return _fail(f"probe runner exited with code {probe_proc.returncode}")
-
-    probe_layout = json.loads(probe_layout_path.read_text(encoding="utf-8"))
-    button_points = _backend_button_points(
-        probe_layout,
-        alternate_backend=alternate_backend,
-        active_backend=active_backend,
-    )
-
     runtime_dir_rel = os.path.relpath(runtime_dir, run_cwd)
     _write_scenario(
         scenario_path,
         runtime_dir_rel,
-        button_points=button_points,
+        alternate_backend=alternate_backend,
+        active_backend=active_backend,
     )
 
     cmd = [

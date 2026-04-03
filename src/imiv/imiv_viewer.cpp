@@ -442,6 +442,9 @@ load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
         } else if (key == "full_screen_mode") {
             if (parse_bool_value(value, bool_value))
                 ui_state.full_screen_mode = bool_value;
+        } else if (key == "window_always_on_top") {
+            if (parse_bool_value(value, bool_value))
+                ui_state.window_always_on_top = bool_value;
         } else if (key == "slide_show_running") {
             if (parse_bool_value(value, bool_value))
                 ui_state.slide_show_running = bool_value;
@@ -581,6 +584,8 @@ save_persistent_state(const PlaceholderUiState& ui_state,
     output << "show_mouse_mode_selector="
            << (ui_state.show_mouse_mode_selector ? 1 : 0) << "\n";
     output << "full_screen_mode=" << (ui_state.full_screen_mode ? 1 : 0)
+           << "\n";
+    output << "window_always_on_top=" << (ui_state.window_always_on_top ? 1 : 0)
            << "\n";
     output << "slide_show_running=" << (ui_state.slide_show_running ? 1 : 0)
            << "\n";

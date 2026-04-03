@@ -61,6 +61,10 @@ void
 platform_glfw_get_framebuffer_size(GLFWwindow* window, int& width, int& height);
 bool
 platform_glfw_is_iconified(GLFWwindow* window);
+bool
+platform_glfw_is_window_floating(GLFWwindow* window);
+void
+platform_glfw_set_window_floating(GLFWwindow* window, bool floating);
 
 int
 platform_glfw_selected_platform();

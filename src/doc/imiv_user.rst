@@ -311,6 +311,22 @@ multi-open and `Open Folder...`. That means dropped files immediately appear
 in `Image List` and participate in the same per-view open/close/remove
 workflow.
 
+The `Window` menu provides:
+
+* `Always on Top`
+  keeps the main :program:`imiv` window and detached auxiliary windows above
+  ordinary desktop windows;
+* `Reset Windows`
+  clears the saved Dear ImGui layout in the current session and restores the
+  default dock/tool-window placement so hidden or off-screen auxiliary windows
+  can be recovered.
+
+When native open/save/folder dialogs are used, :program:`imiv` temporarily
+disables the topmost window hint while the dialog is open and restores it
+after the dialog closes. This avoids the main window covering the native file
+dialog on platforms where an always-on-top GLFW window would otherwise stay in
+front.
+
 
 Color management
 ================
@@ -354,6 +370,7 @@ Saved state currently includes:
 * Dear ImGui docking/window layout;
 * viewer and preview defaults for the primary view;
 * backend preference (`renderer_backend`);
+* whether the main window is `Always on Top`;
 * OCIO settings;
 * recent images and sort mode.
 
@@ -362,6 +379,7 @@ Example::
     [ImivApp][State]
     renderer_backend=vulkan
     fit_image_to_window=1
+    window_always_on_top=0
     use_ocio=1
     ocio_display=default
     ocio_view=default
