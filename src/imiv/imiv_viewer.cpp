@@ -274,6 +274,8 @@ clamp_view_recipe(ViewRecipe& recipe)
         recipe.ocio_image_color_space = "auto";
 }
 
+
+
 void
 reset_view_recipe(ViewRecipe& recipe)
 {
@@ -283,6 +285,8 @@ reset_view_recipe(ViewRecipe& recipe)
     recipe.gamma           = 1.0f;
     recipe.offset          = 0.0f;
 }
+
+
 
 void
 apply_view_recipe_to_ui_state(const ViewRecipe& recipe,
@@ -300,6 +304,8 @@ apply_view_recipe_to_ui_state(const ViewRecipe& recipe,
     ui_state.ocio_image_color_space = recipe.ocio_image_color_space;
 }
 
+
+
 void
 capture_view_recipe_from_ui_state(const PlaceholderUiState& ui_state,
                                   ViewRecipe& recipe)
@@ -315,6 +321,8 @@ capture_view_recipe_from_ui_state(const PlaceholderUiState& ui_state,
     recipe.ocio_view              = ui_state.ocio_view;
     recipe.ocio_image_color_space = ui_state.ocio_image_color_space;
 }
+
+
 
 void
 clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
@@ -355,6 +363,8 @@ clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
                      static_cast<int>(OcioConfigSource::Global),
                      static_cast<int>(OcioConfigSource::User));
 }
+
+
 
 void
 reset_per_image_preview_state(ViewRecipe& recipe)
@@ -645,6 +655,7 @@ save_persistent_state(const PlaceholderUiState& ui_state,
 }
 
 
+
 void
 append_longinfo_row(LoadedImage& image, const char* label,
                     const std::string& value)
@@ -738,6 +749,8 @@ build_longinfo_rows(LoadedImage& image, const ImageBuf& source,
                             spec.metadata_val(p, true));
     }
 }
+
+
 
 bool
 load_image_for_compute(const std::string& path, int requested_subimage,
@@ -869,11 +882,15 @@ should_reset_preview_on_load(const ViewerState& viewer, const std::string& path)
     return current_path.lexically_normal() != next_path.lexically_normal();
 }
 
+
+
 int
 clamp_orientation(int orientation)
 {
     return std::clamp(orientation, 1, 8);
 }
+
+
 
 bool
 orientation_swaps_axes(int orientation)
@@ -882,6 +899,8 @@ orientation_swaps_axes(int orientation)
     return orientation == 5 || orientation == 6 || orientation == 7
            || orientation == 8;
 }
+
+
 
 void
 oriented_image_dimensions(const LoadedImage& image, int& out_width,
@@ -895,6 +914,7 @@ oriented_image_dimensions(const LoadedImage& image, int& out_width,
         out_height = image.height;
     }
 }
+
 
 
 bool
@@ -937,6 +957,8 @@ has_supported_image_extension(const std::filesystem::path& path)
     return readable_extensions.find(ext) != readable_extensions.end();
 }
 
+
+
 bool
 datetime_to_time_t(string_view datetime, std::time_t& out_time)
 {
@@ -960,6 +982,8 @@ datetime_to_time_t(string_view datetime, std::time_t& out_time)
     return out_time != static_cast<std::time_t>(-1);
 }
 
+
+
 bool
 file_last_write_time(const std::string& path, std::time_t& out_time)
 {
@@ -974,6 +998,8 @@ file_last_write_time(const std::string& path, std::time_t& out_time)
     out_time = std::chrono::system_clock::to_time_t(system_time);
     return true;
 }
+
+
 
 bool
 image_datetime(const std::string& path, std::time_t& out_time)
@@ -990,6 +1016,8 @@ image_datetime(const std::string& path, std::time_t& out_time)
     return datetime_to_time_t(datetime, out_time);
 }
 
+
+
 std::string
 normalize_path_for_viewer_list(const std::string& path)
 {
@@ -1005,6 +1033,8 @@ normalize_path_for_viewer_list(const std::string& path)
     return p.lexically_normal().string();
 }
 
+
+
 int
 find_path_index(const std::vector<std::string>& paths, const std::string& path)
 {
@@ -1016,17 +1046,23 @@ find_path_index(const std::vector<std::string>& paths, const std::string& path)
     return static_cast<int>(std::distance(paths.begin(), it));
 }
 
+
+
 std::string
 filename_key(const std::string& path)
 {
     return std::filesystem::path(path).filename().string();
 }
 
+
+
 std::string
 path_key(const std::string& path)
 {
     return std::filesystem::path(path).lexically_normal().string();
 }
+
+
 
 void
 sort_image_path_list(std::vector<std::string>& paths, ImageSortMode sort_mode,
@@ -1092,6 +1128,8 @@ sort_image_path_list(std::vector<std::string>& paths, ImageSortMode sort_mode,
         std::reverse(paths.begin(), paths.end());
 }
 
+
+
 bool
 collect_directory_image_paths(const std::string& directory_path,
                               ImageSortMode sort_mode, bool sort_reverse,
@@ -1146,6 +1184,8 @@ collect_directory_image_paths(const std::string& directory_path,
     return true;
 }
 
+
+
 bool
 add_loaded_image_path(ImageLibraryState& library, const std::string& path,
                       int* out_index)
@@ -1165,6 +1205,8 @@ add_loaded_image_path(ImageLibraryState& library, const std::string& path,
         *out_index = index;
     return index >= 0;
 }
+
+
 
 bool
 append_loaded_image_paths(ImageLibraryState& library,
@@ -1197,6 +1239,8 @@ append_loaded_image_paths(ImageLibraryState& library,
     return true;
 }
 
+
+
 bool
 remove_loaded_image_path(ImageLibraryState& library, ViewerState* viewer,
                          const std::string& path)
@@ -1225,6 +1269,8 @@ remove_loaded_image_path(ImageLibraryState& library, ViewerState* viewer,
     return true;
 }
 
+
+
 bool
 set_current_loaded_image_path(const ImageLibraryState& library,
                               ViewerState& viewer, const std::string& path)
@@ -1240,6 +1286,8 @@ set_current_loaded_image_path(const ImageLibraryState& library,
     viewer.current_path_index = new_index;
     return true;
 }
+
+
 
 bool
 pick_loaded_image_path(const ImageLibraryState& library,
@@ -1257,6 +1305,8 @@ pick_loaded_image_path(const ImageLibraryState& library,
     out_path = library.loaded_image_paths[static_cast<size_t>(index)];
     return !out_path.empty();
 }
+
+
 
 void
 sort_loaded_image_paths(ImageLibraryState& library,
@@ -1311,6 +1361,8 @@ add_recent_image_path(ImageLibraryState& library, const std::string& path)
         library.recent_images.resize(k_max_recent_images);
 }
 
+
+
 namespace {
 
     void copy_viewer_library_state(ViewerState& dst, const ViewerState& src,
@@ -1338,6 +1390,8 @@ namespace {
 
 }  // namespace
 
+
+
 ImageViewWindow&
 ensure_primary_image_view(MultiViewWorkspace& workspace)
 {
@@ -1350,6 +1404,8 @@ ensure_primary_image_view(MultiViewWorkspace& workspace)
     return *workspace.view_windows.front();
 }
 
+
+
 ImageViewWindow*
 find_image_view(MultiViewWorkspace& workspace, int view_id)
 {
@@ -1361,6 +1417,8 @@ find_image_view(MultiViewWorkspace& workspace, int view_id)
     return nullptr;
 }
 
+
+
 const ImageViewWindow*
 find_image_view(const MultiViewWorkspace& workspace, int view_id)
 {
@@ -1371,6 +1429,8 @@ find_image_view(const MultiViewWorkspace& workspace, int view_id)
     }
     return nullptr;
 }
+
+
 
 ImageViewWindow*
 active_image_view(MultiViewWorkspace& workspace)
@@ -1385,6 +1445,8 @@ active_image_view(MultiViewWorkspace& workspace)
     return workspace.view_windows.front().get();
 }
 
+
+
 const ImageViewWindow*
 active_image_view(const MultiViewWorkspace& workspace)
 {
@@ -1397,6 +1459,8 @@ active_image_view(const MultiViewWorkspace& workspace)
                : workspace.view_windows.front().get();
 }
 
+
+
 ImageViewWindow&
 append_image_view(MultiViewWorkspace& workspace)
 {
@@ -1405,6 +1469,8 @@ append_image_view(MultiViewWorkspace& workspace)
     workspace.view_windows.push_back(std::move(view));
     return *workspace.view_windows.back();
 }
+
+
 
 void
 sync_workspace_library_state(MultiViewWorkspace& workspace,
@@ -1418,6 +1484,8 @@ sync_workspace_library_state(MultiViewWorkspace& workspace,
         copy_viewer_library_state(view->viewer, source_view, library);
     }
 }
+
+
 
 void
 erase_closed_image_views(MultiViewWorkspace& workspace)

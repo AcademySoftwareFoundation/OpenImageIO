@@ -45,6 +45,8 @@ namespace {
         return true;
     }
 
+
+
     bool parse_bool_value(const std::string& value, bool& out)
     {
         const string_view trimmed = Strutil::strip(value);
@@ -63,6 +65,8 @@ namespace {
         return false;
     }
 
+
+
     bool parse_int_value(const std::string& value, int& out)
     {
         const std::string trimmed = std::string(Strutil::strip(value));
@@ -80,6 +84,8 @@ namespace {
         return true;
     }
 
+
+
     bool parse_float_value(const std::string& value, float& out)
     {
         const std::string trimmed = std::string(Strutil::strip(value));
@@ -93,6 +99,8 @@ namespace {
         return true;
     }
 
+
+
     bool env_flag_is_truthy(const char* name)
     {
         std::string value;
@@ -101,11 +109,15 @@ namespace {
                && out;
     }
 
+
+
     bool env_read_int_value(const char* name, int& out)
     {
         std::string value;
         return read_env_value(name, value) && parse_int_value(value, out);
     }
+
+
 
     bool env_read_float_value(const char* name, float& out)
     {
@@ -113,11 +125,15 @@ namespace {
         return read_env_value(name, value) && parse_float_value(value, out);
     }
 
+
+
     int env_int_value(const char* name, int fallback)
     {
         int out = 0;
         return env_read_int_value(name, out) ? out : fallback;
     }
+
+
 
     enum class TestEngineMouseTargetMode {
         None,
@@ -125,6 +141,8 @@ namespace {
         WindowRel,
         ImageRel
     };
+
+
 
     struct TestEngineSyntheticAction {
         int delay_frames             = 0;
@@ -156,6 +174,8 @@ namespace {
         int hold_drag_frames    = 1;
     };
 
+
+
     struct TestEngineScenarioOcioStep {
         bool has_use                  = false;
         bool use_ocio                 = false;
@@ -168,6 +188,8 @@ namespace {
         std::string view;
         std::string image_color_space;
     };
+
+
 
     struct TestEngineScenarioImageListStep {
         bool has_visible             = false;
@@ -182,18 +204,22 @@ namespace {
         int remove_index             = 0;
     };
 
+
+
     struct TestEngineScenarioViewStep {
         bool has_activate_view_index = false;
         int activate_view_index      = 0;
         bool has_renderer_backend    = false;
         std::string renderer_backend;
-        bool has_exposure            = false;
-        float exposure               = 0.0f;
-        bool has_gamma               = false;
-        float gamma                  = 1.0f;
-        bool has_offset              = false;
-        float offset                 = 0.0f;
+        bool has_exposure = false;
+        float exposure    = 0.0f;
+        bool has_gamma    = false;
+        float gamma       = 1.0f;
+        bool has_offset   = false;
+        float offset      = 0.0f;
     };
+
+
 
     struct TestEngineScenarioCaptureStep {
         bool screenshot   = false;
@@ -202,6 +228,8 @@ namespace {
         bool layout_items = false;
         int layout_depth  = 8;
     };
+
+
 
     struct TestEngineScenarioStep {
         std::string name;
@@ -212,6 +240,8 @@ namespace {
         TestEngineScenarioCaptureStep capture;
     };
 
+
+
     struct TestEngineScenarioDefinition {
         std::filesystem::path out_dir;
         bool default_layout_items = false;
@@ -219,8 +249,12 @@ namespace {
         std::vector<TestEngineScenarioStep> steps;
     };
 
+
+
     bool parse_test_engine_key_chord(const std::string& value,
                                      ImGuiKeyChord& out_chord);
+
+
 
     bool parse_float_pair_value(string_view value, float& out_a, float& out_b)
     {
@@ -232,26 +266,36 @@ namespace {
                                     out_b);
     }
 
+
+
     bool parse_bool_attr(const pugi::xml_attribute& attr, bool& out)
     {
         return attr && parse_bool_value(attr.as_string(), out);
     }
+
+
 
     bool parse_int_attr(const pugi::xml_attribute& attr, int& out)
     {
         return attr && parse_int_value(attr.as_string(), out);
     }
 
+
+
     bool parse_float_attr(const pugi::xml_attribute& attr, float& out)
     {
         return attr && parse_float_value(attr.as_string(), out);
     }
+
+
 
     bool parse_float_pair_attr(const pugi::xml_attribute& attr, float& out_a,
                                float& out_b)
     {
         return attr && parse_float_pair_value(attr.as_string(), out_a, out_b);
     }
+
+
 
     void set_process_env_value(const char* name, const std::string* value)
     {
@@ -266,6 +310,8 @@ namespace {
             unsetenv(name);
 #endif
     }
+
+
 
     bool load_test_engine_scenario(const std::filesystem::path& path,
                                    TestEngineScenarioDefinition& out_scenario,
@@ -459,7 +505,7 @@ namespace {
             if (renderer_backend_attr
                 && renderer_backend_attr.as_string()[0] != '\0') {
                 step.view.has_renderer_backend = true;
-                step.view.renderer_backend    = renderer_backend_attr.as_string();
+                step.view.renderer_backend = renderer_backend_attr.as_string();
             }
             if (parse_float_attr(step_node.attribute("exposure"),
                                  step.view.exposure)) {
@@ -501,6 +547,8 @@ namespace {
         }
         return true;
     }
+
+
 
     ImGuiKey parse_test_engine_key_token(const std::string& token)
     {
@@ -551,6 +599,8 @@ namespace {
         return ImGuiKey_None;
     }
 
+
+
     bool parse_test_engine_key_chord(const std::string& value,
                                      ImGuiKeyChord& out_chord)
     {
@@ -598,12 +648,16 @@ namespace {
         return true;
     }
 
+
+
     bool env_read_key_chord_value(const char* name, ImGuiKeyChord& out)
     {
         std::string value;
         return read_env_value(name, value)
                && parse_test_engine_key_chord(value, out);
     }
+
+
 
     bool validate_test_output_path(const std::filesystem::path& path,
                                    std::string& error_message)
@@ -626,6 +680,8 @@ namespace {
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     int g_layout_dump_synthetic_item_counter = 0;
 
+
+
     struct TestEngineMouseSpaceState {
         bool viewport_valid = false;
         bool image_valid    = false;
@@ -635,13 +691,19 @@ namespace {
         ImVec2 image_max    = ImVec2(0.0f, 0.0f);
     };
 
+
+
     TestEngineMouseSpaceState g_test_engine_mouse_space;
     TestEngineHooks g_test_engine_hooks;
+
+
 
     bool layout_dump_items_enabled()
     {
         return env_flag_is_truthy("IMIV_IMGUI_TEST_ENGINE_LAYOUT_DUMP_ITEMS");
     }
+
+
 
     ImVec2 test_engine_rect_rel_pos(const ImVec2& rect_min,
                                     const ImVec2& rect_max, float rel_x,
@@ -652,6 +714,8 @@ namespace {
         return ImVec2(rect_min.x + (rect_max.x - rect_min.x) * clamped_x,
                       rect_min.y + (rect_max.y - rect_min.y) * clamped_y);
     }
+
+
 
     bool resolve_test_engine_mouse_pos(ImVec2& out_pos)
     {
@@ -690,6 +754,8 @@ namespace {
         return false;
     }
 
+
+
     void mark_test_error(ImGuiTestContext* ctx)
     {
         if (ctx && ctx->TestOutput
@@ -697,6 +763,8 @@ namespace {
             ctx->TestOutput->Status = ImGuiTestStatus_Error;
         }
     }
+
+
 
     void json_write_escaped(FILE* f, const char* s)
     {
@@ -724,11 +792,15 @@ namespace {
         std::fputc('"', f);
     }
 
+
+
     void json_write_vec2(FILE* f, const ImVec2& v)
     {
         std::fprintf(f, "[%.3f,%.3f]", static_cast<double>(v.x),
                      static_cast<double>(v.y));
     }
+
+
 
     void json_write_rect(FILE* f, const ImRect& r)
     {
@@ -738,6 +810,8 @@ namespace {
         json_write_vec2(f, r.Max);
         std::fputs("}", f);
     }
+
+
 
     bool write_layout_dump_json(ImGuiTestContext* ctx,
                                 const std::filesystem::path& out_path,
@@ -918,6 +992,8 @@ namespace {
         return true;
     }
 
+
+
     bool write_viewer_state_json(ImGuiTestContext* ctx,
                                  const std::filesystem::path& out_path)
     {
@@ -946,6 +1022,8 @@ namespace {
         return true;
     }
 
+
+
     bool capture_main_viewport_screenshot(ImGuiTestContext* ctx,
                                           const char* out_file)
     {
@@ -972,6 +1050,8 @@ namespace {
         return true;
     }
 
+
+
     std::string sanitize_test_output_stem(const std::string& name)
     {
         std::string sanitized = name;
@@ -986,6 +1066,8 @@ namespace {
             sanitized = "step";
         return sanitized;
     }
+
+
 
     void apply_test_engine_scenario_overrides(
         const TestEngineScenarioOcioStep& ocio,
@@ -1140,6 +1222,8 @@ namespace {
         }
     }
 
+
+
     bool write_test_engine_scenario_step_outputs(
         ImGuiTestContext* ctx, const TestEngineScenarioDefinition& scenario,
         const TestEngineScenarioStep& step)
@@ -1177,6 +1261,8 @@ namespace {
         return true;
     }
 
+
+
     bool resolve_action_mouse_pos(const TestEngineSyntheticAction& action,
                                   ImVec2& out_pos)
     {
@@ -1207,6 +1293,8 @@ namespace {
         default: return false;
         }
     }
+
+
 
     int
     apply_test_engine_synthetic_actions(ImGuiTestContext* ctx,
@@ -1285,6 +1373,8 @@ namespace {
         return held_button;
     }
 
+
+
     int apply_test_engine_mouse_actions(ImGuiTestContext* ctx)
     {
         TestEngineSyntheticAction action;
@@ -1343,6 +1433,8 @@ namespace {
         return apply_test_engine_synthetic_actions(ctx, action);
     }
 
+
+
     void release_test_engine_held_mouse(ImGuiTestContext* ctx, int held_button)
     {
         if (held_button < 0)
@@ -1350,6 +1442,8 @@ namespace {
         ctx->MouseUp(static_cast<ImGuiMouseButton>(held_button));
         ctx->Yield(1);
     }
+
+
 
     void imiv_test_smoke_screenshot(ImGuiTestContext* ctx)
     {
@@ -1438,6 +1532,8 @@ namespace {
         release_test_engine_held_mouse(ctx, held_button);
     }
 
+
+
     void imiv_test_dump_layout_json(ImGuiTestContext* ctx)
     {
         int delay_frames
@@ -1472,6 +1568,8 @@ namespace {
         release_test_engine_held_mouse(ctx, held_button);
     }
 
+
+
     void imiv_test_dump_viewer_state(ImGuiTestContext* ctx)
     {
         const int delay_frames
@@ -1498,6 +1596,8 @@ namespace {
         }
         release_test_engine_held_mouse(ctx, held_button);
     }
+
+
 
     void imiv_test_run_scenario(ImGuiTestContext* ctx)
     {
@@ -1565,6 +1665,8 @@ namespace {
         }
     }
 
+
+
     void imiv_test_developer_menu_metrics(ImGuiTestContext* ctx)
     {
         ctx->Yield(3);
@@ -1614,12 +1716,16 @@ namespace {
         }
     }
 
+
+
     ImGuiTest* register_imiv_smoke_tests(ImGuiTestEngine* engine)
     {
         ImGuiTest* t = IM_REGISTER_TEST(engine, "imiv", "smoke_screenshot");
         t->TestFunc  = imiv_test_smoke_screenshot;
         return t;
     }
+
+
 
     ImGuiTest* register_imiv_layout_dump_tests(ImGuiTestEngine* engine)
     {
@@ -1628,12 +1734,16 @@ namespace {
         return t;
     }
 
+
+
     ImGuiTest* register_imiv_state_dump_tests(ImGuiTestEngine* engine)
     {
         ImGuiTest* t = IM_REGISTER_TEST(engine, "imiv", "dump_viewer_state");
         t->TestFunc  = imiv_test_dump_viewer_state;
         return t;
     }
+
+
 
     ImGuiTest* register_imiv_developer_menu_tests(ImGuiTestEngine* engine)
     {
@@ -1642,6 +1752,8 @@ namespace {
         t->TestFunc  = imiv_test_developer_menu_metrics;
         return t;
     }
+
+
 
     ImGuiTest* register_imiv_scenario_tests(ImGuiTestEngine* engine)
     {
@@ -1652,6 +1764,8 @@ namespace {
 #endif
 
 }  // namespace
+
+
 
 TestEngineConfig
 gather_test_engine_config()
@@ -1706,6 +1820,8 @@ gather_test_engine_config()
     cfg.show_windows = false;
     return cfg;
 }
+
+
 
 void
 test_engine_start(TestEngineRuntime& runtime, TestEngineConfig& config,
@@ -1782,6 +1898,8 @@ test_engine_start(TestEngineRuntime& runtime, TestEngineConfig& config,
 #endif
 }
 
+
+
 void
 test_engine_stop(TestEngineRuntime& runtime)
 {
@@ -1797,6 +1915,8 @@ test_engine_stop(TestEngineRuntime& runtime)
     runtime.show_windows = false;
 #endif
 }
+
+
 
 void
 test_engine_destroy(TestEngineRuntime& runtime)
@@ -1817,6 +1937,8 @@ test_engine_destroy(TestEngineRuntime& runtime)
 #endif
 }
 
+
+
 bool*
 test_engine_show_windows_ptr(TestEngineRuntime& runtime)
 {
@@ -1827,6 +1949,8 @@ test_engine_show_windows_ptr(TestEngineRuntime& runtime)
     return nullptr;
 #endif
 }
+
+
 
 void
 test_engine_maybe_show_windows(TestEngineRuntime& runtime,
@@ -1843,6 +1967,8 @@ test_engine_maybe_show_windows(TestEngineRuntime& runtime,
 #endif
 }
 
+
+
 void
 test_engine_post_swap(TestEngineRuntime& runtime)
 {
@@ -1855,6 +1981,8 @@ test_engine_post_swap(TestEngineRuntime& runtime)
     (void)runtime;
 #endif
 }
+
+
 
 bool
 test_engine_should_close(TestEngineRuntime& runtime,
@@ -1882,6 +2010,8 @@ test_engine_should_close(TestEngineRuntime& runtime,
 #endif
 }
 
+
+
 void
 reset_layout_dump_synthetic_items()
 {
@@ -1890,6 +2020,8 @@ reset_layout_dump_synthetic_items()
 #endif
 }
 
+
+
 void
 reset_test_engine_mouse_space()
 {
@@ -1897,6 +2029,8 @@ reset_test_engine_mouse_space()
     g_test_engine_mouse_space = TestEngineMouseSpaceState();
 #endif
 }
+
+
 
 void
 update_test_engine_mouse_space(const ImVec2& viewport_min,
@@ -1919,6 +2053,8 @@ update_test_engine_mouse_space(const ImVec2& viewport_min,
 #endif
 }
 
+
+
 void
 register_layout_dump_synthetic_item(const char* kind, const char* label)
 {
@@ -1937,6 +2073,8 @@ register_layout_dump_synthetic_item(const char* kind, const char* label)
     (void)label;
 #endif
 }
+
+
 
 void
 register_layout_dump_synthetic_rect(const char* kind, const char* label,
@@ -1981,6 +2119,8 @@ register_layout_dump_synthetic_rect(const char* kind, const char* label,
     (void)max;
 #endif
 }
+
+
 
 void
 register_test_engine_item_label(const char* label, bool openable)
