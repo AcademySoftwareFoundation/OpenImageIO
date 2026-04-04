@@ -8,6 +8,7 @@
 #include "imiv_file_dialog.h"
 #include "imiv_ocio.h"
 #include "imiv_test_engine.h"
+#include "imiv_ui_metrics.h"
 
 #include <algorithm>
 #include <cstring>
@@ -158,7 +159,8 @@ namespace {
     void draw_preferences_section_heading(const char* title)
     {
         const ImVec2 separator_padding
-            = ImVec2(ImGui::GetStyle().SeparatorTextPadding.x, 1.0f);
+            = ImVec2(ImGui::GetStyle().SeparatorTextPadding.x,
+                     UiMetrics::Preferences::kSectionSeparatorTextPaddingY);
         ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding,
                             separator_padding);
         ImGui::PushStyleColor(ImGuiCol_Text,
@@ -176,7 +178,7 @@ namespace {
             return false;
         }
         ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed,
-                                150.0f);
+                                UiMetrics::Preferences::kLabelColumnWidth);
         ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthStretch);
         return true;
     }
@@ -218,8 +220,8 @@ namespace {
     {
         ImGui::PushID(id);
         const float spacing      = ImGui::GetStyle().ItemSpacing.x;
-        const float button_width = 22.0f;
-        const float value_width  = 38.0f;
+        const float button_width = UiMetrics::Preferences::kStepperButtonWidth;
+        const float value_width  = UiMetrics::Preferences::kStepperValueWidth;
         const float suffix_width = (suffix != nullptr && suffix[0] != '\0')
                                        ? ImGui::CalcTextSize(suffix).x + spacing
                                        : 0.0f;
@@ -281,27 +283,33 @@ draw_info_window(const ViewerState& viewer, bool& show_window,
 {
     if (!show_window)
         return;
-    set_aux_window_defaults(ImVec2(72.0f, 72.0f), ImVec2(360.0f, 600.0f),
+    set_aux_window_defaults(UiMetrics::AuxiliaryWindows::kInfoOffset,
+                            UiMetrics::AuxiliaryWindows::kInfoSize,
                             reset_layout);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+                        UiMetrics::kAuxWindowPadding);
     if (ImGui::Begin(k_info_window_title, &show_window)) {
         const float close_height = ImGui::GetFrameHeightWithSpacing();
-        const float body_height  = std::max(100.0f,
-                                            ImGui::GetContentRegionAvail().y
-                                                - close_height - 4.0f);
+        const float body_height
+            = std::max(UiMetrics::AuxiliaryWindows::kInfoBodyMinHeight,
+                       ImGui::GetContentRegionAvail().y - close_height
+                           - UiMetrics::AuxiliaryWindows::kBodyBottomGap);
         ImGui::BeginChild("##iv_info_scroll", ImVec2(0.0f, body_height), true,
                           ImGuiWindowFlags_HorizontalScrollbar);
         if (viewer.image.path.empty()) {
-            draw_padded_message("No image loaded.", 8.0f, 8.0f);
+            draw_padded_message(
+                "No image loaded.",
+                UiMetrics::AuxiliaryWindows::kEmptyMessagePadding.x,
+                UiMetrics::AuxiliaryWindows::kEmptyMessagePadding.y);
             register_layout_dump_synthetic_item("text", "No image loaded.");
         } else {
             if (ImGui::BeginTable("##iv_info_table", 2,
                                   ImGuiTableFlags_SizingStretchProp
                                       | ImGuiTableFlags_BordersInnerV
                                       | ImGuiTableFlags_RowBg)) {
-                ImGui::TableSetupColumn("Field",
-                                        ImGuiTableColumnFlags_WidthFixed,
-                                        120.0f);
+                ImGui::TableSetupColumn(
+                    "Field", ImGuiTableColumnFlags_WidthFixed,
+                    UiMetrics::AuxiliaryWindows::kInfoTableLabelWidth);
                 ImGui::TableSetupColumn("Value",
                                         ImGuiTableColumnFlags_WidthStretch);
 
@@ -329,7 +337,8 @@ draw_info_window(const ViewerState& viewer, bool& show_window,
             register_layout_dump_synthetic_item("text", "iv Info content");
         }
         ImGui::EndChild();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.0f);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY()
+                             + UiMetrics::AuxiliaryWindows::kInfoCloseGap);
         if (ImGui::Button("Close"))
             show_window = false;
     }
@@ -343,14 +352,17 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
 {
     if (!show_window)
         return;
-    set_aux_window_defaults(ImVec2(740.0f, 72.0f), ImVec2(300.0f, 700.0f),
+    set_aux_window_defaults(UiMetrics::AuxiliaryWindows::kPreferencesOffset,
+                            UiMetrics::AuxiliaryWindows::kPreferencesSize,
                             reset_layout);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+                        UiMetrics::kAuxWindowPadding);
     if (ImGui::Begin(k_preferences_window_title, &show_window)) {
         const float close_height = ImGui::GetFrameHeightWithSpacing();
-        const float body_height  = std::max(120.0f,
-                                            ImGui::GetContentRegionAvail().y
-                                                - close_height - 4.0f);
+        const float body_height
+            = std::max(UiMetrics::AuxiliaryWindows::kPreferencesBodyMinHeight,
+                       ImGui::GetContentRegionAvail().y - close_height
+                           - UiMetrics::AuxiliaryWindows::kBodyBottomGap);
         ImGui::BeginChild("##iv_prefs_body", ImVec2(0.0f, body_height), false,
                           ImGuiWindowFlags_None);
 
@@ -442,7 +454,8 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
             == OcioConfigSource::User) {
             if (begin_preferences_form_table("##pref_ocio_user")) {
                 preferences_form_next_row("Path");
-                const float browse_width = 64.0f;
+                const float browse_width
+                    = UiMetrics::Preferences::kOcioBrowseButtonWidth;
                 const float field_width
                     = std::max(60.0f, ImGui::GetContentRegionAvail().x
                                           - browse_width - spacing);
@@ -655,10 +668,13 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
 
         ImGui::EndChild();
         clamp_placeholder_ui_state(ui);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4.0f);
-        const float close_button_width = 72.0f;
-        const float x                  = ImGui::GetCursorPosX();
-        const float available_width    = ImGui::GetContentRegionAvail().x;
+        ImGui::SetCursorPosY(
+            ImGui::GetCursorPosY()
+            + UiMetrics::AuxiliaryWindows::kPreferencesCloseGap);
+        const float close_button_width
+            = UiMetrics::Preferences::kCloseButtonWidth;
+        const float x               = ImGui::GetCursorPosX();
+        const float available_width = ImGui::GetContentRegionAvail().x;
         if (available_width > close_button_width) {
             ImGui::SetCursorPosX(
                 x + (available_width - close_button_width) * 0.5f);
@@ -684,14 +700,17 @@ draw_preview_window(PlaceholderUiState& ui, bool& show_window,
 {
     if (!show_window)
         return;
-    set_aux_window_defaults(ImVec2(1030.0f, 72.0f), ImVec2(300.0f, 360.0f),
+    set_aux_window_defaults(UiMetrics::AuxiliaryWindows::kPreviewOffset,
+                            UiMetrics::AuxiliaryWindows::kPreviewSize,
                             reset_layout);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+                        UiMetrics::kAuxWindowPadding);
     if (ImGui::Begin(k_preview_window_title, &show_window)) {
         const float close_height = ImGui::GetFrameHeightWithSpacing();
-        const float body_height  = std::max(120.0f,
-                                            ImGui::GetContentRegionAvail().y
-                                                - close_height - 4.0f);
+        const float body_height
+            = std::max(UiMetrics::AuxiliaryWindows::kPreviewBodyMinHeight,
+                       ImGui::GetContentRegionAvail().y - close_height
+                           - UiMetrics::AuxiliaryWindows::kBodyBottomGap);
         ImGui::BeginChild("##iv_preview_body", ImVec2(0.0f, body_height), false,
                           ImGuiWindowFlags_NoScrollbar);
 
@@ -699,7 +718,7 @@ draw_preview_window(PlaceholderUiState& ui, bool& show_window,
                               ImGuiTableFlags_SizingStretchProp
                                   | ImGuiTableFlags_NoSavedSettings)) {
             ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed,
-                                    90.0f);
+                                    UiMetrics::Preview::kLabelColumnWidth);
             ImGui::TableSetupColumn("Control",
                                     ImGuiTableColumnFlags_WidthStretch);
 

@@ -12,6 +12,7 @@
 #include "imiv_ocio.h"
 #include "imiv_test_engine.h"
 #include "imiv_ui.h"
+#include "imiv_ui_metrics.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -190,8 +191,10 @@ namespace {
             return;
         }
 
-        const float ratio = std::clamp(200.0f / dockspace_node->Size.x, 0.12f,
-                                       0.35f);
+        const float ratio = std::clamp(UiMetrics::ImageList::kDockTargetWidth
+                                           / dockspace_node->Size.x,
+                                       UiMetrics::ImageList::kDockMinRatio,
+                                       UiMetrics::ImageList::kDockMaxRatio);
         ImGuiID image_list_dock_id = 0;
         ImGuiID image_view_dock_id = dockspace_id;
         ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, ratio,
@@ -823,13 +826,15 @@ namespace {
         } else {
             const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
             if (main_viewport != nullptr) {
-                ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 24.0f,
-                                               main_viewport->WorkPos.y + 72.0f),
-                                        reset_layout ? ImGuiCond_Always
-                                                     : ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowPos(
+                    ImVec2(main_viewport->WorkPos.x
+                               + UiMetrics::ImageList::kFloatingOffset.x,
+                           main_viewport->WorkPos.y
+                               + UiMetrics::ImageList::kFloatingOffset.y),
+                    reset_layout ? ImGuiCond_Always : ImGuiCond_FirstUseEver);
             }
         }
-        ImGui::SetNextWindowSize(ImVec2(200.0f, 420.0f),
+        ImGui::SetNextWindowSize(UiMetrics::ImageList::kDefaultWindowSize,
                                  reset_layout ? ImGuiCond_Always
                                               : ImGuiCond_FirstUseEver);
         if (!ImGui::Begin(k_image_list_window_title,
@@ -1617,8 +1622,9 @@ draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,
                                              ui_state);
 #endif
     clamp_placeholder_ui_state(ui_state);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 4.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
+                        UiMetrics::kAppFramePadding);
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, UiMetrics::kAppItemSpacing);
 
     if (!viewer.image.path.empty()) {
         ui_state.subimage_index = viewer.image.subimage;

@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "imiv_ui.h"
+#include "imiv_ui_metrics.h"
 
 #include "imiv_actions.h"
 #include "imiv_test_engine.h"
@@ -262,9 +263,9 @@ namespace {
         ImFont* draw_font     = font ? font : ImGui::GetFont();
         const float font_size = draw_font ? draw_font->LegacySize
                                           : ImGui::GetFontSize();
-        const float pad_x     = 10.0f;
-        const float pad_y     = 8.0f;
-        const float line_gap  = 2.0f;
+        const float pad_x     = UiMetrics::OverlayPanel::kPadX;
+        const float pad_y     = UiMetrics::OverlayPanel::kPadY;
+        const float line_gap  = UiMetrics::OverlayPanel::kLineGap;
         const float line_h    = draw_font ? draw_font->LegacySize
                                           : ImGui::GetTextLineHeight();
 
@@ -296,9 +297,12 @@ namespace {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         draw_list->PushClipRect(clip_min, clip_max, true);
         draw_list->AddRectFilled(pos, ImVec2(pos.x + panel_w, pos.y + panel_h),
-                                 IM_COL32(20, 24, 30, 224), 4.0f);
+                                 IM_COL32(20, 24, 30, 224),
+                                 UiMetrics::OverlayPanel::kCornerRounding);
         draw_list->AddRect(pos, ImVec2(pos.x + panel_w, pos.y + panel_h),
-                           IM_COL32(175, 185, 205, 255), 4.0f, 0, 1.0f);
+                           IM_COL32(175, 185, 205, 255),
+                           UiMetrics::OverlayPanel::kCornerRounding, 0,
+                           UiMetrics::OverlayPanel::kBorderThickness);
 
         ImVec2 text_pos(pos.x + pad_x, pos.y + pad_y);
         for (const std::string& line : lines) {
@@ -317,7 +321,7 @@ namespace {
     void draw_corner_marker(ImDrawList* draw_list, const ImVec2& p0,
                             const ImVec2& p1, ImU32 color)
     {
-        const float corner_size = 4.0f;
+        const float corner_size = UiMetrics::OverlayPanel::kCornerMarkerSize;
         draw_list->AddLine(p0, ImVec2(p0.x + corner_size, p0.y), color, 1.0f);
         draw_list->AddLine(p0, ImVec2(p0.x, p0.y + corner_size), color, 1.0f);
         draw_list->AddLine(ImVec2(p1.x - corner_size, p0.y), ImVec2(p1.x, p0.y),
@@ -636,17 +640,18 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
         (void)sample_count;
     }
 
-    const float closeup_window_size = 260.0f;
-    const float follow_mouse_offset = 15.0f;
-    const float corner_padding      = 5.0f;
-    const float text_pad_x          = 10.0f;
-    const float text_pad_y          = 8.0f;
-    const float text_line_gap       = 2.0f;
-    const float text_to_window_gap  = 2.0f;
-    const float text_wrap_w         = std::max(8.0f,
-                                               closeup_window_size - text_pad_x * 2.0f);
-    ImFont* text_font          = fonts.mono ? fonts.mono : ImGui::GetFont();
-    const float text_font_size = 13.5f;
+    const float closeup_window_size = UiMetrics::PixelCloseup::kWindowSize;
+    const float follow_mouse_offset
+        = UiMetrics::PixelCloseup::kFollowMouseOffset;
+    const float corner_padding     = UiMetrics::PixelCloseup::kCornerPadding;
+    const float text_pad_x         = UiMetrics::PixelCloseup::kTextPadX;
+    const float text_pad_y         = UiMetrics::PixelCloseup::kTextPadY;
+    const float text_line_gap      = UiMetrics::PixelCloseup::kTextLineGap;
+    const float text_to_window_gap = UiMetrics::PixelCloseup::kTextToWindowGap;
+    const float text_wrap_w        = std::max(8.0f,
+                                              closeup_window_size - text_pad_x * 2.0f);
+    ImFont* text_font              = fonts.mono ? fonts.mono : ImGui::GetFont();
+    const float text_font_size     = UiMetrics::PixelCloseup::kFontSize;
 
     float text_panel_h = text_pad_y * 2.0f;
     for (const std::string& line : lines) {
@@ -733,9 +738,11 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     draw_list->PushClipRect(map.viewport_rect_min, map.viewport_rect_max, true);
     draw_list->AddRectFilled(closeup_min, closeup_max,
-                             IM_COL32(20, 24, 30, 224), 4.0f);
+                             IM_COL32(20, 24, 30, 224),
+                             UiMetrics::OverlayPanel::kCornerRounding);
     draw_list->AddRect(closeup_min, closeup_max, IM_COL32(175, 185, 205, 255),
-                       4.0f, 0, 1.0f);
+                       UiMetrics::OverlayPanel::kCornerRounding, 0,
+                       UiMetrics::OverlayPanel::kBorderThickness);
 
     const bool render_zoom_patch = has_closeup_texture
                                    && !viewer.image.path.empty()
@@ -830,9 +837,10 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
     }
 
     draw_list->AddRectFilled(text_min, text_max, IM_COL32(20, 24, 30, 224),
-                             4.0f);
-    draw_list->AddRect(text_min, text_max, IM_COL32(175, 185, 205, 255), 4.0f,
-                       0, 1.0f);
+                             UiMetrics::OverlayPanel::kCornerRounding);
+    draw_list->AddRect(text_min, text_max, IM_COL32(175, 185, 205, 255),
+                       UiMetrics::OverlayPanel::kCornerRounding, 0,
+                       UiMetrics::OverlayPanel::kBorderThickness);
     ImVec2 text_pos(text_min.x + text_pad_x, text_min.y + text_pad_y);
     for (size_t i = 0; i < lines.size(); ++i) {
         const std::string& line = lines[i];
@@ -921,15 +929,15 @@ draw_area_probe_overlay(const ViewerState& viewer,
                                        map.viewport_rect_max.x);
     const float clip_max_y  = std::max(map.viewport_rect_min.y,
                                        map.viewport_rect_max.y);
-    const float pad_y       = 8.0f;
-    const float line_gap    = 2.0f;
+    const float pad_y       = UiMetrics::AreaProbe::kPadY;
+    const float line_gap    = UiMetrics::AreaProbe::kLineGap;
     const ImFont* mono_font = fonts.mono ? fonts.mono : ImGui::GetFont();
     const float line_h      = mono_font ? mono_font->LegacySize
                                         : ImGui::GetTextLineHeight();
     float panel_h = pad_y * 2.0f + static_cast<float>(lines.size()) * line_h
                     + static_cast<float>(std::max<size_t>(0, lines.size() - 1))
                           * line_gap;
-    const float border_margin = 9.0f;
+    const float border_margin = UiMetrics::AreaProbe::kBorderMargin;
     ImVec2 preferred(clip_min_x + border_margin,
                      clip_max_y - panel_h - border_margin);
     const OverlayPanelRect panel
@@ -958,7 +966,8 @@ draw_embedded_status_bar(ViewerState& viewer, PlaceholderUiState& ui)
                                   | ImGuiTableFlags_PadOuterX
                                   | ImGuiTableFlags_SizingStretchProp
                                   | ImGuiTableFlags_NoSavedSettings;
-    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 4.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,
+                        UiMetrics::kStatusBarCellPadding);
     if (ImGui::BeginTable("##imiv_status_bar", columns, table_flags)) {
         ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthStretch,
                                 2.2f);
@@ -968,11 +977,11 @@ draw_embedded_status_bar(ViewerState& viewer, PlaceholderUiState& ui)
                                 2.2f);
         if (show_progress) {
             ImGui::TableSetupColumn("Load", ImGuiTableColumnFlags_WidthFixed,
-                                    140.0f);
+                                    UiMetrics::StatusBar::kLoadColumnWidth);
         }
         if (ui.show_mouse_mode_selector) {
             ImGui::TableSetupColumn("Mouse", ImGuiTableColumnFlags_WidthFixed,
-                                    150.0f);
+                                    UiMetrics::StatusBar::kMouseColumnWidth);
         }
 
         ImGui::TableNextRow();

@@ -7,6 +7,7 @@
 #include "imiv_actions.h"
 #include "imiv_renderer.h"
 #include "imiv_test_engine.h"
+#include "imiv_ui_metrics.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -111,10 +112,12 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
                            bool recenter_requested)
 {
     const float status_bar_height
-        = std::max(30.0f, ImGui::GetTextLineHeightWithSpacing()
-                              + ImGui::GetStyle().FramePadding.y * 2.0f + 8.0f);
+        = std::max(UiMetrics::StatusBar::kMinHeight,
+                   ImGui::GetTextLineHeightWithSpacing()
+                       + ImGui::GetStyle().FramePadding.y * 2.0f
+                       + UiMetrics::StatusBar::kExtraHeight);
     ImVec2 content_avail   = ImGui::GetContentRegionAvail();
-    const float viewport_h = std::max(64.0f,
+    const float viewport_h = std::max(UiMetrics::ImageView::kViewportMinHeight,
                                       content_avail.y - status_bar_height);
 
     const ImVec2 viewport_padding(0.0f, 0.0f);
@@ -510,7 +513,8 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
     viewer.last_viewport_size = ImVec2(content_avail.x, viewport_h);
     ImGui::Separator();
     register_layout_dump_synthetic_item("divider", "Main viewport");
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 4.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+                        UiMetrics::kStatusBarPadding);
     ImGui::BeginChild("StatusBarRegion", ImVec2(0.0f, status_bar_height), false,
                       ImGuiWindowFlags_NoScrollbar
                           | ImGuiWindowFlags_NoScrollWithMouse);
