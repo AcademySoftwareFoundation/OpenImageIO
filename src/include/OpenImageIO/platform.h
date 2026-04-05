@@ -466,6 +466,14 @@
 #    define OIIO_NODISCARD
 #endif
 
+// OIIO_NODISCARD_ERROR is for functions returning error status (bool) where
+// ignoring the return is a bad practice but not always catastrophic. This is
+// initially a no-op to allow a gentle transition; it can later be defined as
+// [[nodiscard]] once downstream callers have been updated.
+#ifndef OIIO_NODISCARD_ERROR
+#    define OIIO_NODISCARD_ERROR /* nothing for now */
+#endif
+
 
 // OIIO_NO_SANITIZE_ADDRESS can be used to mark a function that you don't
 // want address sanitizer to catch. Only use this if you know there are

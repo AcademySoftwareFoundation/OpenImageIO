@@ -1051,16 +1051,18 @@ public:
     ///         A `unique_ptr` that will close and free the ImageInput when
     ///         it exits scope or is reset. The pointer will be empty if the
     ///         required writer was not able to be created.
-    static unique_ptr create (string_view filename, bool do_open=false,
-                              const ImageSpec *config=nullptr,
-                              Filesystem::IOProxy* ioproxy = nullptr,
-                              string_view plugin_searchpath = "");
+    OIIO_NODISCARD static unique_ptr create (string_view filename,
+                                             bool do_open=false,
+                                             const ImageSpec *config=nullptr,
+                                             Filesystem::IOProxy* ioproxy = nullptr,
+                                             string_view plugin_searchpath = "");
 
     /// Create an ImageInput using a UTF-16 encoded wstring filename.
-    static unique_ptr create (const std::wstring& filename, bool do_open=false,
-                              const ImageSpec *config=nullptr,
-                              Filesystem::IOProxy* ioproxy = nullptr,
-                              string_view plugin_searchpath = "") {
+    OIIO_NODISCARD static unique_ptr create (const std::wstring& filename,
+                                             bool do_open=false,
+                                             const ImageSpec *config=nullptr,
+                                             Filesystem::IOProxy* ioproxy = nullptr,
+                                             string_view plugin_searchpath = "") {
         return create(Strutil::utf16_to_utf8(filename), do_open, config,
                       ioproxy, plugin_searchpath);
     }
@@ -1180,10 +1182,11 @@ public:
     ///
     /// @returns
     ///         `true` if the file was found and opened successfully.
-    virtual bool open (const std::string& name, ImageSpec &newspec) = 0;
+    OIIO_NODISCARD virtual bool open (const std::string& name,
+                                      ImageSpec &newspec) = 0;
 
     /// Open the ImageInput using a UTF-16 encoded wstring filename.
-    bool open (const std::wstring& name, ImageSpec &newspec) {
+    OIIO_NODISCARD bool open (const std::wstring& name, ImageSpec &newspec) {
         return open(Strutil::utf16_to_utf8(name), newspec);
     }
 
@@ -1207,13 +1210,14 @@ public:
     ///
     /// @returns
     ///         `true` if the file was found and opened successfully.
-    virtual bool open (const std::string& name, ImageSpec &newspec,
-                       const ImageSpec& config OIIO_MAYBE_UNUSED) {
+    OIIO_NODISCARD virtual bool open (const std::string& name,
+                                      ImageSpec &newspec,
+                                      const ImageSpec& config OIIO_MAYBE_UNUSED) {
         return open(name,newspec);
     }
     /// Open the ImageInput using a UTF-16 encoded wstring filename.
-    bool open (const std::wstring& name, ImageSpec &newspec,
-               const ImageSpec& config OIIO_MAYBE_UNUSED) {
+    OIIO_NODISCARD bool open (const std::wstring& name, ImageSpec &newspec,
+                              const ImageSpec& config OIIO_MAYBE_UNUSED) {
         return open(name,newspec);
     }
 
@@ -1411,15 +1415,17 @@ public:
     ///                     y, and z).
     /// @returns            `true` upon success, or `false` upon failure.
     ///
-    virtual bool read_image(int subimage, int miplevel, int chbegin, int chend,
-                            TypeDesc format, const image_span<std::byte>& data);
+    OIIO_NODISCARD_ERROR virtual bool read_image(int subimage, int miplevel,
+                                           int chbegin, int chend,
+                                           TypeDesc format,
+                                           const image_span<std::byte>& data);
 
     /// A version of `read_image()` taking an `image_span<T>`, where the type
     /// of the underlying data is `T`.  This is a convenience wrapper around
     /// the `read_image()` that takes an `image_span<std::byte>`.
     template<typename T>
-    bool read_image(int subimage, int miplevel, int chbegin, int chend,
-                    const image_span<T>& data)
+    OIIO_NODISCARD_ERROR bool read_image(int subimage, int miplevel, int chbegin,
+                                   int chend, const image_span<T>& data)
     {
         static_assert(!std::is_const_v<T>,
                       "read_image() does not accept image_span<const T>");
@@ -1432,8 +1438,8 @@ public:
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `read_image()` that takes an `image_span<T>`.
     template<typename T>
-    bool read_image(int subimage, int miplevel, int chbegin, int chend,
-                    span<T> data)
+    OIIO_NODISCARD_ERROR bool read_image(int subimage, int miplevel, int chbegin,
+                                   int chend, span<T> data)
     {
         static_assert(!std::is_const_v<T>,
                       "read_image() does not accept span<const T>");
@@ -1480,17 +1486,19 @@ public:
     /// Added in OIIO 3.1, this is the "safe" preferred alternative to
     /// the version of read_scanlines that takes raw pointers.
     ///
-    virtual bool read_scanlines(int subimage, int miplevel, int ybegin,
-                                int yend, int chbegin, int chend,
-                                TypeDesc format,
-                                const image_span<std::byte>& data);
+    OIIO_NODISCARD_ERROR virtual bool read_scanlines(int subimage, int miplevel,
+                                               int ybegin, int yend,
+                                               int chbegin, int chend,
+                                               TypeDesc format,
+                                               const image_span<std::byte>& data);
 
     /// A version of `read_scanlines()` taking an `image_span<T>`, where the
     /// type of the underlying data is `T`.  This is a convenience wrapper
     /// around the `read_scanlines()` that takes an `image_span<std::byte>`.
     template<typename T>
-    bool read_scanlines(int subimage, int miplevel, int ybegin, int yend,
-                        int chbegin, int chend, const image_span<T>& data)
+    OIIO_NODISCARD_ERROR bool read_scanlines(int subimage, int miplevel, int ybegin,
+                                       int yend, int chbegin, int chend,
+                                       const image_span<T>& data)
     {
         static_assert(!std::is_const_v<T>,
                       "read_scanlines() does not accept span<const T>");
@@ -1504,8 +1512,9 @@ public:
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `read_scanlines()` that takes an `image_span<T>`.
     template<typename T>
-    bool read_scanlines(int subimage, int miplevel, int ybegin, int yend,
-                        int chbegin, int chend, span<T> data)
+    OIIO_NODISCARD_ERROR bool read_scanlines(int subimage, int miplevel, int ybegin,
+                                       int yend, int chbegin, int chend,
+                                       span<T> data)
     {
         static_assert(!std::is_const_v<T>,
                       "read_scanlines() does not accept span<const T>");
@@ -1773,12 +1782,12 @@ public:
     ///
     /// @note This call was changed for OpenImageIO 2.0 to include the
     ///     explicit subimage and miplevel parameters.
-    virtual bool read_scanlines (int subimage, int miplevel,
-                                 int ybegin, int yend, int z,
-                                 int chbegin, int chend,
-                                 TypeDesc format, void *data,
-                                 stride_t xstride=AutoStride,
-                                 stride_t ystride=AutoStride);
+    OIIO_NODISCARD_ERROR virtual bool read_scanlines (int subimage, int miplevel,
+                                                int ybegin, int yend, int z,
+                                                int chbegin, int chend,
+                                                TypeDesc format, void *data,
+                                                stride_t xstride=AutoStride,
+                                                stride_t ystride=AutoStride);
 
     /// Read the tile whose upper-left origin is (x,y,z) into `data[]`,
     /// converting if necessary from the native data format of the file into
@@ -1904,14 +1913,14 @@ public:
     /// @param  progress_callback/progress_callback_data
     ///                     Optional progress callback.
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool read_image (int subimage, int miplevel,
-                             int chbegin, int chend,
-                             TypeDesc format, void *data,
-                             stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride,
-                             ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
+    OIIO_NODISCARD_ERROR virtual bool read_image (int subimage, int miplevel,
+                                            int chbegin, int chend,
+                                            TypeDesc format, void *data,
+                                            stride_t xstride=AutoStride,
+                                            stride_t ystride=AutoStride,
+                                            stride_t zstride=AutoStride,
+                                            ProgressCallback progress_callback=NULL,
+                                            void *progress_callback_data=NULL);
 
     /// @}
 
