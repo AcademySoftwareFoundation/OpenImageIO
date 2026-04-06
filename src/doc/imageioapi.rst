@@ -378,7 +378,10 @@ inside the source code.
     image formats (uint8, uint16, int8, int16, uint32, int32, etc.) and provide
     additional speedup for scale-invariant operations (add, sub, min, max,
     absdiff) that can operate directly on integer data without float conversion.
-    (This was added in OpenImageIO 3.1.)
+
+    This was added in OpenImageIO 3.2.
+
+    NOTE: This is currently disabled by default while we are testing!
 
 .. cpp:var:: OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH
 

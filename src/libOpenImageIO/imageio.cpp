@@ -53,7 +53,14 @@ int png_linear_premult(0);
 int tiff_half(0);
 int tiff_multithread(1);
 int dds_bc5normal(0);
-int enable_hwy(1);  // Enable Google Highway SIMD optimizations by default
+#if OIIO_USE_HWY
+// hwy enabled at build time, but allow env var to override at runtime While
+// we're still testing, default to disabled. We intend to change the default
+// to be enabled in time for the release of 3.2.
+int enable_hwy = Strutil::stoi(Sysutil::getenv("OPENIMAGEIO_ENABLE_HWY", "0"));
+#else
+int enable_hwy = 0;  // Not enabled at build time
+#endif
 int limit_channels(1024);
 int limit_imagesize_MB(std::min(32 * 1024,
                                 int(Sysutil::physical_memory() >> 20)));
@@ -407,7 +414,9 @@ attribute(string_view name, TypeDesc type, const void* val)
         return true;
     }
     if (name == "enable_hwy" && type == TypeInt) {
+#if OIIO_USE_HWY
         enable_hwy = *(const int*)val;
+#endif
         return true;
     }
     if (name == "limits:channels" && type == TypeInt) {
