@@ -154,9 +154,7 @@ ImageBuf_setpixel(ImageBuf& buf, int x, int y, int z, py::object p)
 
 void
 ImageBuf_setpixel2(ImageBuf& buf, int x, int y, py::object p)
-{
-    ImageBuf_setpixel(buf, x, y, 0, p);
-}
+{ ImageBuf_setpixel(buf, x, y, 0, p); }
 
 
 void
@@ -194,16 +192,12 @@ ImageBuf_get_pixels(const ImageBuf& buf, TypeDesc format, ROI roi = ROI::All())
 void
 ImageBuf_set_deep_value(ImageBuf& buf, int x, int y, int z, int c, int s,
                         float value)
-{
-    buf.set_deep_value(x, y, z, c, s, value);
-}
+{ buf.set_deep_value(x, y, z, c, s, value); }
 
 void
 ImageBuf_set_deep_value_uint(ImageBuf& buf, int x, int y, int z, int c, int s,
                              uint32_t value)
-{
-    buf.set_deep_value(x, y, z, c, s, value);
-}
+{ buf.set_deep_value(x, y, z, c, s, value); }
 
 
 
@@ -271,7 +265,7 @@ ImageBuf_repr_png(const ImageBuf& self)
     std::unique_ptr<ImageOutput> out = ImageOutput::create("temp.png",
                                                            &file_vec);
     if (!out || !out->open("temp.png", altered_spec))
-        return py::none();
+        return py::bytes();
     self.write(out.get());
     out->close();
 

@@ -33,9 +33,7 @@ public:
     ~JpgOutput() override { close(); }
     const char* format_name(void) const override { return "jpeg"; }
     int supports(string_view feature) const override
-    {
-        return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
-    }
+    { return (feature == "exif" || feature == "iptc" || feature == "ioproxy"); }
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode = Create) override;
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
@@ -104,9 +102,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
 jpeg_output_imageio_create()
-{
-    return new JpgOutput;
-}
+{ return new JpgOutput; }
 
 OIIO_EXPORT const char* jpeg_output_extensions[]
     = { "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", nullptr };
@@ -582,17 +578,14 @@ JpgOutput::copy_image(ImageInput* in)
         close();
         m_copy_coeffs       = (jvirt_barray_ptr*)jpg_in->coeffs();
         m_copy_decompressor = &jpg_in->m_cinfo;
-        if (!open(out_name, orig_out_spec))
-            return false;
-
+        bool ok             = open(out_name, orig_out_spec);
         // Strangeness -- the write_coefficients somehow sets things up
         // so that certain writes only happen in close(), which MUST
         // happen while the input file is still open.  So we go ahead
         // and close() now, so that the caller of copy_image() doesn't
         // close the input file first and then wonder why they crashed.
         close();
-
-        return true;
+        return ok;
     }
 
     return ImageOutput::copy_image(in);

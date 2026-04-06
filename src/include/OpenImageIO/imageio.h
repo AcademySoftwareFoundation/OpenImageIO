@@ -1415,17 +1415,17 @@ public:
     ///                     y, and z).
     /// @returns            `true` upon success, or `false` upon failure.
     ///
-    OIIO_NODISCARD_ERROR virtual bool read_image(int subimage, int miplevel,
-                                           int chbegin, int chend,
-                                           TypeDesc format,
-                                           const image_span<std::byte>& data);
+    OIIO_NODISCARD_ERROR virtual bool
+    read_image(int subimage, int miplevel, int chbegin, int chend,
+               TypeDesc format, const image_span<std::byte>& data);
 
     /// A version of `read_image()` taking an `image_span<T>`, where the type
     /// of the underlying data is `T`.  This is a convenience wrapper around
     /// the `read_image()` that takes an `image_span<std::byte>`.
     template<typename T>
-    OIIO_NODISCARD_ERROR bool read_image(int subimage, int miplevel, int chbegin,
-                                   int chend, const image_span<T>& data)
+    OIIO_NODISCARD_ERROR bool read_image(int subimage, int miplevel,
+                                         int chbegin, int chend,
+                                         const image_span<T>& data)
     {
         static_assert(!std::is_const_v<T>,
                       "read_image() does not accept image_span<const T>");
@@ -1438,8 +1438,8 @@ public:
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `read_image()` that takes an `image_span<T>`.
     template<typename T>
-    OIIO_NODISCARD_ERROR bool read_image(int subimage, int miplevel, int chbegin,
-                                   int chend, span<T> data)
+    OIIO_NODISCARD_ERROR bool read_image(int subimage, int miplevel,
+                                         int chbegin, int chend, span<T> data)
     {
         static_assert(!std::is_const_v<T>,
                       "read_image() does not accept span<const T>");
@@ -1486,19 +1486,18 @@ public:
     /// Added in OIIO 3.1, this is the "safe" preferred alternative to
     /// the version of read_scanlines that takes raw pointers.
     ///
-    OIIO_NODISCARD_ERROR virtual bool read_scanlines(int subimage, int miplevel,
-                                               int ybegin, int yend,
-                                               int chbegin, int chend,
-                                               TypeDesc format,
-                                               const image_span<std::byte>& data);
+    OIIO_NODISCARD_ERROR virtual bool
+    read_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                   int chbegin, int chend, TypeDesc format,
+                   const image_span<std::byte>& data);
 
     /// A version of `read_scanlines()` taking an `image_span<T>`, where the
     /// type of the underlying data is `T`.  This is a convenience wrapper
     /// around the `read_scanlines()` that takes an `image_span<std::byte>`.
     template<typename T>
-    OIIO_NODISCARD_ERROR bool read_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int chbegin, int chend,
-                                       const image_span<T>& data)
+    OIIO_NODISCARD_ERROR bool
+    read_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                   int chbegin, int chend, const image_span<T>& data)
     {
         static_assert(!std::is_const_v<T>,
                       "read_scanlines() does not accept span<const T>");
@@ -1512,9 +1511,9 @@ public:
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `read_scanlines()` that takes an `image_span<T>`.
     template<typename T>
-    OIIO_NODISCARD_ERROR bool read_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int chbegin, int chend,
-                                       span<T> data)
+    OIIO_NODISCARD_ERROR bool read_scanlines(int subimage, int miplevel,
+                                             int ybegin, int yend, int chbegin,
+                                             int chend, span<T> data)
     {
         static_assert(!std::is_const_v<T>,
                       "read_scanlines() does not accept span<const T>");
@@ -4704,6 +4703,6 @@ OIIO_NAMESPACE_END
 
 #if FMT_VERSION >= 100000
 FMT_BEGIN_NAMESPACE
-template<> struct formatter<OIIO::ROI> : ostream_formatter {};
+template<> struct formatter<OIIO::ROI> : ostream_formatter { };
 FMT_END_NAMESPACE
 #endif
