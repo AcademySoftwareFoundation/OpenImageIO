@@ -7,6 +7,7 @@
 #include "imiv_loaded_image.h"
 #include "imiv_ocio.h"
 #include "imiv_platform_glfw.h"
+#include "imiv_preview_shader_text.h"
 #include "imiv_tiling.h"
 #include "imiv_viewer.h"
 
@@ -144,15 +145,15 @@ namespace {
     }
 
     struct RendererTextureBackendState {
-        GLuint source_texture                         = 0;
-        GLuint preview_linear_texture                 = 0;
-        GLuint preview_nearest_texture                = 0;
-        int width                                     = 0;
-        int height                                    = 0;
-        int input_channels                            = 0;
-        bool preview_dirty                            = true;
-        bool preview_params_valid                     = false;
-        RendererPreviewControls last_preview_controls = {};
+        GLuint source_texture                 = 0;
+        GLuint preview_linear_texture         = 0;
+        GLuint preview_nearest_texture        = 0;
+        int width                             = 0;
+        int height                            = 0;
+        int input_channels                    = 0;
+        bool preview_dirty                    = true;
+        bool preview_params_valid             = false;
+        PreviewControls last_preview_controls = {};
         std::string last_ocio_shader_cache_id;
     };
 
@@ -336,8 +337,8 @@ namespace {
 #endif
     }
 
-    bool preview_controls_equal(const RendererPreviewControls& a,
-                                const RendererPreviewControls& b)
+    bool preview_controls_equal(const PreviewControls& a,
+                                const PreviewControls& b)
     {
         return std::abs(a.exposure - b.exposure) < 1.0e-6f
                && std::abs(a.gamma - b.gamma) < 1.0e-6f
@@ -431,6 +432,76 @@ namespace {
         if (log_length > 0)
             glGetProgramInfoLog(program, log_length, nullptr, log.data());
         error_message = log.empty() ? "OpenGL program link failed" : log;
+        return false;
+    }
+
+    bool create_shader_program(const char* glsl_version,
+                               const std::string& vertex_source,
+                               const std::string& fragment_source,
+                               const char* create_shader_error,
+                               const char* create_program_error,
+                               GLuint& program, std::string& error_message)
+    {
+        program                = 0;
+        GLuint vertex_shader   = glCreateShader(GL_VERTEX_SHADER);
+        GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+        if (vertex_shader == 0 || fragment_shader == 0) {
+            if (vertex_shader != 0)
+                glDeleteShader(vertex_shader);
+            if (fragment_shader != 0)
+                glDeleteShader(fragment_shader);
+            error_message = create_shader_error;
+            return false;
+        }
+
+        const char* vertex_sources[]   = { glsl_version, "\n",
+                                           vertex_source.c_str() };
+        const char* fragment_sources[] = { glsl_version, "\n",
+                                           fragment_source.c_str() };
+        bool ok = compile_shader(vertex_shader, vertex_sources, 3,
+                                 error_message)
+                  && compile_shader(fragment_shader, fragment_sources, 3,
+                                    error_message);
+        if (!ok) {
+            glDeleteShader(vertex_shader);
+            glDeleteShader(fragment_shader);
+            return false;
+        }
+
+        program = glCreateProgram();
+        if (program == 0) {
+            glDeleteShader(vertex_shader);
+            glDeleteShader(fragment_shader);
+            error_message = create_program_error;
+            return false;
+        }
+
+        glAttachShader(program, vertex_shader);
+        glAttachShader(program, fragment_shader);
+        ok = link_program(program, error_message);
+        glDetachShader(program, vertex_shader);
+        glDetachShader(program, fragment_shader);
+        glDeleteShader(vertex_shader);
+        glDeleteShader(fragment_shader);
+        if (!ok) {
+            glDeleteProgram(program);
+            program = 0;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool create_vertex_array_resource(GLuint& vao, const char* create_error,
+                                      std::string& error_message)
+    {
+        vao = 0;
+        glGenVertexArrays(1, &vao);
+        if (vao != 0) {
+            error_message.clear();
+            return true;
+        }
+        error_message = create_error;
         return false;
     }
 
@@ -654,91 +725,36 @@ namespace {
             return false;
         }
 
-        shader_source = OIIO::Strutil::fmt::format(
-            R"glsl(
-in vec2 uv_in;
-out vec4 out_color;
-
-uniform sampler2D u_source_image;
-uniform int u_input_channels;
-uniform float u_offset;
-uniform int u_color_mode;
-uniform int u_channel;
-uniform int u_orientation;
-
-vec2 display_to_source_uv(vec2 uv, int orientation)
-{{
-    if (orientation == 2)
-        return vec2(1.0 - uv.x, uv.y);
-    if (orientation == 3)
-        return vec2(1.0 - uv.x, 1.0 - uv.y);
-    if (orientation == 4)
-        return vec2(uv.x, 1.0 - uv.y);
-    if (orientation == 5)
-        return vec2(uv.y, uv.x);
-    if (orientation == 6)
-        return vec2(uv.y, 1.0 - uv.x);
-    if (orientation == 7)
-        return vec2(1.0 - uv.y, 1.0 - uv.x);
-    if (orientation == 8)
-        return vec2(1.0 - uv.y, uv.x);
-    return uv;
-}}
-
-float selected_channel(vec4 c, int channel)
-{{
-    if (channel == 1)
-        return c.r;
-    if (channel == 2)
-        return c.g;
-    if (channel == 3)
-        return c.b;
-    if (channel == 4)
-        return c.a;
-    return c.r;
-}}
-
-vec3 heatmap(float x)
-{{
-    float t = clamp(x, 0.0, 1.0);
-    vec3 a = vec3(0.0, 0.0, 0.5);
-    vec3 b = vec3(0.0, 0.9, 1.0);
-    vec3 c = vec3(1.0, 1.0, 0.0);
-    vec3 d = vec3(1.0, 0.0, 0.0);
-    if (t < 0.33)
-        return mix(a, b, t / 0.33);
-    if (t < 0.66)
-        return mix(b, c, (t - 0.33) / 0.33);
-    return mix(c, d, (t - 0.66) / 0.34);
-}}
-
-{}
+        shader_source = glsl_preview_fragment_preamble(false);
+        shader_source += "\n";
+        shader_source += blueprint.shader_text;
+        shader_source += R"glsl(
 
 void main()
-{{
+{
     vec2 src_uv = display_to_source_uv(uv_in, u_orientation);
     vec4 c = texture(u_source_image, src_uv);
     if (u_input_channels == 2)
         c = vec4(c.rrr, c.g);
     c.rgb += vec3(u_offset);
 
-    if (u_color_mode == 1) {{
+    if (u_color_mode == 1) {
         c.a = 1.0;
-    }} else if (u_color_mode == 2) {{
+    } else if (u_color_mode == 2) {
         float v = selected_channel(c, u_channel);
         c = vec4(v, v, v, 1.0);
-    }} else if (u_color_mode == 3) {{
+    } else if (u_color_mode == 3) {
         float y = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
         c = vec4(y, y, y, 1.0);
-    }} else if (u_color_mode == 4) {{
+    } else if (u_color_mode == 4) {
         float v = selected_channel(c, u_channel);
         c = vec4(heatmap(v), 1.0);
-    }}
+    }
 
-    if (u_channel > 0 && u_color_mode != 2 && u_color_mode != 4) {{
+    if (u_channel > 0 && u_color_mode != 2 && u_color_mode != 4) {
         float v = selected_channel(c, u_channel);
         c = vec4(v, v, v, 1.0);
-    }}
+    }
 
     if (u_input_channels == 1 && u_color_mode <= 1)
         c = vec4(c.rrr, 1.0);
@@ -747,10 +763,11 @@ void main()
     else if (u_input_channels == 2 && u_color_mode == 1)
         c = vec4(c.rrr, 1.0);
 
-    out_color = {}(c);
-}}
-)glsl",
-            blueprint.shader_text, blueprint.function_name);
+    out_color = )glsl";
+        shader_source += blueprint.function_name;
+        shader_source += R"glsl((c);
+}
+)glsl";
         return true;
     }
 
@@ -790,64 +807,14 @@ void main()
             return false;
         }
 
-        static const char* vertex_source = R"glsl(
-out vec2 uv_in;
-
-void main()
-{
-    vec2 pos = vec2(-1.0, -1.0);
-    if (gl_VertexID == 1)
-        pos = vec2(3.0, -1.0);
-    else if (gl_VertexID == 2)
-        pos = vec2(-1.0, 3.0);
-
-    uv_in = pos * 0.5 + 0.5;
-    gl_Position = vec4(pos, 0.0, 1.0);
-}
-)glsl";
-
-        GLuint vertex_shader   = glCreateShader(GL_VERTEX_SHADER);
-        GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-        if (vertex_shader == 0 || fragment_shader == 0) {
-            if (vertex_shader != 0)
-                glDeleteShader(vertex_shader);
-            if (fragment_shader != 0)
-                glDeleteShader(fragment_shader);
-            error_message = "failed to create OpenGL OCIO shader objects";
-            return false;
-        }
-
-        const char* vertex_sources[]   = { state.glsl_version, "\n",
-                                           vertex_source };
-        const char* fragment_sources[] = { state.glsl_version, "\n",
-                                           fragment_source.c_str() };
-        bool ok = compile_shader(vertex_shader, vertex_sources, 3,
-                                 error_message)
-                  && compile_shader(fragment_shader, fragment_sources, 3,
-                                    error_message);
-        if (!ok) {
-            glDeleteShader(vertex_shader);
-            glDeleteShader(fragment_shader);
-            return false;
-        }
-
-        GLuint program = glCreateProgram();
-        if (program == 0) {
-            glDeleteShader(vertex_shader);
-            glDeleteShader(fragment_shader);
-            error_message = "failed to create OpenGL OCIO program";
-            return false;
-        }
-
-        glAttachShader(program, vertex_shader);
-        glAttachShader(program, fragment_shader);
-        ok = link_program(program, error_message);
-        glDetachShader(program, vertex_shader);
-        glDetachShader(program, fragment_shader);
-        glDeleteShader(vertex_shader);
-        glDeleteShader(fragment_shader);
-        if (!ok) {
-            glDeleteProgram(program);
+        const std::string vertex_source
+            = glsl_fullscreen_triangle_vertex_shader();
+        GLuint program = 0;
+        if (!create_shader_program(
+                state.glsl_version, vertex_source, fragment_source,
+                "failed to create OpenGL OCIO shader objects",
+                "failed to create OpenGL OCIO program", program,
+                error_message)) {
             return false;
         }
 
@@ -911,80 +878,11 @@ void main()
         if (!ensure_extra_procs(state, error_message))
             return false;
 
-        static const char* vertex_source = R"glsl(
-out vec2 uv_in;
+        const std::string vertex_source
+            = glsl_fullscreen_triangle_vertex_shader();
 
-void main()
-{
-    vec2 pos = vec2(-1.0, -1.0);
-    if (gl_VertexID == 1)
-        pos = vec2(3.0, -1.0);
-    else if (gl_VertexID == 2)
-        pos = vec2(-1.0, 3.0);
-
-    uv_in = pos * 0.5 + 0.5;
-    gl_Position = vec4(pos, 0.0, 1.0);
-}
-)glsl";
-
-        static const char* fragment_source = R"glsl(
-in vec2 uv_in;
-out vec4 out_color;
-
-uniform sampler2D u_source_image;
-uniform int u_input_channels;
-uniform float u_exposure;
-uniform float u_gamma;
-uniform float u_offset;
-uniform int u_color_mode;
-uniform int u_channel;
-uniform int u_orientation;
-
-vec2 display_to_source_uv(vec2 uv, int orientation)
-{
-    if (orientation == 2)
-        return vec2(1.0 - uv.x, uv.y);
-    if (orientation == 3)
-        return vec2(1.0 - uv.x, 1.0 - uv.y);
-    if (orientation == 4)
-        return vec2(uv.x, 1.0 - uv.y);
-    if (orientation == 5)
-        return vec2(uv.y, uv.x);
-    if (orientation == 6)
-        return vec2(uv.y, 1.0 - uv.x);
-    if (orientation == 7)
-        return vec2(1.0 - uv.y, 1.0 - uv.x);
-    if (orientation == 8)
-        return vec2(1.0 - uv.y, uv.x);
-    return uv;
-}
-
-float selected_channel(vec4 c, int channel)
-{
-    if (channel == 1)
-        return c.r;
-    if (channel == 2)
-        return c.g;
-    if (channel == 3)
-        return c.b;
-    if (channel == 4)
-        return c.a;
-    return c.r;
-}
-
-vec3 heatmap(float x)
-{
-    float t = clamp(x, 0.0, 1.0);
-    vec3 a = vec3(0.0, 0.0, 0.5);
-    vec3 b = vec3(0.0, 0.9, 1.0);
-    vec3 c = vec3(1.0, 1.0, 0.0);
-    vec3 d = vec3(1.0, 0.0, 0.0);
-    if (t < 0.33)
-        return mix(a, b, t / 0.33);
-    if (t < 0.66)
-        return mix(b, c, (t - 0.33) / 0.33);
-    return mix(c, d, (t - 0.66) / 0.34);
-}
+        std::string fragment_source = glsl_preview_fragment_preamble(true);
+        fragment_source += R"glsl(
 
 void main()
 {
@@ -1027,56 +925,20 @@ void main()
     out_color = c;
 }
 )glsl";
-
-        GLuint vertex_shader   = glCreateShader(GL_VERTEX_SHADER);
-        GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-        if (vertex_shader == 0 || fragment_shader == 0) {
-            if (vertex_shader != 0)
-                glDeleteShader(vertex_shader);
-            if (fragment_shader != 0)
-                glDeleteShader(fragment_shader);
-            error_message = "failed to create OpenGL shader objects";
-            return false;
-        }
-
-        const char* vertex_sources[]   = { state.glsl_version, "\n",
-                                           vertex_source };
-        const char* fragment_sources[] = { state.glsl_version, "\n",
-                                           fragment_source };
-        bool ok = compile_shader(vertex_shader, vertex_sources, 3,
-                                 error_message)
-                  && compile_shader(fragment_shader, fragment_sources, 3,
-                                    error_message);
-        if (!ok) {
-            glDeleteShader(vertex_shader);
-            glDeleteShader(fragment_shader);
-            return false;
-        }
-
-        GLuint program = glCreateProgram();
-        if (program == 0) {
-            glDeleteShader(vertex_shader);
-            glDeleteShader(fragment_shader);
-            error_message = "failed to create OpenGL preview program";
-            return false;
-        }
-        glAttachShader(program, vertex_shader);
-        glAttachShader(program, fragment_shader);
-        ok = link_program(program, error_message);
-        glDetachShader(program, vertex_shader);
-        glDetachShader(program, fragment_shader);
-        glDeleteShader(vertex_shader);
-        glDeleteShader(fragment_shader);
-        if (!ok) {
-            glDeleteProgram(program);
+        GLuint program = 0;
+        if (!create_shader_program(
+                state.glsl_version, vertex_source, fragment_source,
+                "failed to create OpenGL shader objects",
+                "failed to create OpenGL preview program", program,
+                error_message)) {
             return false;
         }
 
         GLuint vao = 0;
-        glGenVertexArrays(1, &vao);
-        if (vao == 0) {
+        if (!create_vertex_array_resource(vao,
+                                          "failed to create OpenGL preview VAO",
+                                          error_message)) {
             glDeleteProgram(program);
-            error_message = "failed to create OpenGL preview VAO";
             return false;
         }
 
@@ -1212,7 +1074,7 @@ void main()
 
     bool render_basic_preview_texture(
         RendererBackendState& state, RendererTextureBackendState& texture_state,
-        GLuint target_texture, const RendererPreviewControls& controls,
+        GLuint target_texture, const PreviewControls& controls,
         std::string& error_message)
     {
         if (!ensure_basic_preview_program(state, error_message)
@@ -1273,7 +1135,7 @@ void main()
     bool render_ocio_preview_texture(RendererBackendState& state,
                                      RendererTextureBackendState& texture_state,
                                      GLuint target_texture,
-                                     const RendererPreviewControls& controls,
+                                     const PreviewControls& controls,
                                      std::string& error_message)
     {
         if (!ensure_preview_framebuffer(state, error_message)
@@ -1669,7 +1531,7 @@ void main()
                                        RendererTexture& texture,
                                        const LoadedImage* image,
                                        const PlaceholderUiState& ui_state,
-                                       const RendererPreviewControls& controls,
+                                       const PreviewControls& controls,
                                        std::string& error_message)
     {
         RendererBackendState* state = backend_state(renderer_state);
@@ -1681,7 +1543,7 @@ void main()
             return false;
         }
 
-        RendererPreviewControls effective_controls = controls;
+        PreviewControls effective_controls = controls;
         std::string ocio_shader_cache_id;
         bool use_ocio_preview = false;
 

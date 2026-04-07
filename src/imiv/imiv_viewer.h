@@ -202,19 +202,6 @@ void
 clamp_placeholder_ui_state(PlaceholderUiState& ui_state);
 void
 reset_per_image_preview_state(ViewRecipe& recipe);
-std::filesystem::path
-persistent_state_file_path_for_load();
-std::filesystem::path
-legacy_imgui_ini_file_path();
-bool
-load_persistent_state(PlaceholderUiState& ui_state, ViewerState& viewer,
-                      ImageLibraryState& library, std::string& error_message);
-bool
-save_persistent_state(const PlaceholderUiState& ui_state,
-                      const ViewerState& viewer,
-                      const ImageLibraryState& library,
-                      const char* imgui_ini_text, size_t imgui_ini_size,
-                      std::string& error_message);
 int
 clamp_orientation(int orientation);
 void
@@ -225,53 +212,7 @@ load_image_for_compute(const std::string& path, int requested_subimage,
                        int requested_miplevel, bool rawcolor,
                        LoadedImage& image, std::string& error_message);
 bool
-collect_directory_image_paths(const std::string& directory_path,
-                              ImageSortMode sort_mode, bool sort_reverse,
-                              std::vector<std::string>& out_paths,
-                              std::string& error_message);
-bool
 should_reset_preview_on_load(const ViewerState& viewer,
                              const std::string& path);
-bool
-add_loaded_image_path(ImageLibraryState& library, const std::string& path,
-                      int* out_index = nullptr);
-bool
-append_loaded_image_paths(ImageLibraryState& library,
-                          const std::vector<std::string>& paths,
-                          int* out_first_added_index = nullptr);
-bool
-remove_loaded_image_path(ImageLibraryState& library, ViewerState* viewer,
-                         const std::string& path);
-bool
-set_current_loaded_image_path(const ImageLibraryState& library,
-                              ViewerState& viewer, const std::string& path);
-bool
-pick_loaded_image_path(const ImageLibraryState& library,
-                       const ViewerState& viewer, int delta,
-                       std::string& out_path);
-void
-sort_loaded_image_paths(ImageLibraryState& library,
-                        const std::vector<ViewerState*>& viewers);
-void
-add_recent_image_path(ImageLibraryState& library, const std::string& path);
-
-ImageViewWindow&
-ensure_primary_image_view(MultiViewWorkspace& workspace);
-ImageViewWindow*
-find_image_view(MultiViewWorkspace& workspace, int view_id);
-const ImageViewWindow*
-find_image_view(const MultiViewWorkspace& workspace, int view_id);
-ImageViewWindow*
-active_image_view(MultiViewWorkspace& workspace);
-const ImageViewWindow*
-active_image_view(const MultiViewWorkspace& workspace);
-ImageViewWindow&
-append_image_view(MultiViewWorkspace& workspace);
-void
-sync_workspace_library_state(MultiViewWorkspace& workspace,
-                             const ViewerState& source_view,
-                             const ImageLibraryState& library);
-void
-erase_closed_image_views(MultiViewWorkspace& workspace);
 
 }  // namespace Imiv

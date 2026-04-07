@@ -24,16 +24,6 @@ load_viewer_image(RendererState& renderer_state, ViewerState& viewer,
 void
 set_placeholder_status(ViewerState& viewer, const char* action);
 void
-save_as_dialog_action(ViewerState& viewer);
-void
-save_window_as_dialog_action(ViewerState& viewer,
-                             const PlaceholderUiState& ui_state);
-void
-save_selection_as_dialog_action(ViewerState& viewer);
-void
-export_selection_as_dialog_action(ViewerState& viewer,
-                                  const PlaceholderUiState& ui_state);
-void
 select_all_image_action(ViewerState& viewer,
                         const PlaceholderUiState& ui_state);
 void
@@ -58,16 +48,6 @@ advance_slide_show_action(RendererState& renderer_state, ViewerState& viewer,
                           PlaceholderUiState& ui_state);
 void
 toggle_slide_show_action(PlaceholderUiState& ui_state, ViewerState& viewer);
-void
-open_image_dialog_action(RendererState& renderer_state, ViewerState& viewer,
-                         ImageLibraryState& library,
-                         PlaceholderUiState& ui_state, int requested_subimage,
-                         int requested_miplevel);
-void
-open_folder_dialog_action(RendererState& renderer_state, ViewerState& viewer,
-                          ImageLibraryState& library,
-                          PlaceholderUiState& ui_state,
-                          MultiViewWorkspace* workspace);
 void
 reload_current_image_action(RendererState& renderer_state, ViewerState& viewer,
                             ImageLibraryState& library,
@@ -105,9 +85,5 @@ set_full_screen_mode(GLFWwindow* window, ViewerState& viewer, bool enable,
 void
 fit_window_to_image_action(GLFWwindow* window, ViewerState& viewer,
                            PlaceholderUiState& ui_state);
-bool
-capture_main_viewport_screenshot_action(RendererState& renderer_state,
-                                        ViewerState& viewer,
-                                        std::string& out_path);
 
 }  // namespace Imiv

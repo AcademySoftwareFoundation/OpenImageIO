@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "imiv_renderer_backend.h"
+#include "imiv_vulkan_types.h"
 
 #if IMIV_WITH_VULKAN
 
@@ -43,21 +44,6 @@ namespace {
         renderer_state.backend = reinterpret_cast<RendererBackendState*>(
             vk_state);
         return renderer_state.backend != nullptr;
-    }
-
-    PreviewControls
-    to_vulkan_preview_controls(const RendererPreviewControls& controls)
-    {
-        PreviewControls converted;
-        converted.exposure             = controls.exposure;
-        converted.gamma                = controls.gamma;
-        converted.offset               = controls.offset;
-        converted.color_mode           = controls.color_mode;
-        converted.channel              = controls.channel;
-        converted.use_ocio             = controls.use_ocio;
-        converted.orientation          = controls.orientation;
-        converted.linear_interpolation = controls.linear_interpolation;
-        return converted;
     }
 
     bool vulkan_get_viewer_texture_refs(const ViewerState& viewer,
@@ -146,7 +132,7 @@ namespace {
                                        RendererTexture& texture,
                                        const LoadedImage* image,
                                        const PlaceholderUiState& ui_state,
-                                       const RendererPreviewControls& controls,
+                                       const PreviewControls& controls,
                                        std::string& error_message)
     {
         VulkanState* vk_state     = backend_state(renderer_state);
@@ -156,10 +142,9 @@ namespace {
             error_message = "Vulkan renderer state is unavailable";
             return false;
         }
-        const bool ok
-            = update_preview_texture(*vk_state, *vk_texture, image, ui_state,
-                                     to_vulkan_preview_controls(controls),
-                                     error_message);
+        const bool ok = update_preview_texture(*vk_state, *vk_texture, image,
+                                               ui_state, controls,
+                                               error_message);
         texture.preview_initialized = vk_texture->preview_initialized;
         return ok;
     }

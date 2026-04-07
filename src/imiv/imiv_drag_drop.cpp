@@ -6,6 +6,7 @@
 
 #include "external/dnd_glfw/dnd_glfw.h"
 #include "imiv_actions.h"
+#include "imiv_image_library.h"
 
 #include <algorithm>
 #include <string>
@@ -107,7 +108,7 @@ process_pending_drop_paths(RendererState& vk_state, ViewerState& viewer,
 
     int first_added_index = -1;
     append_loaded_image_paths(library, drop_paths, &first_added_index);
-    viewer.loaded_image_paths = library.loaded_image_paths;
+    sync_viewer_library_state(viewer, library);
 
     std::string target_path;
     if (first_added_index >= 0

@@ -11,7 +11,6 @@
 #include "imiv_ui_metrics.h"
 
 #include <algorithm>
-#include <cstring>
 #include <filesystem>
 #include <string>
 #include <utility>
@@ -41,41 +40,14 @@ namespace {
         ImGui::SetNextWindowSize(size, cond);
     }
 
-    void push_preview_active_button_style(bool active)
-    {
-        if (!active)
-            return;
-        ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(66, 112, 171, 255));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
-                              IM_COL32(80, 133, 200, 255));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,
-                              IM_COL32(57, 95, 146, 255));
-    }
-
-    void pop_preview_active_button_style(bool active)
-    {
-        if (!active)
-            return;
-        ImGui::PopStyleColor(3);
-    }
-
-    void preview_form_next_row(const char* label)
-    {
-        ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex(0);
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted(label);
-        ImGui::TableSetColumnIndex(1);
-    }
-
     bool draw_preview_row_button_cell(const char* label, bool active)
     {
         ImGui::TableNextColumn();
-        push_preview_active_button_style(active);
+        push_active_button_style(active);
         const bool pressed
             = ImGui::Button(label,
                             ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
-        pop_preview_active_button_style(active);
+        pop_active_button_style(active);
         return pressed;
     }
 
@@ -111,29 +83,6 @@ namespace {
         ui.offset   = 0.0f;
     }
 
-    void draw_info_table_row(const char* label, const std::string& value)
-    {
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::TextUnformatted(label);
-        ImGui::TableNextColumn();
-        ImGui::PushTextWrapPos(0.0f);
-        ImGui::TextUnformatted(value.c_str());
-        ImGui::PopTextWrapPos();
-    }
-
-    bool input_text_string(const char* label, std::string& value)
-    {
-        char buffer[4096];
-        const size_t copy_size = std::min(value.size(), sizeof(buffer) - 1u);
-        std::memcpy(buffer, value.data(), copy_size);
-        buffer[copy_size]  = '\0';
-        const bool changed = ImGui::InputText(label, buffer, sizeof(buffer));
-        if (changed)
-            value.assign(buffer);
-        return changed;
-    }
-
     std::string ocio_config_dialog_default_path(const PlaceholderUiState& ui)
     {
         if (!ui.ocio_user_config_path.empty()) {
@@ -156,99 +105,6 @@ namespace {
         return std::string();
     }
 
-    void draw_preferences_section_heading(const char* title)
-    {
-        const ImVec2 separator_padding
-            = ImVec2(ImGui::GetStyle().SeparatorTextPadding.x,
-                     UiMetrics::Preferences::kSectionSeparatorTextPaddingY);
-        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding,
-                            separator_padding);
-        ImGui::PushStyleColor(ImGuiCol_Text,
-                              ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-        ImGui::SeparatorText(title);
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
-    }
-
-    bool begin_preferences_form_table(const char* id)
-    {
-        if (!ImGui::BeginTable(id, 2,
-                               ImGuiTableFlags_SizingStretchProp
-                                   | ImGuiTableFlags_NoSavedSettings)) {
-            return false;
-        }
-        ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed,
-                                UiMetrics::Preferences::kLabelColumnWidth);
-        ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthStretch);
-        return true;
-    }
-
-    void preferences_form_next_row(const char* label)
-    {
-        ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex(0);
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted(label);
-        ImGui::TableSetColumnIndex(1);
-    }
-
-    void align_preferences_control_right(float width)
-    {
-        const float available_width = ImGui::GetContentRegionAvail().x;
-        if (available_width > width) {
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + available_width
-                                 - width);
-        }
-    }
-
-    bool draw_preferences_right_aligned_checkbox(const char* id, bool& value)
-    {
-        align_preferences_control_right(ImGui::GetFrameHeight());
-        return ImGui::Checkbox(id, &value);
-    }
-
-    void draw_preferences_right_aligned_text(const char* value)
-    {
-        const float width = ImGui::CalcTextSize(value).x;
-        align_preferences_control_right(width);
-        ImGui::TextUnformatted(value);
-    }
-
-    bool draw_preferences_right_aligned_int_stepper(const char* id, int& value,
-                                                    int step,
-                                                    const char* suffix)
-    {
-        ImGui::PushID(id);
-        const float spacing      = ImGui::GetStyle().ItemSpacing.x;
-        const float button_width = UiMetrics::Preferences::kStepperButtonWidth;
-        const float value_width  = UiMetrics::Preferences::kStepperValueWidth;
-        const float suffix_width = (suffix != nullptr && suffix[0] != '\0')
-                                       ? ImGui::CalcTextSize(suffix).x + spacing
-                                       : 0.0f;
-        const float total_width  = value_width + button_width * 2.0f
-                                  + spacing * 2.0f + suffix_width;
-        bool changed = false;
-        align_preferences_control_right(total_width);
-        ImGui::SetNextItemWidth(value_width);
-        changed |= ImGui::InputInt("##value", &value, 0, 0);
-        ImGui::SameLine(0.0f, spacing);
-        if (ImGui::Button("-", ImVec2(button_width, 0.0f))) {
-            value -= step;
-            changed = true;
-        }
-        ImGui::SameLine(0.0f, spacing);
-        if (ImGui::Button("+", ImVec2(button_width, 0.0f))) {
-            value += step;
-            changed = true;
-        }
-        if (suffix != nullptr && suffix[0] != '\0') {
-            ImGui::SameLine(0.0f, spacing);
-            ImGui::TextUnformatted(suffix);
-        }
-        ImGui::PopID();
-        return changed;
-    }
-
     bool draw_preferences_segment_button(const char* id, const char* label,
                                          bool selected, bool enabled,
                                          float width)
@@ -256,23 +112,13 @@ namespace {
         ImGui::PushID(id);
         if (!enabled)
             ImGui::BeginDisabled();
-        push_preview_active_button_style(selected);
+        push_active_button_style(selected);
         const bool pressed = ImGui::Button(label, ImVec2(width, 0.0f));
-        pop_preview_active_button_style(selected);
+        pop_active_button_style(selected);
         if (!enabled)
             ImGui::EndDisabled();
         ImGui::PopID();
         return pressed && enabled;
-    }
-
-    void draw_preferences_note(const char* message)
-    {
-        ImGui::PushStyleColor(ImGuiCol_Text,
-                              ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-        ImGui::PushTextWrapPos(0.0f);
-        ImGui::TextUnformatted(message);
-        ImGui::PopTextWrapPos();
-        ImGui::PopStyleColor();
     }
 
 }  // namespace
@@ -303,35 +149,36 @@ draw_info_window(const ViewerState& viewer, bool& show_window,
                 UiMetrics::AuxiliaryWindows::kEmptyMessagePadding.y);
             register_layout_dump_synthetic_item("text", "No image loaded.");
         } else {
-            if (ImGui::BeginTable("##iv_info_table", 2,
-                                  ImGuiTableFlags_SizingStretchProp
-                                      | ImGuiTableFlags_BordersInnerV
-                                      | ImGuiTableFlags_RowBg)) {
-                ImGui::TableSetupColumn(
-                    "Field", ImGuiTableColumnFlags_WidthFixed,
-                    UiMetrics::AuxiliaryWindows::kInfoTableLabelWidth);
-                ImGui::TableSetupColumn("Value",
-                                        ImGuiTableColumnFlags_WidthStretch);
-
-                draw_info_table_row("Path", viewer.image.path);
+            if (begin_two_column_table(
+                    "##iv_info_table",
+                    UiMetrics::AuxiliaryWindows::kInfoTableLabelWidth,
+                    ImGuiTableFlags_SizingStretchProp
+                        | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg,
+                    "Field", "Value")) {
+                draw_wrapped_value_row("Path", viewer.image.path.c_str());
                 for (const std::pair<std::string, std::string>& row :
                      viewer.image.longinfo_rows) {
-                    draw_info_table_row(row.first.c_str(), row.second);
+                    draw_wrapped_value_row(row.first.c_str(),
+                                           row.second.c_str());
                 }
-                draw_info_table_row(
+                draw_wrapped_value_row(
                     "Orientation",
-                    Strutil::fmt::format("{}", viewer.image.orientation));
-                draw_info_table_row(
+                    Strutil::fmt::format("{}", viewer.image.orientation)
+                        .c_str());
+                draw_wrapped_value_row(
                     "Subimage",
                     Strutil::fmt::format("{}/{}", viewer.image.subimage + 1,
-                                         viewer.image.nsubimages));
-                draw_info_table_row(
+                                         viewer.image.nsubimages)
+                        .c_str());
+                draw_wrapped_value_row(
                     "MIP level",
                     Strutil::fmt::format("{}/{}", viewer.image.miplevel + 1,
-                                         viewer.image.nmiplevels));
-                draw_info_table_row(
+                                         viewer.image.nmiplevels)
+                        .c_str());
+                draw_wrapped_value_row(
                     "Row pitch (bytes)",
-                    Strutil::fmt::format("{}", viewer.image.row_pitch_bytes));
+                    Strutil::fmt::format("{}", viewer.image.row_pitch_bytes)
+                        .c_str());
                 ImGui::EndTable();
             }
             register_layout_dump_synthetic_item("text", "iv Info content");
@@ -375,7 +222,8 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         ImVec2 backend_row_min(0.0f, 0.0f);
         ImVec2 backend_row_max(0.0f, 0.0f);
 
-        draw_preferences_section_heading("Theme");
+        draw_section_heading(
+            "Theme", UiMetrics::Preferences::kSectionSeparatorTextPaddingY);
         if (ImGui::BeginCombo("##pref_ui_style",
                               app_style_preset_name(current_style_preset))) {
             for (int preset_value = static_cast<int>(AppStylePreset::IvLight);
@@ -393,34 +241,49 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
             ImGui::EndCombo();
         }
 
-        draw_preferences_section_heading("Pixel View");
-        if (begin_preferences_form_table("##pref_pixel_view")) {
-            preferences_form_next_row("Follows mouse");
-            draw_preferences_right_aligned_checkbox(
-                "##pref_pixelview_follows_mouse", ui.pixelview_follows_mouse);
+        draw_section_heading(
+            "Pixel View",
+            UiMetrics::Preferences::kSectionSeparatorTextPaddingY);
+        if (begin_two_column_table("##pref_pixel_view",
+                                   UiMetrics::Preferences::kLabelColumnWidth,
+                                   ImGuiTableFlags_SizingStretchProp
+                                       | ImGuiTableFlags_NoSavedSettings)) {
+            table_labeled_row("Follows mouse");
+            draw_right_aligned_checkbox("##pref_pixelview_follows_mouse",
+                                        ui.pixelview_follows_mouse);
             register_layout_dump_synthetic_item("text",
                                                 "Pixel view follows mouse");
 
-            preferences_form_next_row("Closeup pixels");
-            draw_preferences_right_aligned_int_stepper("pref_closeup_pixels",
-                                                       ui.closeup_pixels, 2,
-                                                       nullptr);
+            table_labeled_row("Closeup pixels");
+            draw_right_aligned_int_stepper(
+                "pref_closeup_pixels", ui.closeup_pixels, 2, nullptr,
+                UiMetrics::Preferences::kStepperButtonWidth,
+                UiMetrics::Preferences::kStepperValueWidth);
 
-            preferences_form_next_row("Closeup average");
-            draw_preferences_right_aligned_int_stepper(
-                "pref_closeup_avg_pixels", ui.closeup_avg_pixels, 2, nullptr);
+            table_labeled_row("Closeup average");
+            draw_right_aligned_int_stepper(
+                "pref_closeup_avg_pixels", ui.closeup_avg_pixels, 2, nullptr,
+                UiMetrics::Preferences::kStepperButtonWidth,
+                UiMetrics::Preferences::kStepperValueWidth);
             ImGui::EndTable();
         }
 
-        draw_preferences_section_heading("Image Rendering");
-        if (begin_preferences_form_table("##pref_image_rendering")) {
-            preferences_form_next_row("Linear interpolation");
-            draw_preferences_right_aligned_checkbox(
-                "##pref_linear_interpolation", ui.linear_interpolation);
+        draw_section_heading(
+            "Image Rendering",
+            UiMetrics::Preferences::kSectionSeparatorTextPaddingY);
+        if (begin_two_column_table("##pref_image_rendering",
+                                   UiMetrics::Preferences::kLabelColumnWidth,
+                                   ImGuiTableFlags_SizingStretchProp
+                                       | ImGuiTableFlags_NoSavedSettings)) {
+            table_labeled_row("Linear interpolation");
+            draw_right_aligned_checkbox("##pref_linear_interpolation",
+                                        ui.linear_interpolation);
             ImGui::EndTable();
         }
 
-        draw_preferences_section_heading("OCIO Config");
+        draw_section_heading(
+            "OCIO Config",
+            UiMetrics::Preferences::kSectionSeparatorTextPaddingY);
         {
             const float row_width = ImGui::GetContentRegionAvail().x;
             const float button_width
@@ -452,8 +315,11 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         }
         if (static_cast<OcioConfigSource>(ui.ocio_config_source)
             == OcioConfigSource::User) {
-            if (begin_preferences_form_table("##pref_ocio_user")) {
-                preferences_form_next_row("Path");
+            if (begin_two_column_table("##pref_ocio_user",
+                                       UiMetrics::Preferences::kLabelColumnWidth,
+                                       ImGuiTableFlags_SizingStretchProp
+                                           | ImGuiTableFlags_NoSavedSettings)) {
+                table_labeled_row("Path");
                 const float browse_width
                     = UiMetrics::Preferences::kOcioBrowseButtonWidth;
                 const float field_width
@@ -480,20 +346,23 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         }
         OcioConfigSelection ocio_selection;
         resolve_ocio_config_selection(ui, ocio_selection);
-        if (begin_preferences_form_table("##pref_ocio_info")) {
-            preferences_form_next_row("Resolved source");
-            draw_preferences_right_aligned_text(
+        if (begin_two_column_table("##pref_ocio_info",
+                                   UiMetrics::Preferences::kLabelColumnWidth,
+                                   ImGuiTableFlags_SizingStretchProp
+                                       | ImGuiTableFlags_NoSavedSettings)) {
+            table_labeled_row("Resolved source");
+            draw_right_aligned_text(
                 ocio_config_source_name(ocio_selection.resolved_source));
 
             if (!ocio_selection.resolved_path.empty()) {
-                preferences_form_next_row("Resolved path");
+                table_labeled_row("Resolved path");
                 ImGui::PushTextWrapPos(0.0f);
                 ImGui::TextUnformatted(ocio_selection.resolved_path.c_str());
                 ImGui::PopTextWrapPos();
             }
             if (ocio_selection.resolved_source == OcioConfigSource::Global
                 && !ocio_selection.env_value.empty()) {
-                preferences_form_next_row("OCIO env");
+                table_labeled_row("OCIO env");
                 ImGui::PushTextWrapPos(0.0f);
                 ImGui::TextUnformatted(ocio_selection.env_value.c_str());
                 ImGui::PopTextWrapPos();
@@ -502,15 +371,17 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         }
         if (ocio_selection.requested_source == OcioConfigSource::Global
             && ocio_selection.resolved_source == OcioConfigSource::BuiltIn) {
-            draw_preferences_note(
+            draw_disabled_wrapped_text(
                 "$OCIO is missing or invalid. Built-in config will be used.");
         } else if (ocio_selection.requested_source == OcioConfigSource::User
                    && ocio_selection.fallback_applied) {
-            draw_preferences_note(
+            draw_disabled_wrapped_text(
                 "User config is missing or invalid. A fallback config will be used.");
         }
 
-        draw_preferences_section_heading("System (required restart)");
+        draw_section_heading(
+            "System (required restart)",
+            UiMetrics::Preferences::kSectionSeparatorTextPaddingY);
         {
             const float row_width = std::max(1.0f,
                                              ImGui::GetContentRegionAvail().x);
@@ -582,87 +453,92 @@ draw_preferences_window(PlaceholderUiState& ui, bool& show_window,
         const bool unavailable_requested_backend
             = requested_backend != BackendKind::Auto
               && requested_backend_compiled && !requested_backend_available;
-        if (begin_preferences_form_table("##pref_system_info")) {
+        if (begin_two_column_table("##pref_system_info",
+                                   UiMetrics::Preferences::kLabelColumnWidth,
+                                   ImGuiTableFlags_SizingStretchProp
+                                       | ImGuiTableFlags_NoSavedSettings)) {
             const char* stored_preference
                 = (requested_backend == BackendKind::Auto)
                       ? "Auto"
                       : backend_display_name(requested_backend);
-            preferences_form_next_row("Stored preference");
-            draw_preferences_right_aligned_text(stored_preference);
+            table_labeled_row("Stored preference");
+            draw_right_aligned_text(stored_preference);
 
-            preferences_form_next_row("Current backend");
-            draw_preferences_right_aligned_text(
-                backend_display_name(active_backend));
+            table_labeled_row("Current backend");
+            draw_right_aligned_text(backend_display_name(active_backend));
 
-            preferences_form_next_row("Next launch backend");
-            draw_preferences_right_aligned_text(
-                backend_display_name(next_launch_backend));
+            table_labeled_row("Next launch backend");
+            draw_right_aligned_text(backend_display_name(next_launch_backend));
 
-            preferences_form_next_row("Generate mipmaps");
-            draw_preferences_right_aligned_checkbox("##pref_auto_mipmap",
-                                                    ui.auto_mipmap);
+            table_labeled_row("Generate mipmaps");
+            draw_right_aligned_checkbox("##pref_auto_mipmap", ui.auto_mipmap);
             ImGui::EndTable();
         }
         if (invalid_requested_backend) {
-            draw_preferences_note(
+            draw_disabled_wrapped_text(
                 "Requested backend is not built in this binary and will be ignored when Preferences closes.");
         } else if (unavailable_requested_backend) {
             const std::string_view unavailable_reason
                 = backend_unavailable_reason(requested_backend);
             if (unavailable_reason.empty()) {
-                draw_preferences_note(
+                draw_disabled_wrapped_text(
                     "Requested backend is unavailable at runtime and will be ignored when Preferences closes.");
             } else {
-                ImGui::PushStyleColor(ImGuiCol_Text,
-                                      ImGui::GetStyleColorVec4(
-                                          ImGuiCol_TextDisabled));
-                ImGui::PushTextWrapPos(0.0f);
-                ImGui::Text(
-                    "Requested backend is unavailable at runtime (%s) and will be ignored when Preferences closes.",
-                    std::string(unavailable_reason).c_str());
-                ImGui::PopTextWrapPos();
-                ImGui::PopStyleColor();
+                draw_disabled_wrapped_text(
+                    Strutil::fmt::format(
+                        "Requested backend is unavailable at runtime ({}) and will be ignored when Preferences closes.",
+                        unavailable_reason)
+                        .c_str());
             }
         } else if (next_launch_backend != active_backend) {
-            draw_preferences_note("Backend change requires restart.");
+            draw_disabled_wrapped_text("Backend change requires restart.");
         }
         if (requested_backend == BackendKind::Auto)
-            draw_preferences_note("Auto selects the first available backend.");
+            draw_disabled_wrapped_text(
+                "Auto selects the first available backend.");
         for (const BackendRuntimeInfo& info : runtime_backend_info()) {
             if (!info.build_info.compiled || info.available)
                 continue;
             if (info.unavailable_reason.empty()) {
-                ImGui::PushStyleColor(ImGuiCol_Text,
-                                      ImGui::GetStyleColorVec4(
-                                          ImGuiCol_TextDisabled));
-                ImGui::Text("%s unavailable", info.build_info.display_name);
-                ImGui::PopStyleColor();
+                draw_disabled_wrapped_text(
+                    Strutil::fmt::format("{} unavailable",
+                                         info.build_info.display_name)
+                        .c_str());
             } else {
-                ImGui::PushStyleColor(ImGuiCol_Text,
-                                      ImGui::GetStyleColorVec4(
-                                          ImGuiCol_TextDisabled));
-                ImGui::PushTextWrapPos(0.0f);
-                ImGui::Text("%s unavailable: %s", info.build_info.display_name,
-                            info.unavailable_reason.c_str());
-                ImGui::PopTextWrapPos();
-                ImGui::PopStyleColor();
+                draw_disabled_wrapped_text(
+                    Strutil::fmt::format("{} unavailable: {}",
+                                         info.build_info.display_name,
+                                         info.unavailable_reason)
+                        .c_str());
             }
         }
 
-        draw_preferences_section_heading("Memory");
-        if (begin_preferences_form_table("##pref_memory")) {
-            preferences_form_next_row("Image cache max memory");
-            draw_preferences_right_aligned_int_stepper("pref_max_mem",
-                                                       ui.max_memory_ic_mb, 64,
-                                                       "MB");
+        draw_section_heading(
+            "Memory", UiMetrics::Preferences::kSectionSeparatorTextPaddingY);
+        if (begin_two_column_table("##pref_memory",
+                                   UiMetrics::Preferences::kLabelColumnWidth,
+                                   ImGuiTableFlags_SizingStretchProp
+                                       | ImGuiTableFlags_NoSavedSettings)) {
+            table_labeled_row("Image cache max memory");
+            draw_right_aligned_int_stepper(
+                "pref_max_mem", ui.max_memory_ic_mb, 64, "MB",
+                UiMetrics::Preferences::kStepperButtonWidth,
+                UiMetrics::Preferences::kStepperValueWidth);
             ImGui::EndTable();
         }
 
-        draw_preferences_section_heading("Slide Show");
-        if (begin_preferences_form_table("##pref_slideshow")) {
-            preferences_form_next_row("Delay");
-            draw_preferences_right_aligned_int_stepper(
-                "pref_slide_delay", ui.slide_duration_seconds, 1, "s");
+        draw_section_heading(
+            "Slide Show",
+            UiMetrics::Preferences::kSectionSeparatorTextPaddingY);
+        if (begin_two_column_table("##pref_slideshow",
+                                   UiMetrics::Preferences::kLabelColumnWidth,
+                                   ImGuiTableFlags_SizingStretchProp
+                                       | ImGuiTableFlags_NoSavedSettings)) {
+            table_labeled_row("Delay");
+            draw_right_aligned_int_stepper(
+                "pref_slide_delay", ui.slide_duration_seconds, 1, "s",
+                UiMetrics::Preferences::kStepperButtonWidth,
+                UiMetrics::Preferences::kStepperValueWidth);
             ImGui::EndTable();
         }
 
@@ -714,23 +590,19 @@ draw_preview_window(PlaceholderUiState& ui, bool& show_window,
         ImGui::BeginChild("##iv_preview_body", ImVec2(0.0f, body_height), false,
                           ImGuiWindowFlags_NoScrollbar);
 
-        if (ImGui::BeginTable("##iv_preview_form", 2,
-                              ImGuiTableFlags_SizingStretchProp
-                                  | ImGuiTableFlags_NoSavedSettings)) {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed,
-                                    UiMetrics::Preview::kLabelColumnWidth);
-            ImGui::TableSetupColumn("Control",
-                                    ImGuiTableColumnFlags_WidthStretch);
-
-            preview_form_next_row("Interpolation");
+        if (begin_two_column_table("##iv_preview_form",
+                                   UiMetrics::Preview::kLabelColumnWidth,
+                                   ImGuiTableFlags_SizingStretchProp
+                                       | ImGuiTableFlags_NoSavedSettings)) {
+            table_labeled_row("Interpolation");
             ImGui::Checkbox("Linear##preview_interp", &ui.linear_interpolation);
 
-            preview_form_next_row("Exposure");
+            table_labeled_row("Exposure");
             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
             ImGui::SliderFloat("##preview_exposure", &ui.exposure, -10.0f,
                                10.0f, "%.2f");
 
-            preview_form_next_row("");
+            table_labeled_row("");
             if (ImGui::BeginTable("##preview_exposure_steps", 4,
                                   ImGuiTableFlags_SizingStretchSame
                                       | ImGuiTableFlags_NoSavedSettings)) {
@@ -745,12 +617,12 @@ draw_preview_window(PlaceholderUiState& ui, bool& show_window,
                 ImGui::EndTable();
             }
 
-            preview_form_next_row("Gamma");
+            table_labeled_row("Gamma");
             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
             ImGui::SliderFloat("##preview_gamma", &ui.gamma, 0.1f, 4.0f,
                                "%.2f");
 
-            preview_form_next_row("");
+            table_labeled_row("");
             if (ImGui::BeginTable("##preview_gamma_steps", 2,
                                   ImGuiTableFlags_SizingStretchSame
                                       | ImGuiTableFlags_NoSavedSettings)) {
@@ -761,18 +633,18 @@ draw_preview_window(PlaceholderUiState& ui, bool& show_window,
                 ImGui::EndTable();
             }
 
-            preview_form_next_row("Offset");
+            table_labeled_row("Offset");
             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
             ImGui::SliderFloat("##preview_offset", &ui.offset, -1.0f, 1.0f,
                                "%+.3f");
 
-            preview_form_next_row("");
+            table_labeled_row("");
             if (ImGui::Button("Reset",
                               ImVec2(ImGui::GetContentRegionAvail().x, 0.0f))) {
                 preview_reset_adjustments(ui);
             }
 
-            preview_form_next_row("");
+            table_labeled_row("");
             if (ImGui::BeginTable("##preview_modes", 3,
                                   ImGuiTableFlags_SizingStretchSame
                                       | ImGuiTableFlags_NoSavedSettings)) {

@@ -30,7 +30,7 @@ struct RendererBackendVTable {
                                    RendererTexture& texture,
                                    const LoadedImage* image,
                                    const PlaceholderUiState& ui_state,
-                                   const RendererPreviewControls& controls,
+                                   const PreviewControls& controls,
                                    std::string& error_message)
         = nullptr;
     bool (*quiesce_texture_preview_submission)(RendererState& renderer_state,

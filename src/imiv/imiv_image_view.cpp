@@ -5,6 +5,8 @@
 #include "imiv_image_view.h"
 
 #include "imiv_actions.h"
+#include "imiv_parse.h"
+#include "imiv_probe_overlay.h"
 #include "imiv_renderer.h"
 #include "imiv_test_engine.h"
 #include "imiv_ui_metrics.h"
@@ -22,51 +24,14 @@ namespace Imiv {
 
 namespace {
 
-    bool read_env_value(const char* name, std::string& out_value)
-    {
-        out_value.clear();
-#if defined(_WIN32)
-        char* value       = nullptr;
-        size_t value_size = 0;
-        errno_t err       = _dupenv_s(&value, &value_size, name);
-        if (err != 0 || value == nullptr || value_size == 0) {
-            if (value != nullptr)
-                std::free(value);
-            return false;
-        }
-        out_value.assign(value);
-        std::free(value);
-#else
-        const char* value = std::getenv(name);
-        if (value == nullptr)
-            return false;
-        out_value.assign(value);
-#endif
-        return true;
-    }
-
-    int env_int_value(const char* name, int fallback)
-    {
-        std::string value;
-        if (!read_env_value(name, value) || value.empty())
-            return fallback;
-        char* end = nullptr;
-        long x    = std::strtol(value.c_str(), &end, 10);
-        if (end == value.c_str())
-            return fallback;
-        if (x < 0)
-            return 0;
-        if (x > 1000000)
-            return 1000000;
-        return static_cast<int>(x);
-    }
-
     bool apply_forced_probe_from_env(ViewerState& viewer)
     {
-        const int forced_x = env_int_value("IMIV_IMGUI_TEST_ENGINE_PROBE_X",
-                                           -1);
-        const int forced_y = env_int_value("IMIV_IMGUI_TEST_ENGINE_PROBE_Y",
-                                           -1);
+        const int forced_x
+            = env_int_value_clamped("IMIV_IMGUI_TEST_ENGINE_PROBE_X", -1, 0,
+                                    1000000);
+        const int forced_y
+            = env_int_value_clamped("IMIV_IMGUI_TEST_ENGINE_PROBE_Y", -1, 0,
+                                    1000000);
         if (forced_x < 0 || forced_y < 0 || viewer.image.path.empty())
             return false;
 

@@ -3,9 +3,9 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "imiv_platform_glfw.h"
+#include "imiv_parse.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <string>
 
 #include <imgui.h>
@@ -29,29 +29,6 @@ namespace {
         X11     = 1,
         Wayland = 2
     };
-
-    bool read_env_value(const char* name, std::string& out_value)
-    {
-        out_value.clear();
-#if defined(_WIN32)
-        char* value       = nullptr;
-        size_t value_size = 0;
-        errno_t err       = _dupenv_s(&value, &value_size, name);
-        if (err != 0 || value == nullptr || value_size == 0) {
-            if (value != nullptr)
-                std::free(value);
-            return false;
-        }
-        out_value.assign(value);
-        std::free(value);
-#else
-        const char* value = std::getenv(name);
-        if (value == nullptr)
-            return false;
-        out_value.assign(value);
-#endif
-        return true;
-    }
 
     bool env_var_is_nonempty(const char* name)
     {

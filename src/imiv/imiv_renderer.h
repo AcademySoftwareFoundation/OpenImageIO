@@ -41,17 +41,6 @@ struct RendererTexture {
     bool preview_initialized             = false;
 };
 
-struct RendererPreviewControls {
-    float exposure           = 0.0f;
-    float gamma              = 1.0f;
-    float offset             = 0.0f;
-    int color_mode           = 0;
-    int channel              = 0;
-    int use_ocio             = 0;
-    int orientation          = 1;
-    int linear_interpolation = 0;
-};
-
 void
 renderer_select_backend(RendererState& renderer_state, BackendKind backend);
 BackendKind
@@ -81,7 +70,7 @@ renderer_update_preview_texture(RendererState& renderer_state,
                                 RendererTexture& texture,
                                 const LoadedImage* image,
                                 const PlaceholderUiState& ui_state,
-                                const RendererPreviewControls& controls,
+                                const PreviewControls& controls,
                                 std::string& error_message);
 bool
 renderer_quiesce_texture_preview_submission(RendererState& renderer_state,

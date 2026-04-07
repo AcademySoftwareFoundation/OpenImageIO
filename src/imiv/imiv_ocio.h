@@ -130,16 +130,9 @@ ensure_ocio_shader_runtime_metal(const PlaceholderUiState& ui_state,
                                  std::string& error_message);
 bool
 build_ocio_uniform_buffer(OcioShaderRuntime& runtime,
-                          const RendererPreviewControls& controls,
-                          std::vector<unsigned char>& uniform_bytes,
-                          std::string& error_message);
-#if defined(IMIV_WITH_VULKAN)
-bool
-build_ocio_uniform_buffer(OcioShaderRuntime& runtime,
                           const PreviewControls& controls,
                           std::vector<unsigned char>& uniform_bytes,
                           std::string& error_message);
-#endif
 bool
 query_ocio_menu_data(const PlaceholderUiState& ui_state,
                      std::vector<std::string>& image_color_spaces,

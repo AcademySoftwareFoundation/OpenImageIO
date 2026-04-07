@@ -7,6 +7,7 @@
 #include "imiv_loaded_image.h"
 #include "imiv_ocio.h"
 #include "imiv_platform_glfw.h"
+#include "imiv_preview_shader_text.h"
 #include "imiv_tiling.h"
 #include "imiv_viewer.h"
 
@@ -49,7 +50,7 @@ namespace {
         int input_channels                              = 0;
         bool preview_dirty                              = true;
         bool preview_params_valid                       = false;
-        RendererPreviewControls last_preview_controls   = {};
+        PreviewControls last_preview_controls           = {};
     };
 
     struct MetalOcioTextureBinding {
@@ -195,8 +196,8 @@ namespace {
         state->layer.drawableSize         = CGSizeMake(width, height);
     }
 
-    bool preview_controls_equal(const RendererPreviewControls& a,
-                                const RendererPreviewControls& b)
+    bool preview_controls_equal(const PreviewControls& a,
+                                const PreviewControls& b)
     {
         return std::abs(a.exposure - b.exposure) < 1.0e-6f
                && std::abs(a.gamma - b.gamma) < 1.0e-6f
@@ -318,6 +319,121 @@ namespace {
         descriptor.tAddressMode = MTLSamplerAddressModeClampToEdge;
         descriptor.rAddressMode = MTLSamplerAddressModeClampToEdge;
         return [device newSamplerStateWithDescriptor:descriptor];
+    }
+
+    std::string metal_error_string(NSError* error, const char* fallback_message)
+    {
+        if (error != nil && error.localizedDescription != nil)
+            return std::string(error.localizedDescription.UTF8String);
+        return std::string(fallback_message);
+    }
+
+    bool create_shader_library(id<MTLDevice> device, NSString* source,
+                               MTLCompileOptions* options,
+                               const char* device_error,
+                               const char* compile_error,
+                               id<MTLLibrary>& library,
+                               std::string& error_message)
+    {
+        library = nil;
+        if (device == nil) {
+            error_message = device_error;
+            return false;
+        }
+
+        NSError* error = nil;
+        library        = [device newLibraryWithSource:source
+                                              options:options
+                                                error:&error];
+        if (library == nil) {
+            error_message = metal_error_string(error, compile_error);
+            return false;
+        }
+
+        error_message.clear();
+        return true;
+    }
+
+    bool create_compute_pipeline_state(
+        id<MTLDevice> device, id<MTLLibrary> library, const char* function_name,
+        const char* function_error, const char* pipeline_error,
+        id<MTLComputePipelineState>& pipeline, std::string& error_message)
+    {
+        pipeline = nil;
+        if (device == nil) {
+            error_message = "Metal device is not initialized";
+            return false;
+        }
+        if (library == nil) {
+            error_message = function_error;
+            return false;
+        }
+
+        NSString* ns_function_name
+            = [NSString stringWithUTF8String:function_name];
+        id<MTLFunction> function = [library
+            newFunctionWithName:ns_function_name];
+        if (function == nil) {
+            error_message = function_error;
+            return false;
+        }
+
+        NSError* error = nil;
+        pipeline       = [device newComputePipelineStateWithFunction:function
+                                                               error:&error];
+        if (pipeline == nil) {
+            error_message = metal_error_string(error, pipeline_error);
+            return false;
+        }
+
+        error_message.clear();
+        return true;
+    }
+
+    bool create_render_pipeline_state(
+        id<MTLDevice> device, id<MTLLibrary> library, const char* vertex_name,
+        const char* fragment_name, const char* function_error,
+        const char* pipeline_error, id<MTLRenderPipelineState>& pipeline,
+        std::string& error_message)
+    {
+        pipeline = nil;
+        if (device == nil) {
+            error_message = "Metal device is not initialized";
+            return false;
+        }
+        if (library == nil) {
+            error_message = function_error;
+            return false;
+        }
+
+        NSString* ns_vertex_name   = [NSString stringWithUTF8String:vertex_name];
+        NSString* ns_fragment_name = [NSString
+            stringWithUTF8String:fragment_name];
+        id<MTLFunction> vertex_function = [library
+            newFunctionWithName:ns_vertex_name];
+        id<MTLFunction> fragment_function = [library
+            newFunctionWithName:ns_fragment_name];
+        if (vertex_function == nil || fragment_function == nil) {
+            error_message = function_error;
+            return false;
+        }
+
+        MTLRenderPipelineDescriptor* descriptor =
+            [[MTLRenderPipelineDescriptor alloc] init];
+        descriptor.vertexFunction                  = vertex_function;
+        descriptor.fragmentFunction                = fragment_function;
+        descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+
+        NSError* error = nil;
+        pipeline       = [device newRenderPipelineStateWithDescriptor:descriptor
+                                                                error:&error];
+        if (pipeline == nil) {
+            error_message = metal_error_string(error, pipeline_error);
+            return false;
+        }
+
+        error_message.clear();
+        return true;
     }
 
     bool create_ocio_texture(id<MTLDevice> device,
@@ -750,44 +866,19 @@ kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]
     bool create_upload_pipeline(RendererBackendState& state,
                                 std::string& error_message)
     {
-        if (state.device == nil) {
-            error_message = "Metal device is not initialized";
-            return false;
-        }
-        NSError* error             = nil;
         MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
-        id<MTLLibrary> library     = [state.device
-            newLibraryWithSource:upload_shader_source()
-                         options:options
-                           error:&error];
-        if (library == nil) {
-            error_message = (error != nil && error.localizedDescription != nil)
-                                ? std::string(
-                                      error.localizedDescription.UTF8String)
-                                : "failed to compile Metal upload shader";
+        id<MTLLibrary> library     = nil;
+        if (!create_shader_library(state.device, upload_shader_source(),
+                                   options, "Metal device is not initialized",
+                                   "failed to compile Metal upload shader",
+                                   library, error_message)) {
             return false;
         }
-
-        id<MTLFunction> function = [library
-            newFunctionWithName:@"imivUploadToSourceTexture"];
-        if (function == nil) {
-            error_message = "failed to create Metal upload shader function";
-            return false;
-        }
-
-        state.upload_pipeline = [state.device
-            newComputePipelineStateWithFunction:function
-                                          error:&error];
-        if (state.upload_pipeline == nil) {
-            error_message = (error != nil && error.localizedDescription != nil)
-                                ? std::string(
-                                      error.localizedDescription.UTF8String)
-                                : "failed to create Metal upload pipeline";
-            return false;
-        }
-
-        error_message.clear();
-        return true;
+        return create_compute_pipeline_state(
+            state.device, library, "imivUploadToSourceTexture",
+            "failed to create Metal upload shader function",
+            "failed to create Metal upload pipeline", state.upload_pipeline,
+            error_message);
     }
 
     bool upload_source_texture(RendererBackendState& state,
@@ -930,72 +1021,11 @@ kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]
 
     NSString* preview_shader_source()
     {
-        static const char* source = R"metal(
-#include <metal_stdlib>
-using namespace metal;
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 uv;
-};
-
-struct PreviewUniforms {
-    float exposure;
-    float gamma;
-    float offset;
-    int color_mode;
-    int channel;
-    int input_channels;
-    int orientation;
-    int _padding;
-};
-
-vertex VertexOut imivPreviewVertex(uint vertex_id [[vertex_id]])
-{
-    const float2 positions[3] = { float2(-1.0, -1.0), float2(3.0, -1.0), float2(-1.0, 3.0) };
-    const float2 uvs[3] = { float2(0.0, 0.0), float2(2.0, 0.0), float2(0.0, 2.0) };
-    VertexOut out;
-    out.position = float4(positions[vertex_id], 0.0, 1.0);
-    out.uv = uvs[vertex_id];
-    return out;
-}
-
-inline float selected_channel(float4 rgba, int channel)
-{
-    if (channel == 1) return rgba.r;
-    if (channel == 2) return rgba.g;
-    if (channel == 3) return rgba.b;
-    if (channel == 4) return rgba.a;
-    return rgba.r;
-}
-
-inline float3 heatmap(float x)
-{
-    float t = clamp(x, 0.0, 1.0);
-    float3 a = float3(0.0, 0.0, 0.5);
-    float3 b = float3(0.0, 0.9, 1.0);
-    float3 c = float3(1.0, 1.0, 0.0);
-    float3 d = float3(1.0, 0.0, 0.0);
-    if (t < 0.33)
-        return mix(a, b, t / 0.33);
-    if (t < 0.66)
-        return mix(b, c, (t - 0.33) / 0.33);
-    return mix(c, d, (t - 0.66) / 0.34);
-}
-
-inline float2 display_to_source_uv(float2 uv, int orientation)
-{
-    switch (orientation) {
-    case 2: return float2(1.0 - uv.x, uv.y);
-    case 3: return float2(1.0 - uv.x, 1.0 - uv.y);
-    case 4: return float2(uv.x, 1.0 - uv.y);
-    case 5: return float2(uv.y, uv.x);
-    case 6: return float2(uv.y, 1.0 - uv.x);
-    case 7: return float2(1.0 - uv.y, 1.0 - uv.x);
-    case 8: return float2(1.0 - uv.y, uv.x);
-    default: return uv;
-    }
-}
+        std::string source = metal_preview_shader_preamble(
+            metal_basic_preview_uniform_fields());
+        source += metal_fullscreen_triangle_vertex_source("imivPreviewVertex");
+        source += metal_preview_common_shader_functions();
+        source += R"metal(
 
 fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                                     texture2d<float> source_texture [[texture(0)]],
@@ -1025,7 +1055,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         rgba = float4(heatmap(value), 1.0);
     }
 
-    if (uniforms.channel > 0 && uniforms.color_mode != 2 && uniforms.color_mode != 4) {
+    if (uniforms.channel > 0 && uniforms.color_mode != 2
+        && uniforms.color_mode != 4) {
         float value = selected_channel(rgba, uniforms.channel);
         rgba = float4(value, value, value, 1.0);
     }
@@ -1057,66 +1088,25 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool create_preview_pipeline(RendererBackendState& state,
                                  std::string& error_message)
     {
-        if (state.device == nil) {
-            error_message = "Metal device is not initialized";
-            return false;
-        }
-        NSError* error             = nil;
         MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
-        state.preview_library      = [state.device
-            newLibraryWithSource:preview_shader_source()
-                         options:options
-                           error:&error];
-        if (state.preview_library == nil) {
-            error_message = (error != nil && error.localizedDescription != nil)
-                                ? std::string(
-                                      error.localizedDescription.UTF8String)
-                                : "failed to compile Metal preview shader";
+        if (!create_shader_library(state.device, preview_shader_source(),
+                                   options, "Metal device is not initialized",
+                                   "failed to compile Metal preview shader",
+                                   state.preview_library, error_message)) {
             return false;
         }
-
-        id<MTLFunction> vertex_function   = [state.preview_library
-            newFunctionWithName:@"imivPreviewVertex"];
-        id<MTLFunction> fragment_function = [state.preview_library
-            newFunctionWithName:@"imivPreviewFragment"];
-        if (vertex_function == nil || fragment_function == nil) {
-            error_message = "failed to create Metal preview shader functions";
+        if (!create_render_pipeline_state(
+                state.device, state.preview_library, "imivPreviewVertex",
+                "imivPreviewFragment",
+                "failed to create Metal preview shader functions",
+                "failed to create Metal preview pipeline",
+                state.preview_pipeline, error_message)) {
             return false;
         }
-
-        MTLRenderPipelineDescriptor* descriptor =
-            [[MTLRenderPipelineDescriptor alloc] init];
-        descriptor.vertexFunction                  = vertex_function;
-        descriptor.fragmentFunction                = fragment_function;
-        descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-        state.preview_pipeline                     = [state.device
-            newRenderPipelineStateWithDescriptor:descriptor
-                                           error:&error];
-        if (state.preview_pipeline == nil) {
-            error_message = (error != nil && error.localizedDescription != nil)
-                                ? std::string(
-                                      error.localizedDescription.UTF8String)
-                                : "failed to create Metal preview pipeline";
-            return false;
-        }
-
-        MTLSamplerDescriptor* linear_descriptor = [[MTLSamplerDescriptor alloc]
-            init];
-        linear_descriptor.minFilter             = MTLSamplerMinMagFilterLinear;
-        linear_descriptor.magFilter             = MTLSamplerMinMagFilterLinear;
-        linear_descriptor.sAddressMode = MTLSamplerAddressModeClampToEdge;
-        linear_descriptor.tAddressMode = MTLSamplerAddressModeClampToEdge;
-        state.linear_sampler           = [state.device
-            newSamplerStateWithDescriptor:linear_descriptor];
-
-        MTLSamplerDescriptor* nearest_descriptor = [[MTLSamplerDescriptor alloc]
-            init];
-        nearest_descriptor.minFilter    = MTLSamplerMinMagFilterNearest;
-        nearest_descriptor.magFilter    = MTLSamplerMinMagFilterNearest;
-        nearest_descriptor.sAddressMode = MTLSamplerAddressModeClampToEdge;
-        nearest_descriptor.tAddressMode = MTLSamplerAddressModeClampToEdge;
-        state.nearest_sampler           = [state.device
-            newSamplerStateWithDescriptor:nearest_descriptor];
+        state.linear_sampler = create_sampler_state(state.device,
+                                                    OcioInterpolation::Linear);
+        state.nearest_sampler = create_sampler_state(
+            state.device, OcioInterpolation::Nearest);
 
         if (state.linear_sampler == nil || state.nearest_sampler == nil) {
             error_message = "failed to create Metal preview samplers";
@@ -1292,76 +1282,17 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         call_params << "rgba";
 
         std::ostringstream source;
-        source << R"metal(#include <metal_stdlib>
-using namespace metal;
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 uv;
-};
-
-struct PreviewUniforms {
-    float offset;
-    int color_mode;
-    int channel;
-    int input_channels;
-    int orientation;
-};
-)metal";
+        source << metal_preview_shader_preamble(
+            metal_ocio_preview_uniform_fields());
 
         if (has_uniform_struct) {
             source << "\nstruct OcioUniformData {\n"
                    << uniforms_struct.str() << "};\n";
         }
 
-        source << R"metal(
-vertex VertexOut imivOcioPreviewVertex(uint vertex_id [[vertex_id]])
-{
-    const float2 positions[3] = { float2(-1.0, -1.0), float2(3.0, -1.0), float2(-1.0, 3.0) };
-    const float2 uvs[3] = { float2(0.0, 0.0), float2(2.0, 0.0), float2(0.0, 2.0) };
-    VertexOut out;
-    out.position = float4(positions[vertex_id], 0.0, 1.0);
-    out.uv = uvs[vertex_id];
-    return out;
-}
-
-inline float selected_channel(float4 rgba, int channel)
-{
-    if (channel == 1) return rgba.r;
-    if (channel == 2) return rgba.g;
-    if (channel == 3) return rgba.b;
-    if (channel == 4) return rgba.a;
-    return rgba.r;
-}
-
-inline float3 heatmap(float x)
-{
-    float t = clamp(x, 0.0, 1.0);
-    float3 a = float3(0.0, 0.0, 0.5);
-    float3 b = float3(0.0, 0.9, 1.0);
-    float3 c = float3(1.0, 1.0, 0.0);
-    float3 d = float3(1.0, 0.0, 0.0);
-    if (t < 0.33)
-        return mix(a, b, t / 0.33);
-    if (t < 0.66)
-        return mix(b, c, (t - 0.33) / 0.33);
-    return mix(c, d, (t - 0.66) / 0.34);
-}
-
-inline float2 display_to_source_uv(float2 uv, int orientation)
-{
-    switch (orientation) {
-    case 2: return float2(1.0 - uv.x, uv.y);
-    case 3: return float2(1.0 - uv.x, 1.0 - uv.y);
-    case 4: return float2(uv.x, 1.0 - uv.y);
-    case 5: return float2(uv.y, uv.x);
-    case 6: return float2(uv.y, 1.0 - uv.x);
-    case 7: return float2(1.0 - uv.y, 1.0 - uv.x);
-    case 8: return float2(1.0 - uv.y, uv.x);
-    default: return uv;
-    }
-}
-)metal";
+        source << metal_fullscreen_triangle_vertex_source(
+            "imivOcioPreviewVertex");
+        source << metal_preview_common_shader_functions();
 
         source << runtime.blueprint.shader_text << "\n";
         source << "fragment float4 imivOcioPreviewFragment(\n"
@@ -1467,7 +1398,6 @@ inline float2 display_to_source_uv(float2 uv, int orientation)
             return false;
         }
 
-        NSError* error             = nil;
         MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
         if (@available(macOS 10.13, *))
             [options setLanguageVersion:MTLLanguageVersion2_0];
@@ -1484,41 +1414,21 @@ inline float2 display_to_source_uv(float2 uv, int orientation)
 #else
         [options setFastMathEnabled:NO];
 #endif
-        state.ocio_preview.library = [state.device
-            newLibraryWithSource:[NSString
-                                     stringWithUTF8String:shader_source.c_str()]
-                         options:options
-                           error:&error];
-        if (state.ocio_preview.library == nil) {
-            error_message = (error != nil && error.localizedDescription != nil)
-                                ? std::string(
-                                      error.localizedDescription.UTF8String)
-                                : "failed to compile Metal OCIO shader";
+        NSString* shader_source_ns
+            = [NSString stringWithUTF8String:shader_source.c_str()];
+        if (!create_shader_library(state.device, shader_source_ns, options,
+                                   "Metal device is not initialized",
+                                   "failed to compile Metal OCIO shader",
+                                   state.ocio_preview.library,
+                                   error_message)) {
             return false;
         }
-
-        id<MTLFunction> vertex_function   = [state.ocio_preview.library
-            newFunctionWithName:@"imivOcioPreviewVertex"];
-        id<MTLFunction> fragment_function = [state.ocio_preview.library
-            newFunctionWithName:@"imivOcioPreviewFragment"];
-        if (vertex_function == nil || fragment_function == nil) {
-            error_message = "failed to create Metal OCIO shader functions";
-            return false;
-        }
-
-        MTLRenderPipelineDescriptor* descriptor =
-            [[MTLRenderPipelineDescriptor alloc] init];
-        descriptor.vertexFunction                  = vertex_function;
-        descriptor.fragmentFunction                = fragment_function;
-        descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-        state.ocio_preview.pipeline                = [state.device
-            newRenderPipelineStateWithDescriptor:descriptor
-                                           error:&error];
-        if (state.ocio_preview.pipeline == nil) {
-            error_message = (error != nil && error.localizedDescription != nil)
-                                ? std::string(
-                                      error.localizedDescription.UTF8String)
-                                : "failed to create Metal OCIO pipeline";
+        if (!create_render_pipeline_state(
+                state.device, state.ocio_preview.library,
+                "imivOcioPreviewVertex", "imivOcioPreviewFragment",
+                "failed to create Metal OCIO shader functions",
+                "failed to create Metal OCIO pipeline",
+                state.ocio_preview.pipeline, error_message)) {
             return false;
         }
 
@@ -1564,7 +1474,7 @@ inline float2 display_to_source_uv(float2 uv, int orientation)
                                      RendererTextureBackendState& texture_state,
                                      id<MTLTexture> target_texture,
                                      id<MTLSamplerState> source_sampler,
-                                     const RendererPreviewControls& controls,
+                                     const PreviewControls& controls,
                                      std::string& error_message)
     {
         if (state.command_queue == nil || state.ocio_preview.pipeline == nil
@@ -1667,7 +1577,7 @@ inline float2 display_to_source_uv(float2 uv, int orientation)
                                 RendererTextureBackendState& texture_state,
                                 id<MTLTexture> target_texture,
                                 id<MTLSamplerState> sampler_state,
-                                const RendererPreviewControls& controls,
+                                const PreviewControls& controls,
                                 std::string& error_message)
     {
         if (state.command_queue == nil || state.preview_pipeline == nil
@@ -1861,7 +1771,7 @@ inline float2 display_to_source_uv(float2 uv, int orientation)
                                       RendererTexture& texture,
                                       const LoadedImage* image,
                                       const PlaceholderUiState& ui_state,
-                                      const RendererPreviewControls& controls,
+                                      const PreviewControls& controls,
                                       std::string& error_message)
     {
         RendererBackendState* renderer_backend = backend_state(renderer_state);
@@ -1872,7 +1782,7 @@ inline float2 display_to_source_uv(float2 uv, int orientation)
             return false;
         }
 
-        RendererPreviewControls effective_controls = controls;
+        PreviewControls effective_controls = controls;
         if (!texture_state->preview_dirty && texture_state->preview_params_valid
             && preview_controls_equal(texture_state->last_preview_controls,
                                       effective_controls)

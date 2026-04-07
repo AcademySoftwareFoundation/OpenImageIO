@@ -3,7 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "imiv_renderer.h"
-#include "imiv_types.h"
+#include "imiv_vulkan_types.h"
 
 #include <cmath>
 #include <cstdio>

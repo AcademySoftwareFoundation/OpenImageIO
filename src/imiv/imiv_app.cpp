@@ -5,12 +5,16 @@
 #include "imiv_app.h"
 #include "imiv_actions.h"
 #include "imiv_build_config.h"
+#include "imiv_developer_tools.h"
 #include "imiv_drag_drop.h"
 #include "imiv_file_dialog.h"
 #include "imiv_frame.h"
+#include "imiv_image_library.h"
 #include "imiv_menu.h"
 #include "imiv_navigation.h"
 #include "imiv_ocio.h"
+#include "imiv_parse.h"
+#include "imiv_persistence.h"
 #include "imiv_platform_glfw.h"
 #include "imiv_renderer.h"
 #include "imiv_style.h"
@@ -18,6 +22,7 @@
 #include "imiv_types.h"
 #include "imiv_ui.h"
 #include "imiv_viewer.h"
+#include "imiv_workspace.h"
 
 #include <algorithm>
 #include <array>
@@ -149,72 +154,6 @@ namespace {
         print("imiv: fonts ui={} mono={}\n", ui_font_source, mono_font_source);
         return fonts;
     }
-
-
-
-    bool read_env_value(const char* name, std::string& out_value)
-    {
-        out_value.clear();
-#if defined(_WIN32)
-        char* value       = nullptr;
-        size_t value_size = 0;
-        errno_t err       = _dupenv_s(&value, &value_size, name);
-        if (err != 0 || value == nullptr || value_size == 0) {
-            if (value != nullptr)
-                std::free(value);
-            return false;
-        }
-        out_value.assign(value);
-        std::free(value);
-#else
-        const char* value = std::getenv(name);
-        if (value == nullptr)
-            return false;
-        out_value.assign(value);
-#endif
-        return true;
-    }
-
-
-
-    bool env_flag_is_truthy(const char* name)
-    {
-        std::string value;
-        if (!read_env_value(name, value))
-            return false;
-
-        const string_view trimmed = Strutil::strip(value);
-        if (trimmed.empty())
-            return false;
-        if (trimmed == "1")
-            return true;
-        if (trimmed == "0")
-            return false;
-        return Strutil::iequals(trimmed, "true")
-               || Strutil::iequals(trimmed, "yes")
-               || Strutil::iequals(trimmed, "on");
-    }
-
-    bool parse_bool_value(string_view value, bool& out_value)
-    {
-        const string_view trimmed = Strutil::strip(value);
-        if (trimmed.empty())
-            return false;
-        if (trimmed == "1" || Strutil::iequals(trimmed, "true")
-            || Strutil::iequals(trimmed, "yes")
-            || Strutil::iequals(trimmed, "on")) {
-            out_value = true;
-            return true;
-        }
-        if (trimmed == "0" || Strutil::iequals(trimmed, "false")
-            || Strutil::iequals(trimmed, "no")
-            || Strutil::iequals(trimmed, "off")) {
-            out_value = false;
-            return true;
-        }
-        return false;
-    }
-
     bool default_developer_mode_enabled()
     {
 #if defined(NDEBUG)
@@ -232,7 +171,7 @@ namespace {
         std::string env_value;
         if (read_env_value("OIIO_DEVMODE", env_value)) {
             bool parsed_value = false;
-            if (parse_bool_value(env_value, parsed_value)) {
+            if (parse_bool_string(env_value, parsed_value)) {
                 enabled = parsed_value;
             } else if (verbose_logging) {
                 print(stderr,
@@ -550,22 +489,9 @@ run(const AppConfig& config)
     io.IniFilename       = nullptr;
     const AppFonts fonts = setup_app_fonts(verbose_logging);
     apply_imgui_app_style(AppStylePreset::ImGuiDark);
-    const std::filesystem::path settings_load_path
-        = persistent_state_file_path_for_load();
-    std::error_code settings_load_ec;
-    if (settings_load_path.filename() == "imiv.inf"
-        && std::filesystem::exists(settings_load_path, settings_load_ec)
-        && !settings_load_ec) {
+    const std::filesystem::path settings_load_path = imgui_ini_load_path();
+    if (!settings_load_path.empty())
         ImGui::LoadIniSettingsFromDisk(settings_load_path.string().c_str());
-    } else {
-        const std::filesystem::path legacy_imgui_path
-            = legacy_imgui_ini_file_path();
-        settings_load_ec.clear();
-        if (std::filesystem::exists(legacy_imgui_path, settings_load_ec)
-            && !settings_load_ec) {
-            ImGui::LoadIniSettingsFromDisk(legacy_imgui_path.string().c_str());
-        }
-    }
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGuiStyle& style                 = ImGui::GetStyle();
         style.WindowRounding              = 0.0f;
@@ -739,7 +665,7 @@ run(const AppConfig& config)
 
     if (!run_config.input_paths.empty()) {
         append_loaded_image_paths(library, run_config.input_paths);
-        viewer.loaded_image_paths = library.loaded_image_paths;
+        sync_viewer_library_state(viewer, library);
         if (!load_viewer_image(renderer_state, viewer, library, &ui_state,
                                run_config.input_paths[0],
                                ui_state.subimage_index,
@@ -849,12 +775,12 @@ run(const AppConfig& config)
             ImGui::RenderPlatformWindowsDefault();
             renderer_finish_platform_windows(renderer_state);
         }
-        process_developer_post_render_actions(
-            developer_ui,
-            active_image_view(workspace) != nullptr
-                ? active_image_view(workspace)->viewer
-                : viewer,
-            renderer_state);
+        ImageViewWindow* active_view_window = active_image_view(workspace);
+        process_developer_post_render_actions(developer_ui,
+                                              active_view_window != nullptr
+                                                  ? active_view_window->viewer
+                                                  : viewer,
+                                              renderer_state);
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
         test_engine_post_swap(test_engine_runtime);
 #endif

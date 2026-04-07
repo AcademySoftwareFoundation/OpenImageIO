@@ -3,15 +3,16 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "imiv_loaded_image.h"
+#include "imiv_parse.h"
 #include "imiv_tiling.h"
-#include "imiv_types.h"
+#include "imiv_vulkan_resource_utils.h"
 #include "imiv_vulkan_texture_internal.h"
+#include "imiv_vulkan_types.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <string>
@@ -29,14 +30,6 @@ namespace Imiv {
 #if defined(IMIV_WITH_VULKAN)
 
 namespace {
-
-    bool env_flag_is_truthy(const char* name)
-    {
-        const char* value = std::getenv(name);
-        if (value == nullptr || value[0] == '\0')
-            return false;
-        return !(value[0] == '0' && value[1] == '\0');
-    }
 
     bool upload_stage_logging_enabled(const VulkanState& vk_state)
     {
@@ -200,91 +193,19 @@ namespace {
         texture.preview_params_valid = false;
     }
 
-    bool nonblocking_fence_status(VkDevice device, VkFence fence,
-                                  const char* context, bool& out_signaled,
-                                  std::string& error_message)
-    {
-        out_signaled = false;
-        if (fence == VK_NULL_HANDLE) {
-            error_message = Strutil::fmt::format("{} fence is unavailable",
-                                                 context);
-            return false;
-        }
-
-        const VkResult err = vkGetFenceStatus(device, fence);
-        if (err == VK_SUCCESS) {
-            out_signaled = true;
-            return true;
-        }
-        if (err == VK_NOT_READY)
-            return true;
-
-        error_message = Strutil::fmt::format("vkGetFenceStatus failed for {}",
-                                             context);
-        check_vk_result(err);
-        return false;
-    }
-
     bool ensure_texture_upload_submit_resources(VulkanState& vk_state,
                                                 VulkanTexture& texture,
                                                 std::string& error_message)
     {
-        if (texture.upload_command_pool != VK_NULL_HANDLE
-            && texture.upload_command_buffer != VK_NULL_HANDLE
-            && texture.upload_submit_fence != VK_NULL_HANDLE) {
-            return true;
-        }
-
-        destroy_texture_upload_submit_resources(vk_state, texture);
-
-        VkResult err                    = VK_SUCCESS;
-        VkCommandPoolCreateInfo pool_ci = {};
-        pool_ci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        pool_ci.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
-                        | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        pool_ci.queueFamilyIndex = vk_state.queue_family;
-        err = vkCreateCommandPool(vk_state.device, &pool_ci, vk_state.allocator,
-                                  &texture.upload_command_pool);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateCommandPool failed for upload async submit";
-            destroy_texture_upload_submit_resources(vk_state, texture);
-            return false;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_COMMAND_POOL,
-                           texture.upload_command_pool,
-                           "imiv.upload_async.command_pool");
-
-        VkCommandBufferAllocateInfo command_alloc = {};
-        command_alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        command_alloc.commandPool        = texture.upload_command_pool;
-        command_alloc.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        command_alloc.commandBufferCount = 1;
-        err = vkAllocateCommandBuffers(vk_state.device, &command_alloc,
-                                       &texture.upload_command_buffer);
-        if (err != VK_SUCCESS) {
-            error_message = "vkAllocateCommandBuffers failed for upload async "
-                            "submit";
-            destroy_texture_upload_submit_resources(vk_state, texture);
-            return false;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_COMMAND_BUFFER,
-                           texture.upload_command_buffer,
-                           "imiv.upload_async.command_buffer");
-
-        VkFenceCreateInfo fence_ci = {};
-        fence_ci.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fence_ci.flags             = VK_FENCE_CREATE_SIGNALED_BIT;
-        err = vkCreateFence(vk_state.device, &fence_ci, vk_state.allocator,
-                            &texture.upload_submit_fence);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateFence failed for upload async submit";
-            destroy_texture_upload_submit_resources(vk_state, texture);
-            return false;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_FENCE,
-                           texture.upload_submit_fence,
-                           "imiv.upload_async.fence");
-        return true;
+        return ensure_async_submit_resources(
+            vk_state, texture.upload_command_pool,
+            texture.upload_command_buffer, texture.upload_submit_fence,
+            "vkCreateCommandPool failed for upload async submit",
+            "vkAllocateCommandBuffers failed for upload async submit",
+            "vkCreateFence failed for upload async submit",
+            "imiv.upload_async.command_pool",
+            "imiv.upload_async.command_buffer", "imiv.upload_async.fence",
+            error_message);
     }
 
 }  // namespace
@@ -319,17 +240,9 @@ destroy_texture_upload_submit_resources(VulkanState& vk_state,
                      vk_state.allocator);
         texture.upload_staging_memory = VK_NULL_HANDLE;
     }
-    if (texture.upload_submit_fence != VK_NULL_HANDLE) {
-        vkDestroyFence(vk_state.device, texture.upload_submit_fence,
-                       vk_state.allocator);
-        texture.upload_submit_fence = VK_NULL_HANDLE;
-    }
-    texture.upload_command_buffer = VK_NULL_HANDLE;
-    if (texture.upload_command_pool != VK_NULL_HANDLE) {
-        vkDestroyCommandPool(vk_state.device, texture.upload_command_pool,
-                             vk_state.allocator);
-        texture.upload_command_pool = VK_NULL_HANDLE;
-    }
+    destroy_async_submit_resources(vk_state, texture.upload_command_pool,
+                                   texture.upload_command_buffer,
+                                   texture.upload_submit_fence);
     texture.upload_submit_pending = false;
 }
 
@@ -626,36 +539,14 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE, texture.source_image,
                            "imiv.viewer.source_image");
 
-        VkMemoryRequirements source_reqs = {};
-        vkGetImageMemoryRequirements(vk_state.device, texture.source_image,
-                                     &source_reqs);
-
-        uint32_t image_memory_type = 0;
-        if (!find_memory_type_with_fallback(vk_state.physical_device,
-                                            source_reqs.memoryTypeBits,
-                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                            image_memory_type)) {
-            error_message = "no compatible memory type for source image";
-            break;
-        }
-
-        VkMemoryAllocateInfo source_alloc = {};
-        source_alloc.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        source_alloc.allocationSize  = source_reqs.size;
-        source_alloc.memoryTypeIndex = image_memory_type;
-        err = vkAllocateMemory(vk_state.device, &source_alloc,
-                               vk_state.allocator, &texture.source_memory);
-        if (err != VK_SUCCESS) {
-            error_message = "vkAllocateMemory failed for source image";
-            break;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_DEVICE_MEMORY,
-                           texture.source_memory,
-                           "imiv.viewer.source_image.memory");
-        err = vkBindImageMemory(vk_state.device, texture.source_image,
-                                texture.source_memory, 0);
-        if (err != VK_SUCCESS) {
-            error_message = "vkBindImageMemory failed for source image";
+        if (!allocate_and_bind_image_memory(
+                vk_state, texture.source_image,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, true,
+                texture.source_memory,
+                "no compatible memory type for source image",
+                "vkAllocateMemory failed for source image",
+                "vkBindImageMemory failed for source image",
+                "imiv.viewer.source_image.memory", error_message)) {
             break;
         }
 
@@ -673,14 +564,12 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         source_view_ci.subresourceRange.levelCount     = 1;
         source_view_ci.subresourceRange.baseArrayLayer = 0;
         source_view_ci.subresourceRange.layerCount     = 1;
-        err = vkCreateImageView(vk_state.device, &source_view_ci,
-                                vk_state.allocator, &texture.source_view);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateImageView failed for source image";
+        if (!create_image_view_resource(
+                vk_state, source_view_ci, texture.source_view,
+                "vkCreateImageView failed for source image",
+                "imiv.viewer.source_view", error_message)) {
             break;
         }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE_VIEW,
-                           texture.source_view, "imiv.viewer.source_view");
 
         VkImageCreateInfo preview_ci = source_ci;
         preview_ci.usage             = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
@@ -694,46 +583,24 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE, texture.image,
                            "imiv.viewer.preview_image");
 
-        VkMemoryRequirements preview_reqs = {};
-        vkGetImageMemoryRequirements(vk_state.device, texture.image,
-                                     &preview_reqs);
-        uint32_t preview_memory_type = 0;
-        if (!find_memory_type_with_fallback(vk_state.physical_device,
-                                            preview_reqs.memoryTypeBits,
-                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                            preview_memory_type)) {
-            error_message = "no compatible memory type for preview image";
-            break;
-        }
-        VkMemoryAllocateInfo preview_alloc = {};
-        preview_alloc.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        preview_alloc.allocationSize  = preview_reqs.size;
-        preview_alloc.memoryTypeIndex = preview_memory_type;
-        err = vkAllocateMemory(vk_state.device, &preview_alloc,
-                               vk_state.allocator, &texture.memory);
-        if (err != VK_SUCCESS) {
-            error_message = "vkAllocateMemory failed for preview image";
-            break;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_DEVICE_MEMORY,
-                           texture.memory, "imiv.viewer.preview_image.memory");
-        err = vkBindImageMemory(vk_state.device, texture.image, texture.memory,
-                                0);
-        if (err != VK_SUCCESS) {
-            error_message = "vkBindImageMemory failed for preview image";
+        if (!allocate_and_bind_image_memory(
+                vk_state, texture.image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                true, texture.memory,
+                "no compatible memory type for preview image",
+                "vkAllocateMemory failed for preview image",
+                "vkBindImageMemory failed for preview image",
+                "imiv.viewer.preview_image.memory", error_message)) {
             break;
         }
 
         VkImageViewCreateInfo preview_view_ci = source_view_ci;
         preview_view_ci.image                 = texture.image;
-        err = vkCreateImageView(vk_state.device, &preview_view_ci,
-                                vk_state.allocator, &texture.view);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateImageView failed for preview image";
+        if (!create_image_view_resource(
+                vk_state, preview_view_ci, texture.view,
+                "vkCreateImageView failed for preview image",
+                "imiv.viewer.preview_view", error_message)) {
             break;
         }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE_VIEW, texture.view,
-                           "imiv.viewer.preview_view");
 
         VkFramebufferCreateInfo fb_ci = {};
         fb_ci.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -768,35 +635,13 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         set_vk_object_name(vk_state, VK_OBJECT_TYPE_BUFFER, source_buffer,
                            "imiv.viewer.upload.source_buffer");
 
-        VkMemoryRequirements staging_reqs = {};
-        vkGetBufferMemoryRequirements(vk_state.device, source_buffer,
-                                      &staging_reqs);
-
-        uint32_t staging_memory_type = 0;
-        if (!find_memory_type_with_fallback(vk_state.physical_device,
-                                            staging_reqs.memoryTypeBits,
-                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                            staging_memory_type)) {
-            error_message = "no compatible memory type for source buffer";
-            break;
-        }
-
-        VkMemoryAllocateInfo staging_alloc = {};
-        staging_alloc.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        staging_alloc.allocationSize  = staging_reqs.size;
-        staging_alloc.memoryTypeIndex = staging_memory_type;
-        err = vkAllocateMemory(vk_state.device, &staging_alloc,
-                               vk_state.allocator, &source_memory);
-        if (err != VK_SUCCESS) {
-            error_message = "vkAllocateMemory failed for source buffer";
-            break;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_DEVICE_MEMORY,
-                           source_memory, "imiv.viewer.upload.source_memory");
-        err = vkBindBufferMemory(vk_state.device, source_buffer, source_memory,
-                                 0);
-        if (err != VK_SUCCESS) {
-            error_message = "vkBindBufferMemory failed for source buffer";
+        if (!allocate_and_bind_buffer_memory(
+                vk_state, source_buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                true, source_memory,
+                "no compatible memory type for source buffer",
+                "vkAllocateMemory failed for source buffer",
+                "vkBindBufferMemory failed for source buffer",
+                "imiv.viewer.upload.source_memory", error_message)) {
             break;
         }
 
@@ -814,42 +659,23 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         set_vk_object_name(vk_state, VK_OBJECT_TYPE_BUFFER, staging_buffer,
                            "imiv.viewer.upload.staging_buffer");
 
-        VkMemoryRequirements staging_buffer_reqs = {};
-        vkGetBufferMemoryRequirements(vk_state.device, staging_buffer,
-                                      &staging_buffer_reqs);
-        uint32_t host_visible_memory_type = 0;
-        if (!find_memory_type(vk_state.physical_device,
-                              staging_buffer_reqs.memoryTypeBits,
-                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-                                  | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                              host_visible_memory_type)) {
-            error_message = "no host-visible memory type for staging buffer";
-            break;
-        }
-        VkMemoryAllocateInfo host_alloc = {};
-        host_alloc.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        host_alloc.allocationSize  = staging_buffer_reqs.size;
-        host_alloc.memoryTypeIndex = host_visible_memory_type;
-        err = vkAllocateMemory(vk_state.device, &host_alloc, vk_state.allocator,
-                               &staging_memory);
-        if (err != VK_SUCCESS) {
-            error_message = "vkAllocateMemory failed for staging buffer";
-            break;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_DEVICE_MEMORY,
-                           staging_memory, "imiv.viewer.upload.staging_memory");
-        err = vkBindBufferMemory(vk_state.device, staging_buffer,
-                                 staging_memory, 0);
-        if (err != VK_SUCCESS) {
-            error_message = "vkBindBufferMemory failed for staging buffer";
+        if (!allocate_and_bind_buffer_memory(
+                vk_state, staging_buffer,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                    | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                false, staging_memory,
+                "no host-visible memory type for staging buffer",
+                "vkAllocateMemory failed for staging buffer",
+                "vkBindBufferMemory failed for staging buffer",
+                "imiv.viewer.upload.staging_memory", error_message)) {
             break;
         }
 
         void* mapped = nullptr;
-        err          = vkMapMemory(vk_state.device, staging_memory, 0,
-                                   upload_size_aligned, 0, &mapped);
-        if (err != VK_SUCCESS || mapped == nullptr) {
-            error_message = "vkMapMemory failed for staging buffer";
+        if (!map_memory_resource(vk_state, staging_memory, upload_size_aligned,
+                                 mapped,
+                                 "vkMapMemory failed for staging buffer",
+                                 error_message)) {
             break;
         }
         if (!copy_rows_to_padded_buffer(
@@ -862,15 +688,11 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         }
         vkUnmapMemory(vk_state.device, staging_memory);
 
-        VkDescriptorSetAllocateInfo set_alloc = {};
-        set_alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        set_alloc.descriptorPool     = vk_state.compute_descriptor_pool;
-        set_alloc.descriptorSetCount = 1;
-        set_alloc.pSetLayouts        = &vk_state.compute_descriptor_set_layout;
-        err = vkAllocateDescriptorSets(vk_state.device, &set_alloc,
-                                       &compute_set);
-        if (err != VK_SUCCESS) {
-            error_message = "vkAllocateDescriptorSets failed for upload compute";
+        if (!allocate_descriptor_set_resource(
+                vk_state, vk_state.compute_descriptor_pool,
+                vk_state.compute_descriptor_set_layout, compute_set,
+                "vkAllocateDescriptorSets failed for upload compute",
+                error_message)) {
             break;
         }
 
@@ -918,23 +740,15 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         output_image_info.imageLayout           = VK_IMAGE_LAYOUT_GENERAL;
         output_image_info.sampler               = VK_NULL_HANDLE;
 
-        VkWriteDescriptorSet writes[2] = {};
-        writes[0].sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writes[0].dstSet               = compute_set;
-        writes[0].dstBinding           = 0;
-        writes[0].descriptorCount      = 1;
-        writes[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-        writes[0].pBufferInfo     = &source_buffer_info;
-        writes[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writes[1].dstSet          = compute_set;
-        writes[1].dstBinding      = 1;
-        writes[1].descriptorCount = 1;
-        writes[1].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        writes[1].pImageInfo      = &output_image_info;
+        VkWriteDescriptorSet writes[2]
+            = { make_buffer_descriptor_write(
+                    compute_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
+                    &source_buffer_info),
+                make_image_descriptor_write(compute_set, 1,
+                                            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                            &output_image_info) };
         vkUpdateDescriptorSets(vk_state.device, 2, writes, 0, nullptr);
 
-        VkSamplerCreateInfo sampler_ci  = {};
-        sampler_ci.sType                = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         VkFormatProperties output_props = {};
         vkGetPhysicalDeviceFormatProperties(vk_state.physical_device,
                                             vk_state.compute_output_format,
@@ -943,25 +757,15 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
             = (output_props.optimalTilingFeatures
                & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
               != 0;
-        sampler_ci.magFilter     = has_linear_filter ? VK_FILTER_LINEAR
-                                                     : VK_FILTER_NEAREST;
-        sampler_ci.minFilter     = has_linear_filter ? VK_FILTER_LINEAR
-                                                     : VK_FILTER_NEAREST;
-        sampler_ci.mipmapMode    = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        sampler_ci.addressModeU  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        sampler_ci.addressModeV  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        sampler_ci.addressModeW  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        sampler_ci.minLod        = 0.0f;
-        sampler_ci.maxLod        = 1000.0f;
-        sampler_ci.maxAnisotropy = 1.0f;
-        err = vkCreateSampler(vk_state.device, &sampler_ci, vk_state.allocator,
-                              &texture.sampler);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateSampler failed";
+        const VkFilter filter = has_linear_filter ? VK_FILTER_LINEAR
+                                                  : VK_FILTER_NEAREST;
+        const VkSamplerCreateInfo sampler_ci = make_clamped_sampler_create_info(
+            filter, filter, VK_SAMPLER_MIPMAP_MODE_LINEAR, 0.0f, 1000.0f);
+        if (!create_sampler_resource(vk_state, sampler_ci, texture.sampler,
+                                     "vkCreateSampler failed",
+                                     "imiv.viewer.sampler", error_message)) {
             break;
         }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_SAMPLER, texture.sampler,
-                           "imiv.viewer.sampler");
 
         VkSamplerCreateInfo pixelview_sampler_ci   = sampler_ci;
         VkSamplerCreateInfo nearest_mag_sampler_ci = sampler_ci;
@@ -969,35 +773,25 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         pixelview_sampler_ci.magFilter             = VK_FILTER_NEAREST;
         pixelview_sampler_ci.minFilter             = VK_FILTER_NEAREST;
         pixelview_sampler_ci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-        err = vkCreateSampler(vk_state.device, &nearest_mag_sampler_ci,
-                              vk_state.allocator, &texture.nearest_mag_sampler);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateSampler failed for nearest-mag view";
+        if (!create_sampler_resource(
+                vk_state, nearest_mag_sampler_ci, texture.nearest_mag_sampler,
+                "vkCreateSampler failed for nearest-mag view",
+                "imiv.viewer.nearest_mag_sampler", error_message)) {
             break;
         }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_SAMPLER,
-                           texture.nearest_mag_sampler,
-                           "imiv.viewer.nearest_mag_sampler");
-        err = vkCreateSampler(vk_state.device, &pixelview_sampler_ci,
-                              vk_state.allocator, &texture.pixelview_sampler);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateSampler failed for pixel closeup";
+        if (!create_sampler_resource(
+                vk_state, pixelview_sampler_ci, texture.pixelview_sampler,
+                "vkCreateSampler failed for pixel closeup",
+                "imiv.viewer.pixelview_sampler", error_message)) {
             break;
         }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_SAMPLER,
-                           texture.pixelview_sampler,
-                           "imiv.viewer.pixelview_sampler");
 
-        VkDescriptorSetAllocateInfo preview_set_alloc = {};
-        preview_set_alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        preview_set_alloc.descriptorPool     = vk_state.preview_descriptor_pool;
-        preview_set_alloc.descriptorSetCount = 1;
-        preview_set_alloc.pSetLayouts = &vk_state.preview_descriptor_set_layout;
-        err = vkAllocateDescriptorSets(vk_state.device, &preview_set_alloc,
-                                       &texture.preview_source_set);
-        if (err != VK_SUCCESS) {
-            error_message
-                = "vkAllocateDescriptorSets failed for preview source set";
+        if (!allocate_descriptor_set_resource(
+                vk_state, vk_state.preview_descriptor_pool,
+                vk_state.preview_descriptor_set_layout,
+                texture.preview_source_set,
+                "vkAllocateDescriptorSets failed for preview source set",
+                error_message)) {
             break;
         }
         VkDescriptorImageInfo preview_source_image = {};
@@ -1005,13 +799,9 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         preview_source_image.imageView             = texture.source_view;
         preview_source_image.imageLayout
             = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        VkWriteDescriptorSet preview_write = {};
-        preview_write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        preview_write.dstSet          = texture.preview_source_set;
-        preview_write.dstBinding      = 0;
-        preview_write.descriptorCount = 1;
-        preview_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        preview_write.pImageInfo = &preview_source_image;
+        VkWriteDescriptorSet preview_write = make_image_descriptor_write(
+            texture.preview_source_set, 0,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &preview_source_image);
         vkUpdateDescriptorSets(vk_state.device, 1, &preview_write, 0, nullptr);
 
         VkBufferCopy copy_region = {};

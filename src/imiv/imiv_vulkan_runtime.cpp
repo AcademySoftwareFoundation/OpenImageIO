@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include "imiv_types.h"
+#include "imiv_vulkan_types.h"
 
 #include <algorithm>
 #include <cstdio>

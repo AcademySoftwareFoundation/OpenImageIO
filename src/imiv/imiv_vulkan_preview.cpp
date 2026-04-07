@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include "imiv_types.h"
+#include "imiv_vulkan_resource_utils.h"
 #include "imiv_vulkan_texture_internal.h"
+#include "imiv_vulkan_types.h"
 
 #include <algorithm>
 #include <cmath>
@@ -15,93 +16,19 @@ namespace Imiv {
 
 namespace {
 
-    bool nonblocking_fence_status(VkDevice device, VkFence fence,
-                                  const char* context, bool& out_signaled,
-                                  std::string& error_message)
-    {
-        out_signaled = false;
-        if (fence == VK_NULL_HANDLE) {
-            error_message = OIIO::Strutil::fmt::format("{} fence is unavailable",
-                                                       context);
-            return false;
-        }
-
-        const VkResult err = vkGetFenceStatus(device, fence);
-        if (err == VK_SUCCESS) {
-            out_signaled = true;
-            return true;
-        }
-        if (err == VK_NOT_READY)
-            return true;
-
-        error_message
-            = OIIO::Strutil::fmt::format("vkGetFenceStatus failed for {}",
-                                         context);
-        check_vk_result(err);
-        return false;
-    }
-
     bool ensure_texture_preview_submit_resources(VulkanState& vk_state,
                                                  VulkanTexture& texture,
                                                  std::string& error_message)
     {
-        if (texture.preview_command_pool != VK_NULL_HANDLE
-            && texture.preview_command_buffer != VK_NULL_HANDLE
-            && texture.preview_submit_fence != VK_NULL_HANDLE) {
-            return true;
-        }
-
-        destroy_texture_preview_submit_resources(vk_state, texture);
-
-        VkResult err                    = VK_SUCCESS;
-        VkCommandPoolCreateInfo pool_ci = {};
-        pool_ci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        pool_ci.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
-                        | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        pool_ci.queueFamilyIndex = vk_state.queue_family;
-        err = vkCreateCommandPool(vk_state.device, &pool_ci, vk_state.allocator,
-                                  &texture.preview_command_pool);
-        if (err != VK_SUCCESS) {
-            error_message
-                = "vkCreateCommandPool failed for preview async submit";
-            destroy_texture_preview_submit_resources(vk_state, texture);
-            return false;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_COMMAND_POOL,
-                           texture.preview_command_pool,
-                           "imiv.preview_async.command_pool");
-
-        VkCommandBufferAllocateInfo command_alloc = {};
-        command_alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        command_alloc.commandPool        = texture.preview_command_pool;
-        command_alloc.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        command_alloc.commandBufferCount = 1;
-        err = vkAllocateCommandBuffers(vk_state.device, &command_alloc,
-                                       &texture.preview_command_buffer);
-        if (err != VK_SUCCESS) {
-            error_message = "vkAllocateCommandBuffers failed for preview async "
-                            "submit";
-            destroy_texture_preview_submit_resources(vk_state, texture);
-            return false;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_COMMAND_BUFFER,
-                           texture.preview_command_buffer,
-                           "imiv.preview_async.command_buffer");
-
-        VkFenceCreateInfo fence_ci = {};
-        fence_ci.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fence_ci.flags             = VK_FENCE_CREATE_SIGNALED_BIT;
-        err = vkCreateFence(vk_state.device, &fence_ci, vk_state.allocator,
-                            &texture.preview_submit_fence);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateFence failed for preview async submit";
-            destroy_texture_preview_submit_resources(vk_state, texture);
-            return false;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_FENCE,
-                           texture.preview_submit_fence,
-                           "imiv.preview_async.fence");
-        return true;
+        return ensure_async_submit_resources(
+            vk_state, texture.preview_command_pool,
+            texture.preview_command_buffer, texture.preview_submit_fence,
+            "vkCreateCommandPool failed for preview async submit",
+            "vkAllocateCommandBuffers failed for preview async submit",
+            "vkCreateFence failed for preview async submit",
+            "imiv.preview_async.command_pool",
+            "imiv.preview_async.command_buffer", "imiv.preview_async.fence",
+            error_message);
     }
 
     bool poll_texture_preview_submission(VulkanState& vk_state,
@@ -153,17 +80,9 @@ void
 destroy_texture_preview_submit_resources(VulkanState& vk_state,
                                          VulkanTexture& texture)
 {
-    if (texture.preview_submit_fence != VK_NULL_HANDLE) {
-        vkDestroyFence(vk_state.device, texture.preview_submit_fence,
-                       vk_state.allocator);
-        texture.preview_submit_fence = VK_NULL_HANDLE;
-    }
-    texture.preview_command_buffer = VK_NULL_HANDLE;
-    if (texture.preview_command_pool != VK_NULL_HANDLE) {
-        vkDestroyCommandPool(vk_state.device, texture.preview_command_pool,
-                             vk_state.allocator);
-        texture.preview_command_pool = VK_NULL_HANDLE;
-    }
+    destroy_async_submit_resources(vk_state, texture.preview_command_pool,
+                                   texture.preview_command_buffer,
+                                   texture.preview_submit_fence);
     texture.preview_submit_pending = false;
 }
 

@@ -144,7 +144,7 @@ renderer_update_preview_texture(RendererState& renderer_state,
                                 RendererTexture& texture,
                                 const LoadedImage* image,
                                 const PlaceholderUiState& ui_state,
-                                const RendererPreviewControls& controls,
+                                const PreviewControls& controls,
                                 std::string& error_message)
 {
     const RendererBackendVTable* vtable = texture_dispatch_vtable(texture);

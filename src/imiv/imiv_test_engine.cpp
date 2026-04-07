@@ -4,12 +4,13 @@
 
 #include "imiv_test_engine.h"
 
+#include "imiv_parse.h"
+
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
-#include <limits>
 #include <string>
 #include <vector>
 
@@ -32,108 +33,6 @@ using namespace OIIO;
 
 namespace Imiv {
 namespace {
-
-    bool read_env_value(const char* name, std::string& out)
-    {
-        out.clear();
-        if (name == nullptr || name[0] == '\0')
-            return false;
-        const char* value = std::getenv(name);
-        if (value == nullptr || value[0] == '\0')
-            return false;
-        out = value;
-        return true;
-    }
-
-
-
-    bool parse_bool_value(const std::string& value, bool& out)
-    {
-        const string_view trimmed = Strutil::strip(value);
-        if (trimmed == "1" || Strutil::iequals(trimmed, "true")
-            || Strutil::iequals(trimmed, "yes")
-            || Strutil::iequals(trimmed, "on")) {
-            out = true;
-            return true;
-        }
-        if (trimmed == "0" || Strutil::iequals(trimmed, "false")
-            || Strutil::iequals(trimmed, "no")
-            || Strutil::iequals(trimmed, "off")) {
-            out = false;
-            return true;
-        }
-        return false;
-    }
-
-
-
-    bool parse_int_value(const std::string& value, int& out)
-    {
-        const std::string trimmed = std::string(Strutil::strip(value));
-        if (trimmed.empty())
-            return false;
-        char* end   = nullptr;
-        long parsed = std::strtol(trimmed.c_str(), &end, 10);
-        if (end == trimmed.c_str() || *end != '\0')
-            return false;
-        if (parsed < static_cast<long>(std::numeric_limits<int>::min())
-            || parsed > static_cast<long>(std::numeric_limits<int>::max())) {
-            return false;
-        }
-        out = static_cast<int>(parsed);
-        return true;
-    }
-
-
-
-    bool parse_float_value(const std::string& value, float& out)
-    {
-        const std::string trimmed = std::string(Strutil::strip(value));
-        if (trimmed.empty())
-            return false;
-        char* end    = nullptr;
-        float parsed = std::strtof(trimmed.c_str(), &end);
-        if (end == trimmed.c_str() || *end != '\0')
-            return false;
-        out = parsed;
-        return true;
-    }
-
-
-
-    bool env_flag_is_truthy(const char* name)
-    {
-        std::string value;
-        bool out = false;
-        return read_env_value(name, value) && parse_bool_value(value, out)
-               && out;
-    }
-
-
-
-    bool env_read_int_value(const char* name, int& out)
-    {
-        std::string value;
-        return read_env_value(name, value) && parse_int_value(value, out);
-    }
-
-
-
-    bool env_read_float_value(const char* name, float& out)
-    {
-        std::string value;
-        return read_env_value(name, value) && parse_float_value(value, out);
-    }
-
-
-
-    int env_int_value(const char* name, int fallback)
-    {
-        int out = 0;
-        return env_read_int_value(name, out) ? out : fallback;
-    }
-
-
 
     enum class TestEngineMouseTargetMode {
         None,
@@ -261,30 +160,30 @@ namespace {
         std::vector<std::string> parts = Strutil::splits(value, ",", 2);
         if (parts.size() != 2)
             return false;
-        return parse_float_value(std::string(Strutil::strip(parts[0])), out_a)
-               && parse_float_value(std::string(Strutil::strip(parts[1])),
-                                    out_b);
+        return parse_float_string(std::string(Strutil::strip(parts[0])), out_a)
+               && parse_float_string(std::string(Strutil::strip(parts[1])),
+                                     out_b);
     }
 
 
 
     bool parse_bool_attr(const pugi::xml_attribute& attr, bool& out)
     {
-        return attr && parse_bool_value(attr.as_string(), out);
+        return attr && parse_bool_string(attr.as_string(), out);
     }
 
 
 
     bool parse_int_attr(const pugi::xml_attribute& attr, int& out)
     {
-        return attr && parse_int_value(attr.as_string(), out);
+        return attr && parse_int_string(attr.as_string(), out);
     }
 
 
 
     bool parse_float_attr(const pugi::xml_attribute& attr, float& out)
     {
-        return attr && parse_float_value(attr.as_string(), out);
+        return attr && parse_float_string(attr.as_string(), out);
     }
 
 

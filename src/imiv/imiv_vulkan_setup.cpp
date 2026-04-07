@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include "imiv_types.h"
+#include "imiv_vulkan_resource_utils.h"
+#include "imiv_vulkan_shader_utils.h"
+#include "imiv_vulkan_types.h"
 
 #include <algorithm>
 #include <array>
@@ -691,57 +693,22 @@ select_physical_device_and_queue(VulkanState& vk_state,
 
 
 bool
-read_binary_file(const std::string& path, std::vector<uint32_t>& words,
-                 std::string& error_message)
+create_compute_pipeline(VulkanState& vk_state, const uint32_t* shader_words,
+                        size_t shader_word_count,
+                        const std::string& shader_path,
+                        const char* shader_label, const char* debug_name,
+                        VkPipeline& out_pipeline, std::string& error_message)
 {
-    std::ifstream in(path, std::ios::binary | std::ios::ate);
-    if (!in) {
-        error_message = Strutil::fmt::format("cannot open '{}'", path);
-        return false;
-    }
-
-    const std::streamsize size = in.tellg();
-    if (size <= 0 || (size % 4) != 0) {
-        error_message
-            = Strutil::fmt::format("invalid SPIR-V file size for '{}'", path);
-        return false;
-    }
-    in.seekg(0, std::ios::beg);
-
-    words.resize(static_cast<size_t>(size) / 4);
-    if (!in.read(reinterpret_cast<char*>(words.data()), size)) {
-        error_message = Strutil::fmt::format("failed to read '{}'", path);
-        words.clear();
-        return false;
-    }
-    return true;
-}
-
-
-
-bool
-create_compute_pipeline_from_file(VulkanState& vk_state,
-                                  const std::string& shader_path,
-                                  const char* debug_name,
-                                  VkPipeline& out_pipeline,
-                                  std::string& error_message)
-{
-    out_pipeline = VK_NULL_HANDLE;
-    std::vector<uint32_t> shader_words;
-    if (!read_binary_file(shader_path, shader_words, error_message))
-        return false;
-
-    VkShaderModule shader_module       = VK_NULL_HANDLE;
-    VkShaderModuleCreateInfo shader_ci = {};
-    shader_ci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shader_ci.codeSize = shader_words.size() * sizeof(uint32_t);
-    shader_ci.pCode    = shader_words.data();
-    VkResult err       = vkCreateShaderModule(vk_state.device, &shader_ci,
-                                              vk_state.allocator, &shader_module);
-    if (err != VK_SUCCESS) {
-        error_message
-            = Strutil::fmt::format("vkCreateShaderModule failed for '{}'",
-                                   shader_path);
+    VkShaderModule shader_module = VK_NULL_HANDLE;
+    out_pipeline                 = VK_NULL_HANDLE;
+    const char* module_name      = (shader_words != nullptr
+                               && shader_word_count != 0)
+                                       ? shader_label
+                                       : shader_path.c_str();
+    if (!create_shader_module_from_embedded_or_file(
+            vk_state.device, vk_state.allocator, shader_words,
+            shader_word_count, shader_path, shader_label, shader_module,
+            error_message)) {
         return false;
     }
 
@@ -750,140 +717,27 @@ create_compute_pipeline_from_file(VulkanState& vk_state,
     stage_ci.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
     stage_ci.module = shader_module;
     stage_ci.pName  = "main";
+
     VkComputePipelineCreateInfo pipeline_ci = {};
     pipeline_ci.sType  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pipeline_ci.stage  = stage_ci;
     pipeline_ci.layout = vk_state.compute_pipeline_layout;
-    err = vkCreateComputePipelines(vk_state.device, vk_state.pipeline_cache, 1,
+    const VkResult err
+        = vkCreateComputePipelines(vk_state.device, vk_state.pipeline_cache, 1,
                                    &pipeline_ci, vk_state.allocator,
                                    &out_pipeline);
     vkDestroyShaderModule(vk_state.device, shader_module, vk_state.allocator);
     if (err != VK_SUCCESS) {
         error_message
             = Strutil::fmt::format("vkCreateComputePipelines failed for '{}'",
-                                   shader_path);
+                                   module_name);
         out_pipeline = VK_NULL_HANDLE;
         return false;
     }
+
     set_vk_object_name(vk_state, VK_OBJECT_TYPE_PIPELINE, out_pipeline,
                        debug_name);
     return true;
-}
-
-
-
-bool
-create_compute_pipeline(VulkanState& vk_state, const uint32_t* shader_words,
-                        size_t shader_word_count,
-                        const std::string& shader_path,
-                        const char* shader_label, const char* debug_name,
-                        VkPipeline& out_pipeline, std::string& error_message)
-{
-    if (shader_words != nullptr && shader_word_count != 0) {
-        out_pipeline = VK_NULL_HANDLE;
-
-        VkShaderModule shader_module       = VK_NULL_HANDLE;
-        VkShaderModuleCreateInfo shader_ci = {};
-        shader_ci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        shader_ci.codeSize = shader_word_count * sizeof(uint32_t);
-        shader_ci.pCode    = shader_words;
-        VkResult err       = vkCreateShaderModule(vk_state.device, &shader_ci,
-                                                  vk_state.allocator, &shader_module);
-        if (err != VK_SUCCESS) {
-            error_message
-                = Strutil::fmt::format("vkCreateShaderModule failed for '{}'",
-                                       shader_label);
-            return false;
-        }
-
-        VkPipelineShaderStageCreateInfo stage_ci = {};
-        stage_ci.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        stage_ci.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
-        stage_ci.module = shader_module;
-        stage_ci.pName  = "main";
-        VkComputePipelineCreateInfo pipeline_ci = {};
-        pipeline_ci.sType  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        pipeline_ci.stage  = stage_ci;
-        pipeline_ci.layout = vk_state.compute_pipeline_layout;
-        err = vkCreateComputePipelines(vk_state.device, vk_state.pipeline_cache,
-                                       1, &pipeline_ci, vk_state.allocator,
-                                       &out_pipeline);
-        vkDestroyShaderModule(vk_state.device, shader_module,
-                              vk_state.allocator);
-        if (err != VK_SUCCESS) {
-            error_message = Strutil::fmt::format(
-                "vkCreateComputePipelines failed for '{}'", shader_label);
-            out_pipeline = VK_NULL_HANDLE;
-            return false;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_PIPELINE, out_pipeline,
-                           debug_name);
-        return true;
-    }
-
-    return create_compute_pipeline_from_file(vk_state, shader_path, debug_name,
-                                             out_pipeline, error_message);
-}
-
-
-
-bool
-create_shader_module_from_file(VkDevice device,
-                               VkAllocationCallbacks* allocator,
-                               const std::string& shader_path,
-                               VkShaderModule& shader_module,
-                               std::string& error_message)
-{
-    shader_module = VK_NULL_HANDLE;
-    std::vector<uint32_t> shader_words;
-    if (!read_binary_file(shader_path, shader_words, error_message))
-        return false;
-
-    VkShaderModuleCreateInfo shader_ci = {};
-    shader_ci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shader_ci.codeSize = shader_words.size() * sizeof(uint32_t);
-    shader_ci.pCode    = shader_words.data();
-    VkResult err       = vkCreateShaderModule(device, &shader_ci, allocator,
-                                              &shader_module);
-    if (err != VK_SUCCESS) {
-        error_message
-            = Strutil::fmt::format("vkCreateShaderModule failed for '{}'",
-                                   shader_path);
-        shader_module = VK_NULL_HANDLE;
-        return false;
-    }
-    return true;
-}
-
-
-
-bool
-create_shader_module_from_embedded_or_file(
-    VkDevice device, VkAllocationCallbacks* allocator,
-    const uint32_t* shader_words, size_t shader_word_count,
-    const std::string& shader_path, const char* shader_label,
-    VkShaderModule& shader_module, std::string& error_message)
-{
-    if (shader_words != nullptr && shader_word_count != 0) {
-        shader_module                      = VK_NULL_HANDLE;
-        VkShaderModuleCreateInfo shader_ci = {};
-        shader_ci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        shader_ci.codeSize = shader_word_count * sizeof(uint32_t);
-        shader_ci.pCode    = shader_words;
-        VkResult err       = vkCreateShaderModule(device, &shader_ci, allocator,
-                                                  &shader_module);
-        if (err != VK_SUCCESS) {
-            error_message
-                = Strutil::fmt::format("vkCreateShaderModule failed for '{}'",
-                                       shader_label);
-            shader_module = VK_NULL_HANDLE;
-            return false;
-        }
-        return true;
-    }
-
-    return create_shader_module_from_file(device, allocator, shader_path,
-                                          shader_module, error_message);
 }
 
 
@@ -979,71 +833,45 @@ init_preview_resources(VulkanState& vk_state, std::string& error_message)
                        vk_state.preview_render_pass,
                        "imiv.preview.render_pass");
 
-    VkDescriptorPoolSize preview_pool_size = {};
-    preview_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    preview_pool_size.descriptorCount          = 256;
-    VkDescriptorPoolCreateInfo preview_pool_ci = {};
-    preview_pool_ci.sType   = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    preview_pool_ci.flags   = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    preview_pool_ci.maxSets = 256;
-    preview_pool_ci.poolSizeCount = 1;
-    preview_pool_ci.pPoolSizes    = &preview_pool_size;
-    err = vkCreateDescriptorPool(vk_state.device, &preview_pool_ci,
-                                 vk_state.allocator,
-                                 &vk_state.preview_descriptor_pool);
-    if (err != VK_SUCCESS) {
-        error_message = "vkCreateDescriptorPool failed for preview";
+    const VkDescriptorPoolSize preview_pool_sizes[]
+        = { { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256 } };
+    if (!create_descriptor_pool_resource(
+            vk_state, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 256,
+            preview_pool_sizes,
+            static_cast<uint32_t>(IM_ARRAYSIZE(preview_pool_sizes)),
+            vk_state.preview_descriptor_pool,
+            "vkCreateDescriptorPool failed for preview",
+            "imiv.preview.descriptor_pool", error_message)) {
         destroy_preview_resources(vk_state);
         return false;
     }
-    set_vk_object_name(vk_state, VK_OBJECT_TYPE_DESCRIPTOR_POOL,
-                       vk_state.preview_descriptor_pool,
-                       "imiv.preview.descriptor_pool");
-
-    VkDescriptorSetLayoutBinding preview_binding = {};
-    preview_binding.binding                      = 0;
-    preview_binding.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    preview_binding.descriptorCount = 1;
-    preview_binding.stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
-    VkDescriptorSetLayoutCreateInfo preview_set_layout_ci = {};
-    preview_set_layout_ci.sType
-        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    preview_set_layout_ci.bindingCount = 1;
-    preview_set_layout_ci.pBindings    = &preview_binding;
-    err = vkCreateDescriptorSetLayout(vk_state.device, &preview_set_layout_ci,
-                                      vk_state.allocator,
-                                      &vk_state.preview_descriptor_set_layout);
-    if (err != VK_SUCCESS) {
-        error_message = "vkCreateDescriptorSetLayout failed for preview";
+    const VkDescriptorSetLayoutBinding preview_bindings[]
+        = { make_descriptor_set_layout_binding(
+            0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            VK_SHADER_STAGE_FRAGMENT_BIT) };
+    if (!create_descriptor_set_layout_resource(
+            vk_state, preview_bindings,
+            static_cast<uint32_t>(IM_ARRAYSIZE(preview_bindings)),
+            vk_state.preview_descriptor_set_layout,
+            "vkCreateDescriptorSetLayout failed for preview",
+            "imiv.preview.set_layout", error_message)) {
         destroy_preview_resources(vk_state);
         return false;
     }
-    set_vk_object_name(vk_state, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
-                       vk_state.preview_descriptor_set_layout,
-                       "imiv.preview.set_layout");
 
     VkPushConstantRange preview_push = {};
     preview_push.stageFlags          = VK_SHADER_STAGE_FRAGMENT_BIT;
     preview_push.offset              = 0;
     preview_push.size                = sizeof(PreviewPushConstants);
 
-    VkPipelineLayoutCreateInfo preview_layout_ci = {};
-    preview_layout_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    preview_layout_ci.setLayoutCount = 1;
-    preview_layout_ci.pSetLayouts    = &vk_state.preview_descriptor_set_layout;
-    preview_layout_ci.pushConstantRangeCount = 1;
-    preview_layout_ci.pPushConstantRanges    = &preview_push;
-    err = vkCreatePipelineLayout(vk_state.device, &preview_layout_ci,
-                                 vk_state.allocator,
-                                 &vk_state.preview_pipeline_layout);
-    if (err != VK_SUCCESS) {
-        error_message = "vkCreatePipelineLayout failed for preview";
+    if (!create_pipeline_layout_resource(
+            vk_state, &vk_state.preview_descriptor_set_layout, 1, &preview_push,
+            1, vk_state.preview_pipeline_layout,
+            "vkCreatePipelineLayout failed for preview",
+            "imiv.preview.pipeline_layout", error_message)) {
         destroy_preview_resources(vk_state);
         return false;
     }
-    set_vk_object_name(vk_state, VK_OBJECT_TYPE_PIPELINE_LAYOUT,
-                       vk_state.preview_pipeline_layout,
-                       "imiv.preview.pipeline_layout");
 
     const std::string shader_vert = std::string(IMIV_SHADER_DIR)
                                     + "/imiv_preview.vert.spv";
@@ -1079,80 +907,17 @@ init_preview_resources(VulkanState& vk_state, std::string& error_message)
         return false;
     }
 
-    VkPipelineShaderStageCreateInfo stages[2] = {};
-    stages[0].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    stages[0].stage  = VK_SHADER_STAGE_VERTEX_BIT;
-    stages[0].module = vert_module;
-    stages[0].pName  = "main";
-    stages[1].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    stages[1].stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
-    stages[1].module = frag_module;
-    stages[1].pName  = "main";
-
-    VkPipelineVertexInputStateCreateInfo vertex_input = {};
-    vertex_input.sType
-        = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    VkPipelineInputAssemblyStateCreateInfo input_assembly = {};
-    input_assembly.sType
-        = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    VkPipelineViewportStateCreateInfo viewport_state = {};
-    viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewport_state.viewportCount                  = 1;
-    viewport_state.scissorCount                   = 1;
-    VkPipelineRasterizationStateCreateInfo raster = {};
-    raster.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    raster.polygonMode = VK_POLYGON_MODE_FILL;
-    raster.cullMode    = VK_CULL_MODE_NONE;
-    raster.frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    raster.lineWidth   = 1.0f;
-    VkPipelineMultisampleStateCreateInfo multisample = {};
-    multisample.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisample.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    VkPipelineColorBlendAttachmentState color_blend_attachment = {};
-    color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT
-                                            | VK_COLOR_COMPONENT_G_BIT
-                                            | VK_COLOR_COMPONENT_B_BIT
-                                            | VK_COLOR_COMPONENT_A_BIT;
-    VkPipelineColorBlendStateCreateInfo color_blend = {};
-    color_blend.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    color_blend.attachmentCount     = 1;
-    color_blend.pAttachments        = &color_blend_attachment;
-    VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT,
-                                        VK_DYNAMIC_STATE_SCISSOR };
-    VkPipelineDynamicStateCreateInfo dynamic_state = {};
-    dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamic_state.dynamicStateCount = static_cast<uint32_t>(
-        IM_ARRAYSIZE(dynamic_states));
-    dynamic_state.pDynamicStates = dynamic_states;
-
-    VkGraphicsPipelineCreateInfo pipeline_ci = {};
-    pipeline_ci.sType      = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipeline_ci.stageCount = 2;
-    pipeline_ci.pStages    = stages;
-    pipeline_ci.pVertexInputState   = &vertex_input;
-    pipeline_ci.pInputAssemblyState = &input_assembly;
-    pipeline_ci.pViewportState      = &viewport_state;
-    pipeline_ci.pRasterizationState = &raster;
-    pipeline_ci.pMultisampleState   = &multisample;
-    pipeline_ci.pColorBlendState    = &color_blend;
-    pipeline_ci.pDynamicState       = &dynamic_state;
-    pipeline_ci.layout              = vk_state.preview_pipeline_layout;
-    pipeline_ci.renderPass          = vk_state.preview_render_pass;
-    pipeline_ci.subpass             = 0;
-
-    err = vkCreateGraphicsPipelines(vk_state.device, vk_state.pipeline_cache, 1,
-                                    &pipeline_ci, vk_state.allocator,
-                                    &vk_state.preview_pipeline);
+    const bool pipeline_ok = create_fullscreen_preview_pipeline(
+        vk_state, vk_state.preview_render_pass,
+        vk_state.preview_pipeline_layout, vert_module, frag_module,
+        "imiv.preview.pipeline", "vkCreateGraphicsPipelines failed for preview",
+        vk_state.preview_pipeline, error_message);
     vkDestroyShaderModule(vk_state.device, vert_module, vk_state.allocator);
     vkDestroyShaderModule(vk_state.device, frag_module, vk_state.allocator);
-    if (err != VK_SUCCESS) {
-        error_message = "vkCreateGraphicsPipelines failed for preview";
+    if (!pipeline_ok) {
         destroy_preview_resources(vk_state);
         return false;
     }
-    set_vk_object_name(vk_state, VK_OBJECT_TYPE_PIPELINE,
-                       vk_state.preview_pipeline, "imiv.preview.pipeline");
 
     return true;
 #    endif
@@ -1260,75 +1025,46 @@ init_compute_upload_resources(VulkanState& vk_state, std::string& error_message)
         return false;
     }
 
-    VkDescriptorPoolSize pool_sizes[2] = {};
-    pool_sizes[0].type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-    pool_sizes[0].descriptorCount = 64;
-    pool_sizes[1].type            = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    pool_sizes[1].descriptorCount = 64;
-    VkDescriptorPoolCreateInfo pool_ci = {};
-    pool_ci.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_ci.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_ci.maxSets       = 64;
-    pool_ci.poolSizeCount = 2;
-    pool_ci.pPoolSizes    = pool_sizes;
-    VkResult err          = vkCreateDescriptorPool(vk_state.device, &pool_ci,
-                                                   vk_state.allocator,
-                                                   &vk_state.compute_descriptor_pool);
-    if (err != VK_SUCCESS) {
-        error_message = "vkCreateDescriptorPool failed for compute upload";
+    const VkDescriptorPoolSize pool_sizes[]
+        = { { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 64 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 64 } };
+    if (!create_descriptor_pool_resource(
+            vk_state, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 64,
+            pool_sizes, static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes)),
+            vk_state.compute_descriptor_pool,
+            "vkCreateDescriptorPool failed for compute upload",
+            "imiv.compute_upload.descriptor_pool", error_message)) {
         destroy_compute_upload_resources(vk_state);
         return false;
     }
-    set_vk_object_name(vk_state, VK_OBJECT_TYPE_DESCRIPTOR_POOL,
-                       vk_state.compute_descriptor_pool,
-                       "imiv.compute_upload.descriptor_pool");
-
-    VkDescriptorSetLayoutBinding bindings[2] = {};
-    bindings[0].binding                      = 0;
-    bindings[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-    bindings[0].descriptorCount = 1;
-    bindings[0].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
-    bindings[1].binding         = 1;
-    bindings[1].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    bindings[1].descriptorCount = 1;
-    bindings[1].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
-    VkDescriptorSetLayoutCreateInfo set_layout_ci = {};
-    set_layout_ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    set_layout_ci.bindingCount = 2;
-    set_layout_ci.pBindings    = bindings;
-    err = vkCreateDescriptorSetLayout(vk_state.device, &set_layout_ci,
-                                      vk_state.allocator,
-                                      &vk_state.compute_descriptor_set_layout);
-    if (err != VK_SUCCESS) {
-        error_message = "vkCreateDescriptorSetLayout failed for compute upload";
+    const VkDescriptorSetLayoutBinding bindings[] = {
+        make_descriptor_set_layout_binding(
+            0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
+            VK_SHADER_STAGE_COMPUTE_BIT),
+        make_descriptor_set_layout_binding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                           VK_SHADER_STAGE_COMPUTE_BIT)
+    };
+    if (!create_descriptor_set_layout_resource(
+            vk_state, bindings, static_cast<uint32_t>(IM_ARRAYSIZE(bindings)),
+            vk_state.compute_descriptor_set_layout,
+            "vkCreateDescriptorSetLayout failed for compute upload",
+            "imiv.compute_upload.set_layout", error_message)) {
         destroy_compute_upload_resources(vk_state);
         return false;
     }
-    set_vk_object_name(vk_state, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
-                       vk_state.compute_descriptor_set_layout,
-                       "imiv.compute_upload.set_layout");
 
     VkPushConstantRange push_range = {};
     push_range.stageFlags          = VK_SHADER_STAGE_COMPUTE_BIT;
     push_range.offset              = 0;
     push_range.size                = sizeof(UploadComputePushConstants);
-    VkPipelineLayoutCreateInfo pipeline_layout_ci = {};
-    pipeline_layout_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipeline_layout_ci.setLayoutCount = 1;
-    pipeline_layout_ci.pSetLayouts    = &vk_state.compute_descriptor_set_layout;
-    pipeline_layout_ci.pushConstantRangeCount = 1;
-    pipeline_layout_ci.pPushConstantRanges    = &push_range;
-    err = vkCreatePipelineLayout(vk_state.device, &pipeline_layout_ci,
-                                 vk_state.allocator,
-                                 &vk_state.compute_pipeline_layout);
-    if (err != VK_SUCCESS) {
-        error_message = "vkCreatePipelineLayout failed for compute upload";
+    if (!create_pipeline_layout_resource(
+            vk_state, &vk_state.compute_descriptor_set_layout, 1, &push_range,
+            1, vk_state.compute_pipeline_layout,
+            "vkCreatePipelineLayout failed for compute upload",
+            "imiv.compute_upload.pipeline_layout", error_message)) {
         destroy_compute_upload_resources(vk_state);
         return false;
     }
-    set_vk_object_name(vk_state, VK_OBJECT_TYPE_PIPELINE_LAYOUT,
-                       vk_state.compute_pipeline_layout,
-                       "imiv.compute_upload.pipeline_layout");
 
     if (!create_compute_pipeline(vk_state, shader_words, shader_word_count,
                                  shader_path, "imiv.upload_to_rgba",
@@ -1565,22 +1301,15 @@ setup_vulkan_device(VulkanState& vk_state, std::string& error_message)
     set_vk_object_name(vk_state, VK_OBJECT_TYPE_QUEUE, vk_state.queue,
                        "imiv.main.queue");
 
-    VkDescriptorPoolSize pool_sizes[]
+    const VkDescriptorPoolSize pool_sizes[]
         = { { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 } };
-    VkDescriptorPoolCreateInfo pool_ci = {};
-    pool_ci.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_ci.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_ci.maxSets       = 1024;
-    pool_ci.poolSizeCount = static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes));
-    pool_ci.pPoolSizes    = pool_sizes;
-    err = vkCreateDescriptorPool(vk_state.device, &pool_ci, vk_state.allocator,
-                                 &vk_state.descriptor_pool);
-    if (err != VK_SUCCESS) {
-        error_message = "vkCreateDescriptorPool failed";
+    if (!create_descriptor_pool_resource(
+            vk_state, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 1024,
+            pool_sizes, static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes)),
+            vk_state.descriptor_pool, "vkCreateDescriptorPool failed",
+            "imiv.main.descriptor_pool", error_message)) {
         return false;
     }
-    set_vk_object_name(vk_state, VK_OBJECT_TYPE_DESCRIPTOR_POOL,
-                       vk_state.descriptor_pool, "imiv.main.descriptor_pool");
 
     if (!init_compute_upload_resources(vk_state, error_message))
         return false;

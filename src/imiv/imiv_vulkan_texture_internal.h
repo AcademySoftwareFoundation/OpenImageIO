@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "imiv_types.h"
+#include "imiv_vulkan_types.h"
 
 namespace Imiv {
 

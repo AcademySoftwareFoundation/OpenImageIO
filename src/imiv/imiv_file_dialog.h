@@ -25,8 +25,6 @@ available();
 void
 set_native_dialog_scope_hook(NativeDialogScopeHook hook, void* user_data);
 DialogReply
-open_image_file(const std::string& default_path);
-DialogReply
 open_image_files(const std::string& default_path);
 DialogReply
 open_folder(const std::string& default_path);
