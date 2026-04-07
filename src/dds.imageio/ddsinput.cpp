@@ -904,8 +904,33 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     }
 
     // Check validity of resolutions.
-    if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 16384, 0, 4 }))
-        return false;
+    if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
+        // cube maps must be square and each face can be up to 16384x16384
+        // (currently). But remember that they are stored in a 3x2 or 1x6
+        // layout.
+#ifdef DDS_3X2_CUBE_MAP_LAYOUT
+        if (!check_open(m_spec, { 0, 16384 * 3, 0, 16384 * 2, 0, 1, 0, 4 }))
+            return false;
+#else
+        if (!check_open(m_spec, { 0, 16384, 0, 16384 * 6, 0, 1, 0, 4 }))
+            return false;
+#endif
+        if (m_spec.full_width != m_spec.full_height) {
+            errorfmt(
+                "Invalid cube map layout: width {} does not match height {}",
+                m_spec.full_width, m_spec.full_height);
+            return false;
+        }
+    } else if (m_dds.caps.flags2 & DDS_CAPS2_VOLUME) {
+        // volume textures are limited to 4096x4096x4096 (currently)
+        if (!check_open(m_spec, { 0, 4096, 0, 4096, 0, 4096, 0, 4 })) {
+            return false;
+        }
+    } else {
+        // 2D textures can be up to 32768x32768
+        if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 }))
+            return false;
+    }
 
     m_subimage = subimage;
     m_miplevel = miplevel;
