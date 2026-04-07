@@ -113,7 +113,7 @@ private:
 
     bool save_image();
 
-    template<typename T> void write_scanline(int y, int z, const void* data);
+    template<typename T> void copy_scanline(int y, int z, const void* data);
 
     void setup_cinema_compression(OPJ_RSIZ_CAPABILITIES p_rsizCap);
 
@@ -321,9 +321,9 @@ Jpeg2000Output::write_scanline(int y, int z, TypeDesc format, const void* data,
     } else
 #endif  // USE_OPENJPH
         if (m_spec.format == TypeDesc::UINT8)
-            write_scanline<uint8_t>(y, z, data);
+            copy_scanline<uint8_t>(y, z, data);
         else
-            write_scanline<uint16_t>(y, z, data);
+            copy_scanline<uint16_t>(y, z, data);
 
     if (y == m_spec.height - 1)
         save_image();
@@ -530,7 +530,7 @@ Jpeg2000Output::create_compressor()
 
 template<typename T>
 void
-Jpeg2000Output::write_scanline(int y, int /*z*/, const void* data)
+Jpeg2000Output::copy_scanline(int y, int /*z*/, const void* data)
 {
     int bits                  = sizeof(T) * 8;
     const T* scanline         = static_cast<const T*>(data);
