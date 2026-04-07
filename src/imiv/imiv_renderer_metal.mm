@@ -1082,7 +1082,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     return rgba;
 }
 )metal";
-        return [NSString stringWithUTF8String:source];
+        return [NSString stringWithUTF8String:source.c_str()];
     }
 
     bool create_preview_pipeline(RendererBackendState& state,
