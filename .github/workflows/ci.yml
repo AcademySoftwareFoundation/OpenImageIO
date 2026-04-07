@@ -406,11 +406,11 @@ jobs:
             # like this test to have minimal missing dependencies.
             required_deps: all
             optional_deps: 'CUDAToolkit;DCMTK;JXL;Nuke;OpenCV;OpenGL;OpenVDB;R3DSDK'
-          - desc: bleeding edge gcc14 C++23 py3.12 OCIO/libtiff/exr-main avx2
+          - desc: bleeding edge gcc15 C++23 py3.12 OCIO/libtiff/exr-main avx2
             nametag: linux-bleeding-edge
             runner: ubuntu-24.04
-            cc_compiler: gcc-14
-            cxx_compiler: g++-14
+            # cc_compiler: gcc-15
+            # cxx_compiler: g++-15
             cxx_std: 23
             fmt_ver: main
             opencolorio_ver: main
@@ -419,7 +419,9 @@ jobs:
             python_ver: "3.12"
             simd: avx2,f16c
             benchmark: 1
-            setenvs: export LIBJPEGTURBO_VERSION=main
+            gcc_action_ver: 15
+            setenvs: export OIIO_CC=gcc-15 OIIO_CXX=g++-15
+                            LIBJPEGTURBO_VERSION=main
                             LIBPNG_VERSION=master
                             LIBRAW_VERSION=master
                             LIBTIFF_VERSION=master
@@ -432,6 +434,9 @@ jobs:
                             FREETYPE_VERSION=master
                             OpenImageIO_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS=ON
                             QT_VERSION=0 INSTALL_OPENCV=0 USE_OPENVDB=0
+                            UHDR_CMAKE_C_COMPILER=gcc
+                            UHDR_CMAKE_CXX_COMPILER=g++
+                            OPENCOLORIO_CXX=c++
                             # The installed OpenVDB has a TLS conflict with Python 3.8
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
