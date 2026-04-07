@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025-2026 Erium Vladlen
+
 #import <Cocoa/Cocoa.h>
 
 #define GLFW_INCLUDE_NONE
@@ -149,9 +152,9 @@ platformInitMac(WindowState* state, GLFWwindow* window)
     [dragView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
 
     [contentView addSubview:dragView positioned:NSWindowAbove relativeTo:nil];
-    [dragView registerForDraggedTypes:@[ NSPasteboardTypeFileURL, NSFilenamesPboardType ]];
+    [dragView registerForDraggedTypes:@[ NSPasteboardTypeFileURL ]];
 
-    state->cocoaView = (__bridge_retained void*)dragView;
+    state->cocoaView = (void*)dragView;
 }
 
 void
@@ -163,8 +166,9 @@ platformShutdownMac(WindowState* state, GLFWwindow* window)
         return;
     }
 
-    NSView* view = (__bridge_transfer NSView*)state->cocoaView;
+    NSView* view = (NSView*)state->cocoaView;
     [view removeFromSuperview];
+    [view release];
     state->cocoaView = nullptr;
 }
 
