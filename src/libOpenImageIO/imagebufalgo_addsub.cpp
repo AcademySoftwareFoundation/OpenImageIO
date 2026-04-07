@@ -18,6 +18,10 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 
+#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#    include "imagebufalgo_hwy_pvt.h"
+#endif
+
 #include "imageio_pvt.h"
 
 
@@ -26,8 +30,8 @@ OIIO_NAMESPACE_3_1_BEGIN
 
 template<class Rtype, class Atype, class Btype>
 static bool
-add_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-         int nthreads)
+add_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -44,7 +48,8 @@ add_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 
 template<class Rtype, class Atype>
 static bool
-add_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+add_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -57,6 +62,219 @@ add_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 }
 
 
+
+#if OIIO_USE_HWY
+
+// Native integer add using SaturatedAdd (scale-invariant, no float conversion)
+template<class T>
+static bool
+add_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+                        ROI roi, int nthreads)
+{
+    return hwy_binary_native_int_perpixel_op<T>(R, A, B, roi, nthreads,
+                                                [](auto /*d*/, auto a, auto b) {
+                                                    return hn::SaturatedAdd(a,
+                                                                            b);
+                                                });
+}
+
+template<class Rtype, class Atype, class Btype>
+static bool
+add_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+             int nthreads)
+{
+    auto op = [](auto /*d*/, auto a, auto b) { return hn::Add(a, b); };
+
+    // Handle packed RGBA images with an RGB ROI (preserve alpha).
+    if constexpr (std::is_integral_v<Rtype> && std::is_same_v<Rtype, Atype>
+                  && std::is_same_v<Rtype, Btype>) {
+        auto op_int = [](auto /*d*/, auto a, auto b) {
+            return hn::SaturatedAdd(a, b);
+        };
+        if (hwy_binary_native_int_perpixel_op_rgba_rgb_roi<Rtype>(R, A, B, roi,
+                                                                  nthreads,
+                                                                  op_int))
+            return true;
+    }
+    if (hwy_binary_perpixel_op_rgba_rgb_roi<Rtype, Atype, Btype>(R, A, B, roi,
+                                                                 nthreads, op))
+        return true;
+
+    return hwy_binary_perpixel_op<Rtype, Atype, Btype>(R, A, B, roi, nthreads,
+                                                       op);
+}
+
+template<class Rtype, class Atype>
+static bool
+add_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+             int nthreads)
+{
+    using SimdType
+        = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            std::byte* r_row       = PixelBase(Rv, roi.xbegin, y);
+            const std::byte* a_row = PixelBase(Av, roi.xbegin, y);
+            for (int x = roi.xbegin; x < roi.xend; ++x) {
+                const size_t xoff = static_cast<size_t>(x - roi.xbegin);
+                Rtype* r_ptr      = reinterpret_cast<Rtype*>(
+                    r_row + xoff * Rv.pixel_bytes);
+                const Atype* a_ptr = reinterpret_cast<const Atype*>(
+                    a_row + xoff * Av.pixel_bytes);
+                for (int c = roi.chbegin; c < roi.chend; ++c) {
+                    r_ptr[c] = (Rtype)((SimdType)a_ptr[c] + (SimdType)b[c]);
+                }
+            }
+        }
+    });
+    return true;
+}
+#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+
+template<class Rtype, class Atype, class Btype>
+static bool
+add_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+         int nthreads)
+{
+#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels()) {
+        auto Rv             = HwyPixels(R);
+        auto Av             = HwyPixels(A);
+        auto Bv             = HwyPixels(B);
+        const int nchannels = RoiNChannels(roi);
+        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
+                            && ChannelsContiguous<Atype>(Av, nchannels)
+                            && ChannelsContiguous<Btype>(Bv, nchannels);
+        if (contig) {
+            // Use native integer path for scale-invariant add when all types
+            // match and are integer types (much faster: 6-12x vs 3-5x with
+            // float conversion).
+            constexpr bool all_same = std::is_same_v<Rtype, Atype>
+                                      && std::is_same_v<Atype, Btype>;
+            constexpr bool is_integer = std::is_integral_v<Rtype>;
+            if constexpr (all_same && is_integer)
+                return add_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);
+            return add_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+        }
+
+        // Handle the common RGBA + RGB ROI strided case (preserving alpha).
+        if (roi.chbegin == 0 && roi.chend == 3) {
+            const bool contig4 = (Rv.nchannels >= 4 && Av.nchannels >= 4
+                                  && Bv.nchannels >= 4)
+                                 && ChannelsContiguous<Rtype>(Rv, 4)
+                                 && ChannelsContiguous<Atype>(Av, 4)
+                                 && ChannelsContiguous<Btype>(Bv, 4);
+            if (contig4)
+                return add_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi,
+                                                         nthreads);
+        }
+    }
+#endif
+    return add_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+}
+
+template<class Rtype, class Atype>
+static bool
+add_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+{
+#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
+        return add_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
+#endif
+    return add_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
+}
+
+#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+// Native integer sub using SaturatedSub (scale-invariant, no float conversion)
+template<class T>
+static bool
+sub_impl_hwy_native_int(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+                        ROI roi, int nthreads)
+{
+    return hwy_binary_native_int_perpixel_op<T>(R, A, B, roi, nthreads,
+                                                [](auto /*d*/, auto a, auto b) {
+                                                    return hn::SaturatedSub(a,
+                                                                            b);
+                                                });
+}
+
+template<class Rtype, class Atype, class Btype>
+static bool
+sub_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+             int nthreads)
+{
+    auto op = [](auto /*d*/, auto a, auto b) { return hn::Sub(a, b); };
+
+    // Handle packed RGBA images with an RGB ROI (preserve alpha).
+    if constexpr (std::is_integral_v<Rtype> && std::is_same_v<Rtype, Atype>
+                  && std::is_same_v<Rtype, Btype>) {
+        auto op_int = [](auto /*d*/, auto a, auto b) {
+            return hn::SaturatedSub(a, b);
+        };
+        if (hwy_binary_native_int_perpixel_op_rgba_rgb_roi<Rtype>(R, A, B, roi,
+                                                                  nthreads,
+                                                                  op_int))
+            return true;
+    }
+    if (hwy_binary_perpixel_op_rgba_rgb_roi<Rtype, Atype, Btype>(R, A, B, roi,
+                                                                 nthreads, op))
+        return true;
+
+    return hwy_binary_perpixel_op<Rtype, Atype, Btype>(R, A, B, roi, nthreads,
+                                                       op);
+}
+#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+
+template<class Rtype, class Atype, class Btype>
+static bool
+sub_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                int nthreads);
+
+template<class Rtype, class Atype, class Btype>
+static bool
+sub_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+         int nthreads)
+{
+#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
+        && B.localpixels()) {
+        auto Rv             = HwyPixels(R);
+        auto Av             = HwyPixels(A);
+        auto Bv             = HwyPixels(B);
+        const int nchannels = RoiNChannels(roi);
+        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
+                            && ChannelsContiguous<Atype>(Av, nchannels)
+                            && ChannelsContiguous<Btype>(Bv, nchannels);
+        if (contig) {
+            // Use native integer path for scale-invariant sub when all types
+            // match and are integer types (much faster: 6-12x vs 3-5x with
+            // float conversion).
+            constexpr bool all_same = std::is_same_v<Rtype, Atype>
+                                      && std::is_same_v<Atype, Btype>;
+            constexpr bool is_integer = std::is_integral_v<Rtype>;
+            if constexpr (all_same && is_integer)
+                return sub_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);
+            return sub_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+        }
+
+        // Handle the common RGBA + RGB ROI strided case (preserving alpha).
+        if (roi.chbegin == 0 && roi.chend == 3) {
+            const bool contig4 = (Rv.nchannels >= 4 && Av.nchannels >= 4
+                                  && Bv.nchannels >= 4)
+                                 && ChannelsContiguous<Rtype>(Rv, 4)
+                                 && ChannelsContiguous<Atype>(Av, 4)
+                                 && ChannelsContiguous<Btype>(Bv, 4);
+            if (contig4)
+                return sub_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi,
+                                                         nthreads);
+        }
+    }
+#endif
+    return sub_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+}
 
 static bool
 add_impl_deep(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
@@ -155,8 +373,8 @@ ImageBufAlgo::add(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 
 template<class Rtype, class Atype, class Btype>
 static bool
-sub_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-         int nthreads)
+sub_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
