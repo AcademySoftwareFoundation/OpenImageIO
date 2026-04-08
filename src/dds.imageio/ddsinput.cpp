@@ -862,6 +862,11 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     // detect texture type
     if (m_dds.caps.flags2 & DDS_CAPS2_VOLUME) {
         m_spec.attribute("textureformat", "Volume Texture");
+        // Because we don't support reading scanlines from volume textures,
+        // pretend it's tiled with width x 1 x 1 tiles.
+        m_spec.tile_width  = m_spec.width;
+        m_spec.tile_height = 1;
+        m_spec.tile_depth  = 1;
     } else if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
         m_spec.attribute("textureformat", "CubeFace Environment");
         // check available cube map sides
@@ -1042,12 +1047,29 @@ DDSInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     if (!seek_subimage(subimage, miplevel))
         return false;
 
+    // don't proceed if not tiled
+    if (m_spec.tile_width == 0)
+        return false;
+
+    if (m_dds.caps.flags2 & DDS_CAPS2_VOLUME) {
+        // This is a 3D volume file. For DDS files, we are emulating tiles,
+        // with each scanline as a tile.
+        if (m_buf.empty())
+            readimg_scanlines();
+        // We reported scanlines as tiles, so x must be 0.
+        if (x != 0)
+            return false;
+        size_t size   = spec().scanline_bytes();
+        size_t offset = size * (size_t(z) * size_t(m_spec.height) + y);
+        if (offset + size > m_buf.size())  // Bounds check
+            return false;
+        memcpy(data, m_buf.data() + offset, size);
+        return true;
+    }
+
     // static ints to keep track of the current cube face and re-seek and
     // re-read face
     static int lastx = -1, lasty = -1, lastz = -1;
-    // don't proceed if not a cube map - use scanlines then instead
-    if (!(m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP))
-        return false;
     // make sure we get the right dimensions
     if (x % m_spec.tile_width || y % m_spec.tile_height
         || z % m_spec.tile_width)
