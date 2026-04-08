@@ -93,7 +93,7 @@ RoiRowPtr(const HwyLocalPixelsView<ByteT>& v, int y, const ROI& roi) noexcept
 /// and the number of channels defaults to the number of channels in the ROI.
 template<typename T>
 inline bool
-HwySupports(const ImageBuf& A, const ROI& roi=ROI(), int nchannels = 0)
+HwySupports(const ImageBuf& A, const ROI& roi = ROI(), int nchannels = 0)
 {
     if (nchannels <= 0)
         nchannels = roi.defined() ? roi.nchannels() : A.nchannels();
