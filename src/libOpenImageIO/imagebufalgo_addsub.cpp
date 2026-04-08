@@ -18,7 +18,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 #    include "imagebufalgo_hwy_pvt.h"
 #endif
 
@@ -131,7 +131,7 @@ add_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
     });
     return true;
 }
-#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#endif  // OIIO_USE_HWY
 
 template<class Rtype, class Atype, class Btype>
 static bool
@@ -144,7 +144,7 @@ add_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
         auto Rv             = HwyPixels(R);
         auto Av             = HwyPixels(A);
         auto Bv             = HwyPixels(B);
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
                             && ChannelsContiguous<Atype>(Av, nchannels)
                             && ChannelsContiguous<Btype>(Bv, nchannels);
@@ -180,14 +180,14 @@ template<class Rtype, class Atype>
 static bool
 add_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
     if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
         return add_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
 #endif
     return add_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
 }
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 // Native integer sub using SaturatedSub (scale-invariant, no float conversion)
 template<class T>
 static bool
@@ -226,7 +226,7 @@ sub_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
     return hwy_binary_perpixel_op<Rtype, Atype, Btype>(R, A, B, roi, nthreads,
                                                        op);
 }
-#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#endif  // OIIO_USE_HWY
 
 template<class Rtype, class Atype, class Btype>
 static bool
@@ -244,7 +244,7 @@ sub_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
         auto Rv             = HwyPixels(R);
         auto Av             = HwyPixels(A);
         auto Bv             = HwyPixels(B);
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
                             && ChannelsContiguous<Atype>(Av, nchannels)
                             && ChannelsContiguous<Btype>(Bv, nchannels);
