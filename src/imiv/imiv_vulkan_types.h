@@ -281,8 +281,6 @@ bool
 create_texture(VulkanState& vk_state, const LoadedImage& image,
                VulkanTexture& texture, std::string& error_message);
 bool
-preview_controls_equal(const PreviewControls& a, const PreviewControls& b);
-bool
 quiesce_texture_preview_submission(VulkanState& vk_state,
                                    VulkanTexture& texture,
                                    std::string& error_message);

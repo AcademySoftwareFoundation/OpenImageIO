@@ -26,16 +26,6 @@ namespace {
     constexpr const char* k_imiv_legacy_imgui_filename = "imiv.ini";
     constexpr const char* k_imiv_app_section_name      = "[ImivApp][State]";
 
-    std::filesystem::path legacy_prefs_file_path()
-    {
-        return std::filesystem::path(k_imiv_legacy_prefs_filename);
-    }
-
-    std::filesystem::path legacy_imgui_ini_file_path()
-    {
-        return std::filesystem::path(k_imiv_legacy_imgui_filename);
-    }
-
     std::filesystem::path prefs_directory_path()
     {
         const std::string_view override_dir = Sysutil::getenv(
@@ -80,7 +70,7 @@ namespace {
     {
         const std::filesystem::path prefs_dir = prefs_directory_path();
         if (prefs_dir.empty())
-            return legacy_prefs_file_path();
+            return std::filesystem::path(k_imiv_legacy_prefs_filename);
         return prefs_dir / k_imiv_legacy_prefs_filename;
     }
 
@@ -103,7 +93,7 @@ namespace {
         ec.clear();
         if (std::filesystem::exists(legacy_config_path, ec))
             return legacy_config_path;
-        return legacy_prefs_file_path();
+        return std::filesystem::path(k_imiv_legacy_prefs_filename);
     }
 
     std::string strip_to_string(std::string_view value)
@@ -293,7 +283,8 @@ imgui_ini_load_path()
         return settings_load_path;
     }
 
-    const std::filesystem::path legacy_imgui_path = legacy_imgui_ini_file_path();
+    const std::filesystem::path legacy_imgui_path = std::filesystem::path(
+        k_imiv_legacy_imgui_filename);
     ec.clear();
     if (std::filesystem::exists(legacy_imgui_path, ec) && !ec)
         return legacy_imgui_path;

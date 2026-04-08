@@ -37,6 +37,9 @@ sample_loaded_pixel(const LoadedImage& image, int x, int y,
 void
 draw_padded_message(const char* message, float x_pad = 10.0f,
                     float y_pad = 6.0f);
+void
+set_aux_window_defaults(const ImVec2& offset, const ImVec2& size,
+                        bool reset_layout);
 bool
 input_text_string(const char* label, std::string& value);
 void

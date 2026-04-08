@@ -194,12 +194,6 @@ namespace {
         return sanitize_backend_kind(ui_state.renderer_backend);
     }
 
-    std::string build_main_window_title(BackendKind active_backend)
-    {
-        return Strutil::fmt::format("ImIv v.{} [{}]", OIIO_VERSION_STRING,
-                                    backend_cli_name(active_backend));
-    }
-
     void apply_glfw_topmost_state_to_platform_windows(GLFWwindow* main_window,
                                                       bool always_on_top)
     {
@@ -403,7 +397,9 @@ run(const AppConfig& config)
         }
     }
 
-    const std::string window_title = build_main_window_title(active_backend);
+    const std::string window_title
+        = Strutil::fmt::format("ImIv v.{} [{}]", OIIO_VERSION_STRING,
+                               backend_cli_name(active_backend));
     GLFWwindow* window
         = platform_glfw_create_main_window(active_backend, 1600, 900,
                                            window_title.c_str(), startup_error);
@@ -686,7 +682,7 @@ run(const AppConfig& config)
     ViewerStateJsonWriteContext test_engine_state_ctx
         = { &viewer, &workspace, &ui_state, active_backend };
     TestEngineHooks test_engine_hooks;
-    test_engine_hooks.image_window_title       = image_window_title();
+    test_engine_hooks.image_window_title       = k_image_window_title;
     test_engine_hooks.screen_capture           = renderer_screen_capture;
     test_engine_hooks.screen_capture_user_data = &renderer_state;
     test_engine_hooks.write_viewer_state_json

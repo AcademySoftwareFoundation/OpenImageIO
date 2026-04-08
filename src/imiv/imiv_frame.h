@@ -16,8 +16,7 @@ namespace Imiv {
 
 struct DeveloperUiState;
 
-const char*
-image_window_title();
+inline constexpr const char* k_image_window_title = "Image";
 
 void
 draw_viewer_ui(MultiViewWorkspace& workspace, ImageLibraryState& library,

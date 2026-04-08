@@ -41,6 +41,102 @@ struct RendererTexture {
     bool preview_initialized             = false;
 };
 
+template<class BackendStateT>
+inline BackendStateT*
+backend_state(RendererState& renderer_state)
+{
+    return reinterpret_cast<BackendStateT*>(renderer_state.backend);
+}
+
+template<class BackendStateT>
+inline const BackendStateT*
+backend_state(const RendererState& renderer_state)
+{
+    return reinterpret_cast<const BackendStateT*>(renderer_state.backend);
+}
+
+template<class TextureStateT>
+inline TextureStateT*
+texture_backend_state(RendererTexture& texture)
+{
+    return reinterpret_cast<TextureStateT*>(texture.backend);
+}
+
+template<class TextureStateT>
+inline const TextureStateT*
+texture_backend_state(const RendererTexture& texture)
+{
+    return reinterpret_cast<const TextureStateT*>(texture.backend);
+}
+
+template<class BackendStateT>
+inline bool
+ensure_default_backend_state(RendererState& renderer_state)
+{
+    if (renderer_state.backend != nullptr)
+        return true;
+    renderer_state.backend = reinterpret_cast<RendererBackendState*>(
+        new BackendStateT());
+    return renderer_state.backend != nullptr;
+}
+
+inline bool
+renderer_texture_preview_pending(const RendererTexture& texture)
+{
+    return texture.backend != nullptr && !texture.preview_initialized;
+}
+
+inline bool
+renderer_framebuffer_size_changed(RendererState& renderer_state, int width,
+                                  int height)
+{
+    return renderer_state.framebuffer_width != width
+           || renderer_state.framebuffer_height != height;
+}
+
+inline void
+renderer_set_framebuffer_size(RendererState& renderer_state, int width,
+                              int height)
+{
+    renderer_state.framebuffer_width  = width;
+    renderer_state.framebuffer_height = height;
+}
+
+inline void
+renderer_set_clear_color(RendererState& renderer_state, float r, float g,
+                         float b, float a)
+{
+    renderer_state.clear_color[0] = r;
+    renderer_state.clear_color[1] = g;
+    renderer_state.clear_color[2] = b;
+    renderer_state.clear_color[3] = a;
+}
+
+template<class BackendStateT>
+inline void
+renderer_clear_backend_window(RendererState& renderer_state)
+{
+    if (BackendStateT* state = backend_state<BackendStateT>(renderer_state))
+        state->window = nullptr;
+}
+
+inline bool
+renderer_noop_quiesce_texture_preview_submission(RendererState& renderer_state,
+                                                 RendererTexture& texture,
+                                                 std::string& error_message)
+{
+    (void)renderer_state;
+    (void)texture;
+    error_message.clear();
+    return true;
+}
+
+inline void
+renderer_noop_platform_windows(RendererState& renderer_state)
+{
+    (void)renderer_state;
+}
+
 void
 renderer_select_backend(RendererState& renderer_state, BackendKind backend);
 BackendKind

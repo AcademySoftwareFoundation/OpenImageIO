@@ -18,7 +18,6 @@
 #include <OpenImageIO/strutil.h>
 
 #include <algorithm>
-#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -297,36 +296,10 @@ namespace {
         OcioPreviewProgram ocio_preview;
     };
 
-    RendererBackendState* backend_state(RendererState& renderer_state)
-    {
-        return reinterpret_cast<RendererBackendState*>(renderer_state.backend);
-    }
-
     bool ensure_basic_preview_program(RendererBackendState& state,
                                       std::string& error_message);
     bool ensure_preview_framebuffer(RendererBackendState& state,
                                     std::string& error_message);
-
-    const RendererTextureBackendState*
-    texture_backend_state(const RendererTexture& texture)
-    {
-        return reinterpret_cast<const RendererTextureBackendState*>(
-            texture.backend);
-    }
-
-    RendererTextureBackendState* texture_backend_state(RendererTexture& texture)
-    {
-        return reinterpret_cast<RendererTextureBackendState*>(texture.backend);
-    }
-
-    bool ensure_backend_state(RendererState& renderer_state)
-    {
-        if (renderer_state.backend != nullptr)
-            return true;
-        renderer_state.backend = reinterpret_cast<::Imiv::RendererBackendState*>(
-            new RendererBackendState());
-        return renderer_state.backend != nullptr;
-    }
 
     const char* open_gl_glsl_version()
     {
@@ -335,17 +308,6 @@ namespace {
 #else
         return "#version 130";
 #endif
-    }
-
-    bool preview_controls_equal(const PreviewControls& a,
-                                const PreviewControls& b)
-    {
-        return std::abs(a.exposure - b.exposure) < 1.0e-6f
-               && std::abs(a.gamma - b.gamma) < 1.0e-6f
-               && std::abs(a.offset - b.offset) < 1.0e-6f
-               && a.color_mode == b.color_mode && a.channel == b.channel
-               && a.use_ocio == b.use_ocio && a.orientation == b.orientation
-               && a.linear_interpolation == b.linear_interpolation;
     }
 
     template<class ProcT>
@@ -810,11 +772,11 @@ void main()
         const std::string vertex_source
             = glsl_fullscreen_triangle_vertex_shader();
         GLuint program = 0;
-        if (!create_shader_program(
-                state.glsl_version, vertex_source, fragment_source,
-                "failed to create OpenGL OCIO shader objects",
-                "failed to create OpenGL OCIO program", program,
-                error_message)) {
+        if (!create_shader_program(state.glsl_version, vertex_source,
+                                   fragment_source,
+                                   "failed to create OpenGL OCIO shader objects",
+                                   "failed to create OpenGL OCIO program",
+                                   program, error_message)) {
             return false;
         }
 
@@ -926,11 +888,11 @@ void main()
 }
 )glsl";
         GLuint program = 0;
-        if (!create_shader_program(
-                state.glsl_version, vertex_source, fragment_source,
-                "failed to create OpenGL shader objects",
-                "failed to create OpenGL preview program", program,
-                error_message)) {
+        if (!create_shader_program(state.glsl_version, vertex_source,
+                                   fragment_source,
+                                   "failed to create OpenGL shader objects",
+                                   "failed to create OpenGL preview program",
+                                   program, error_message)) {
             return false;
         }
 
@@ -1416,8 +1378,9 @@ void main()
                                         ImTextureRef& closeup_texture_ref,
                                         bool& has_closeup_texture)
     {
-        const RendererTextureBackendState* state = texture_backend_state(
-            viewer.texture);
+        const RendererTextureBackendState* state
+            = texture_backend_state<RendererTextureBackendState>(
+                viewer.texture);
         if (state == nullptr || !viewer.texture.preview_initialized)
             return false;
 
@@ -1441,17 +1404,13 @@ void main()
         return has_main_texture || has_closeup_texture;
     }
 
-    bool opengl_texture_is_loading(const RendererTexture& texture)
-    {
-        return texture.backend != nullptr && !texture.preview_initialized;
-    }
-
     bool opengl_create_texture(RendererState& renderer_state,
                                const LoadedImage& image,
                                RendererTexture& texture,
                                std::string& error_message)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->window == nullptr) {
             error_message = "OpenGL window is not initialized";
             return false;
@@ -1508,8 +1467,10 @@ void main()
     void opengl_destroy_texture(RendererState& renderer_state,
                                 RendererTexture& texture)
     {
-        RendererTextureBackendState* state = texture_backend_state(texture);
-        RendererBackendState* renderer     = backend_state(renderer_state);
+        RendererTextureBackendState* state
+            = texture_backend_state<RendererTextureBackendState>(texture);
+        RendererBackendState* renderer = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr) {
             texture.preview_initialized = false;
             return;
@@ -1534,9 +1495,10 @@ void main()
                                        const PreviewControls& controls,
                                        std::string& error_message)
     {
-        RendererBackendState* state = backend_state(renderer_state);
-        RendererTextureBackendState* texture_state = texture_backend_state(
-            texture);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
+        RendererTextureBackendState* texture_state
+            = texture_backend_state<RendererTextureBackendState>(texture);
         if (state == nullptr || state->window == nullptr
             || texture_state == nullptr) {
             error_message = "OpenGL preview state is not initialized";
@@ -1605,26 +1567,18 @@ void main()
         return true;
     }
 
-    bool opengl_quiesce_texture_preview_submission(RendererState& renderer_state,
-                                                   RendererTexture& texture,
-                                                   std::string& error_message)
-    {
-        (void)renderer_state;
-        (void)texture;
-        error_message.clear();
-        return true;
-    }
-
     bool opengl_setup_instance(RendererState& renderer_state,
                                ImVector<const char*>& instance_extensions,
                                std::string& error_message)
     {
         (void)instance_extensions;
-        if (!ensure_backend_state(renderer_state)) {
+        if (!ensure_default_backend_state<RendererBackendState>(
+                renderer_state)) {
             error_message = "failed to allocate OpenGL renderer state";
             return false;
         }
-        backend_state(renderer_state)->glsl_version = open_gl_glsl_version();
+        backend_state<RendererBackendState>(renderer_state)->glsl_version
+            = open_gl_glsl_version();
         error_message.clear();
         return true;
     }
@@ -1632,7 +1586,7 @@ void main()
     bool opengl_setup_device(RendererState& renderer_state,
                              std::string& error_message)
     {
-        if (backend_state(renderer_state) == nullptr) {
+        if (backend_state<RendererBackendState>(renderer_state) == nullptr) {
             error_message = "OpenGL renderer state is not initialized";
             return false;
         }
@@ -1643,8 +1597,7 @@ void main()
     bool opengl_setup_window(RendererState& renderer_state, int width,
                              int height, std::string& error_message)
     {
-        renderer_state.framebuffer_width  = width;
-        renderer_state.framebuffer_height = height;
+        renderer_set_framebuffer_size(renderer_state, width, height);
         error_message.clear();
         return true;
     }
@@ -1652,29 +1605,20 @@ void main()
     bool opengl_create_surface(RendererState& renderer_state,
                                GLFWwindow* window, std::string& error_message)
     {
-        if (!ensure_backend_state(renderer_state)) {
+        if (!ensure_default_backend_state<RendererBackendState>(
+                renderer_state)) {
             error_message = "failed to allocate OpenGL renderer state";
             return false;
         }
-        backend_state(renderer_state)->window = window;
+        backend_state<RendererBackendState>(renderer_state)->window = window;
         error_message.clear();
         return true;
     }
 
-    void opengl_destroy_surface(RendererState& renderer_state)
-    {
-        if (RendererBackendState* state = backend_state(renderer_state))
-            state->window = nullptr;
-    }
-
-    void opengl_cleanup_window(RendererState& renderer_state)
-    {
-        (void)renderer_state;
-    }
-
     void opengl_cleanup(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state != nullptr) {
             if (state->window != nullptr)
                 platform_glfw_make_context_current(state->window);
@@ -1701,7 +1645,8 @@ void main()
     bool opengl_imgui_init(RendererState& renderer_state,
                            std::string& error_message)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->window == nullptr) {
             error_message = "OpenGL window is not initialized";
             return false;
@@ -1724,32 +1669,10 @@ void main()
         ImGui_ImplOpenGL3_NewFrame();
     }
 
-    bool opengl_needs_main_window_resize(RendererState& renderer_state,
-                                         int width, int height)
-    {
-        return renderer_state.framebuffer_width != width
-               || renderer_state.framebuffer_height != height;
-    }
-
-    void opengl_resize_main_window(RendererState& renderer_state, int width,
-                                   int height)
-    {
-        renderer_state.framebuffer_width  = width;
-        renderer_state.framebuffer_height = height;
-    }
-
-    void opengl_set_main_clear_color(RendererState& renderer_state, float r,
-                                     float g, float b, float a)
-    {
-        renderer_state.clear_color[0] = r;
-        renderer_state.clear_color[1] = g;
-        renderer_state.clear_color[2] = b;
-        renderer_state.clear_color[3] = a;
-    }
-
     void opengl_prepare_platform_windows(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr)
             return;
         state->backup_context = platform_glfw_get_current_context();
@@ -1757,7 +1680,8 @@ void main()
 
     void opengl_finish_platform_windows(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->backup_context == nullptr)
             return;
         platform_glfw_make_context_current(state->backup_context);
@@ -1767,7 +1691,8 @@ void main()
     void opengl_frame_render(RendererState& renderer_state,
                              ImDrawData* draw_data)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->window == nullptr)
             return;
 
@@ -1788,7 +1713,8 @@ void main()
 
     void opengl_frame_present(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->window == nullptr)
             return;
         platform_glfw_swap_buffers(state->window);
@@ -1802,7 +1728,8 @@ void main()
         if (renderer_state == nullptr || pixels == nullptr || w <= 0 || h <= 0)
             return false;
 
-        RendererBackendState* state = backend_state(*renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            *renderer_state);
         if (state == nullptr || state->window == nullptr)
             return false;
 
@@ -1952,25 +1879,25 @@ void main()
         BackendKind::OpenGL,
         opengl_probe_runtime_support,
         opengl_get_viewer_texture_refs,
-        opengl_texture_is_loading,
+        renderer_texture_preview_pending,
         opengl_create_texture,
         opengl_destroy_texture,
         opengl_update_preview_texture,
-        opengl_quiesce_texture_preview_submission,
+        renderer_noop_quiesce_texture_preview_submission,
         opengl_setup_instance,
         opengl_setup_device,
         opengl_setup_window,
         opengl_create_surface,
-        opengl_destroy_surface,
-        opengl_cleanup_window,
+        renderer_clear_backend_window<RendererBackendState>,
+        renderer_noop_platform_windows,
         opengl_cleanup,
         opengl_wait_idle,
         opengl_imgui_init,
         opengl_imgui_shutdown,
         opengl_imgui_new_frame,
-        opengl_needs_main_window_resize,
-        opengl_resize_main_window,
-        opengl_set_main_clear_color,
+        renderer_framebuffer_size_changed,
+        renderer_set_framebuffer_size,
+        renderer_set_clear_color,
         opengl_prepare_platform_windows,
         opengl_finish_platform_windows,
         opengl_frame_render,

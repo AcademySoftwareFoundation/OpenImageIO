@@ -19,16 +19,6 @@
 namespace Imiv {
 namespace {
 
-    VulkanState* backend_state(RendererState& renderer_state)
-    {
-        return reinterpret_cast<VulkanState*>(renderer_state.backend);
-    }
-
-    const VulkanState* backend_state(const RendererState& renderer_state)
-    {
-        return reinterpret_cast<const VulkanState*>(renderer_state.backend);
-    }
-
     bool ensure_backend_state(RendererState& renderer_state)
     {
         if (renderer_state.backend != nullptr)
@@ -53,8 +43,8 @@ namespace {
                                         ImTextureRef& closeup_texture_ref,
                                         bool& has_closeup_texture)
     {
-        const VulkanTexture* texture = reinterpret_cast<const VulkanTexture*>(
-            viewer.texture.backend);
+        const VulkanTexture* texture = texture_backend_state<VulkanTexture>(
+            viewer.texture);
         if (texture == nullptr || !viewer.texture.preview_initialized)
             return false;
 
@@ -82,8 +72,8 @@ namespace {
 
     bool vulkan_texture_is_loading(const RendererTexture& texture)
     {
-        const VulkanTexture* vk_texture
-            = reinterpret_cast<const VulkanTexture*>(texture.backend);
+        const VulkanTexture* vk_texture = texture_backend_state<VulkanTexture>(
+            texture);
         if (vk_texture == nullptr)
             return false;
         return vk_texture->upload_submit_pending
@@ -103,8 +93,8 @@ namespace {
         }
 
         VulkanTexture vk_texture;
-        if (!create_texture(*backend_state(renderer_state), image, vk_texture,
-                            error_message)) {
+        if (!create_texture(*backend_state<VulkanState>(renderer_state), image,
+                            vk_texture, error_message)) {
             return false;
         }
 
@@ -120,9 +110,9 @@ namespace {
     void vulkan_destroy_texture(RendererState& renderer_state,
                                 RendererTexture& texture)
     {
-        VulkanState* vk_state     = backend_state(renderer_state);
-        VulkanTexture* vk_texture = reinterpret_cast<VulkanTexture*>(
-            texture.backend);
+        VulkanState* vk_state     = backend_state<VulkanState>(renderer_state);
+        VulkanTexture* vk_texture = texture_backend_state<VulkanTexture>(
+            texture);
         if (vk_state != nullptr && vk_texture != nullptr)
             retire_texture(*vk_state, *vk_texture);
         delete vk_texture;
@@ -135,9 +125,9 @@ namespace {
                                        const PreviewControls& controls,
                                        std::string& error_message)
     {
-        VulkanState* vk_state     = backend_state(renderer_state);
-        VulkanTexture* vk_texture = reinterpret_cast<VulkanTexture*>(
-            texture.backend);
+        VulkanState* vk_state     = backend_state<VulkanState>(renderer_state);
+        VulkanTexture* vk_texture = texture_backend_state<VulkanTexture>(
+            texture);
         if (vk_state == nullptr || vk_texture == nullptr) {
             error_message = "Vulkan renderer state is unavailable";
             return false;
@@ -153,9 +143,9 @@ namespace {
                                                    RendererTexture& texture,
                                                    std::string& error_message)
     {
-        VulkanState* vk_state     = backend_state(renderer_state);
-        VulkanTexture* vk_texture = reinterpret_cast<VulkanTexture*>(
-            texture.backend);
+        VulkanState* vk_state     = backend_state<VulkanState>(renderer_state);
+        VulkanTexture* vk_texture = texture_backend_state<VulkanTexture>(
+            texture);
         if (vk_state == nullptr || vk_texture == nullptr) {
             error_message.clear();
             return true;
@@ -172,14 +162,14 @@ namespace {
             error_message = "failed to allocate Vulkan renderer state";
             return false;
         }
-        return setup_vulkan_instance(*backend_state(renderer_state),
+        return setup_vulkan_instance(*backend_state<VulkanState>(renderer_state),
                                      instance_extensions, error_message);
     }
 
     bool vulkan_setup_device(RendererState& renderer_state,
                              std::string& error_message)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state == nullptr) {
             error_message = "Vulkan renderer state is unavailable";
             return false;
@@ -190,7 +180,7 @@ namespace {
     bool vulkan_setup_window(RendererState& renderer_state, int width,
                              int height, std::string& error_message)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state == nullptr) {
             error_message = "Vulkan renderer state is unavailable";
             return false;
@@ -203,7 +193,7 @@ namespace {
     bool vulkan_create_surface(RendererState& renderer_state,
                                GLFWwindow* window, std::string& error_message)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state == nullptr) {
             error_message = "Vulkan renderer state is unavailable";
             return false;
@@ -222,21 +212,21 @@ namespace {
 
     void vulkan_destroy_surface(RendererState& renderer_state)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state != nullptr)
             destroy_vulkan_surface(*vk_state);
     }
 
     void vulkan_cleanup_window(RendererState& renderer_state)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state != nullptr)
             cleanup_vulkan_window(*vk_state);
     }
 
     void vulkan_cleanup(RendererState& renderer_state)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state != nullptr)
             cleanup_vulkan(*vk_state);
         delete vk_state;
@@ -246,7 +236,7 @@ namespace {
     bool vulkan_wait_idle(RendererState& renderer_state,
                           std::string& error_message)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state == nullptr || vk_state->device == VK_NULL_HANDLE) {
             error_message.clear();
             return true;
@@ -265,7 +255,7 @@ namespace {
     bool vulkan_imgui_init(RendererState& renderer_state,
                            std::string& error_message)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state == nullptr) {
             error_message = "Vulkan renderer state is unavailable";
             return false;
@@ -306,7 +296,8 @@ namespace {
     bool vulkan_needs_main_window_resize(RendererState& renderer_state,
                                          int width, int height)
     {
-        const VulkanState* vk_state = backend_state(renderer_state);
+        const VulkanState* vk_state = backend_state<VulkanState>(
+            renderer_state);
         if (vk_state == nullptr)
             return false;
         return vk_state->swapchain_rebuild
@@ -317,7 +308,7 @@ namespace {
     void vulkan_resize_main_window(RendererState& renderer_state, int width,
                                    int height)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state == nullptr)
             return;
         renderer_state.framebuffer_width  = width;
@@ -336,7 +327,7 @@ namespace {
     void vulkan_set_main_clear_color(RendererState& renderer_state, float r,
                                      float g, float b, float a)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state == nullptr)
             return;
         vk_state->window_data.ClearValue.color.float32[0] = r;
@@ -345,27 +336,17 @@ namespace {
         vk_state->window_data.ClearValue.color.float32[3] = a;
     }
 
-    void vulkan_prepare_platform_windows(RendererState& renderer_state)
-    {
-        (void)renderer_state;
-    }
-
-    void vulkan_finish_platform_windows(RendererState& renderer_state)
-    {
-        (void)renderer_state;
-    }
-
     void vulkan_frame_render(RendererState& renderer_state,
                              ImDrawData* draw_data)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state != nullptr)
             frame_render(*vk_state, draw_data);
     }
 
     void vulkan_frame_present(RendererState& renderer_state)
     {
-        VulkanState* vk_state = backend_state(renderer_state);
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state != nullptr)
             frame_present(*vk_state);
     }
@@ -405,8 +386,8 @@ namespace {
         vulkan_needs_main_window_resize,
         vulkan_resize_main_window,
         vulkan_set_main_clear_color,
-        vulkan_prepare_platform_windows,
-        vulkan_finish_platform_windows,
+        renderer_noop_platform_windows,
+        renderer_noop_platform_windows,
         vulkan_frame_render,
         vulkan_frame_present,
         vulkan_screen_capture,

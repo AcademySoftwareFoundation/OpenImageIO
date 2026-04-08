@@ -120,32 +120,6 @@ namespace {
 
     constexpr size_t kDefaultMetalUploadChunkBytes = 64u * 1024u * 1024u;
 
-    RendererBackendState* backend_state(RendererState& renderer_state)
-    {
-        return reinterpret_cast<RendererBackendState*>(renderer_state.backend);
-    }
-
-    const RendererTextureBackendState*
-    texture_backend_state(const RendererTexture& texture)
-    {
-        return reinterpret_cast<const RendererTextureBackendState*>(
-            texture.backend);
-    }
-
-    RendererTextureBackendState* texture_backend_state(RendererTexture& texture)
-    {
-        return reinterpret_cast<RendererTextureBackendState*>(texture.backend);
-    }
-
-    bool ensure_backend_state(RendererState& renderer_state)
-    {
-        if (renderer_state.backend != nullptr)
-            return true;
-        renderer_state.backend = reinterpret_cast<::Imiv::RendererBackendState*>(
-            new RendererBackendState());
-        return renderer_state.backend != nullptr;
-    }
-
     NSUInteger align_up(NSUInteger value, NSUInteger alignment)
     {
         if (alignment == 0)
@@ -185,7 +159,8 @@ namespace {
 
     void update_drawable_size(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->window == nullptr || state->layer == nil)
             return;
         int width  = 0;
@@ -194,17 +169,6 @@ namespace {
         renderer_state.framebuffer_width  = width;
         renderer_state.framebuffer_height = height;
         state->layer.drawableSize         = CGSizeMake(width, height);
-    }
-
-    bool preview_controls_equal(const PreviewControls& a,
-                                const PreviewControls& b)
-    {
-        return std::abs(a.exposure - b.exposure) < 1.0e-6f
-               && std::abs(a.gamma - b.gamma) < 1.0e-6f
-               && std::abs(a.offset - b.offset) < 1.0e-6f
-               && a.color_mode == b.color_mode && a.channel == b.channel
-               && a.use_ocio == b.use_ocio && a.orientation == b.orientation
-               && a.linear_interpolation == b.linear_interpolation;
     }
 
     bool prepare_source_upload(const LoadedImage& image,
@@ -343,8 +307,8 @@ namespace {
 
         NSError* error = nil;
         library        = [device newLibraryWithSource:source
-                                              options:options
-                                                error:&error];
+                                       options:options
+                                         error:&error];
         if (library == nil) {
             error_message = metal_error_string(error, compile_error);
             return false;
@@ -352,11 +316,6 @@ namespace {
 
         error_message.clear();
         return true;
-    }
-
-    MTLCompileOptions* create_default_compile_options()
-    {
-        return [[MTLCompileOptions alloc] init];
     }
 
     MTLCompileOptions* create_ocio_compile_options()
@@ -395,9 +354,9 @@ namespace {
             return false;
         }
 
-        NSString* ns_function_name
-            = [NSString stringWithUTF8String:function_name];
-        id<MTLFunction> function = [library
+        NSString* ns_function_name = [NSString
+            stringWithUTF8String:function_name];
+        id<MTLFunction> function   = [library
             newFunctionWithName:ns_function_name];
         if (function == nil) {
             error_message = function_error;
@@ -406,7 +365,7 @@ namespace {
 
         NSError* error = nil;
         pipeline       = [device newComputePipelineStateWithFunction:function
-                                                               error:&error];
+                                                         error:&error];
         if (pipeline == nil) {
             error_message = metal_error_string(error, pipeline_error);
             return false;
@@ -432,10 +391,10 @@ namespace {
             return false;
         }
 
-        NSString* ns_vertex_name   = [NSString stringWithUTF8String:vertex_name];
-        NSString* ns_fragment_name = [NSString
+        NSString* ns_vertex_name = [NSString stringWithUTF8String:vertex_name];
+        NSString* ns_fragment_name        = [NSString
             stringWithUTF8String:fragment_name];
-        id<MTLFunction> vertex_function = [library
+        id<MTLFunction> vertex_function   = [library
             newFunctionWithName:ns_vertex_name];
         id<MTLFunction> fragment_function = [library
             newFunctionWithName:ns_fragment_name];
@@ -452,7 +411,7 @@ namespace {
 
         NSError* error = nil;
         pipeline       = [device newRenderPipelineStateWithDescriptor:descriptor
-                                                                error:&error];
+                                                          error:&error];
         if (pipeline == nil) {
             error_message = metal_error_string(error, pipeline_error);
             return false;
@@ -476,8 +435,8 @@ namespace {
             return false;
         }
 
-        MTLRenderPassDescriptor* pass
-            = [MTLRenderPassDescriptor renderPassDescriptor];
+        MTLRenderPassDescriptor* pass =
+            [MTLRenderPassDescriptor renderPassDescriptor];
         pass.colorAttachments[0].texture     = target_texture;
         pass.colorAttachments[0].loadAction  = MTLLoadActionDontCare;
         pass.colorAttachments[0].storeAction = MTLStoreActionStore;
@@ -635,11 +594,6 @@ namespace {
         bytes.resize(bytes.size() + (alignment - remainder), 0);
     }
 
-    std::string uniform_count_name(const std::string& name)
-    {
-        return name + "_count";
-    }
-
     struct MetalOcioShaderSourceParts {
         std::ostringstream uniforms_struct;
         std::ostringstream uniform_bindings;
@@ -654,8 +608,7 @@ namespace {
     };
 
     void append_shader_call_param(std::ostringstream& params,
-                                  bool& need_separator,
-                                  const std::string& text)
+                                  bool& need_separator, const std::string& text)
     {
         if (need_separator)
             params << ", ";
@@ -668,12 +621,11 @@ namespace {
                                        const char* texture_name,
                                        const char* sampler_name)
     {
-        parts.texture_bindings << ",    " << texture_decl << texture_name
-                               << " [[texture(" << parts.texture_index
-                               << ")]]\n"
-                               << ",    sampler " << sampler_name
-                               << " [[sampler(" << parts.texture_index
-                               << ")]]\n";
+        parts.texture_bindings
+            << ",    " << texture_decl << texture_name << " [[texture("
+            << parts.texture_index << ")]]\n"
+            << ",    sampler " << sampler_name << " [[sampler("
+            << parts.texture_index << ")]]\n";
         append_shader_call_param(parts.texture_call_params,
                                  parts.texture_need_separator,
                                  std::string(texture_name) + ", "
@@ -842,9 +794,9 @@ namespace {
         return true;
     }
 
-    bool append_ocio_uniform_shader_source(
-        const OcioShaderRuntime& runtime, MetalOcioShaderSourceParts& parts,
-        std::string& error_message)
+    bool append_ocio_uniform_shader_source(const OcioShaderRuntime& runtime,
+                                           MetalOcioShaderSourceParts& parts,
+                                           std::string& error_message)
     {
         const unsigned num_uniforms = runtime.shader_desc->getNumUniforms();
         for (unsigned idx = 0; idx < num_uniforms; ++idx) {
@@ -874,42 +826,41 @@ namespace {
                 parts.has_uniform_struct = true;
                 break;
             case OCIO::UNIFORM_FLOAT3:
-                parts.uniforms_struct << "    float4 " << uniform_name
-                                      << ";\n";
+                parts.uniforms_struct << "    float4 " << uniform_name << ";\n";
                 append_shader_call_param(parts.uniform_call_params,
                                          parts.uniform_need_separator,
                                          std::string("ocioUniformData.")
                                              + uniform_name + ".xyz");
                 parts.has_uniform_struct = true;
                 break;
-            case OCIO::UNIFORM_VECTOR_FLOAT:
-                parts.uniforms_struct
-                    << "    int " << uniform_count_name(uniform_name)
-                    << ";\n";
-                parts.uniform_bindings << ",    constant float* "
-                                       << uniform_name << " [[buffer("
-                                       << parts.vector_buffer_index++
-                                       << ")]]\n";
-                append_shader_call_param(
-                    parts.uniform_call_params, parts.uniform_need_separator,
-                    std::string(uniform_name) + ", ocioUniformData."
-                        + uniform_count_name(uniform_name));
+            case OCIO::UNIFORM_VECTOR_FLOAT: {
+                const std::string count_name = uniform_name + "_count";
+                parts.uniforms_struct << "    int " << count_name << ";\n";
+                parts.uniform_bindings
+                    << ",    constant float* " << uniform_name << " [[buffer("
+                    << parts.vector_buffer_index++ << ")]]\n";
+                append_shader_call_param(parts.uniform_call_params,
+                                         parts.uniform_need_separator,
+                                         std::string(uniform_name)
+                                             + ", ocioUniformData."
+                                             + count_name);
                 parts.has_uniform_struct = true;
                 break;
-            case OCIO::UNIFORM_VECTOR_INT:
-                parts.uniforms_struct
-                    << "    int " << uniform_count_name(uniform_name)
-                    << ";\n";
-                parts.uniform_bindings << ",    constant int* " << uniform_name
-                                       << " [[buffer("
-                                       << parts.vector_buffer_index++
-                                       << ")]]\n";
-                append_shader_call_param(
-                    parts.uniform_call_params, parts.uniform_need_separator,
-                    std::string(uniform_name) + ", ocioUniformData."
-                        + uniform_count_name(uniform_name));
+            }
+            case OCIO::UNIFORM_VECTOR_INT: {
+                const std::string count_name = uniform_name + "_count";
+                parts.uniforms_struct << "    int " << count_name << ";\n";
+                parts.uniform_bindings
+                    << ",    constant int* " << uniform_name << " [[buffer("
+                    << parts.vector_buffer_index++ << ")]]\n";
+                append_shader_call_param(parts.uniform_call_params,
+                                         parts.uniform_need_separator,
+                                         std::string(uniform_name)
+                                             + ", ocioUniformData."
+                                             + count_name);
                 parts.has_uniform_struct = true;
                 break;
+            }
             case OCIO::UNIFORM_UNKNOWN:
             default:
                 error_message = "unsupported Metal OCIO uniform type";
@@ -920,9 +871,9 @@ namespace {
         return true;
     }
 
-    bool append_ocio_texture_shader_source(
-        const OcioShaderRuntime& runtime, MetalOcioShaderSourceParts& parts,
-        std::string& error_message)
+    bool append_ocio_texture_shader_source(const OcioShaderRuntime& runtime,
+                                           MetalOcioShaderSourceParts& parts,
+                                           std::string& error_message)
     {
         for (unsigned idx = 0; idx < runtime.shader_desc->getNum3DTextures();
              ++idx) {
@@ -1133,7 +1084,7 @@ kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]
     bool create_upload_pipeline(RendererBackendState& state,
                                 std::string& error_message)
     {
-        MTLCompileOptions* options = create_default_compile_options();
+        MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
         id<MTLLibrary> library     = nil;
         if (!create_shader_library(state.device, upload_shader_source(),
                                    options, "Metal device is not initialized",
@@ -1289,9 +1240,9 @@ kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]
     NSString* preview_shader_source()
     {
         std::string source = metal_preview_shader_preamble(
-            metal_basic_preview_uniform_fields());
+            k_metal_basic_preview_uniform_fields);
         source += metal_fullscreen_triangle_vertex_source("imivPreviewVertex");
-        source += metal_preview_common_shader_functions();
+        source += k_metal_preview_common_shader_functions;
         source += R"metal(
 
 fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
@@ -1355,7 +1306,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool create_preview_pipeline(RendererBackendState& state,
                                  std::string& error_message)
     {
-        MTLCompileOptions* options = create_default_compile_options();
+        MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
         if (!create_shader_library(state.device, preview_shader_source(),
                                    options, "Metal device is not initialized",
                                    "failed to compile Metal preview shader",
@@ -1372,8 +1323,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         }
         state.linear_sampler = create_sampler_state(state.device,
                                                     OcioInterpolation::Linear);
-        state.nearest_sampler = create_sampler_state(
-            state.device, OcioInterpolation::Nearest);
+        state.nearest_sampler
+            = create_sampler_state(state.device, OcioInterpolation::Nearest);
 
         if (state.linear_sampler == nil || state.nearest_sampler == nil) {
             error_message = "failed to create Metal preview samplers";
@@ -1406,7 +1357,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
 
         std::ostringstream source;
         source << metal_preview_shader_preamble(
-            metal_ocio_preview_uniform_fields());
+            k_metal_ocio_preview_uniform_fields);
 
         if (parts.has_uniform_struct) {
             source << "\nstruct OcioUniformData {\n"
@@ -1415,7 +1366,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
 
         source << metal_fullscreen_triangle_vertex_source(
             "imivOcioPreviewVertex");
-        source << metal_preview_common_shader_functions();
+        source << k_metal_preview_common_shader_functions;
 
         source << runtime.blueprint.shader_text << "\n";
         source << "fragment float4 imivOcioPreviewFragment(\n"
@@ -1490,8 +1441,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     }
 
     bool upload_ocio_textures_for_dimension(
-        id<MTLDevice> device,
-        const std::vector<OcioTextureBlueprint>& textures,
+        id<MTLDevice> device, const std::vector<OcioTextureBlueprint>& textures,
         OcioTextureDimensions dimensions_filter, NSUInteger& texture_index,
         std::vector<MetalOcioTextureBinding>& bindings,
         std::string& error_message)
@@ -1514,8 +1464,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     }
 
     bool upload_ocio_non_3d_textures(
-        id<MTLDevice> device,
-        const std::vector<OcioTextureBlueprint>& textures,
+        id<MTLDevice> device, const std::vector<OcioTextureBlueprint>& textures,
         NSUInteger& texture_index,
         std::vector<MetalOcioTextureBinding>& bindings,
         std::string& error_message)
@@ -1599,13 +1548,12 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         }
 
         MTLCompileOptions* options = create_ocio_compile_options();
-        NSString* shader_source_ns
-            = [NSString stringWithUTF8String:shader_source.c_str()];
+        NSString* shader_source_ns = [NSString
+            stringWithUTF8String:shader_source.c_str()];
         if (!create_shader_library(state.device, shader_source_ns, options,
                                    "Metal device is not initialized",
                                    "failed to compile Metal OCIO shader",
-                                   state.ocio_preview.library,
-                                   error_message)) {
+                                   state.ocio_preview.library, error_message)) {
             return false;
         }
         if (!create_render_pipeline_state(
@@ -1622,9 +1570,10 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         if (!upload_ocio_textures_for_dimension(
                 state.device, blueprint.textures, OcioTextureDimensions::Tex3D,
                 texture_index, state.ocio_preview.textures, error_message)
-            || !upload_ocio_non_3d_textures(
-                state.device, blueprint.textures, texture_index,
-                state.ocio_preview.textures, error_message)) {
+            || !upload_ocio_non_3d_textures(state.device, blueprint.textures,
+                                            texture_index,
+                                            state.ocio_preview.textures,
+                                            error_message)) {
             destroy_ocio_preview_resources(state.ocio_preview);
             return false;
         }
@@ -1685,8 +1634,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
             return false;
         }
 
-        id<MTLCommandBuffer> command_buffer     = nil;
-        id<MTLRenderCommandEncoder> encoder     = nil;
+        id<MTLCommandBuffer> command_buffer = nil;
+        id<MTLRenderCommandEncoder> encoder = nil;
         if (!begin_offscreen_render_pass(
                 state.command_queue, target_texture,
                 "failed to create Metal OCIO command buffer",
@@ -1733,8 +1682,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         uniforms.input_channels = texture_state.input_channels;
         uniforms.orientation    = controls.orientation;
 
-        id<MTLCommandBuffer> command_buffer     = nil;
-        id<MTLRenderCommandEncoder> encoder     = nil;
+        id<MTLCommandBuffer> command_buffer = nil;
+        id<MTLRenderCommandEncoder> encoder = nil;
         if (!begin_offscreen_render_pass(
                 state.command_queue, target_texture,
                 "failed to create Metal preview command buffer",
@@ -1762,8 +1711,9 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                                        ImTextureRef& closeup_texture_ref,
                                        bool& has_closeup_texture)
     {
-        const RendererTextureBackendState* state = texture_backend_state(
-            viewer.texture);
+        const RendererTextureBackendState* state
+            = texture_backend_state<RendererTextureBackendState>(
+                viewer.texture);
         if (state == nullptr || !viewer.texture.preview_initialized)
             return false;
 
@@ -1787,17 +1737,13 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         return has_main_texture || has_closeup_texture;
     }
 
-    bool metal_texture_is_loading(const RendererTexture& texture)
-    {
-        return texture.backend != nullptr && !texture.preview_initialized;
-    }
-
     bool metal_create_texture(RendererState& renderer_state,
                               const LoadedImage& image,
                               RendererTexture& texture,
                               std::string& error_message)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->device == nil) {
             error_message = "Metal window/device is not initialized";
             return false;
@@ -1867,7 +1813,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                                RendererTexture& texture)
     {
         (void)renderer_state;
-        RendererTextureBackendState* state = texture_backend_state(texture);
+        RendererTextureBackendState* state
+            = texture_backend_state<RendererTextureBackendState>(texture);
         if (state == nullptr) {
             texture.preview_initialized = false;
             return;
@@ -1895,9 +1842,10 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                                       const PreviewControls& controls,
                                       std::string& error_message)
     {
-        RendererBackendState* renderer_backend = backend_state(renderer_state);
-        RendererTextureBackendState* texture_state = texture_backend_state(
-            texture);
+        RendererBackendState* renderer_backend
+            = backend_state<RendererBackendState>(renderer_state);
+        RendererTextureBackendState* texture_state
+            = texture_backend_state<RendererTextureBackendState>(texture);
         if (renderer_backend == nullptr || texture_state == nullptr) {
             error_message = "Metal preview state is not initialized";
             return false;
@@ -1960,22 +1908,13 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         return true;
     }
 
-    bool metal_quiesce_texture_preview_submission(RendererState& renderer_state,
-                                                  RendererTexture& texture,
-                                                  std::string& error_message)
-    {
-        (void)renderer_state;
-        (void)texture;
-        error_message.clear();
-        return true;
-    }
-
     bool metal_setup_instance(RendererState& renderer_state,
                               ImVector<const char*>& instance_extensions,
                               std::string& error_message)
     {
         (void)instance_extensions;
-        if (!ensure_backend_state(renderer_state)) {
+        if (!ensure_default_backend_state<RendererBackendState>(
+                renderer_state)) {
             error_message = "failed to allocate Metal renderer state";
             return false;
         }
@@ -1986,11 +1925,12 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool metal_create_surface(RendererState& renderer_state, GLFWwindow* window,
                               std::string& error_message)
     {
-        if (!ensure_backend_state(renderer_state)) {
+        if (!ensure_default_backend_state<RendererBackendState>(
+                renderer_state)) {
             error_message = "failed to allocate Metal renderer state";
             return false;
         }
-        backend_state(renderer_state)->window = window;
+        backend_state<RendererBackendState>(renderer_state)->window = window;
         error_message.clear();
         return true;
     }
@@ -1998,7 +1938,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool metal_setup_device(RendererState& renderer_state,
                             std::string& error_message)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr) {
             error_message = "Metal renderer state is not initialized";
             return false;
@@ -2023,7 +1964,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool metal_setup_window(RendererState& renderer_state, int width,
                             int height, std::string& error_message)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->window == nullptr
             || state->device == nil) {
             error_message = "Metal window/device is not initialized";
@@ -2034,29 +1976,23 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
             error_message = "failed to get Cocoa window from GLFW";
             return false;
         }
-        state->layer                      = [CAMetalLayer layer];
-        state->layer.device               = state->device;
-        state->layer.pixelFormat          = MTLPixelFormatBGRA8Unorm;
-        state->layer.framebufferOnly      = NO;
-        ns_window.contentView.layer       = state->layer;
-        ns_window.contentView.wantsLayer  = YES;
-        state->render_pass                = [MTLRenderPassDescriptor new];
-        renderer_state.framebuffer_width  = width;
-        renderer_state.framebuffer_height = height;
+        state->layer                     = [CAMetalLayer layer];
+        state->layer.device              = state->device;
+        state->layer.pixelFormat         = MTLPixelFormatBGRA8Unorm;
+        state->layer.framebufferOnly     = NO;
+        ns_window.contentView.layer      = state->layer;
+        ns_window.contentView.wantsLayer = YES;
+        state->render_pass               = [MTLRenderPassDescriptor new];
+        renderer_set_framebuffer_size(renderer_state, width, height);
         update_drawable_size(renderer_state);
         error_message.clear();
         return true;
     }
 
-    void metal_destroy_surface(RendererState& renderer_state)
-    {
-        if (RendererBackendState* state = backend_state(renderer_state))
-            state->window = nullptr;
-    }
-
     void metal_cleanup_window(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr)
             return;
         state->current_drawable       = nil;
@@ -2066,7 +2002,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
 
     void metal_cleanup(RendererState& renderer_state)
     {
-        if (RendererBackendState* state = backend_state(renderer_state)) {
+        if (RendererBackendState* state = backend_state<RendererBackendState>(
+                renderer_state)) {
             destroy_ocio_preview_program(state->ocio_preview);
             delete state;
         }
@@ -2076,7 +2013,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool metal_wait_idle(RendererState& renderer_state,
                          std::string& error_message)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state != nullptr && state->current_command_buffer != nil)
             [state->current_command_buffer waitUntilCompleted];
         error_message.clear();
@@ -2086,7 +2024,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool metal_imgui_init(RendererState& renderer_state,
                           std::string& error_message)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->device == nil) {
             error_message = "Metal device is not initialized";
             return false;
@@ -2101,7 +2040,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
 
     void metal_imgui_new_frame(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->layer == nil
             || state->render_pass == nil)
             return;
@@ -2121,44 +2061,18 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         ImGui_ImplMetal_NewFrame(state->render_pass);
     }
 
-    bool metal_needs_main_window_resize(RendererState& renderer_state,
-                                        int width, int height)
-    {
-        return renderer_state.framebuffer_width != width
-               || renderer_state.framebuffer_height != height;
-    }
-
     void metal_resize_main_window(RendererState& renderer_state, int width,
                                   int height)
     {
-        renderer_state.framebuffer_width  = width;
-        renderer_state.framebuffer_height = height;
+        renderer_set_framebuffer_size(renderer_state, width, height);
         update_drawable_size(renderer_state);
-    }
-
-    void metal_set_main_clear_color(RendererState& renderer_state, float r,
-                                    float g, float b, float a)
-    {
-        renderer_state.clear_color[0] = r;
-        renderer_state.clear_color[1] = g;
-        renderer_state.clear_color[2] = b;
-        renderer_state.clear_color[3] = a;
-    }
-
-    void metal_prepare_platform_windows(RendererState& renderer_state)
-    {
-        (void)renderer_state;
-    }
-
-    void metal_finish_platform_windows(RendererState& renderer_state)
-    {
-        (void)renderer_state;
     }
 
     void metal_frame_render(RendererState& renderer_state,
                             ImDrawData* draw_data)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->current_drawable == nil
             || state->command_queue == nil || state->render_pass == nil) {
             return;
@@ -2172,7 +2086,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
 
     void metal_frame_present(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state(renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
         if (state == nullptr || state->current_command_buffer == nil
             || state->current_drawable == nil) {
             return;
@@ -2195,7 +2110,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         if (renderer_state == nullptr || pixels == nullptr || w <= 0 || h <= 0)
             return false;
 
-        RendererBackendState* state = backend_state(*renderer_state);
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            *renderer_state);
         if (state == nullptr || state->current_drawable == nil
             || state->current_command_buffer == nil
             || state->current_encoder == nil) {
@@ -2349,27 +2265,27 @@ const RendererBackendVTable k_metal_vtable = {
     BackendKind::Metal,
     metal_probe_runtime_support,
     metal_get_viewer_texture_refs,
-    metal_texture_is_loading,
+    renderer_texture_preview_pending,
     metal_create_texture,
     metal_destroy_texture,
     metal_update_preview_texture,
-    metal_quiesce_texture_preview_submission,
+    renderer_noop_quiesce_texture_preview_submission,
     metal_setup_instance,
     metal_setup_device,
     metal_setup_window,
     metal_create_surface,
-    metal_destroy_surface,
+    renderer_clear_backend_window<RendererBackendState>,
     metal_cleanup_window,
     metal_cleanup,
     metal_wait_idle,
     metal_imgui_init,
     metal_imgui_shutdown,
     metal_imgui_new_frame,
-    metal_needs_main_window_resize,
+    renderer_framebuffer_size_changed,
     metal_resize_main_window,
-    metal_set_main_clear_color,
-    metal_prepare_platform_windows,
-    metal_finish_platform_windows,
+    renderer_set_clear_color,
+    renderer_noop_platform_windows,
+    renderer_noop_platform_windows,
     metal_frame_render,
     metal_frame_present,
     metal_screen_capture,

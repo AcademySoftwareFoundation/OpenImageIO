@@ -9,6 +9,7 @@
 #include "imiv_developer_tools.h"
 #include "imiv_drag_drop.h"
 #include "imiv_frame_actions.h"
+#include "imiv_image_list_ui.h"
 #include "imiv_image_view.h"
 #include "imiv_menu.h"
 #include "imiv_parse.h"
@@ -65,7 +66,7 @@ namespace {
                                         bool primary)
     {
         if (primary)
-            return std::string(image_window_title());
+            return std::string(k_image_window_title);
         return Strutil::fmt::format("Image {}###imiv_image_view_{}", view.id,
                                     view.id);
     }

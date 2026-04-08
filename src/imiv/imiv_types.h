@@ -6,6 +6,7 @@
 
 #include "imiv_build_config.h"
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -67,5 +68,16 @@ struct PreviewControls {
     int orientation          = 1;
     int linear_interpolation = 0;
 };
+
+inline bool
+preview_controls_equal(const PreviewControls& a, const PreviewControls& b)
+{
+    return std::abs(a.exposure - b.exposure) < 1.0e-6f
+           && std::abs(a.gamma - b.gamma) < 1.0e-6f
+           && std::abs(a.offset - b.offset) < 1.0e-6f
+           && a.color_mode == b.color_mode && a.channel == b.channel
+           && a.use_ocio == b.use_ocio && a.orientation == b.orientation
+           && a.linear_interpolation == b.linear_interpolation;
+}
 
 }  // namespace Imiv

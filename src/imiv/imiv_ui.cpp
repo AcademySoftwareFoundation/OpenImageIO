@@ -85,6 +85,21 @@ draw_padded_message(const char* message, float x_pad, float y_pad)
     ImGui::PopTextWrapPos();
 }
 
+void
+set_aux_window_defaults(const ImVec2& offset, const ImVec2& size,
+                        bool reset_layout)
+{
+    const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+    ImVec2 base_pos(0.0f, 0.0f);
+    if (main_viewport != nullptr)
+        base_pos = main_viewport->WorkPos;
+    const ImGuiCond cond = reset_layout ? ImGuiCond_Always
+                                        : ImGuiCond_FirstUseEver;
+    ImGui::SetNextWindowPos(ImVec2(base_pos.x + offset.x, base_pos.y + offset.y),
+                            cond);
+    ImGui::SetNextWindowSize(size, cond);
+}
+
 bool
 input_text_string(const char* label, std::string& value)
 {

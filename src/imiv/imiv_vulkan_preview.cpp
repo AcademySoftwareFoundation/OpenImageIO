@@ -7,7 +7,6 @@
 #include "imiv_vulkan_types.h"
 
 #include <algorithm>
-#include <cmath>
 #include <string>
 
 namespace Imiv {
@@ -97,17 +96,6 @@ quiesce_texture_preview_submission(VulkanState& vk_state,
     return poll_texture_preview_submission(vk_state, texture,
                                            texture.preview_submit_controls,
                                            true, error_message);
-}
-
-bool
-preview_controls_equal(const PreviewControls& a, const PreviewControls& b)
-{
-    return std::abs(a.exposure - b.exposure) < 1.0e-6f
-           && std::abs(a.gamma - b.gamma) < 1.0e-6f
-           && std::abs(a.offset - b.offset) < 1.0e-6f
-           && a.color_mode == b.color_mode && a.channel == b.channel
-           && a.use_ocio == b.use_ocio && a.orientation == b.orientation
-           && a.linear_interpolation == b.linear_interpolation;
 }
 
 bool

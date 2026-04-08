@@ -6,57 +6,7 @@
 
 namespace Imiv {
 
-std::string
-glsl_fullscreen_triangle_vertex_shader()
-{
-    return R"glsl(
-out vec2 uv_in;
-
-void main()
-{
-    vec2 pos = vec2(-1.0, -1.0);
-    if (gl_VertexID == 1)
-        pos = vec2(3.0, -1.0);
-    else if (gl_VertexID == 2)
-        pos = vec2(-1.0, 3.0);
-
-    uv_in = pos * 0.5 + 0.5;
-    gl_Position = vec4(pos, 0.0, 1.0);
-}
-)glsl";
-}
-
-std::string
-glsl_preview_fragment_preamble(bool include_exposure_gamma)
-{
-    std::string source = R"glsl(
-in vec2 uv_in;
-out vec4 out_color;
-
-uniform sampler2D u_source_image;
-uniform int u_input_channels;
-)glsl";
-    if (include_exposure_gamma) {
-        source += R"glsl(
-uniform float u_exposure;
-uniform float u_gamma;
-)glsl";
-    }
-    source += R"glsl(
-uniform float u_offset;
-uniform int u_color_mode;
-uniform int u_channel;
-uniform int u_orientation;
-
-)glsl";
-    source += glsl_preview_fragment_common_functions();
-    return source;
-}
-
-const char*
-glsl_preview_fragment_common_functions()
-{
-    return R"glsl(
+const char* const k_glsl_preview_fragment_common_functions = R"glsl(
 vec2 display_to_source_uv(vec2 uv, int orientation)
 {
     if (orientation == 2)
@@ -103,12 +53,8 @@ vec3 heatmap(float x)
     return mix(c, d, (t - 0.66) / 0.34);
 }
 )glsl";
-}
 
-const char*
-metal_basic_preview_uniform_fields()
-{
-    return R"metal(
+const char* const k_metal_basic_preview_uniform_fields = R"metal(
     float exposure;
     float gamma;
     float offset;
@@ -118,18 +64,99 @@ metal_basic_preview_uniform_fields()
     int orientation;
     int _padding;
 )metal";
-}
 
-const char*
-metal_ocio_preview_uniform_fields()
-{
-    return R"metal(
+const char* const k_metal_ocio_preview_uniform_fields = R"metal(
     float offset;
     int color_mode;
     int channel;
     int input_channels;
     int orientation;
 )metal";
+
+const char* const k_metal_preview_common_shader_functions = R"metal(
+inline float selected_channel(float4 rgba, int channel)
+{
+    if (channel == 1) return rgba.r;
+    if (channel == 2) return rgba.g;
+    if (channel == 3) return rgba.b;
+    if (channel == 4) return rgba.a;
+    return rgba.r;
+}
+
+inline float3 heatmap(float x)
+{
+    float t = clamp(x, 0.0, 1.0);
+    float3 a = float3(0.0, 0.0, 0.5);
+    float3 b = float3(0.0, 0.9, 1.0);
+    float3 c = float3(1.0, 1.0, 0.0);
+    float3 d = float3(1.0, 0.0, 0.0);
+    if (t < 0.33)
+        return mix(a, b, t / 0.33);
+    if (t < 0.66)
+        return mix(b, c, (t - 0.33) / 0.33);
+    return mix(c, d, (t - 0.66) / 0.34);
+}
+
+inline float2 display_to_source_uv(float2 uv, int orientation)
+{
+    switch (orientation) {
+    case 2: return float2(1.0 - uv.x, uv.y);
+    case 3: return float2(1.0 - uv.x, 1.0 - uv.y);
+    case 4: return float2(uv.x, 1.0 - uv.y);
+    case 5: return float2(uv.y, uv.x);
+    case 6: return float2(uv.y, 1.0 - uv.x);
+    case 7: return float2(1.0 - uv.y, 1.0 - uv.x);
+    case 8: return float2(1.0 - uv.y, uv.x);
+    default: return uv;
+    }
+}
+)metal";
+
+std::string
+glsl_fullscreen_triangle_vertex_shader()
+{
+    return R"glsl(
+out vec2 uv_in;
+
+void main()
+{
+    vec2 pos = vec2(-1.0, -1.0);
+    if (gl_VertexID == 1)
+        pos = vec2(3.0, -1.0);
+    else if (gl_VertexID == 2)
+        pos = vec2(-1.0, 3.0);
+
+    uv_in = pos * 0.5 + 0.5;
+    gl_Position = vec4(pos, 0.0, 1.0);
+}
+)glsl";
+}
+
+std::string
+glsl_preview_fragment_preamble(bool include_exposure_gamma)
+{
+    std::string source = R"glsl(
+in vec2 uv_in;
+out vec4 out_color;
+
+uniform sampler2D u_source_image;
+uniform int u_input_channels;
+)glsl";
+    if (include_exposure_gamma) {
+        source += R"glsl(
+uniform float u_exposure;
+uniform float u_gamma;
+)glsl";
+    }
+    source += R"glsl(
+uniform float u_offset;
+uniform int u_color_mode;
+uniform int u_channel;
+uniform int u_orientation;
+
+)glsl";
+    source += k_glsl_preview_fragment_common_functions;
+    return source;
 }
 
 std::string
@@ -173,49 +200,6 @@ metal_fullscreen_triangle_vertex_source(const char* vertex_name)
 }
 )metal";
     return source;
-}
-
-const char*
-metal_preview_common_shader_functions()
-{
-    return R"metal(
-inline float selected_channel(float4 rgba, int channel)
-{
-    if (channel == 1) return rgba.r;
-    if (channel == 2) return rgba.g;
-    if (channel == 3) return rgba.b;
-    if (channel == 4) return rgba.a;
-    return rgba.r;
-}
-
-inline float3 heatmap(float x)
-{
-    float t = clamp(x, 0.0, 1.0);
-    float3 a = float3(0.0, 0.0, 0.5);
-    float3 b = float3(0.0, 0.9, 1.0);
-    float3 c = float3(1.0, 1.0, 0.0);
-    float3 d = float3(1.0, 0.0, 0.0);
-    if (t < 0.33)
-        return mix(a, b, t / 0.33);
-    if (t < 0.66)
-        return mix(b, c, (t - 0.33) / 0.33);
-    return mix(c, d, (t - 0.66) / 0.34);
-}
-
-inline float2 display_to_source_uv(float2 uv, int orientation)
-{
-    switch (orientation) {
-    case 2: return float2(1.0 - uv.x, uv.y);
-    case 3: return float2(1.0 - uv.x, 1.0 - uv.y);
-    case 4: return float2(uv.x, 1.0 - uv.y);
-    case 5: return float2(uv.y, uv.x);
-    case 6: return float2(uv.y, 1.0 - uv.x);
-    case 7: return float2(1.0 - uv.y, 1.0 - uv.x);
-    case 8: return float2(1.0 - uv.y, uv.x);
-    default: return uv;
-    }
-}
-)metal";
 }
 
 }  // namespace Imiv

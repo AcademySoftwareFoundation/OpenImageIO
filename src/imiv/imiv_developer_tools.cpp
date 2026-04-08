@@ -5,10 +5,10 @@
 #include "imiv_developer_tools.h"
 
 #include "imiv_file_actions.h"
+#include "imiv_image_list_ui.h"
 #include "imiv_ocio.h"
 #include "imiv_parse.h"
 #include "imiv_workspace.h"
-#include "imiv_workspace_ui.h"
 
 #include <cstdio>
 #include <fstream>

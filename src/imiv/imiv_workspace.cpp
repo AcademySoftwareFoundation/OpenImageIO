@@ -10,23 +10,20 @@
 
 namespace Imiv {
 
-namespace {
-
-    ImageViewWindow& append_workspace_view(MultiViewWorkspace& workspace)
-    {
-        std::unique_ptr<ImageViewWindow> view(new ImageViewWindow());
-        view->id = workspace.next_view_id++;
-        workspace.view_windows.push_back(std::move(view));
-        return *workspace.view_windows.back();
-    }
-
-}  // namespace
+ImageViewWindow&
+append_image_view(MultiViewWorkspace& workspace)
+{
+    std::unique_ptr<ImageViewWindow> view(new ImageViewWindow());
+    view->id = workspace.next_view_id++;
+    workspace.view_windows.push_back(std::move(view));
+    return *workspace.view_windows.back();
+}
 
 ImageViewWindow&
 ensure_primary_image_view(MultiViewWorkspace& workspace)
 {
     if (workspace.view_windows.empty()) {
-        ImageViewWindow& primary = append_workspace_view(workspace);
+        ImageViewWindow& primary = append_image_view(workspace);
         workspace.active_view_id = primary.id;
     }
     return *workspace.view_windows.front();
@@ -86,16 +83,6 @@ active_image_view(const MultiViewWorkspace& workspace)
                ? nullptr
                : workspace.view_windows.front().get();
 }
-
-
-
-ImageViewWindow&
-append_image_view(MultiViewWorkspace& workspace)
-{
-    return append_workspace_view(workspace);
-}
-
-
 
 void
 sync_workspace_library_state(MultiViewWorkspace& workspace,
