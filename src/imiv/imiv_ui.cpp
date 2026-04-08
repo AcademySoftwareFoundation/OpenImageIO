@@ -10,6 +10,7 @@
 #include <cstring>
 
 #include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 #include <OpenImageIO/half.h>
 
@@ -87,14 +88,7 @@ draw_padded_message(const char* message, float x_pad, float y_pad)
 bool
 input_text_string(const char* label, std::string& value)
 {
-    char buffer[4096];
-    const size_t copy_size = std::min(value.size(), sizeof(buffer) - 1u);
-    std::memcpy(buffer, value.data(), copy_size);
-    buffer[copy_size]  = '\0';
-    const bool changed = ImGui::InputText(label, buffer, sizeof(buffer));
-    if (changed)
-        value.assign(buffer);
-    return changed;
+    return ImGui::InputText(label, &value);
 }
 
 void

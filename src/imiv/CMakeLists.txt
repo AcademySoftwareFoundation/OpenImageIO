@@ -633,6 +633,7 @@ set (_imiv_imgui_sources
      "${OIIO_IMIV_IMGUI_ROOT}/imgui_draw.cpp"
      "${OIIO_IMIV_IMGUI_ROOT}/imgui_tables.cpp"
      "${OIIO_IMIV_IMGUI_ROOT}/imgui_widgets.cpp"
+     "${OIIO_IMIV_IMGUI_ROOT}/misc/cpp/imgui_stdlib.cpp"
      "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_glfw.cpp"
      ${_imiv_imgui_renderer_sources})
 
