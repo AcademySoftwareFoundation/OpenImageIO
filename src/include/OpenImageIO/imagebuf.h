@@ -1386,13 +1386,22 @@ public:
     /// Z plane stride within the localpixels memory.
     stride_t z_stride() const;
 
-    /// Is this an in-memory buffer with the data layout "contiguous", i.e.,
+    /// Is this an in-memory buffer with the data layout "fully contiguous",
+    /// i.e.,
     /// ```
     ///     pixel_stride == nchannels * pixeltype().size()
     ///     scanline_stride == pixel_stride * spec().width
     ///     z_stride == scanline_stride * spec().height
     /// ```
     bool contiguous() const;
+
+    /// Is this an in-memory buffer with the data layout "contiguous" for
+    /// each scanline (but not considering whether adjacent scanlines or
+    /// image planes are fully contiguous), i.e.,
+    /// ```
+    ///     pixel_stride == nchannels * pixeltype().size()
+    /// ```
+    bool contiguous_scanline() const;
 
     /// Are the pixels backed by an ImageCache, rather than the whole
     /// image being in RAM somewhere?
