@@ -175,30 +175,19 @@ static bool
 mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
          int nthreads)
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
-    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
-        && B.localpixels()) {
-        auto Rv             = HwyPixels(R);
-        auto Av             = HwyPixels(A);
-        auto Bv             = HwyPixels(B);
-        const int nchannels = RoiNChannels(roi);
-        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
-                            && ChannelsContiguous<Atype>(Av, nchannels)
-                            && ChannelsContiguous<Btype>(Bv, nchannels);
-        if (contig)
-            return mul_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
-
+#if OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi)
+        && HwySupports<Atype>(A, roi) && HwySupports<Btype>(B, roi)) {
+        return mul_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    }
+    // Second case: the buffers are RGBA but we are only multiplying RGB
+    // (preserving alpha).
+    // Is this a case we will actually encounter?
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi, 4)
+        && HwySupports<Atype>(A, roi, 4) && HwySupports<Btype>(B, roi, 4)
+        && (roi.chbegin == 0 && roi.chend == 3)) {
         // Handle the common RGBA + RGB ROI strided case (preserving alpha).
-        if (roi.chbegin == 0 && roi.chend == 3) {
-            const bool contig4 = (Rv.nchannels >= 4 && Av.nchannels >= 4
-                                  && Bv.nchannels >= 4)
-                                 && ChannelsContiguous<Rtype>(Rv, 4)
-                                 && ChannelsContiguous<Atype>(Av, 4)
-                                 && ChannelsContiguous<Btype>(Bv, 4);
-            if (contig4)
-                return mul_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi,
-                                                         nthreads);
-        }
+        return mul_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
     }
 #endif
     return mul_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
@@ -343,30 +332,17 @@ static bool
 div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
          int nthreads)
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
-    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
-        && B.localpixels()) {
-        auto Rv             = HwyPixels(R);
-        auto Av             = HwyPixels(A);
-        auto Bv             = HwyPixels(B);
-        const int nchannels = RoiNChannels(roi);
-        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
-                            && ChannelsContiguous<Atype>(Av, nchannels)
-                            && ChannelsContiguous<Btype>(Bv, nchannels);
-        if (contig)
-            return div_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
-
+#if OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi)
+        && HwySupports<Atype>(A, roi) && HwySupports<Btype>(B, roi)) {
+        return div_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    }
+    // Handle the common RGBA + RGB ROI strided case (preserving alpha).
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi, 4)
+        && HwySupports<Atype>(A, roi, 4) && HwySupports<Btype>(B, roi, 4)
+        && (roi.chbegin == 0 && roi.chend == 3)) {
         // Handle the common RGBA + RGB ROI strided case (preserving alpha).
-        if (roi.chbegin == 0 && roi.chend == 3) {
-            const bool contig4 = (Rv.nchannels >= 4 && Av.nchannels >= 4
-                                  && Bv.nchannels >= 4)
-                                 && ChannelsContiguous<Rtype>(Rv, 4)
-                                 && ChannelsContiguous<Atype>(Av, 4)
-                                 && ChannelsContiguous<Btype>(Bv, 4);
-            if (contig4)
-                return div_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi,
-                                                         nthreads);
-        }
+        return div_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
     }
 #endif
     return div_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
