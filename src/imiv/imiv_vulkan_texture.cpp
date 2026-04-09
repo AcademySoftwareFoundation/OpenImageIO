@@ -620,53 +620,30 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
                            texture.preview_framebuffer,
                            "imiv.viewer.preview_framebuffer");
 
-        VkBufferCreateInfo buffer_ci = {};
-        buffer_ci.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        buffer_ci.size               = upload_size_aligned;
-        buffer_ci.usage              = VK_BUFFER_USAGE_TRANSFER_DST_BIT
-                          | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-        buffer_ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        err = vkCreateBuffer(vk_state.device, &buffer_ci, vk_state.allocator,
-                             &source_buffer);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateBuffer failed for source buffer";
-            break;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_BUFFER, source_buffer,
-                           "imiv.viewer.upload.source_buffer");
-
-        if (!allocate_and_bind_buffer_memory(
-                vk_state, source_buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                true, source_memory,
+        if (!create_buffer_with_memory_resource(
+                vk_state, upload_size_aligned,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                    | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, true, source_buffer,
+                source_memory, "vkCreateBuffer failed for source buffer",
                 "no compatible memory type for source buffer",
                 "vkAllocateMemory failed for source buffer",
                 "vkBindBufferMemory failed for source buffer",
+                "imiv.viewer.upload.source_buffer",
                 "imiv.viewer.upload.source_memory", error_message)) {
             break;
         }
 
-        VkBufferCreateInfo staging_ci = {};
-        staging_ci.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        staging_ci.size               = upload_size_aligned;
-        staging_ci.usage              = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-        staging_ci.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;
-        err = vkCreateBuffer(vk_state.device, &staging_ci, vk_state.allocator,
-                             &staging_buffer);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateBuffer failed for staging buffer";
-            break;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_BUFFER, staging_buffer,
-                           "imiv.viewer.upload.staging_buffer");
-
-        if (!allocate_and_bind_buffer_memory(
-                vk_state, staging_buffer,
+        if (!create_buffer_with_memory_resource(
+                vk_state, upload_size_aligned, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                     | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                false, staging_memory,
+                false, staging_buffer, staging_memory,
+                "vkCreateBuffer failed for staging buffer",
                 "no host-visible memory type for staging buffer",
                 "vkAllocateMemory failed for staging buffer",
                 "vkBindBufferMemory failed for staging buffer",
+                "imiv.viewer.upload.staging_buffer",
                 "imiv.viewer.upload.staging_memory", error_message)) {
             break;
         }
@@ -779,10 +756,11 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
                 "imiv.viewer.nearest_mag_sampler", error_message)) {
             break;
         }
-        if (!create_sampler_resource(
-                vk_state, pixelview_sampler_ci, texture.pixelview_sampler,
-                "vkCreateSampler failed for pixel closeup",
-                "imiv.viewer.pixelview_sampler", error_message)) {
+        if (!create_sampler_resource(vk_state, pixelview_sampler_ci,
+                                     texture.pixelview_sampler,
+                                     "vkCreateSampler failed for pixel closeup",
+                                     "imiv.viewer.pixelview_sampler",
+                                     error_message)) {
             break;
         }
 
@@ -821,20 +799,9 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         source_to_compute.offset              = 0;
         source_to_compute.size                = upload_size_aligned;
 
-        VkImageMemoryBarrier image_to_general = {};
-        image_to_general.sType     = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        image_to_general.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        image_to_general.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-        image_to_general.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        image_to_general.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        image_to_general.image               = texture.source_image;
-        image_to_general.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        image_to_general.subresourceRange.baseMipLevel   = 0;
-        image_to_general.subresourceRange.levelCount     = 1;
-        image_to_general.subresourceRange.baseArrayLayer = 0;
-        image_to_general.subresourceRange.layerCount     = 1;
-        image_to_general.srcAccessMask                   = 0;
-        image_to_general.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        VkImageMemoryBarrier image_to_general = make_color_image_memory_barrier(
+            texture.source_image, VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_GENERAL, 0, VK_ACCESS_SHADER_WRITE_BIT);
 
         vkCmdPipelineBarrier(upload_command, VK_PIPELINE_STAGE_TRANSFER_BIT,
                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
@@ -879,20 +846,10 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
             vkCmdDispatch(upload_command, group_x, group_y, 1);
         }
 
-        VkImageMemoryBarrier to_shader = {};
-        to_shader.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        to_shader.oldLayout            = VK_IMAGE_LAYOUT_GENERAL;
-        to_shader.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        to_shader.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-        to_shader.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-        to_shader.image                           = texture.source_image;
-        to_shader.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-        to_shader.subresourceRange.baseMipLevel   = 0;
-        to_shader.subresourceRange.levelCount     = 1;
-        to_shader.subresourceRange.baseArrayLayer = 0;
-        to_shader.subresourceRange.layerCount     = 1;
-        to_shader.srcAccessMask                   = VK_ACCESS_SHADER_WRITE_BIT;
-        to_shader.dstAccessMask                   = VK_ACCESS_SHADER_READ_BIT;
+        VkImageMemoryBarrier to_shader = make_color_image_memory_barrier(
+            texture.source_image, VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
         vkCmdPipelineBarrier(upload_command,
                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                              VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,

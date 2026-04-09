@@ -85,19 +85,19 @@ namespace {
                              const OcioTextureBlueprint& blueprint,
                              VkSampler& sampler, std::string& error_message)
     {
-        const VkFilter filter
-            = blueprint.interpolation == OcioInterpolation::Nearest
-                  ? VK_FILTER_NEAREST
-                  : VK_FILTER_LINEAR;
+        const VkFilter filter = blueprint.interpolation
+                                        == OcioInterpolation::Nearest
+                                    ? VK_FILTER_NEAREST
+                                    : VK_FILTER_LINEAR;
         const VkSamplerCreateInfo create_info = make_clamped_sampler_create_info(
             filter, filter,
             filter == VK_FILTER_NEAREST ? VK_SAMPLER_MIPMAP_MODE_NEAREST
                                         : VK_SAMPLER_MIPMAP_MODE_LINEAR,
             0.0f, 0.0f);
-        return create_sampler_resource(
-            vk_state, create_info, sampler,
-            "vkCreateSampler failed for OCIO texture",
-            "imiv.ocio.texture.sampler", error_message);
+        return create_sampler_resource(vk_state, create_info, sampler,
+                                       "vkCreateSampler failed for OCIO texture",
+                                       "imiv.ocio.texture.sampler",
+                                       error_message);
     }
 
     void build_ocio_upload_data(const OcioTextureBlueprint& blueprint,
@@ -188,30 +188,16 @@ namespace {
 
         VkBuffer staging_buffer       = VK_NULL_HANDLE;
         VkDeviceMemory staging_memory = VK_NULL_HANDLE;
-        VkBufferCreateInfo buffer_ci  = {};
-        buffer_ci.sType               = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        buffer_ci.size                = upload_bytes.size();
-        buffer_ci.usage               = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-        buffer_ci.sharingMode         = VK_SHARING_MODE_EXCLUSIVE;
-        const VkResult buffer_err = vkCreateBuffer(vk_state.device, &buffer_ci,
-                                                   vk_state.allocator,
-                                                   &staging_buffer);
-        if (buffer_err != VK_SUCCESS) {
-            error_message = "vkCreateBuffer failed for OCIO staging texture";
-            return false;
-        }
-
-        if (!allocate_and_bind_buffer_memory(
-                vk_state, staging_buffer,
+        if (!create_buffer_with_memory_resource(
+                vk_state, upload_bytes.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                     | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                false, staging_memory,
+                false, staging_buffer, staging_memory,
+                "vkCreateBuffer failed for OCIO staging texture",
                 "failed to find host-visible memory for OCIO texture",
                 "vkAllocateMemory failed for OCIO staging texture",
                 "vkBindBufferMemory failed for OCIO staging texture", nullptr,
-                error_message)) {
-            vkDestroyBuffer(vk_state.device, staging_buffer,
-                            vk_state.allocator);
+                nullptr, error_message)) {
             return false;
         }
 
@@ -237,20 +223,11 @@ namespace {
             return false;
         }
 
-        VkImageMemoryBarrier to_transfer = {};
-        to_transfer.sType     = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        to_transfer.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        to_transfer.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        to_transfer.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-        to_transfer.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-        to_transfer.image                           = texture.image;
-        to_transfer.subresourceRange.aspectMask     = aspect;
-        to_transfer.subresourceRange.baseMipLevel   = 0;
-        to_transfer.subresourceRange.levelCount     = 1;
-        to_transfer.subresourceRange.baseArrayLayer = 0;
-        to_transfer.subresourceRange.layerCount     = 1;
-        to_transfer.srcAccessMask                   = 0;
-        to_transfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        VkImageMemoryBarrier to_transfer = make_color_image_memory_barrier(
+            texture.image, VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
+            VK_ACCESS_TRANSFER_WRITE_BIT);
+        to_transfer.subresourceRange.aspectMask = aspect;
         vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                              VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
                              nullptr, 1, &to_transfer);
@@ -267,20 +244,11 @@ namespace {
                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                                &region);
 
-        VkImageMemoryBarrier to_sampled = {};
-        to_sampled.sType     = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        to_sampled.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        to_sampled.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        to_sampled.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-        to_sampled.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-        to_sampled.image                           = texture.image;
-        to_sampled.subresourceRange.aspectMask     = aspect;
-        to_sampled.subresourceRange.baseMipLevel   = 0;
-        to_sampled.subresourceRange.levelCount     = 1;
-        to_sampled.subresourceRange.baseArrayLayer = 0;
-        to_sampled.subresourceRange.layerCount     = 1;
-        to_sampled.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        to_sampled.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        VkImageMemoryBarrier to_sampled = make_color_image_memory_barrier(
+            texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+        to_sampled.subresourceRange.aspectMask = aspect;
         vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                              VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
                              nullptr, 0, nullptr, 1, &to_sampled);
@@ -324,28 +292,17 @@ namespace {
         if (size == 0)
             return true;
 
-        VkBufferCreateInfo buffer_ci = {};
-        buffer_ci.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        buffer_ci.size               = size;
-        buffer_ci.usage              = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-        buffer_ci.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;
-        const VkResult buffer_err
-            = vkCreateBuffer(vk_state.device, &buffer_ci, vk_state.allocator,
-                             &vk_state.ocio.uniform_buffer);
-        if (buffer_err != VK_SUCCESS) {
-            error_message = "vkCreateBuffer failed for OCIO uniform buffer";
-            return false;
-        }
-
-        if (!allocate_and_bind_buffer_memory(
-                vk_state, vk_state.ocio.uniform_buffer,
+        if (!create_buffer_with_memory_resource(
+                vk_state, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                     | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                false, vk_state.ocio.uniform_memory,
+                false, vk_state.ocio.uniform_buffer,
+                vk_state.ocio.uniform_memory,
+                "vkCreateBuffer failed for OCIO uniform buffer",
                 "failed to find memory type for OCIO uniform buffer",
                 "vkAllocateMemory failed for OCIO uniform buffer",
                 "vkBindBufferMemory failed for OCIO uniform buffer", nullptr,
-                error_message)) {
+                nullptr, error_message)) {
             return false;
         }
         if (!map_memory_resource(vk_state, vk_state.ocio.uniform_memory, size,

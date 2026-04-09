@@ -27,14 +27,27 @@ allocate_and_bind_buffer_memory(
     const char* allocate_error, const char* bind_error,
     const char* debug_memory_name, std::string& error_message);
 bool
+create_buffer_resource(VulkanState& vk_state, VkDeviceSize size,
+                       VkBufferUsageFlags usage, VkBuffer& buffer,
+                       const char* create_error, const char* debug_name,
+                       std::string& error_message);
+bool
+create_buffer_with_memory_resource(
+    VulkanState& vk_state, VkDeviceSize size, VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags preferred_properties, bool allow_property_fallback,
+    VkBuffer& buffer, VkDeviceMemory& memory, const char* create_error,
+    const char* no_memory_type_error, const char* allocate_error,
+    const char* bind_error, const char* debug_buffer_name,
+    const char* debug_memory_name, std::string& error_message);
+bool
 create_image_view_resource(VulkanState& vk_state,
                            const VkImageViewCreateInfo& create_info,
                            VkImageView& image_view, const char* create_error,
                            const char* debug_name, std::string& error_message);
 VkSamplerCreateInfo
 make_clamped_sampler_create_info(VkFilter min_filter, VkFilter mag_filter,
-                                 VkSamplerMipmapMode mipmap_mode,
-                                 float min_lod, float max_lod);
+                                 VkSamplerMipmapMode mipmap_mode, float min_lod,
+                                 float max_lod);
 bool
 create_sampler_resource(VulkanState& vk_state,
                         const VkSamplerCreateInfo& create_info,
@@ -78,6 +91,11 @@ VkWriteDescriptorSet
 make_image_descriptor_write(VkDescriptorSet descriptor_set, uint32_t binding,
                             VkDescriptorType descriptor_type,
                             const VkDescriptorImageInfo* image_info);
+VkImageMemoryBarrier
+make_color_image_memory_barrier(VkImage image, VkImageLayout old_layout,
+                                VkImageLayout new_layout,
+                                VkAccessFlags src_access_mask,
+                                VkAccessFlags dst_access_mask);
 bool
 nonblocking_fence_status(VkDevice device, VkFence fence, const char* context,
                          bool& out_signaled, std::string& error_message);

@@ -199,24 +199,13 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
         return false;
     }
 
-    VkImageMemoryBarrier to_color_attachment = {};
-    to_color_attachment.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    to_color_attachment.oldLayout
-        = texture.preview_initialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                                      : VK_IMAGE_LAYOUT_UNDEFINED;
-    to_color_attachment.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    to_color_attachment.srcQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
-    to_color_attachment.dstQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
-    to_color_attachment.image                       = texture.image;
-    to_color_attachment.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    to_color_attachment.subresourceRange.baseMipLevel   = 0;
-    to_color_attachment.subresourceRange.levelCount     = 1;
-    to_color_attachment.subresourceRange.baseArrayLayer = 0;
-    to_color_attachment.subresourceRange.layerCount     = 1;
-    to_color_attachment.srcAccessMask = texture.preview_initialized
-                                            ? VK_ACCESS_SHADER_READ_BIT
-                                            : 0;
-    to_color_attachment.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    VkImageMemoryBarrier to_color_attachment = make_color_image_memory_barrier(
+        texture.image,
+        texture.preview_initialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                                    : VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        texture.preview_initialized ? VK_ACCESS_SHADER_READ_BIT : 0,
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
     vkCmdPipelineBarrier(command_buffer,
                          texture.preview_initialized
                              ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
@@ -287,20 +276,10 @@ update_preview_texture(VulkanState& vk_state, VulkanTexture& texture,
     vkCmdDraw(command_buffer, 3, 1, 0, 0);
     vkCmdEndRenderPass(command_buffer);
 
-    VkImageMemoryBarrier to_shader_read = {};
-    to_shader_read.sType     = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    to_shader_read.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    to_shader_read.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    to_shader_read.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-    to_shader_read.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-    to_shader_read.image                           = texture.image;
-    to_shader_read.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-    to_shader_read.subresourceRange.baseMipLevel   = 0;
-    to_shader_read.subresourceRange.levelCount     = 1;
-    to_shader_read.subresourceRange.baseArrayLayer = 0;
-    to_shader_read.subresourceRange.layerCount     = 1;
-    to_shader_read.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    to_shader_read.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    VkImageMemoryBarrier to_shader_read = make_color_image_memory_barrier(
+        texture.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
     vkCmdPipelineBarrier(command_buffer,
                          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr,

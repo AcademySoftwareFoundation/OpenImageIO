@@ -109,6 +109,59 @@ allocate_and_bind_buffer_memory(
 }
 
 bool
+create_buffer_resource(VulkanState& vk_state, VkDeviceSize size,
+                       VkBufferUsageFlags usage, VkBuffer& buffer,
+                       const char* create_error, const char* debug_name,
+                       std::string& error_message)
+{
+    buffer                = VK_NULL_HANDLE;
+    VkBufferCreateInfo ci = {};
+    ci.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    ci.size               = size;
+    ci.usage              = usage;
+    ci.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;
+    const VkResult err    = vkCreateBuffer(vk_state.device, &ci,
+                                           vk_state.allocator, &buffer);
+    if (err != VK_SUCCESS) {
+        error_message = create_error;
+        return false;
+    }
+
+    if (debug_name != nullptr) {
+        set_vk_object_name(vk_state, VK_OBJECT_TYPE_BUFFER, buffer, debug_name);
+    }
+    return true;
+}
+
+bool
+create_buffer_with_memory_resource(
+    VulkanState& vk_state, VkDeviceSize size, VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags preferred_properties, bool allow_property_fallback,
+    VkBuffer& buffer, VkDeviceMemory& memory, const char* create_error,
+    const char* no_memory_type_error, const char* allocate_error,
+    const char* bind_error, const char* debug_buffer_name,
+    const char* debug_memory_name, std::string& error_message)
+{
+    memory = VK_NULL_HANDLE;
+    if (!create_buffer_resource(vk_state, size, usage, buffer, create_error,
+                                debug_buffer_name, error_message)) {
+        return false;
+    }
+
+    if (!allocate_and_bind_buffer_memory(vk_state, buffer, preferred_properties,
+                                         allow_property_fallback, memory,
+                                         no_memory_type_error, allocate_error,
+                                         bind_error, debug_memory_name,
+                                         error_message)) {
+        vkDestroyBuffer(vk_state.device, buffer, vk_state.allocator);
+        buffer = VK_NULL_HANDLE;
+        return false;
+    }
+
+    return true;
+}
+
+bool
 create_image_view_resource(VulkanState& vk_state,
                            const VkImageViewCreateInfo& create_info,
                            VkImageView& image_view, const char* create_error,
@@ -129,8 +182,8 @@ create_image_view_resource(VulkanState& vk_state,
 
 VkSamplerCreateInfo
 make_clamped_sampler_create_info(VkFilter min_filter, VkFilter mag_filter,
-                                 VkSamplerMipmapMode mipmap_mode,
-                                 float min_lod, float max_lod)
+                                 VkSamplerMipmapMode mipmap_mode, float min_lod,
+                                 float max_lod)
 {
     VkSamplerCreateInfo create_info = {};
     create_info.sType               = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -152,9 +205,9 @@ create_sampler_resource(VulkanState& vk_state,
                         VkSampler& sampler, const char* create_error,
                         const char* debug_name, std::string& error_message)
 {
-    sampler             = VK_NULL_HANDLE;
-    const VkResult err  = vkCreateSampler(vk_state.device, &create_info,
-                                          vk_state.allocator, &sampler);
+    sampler            = VK_NULL_HANDLE;
+    const VkResult err = vkCreateSampler(vk_state.device, &create_info,
+                                         vk_state.allocator, &sampler);
     if (err != VK_SUCCESS) {
         error_message = create_error;
         return false;
@@ -264,13 +317,13 @@ create_pipeline_layout_resource(
     const char* create_error, const char* debug_name,
     std::string& error_message)
 {
-    pipeline_layout                    = VK_NULL_HANDLE;
-    VkPipelineLayoutCreateInfo layout  = {};
-    layout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    layout.setLayoutCount              = set_layout_count;
-    layout.pSetLayouts                 = set_layouts;
-    layout.pushConstantRangeCount      = push_constant_range_count;
-    layout.pPushConstantRanges         = push_constant_ranges;
+    pipeline_layout                   = VK_NULL_HANDLE;
+    VkPipelineLayoutCreateInfo layout = {};
+    layout.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layout.setLayoutCount = set_layout_count;
+    layout.pSetLayouts    = set_layouts;
+    layout.pushConstantRangeCount = push_constant_range_count;
+    layout.pPushConstantRanges    = push_constant_ranges;
     const VkResult err = vkCreatePipelineLayout(vk_state.device, &layout,
                                                 vk_state.allocator,
                                                 &pipeline_layout);
@@ -314,6 +367,29 @@ make_image_descriptor_write(VkDescriptorSet descriptor_set, uint32_t binding,
     write.descriptorType       = descriptor_type;
     write.pImageInfo           = image_info;
     return write;
+}
+
+VkImageMemoryBarrier
+make_color_image_memory_barrier(VkImage image, VkImageLayout old_layout,
+                                VkImageLayout new_layout,
+                                VkAccessFlags src_access_mask,
+                                VkAccessFlags dst_access_mask)
+{
+    VkImageMemoryBarrier barrier = {};
+    barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout            = old_layout;
+    barrier.newLayout            = new_layout;
+    barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image                = image;
+    barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel   = 0;
+    barrier.subresourceRange.levelCount     = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount     = 1;
+    barrier.srcAccessMask                   = src_access_mask;
+    barrier.dstAccessMask                   = dst_access_mask;
+    return barrier;
 }
 
 bool
