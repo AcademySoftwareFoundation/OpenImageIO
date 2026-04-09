@@ -296,6 +296,30 @@ namespace {
         OcioPreviewProgram ocio_preview;
     };
 
+    RendererBackendState*
+    ensure_opengl_backend_state(RendererState& renderer_state,
+                                std::string& error_message)
+    {
+        if (!ensure_default_backend_state<RendererBackendState>(
+                renderer_state)) {
+            error_message = "failed to allocate OpenGL renderer state";
+            return nullptr;
+        }
+        return backend_state<RendererBackendState>(renderer_state);
+    }
+
+    RendererBackendState* opengl_window_state(RendererState& renderer_state,
+                                              std::string& error_message)
+    {
+        RendererBackendState* state = backend_state<RendererBackendState>(
+            renderer_state);
+        if (state == nullptr || state->window == nullptr) {
+            error_message = "OpenGL window is not initialized";
+            return nullptr;
+        }
+        return state;
+    }
+
     bool ensure_basic_preview_program(RendererBackendState& state,
                                       std::string& error_message);
     bool ensure_preview_framebuffer(RendererBackendState& state,
@@ -1409,12 +1433,10 @@ void main()
                                RendererTexture& texture,
                                std::string& error_message)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
-        if (state == nullptr || state->window == nullptr) {
-            error_message = "OpenGL window is not initialized";
+        RendererBackendState* state = opengl_window_state(renderer_state,
+                                                          error_message);
+        if (state == nullptr)
             return false;
-        }
 
         SourceTextureUploadDesc upload;
         if (!describe_native_source_upload(image, upload, error_message))
@@ -1495,12 +1517,11 @@ void main()
                                        const PreviewControls& controls,
                                        std::string& error_message)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        RendererBackendState* state = opengl_window_state(renderer_state,
+                                                          error_message);
         RendererTextureBackendState* texture_state
             = texture_backend_state<RendererTextureBackendState>(texture);
-        if (state == nullptr || state->window == nullptr
-            || texture_state == nullptr) {
+        if (state == nullptr || texture_state == nullptr) {
             error_message = "OpenGL preview state is not initialized";
             return false;
         }
@@ -1567,54 +1588,6 @@ void main()
         return true;
     }
 
-    bool opengl_setup_instance(RendererState& renderer_state,
-                               ImVector<const char*>& instance_extensions,
-                               std::string& error_message)
-    {
-        (void)instance_extensions;
-        if (!ensure_default_backend_state<RendererBackendState>(
-                renderer_state)) {
-            error_message = "failed to allocate OpenGL renderer state";
-            return false;
-        }
-        backend_state<RendererBackendState>(renderer_state)->glsl_version
-            = open_gl_glsl_version();
-        error_message.clear();
-        return true;
-    }
-
-    bool opengl_setup_device(RendererState& renderer_state,
-                             std::string& error_message)
-    {
-        if (backend_state<RendererBackendState>(renderer_state) == nullptr) {
-            error_message = "OpenGL renderer state is not initialized";
-            return false;
-        }
-        error_message.clear();
-        return true;
-    }
-
-    bool opengl_setup_window(RendererState& renderer_state, int width,
-                             int height, std::string& error_message)
-    {
-        renderer_set_framebuffer_size(renderer_state, width, height);
-        error_message.clear();
-        return true;
-    }
-
-    bool opengl_create_surface(RendererState& renderer_state,
-                               GLFWwindow* window, std::string& error_message)
-    {
-        if (!ensure_default_backend_state<RendererBackendState>(
-                renderer_state)) {
-            error_message = "failed to allocate OpenGL renderer state";
-            return false;
-        }
-        backend_state<RendererBackendState>(renderer_state)->window = window;
-        error_message.clear();
-        return true;
-    }
-
     void opengl_cleanup(RendererState& renderer_state)
     {
         RendererBackendState* state = backend_state<RendererBackendState>(
@@ -1637,12 +1610,10 @@ void main()
     bool opengl_imgui_init(RendererState& renderer_state,
                            std::string& error_message)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
-        if (state == nullptr || state->window == nullptr) {
-            error_message = "OpenGL window is not initialized";
+        RendererBackendState* state = opengl_window_state(renderer_state,
+                                                          error_message);
+        if (state == nullptr)
             return false;
-        }
         platform_glfw_make_context_current(state->window);
         if (ImGui_ImplOpenGL3_Init(state->glsl_version)) {
             state->imgui_initialized = true;
@@ -1651,25 +1622,6 @@ void main()
         }
         error_message = "ImGui_ImplOpenGL3_Init failed";
         return false;
-    }
-
-    void opengl_prepare_platform_windows(RendererState& renderer_state)
-    {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
-        if (state == nullptr)
-            return;
-        state->backup_context = platform_glfw_get_current_context();
-    }
-
-    void opengl_finish_platform_windows(RendererState& renderer_state)
-    {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
-        if (state == nullptr || state->backup_context == nullptr)
-            return;
-        platform_glfw_make_context_current(state->backup_context);
-        state->backup_context = nullptr;
     }
 
     void opengl_frame_render(RendererState& renderer_state,
@@ -1693,15 +1645,6 @@ void main()
             renderer_state.clear_color[3]);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(draw_data);
-    }
-
-    void opengl_frame_present(RendererState& renderer_state)
-    {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
-        if (state == nullptr || state->window == nullptr)
-            return;
-        platform_glfw_swap_buffers(state->window);
     }
 
     bool opengl_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
@@ -1868,10 +1811,43 @@ void main()
         opengl_destroy_texture,
         opengl_update_preview_texture,
         renderer_noop_quiesce_texture_preview_submission,
-        opengl_setup_instance,
-        opengl_setup_device,
-        opengl_setup_window,
-        opengl_create_surface,
+        [](RendererState& renderer_state,
+           ImVector<const char*>& instance_extensions,
+           std::string& error_message) {
+            (void)instance_extensions;
+            RendererBackendState* state
+                = ensure_opengl_backend_state(renderer_state, error_message);
+            if (state == nullptr)
+                return false;
+            state->glsl_version = open_gl_glsl_version();
+            error_message.clear();
+            return true;
+        },
+        [](RendererState& renderer_state, std::string& error_message) {
+            if (backend_state<RendererBackendState>(renderer_state)
+                == nullptr) {
+                error_message = "OpenGL renderer state is not initialized";
+                return false;
+            }
+            error_message.clear();
+            return true;
+        },
+        [](RendererState& renderer_state, int width, int height,
+           std::string& error_message) {
+            renderer_set_framebuffer_size(renderer_state, width, height);
+            error_message.clear();
+            return true;
+        },
+        [](RendererState& renderer_state, GLFWwindow* window,
+           std::string& error_message) {
+            RendererBackendState* state
+                = ensure_opengl_backend_state(renderer_state, error_message);
+            if (state == nullptr)
+                return false;
+            state->window = window;
+            error_message.clear();
+            return true;
+        },
         renderer_clear_backend_window<RendererBackendState>,
         renderer_noop_platform_windows,
         opengl_cleanup,
@@ -1882,10 +1858,28 @@ void main()
         renderer_framebuffer_size_changed,
         renderer_set_framebuffer_size,
         renderer_set_clear_color,
-        opengl_prepare_platform_windows,
-        opengl_finish_platform_windows,
+        [](RendererState& renderer_state) {
+            if (RendererBackendState* state
+                = backend_state<RendererBackendState>(renderer_state)) {
+                state->backup_context = platform_glfw_get_current_context();
+            }
+        },
+        [](RendererState& renderer_state) {
+            RendererBackendState* state = backend_state<RendererBackendState>(
+                renderer_state);
+            if (state == nullptr || state->backup_context == nullptr)
+                return;
+            platform_glfw_make_context_current(state->backup_context);
+            state->backup_context = nullptr;
+        },
         opengl_frame_render,
-        opengl_frame_present,
+        [](RendererState& renderer_state) {
+            RendererBackendState* state = backend_state<RendererBackendState>(
+                renderer_state);
+            if (state == nullptr || state->window == nullptr)
+                return;
+            platform_glfw_swap_buffers(state->window);
+        },
         opengl_screen_capture,
     };
 

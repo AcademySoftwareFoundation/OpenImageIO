@@ -36,6 +36,30 @@ namespace {
         return renderer_state.backend != nullptr;
     }
 
+    VulkanState* ensure_vulkan_backend_state(RendererState& renderer_state,
+                                             std::string& error_message)
+    {
+        if (!ensure_backend_state(renderer_state)) {
+            error_message = "failed to allocate Vulkan renderer state";
+            return nullptr;
+        }
+        return backend_state<VulkanState>(renderer_state);
+    }
+
+    VulkanState* vulkan_backend_state(RendererState& renderer_state,
+                                      std::string& error_message)
+    {
+        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
+        if (vk_state == nullptr)
+            error_message = "Vulkan renderer state is unavailable";
+        return vk_state;
+    }
+
+    const VulkanState* vulkan_backend_state(const RendererState& renderer_state)
+    {
+        return backend_state<VulkanState>(renderer_state);
+    }
+
     bool vulkan_get_viewer_texture_refs(const ViewerState& viewer,
                                         const PlaceholderUiState& ui_state,
                                         ImTextureRef& main_texture_ref,
@@ -87,16 +111,14 @@ namespace {
                                RendererTexture& texture,
                                std::string& error_message)
     {
-        if (!ensure_backend_state(renderer_state)) {
-            error_message = "failed to allocate Vulkan renderer state";
+        VulkanState* vk_state = ensure_vulkan_backend_state(renderer_state,
+                                                            error_message);
+        if (vk_state == nullptr)
             return false;
-        }
 
         VulkanTexture vk_texture;
-        if (!create_texture(*backend_state<VulkanState>(renderer_state), image,
-                            vk_texture, error_message)) {
+        if (!create_texture(*vk_state, image, vk_texture, error_message))
             return false;
-        }
 
         texture.backend = reinterpret_cast<RendererTextureBackendState*>(
             new VulkanTexture(std::move(vk_texture)));
@@ -125,11 +147,13 @@ namespace {
                                        const PreviewControls& controls,
                                        std::string& error_message)
     {
-        VulkanState* vk_state     = backend_state<VulkanState>(renderer_state);
+        VulkanState* vk_state     = vulkan_backend_state(renderer_state,
+                                                         error_message);
         VulkanTexture* vk_texture = texture_backend_state<VulkanTexture>(
             texture);
         if (vk_state == nullptr || vk_texture == nullptr) {
-            error_message = "Vulkan renderer state is unavailable";
+            if (vk_texture == nullptr)
+                error_message = "Vulkan renderer state is unavailable";
             return false;
         }
         const bool ok = update_preview_texture(*vk_state, *vk_texture, image,
@@ -158,79 +182,11 @@ namespace {
                                ImVector<const char*>& instance_extensions,
                                std::string& error_message)
     {
-        if (!ensure_backend_state(renderer_state)) {
-            error_message = "failed to allocate Vulkan renderer state";
-            return false;
-        }
-        return setup_vulkan_instance(*backend_state<VulkanState>(renderer_state),
-                                     instance_extensions, error_message);
-    }
-
-    bool vulkan_setup_device(RendererState& renderer_state,
-                             std::string& error_message)
-    {
-        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
-        if (vk_state == nullptr) {
-            error_message = "Vulkan renderer state is unavailable";
-            return false;
-        }
-        return setup_vulkan_device(*vk_state, error_message);
-    }
-
-    bool vulkan_setup_window(RendererState& renderer_state, int width,
-                             int height, std::string& error_message)
-    {
-        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
-        if (vk_state == nullptr) {
-            error_message = "Vulkan renderer state is unavailable";
-            return false;
-        }
-        renderer_state.framebuffer_width  = width;
-        renderer_state.framebuffer_height = height;
-        return setup_vulkan_window(*vk_state, width, height, error_message);
-    }
-
-    bool vulkan_create_surface(RendererState& renderer_state,
-                               GLFWwindow* window, std::string& error_message)
-    {
-        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
-        if (vk_state == nullptr) {
-            error_message = "Vulkan renderer state is unavailable";
-            return false;
-        }
-        const VkResult err = glfwCreateWindowSurface(vk_state->instance, window,
-                                                     vk_state->allocator,
-                                                     &vk_state->surface);
-        if (err == VK_SUCCESS) {
-            error_message.clear();
-            return true;
-        }
-        check_vk_result(err);
-        error_message = "glfwCreateWindowSurface failed";
-        return false;
-    }
-
-    void vulkan_destroy_surface(RendererState& renderer_state)
-    {
-        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
-        if (vk_state != nullptr)
-            destroy_vulkan_surface(*vk_state);
-    }
-
-    void vulkan_cleanup_window(RendererState& renderer_state)
-    {
-        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
-        if (vk_state != nullptr)
-            cleanup_vulkan_window(*vk_state);
-    }
-
-    void vulkan_cleanup(RendererState& renderer_state)
-    {
-        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
-        if (vk_state != nullptr)
-            cleanup_vulkan(*vk_state);
-        delete vk_state;
-        renderer_state.backend = nullptr;
+        VulkanState* vk_state = ensure_vulkan_backend_state(renderer_state,
+                                                            error_message);
+        return vk_state != nullptr
+               && setup_vulkan_instance(*vk_state, instance_extensions,
+                                        error_message);
     }
 
     bool vulkan_wait_idle(RendererState& renderer_state,
@@ -255,11 +211,10 @@ namespace {
     bool vulkan_imgui_init(RendererState& renderer_state,
                            std::string& error_message)
     {
-        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
-        if (vk_state == nullptr) {
-            error_message = "Vulkan renderer state is unavailable";
+        VulkanState* vk_state = vulkan_backend_state(renderer_state,
+                                                     error_message);
+        if (vk_state == nullptr)
             return false;
-        }
 
         ImGui_ImplVulkan_InitInfo init_info = {};
         init_info.ApiVersion                = vk_state->api_version;
@@ -288,8 +243,7 @@ namespace {
     bool vulkan_needs_main_window_resize(RendererState& renderer_state,
                                          int width, int height)
     {
-        const VulkanState* vk_state = backend_state<VulkanState>(
-            renderer_state);
+        const VulkanState* vk_state = vulkan_backend_state(renderer_state);
         if (vk_state == nullptr)
             return false;
         return vk_state->swapchain_rebuild
@@ -303,8 +257,7 @@ namespace {
         VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
         if (vk_state == nullptr)
             return;
-        renderer_state.framebuffer_width  = width;
-        renderer_state.framebuffer_height = height;
+        renderer_set_framebuffer_size(renderer_state, width, height);
         ImGui_ImplVulkan_SetMinImageCount(vk_state->min_image_count);
         ImGui_ImplVulkanH_CreateOrResizeWindow(
             vk_state->instance, vk_state->physical_device, vk_state->device,
@@ -328,21 +281,6 @@ namespace {
         vk_state->window_data.ClearValue.color.float32[3] = a;
     }
 
-    void vulkan_frame_render(RendererState& renderer_state,
-                             ImDrawData* draw_data)
-    {
-        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
-        if (vk_state != nullptr)
-            frame_render(*vk_state, draw_data);
-    }
-
-    void vulkan_frame_present(RendererState& renderer_state)
-    {
-        VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
-        if (vk_state != nullptr)
-            frame_present(*vk_state);
-    }
-
     const RendererBackendVTable k_vulkan_vtable = {
         BackendKind::Vulkan,
         platform_glfw_supports_vulkan,
@@ -353,12 +291,58 @@ namespace {
         vulkan_update_preview_texture,
         vulkan_quiesce_texture_preview_submission,
         vulkan_setup_instance,
-        vulkan_setup_device,
-        vulkan_setup_window,
-        vulkan_create_surface,
-        vulkan_destroy_surface,
-        vulkan_cleanup_window,
-        vulkan_cleanup,
+        [](RendererState& renderer_state, std::string& error_message) {
+            VulkanState* vk_state = vulkan_backend_state(renderer_state,
+                                                         error_message);
+            return vk_state != nullptr
+                   && setup_vulkan_device(*vk_state, error_message);
+        },
+        [](RendererState& renderer_state, int width, int height,
+           std::string& error_message) {
+            VulkanState* vk_state = vulkan_backend_state(renderer_state,
+                                                         error_message);
+            if (vk_state == nullptr)
+                return false;
+            renderer_set_framebuffer_size(renderer_state, width, height);
+            return setup_vulkan_window(*vk_state, width, height, error_message);
+        },
+        [](RendererState& renderer_state, GLFWwindow* window,
+           std::string& error_message) {
+            VulkanState* vk_state = vulkan_backend_state(renderer_state,
+                                                         error_message);
+            if (vk_state == nullptr)
+                return false;
+            const VkResult err = glfwCreateWindowSurface(vk_state->instance,
+                                                         window,
+                                                         vk_state->allocator,
+                                                         &vk_state->surface);
+            if (err == VK_SUCCESS) {
+                error_message.clear();
+                return true;
+            }
+            check_vk_result(err);
+            error_message = "glfwCreateWindowSurface failed";
+            return false;
+        },
+        [](RendererState& renderer_state) {
+            if (VulkanState* vk_state = backend_state<VulkanState>(
+                    renderer_state)) {
+                destroy_vulkan_surface(*vk_state);
+            }
+        },
+        [](RendererState& renderer_state) {
+            if (VulkanState* vk_state = backend_state<VulkanState>(
+                    renderer_state)) {
+                cleanup_vulkan_window(*vk_state);
+            }
+        },
+        [](RendererState& renderer_state) {
+            VulkanState* vk_state = backend_state<VulkanState>(renderer_state);
+            if (vk_state != nullptr)
+                cleanup_vulkan(*vk_state);
+            delete vk_state;
+            renderer_state.backend = nullptr;
+        },
         vulkan_wait_idle,
         vulkan_imgui_init,
         ImGui_ImplVulkan_Shutdown,
@@ -368,8 +352,18 @@ namespace {
         vulkan_set_main_clear_color,
         renderer_noop_platform_windows,
         renderer_noop_platform_windows,
-        vulkan_frame_render,
-        vulkan_frame_present,
+        [](RendererState& renderer_state, ImDrawData* draw_data) {
+            if (VulkanState* vk_state = backend_state<VulkanState>(
+                    renderer_state)) {
+                frame_render(*vk_state, draw_data);
+            }
+        },
+        [](RendererState& renderer_state) {
+            if (VulkanState* vk_state = backend_state<VulkanState>(
+                    renderer_state)) {
+                frame_present(*vk_state);
+            }
+        },
         imiv_vulkan_screen_capture,
     };
 
