@@ -2036,8 +2036,6 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         return true;
     }
 
-    void metal_imgui_shutdown() { ImGui_ImplMetal_Shutdown(); }
-
     void metal_imgui_new_frame(RendererState& renderer_state)
     {
         RendererBackendState* state = backend_state<RendererBackendState>(
@@ -2279,7 +2277,7 @@ const RendererBackendVTable k_metal_vtable = {
     metal_cleanup,
     metal_wait_idle,
     metal_imgui_init,
-    metal_imgui_shutdown,
+    ImGui_ImplMetal_Shutdown,
     metal_imgui_new_frame,
     renderer_framebuffer_size_changed,
     metal_resize_main_window,

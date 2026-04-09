@@ -131,10 +131,27 @@ renderer_noop_quiesce_texture_preview_submission(RendererState& renderer_state,
     return true;
 }
 
+inline bool
+renderer_noop_wait_idle(RendererState& renderer_state,
+                        std::string& error_message)
+{
+    (void)renderer_state;
+    error_message.clear();
+    return true;
+}
+
 inline void
 renderer_noop_platform_windows(RendererState& renderer_state)
 {
     (void)renderer_state;
+}
+
+template<void (*Fn)()>
+inline void
+renderer_call_backend_new_frame(RendererState& renderer_state)
+{
+    (void)renderer_state;
+    Fn();
 }
 
 void

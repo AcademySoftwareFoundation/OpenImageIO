@@ -1634,14 +1634,6 @@ void main()
         renderer_state.backend = nullptr;
     }
 
-    bool opengl_wait_idle(RendererState& renderer_state,
-                          std::string& error_message)
-    {
-        (void)renderer_state;
-        error_message.clear();
-        return true;
-    }
-
     bool opengl_imgui_init(RendererState& renderer_state,
                            std::string& error_message)
     {
@@ -1659,14 +1651,6 @@ void main()
         }
         error_message = "ImGui_ImplOpenGL3_Init failed";
         return false;
-    }
-
-    void opengl_imgui_shutdown() { ImGui_ImplOpenGL3_Shutdown(); }
-
-    void opengl_imgui_new_frame(RendererState& renderer_state)
-    {
-        (void)renderer_state;
-        ImGui_ImplOpenGL3_NewFrame();
     }
 
     void opengl_prepare_platform_windows(RendererState& renderer_state)
@@ -1891,10 +1875,10 @@ void main()
         renderer_clear_backend_window<RendererBackendState>,
         renderer_noop_platform_windows,
         opengl_cleanup,
-        opengl_wait_idle,
+        renderer_noop_wait_idle,
         opengl_imgui_init,
-        opengl_imgui_shutdown,
-        opengl_imgui_new_frame,
+        ImGui_ImplOpenGL3_Shutdown,
+        renderer_call_backend_new_frame<ImGui_ImplOpenGL3_NewFrame>,
         renderer_framebuffer_size_changed,
         renderer_set_framebuffer_size,
         renderer_set_clear_color,

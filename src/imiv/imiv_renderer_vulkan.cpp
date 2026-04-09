@@ -285,14 +285,6 @@ namespace {
         return false;
     }
 
-    void vulkan_imgui_shutdown() { ImGui_ImplVulkan_Shutdown(); }
-
-    void vulkan_imgui_new_frame(RendererState& renderer_state)
-    {
-        (void)renderer_state;
-        ImGui_ImplVulkan_NewFrame();
-    }
-
     bool vulkan_needs_main_window_resize(RendererState& renderer_state,
                                          int width, int height)
     {
@@ -351,21 +343,9 @@ namespace {
             frame_present(*vk_state);
     }
 
-    bool vulkan_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
-                               unsigned int* pixels, void* user_data)
-    {
-        return imiv_vulkan_screen_capture(viewport_id, x, y, w, h, pixels,
-                                          user_data);
-    }
-
-    bool vulkan_probe_runtime_support(std::string& error_message)
-    {
-        return platform_glfw_supports_vulkan(error_message);
-    }
-
     const RendererBackendVTable k_vulkan_vtable = {
         BackendKind::Vulkan,
-        vulkan_probe_runtime_support,
+        platform_glfw_supports_vulkan,
         vulkan_get_viewer_texture_refs,
         vulkan_texture_is_loading,
         vulkan_create_texture,
@@ -381,8 +361,8 @@ namespace {
         vulkan_cleanup,
         vulkan_wait_idle,
         vulkan_imgui_init,
-        vulkan_imgui_shutdown,
-        vulkan_imgui_new_frame,
+        ImGui_ImplVulkan_Shutdown,
+        renderer_call_backend_new_frame<ImGui_ImplVulkan_NewFrame>,
         vulkan_needs_main_window_resize,
         vulkan_resize_main_window,
         vulkan_set_main_clear_color,
@@ -390,7 +370,7 @@ namespace {
         renderer_noop_platform_windows,
         vulkan_frame_render,
         vulkan_frame_present,
-        vulkan_screen_capture,
+        imiv_vulkan_screen_capture,
     };
 
 }  // namespace
