@@ -114,70 +114,6 @@ def _generate_subimage_fixture(oiiotool: Path, out_path: Path) -> None:
     _run_checked(cmd, cwd=out_path.parent)
 
 
-def _run_case(
-    repo_root: Path,
-    runner: Path,
-    exe: Path,
-    cwd: Path,
-    backend: str,
-    image_path: Path,
-    out_dir: Path,
-    name: str,
-    extra_args: list[str],
-    env: dict[str, str],
-    trace: bool,
-) -> dict:
-    state_path = out_dir / f"{name}.json"
-    log_path = out_dir / f"{name}.log"
-    config_home = out_dir / f"cfg_{name}"
-    shutil.rmtree(config_home, ignore_errors=True)
-    cmd = [
-        sys.executable,
-        str(runner),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(cwd),
-    ]
-    if backend:
-        cmd.extend(["--backend", backend])
-    cmd.extend(
-        [
-            "--open",
-            str(image_path),
-            "--state-json-out",
-            str(state_path),
-        ]
-    )
-    if trace:
-        cmd.append("--trace")
-    cmd.extend(extra_args)
-
-    case_env = dict(env)
-    case_env["IMIV_CONFIG_HOME"] = str(config_home)
-
-    with log_path.open("w", encoding="utf-8") as log_handle:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(repo_root),
-            env=case_env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=90,
-        )
-    if proc.returncode != 0:
-        raise RuntimeError(f"{name}: runner exited with code {proc.returncode}")
-    if not state_path.exists():
-        raise RuntimeError(f"{name}: state file not written")
-
-    with state_path.open("r", encoding="utf-8") as handle:
-        state = json.load(handle)
-    state["_state_path"] = str(state_path)
-    state["_log_path"] = str(log_path)
-    return state
-
-
 def _path_for_imiv_output(path: Path, run_cwd: Path) -> str:
     try:
         return os.path.relpath(path, run_cwd)
@@ -188,6 +124,11 @@ def _path_for_imiv_output(path: Path, run_cwd: Path) -> str:
 def _write_scenario(path: Path, runtime_dir_rel: str) -> None:
     root = ET.Element("imiv-scenario")
     root.set("out_dir", runtime_dir_rel)
+
+    step = ET.SubElement(root, "step")
+    step.set("name", "baseline")
+    step.set("state", "true")
+    step.set("delay_frames", "3")
 
     step = ET.SubElement(root, "step")
     step.set("name", "enable_auto")
@@ -259,7 +200,7 @@ def _run_scenario(
         raise RuntimeError(f"scenario: runner exited with code {proc.returncode}")
 
     result: dict[str, dict] = {}
-    for step_name in ("enable_auto", "zoom_out"):
+    for step_name in ("baseline", "enable_auto", "zoom_out"):
         state_path = runtime_dir / f"{step_name}.state.json"
         if not state_path.exists():
             raise RuntimeError(f"scenario: missing state output for {step_name}")
@@ -339,19 +280,6 @@ def main() -> int:
     env = _load_env_from_script(Path(args.env_script).expanduser())
 
     try:
-        baseline = _run_case(
-            repo_root,
-            runner,
-            exe,
-            cwd,
-            args.backend,
-            image_path,
-            out_dir,
-            "baseline",
-            [],
-            env,
-            args.trace,
-        )
         scenario_path = out_dir / "auto_subimage.scenario.xml"
         runtime_dir = out_dir / "runtime"
         _write_scenario(scenario_path, _path_for_imiv_output(runtime_dir, cwd))
@@ -367,6 +295,7 @@ def main() -> int:
             env,
             args.trace,
         )
+        baseline = scenario_states["baseline"]
         enabled = scenario_states["enable_auto"]
         auto_zoom = scenario_states["zoom_out"]
     except (RuntimeError, subprocess.SubprocessError) as exc:
