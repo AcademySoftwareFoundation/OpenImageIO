@@ -92,7 +92,7 @@ renderer assets. It does **not** eliminate all runtime shader work:
 The runtime backend metadata layer lives in:
 
 - [imiv_backend.h](/mnt/f/gh/openimageio/src/imiv/imiv_backend.h)
-- [imiv_backend.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_backend.cpp)
+- [imiv_renderer.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer.cpp)
 
 Core types:
 
@@ -173,7 +173,7 @@ Persistence:
 
 ## Platform Policy
 
-Current runtime default resolution in [imiv_backend.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_backend.cpp):
+Current runtime default resolution in [imiv_renderer.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer.cpp):
 
 ### Windows
 

@@ -3,7 +3,6 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 set (_imiv_shared_sources
-     imiv_backend.cpp
      imiv_actions.cpp
      imiv_action_dispatch.cpp
      imiv_app.cpp
@@ -12,8 +11,6 @@ set (_imiv_shared_sources
      imiv_file_actions.cpp
      imiv_file_dialog.cpp
      imiv_frame.cpp
-     imiv_image_list_ui.cpp
-     imiv_image_save.cpp
      imiv_image_library.cpp
      imiv_image_view.cpp
      imiv_loaded_image.cpp
@@ -23,8 +20,6 @@ set (_imiv_shared_sources
      imiv_parse.cpp
      imiv_persistence.cpp
      imiv_overlays.cpp
-     imiv_preferences_window.cpp
-     imiv_probe_data.cpp
      imiv_probe_overlay.cpp
      imiv_preview_shader_text.cpp
      imiv_renderer.cpp
@@ -34,7 +29,6 @@ set (_imiv_shared_sources
      imiv_upload_types.cpp
      imiv_ui.cpp
      imiv_viewer.cpp
-     imiv_workspace.cpp
      imiv_workspace_ui.cpp
      imiv_main.cpp)
 
@@ -58,8 +52,7 @@ set (_imiv_renderer_vulkan_sources
      imiv_vulkan_ocio.cpp
      imiv_vulkan_preview.cpp
      imiv_vulkan_runtime.cpp
-     imiv_vulkan_texture.cpp
-     imiv_vulkan_window.cpp)
+     imiv_vulkan_texture.cpp)
 
 set (_imiv_renderer_metal_sources
      imiv_renderer_metal.mm)

@@ -9,14 +9,12 @@
 #include "imiv_developer_tools.h"
 #include "imiv_drag_drop.h"
 #include "imiv_frame_actions.h"
-#include "imiv_image_list_ui.h"
 #include "imiv_image_view.h"
 #include "imiv_menu.h"
 #include "imiv_parse.h"
 #include "imiv_test_engine.h"
 #include "imiv_ui.h"
 #include "imiv_ui_metrics.h"
-#include "imiv_workspace.h"
 #include "imiv_workspace_ui.h"
 
 #include <algorithm>

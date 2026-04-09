@@ -11,7 +11,7 @@
 #include "imiv_parse.h"
 #include "imiv_probe_overlay.h"
 #include "imiv_ui.h"
-#include "imiv_workspace.h"
+#include "imiv_viewer.h"
 
 #include <cmath>
 #include <cstdio>

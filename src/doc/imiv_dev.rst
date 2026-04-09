@@ -1138,7 +1138,7 @@ Files using this include:
 
 * `src/imiv/imiv_types.h`
 * `src/imiv/imiv_vulkan_runtime.cpp`
-* `src/imiv/imiv_vulkan_window.cpp`
+* `src/imiv/imiv_vulkan_setup.cpp`
 * `src/imiv/imiv_capture.cpp`
 
 These helpers are practical, but they are not the same stability level as the

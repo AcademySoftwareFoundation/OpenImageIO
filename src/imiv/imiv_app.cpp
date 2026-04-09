@@ -22,7 +22,6 @@
 #include "imiv_types.h"
 #include "imiv_ui.h"
 #include "imiv_viewer.h"
-#include "imiv_workspace.h"
 
 #include <algorithm>
 #include <array>

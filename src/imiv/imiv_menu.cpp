@@ -9,7 +9,7 @@
 #include "imiv_image_library.h"
 #include "imiv_ocio.h"
 #include "imiv_ui.h"
-#include "imiv_workspace.h"
+#include "imiv_viewer.h"
 
 #include <algorithm>
 

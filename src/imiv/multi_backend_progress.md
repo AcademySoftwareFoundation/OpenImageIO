@@ -12,7 +12,7 @@ Work already landed in the tree:
   - `src/imiv/imiv_build_config.h.in`
 - Runtime backend metadata and selection:
   - `src/imiv/imiv_backend.h`
-  - `src/imiv/imiv_backend.cpp`
+  - `src/imiv/imiv_renderer.cpp`
 - Renderer seam moved to runtime backend dispatch:
   - `src/imiv/imiv_renderer.h`
   - `src/imiv/imiv_renderer.cpp`

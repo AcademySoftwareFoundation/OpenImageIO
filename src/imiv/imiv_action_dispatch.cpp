@@ -7,7 +7,7 @@
 #include "imiv_actions.h"
 #include "imiv_file_actions.h"
 #include "imiv_image_library.h"
-#include "imiv_workspace.h"
+#include "imiv_viewer.h"
 
 #include <algorithm>
 #include <filesystem>
