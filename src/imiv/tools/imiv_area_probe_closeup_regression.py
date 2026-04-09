@@ -69,6 +69,17 @@ def _area_probe_is_placeholder(state: dict) -> bool:
     return True
 
 
+def _run_runner(
+    cmd: list[str], repo_root: Path, env: dict[str, str], label: str
+) -> int:
+    proc = subprocess.run(
+        cmd, cwd=str(repo_root), env=env, check=False, timeout=120
+    )
+    if proc.returncode != 0:
+        return _fail(f"{label}: runner exited with code {proc.returncode}")
+    return 0
+
+
 def main() -> int:
     repo_root = _repo_root()
     default_env_script = repo_root / "build_u" / "imiv_env.sh"
@@ -104,6 +115,7 @@ def main() -> int:
 
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    probe_state_path = out_dir / "pixel_closeup_probe_state.json"
     screenshot_path = out_dir / "area_probe_closeup.png"
     layout_path = out_dir / "area_probe_closeup.json"
     state_path = out_dir / "area_probe_closeup_state.json"
@@ -111,9 +123,8 @@ def main() -> int:
 
     env = _load_env_from_script(Path(args.env_script).expanduser())
     env["IMIV_IMGUI_TEST_ENGINE_SHOW_PIXEL"] = "1"
-    env["IMIV_IMGUI_TEST_ENGINE_SHOW_AREA"] = "1"
 
-    cmd = [
+    probe_cmd = [
         sys.executable,
         str(runner),
         "--bin",
@@ -122,8 +133,56 @@ def main() -> int:
         str(cwd),
     ]
     if args.backend:
-        cmd.extend(["--backend", args.backend])
-    cmd.extend(
+        probe_cmd.extend(["--backend", args.backend])
+    probe_cmd.extend(
+        [
+            "--open",
+            str(image_path),
+            "--mouse-pos-image-rel",
+            "0.55",
+            "0.55",
+            "--state-json-out",
+            str(probe_state_path),
+        ]
+    )
+
+    status = _run_runner(probe_cmd, repo_root, env, "pixel closeup probe")
+    if status != 0:
+        return status
+
+    if not probe_state_path.exists():
+        return _fail(f"probe state output not found: {probe_state_path}")
+
+    probe_state = json.loads(probe_state_path.read_text(encoding="utf-8"))
+    if not probe_state.get("probe_valid", False):
+        return _fail("pixel closeup probe did not become valid")
+    probe_pos = probe_state.get("probe_pos", [])
+    image_size = probe_state.get("image_size", [])
+    if len(probe_pos) != 2 or len(image_size) != 2:
+        return _fail("probe state dump missing probe_pos or image_size")
+    probe_x = int(probe_pos[0])
+    probe_y = int(probe_pos[1])
+    image_w = int(image_size[0])
+    image_h = int(image_size[1])
+    if not (0 <= probe_x < image_w and 0 <= probe_y < image_h):
+        return _fail(f"probe position out of bounds: ({probe_x}, {probe_y})")
+    if probe_x < max(1, image_w // 10) or probe_y < max(1, image_h // 10):
+        return _fail(
+            f"probe position unexpectedly near top-left: ({probe_x}, {probe_y})"
+        )
+
+    env["IMIV_IMGUI_TEST_ENGINE_SHOW_AREA"] = "1"
+    area_cmd = [
+        sys.executable,
+        str(runner),
+        "--bin",
+        str(exe),
+        "--cwd",
+        str(cwd),
+    ]
+    if args.backend:
+        area_cmd.extend(["--backend", args.backend])
+    area_cmd.extend(
         [
             "--open",
             str(image_path),
@@ -151,11 +210,9 @@ def main() -> int:
         ]
     )
 
-    proc = subprocess.run(
-        cmd, cwd=str(repo_root), env=env, check=False, timeout=120
-    )
-    if proc.returncode != 0:
-        return _fail(f"runner exited with code {proc.returncode}")
+    status = _run_runner(area_cmd, repo_root, env, "area probe closeup")
+    if status != 0:
+        return status
 
     if not layout_path.exists():
         return _fail(f"layout output not found: {layout_path}")

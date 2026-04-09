@@ -26,14 +26,13 @@ namespace {
 
     bool apply_forced_probe_from_env(ViewerState& viewer)
     {
-        const int forced_x
-            = env_int_value_clamped("IMIV_IMGUI_TEST_ENGINE_PROBE_X", -1, 0,
-                                    1000000);
-        const int forced_y
-            = env_int_value_clamped("IMIV_IMGUI_TEST_ENGINE_PROBE_Y", -1, 0,
-                                    1000000);
-        if (forced_x < 0 || forced_y < 0 || viewer.image.path.empty())
+        int forced_x = -1;
+        int forced_y = -1;
+        if (!env_read_int_value("IMIV_IMGUI_TEST_ENGINE_PROBE_X", forced_x)
+            || !env_read_int_value("IMIV_IMGUI_TEST_ENGINE_PROBE_Y", forced_y)
+            || forced_x < 0 || forced_y < 0 || viewer.image.path.empty()) {
             return false;
+        }
 
         const int px = std::clamp(forced_x, 0,
                                   std::max(0, viewer.image.width - 1));

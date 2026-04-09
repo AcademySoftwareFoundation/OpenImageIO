@@ -636,6 +636,13 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
     test_engine_json_write_vec2(f, viewport_size);
     std::fputs(",\n  \"orientation\": ", f);
     std::fprintf(f, "%d", viewer.image.orientation);
+    std::fputs(",\n  \"probe_valid\": ", f);
+    std::fputs(viewer.probe_valid ? "true" : "false", f);
+    std::fputs(",\n  \"probe_pos\": [", f);
+    std::fprintf(f, "%d,%d", viewer.probe_x, viewer.probe_y);
+    std::fputs("]", f);
+    std::fputs(",\n  \"probe_channel_count\": ", f);
+    std::fprintf(f, "%zu", viewer.probe_channels.size());
     std::fputs(",\n  \"area_probe_lines\": [", f);
     for (size_t i = 0; i < viewer.area_probe_lines.size(); ++i) {
         if (i > 0)

@@ -740,40 +740,82 @@ create_compute_pipeline(VulkanState& vk_state, const uint32_t* shader_words,
     return true;
 }
 
+static void
+destroy_shader_module_resource(VulkanState& vk_state,
+                               VkShaderModule& shader_module)
+{
+    if (shader_module != VK_NULL_HANDLE) {
+        vkDestroyShaderModule(vk_state.device, shader_module,
+                              vk_state.allocator);
+        shader_module = VK_NULL_HANDLE;
+    }
+}
+
+static void
+destroy_pipeline_resource(VulkanState& vk_state, VkPipeline& pipeline)
+{
+    if (pipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(vk_state.device, pipeline, vk_state.allocator);
+        pipeline = VK_NULL_HANDLE;
+    }
+}
+
+static void
+destroy_pipeline_layout_resource(VulkanState& vk_state,
+                                 VkPipelineLayout& pipeline_layout)
+{
+    if (pipeline_layout != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(vk_state.device, pipeline_layout,
+                                vk_state.allocator);
+        pipeline_layout = VK_NULL_HANDLE;
+    }
+}
+
+static void
+destroy_descriptor_set_layout_resource(
+    VulkanState& vk_state, VkDescriptorSetLayout& descriptor_set_layout)
+{
+    if (descriptor_set_layout != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(vk_state.device, descriptor_set_layout,
+                                     vk_state.allocator);
+        descriptor_set_layout = VK_NULL_HANDLE;
+    }
+}
+
+static void
+destroy_descriptor_pool_resource(VulkanState& vk_state,
+                                 VkDescriptorPool& descriptor_pool)
+{
+    if (descriptor_pool != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(vk_state.device, descriptor_pool,
+                                vk_state.allocator);
+        descriptor_pool = VK_NULL_HANDLE;
+    }
+}
+
+static void
+destroy_render_pass_resource(VulkanState& vk_state, VkRenderPass& render_pass)
+{
+    if (render_pass != VK_NULL_HANDLE) {
+        vkDestroyRenderPass(vk_state.device, render_pass, vk_state.allocator);
+        render_pass = VK_NULL_HANDLE;
+    }
+}
+
 
 
 void
 destroy_preview_resources(VulkanState& vk_state)
 {
     destroy_ocio_preview_resources(vk_state);
-    if (vk_state.preview_pipeline != VK_NULL_HANDLE) {
-        vkDestroyPipeline(vk_state.device, vk_state.preview_pipeline,
-                          vk_state.allocator);
-        vk_state.preview_pipeline = VK_NULL_HANDLE;
-    }
-    if (vk_state.preview_pipeline_layout != VK_NULL_HANDLE) {
-        vkDestroyPipelineLayout(vk_state.device,
-                                vk_state.preview_pipeline_layout,
-                                vk_state.allocator);
-        vk_state.preview_pipeline_layout = VK_NULL_HANDLE;
-    }
-    if (vk_state.preview_descriptor_set_layout != VK_NULL_HANDLE) {
-        vkDestroyDescriptorSetLayout(vk_state.device,
-                                     vk_state.preview_descriptor_set_layout,
-                                     vk_state.allocator);
-        vk_state.preview_descriptor_set_layout = VK_NULL_HANDLE;
-    }
-    if (vk_state.preview_descriptor_pool != VK_NULL_HANDLE) {
-        vkDestroyDescriptorPool(vk_state.device,
-                                vk_state.preview_descriptor_pool,
-                                vk_state.allocator);
-        vk_state.preview_descriptor_pool = VK_NULL_HANDLE;
-    }
-    if (vk_state.preview_render_pass != VK_NULL_HANDLE) {
-        vkDestroyRenderPass(vk_state.device, vk_state.preview_render_pass,
-                            vk_state.allocator);
-        vk_state.preview_render_pass = VK_NULL_HANDLE;
-    }
+    destroy_pipeline_resource(vk_state, vk_state.preview_pipeline);
+    destroy_pipeline_layout_resource(vk_state,
+                                     vk_state.preview_pipeline_layout);
+    destroy_descriptor_set_layout_resource(
+        vk_state, vk_state.preview_descriptor_set_layout);
+    destroy_descriptor_pool_resource(vk_state,
+                                     vk_state.preview_descriptor_pool);
+    destroy_render_pass_resource(vk_state, vk_state.preview_render_pass);
 }
 
 
@@ -821,57 +863,16 @@ init_preview_resources(VulkanState& vk_state, std::string& error_message)
     render_pass_ci.pAttachments    = &attachment;
     render_pass_ci.subpassCount    = 1;
     render_pass_ci.pSubpasses      = &subpass;
-    VkResult err = vkCreateRenderPass(vk_state.device, &render_pass_ci,
-                                      vk_state.allocator,
-                                      &vk_state.preview_render_pass);
-    if (err != VK_SUCCESS) {
-        error_message = "vkCreateRenderPass failed for preview pipeline";
-        destroy_preview_resources(vk_state);
-        return false;
-    }
-    set_vk_object_name(vk_state, VK_OBJECT_TYPE_RENDER_PASS,
-                       vk_state.preview_render_pass,
-                       "imiv.preview.render_pass");
-
     const VkDescriptorPoolSize preview_pool_sizes[]
         = { { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256 } };
-    if (!create_descriptor_pool_resource(
-            vk_state, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 256,
-            preview_pool_sizes,
-            static_cast<uint32_t>(IM_ARRAYSIZE(preview_pool_sizes)),
-            vk_state.preview_descriptor_pool,
-            "vkCreateDescriptorPool failed for preview",
-            "imiv.preview.descriptor_pool", error_message)) {
-        destroy_preview_resources(vk_state);
-        return false;
-    }
     const VkDescriptorSetLayoutBinding preview_bindings[]
         = { make_descriptor_set_layout_binding(
             0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             VK_SHADER_STAGE_FRAGMENT_BIT) };
-    if (!create_descriptor_set_layout_resource(
-            vk_state, preview_bindings,
-            static_cast<uint32_t>(IM_ARRAYSIZE(preview_bindings)),
-            vk_state.preview_descriptor_set_layout,
-            "vkCreateDescriptorSetLayout failed for preview",
-            "imiv.preview.set_layout", error_message)) {
-        destroy_preview_resources(vk_state);
-        return false;
-    }
-
     VkPushConstantRange preview_push = {};
     preview_push.stageFlags          = VK_SHADER_STAGE_FRAGMENT_BIT;
     preview_push.offset              = 0;
     preview_push.size                = sizeof(PreviewPushConstants);
-
-    if (!create_pipeline_layout_resource(
-            vk_state, &vk_state.preview_descriptor_set_layout, 1, &preview_push,
-            1, vk_state.preview_pipeline_layout,
-            "vkCreatePipelineLayout failed for preview",
-            "imiv.preview.pipeline_layout", error_message)) {
-        destroy_preview_resources(vk_state);
-        return false;
-    }
 
     const std::string shader_vert = std::string(IMIV_SHADER_DIR)
                                     + "/imiv_preview.vert.spv";
@@ -891,35 +892,71 @@ init_preview_resources(VulkanState& vk_state, std::string& error_message)
 #        endif
     VkShaderModule vert_module = VK_NULL_HANDLE;
     VkShaderModule frag_module = VK_NULL_HANDLE;
-    if (!create_shader_module_from_embedded_or_file(
-            vk_state.device, vk_state.allocator, shader_vert_words,
-            shader_vert_word_count, shader_vert, "imiv.preview.vert",
-            vert_module, error_message)) {
-        destroy_preview_resources(vk_state);
-        return false;
-    }
-    if (!create_shader_module_from_embedded_or_file(
-            vk_state.device, vk_state.allocator, shader_frag_words,
-            shader_frag_word_count, shader_frag, "imiv.preview.frag",
-            frag_module, error_message)) {
-        vkDestroyShaderModule(vk_state.device, vert_module, vk_state.allocator);
-        destroy_preview_resources(vk_state);
-        return false;
-    }
+    bool ok                    = false;
+    do {
+        VkResult err = vkCreateRenderPass(vk_state.device, &render_pass_ci,
+                                          vk_state.allocator,
+                                          &vk_state.preview_render_pass);
+        if (err != VK_SUCCESS) {
+            error_message = "vkCreateRenderPass failed for preview pipeline";
+            break;
+        }
+        set_vk_object_name(vk_state, VK_OBJECT_TYPE_RENDER_PASS,
+                           vk_state.preview_render_pass,
+                           "imiv.preview.render_pass");
 
-    const bool pipeline_ok = create_fullscreen_preview_pipeline(
-        vk_state, vk_state.preview_render_pass,
-        vk_state.preview_pipeline_layout, vert_module, frag_module,
-        "imiv.preview.pipeline", "vkCreateGraphicsPipelines failed for preview",
-        vk_state.preview_pipeline, error_message);
-    vkDestroyShaderModule(vk_state.device, vert_module, vk_state.allocator);
-    vkDestroyShaderModule(vk_state.device, frag_module, vk_state.allocator);
-    if (!pipeline_ok) {
-        destroy_preview_resources(vk_state);
-        return false;
-    }
+        if (!create_descriptor_pool_resource(
+                vk_state, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+                256, preview_pool_sizes,
+                static_cast<uint32_t>(IM_ARRAYSIZE(preview_pool_sizes)),
+                vk_state.preview_descriptor_pool,
+                "vkCreateDescriptorPool failed for preview",
+                "imiv.preview.descriptor_pool", error_message)) {
+            break;
+        }
+        if (!create_descriptor_set_layout_resource(
+                vk_state, preview_bindings,
+                static_cast<uint32_t>(IM_ARRAYSIZE(preview_bindings)),
+                vk_state.preview_descriptor_set_layout,
+                "vkCreateDescriptorSetLayout failed for preview",
+                "imiv.preview.set_layout", error_message)) {
+            break;
+        }
+        if (!create_pipeline_layout_resource(
+                vk_state, &vk_state.preview_descriptor_set_layout, 1,
+                &preview_push, 1, vk_state.preview_pipeline_layout,
+                "vkCreatePipelineLayout failed for preview",
+                "imiv.preview.pipeline_layout", error_message)) {
+            break;
+        }
+        if (!create_shader_module_from_embedded_or_file(
+                vk_state.device, vk_state.allocator, shader_vert_words,
+                shader_vert_word_count, shader_vert, "imiv.preview.vert",
+                vert_module, error_message)) {
+            break;
+        }
+        if (!create_shader_module_from_embedded_or_file(
+                vk_state.device, vk_state.allocator, shader_frag_words,
+                shader_frag_word_count, shader_frag, "imiv.preview.frag",
+                frag_module, error_message)) {
+            break;
+        }
+        if (!create_fullscreen_preview_pipeline(
+                vk_state, vk_state.preview_render_pass,
+                vk_state.preview_pipeline_layout, vert_module, frag_module,
+                "imiv.preview.pipeline",
+                "vkCreateGraphicsPipelines failed for preview",
+                vk_state.preview_pipeline, error_message)) {
+            break;
+        }
+        ok = true;
+    } while (false);
 
-    return true;
+    destroy_shader_module_resource(vk_state, frag_module);
+    destroy_shader_module_resource(vk_state, vert_module);
+    if (!ok)
+        destroy_preview_resources(vk_state);
+    return ok;
 #    endif
 }
 
@@ -928,34 +965,14 @@ init_preview_resources(VulkanState& vk_state, std::string& error_message)
 void
 destroy_compute_upload_resources(VulkanState& vk_state)
 {
-    if (vk_state.compute_pipeline_fp64 != VK_NULL_HANDLE) {
-        vkDestroyPipeline(vk_state.device, vk_state.compute_pipeline_fp64,
-                          vk_state.allocator);
-        vk_state.compute_pipeline_fp64 = VK_NULL_HANDLE;
-    }
-    if (vk_state.compute_pipeline != VK_NULL_HANDLE) {
-        vkDestroyPipeline(vk_state.device, vk_state.compute_pipeline,
-                          vk_state.allocator);
-        vk_state.compute_pipeline = VK_NULL_HANDLE;
-    }
-    if (vk_state.compute_pipeline_layout != VK_NULL_HANDLE) {
-        vkDestroyPipelineLayout(vk_state.device,
-                                vk_state.compute_pipeline_layout,
-                                vk_state.allocator);
-        vk_state.compute_pipeline_layout = VK_NULL_HANDLE;
-    }
-    if (vk_state.compute_descriptor_set_layout != VK_NULL_HANDLE) {
-        vkDestroyDescriptorSetLayout(vk_state.device,
-                                     vk_state.compute_descriptor_set_layout,
-                                     vk_state.allocator);
-        vk_state.compute_descriptor_set_layout = VK_NULL_HANDLE;
-    }
-    if (vk_state.compute_descriptor_pool != VK_NULL_HANDLE) {
-        vkDestroyDescriptorPool(vk_state.device,
-                                vk_state.compute_descriptor_pool,
-                                vk_state.allocator);
-        vk_state.compute_descriptor_pool = VK_NULL_HANDLE;
-    }
+    destroy_pipeline_resource(vk_state, vk_state.compute_pipeline_fp64);
+    destroy_pipeline_resource(vk_state, vk_state.compute_pipeline);
+    destroy_pipeline_layout_resource(vk_state,
+                                     vk_state.compute_pipeline_layout);
+    destroy_descriptor_set_layout_resource(
+        vk_state, vk_state.compute_descriptor_set_layout);
+    destroy_descriptor_pool_resource(vk_state,
+                                     vk_state.compute_descriptor_pool);
     vk_state.compute_output_format = VK_FORMAT_UNDEFINED;
     vk_state.compute_upload_ready  = false;
 }
@@ -1028,15 +1045,6 @@ init_compute_upload_resources(VulkanState& vk_state, std::string& error_message)
     const VkDescriptorPoolSize pool_sizes[]
         = { { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 64 },
             { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 64 } };
-    if (!create_descriptor_pool_resource(
-            vk_state, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 64,
-            pool_sizes, static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes)),
-            vk_state.compute_descriptor_pool,
-            "vkCreateDescriptorPool failed for compute upload",
-            "imiv.compute_upload.descriptor_pool", error_message)) {
-        destroy_compute_upload_resources(vk_state);
-        return false;
-    }
     const VkDescriptorSetLayoutBinding bindings[] = {
         make_descriptor_set_layout_binding(
             0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
@@ -1044,32 +1052,46 @@ init_compute_upload_resources(VulkanState& vk_state, std::string& error_message)
         make_descriptor_set_layout_binding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                                            VK_SHADER_STAGE_COMPUTE_BIT)
     };
-    if (!create_descriptor_set_layout_resource(
-            vk_state, bindings, static_cast<uint32_t>(IM_ARRAYSIZE(bindings)),
-            vk_state.compute_descriptor_set_layout,
-            "vkCreateDescriptorSetLayout failed for compute upload",
-            "imiv.compute_upload.set_layout", error_message)) {
-        destroy_compute_upload_resources(vk_state);
-        return false;
-    }
 
     VkPushConstantRange push_range = {};
     push_range.stageFlags          = VK_SHADER_STAGE_COMPUTE_BIT;
     push_range.offset              = 0;
     push_range.size                = sizeof(UploadComputePushConstants);
-    if (!create_pipeline_layout_resource(
-            vk_state, &vk_state.compute_descriptor_set_layout, 1, &push_range,
-            1, vk_state.compute_pipeline_layout,
-            "vkCreatePipelineLayout failed for compute upload",
-            "imiv.compute_upload.pipeline_layout", error_message)) {
-        destroy_compute_upload_resources(vk_state);
-        return false;
-    }
-
-    if (!create_compute_pipeline(vk_state, shader_words, shader_word_count,
-                                 shader_path, "imiv.upload_to_rgba",
-                                 "imiv.compute_upload.pipeline",
-                                 vk_state.compute_pipeline, error_message)) {
+    bool ok                        = false;
+    do {
+        if (!create_descriptor_pool_resource(
+                vk_state, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 64,
+                pool_sizes, static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes)),
+                vk_state.compute_descriptor_pool,
+                "vkCreateDescriptorPool failed for compute upload",
+                "imiv.compute_upload.descriptor_pool", error_message)) {
+            break;
+        }
+        if (!create_descriptor_set_layout_resource(
+                vk_state, bindings,
+                static_cast<uint32_t>(IM_ARRAYSIZE(bindings)),
+                vk_state.compute_descriptor_set_layout,
+                "vkCreateDescriptorSetLayout failed for compute upload",
+                "imiv.compute_upload.set_layout", error_message)) {
+            break;
+        }
+        if (!create_pipeline_layout_resource(
+                vk_state, &vk_state.compute_descriptor_set_layout, 1,
+                &push_range, 1, vk_state.compute_pipeline_layout,
+                "vkCreatePipelineLayout failed for compute upload",
+                "imiv.compute_upload.pipeline_layout", error_message)) {
+            break;
+        }
+        if (!create_compute_pipeline(vk_state, shader_words, shader_word_count,
+                                     shader_path, "imiv.upload_to_rgba",
+                                     "imiv.compute_upload.pipeline",
+                                     vk_state.compute_pipeline,
+                                     error_message)) {
+            break;
+        }
+        ok = true;
+    } while (false);
+    if (!ok) {
         destroy_compute_upload_resources(vk_state);
         return false;
     }
@@ -1402,11 +1424,7 @@ cleanup_vulkan(VulkanState& vk_state)
         destroy_preview_resources(vk_state);
     if (vk_state.device != VK_NULL_HANDLE)
         destroy_immediate_submit_resources(vk_state);
-    if (vk_state.descriptor_pool != VK_NULL_HANDLE) {
-        vkDestroyDescriptorPool(vk_state.device, vk_state.descriptor_pool,
-                                vk_state.allocator);
-        vk_state.descriptor_pool = VK_NULL_HANDLE;
-    }
+    destroy_descriptor_pool_resource(vk_state, vk_state.descriptor_pool);
     if (vk_state.pipeline_cache != VK_NULL_HANDLE) {
         vkDestroyPipelineCache(vk_state.device, vk_state.pipeline_cache,
                                vk_state.allocator);
