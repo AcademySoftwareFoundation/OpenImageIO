@@ -33,7 +33,9 @@ public:
     ~JpgOutput() override { close(); }
     const char* format_name(void) const override { return "jpeg"; }
     int supports(string_view feature) const override
-    { return (feature == "exif" || feature == "iptc" || feature == "ioproxy"); }
+    {
+        return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
+    }
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode = Create) override;
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
@@ -102,7 +104,9 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
 jpeg_output_imageio_create()
-{ return new JpgOutput; }
+{
+    return new JpgOutput;
+}
 
 OIIO_EXPORT const char* jpeg_output_extensions[]
     = { "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", nullptr };

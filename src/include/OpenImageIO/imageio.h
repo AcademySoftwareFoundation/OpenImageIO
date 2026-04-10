@@ -1051,18 +1051,16 @@ public:
     ///         A `unique_ptr` that will close and free the ImageInput when
     ///         it exits scope or is reset. The pointer will be empty if the
     ///         required writer was not able to be created.
-    OIIO_NODISCARD static unique_ptr create (string_view filename,
-                                             bool do_open=false,
-                                             const ImageSpec *config=nullptr,
-                                             Filesystem::IOProxy* ioproxy = nullptr,
-                                             string_view plugin_searchpath = "");
+    static unique_ptr create (string_view filename, bool do_open=false,
+                              const ImageSpec *config=nullptr,
+                              Filesystem::IOProxy* ioproxy = nullptr,
+                              string_view plugin_searchpath = "");
 
     /// Create an ImageInput using a UTF-16 encoded wstring filename.
-    OIIO_NODISCARD static unique_ptr create (const std::wstring& filename,
-                                             bool do_open=false,
-                                             const ImageSpec *config=nullptr,
-                                             Filesystem::IOProxy* ioproxy = nullptr,
-                                             string_view plugin_searchpath = "") {
+    static unique_ptr create (const std::wstring& filename, bool do_open=false,
+                              const ImageSpec *config=nullptr,
+                              Filesystem::IOProxy* ioproxy = nullptr,
+                              string_view plugin_searchpath = "") {
         return create(Strutil::utf16_to_utf8(filename), do_open, config,
                       ioproxy, plugin_searchpath);
     }
@@ -1182,11 +1180,11 @@ public:
     ///
     /// @returns
     ///         `true` if the file was found and opened successfully.
-    OIIO_NODISCARD virtual bool open (const std::string& name,
-                                      ImageSpec &newspec) = 0;
+    OIIO_NODISCARD_ERROR virtual bool open (const std::string& name,
+                                            ImageSpec &newspec) = 0;
 
     /// Open the ImageInput using a UTF-16 encoded wstring filename.
-    OIIO_NODISCARD bool open (const std::wstring& name, ImageSpec &newspec) {
+    OIIO_NODISCARD_ERROR bool open (const std::wstring& name, ImageSpec &newspec) {
         return open(Strutil::utf16_to_utf8(name), newspec);
     }
 
@@ -1210,14 +1208,14 @@ public:
     ///
     /// @returns
     ///         `true` if the file was found and opened successfully.
-    OIIO_NODISCARD virtual bool open (const std::string& name,
-                                      ImageSpec &newspec,
-                                      const ImageSpec& config OIIO_MAYBE_UNUSED) {
+    OIIO_NODISCARD_ERROR virtual bool open (const std::string& name,
+                                            ImageSpec &newspec,
+                                            const ImageSpec& config OIIO_MAYBE_UNUSED) {
         return open(name,newspec);
     }
     /// Open the ImageInput using a UTF-16 encoded wstring filename.
-    OIIO_NODISCARD bool open (const std::wstring& name, ImageSpec &newspec,
-                              const ImageSpec& config OIIO_MAYBE_UNUSED) {
+    OIIO_NODISCARD_ERROR bool open (const std::wstring& name, ImageSpec &newspec,
+                                    const ImageSpec& config OIIO_MAYBE_UNUSED) {
         return open(name,newspec);
     }
 
