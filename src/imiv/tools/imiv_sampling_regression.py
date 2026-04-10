@@ -6,14 +6,23 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
-import shlex
-import shutil
 import subprocess
-import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from imiv_test_utils import (
+    default_binary,
+    default_env_script,
+    default_oiiotool,
+    fail,
+    load_env_from_script,
+    path_for_imiv_output,
+    repo_root as imiv_repo_root,
+    resolve_existing_tool,
+    resolve_run_cwd,
+    run_logged_process,
+    runner_command,
+)
 
 ERROR_PATTERNS = (
     "error: imiv exited with code",
@@ -28,75 +37,6 @@ ERROR_PATTERNS = (
     "Metal preview render failed",
     "screenshot failed: framebuffer readback failed",
 )
-
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
-
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _default_oiiotool(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build" / "bin" / "oiiotool",
-        repo_root / "build_u" / "bin" / "oiiotool",
-        repo_root / "build" / "src" / "oiiotool" / "oiiotool",
-        repo_root / "build_u" / "src" / "oiiotool" / "oiiotool",
-        repo_root / "build" / "Debug" / "oiiotool.exe",
-        repo_root / "build" / "Release" / "oiiotool.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return Path("oiiotool")
-
-
-def _default_env_script(repo_root: Path, exe: Path | None = None) -> Path:
-    candidates: list[Path] = []
-    if exe is not None:
-        exe = exe.resolve()
-        candidates.extend([exe.parent / "imiv_env.sh", exe.parent.parent / "imiv_env.sh"])
-    candidates.extend([repo_root / "build" / "imiv_env.sh", repo_root / "build_u" / "imiv_env.sh"])
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _load_env_from_script(script_path: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    if not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        env[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    return env
 
 
 def _write_prefs(config_home: Path) -> Path:
@@ -148,14 +88,6 @@ def _write_scenario(path: Path, runtime_dir_rel: str) -> None:
 
     path.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
-
-
-def _path_for_imiv_output(path: Path, run_cwd: Path) -> str:
-    try:
-        return os.path.relpath(path, run_cwd)
-    except ValueError:
-        return str(path)
-
 
 def _image_crop_rect(layout_path: Path) -> tuple[int, int, int, int]:
     data = json.loads(layout_path.read_text(encoding="utf-8"))
@@ -327,18 +259,17 @@ def _build_fixture(oiiotool: Path, path: Path) -> None:
 
 
 def main() -> int:
-    repo_root = _repo_root()
-    runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
+    repo_root = imiv_repo_root()
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
+    ap.add_argument("--bin", default=str(default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
         "--backend",
         default="",
         help="Optional runtime backend override passed through to imiv",
     )
-    ap.add_argument("--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool executable")
+    ap.add_argument("--oiiotool", default=str(default_oiiotool(repo_root)), help="oiiotool executable")
     ap.add_argument("--env-script", default="", help="Optional shell env setup script")
     ap.add_argument("--out-dir", default="", help="Output directory")
     ap.add_argument("--trace", action="store_true", help="Enable runner tracing")
@@ -346,19 +277,13 @@ def main() -> int:
 
     exe = Path(args.bin).resolve()
     if not exe.exists():
-        print(f"error: binary not found: {exe}", file=sys.stderr)
-        return 2
+        return fail(f"binary not found: {exe}")
 
-    oiiotool = Path(args.oiiotool).expanduser()
+    oiiotool = resolve_existing_tool(args.oiiotool, default_oiiotool(repo_root))
     if not oiiotool.exists():
-        found = shutil.which(str(oiiotool))
-        if found is None:
-            print(f"error: oiiotool not found: {oiiotool}", file=sys.stderr)
-            return 2
-        oiiotool = Path(found)
-    oiiotool = oiiotool.resolve()
+        return fail(f"oiiotool not found: {oiiotool}")
 
-    cwd = Path(args.cwd).resolve() if args.cwd else exe.parent.resolve()
+    cwd = resolve_run_cwd(exe, args.cwd)
     out_dir = (
         Path(args.out_dir).resolve()
         if args.out_dir
@@ -369,9 +294,9 @@ def main() -> int:
     env_script = (
         Path(args.env_script).resolve()
         if args.env_script
-        else _default_env_script(repo_root, exe)
+        else default_env_script(repo_root, exe)
     )
-    env = _load_env_from_script(env_script)
+    env = load_env_from_script(env_script)
     env["IMIV_CONFIG_HOME"] = str(out_dir / "cfg")
     _write_prefs(Path(env["IMIV_CONFIG_HOME"]))
 
@@ -380,37 +305,20 @@ def main() -> int:
 
     scenario_path = out_dir / "sampling.scenario.xml"
     runtime_dir = out_dir / "runtime"
-    runtime_dir_rel = _path_for_imiv_output(runtime_dir, cwd)
+    runtime_dir_rel = path_for_imiv_output(runtime_dir, cwd)
     _write_scenario(scenario_path, runtime_dir_rel=runtime_dir_rel)
 
     log_path = out_dir / "sampling.log"
-    cmd = [
-        sys.executable,
-        str(runner),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(cwd),
-    ]
-    if args.backend:
-        cmd.extend(["--backend", args.backend])
+    cmd = runner_command(exe, cwd, args.backend)
     cmd.extend(["--open", str(image_path), "--scenario", str(scenario_path)])
     if args.trace:
         cmd.append("--trace")
 
-    with log_path.open("w", encoding="utf-8") as log_handle:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(repo_root),
-            env=env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=120,
-        )
+    proc = run_logged_process(
+        cmd, cwd=repo_root, env=env, timeout=120, log_path=log_path
+    )
     if proc.returncode != 0:
-        print(f"error: runner exited with code {proc.returncode}", file=sys.stderr)
-        return 1
+        return fail(f"runner exited with code {proc.returncode}")
 
     nearest_screenshot = runtime_dir / "nearest.png"
     nearest_layout = runtime_dir / "nearest.layout.json"
@@ -423,14 +331,12 @@ def main() -> int:
         linear_layout,
     ):
         if not required.exists():
-            print(f"error: missing output: {required}", file=sys.stderr)
-            return 1
+            return fail(f"missing output: {required}")
 
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
     for pattern in ERROR_PATTERNS:
         if pattern in log_text:
-            print(f"error: found runtime error pattern: {pattern}", file=sys.stderr)
-            return 1
+            return fail(f"found runtime error pattern: {pattern}")
 
     crop_dir = out_dir / "crops"
     crop_dir.mkdir(parents=True, exist_ok=True)
@@ -444,8 +350,7 @@ def main() -> int:
     common_w = min(nearest_w, linear_w)
     common_h = min(nearest_h, linear_h)
     if common_w <= 0 or common_h <= 0:
-        print("error: invalid normalized crop size", file=sys.stderr)
-        return 1
+        return fail("invalid normalized crop size")
 
     nearest_norm = crop_dir / "nearest.norm.ppm"
     linear_norm = crop_dir / "linear.norm.ppm"
@@ -466,25 +371,20 @@ def main() -> int:
     )
 
     if diff < 8.0:
-        print(
-            f"error: nearest and linear preview crops are too similar (mean abs diff={diff:.4f})",
-            file=sys.stderr,
+        return fail(
+            "nearest and linear preview crops are too similar "
+            f"(mean abs diff={diff:.4f})"
         )
-        return 1
     if nearest_midtones > 0.35:
-        print(
-            "error: nearest preview still looks blurred "
-            f"(midtone fraction={nearest_midtones:.4f})",
-            file=sys.stderr,
+        return fail(
+            "nearest preview still looks blurred "
+            f"(midtone fraction={nearest_midtones:.4f})"
         )
-        return 1
     if linear_midtones <= nearest_midtones + 0.10:
-        print(
-            "error: linear preview does not look materially smoother than nearest "
-            f"(nearest={nearest_midtones:.4f}, linear={linear_midtones:.4f})",
-            file=sys.stderr,
+        return fail(
+            "linear preview does not look materially smoother than nearest "
+            f"(nearest={nearest_midtones:.4f}, linear={linear_midtones:.4f})"
         )
-        return 1
 
     print(f"ok: sampling regression outputs are in {out_dir}")
     return 0
