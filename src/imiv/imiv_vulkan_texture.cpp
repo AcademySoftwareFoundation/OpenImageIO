@@ -514,111 +514,113 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
     do {
         VkResult err = VK_SUCCESS;
 
-        VkImageCreateInfo source_ci = {};
-        source_ci.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        source_ci.imageType         = VK_IMAGE_TYPE_2D;
-        source_ci.format            = vk_state.compute_output_format;
-        source_ci.extent.width      = static_cast<uint32_t>(image.width);
-        source_ci.extent.height     = static_cast<uint32_t>(image.height);
-        source_ci.extent.depth      = 1;
-        source_ci.mipLevels         = 1;
-        source_ci.arrayLayers       = 1;
-        source_ci.samples           = VK_SAMPLE_COUNT_1_BIT;
-        source_ci.tiling            = VK_IMAGE_TILING_OPTIMAL;
-        source_ci.usage             = VK_IMAGE_USAGE_STORAGE_BIT
-                          | VK_IMAGE_USAGE_SAMPLED_BIT;
-        source_ci.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
-        source_ci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        const VkImageCreateInfo base_image_ci = [&] {
+            VkImageCreateInfo ci = {};
+            ci.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            ci.imageType         = VK_IMAGE_TYPE_2D;
+            ci.format            = vk_state.compute_output_format;
+            ci.extent.width      = static_cast<uint32_t>(image.width);
+            ci.extent.height     = static_cast<uint32_t>(image.height);
+            ci.extent.depth      = 1;
+            ci.mipLevels         = 1;
+            ci.arrayLayers       = 1;
+            ci.samples           = VK_SAMPLE_COUNT_1_BIT;
+            ci.tiling            = VK_IMAGE_TILING_OPTIMAL;
+            ci.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
+            ci.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
+            return ci;
+        }();
+        const auto create_viewable_image =
+            [&](VkImageUsageFlags usage, VkImage& image_handle,
+                VkDeviceMemory& image_memory, VkImageView& image_view,
+                const char* create_image_error, const char* no_memory_error,
+                const char* allocate_error, const char* bind_error,
+                const char* create_view_error, const char* debug_image_name,
+                const char* debug_memory_name, const char* debug_view_name) {
+                VkImageCreateInfo image_ci = base_image_ci;
+                image_ci.usage             = usage;
+                const VkResult create_image
+                    = vkCreateImage(vk_state.device, &image_ci,
+                                    vk_state.allocator, &image_handle);
+                if (create_image != VK_SUCCESS) {
+                    error_message = create_image_error;
+                    return false;
+                }
+                set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE, image_handle,
+                                   debug_image_name);
 
-        err = vkCreateImage(vk_state.device, &source_ci, vk_state.allocator,
-                            &texture.source_image);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateImage failed for source image";
-            break;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE, texture.source_image,
-                           "imiv.viewer.source_image");
+                if (!allocate_and_bind_image_memory(
+                        vk_state, image_handle,
+                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, true, image_memory,
+                        no_memory_error, allocate_error, bind_error,
+                        debug_memory_name, error_message)) {
+                    return false;
+                }
 
-        if (!allocate_and_bind_image_memory(
-                vk_state, texture.source_image,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, true,
-                texture.source_memory,
+                VkImageViewCreateInfo view_ci = {};
+                view_ci.sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                view_ci.image    = image_handle;
+                view_ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                view_ci.format   = vk_state.compute_output_format;
+                view_ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                view_ci.subresourceRange.baseMipLevel   = 0;
+                view_ci.subresourceRange.levelCount     = 1;
+                view_ci.subresourceRange.baseArrayLayer = 0;
+                view_ci.subresourceRange.layerCount     = 1;
+                return create_image_view_resource(vk_state, view_ci, image_view,
+                                                  create_view_error,
+                                                  debug_view_name,
+                                                  error_message);
+            };
+        const auto create_preview_framebuffer = [&] {
+            VkFramebufferCreateInfo fb_ci = {};
+            fb_ci.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            fb_ci.renderPass      = vk_state.preview_render_pass;
+            fb_ci.attachmentCount = 1;
+            fb_ci.pAttachments    = &texture.view;
+            fb_ci.width           = static_cast<uint32_t>(image.width);
+            fb_ci.height          = static_cast<uint32_t>(image.height);
+            fb_ci.layers          = 1;
+            err                   = vkCreateFramebuffer(vk_state.device, &fb_ci,
+                                                        vk_state.allocator,
+                                                        &texture.preview_framebuffer);
+            if (err != VK_SUCCESS) {
+                error_message = "vkCreateFramebuffer failed for preview image";
+                return false;
+            }
+            set_vk_object_name(vk_state, VK_OBJECT_TYPE_FRAMEBUFFER,
+                               texture.preview_framebuffer,
+                               "imiv.viewer.preview_framebuffer");
+            return true;
+        };
+
+        if (!create_viewable_image(
+                VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                texture.source_image, texture.source_memory,
+                texture.source_view, "vkCreateImage failed for source image",
                 "no compatible memory type for source image",
                 "vkAllocateMemory failed for source image",
                 "vkBindImageMemory failed for source image",
-                "imiv.viewer.source_image.memory", error_message)) {
-            break;
-        }
-
-        VkImageViewCreateInfo source_view_ci = {};
-        source_view_ci.sType        = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        source_view_ci.image        = texture.source_image;
-        source_view_ci.viewType     = VK_IMAGE_VIEW_TYPE_2D;
-        source_view_ci.format       = vk_state.compute_output_format;
-        source_view_ci.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        source_view_ci.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        source_view_ci.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        source_view_ci.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        source_view_ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        source_view_ci.subresourceRange.baseMipLevel   = 0;
-        source_view_ci.subresourceRange.levelCount     = 1;
-        source_view_ci.subresourceRange.baseArrayLayer = 0;
-        source_view_ci.subresourceRange.layerCount     = 1;
-        if (!create_image_view_resource(
-                vk_state, source_view_ci, texture.source_view,
                 "vkCreateImageView failed for source image",
-                "imiv.viewer.source_view", error_message)) {
+                "imiv.viewer.source_image", "imiv.viewer.source_image.memory",
+                "imiv.viewer.source_view")) {
             break;
         }
 
-        VkImageCreateInfo preview_ci = source_ci;
-        preview_ci.usage             = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                           | VK_IMAGE_USAGE_SAMPLED_BIT;
-        err = vkCreateImage(vk_state.device, &preview_ci, vk_state.allocator,
-                            &texture.image);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateImage failed for preview image";
+        if (!create_viewable_image(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                                       | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                   texture.image, texture.memory, texture.view,
+                                   "vkCreateImage failed for preview image",
+                                   "no compatible memory type for preview image",
+                                   "vkAllocateMemory failed for preview image",
+                                   "vkBindImageMemory failed for preview image",
+                                   "vkCreateImageView failed for preview image",
+                                   "imiv.viewer.preview_image",
+                                   "imiv.viewer.preview_image.memory",
+                                   "imiv.viewer.preview_view")
+            || !create_preview_framebuffer()) {
             break;
         }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_IMAGE, texture.image,
-                           "imiv.viewer.preview_image");
-
-        if (!allocate_and_bind_image_memory(
-                vk_state, texture.image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                true, texture.memory,
-                "no compatible memory type for preview image",
-                "vkAllocateMemory failed for preview image",
-                "vkBindImageMemory failed for preview image",
-                "imiv.viewer.preview_image.memory", error_message)) {
-            break;
-        }
-
-        VkImageViewCreateInfo preview_view_ci = source_view_ci;
-        preview_view_ci.image                 = texture.image;
-        if (!create_image_view_resource(
-                vk_state, preview_view_ci, texture.view,
-                "vkCreateImageView failed for preview image",
-                "imiv.viewer.preview_view", error_message)) {
-            break;
-        }
-
-        VkFramebufferCreateInfo fb_ci = {};
-        fb_ci.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        fb_ci.renderPass      = vk_state.preview_render_pass;
-        fb_ci.attachmentCount = 1;
-        fb_ci.pAttachments    = &texture.view;
-        fb_ci.width           = static_cast<uint32_t>(image.width);
-        fb_ci.height          = static_cast<uint32_t>(image.height);
-        fb_ci.layers          = 1;
-        err = vkCreateFramebuffer(vk_state.device, &fb_ci, vk_state.allocator,
-                                  &texture.preview_framebuffer);
-        if (err != VK_SUCCESS) {
-            error_message = "vkCreateFramebuffer failed for preview image";
-            break;
-        }
-        set_vk_object_name(vk_state, VK_OBJECT_TYPE_FRAMEBUFFER,
-                           texture.preview_framebuffer,
-                           "imiv.viewer.preview_framebuffer");
 
         if (!create_buffer_with_memory_resource(
                 vk_state, upload_size_aligned,
@@ -738,9 +740,16 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
                                                   : VK_FILTER_NEAREST;
         const VkSamplerCreateInfo sampler_ci = make_clamped_sampler_create_info(
             filter, filter, VK_SAMPLER_MIPMAP_MODE_LINEAR, 0.0f, 1000.0f);
-        if (!create_sampler_resource(vk_state, sampler_ci, texture.sampler,
-                                     "vkCreateSampler failed",
-                                     "imiv.viewer.sampler", error_message)) {
+        const auto create_texture_sampler = [&](const VkSamplerCreateInfo& ci,
+                                                VkSampler& sampler,
+                                                const char* create_error,
+                                                const char* debug_name) {
+            return create_sampler_resource(vk_state, ci, sampler, create_error,
+                                           debug_name, error_message);
+        };
+        if (!create_texture_sampler(sampler_ci, texture.sampler,
+                                    "vkCreateSampler failed",
+                                    "imiv.viewer.sampler")) {
             break;
         }
 
@@ -750,17 +759,16 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         pixelview_sampler_ci.magFilter             = VK_FILTER_NEAREST;
         pixelview_sampler_ci.minFilter             = VK_FILTER_NEAREST;
         pixelview_sampler_ci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-        if (!create_sampler_resource(
-                vk_state, nearest_mag_sampler_ci, texture.nearest_mag_sampler,
+        if (!create_texture_sampler(
+                nearest_mag_sampler_ci, texture.nearest_mag_sampler,
                 "vkCreateSampler failed for nearest-mag view",
-                "imiv.viewer.nearest_mag_sampler", error_message)) {
+                "imiv.viewer.nearest_mag_sampler")) {
             break;
         }
-        if (!create_sampler_resource(vk_state, pixelview_sampler_ci,
-                                     texture.pixelview_sampler,
-                                     "vkCreateSampler failed for pixel closeup",
-                                     "imiv.viewer.pixelview_sampler",
-                                     error_message)) {
+        if (!create_texture_sampler(pixelview_sampler_ci,
+                                    texture.pixelview_sampler,
+                                    "vkCreateSampler failed for pixel closeup",
+                                    "imiv.viewer.pixelview_sampler")) {
             break;
         }
 

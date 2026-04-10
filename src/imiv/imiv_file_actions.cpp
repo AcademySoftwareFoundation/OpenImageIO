@@ -362,16 +362,29 @@ namespace {
                                             output, error_message);
     }
 
-    bool save_selection_image(const LoadedImage& image,
-                              const ViewerState& viewer,
-                              const std::string& path,
-                              std::string& error_message)
+    bool write_imagebuf_to_path(ImageBuf& image, const std::string& path,
+                                TypeDesc format, std::string& error_message)
     {
         error_message.clear();
         if (path.empty()) {
             error_message = "save path is empty";
             return false;
         }
+        if (!image.write(path, format)) {
+            error_message = image.geterror();
+            if (error_message.empty())
+                error_message = "image write failed";
+            return false;
+        }
+        return true;
+    }
+
+    bool save_selection_image(const LoadedImage& image,
+                              const ViewerState& viewer,
+                              const std::string& path,
+                              std::string& error_message)
+    {
+        error_message.clear();
 
         ImageBuf result;
         if (!build_selection_source_image(image, viewer, result, error_message))
@@ -391,13 +404,8 @@ namespace {
         }
 
         result.specmod().attribute("Orientation", 1);
-        if (!result.write(path, result.spec().format)) {
-            error_message = result.geterror();
-            if (error_message.empty())
-                error_message = "image write failed";
-            return false;
-        }
-        return true;
+        return write_imagebuf_to_path(result, path, result.spec().format,
+                                      error_message);
     }
 
     bool save_window_image(const LoadedImage& image, const ViewRecipe& recipe,
@@ -405,24 +413,13 @@ namespace {
                            const std::string& path, std::string& error_message)
     {
         error_message.clear();
-        if (path.empty()) {
-            error_message = "save path is empty";
-            return false;
-        }
 
         ImageBuf output;
         if (!build_window_export_rgba_image(image, recipe, ui_state, output,
                                             error_message)) {
             return false;
         }
-
-        if (!output.write(path, TypeFloat)) {
-            error_message = output.geterror();
-            if (error_message.empty())
-                error_message = "image write failed";
-            return false;
-        }
-        return true;
+        return write_imagebuf_to_path(output, path, TypeFloat, error_message);
     }
 
     bool save_export_selection_image(const LoadedImage& image,
@@ -432,10 +429,6 @@ namespace {
                                      std::string& error_message)
     {
         error_message.clear();
-        if (path.empty()) {
-            error_message = "save path is empty";
-            return false;
-        }
 
         ImageBuf selection;
         if (!build_selection_source_image(image, viewer, selection,
@@ -448,24 +441,13 @@ namespace {
                                           ui_state, output, error_message)) {
             return false;
         }
-
-        if (!output.write(path, TypeFloat)) {
-            error_message = output.geterror();
-            if (error_message.empty())
-                error_message = "image write failed";
-            return false;
-        }
-        return true;
+        return write_imagebuf_to_path(output, path, TypeFloat, error_message);
     }
 
     bool save_loaded_image(const LoadedImage& image, const std::string& path,
                            std::string& error_message)
     {
         error_message.clear();
-        if (path.empty()) {
-            error_message = "save path is empty";
-            return false;
-        }
         if (image.width <= 0 || image.height <= 0 || image.nchannels <= 0) {
             error_message = "no valid image is loaded";
             return false;
@@ -507,14 +489,7 @@ namespace {
                 error_message = "failed to copy pixels into save buffer";
             return false;
         }
-
-        if (!output.write(path, format)) {
-            error_message = output.geterror();
-            if (error_message.empty())
-                error_message = "image write failed";
-            return false;
-        }
-        return true;
+        return write_imagebuf_to_path(output, path, format, error_message);
     }
 
     bool open_directory_into_library(RendererState& renderer_state,
@@ -591,50 +566,29 @@ namespace {
         return std::string();
     }
 
-    std::string save_dialog_default_name(const ViewerState& viewer)
+    std::string save_dialog_default_name(const ViewerState& viewer,
+                                         const char* fallback_name,
+                                         const char* suffix)
     {
         if (viewer.image.path.empty())
-            return "image.exr";
-        std::filesystem::path p(viewer.image.path);
-        if (p.filename().empty())
-            return "image.exr";
-        return p.filename().string();
-    }
+            return fallback_name;
 
-    std::string save_selection_default_name(const ViewerState& viewer)
-    {
-        if (viewer.image.path.empty())
-            return "selection.exr";
-        std::filesystem::path p(viewer.image.path);
-        const std::string stem = p.stem().empty() ? "selection"
-                                                  : p.stem().string();
-        const std::string ext  = p.extension().empty() ? ".exr"
-                                                       : p.extension().string();
-        return stem + "_selection" + ext;
-    }
+        const std::filesystem::path path(viewer.image.path);
+        if (suffix[0] == '\0') {
+            if (!path.filename().empty())
+                return path.filename().string();
+            return fallback_name;
+        }
 
-    std::string export_selection_default_name(const ViewerState& viewer)
-    {
-        if (viewer.image.path.empty())
-            return "selection_export.exr";
-        std::filesystem::path p(viewer.image.path);
-        const std::string stem = p.stem().empty() ? "selection_export"
-                                                  : p.stem().string();
-        const std::string ext  = p.extension().empty() ? ".exr"
-                                                       : p.extension().string();
-        return stem + "_selection_export" + ext;
-    }
-
-    std::string save_window_default_name(const ViewerState& viewer)
-    {
-        if (viewer.image.path.empty())
-            return "window.exr";
-        std::filesystem::path p(viewer.image.path);
-        const std::string stem = p.stem().empty() ? "window"
-                                                  : p.stem().string();
-        const std::string ext  = p.extension().empty() ? ".exr"
-                                                       : p.extension().string();
-        return stem + "_window" + ext;
+        const std::filesystem::path fallback(fallback_name);
+        const std::string stem = path.stem().empty() ? fallback.stem().string()
+                                                     : path.stem().string();
+        const std::string ext  = path.extension().empty()
+                                     ? (fallback.extension().empty()
+                                            ? ".exr"
+                                            : fallback.extension().string())
+                                     : path.extension().string();
+        return stem + suffix + ext;
     }
 
     struct SaveDialogSpec {
@@ -651,26 +605,32 @@ namespace {
         SaveDialogSpec spec;
         switch (kind) {
         case SaveDialogKind::SaveImage:
-            spec.default_name = save_dialog_default_name(viewer);
+            spec.default_name = save_dialog_default_name(viewer, "image.exr",
+                                                         "");
             return spec;
         case SaveDialogKind::SaveWindow:
             spec.cancel_message = "Save window cancelled";
-            spec.default_name   = save_window_default_name(viewer);
+            spec.default_name   = save_dialog_default_name(viewer, "window.exr",
+                                                           "_window");
             return spec;
         case SaveDialogKind::SaveSelection:
             spec.missing_selection_error = "No selection to save";
             spec.cancel_message          = "Save selection cancelled";
-            spec.default_name            = save_selection_default_name(viewer);
+            spec.default_name            = save_dialog_default_name(viewer,
+                                                                    "selection.exr",
+                                                                    "_selection");
             return spec;
         case SaveDialogKind::ExportSelection:
             spec.missing_image_error     = "No image loaded to export";
             spec.missing_selection_error = "No selection to export";
             spec.cancel_message          = "Export selection cancelled";
             spec.failure_prefix          = "export failed";
-            spec.default_name = export_selection_default_name(viewer);
+            spec.default_name            = save_dialog_default_name(viewer,
+                                                                    "selection_export.exr",
+                                                                    "_selection_export");
             return spec;
         }
-        spec.default_name = save_dialog_default_name(viewer);
+        spec.default_name = save_dialog_default_name(viewer, "image.exr", "");
         return spec;
     }
 

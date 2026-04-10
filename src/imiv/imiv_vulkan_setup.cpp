@@ -45,6 +45,24 @@ namespace Imiv {
 
 #if defined(IMIV_WITH_VULKAN)
 
+#    ifdef VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
+#        ifdef VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+constexpr const char* kPortabilityEnumerationExtensionName
+    = VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
+#        else
+constexpr const char* kPortabilityEnumerationExtensionName
+    = "VK_KHR_portability_enumeration";
+#        endif
+#    endif
+
+#    ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+constexpr const char* kPortabilitySubsetExtensionName
+    = VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME;
+#    else
+constexpr const char* kPortabilitySubsetExtensionName
+    = "VK_KHR_portability_subset";
+#    endif
+
 bool
 is_extension_available(const ImVector<VkExtensionProperties>& properties,
                        const char* extension_name)
@@ -94,30 +112,24 @@ is_layer_available(const char* layer_name)
 
 
 uint32_t
-vulkan_header_api_version()
+choose_instance_api_version()
 {
 #    ifdef VK_HEADER_VERSION_COMPLETE
-    return VK_HEADER_VERSION_COMPLETE;
+    constexpr uint32_t header_version = VK_HEADER_VERSION_COMPLETE;
 #    else
-    return VK_API_VERSION_1_0;
+    constexpr uint32_t header_version = VK_API_VERSION_1_0;
 #    endif
-}
 
-
-
-uint32_t
-query_loader_api_version()
-{
-    uint32_t version = VK_API_VERSION_1_0;
+    uint32_t loader_version = VK_API_VERSION_1_0;
     PFN_vkEnumerateInstanceVersion enumerate_instance_version
         = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
             vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion"));
     if (enumerate_instance_version != nullptr) {
-        uint32_t loader_version = VK_API_VERSION_1_0;
-        if (enumerate_instance_version(&loader_version) == VK_SUCCESS)
-            version = loader_version;
+        if (enumerate_instance_version(&loader_version) != VK_SUCCESS)
+            loader_version = VK_API_VERSION_1_0;
     }
-    return version;
+    return std::min(std::min(header_version, loader_version),
+                    VK_API_VERSION_1_3);
 }
 
 
@@ -138,40 +150,6 @@ read_vulkan_limit_override(const char* name, uint32_t& out_value)
     }
     out_value = static_cast<uint32_t>(raw);
     return out_value > 0;
-}
-
-
-
-uint32_t
-choose_instance_api_version()
-{
-    return std::min(std::min(vulkan_header_api_version(),
-                             query_loader_api_version()),
-                    VK_API_VERSION_1_3);
-}
-
-
-
-const char*
-portability_enumeration_extension_name()
-{
-#    ifdef VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
-    return VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
-#    else
-    return "VK_KHR_portability_enumeration";
-#    endif
-}
-
-
-
-const char*
-portability_subset_extension_name()
-{
-#    ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-    return VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME;
-#    else
-    return "VK_KHR_portability_subset";
-#    endif
 }
 
 
@@ -1172,9 +1150,9 @@ setup_vulkan_instance(VulkanState& vk_state,
             VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #    ifdef VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
     if (is_extension_available(instance_properties,
-                               portability_enumeration_extension_name())) {
+                               kPortabilityEnumerationExtensionName)) {
         append_unique_extension(instance_extensions,
-                                portability_enumeration_extension_name());
+                                kPortabilityEnumerationExtensionName);
         instance_ci.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     }
 #    endif
@@ -1269,9 +1247,9 @@ setup_vulkan_device(VulkanState& vk_state, std::string& error_message)
         return false;
     }
     if (is_extension_available(device_properties,
-                               portability_subset_extension_name())) {
+                               kPortabilitySubsetExtensionName)) {
         append_unique_extension(device_extensions,
-                                portability_subset_extension_name());
+                                kPortabilitySubsetExtensionName);
     }
 
     const float queue_priority[]     = { 1.0f };

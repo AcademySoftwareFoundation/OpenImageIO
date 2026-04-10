@@ -967,6 +967,62 @@ void main()
         return false;
     }
 
+    void bind_preview_texture_with_filter(GLuint texture_id, GLint filter)
+    {
+        glBindTexture(GL_TEXTURE_2D, texture_id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    }
+
+    bool begin_preview_draw(RendererBackendState& state,
+                            RendererTextureBackendState& texture_state,
+                            GLuint target_texture, std::string& error_message)
+    {
+        state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER,
+                                          state.preview_framebuffer);
+        state.extra_procs.FramebufferTexture2D(GL_FRAMEBUFFER,
+                                               GL_COLOR_ATTACHMENT0,
+                                               GL_TEXTURE_2D, target_texture,
+                                               0);
+        if (state.extra_procs.CheckFramebufferStatus(GL_FRAMEBUFFER)
+            != GL_FRAMEBUFFER_COMPLETE) {
+            state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER, 0);
+            error_message = "OpenGL preview framebuffer is incomplete";
+            return false;
+        }
+
+        glViewport(0, 0, texture_state.width, texture_state.height);
+        glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        clear_gl_error_queue();
+        return true;
+    }
+
+    void cleanup_preview_draw(RendererBackendState& state)
+    {
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindVertexArray(0);
+        glUseProgram(0);
+        state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    bool finish_preview_draw(RendererBackendState& state,
+                             const char* draw_error, std::string& error_message)
+    {
+        cleanup_preview_draw(state);
+        const GLenum err = glGetError();
+        if (err == GL_NO_ERROR) {
+            error_message.clear();
+            return true;
+        }
+        error_message = draw_error;
+        return false;
+    }
+
     bool allocate_source_texture_storage(GLuint texture_id, GLint filter,
                                          int width, int height,
                                          const SourceTextureUploadDesc& upload,
@@ -986,13 +1042,7 @@ void main()
             return false;
         }
 
-        glBindTexture(GL_TEXTURE_2D, texture_id);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        bind_preview_texture_with_filter(texture_id, filter);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         clear_gl_error_queue();
         glTexImage2D(GL_TEXTURE_2D, 0, upload.internal_format, width, height, 0,
@@ -1038,13 +1088,7 @@ void main()
                                           int width, int height,
                                           std::string& error_message)
     {
-        glBindTexture(GL_TEXTURE_2D, texture_id);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        bind_preview_texture_with_filter(texture_id, filter);
         clear_gl_error_queue();
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA,
                      GL_FLOAT, nullptr);
@@ -1067,24 +1111,10 @@ void main()
             || !ensure_preview_framebuffer(state, error_message)) {
             return false;
         }
-
-        state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER,
-                                          state.preview_framebuffer);
-        state.extra_procs.FramebufferTexture2D(GL_FRAMEBUFFER,
-                                               GL_COLOR_ATTACHMENT0,
-                                               GL_TEXTURE_2D, target_texture,
-                                               0);
-        if (state.extra_procs.CheckFramebufferStatus(GL_FRAMEBUFFER)
-            != GL_FRAMEBUFFER_COMPLETE) {
-            state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER, 0);
-            error_message = "OpenGL preview framebuffer is incomplete";
+        if (!begin_preview_draw(state, texture_state, target_texture,
+                                error_message)) {
             return false;
         }
-
-        glViewport(0, 0, texture_state.width, texture_state.height);
-        glDisable(GL_BLEND);
-        glDisable(GL_DEPTH_TEST);
-        clear_gl_error_queue();
         glUseProgram(state.basic_preview.program);
         glBindVertexArray(state.basic_preview.fullscreen_triangle_vao);
         glActiveTexture(GL_TEXTURE0);
@@ -1104,18 +1134,8 @@ void main()
         glUniform1i(state.basic_preview.orientation_location,
                     controls.orientation);
         state.extra_procs.DrawArrays(GL_TRIANGLES, 0, 3);
-
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glBindVertexArray(0);
-        glUseProgram(0);
-        state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER, 0);
-        const GLenum err = glGetError();
-        if (err == GL_NO_ERROR) {
-            error_message.clear();
-            return true;
-        }
-        error_message = "OpenGL preview draw failed";
-        return false;
+        return finish_preview_draw(state, "OpenGL preview draw failed",
+                                   error_message);
     }
 
     bool render_ocio_preview_texture(RendererBackendState& state,
@@ -1132,17 +1152,8 @@ void main()
             error_message = "OpenGL OCIO preview state is not initialized";
             return false;
         }
-
-        state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER,
-                                          state.preview_framebuffer);
-        state.extra_procs.FramebufferTexture2D(GL_FRAMEBUFFER,
-                                               GL_COLOR_ATTACHMENT0,
-                                               GL_TEXTURE_2D, target_texture,
-                                               0);
-        if (state.extra_procs.CheckFramebufferStatus(GL_FRAMEBUFFER)
-            != GL_FRAMEBUFFER_COMPLETE) {
-            state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER, 0);
-            error_message = "OpenGL preview framebuffer is incomplete";
+        if (!begin_preview_draw(state, texture_state, target_texture,
+                                error_message)) {
             return false;
         }
 
@@ -1156,10 +1167,6 @@ void main()
             state.ocio_preview.runtime->gamma_property->setValue(gamma);
         }
 
-        glViewport(0, 0, texture_state.width, texture_state.height);
-        glDisable(GL_BLEND);
-        glDisable(GL_DEPTH_TEST);
-        clear_gl_error_queue();
         glUseProgram(state.ocio_preview.program);
         glBindVertexArray(state.basic_preview.fullscreen_triangle_vao);
 
@@ -1186,26 +1193,14 @@ void main()
              state.ocio_preview.uniforms) {
             if (!set_ocio_uniform(uniform.location, uniform.data,
                                   state.extra_procs, error_message)) {
-                glBindVertexArray(0);
-                glUseProgram(0);
-                state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER, 0);
+                cleanup_preview_draw(state);
                 return false;
             }
         }
 
         state.extra_procs.DrawArrays(GL_TRIANGLES, 0, 3);
-
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glBindVertexArray(0);
-        glUseProgram(0);
-        state.extra_procs.BindFramebuffer(GL_FRAMEBUFFER, 0);
-        const GLenum err = glGetError();
-        if (err == GL_NO_ERROR) {
-            error_message.clear();
-            return true;
-        }
-        error_message = "OpenGL OCIO preview draw failed";
-        return false;
+        return finish_preview_draw(state, "OpenGL OCIO preview draw failed",
+                                   error_message);
     }
 
     bool build_rgba_float_pixels(const LoadedImage& image,
@@ -1557,23 +1552,20 @@ void main()
             return true;
         }
 
-        const bool ok = use_ocio_preview
-                            ? render_ocio_preview_texture(
-                                  *state, *texture_state,
-                                  texture_state->preview_linear_texture,
-                                  effective_controls, error_message)
-                                  && render_ocio_preview_texture(
-                                      *state, *texture_state,
-                                      texture_state->preview_nearest_texture,
-                                      effective_controls, error_message)
-                            : render_basic_preview_texture(
-                                  *state, *texture_state,
-                                  texture_state->preview_linear_texture,
-                                  effective_controls, error_message)
-                                  && render_basic_preview_texture(
-                                      *state, *texture_state,
-                                      texture_state->preview_nearest_texture,
-                                      effective_controls, error_message);
+        const auto render_preview = [&](GLuint target_texture) {
+            return use_ocio_preview
+                       ? render_ocio_preview_texture(*state, *texture_state,
+                                                     target_texture,
+                                                     effective_controls,
+                                                     error_message)
+                       : render_basic_preview_texture(*state, *texture_state,
+                                                      target_texture,
+                                                      effective_controls,
+                                                      error_message);
+        };
+        const bool ok = render_preview(texture_state->preview_linear_texture)
+                        && render_preview(
+                            texture_state->preview_nearest_texture);
         if (!ok) {
             texture.preview_initialized = false;
             return false;
