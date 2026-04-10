@@ -79,7 +79,7 @@ namespace {
         bool ready = false;
     };
 
-    struct RendererBackendState {
+    struct MetalRendererBackendState {
         GLFWwindow* window                                   = nullptr;
         id<MTLDevice> device                                 = nil;
         id<MTLCommandQueue> command_queue                    = nil;
@@ -159,8 +159,8 @@ namespace {
 
     void update_drawable_size(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state);
         if (state == nullptr || state->window == nullptr || state->layer == nil)
             return;
         int width  = 0;
@@ -834,7 +834,8 @@ namespace {
                 parts.has_uniform_struct = true;
                 break;
             case OCIO::UNIFORM_VECTOR_FLOAT: {
-                const std::string count_name = uniform_name + "_count";
+                const std::string count_name = std::string(uniform_name)
+                                               + "_count";
                 parts.uniforms_struct << "    int " << count_name << ";\n";
                 parts.uniform_bindings
                     << ",    constant float* " << uniform_name << " [[buffer("
@@ -848,7 +849,8 @@ namespace {
                 break;
             }
             case OCIO::UNIFORM_VECTOR_INT: {
-                const std::string count_name = uniform_name + "_count";
+                const std::string count_name = std::string(uniform_name)
+                                               + "_count";
                 parts.uniforms_struct << "    int " << count_name << ";\n";
                 parts.uniform_bindings
                     << ",    constant int* " << uniform_name << " [[buffer("
@@ -1081,7 +1083,7 @@ kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]
         return [NSString stringWithUTF8String:source];
     }
 
-    bool create_upload_pipeline(RendererBackendState& state,
+    bool create_upload_pipeline(MetalRendererBackendState& state,
                                 std::string& error_message)
     {
         MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
@@ -1099,7 +1101,7 @@ kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]
             error_message);
     }
 
-    bool upload_source_texture(RendererBackendState& state,
+    bool upload_source_texture(MetalRendererBackendState& state,
                                const LoadedImage& image, id<MTLTexture> texture,
                                std::string& error_message)
     {
@@ -1303,7 +1305,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         return [NSString stringWithUTF8String:source.c_str()];
     }
 
-    bool create_preview_pipeline(RendererBackendState& state,
+    bool create_preview_pipeline(MetalRendererBackendState& state,
                                  std::string& error_message)
     {
         MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
@@ -1515,7 +1517,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         }
     }
 
-    bool ensure_ocio_preview_program(RendererBackendState& state,
+    bool ensure_ocio_preview_program(MetalRendererBackendState& state,
                                      const PlaceholderUiState& ui_state,
                                      const LoadedImage* image,
                                      std::string& error_message)
@@ -1591,7 +1593,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         return true;
     }
 
-    bool render_ocio_preview_texture(RendererBackendState& state,
+    bool render_ocio_preview_texture(MetalRendererBackendState& state,
                                      RendererTextureBackendState& texture_state,
                                      id<MTLTexture> target_texture,
                                      id<MTLSamplerState> source_sampler,
@@ -1659,7 +1661,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                                          error_message);
     }
 
-    bool render_preview_texture(RendererBackendState& state,
+    bool render_preview_texture(MetalRendererBackendState& state,
                                 RendererTextureBackendState& texture_state,
                                 id<MTLTexture> target_texture,
                                 id<MTLSamplerState> sampler_state,
@@ -1742,8 +1744,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                               RendererTexture& texture,
                               std::string& error_message)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state);
         if (state == nullptr || state->device == nil) {
             error_message = "Metal window/device is not initialized";
             return false;
@@ -1842,8 +1844,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                                       const PreviewControls& controls,
                                       std::string& error_message)
     {
-        RendererBackendState* renderer_backend
-            = backend_state<RendererBackendState>(renderer_state);
+        MetalRendererBackendState* renderer_backend
+            = backend_state<MetalRendererBackendState>(renderer_state);
         RendererTextureBackendState* texture_state
             = texture_backend_state<RendererTextureBackendState>(texture);
         if (renderer_backend == nullptr || texture_state == nullptr) {
@@ -1913,7 +1915,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                               std::string& error_message)
     {
         (void)instance_extensions;
-        if (!ensure_default_backend_state<RendererBackendState>(
+        if (!ensure_default_backend_state<MetalRendererBackendState>(
                 renderer_state)) {
             error_message = "failed to allocate Metal renderer state";
             return false;
@@ -1925,12 +1927,13 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool metal_create_surface(RendererState& renderer_state, GLFWwindow* window,
                               std::string& error_message)
     {
-        if (!ensure_default_backend_state<RendererBackendState>(
+        if (!ensure_default_backend_state<MetalRendererBackendState>(
                 renderer_state)) {
             error_message = "failed to allocate Metal renderer state";
             return false;
         }
-        backend_state<RendererBackendState>(renderer_state)->window = window;
+        backend_state<MetalRendererBackendState>(renderer_state)->window
+            = window;
         error_message.clear();
         return true;
     }
@@ -1938,8 +1941,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool metal_setup_device(RendererState& renderer_state,
                             std::string& error_message)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state);
         if (state == nullptr) {
             error_message = "Metal renderer state is not initialized";
             return false;
@@ -1964,8 +1967,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool metal_setup_window(RendererState& renderer_state, int width,
                             int height, std::string& error_message)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state);
         if (state == nullptr || state->window == nullptr
             || state->device == nil) {
             error_message = "Metal window/device is not initialized";
@@ -1991,8 +1994,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
 
     void metal_cleanup_window(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state);
         if (state == nullptr)
             return;
         state->current_drawable       = nil;
@@ -2002,8 +2005,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
 
     void metal_cleanup(RendererState& renderer_state)
     {
-        if (RendererBackendState* state = backend_state<RendererBackendState>(
-                renderer_state)) {
+        if (MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state)) {
             destroy_ocio_preview_program(state->ocio_preview);
             delete state;
         }
@@ -2013,8 +2016,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool metal_wait_idle(RendererState& renderer_state,
                          std::string& error_message)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state);
         if (state != nullptr && state->current_command_buffer != nil)
             [state->current_command_buffer waitUntilCompleted];
         error_message.clear();
@@ -2024,8 +2027,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     bool metal_imgui_init(RendererState& renderer_state,
                           std::string& error_message)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state);
         if (state == nullptr || state->device == nil) {
             error_message = "Metal device is not initialized";
             return false;
@@ -2038,8 +2041,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
 
     void metal_imgui_new_frame(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state);
         if (state == nullptr || state->layer == nil
             || state->render_pass == nil)
             return;
@@ -2069,8 +2072,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
     void metal_frame_render(RendererState& renderer_state,
                             ImDrawData* draw_data)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state);
         if (state == nullptr || state->current_drawable == nil
             || state->command_queue == nil || state->render_pass == nil) {
             return;
@@ -2084,8 +2087,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
 
     void metal_frame_present(RendererState& renderer_state)
     {
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(renderer_state);
         if (state == nullptr || state->current_command_buffer == nil
             || state->current_drawable == nil) {
             return;
@@ -2108,8 +2111,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         if (renderer_state == nullptr || pixels == nullptr || w <= 0 || h <= 0)
             return false;
 
-        RendererBackendState* state = backend_state<RendererBackendState>(
-            *renderer_state);
+        MetalRendererBackendState* state
+            = backend_state<MetalRendererBackendState>(*renderer_state);
         if (state == nullptr || state->current_drawable == nil
             || state->current_command_buffer == nil
             || state->current_encoder == nil) {
@@ -2272,7 +2275,7 @@ const RendererBackendVTable k_metal_vtable = {
     metal_setup_device,
     metal_setup_window,
     metal_create_surface,
-    renderer_clear_backend_window<RendererBackendState>,
+    renderer_clear_backend_window<MetalRendererBackendState>,
     metal_cleanup_window,
     metal_cleanup,
     metal_wait_idle,
