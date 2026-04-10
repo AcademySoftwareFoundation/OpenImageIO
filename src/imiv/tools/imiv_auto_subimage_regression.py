@@ -6,74 +6,25 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
-import shlex
 import shutil
 import subprocess
-import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _default_oiiotool(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "oiiotool",
-        repo_root / "build" / "bin" / "oiiotool",
-        repo_root / "build_u" / "src" / "oiiotool" / "oiiotool",
-        repo_root / "build" / "src" / "oiiotool" / "oiiotool",
-        repo_root / "build" / "Debug" / "oiiotool.exe",
-        repo_root / "build" / "Release" / "oiiotool.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    which = shutil.which("oiiotool")
-    return Path(which) if which else candidates[0]
-
-
-def _load_env_from_script(script_path: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    if not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    loaded: dict[str, str] = {}
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        loaded[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    env.update(loaded)
-    return env
-
-
-def _fail(message: str) -> int:
-    print(f"error: {message}", file=sys.stderr)
-    return 1
+from imiv_test_utils import (
+    default_binary,
+    default_env_script,
+    default_oiiotool,
+    fail,
+    load_env_from_script,
+    path_for_imiv_output,
+    repo_root as imiv_repo_root,
+    resolve_existing_tool,
+    resolve_run_cwd,
+    run_logged_process,
+    runner_command,
+    runner_path,
+)
 
 
 def _run_checked(cmd: list[str], *, cwd: Path) -> None:
@@ -112,13 +63,6 @@ def _generate_subimage_fixture(oiiotool: Path, out_path: Path) -> None:
     cmd.extend(str(path) for path in tmp_paths)
     cmd.extend(["--siappendall", "-o", str(out_path)])
     _run_checked(cmd, cwd=out_path.parent)
-
-
-def _path_for_imiv_output(path: Path, run_cwd: Path) -> str:
-    try:
-        return os.path.relpath(path, run_cwd)
-    except ValueError:
-        return str(path)
 
 
 def _write_scenario(path: Path, runtime_dir_rel: str) -> None:
@@ -162,16 +106,7 @@ def _run_scenario(
     runtime_dir.mkdir(parents=True, exist_ok=True)
     config_home = out_dir / "cfg_scenario"
     shutil.rmtree(config_home, ignore_errors=True)
-    cmd = [
-        sys.executable,
-        str(runner),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(cwd),
-    ]
-    if backend:
-        cmd.extend(["--backend", backend])
+    cmd = runner_command(exe, cwd, backend)
     cmd.extend(
         [
             "--open",
@@ -186,16 +121,13 @@ def _run_scenario(
     case_env = dict(env)
     case_env["IMIV_CONFIG_HOME"] = str(config_home)
 
-    with (out_dir / "scenario.log").open("w", encoding="utf-8") as log_handle:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(repo_root),
-            env=case_env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=90,
-        )
+    proc = run_logged_process(
+        cmd,
+        cwd=repo_root,
+        env=case_env,
+        timeout=90,
+        log_path=out_dir / "scenario.log",
+    )
     if proc.returncode != 0:
         raise RuntimeError(f"scenario: runner exited with code {proc.returncode}")
 
@@ -226,14 +158,14 @@ def _calc_expected_subimage_from_zoom(
 
 
 def main() -> int:
-    repo_root = Path(__file__).resolve().parents[3]
-    default_runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
-    default_env_script = repo_root / "build_u" / "imiv_env.sh"
+    repo_root = imiv_repo_root()
+    default_runner = runner_path(repo_root)
+    env_script_default = default_env_script(repo_root)
     default_out = repo_root / "build_u" / "imiv_captures" / "auto_subimage_regression"
     default_image = default_out / "auto_subimages.tif"
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
+    ap.add_argument("--bin", default=str(default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
         "--backend",
@@ -241,11 +173,11 @@ def main() -> int:
         help="Optional runtime backend override passed through to imiv",
     )
     ap.add_argument(
-        "--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool executable"
+        "--oiiotool", default=str(default_oiiotool(repo_root)), help="oiiotool executable"
     )
     ap.add_argument(
         "--env-script",
-        default=str(default_env_script),
+        default=str(env_script_default),
         help="Optional shell env setup script",
     )
     ap.add_argument("--out-dir", default=str(default_out), help="Output directory")
@@ -259,15 +191,15 @@ def main() -> int:
 
     exe = Path(args.bin).expanduser().resolve()
     if not exe.exists():
-        return _fail(f"binary not found: {exe}")
-    oiiotool = Path(args.oiiotool).expanduser().resolve()
+        return fail(f"binary not found: {exe}")
+    oiiotool = resolve_existing_tool(args.oiiotool, default_oiiotool(repo_root))
     if not oiiotool.exists():
-        return _fail(f"oiiotool not found: {oiiotool}")
+        return fail(f"oiiotool not found: {oiiotool}")
     runner = default_runner.resolve()
     if not runner.exists():
-        return _fail(f"runner not found: {runner}")
+        return fail(f"runner not found: {runner}")
 
-    cwd = Path(args.cwd).expanduser().resolve() if args.cwd else exe.parent.resolve()
+    cwd = resolve_run_cwd(exe, args.cwd)
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     image_path = Path(args.image).expanduser().resolve()
@@ -275,14 +207,14 @@ def main() -> int:
     try:
         _generate_subimage_fixture(oiiotool, image_path)
     except subprocess.SubprocessError as exc:
-        return _fail(f"failed to generate subimage fixture: {exc}")
+        return fail(f"failed to generate subimage fixture: {exc}")
 
-    env = _load_env_from_script(Path(args.env_script).expanduser())
+    env = load_env_from_script(Path(args.env_script).expanduser())
 
     try:
         scenario_path = out_dir / "auto_subimage.scenario.xml"
         runtime_dir = out_dir / "runtime"
-        _write_scenario(scenario_path, _path_for_imiv_output(runtime_dir, cwd))
+        _write_scenario(scenario_path, path_for_imiv_output(runtime_dir, cwd))
         scenario_states = _run_scenario(
             repo_root,
             runner,
@@ -299,7 +231,7 @@ def main() -> int:
         enabled = scenario_states["enable_auto"]
         auto_zoom = scenario_states["zoom_out"]
     except (RuntimeError, subprocess.SubprocessError) as exc:
-        return _fail(str(exc))
+        return fail(str(exc))
 
     for name, state in (
         ("baseline", baseline),
@@ -307,20 +239,20 @@ def main() -> int:
         ("auto_zoom_out", auto_zoom),
     ):
         if not state.get("image_loaded", False):
-            return _fail(f"{name}: image not loaded")
+            return fail(f"{name}: image not loaded")
 
     baseline_zoom = float(baseline["zoom"])
     if not (baseline_zoom > 0.0 and baseline_zoom < 1.0):
-        return _fail(f"baseline zoom expected fit-in-window range, got {baseline_zoom:.6f}")
+        return fail(f"baseline zoom expected fit-in-window range, got {baseline_zoom:.6f}")
     if bool(baseline["auto_subimage"]):
-        return _fail("baseline unexpectedly started with auto_subimage enabled")
+        return fail("baseline unexpectedly started with auto_subimage enabled")
     if int(baseline["subimage"]) != 0:
-        return _fail(f"baseline subimage expected 0, got {baseline['subimage']}")
+        return fail(f"baseline subimage expected 0, got {baseline['subimage']}")
 
     if not bool(enabled["auto_subimage"]):
-        return _fail("Shift+, did not enable auto_subimage")
+        return fail("Shift+, did not enable auto_subimage")
     if int(enabled["subimage"]) != 0:
-        return _fail(f"enable_auto changed subimage unexpectedly: {enabled['subimage']}")
+        return fail(f"enable_auto changed subimage unexpectedly: {enabled['subimage']}")
 
     expected_subimage, expected_zoom = _calc_expected_subimage_from_zoom(
         current_subimage=0, nsubimages=4, zoom=float(enabled["zoom"]) * 0.5
@@ -328,17 +260,17 @@ def main() -> int:
     actual_subimage = int(auto_zoom["subimage"])
     actual_zoom = float(auto_zoom["zoom"])
     if not bool(auto_zoom["auto_subimage"]):
-        return _fail("auto_zoom_out did not keep auto_subimage enabled")
+        return fail("auto_zoom_out did not keep auto_subimage enabled")
     if actual_subimage != expected_subimage:
-        return _fail(
+        return fail(
             f"auto_zoom_out landed on wrong subimage: expected {expected_subimage}, got {actual_subimage}"
         )
     if expected_subimage <= 0:
-        return _fail(
+        return fail(
             f"test fixture did not force a real auto-subimage switch: expected_subimage={expected_subimage}"
         )
     if abs(actual_zoom - expected_zoom) > 0.05:
-        return _fail(
+        return fail(
             f"auto_zoom_out restored wrong zoom: expected {expected_zoom:.6f}, got {actual_zoom:.6f}"
         )
 

@@ -60,6 +60,18 @@ def default_oiiotool(root: Path | None = None) -> Path:
     return candidates[0]
 
 
+def default_idiff(root: Path | None = None) -> Path:
+    root = repo_root() if root is None else root
+    candidates = _default_tool_candidates(root, "idiff", "idiff")
+    found = _first_existing_path(candidates)
+    if found is not None:
+        return found
+    which = shutil.which("idiff")
+    if which is not None:
+        return Path(which)
+    return candidates[0]
+
+
 def default_env_script(root: Path | None = None, exe: Path | None = None) -> Path:
     root = repo_root() if root is None else root
     candidates: list[Path] = []
@@ -174,3 +186,25 @@ def run_logged_process(
             stderr=subprocess.STDOUT,
             timeout=timeout,
         )
+
+
+def run_captured_process(
+    cmd: Sequence[str | Path],
+    *,
+    cwd: Path,
+    env: Mapping[str, str] | None = None,
+    timeout: float | None = None,
+    check: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    argv = [str(part) for part in cmd]
+    print("run:", " ".join(argv))
+    return subprocess.run(
+        argv,
+        cwd=str(cwd),
+        env=dict(env) if env is not None else None,
+        check=check,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        timeout=timeout,
+    )

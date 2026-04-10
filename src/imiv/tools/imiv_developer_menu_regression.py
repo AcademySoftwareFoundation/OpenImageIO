@@ -5,13 +5,18 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import shlex
-import shutil
-import subprocess
-import sys
 import time
 from pathlib import Path
+
+from imiv_test_utils import (
+    default_binary,
+    default_env_script,
+    fail,
+    load_env_from_script,
+    repo_root as imiv_repo_root,
+    resolve_run_cwd,
+    run_logged_process,
+)
 
 
 ERROR_PATTERNS = (
@@ -20,67 +25,21 @@ ERROR_PATTERNS = (
     "developer menu regression: demo window did not open",
 )
 
-
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _load_env_from_script(script_path: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    if not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    loaded: dict[str, str] = {}
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        loaded[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    env.update(loaded)
-    return env
-
-
-def _fail(message: str) -> int:
-    print(f"error: {message}", file=sys.stderr)
-    return 1
-
-
 def main() -> int:
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = imiv_repo_root()
     default_image = repo_root / "ASWF" / "logos" / "openimageio-stacked-gradient.png"
     default_out = repo_root / "build_u" / "imiv_captures" / "developer_menu_regression"
-    default_env_script = repo_root / "build_u" / "imiv_env.sh"
+    env_script_default = default_env_script(repo_root)
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
+    ap.add_argument("--bin", default=str(default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
         "--backend",
         default="",
         help="Optional runtime backend override passed directly to imiv",
     )
-    ap.add_argument("--env-script", default=str(default_env_script), help="Optional shell env setup script")
+    ap.add_argument("--env-script", default=str(env_script_default), help="Optional shell env setup script")
     ap.add_argument("--open", default=str(default_image), help="Image to open")
     ap.add_argument("--out-dir", default=str(default_out), help="Output directory")
     ap.add_argument("--trace", action="store_true", help="Enable test engine trace")
@@ -88,19 +47,19 @@ def main() -> int:
 
     exe = Path(args.bin).expanduser().resolve()
     if not exe.exists():
-        return _fail(f"binary not found: {exe}")
+        return fail(f"binary not found: {exe}")
 
-    cwd = Path(args.cwd).expanduser().resolve() if args.cwd else exe.parent.resolve()
+    cwd = resolve_run_cwd(exe, args.cwd)
     image_path = Path(args.open).expanduser().resolve()
     if not image_path.exists():
-        return _fail(f"image not found: {image_path}")
+        return fail(f"image not found: {image_path}")
 
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     layout_path = out_dir / "developer_menu_layout.json"
     log_path = out_dir / "developer_menu.log"
 
-    env = _load_env_from_script(Path(args.env_script).expanduser())
+    env = load_env_from_script(Path(args.env_script).expanduser())
     env.update(
         {
             "OIIO_DEVMODE": "1",
@@ -119,31 +78,24 @@ def main() -> int:
     if args.backend:
         cmd.extend(["--backend", args.backend])
     cmd.append(str(image_path))
-    with log_path.open("w", encoding="utf-8") as log_handle:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(cwd),
-            env=env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=60,
-        )
+    proc = run_logged_process(
+        cmd, cwd=cwd, env=env, timeout=60, log_path=log_path
+    )
 
     if proc.returncode != 0:
-        return _fail(f"imiv exited with code {proc.returncode}")
+        return fail(f"imiv exited with code {proc.returncode}")
 
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
     for pattern in ERROR_PATTERNS:
         if pattern in log_text:
-            return _fail(f"found runtime error pattern: {pattern}")
+            return fail(f"found runtime error pattern: {pattern}")
 
     deadline = time.monotonic() + 2.0
     while not layout_path.exists() and time.monotonic() < deadline:
         time.sleep(0.05)
 
     if not layout_path.exists():
-        return _fail(f"layout json not written: {layout_path}")
+        return fail(f"layout json not written: {layout_path}")
 
     window_names: list[str] = []
     deadline = time.monotonic() + 2.0
@@ -159,7 +111,7 @@ def main() -> int:
         time.sleep(0.05)
 
     if "Dear ImGui Demo" not in window_names:
-        return _fail("layout json does not contain Dear ImGui Demo window")
+        return fail("layout json does not contain Dear ImGui Demo window")
 
     print("layout:", layout_path)
     print("log:", log_path)

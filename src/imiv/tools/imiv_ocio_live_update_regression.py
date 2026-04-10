@@ -7,12 +7,23 @@ import argparse
 import json
 import math
 import os
-import shlex
 import shutil
 import subprocess
-import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
+
+from imiv_test_utils import (
+    default_binary,
+    fail,
+    load_env_from_script,
+    path_for_imiv_output,
+    repo_root as imiv_repo_root,
+    resolve_existing_tool,
+    resolve_run_cwd,
+    run_logged_process,
+    runner_command,
+    runner_path,
+)
 
 
 ERROR_PATTERNS = (
@@ -26,21 +37,6 @@ ERROR_PATTERNS = (
 
 def _default_case_timeout() -> float:
     return 180.0 if os.name == "nt" else 45.0
-
-
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
 
 
 def _default_oiiotool(repo_root: Path) -> Path:
@@ -73,17 +69,6 @@ def _default_ocio_config(_: Path) -> str:
     return "ocio://default"
 
 
-def _resolve_existing_tool(requested: str, fallback: Path) -> Path:
-    candidate = Path(requested)
-    if requested:
-        candidate = candidate.expanduser()
-        if candidate.exists():
-            return candidate.resolve()
-    if fallback.exists():
-        return fallback.resolve()
-    return candidate
-
-
 def _resolve_ocio_config_argument(value: str) -> str:
     candidate = str(value).strip()
     if not candidate:
@@ -91,31 +76,6 @@ def _resolve_ocio_config_argument(value: str) -> str:
     if candidate.startswith("ocio://"):
         return candidate
     return str(Path(candidate).expanduser().resolve())
-
-
-def _load_env_from_script(script_path: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    if not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    loaded: dict[str, str] = {}
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        loaded[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    env.update(loaded)
-    return env
 
 
 def _generate_probe_image(repo_root: Path, oiiotool: Path, image_path: Path) -> None:
@@ -468,16 +428,8 @@ def _normalized_rgb_diff(
     return _mean_abs_diff(lhs_ppm, rhs_ppm)
 
 
-def _path_for_imiv_output(path: Path, run_cwd: Path) -> str:
-    try:
-        return os.path.relpath(path, run_cwd)
-    except ValueError:
-        return str(path)
-
-
 def _run_gui_case(
     repo_root: Path,
-    runner: Path,
     exe: Path,
     run_cwd: Path,
     backend: str,
@@ -493,16 +445,7 @@ def _run_gui_case(
     layout_path = out_dir / f"{name}.json"
     state_path = out_dir / f"{name}.state.json"
     log_path = out_dir / f"{name}.log"
-    cmd = [
-        sys.executable,
-        str(runner),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(run_cwd),
-    ]
-    if backend:
-        cmd.extend(["--backend", backend])
+    cmd = runner_command(exe, run_cwd, backend)
     cmd.extend(
         [
             "--open",
@@ -520,16 +463,13 @@ def _run_gui_case(
     if trace:
         cmd.append("--trace")
 
-    with log_path.open("w", encoding="utf-8") as log_handle:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(repo_root),
-            env=env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=case_timeout,
-        )
+    proc = run_logged_process(
+        cmd,
+        cwd=repo_root,
+        env=env,
+        timeout=case_timeout,
+        log_path=log_path,
+    )
     if proc.returncode != 0:
         raise RuntimeError(f"{name}: runner exited with code {proc.returncode}")
     for path, label in (
@@ -629,7 +569,6 @@ def _write_live_scenario(
 
 def _run_scenario_case(
     repo_root: Path,
-    runner: Path,
     exe: Path,
     run_cwd: Path,
     backend: str,
@@ -641,16 +580,7 @@ def _run_scenario_case(
     trace: bool,
 ) -> Path:
     scenario_log = out_dir / "scenario.log"
-    cmd = [
-        sys.executable,
-        str(runner),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(run_cwd),
-    ]
-    if backend:
-        cmd.extend(["--backend", backend])
+    cmd = runner_command(exe, run_cwd, backend)
     cmd.extend(
         [
             "--open",
@@ -662,16 +592,13 @@ def _run_scenario_case(
     if trace:
         cmd.append("--trace")
 
-    with scenario_log.open("w", encoding="utf-8") as log_handle:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(repo_root),
-            env=env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=case_timeout,
-        )
+    proc = run_logged_process(
+        cmd,
+        cwd=repo_root,
+        env=env,
+        timeout=case_timeout,
+        log_path=scenario_log,
+    )
     if proc.returncode != 0:
         raise RuntimeError(f"scenario: runner exited with code {proc.returncode}")
 
@@ -682,21 +609,16 @@ def _run_scenario_case(
     return scenario_log
 
 
-def _fail(message: str) -> int:
-    print(f"error: {message}", file=sys.stderr)
-    return 1
-
-
 def main() -> int:
-    repo_root = Path(__file__).resolve().parents[3]
-    runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
+    repo_root = imiv_repo_root()
+    runner = runner_path(repo_root)
     default_out = repo_root / "build_u" / "imiv_captures" / "ocio_live_update_regression"
     default_env_script = repo_root / "build_u" / "imiv_env.sh"
     default_image = default_out / "ocio_live_input.exr"
     default_config = _default_ocio_config(repo_root)
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
+    ap.add_argument("--bin", default=str(default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
         "--backend",
@@ -741,20 +663,20 @@ def main() -> int:
 
     exe = Path(args.bin).resolve()
     if not exe.exists():
-        return _fail(f"binary not found: {exe}")
+        return fail(f"binary not found: {exe}")
     if not runner.exists():
-        return _fail(f"runner not found: {runner}")
+        return fail(f"runner not found: {runner}")
 
-    oiiotool = _resolve_existing_tool(args.oiiotool, _default_oiiotool(repo_root))
-    idiff = _resolve_existing_tool(args.idiff, _default_idiff(repo_root))
+    oiiotool = resolve_existing_tool(args.oiiotool, _default_oiiotool(repo_root))
+    idiff = resolve_existing_tool(args.idiff, _default_idiff(repo_root))
     _ = idiff
     ocio_config = _resolve_ocio_config_argument(args.ocio_config)
     if not ocio_config.startswith("ocio://"):
         ocio_config_path = Path(ocio_config)
         if not ocio_config_path.exists():
-            return _fail(f"OCIO config not found: {ocio_config_path}")
+            return fail(f"OCIO config not found: {ocio_config_path}")
 
-    run_cwd = Path(args.cwd).resolve() if args.cwd else exe.parent.resolve()
+    run_cwd = resolve_run_cwd(exe, args.cwd)
     out_dir = Path(args.out_dir).resolve()
     runtime_dir = out_dir / "runtime"
     image_path = Path(args.image).resolve()
@@ -767,7 +689,7 @@ def main() -> int:
     probe_config_home.mkdir(parents=True, exist_ok=True)
     scenario_config_home.mkdir(parents=True, exist_ok=True)
 
-    env = _load_env_from_script(Path(args.env_script).resolve())
+    env = load_env_from_script(Path(args.env_script).resolve())
     env["OCIO"] = ocio_config
 
     try:
@@ -777,7 +699,6 @@ def main() -> int:
         probe_env["IMIV_CONFIG_HOME"] = str(probe_config_home)
         _, _, probe_state, probe_log = _run_gui_case(
             repo_root,
-            runner,
             exe,
             run_cwd,
             args.backend,
@@ -798,7 +719,7 @@ def main() -> int:
             image_color_space,
         ) = _resolve_live_targets(args, probe_state)
 
-        runtime_dir_rel = _path_for_imiv_output(runtime_dir, run_cwd)
+        runtime_dir_rel = path_for_imiv_output(runtime_dir, run_cwd)
         _write_live_scenario(
             scenario_path,
             runtime_dir_rel,
@@ -814,7 +735,6 @@ def main() -> int:
         scenario_env["IMIV_CONFIG_HOME"] = str(scenario_config_home)
         scenario_log = _run_scenario_case(
             repo_root,
-            runner,
             exe,
             run_cwd,
             args.backend,
@@ -889,13 +809,13 @@ def main() -> int:
             live_switch_crop,
         )
     except (OSError, subprocess.CalledProcessError, RuntimeError, subprocess.TimeoutExpired) as exc:
-        return _fail(str(exc))
+        return fail(str(exc))
 
     static_noop_diff = _normalized_rgb_diff(
         oiiotool, static_raw_crop, live_noop_crop, crop_dir, "static_vs_noop"
     )
     if static_noop_diff > 2.0:
-        return _fail(
+        return fail(
             "live noop OCIO update changed the image region unexpectedly "
             f"(mean abs RGB diff={static_noop_diff:.4f})"
         )
@@ -904,7 +824,7 @@ def main() -> int:
         oiiotool, static_raw_crop, live_switch_crop, crop_dir, "static_vs_switch"
     )
     if static_switch_diff <= 4.0:
-        return _fail(
+        return fail(
             f"live OCIO {args.switch_mode} switch did not update the image region "
             f"(mean abs RGB diff={static_switch_diff:.4f})"
         )
@@ -913,7 +833,7 @@ def main() -> int:
         oiiotool, static_target_crop, live_switch_crop, crop_dir, "target_vs_switch"
     )
     if target_switch_diff > 2.0:
-        return _fail(
+        return fail(
             f"live OCIO {args.switch_mode} switch does not match the settled target state "
             f"(mean abs RGB diff={target_switch_diff:.4f})"
         )

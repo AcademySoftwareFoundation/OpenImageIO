@@ -5,75 +5,25 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import shlex
 import shutil
 import subprocess
-import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
-
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _default_oiiotool(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build" / "bin" / "oiiotool",
-        repo_root / "build_u" / "bin" / "oiiotool",
-        repo_root / "build" / "src" / "oiiotool" / "oiiotool",
-        repo_root / "build_u" / "src" / "oiiotool" / "oiiotool",
-        repo_root / "build" / "Debug" / "oiiotool.exe",
-        repo_root / "build" / "Release" / "oiiotool.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return Path("oiiotool")
-
-
-def _load_env_from_script(script_path: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    if not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        env[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    return env
-
-
-def _fail(message: str) -> int:
-    print(f"error: {message}", file=sys.stderr)
-    return 1
+from imiv_test_utils import (
+    default_binary,
+    default_env_script,
+    default_oiiotool,
+    fail,
+    load_env_from_script,
+    path_for_imiv_output,
+    repo_root as imiv_repo_root,
+    resolve_existing_tool,
+    resolve_run_cwd,
+    run_captured_process,
+    runner_command,
+    runner_path,
+)
 
 
 def _write_scenario(path: Path, runtime_dir_rel: str) -> None:
@@ -128,13 +78,13 @@ def _norm_scroll_centered(state: dict, tol: float = 0.08) -> bool:
 
 
 def main() -> int:
-    repo_root = _repo_root()
-    runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
-    default_env_script = repo_root / "build" / "imiv_env.sh"
+    repo_root = imiv_repo_root()
+    runner = runner_path(repo_root)
+    env_script_default = default_env_script(repo_root)
     default_out_dir = repo_root / "build" / "imiv_captures" / "image_list_center_regression"
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
+    ap.add_argument("--bin", default=str(default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
         "--backend",
@@ -143,31 +93,27 @@ def main() -> int:
     )
     ap.add_argument(
         "--env-script",
-        default=str(default_env_script),
+        default=str(env_script_default),
         help="Optional shell env setup script",
     )
     ap.add_argument("--out-dir", default=str(default_out_dir), help="Output directory")
     ap.add_argument(
-        "--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool executable"
+        "--oiiotool", default=str(default_oiiotool(repo_root)), help="oiiotool executable"
     )
     ap.add_argument("--trace", action="store_true", help="Enable test engine trace")
     args = ap.parse_args()
 
     exe = Path(args.bin).expanduser().resolve()
     if not exe.exists():
-        return _fail(f"binary not found: {exe}")
+        return fail(f"binary not found: {exe}")
     runner = runner.resolve()
     if not runner.exists():
-        return _fail(f"runner not found: {runner}")
-    oiiotool = Path(args.oiiotool).expanduser()
+        return fail(f"runner not found: {runner}")
+    oiiotool = resolve_existing_tool(args.oiiotool, default_oiiotool(repo_root))
     if not oiiotool.exists():
-        found = shutil.which(str(oiiotool))
-        if found is None:
-            return _fail(f"oiiotool not found: {oiiotool}")
-        oiiotool = Path(found)
-    oiiotool = oiiotool.resolve()
+        return fail(f"oiiotool not found: {oiiotool}")
 
-    cwd = Path(args.cwd).expanduser().resolve() if args.cwd else exe.parent.resolve()
+    cwd = resolve_run_cwd(exe, args.cwd)
     out_dir = Path(args.out_dir).expanduser().resolve()
     runtime_dir = out_dir / "runtime"
     scenario_path = out_dir / "image_list_center.scenario.xml"
@@ -180,67 +126,45 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     _build_wide_fixture(oiiotool, fixture_path)
-    _write_scenario(scenario_path, os.path.relpath(runtime_dir, cwd))
+    _write_scenario(scenario_path, path_for_imiv_output(runtime_dir, cwd))
 
-    env = dict(os.environ)
-    env.update(_load_env_from_script(Path(args.env_script).expanduser()))
+    env = load_env_from_script(Path(args.env_script).expanduser())
     config_home = out_dir / "cfg"
     config_home.mkdir(parents=True, exist_ok=True)
     env["IMIV_CONFIG_HOME"] = str(config_home)
 
-    cmd = [
-        sys.executable,
-        str(runner),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(cwd),
-        "--open",
-        str(fixture_path),
-        "--scenario",
-        str(scenario_path),
-    ]
-    if args.backend:
-        cmd.extend(["--backend", args.backend])
+    cmd = runner_command(exe, cwd, args.backend)
+    cmd.extend(["--open", str(fixture_path), "--scenario", str(scenario_path)])
     if args.trace:
         cmd.append("--trace")
 
-    print("run:", " ".join(cmd))
-    proc = subprocess.run(
-        cmd,
-        cwd=str(repo_root),
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        check=False,
-    )
+    proc = run_captured_process(cmd, cwd=repo_root, env=env)
     log_path.write_text(proc.stdout, encoding="utf-8")
     if proc.returncode != 0:
         print(proc.stdout, end="")
-        return _fail(f"runner exited with code {proc.returncode}")
+        return fail(f"runner exited with code {proc.returncode}")
 
     try:
         baseline_state = _load_json(baseline_state_path)
         show_state = _load_json(show_state_path)
     except FileNotFoundError as exc:
-        return _fail(f"state output not found: {exc}")
+        return fail(f"state output not found: {exc}")
 
     if not bool(baseline_state.get("image_loaded", False)):
-        return _fail("baseline state does not report a loaded image")
+        return fail("baseline state does not report a loaded image")
     if bool(baseline_state.get("image_list_visible", True)):
-        return _fail("baseline state unexpectedly reports Image List as visible")
+        return fail("baseline state unexpectedly reports Image List as visible")
     if not _norm_scroll_centered(baseline_state):
-        return _fail("baseline image was not centered")
+        return fail("baseline image was not centered")
 
     if not bool(show_state.get("image_loaded", False)):
-        return _fail("show-image-list state does not report a loaded image")
+        return fail("show-image-list state does not report a loaded image")
     if not bool(show_state.get("image_list_visible", False)):
-        return _fail("show-image-list state does not report Image List as visible")
+        return fail("show-image-list state does not report Image List as visible")
     if not bool(show_state.get("image_list_drawn", False)):
-        return _fail("show-image-list state does not report Image List as drawn")
+        return fail("show-image-list state does not report Image List as drawn")
     if not _norm_scroll_centered(show_state):
-        return _fail("opening Image List changed the centered scroll position")
+        return fail("opening Image List changed the centered scroll position")
 
     scroll = show_state.get("scroll")
     if not (
@@ -249,7 +173,7 @@ def main() -> int:
         and isinstance(scroll[0], (int, float))
         and float(scroll[0]) > 1.0
     ):
-        return _fail("wide-image regression did not produce horizontal scrolling")
+        return fail("wide-image regression did not produce horizontal scrolling")
 
     print(f"baseline_state: {baseline_state_path}")
     print(f"show_state: {show_state_path}")

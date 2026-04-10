@@ -5,12 +5,23 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import shlex
 import shutil
 import subprocess
-import sys
 from pathlib import Path
+
+from imiv_test_utils import (
+    default_binary,
+    default_env_script,
+    default_oiiotool,
+    fail,
+    load_env_from_script,
+    repo_root as imiv_repo_root,
+    resolve_existing_tool,
+    resolve_run_cwd,
+    run_logged_process,
+    runner_command,
+    runner_path,
+)
 
 
 ERROR_PATTERNS = (
@@ -25,77 +36,6 @@ ERROR_PATTERNS = (
     "failed to create Metal preview texture",
     "Metal preview render failed",
 )
-
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
-
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _default_oiiotool(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "oiiotool",
-        repo_root / "build" / "bin" / "oiiotool",
-        repo_root / "build_u" / "src" / "oiiotool" / "oiiotool",
-        repo_root / "build" / "src" / "oiiotool" / "oiiotool",
-        repo_root / "build" / "Debug" / "oiiotool.exe",
-        repo_root / "build" / "Release" / "oiiotool.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    which = shutil.which("oiiotool")
-    return Path(which) if which else candidates[0]
-
-
-def _default_env_script(repo_root: Path, exe: Path | None = None) -> Path:
-    candidates: list[Path] = []
-    if exe is not None:
-        exe = exe.resolve()
-        candidates.extend([exe.parent / "imiv_env.sh", exe.parent.parent / "imiv_env.sh"])
-    candidates.extend([repo_root / "build" / "imiv_env.sh", repo_root / "build_u" / "imiv_env.sh"])
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _load_env_from_script(script_path: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    if not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        env[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    return env
-
 
 def _run_checked(cmd: list[str], *, cwd: Path) -> None:
     print("run:", " ".join(cmd))
@@ -120,12 +60,12 @@ def _generate_rgb_fixture(oiiotool: Path, source_path: Path, out_path: Path) -> 
 
 
 def main() -> int:
-    repo_root = _repo_root()
-    runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
+    repo_root = imiv_repo_root()
+    runner = runner_path(repo_root)
     default_source = repo_root / "ASWF" / "logos" / "openimageio-stacked-gradient.png"
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
+    ap.add_argument("--bin", default=str(default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
         "--backend",
@@ -133,7 +73,7 @@ def main() -> int:
         help="Optional runtime backend override passed through to imiv",
     )
     ap.add_argument(
-        "--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool executable"
+        "--oiiotool", default=str(default_oiiotool(repo_root)), help="oiiotool executable"
     )
     ap.add_argument("--env-script", default="", help="Optional shell env setup script")
     ap.add_argument("--out-dir", default="", help="Output directory")
@@ -147,15 +87,13 @@ def main() -> int:
 
     exe = Path(args.bin).resolve()
     if not exe.exists():
-        print(f"error: binary not found: {exe}", file=sys.stderr)
-        return 2
+        return fail(f"binary not found: {exe}")
 
-    oiiotool = Path(args.oiiotool).resolve()
+    oiiotool = resolve_existing_tool(args.oiiotool, default_oiiotool(repo_root))
     if not oiiotool.exists():
-        print(f"error: oiiotool not found: {oiiotool}", file=sys.stderr)
-        return 2
+        return fail(f"oiiotool not found: {oiiotool}")
 
-    cwd = Path(args.cwd).resolve() if args.cwd else exe.parent.resolve()
+    cwd = resolve_run_cwd(exe, args.cwd)
     if args.out_dir:
         out_dir = Path(args.out_dir).resolve()
     else:
@@ -164,15 +102,14 @@ def main() -> int:
 
     source_path = Path(args.source_image).resolve()
     if not source_path.exists():
-        print(f"error: source image not found: {source_path}", file=sys.stderr)
-        return 2
+        return fail(f"source image not found: {source_path}")
 
     env_script = (
         Path(args.env_script).resolve()
         if args.env_script
-        else _default_env_script(repo_root, exe)
+        else default_env_script(repo_root, exe)
     )
-    env = _load_env_from_script(env_script)
+    env = load_env_from_script(env_script)
     env["IMIV_CONFIG_HOME"] = str(out_dir / "cfg")
 
     rgb_fixture = out_dir / "rgb_input_fixture_u8.tif"
@@ -182,16 +119,7 @@ def main() -> int:
     state_path = out_dir / "rgb_input.state.json"
     log_path = out_dir / "rgb_input.log"
 
-    cmd = [
-        sys.executable,
-        str(runner),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(cwd),
-    ]
-    if args.backend:
-        cmd.extend(["--backend", args.backend])
+    cmd = runner_command(exe, cwd, args.backend)
     cmd.extend(
         [
             "--open",
@@ -208,55 +136,40 @@ def main() -> int:
     if args.trace:
         cmd.append("--trace")
 
-    with log_path.open("w", encoding="utf-8") as log_handle:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(repo_root),
-            env=env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=90,
-        )
+    proc = run_logged_process(
+        cmd, cwd=repo_root, env=env, timeout=90, log_path=log_path
+    )
     if proc.returncode != 0:
-        print(f"error: runner exited with code {proc.returncode}", file=sys.stderr)
-        return 1
+        return fail(f"runner exited with code {proc.returncode}")
 
     for required in (layout_path, state_path):
         if not required.exists():
-            print(f"error: missing output: {required}", file=sys.stderr)
-            return 1
+            return fail(f"missing output: {required}")
 
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
     for pattern in ERROR_PATTERNS:
         if pattern in log_text:
-            print(f"error: found runtime error pattern: {pattern}", file=sys.stderr)
-            return 1
+            return fail(f"found runtime error pattern: {pattern}")
 
     layout = json.loads(layout_path.read_text(encoding="utf-8"))
     if not any(window.get("name") == "Image" for window in layout.get("windows", [])):
-        print("error: layout dump missing Image window", file=sys.stderr)
-        return 1
+        return fail("layout dump missing Image window")
 
     state = json.loads(state_path.read_text(encoding="utf-8"))
     if not state.get("image_loaded"):
-        print("error: state dump says image is not loaded", file=sys.stderr)
-        return 1
+        return fail("state dump says image is not loaded")
 
     current_path = state.get("image_path") or ""
     if not current_path:
-        print("error: state dump missing image_path", file=sys.stderr)
-        return 1
+        return fail("state dump missing image_path")
     try:
         current_resolved = Path(current_path).resolve()
     except Exception:
         current_resolved = Path(current_path)
     if current_resolved != rgb_fixture.resolve():
-        print(
-            f"error: loaded path mismatch: expected {rgb_fixture}, got {current_path}",
-            file=sys.stderr,
+        return fail(
+            f"loaded path mismatch: expected {rgb_fixture}, got {current_path}"
         )
-        return 1
 
     image_size = state.get("image_size", [0, 0])
     if (
@@ -265,8 +178,7 @@ def main() -> int:
         or int(image_size[0]) <= 0
         or int(image_size[1]) <= 0
     ):
-        print(f"error: invalid image_size in state dump: {image_size}", file=sys.stderr)
-        return 1
+        return fail(f"invalid image_size in state dump: {image_size}")
 
     return 0
 

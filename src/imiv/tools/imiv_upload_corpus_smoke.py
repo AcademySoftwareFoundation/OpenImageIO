@@ -6,8 +6,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import os
-import shlex
 import shutil
 import subprocess
 import sys
@@ -15,54 +13,15 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
-
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _load_env_from_script(script_path: Path | None) -> dict[str, str]:
-    env = dict(os.environ)
-    if script_path is None or not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        env[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    return env
-
-
-def _path_for_imiv_output(path: Path, run_cwd: Path) -> str:
-    try:
-        return os.path.relpath(path, run_cwd)
-    except ValueError:
-        return str(path)
+from imiv_test_utils import (
+    default_binary,
+    fail,
+    load_env_from_script,
+    path_for_imiv_output,
+    repo_root as imiv_repo_root,
+    resolve_run_cwd,
+    runner_path,
+)
 
 
 def _parse_duration_seconds(text: str) -> int:
@@ -77,11 +36,6 @@ def _parse_duration_seconds(text: str) -> int:
     if scale is None:
         raise ValueError(f"unsupported duration suffix: {text}")
     return max(1, int(value[:-1]) * scale)
-
-
-def _fail(message: str) -> int:
-    print(f"error: {message}", file=sys.stderr)
-    return 1
 
 
 def _chunks(items: list[Path], chunk_size: int) -> list[list[Path]]:
@@ -218,7 +172,7 @@ def _run_batch(
 
     _write_scenario(
         scenario_path,
-        runtime_dir_rel=_path_for_imiv_output(runtime_dir, run_cwd),
+        runtime_dir_rel=path_for_imiv_output(runtime_dir, run_cwd),
         images=batch_images,
         post_action_delay_frames=post_action_delay_frames,
     )
@@ -299,12 +253,12 @@ def _run_batch(
 
 
 def main() -> int:
-    repo_root = _repo_root()
+    repo_root = imiv_repo_root()
     default_corpus_dir = repo_root / "build_u" / "testsuite" / "imiv" / "upload_corpus" / "images"
     default_result_dir = repo_root / "build_u" / "testsuite" / "imiv" / "upload_corpus" / "results"
-    default_runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
+    default_runner = runner_path(repo_root)
     default_env_script = repo_root / "build_u" / "imiv_env.sh"
-    default_bin = _default_binary(repo_root)
+    default_bin = default_binary(repo_root)
 
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--corpus-dir", default=str(default_corpus_dir), help="Corpus image directory")
@@ -346,15 +300,15 @@ def main() -> int:
     env_script = Path(args.env_script).expanduser().resolve(strict=False)
 
     if not corpus_dir.is_dir():
-        return _fail(f"corpus directory not found: {corpus_dir}")
+        return fail(f"corpus directory not found: {corpus_dir}")
     if not runner.exists():
-        return _fail(f"runner script not found: {runner}")
+        return fail(f"runner script not found: {runner}")
     if not exe.exists():
-        return _fail(f"imiv executable not found: {exe}")
+        return fail(f"imiv executable not found: {exe}")
     if args.batch_size <= 0:
-        return _fail("batch-size must be greater than zero")
+        return fail("batch-size must be greater than zero")
     if args.timeout_slop_seconds < 0:
-        return _fail("timeout-slop-seconds must be non-negative")
+        return fail("timeout-slop-seconds must be non-negative")
 
     images = sorted(
         path
@@ -362,12 +316,12 @@ def main() -> int:
         if path.is_file() and path.suffix.lower() in {".tif", ".tiff", ".exr"}
     )
     if not images:
-        return _fail(f"no corpus images found in {corpus_dir}")
+        return fail(f"no corpus images found in {corpus_dir}")
 
     try:
         per_case_timeout_seconds = _parse_duration_seconds(args.per_case_timeout)
     except ValueError as exc:
-        return _fail(str(exc))
+        return fail(str(exc))
 
     shutil.rmtree(result_dir, ignore_errors=True)
     result_dir.mkdir(parents=True, exist_ok=True)
@@ -377,8 +331,8 @@ def main() -> int:
         writer = csv.writer(handle)
         writer.writerow(["image", "result", "reason", "log", "screenshot"])
 
-    env = _load_env_from_script(env_script if env_script.exists() else None)
-    run_cwd = Path(args.cwd).expanduser().resolve() if args.cwd else exe.parent.resolve()
+    env = load_env_from_script(env_script if env_script.exists() else None)
+    run_cwd = resolve_run_cwd(exe, args.cwd)
 
     pass_count = 0
     fail_count = 0

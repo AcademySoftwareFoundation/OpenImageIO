@@ -6,61 +6,23 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
-import shlex
 import shutil
-import subprocess
-import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
-
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _load_env_from_script(script_path: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    if not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        env[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    return env
-
-
-def _fail(message: str) -> int:
-    print(f"error: {message}", file=sys.stderr)
-    return 1
+from imiv_test_utils import (
+    default_binary,
+    default_env_script,
+    fail,
+    load_env_from_script,
+    path_for_imiv_output,
+    repo_root as imiv_repo_root,
+    resolve_run_cwd,
+    run_captured_process,
+    runner_command,
+    runner_path,
+)
 
 
 def _load_json(path: Path) -> dict:
@@ -126,9 +88,9 @@ def _assert_close(actual: float, expected: float, name: str) -> None:
 
 
 def main() -> int:
-    repo_root = _repo_root()
-    runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
-    default_env_script = repo_root / "build" / "imiv_env.sh"
+    repo_root = imiv_repo_root()
+    runner = runner_path(repo_root)
+    env_script_default = default_env_script(repo_root)
     default_out_dir = repo_root / "build" / "imiv_captures" / "view_recipe_regression"
     default_images = [
         repo_root / "ASWF" / "logos" / "openimageio-stacked-gradient.png",
@@ -136,7 +98,7 @@ def main() -> int:
     ]
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
+    ap.add_argument("--bin", default=str(default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
         "--backend",
@@ -145,7 +107,7 @@ def main() -> int:
     )
     ap.add_argument(
         "--env-script",
-        default=str(default_env_script),
+        default=str(env_script_default),
         help="Optional shell env setup script",
     )
     ap.add_argument("--out-dir", default=str(default_out_dir), help="Output directory")
@@ -161,14 +123,14 @@ def main() -> int:
 
     exe = Path(args.bin).expanduser().resolve(strict=False)
     if not runner.exists():
-        return _fail(f"runner not found: {runner}")
+        return fail(f"runner not found: {runner}")
 
     images = [Path(p).expanduser().resolve() for p in args.images] if args.images else default_images
     if len(images) < 2:
-        return _fail("regression requires at least two startup images")
+        return fail("regression requires at least two startup images")
     for image in images:
         if not image.exists():
-            return _fail(f"image not found: {image}")
+            return fail(f"image not found: {image}")
 
     out_dir = Path(args.out_dir).expanduser().resolve()
     run_out_dir = Path(tempfile.mkdtemp(prefix="imiv_view_recipe_"))
@@ -184,46 +146,27 @@ def main() -> int:
     shutil.rmtree(out_dir, ignore_errors=True)
     run_out_dir.mkdir(parents=True, exist_ok=True)
     cwd_dir.mkdir(parents=True, exist_ok=True)
-    cwd = Path(args.cwd).expanduser().resolve() if args.cwd else cwd_dir
-    _write_scenario(scenario_path, os.path.relpath(runtime_dir, cwd))
+    cwd = resolve_run_cwd(exe, args.cwd) if args.cwd else cwd_dir
+    _write_scenario(scenario_path, path_for_imiv_output(runtime_dir, cwd))
 
-    env = dict(os.environ)
-    env.update(_load_env_from_script(Path(args.env_script).expanduser()))
+    env = load_env_from_script(Path(args.env_script).expanduser())
     config_home = run_out_dir / "cfg"
     config_home.mkdir(parents=True, exist_ok=True)
     env["IMIV_CONFIG_HOME"] = str(config_home)
 
-    cmd = [
-        sys.executable,
-        str(runner),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(cwd),
-    ]
+    cmd = runner_command(exe, cwd, args.backend)
     for image in images:
         cmd.extend(["--open", str(image)])
     cmd.extend(["--scenario", str(scenario_path)])
-    if args.backend:
-        cmd.extend(["--backend", args.backend])
     if args.trace:
         cmd.append("--trace")
 
-    print("run:", " ".join(cmd))
-    proc = subprocess.run(
-        cmd,
-        cwd=str(repo_root),
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        check=False,
-    )
+    proc = run_captured_process(cmd, cwd=repo_root, env=env)
     log_path.write_text(proc.stdout, encoding="utf-8")
     shutil.copytree(run_out_dir, out_dir, dirs_exist_ok=True)
     if proc.returncode != 0:
         print(proc.stdout, end="")
-        return _fail(f"runner exited with code {proc.returncode}")
+        return fail(f"runner exited with code {proc.returncode}")
 
     try:
         step1 = _load_json(step1_path)
@@ -231,54 +174,54 @@ def main() -> int:
         step3 = _load_json(step3_path)
         step4 = _load_json(step4_path)
     except FileNotFoundError as exc:
-        return _fail(f"state output not found: {exc}")
+        return fail(f"state output not found: {exc}")
 
     if int(step1.get("view_count", 0)) < 2:
-        return _fail("new view was not created")
+        return fail("new view was not created")
     if step1.get("image_path") != str(images[1]):
-        return _fail("new view did not open the second image")
+        return fail("new view did not open the second image")
 
     recipe2 = step2.get("view_recipe", {})
     if step2.get("image_path") != str(images[1]):
-        return _fail("second view does not show the second image")
+        return fail("second view does not show the second image")
     if not bool(recipe2.get("linear_interpolation", False)):
-        return _fail("second view did not keep linear interpolation override")
+        return fail("second view did not keep linear interpolation override")
     if not bool(step2.get("ocio", {}).get("use_ocio", False)):
-        return _fail("second view did not keep OCIO enabled")
+        return fail("second view did not keep OCIO enabled")
     try:
         _assert_close(float(recipe2.get("exposure", 0.0)), 1.25, "second view exposure")
         _assert_close(float(recipe2.get("gamma", 0.0)), 1.75, "second view gamma")
         _assert_close(float(recipe2.get("offset", 0.0)), 0.125, "second view offset")
     except (TypeError, ValueError, AssertionError) as exc:
-        return _fail(str(exc))
+        return fail(str(exc))
 
     recipe3 = step3.get("view_recipe", {})
     if step3.get("image_path") != str(images[0]):
-        return _fail("primary view activation did not restore the first image")
+        return fail("primary view activation did not restore the first image")
     if bool(recipe3.get("linear_interpolation", True)):
-        return _fail("primary view unexpectedly inherited interpolation override")
+        return fail("primary view unexpectedly inherited interpolation override")
     if bool(step3.get("ocio", {}).get("use_ocio", True)):
-        return _fail("primary view unexpectedly inherited OCIO state")
+        return fail("primary view unexpectedly inherited OCIO state")
     try:
         _assert_close(float(recipe3.get("exposure", 99.0)), 0.0, "primary view exposure")
         _assert_close(float(recipe3.get("gamma", 99.0)), 1.0, "primary view gamma")
         _assert_close(float(recipe3.get("offset", 99.0)), 0.0, "primary view offset")
     except (TypeError, ValueError, AssertionError) as exc:
-        return _fail(str(exc))
+        return fail(str(exc))
 
     recipe4 = step4.get("view_recipe", {})
     if step4.get("image_path") != str(images[1]):
-        return _fail("secondary view activation did not restore the second image")
+        return fail("secondary view activation did not restore the second image")
     if not bool(recipe4.get("linear_interpolation", False)):
-        return _fail("secondary view did not preserve interpolation override")
+        return fail("secondary view did not preserve interpolation override")
     if not bool(step4.get("ocio", {}).get("use_ocio", False)):
-        return _fail("secondary view did not preserve OCIO state")
+        return fail("secondary view did not preserve OCIO state")
     try:
         _assert_close(float(recipe4.get("exposure", 0.0)), 1.25, "restored second view exposure")
         _assert_close(float(recipe4.get("gamma", 0.0)), 1.75, "restored second view gamma")
         _assert_close(float(recipe4.get("offset", 0.0)), 0.125, "restored second view offset")
     except (TypeError, ValueError, AssertionError) as exc:
-        return _fail(str(exc))
+        return fail(str(exc))
 
     print(f"step1: {step1_path}")
     print(f"step2: {step2_path}")

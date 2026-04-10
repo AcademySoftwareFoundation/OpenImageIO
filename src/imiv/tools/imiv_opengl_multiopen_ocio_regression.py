@@ -5,12 +5,20 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import shlex
 import shutil
-import subprocess
-import sys
 from pathlib import Path
+
+from imiv_test_utils import (
+    default_binary,
+    default_env_script,
+    fail,
+    load_env_from_script,
+    repo_root as imiv_repo_root,
+    resolve_run_cwd,
+    run_logged_process,
+    runner_command,
+    runner_path,
+)
 
 
 ERROR_PATTERNS = (
@@ -19,64 +27,21 @@ ERROR_PATTERNS = (
     "OpenGL OCIO preview draw failed",
 )
 
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
-
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _load_env_from_script(script_path: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    if not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        env[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    return env
-
-
 def main() -> int:
-    repo_root = _repo_root()
-    runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
-    default_env_script = repo_root / "build_u" / "imiv_env.sh"
+    repo_root = imiv_repo_root()
+    runner = runner_path(repo_root)
+    env_script_default = default_env_script(repo_root)
     default_out_dir = (
         repo_root / "build_u" / "imiv_captures" / "opengl_multiopen_ocio_regression"
     )
     default_image = repo_root / "ASWF" / "logos" / "openimageio-stacked-gradient.png"
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
+    ap.add_argument("--bin", default=str(default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument("--backend", default="opengl", help="Runtime backend override")
     ap.add_argument(
-        "--env-script", default=str(default_env_script), help="Optional shell env setup script"
+        "--env-script", default=str(env_script_default), help="Optional shell env setup script"
     )
     ap.add_argument("--out-dir", default=str(default_out_dir), help="Output directory")
     ap.add_argument("--open", default=str(default_image), help="Source image to duplicate")
@@ -85,21 +50,19 @@ def main() -> int:
 
     exe = Path(args.bin).resolve()
     if not exe.exists():
-        print(f"error: binary not found: {exe}", file=sys.stderr)
-        return 2
+        return fail(f"binary not found: {exe}")
 
-    cwd = Path(args.cwd).resolve() if args.cwd else exe.parent.resolve()
+    cwd = resolve_run_cwd(exe, args.cwd)
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
     image_a = Path(args.open).resolve()
     if not image_a.exists():
-        print(f"error: image not found: {image_a}", file=sys.stderr)
-        return 2
+        return fail(f"image not found: {image_a}")
     image_b = out_dir / f"{image_a.stem}_copy{image_a.suffix}"
     shutil.copyfile(image_a, image_b)
 
-    env = _load_env_from_script(Path(args.env_script).resolve())
+    env = load_env_from_script(Path(args.env_script).resolve())
     env["IMIV_CONFIG_HOME"] = str(out_dir / "cfg")
 
     screenshot_path = out_dir / "opengl_multiopen_ocio.png"
@@ -107,69 +70,51 @@ def main() -> int:
     state_path = out_dir / "opengl_multiopen_ocio.state.json"
     log_path = out_dir / "opengl_multiopen_ocio.log"
 
-    cmd = [
-        sys.executable,
-        str(runner),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(cwd),
-        "--backend",
-        args.backend,
-        "--open",
-        str(image_a),
-        "--open",
-        str(image_b),
-        "--ocio-use",
-        "true",
-        "--screenshot-out",
-        str(screenshot_path),
-        "--layout-json-out",
-        str(layout_path),
-        "--layout-items",
-        "--state-json-out",
-        str(state_path),
-    ]
+    cmd = runner_command(exe, cwd, args.backend)
+    cmd.extend(
+        [
+            "--open",
+            str(image_a),
+            "--open",
+            str(image_b),
+            "--ocio-use",
+            "true",
+            "--screenshot-out",
+            str(screenshot_path),
+            "--layout-json-out",
+            str(layout_path),
+            "--layout-items",
+            "--state-json-out",
+            str(state_path),
+        ]
+    )
     if args.trace:
         cmd.append("--trace")
 
-    with log_path.open("w", encoding="utf-8") as log_handle:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(repo_root),
-            env=env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=90,
-        )
+    proc = run_logged_process(
+        cmd, cwd=repo_root, env=env, timeout=90, log_path=log_path
+    )
     if proc.returncode != 0:
-        print(f"error: runner exited with code {proc.returncode}", file=sys.stderr)
-        return 1
+        return fail(f"runner exited with code {proc.returncode}")
 
     for required in (screenshot_path, layout_path, state_path):
         if not required.exists():
-            print(f"error: missing output: {required}", file=sys.stderr)
-            return 1
+            return fail(f"missing output: {required}")
 
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
     for pattern in ERROR_PATTERNS:
         if pattern in log_text:
-            print(f"error: found runtime error pattern: {pattern}", file=sys.stderr)
-            return 1
+            return fail(f"found runtime error pattern: {pattern}")
 
     layout = json.loads(layout_path.read_text(encoding="utf-8"))
     if not any(window.get("name") == "Image" for window in layout.get("windows", [])):
-        print("error: layout dump missing Image window", file=sys.stderr)
-        return 1
+        return fail("layout dump missing Image window")
 
     state = json.loads(state_path.read_text(encoding="utf-8"))
     if not state.get("image_path"):
-        print("error: state dump missing image_path", file=sys.stderr)
-        return 1
+        return fail("state dump missing image_path")
     if int(state.get("loaded_image_count", 0)) < 2:
-        print("error: expected at least 2 loaded images in session", file=sys.stderr)
-        return 1
+        return fail("expected at least 2 loaded images in session")
 
     return 0
 
