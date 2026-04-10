@@ -284,8 +284,9 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
             decode_xmp(xml, m_spec);
         } else if (m->marker == (JPEG_APP0 + 13) && m->data_length >= 13
                    && !strncmp((const char*)m->data, "Photoshop 3.0", 13)) {
-            if (!jpeg_decode_iptc(
-                    string_view((const char*)m->data, m->data_length))) {
+            bool ok = jpeg_decode_iptc(
+                string_view((const char*)m->data, m->data_length));
+            if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
                 errorfmt("Corrupted IPTC data");
                 return false;
             }
