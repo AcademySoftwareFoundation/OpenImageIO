@@ -43,6 +43,10 @@ static bool wedge         = false;
 static int threadcounts[] = { 1,  2,  4,  8,  12,  16,   20,
                               24, 28, 32, 64, 128, 1024, 1 << 30 };
 
+static const int hwy_build = OIIO_USE_HWY;
+static int hwy_on          = hwy_build;
+
+
 
 static void
 getargs(int argc, char* argv[])
@@ -403,7 +407,7 @@ test_channel_append()
 void
 test_add()
 {
-    std::cout << "test add\n";
+    print("test add{}\n", hwy_on ? " (HWY)" : "");
 
     // Create buffers
     const float Aval[] = { 0.1f, 0.2f, 0.3f, 0.4f };
@@ -429,7 +433,7 @@ test_add()
 void
 test_sub()
 {
-    std::cout << "test sub\n";
+    print("test sub{}\n", hwy_on ? " (HWY)" : "");
 
     // Create buffers
     const float Aval[] = { 0.1f, 0.2f, 0.3f, 0.4f };
@@ -455,7 +459,7 @@ test_sub()
 void
 test_mul()
 {
-    std::cout << "test mul\n";
+    print("test mul{}\n", hwy_on ? " (HWY)" : "");
 
     // Create buffers
     // Create buffers
@@ -482,7 +486,7 @@ test_mul()
 void
 test_mad()
 {
-    std::cout << "test mad\n";
+    print("test mad{}\n", hwy_on ? " (HWY)" : "");
     const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
 
@@ -1678,6 +1682,17 @@ test_demosaic()
 }
 
 
+
+// clang-format off
+// Neat trick macro to prefix in front of the calls where we want to
+// run it in both hwy and non-hwy modes. It will loop over both settings.
+#define HWY_TEST                                    \
+    for (hwy_on = 0; hwy_on <= hwy_build; ++hwy_on) \
+        OIIO::attribute("enable_hwy", hwy_on), /* next command */
+// clang-format on
+
+
+
 int
 main(int argc, char** argv)
 {
@@ -1702,10 +1717,10 @@ main(int argc, char** argv)
     test_crop();
     test_paste();
     test_channel_append();
-    test_add();
-    test_sub();
-    test_mul();
-    test_mad();
+    HWY_TEST test_add();
+    HWY_TEST test_sub();
+    HWY_TEST test_mul();
+    HWY_TEST test_mad();
     test_hwy_strided_roi_fallback();
     test_min();
     test_max();
