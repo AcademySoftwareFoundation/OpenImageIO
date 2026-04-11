@@ -1863,41 +1863,44 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
             return true;
         }
 
-        bool used_ocio = false;
+        bool used_ocio            = false;
+        const auto render_preview = [&](id<MTLTexture> target_texture,
+                                        id<MTLSamplerState> sampler_state,
+                                        std::string& render_error) {
+            return effective_controls.use_ocio != 0
+                       ? render_ocio_preview_texture(
+                             *renderer_backend, *texture_state, target_texture,
+                             sampler_state, effective_controls, render_error)
+                       : render_preview_texture(*renderer_backend,
+                                                *texture_state, target_texture,
+                                                sampler_state,
+                                                effective_controls,
+                                                render_error);
+        };
         if (effective_controls.use_ocio != 0) {
             std::string ocio_error;
             if (ensure_ocio_preview_program(*renderer_backend, ui_state, image,
                                             ocio_error)
-                && render_ocio_preview_texture(
-                    *renderer_backend, *texture_state,
-                    texture_state->preview_linear_texture,
-                    renderer_backend->linear_sampler, effective_controls,
-                    ocio_error)
-                && render_ocio_preview_texture(
-                    *renderer_backend, *texture_state,
-                    texture_state->preview_nearest_texture,
-                    renderer_backend->nearest_sampler, effective_controls,
-                    ocio_error)) {
+                && render_preview(texture_state->preview_linear_texture,
+                                  renderer_backend->linear_sampler, ocio_error)
+                && render_preview(texture_state->preview_nearest_texture,
+                                  renderer_backend->nearest_sampler,
+                                  ocio_error)) {
                 used_ocio = true;
             } else {
-                if (!ocio_error.empty()) {
+                if (!ocio_error.empty())
                     std::cerr << "imiv: Metal OCIO fallback: " << ocio_error
                               << "\n";
-                }
                 effective_controls.use_ocio = 0;
             }
         }
 
         if (!used_ocio
-            && (!render_preview_texture(*renderer_backend, *texture_state,
-                                        texture_state->preview_linear_texture,
-                                        renderer_backend->linear_sampler,
-                                        effective_controls, error_message)
-                || !render_preview_texture(
-                    *renderer_backend, *texture_state,
-                    texture_state->preview_nearest_texture,
-                    renderer_backend->nearest_sampler, effective_controls,
-                    error_message))) {
+            && (!render_preview(texture_state->preview_linear_texture,
+                                renderer_backend->linear_sampler, error_message)
+                || !render_preview(texture_state->preview_nearest_texture,
+                                   renderer_backend->nearest_sampler,
+                                   error_message))) {
             texture.preview_initialized = false;
             return false;
         }

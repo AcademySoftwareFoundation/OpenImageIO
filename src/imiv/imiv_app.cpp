@@ -429,37 +429,36 @@ run(const AppConfig& config)
     renderer_state.verbose_logging           = verbose_logging;
     renderer_state.verbose_validation_output = verbose_validation_output;
     renderer_state.log_imgui_texture_updates = log_imgui_texture_updates;
+    const auto fail_bootstrap = [&](bool destroy_surface, bool cleanup_window,
+                                    bool shutdown_platform_imgui) {
+        print(stderr, "imiv: {}\n", startup_error);
+        if (shutdown_platform_imgui)
+            platform_glfw_imgui_shutdown();
+        if (cleanup_window)
+            renderer_cleanup_window(renderer_state);
+        if (destroy_surface)
+            renderer_destroy_surface(renderer_state);
+        renderer_cleanup(renderer_state);
+        ImGui::DestroyContext();
+        platform_glfw_destroy_window(window);
+        platform_glfw_terminate();
+        return EXIT_FAILURE;
+    };
     ImVector<const char*> instance_extensions;
     if (active_backend == BackendKind::Vulkan)
         platform_glfw_collect_vulkan_instance_extensions(instance_extensions);
 
     if (!renderer_setup_instance(renderer_state, instance_extensions,
                                  startup_error)) {
-        print(stderr, "imiv: {}\n", startup_error);
-        renderer_cleanup(renderer_state);
-        ImGui::DestroyContext();
-        platform_glfw_destroy_window(window);
-        platform_glfw_terminate();
-        return EXIT_FAILURE;
+        return fail_bootstrap(false, false, false);
     }
 
     if (!renderer_create_surface(renderer_state, window, startup_error)) {
-        print(stderr, "imiv: {}\n", startup_error);
-        renderer_cleanup(renderer_state);
-        ImGui::DestroyContext();
-        platform_glfw_destroy_window(window);
-        platform_glfw_terminate();
-        return EXIT_FAILURE;
+        return fail_bootstrap(false, false, false);
     }
 
     if (!renderer_setup_device(renderer_state, startup_error)) {
-        print(stderr, "imiv: {}\n", startup_error);
-        renderer_destroy_surface(renderer_state);
-        renderer_cleanup(renderer_state);
-        ImGui::DestroyContext();
-        platform_glfw_destroy_window(window);
-        platform_glfw_terminate();
-        return EXIT_FAILURE;
+        return fail_bootstrap(true, false, false);
     }
 
     int framebuffer_width  = 0;
@@ -468,13 +467,7 @@ run(const AppConfig& config)
                                        framebuffer_height);
     if (!renderer_setup_window(renderer_state, framebuffer_width,
                                framebuffer_height, startup_error)) {
-        print(stderr, "imiv: {}\n", startup_error);
-        renderer_cleanup_window(renderer_state);
-        renderer_cleanup(renderer_state);
-        ImGui::DestroyContext();
-        platform_glfw_destroy_window(window);
-        platform_glfw_terminate();
-        return EXIT_FAILURE;
+        return fail_bootstrap(false, true, false);
     }
 
     ImGuiIO& io = ImGui::GetIO();
@@ -494,14 +487,7 @@ run(const AppConfig& config)
     }
     platform_glfw_imgui_init(window, active_backend);
     if (!renderer_imgui_init(renderer_state, startup_error)) {
-        print(stderr, "imiv: {}\n", startup_error);
-        platform_glfw_imgui_shutdown();
-        renderer_cleanup_window(renderer_state);
-        renderer_cleanup(renderer_state);
-        ImGui::DestroyContext();
-        platform_glfw_destroy_window(window);
-        platform_glfw_terminate();
-        return EXIT_FAILURE;
+        return fail_bootstrap(false, true, true);
     }
 
     const bool platform_has_viewports
@@ -822,10 +808,12 @@ run(const AppConfig& config)
 #endif
     FileDialog::set_native_dialog_scope_hook(nullptr, nullptr);
     uninstall_drag_drop(window);
-    if (active_backend == BackendKind::OpenGL) {
+    const auto cleanup_renderer_backend = [&] {
         renderer_cleanup_window(renderer_state);
         renderer_cleanup(renderer_state);
-    }
+    };
+    if (active_backend == BackendKind::OpenGL)
+        cleanup_renderer_backend();
     renderer_imgui_shutdown(renderer_state);
     platform_glfw_imgui_shutdown();
     ImGui::DestroyContext();
@@ -833,10 +821,8 @@ run(const AppConfig& config)
     test_engine_destroy(test_engine_runtime);
 #endif
 
-    if (active_backend != BackendKind::OpenGL) {
-        renderer_cleanup_window(renderer_state);
-        renderer_cleanup(renderer_state);
-    }
+    if (active_backend != BackendKind::OpenGL)
+        cleanup_renderer_backend();
     platform_glfw_destroy_window(window);
     platform_glfw_terminate();
     return EXIT_SUCCESS;

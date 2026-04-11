@@ -328,6 +328,27 @@ namespace {
         blueprint.textures.clear();
         blueprint.textures.reserve(num_textures
                                    + shader_desc->getNum3DTextures());
+        const auto append_texture_blueprint =
+            [&](const char* texture_name, const char* sampler_name,
+                uint32_t shader_binding, uint32_t width, uint32_t height,
+                uint32_t depth, OcioTextureChannel channel,
+                OcioTextureDimensions dimensions,
+                OcioInterpolation interpolation, const float* values,
+                size_t texel_count) {
+                OcioTextureBlueprint texture;
+                texture.texture_name   = texture_name ? texture_name : "";
+                texture.sampler_name   = sampler_name ? sampler_name : "";
+                texture.shader_binding = shader_binding;
+                texture.width          = width;
+                texture.height         = height;
+                texture.depth          = depth;
+                texture.channel        = channel;
+                texture.dimensions     = dimensions;
+                texture.interpolation  = interpolation;
+                if (values && texel_count != 0)
+                    texture.values.assign(values, values + texel_count);
+                blueprint.textures.push_back(std::move(texture));
+            };
         for (unsigned idx = 0; idx < num_textures; ++idx) {
             const char* texture_name = nullptr;
             const char* sampler_name = nullptr;
@@ -342,31 +363,17 @@ namespace {
                                     height, channel, dimensions, interpolation);
             const float* values = nullptr;
             shader_desc->getTextureValues(idx, values);
-
-            OcioTextureBlueprint texture;
-            if (texture_name)
-                texture.texture_name = texture_name;
-            if (sampler_name)
-                texture.sampler_name = sampler_name;
-            texture.shader_binding = shader_desc->getTextureShaderBindingIndex(
-                idx);
-            texture.width         = width;
-            texture.height        = height;
-            texture.depth         = 1;
-            texture.channel       = map_ocio_texture_channel(channel);
-            texture.dimensions    = map_ocio_texture_dimensions(dimensions,
-                                                                height);
-            texture.interpolation = map_ocio_interpolation(interpolation);
-            if (values) {
-                const size_t texel_count
-                    = static_cast<size_t>(width) * static_cast<size_t>(height)
-                      * static_cast<size_t>(
-                          channel == OCIO::GpuShaderDesc::TEXTURE_RED_CHANNEL
-                              ? 1
-                              : 3);
-                texture.values.assign(values, values + texel_count);
-            }
-            blueprint.textures.push_back(std::move(texture));
+            const size_t texel_count
+                = static_cast<size_t>(width) * static_cast<size_t>(height)
+                  * static_cast<size_t>(
+                      channel == OCIO::GpuShaderDesc::TEXTURE_RED_CHANNEL ? 1
+                                                                          : 3);
+            append_texture_blueprint(
+                texture_name, sampler_name,
+                shader_desc->getTextureShaderBindingIndex(idx), width, height,
+                1, map_ocio_texture_channel(channel),
+                map_ocio_texture_dimensions(dimensions, height),
+                map_ocio_interpolation(interpolation), values, texel_count);
         }
 
         const unsigned num_textures_3d = shader_desc->getNum3DTextures();
@@ -379,27 +386,15 @@ namespace {
                                       interpolation);
             const float* values = nullptr;
             shader_desc->get3DTextureValues(idx, values);
-
-            OcioTextureBlueprint texture;
-            if (texture_name)
-                texture.texture_name = texture_name;
-            if (sampler_name)
-                texture.sampler_name = sampler_name;
-            texture.shader_binding
-                = shader_desc->get3DTextureShaderBindingIndex(idx);
-            texture.width         = edge_len;
-            texture.height        = edge_len;
-            texture.depth         = edge_len;
-            texture.channel       = OcioTextureChannel::RGB;
-            texture.dimensions    = OcioTextureDimensions::Tex3D;
-            texture.interpolation = map_ocio_interpolation(interpolation);
-            if (values) {
-                const size_t texel_count = static_cast<size_t>(edge_len)
-                                           * static_cast<size_t>(edge_len)
-                                           * static_cast<size_t>(edge_len) * 3u;
-                texture.values.assign(values, values + texel_count);
-            }
-            blueprint.textures.push_back(std::move(texture));
+            const size_t texel_count = static_cast<size_t>(edge_len)
+                                       * static_cast<size_t>(edge_len)
+                                       * static_cast<size_t>(edge_len) * 3u;
+            append_texture_blueprint(
+                texture_name, sampler_name,
+                shader_desc->get3DTextureShaderBindingIndex(idx), edge_len,
+                edge_len, edge_len, OcioTextureChannel::RGB,
+                OcioTextureDimensions::Tex3D,
+                map_ocio_interpolation(interpolation), values, texel_count);
         }
 
         if (blueprint.display.empty() || blueprint.view.empty()) {

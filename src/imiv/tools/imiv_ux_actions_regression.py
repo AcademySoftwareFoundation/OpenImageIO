@@ -6,85 +6,33 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shlex
 import shutil
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
-
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
+from imiv_test_utils import (
+    default_binary,
+    default_env_script,
+    default_image,
+    default_oiiotool,
+    fail,
+    load_env_from_script,
+    repo_root as imiv_repo_root,
+    resolve_existing_tool,
+    resolve_run_cwd,
+    run_logged_process,
+    runner_command,
+    runner_path,
+)
 
 
-def _default_oiiotool(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "oiiotool",
-        repo_root / "build" / "bin" / "oiiotool",
-        repo_root / "build_u" / "src" / "oiiotool" / "oiiotool",
-        repo_root / "build" / "src" / "oiiotool" / "oiiotool",
-        repo_root / "build" / "Debug" / "oiiotool.exe",
-        repo_root / "build" / "Release" / "oiiotool.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    which = shutil.which("oiiotool")
-    return Path(which) if which else candidates[0]
-
-
-def _fail(message: str) -> int:
-    print(f"error: {message}", file=sys.stderr)
-    return 1
-
-
-def _load_env_from_script(script_path: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    if not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        env[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    return env
-
-
-def _run_checked(cmd: list[str], *, cwd: Path) -> None:
-    print("run:", " ".join(cmd))
-    subprocess.run(cmd, cwd=str(cwd), check=True)
-
+_fail = fail
 
 def _generate_logo_fixture(oiiotool: Path, source_path: Path, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    _run_checked(
+    run_logged_process(
         [
             str(oiiotool),
             str(source_path),
@@ -94,6 +42,7 @@ def _generate_logo_fixture(oiiotool: Path, source_path: Path, out_path: Path) ->
             str(out_path),
         ],
         cwd=out_path.parent,
+        check=True,
     )
 
 
@@ -281,14 +230,12 @@ def _selection_is_cleared(state: dict) -> bool:
 
 
 def main() -> int:
-    repo_root = _repo_root()
-    runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
-    default_env_script = repo_root / "build_u" / "imiv_env.sh"
+    repo_root = imiv_repo_root()
+    runner = runner_path(repo_root)
     default_out_dir = repo_root / "build_u" / "imiv_captures" / "ux_actions_regression"
-    default_image = repo_root / "ASWF" / "logos" / "openimageio-stacked-gradient.png"
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
+    ap.add_argument("--bin", default=str(default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
         "--backend",
@@ -296,17 +243,17 @@ def main() -> int:
         help="Optional runtime backend override passed through to imiv",
     )
     ap.add_argument(
-        "--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool executable"
+        "--oiiotool", default=str(default_oiiotool(repo_root)), help="oiiotool executable"
     )
     ap.add_argument(
         "--env-script",
-        default=str(default_env_script),
+        default=str(default_env_script(repo_root)),
         help="Optional shell env setup script",
     )
     ap.add_argument("--out-dir", default=str(default_out_dir), help="Output directory")
     ap.add_argument(
         "--image",
-        default=str(default_image),
+        default=str(default_image(repo_root)),
         help="Generated panoramic fixture used for the UX scenario",
     )
     ap.add_argument("--trace", action="store_true", help="Enable test engine trace")
@@ -314,14 +261,14 @@ def main() -> int:
 
     exe = Path(args.bin).expanduser().resolve()
     if not exe.exists():
-        return _fail(f"binary not found: {exe}")
-    oiiotool = Path(args.oiiotool).expanduser().resolve()
+        return fail(f"binary not found: {exe}")
+    oiiotool = resolve_existing_tool(args.oiiotool, default_oiiotool(repo_root))
     if not oiiotool.exists():
-        return _fail(f"oiiotool not found: {oiiotool}")
+        return fail(f"oiiotool not found: {oiiotool}")
     if not runner.exists():
-        return _fail(f"runner not found: {runner}")
+        return fail(f"runner not found: {runner}")
 
-    cwd = Path(args.cwd).expanduser().resolve() if args.cwd else exe.parent.resolve()
+    cwd = resolve_run_cwd(exe, args.cwd)
     out_dir = Path(args.out_dir).expanduser().resolve()
     runtime_dir = out_dir / "runtime"
     source_image_path = Path(args.image).expanduser().resolve()
@@ -335,49 +282,32 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if not source_image_path.exists():
-        return _fail(f"image not found: {source_image_path}")
+        return fail(f"image not found: {source_image_path}")
     try:
         _generate_logo_fixture(oiiotool, source_image_path, image_path)
     except subprocess.SubprocessError as exc:
-        return _fail(f"failed to generate logo fixture: {exc}")
+        return fail(f"failed to generate logo fixture: {exc}")
 
     runtime_dir_rel = os.path.relpath(runtime_dir, cwd)
     _write_scenario(scenario_path, runtime_dir_rel)
 
-    cmd = [
-        sys.executable,
-        str(runner),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(cwd),
-    ]
-    if args.backend:
-        cmd.extend(["--backend", args.backend])
-    cmd.extend([
-        "--open",
-        str(image_path),
-        "--scenario",
-        str(scenario_path),
-    ])
+    cmd = runner_command(exe, cwd, args.backend)
+    cmd.extend(["--open", str(image_path), "--scenario", str(scenario_path)])
     if args.trace:
         cmd.append("--trace")
 
-    env = _load_env_from_script(Path(args.env_script).expanduser())
+    env = load_env_from_script(Path(args.env_script).expanduser())
     env["IMIV_CONFIG_HOME"] = str(config_home)
 
-    with log_path.open("w", encoding="utf-8") as log_handle:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(repo_root),
-            env=env,
-            check=False,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            timeout=180,
-        )
+    proc = run_logged_process(
+        cmd,
+        cwd=repo_root,
+        env=env,
+        log_path=log_path,
+        timeout=180,
+    )
     if proc.returncode != 0:
-        return _fail(f"runner exited with code {proc.returncode}: {log_path}")
+        return fail(f"runner exited with code {proc.returncode}: {log_path}")
 
     try:
         select_drag = _load_state(runtime_dir / "select_drag.state.json")

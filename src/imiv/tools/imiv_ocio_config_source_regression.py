@@ -7,12 +7,24 @@ import argparse
 import json
 import math
 import os
-import shlex
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
+
+from imiv_test_utils import (
+    default_binary,
+    default_env_script,
+    default_idiff,
+    default_oiiotool,
+    fail,
+    load_env_from_script,
+    repo_root as imiv_repo_root,
+    resolve_existing_tool,
+    resolve_run_cwd,
+    runner_path,
+)
 
 
 ERROR_PATTERNS = (
@@ -31,47 +43,6 @@ def _default_case_timeout() -> float:
     return 180.0 if os.name == "nt" else 60.0
 
 
-def _default_binary(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "imiv",
-        repo_root / "build" / "bin" / "imiv",
-        repo_root / "build_u" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "src" / "imiv" / "imiv",
-        repo_root / "build" / "Debug" / "imiv.exe",
-        repo_root / "build" / "Release" / "imiv.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
-def _default_oiiotool(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "oiiotool",
-        repo_root / "build" / "bin" / "oiiotool",
-        Path("/mnt/f/UBc/Release/bin/oiiotool"),
-        Path("/mnt/f/UBc/Debug/bin/oiiotool"),
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return Path("oiiotool")
-
-
-def _default_idiff(repo_root: Path) -> Path:
-    candidates = [
-        repo_root / "build_u" / "bin" / "idiff",
-        repo_root / "build" / "bin" / "idiff",
-        Path("/mnt/f/UBc/Release/bin/idiff"),
-        Path("/mnt/f/UBc/Debug/bin/idiff"),
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return Path("idiff")
-
-
 def _default_ocio_config(repo_root: Path) -> str:
     return "ocio://default"
 
@@ -83,38 +54,8 @@ def _resolve_ocio_config_argument(value: str) -> str:
     return str(Path(candidate).expanduser().resolve())
 
 
-def _load_env_from_script(script_path: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    if not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    loaded: dict[str, str] = {}
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        loaded[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    env.update(loaded)
-    return env
-
-
 def _json_load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _fail(message: str) -> int:
-    print(f"error: {message}", file=sys.stderr)
-    return 1
 
 
 def _write_prefs(
@@ -468,24 +409,27 @@ def _validate_ocio_state(
 
 
 if __name__ == "__main__":
-    repo_root = Path(__file__).resolve().parents[3]
-    default_env_script = repo_root / "build_u" / "imiv_env.sh"
-    default_runner = repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"
+    repo_root = imiv_repo_root()
+    default_runner = runner_path(repo_root)
     default_out = repo_root / "build_u" / "imiv_captures" / "ocio_config_source_regression"
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bin", default=str(_default_binary(repo_root)), help="imiv executable")
+    ap.add_argument("--bin", default=str(default_binary(repo_root)), help="imiv executable")
     ap.add_argument("--cwd", default="", help="Working directory for imiv")
     ap.add_argument(
         "--backend",
         default="",
         help="Optional runtime backend override passed through to imiv",
     )
-    ap.add_argument("--env-script", default=str(default_env_script), help="Optional shell env setup script")
+    ap.add_argument(
+        "--env-script",
+        default=str(default_env_script(repo_root)),
+        help="Optional shell env setup script",
+    )
     ap.add_argument("--out-dir", default=str(default_out), help="Output directory")
     ap.add_argument("--ocio-config", default=str(_default_ocio_config(repo_root)), help="OCIO config to use")
-    ap.add_argument("--oiiotool", default=str(_default_oiiotool(repo_root)), help="oiiotool path")
-    ap.add_argument("--idiff", default=str(_default_idiff(repo_root)), help="idiff path")
+    ap.add_argument("--oiiotool", default=str(default_oiiotool(repo_root)), help="oiiotool path")
+    ap.add_argument("--idiff", default=str(default_idiff(repo_root)), help="idiff path")
     ap.add_argument(
         "--case-timeout",
         type=float,
@@ -497,34 +441,26 @@ if __name__ == "__main__":
 
     exe = Path(args.bin).expanduser().resolve()
     if not exe.exists():
-        raise SystemExit(_fail(f"binary not found: {exe}"))
-    cwd = Path(args.cwd).expanduser().resolve() if args.cwd else exe.parent.resolve()
+        raise SystemExit(fail(f"binary not found: {exe}"))
+    cwd = resolve_run_cwd(exe, args.cwd)
 
     runner = default_runner.resolve()
     if not runner.exists():
-        raise SystemExit(_fail(f"runner not found: {runner}"))
+        raise SystemExit(fail(f"runner not found: {runner}"))
 
     ocio_config = _resolve_ocio_config_argument(args.ocio_config)
     if not ocio_config.startswith("ocio://"):
         ocio_config_path = Path(ocio_config)
         if not ocio_config_path.exists():
-            raise SystemExit(_fail(f"OCIO config not found: {ocio_config_path}"))
+            raise SystemExit(fail(f"OCIO config not found: {ocio_config_path}"))
 
-    oiiotool = Path(args.oiiotool).expanduser()
+    oiiotool = resolve_existing_tool(args.oiiotool, default_oiiotool(repo_root))
     if not oiiotool.exists():
-        found = shutil.which(str(oiiotool))
-        if not found:
-            raise SystemExit(_fail(f"oiiotool not found: {oiiotool}"))
-        oiiotool = Path(found)
-    oiiotool = oiiotool.resolve()
+        raise SystemExit(fail(f"oiiotool not found: {oiiotool}"))
 
-    idiff = Path(args.idiff).expanduser()
+    idiff = resolve_existing_tool(args.idiff, default_idiff(repo_root))
     if not idiff.exists():
-        found = shutil.which(str(idiff))
-        if not found:
-            raise SystemExit(_fail(f"idiff not found: {idiff}"))
-        idiff = Path(found)
-    idiff = idiff.resolve()
+        raise SystemExit(fail(f"idiff not found: {idiff}"))
 
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -544,7 +480,7 @@ if __name__ == "__main__":
     builtin_view = "default"
     builtin_color_space = "auto"
 
-    base_env = _load_env_from_script(Path(args.env_script).expanduser())
+    base_env = load_env_from_script(Path(args.env_script).expanduser())
     base_env.pop("OCIO", None)
 
     baseline_cfg = out_dir / "cfg_baseline"
@@ -760,7 +696,7 @@ if __name__ == "__main__":
             args.case_timeout,
         )
     except (subprocess.SubprocessError, RuntimeError) as exc:
-        raise SystemExit(_fail(str(exc)))
+        raise SystemExit(fail(str(exc)))
 
     try:
         baseline_state_data = _validate_ocio_state(
@@ -844,7 +780,7 @@ if __name__ == "__main__":
             expected_resolved_config_path=expected_builtin_config_path,
         )
     except RuntimeError as exc:
-        raise SystemExit(_fail(str(exc)))
+        raise SystemExit(fail(str(exc)))
 
     global_default_ocio = global_default_state_data["ocio"]
     global_invalid_ocio = global_invalid_state_data["ocio"]
@@ -853,7 +789,7 @@ if __name__ == "__main__":
         or str(global_invalid_ocio.get("view", "")).strip() != "Missing View"
     ):
         raise SystemExit(
-            _fail(
+            fail(
                 "global_invalid_selection: persisted invalid display/view were "
                 "not preserved in state output"
             )
@@ -865,7 +801,7 @@ if __name__ == "__main__":
         != str(global_default_ocio.get("resolved_view", "")).strip()
     ):
         raise SystemExit(
-            _fail(
+            fail(
                 "global_invalid_selection: invalid persisted display/view did "
                 "not resolve to the config defaults"
             )
@@ -907,7 +843,7 @@ if __name__ == "__main__":
     )
     if baseline_global_diff <= 4.0:
         raise SystemExit(
-            _fail(
+            fail(
                 "global OCIO source matched non-OCIO baseline; expected a real "
                 f"OCIO transform result (mean abs RGB diff={baseline_global_diff:.4f})"
             )
@@ -917,7 +853,7 @@ if __name__ == "__main__":
     )
     if global_user_diff > 2.0:
         raise SystemExit(
-            _fail(
+            fail(
                 "user OCIO source output differs from global "
                 f"(mean abs RGB diff={global_user_diff:.4f})"
             )
@@ -931,7 +867,7 @@ if __name__ == "__main__":
     )
     if global_builtin_diff > 2.0:
         raise SystemExit(
-            _fail(
+            fail(
                 "global source did not fall back to builtin when $OCIO was "
                 f"missing (mean abs RGB diff={global_builtin_diff:.4f})"
             )
@@ -945,7 +881,7 @@ if __name__ == "__main__":
     )
     if builtin_user_missing_diff > 2.0:
         raise SystemExit(
-            _fail(
+            fail(
                 "user source did not fall back to builtin when user config was "
                 f"missing (mean abs RGB diff={builtin_user_missing_diff:.4f})"
             )

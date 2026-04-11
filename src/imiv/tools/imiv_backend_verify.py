@@ -18,251 +18,30 @@ from __future__ import annotations
 import argparse
 import os
 import platform
-import shlex
 import shutil
-import subprocess
 import sys
-import time
 from pathlib import Path
-from typing import Iterable
 
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
-
-def _default_image(repo_root: Path) -> Path:
-    return repo_root / "ASWF" / "logos" / "openimageio-stacked-gradient.png"
-
-
-def _is_windows() -> bool:
-    return os.name == "nt"
-
-
-def _is_macos() -> bool:
-    return sys.platform == "darwin"
-
-
-def _is_linux() -> bool:
-    return sys.platform.startswith("linux")
-
-
-def _default_build_dir(repo_root: Path) -> Path:
-    if _is_linux() and (repo_root / "build_u").exists():
-        return repo_root / "build_u"
-    return repo_root / "build"
-
-
-def _default_backend() -> str:
-    return "metal" if _is_macos() else "vulkan"
-
-
-def _supported_backends() -> tuple[str, ...]:
-    if _is_macos():
-        return ("metal", "opengl", "vulkan")
-    return ("vulkan", "opengl")
-
-
-def _default_config() -> str:
-    return "Debug" if _is_windows() else ""
-
-
-def _write_text(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-
-
-def _format_elapsed(seconds: float) -> str:
-    return f"{seconds:.2f}s"
-
-
-def _run_capture(cmd: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> str:
-    proc = subprocess.run(
-        cmd,
-        cwd=str(cwd),
-        env=env,
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-    output = proc.stdout or ""
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"command failed ({proc.returncode}): {' '.join(cmd)}\n{output}"
-        )
-    return output
-
-
-def _run_logged(
-    cmd: list[str],
-    *,
-    cwd: Path,
-    log_path: Path,
-    env: dict[str, str] | None = None,
-    label: str | None = None,
-) -> tuple[int, float]:
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    command_text = " ".join(shlex.quote(part) for part in cmd)
-    step_label = label or log_path.stem
-    start = time.monotonic()
-    with log_path.open("w", encoding="utf-8") as log_handle:
-        header = f"==> {step_label}: {command_text}\n"
-        sys.stdout.write(header)
-        log_handle.write(header)
-        proc = subprocess.Popen(
-            cmd,
-            cwd=str(cwd),
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
-        assert proc.stdout is not None
-        for line in proc.stdout:
-            sys.stdout.write(line)
-            log_handle.write(line)
-        rc = proc.wait()
-        elapsed = time.monotonic() - start
-        footer = f"<== {step_label}: rc={rc} elapsed={_format_elapsed(elapsed)}\n"
-        sys.stdout.write(footer)
-        log_handle.write(footer)
-        return rc, elapsed
-
-
-def _candidate_paths(build_dir: Path, config: str, stem: str) -> Iterable[Path]:
-    suffixes = [stem]
-    if _is_windows():
-        suffixes = [f"{stem}.exe", stem]
-    for suffix in suffixes:
-        yield build_dir / "bin" / config / suffix if config else build_dir / "bin" / suffix
-        if config:
-            yield build_dir / config / suffix
-        yield build_dir / "bin" / suffix
-        yield build_dir / "src" / stem / config / suffix if config else build_dir / "src" / stem / suffix
-        yield build_dir / "src" / stem / suffix
-        if config:
-            yield build_dir / "Release" / suffix
-            yield build_dir / "Debug" / suffix
-            yield build_dir / "bin" / "Release" / suffix
-            yield build_dir / "bin" / "Debug" / suffix
-
-
-def _find_program(build_dir: Path, config: str, stem: str) -> Path | None:
-    seen: set[Path] = set()
-    for candidate in _candidate_paths(build_dir, config, stem):
-        if candidate in seen:
-            continue
-        seen.add(candidate)
-        if candidate.exists():
-            return candidate.resolve()
-    return None
-
-
-def _discover_env_script(build_dir: Path, config: str) -> Path | None:
-    candidates = [build_dir / "imiv_env.sh"]
-    if config:
-        candidates.append(build_dir / config / "imiv_env.sh")
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate.resolve()
-    return None
-
-
-def _load_env_from_script(script_path: Path | None) -> dict[str, str]:
-    env = dict(os.environ)
-    if script_path is None or not script_path.exists() or shutil.which("bash") is None:
-        return env
-
-    quoted = shlex.quote(str(script_path))
-    proc = subprocess.run(
-        ["bash", "-lc", f"source {quoted} >/dev/null 2>&1; env -0"],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    for item in proc.stdout.split(b"\0"):
-        if not item:
-            continue
-        key, _, value = item.partition(b"=")
-        if not key:
-            continue
-        env[key.decode("utf-8", errors="ignore")] = value.decode(
-            "utf-8", errors="ignore"
-        )
-    return env
-
-
-def _base_py_cmd() -> list[str]:
-    return [sys.executable]
-
-
-def _generic_smoke_runner_cmd(
-    repo_root: Path,
-    backend: str,
-    exe: Path,
-    run_cwd: Path,
-    out_dir: Path,
-    image: Path,
-    *,
-    trace: bool,
-) -> list[str]:
-    cmd = _base_py_cmd() + [
-        str(repo_root / "src" / "imiv" / "tools" / "imiv_gui_test_run.py"),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(run_cwd),
-        "--backend",
-        backend,
-        "--open",
-        str(image),
-        "--screenshot-out",
-        str(out_dir / "smoke.png"),
-        "--layout-json-out",
-        str(out_dir / "smoke.layout.json"),
-        "--layout-items",
-        "--state-json-out",
-        str(out_dir / "smoke.state.json"),
-    ]
-    if trace:
-        cmd.append("--trace")
-    return cmd
-
-
-def _script_cmd(
-    script: Path,
-    *,
-    backend: str,
-    exe: Path,
-    run_cwd: Path,
-    out_dir: Path,
-    trace: bool,
-    extra: list[str] | None = None,
-    env_script: Path | None = None,
-) -> list[str]:
-    cmd = _base_py_cmd() + [
-        str(script),
-        "--bin",
-        str(exe),
-        "--cwd",
-        str(run_cwd),
-        "--backend",
-        backend,
-        "--out-dir",
-        str(out_dir),
-    ]
-    if extra:
-        cmd.extend(extra)
-    if env_script is not None:
-        cmd.extend(["--env-script", str(env_script)])
-    if trace:
-        cmd.append("--trace")
-    return cmd
-
+from imiv_test_utils import (
+    default_backend as imiv_default_backend,
+    default_build_dir as imiv_default_build_dir,
+    default_config as imiv_default_config,
+    default_image as imiv_default_image,
+    discover_env_script,
+    find_program,
+    format_elapsed,
+    generic_smoke_runner_command,
+    is_linux,
+    is_macos,
+    is_windows,
+    load_env_from_script,
+    repo_root as imiv_repo_root,
+    run_capture_output,
+    run_timed_logged_process,
+    script_command,
+    supported_backends as imiv_supported_backends,
+    write_text,
+)
 
 def _smoke_checks(
     repo_root: Path,
@@ -279,7 +58,7 @@ def _smoke_checks(
         checks.append(
             (
                 "smoke",
-                _script_cmd(
+                script_command(
                     repo_root
                     / "src"
                     / "imiv"
@@ -303,7 +82,7 @@ def _smoke_checks(
         checks.append(
             (
                 "smoke",
-                _script_cmd(
+                script_command(
                     repo_root / "src" / "imiv" / "tools" / "imiv_opengl_smoke_regression.py",
                     backend=backend,
                     exe=exe,
@@ -324,13 +103,12 @@ def _smoke_checks(
     checks.append(
         (
             "smoke",
-            _generic_smoke_runner_cmd(
-                repo_root,
-                backend,
-                exe,
-                run_cwd,
-                smoke_out,
-                image,
+            generic_smoke_runner_command(
+                exe=exe,
+                run_cwd=run_cwd,
+                backend=backend,
+                image=image,
+                out_dir=smoke_out,
                 trace=trace,
             ),
             out_dir / "verify_smoke.log",
@@ -351,7 +129,7 @@ def _ux_checks(
     trace: bool,
 ) -> list[tuple[str, list[str], Path, dict[str, str] | None]]:
     script = repo_root / "src" / "imiv" / "tools" / "imiv_ux_actions_regression.py"
-    cmd = _script_cmd(
+    cmd = script_command(
         script,
         backend=backend,
         exe=exe,
@@ -375,7 +153,7 @@ def _sampling_checks(
     trace: bool,
 ) -> list[tuple[str, list[str], Path, dict[str, str] | None]]:
     script = repo_root / "src" / "imiv" / "tools" / "imiv_sampling_regression.py"
-    cmd = _script_cmd(
+    cmd = script_command(
         script,
         backend=backend,
         exe=exe,
@@ -400,7 +178,7 @@ def _rgb_checks(
     trace: bool,
 ) -> list[tuple[str, list[str], Path, dict[str, str] | None]]:
     script = repo_root / "src" / "imiv" / "tools" / "imiv_rgb_input_regression.py"
-    cmd = _script_cmd(
+    cmd = script_command(
         script,
         backend=backend,
         exe=exe,
@@ -435,7 +213,7 @@ def _ocio_checks(
     checks.append(
         (
             "ocio_missing",
-            _script_cmd(
+            script_command(
                 repo_root
                 / "src"
                 / "imiv"
@@ -463,7 +241,7 @@ def _ocio_checks(
     checks.append(
         (
             "ocio_config_source",
-            _script_cmd(
+            script_command(
                 repo_root
                 / "src"
                 / "imiv"
@@ -500,7 +278,7 @@ def _ocio_checks(
         checks.append(
             (
                 name,
-                _script_cmd(
+                script_command(
                     repo_root
                     / "src"
                     / "imiv"
@@ -562,7 +340,7 @@ def _system_info_text(args: argparse.Namespace, repo_root: Path) -> str:
     lines.append("")
 
     commands: list[list[str]] = [["cmake", "--version"], ["ninja", "--version"]]
-    if _is_windows():
+    if is_windows():
         commands.extend([
             ["cmd", "/c", "ver"],
             ["where", "python"],
@@ -576,20 +354,20 @@ def _system_info_text(args: argparse.Namespace, repo_root: Path) -> str:
         ])
         if shutil.which("g++"):
             commands.append(["g++", "--version"])
-        if _is_macos():
+        if is_macos():
             commands.extend([["sw_vers"], ["xcode-select", "-p"]])
-        elif _is_linux() and shutil.which("lsb_release"):
+        elif is_linux() and shutil.which("lsb_release"):
             commands.append(["lsb_release", "-a"])
 
     for cmd in commands:
         lines.append(f"$ {' '.join(cmd)}")
         try:
-            lines.append(_run_capture(cmd, cwd=repo_root).strip())
+            lines.append(run_capture_output(cmd, cwd=repo_root).strip())
         except Exception as exc:  # pragma: no cover - best effort
             lines.append(f"<failed: {exc}>")
         lines.append("")
 
-    if _is_linux():
+    if is_linux():
         try:
             osrelease = Path("/proc/sys/kernel/osrelease").read_text(encoding="utf-8")
             lines.append(f"wsl={'1' if 'microsoft' in osrelease.lower() else '0'}")
@@ -605,14 +383,14 @@ def _system_info_text(args: argparse.Namespace, repo_root: Path) -> str:
 
 
 def main() -> int:
-    repo_root = _repo_root()
-    supported_backends = _supported_backends()
-    default_build_dir = _default_build_dir(repo_root)
+    repo_root = imiv_repo_root()
+    supported_backends = imiv_supported_backends()
+    default_build_dir = imiv_default_build_dir(repo_root)
 
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
         "--backend",
-        default=_default_backend(),
+        default=imiv_default_backend(),
         choices=supported_backends,
         help="Renderer backend to configure and verify",
     )
@@ -628,7 +406,7 @@ def main() -> int:
     )
     ap.add_argument(
         "--config",
-        default=_default_config(),
+        default=imiv_default_config(),
         help="Build configuration for multi-config generators",
     )
     ap.add_argument(
@@ -639,7 +417,7 @@ def main() -> int:
     )
     ap.add_argument(
         "--image",
-        default=str(_default_image(repo_root)),
+        default=str(imiv_default_image(repo_root)),
         help="Image to open for smoke/fallback checks",
     )
     ap.add_argument(
@@ -683,7 +461,7 @@ def main() -> int:
     build_log = out_dir / "cmake_build.log"
     timings: list[tuple[str, float]] = []
 
-    _write_text(system_info_log, _system_info_text(args, repo_root))
+    write_text(system_info_log, _system_info_text(args, repo_root))
 
     if not image_path.exists():
         print(f"error: image not found: {image_path}", file=sys.stderr)
@@ -698,7 +476,7 @@ def main() -> int:
             str(build_dir),
             f"-DOIIO_IMIV_RENDERER={args.backend}",
         ]
-        configure_rc, configure_elapsed = _run_logged(
+        configure_rc, configure_elapsed = run_timed_logged_process(
             configure_cmd,
             cwd=repo_root,
             log_path=configure_log,
@@ -709,7 +487,7 @@ def main() -> int:
             print(f"error: configure failed, see {configure_log}", file=sys.stderr)
             return 1
     else:
-        _write_text(configure_log, "skip: configure step skipped\n")
+        write_text(configure_log, "skip: configure step skipped\n")
         timings.append(("configure(skipped)", 0.0))
 
     if not args.skip_build:
@@ -728,7 +506,7 @@ def main() -> int:
             "--parallel",
             str(max(1, args.jobs)),
         ])
-        build_rc, build_elapsed = _run_logged(
+        build_rc, build_elapsed = run_timed_logged_process(
             build_cmd,
             cwd=repo_root,
             log_path=build_log,
@@ -739,12 +517,12 @@ def main() -> int:
             print(f"error: build failed, see {build_log}", file=sys.stderr)
             return 1
     else:
-        _write_text(build_log, "skip: build step skipped\n")
+        write_text(build_log, "skip: build step skipped\n")
         timings.append(("build(skipped)", 0.0))
 
-    imiv = _find_program(build_dir, args.config, "imiv")
-    oiiotool = _find_program(build_dir, args.config, "oiiotool")
-    idiff = _find_program(build_dir, args.config, "idiff")
+    imiv = find_program(build_dir, args.config, "imiv")
+    oiiotool = find_program(build_dir, args.config, "oiiotool")
+    idiff = find_program(build_dir, args.config, "idiff")
     if imiv is None:
         print(f"error: could not locate imiv under {build_dir}", file=sys.stderr)
         return 1
@@ -755,8 +533,8 @@ def main() -> int:
         print(f"error: could not locate idiff under {build_dir}", file=sys.stderr)
         return 1
 
-    env_script = _discover_env_script(build_dir, args.config)
-    base_env = _load_env_from_script(env_script)
+    env_script = discover_env_script(build_dir, args.config)
+    base_env = load_env_from_script(env_script)
     run_cwd = imiv.parent
 
     checks: list[tuple[str, list[str], Path, dict[str, str] | None]] = []
@@ -836,14 +614,14 @@ def main() -> int:
     for name, cmd, log_path, env_override in checks:
         if smoke_failed and name in skip_after_smoke:
             message = "skip: skipped because smoke failed\n"
-            _write_text(log_path, message)
+            write_text(log_path, message)
             sys.stdout.write(f"==> {name}: skipped because smoke failed\n")
             timings.append((f"{name}(skipped)", 0.0))
             continue
         env = dict(base_env)
         if env_override:
             env.update(env_override)
-        rc, elapsed = _run_logged(
+        rc, elapsed = run_timed_logged_process(
             cmd,
             cwd=repo_root,
             log_path=log_path,
@@ -879,7 +657,7 @@ def main() -> int:
     print(f"  runtime+od:  {out_dir / 'runtime_ocio_live_display'}")
     print("  timings:")
     for name, elapsed in timings:
-        print(f"    {name:<18} {_format_elapsed(elapsed)}")
+        print(f"    {name:<18} {format_elapsed(elapsed)}")
 
     if failures:
         print("")
