@@ -1311,7 +1311,7 @@ void main()
         }
 
         const GLint row_length    = static_cast<GLint>(image.row_pitch_bytes
-                                                       / pixel_stride);
+                                                    / pixel_stride);
         upload.pixels             = image.pixels.data();
         upload.unpack_row_length  = row_length;
         upload.pixel_stride_bytes = pixel_stride;

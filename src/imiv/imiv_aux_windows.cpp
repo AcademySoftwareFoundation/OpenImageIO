@@ -579,7 +579,7 @@ namespace {
         const char* stored_preference = (requested_backend == BackendKind::Auto)
                                             ? "Auto"
                                             : backend_display_name(
-                                                  requested_backend);
+                                                requested_backend);
         table_labeled_row("Stored preference");
         draw_right_aligned_text(stored_preference);
 

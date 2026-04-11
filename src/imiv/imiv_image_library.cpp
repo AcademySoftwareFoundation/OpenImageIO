@@ -412,7 +412,7 @@ sort_loaded_image_paths(ImageLibraryState& library,
                && viewer->last_path_index
                       < static_cast<int>(library.loaded_image_paths.size()))
                   ? library.loaded_image_paths[static_cast<size_t>(
-                        viewer->last_path_index)]
+                      viewer->last_path_index)]
                   : std::string();
         last_paths.emplace_back(last_path);
     }
@@ -441,7 +441,7 @@ sync_viewer_library_state(ViewerState& viewer, const ImageLibraryState& library)
            && viewer.last_path_index
                   < static_cast<int>(viewer.loaded_image_paths.size()))
               ? viewer.loaded_image_paths[static_cast<size_t>(
-                    viewer.last_path_index)]
+                  viewer.last_path_index)]
               : std::string();
     viewer.loaded_image_paths = library.loaded_image_paths;
     viewer.recent_images      = library.recent_images;
