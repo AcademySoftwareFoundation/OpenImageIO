@@ -5,13 +5,7 @@
 
 #include <OpenImageIO/platform.h>
 
-// Special dance to disable warnings in the included files related to
-// the deprecation of unicode conversion functions.
-OIIO_PRAGMA_WARNING_PUSH
-OIIO_CLANG_PRAGMA(clang diagnostic ignored "-Wdeprecated-declarations")
-#include <codecvt>
 #include <locale>
-OIIO_PRAGMA_WARNING_POP
 
 #include <algorithm>
 #include <cmath>
@@ -958,44 +952,89 @@ Strutil::replace(string_view str, string_view pattern, string_view replacement,
 
 
 
-// Conversion functions between UTF-8 and UTF-16 for windows.
+// UTF-8 <-> UTF-16 conversion utilities.
 //
-// For historical reasons, the standard encoding for strings on windows is
-// UTF-16, whereas the unix world seems to have settled on UTF-8.  These two
-// encodings can be stored in std::string and std::wstring respectively, with
-// the caveat that they're both variable-width encodings, so not all the
-// standard string methods will make sense (for example std::string::size()
-// won't return the number of glyphs in a UTF-8 string, unless it happens to
-// be made up of only the 7-bit ASCII subset).
+// OIIO uses UTF-8 for all string/path handling. On Windows, OS APIs require
+// UTF-16 (wchar_t*), so we convert at API boundaries. Some non-Windows uses
+// also exist (e.g., parsing UTF-16 ICC profile metadata).
 //
-// The standard windows API functions usually have two versions, a UTF-16
-// version with a 'W' suffix (using wchar_t* strings), and an ANSI version
-// with a 'A' suffix (using char* strings) which uses the current windows
-// code page to define the encoding.  (To make matters more confusing there is
-// also a further "TCHAR" version which is #defined to the UTF-16 or ANSI
-// version, depending on whether UNICODE is defined during compilation.
-// This is meant to make it possible to support compiling libraries in
-// either unicode or ansi mode from the same codebase.)
+// On Windows, we use the native MultiByteToWideChar/WideCharToMultiByte APIs.
+// On other platforms, we use hand-rolled UTF-8/UTF-16 codec functions below,
+// replacing the deprecated std::codecvt_utf8_utf16 (removed in C++26).
 //
-// Using std::string as the string container (as in OIIO) implies that we
-// can't use UTF-16.  It also means we need a variable-width encoding to
-// represent characters in non-Latin alphabets in an unambiguous way; the
-// obvious candidate is UTF-8.  File paths in OIIO are considered to be
-// represented in UTF-8, and must be converted to UTF-16 before passing to
-// windows API file opening functions.
-//
-// On the other hand, the encoding used for the ANSI versions of the windows
-// API is the current windows code page.  This is more compatible with the
-// default setup of the standard windows command prompt, and may be more
-// appropriate for error messages.
+// Note: wchar_t is 16-bit on Windows (natural UTF-16) but 32-bit on
+// macOS/Linux. The non-Windows path still produces UTF-16 encoding in
+// wchar_t units (with surrogate pairs) to match the expected semantics of
+// utf8_to_utf16wstring().
+
+// Decode one UTF-8 sequence starting at `src[pos]`, advance `pos` past it,
+// and return the codepoint. Returns 0xFFFD on malformed input and advances
+// past the bad byte(s).
+static uint32_t
+decode_utf8(const char* src, size_t len, size_t& pos)
+{
+    auto byte    = [&](size_t i) -> uint8_t { return uint8_t(src[i]); };
+    auto is_cont = [](uint8_t b) { return (b & 0xC0) == 0x80; };
+    uint8_t b0   = byte(pos);
+    if (b0 < 0x80) {
+        pos += 1;
+        return b0;
+    } else if ((b0 & 0xE0) == 0xC0 && pos + 1 < len && is_cont(byte(pos + 1))) {
+        uint32_t cp = (uint32_t(b0 & 0x1F) << 6)
+                      | uint32_t(byte(pos + 1) & 0x3F);
+        pos += 2;
+        return cp >= 0x80 ? cp : 0xFFFD;  // reject overlong
+    } else if ((b0 & 0xF0) == 0xE0 && pos + 2 < len && is_cont(byte(pos + 1))
+               && is_cont(byte(pos + 2))) {
+        uint32_t cp = (uint32_t(b0 & 0x0F) << 12)
+                      | (uint32_t(byte(pos + 1) & 0x3F) << 6)
+                      | uint32_t(byte(pos + 2) & 0x3F);
+        pos += 3;
+        if (cp < 0x800 || (cp >= 0xD800 && cp <= 0xDFFF))
+            return 0xFFFD;  // overlong or surrogate
+        return cp;
+    } else if ((b0 & 0xF8) == 0xF0 && pos + 3 < len && is_cont(byte(pos + 1))
+               && is_cont(byte(pos + 2)) && is_cont(byte(pos + 3))) {
+        uint32_t cp = (uint32_t(b0 & 0x07) << 18)
+                      | (uint32_t(byte(pos + 1) & 0x3F) << 12)
+                      | (uint32_t(byte(pos + 2) & 0x3F) << 6)
+                      | uint32_t(byte(pos + 3) & 0x3F);
+        pos += 4;
+        return (cp >= 0x10000 && cp <= 0x10FFFF) ? cp : 0xFFFD;
+    }
+    pos += 1;  // skip bad byte
+    return 0xFFFD;
+}
+
+
+// Encode a Unicode codepoint as UTF-8, appending to `out`.
+static void
+encode_utf8(uint32_t cp, std::string& out)
+{
+    if (cp < 0x80) {
+        out += char(cp);
+    } else if (cp < 0x800) {
+        out += char(0xC0 | (cp >> 6));
+        out += char(0x80 | (cp & 0x3F));
+    } else if (cp < 0x10000) {
+        out += char(0xE0 | (cp >> 12));
+        out += char(0x80 | ((cp >> 6) & 0x3F));
+        out += char(0x80 | (cp & 0x3F));
+    } else if (cp <= 0x10FFFF) {
+        out += char(0xF0 | (cp >> 18));
+        out += char(0x80 | ((cp >> 12) & 0x3F));
+        out += char(0x80 | ((cp >> 6) & 0x3F));
+        out += char(0x80 | (cp & 0x3F));
+    }
+}
+
 
 std::wstring
 Strutil::utf8_to_utf16wstring(string_view str) noexcept
 {
 #ifdef _WIN32
     // UTF8<->UTF16 conversions are primarily needed on Windows, so use the
-    // fastest option (C++11 <codecvt> is many times slower due to locale
-    // access overhead, and is deprecated starting with C++17).
+    // fastest option.
     std::wstring result;
     result.resize(
         MultiByteToWideChar(CP_UTF8, 0, str.data(), str.length(), NULL, 0));
@@ -1003,17 +1042,23 @@ Strutil::utf8_to_utf16wstring(string_view str) noexcept
                         (int)result.size());
     return result;
 #else
-    try {
-        OIIO_PRAGMA_WARNING_PUSH
-#    if defined(__clang__) || OIIO_GNUC_VERSION >= 150000
-        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
-#    endif
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
-        OIIO_PRAGMA_WARNING_POP
-        return conv.from_bytes(str.data(), str.data() + str.size());
-    } catch (const std::exception&) {
-        return std::wstring();
+    // Decode UTF-8 into codepoints and encode as UTF-16 stored in wchar_t
+    // units (matching the behavior of the now-deprecated codecvt_utf8_utf16).
+    std::wstring result;
+    result.reserve(str.size());
+    size_t pos = 0;
+    while (pos < str.size()) {
+        uint32_t cp = decode_utf8(str.data(), str.size(), pos);
+        if (cp < 0x10000) {
+            result += wchar_t(cp);
+        } else {
+            // Encode as surrogate pair in wchar_t units
+            cp -= 0x10000;
+            result += wchar_t(0xD800 + (cp >> 10));
+            result += wchar_t(0xDC00 + (cp & 0x3FF));
+        }
     }
+    return result;
 #endif
 }
 
@@ -1024,8 +1069,7 @@ Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 {
 #ifdef _WIN32
     // UTF8<->UTF16 conversions are primarily needed on Windows, so use the
-    // fastest option (C++11 <codecvt> is many times slower due to locale
-    // access overhead, and is deprecated starting with C++17).
+    // fastest option.
     std::string result;
     result.resize(WideCharToMultiByte(CP_UTF8, 0, str.data(), str.length(),
                                       NULL, 0, NULL, NULL));
@@ -1033,17 +1077,33 @@ Strutil::utf16_to_utf8(const std::wstring& str) noexcept
                         (int)result.size(), NULL, NULL);
     return result;
 #else
-    try {
-        OIIO_PRAGMA_WARNING_PUSH
-#    if defined(__clang__) || OIIO_GNUC_VERSION >= 150000
-        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
-#    endif
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
-        OIIO_PRAGMA_WARNING_POP
-        return conv.to_bytes(str);
-    } catch (const std::exception&) {
-        return std::string();
+    // Decode UTF-16 stored in wchar_t units (matching the behavior of the
+    // now-deprecated codecvt_utf8_utf16) and encode as UTF-8.
+    std::string result;
+    result.reserve(str.size() * 2);
+    size_t i = 0;
+    while (i < str.size()) {
+        uint32_t w = uint32_t(str[i]);
+        uint32_t cp;
+        if (w >= 0xD800 && w <= 0xDBFF && i + 1 < str.size()) {
+            uint32_t w2 = uint32_t(str[i + 1]);
+            if (w2 >= 0xDC00 && w2 <= 0xDFFF) {
+                cp = 0x10000 + ((w - 0xD800) << 10) + (w2 - 0xDC00);
+                i += 2;
+            } else {
+                cp = 0xFFFD;  // unpaired high surrogate
+                i += 1;
+            }
+        } else if (w >= 0xDC00 && w <= 0xDFFF) {
+            cp = 0xFFFD;  // unpaired low surrogate
+            i += 1;
+        } else {
+            cp = w;
+            i += 1;
+        }
+        encode_utf8(cp, result);
     }
+    return result;
 #endif
 }
 
@@ -1060,17 +1120,32 @@ Strutil::utf16_to_utf8(const std::u16string& str) noexcept
                         &result[0], (int)result.size(), NULL, NULL);
     return result;
 #else
-    try {
-        OIIO_PRAGMA_WARNING_PUSH
-#    if defined(__clang__) || OIIO_GNUC_VERSION >= 150000
-        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
-#    endif
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conv;
-        return conv.to_bytes(str);
-        OIIO_PRAGMA_WARNING_POP
-    } catch (const std::exception&) {
-        return std::string();
+    // Decode UTF-16 from char16_t units and encode as UTF-8.
+    std::string result;
+    result.reserve(str.size() * 2);
+    size_t i = 0;
+    while (i < str.size()) {
+        uint32_t w = uint32_t(str[i]);
+        uint32_t cp;
+        if (w >= 0xD800 && w <= 0xDBFF && i + 1 < str.size()) {
+            uint32_t w2 = uint32_t(str[i + 1]);
+            if (w2 >= 0xDC00 && w2 <= 0xDFFF) {
+                cp = 0x10000 + ((w - 0xD800) << 10) + (w2 - 0xDC00);
+                i += 2;
+            } else {
+                cp = 0xFFFD;
+                i += 1;
+            }
+        } else if (w >= 0xDC00 && w <= 0xDFFF) {
+            cp = 0xFFFD;
+            i += 1;
+        } else {
+            cp = w;
+            i += 1;
+        }
+        encode_utf8(cp, result);
     }
+    return result;
 #endif
 }
 
