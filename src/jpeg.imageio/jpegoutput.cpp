@@ -573,8 +573,10 @@ JpgOutput::copy_image(ImageInput* in)
         ImageSpec in_spec;
         ImageSpec config_spec;
         config_spec.attribute("_jpeg:raw", 1);
-        if (!in->open(in_name, in_spec, config_spec))
+        if (!in->open(in_name, in_spec, config_spec)) {
+            errorfmt("{}", in->geterror());
             return false;
+        }
 
         // Re-open the output
         std::string out_name    = m_filename;
