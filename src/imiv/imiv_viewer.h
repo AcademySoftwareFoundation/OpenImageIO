@@ -153,22 +153,28 @@ struct PlaceholderUiState {
     bool linear_interpolation     = false;
     bool auto_mipmap              = false;
     bool image_window_force_dock  = true;
+    bool show_transparency        = false;
+    bool image_window_bg_override = false;
 
-    int max_memory_ic_mb       = 2048;
-    int slide_duration_seconds = 10;
-    int closeup_pixels         = 13;
-    int closeup_avg_pixels     = 11;
-    int current_channel        = 0;
-    int subimage_index         = 0;
-    int miplevel_index         = 0;
-    int color_mode             = 0;
-    int mouse_mode             = 0;
-    int style_preset           = static_cast<int>(AppStylePreset::ImGuiDark);
-    int renderer_backend       = static_cast<int>(BackendKind::Auto);
+    int max_memory_ic_mb        = 2048;
+    int slide_duration_seconds  = 10;
+    int closeup_pixels          = 13;
+    int closeup_avg_pixels      = 11;
+    int transparency_check_size = 16;
+    int current_channel         = 0;
+    int subimage_index          = 0;
+    int miplevel_index          = 0;
+    int color_mode              = 0;
+    int mouse_mode              = 0;
+    int style_preset            = static_cast<int>(AppStylePreset::ImGuiDark);
+    int renderer_backend        = static_cast<int>(BackendKind::Auto);
 
-    float exposure = 0.0f;
-    float gamma    = 1.0f;
-    float offset   = 0.0f;
+    float exposure                  = 0.0f;
+    float gamma                     = 1.0f;
+    float offset                    = 0.0f;
+    ImVec4 transparency_light_color = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+    ImVec4 transparency_dark_color  = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+    ImVec4 image_window_bg_color    = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
 
     int ocio_config_source   = static_cast<int>(OcioConfigSource::Global);
     std::string ocio_display = "default";

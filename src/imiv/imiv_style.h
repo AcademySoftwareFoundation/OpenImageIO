@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <imgui.h>
+
 namespace Imiv {
 
 enum class AppStylePreset : int {
@@ -28,5 +30,13 @@ void
 StyleColorsIvDark();
 void
 StyleColorsIvLight();
+ImVec4
+default_image_window_background_color(AppStylePreset preset);
+ImVec4
+default_image_window_transparency_light_color();
+ImVec4
+default_image_window_transparency_dark_color();
+int
+default_image_window_transparency_check_size();
 
 }  // namespace Imiv

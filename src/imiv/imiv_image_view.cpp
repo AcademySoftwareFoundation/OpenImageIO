@@ -8,10 +8,12 @@
 #include "imiv_parse.h"
 #include "imiv_probe_overlay.h"
 #include "imiv_renderer.h"
+#include "imiv_style.h"
 #include "imiv_test_engine.h"
 #include "imiv_ui_metrics.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -65,6 +67,82 @@ namespace {
             out_max.y -= style.ScrollbarSize;
         out_max.x = std::max(out_min.x, out_max.x);
         out_max.y = std::max(out_min.y, out_max.y);
+    }
+
+    ImVec4 effective_image_window_bg_color(const PlaceholderUiState& ui_state)
+    {
+        if (ui_state.image_window_bg_override)
+            return ui_state.image_window_bg_color;
+        return default_image_window_background_color(
+            sanitize_app_style_preset(ui_state.style_preset));
+    }
+
+    void draw_image_window_background(ImDrawList* draw_list,
+                                      const PlaceholderUiState& ui_state,
+                                      const ImageCoordinateMap& coord_map,
+                                      const ImVec2& image_rect_min,
+                                      const ImVec2& image_rect_max)
+    {
+        if (draw_list == nullptr)
+            return;
+
+        draw_list->AddRectFilled(coord_map.viewport_rect_min,
+                                 coord_map.viewport_rect_max,
+                                 ImGui::ColorConvertFloat4ToU32(
+                                     effective_image_window_bg_color(ui_state)));
+        if (!ui_state.show_transparency)
+            return;
+
+        const ImVec2 checker_min(std::max(coord_map.viewport_rect_min.x,
+                                          image_rect_min.x),
+                                 std::max(coord_map.viewport_rect_min.y,
+                                          image_rect_min.y));
+        const ImVec2 checker_max(std::min(coord_map.viewport_rect_max.x,
+                                          image_rect_max.x),
+                                 std::min(coord_map.viewport_rect_max.y,
+                                          image_rect_max.y));
+        if (checker_max.x <= checker_min.x || checker_max.y <= checker_min.y)
+            return;
+
+        const float tile_size = static_cast<float>(
+            std::max(1, ui_state.transparency_check_size));
+        const float origin_x = coord_map.viewport_rect_min.x;
+        const float origin_y = coord_map.viewport_rect_min.y;
+        const int start_col  = static_cast<int>(
+            std::floor((checker_min.x - origin_x) / tile_size));
+        const int end_col = static_cast<int>(
+            std::ceil((checker_max.x - origin_x) / tile_size));
+        const int start_row = static_cast<int>(
+            std::floor((checker_min.y - origin_y) / tile_size));
+        const int end_row = static_cast<int>(
+            std::ceil((checker_max.y - origin_y) / tile_size));
+        const ImU32 light_color = ImGui::ColorConvertFloat4ToU32(
+            ui_state.transparency_light_color);
+        const ImU32 dark_color = ImGui::ColorConvertFloat4ToU32(
+            ui_state.transparency_dark_color);
+
+        draw_list->AddRectFilled(checker_min, checker_max, light_color);
+        for (int row = start_row; row < end_row; ++row) {
+            const float y0 = origin_y + static_cast<float>(row) * tile_size;
+            const float y1 = y0 + tile_size;
+            const float clipped_y0 = std::max(y0, checker_min.y);
+            const float clipped_y1 = std::min(y1, checker_max.y);
+            if (clipped_y1 <= clipped_y0)
+                continue;
+            for (int col = start_col; col < end_col; ++col) {
+                if (((row + col) & 1) == 0)
+                    continue;
+                const float x0 = origin_x + static_cast<float>(col) * tile_size;
+                const float x1 = x0 + tile_size;
+                const float clipped_x0 = std::max(x0, checker_min.x);
+                const float clipped_x1 = std::min(x1, checker_max.x);
+                if (clipped_x1 <= clipped_x0)
+                    continue;
+                draw_list->AddRectFilled(ImVec2(clipped_x0, clipped_y0),
+                                         ImVec2(clipped_x1, clipped_y1),
+                                         dark_color);
+            }
+        }
     }
 
 }  // namespace
@@ -222,6 +300,9 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
             image_canvas_active = ImGui::IsItemActive();
             register_layout_dump_synthetic_item("image", "Image");
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            draw_image_window_background(draw_list, ui_state, coord_map,
+                                         coord_map.image_rect_min,
+                                         coord_map.image_rect_max);
             draw_list->PushClipRect(coord_map.viewport_rect_min,
                                     coord_map.viewport_rect_max, true);
             draw_list->AddImage(main_texture_ref, coord_map.image_rect_min,

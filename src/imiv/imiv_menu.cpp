@@ -297,6 +297,7 @@ draw_viewer_main_menu(ViewerState& viewer, PlaceholderUiState& ui_state,
             actions.toggle_requested = true;
         ImGui::MenuItem("Show display/data window borders", nullptr,
                         &ui_state.show_window_guides);
+        ImGui::MenuItem("Transparency", nullptr, &ui_state.show_transparency);
         ImGui::Separator();
 
         if (ImGui::MenuItem("Zoom In", "Ctrl++", false, has_image))

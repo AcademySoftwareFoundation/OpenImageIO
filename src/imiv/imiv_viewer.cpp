@@ -185,6 +185,12 @@ clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
         }
         return std::clamp(clamped, min_value, max_value);
     };
+    auto clamp_color = [](ImVec4& color) {
+        color.x = std::clamp(color.x, 0.0f, 1.0f);
+        color.y = std::clamp(color.y, 0.0f, 1.0f);
+        color.z = std::clamp(color.z, 0.0f, 1.0f);
+        color.w = std::clamp(color.w, 0.0f, 1.0f);
+    };
 
     if (ui_state.max_memory_ic_mb < 64)
         ui_state.max_memory_ic_mb = 64;
@@ -194,6 +200,8 @@ clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
     ui_state.closeup_avg_pixels = clamp_odd(ui_state.closeup_avg_pixels, 3, 25);
     if (ui_state.closeup_avg_pixels > ui_state.closeup_pixels)
         ui_state.closeup_avg_pixels = ui_state.closeup_pixels;
+    ui_state.transparency_check_size
+        = std::clamp(ui_state.transparency_check_size, 4, 128);
     if (ui_state.mouse_mode < 0)
         ui_state.mouse_mode = 0;
     if (ui_state.mouse_mode > 4)
@@ -210,6 +218,9 @@ clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
         = std::clamp(ui_state.ocio_config_source,
                      static_cast<int>(OcioConfigSource::Global),
                      static_cast<int>(OcioConfigSource::User));
+    clamp_color(ui_state.transparency_light_color);
+    clamp_color(ui_state.transparency_dark_color);
+    clamp_color(ui_state.image_window_bg_color);
 }
 
 

@@ -154,6 +154,10 @@ namespace {
             apply_bool_pref(value, ui_state.auto_mipmap);
         } else if (key == "fit_image_to_window") {
             apply_bool_pref(value, ui_state.fit_image_to_window);
+        } else if (key == "show_transparency") {
+            apply_bool_pref(value, ui_state.show_transparency);
+        } else if (key == "image_window_bg_override") {
+            apply_bool_pref(value, ui_state.image_window_bg_override);
         } else if (key == "show_mouse_mode_selector") {
             apply_bool_pref(value, ui_state.show_mouse_mode_selector);
         } else if (key == "full_screen_mode") {
@@ -176,6 +180,8 @@ namespace {
             apply_int_pref(value, ui_state.closeup_pixels);
         } else if (key == "closeup_avg_pixels") {
             apply_int_pref(value, ui_state.closeup_avg_pixels);
+        } else if (key == "transparency_check_size") {
+            apply_int_pref(value, ui_state.transparency_check_size);
         } else if (key == "current_channel") {
             apply_int_pref(value, viewer.recipe.current_channel);
         } else if (key == "color_mode") {
@@ -192,6 +198,30 @@ namespace {
             apply_float_pref(value, viewer.recipe.gamma);
         } else if (key == "offset") {
             apply_float_pref(value, viewer.recipe.offset);
+        } else if (key == "transparency_light_r") {
+            apply_float_pref(value, ui_state.transparency_light_color.x);
+        } else if (key == "transparency_light_g") {
+            apply_float_pref(value, ui_state.transparency_light_color.y);
+        } else if (key == "transparency_light_b") {
+            apply_float_pref(value, ui_state.transparency_light_color.z);
+        } else if (key == "transparency_light_a") {
+            apply_float_pref(value, ui_state.transparency_light_color.w);
+        } else if (key == "transparency_dark_r") {
+            apply_float_pref(value, ui_state.transparency_dark_color.x);
+        } else if (key == "transparency_dark_g") {
+            apply_float_pref(value, ui_state.transparency_dark_color.y);
+        } else if (key == "transparency_dark_b") {
+            apply_float_pref(value, ui_state.transparency_dark_color.z);
+        } else if (key == "transparency_dark_a") {
+            apply_float_pref(value, ui_state.transparency_dark_color.w);
+        } else if (key == "image_window_bg_r") {
+            apply_float_pref(value, ui_state.image_window_bg_color.x);
+        } else if (key == "image_window_bg_g") {
+            apply_float_pref(value, ui_state.image_window_bg_color.y);
+        } else if (key == "image_window_bg_b") {
+            apply_float_pref(value, ui_state.image_window_bg_color.z);
+        } else if (key == "image_window_bg_a") {
+            apply_float_pref(value, ui_state.image_window_bg_color.w);
         } else if (key == "ocio_display") {
             viewer.recipe.ocio_display = strip_to_string(value);
         } else if (key == "ocio_view") {
@@ -234,6 +264,10 @@ namespace {
         output << "auto_mipmap=" << (ui_state.auto_mipmap ? 1 : 0) << "\n";
         output << "fit_image_to_window="
                << (ui_state.fit_image_to_window ? 1 : 0) << "\n";
+        output << "show_transparency=" << (ui_state.show_transparency ? 1 : 0)
+               << "\n";
+        output << "image_window_bg_override="
+               << (ui_state.image_window_bg_override ? 1 : 0) << "\n";
         output << "show_mouse_mode_selector="
                << (ui_state.show_mouse_mode_selector ? 1 : 0) << "\n";
         output << "full_screen_mode=" << (ui_state.full_screen_mode ? 1 : 0)
@@ -250,6 +284,8 @@ namespace {
                << "\n";
         output << "closeup_pixels=" << ui_state.closeup_pixels << "\n";
         output << "closeup_avg_pixels=" << ui_state.closeup_avg_pixels << "\n";
+        output << "transparency_check_size=" << ui_state.transparency_check_size
+               << "\n";
         output << "current_channel=" << viewer.recipe.current_channel << "\n";
         output << "color_mode=" << viewer.recipe.color_mode << "\n";
         output << "subimage_index=" << ui_state.subimage_index << "\n";
@@ -258,6 +294,30 @@ namespace {
         output << "exposure=" << viewer.recipe.exposure << "\n";
         output << "gamma=" << viewer.recipe.gamma << "\n";
         output << "offset=" << viewer.recipe.offset << "\n";
+        output << "transparency_light_r=" << ui_state.transparency_light_color.x
+               << "\n";
+        output << "transparency_light_g=" << ui_state.transparency_light_color.y
+               << "\n";
+        output << "transparency_light_b=" << ui_state.transparency_light_color.z
+               << "\n";
+        output << "transparency_light_a=" << ui_state.transparency_light_color.w
+               << "\n";
+        output << "transparency_dark_r=" << ui_state.transparency_dark_color.x
+               << "\n";
+        output << "transparency_dark_g=" << ui_state.transparency_dark_color.y
+               << "\n";
+        output << "transparency_dark_b=" << ui_state.transparency_dark_color.z
+               << "\n";
+        output << "transparency_dark_a=" << ui_state.transparency_dark_color.w
+               << "\n";
+        output << "image_window_bg_r=" << ui_state.image_window_bg_color.x
+               << "\n";
+        output << "image_window_bg_g=" << ui_state.image_window_bg_color.y
+               << "\n";
+        output << "image_window_bg_b=" << ui_state.image_window_bg_color.z
+               << "\n";
+        output << "image_window_bg_a=" << ui_state.image_window_bg_color.w
+               << "\n";
         output << "ocio_display=" << viewer.recipe.ocio_display << "\n";
         output << "ocio_view=" << viewer.recipe.ocio_view << "\n";
         output << "ocio_image_color_space="

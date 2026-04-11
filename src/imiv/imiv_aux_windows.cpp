@@ -68,6 +68,12 @@ namespace {
         ui.offset   = 0.0f;
     }
 
+    ImVec4 preview_theme_background_color(const PlaceholderUiState& ui)
+    {
+        return default_image_window_background_color(
+            sanitize_app_style_preset(ui.style_preset));
+    }
+
 }  // namespace
 
 void
@@ -261,6 +267,38 @@ draw_preview_window(PlaceholderUiState& ui, bool& show_window,
             }
 
             ImGui::EndTable();
+        }
+
+        const ImGuiColorEditFlags color_flags
+            = ImGuiColorEditFlags_Float | ImGuiColorEditFlags_DisplayRGB;
+        ImGui::Separator();
+        if (ImGui::CollapsingHeader("Transparency")) {
+            ImGui::Checkbox("Show checkerboard", &ui.show_transparency);
+            ImGui::SliderInt("Check size", &ui.transparency_check_size, 4, 128,
+                             "%d px");
+            ImGui::ColorEdit4("Light checks", &ui.transparency_light_color.x,
+                              color_flags);
+            ImGui::ColorEdit4("Dark checks", &ui.transparency_dark_color.x,
+                              color_flags);
+
+            ImVec4 theme_background_color = preview_theme_background_color(ui);
+            bool bg_override              = ui.image_window_bg_override;
+            if (ImGui::Checkbox("Override image background", &bg_override)
+                && bg_override) {
+                ui.image_window_bg_color = theme_background_color;
+            }
+            ui.image_window_bg_override = bg_override;
+
+            ImVec4 background_color = ui.image_window_bg_override
+                                          ? ui.image_window_bg_color
+                                          : theme_background_color;
+            ImGui::BeginDisabled(!ui.image_window_bg_override);
+            if (ImGui::ColorEdit4("Image background", &background_color.x,
+                                  color_flags)
+                && ui.image_window_bg_override) {
+                ui.image_window_bg_color = background_color;
+            }
+            ImGui::EndDisabled();
         }
 
         ImGui::EndChild();
@@ -579,7 +617,7 @@ namespace {
         const char* stored_preference = (requested_backend == BackendKind::Auto)
                                             ? "Auto"
                                             : backend_display_name(
-                                                requested_backend);
+                                                  requested_backend);
         table_labeled_row("Stored preference");
         draw_right_aligned_text(stored_preference);
 

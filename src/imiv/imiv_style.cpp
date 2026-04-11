@@ -75,6 +75,38 @@ apply_imgui_app_style(AppStylePreset preset)
     apply_imgui_style_defaults();
 }
 
+ImVec4
+default_image_window_background_color(AppStylePreset preset)
+{
+    switch (preset) {
+    case AppStylePreset::IvLight:
+    case AppStylePreset::ImGuiLight: return ImVec4(0.86f, 0.86f, 0.86f, 1.00f);
+    case AppStylePreset::IvDark:
+    case AppStylePreset::ImGuiDark:
+    case AppStylePreset::ImGuiClassic:
+        return ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
+    }
+    return ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
+}
+
+ImVec4
+default_image_window_transparency_light_color()
+{
+    return ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+}
+
+ImVec4
+default_image_window_transparency_dark_color()
+{
+    return ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+}
+
+int
+default_image_window_transparency_check_size()
+{
+    return 16;
+}
+
 void
 StyleColorsIvDark()
 {
