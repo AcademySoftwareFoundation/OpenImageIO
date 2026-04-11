@@ -515,6 +515,86 @@ test_mad()
 
 
 
+void
+test_hwy_strided_roi_fallback()
+{
+#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+    std::cout << "test hwy strided roi fallback\n";
+
+    int prev_enable_hwy = 0;
+    OIIO::getattribute("enable_hwy", prev_enable_hwy);
+
+    ImageSpec spec(64, 64, 4, TypeDesc::UINT8);
+    ImageBuf A(spec), B(spec), C(spec);
+    ImageBufAlgo::fill(A, { 0.2f, 0.4f, 0.6f, 0.8f });
+    ImageBufAlgo::fill(B, { 0.1f, 0.3f, 0.5f, 0.7f });
+    ImageBufAlgo::fill(C, { 0.05f, 0.05f, 0.05f, 0.05f });
+
+    ROI roi     = get_roi(A.spec());
+    roi.chbegin = 0;
+    roi.chend   = 3;  // RGB only => non-contiguous for RGBA interleaving
+
+    {
+        ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::add(R0, A, B, roi);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::add(R1, A, B, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    }
+    {
+        ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::sub(R0, A, B, roi);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::sub(R1, A, B, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    }
+    {
+        ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::mul(R0, A, B, roi);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::mul(R1, A, B, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    }
+    {
+        ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::div(R0, A, B, roi);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::div(R1, A, B, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    }
+    {
+        ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::mad(R0, A, B, C, roi);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::mad(R1, A, B, C, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    }
+
+    OIIO::attribute("enable_hwy", prev_enable_hwy);
+#endif
+}
+
+
 // Tests ImageBufAlgo::min
 void
 test_min()
@@ -1626,6 +1706,7 @@ main(int argc, char** argv)
     test_sub();
     test_mul();
     test_mad();
+    test_hwy_strided_roi_fallback();
     test_min();
     test_max();
     test_over(TypeFloat);

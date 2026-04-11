@@ -221,7 +221,8 @@ private:
         m_filename.clear();
     }
 
-    bool valid_file(const std::string& filename, Filesystem::IOProxy* io) const;
+    bool valid_file_or_proxy(const std::string& filename,
+                             Filesystem::IOProxy* io) const;
 
     // Fill in with 'missing' color/pattern.
     bool check_fill_missing(int xbegin, int xend, int ybegin, int yend,
@@ -300,14 +301,14 @@ OpenEXRCoreInput::OpenEXRCoreInput() { init(); }
 bool
 OpenEXRCoreInput::valid_file(const std::string& filename) const
 {
-    return valid_file(filename, nullptr);
+    return valid_file_or_proxy(filename, nullptr);
 }
 
 
 
 bool
-OpenEXRCoreInput::valid_file(const std::string& filename,
-                             Filesystem::IOProxy* io) const
+OpenEXRCoreInput::valid_file_or_proxy(const std::string& filename,
+                                      Filesystem::IOProxy* io) const
 {
     oiioexr_filebuf_struct udata;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
@@ -355,7 +356,7 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
     //KDTDISABLE     errorfmt("Could not open file \"{}\"", name);
     //KDTDISABLE     return false;
     //KDTDISABLE }
-    //KDTDISABLE if (!valid_file(name, m_io)) {
+    //KDTDISABLE if (!valid_file_or_proxy(name, m_io)) {
     //KDTDISABLE     errorfmt("\"{}\" is not an OpenEXR file", name);
     //KDTDISABLE     return false;
     //KDTDISABLE }
