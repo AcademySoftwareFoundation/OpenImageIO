@@ -1,0 +1,28 @@
+Same image test
+FLIP diff of "dark.exr" vs "dark.exr"
+  Mean FLIP error  = 0
+  Max FLIP error   = 0
+Differing images, LDR
+FLIP diff of "dark.exr" vs "light.exr"
+  Mean FLIP error  = 0.9514
+  Max FLIP error   = 0.9514  @ (0, 0)  values are 0.099975586, 0.099975586, 0.099975586 vs 0.89990234, 0.89990234, 0.89990234
+Differing images, HDR
+FLIP diff of "dark.exr" vs "light.exr"
+  Mean FLIP error  = 0.2045
+  Max FLIP error   = 0.2045  @ (0, 0)  values are 0.099975586, 0.099975586, 0.099975586 vs 0.89990234, 0.89990234, 0.89990234
+  Exposure range   = [4.41, 4.41] (2 stops)
+FLIP diff of "src/reference-crop.exr" vs "src/test-crop.exr"
+  Mean FLIP error  = 0.2789
+  Max FLIP error   = 0.8402  @ (110, 137)  values are 3.984375, 2.9960938, 2.6992188 vs 1.7675781, 0.6850586, 0.41186523
+  Exposure range   = [-12.5, 1.11] (14 stops)
+FLIP diff of "src/reference-crop.exr" vs "src/test-crop.exr"
+  Mean FLIP error  = 0.2496
+  Max FLIP error   = 0.7267  @ (101, 92)  values are 0.23474121, 0.14050293, 0.09954834 vs 0.014442444, 0.008018494, 0.004589081
+  Exposure range   = [0.0833, 3.56] (4 stops)
+LDR FLIP mean 0.309864 max 0.775379 max location (21, 146)
+Comparing "reference-test-flip-auto.exr" and "ref/reference-test-flip-auto.exr"
+PASS
+Comparing "reference-test-flip-oiio.exr" and "ref/reference-test-flip-oiio.exr"
+PASS
+Comparing "reference-test-flip-colormapped.exr" and "ref/reference-test-flip-colormapped.exr"
+PASS

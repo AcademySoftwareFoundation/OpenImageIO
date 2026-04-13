@@ -1441,6 +1441,150 @@ int OIIO_API compare_Yee (const ImageBuf &A, const ImageBuf &B,
                           ROI roi={}, int nthreads=0);
 
 
+#if OIIO_VERSION_GREATER_EQUAL(3, 2, 0) || defined(OIIO_INTERNAL)
+namespace experimental {
+// These FLIP_diff functions are EXPERIMENTAL and subject to change without
+// breaking our rules about backward compatibility. They are present for our
+// own experimentation but not exposed to external users for versions earlier
+// than 3.2, so far.
+
+/// @defgroup FLIP_diff (FLIP perceptual image difference)
+/// @{
+///
+/// WARNING: This is EXPERIMENTAL and may change at any time. Do not rely
+/// on it prior to the release of OIIO 3.2.
+///
+/// Compute the FLIP perceptual difference between a reference image and a
+/// test image, returning an error map whose pixel values are in [0,1]. FLIP
+/// is a perceptual image difference metric based on human visual perception.
+/// Both LDR and HDR modes are supported.
+///
+/// References:
+/// - Andersson et al., "FLIP: A Difference Evaluator for Alternating
+///   Images", HPG 2020.
+/// - Andersson et al., "Visualizing Errors in Rendered High Dynamic Range
+///   Images", Eurographics 2021.
+///
+/// If the input images do not have a known colorspace, they will be assumed
+/// to be "lin_rec709_scene". If `roi` is not defined, it defaults to the
+/// union of the two images' data windows. Three channels starting at
+/// `roi.chbegin` are used. Currently, alpha or any other additional channels
+/// are not incorporated into the error metric.
+///
+/// Returns (or writes to `dst`) a single-channel float error map in [0,1].
+/// For visualization purposes, it may be helpful to subsequently use the
+/// `ImageBufAlgo::color_map()` function to produce a false-color image of the
+/// error. Summary statistics are stored as metadata attributes on the
+/// returned error map image:
+///
+///   - `"FLIP:meanerror"` (float) : mean perceptual error over all pixels
+///   - `"FLIP:maxerror"`  (float) : maximum per-pixel error
+///   - `"FLIP:maxx"`, `"FLIP:maxy"` (int) : pixel coordinates of maximum error
+///   - `"FLIP:startExposure"`, `"FLIP:stopExposure"` (float) : HDR exposure range
+///   - `"FLIP:numExposures"` (int) : number of HDR exposure steps used
+///
+/// The `options` list contains optional ParamValue's that may control the
+/// reconstruction. The following options are recognized:
+///
+///   - "hdr" : int (default: 1)
+///
+///     Selects between LDR comparision (0), and HDR comparison (1).
+///     By default, we always use the HDR method.
+///
+///   - "maxluminance" : float (default: 2.0)
+///
+///     The top of the expected luminance range, used to compute exposure
+///     settings. If set to 0.0, the "startExposure" and "stopExposure"
+///     will be used instead. (See below for a detailed explanation.)
+///
+///   - "startExposure", "stopExposure" : float (default: NaN)
+/// 
+///     If supplied, and if "maxluminance" is set to 0, specify start and stop
+///     exposures for the HDR FLIP method. If not supplied, they will be
+///     automatically computed from the contents of the image.
+///
+///   - "numExposures" : int (default: 0)
+/// 
+///     The number of exposure samples for HDR FLIP computation (0 means to
+///     automatically compute it).
+///
+///   - "medianluminance" : float (default: 0.18)
+///
+///     The assumed median luminance (used if "maxluminance" is not 0, so
+///     we are using these estimates instead of measuring from the image).
+///     The default 0.18 assumes that "middle grey" is a good guess for
+///     a typical median luminance of the image.
+///
+///   - "ppd" : float (default: 67.02)
+///
+///     Pixels per degree of viewing angle. The default value of 67.02 is
+///     computed as the value for a 3840 pixel (2xHD) image filling a display
+///     that is 0.7m wide, 0.7m in front of the viewer.
+///
+///   - "tonemapper" : string (default: "aces")
+///
+///     HDR tonemapper: "aces", "reinhard", or "hable".
+///
+/// The LDR mode (when the `"hdr"` option is set to 0) clamps all values
+/// beteen 0 and 1. This is recommend only for images in display-referred
+/// color space.
+///
+/// The HDR mode (when the `"hdr"` option is nonzero or not supplied) computes
+/// the LDR FLIP comparison at each of several exposure settings, and returns
+/// the maximum error for each pixel across those exposures. The exposures are
+/// are determined one of three ways:
+///
+/// 1. Based on a maximum expected luminance of the image, communicated via
+/// the `"maxluminance"` option. If not passed, the default is 2.0, which is a
+/// reasonable default for most production frames.  The exposure start and
+/// stop will then be automatically computed based on this maximum, and an
+/// assumption that the median luminance is 0.18 (middle grey of the LDR
+/// portion of the image). This is the default behavior if none of the options
+/// are passed, and is the recommended mode if you do not have a good reason
+/// to override it, because it works well for most production images and the
+/// error metric values will have the same meaning across images.
+///
+/// 2. If "maxluminance" is set to 0 but the "startExposure" and
+/// "stopExposure" options are not supplied, they will be computed
+/// automatically based on the measured maximum and median luminance of the
+/// reference image. This behavior matches the original NVIDIA FLIP paper and
+/// utility, but is less useful when dealing with multiple images, because the
+/// error scaling depends on the content of the image, and thus may differ
+/// from image to image even within a shot.
+///
+/// 3. If "maxluminance" is set to 0 and the "startExposure" and
+/// "stopExposure" options are supplied, those will be used directly as the
+/// exposure settings.
+///
+/// @version 3.2
+///
+
+OIIO_NODISCARD OIIO_API
+ImageBuf FLIP_diff(const ImageBuf& ref, const ImageBuf& test,
+                   KWArgs options = {}, ROI roi = {}, int nthreads = 0);
+
+OIIO_NODISCARD_ERROR OIIO_API
+bool FLIP_diff(ImageBuf& dst, const ImageBuf& ref, const ImageBuf& test,
+               KWArgs options = {}, ROI roi = {}, int nthreads = 0);
+
+/// Helper for FLIP_diff: Compute pixels-per-degree from display geometry.
+/// Default values: 0.7m distance, 3840px width (2x HD), 0.7m monitor width ->
+/// ~67.02.
+OIIO_NODISCARD
+inline constexpr float FLIP_ppd(float monitor_distance_m = 0.7f,
+                                float screen_width_px    = 3840.0f,
+                                float screen_width_m     = 0.7f)
+{
+    return radians(monitor_distance_m * (screen_width_px / screen_width_m));
+}
+
+}  // namespace experimental
+
+#endif
+
+/// @}
+
+
 /// Do all pixels within the ROI have the same values for channels
 /// `[roi.chbegin..roi.chend-1]`, within a tolerance of +/- `threshold`?  If
 /// so, return `true` and store that color in `color[chbegin...chend-1]` (if
