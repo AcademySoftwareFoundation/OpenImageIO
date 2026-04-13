@@ -1,0 +1,285 @@
+# imiv Backend Coverage
+
+## Goal
+
+Keep `imiv` app/viewer/UI code backend-agnostic, and keep renderer-specific
+constraints explicit in one place.
+
+This document is the working contract for:
+
+- backend feature coverage
+- backend-specific constraints
+- backend-specific technical debt
+- what is allowed in shared code vs renderer code
+
+## Backend Model
+
+Current backend selection is:
+
+- platform: `GLFW`
+- renderer: `Vulkan`, `Metal`, or `OpenGL`
+
+Compiled by CMake with:
+
+```text
+-D OIIO_IMIV_ENABLE_VULKAN=AUTO|ON|OFF
+-D OIIO_IMIV_ENABLE_METAL=AUTO|ON|OFF
+-D OIIO_IMIV_ENABLE_OPENGL=AUTO|ON|OFF
+-D OIIO_IMIV_DEFAULT_RENDERER=auto|vulkan|metal|opengl
+```
+
+Current default selection:
+
+- non-Apple: `vulkan`
+- Apple: `metal`
+
+## Support Levels
+
+- `Primary`: expected to carry the full `imiv` feature set
+- `Supported`: expected to work in the current shared verifier and participate
+  in normal backend validation
+- `Skeleton`: bootstrap only; not yet a real viewer backend
+
+## Shared-Code Rules
+
+These rules are intentional and should stay true as backend work continues.
+
+1. Shared app/viewer/UI code must not expose backend-native types.
+   Examples: no `Vk*`, `MTL*`, or raw GL object types in shared public
+   interfaces.
+2. Backend-specific work belongs behind the renderer seam.
+   Current seam entry points live in:
+   - [imiv_renderer.h](/mnt/f/gh/openimageio/src/imiv/imiv_renderer.h)
+   - [imiv_renderer_backend.h](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_backend.h)
+3. Platform-specific window/bootstrap work belongs in:
+   - [imiv_platform_glfw.h](/mnt/f/gh/openimageio/src/imiv/imiv_platform_glfw.h)
+   - [imiv_platform_glfw.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_platform_glfw.cpp)
+4. Backend-specific code should live in backend-specific translation units:
+   - Vulkan: `imiv_renderer_vulkan.cpp` + `imiv_vulkan_*`
+   - Metal: `imiv_renderer_metal.mm`
+   - OpenGL: `imiv_renderer_opengl.cpp`
+
+## Coverage Matrix
+
+Legend:
+
+- `Yes`: implemented and expected to work
+- `No`: not implemented
+
+| Feature | Vulkan | OpenGL | Metal |
+|---|---|---|---|
+| App bootstrap and main window | Yes | Yes | Yes |
+| Dear ImGui backend | Yes | Yes | Yes |
+| Direct image upload | Yes | Yes | Yes |
+| Preview rendering | Yes | Yes | Yes |
+| Exposure / gamma / offset | Yes | Yes | Yes |
+| Channel / luma / heatmap modes | Yes | Yes | Yes |
+| Orientation-aware preview | Yes | Yes | Yes |
+| Linear / nearest preview sampling | Yes | Yes | Yes |
+| Pixel closeup window | Yes | Yes | Yes |
+| Area Sample / selection UI | Yes | Yes | Yes |
+| Drag and drop | Yes | Yes | Yes |
+| Screenshot / readback | Yes | Yes | Yes |
+| OCIO display/view | Yes | Yes | Yes |
+| Runtime OCIO config switching | Yes | Yes | Yes |
+| Automated GUI regression coverage | Yes | Yes | Yes |
+
+Current note:
+
+- the shared macOS backend verifier is green on Vulkan, OpenGL, and Metal
+
+## Vulkan
+
+Status:
+
+- `Primary`
+
+Implementation:
+
+- renderer seam:
+  - [imiv_renderer_vulkan.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_vulkan.cpp)
+- Vulkan-specific modules:
+  - [imiv_vulkan_setup.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_setup.cpp)
+  - [imiv_vulkan_runtime.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_runtime.cpp)
+  - [imiv_vulkan_texture.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_texture.cpp)
+  - [imiv_vulkan_preview.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_preview.cpp)
+  - [imiv_vulkan_ocio.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_ocio.cpp)
+  - [imiv_capture.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_capture.cpp)
+
+Constraints:
+
+- uses runtime shader compilation for OCIO
+- uses Vulkan SPIR-V pipelines embedded into the binary at build time for the
+  static upload/preview stages
+- keeps external `.spv` loading only as a fallback path for unusual build
+  layouts
+- remains the canonical backend for feature parity and regressions
+
+Notes:
+
+- New viewer features should land on Vulkan first if they need renderer work.
+- Other backends should match Vulkan behavior, not invent incompatible UI
+  semantics.
+
+## OpenGL
+
+Status:
+
+- `Supported`
+
+Implementation:
+
+- [imiv_renderer_opengl.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_opengl.cpp)
+
+Hard constraints:
+
+1. OpenGL must stay a non-compute backend.
+2. OpenGL must not use SPIR-V.
+3. OpenGL preview shaders must be native GLSL compiled with the GL driver.
+4. Direct source upload is preferred over a Vulkan-style upload/compute stage.
+5. OCIO must use OCIO GLSL output, not the Vulkan runtime shader
+   path.
+
+Notes:
+
+- OpenGL does not use embedded binary shader blobs.
+- Static preview and OCIO shaders remain native GLSL source compiled at
+  runtime by the GL driver.
+
+Target API level:
+
+- macOS: `OpenGL 3.2 Core`
+- non-Apple: keep the feature set within the same envelope where practical
+
+Current design:
+
+- source image is uploaded directly as a GL texture
+- preview is rendered through a GLSL fragment shader into a preview texture
+- OCIO preview uses a separate GLSL program built from OCIO GPU shader output
+- no compute stage
+- no SPIR-V stage
+
+Current coverage:
+
+- direct source upload
+- basic preview controls
+- orientation-aware preview
+- screenshot/readback
+- OCIO config selection and builtin/global/user fallback
+- OCIO GLSL preview path
+- OpenGL-only screenshot smoke regression
+- OpenGL live OCIO update regressions
+- OpenGL selection regression target
+
+Current note:
+
+- the shared backend verifier is green on macOS OpenGL
+
+OCIO notes:
+
+- startup preflight for OpenGL now validates the OCIO runtime/config path
+  without using Vulkan SPIR-V compilation
+- OpenGL OCIO regressions now include dedicated live view/display switching
+  coverage without relying on Vulkan runtime glslang
+
+## Metal
+
+Status:
+
+- `Supported`
+
+Implementation:
+
+- [imiv_renderer_metal.mm](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_metal.mm)
+
+Current scope:
+
+- GLFW + Cocoa window hookup
+- Metal device / command queue creation
+- CAMetalLayer setup
+- Dear ImGui Metal backend hookup
+- GPU-native Metal preview rendering for the shared preview controls
+- backend-specific Dear ImGui Metal texture bindings with per-texture sampler
+  control
+- Metal screenshot/readback for GUI verification
+- Metal OCIO runtime path using OCIO MSL output
+
+Planned direction:
+
+- use backend-native Metal rendering
+- do not try to reuse Vulkan pipeline code directly
+- keep Metal OCIO on the MSL path, not the Vulkan shader path
+
+Important constraints:
+
+- keep Metal-specific sampler control in the local ImGui Metal backend fork
+  instead of assuming upstream Dear ImGui provides nearest sampling control
+
+Manual verification:
+
+- canonical cross-platform backend verifier:
+  - [imiv_backend_verify.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_backend_verify.py)
+- shared RGB-input regression:
+  - [imiv_rgb_input_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_rgb_input_regression.py)
+- shared nearest-vs-linear sampling regression:
+  - [imiv_sampling_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_sampling_regression.py)
+- compatibility frontends:
+  - [imiv_macos_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_macos_backend_verify.sh)
+  - [imiv_linux_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_linux_backend_verify.sh)
+  - [imiv_windows_backend_verify.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_windows_backend_verify.py)
+- Metal smoke regression without screenshot/readback dependency:
+  - [imiv_metal_smoke_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_smoke_regression.py)
+- Metal screenshot smoke regression:
+  - [imiv_metal_screenshot_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_screenshot_regression.py)
+- Metal orientation regression:
+  - [imiv_metal_orientation_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_orientation_regression.py)
+
+Current automated coverage:
+
+- when Metal is compiled into the current build, `ctest` can run:
+  - `imiv_metal_screenshot_regression`
+  - `imiv_metal_sampling_regression`
+  - `imiv_metal_orientation_regression`
+  - `imiv_metal_ocio_live_update_regression`
+  - `imiv_metal_ocio_live_display_update_regression`
+
+Current note:
+
+- the shared backend verifier is green on macOS Metal
+
+## Feature Mapping Rules
+
+These should stay consistent across backends where the feature exists.
+
+1. Viewer/UI state is shared.
+   Examples:
+   - selection
+   - Area Sample
+   - loaded-image list
+   - OCIO UI state
+2. Preview behavior should match across backends where implemented.
+   Examples:
+   - orientation
+   - channel display modes
+   - exposure/gamma/offset
+3. Backend-specific gaps should degrade explicitly, not silently.
+   Examples:
+   - non-implemented screenshot paths should report that clearly
+
+## Current Priority Order
+
+1. Keep Vulkan stable as the reference backend.
+2. Keep OpenGL behavior aligned with Vulkan where features overlap.
+3. Keep Metal behavior aligned with Vulkan where features overlap.
+4. Preserve green shared-suite coverage on macOS for all compiled backends.
+5. Do not let shared app code regress back into Vulkan-only assumptions.
+
+## Change Checklist
+
+When adding or changing backend behavior, update this file if the answer to any
+of these is `yes`:
+
+- Did feature coverage change?
+- Did a backend constraint change?
+- Did a backend become usable for a new class of tests?
+- Did the canonical path for OCIO / preview / capture change?
