@@ -4,7 +4,7 @@
 
 set (libOpenImageIO_Util_srcs argparse.cpp benchmark.cpp
                   errorhandler.cpp farmhash.cpp filesystem.cpp
-                  fmath.cpp filter.cpp hashes.cpp paramlist.cpp
+                  filter.cpp hashes.cpp paramlist.cpp
                   plugin.cpp SHA1.cpp
                   strutil.cpp sysutil.cpp thread.cpp timer.cpp
                   typedesc.cpp ustring.cpp xxhash.cpp)
@@ -15,9 +15,6 @@ if (CMAKE_COMPILER_IS_GNUCC)
 endif ()
 
 if (CMAKE_UNITY_BUILD)
-    # If unity builds are occurring, fmath.cpp MUST be compiled alone. But the
-    # rest can be built together if in group mode.
-    set_property (SOURCE fmath.cpp APPEND PROPERTY SKIP_UNITY_BUILD_INCLUSION TRUE)
     set_source_files_properties (${libOpenImageIO_Util_srcs}
                                  PROPERTIES UNITY_GROUP utilsrc)
 endif ()
