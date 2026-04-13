@@ -16,7 +16,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 #    include "imagebufalgo_hwy_pvt.h"
 #endif
 #include "imageio_pvt.h"
@@ -70,33 +70,22 @@ static bool
 mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
          ROI roi, int nthreads)
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
-    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
-        && B.localpixels() && C.localpixels()) {
-        auto Rv             = HwyPixels(R);
-        auto Av             = HwyPixels(A);
-        auto Bv             = HwyPixels(B);
-        auto Cv             = HwyPixels(C);
-        const int nchannels = RoiNChannels(roi);
-        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
-                            && ChannelsContiguous<ABCtype>(Av, nchannels)
-                            && ChannelsContiguous<ABCtype>(Bv, nchannels)
-                            && ChannelsContiguous<ABCtype>(Cv, nchannels);
-        if (contig)
-            return mad_impl_hwy<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
-
-        // Handle the common RGBA + RGB ROI strided case (preserving alpha).
-        if (roi.chbegin == 0 && roi.chend == 3) {
-            const bool contig4 = (Rv.nchannels >= 4 && Av.nchannels >= 4
-                                  && Bv.nchannels >= 4 && Cv.nchannels >= 4)
-                                 && ChannelsContiguous<Rtype>(Rv, 4)
-                                 && ChannelsContiguous<ABCtype>(Av, 4)
-                                 && ChannelsContiguous<ABCtype>(Bv, 4)
-                                 && ChannelsContiguous<ABCtype>(Cv, 4);
-            if (contig4)
-                return mad_impl_hwy<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
-        }
+#if OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi)
+        && HwySupports<ABCtype>(A, roi) && HwySupports<ABCtype>(B, roi)
+        && HwySupports<ABCtype>(C, roi)) {
+        // All-channel case
+        return mad_impl_hwy<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
     }
+#    if 0
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi, 4)
+        && HwySupports<Atype>(A, roi, 4) && HwySupports<Btype>(B, roi, 4)
+        && HwySupports<Btype>(C, roi, 4)
+        && (roi.chbegin == 0 && roi.chend == 3)) {
+        // Handle the common RGBA + RGB ROI strided case (preserving alpha).
+        return mad_impl_hwy<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
+    }
+#    endif
 #endif
     return mad_impl_scalar<Rtype, ABCtype>(R, A, B, C, roi, nthreads);
 }
