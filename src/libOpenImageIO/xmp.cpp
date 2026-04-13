@@ -413,25 +413,6 @@ add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
 
 
 
-// Utility: Search str for the first substring in str (starting from
-// position pos) that starts with startmarker and ends with endmarker.
-// If not found, return false.  If found, return true, store the
-// beginning and ending indices in startpos and endpos.
-static bool
-extract_middle(string_view str, size_t pos, string_view startmarker,
-               string_view endmarker, size_t& startpos, size_t& endpos)
-{
-    startpos = str.find(startmarker, pos);
-    if (startpos == std::string::npos)
-        return false;  // start marker not found
-    endpos = str.find(endmarker, startpos);
-    if (endpos == std::string::npos)
-        return false;  // end marker not found
-    endpos += endmarker.size();
-    return true;
-}
-
-
 // Decode one XMP node and its children.
 // Return value is the size of the resulting attribute (can be used to
 // catch runaway or corrupt XML).
@@ -541,11 +522,30 @@ decode_xmp(string_view xml, ImageSpec& spec)
 #endif
     if (!xml.length())
         return true;
-    for (size_t startpos = 0, endpos = 0;
-         extract_middle(xml, endpos, "<rdf:Description", "</rdf:Description>",
-                        startpos, endpos);) {
-        // Turn that middle section into an XML document
-        string_view rdf = xml.substr(startpos, endpos - startpos);  // scooch in
+    for (size_t pos = 0;;) {
+        // Find the start of the next rdf:Description element
+        size_t startpos = xml.find("<rdf:Description", pos);
+        if (startpos == std::string::npos)
+            break;
+
+        // Determine end: look for both </rdf:Description> and self-closing />
+        size_t endclose = xml.find("</rdf:Description>", startpos);
+        size_t endself  = xml.find("/>", startpos + 16);
+
+        size_t endpos;
+        if (endclose != std::string::npos) {
+            // Has a closing tag
+            endpos = endclose + 18;  // length of "</rdf:Description>"
+        } else if (endself != std::string::npos) {
+            // Self-closing <rdf:Description ... />
+            endpos = endself + 2;  // length of "/>"
+        } else {
+            break;  // malformed, bail
+        }
+        pos = endpos;
+
+        // Turn that section into an XML document
+        string_view rdf = xml.substr(startpos, endpos - startpos);
 #if DEBUG_XMP_READ
         std::cerr << "RDF is:\n---\n" << rdf.substr(0, 4096) << "\n---\n";
 #endif
