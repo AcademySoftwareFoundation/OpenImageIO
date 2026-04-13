@@ -16,7 +16,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 #    include "imagebufalgo_hwy_pvt.h"
 #endif
 #include "imageio_pvt.h"
@@ -46,7 +46,7 @@ mad_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
 
 
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 template<class Rtype, class ABCtype>
 static bool
 mad_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
@@ -63,21 +63,21 @@ mad_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
     return hwy_ternary_perpixel_op<Rtype, ABCtype>(R, A, B, C, roi, nthreads,
                                                    op);
 }
-#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#endif  // OIIO_USE_HWY
 
 template<class Rtype, class ABCtype>
 static bool
 mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
          ROI roi, int nthreads)
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
     if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
         && B.localpixels() && C.localpixels()) {
         auto Rv             = HwyPixels(R);
         auto Av             = HwyPixels(A);
         auto Bv             = HwyPixels(B);
         auto Cv             = HwyPixels(C);
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
                             && ChannelsContiguous<ABCtype>(Av, nchannels)
                             && ChannelsContiguous<ABCtype>(Bv, nchannels)

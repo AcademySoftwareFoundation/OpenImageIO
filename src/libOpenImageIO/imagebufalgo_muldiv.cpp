@@ -16,7 +16,7 @@
 
 #include <OpenImageIO/half.h>
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 #    include "imagebufalgo_hwy_pvt.h"
 #endif
 #include <OpenImageIO/dassert.h>
@@ -125,7 +125,7 @@ mul_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
 
 
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 template<class Rtype, class Atype, class Btype>
 static bool
 mul_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
@@ -168,7 +168,7 @@ mul_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
     });
     return true;
 }
-#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#endif  // OIIO_USE_HWY
 
 template<class Rtype, class Atype, class Btype>
 static bool
@@ -181,7 +181,7 @@ mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
         auto Rv             = HwyPixels(R);
         auto Av             = HwyPixels(A);
         auto Bv             = HwyPixels(B);
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
                             && ChannelsContiguous<Atype>(Av, nchannels)
                             && ChannelsContiguous<Btype>(Bv, nchannels);
@@ -208,7 +208,7 @@ template<class Rtype, class Atype>
 static bool
 mul_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
     if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
         return mul_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
 #endif
@@ -314,7 +314,7 @@ div_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 
 
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 template<class Rtype, class Atype, class Btype>
 static bool
 div_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
@@ -336,7 +336,7 @@ div_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
     return hwy_binary_perpixel_op<Rtype, Atype, Btype>(R, A, B, roi, nthreads,
                                                        op);
 }
-#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#endif  // OIIO_USE_HWY
 
 template<class Rtype, class Atype, class Btype>
 static bool
@@ -349,7 +349,7 @@ div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
         auto Rv             = HwyPixels(R);
         auto Av             = HwyPixels(A);
         auto Bv             = HwyPixels(B);
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
                             && ChannelsContiguous<Atype>(Av, nchannels)
                             && ChannelsContiguous<Btype>(Bv, nchannels);

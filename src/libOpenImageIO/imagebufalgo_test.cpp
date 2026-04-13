@@ -518,7 +518,7 @@ test_mad()
 void
 test_hwy_strided_roi_fallback()
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
     std::cout << "test hwy strided roi fallback\n";
 
     int prev_enable_hwy = 0;

@@ -57,12 +57,6 @@ HwyPixels(const ImageBuf& img)
              spec.nchannels };
 }
 
-inline int
-RoiNChannels(const ROI& roi) noexcept
-{
-    return roi.chend - roi.chbegin;
-}
-
 template<class T, class ByteT>
 inline bool
 ChannelsContiguous(const HwyLocalPixelsView<ByteT>& v, int nchannels) noexcept
@@ -938,7 +932,7 @@ hwy_binary_perpixel_op(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
     auto Av = HwyPixels(A);
     auto Bv = HwyPixels(B);
     ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const size_t n      = static_cast<size_t>(roi.width())
                          * static_cast<size_t>(nchannels);
         for (int y = roi.ybegin; y < roi.yend; ++y) {
@@ -965,7 +959,7 @@ hwy_ternary_perpixel_op(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
     auto Bv = HwyPixels(B);
     auto Cv = HwyPixels(C);
     ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const size_t n      = static_cast<size_t>(roi.width())
                          * static_cast<size_t>(nchannels);
         for (int y = roi.ybegin; y < roi.yend; ++y) {
@@ -992,7 +986,7 @@ hwy_binary_native_int_perpixel_op(ImageBuf& R, const ImageBuf& A,
     auto Av = HwyPixels(A);
     auto Bv = HwyPixels(B);
     ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const size_t n      = static_cast<size_t>(roi.width())
                          * static_cast<size_t>(nchannels);
         for (int y = roi.ybegin; y < roi.yend; ++y) {
