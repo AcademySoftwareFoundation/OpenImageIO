@@ -282,6 +282,7 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                                          ${OpenCV_LIBRARIES}
                                          ${OPENIMAGEIO_IMATH_TARGETS}
                           FOLDER "Unit Tests" NO_INSTALL)
+    target_compile_definitions (imagebufalgo_test PRIVATE OIIO_USE_HWY=${_oiio_use_hwy})
     add_test (unit_imagebufalgo ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebufalgo_test)
 
     fancy_add_executable (NAME imagespec_test SRC imagespec_test.cpp
