@@ -1062,8 +1062,9 @@ DDSInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (m_buf.empty())
         readimg_scanlines();
 
-    size_t size = spec().scanline_bytes();
-    memcpy(data, &m_buf[0] + z * m_spec.height * size + y * size, size);
+    size_t size   = spec().scanline_bytes();
+    size_t offset = size_t(z) * m_spec.height * size + size_t(y) * size;
+    memcpy(data, &m_buf[0] + offset, size);
     return true;
 }
 
