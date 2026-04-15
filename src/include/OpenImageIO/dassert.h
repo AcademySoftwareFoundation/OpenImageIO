@@ -60,6 +60,12 @@
 #endif
 
 
+/// OIIO_CONTRACT_ASSERT is an OIIO 3.2 thing. To ease backporting patches
+/// that happen to use it, just define it for 3.1 as a synonym for
+/// OIIO_DASSERT.
+#define OIIO_CONTRACT_ASSERT(condition) OIIO_DASSERT(condition)
+
+
 /// Define OIIO_STATIC_ASSERT(cond) as a wrapper around static_assert(cond),
 /// with appropriate fallbacks for older C++ standards.
 #if (__cplusplus >= 201700L) /* FIXME - guess the token, fix when C++17 */
