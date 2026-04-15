@@ -21,7 +21,7 @@
 
 #include <Imath/ImathBox.h>
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 #    include "imagebufalgo_hwy_pvt.h"
 #endif
 
@@ -1266,7 +1266,7 @@ resample_deep(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
 
 
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 template<typename DSTTYPE, typename SRCTYPE>
 static bool
 resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
@@ -1427,14 +1427,14 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
     });
     return true;
 }
-#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#endif  // OIIO_USE_HWY
 
 template<typename DSTTYPE, typename SRCTYPE>
 static bool
 resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
           int nthreads)
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
     if (OIIO::pvt::enable_hwy && dst.localpixels() && src.localpixels())
         return resample_hwy<DSTTYPE, SRCTYPE>(dst, src, interpolate, roi,
                                               nthreads);

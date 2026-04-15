@@ -3776,6 +3776,15 @@ OIIO_API std::string geterror(bool clear = true);
 ///    If zero, they will try to use OIIO's native thread pool even if TBB
 ///    is available.
 ///
+/// - `int enable_hwy' (0)
+///
+///    If nonzero and Google Highway was found and support configured when
+///    OIIO was built, SIMD accelertion using Highway will be used to
+///    accelerate certain ImageBufAlgo functionality. If this attribute is
+///    set to zero, that Highway-based SIMD acceleration will be disabled
+///    at runtime, even if support was enabled when OIIO was built.
+///    (Added in OIIO 3.2.)
+///
 /// - `string plugin_searchpath`
 ///
 ///    Colon-separated (or semicolon-separated) list of directories to search
