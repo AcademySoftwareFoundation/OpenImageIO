@@ -48,11 +48,10 @@ private:
     // Return true if ok, false if there was a read error.
     bool read_offset_tables();
 
-    // read channel scanline data from file, uncompress it and save the data to
-    // 'out' buffer; 'out' should be allocate before call to this method.
-    // Return true if ok, false if there was a read error.
+    // read channel scanline data from file, uncompress it and save the data
+    // to 'outbuf' buffer. Return true if ok, false if there was a read error.
     bool uncompress_rle_channel(int scanline_off, int scanline_len,
-                                unsigned char* out);
+                                span<unsigned char> outbf);
 };
 
 
@@ -159,6 +158,12 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
     m_spec = ImageSpec(m_sgi_header.xsize, height, nchannels,
                        m_sgi_header.bpc == 1 ? TypeDesc::UINT8
                                              : TypeDesc::UINT16);
+
+    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })) {
+        close();
+        return false;
+    }
+
     if (Strutil::safe_strlen(m_sgi_header.imagename,
                              sizeof(m_sgi_header.imagename)))
         m_spec.attribute("ImageDescription", m_sgi_header.imagename);
@@ -198,8 +203,9 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             ptrdiff_t scanline_offset = start_tab[off];
             ptrdiff_t scanline_length = length_tab[off];
             channeldata[c].resize(m_spec.width * bpc);
-            uncompress_rle_channel(scanline_offset, scanline_length,
-                                   &(channeldata[c][0]));
+            if (!uncompress_rle_channel(scanline_offset, scanline_length,
+                                        make_span(channeldata[c])))
+                return false;
         }
     } else {
         // non-RLE case -- just read directly into our channel data
@@ -240,16 +246,20 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
 bool
 SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
-                                 unsigned char* out)
+                                 span<unsigned char> outbuf)
 {
     int bpc = m_sgi_header.bpc;
-    std::unique_ptr<unsigned char[]> rle_scanline(
+    std::unique_ptr<unsigned char[]> rle_scanline_alloc(
         new unsigned char[scanline_len]);
+    auto rle_scanline = make_span(rle_scanline_alloc.get(), scanline_len);
     ioseek(scanline_off);
-    if (!ioread(&rle_scanline[0], 1, scanline_len))
+    if (!ioread(rle_scanline.data(), 1, scanline_len))
         return false;
+    OIIO_CONTRACT_ASSERT(outbuf.size()
+                         >= size_t(m_spec.width * m_sgi_header.bpc));
     int limit = m_spec.width;
     int i     = 0;
+    int iout  = 0;
     if (bpc == 1) {
         // 1 bit per channel
         while (i < scanline_len) {
@@ -262,8 +272,11 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             // If the high bit is set, we just copy the next 'count' values
             if (value & 0x80) {
                 while (count--) {
-                    OIIO_DASSERT(i < scanline_len && limit > 0);
-                    *(out++) = rle_scanline[i++];
+                    if (i >= scanline_len || limit <= 0) {
+                        errorfmt("Corrupt RLE data");
+                        return false;
+                    }
+                    outbuf[iout++] = rle_scanline[i++];
                     --limit;
                 }
             }
@@ -271,8 +284,11 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             else {
                 value = rle_scanline[i++];
                 while (count--) {
-                    OIIO_DASSERT(limit > 0);
-                    *(out++) = value;
+                    if (limit <= 0) {
+                        errorfmt("Corrupt RLE data");
+                        return false;
+                    }
+                    outbuf[iout++] = value;
                     --limit;
                 }
             }
@@ -290,18 +306,24 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             // If the high bit is set, we just copy the next 'count' values
             if (value & 0x80) {
                 while (count--) {
-                    OIIO_DASSERT(i + 1 < scanline_len && limit > 0);
-                    *(out++) = rle_scanline[i++];
-                    *(out++) = rle_scanline[i++];
+                    if ((i + 1) >= scanline_len || limit <= 0) {
+                        errorfmt("Corrupt RLE data");
+                        return false;
+                    }
+                    outbuf[iout++] = rle_scanline[i++];
+                    outbuf[iout++] = rle_scanline[i++];
                     --limit;
                 }
             }
             // If the high bit is zero, we copy the NEXT value, count times
             else {
                 while (count--) {
-                    OIIO_DASSERT(limit > 0);
-                    *(out++) = rle_scanline[i];
-                    *(out++) = rle_scanline[i + 1];
+                    if (limit <= 0) {
+                        errorfmt("Corrupt RLE data");
+                        return false;
+                    }
+                    outbuf[iout++] = rle_scanline[i];
+                    outbuf[iout++] = rle_scanline[i + 1];
                     --limit;
                 }
                 i += 2;
@@ -363,6 +385,23 @@ SgiInput::read_header()
         swap_endian(&m_sgi_header.pixmax);
         swap_endian(&m_sgi_header.colormap);
     }
+
+    if (m_sgi_header.magic != sgi_pvt::SGI_MAGIC) {
+        errorfmt("\"{}\" is not a SGI file, magic number doesn't match",
+                 m_filename);
+        return false;
+    }
+
+    // Corruption checks
+    if (m_sgi_header.storage < sgi_pvt::VERBATIM
+        || m_sgi_header.storage > sgi_pvt::RLE  //
+        || m_sgi_header.bpc < 1 || m_sgi_header.bpc > 2
+        || m_sgi_header.dimension > sgi_pvt::MULTI_SCANLINE_MULTI_CHANNEL
+        || m_sgi_header.dimension < sgi_pvt::ONE_SCANLINE_ONE_CHANNEL) {
+        errorfmt("Corrupt SGI header");
+        return false;
+    }
+
     return true;
 }
 
