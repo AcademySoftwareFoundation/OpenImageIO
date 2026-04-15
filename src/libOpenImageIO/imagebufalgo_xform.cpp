@@ -1435,7 +1435,8 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
           int nthreads)
 {
 #if OIIO_USE_HWY
-    if (OIIO::pvt::enable_hwy && dst.localpixels() && src.localpixels())
+    if (OIIO::pvt::enable_hwy && HwySupports<DSTTYPE>(dst, roi)
+        && HwySupports<SRCTYPE>(src, ROI()))
         return resample_hwy<DSTTYPE, SRCTYPE>(dst, src, interpolate, roi,
                                               nthreads);
 #endif

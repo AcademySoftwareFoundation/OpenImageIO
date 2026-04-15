@@ -87,6 +87,35 @@ RoiRowPtr(const HwyLocalPixelsView<ByteT>& v, int y, const ROI& roi) noexcept
     return ChannelPtr<T>(v, roi.xbegin, y, roi.chbegin);
 }
 
+
+/// Can we use Hwy acceleration with this ImageBuf, over the specified ROI? If
+/// not supplied, the ROI defaults to the entire data window of the ImageBuf,
+/// and the number of channels defaults to the number of channels in the ROI.
+template<typename T>
+inline bool
+HwySupports(const ImageBuf& A, const ROI& roi = ROI(), int nchannels = 0)
+{
+    if (nchannels <= 0)
+        nchannels = roi.defined() ? roi.nchannels() : A.nchannels();
+    return
+        // The data type must match what we're looking for (T)
+        (A.spec().format.basetype == BaseTypeFromC<T>::value)
+
+        // The ImageBuf has the number of pixels we're expecting
+        && A.spec().nchannels == nchannels
+
+        // The scanlines must consist of contiguous pixels in memory (no
+        // padding between channels or pixels within a scanline). Note that
+        // this test implicitly also ensures "local" in-memory pixels.
+        && A.contiguous_scanline()
+        // For now, we only support 2D images (no volumes)
+        && A.spec().depth == 1
+        // The data window must fully encompass the ROI we're operating on
+        // (if an ROI was supplied)
+        && (!roi.defined() || A.roi().contains(roi));
+}
+
+
 // -----------------------------------------------------------------------
 // Type Traits
 // -----------------------------------------------------------------------
