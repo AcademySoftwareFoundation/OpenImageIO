@@ -30,6 +30,7 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
 #                    [ URL http://find.reference.cases.here.com ]
 #                    [ FOUNDVAR variable_name ... ]
 #                    [ ENABLEVAR variable_name ... ]
+#                    [ DISABLEVAR variable_name ... ]
 #                    [ SUFFIX suffix ]
 #                    [ ENVIRONMENT "VAR=value" ... ]
 #                  )
@@ -43,7 +44,11 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
 # not existing and true, will skip the test.
 #
 # The optional ENABLEVAR introduces variables (typically ENABLE_Foo) that
-# if existing and yet false, will skip the test.
+# if existing and yet false/off/zero, will skip the test. (Not existing
+# does NOT disable the test.)
+#
+# The optional DISABLEVAR introduces variables that, if existing and
+# true/on/nonzero, will skip the test.
 #
 # The optional SUFFIX is appended to the test name.
 #
@@ -51,7 +56,7 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
 # test.
 #
 macro (oiio_add_tests)
-    cmake_parse_arguments (_ats "" "SUFFIX;TESTNAME" "URL;IMAGEDIR;LABEL;FOUNDVAR;ENABLEVAR;ENVIRONMENT" ${ARGN})
+    cmake_parse_arguments (_ats "" "SUFFIX;TESTNAME" "URL;IMAGEDIR;LABEL;FOUNDVAR;ENABLEVAR;DISABLEVAR;ENVIRONMENT" ${ARGN})
        # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
     set (_ats_testdir "${OIIO_TESTSUITE_IMAGEDIR}/${_ats_IMAGEDIR}")
     # If there was a FOUNDVAR param specified and that variable name is
@@ -59,6 +64,7 @@ macro (oiio_add_tests)
     set (_test_disabled FALSE)
     set (_test_notfound FALSE)
     foreach (_var ${_ats_FOUNDVAR})
+        # FOUNDVAR entires had better exist and be true
         if (NOT ${_var})
             set (_ats_LABEL "broken")
             set (_test_notfound TRUE)
@@ -66,8 +72,16 @@ macro (oiio_add_tests)
     endforeach ()
     set (_test_disabled 0)
     foreach (_var ${_ats_ENABLEVAR})
+        # ENABLEVAR, *if* it exists, must be true. But not existing is fine.
         if ((NOT "${${_var}}" STREQUAL "" AND NOT "${${_var}}") OR
             (NOT "$ENV{${_var}}" STREQUAL "" AND NOT "$ENV{${_var}}"))
+            set (_ats_LABEL "broken")
+            set (_test_disabled TRUE)
+        endif ()
+    endforeach ()
+    foreach (_var ${_ats_DISABLEVAR})
+        # DISABLEVAR, if true, disable the test. Not existing is fine.
+        if (${_var})
             set (_ats_LABEL "broken")
             set (_test_disabled TRUE)
         endif ()
@@ -237,6 +251,27 @@ macro (oiio_add_all_tests)
 
     oiio_add_tests (oiiotool-color
                     FOUNDVAR OpenColorIO_FOUND)
+
+    # Tests to run with HWY enabled.
+    # Remember to add tests here as hwy enabled IBA functions are added
+    oiio_add_tests ( oiiotool
+                     oiiotool-composite
+                     oiiotool-xform
+                     docs-examples-cpp
+        FOUNDVAR hwy_FOUND
+        ENABLEVAR OIIO_USE_HWY
+        SUFFIX ".hwy"
+        ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1"
+        )
+
+    oiio_add_tests ( python-imagebufalgo
+        FOUNDVAR hwy_FOUND
+        ENABLEVAR OIIO_USE_HWY  USE_PYTHON
+        DISABLEVAR BUILD_OIIOUTIL_ONLY SANITIZE
+        SUFFIX ".hwy"
+        ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1"
+        IMAGEDIR oiio-images
+        )
 
     # List testsuites for specific formats or features which might be not found
     # or be intentionally disabled, or which need special external reference

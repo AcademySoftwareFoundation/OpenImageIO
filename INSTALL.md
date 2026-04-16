@@ -17,16 +17,16 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++17 or higher (also builds with C++20 and C++23)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: gcc 9.3 - 14.2, clang 10 - 22, MSVS 2017 - 2022 (v19.14
+ * Compilers: gcc 9.3 - 15.2, clang 10 - 22, MSVS 2017 - 2026 (v19.14
    and up), Intel OneAPI C++ compiler 2022+.
- * CMake >= 3.18.2 (tested through 4.1)
+ * CMake >= 3.18.2 (tested through 4.3)
  * Imath >= 3.1 (tested through 3.2 and main)
  * OpenEXR >= 3.1 (tested through 3.4 and main)
  * libTIFF >= 4.0 (tested through 4.7 and master)
  * OpenColorIO >= 2.3 (tested through 2.5 and main)
  * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
    through 3.1)
- * zlib >= 1.2.7 (tested through 1.3.1)
+ * zlib >= 1.2.7 (tested through 1.3.2)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 9.0** (tested through 12.1 and master).
    If not found at build time, this will be automatically downloaded and built.
  * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
@@ -36,14 +36,14 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
    these are not found):
-     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.9)
+     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.11)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 3.9 (tested through 3.13).
      * pybind11 >= 2.7 (tested through 3.0)
-     * NumPy (tested through 2.2.4)
+     * NumPy (tested through 2.4.4)
  * If you want support for PNG files:
-     * libPNG >= 1.6.0 (tested though 1.6.50)
+     * libPNG >= 1.6.0 (tested though 1.6.56)
  * If you want support for camera "RAW" formats:
      * LibRaw >= 0.20 (tested though 0.22.0 and master)
  * If you want support for a wide variety of video formats:
@@ -52,20 +52,20 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenJpeg >= 2.0 (tested through 2.5.4; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 9.0 (tested through 12.1).
+     * OpenVDB >= 9.0 (tested through 13.0).
  * If you want to use TBB as the thread pool:
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * OpenCV 4.x (tested through 4.12)
+     * OpenCV 4.x (tested through 4.13)
  * If you want support for GIF images:
-     * giflib >= 5.0 (tested through 5.2.2)
+     * giflib >= 5.0 (tested through 6.1.2)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.11 (1.16 required for correct orientation support and
-       1.17 required for monochrome HEIC support; tested through 1.21.1)
+       1.17 required for monochrome HEIC support; tested through 1.21.2)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
-     * DCMTK >= 3.6.1 (tested through 3.6.9)
+     * DCMTK >= 3.6.1 (tested through 3.7.0)
  * If you want support for WebP images:
      * WebP >= 1.1 (tested through 1.6)
  * If you want support for Ptex:
@@ -75,9 +75,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want to be able to read "ultra-HDR" embedded in JPEG files:
      * libultrahdr >= 1.3 (tested through 1.4)
  * If you want support for JPEG XL images:
-     * libjxl >= 0.10.1 (tested through 0.11.1)
+     * libjxl >= 0.10.1 (tested through 0.11.2)
  * If you want support for j2c files:
-     * OpenJPH >= 0.21.2 (tested through 0.23)
+     * OpenJPH >= 0.21.2 (tested through 0.26)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against

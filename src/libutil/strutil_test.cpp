@@ -1759,6 +1759,108 @@ getargs(int argc, char* argv[])
 
 
 
+void
+test_utf_conversions()
+{
+    std::cout << "Testing utf8_to_utf16wstring / utf16_to_utf8\n";
+
+    // ASCII round-trip
+    {
+        std::string ascii = "hello";
+        std::wstring w    = Strutil::utf8_to_utf16wstring(ascii);
+        OIIO_CHECK_EQUAL(w.size(), 5);
+        OIIO_CHECK_EQUAL((int)w[0], (int)L'h');
+        OIIO_CHECK_EQUAL((int)w[4], (int)L'o');
+        std::string back = Strutil::utf16_to_utf8(w);
+        OIIO_CHECK_EQUAL(back, ascii);
+    }
+
+    // Empty string
+    {
+        std::wstring w = Strutil::utf8_to_utf16wstring("");
+        OIIO_CHECK_EQUAL(w.size(), 0);
+        std::string s = Strutil::utf16_to_utf8(std::wstring());
+        OIIO_CHECK_EQUAL(s.size(), 0);
+        std::string s2 = Strutil::utf16_to_utf8(std::u16string());
+        OIIO_CHECK_EQUAL(s2.size(), 0);
+    }
+
+    // 2-byte UTF-8 (Latin/Greek/Cyrillic, U+0080..U+07FF)
+    // "café" = U+0063 U+0061 U+0066 U+00E9
+    {
+        std::string utf8 = "caf\xc3\xa9";  // café in UTF-8
+        std::wstring w   = Strutil::utf8_to_utf16wstring(utf8);
+        OIIO_CHECK_EQUAL(w.size(), 4);
+        OIIO_CHECK_EQUAL((int)w[3], 0x00E9);
+        std::string back = Strutil::utf16_to_utf8(w);
+        OIIO_CHECK_EQUAL(back, utf8);
+    }
+
+    // 3-byte UTF-8 (CJK, U+0800..U+FFFF)
+    // U+6620 U+753B = "映画" (movie in Japanese)
+    {
+        std::string utf8 = "\xe6\x98\xa0\xe7\x94\xbb";
+        std::wstring w   = Strutil::utf8_to_utf16wstring(utf8);
+        OIIO_CHECK_EQUAL(w.size(), 2);
+        OIIO_CHECK_EQUAL((int)w[0], 0x6620);
+        OIIO_CHECK_EQUAL((int)w[1], 0x753B);
+        std::string back = Strutil::utf16_to_utf8(w);
+        OIIO_CHECK_EQUAL(back, utf8);
+    }
+
+    // 4-byte UTF-8 / surrogate pairs (U+10000..U+10FFFF)
+    // U+1F600 (grinning face emoji)
+    {
+        std::string utf8 = "\xf0\x9f\x98\x80";
+        std::wstring w   = Strutil::utf8_to_utf16wstring(utf8);
+        // Should be encoded as surrogate pair: 0xD83D 0xDE00
+        OIIO_CHECK_EQUAL(w.size(), 2);
+        OIIO_CHECK_EQUAL((int)w[0], 0xD83D);
+        OIIO_CHECK_EQUAL((int)w[1], 0xDE00);
+        std::string back = Strutil::utf16_to_utf8(w);
+        OIIO_CHECK_EQUAL(back, utf8);
+    }
+
+    // Mixed ASCII + multibyte round-trip
+    {
+        // "Ñoño" = U+00D1 U+006F U+00F1 U+006F
+        std::string utf8 = "\xc3\x91o\xc3\xb1o";
+        std::wstring w   = Strutil::utf8_to_utf16wstring(utf8);
+        OIIO_CHECK_EQUAL(w.size(), 4);
+        std::string back = Strutil::utf16_to_utf8(w);
+        OIIO_CHECK_EQUAL(back, utf8);
+    }
+
+    // utf16_to_utf8 with u16string variant
+    {
+        // Basic Multilingual Plane: U+0041 U+00E9 U+6620
+        std::u16string u16 = { char16_t(0x0041), char16_t(0x00E9),
+                               char16_t(0x6620) };
+        std::string utf8   = Strutil::utf16_to_utf8(u16);
+        OIIO_CHECK_EQUAL(utf8, "A\xc3\xa9\xe6\x98\xa0");
+    }
+
+    // utf16_to_utf8 u16string with surrogate pair
+    {
+        // U+1F600 as surrogate pair: 0xD83D 0xDE00
+        std::u16string u16 = { char16_t(0xD83D), char16_t(0xDE00) };
+        std::string utf8   = Strutil::utf16_to_utf8(u16);
+        OIIO_CHECK_EQUAL(utf8, "\xf0\x9f\x98\x80");
+    }
+
+    // Round-trip through u16string for supplementary plane
+    {
+        // U+1D11E (musical symbol G clef)
+        std::string utf8 = "\xf0\x9d\x84\x9e";
+        std::wstring w   = Strutil::utf8_to_utf16wstring(utf8);
+        OIIO_CHECK_EQUAL(w.size(), 2);  // surrogate pair
+        std::string back = Strutil::utf16_to_utf8(w);
+        OIIO_CHECK_EQUAL(back, utf8);
+    }
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -1810,6 +1912,7 @@ main(int argc, char* argv[])
     test_edit_distance();
     test_base64_encode();
     test_eval_as_bool();
+    test_utf_conversions();
 
     Strutil::debug("debug message\n");
 

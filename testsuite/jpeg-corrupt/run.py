@@ -26,4 +26,4 @@ command += run_app (oiio_app("iconvert") + " src/corrupt-icc-4551.jpg out-4551.j
 command += info_command ("src/corrupt-icc-4552.jpg", safematch=True)
 
 # This file had corrupted IPTC data
-command += info_command ("-v src/corrupt-iptc-8011.jpg", info_program="iinfo")
+command += oiiotool("-oiioattrib imageinput:strict 1 -info -v src/corrupt-iptc-8011.jpg")

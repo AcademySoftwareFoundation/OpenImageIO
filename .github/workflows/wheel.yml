@@ -87,6 +87,7 @@ jobs:
     if: |
       ${{ github.event_name != 'schedule' || github.event.repository.fork == false }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           # -------------------------------------------------------------------
@@ -295,6 +296,7 @@ jobs:
     if: |
       github.event_name != 'schedule' || github.event.repository.fork == false
     strategy:
+      fail-fast: false
       matrix:
         include:
           # -------------------------------------------------------------------
@@ -383,6 +385,7 @@ jobs:
     if: |
       github.event_name != 'schedule' || github.event.repository.fork == false
     strategy:
+      fail-fast: false
       matrix:
         include:
           # -------------------------------------------------------------------
@@ -462,6 +465,7 @@ jobs:
     if: |
       github.event_name != 'schedule' || github.event.repository.fork == false
     strategy:
+      fail-fast: false
       matrix:
         include:
           # -------------------------------------------------------------------
