@@ -18,7 +18,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 #    include "imagebufalgo_hwy_pvt.h"
 #endif
 
@@ -131,46 +131,36 @@ add_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
     });
     return true;
 }
-#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#endif  // OIIO_USE_HWY
 
 template<class Rtype, class Atype, class Btype>
 static bool
 add_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
          int nthreads)
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
-    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
-        && B.localpixels()) {
-        auto Rv             = HwyPixels(R);
-        auto Av             = HwyPixels(A);
-        auto Bv             = HwyPixels(B);
-        const int nchannels = RoiNChannels(roi);
-        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
-                            && ChannelsContiguous<Atype>(Av, nchannels)
-                            && ChannelsContiguous<Btype>(Bv, nchannels);
-        if (contig) {
-            // Use native integer path for scale-invariant add when all types
-            // match and are integer types (much faster: 6-12x vs 3-5x with
-            // float conversion).
-            constexpr bool all_same = std::is_same_v<Rtype, Atype>
-                                      && std::is_same_v<Atype, Btype>;
-            constexpr bool is_integer = std::is_integral_v<Rtype>;
-            if constexpr (all_same && is_integer)
-                return add_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);
-            return add_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
-        }
-
+#if OIIO_USE_HWY
+    // First case: hwy enabled, all images have local pixels and the
+    // number of channels in the ROI. and fully encompass the ROI.
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi)
+        && HwySupports<Atype>(A, roi) && HwySupports<Btype>(B, roi)) {
+        // Use native integer path for scale-invariant add when all types
+        // match and are integer types (much faster: 6-12x vs 3-5x with
+        // float conversion).
+        constexpr bool all_same = std::is_same_v<Rtype, Atype>
+                                  && std::is_same_v<Atype, Btype>;
+        constexpr bool is_integer = std::is_integral_v<Rtype>;
+        if constexpr (all_same && is_integer)
+            return add_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);
+        return add_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    }
+    // Second case: the buffers are RGBA but we are only adding RGB
+    // (preserving alpha).
+    // Is this a case we will actually encounter?
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi, 4)
+        && HwySupports<Atype>(A, roi, 4) && HwySupports<Btype>(B, roi, 4)
+        && (roi.chbegin == 0 && roi.chend == 3)) {
         // Handle the common RGBA + RGB ROI strided case (preserving alpha).
-        if (roi.chbegin == 0 && roi.chend == 3) {
-            const bool contig4 = (Rv.nchannels >= 4 && Av.nchannels >= 4
-                                  && Bv.nchannels >= 4)
-                                 && ChannelsContiguous<Rtype>(Rv, 4)
-                                 && ChannelsContiguous<Atype>(Av, 4)
-                                 && ChannelsContiguous<Btype>(Bv, 4);
-            if (contig4)
-                return add_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi,
-                                                         nthreads);
-        }
+        return add_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
     }
 #endif
     return add_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
@@ -180,14 +170,14 @@ template<class Rtype, class Atype>
 static bool
 add_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
-    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
+#if OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi))
         return add_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
 #endif
     return add_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
 }
 
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#if OIIO_USE_HWY
 // Native integer sub using SaturatedSub (scale-invariant, no float conversion)
 template<class T>
 static bool
@@ -226,7 +216,7 @@ sub_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
     return hwy_binary_perpixel_op<Rtype, Atype, Btype>(R, A, B, roi, nthreads,
                                                        op);
 }
-#endif  // defined(OIIO_USE_HWY) && OIIO_USE_HWY
+#endif  // OIIO_USE_HWY
 
 template<class Rtype, class Atype, class Btype>
 static bool
@@ -238,39 +228,29 @@ static bool
 sub_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
          int nthreads)
 {
-#if defined(OIIO_USE_HWY) && OIIO_USE_HWY
-    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels()
-        && B.localpixels()) {
-        auto Rv             = HwyPixels(R);
-        auto Av             = HwyPixels(A);
-        auto Bv             = HwyPixels(B);
-        const int nchannels = RoiNChannels(roi);
-        const bool contig   = ChannelsContiguous<Rtype>(Rv, nchannels)
-                            && ChannelsContiguous<Atype>(Av, nchannels)
-                            && ChannelsContiguous<Btype>(Bv, nchannels);
-        if (contig) {
-            // Use native integer path for scale-invariant sub when all types
-            // match and are integer types (much faster: 6-12x vs 3-5x with
-            // float conversion).
-            constexpr bool all_same = std::is_same_v<Rtype, Atype>
-                                      && std::is_same_v<Atype, Btype>;
-            constexpr bool is_integer = std::is_integral_v<Rtype>;
-            if constexpr (all_same && is_integer)
-                return sub_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);
-            return sub_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
-        }
-
+#if OIIO_USE_HWY
+    // First case: hwy enabled, all images have local pixels and the
+    // number of channels in the ROI. and fully encompass the ROI.
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi)
+        && HwySupports<Atype>(A, roi) && HwySupports<Btype>(B, roi)) {
+        // Use native integer path for scale-invariant sub when all types
+        // match and are integer types (much faster: 6-12x vs 3-5x with
+        // float conversion).
+        constexpr bool all_same = std::is_same_v<Rtype, Atype>
+                                  && std::is_same_v<Atype, Btype>;
+        constexpr bool is_integer = std::is_integral_v<Rtype>;
+        if constexpr (all_same && is_integer)
+            return sub_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);
+        return sub_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    }
+    // Second case: the buffers are RGBA but we are only subtracting RGB
+    // (preserving alpha).
+    // Is this a case we will actually encounter?
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi, 4)
+        && HwySupports<Atype>(A, roi, 4) && HwySupports<Btype>(B, roi, 4)
+        && (roi.chbegin == 0 && roi.chend == 3)) {
         // Handle the common RGBA + RGB ROI strided case (preserving alpha).
-        if (roi.chbegin == 0 && roi.chend == 3) {
-            const bool contig4 = (Rv.nchannels >= 4 && Av.nchannels >= 4
-                                  && Bv.nchannels >= 4)
-                                 && ChannelsContiguous<Rtype>(Rv, 4)
-                                 && ChannelsContiguous<Atype>(Av, 4)
-                                 && ChannelsContiguous<Btype>(Bv, 4);
-            if (contig4)
-                return sub_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi,
-                                                         nthreads);
-        }
+        return sub_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
     }
 #endif
     return sub_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);

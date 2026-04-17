@@ -97,11 +97,11 @@ private:
 
     /// Helper function: performs the actual file seeking.
     ///
-    void internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
-                                unsigned int& h, unsigned int& d);
+    void internal_seek_subimage(int cubeface, int miplevel, size_t& w,
+                                size_t& h, size_t& d);
 
     /// Helper function: performs the actual pixel decoding.
-    bool internal_readimg(unsigned char* dst, int w, int h, int d);
+    bool internal_readimg(unsigned char* dst, size_t w, size_t h, size_t d);
 
     static bool validate_signature(uint32_t signature);
 };
@@ -671,8 +671,8 @@ DDSInput::calc_shifts(uint32_t mask, uint32_t& count, uint32_t& right)
 // NOTE: This function has no sanity checks! It's a private method and relies
 // on the input being correct and valid!
 void
-DDSInput::internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
-                                 unsigned int& h, unsigned int& d)
+DDSInput::internal_seek_subimage(int cubeface, int miplevel, size_t& w,
+                                 size_t& h, size_t& d)
 {
     // early out for cubemaps that don't contain the requested face
     if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP
@@ -683,10 +683,10 @@ DDSInput::internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
     // we can easily calculate the offsets because both compressed and
     // uncompressed images have predictable length
     // calculate the offset; start with after the header
-    unsigned int ofs = sizeof(dds_header);
+    size_t ofs = sizeof(dds_header);
     if (m_dds.fmt.fourCC == DDS_4CC_DX10)
         ofs += sizeof(dds_header_dx10);
-    unsigned int len;
+    size_t len;
     // this loop is used to iterate over cube map sides, or run once in the
     // case of ordinary 2D or 3D images
     for (int j = 0; j <= cubeface; j++) {
@@ -754,7 +754,7 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     m_buf.clear();
 
     // for cube maps, the seek will be performed when reading a tile instead
-    unsigned int w = 0, h = 0, d = 0;
+    size_t w = 0, h = 0, d = 0;
     TypeDesc::BASETYPE basetype = GetBaseType(m_compression);
     if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
         // calc sizes separately for cube maps
@@ -903,13 +903,42 @@ DDSInput::seek_subimage(int subimage, int miplevel)
         m_spec.attribute("textureformat", "Plain Texture");
     }
 
+    // Check validity of resolutions.
+    if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
+        // cube maps must be square and each face can be up to 16384x16384
+        // (currently). But remember that they are stored in a 3x2 or 1x6
+        // layout.
+#ifdef DDS_3X2_CUBE_MAP_LAYOUT
+        if (!check_open(m_spec, { 0, 16384 * 3, 0, 16384 * 2, 0, 1, 0, 4 }))
+            return false;
+#else
+        if (!check_open(m_spec, { 0, 16384, 0, 16384 * 6, 0, 1, 0, 4 }))
+            return false;
+#endif
+        if (m_spec.full_width != m_spec.full_height) {
+            errorfmt(
+                "Invalid cube map layout: width {} does not match height {}",
+                m_spec.full_width, m_spec.full_height);
+            return false;
+        }
+    } else if (m_dds.caps.flags2 & DDS_CAPS2_VOLUME) {
+        // volume textures are limited to 4096x4096x4096 (currently)
+        if (!check_open(m_spec, { 0, 4096, 0, 4096, 0, 4096, 0, 4 })) {
+            return false;
+        }
+    } else {
+        // 2D textures can be up to 32768x32768
+        if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 }))
+            return false;
+    }
+
     m_subimage = subimage;
     m_miplevel = miplevel;
     return true;
 }
 
 bool
-DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
+DDSInput::internal_readimg(unsigned char* dst, size_t w, size_t h, size_t d)
 {
     if (m_compression != Compression::None) {
         // compressed image
@@ -920,15 +949,15 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
         if (!ioread(tmp.get(), bufsize, 1))
             return false;
         // decompress image
-        DecompressImage(dst, w, h, tmp.get(), m_compression, m_dds.fmt,
-                        threads());
+        DecompressImage(dst, int(w), int(h), tmp.get(), m_compression,
+                        m_dds.fmt, threads());
         tmp.reset();
         // correct pre-multiplied alpha, if necessary
         if (m_compression == Compression::DXT2
             || m_compression == Compression::DXT4) {
-            int k;
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
+            size_t k;
+            for (size_t y = 0; y < h; y++) {
+                for (size_t x = 0; x < w; x++) {
                     k = (y * w + x) * 4;
                     if (dst[k + 3]) {
                         dst[k + 0] = (unsigned char)((int)dst[k + 0] * 255
@@ -961,12 +990,12 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
         }
 
         std::unique_ptr<uint8_t[]> tmp(new uint8_t[w * m_Bpp]);
-        for (int z = 0; z < d; z++) {
-            for (int y = 0; y < h; y++) {
+        for (size_t z = 0; z < d; z++) {
+            for (size_t y = 0; y < h; y++) {
                 if (!ioread(tmp.get(), w, m_Bpp))
                     return false;
                 size_t k = (z * h * w + y * w) * m_spec.nchannels;
-                for (int x = 0; x < w; x++, k += m_spec.nchannels) {
+                for (size_t x = 0; x < w; x++, k += m_spec.nchannels) {
                     uint32_t pixel = 0;
                     memcpy(&pixel, tmp.get() + x * m_Bpp, m_Bpp);
                     for (int ch = 0; ch < m_spec.nchannels; ++ch) {
@@ -992,8 +1021,8 @@ DDSInput::readimg_scanlines()
     m_buf.resize(m_spec.scanline_bytes() * m_spec.height * m_spec.depth
                  /*/ (1 << m_miplevel)*/);
 
-    return internal_readimg(&m_buf[0], m_spec.width, m_spec.height,
-                            m_spec.depth);
+    return internal_readimg(&m_buf[0], size_t(m_spec.width),
+                            size_t(m_spec.height), size_t(m_spec.depth));
 }
 
 
@@ -1003,8 +1032,9 @@ DDSInput::readimg_tiles()
 {
     // resize destination buffer
     OIIO_ASSERT(m_buf.size() >= m_spec.tile_bytes());
-    return internal_readimg(&m_buf[0], m_spec.tile_width, m_spec.tile_height,
-                            m_spec.tile_depth);
+    return internal_readimg(&m_buf[0], size_t(m_spec.tile_width),
+                            size_t(m_spec.tile_height),
+                            size_t(m_spec.tile_depth));
 }
 
 
@@ -1032,8 +1062,9 @@ DDSInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (m_buf.empty())
         readimg_scanlines();
 
-    size_t size = spec().scanline_bytes();
-    memcpy(data, &m_buf[0] + z * m_spec.height * size + y * size, size);
+    size_t size   = spec().scanline_bytes();
+    size_t offset = size_t(z) * m_spec.height * size + size_t(y) * size;
+    memcpy(data, &m_buf[0] + offset, size);
     return true;
 }
 
@@ -1075,10 +1106,10 @@ DDSInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         || z % m_spec.tile_width)
         return false;
     if (m_buf.empty() || x != lastx || y != lasty || z != lastz) {
-        lastx          = x;
-        lasty          = y;
-        lastz          = z;
-        unsigned int w = 0, h = 0, d = 0;
+        lastx    = x;
+        lasty    = y;
+        lastz    = z;
+        size_t w = 0, h = 0, d = 0;
 #ifdef DDS_3X2_CUBE_MAP_LAYOUT
         internal_seek_subimage(((x / m_spec.tile_width) << 1)
                                    + y / m_spec.tile_height,

@@ -57,12 +57,6 @@ HwyPixels(const ImageBuf& img)
              spec.nchannels };
 }
 
-inline int
-RoiNChannels(const ROI& roi) noexcept
-{
-    return roi.chend - roi.chbegin;
-}
-
 template<class T, class ByteT>
 inline bool
 ChannelsContiguous(const HwyLocalPixelsView<ByteT>& v, int nchannels) noexcept
@@ -92,6 +86,35 @@ RoiRowPtr(const HwyLocalPixelsView<ByteT>& v, int y, const ROI& roi) noexcept
 {
     return ChannelPtr<T>(v, roi.xbegin, y, roi.chbegin);
 }
+
+
+/// Can we use Hwy acceleration with this ImageBuf, over the specified ROI? If
+/// not supplied, the ROI defaults to the entire data window of the ImageBuf,
+/// and the number of channels defaults to the number of channels in the ROI.
+template<typename T>
+inline bool
+HwySupports(const ImageBuf& A, const ROI& roi = ROI(), int nchannels = 0)
+{
+    if (nchannels <= 0)
+        nchannels = roi.defined() ? roi.nchannels() : A.nchannels();
+    return
+        // The data type must match what we're looking for (T)
+        (A.spec().format.basetype == BaseTypeFromC<T>::value)
+
+        // The ImageBuf has the number of pixels we're expecting
+        && A.spec().nchannels == nchannels
+
+        // The scanlines must consist of contiguous pixels in memory (no
+        // padding between channels or pixels within a scanline). Note that
+        // this test implicitly also ensures "local" in-memory pixels.
+        && A.contiguous_scanline()
+        // For now, we only support 2D images (no volumes)
+        && A.spec().depth == 1
+        // The data window must fully encompass the ROI we're operating on
+        // (if an ROI was supplied)
+        && (!roi.defined() || A.roi().contains(roi));
+}
+
 
 // -----------------------------------------------------------------------
 // Type Traits
@@ -938,7 +961,7 @@ hwy_binary_perpixel_op(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
     auto Av = HwyPixels(A);
     auto Bv = HwyPixels(B);
     ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const size_t n      = static_cast<size_t>(roi.width())
                          * static_cast<size_t>(nchannels);
         for (int y = roi.ybegin; y < roi.yend; ++y) {
@@ -965,7 +988,7 @@ hwy_ternary_perpixel_op(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
     auto Bv = HwyPixels(B);
     auto Cv = HwyPixels(C);
     ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const size_t n      = static_cast<size_t>(roi.width())
                          * static_cast<size_t>(nchannels);
         for (int y = roi.ybegin; y < roi.yend; ++y) {
@@ -992,7 +1015,7 @@ hwy_binary_native_int_perpixel_op(ImageBuf& R, const ImageBuf& A,
     auto Av = HwyPixels(A);
     auto Bv = HwyPixels(B);
     ImageBufAlgo::parallel_image(roi, nthreads, [&, op](ROI roi) {
-        const int nchannels = RoiNChannels(roi);
+        const int nchannels = roi.nchannels();
         const size_t n      = static_cast<size_t>(roi.width())
                          * static_cast<size_t>(nchannels);
         for (int y = roi.ybegin; y < roi.yend; ++y) {
