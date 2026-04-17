@@ -83,6 +83,7 @@ public:
     bool nostderr        = false;  // If true, use stdout for errors
     bool noerrexit       = false;  // Don't exit on error
     bool create_dir      = false;
+    bool experimental    = false;  // Allow experimental features
     std::string dumpdata_C_name;
     std::string full_command_line;
     std::string printinfo_metamatch;
