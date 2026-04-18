@@ -81,9 +81,7 @@ public:
     }
     const char* format_name(void) const override { return "r3d"; }
     int supports(string_view feature) const override
-    {
-        return (feature == "ioproxy");
-    }
+    { return (feature == "ioproxy"); }
     bool open(const std::string& name, ImageSpec& spec) override;
     bool open(const std::string& name, ImageSpec& spec,
               const ImageSpec& config) override;
@@ -154,9 +152,7 @@ r3d_imageio_library_version()
 
 OIIO_EXPORT ImageInput*
 r3d_input_imageio_create()
-{
-    return new R3dInput;
-}
+{ return new R3dInput; }
 
 OIIO_EXPORT const char* r3d_input_extensions[] = { "r3d", nullptr };
 
@@ -279,7 +275,7 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     m_job.OutputBuffer = m_image_buffer;
 
     // Interleaved RGB decoding in 16-bits per pixel
-    m_job.PixelType   = R3DSDK::PixelType_16Bit_RGB_Interleaved;
+    m_job.PixelType = R3DSDK::PixelType_16Bit_RGB_Interleaved;
 
     m_spec = ImageSpec(width, height, m_channels, TypeDesc::UINT16);
     m_spec.attribute("FramesPerSecond", TypeFloat, &m_fps);
