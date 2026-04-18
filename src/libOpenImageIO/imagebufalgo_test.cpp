@@ -43,6 +43,10 @@ static bool wedge         = false;
 static int threadcounts[] = { 1,  2,  4,  8,  12,  16,   20,
                               24, 28, 32, 64, 128, 1024, 1 << 30 };
 
+static const int hwy_build = OIIO_USE_HWY;
+static int hwy_on          = hwy_build;
+
+
 
 static void
 getargs(int argc, char* argv[])
@@ -403,7 +407,7 @@ test_channel_append()
 void
 test_add()
 {
-    std::cout << "test add\n";
+    print("test add{}\n", hwy_on ? " (HWY)" : "");
 
     // Create buffers
     const float Aval[] = { 0.1f, 0.2f, 0.3f, 0.4f };
@@ -429,7 +433,7 @@ test_add()
 void
 test_sub()
 {
-    std::cout << "test sub\n";
+    print("test sub{}\n", hwy_on ? " (HWY)" : "");
 
     // Create buffers
     const float Aval[] = { 0.1f, 0.2f, 0.3f, 0.4f };
@@ -455,7 +459,7 @@ test_sub()
 void
 test_mul()
 {
-    std::cout << "test mul\n";
+    print("test mul{}\n", hwy_on ? " (HWY)" : "");
 
     // Create buffers
     // Create buffers
@@ -482,7 +486,7 @@ test_mul()
 void
 test_mad()
 {
-    std::cout << "test mad\n";
+    print("test mad{}\n", hwy_on ? " (HWY)" : "");
     const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
 
@@ -513,6 +517,86 @@ test_mad()
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
+
+
+void
+test_hwy_strided_roi_fallback()
+{
+#if OIIO_USE_HWY
+    std::cout << "test hwy strided roi fallback\n";
+
+    int prev_enable_hwy = 0;
+    OIIO::getattribute("enable_hwy", prev_enable_hwy);
+
+    ImageSpec spec(64, 64, 4, TypeDesc::UINT8);
+    ImageBuf A(spec), B(spec), C(spec);
+    ImageBufAlgo::fill(A, { 0.2f, 0.4f, 0.6f, 0.8f });
+    ImageBufAlgo::fill(B, { 0.1f, 0.3f, 0.5f, 0.7f });
+    ImageBufAlgo::fill(C, { 0.05f, 0.05f, 0.05f, 0.05f });
+
+    ROI roi     = get_roi(A.spec());
+    roi.chbegin = 0;
+    roi.chend   = 3;  // RGB only => non-contiguous for RGBA interleaving
+
+    {
+        ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::add(R0, A, B, roi);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::add(R1, A, B, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    }
+    {
+        ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::sub(R0, A, B, roi);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::sub(R1, A, B, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    }
+    {
+        ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::mul(R0, A, B, roi);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::mul(R1, A, B, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    }
+    {
+        ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::div(R0, A, B, roi);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::div(R1, A, B, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    }
+    {
+        ImageBuf R0(spec), R1(spec);
+        ImageBufAlgo::fill(R0, { 0.9f, 0.8f, 0.7f, 0.6f });
+        ImageBufAlgo::fill(R1, { 0.9f, 0.8f, 0.7f, 0.6f });
+        OIIO::attribute("enable_hwy", 0);
+        ImageBufAlgo::mad(R0, A, B, C, roi);
+        OIIO::attribute("enable_hwy", 1);
+        ImageBufAlgo::mad(R1, A, B, C, roi);
+        auto comp = ImageBufAlgo::compare(R0, R1, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    }
+
+    OIIO::attribute("enable_hwy", prev_enable_hwy);
+#endif
+}
 
 
 // Tests ImageBufAlgo::min
@@ -1598,6 +1682,17 @@ test_demosaic()
 }
 
 
+
+// clang-format off
+// Neat trick macro to prefix in front of the calls where we want to
+// run it in both hwy and non-hwy modes. It will loop over both settings.
+#define HWY_TEST                                    \
+    for (hwy_on = 0; hwy_on <= hwy_build; ++hwy_on) \
+        OIIO::attribute("enable_hwy", hwy_on), /* next command */
+// clang-format on
+
+
+
 int
 main(int argc, char** argv)
 {
@@ -1622,10 +1717,11 @@ main(int argc, char** argv)
     test_crop();
     test_paste();
     test_channel_append();
-    test_add();
-    test_sub();
-    test_mul();
-    test_mad();
+    HWY_TEST test_add();
+    HWY_TEST test_sub();
+    HWY_TEST test_mul();
+    HWY_TEST test_mad();
+    test_hwy_strided_roi_fallback();
     test_min();
     test_max();
     test_over(TypeFloat);

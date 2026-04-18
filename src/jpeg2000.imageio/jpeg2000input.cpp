@@ -164,7 +164,7 @@ private:
         }
     }
 
-    template<typename T> void read_scanline(int y, int z, void* data);
+    template<typename T> void copy_scanline(int y, int z, void* data);
 
     uint16_t baseTypeConvertU10ToU16(int src)
     {
@@ -679,9 +679,9 @@ Jpeg2000Input::read_native_scanline(int subimage, int miplevel, int y, int z,
 #endif  // USE_OPENJPH
 
         if (m_spec.format == TypeDesc::UINT8)
-            read_scanline<uint8_t>(y, z, data);
+            copy_scanline<uint8_t>(y, z, data);
         else
-            read_scanline<uint16_t>(y, z, data);
+            copy_scanline<uint16_t>(y, z, data);
 #ifdef USE_OPENJPH
     }
 #endif
@@ -766,7 +766,7 @@ Jpeg2000Input::destroy_decompressor()
 
 template<typename T>
 void
-Jpeg2000Input::read_scanline(int y, int /*z*/, void* data)
+Jpeg2000Input::copy_scanline(int y, int /*z*/, void* data)
 {
     T* scanline = static_cast<T*>(data);
     int nc      = m_spec.nchannels;

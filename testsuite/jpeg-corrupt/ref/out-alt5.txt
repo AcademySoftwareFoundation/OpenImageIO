@@ -19,6 +19,9 @@ src/corrupt-exif-1626.jpg :  256 x  256, 3 channel, uint8 jpeg
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "srgb_rec709_scene"
 corrupt-icc-4551.jpg
+iconvert ERROR copying "src/corrupt-icc-4551.jpg" to "out-4551.jpg" :
+	JPEG error: Corrupt JPEG data: bad Huffman code ("src/corrupt-icc-4551.jpg")
+jpeg image resolution must be at least 1x1, but the file specified 0x0x1, 3 chans. Possible corrupt input?
 Reading src/corrupt-icc-4552.jpg
 src/corrupt-icc-4552.jpg : 1500 x 1000, 3 channel, uint8 jpeg
     SHA-1: 58BC613FDC7513B4F3854D8D2910040B60FF7A7F

@@ -305,7 +305,12 @@
 /// enough to cause trouble). Consider using the OIIO_ALLOCATE_STACK_OR_HEAP
 /// idiom rather than a direct OIIO_ALLOCA if you aren't sure the item will
 /// be small.
-#if defined(__GNUC__)
+#if defined(__has_include)
+#    if __has_include(<alloca.h>)
+#        include <alloca.h>  // for alloca (when available)
+#    endif
+#endif
+#if defined(__GNUC__) || defined(__clang__)
 #    define OIIO_ALLOCA(type, size) (assert(size < (1<<20)), (size) != 0 ? ((type*)__builtin_alloca((size) * sizeof(type))) : nullptr)
 #else
 #    define OIIO_ALLOCA(type, size) (assert(size < (1<<20)), (size) != 0 ? ((type*)alloca((size) * sizeof(type))) : nullptr)
@@ -459,6 +464,28 @@
 #    define OIIO_NODISCARD [[nodiscard]]
 #else
 #    define OIIO_NODISCARD
+#endif
+
+// OIIO_NODISCARD_ERROR is for functions returning error status (bool) where
+// ignoring the return is a bad practice but not always catastrophic.
+//
+// OIIO_NODISCARD_ERROR_ENABLE, if nonzero, enables OIIO_NODISCARD_ERROR to
+// take effect. The default is to disable it for OIIO < 3.3, and enable it for
+// OIIO >= 3.3. But `-DOIIO_NODISCARD_ERROR_ENABLE=...` can be used to
+// override the default, for example to flag discarded errors in older
+// versions of OIIO, or to disable the warnings in future versions of OIIO.
+#ifndef OIIO_NODISCARD_ERROR_ENABLE
+#    if OIIO_VERSION_LESS(3, 3, 0)
+#        define OIIO_NODISCARD_ERROR_ENABLE 0 /* disable for now */
+#    else
+#        define OIIO_NODISCARD_ERROR_ENABLE 1 /* enable for OIIO >= 3.3 */
+#    endif
+#endif
+
+#if OIIO_NODISCARD_ERROR_ENABLE
+#    define OIIO_NODISCARD_ERROR OIIO_NODISCARD
+#else
+#    define OIIO_NODISCARD_ERROR /* nothing */
 #endif
 
 
