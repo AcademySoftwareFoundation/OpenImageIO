@@ -9,6 +9,7 @@ from __future__ import annotations
 import OpenImageIO as oiio
 
 
+
 # Test that every expected enum value of BASETYPE exists
 def basetype_enum_test():
     try:
@@ -71,7 +72,6 @@ def vecsemantics_enum_test():
         print ("Passed VECSEMANTICS")
     except:
         print ("Failed VECSEMANTICS")
-
 
 # print the details of a type t
 def breakdown_test(t, name="", verbose=True):
@@ -217,3 +217,4 @@ try:
     print ("Done.")
 except Exception as detail:
     print ("Unknown exception:", detail)
+
