@@ -81,7 +81,9 @@ public:
     }
     const char* format_name(void) const override { return "r3d"; }
     int supports(string_view feature) const override
-    { return (feature == "ioproxy"); }
+    {
+        return (feature == "ioproxy");
+    }
     bool open(const std::string& name, ImageSpec& spec) override;
     bool open(const std::string& name, ImageSpec& spec,
               const ImageSpec& config) override;
@@ -152,7 +154,9 @@ r3d_imageio_library_version()
 
 OIIO_EXPORT ImageInput*
 r3d_input_imageio_create()
-{ return new R3dInput; }
+{
+    return new R3dInput;
+}
 
 OIIO_EXPORT const char* r3d_input_extensions[] = { "r3d", "nev", nullptr };
 
