@@ -4,6 +4,7 @@
 
 set (nanobind_srcs
      py_oiio.cpp
+     py_paramvalue.cpp
      py_roi.cpp
      py_imagespec.cpp
      py_typedesc.cpp)

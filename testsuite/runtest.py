@@ -93,6 +93,8 @@ test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
 # Python tests listed here also run against the staged nanobind package when
 # it exists in the current build tree.
 nanobind_python_tests = {
+    "python-imagespec",
+    "python-paramlist",
     "python-roi",
     "python-typedesc",
 }
