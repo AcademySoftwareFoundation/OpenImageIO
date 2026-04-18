@@ -154,7 +154,7 @@ OIIO_EXPORT ImageInput*
 r3d_input_imageio_create()
 { return new R3dInput; }
 
-OIIO_EXPORT const char* r3d_input_extensions[] = { "r3d", nullptr };
+OIIO_EXPORT const char* r3d_input_extensions[] = { "r3d", "nev", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
