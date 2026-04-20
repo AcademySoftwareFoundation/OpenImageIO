@@ -6664,6 +6664,8 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--nostderr", &ot.nostderr)
       .help("Do not use stderr, output error messages to stdout")
       .hidden();
+    ap.arg("--experimental", &ot.experimental)
+      .help("Allow experimental features");
 
     ap.separator("Control flow and scripting:");
     ap.arg("--set %s:NAME %s:VALUE")
