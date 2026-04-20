@@ -123,10 +123,14 @@ it and potentially be able to answer your question quickly (more so than a GH
 "issue"). For quick questions, you could also try the [ASWF
 Slack](https://slack.aswf.io) `#openimageio` channel.
 
-Bugs, build problems, and discovered vulnerabilities that you are relatively
-certain is a legit problem in the code, and **for which you can give clear
-instructions for how to reproduce**, should be [reported as
+A bug or build problem that you are relatively certain is a legit problem in
+the code, and **for which you can give clear instructions for how to
+reproduce**, should be [reported as
 issues](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues).
+
+To report a security vulnerability that is serious enough that it should not
+be discussed publicly until a patch is ready, please file a GitHub [security
+advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/new).
 
 If confidentiality precludes a public question or issue, you may contact us
 privately at [info@openimageio.org](info@openimageio.org), or for
