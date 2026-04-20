@@ -392,7 +392,8 @@ Jpeg2000Input::ojph_read_image()
     int ch              = m_spec.nchannels;
     ojph::param_siz siz = codestream.access_siz();
 
-    const int bufsize = w * h * ch * buffer_bpp;
+    const size_t bufsize = size_t(w) * size_t(h) * size_t(ch)
+                           * size_t(buffer_bpp);
     m_buf.resize(bufsize);
     codestream.create();
 
