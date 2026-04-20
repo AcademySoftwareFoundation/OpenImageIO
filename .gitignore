@@ -30,3 +30,5 @@ gastest.o
 /*.log
 
 
+/build_*
+/bld
