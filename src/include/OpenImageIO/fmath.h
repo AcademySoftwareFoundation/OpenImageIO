@@ -615,11 +615,15 @@ inline simd::vfloat16 floorfrac (const simd::vfloat16& x, simd::vint16 *xint) {
 
 /// Convert degrees to radians.
 template <typename T>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE T radians (T deg) { return deg * T(M_PI / 180.0); }
+OIIO_FORCEINLINE OIIO_HOSTDEVICE constexpr T radians (T deg) {
+    return deg * T(M_PI / 180.0);
+}
 
 /// Convert radians to degrees
 template <typename T>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE T degrees (T rad) { return rad * T(180.0 / M_PI); }
+OIIO_FORCEINLINE OIIO_HOSTDEVICE constexpr T degrees (T rad) {
+    return rad * T(180.0 / M_PI);
+}
 
 
 /// Faster floating point negation, in cases where you aren't too picky
