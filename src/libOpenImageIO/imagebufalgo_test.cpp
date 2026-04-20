@@ -205,10 +205,17 @@ test_zero_fill()
     Benchmarker bench;
     bench.trials(ntrials);
     bench.iterations(iterations);
-    ImageBuf buf_rgba_float(ImageSpec(1000, 1000, 4, TypeFloat));
-    ImageBuf buf_rgba_uint8(ImageSpec(1000, 1000, 4, TypeUInt8));
-    ImageBuf buf_rgba_half(ImageSpec(1000, 1000, 4, TypeHalf));
-    ImageBuf buf_rgba_uint16(ImageSpec(1000, 1000, 4, TypeDesc::UINT16));
+#if defined(NDEBUG) || !defined(OIIO_CI)
+    const int rez = 1000;
+#else
+    // Only for debug builds that are part of OIIO's CI - reduce resolution to
+    // make it run faster
+    const int rez = 256;
+#endif
+    ImageBuf buf_rgba_float(ImageSpec(rez, rez, 4, TypeFloat));
+    ImageBuf buf_rgba_uint8(ImageSpec(rez, rez, 4, TypeUInt8));
+    ImageBuf buf_rgba_half(ImageSpec(rez, rez, 4, TypeHalf));
+    ImageBuf buf_rgba_uint16(ImageSpec(rez, rez, 4, TypeDesc::UINT16));
     float vals[] = { 0, 0, 0, 0 };
     bench("  IBA::fill float[4] ",
           [&]() { ImageBufAlgo::fill(buf_rgba_float, cspan<float>(vals)); });
@@ -1413,10 +1420,17 @@ test_simple_perpixel()
         bench.trials(ntrials);
         bench.iterations(iterations);
         bench.units(Benchmarker::Unit::ms);
-        ImageBuf af(ImageSpec(2048, 2048, 4, TypeFloat));
-        ImageBuf bf(ImageSpec(2048, 2048, 4, TypeFloat));
-        ImageBuf au8(ImageSpec(2048, 2048, 4, TypeUInt8));
-        ImageBuf bu8(ImageSpec(2048, 2048, 4, TypeUInt8));
+#if defined(NDEBUG) || !defined(OIIO_CI)
+        const int rez = 2048;
+#else
+        // Only for debug builds that are part of OIIO's CI - reduce resolution to
+        // make it run faster
+        const int rez = 1024;
+#endif
+        ImageBuf af(ImageSpec(rez, rez, 4, TypeFloat));
+        ImageBuf bf(ImageSpec(rez, rez, 4, TypeFloat));
+        ImageBuf au8(ImageSpec(rez, rez, 4, TypeUInt8));
+        ImageBuf bu8(ImageSpec(rez, rez, 4, TypeUInt8));
         bench("  IBA::add() float",
               [&]() { ImageBuf r = ImageBufAlgo::add(af, bf); });
         bench("  IBA::add() u8",
@@ -1747,7 +1761,9 @@ main(int argc, char** argv)
     benchmark_parallel_image(64, iterations * 64);
     benchmark_parallel_image(512, iterations * 16);
     benchmark_parallel_image(1024, iterations * 4);
+#if defined(NDEBUG) || !defined(OIIO_CI)
     benchmark_parallel_image(2048, iterations);
+#endif
 
     return unit_test_failures;
 }

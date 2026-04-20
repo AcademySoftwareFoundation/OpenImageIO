@@ -21,6 +21,14 @@ using namespace OIIO;
 static int ntrials    = 5;
 static int iterations = 0;
 
+#if defined(NDEBUG) || !defined(OIIO_CI)
+static const int big_xres = 2048, big_yres = 1536;
+#else
+// Only for debug builds that are part of OIIO's CI - reduce resolution to
+// make it run faster
+static const int big_xres = 2048 / 2, big_yres = 1536 / 2;
+#endif
+
 
 
 template<typename T>
@@ -156,7 +164,7 @@ template<typename T = float>
 void
 test_image_span_copy_image()
 {
-    const int xres = 2048, yres = 1536, nchans = 4;
+    const int xres = big_xres, yres = big_yres, nchans = 4;
     const size_t chansize = sizeof(T);
     print("\nTesting copy_image {} (total {} MB):\n", TypeDescFromC<T>::value(),
           xres * yres * nchans * chansize * 3 / 4 / 1024 / 1024);
@@ -223,7 +231,7 @@ test_image_span_contiguize()
     // Benchmark old (ptr) versus new (span) contiguize functions
     using pvt::contiguize;
 
-    const int xres = 2048, yres = 1536, nchans = 4;
+    const int xres = big_xres, yres = big_yres, nchans = 4;
     const size_t chansize = sizeof(T);
     print("\nTesting contiguize {} (total {} MB):\n", TypeDescFromC<T>::value(),
           xres * yres * nchans * chansize * 3 / 4 / 1024 / 1024);
@@ -296,7 +304,7 @@ void
 test_image_span_convert_image()
 {
     // Benchmark old (ptr) versus new (span) convert_image functions
-    const int xres = 2048, yres = 1536, nchans = 4;
+    const int xres = big_xres, yres = big_yres, nchans = 4;
     const size_t schansize = sizeof(Stype);
     const size_t dchansize = sizeof(Dtype);
     print("\nTesting convert_image {} -> {} (total {}M values):\n",
@@ -423,7 +431,7 @@ void
 benchmark_image_span_passing()
 {
     print("\nbenchmark_image_span_passing\n");
-    const int xres = 2048, yres = 1536, nchans = 4;
+    const int xres = big_xres, yres = big_yres, nchans = 4;
     std::vector<float> sbuf(xres * yres * nchans, 1.0f);
     image_span<const float> ispan(sbuf.data(), nchans, xres, yres, 1);
 
