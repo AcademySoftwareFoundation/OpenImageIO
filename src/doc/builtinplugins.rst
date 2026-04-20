@@ -1558,6 +1558,9 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``ExposureTime``
      - float
      - expTime
+   * - ``ISOSpeed``
+     - float
+     - isoSpeed
    * - ``FNumber``
      - float
      - aperture
