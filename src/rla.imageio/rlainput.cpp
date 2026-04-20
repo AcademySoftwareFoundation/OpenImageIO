@@ -86,11 +86,11 @@ private:
     bool decode_channel_group(int first_channel, short num_channels,
                               short num_bits, int y);
 
-    /// Helper: decode a span of n RLE-encoded bytes from encoded[0..elen-1]
+    /// Helper: decode a span of n RLE-encoded bytes from encoded[]
     /// into buf[0],buf[stride],buf[2*stride]...buf[(n-1)*stride].
     /// Return the number of encoded bytes we ate to fill buf.
-    size_t decode_rle_span(unsigned char* buf, int n, int stride,
-                           const char* encoded, size_t elen);
+    size_t decode_rle_span(span<unsigned char> buf, int n, int stride,
+                           cspan<char> encoded);
 
     /// Helper: determine channel TypeDesc
     inline TypeDesc get_channel_typedesc(short chan_type, short chan_bits);
@@ -490,23 +490,28 @@ RLAInput::close()
 
 
 size_t
-RLAInput::decode_rle_span(unsigned char* buf, int n, int stride,
-                          const char* encoded, size_t elen)
+RLAInput::decode_rle_span(span<unsigned char> buf, int n, int stride,
+                          cspan<char> encoded)
 {
-    size_t e = 0;
+    size_t e    = 0;               // position we're reading in encoded
+    size_t elen = encoded.size();  // Number of encoded bytes to decode
+    size_t b    = 0;               // postition we're writing in buf
     while (n > 0 && e < elen) {
         int count = (signed char)encoded[e++];
         if (count >= 0) {
             // run count positive: value repeated count+1 times
-            for (int i = 0; i <= count && n && e < elen;
-                 ++i, buf += stride, --n)
-                *buf = encoded[e];
+            if (count + 1 > n)
+                break;  // asking for a count that will overrun the buffer
+            for (int i = 0; i <= count; ++i, b += stride, --n)
+                buf[b] = encoded[e];
             ++e;
         } else {
             // run count negative: repeat bytes literally
+            if (count > n)
+                break;       // asking for a count that will overrun the buffer
             count = -count;  // make it positive
-            for (; count && n > 0 && e < elen; --count, buf += stride, --n)
-                *buf = encoded[e++];
+            for (; count && n > 0 && e < elen; --count, b += stride, --n)
+                buf[b] = encoded[e++];
         }
     }
     if (n != 0) {
@@ -583,9 +588,10 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
         // and strides to decode_rle_span.
         size_t eoffset = 0;
         for (int bytes = 0; bytes < chsize && length > 0; ++bytes) {
-            size_t e = decode_rle_span(&m_buf[offset + c * chsize + bytes],
+            size_t e = decode_rle_span(make_span(m_buf).subspan(
+                                           offset + c * chsize + bytes),
                                        m_spec.width, pixelsize,
-                                       &encoded[eoffset], length);
+                                       make_span(encoded).subspan(eoffset));
             if (!e)
                 return false;
             eoffset += e;
