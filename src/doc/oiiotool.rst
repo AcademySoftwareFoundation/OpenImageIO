@@ -988,6 +988,12 @@ subimage according to its metadata::
 
         oiiotool --oiioattrib debug 1 in.jpg -o out.jpg
 
+.. option:: --experimental
+
+    Enables experimental features. Use at your own risk.
+
+    This was added in OIIO 3.1.13.
+
 
 .. _sec-oiiotool-control-flow-commands:
 
