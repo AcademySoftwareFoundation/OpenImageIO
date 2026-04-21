@@ -18,6 +18,9 @@
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
 //  2026-XX-XX: Metal: Added support for multiple windows via the ImGuiPlatformIO interface.
+//  2026-04-14: Metal: use a dedicated bufferCacheLock to avoid crashing when bufferCache is replaced by a new object while being used for @synchronize(). (#9367)
+//  2026-04-03: Metal: avoid redundant vertex buffer bind in SetupRenderState. (#9343)
+//  2026-03-19: Fixed issue in ImGui_ImplMetal_RenderDrawData() if ImTextureID_Invalid is defined to be != 0, which became the default since 2026-03-12. (#9295, #9310)
 //  2025-09-18: Call platform_io.ClearRendererHandlers() on shutdown.
 //  2025-06-11: Added support for ImGuiBackendFlags_RendererHasTextures, for dynamic font atlas. Removed ImGui_ImplMetal_CreateFontsTexture() and ImGui_ImplMetal_DestroyFontsTexture().
 //  2025-02-03: Metal: Crash fix. (#8367)
@@ -95,6 +98,7 @@ ImGui_ImplMetal_InvalidateDeviceObjectsForPlatformWindows();
 @property (nonatomic, strong) NSMutableDictionary*
     renderPipelineStateCache;  // pipeline cache; keyed on framebuffer descriptors
 @property (nonatomic, strong) NSMutableArray<MetalBuffer*>* bufferCache;
+@property (nonatomic, strong) NSObject* bufferCacheLock;
 @property (nonatomic, assign) double lastBufferCachePurge;
 - (MetalBuffer*)dequeueReusableBufferOfLength:(NSUInteger)length
                                        device:(id<MTLDevice>)device;
@@ -303,8 +307,9 @@ ImGui_ImplMetal_SetupRenderState(ImDrawData* draw_data,
 
     [commandEncoder setRenderPipelineState:renderPipelineState];
 
-    [commandEncoder setVertexBuffer:vertexBuffer.buffer offset:0 atIndex:0];
-    [commandEncoder setVertexBufferOffset:vertexBufferOffset atIndex:0];
+    [commandEncoder setVertexBuffer:vertexBuffer.buffer
+                             offset:vertexBufferOffset
+                            atIndex:0];
 }
 
 // Metal Render function.
@@ -428,7 +433,8 @@ ImGui_ImplMetal_RenderDrawData(ImDrawData* draw_data,
                 // Bind texture, Draw
                 id<MTLSamplerState> sampler_state
                     = bd->SharedMetalContext.defaultSamplerState;
-                if (ImTextureID tex_id = pcmd->GetTexID()) {
+                ImTextureID tex_id = pcmd->GetTexID();
+                if (tex_id != ImTextureID_Invalid) {
                     id metal_object = (__bridge id)(void*)(intptr_t)(tex_id);
                     if ([metal_object isKindOfClass:[MetalTexture class]]) {
                         MetalTexture* backend_tex = (MetalTexture*)metal_object;
@@ -472,12 +478,10 @@ ImGui_ImplMetal_RenderDrawData(ImDrawData* draw_data,
 
     MetalContext* sharedMetalContext = bd->SharedMetalContext;
     [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer>) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            @synchronized(sharedMetalContext.bufferCache) {
-                [sharedMetalContext.bufferCache addObject:vertexBuffer];
-                [sharedMetalContext.bufferCache addObject:indexBuffer];
-            }
-        });
+        @synchronized(sharedMetalContext.bufferCacheLock) {
+            [sharedMetalContext.bufferCache addObject:vertexBuffer];
+            [sharedMetalContext.bufferCache addObject:indexBuffer];
+        }
     }];
 }
 
@@ -857,6 +861,7 @@ ImGui_ImplMetal_InvalidateDeviceObjectsForPlatformWindows()
     if ((self = [super init])) {
         self.renderPipelineStateCache = [NSMutableDictionary dictionary];
         self.bufferCache              = [NSMutableArray array];
+        self.bufferCacheLock          = [[NSObject alloc] init];
         _lastBufferCachePurge         = GetMachAbsoluteTimeInSeconds();
     }
     return self;
@@ -865,9 +870,9 @@ ImGui_ImplMetal_InvalidateDeviceObjectsForPlatformWindows()
 - (MetalBuffer*)dequeueReusableBufferOfLength:(NSUInteger)length
                                        device:(id<MTLDevice>)device
 {
-    uint64_t now = GetMachAbsoluteTimeInSeconds();
+    double now = GetMachAbsoluteTimeInSeconds();
 
-    @synchronized(self.bufferCache) {
+    @synchronized(self.bufferCacheLock) {
         // Purge old buffers that haven't been useful for a while
         if (now - self.lastBufferCachePurge > 1.0) {
             NSMutableArray* survivors = [NSMutableArray array];
