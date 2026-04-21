@@ -483,7 +483,10 @@ test_read_tricky_sizes()
     // Read in, make sure it's right, several different ways
     {
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_image(0, 0, 0, 4, TypeUInt8, buf, 4 /* xstride */);
+        OIIO_ASSERT(imgin);
+        bool ok = imgin->read_image(0, 0, 0, 4, TypeUInt8, buf,
+                                    4 /* xstride */);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -492,8 +495,9 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_scanlines(0, 0, 0, 4, 0, 0, 4, TypeUInt8, buf,
-                              /*xstride=*/4);
+        bool ok    = imgin->read_scanlines(0, 0, 0, 4, 0, 0, 4, TypeUInt8, buf,
+                                           /*xstride=*/4);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -502,8 +506,11 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
+        OIIO_ASSERT(imgin);
+        bool ok = true;
         for (int y = 0; y < 4; ++y)
-            imgin->read_scanline(y, 0, TypeUInt8, buf, /*xstride=*/4);
+            ok &= imgin->read_scanline(y, 0, TypeUInt8, buf, /*xstride=*/4);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -515,7 +522,10 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_image(0, 0, 0, 4, TypeUInt8, buf, 4 /* xstride */);
+        OIIO_ASSERT(imgin);
+        bool ok = imgin->read_image(0, 0, 0, 4, TypeUInt8, buf,
+                                    4 /* xstride */);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -524,8 +534,11 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_tiles(0, 0, 0, 4, 0, 4, 0, 1, 0, 4, TypeUInt8, buf,
-                          /*xstride=*/4);
+        OIIO_ASSERT(imgin);
+        bool ok = imgin->read_tiles(0, 0, 0, 4, 0, 4, 0, 1, 0, 4, TypeUInt8,
+                                    buf,
+                                    /*xstride=*/4);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -534,8 +547,10 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_tile(0, 0, 0, TypeUInt8, buf, /*xstride=*/4);
+        OIIO_ASSERT(imgin);
+        bool ok = imgin->read_tile(0, 0, 0, TypeUInt8, buf, /*xstride=*/4);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][3]), 0);

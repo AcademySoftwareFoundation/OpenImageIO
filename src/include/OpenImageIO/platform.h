@@ -463,6 +463,30 @@
 #    define OIIO_NODISCARD
 #endif
 
+// OIIO_NODISCARD_ERROR is for functions returning error status (bool) where
+// ignoring the return is a bad practice but not always catastrophic.
+//
+// OIIO_NODISCARD_ERROR_ENABLE, if nonzero, enables OIIO_NODISCARD_ERROR to
+// take effect. The default is to disable it for OIIO < 3.3, and enable it for
+// OIIO >= 3.3. But `-DOIIO_NODISCARD_ERROR_ENABLE=...` can be used to
+// override the default, for example to flag discarded errors in older
+// versions of OIIO, or to disable the warnings in future versions of OIIO.
+#ifndef OIIO_NODISCARD_ERROR_ENABLE
+#    if OIIO_VERSION_GREATER_EQUAL(3, 3, 0) || defined(OIIO_INTERNAL)
+         /* enable for OIIO >= 3.3, or now for OIIO's own build */
+#        define OIIO_NODISCARD_ERROR_ENABLE 1
+#    else
+         /* disable for now externally */
+#        define OIIO_NODISCARD_ERROR_ENABLE 0
+#    endif
+#endif
+
+#if OIIO_NODISCARD_ERROR_ENABLE
+#    define OIIO_NODISCARD_ERROR OIIO_NODISCARD
+#else
+#    define OIIO_NODISCARD_ERROR /* nothing */
+#endif
+
 
 // OIIO_NO_SANITIZE_ADDRESS can be used to mark a function that you don't
 // want address sanitizer to catch. Only use this if you know there are
