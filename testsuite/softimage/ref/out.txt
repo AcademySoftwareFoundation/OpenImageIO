@@ -30,3 +30,17 @@ Reading ../oiio-images/softimage/astone64.pic
     Stats FiniteCount: 4096 4096 4096 
     Constant: No
     Monochrome: No
+src/broken01.pic :   16 x    4, 1 channel, uint8 softimage
+    SHA-1: 0526ABB83138E5FD9BC07BB83035C89028527301
+    channel list: Y
+    BitsPerSample: 8
+    softimage:compression: "mixed-rle"
+    Stats Min: 0 (of 255)
+    Stats Max: 65 (of 255)
+    Stats Avg: 16.25 (of 255)
+    Stats StdDev: 28.15 (of 255)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 64 
+    Constant: No
+    Monochrome: Yes
