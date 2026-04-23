@@ -1,3 +1,10 @@
+Release 3.1.12.1 (Apr 23, 2026) -- compared to 3.1.12.0
+---------------------------------------------------------
+  - *fix(ocio)*: Relax OpenColorIO exception handling [#5164](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5164)
+  - *fix(jpeg)*: be a little more flexible with corrupt IPTC blocks [#5140](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5140)
+  - *ci*: Fix CI breakages from fmtlib renaming 'master' to 'main' [#5127](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5127) and missing jpeg-xl install on Mac [#5139](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5139)
+
+
 Release 3.1.12.0 (Apr 1, 2026) -- compared to 3.1.11.0
 ---------------------------------------------------------
   - *oiiotool*: Better type understanding with `-i:ch=` and other cleanup [#5056](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5056)
