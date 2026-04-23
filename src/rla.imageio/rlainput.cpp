@@ -245,10 +245,11 @@ RLAInput::seek_subimage(int subimage, int miplevel)
         ioseek(0);
         if (!read_header())
             return false;  // read_header always calls error()
-        diff = subimage;
+        diff       = subimage;
+        m_subimage = 0;
     }
     // forward scrolling -- skip subimages until we're at the right place
-    while (diff > 0 && m_rla.NextOffset != 0) {
+    while (diff > 0 && m_subimage < subimage && m_rla.NextOffset != 0) {
         if (!ioseek(m_rla.NextOffset)) {
             errorfmt("Could not seek to header offset. Corrupted file?");
             return false;
@@ -256,6 +257,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
         if (!read_header())
             return false;  // read_header always calls error()
         --diff;
+        ++m_subimage;
     }
     if (diff > 0 && m_rla.NextOffset == 0) {  // no more subimages to read
         errorfmt("Unknown subimage");
@@ -545,7 +547,7 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
         offset    = 0;
         pixelsize = m_spec.pixel_bytes(true);
         for (int i = 0; i < first_channel; ++i)
-            offset += m_spec.channelformats[i].size();
+            offset += m_spec.channelformat(i).size();
     }
 
     // Read the big-endian values into the buffer.
