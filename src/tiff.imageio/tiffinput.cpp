@@ -1309,8 +1309,14 @@ TIFFInput::readspec(bool read_meta)
     m_rowsperstrip = -1;
     if (!m_spec.tile_width) {
         TIFFGetField(m_tif, TIFFTAG_ROWSPERSTRIP, &m_rowsperstrip);
-        if (m_rowsperstrip > 0)
+        if (m_rowsperstrip > 0) {
+            // Only set the attrib if a legit value was found in the file
             m_spec.attribute("tiff:RowsPerStrip", m_rowsperstrip);
+            m_rowsperstrip = std::min(m_rowsperstrip, m_spec.height);
+        } else {
+            // Default if not found is "one strip for the whole image"
+            m_rowsperstrip = m_spec.height;
+        }
     }
 
     // The libtiff docs say that only uncompressed images, or those with
