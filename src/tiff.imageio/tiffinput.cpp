@@ -1312,6 +1312,7 @@ TIFFInput::readspec(bool read_meta)
         if (m_rowsperstrip > 0) {
             // Only set the attrib if a legit value was found in the file
             m_spec.attribute("tiff:RowsPerStrip", m_rowsperstrip);
+            m_rowsperstrip = std::min(m_rowsperstrip, m_spec.height);
         } else {
             // Default if not found is "one strip for the whole image"
             m_rowsperstrip = m_spec.height;
