@@ -190,6 +190,7 @@ floor2(int x) noexcept
 template <typename V, typename M>
 inline OIIO_HOSTDEVICE V round_to_multiple (V value, M multiple)
 {
+    OIIO_DASSERT(multiple > M(0));
     if (value >= 0)
         value += V(multiple) - 1;
     return value - (value % V(multiple));
