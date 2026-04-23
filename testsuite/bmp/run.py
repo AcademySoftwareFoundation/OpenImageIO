@@ -30,6 +30,11 @@ command += rw_command ("src", "PRINTER.BMP")
 # Test BMP of the 56-byte DIB header variety
 command += rw_command ("../oiio-images/bmp", "gracehopper.bmp")
 
+# Regression test for RLE8 heap buffer overflow when palette is all-gray
+# (detected as 1-channel, but RLE path was writing 3 bytes per pixel).
+# See https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/5158
+command += info_command ("src/crash-5158.bmp", hash=1)
+
 # See if we handle these corrupt files with useful error messages
 command += info_command ("src/decodecolormap-corrupt.bmp")
 command += info_command ("src/bad-y.bmp")
