@@ -395,13 +395,28 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if ((m_dib_header.compression == RLE4_COMPRESSION
          || m_dib_header.compression == RLE8_COMPRESSION)
         && m_colortable.size()) {
-        for (int x = 0; x < m_spec.width; ++x) {
-            int p = m_uncompressed[int64_t(m_spec.height - 1 - y) * m_spec.width
-                                   + x];
-            auto& c              = colortable(p);
-            mscanline[3 * x]     = c.r;
-            mscanline[3 * x + 1] = c.g;
-            mscanline[3 * x + 2] = c.b;
+        if (m_spec.nchannels == 1) {
+            OIIO_CONTRACT_ASSERT(m_allgray);
+            for (int x = 0; x < m_spec.width; ++x) {
+                int p
+                    = m_uncompressed[int64_t(m_spec.height - 1 - y) * m_spec.width
+                                     + x];
+                auto& c      = colortable(p);
+                mscanline[x] = c.r;
+                // For the "all gray" case, rgb are equal and we're filling in
+                // a 1-channel data buffer.
+            }
+        } else {
+            OIIO_CONTRACT_ASSERT(m_spec.nchannels == 3);
+            for (int x = 0; x < m_spec.width; ++x) {
+                int p
+                    = m_uncompressed[int64_t(m_spec.height - 1 - y) * m_spec.width
+                                     + x];
+                auto& c              = colortable(p);
+                mscanline[3 * x]     = c.r;
+                mscanline[3 * x + 1] = c.g;
+                mscanline[3 * x + 2] = c.b;
+            }
         }
         return true;
     }
