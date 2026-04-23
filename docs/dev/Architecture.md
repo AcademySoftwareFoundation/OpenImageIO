@@ -117,6 +117,10 @@ objects. These algorithms include simple operations like copying, resizing,
 and compositing images, as well as more complex operations like color
 conversions, resizing, filtering, etc.
 
+Some performance-critical `ImageBufAlgo` implementations have SIMD-accelerated
+paths using Google Highway. For implementation details and guidance for adding
+new kernels, see `docs/dev/ImageBufAlgo_Highway.md`.
+
 ## Image caching: TextureSystem and ImageCache
 
 There are situations where ImageBuf is still not the right abstraction,

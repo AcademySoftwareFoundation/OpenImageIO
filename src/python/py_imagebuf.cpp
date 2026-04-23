@@ -270,7 +270,8 @@ ImageBuf_repr_png(const ImageBuf& self)
 
     std::unique_ptr<ImageOutput> out = ImageOutput::create("temp.png",
                                                            &file_vec);
-    out->open("temp.png", altered_spec);
+    if (!out || !out->open("temp.png", altered_spec))
+        return py::bytes();
     self.write(out.get());
     out->close();
 

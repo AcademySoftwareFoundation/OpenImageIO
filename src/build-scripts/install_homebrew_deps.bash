@@ -35,6 +35,7 @@ if [[ "$OIIO_BREW_INSTALL_PACKAGES" == "" ]] ; then
         expat \
         ffmpeg \
         imath \
+        jpeg-xl \
         libheif \
         libraw \
         libultrahdr \

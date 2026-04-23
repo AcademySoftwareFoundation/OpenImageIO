@@ -24,7 +24,7 @@ struct SgiHeader {
     int16_t magic;       // must be 0xDA01 (big-endian)
     int8_t storage;      // compression used, see StorageFormat enum
     int8_t bpc;          // number of bytes per pixel channel
-    uint16_t dimension;  // dimension of he image, see Dimension
+    uint16_t dimension;  // dimension of the image, see Dimension
     uint16_t xsize;      // width in pixels
     uint16_t ysize;      // height in pixels
     uint16_t zsize;      // number of channels: 1(B/W), 3(RGB) or 4(RGBA)

@@ -9,6 +9,7 @@
 set_cache (libuhdr_BUILD_VERSION 1.4.0 "libultrahdr version for local builds")
 set (libuhdr_GIT_REPOSITORY "https://github.com/google/libultrahdr")
 set (libuhdr_GIT_TAG "v${libuhdr_BUILD_VERSION}")
+set (libuhdr_GIT_COMMIT "d52a0d13814ca399fc8a07e23de1d2c63f0e8404")
 
 set_cache (libuhdr_BUILD_SHARED_LIBS OFF
            DOC "Should execute a local libuhdr build, if necessary, build shared libraries" ADVANCED)
@@ -27,6 +28,7 @@ build_dependency_with_cmake(libuhdr
     VERSION         ${libuhdr_BUILD_VERSION}
     GIT_REPOSITORY  ${libuhdr_GIT_REPOSITORY}
     GIT_TAG         ${libuhdr_GIT_TAG}
+    GIT_COMMIT      ${libuhdr_GIT_COMMIT}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${libuhdr_BUILD_SHARED_LIBS}
         -D CMAKE_INSTALL_LIBDIR=lib

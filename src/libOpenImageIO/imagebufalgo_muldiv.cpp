@@ -10,8 +10,15 @@
 #include <iostream>
 #include <limits>
 
+#if defined(_WIN32)
+#    include <malloc.h>  // for alloca
+#endif
+
 #include <OpenImageIO/half.h>
 
+#if OIIO_USE_HWY
+#    include "imagebufalgo_hwy_pvt.h"
+#endif
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/imagebuf.h>
@@ -86,8 +93,8 @@ ImageBufAlgo::scale(const ImageBuf& A, const ImageBuf& B, KWArgs options,
 
 template<class Rtype, class Atype, class Btype>
 static bool
-mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-         int nthreads)
+mul_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -104,7 +111,8 @@ mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 
 template<class Rtype, class Atype>
 static bool
-mul_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+mul_impl_scalar(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::ConstIterator<Atype> a(A, roi);
@@ -116,6 +124,85 @@ mul_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
 }
 
 
+
+#if OIIO_USE_HWY
+template<class Rtype, class Atype, class Btype>
+static bool
+mul_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+             int nthreads)
+{
+    auto op = [](auto /*d*/, auto a, auto b) { return hn::Mul(a, b); };
+
+    if (hwy_binary_perpixel_op_rgba_rgb_roi<Rtype, Atype, Btype>(R, A, B, roi,
+                                                                 nthreads, op))
+        return true;
+
+    return hwy_binary_perpixel_op<Rtype, Atype, Btype>(R, A, B, roi, nthreads,
+                                                       op);
+}
+
+template<class Rtype, class Atype>
+static bool
+mul_impl_hwy(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
+             int nthreads)
+{
+    using SimdType
+        = std::conditional_t<std::is_same_v<Rtype, double>, double, float>;
+    auto Rv = HwyPixels(R);
+    auto Av = HwyPixels(A);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        for (int y = roi.ybegin; y < roi.yend; ++y) {
+            std::byte* r_row       = PixelBase(Rv, roi.xbegin, y);
+            const std::byte* a_row = PixelBase(Av, roi.xbegin, y);
+            for (int x = roi.xbegin; x < roi.xend; ++x) {
+                const size_t xoff = static_cast<size_t>(x - roi.xbegin);
+                Rtype* r_ptr      = reinterpret_cast<Rtype*>(
+                    r_row + xoff * Rv.pixel_bytes);
+                const Atype* a_ptr = reinterpret_cast<const Atype*>(
+                    a_row + xoff * Av.pixel_bytes);
+                for (int c = roi.chbegin; c < roi.chend; ++c) {
+                    r_ptr[c] = (Rtype)((SimdType)a_ptr[c] * (SimdType)b[c]);
+                }
+            }
+        }
+    });
+    return true;
+}
+#endif  // OIIO_USE_HWY
+
+template<class Rtype, class Atype, class Btype>
+static bool
+mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+         int nthreads)
+{
+#if OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi)
+        && HwySupports<Atype>(A, roi) && HwySupports<Btype>(B, roi)) {
+        return mul_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    }
+    // Second case: the buffers are RGBA but we are only multiplying RGB
+    // (preserving alpha).
+    // Is this a case we will actually encounter?
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi, 4)
+        && HwySupports<Atype>(A, roi, 4) && HwySupports<Btype>(B, roi, 4)
+        && (roi.chbegin == 0 && roi.chend == 3)) {
+        // Handle the common RGBA + RGB ROI strided case (preserving alpha).
+        return mul_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    }
+#endif
+    return mul_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+}
+
+template<class Rtype, class Atype>
+static bool
+mul_impl(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
+{
+#if OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && R.localpixels() && A.localpixels())
+        return mul_impl_hwy<Rtype, Atype>(R, A, b, roi, nthreads);
+#endif
+    return mul_impl_scalar<Rtype, Atype>(R, A, b, roi, nthreads);
+}
 
 static bool
 mul_impl_deep(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
@@ -198,8 +285,8 @@ ImageBufAlgo::mul(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 
 template<class Rtype, class Atype, class Btype>
 static bool
-div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-         int nthreads)
+div_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+                int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::Iterator<Rtype> r(R, roi);
@@ -212,6 +299,53 @@ div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
             }
     });
     return true;
+}
+
+
+
+#if OIIO_USE_HWY
+template<class Rtype, class Atype, class Btype>
+static bool
+div_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+             int nthreads)
+{
+    auto op = [](auto d, auto a, auto b) {
+        const auto zero   = hn::Zero(d);
+        const auto nz     = hn::Ne(b, zero);
+        const auto one    = hn::Set(d, 1);
+        const auto safe_b = hn::IfThenElse(nz, b, one);
+        const auto q      = hn::Div(a, safe_b);
+        return hn::IfThenElse(nz, q, zero);
+    };
+
+    if (hwy_binary_perpixel_op_rgba_rgb_roi<Rtype, Atype, Btype>(R, A, B, roi,
+                                                                 nthreads, op))
+        return true;
+
+    return hwy_binary_perpixel_op<Rtype, Atype, Btype>(R, A, B, roi, nthreads,
+                                                       op);
+}
+#endif  // OIIO_USE_HWY
+
+template<class Rtype, class Atype, class Btype>
+static bool
+div_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+         int nthreads)
+{
+#if OIIO_USE_HWY
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi)
+        && HwySupports<Atype>(A, roi) && HwySupports<Btype>(B, roi)) {
+        return div_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    }
+    // Handle the common RGBA + RGB ROI strided case (preserving alpha).
+    if (OIIO::pvt::enable_hwy && HwySupports<Rtype>(R, roi, 4)
+        && HwySupports<Atype>(A, roi, 4) && HwySupports<Btype>(B, roi, 4)
+        && (roi.chbegin == 0 && roi.chend == 3)) {
+        // Handle the common RGBA + RGB ROI strided case (preserving alpha).
+        return div_impl_hwy<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
+    }
+#endif
+    return div_impl_scalar<Rtype, Atype, Btype>(R, A, B, roi, nthreads);
 }
 
 

@@ -9,6 +9,7 @@
 set_cache (Imath_BUILD_VERSION 3.1.10 "Imath version for local builds")
 set (Imath_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/Imath")
 set (Imath_GIT_TAG "v${Imath_BUILD_VERSION}")
+set (Imath_GIT_COMMIT "9fe5ed213cd99237976f2eb48b8bf86e112d90fa")
 set_cache (Imath_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local Imath build, if necessary, build shared libraries" ADVANCED)
 
@@ -18,6 +19,7 @@ build_dependency_with_cmake(Imath
     VERSION         ${Imath_BUILD_VERSION}
     GIT_REPOSITORY  ${Imath_GIT_REPOSITORY}
     GIT_TAG         ${Imath_GIT_TAG}
+    GIT_COMMIT      ${Imath_GIT_COMMIT}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${Imath_BUILD_SHARED_LIBS}
         # Don't built unnecessary parts of Imath

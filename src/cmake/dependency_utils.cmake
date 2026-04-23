@@ -44,6 +44,10 @@ if (APPLE)
                DOC "Set relative priority of finding frameworks vs. regular libraries" ADVANCED)
 endif ()
 
+set_option (${PROJECT_NAME}_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS
+            "Allow dependency auto-build to use unverified tags -- Dangerous" OFF)
+
+
 # Track all build deps we find with checked_find_package
 set (CFP_ALL_BUILD_DEPS_FOUND "")
 set (CFP_EXTERNAL_BUILD_DEPS_FOUND "")
@@ -96,7 +100,7 @@ function (print_package_notfound_report)
     message (STATUS "${ColorBoldYellow}=========================================================================${ColorReset}")
     message (STATUS)
     if (CFP_EXTERNAL_BUILD_DEPS_FOUND)
-        message (STATUS "${ColorBoldWhite}The following dependencies found externally:${ColorReset}")
+        message (STATUS "${ColorBoldWhite}The following dependencies were found externally:${ColorReset}")
         list (SORT CFP_EXTERNAL_BUILD_DEPS_FOUND CASE INSENSITIVE)
         list (REMOVE_DUPLICATES CFP_EXTERNAL_BUILD_DEPS_FOUND)
         foreach (_pkg IN LISTS CFP_EXTERNAL_BUILD_DEPS_FOUND)
@@ -157,8 +161,8 @@ function (handle_package_notfound pkgname required)
     message (STATUS "${ColorRed}${pkgname} library not found ${ColorReset}")
     if (${pkgname}_ROOT)
         message (STATUS "    ${pkgname}_ROOT was: ${${pkgname}_ROOT}")
-    elseif ($ENV{${pkgname}_ROOT})
-        message (STATUS "    ENV ${pkgname}_ROOT was: ${${pkgname}_ROOT}")
+    elseif (DEFINED ENV{${pkgname}_ROOT})
+        message (STATUS "    ENV ${pkgname}_ROOT was: $ENV{${pkgname}_ROOT}")
     else ()
         message (STATUS "    Try setting ${pkgname}_ROOT ?")
     endif ()
@@ -629,10 +633,9 @@ macro (build_dependency_with_cmake pkgname)
 
     unset (${pkgname}_GIT_CLONE_ARGS)
     unset (_pkg_exec_quiet)
-    if (NOT "${pkg_GIT_TAG}" STREQUAL "" AND "${_pkg_GIT_COMMIT}" STREQUAL "")
-        # If a tag was specified, but not a specific commit, do a shallow
-        # clone.
-        list (APPEND ${pkgname}_GIT_CLONE_ARGS -b ${pkg_GIT_TAG} --depth 1)
+    if (NOT "${_pkg_GIT_TAG}" STREQUAL "")
+        # If a tag or branch is specified, do a shallow clone for efficiency.
+        list (APPEND ${pkgname}_GIT_CLONE_ARGS -b ${_pkg_GIT_TAG} --depth 1)
     endif ()
     if (_pkg_QUIET OR "${_pkg_QUIET}" STREQUAL "")
         list (APPEND ${pkgname}_GIT_CLONE_ARGS -q ERROR_VARIABLE ${pkgname}_clone_errors)
@@ -651,17 +654,50 @@ macro (build_dependency_with_cmake pkgname)
                                 ${${pkgname}_GIT_CLONE_ARGS}
                         ${_pkg_exec_quiet})
         if (NOT IS_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
-            message (FATAL_ERROR "Could not download ${_pkg_GIT_REPOSITORY}")
+            message (FATAL_ERROR "Could not download ${_pkg_GIT_REPOSITORY}: ${${pkgname}_clone_errors}")
         endif ()
     endif ()
-    if ("${_pkg_GIT_COMMIT}" STREQUAL "")
+    # Checkout and verify the source against the expected commit hash to
+    # guard against tag tampering in upstream repositories.
+    if (${PROJECT_NAME}_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS
+            AND NOT "${_pkg_GIT_TAG}" STREQUAL "")
+        # Special case for CI bleeding edge test, which sets
+        # ${PROJECT_NAME}_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS to force
+        # the unsafe practice of allowing main/master testing.
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_TAG}
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        ${_pkg_exec_quiet})
+    elseif (NOT "${_pkg_GIT_TAG}" STREQUAL "" AND NOT "${_pkg_GIT_COMMIT}" STREQUAL "")
+        # Both tag and commit: checkout tag, verify it matches expected commit.
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_TAG}
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        ${_pkg_exec_quiet})
+        execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        OUTPUT_VARIABLE _pkg_actual_commit
+                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if (NOT "${_pkg_actual_commit}" STREQUAL "${_pkg_GIT_COMMIT}")
+            message (FATAL_ERROR
+                "${pkgname}: Tag ${_pkg_GIT_TAG} resolved to commit "
+                "${_pkg_actual_commit}, but expected ${_pkg_GIT_COMMIT}. "
+                "This may indicate the tag was tampered with or moved.")
+        endif ()
+    elseif (NOT "${_pkg_GIT_COMMIT}" STREQUAL "")
+        # Only commit hash specified: checkout that commit directly.
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_COMMIT}
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        ${_pkg_exec_quiet})
+    elseif (NOT "${_pkg_GIT_TAG}" STREQUAL "")
+        # Only tag, no commit pin — warn about missing verification.
+        message (WARNING
+            "${pkgname}: No GIT_COMMIT specified to verify tag ${_pkg_GIT_TAG}. "
+            "Consider pinning a commit hash for supply chain security.")
         execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_TAG}
                         WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
                         ${_pkg_exec_quiet})
     else ()
-        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_COMMIT}
-                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
-                        ${_pkg_exec_quiet})
+        message (FATAL_ERROR
+            "${pkgname}: Neither GIT_TAG nor GIT_COMMIT was specified.")
     endif ()
 
     # Configure the package

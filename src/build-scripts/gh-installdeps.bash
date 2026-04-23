@@ -117,8 +117,9 @@ else
     if [[ "${USE_PYTHON}" != "0" ]] ; then
         time sudo apt-get -q install -y python3-numpy
     fi
+    : ${PIP_SUFFIX:=}
     if [[ "${PIP_INSTALLS}" != "" ]] ; then
-        time pip3 install ${PIP_INSTALLS}
+        time pip3${PIP_SUFFIX} install ${PIP_INSTALLS}
     fi
 
     if [[ "$USE_LIBHEIF" != "0" ]] ; then

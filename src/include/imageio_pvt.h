@@ -43,6 +43,7 @@ extern int oiio_log_times;
 extern int openexr_core;
 extern int jpeg_com_attributes;
 extern int png_linear_premult;
+extern int enable_hwy;
 extern int limit_channels;
 extern int limit_imagesize_MB;
 extern int imagebuf_print_uncaught_errors;

@@ -28,3 +28,9 @@ ref/rle-16.sgi       :  100 x   63, 4 channel, uint16 sgi
     ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
 Comparing "ref/rle-16.sgi" and "rle-16.sgi"
 PASS
+src/broken01.sgi :    8 x    2, 1 channel, uint8 sgi
+    SHA-1: Corrupt RLE data
+    channel list: Y
+    compression: "rle"
+iinfo ERROR: Could not read src/broken01.sgi:
+	Corrupt RLE data

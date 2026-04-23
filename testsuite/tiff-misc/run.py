@@ -29,4 +29,7 @@ command += iconvert ("src/crash-1709.tif crash-1709.exr", failureok=True)
 command += oiiotool ("src/gps.tif -o gps.tif")
 command += info_command ("gps.tif", safematch=True, hash=False)
 
+# Test bug with corrupt cmyk file
+command += iconvert ("src/crash-cmyk-e12b.tif out.tif", failureok=True)
+
 outputs = [ "check1.tif", "out.txt" ]

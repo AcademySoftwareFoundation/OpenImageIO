@@ -725,6 +725,11 @@ main(int argc, char* argv[])
     iterations /= 10;
     ntrials = 1;
 #endif
+#if !defined(NDEBUG)
+    // For debug+CI combination runs, reduce to truly one iteration.
+    if (Strutil::stoi(Sysutil::getenv("OpenImageIO_CI")) != 0)
+        iterations = 1;
+#endif
 
 #if OIIO_SIMD_SSE && !OIIO_F16C_ENABLED
     // Some rogue libraries (and icc runtime libs?) will turn on the cpu mode

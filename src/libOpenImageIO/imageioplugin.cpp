@@ -504,7 +504,7 @@ pvt::catalog_all_plugins(std::string searchpath)
         // ImageInput::create will take a lock of imageio_mutex
         auto inp = ImageInput::create(f.first);
         lock.lock();
-        if (inp->supports("procedural"))
+        if (inp && inp->supports("procedural"))
             procedural_plugins.insert(f.first);
     }
 }

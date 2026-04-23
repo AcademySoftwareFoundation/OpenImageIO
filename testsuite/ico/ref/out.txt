@@ -46,3 +46,7 @@ Reading ../oiio-images/ico/oiio.ico
 Comparing "../oiio-images/ico/oiio.ico" and "oiio.ico"
 PASS
 iconvert ERROR: Unsupported image color depth, probably corrupt file
+iconvert ERROR copying "src/crash-002c.ico" to "out.tif" :
+	Read error: hit end of file in ico reader
+iconvert ERROR copying "src/bad-palette.ico" to "out.tif" :
+	Possible corruption: index exceeds palette size

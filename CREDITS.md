@@ -4,6 +4,7 @@ by first name.
 If you know of somebody that I missed or have corrections, please email:
 lg@openimageio.org
 
+* Aamir Raza
 * Aaron Colwell
 * Adam Mains
 * Akihiro Yamasaki

@@ -123,10 +123,14 @@ it and potentially be able to answer your question quickly (more so than a GH
 "issue"). For quick questions, you could also try the [ASWF
 Slack](https://slack.aswf.io) `#openimageio` channel.
 
-Bugs, build problems, and discovered vulnerabilities that you are relatively
-certain is a legit problem in the code, and **for which you can give clear
-instructions for how to reproduce**, should be [reported as
+A bug or build problem that you are relatively certain is a legit problem in
+the code, and **for which you can give clear instructions for how to
+reproduce**, should be [reported as
 issues](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues).
+
+To report a security vulnerability that is serious enough that it should not
+be discussed publicly until a patch is ready, please file a GitHub [security
+advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/new).
 
 If confidentiality precludes a public question or issue, you may contact us
 privately at [info@openimageio.org](info@openimageio.org), or for
@@ -144,6 +148,8 @@ pull request (PR) mechanism.
   description of the major classes and their relationships.
 * [CONTRIBUTING](CONTRIBUTING.md) has detailed instructions about the
   development process.
+* [AI Policy](docs/dev/AI_Policy.md) decribes our policies on AI coding
+  assistance tools.
 * [ROADMAP](docs/ROADMAP.md) is a high-level overview of the current
   development priorities for the next annual release, expected in September,
   2024.

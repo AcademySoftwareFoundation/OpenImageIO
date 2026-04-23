@@ -9,11 +9,14 @@
 set_cache (Robinmap_BUILD_VERSION 1.4.0 "Robinmap version for local builds")
 set (Robinmap_GIT_REPOSITORY "https://github.com/Tessil/robin-map")
 set (Robinmap_GIT_TAG "v${Robinmap_BUILD_VERSION}")
+set_cache (Robinmap_GIT_COMMIT "4ec1bf19c6a96125ea22062f38c2cf5b958e448e"
+           "commit hash to verify tag against")
 
 build_dependency_with_cmake(Robinmap
     VERSION         ${Robinmap_BUILD_VERSION}
     GIT_REPOSITORY  ${Robinmap_GIT_REPOSITORY}
     GIT_TAG         ${Robinmap_GIT_TAG}
+    GIT_COMMIT      ${Robinmap_GIT_COMMIT}
     CMAKE_ARGS
         # Fix for pybind11 breaking against cmake 4.0.
         # Remove when pybind11 is fixed to declare its own minimum high enough.

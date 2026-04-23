@@ -228,9 +228,14 @@ public:
     XMPtagMap(const XMPtag* tag_table)
     {
         for (const XMPtag* t = &tag_table[0]; t->xmpname; ++t) {
-            std::string lower(t->xmpname);
-            Strutil::to_lower(lower);
-            m_tagmap[lower] = t;
+            std::string lower_xmp(t->xmpname);
+            Strutil::to_lower(lower_xmp);
+            m_tagmap[lower_xmp] = t;
+            if (t->oiioname && t->oiioname[0]) {
+                std::string lower_oiio(t->oiioname);
+                Strutil::to_lower(lower_oiio);
+                m_tagmap[lower_oiio] = t;
+            }
         }
     }
 
@@ -614,7 +619,8 @@ gather_xmp_attribs(const ImageSpec& spec,
         // name, where the xmp name is in the right category.
         const XMPtag* tag = xmp_tagmap_ref().find(p.name());
         if (tag) {
-            if (!Strutil::iequals(p.name(), tag->oiioname))
+            if (!Strutil::iequals(p.name(), tag->oiioname)
+                && !Strutil::iequals(p.name(), tag->xmpname))
                 continue;  // Name doesn't match
             if (tag->special & Suppress) {
                 break;  // Purposely suppressing

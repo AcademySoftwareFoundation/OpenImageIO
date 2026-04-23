@@ -15,6 +15,7 @@ list(GET VERSION_LIST 1 expat_VERSION_MINOR)
 list(GET VERSION_LIST 2 expat_VERSION_PATCH)
         
 set (expat_GIT_TAG "R_${expat_VERSION_MAJOR}_${expat_VERSION_MINOR}_${expat_VERSION_PATCH}")
+set (expat_GIT_COMMIT "88b3ed553d8ad335559254863a33360d55b9f1d6")
 set_cache (expat_BUILD_SHARED_LIBS OFF #${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should execute a local expat build, if necessary, build shared libraries" ADVANCED)
 
@@ -25,6 +26,7 @@ build_dependency_with_cmake(expat
     VERSION         ${expat_BUILD_VERSION}
     GIT_REPOSITORY  ${expat_GIT_REPOSITORY}
     GIT_TAG         ${expat_GIT_TAG}
+    GIT_COMMIT      ${expat_GIT_COMMIT}
     SOURCE_SUBDIR   expat/
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${expat_BUILD_SHARED_LIBS}

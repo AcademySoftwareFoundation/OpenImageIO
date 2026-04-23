@@ -573,7 +573,10 @@ JpgOutput::copy_image(ImageInput* in)
         ImageSpec in_spec;
         ImageSpec config_spec;
         config_spec.attribute("_jpeg:raw", 1);
-        in->open(in_name, in_spec, config_spec);
+        if (!in->open(in_name, in_spec, config_spec)) {
+            errorfmt("{}", in->geterror());
+            return false;
+        }
 
         // Re-open the output
         std::string out_name    = m_filename;
@@ -581,16 +584,14 @@ JpgOutput::copy_image(ImageInput* in)
         close();
         m_copy_coeffs       = (jvirt_barray_ptr*)jpg_in->coeffs();
         m_copy_decompressor = &jpg_in->m_cinfo;
-        open(out_name, orig_out_spec);
-
+        bool ok             = open(out_name, orig_out_spec);
         // Strangeness -- the write_coefficients somehow sets things up
         // so that certain writes only happen in close(), which MUST
         // happen while the input file is still open.  So we go ahead
         // and close() now, so that the caller of copy_image() doesn't
         // close the input file first and then wonder why they crashed.
         close();
-
-        return true;
+        return ok;
     }
 
     return ImageOutput::copy_image(in);

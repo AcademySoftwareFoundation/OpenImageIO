@@ -12,7 +12,7 @@ set (pystring_GIT_REPOSITORY "https://github.com/imageworks/pystring")
 # We require pystring commits made after the v1.1.4 tag to properly install headers!
 # TODO: Set this to "v${pystring_BUILD_VERSION}" once 1.1.5 is released
 set (pystring_GIT_TAG master)
-
+set (pystring_GIT_COMMIT "381829c2c1696ffec9277b339952a9588e6e67cf")
 
 set_cache (pystring_BUILD_SHARED_LIBS OFF
            DOC "Should a local pystring build, if necessary, build shared libraries" ADVANCED)
@@ -23,6 +23,7 @@ build_dependency_with_cmake(pystring
     VERSION         ${pystring_BUILD_VERSION}
     GIT_REPOSITORY  ${pystring_GIT_REPOSITORY}
     GIT_TAG         ${pystring_GIT_TAG}
+    GIT_COMMIT      ${pystring_GIT_COMMIT}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${pystring_BUILD_SHARED_LIBS}
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON

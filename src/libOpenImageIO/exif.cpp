@@ -178,6 +178,12 @@ tiff_data_size(const TIFFDirEntry& dir)
 
 
 
+// N.B. We have to turn undefined behavior sanitizer off for this function
+// because ubsan will complain about tifftype being an invalid enum value in
+// cases where the value really is corrupted and invalid -- but the switch
+// statement here is nonetheless safe because it just returns TypeUnknown in
+// such cases.
+OIIO_NO_SANITIZE_UNDEFINED
 TypeDesc
 tiff_datatype_to_typedesc(TIFFDataType tifftype, size_t tiffcount)
 {
@@ -208,6 +214,7 @@ tiff_datatype_to_typedesc(TIFFDataType tifftype, size_t tiffcount)
     case TIFF_SLONG8: return TypeDesc(TypeDesc::INT64, tiffcount);
     case TIFF_IFD8: return TypeUnknown;
 #endif
+    default: break;
     }
     return TypeUnknown;
 }
@@ -826,10 +833,11 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
     const TagMap& exif_tagmap(exif_tagmap_ref());
     const TagMap& gps_tagmap(gps_tagmap_ref());
 
-    // Make a copy of the pointed-to TIFF directory, swab the components
-    // if necessary.
+    // Make a copy of the pointed-to TIFF directory, swab the components if
+    // necessary. We have to do this as a memcpy rather than an assignment
+    // because the pointer we're copying from may not be properly aligned.
     TIFFDirEntry dir;
-    memcpy(&dir, dirp, sizeof(TIFFDirEntry));
+    memcpy(&dir, (const void*)dirp, sizeof(TIFFDirEntry));
     unsigned int unswapped_tdir_offset = dir.tdir_offset;
     if (swab) {
         swap_endian(&dir.tdir_tag);

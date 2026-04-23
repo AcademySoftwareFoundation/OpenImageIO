@@ -202,7 +202,7 @@ getargs(int argc, const char* argv[])
     ap.arg("--tube", &tube)
       .help("Make a tube projection");
     ap.arg("--legacy-texture-blur", &legacy_texture_blur)
-      .help("Use mathematically correct texture blur instead of legacy overblur");
+      .help("Use the legacy texture blur (incorrect) instead of the mathematically correct one");
     ap.arg("--ctr", &test_construction)
       .help("Test TextureOpt construction time");
     ap.arg("--gettexels", &test_gettexels)

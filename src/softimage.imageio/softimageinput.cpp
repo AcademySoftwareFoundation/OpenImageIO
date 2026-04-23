@@ -120,6 +120,12 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
             close();
             return false;
         }
+        // Some validity checking
+        if (curPacket.size != 8 && curPacket.size != 16) {
+            errorfmt("Unsupported bits per channel {}", curPacket.size);
+            close();
+            return false;
+        }
         m_channel_packets.push_back(curPacket);
 
         // Add the number of channels in this packet to nchannels
@@ -135,6 +141,12 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
     // Set the details in the ImageSpec
     m_spec = ImageSpec(m_pic_header.width, m_pic_header.height, nchannels,
                        chanType);
+
+    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })) {
+        close();
+        return false;
+    }
+
     m_spec.attribute("BitsPerSample", (int)curPacket.size);
 
     m_spec.attribute("softimage:compression", Strutil::join(encodings, ","));
@@ -333,6 +345,10 @@ SoftimageInput::read_pixels_pure_run_length(
         if (fread(&curCount, 1, 1, m_fd) != 1)
             return false;
 
+        // Clamp to avoid writing past the end of the scanline buffer
+        if (linePixelCount + curCount > m_pic_header.width)
+            curCount = m_pic_header.width - linePixelCount;
+
         if (data) {
             // data pointer is set so we're supposed to write data there
             size_t pixelSize   = pixelChannelSize * channels.size();
@@ -455,6 +471,10 @@ SoftimageInput::read_pixels_mixed_run_length(
             } else {
                 longCount = curCount - 127;
             }
+
+            // Clamp to avoid writing past the end of the scanline buffer
+            if (linePixelCount + longCount > m_pic_header.width)
+                longCount = m_pic_header.width - linePixelCount;
 
             if (data) {
                 // data pointer is set so we're supposed to write data there

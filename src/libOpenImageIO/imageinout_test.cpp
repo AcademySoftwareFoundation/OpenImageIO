@@ -27,6 +27,9 @@ static std::string onlyformat = Sysutil::getenv("IMAGEINOUTTEST_ONLY_FORMAT");
 static bool nodelete          = false;  // Don't delete the test files
 static bool enable_fpe        = false;  // Throw exceptions on FP errors.
 
+static int ntrials    = 5;
+static int iterations = 1;
+
 
 
 static void
@@ -44,6 +47,9 @@ getargs(int argc, char* argv[])
       .help("Enable floating point exceptions.");
     ap.arg("--onlyformat %s:FORMAT", &onlyformat)
       .help("Test only one format");
+    ap.arg("--iterations %d", &iterations)
+      .help(Strutil::format("Number of benchmark iterations per trial (default: {})", iterations));
+    ap.arg("--trials %d", &ntrials).help("Number of benchmark trials");
 
     ap.parse_args(argc, (const char**)argv);
     // clang-format on
@@ -477,7 +483,10 @@ test_read_tricky_sizes()
     // Read in, make sure it's right, several different ways
     {
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_image(0, 0, 0, 4, TypeUInt8, buf, 4 /* xstride */);
+        OIIO_ASSERT(imgin);
+        bool ok = imgin->read_image(0, 0, 0, 4, TypeUInt8, buf,
+                                    4 /* xstride */);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -486,8 +495,9 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_scanlines(0, 0, 0, 4, 0, 0, 4, TypeUInt8, buf,
-                              /*xstride=*/4);
+        bool ok    = imgin->read_scanlines(0, 0, 0, 4, 0, 0, 4, TypeUInt8, buf,
+                                           /*xstride=*/4);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -496,8 +506,11 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
+        OIIO_ASSERT(imgin);
+        bool ok = true;
         for (int y = 0; y < 4; ++y)
-            imgin->read_scanline(y, 0, TypeUInt8, buf, /*xstride=*/4);
+            ok &= imgin->read_scanline(y, 0, TypeUInt8, buf, /*xstride=*/4);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -509,7 +522,10 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_image(0, 0, 0, 4, TypeUInt8, buf, 4 /* xstride */);
+        OIIO_ASSERT(imgin);
+        bool ok = imgin->read_image(0, 0, 0, 4, TypeUInt8, buf,
+                                    4 /* xstride */);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -518,8 +534,11 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_tiles(0, 0, 0, 4, 0, 4, 0, 1, 0, 4, TypeUInt8, buf,
-                          /*xstride=*/4);
+        OIIO_ASSERT(imgin);
+        bool ok = imgin->read_tiles(0, 0, 0, 4, 0, 4, 0, 1, 0, 4, TypeUInt8,
+                                    buf,
+                                    /*xstride=*/4);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -528,8 +547,10 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_tile(0, 0, 0, TypeUInt8, buf, /*xstride=*/4);
+        OIIO_ASSERT(imgin);
+        bool ok = imgin->read_tile(0, 0, 0, TypeUInt8, buf, /*xstride=*/4);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
+        OIIO_ASSERT(ok);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][3]), 0);
@@ -561,8 +582,8 @@ benchmark_tile_sizes(string_view extension, TypeDesc datatype,
 
     Benchmarker bench;
     bench.units(Benchmarker::Unit::ms);
-    bench.iterations(1);
-    bench.trials(5);
+    bench.trials(ntrials);
+    bench.iterations(iterations);
     print("\nBenchmarking write/read for {} under different tile sizes\n",
           extension);
 
@@ -606,6 +627,19 @@ benchmark_tile_sizes(string_view extension, TypeDesc datatype,
 int
 main(int argc, char* argv[])
 {
+#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
+    // For the sake of test time, reduce the default number of benchmark
+    // trials for DEBUG, CI, and code coverage builds. Explicit use of
+    // --trials or --iterations will override this, since it comes before the
+    // getargs() call.
+    ntrials = 1;
+#endif
+#if !defined(NDEBUG)
+    // For debug+CI combination runs, reduce to truly one iteration.
+    if (Strutil::stoi(Sysutil::getenv("OpenImageIO_CI")) != 0)
+        iterations = 1;
+#endif
+
     getargs(argc, argv);
 
     if (enable_fpe) {

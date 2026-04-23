@@ -13,6 +13,13 @@ export OIIO_SRC_DIR=${OIIO_SRC_DIR:=$PWD}
 export OIIO_BUILD_DIR=${OIIO_BUILD_DIR:=${OIIO_SRC_DIR}/build}
 export OIIO_INSTALL_DIR=${OIIO_INSTALL_DIR:=${OIIO_SRC_DIR}/dist}
 export OIIO_CMAKE_BUILD_TYPE=${OIIO_CMAKE_BUILD_TYPE:=${CMAKE_BUILD_TYPE:=Release}}
+# Allow OIIO_specific overrides for CC, CXX
+if [[ "$OIIO_CC" != "" ]] ; then
+    CC=$OIIO_CC
+fi
+if [[ "$OIIO_CXX" != "" ]] ; then
+    CXX=$OIIO_CXX
+fi
 
 if [[ "$USE_SIMD" != "" ]] ; then
     OIIO_CMAKE_FLAGS="$OIIO_CMAKE_FLAGS -DUSE_SIMD=$USE_SIMD"

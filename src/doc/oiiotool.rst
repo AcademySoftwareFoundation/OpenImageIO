@@ -269,7 +269,7 @@ Control flow
 Scriptability is provided by the use of control flow statements.
 The usual programming constructs are supported:
 
-* Conditionals : `--if` *condition* `--then` *commands...* `--else` *commands...* `--endif`
+* Conditionals : `--if` *condition* *commands...* `--else` *commands...* `--endif`
 
 * General looping: `--while` *condition* *commands...* `--endwhile`
 
@@ -987,6 +987,12 @@ subimage according to its metadata::
     Examples::
 
         oiiotool --oiioattrib debug 1 in.jpg -o out.jpg
+
+.. option:: --experimental
+
+    Enables experimental features. Use at your own risk.
+
+    This was added in OIIO 3.1.13.
 
 
 .. _sec-oiiotool-control-flow-commands:

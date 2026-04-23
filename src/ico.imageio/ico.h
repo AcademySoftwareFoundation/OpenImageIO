@@ -45,14 +45,17 @@ struct ico_palette_entry {
 
 
 struct ico_subimage {
-    uint8_t width;       ///< 0 means 256 pixels
-    uint8_t height;      ///< 0 means 256 pixels
+    uint8_t w;           ///< 0 means 256 pixels
+    uint8_t h;           ///< 0 means 256 pixels
     uint8_t numColours;  ///< 0 means >= 256
     uint8_t reserved;    ///< should always be 0
     uint16_t planes;     ///< # of colour planes
     uint16_t bpp;        ///< bits per pixel
     uint32_t len;        ///< size (in bytes) of bitmap data
     uint32_t ofs;        ///< offset to bitmap data
+
+    int width() const { return w ? int(w) : 256; }
+    int height() const { return h ? int(h) : 256; }
 };
 
 
