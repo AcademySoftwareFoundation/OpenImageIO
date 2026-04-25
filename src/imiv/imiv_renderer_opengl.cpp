@@ -133,6 +133,18 @@
 #ifndef GL_RGB
 #    define GL_RGB 0x1907
 #endif
+#ifndef GL_RED_BITS
+#    define GL_RED_BITS 0x0D52
+#endif
+#ifndef GL_GREEN_BITS
+#    define GL_GREEN_BITS 0x0D53
+#endif
+#ifndef GL_BLUE_BITS
+#    define GL_BLUE_BITS 0x0D54
+#endif
+#ifndef GL_ALPHA_BITS
+#    define GL_ALPHA_BITS 0x0D55
+#endif
 
 namespace Imiv {
 
@@ -1311,7 +1323,7 @@ void main()
         }
 
         const GLint row_length    = static_cast<GLint>(image.row_pitch_bytes
-                                                    / pixel_stride);
+                                                       / pixel_stride);
         upload.pixels             = image.pixels.data();
         upload.unpack_row_length  = row_length;
         upload.pixel_stride_bytes = pixel_stride;
@@ -1785,13 +1797,34 @@ void main()
     bool opengl_probe_runtime_support(std::string& error_message)
     {
         GLFWwindow* window = platform_glfw_create_main_window(
-            BackendKind::OpenGL, 64, 64, "imiv.opengl.probe", error_message);
+            BackendKind::OpenGL, DisplayFormatPreference::Auto, 64, 64,
+            "imiv.opengl.probe", error_message);
         if (window == nullptr)
             return false;
         platform_glfw_make_context_current(nullptr);
         platform_glfw_destroy_window(window);
         error_message.clear();
         return true;
+    }
+
+    void log_opengl_framebuffer_bits(RendererState& renderer_state)
+    {
+        if (!renderer_state.verbose_logging)
+            return;
+        GLint red_bits   = 0;
+        GLint green_bits = 0;
+        GLint blue_bits  = 0;
+        GLint alpha_bits = 0;
+        glGetIntegerv(GL_RED_BITS, &red_bits);
+        glGetIntegerv(GL_GREEN_BITS, &green_bits);
+        glGetIntegerv(GL_BLUE_BITS, &blue_bits);
+        glGetIntegerv(GL_ALPHA_BITS, &alpha_bits);
+        std::cout << "imiv: OpenGL display format requested="
+                  << display_format_cli_name(
+                         renderer_state.requested_display_format)
+                  << " actual framebuffer bits=" << red_bits << ','
+                  << green_bits << ',' << blue_bits << ',' << alpha_bits
+                  << "\n";
     }
 
     const RendererBackendVTable k_opengl_vtable = {
@@ -1837,6 +1870,8 @@ void main()
             if (state == nullptr)
                 return false;
             state->window = window;
+            platform_glfw_make_context_current(window);
+            log_opengl_framebuffer_bits(renderer_state);
             error_message.clear();
             return true;
         },

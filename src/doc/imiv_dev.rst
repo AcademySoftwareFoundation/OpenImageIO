@@ -1082,6 +1082,18 @@ Backend preference changes made in the Preferences window are persistent but
 take effect on the next launch. This is intentional and should remain true for
 all backends.
 
+The launch-time display-format request resolves in this order:
+
+1. the `--display-format` command-line option, if supplied;
+2. the `IMIV_DISPLAY_FORMAT` environment variable, if set;
+3. the saved `display_format` preference from `imiv.inf`;
+4. `auto`, which keeps the backend default presentation format.
+
+Display-format preference changes are also persistent and next-launch only.
+The current implemented non-default request is `rgb10a2` for 10-bit SDR
+presentation. `hdr` is parsed as a reserved value but falls back to `auto`
+until the backends have an explicit HDR/EDR color-space path.
+
 For isolated local repros and tests, set `IMIV_CONFIG_HOME` so preference
 changes do not bleed into your normal user config.
 

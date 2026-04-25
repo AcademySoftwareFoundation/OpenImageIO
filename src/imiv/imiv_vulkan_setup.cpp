@@ -63,6 +63,32 @@ constexpr const char* kPortabilitySubsetExtensionName
     = "VK_KHR_portability_subset";
 #    endif
 
+const char*
+vk_format_name(VkFormat format)
+{
+    switch (format) {
+    case VK_FORMAT_B8G8R8A8_UNORM: return "VK_FORMAT_B8G8R8A8_UNORM";
+    case VK_FORMAT_R8G8B8A8_UNORM: return "VK_FORMAT_R8G8B8A8_UNORM";
+    case VK_FORMAT_B8G8R8_UNORM: return "VK_FORMAT_B8G8R8_UNORM";
+    case VK_FORMAT_R8G8B8_UNORM: return "VK_FORMAT_R8G8B8_UNORM";
+    case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+        return "VK_FORMAT_A2B10G10R10_UNORM_PACK32";
+    case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
+        return "VK_FORMAT_A2R10G10B10_UNORM_PACK32";
+    default: return "VK_FORMAT_UNKNOWN";
+    }
+}
+
+const char*
+vk_color_space_name(VkColorSpaceKHR color_space)
+{
+    switch (color_space) {
+    case VK_COLORSPACE_SRGB_NONLINEAR_KHR:
+        return "VK_COLORSPACE_SRGB_NONLINEAR_KHR";
+    default: return "VK_COLORSPACE_UNKNOWN";
+    }
+}
+
 bool
 is_extension_available(const ImVector<VkExtensionProperties>& properties,
                        const char* extension_name)
@@ -1332,16 +1358,59 @@ setup_vulkan_window(VulkanState& vk_state, int width, int height,
         return false;
     }
 
-    const VkFormat request_surface_formats[]
+    const VkFormat request_surface_formats_8bit[]
         = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM,
             VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
+    const VkFormat request_surface_formats_10bit[]
+        = { VK_FORMAT_A2B10G10R10_UNORM_PACK32,
+            VK_FORMAT_A2R10G10B10_UNORM_PACK32,
+            VK_FORMAT_B8G8R8A8_UNORM,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            VK_FORMAT_B8G8R8_UNORM,
+            VK_FORMAT_R8G8B8_UNORM };
+    const bool request_10bit = vk_state.requested_display_format
+                               == DisplayFormatPreference::Rgb10A2;
+    const VkFormat* request_surface_formats
+        = request_10bit ? request_surface_formats_10bit
+                        : request_surface_formats_8bit;
+    const int request_surface_format_count
+        = request_10bit
+              ? static_cast<int>(IM_ARRAYSIZE(request_surface_formats_10bit))
+              : static_cast<int>(IM_ARRAYSIZE(request_surface_formats_8bit));
     const VkColorSpaceKHR request_color_space = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
     vk_state.window_data.Surface       = vk_state.surface;
     vk_state.window_data.SurfaceFormat = ImGui_ImplVulkanH_SelectSurfaceFormat(
         vk_state.physical_device, vk_state.window_data.Surface,
-        request_surface_formats,
-        static_cast<int>(IM_ARRAYSIZE(request_surface_formats)),
+        request_surface_formats, request_surface_format_count,
         request_color_space);
+
+    VkSurfaceCapabilitiesKHR surface_caps = {};
+    VkResult caps_err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+        vk_state.physical_device, vk_state.surface, &surface_caps);
+    if (caps_err != VK_SUCCESS) {
+        check_vk_result(caps_err);
+        error_message = "vkGetPhysicalDeviceSurfaceCapabilitiesKHR failed";
+        return false;
+    }
+    vk_state.window_image_usage = 0;
+    if (surface_caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+        vk_state.window_image_usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    else if (vk_state.verbose_logging)
+        print("imiv: Vulkan swapchain does not support transfer-src; "
+              "screenshots will be unavailable\n");
+
+    if (vk_state.verbose_logging) {
+        const bool got_10bit = vk_state.window_data.SurfaceFormat.format
+                                   == VK_FORMAT_A2B10G10R10_UNORM_PACK32
+                               || vk_state.window_data.SurfaceFormat.format
+                                      == VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+        print("imiv: Vulkan display format requested={} selected={} "
+              "color_space={}{}\n",
+              display_format_cli_name(vk_state.requested_display_format),
+              vk_format_name(vk_state.window_data.SurfaceFormat.format),
+              vk_color_space_name(vk_state.window_data.SurfaceFormat.colorSpace),
+              (request_10bit && !got_10bit) ? " (fell back)" : "");
+    }
 
     const VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
     vk_state.window_data.PresentMode = ImGui_ImplVulkanH_SelectPresentMode(
@@ -1351,7 +1420,7 @@ setup_vulkan_window(VulkanState& vk_state, int width, int height,
     ImGui_ImplVulkanH_CreateOrResizeWindow(
         vk_state.instance, vk_state.physical_device, vk_state.device,
         &vk_state.window_data, vk_state.queue_family, vk_state.allocator, width,
-        height, vk_state.min_image_count, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+        height, vk_state.min_image_count, vk_state.window_image_usage);
     name_window_frame_objects(vk_state);
     return true;
 }

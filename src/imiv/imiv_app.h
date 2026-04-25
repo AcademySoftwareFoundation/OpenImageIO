@@ -23,6 +23,9 @@ struct AppConfig {
     bool developer_mode_explicit = false;
 
     BackendKind requested_backend = BackendKind::Auto;
+    DisplayFormatPreference requested_display_format
+        = DisplayFormatPreference::Auto;
+    bool display_format_explicit = false;
 
     std::string ocio_display;
     std::string ocio_image_color_space;

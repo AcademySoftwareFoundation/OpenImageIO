@@ -190,8 +190,10 @@ platform_glfw_terminate()
 }
 
 GLFWwindow*
-platform_glfw_create_main_window(BackendKind backend, int width, int height,
-                                 const char* title, std::string& error_message)
+platform_glfw_create_main_window(BackendKind backend,
+                                 DisplayFormatPreference display_format,
+                                 int width, int height, const char* title,
+                                 std::string& error_message)
 {
     if (backend == BackendKind::OpenGL) {
 #if defined(__APPLE__)
@@ -209,6 +211,18 @@ platform_glfw_create_main_window(BackendKind backend, int width, int height,
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     }
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    if (backend == BackendKind::OpenGL
+        && display_format == DisplayFormatPreference::Rgb10A2) {
+        glfwWindowHint(GLFW_RED_BITS, 10);
+        glfwWindowHint(GLFW_GREEN_BITS, 10);
+        glfwWindowHint(GLFW_BLUE_BITS, 10);
+        glfwWindowHint(GLFW_ALPHA_BITS, 2);
+    } else {
+        glfwWindowHint(GLFW_RED_BITS, GLFW_DONT_CARE);
+        glfwWindowHint(GLFW_GREEN_BITS, GLFW_DONT_CARE);
+        glfwWindowHint(GLFW_BLUE_BITS, GLFW_DONT_CARE);
+        glfwWindowHint(GLFW_ALPHA_BITS, GLFW_DONT_CARE);
+    }
     GLFWwindow* window = glfwCreateWindow(width, height, title, nullptr,
                                           nullptr);
     if (window == nullptr) {

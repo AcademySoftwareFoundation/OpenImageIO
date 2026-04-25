@@ -150,6 +150,19 @@ sanitize_backend_kind(int value)
     return BackendKind::Auto;
 }
 
+DisplayFormatPreference
+sanitize_display_format_preference(int value)
+{
+    switch (static_cast<DisplayFormatPreference>(value)) {
+    case DisplayFormatPreference::Auto:
+    case DisplayFormatPreference::Rgba8:
+    case DisplayFormatPreference::Rgb10A2:
+    case DisplayFormatPreference::Hdr:
+        return static_cast<DisplayFormatPreference>(value);
+    }
+    return DisplayFormatPreference::Auto;
+}
+
 bool
 parse_backend_kind(std::string_view value, BackendKind& out_kind)
 {
@@ -174,6 +187,33 @@ parse_backend_kind(std::string_view value, BackendKind& out_kind)
     return false;
 }
 
+bool
+parse_display_format_preference(std::string_view value,
+                                DisplayFormatPreference& out_format)
+{
+    const std::string normalized = OIIO::Strutil::lower(
+        std::string(OIIO::Strutil::strip(value)));
+    if (normalized.empty() || normalized == "auto") {
+        out_format = DisplayFormatPreference::Auto;
+        return true;
+    }
+    if (normalized == "rgba8" || normalized == "8bit" || normalized == "8-bit"
+        || normalized == "sdr8") {
+        out_format = DisplayFormatPreference::Rgba8;
+        return true;
+    }
+    if (normalized == "rgb10a2" || normalized == "10bit"
+        || normalized == "10-bit" || normalized == "sdr10") {
+        out_format = DisplayFormatPreference::Rgb10A2;
+        return true;
+    }
+    if (normalized == "hdr" || normalized == "edr") {
+        out_format = DisplayFormatPreference::Hdr;
+        return true;
+    }
+    return false;
+}
+
 const char*
 backend_cli_name(BackendKind kind)
 {
@@ -184,6 +224,30 @@ backend_cli_name(BackendKind kind)
     case BackendKind::OpenGL: return "opengl";
     }
     return "auto";
+}
+
+const char*
+display_format_cli_name(DisplayFormatPreference format)
+{
+    switch (format) {
+    case DisplayFormatPreference::Auto: return "auto";
+    case DisplayFormatPreference::Rgba8: return "rgba8";
+    case DisplayFormatPreference::Rgb10A2: return "rgb10a2";
+    case DisplayFormatPreference::Hdr: return "hdr";
+    }
+    return "auto";
+}
+
+const char*
+display_format_display_name(DisplayFormatPreference format)
+{
+    switch (format) {
+    case DisplayFormatPreference::Auto: return "Auto";
+    case DisplayFormatPreference::Rgba8: return "RGBA8";
+    case DisplayFormatPreference::Rgb10A2: return "RGB10A2";
+    case DisplayFormatPreference::Hdr: return "HDR/EDR";
+    }
+    return "Auto";
 }
 
 const char*

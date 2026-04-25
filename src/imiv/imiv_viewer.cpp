@@ -210,6 +210,8 @@ clamp_placeholder_ui_state(PlaceholderUiState& ui_state)
         sanitize_app_style_preset(ui_state.style_preset));
     ui_state.renderer_backend = static_cast<int>(
         sanitize_backend_kind(ui_state.renderer_backend));
+    ui_state.display_format = static_cast<int>(
+        sanitize_display_format_preference(ui_state.display_format));
     if (ui_state.subimage_index < 0)
         ui_state.subimage_index = 0;
     if (ui_state.miplevel_index < 0)

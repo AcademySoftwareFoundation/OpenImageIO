@@ -68,6 +68,11 @@ getargs(int argc, char* argv[])
       .metavar("STRING")
       .defaultval("")
       .action(ArgParse::store());
+    ap.arg("--display-format")
+      .help("Display format request: auto, rgba8, rgb10a2, hdr")
+      .metavar("STRING")
+      .defaultval("")
+      .action(ArgParse::store());
     ap.arg("--list-backends")
       .help("List backend support compiled into this imiv binary and exit")
       .store_true();
@@ -111,6 +116,19 @@ main(int argc, char* argv[])
             "imiv: invalid backend '{}'; expected auto, vulkan, metal, or opengl\n",
             backend_arg);
         return EXIT_FAILURE;
+    }
+
+    const std::string display_format_arg = ap["display-format"].as_string("");
+    if (!display_format_arg.empty()) {
+        config.display_format_explicit = true;
+        if (!Imiv::parse_display_format_preference(
+                display_format_arg, config.requested_display_format)) {
+            print(stderr,
+                  "imiv: invalid display format '{}'; expected auto, rgba8, "
+                  "rgb10a2, or hdr\n",
+                  display_format_arg);
+            return EXIT_FAILURE;
+        }
     }
 
     if (config.list_backends) {

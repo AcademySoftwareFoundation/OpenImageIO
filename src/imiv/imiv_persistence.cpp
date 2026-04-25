@@ -150,6 +150,14 @@ namespace {
             } else {
                 apply_int_pref(value, ui_state.renderer_backend);
             }
+        } else if (key == "display_format") {
+            DisplayFormatPreference display_format
+                = DisplayFormatPreference::Auto;
+            if (parse_display_format_preference(value, display_format)) {
+                ui_state.display_format = static_cast<int>(display_format);
+            } else {
+                apply_int_pref(value, ui_state.display_format);
+            }
         } else if (key == "auto_mipmap") {
             apply_bool_pref(value, ui_state.auto_mipmap);
         } else if (key == "fit_image_to_window") {
@@ -260,6 +268,10 @@ namespace {
         output << "renderer_backend="
                << backend_cli_name(
                       sanitize_backend_kind(ui_state.renderer_backend))
+               << "\n";
+        output << "display_format="
+               << display_format_cli_name(sanitize_display_format_preference(
+                      ui_state.display_format))
                << "\n";
         output << "auto_mipmap=" << (ui_state.auto_mipmap ? 1 : 0) << "\n";
         output << "fit_image_to_window="

@@ -94,7 +94,11 @@ namespace {
         __strong id<MTLSamplerState> linear_sampler          = nil;
         __strong id<MTLSamplerState> nearest_sampler         = nil;
         MetalOcioPreviewState ocio_preview;
-        bool imgui_initialized = false;
+        DisplayFormatPreference requested_display_format
+            = DisplayFormatPreference::Auto;
+        MTLPixelFormat display_pixel_format = MTLPixelFormatBGRA8Unorm;
+        MTLPixelFormat preview_pixel_format = MTLPixelFormatBGRA8Unorm;
+        bool imgui_initialized              = false;
     };
 
     struct MetalPreviewUniforms {
@@ -155,6 +159,53 @@ namespace {
             return override_value;
         }
         return kDefaultMetalUploadChunkBytes;
+    }
+
+    MTLPixelFormat
+    metal_display_pixel_format_for(DisplayFormatPreference preference)
+    {
+        switch (preference) {
+        case DisplayFormatPreference::Rgb10A2:
+            return MTLPixelFormatRGB10A2Unorm;
+        case DisplayFormatPreference::Auto:
+        case DisplayFormatPreference::Rgba8:
+        case DisplayFormatPreference::Hdr: break;
+        }
+        return MTLPixelFormatBGRA8Unorm;
+    }
+
+    MTLPixelFormat
+    metal_preview_pixel_format_for(DisplayFormatPreference preference)
+    {
+        switch (preference) {
+        case DisplayFormatPreference::Rgb10A2: return MTLPixelFormatRGBA16Float;
+        case DisplayFormatPreference::Auto:
+        case DisplayFormatPreference::Rgba8:
+        case DisplayFormatPreference::Hdr: break;
+        }
+        return MTLPixelFormatBGRA8Unorm;
+    }
+
+    const char* metal_pixel_format_name(MTLPixelFormat pixel_format)
+    {
+        switch (pixel_format) {
+        case MTLPixelFormatBGRA8Unorm: return "BGRA8Unorm";
+        case MTLPixelFormatRGB10A2Unorm: return "RGB10A2Unorm";
+        case MTLPixelFormatBGR10A2Unorm: return "BGR10A2Unorm";
+        case MTLPixelFormatRGBA16Float: return "RGBA16Float";
+        default: break;
+        }
+        return "unknown";
+    }
+
+    void configure_metal_display_formats(MetalRendererBackendState& state,
+                                         RendererState& renderer_state)
+    {
+        state.requested_display_format = renderer_state.requested_display_format;
+        state.display_pixel_format = metal_display_pixel_format_for(
+            state.requested_display_format);
+        state.preview_pixel_format = metal_preview_pixel_format_for(
+            state.requested_display_format);
     }
 
     void update_drawable_size(RendererState& renderer_state)
@@ -377,9 +428,9 @@ namespace {
 
     bool create_render_pipeline_state(
         id<MTLDevice> device, id<MTLLibrary> library, const char* vertex_name,
-        const char* fragment_name, const char* function_error,
-        const char* pipeline_error, id<MTLRenderPipelineState>& pipeline,
-        std::string& error_message)
+        const char* fragment_name, MTLPixelFormat color_pixel_format,
+        const char* function_error, const char* pipeline_error,
+        id<MTLRenderPipelineState>& pipeline, std::string& error_message)
     {
         pipeline = nil;
         if (device == nil) {
@@ -407,7 +458,7 @@ namespace {
             [[MTLRenderPipelineDescriptor alloc] init];
         descriptor.vertexFunction                  = vertex_function;
         descriptor.fragmentFunction                = fragment_function;
-        descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+        descriptor.colorAttachments[0].pixelFormat = color_pixel_format;
 
         NSError* error = nil;
         pipeline       = [device newRenderPipelineStateWithDescriptor:descriptor
@@ -1214,8 +1265,8 @@ kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]
         return true;
     }
 
-    bool create_preview_texture(id<MTLDevice> device, int width, int height,
-                                id<MTLTexture>& texture,
+    bool create_preview_texture(id<MTLDevice> device, MTLPixelFormat format,
+                                int width, int height, id<MTLTexture>& texture,
                                 std::string& error_message)
     {
         texture = nil;
@@ -1224,7 +1275,7 @@ kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]
             return false;
         }
         MTLTextureDescriptor* descriptor = [MTLTextureDescriptor
-            texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+            texture2DDescriptorWithPixelFormat:format
                                          width:static_cast<NSUInteger>(width)
                                         height:static_cast<NSUInteger>(height)
                                      mipmapped:NO];
@@ -1232,7 +1283,9 @@ kernel void imivUploadToSourceTexture(const device uchar* src_bytes [[buffer(0)]
                            | MTLTextureUsageRenderTarget;
         texture = [device newTextureWithDescriptor:descriptor];
         if (texture == nil) {
-            error_message = "failed to create Metal preview texture";
+            error_message = "failed to create Metal preview texture (";
+            error_message += metal_pixel_format_name(format);
+            error_message += ")";
             return false;
         }
         error_message.clear();
@@ -1317,7 +1370,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         }
         if (!create_render_pipeline_state(
                 state.device, state.preview_library, "imivPreviewVertex",
-                "imivPreviewFragment",
+                "imivPreviewFragment", state.preview_pixel_format,
                 "failed to create Metal preview shader functions",
                 "failed to create Metal preview pipeline",
                 state.preview_pipeline, error_message)) {
@@ -1561,6 +1614,7 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         if (!create_render_pipeline_state(
                 state.device, state.ocio_preview.library,
                 "imivOcioPreviewVertex", "imivOcioPreviewFragment",
+                state.preview_pixel_format,
                 "failed to create Metal OCIO shader functions",
                 "failed to create Metal OCIO pipeline",
                 state.ocio_preview.pipeline, error_message)) {
@@ -1762,10 +1816,14 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
             || !upload_source_texture(*state, image,
                                       texture_state->source_texture,
                                       error_message)
-            || !create_preview_texture(state->device, image.width, image.height,
+            || !create_preview_texture(state->device,
+                                       state->preview_pixel_format, image.width,
+                                       image.height,
                                        texture_state->preview_linear_texture,
                                        error_message)
-            || !create_preview_texture(state->device, image.width, image.height,
+            || !create_preview_texture(state->device,
+                                       state->preview_pixel_format, image.width,
+                                       image.height,
                                        texture_state->preview_nearest_texture,
                                        error_message)) {
             texture_state->source_texture          = nil;
@@ -1960,8 +2018,29 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
             error_message = "failed to create Metal command queue";
             return false;
         }
-        if (!create_preview_pipeline(*state, error_message)
-            || !create_upload_pipeline(*state, error_message))
+        configure_metal_display_formats(*state, renderer_state);
+        std::string preview_error;
+        if (!create_preview_pipeline(*state, preview_error)) {
+            if (state->preview_pixel_format != MTLPixelFormatBGRA8Unorm) {
+                if (renderer_state.verbose_logging) {
+                    std::cout
+                        << "imiv: Metal display format "
+                        << metal_pixel_format_name(state->display_pixel_format)
+                        << " with preview format "
+                        << metal_pixel_format_name(state->preview_pixel_format)
+                        << " unavailable (" << preview_error
+                        << "); using BGRA8Unorm\n";
+                }
+                state->display_pixel_format = MTLPixelFormatBGRA8Unorm;
+                state->preview_pixel_format = MTLPixelFormatBGRA8Unorm;
+                if (!create_preview_pipeline(*state, error_message))
+                    return false;
+            } else {
+                error_message = preview_error;
+                return false;
+            }
+        }
+        if (!create_upload_pipeline(*state, error_message))
             return false;
         error_message.clear();
         return true;
@@ -1984,13 +2063,29 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         }
         state->layer                     = [CAMetalLayer layer];
         state->layer.device              = state->device;
-        state->layer.pixelFormat         = MTLPixelFormatBGRA8Unorm;
+        state->layer.pixelFormat         = state->display_pixel_format;
         state->layer.framebufferOnly     = NO;
         ns_window.contentView.layer      = state->layer;
         ns_window.contentView.wantsLayer = YES;
         state->render_pass               = [MTLRenderPassDescriptor new];
         renderer_set_framebuffer_size(renderer_state, width, height);
         update_drawable_size(renderer_state);
+        if (renderer_state.verbose_logging) {
+            const bool fell_back = state->requested_display_format
+                                       == DisplayFormatPreference::Rgb10A2
+                                   && state->display_pixel_format
+                                          != MTLPixelFormatRGB10A2Unorm;
+            std::cout << "imiv: Metal display format: requested="
+                      << display_format_cli_name(
+                             state->requested_display_format)
+                      << " selected="
+                      << metal_pixel_format_name(state->display_pixel_format)
+                      << " preview="
+                      << metal_pixel_format_name(state->preview_pixel_format);
+            if (fell_back)
+                std::cout << " (fell back)";
+            std::cout << "\n";
+        }
         error_message.clear();
         return true;
     }
@@ -2105,6 +2200,50 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         state->current_drawable       = nil;
     }
 
+    NSUInteger metal_capture_bytes_per_pixel(MTLPixelFormat pixel_format)
+    {
+        switch (pixel_format) {
+        case MTLPixelFormatBGRA8Unorm:
+        case MTLPixelFormatRGB10A2Unorm:
+        case MTLPixelFormatBGR10A2Unorm: return 4;
+        default: break;
+        }
+        return 0;
+    }
+
+    unsigned char metal_unorm_to_u8(uint32_t value, uint32_t max_value)
+    {
+        return static_cast<unsigned char>((value * 255u + max_value / 2u)
+                                          / max_value);
+    }
+
+    void copy_metal_pixel_to_rgba8(MTLPixelFormat pixel_format,
+                                   const unsigned char* src, unsigned char* dst)
+    {
+        if (pixel_format == MTLPixelFormatBGRA8Unorm) {
+            dst[0] = src[2];
+            dst[1] = src[1];
+            dst[2] = src[0];
+            dst[3] = src[3];
+            return;
+        }
+
+        uint32_t packed = 0;
+        std::memcpy(&packed, src, sizeof(packed));
+        if (pixel_format == MTLPixelFormatRGB10A2Unorm) {
+            dst[0] = metal_unorm_to_u8(packed & 0x3ffu, 1023u);
+            dst[1] = metal_unorm_to_u8((packed >> 10) & 0x3ffu, 1023u);
+            dst[2] = metal_unorm_to_u8((packed >> 20) & 0x3ffu, 1023u);
+            dst[3] = metal_unorm_to_u8((packed >> 30) & 0x03u, 3u);
+            return;
+        }
+
+        dst[0] = metal_unorm_to_u8((packed >> 20) & 0x3ffu, 1023u);
+        dst[1] = metal_unorm_to_u8((packed >> 10) & 0x3ffu, 1023u);
+        dst[2] = metal_unorm_to_u8(packed & 0x3ffu, 1023u);
+        dst[3] = metal_unorm_to_u8((packed >> 30) & 0x03u, 3u);
+    }
+
     bool metal_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                               unsigned int* pixels, void* user_data)
     {
@@ -2124,6 +2263,11 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
 
         id<MTLTexture> texture = state->current_drawable.texture;
         if (texture == nil)
+            return false;
+        const MTLPixelFormat capture_format = texture.pixelFormat;
+        const NSUInteger bytes_per_pixel    = metal_capture_bytes_per_pixel(
+            capture_format);
+        if (bytes_per_pixel == 0)
             return false;
 
         const int texture_width  = static_cast<int>(texture.width);
@@ -2169,7 +2313,6 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         [state->current_encoder endEncoding];
         state->current_encoder = nil;
 
-        const NSUInteger bytes_per_pixel = 4;
         const NSUInteger row_bytes
             = align_up(static_cast<NSUInteger>(src_w) * bytes_per_pixel, 256);
         const NSUInteger buffer_size = row_bytes
@@ -2234,13 +2377,12 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                     static_cast<int>(std::floor((static_cast<double>(col) + 0.5)
                                                 * sample_scale_x)),
                     0, src_w - 1);
-                const unsigned char* src
-                    = src_row + static_cast<size_t>(sample_col) * 4;
+                const unsigned char* src = src_row
+                                           + static_cast<size_t>(sample_col)
+                                                 * static_cast<size_t>(
+                                                     bytes_per_pixel);
                 unsigned char* dst = dst_row + static_cast<size_t>(col) * 4;
-                dst[0]             = src[2];
-                dst[1]             = src[1];
-                dst[2]             = src[0];
-                dst[3]             = src[3];
+                copy_metal_pixel_to_rgba8(capture_format, src, dst);
             }
         }
 

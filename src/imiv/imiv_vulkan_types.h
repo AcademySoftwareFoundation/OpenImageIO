@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "imiv_backend.h"
 #include "imiv_types.h"
 
 #include <type_traits>
@@ -194,19 +195,22 @@ struct VulkanState {
     VkDescriptorPool descriptor_pool                = VK_NULL_HANDLE;
     VkSurfaceKHR surface                            = VK_NULL_HANDLE;
     ImGui_ImplVulkanH_Window window_data;
-    uint32_t min_image_count                            = 2;
-    bool swapchain_rebuild                              = false;
-    bool validation_layer_enabled                       = false;
-    bool debug_utils_enabled                            = false;
-    bool verbose_logging                                = false;
-    bool verbose_validation_output                      = false;
-    bool log_imgui_texture_updates                      = false;
-    bool queue_requires_full_image_copies               = false;
-    bool warned_about_full_imgui_uploads                = false;
-    bool compute_upload_ready                           = false;
-    bool compute_supports_float64                       = false;
-    VkFormat compute_output_format                      = VK_FORMAT_UNDEFINED;
-    uint32_t max_storage_buffer_range                   = 0;
+    uint32_t min_image_count       = 2;
+    bool swapchain_rebuild         = false;
+    bool validation_layer_enabled  = false;
+    bool debug_utils_enabled       = false;
+    bool verbose_logging           = false;
+    bool verbose_validation_output = false;
+    bool log_imgui_texture_updates = false;
+    DisplayFormatPreference requested_display_format
+        = DisplayFormatPreference::Auto;
+    VkImageUsageFlags window_image_usage  = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    bool queue_requires_full_image_copies = false;
+    bool warned_about_full_imgui_uploads  = false;
+    bool compute_upload_ready             = false;
+    bool compute_supports_float64         = false;
+    VkFormat compute_output_format        = VK_FORMAT_UNDEFINED;
+    uint32_t max_storage_buffer_range     = 0;
     uint32_t min_storage_buffer_offset_alignment        = 1;
     VkDescriptorPool compute_descriptor_pool            = VK_NULL_HANDLE;
     VkDescriptorSetLayout compute_descriptor_set_layout = VK_NULL_HANDLE;

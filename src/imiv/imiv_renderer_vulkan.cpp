@@ -31,6 +31,8 @@ namespace {
             = renderer_state.verbose_validation_output;
         vk_state->log_imgui_texture_updates
             = renderer_state.log_imgui_texture_updates;
+        vk_state->requested_display_format
+            = renderer_state.requested_display_format;
         renderer_state.backend = reinterpret_cast<RendererBackendState*>(
             vk_state);
         return renderer_state.backend != nullptr;
@@ -263,7 +265,7 @@ namespace {
             vk_state->instance, vk_state->physical_device, vk_state->device,
             &vk_state->window_data, vk_state->queue_family, vk_state->allocator,
             width, height, vk_state->min_image_count,
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+            vk_state->window_image_usage);
         name_window_frame_objects(*vk_state);
         vk_state->window_data.FrameIndex = 0;
         vk_state->swapchain_rebuild      = false;

@@ -26,12 +26,14 @@ struct RendererState {
     const RendererBackendVTable* vtable = nullptr;
     RendererBackendState* backend       = nullptr;
     BackendKind active_backend          = BackendKind::Auto;
-    bool verbose_logging                = false;
-    bool verbose_validation_output      = false;
-    bool log_imgui_texture_updates      = false;
-    float clear_color[4]                = { 0.08f, 0.08f, 0.08f, 1.0f };
-    int framebuffer_width               = 0;
-    int framebuffer_height              = 0;
+    DisplayFormatPreference requested_display_format
+        = DisplayFormatPreference::Auto;
+    bool verbose_logging           = false;
+    bool verbose_validation_output = false;
+    bool log_imgui_texture_updates = false;
+    float clear_color[4]           = { 0.08f, 0.08f, 0.08f, 1.0f };
+    int framebuffer_width          = 0;
+    int framebuffer_height         = 0;
 };
 
 struct RendererTexture {

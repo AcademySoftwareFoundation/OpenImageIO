@@ -600,6 +600,51 @@ namespace {
         }
     }
 
+    void draw_display_format_selector_row(PlaceholderUiState& ui, float spacing)
+    {
+        DisplayFormatPreference requested_format
+            = sanitize_display_format_preference(ui.display_format);
+        const float row_width    = std::max(1.0f,
+                                            ImGui::GetContentRegionAvail().x);
+        const float button_width = std::max(1.0f, (row_width - spacing * 2.0f)
+                                                      / 3.0f);
+
+        if (draw_preferences_segment_button("pref_display_auto", "Auto",
+                                            requested_format
+                                                == DisplayFormatPreference::Auto,
+                                            true, button_width)) {
+            ui.display_format = static_cast<int>(DisplayFormatPreference::Auto);
+        }
+        register_test_engine_item_label("pref-display-format:auto");
+        register_layout_dump_synthetic_item("button", "Display format Auto");
+
+        ImGui::SameLine(0.0f, spacing);
+        requested_format = sanitize_display_format_preference(
+            ui.display_format);
+        if (draw_preferences_segment_button(
+                "pref_display_rgba8", "RGBA8",
+                requested_format == DisplayFormatPreference::Rgba8, true,
+                button_width)) {
+            ui.display_format = static_cast<int>(
+                DisplayFormatPreference::Rgba8);
+        }
+        register_test_engine_item_label("pref-display-format:rgba8");
+        register_layout_dump_synthetic_item("button", "Display format RGBA8");
+
+        ImGui::SameLine(0.0f, spacing);
+        requested_format = sanitize_display_format_preference(
+            ui.display_format);
+        if (draw_preferences_segment_button(
+                "pref_display_rgb10a2", "RGB10A2",
+                requested_format == DisplayFormatPreference::Rgb10A2, true,
+                button_width)) {
+            ui.display_format = static_cast<int>(
+                DisplayFormatPreference::Rgb10A2);
+        }
+        register_test_engine_item_label("pref-display-format:rgb10a2");
+        register_layout_dump_synthetic_item("button", "Display format RGB10A2");
+    }
+
     void draw_backend_preference_info(PlaceholderUiState& ui,
                                       BackendKind active_backend)
     {
@@ -626,6 +671,10 @@ namespace {
 
         table_labeled_row("Next launch backend");
         draw_right_aligned_text(backend_display_name(next_launch_backend));
+
+        table_labeled_row("Display format");
+        draw_right_aligned_text(display_format_display_name(
+            sanitize_display_format_preference(ui.display_format)));
 
         table_labeled_row("Generate mipmaps");
         draw_right_aligned_checkbox("##pref_auto_mipmap", ui.auto_mipmap);
@@ -674,6 +723,15 @@ namespace {
         if (requested_backend == BackendKind::Auto)
             draw_disabled_wrapped_text(
                 "Auto selects the first available backend.");
+        const DisplayFormatPreference requested_format
+            = sanitize_display_format_preference(ui.display_format);
+        if (requested_format == DisplayFormatPreference::Rgb10A2) {
+            draw_disabled_wrapped_text(
+                "RGB10A2 requests 10-bit SDR presentation and falls back when unsupported.");
+        } else if (requested_format == DisplayFormatPreference::Hdr) {
+            draw_disabled_wrapped_text(
+                "HDR/EDR presentation is reserved for a future backend path.");
+        }
         for (const BackendRuntimeInfo& info : runtime_backend_info()) {
             if (!info.build_info.compiled || info.available)
                 continue;
@@ -709,6 +767,8 @@ namespace {
                                                 backend_row_min,
                                                 backend_row_max);
         }
+        ImGui::Spacing();
+        draw_display_format_selector_row(ui, spacing);
         draw_backend_preference_info(ui, active_backend);
         draw_backend_status_messages(ui, active_backend);
     }

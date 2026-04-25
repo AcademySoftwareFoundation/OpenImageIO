@@ -6,6 +6,7 @@
 #include "imiv_vulkan_types.h"
 
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -16,6 +17,117 @@ namespace Imiv {
 #if defined(IMIV_WITH_VULKAN)
 
 namespace {
+
+    int capture_format_bytes_per_pixel(VkFormat format)
+    {
+        switch (format) {
+        case VK_FORMAT_B8G8R8A8_UNORM:
+        case VK_FORMAT_B8G8R8A8_SRGB:
+        case VK_FORMAT_R8G8B8A8_UNORM:
+        case VK_FORMAT_R8G8B8A8_SRGB:
+        case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+        case VK_FORMAT_A2R10G10B10_UNORM_PACK32: return 4;
+        case VK_FORMAT_B8G8R8_UNORM:
+        case VK_FORMAT_B8G8R8_SRGB:
+        case VK_FORMAT_R8G8B8_UNORM:
+        case VK_FORMAT_R8G8B8_SRGB: return 3;
+        default: return 0;
+        }
+    }
+
+    unsigned char unorm_to_u8(uint32_t value, uint32_t max_value)
+    {
+        return static_cast<unsigned char>((value * 255u + max_value / 2u)
+                                          / max_value);
+    }
+
+    void unpack_a2b10g10r10_to_rgba8(uint32_t packed, unsigned char* dst)
+    {
+        dst[0] = unorm_to_u8((packed >> 0) & 0x3ffu, 1023u);
+        dst[1] = unorm_to_u8((packed >> 10) & 0x3ffu, 1023u);
+        dst[2] = unorm_to_u8((packed >> 20) & 0x3ffu, 1023u);
+        dst[3] = unorm_to_u8((packed >> 30) & 0x3u, 3u);
+    }
+
+    void unpack_a2r10g10b10_to_rgba8(uint32_t packed, unsigned char* dst)
+    {
+        dst[0] = unorm_to_u8((packed >> 20) & 0x3ffu, 1023u);
+        dst[1] = unorm_to_u8((packed >> 10) & 0x3ffu, 1023u);
+        dst[2] = unorm_to_u8((packed >> 0) & 0x3ffu, 1023u);
+        dst[3] = unorm_to_u8((packed >> 30) & 0x3u, 3u);
+    }
+
+    bool copy_vulkan_capture_to_rgba8(const unsigned char* src, VkFormat format,
+                                      int full_width, int x, int y, int w,
+                                      int h, unsigned int* pixels)
+    {
+        const int bytes_per_pixel = capture_format_bytes_per_pixel(format);
+        if (src == nullptr || pixels == nullptr || bytes_per_pixel <= 0)
+            return false;
+
+        unsigned char* dst = reinterpret_cast<unsigned char*>(pixels);
+        for (int row = 0; row < h; ++row) {
+            const size_t src_row_offset = (static_cast<size_t>(y + row)
+                                               * static_cast<size_t>(full_width)
+                                           + static_cast<size_t>(x))
+                                          * static_cast<size_t>(
+                                              bytes_per_pixel);
+            const unsigned char* src_row = src + src_row_offset;
+            unsigned char* dst_row
+                = dst + static_cast<size_t>(row) * static_cast<size_t>(w) * 4;
+            for (int col = 0; col < w; ++col) {
+                const unsigned char* sp = src_row
+                                          + static_cast<size_t>(col)
+                                                * static_cast<size_t>(
+                                                    bytes_per_pixel);
+                unsigned char* dp = dst_row + static_cast<size_t>(col) * 4;
+                switch (format) {
+                case VK_FORMAT_B8G8R8A8_UNORM:
+                case VK_FORMAT_B8G8R8A8_SRGB:
+                    dp[0] = sp[2];
+                    dp[1] = sp[1];
+                    dp[2] = sp[0];
+                    dp[3] = sp[3];
+                    break;
+                case VK_FORMAT_R8G8B8A8_UNORM:
+                case VK_FORMAT_R8G8B8A8_SRGB:
+                    dp[0] = sp[0];
+                    dp[1] = sp[1];
+                    dp[2] = sp[2];
+                    dp[3] = sp[3];
+                    break;
+                case VK_FORMAT_B8G8R8_UNORM:
+                case VK_FORMAT_B8G8R8_SRGB:
+                    dp[0] = sp[2];
+                    dp[1] = sp[1];
+                    dp[2] = sp[0];
+                    dp[3] = 255;
+                    break;
+                case VK_FORMAT_R8G8B8_UNORM:
+                case VK_FORMAT_R8G8B8_SRGB:
+                    dp[0] = sp[0];
+                    dp[1] = sp[1];
+                    dp[2] = sp[2];
+                    dp[3] = 255;
+                    break;
+                case VK_FORMAT_A2B10G10R10_UNORM_PACK32: {
+                    uint32_t packed = 0;
+                    std::memcpy(&packed, sp, sizeof(packed));
+                    unpack_a2b10g10r10_to_rgba8(packed, dp);
+                    break;
+                }
+                case VK_FORMAT_A2R10G10B10_UNORM_PACK32: {
+                    uint32_t packed = 0;
+                    std::memcpy(&packed, sp, sizeof(packed));
+                    unpack_a2r10g10b10_to_rgba8(packed, dp);
+                    break;
+                }
+                default: return false;
+                }
+            }
+        }
+        return true;
+    }
 
     bool ensure_immediate_submit_resources(VulkanState& vk_state,
                                            std::string& error_message)
@@ -122,9 +234,21 @@ namespace {
         VkBuffer staging_buffer       = VK_NULL_HANDLE;
         VkDeviceMemory staging_memory = VK_NULL_HANDLE;
         VkCommandBuffer command_buf   = VK_NULL_HANDLE;
+        const VkFormat format         = wd->SurfaceFormat.format;
+        const int bytes_per_pixel     = capture_format_bytes_per_pixel(format);
+        if (bytes_per_pixel <= 0) {
+            error_message = "unsupported Vulkan capture swapchain format";
+            return false;
+        }
+        if ((vk_state.window_image_usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+            == 0) {
+            error_message = "Vulkan swapchain is not transfer-src capable";
+            return false;
+        }
         const VkDeviceSize full_buffer_size
             = static_cast<VkDeviceSize>(full_width)
-              * static_cast<VkDeviceSize>(full_height) * 4;
+              * static_cast<VkDeviceSize>(full_height)
+              * static_cast<VkDeviceSize>(bytes_per_pixel);
         bool ok = false;
 
         do {
@@ -260,30 +384,13 @@ namespace {
 
             const unsigned char* src = static_cast<const unsigned char*>(
                 mapped);
-            for (int row = 0; row < h; ++row) {
-                const int src_y         = y + row;
-                const size_t src_offset = (static_cast<size_t>(src_y)
-                                               * static_cast<size_t>(full_width)
-                                           + static_cast<size_t>(x))
-                                          * 4;
-                std::memcpy(pixels
-                                + static_cast<size_t>(row)
-                                      * static_cast<size_t>(w),
-                            src + src_offset, static_cast<size_t>(w) * 4);
-            }
+            const bool converted
+                = copy_vulkan_capture_to_rgba8(src, format, full_width, x, y, w,
+                                               h, pixels);
             vkUnmapMemory(vk_state.device, staging_memory);
-
-            const VkFormat format  = wd->SurfaceFormat.format;
-            const bool bgra_source = (format == VK_FORMAT_B8G8R8A8_UNORM
-                                      || format == VK_FORMAT_B8G8R8A8_SRGB);
-            if (bgra_source) {
-                unsigned char* bytes = reinterpret_cast<unsigned char*>(pixels);
-                const size_t pixel_count = static_cast<size_t>(w)
-                                           * static_cast<size_t>(h);
-                for (size_t i = 0; i < pixel_count; ++i) {
-                    unsigned char* px = bytes + i * 4;
-                    std::swap(px[0], px[2]);
-                }
+            if (!converted) {
+                error_message = "unsupported Vulkan capture conversion format";
+                break;
             }
             ok = true;
         } while (false);

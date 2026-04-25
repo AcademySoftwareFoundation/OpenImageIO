@@ -12,6 +12,13 @@ namespace Imiv {
 
 enum class BackendKind : int { Auto = -1, Vulkan = 0, Metal = 1, OpenGL = 2 };
 
+enum class DisplayFormatPreference : int {
+    Auto    = -1,
+    Rgba8   = 0,
+    Rgb10A2 = 1,
+    Hdr     = 2
+};
+
 struct BackendInfo {
     BackendKind kind         = BackendKind::Auto;
     const char* cli_name     = "auto";
@@ -38,6 +45,15 @@ const char*
 backend_display_name(BackendKind kind);
 const char*
 backend_runtime_name(BackendKind kind);
+DisplayFormatPreference
+sanitize_display_format_preference(int value);
+bool
+parse_display_format_preference(std::string_view value,
+                                DisplayFormatPreference& out_format);
+const char*
+display_format_cli_name(DisplayFormatPreference format);
+const char*
+display_format_display_name(DisplayFormatPreference format);
 BackendKind
 active_build_backend_kind();
 BackendKind

@@ -49,6 +49,8 @@ image list. For example::
 
     imiv --backend vulkan frame.exr
 
+    imiv --display-format rgb10a2 frame.exr
+
     imiv --display "sRGB - Display" \
          --view "ACES 2.0 - SDR 100 nits (Rec.709)" \
          --image-color-space ACEScg image.exr
@@ -84,6 +86,20 @@ Use :program:`imiv --help` to print the option summary for the current build.
     binary, or was compiled but is not currently available at runtime,
     :program:`imiv` falls back to the resolved default backend and prints a
     message.
+
+.. option:: --display-format FORMAT
+
+    Request a display presentation format at launch time. Valid values are
+    `auto`, `rgba8`, `rgb10a2`, and `hdr`.
+
+    `rgba8` keeps the default 8-bit SDR path. `rgb10a2` requests 10-bit SDR
+    presentation from the renderer backend and falls back to the backend's
+    default format if unsupported. `hdr` is accepted for forward compatibility
+    but currently falls back to `auto`; HDR/EDR output still needs a dedicated
+    color-space and presentation path.
+
+    The command-line request takes precedence over the saved display-format
+    preference and the ``IMIV_DISPLAY_FORMAT`` environment variable.
 
 .. option:: --list-backends
 
@@ -370,6 +386,7 @@ Saved state currently includes:
 * Dear ImGui docking/window layout;
 * viewer and preview defaults for the primary view;
 * backend preference (`renderer_backend`);
+* display format preference (`display_format`);
 * whether the main window is `Always on Top`;
 * OCIO settings;
 * recent images and sort mode.
@@ -378,6 +395,7 @@ Example::
 
     [ImivApp][State]
     renderer_backend=vulkan
+    display_format=rgb10a2
     fit_image_to_window=1
     window_always_on_top=0
     use_ocio=1
@@ -389,6 +407,9 @@ The Preferences window exposes backend selection as equal-width buttons for
 the compiled backends, plus ``Auto``. Changing the backend preference updates
 the next-launch backend and shows a restart-required note. The active backend
 for the current process does not change until the next launch.
+
+The same Preferences section exposes the display-format request. Changing it is
+persistent and also applies on the next launch.
 
 Developer mode may also be controlled by the ``OIIO_DEVMODE`` environment
 variable. Acceptable values include ``1``, ``0``, ``true``, ``false``, ``on``,

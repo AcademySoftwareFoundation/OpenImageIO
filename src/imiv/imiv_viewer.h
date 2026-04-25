@@ -168,6 +168,7 @@ struct PlaceholderUiState {
     int mouse_mode              = 0;
     int style_preset            = static_cast<int>(AppStylePreset::ImGuiDark);
     int renderer_backend        = static_cast<int>(BackendKind::Auto);
+    int display_format = static_cast<int>(DisplayFormatPreference::Auto);
 
     float exposure                  = 0.0f;
     float gamma                     = 1.0f;

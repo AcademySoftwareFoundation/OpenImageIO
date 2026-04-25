@@ -193,6 +193,30 @@ namespace {
         return sanitize_backend_kind(ui_state.renderer_backend);
     }
 
+    DisplayFormatPreference
+    requested_display_format_for_launch(const AppConfig& config,
+                                        const PlaceholderUiState& ui_state,
+                                        bool verbose_logging)
+    {
+        DisplayFormatPreference requested = sanitize_display_format_preference(
+            ui_state.display_format);
+        std::string env_value;
+        if (read_env_value("IMIV_DISPLAY_FORMAT", env_value)) {
+            DisplayFormatPreference env_format = DisplayFormatPreference::Auto;
+            if (parse_display_format_preference(env_value, env_format)) {
+                requested = env_format;
+            } else if (verbose_logging) {
+                print(stderr,
+                      "imiv: ignoring invalid IMIV_DISPLAY_FORMAT value '{}'; "
+                      "expected auto/rgba8/rgb10a2/hdr\n",
+                      env_value);
+            }
+        }
+        if (config.display_format_explicit)
+            requested = config.requested_display_format;
+        return sanitize_display_format_preference(static_cast<int>(requested));
+    }
+
     void apply_glfw_topmost_state_to_platform_windows(GLFWwindow* main_window,
                                                       bool always_on_top)
     {
@@ -325,6 +349,14 @@ run(const AppConfig& config)
                                      library.sort_mode, library.sort_reverse);
     const BackendKind requested_backend
         = requested_backend_for_launch(run_config, ui_state);
+    DisplayFormatPreference requested_display_format
+        = requested_display_format_for_launch(run_config, ui_state,
+                                              run_config.verbose);
+    if (requested_display_format == DisplayFormatPreference::Hdr) {
+        print(
+            "imiv: display format 'hdr' is not implemented yet; using auto\n");
+        requested_display_format = DisplayFormatPreference::Auto;
+    }
 
     const bool verbose_logging = run_config.verbose;
     const bool verbose_validation_output
@@ -400,7 +432,8 @@ run(const AppConfig& config)
         = Strutil::fmt::format("ImIv v.{} [{}]", OIIO_VERSION_STRING,
                                backend_cli_name(active_backend));
     GLFWwindow* window
-        = platform_glfw_create_main_window(active_backend, 1600, 900,
+        = platform_glfw_create_main_window(active_backend,
+                                           requested_display_format, 1600, 900,
                                            window_title.c_str(), startup_error);
     if (window == nullptr) {
         print(stderr, "imiv: {}\n", startup_error);
@@ -426,6 +459,7 @@ run(const AppConfig& config)
 
     RendererState renderer_state;
     renderer_select_backend(renderer_state, active_backend);
+    renderer_state.requested_display_format  = requested_display_format;
     renderer_state.verbose_logging           = verbose_logging;
     renderer_state.verbose_validation_output = verbose_validation_output;
     renderer_state.log_imgui_texture_updates = log_imgui_texture_updates;
@@ -532,6 +566,8 @@ run(const AppConfig& config)
               run_config.input_paths.size());
         print("imiv: native file dialogs: {}\n",
               FileDialog::available() ? "enabled" : "disabled");
+        print("imiv: requested display format: {}\n",
+              display_format_cli_name(requested_display_format));
     }
 
 #if !defined(IMGUI_ENABLE_TEST_ENGINE)
