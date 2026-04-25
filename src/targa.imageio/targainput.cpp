@@ -584,11 +584,13 @@ TGAInput::decode_pixel(unsigned char* in, unsigned char* out,
     case TYPE_PALETTED_RLE:
         for (int i = 0; i < bytespp; ++i)
             k |= in[i] << (8 * i);  // Assemble it in little endian order
-        k = (m_tga.cmap_first + k) * uint64_t(palbytespp);
-        if (k + palbytespp > palette_alloc_size) {
+        if (k < m_tga.cmap_first || k >= m_tga.cmap_first + m_tga.cmap_length) {
             errorfmt("Corrupt palette index");
             return false;
         }
+        // The palette indices stored in the file's pixels are absolute, so
+        // subtract the start offset to correctly index from the palette.
+        k = (k - m_tga.cmap_first) * uint64_t(palbytespp);
         switch (palbytespp) {
         case 2:
             // see the comment for 16bpp RGB below for an explanation of this
