@@ -408,25 +408,6 @@ add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
 
 
 
-// Utility: Search str for the first substring in str (starting from
-// position pos) that starts with startmarker and ends with endmarker.
-// If not found, return false.  If found, return true, store the
-// beginning and ending indices in startpos and endpos.
-static bool
-extract_middle(string_view str, size_t pos, string_view startmarker,
-               string_view endmarker, size_t& startpos, size_t& endpos)
-{
-    startpos = str.find(startmarker, pos);
-    if (startpos == std::string::npos)
-        return false;  // start marker not found
-    endpos = str.find(endmarker, startpos);
-    if (endpos == std::string::npos)
-        return false;  // end marker not found
-    endpos += endmarker.size();
-    return true;
-}
-
-
 // Decode one XMP node and its children.
 // Return value is the size of the resulting attribute (can be used to
 // catch runaway or corrupt XML).
@@ -533,35 +514,35 @@ decode_xmp(string_view xml, ImageSpec& spec)
 #endif
     if (!xml.length())
         return true;
-    for (size_t startpos = 0, endpos = 0;
-         extract_middle(xml, endpos, "<rdf:Description", "</rdf:Description>",
-                        startpos, endpos);) {
-        // Turn that middle section into an XML document
-        string_view rdf = xml.substr(startpos, endpos - startpos);  // scooch in
+    // Some callers (e.g. JPEG APP1 markers) prepend a namespace URI before the
+    // actual XML. Skip any leading non-XML content.
+    auto xmlstart = xml.find('<');
+    if (xmlstart == string_view::npos)
+        return true;
+    xml = xml.substr(xmlstart);
+    pugi::xml_document doc;
+    pugi::xml_parse_result parse_result
+        = doc.load_buffer(xml.data(), xml.size(),
+                          pugi::parse_default | pugi::parse_fragment);
+    if (!parse_result) {
 #if DEBUG_XMP_READ
-        std::cerr << "RDF is:\n---\n" << rdf.substr(0, 4096) << "\n---\n";
+        std::cerr << "Error parsing XML @" << parse_result.offset << ": "
+                  << parse_result.description() << "\n";
 #endif
-        pugi::xml_document doc;
-        pugi::xml_parse_result parse_result
-            = doc.load_buffer(rdf.data(), rdf.size(),
-                              pugi::parse_default | pugi::parse_fragment);
-        if (!parse_result) {
-#if DEBUG_XMP_READ
-            std::cerr << "Error parsing XML @" << parse_result.offset << ": "
-                      << parse_result.description() << "\n";
-#endif
-            // Instead of returning early here if there were errors parsing
-            // the XML -- I have noticed that very minor XML malformations
-            // are common in XMP found in files -- hope for the best and
-            // go ahead and assume that maybe it managed to put something
-            // useful in the resulting document.
-#if 0
-            return true;
-#endif
-        }
-        // Decode the contents of the XML document (it will recurse)
-        decode_xmp_node(doc.first_child(), spec);
+        // Instead of returning early here if there were errors parsing
+        // the XML -- I have noticed that very minor XML malformations
+        // are common in XMP found in files -- hope for the best and
+        // go ahead and assume that maybe it managed to put something
+        // useful in the resulting document.
     }
+    // Find the first rdf:Description node anywhere in the document.
+    // decode_xmp_node() iterates siblings, so passing the first one processes
+    // all rdf:Description siblings (i.e. all blocks in the rdf:RDF container).
+    auto first_desc = doc.find_node([](pugi::xml_node n) {
+        return strcmp(n.name(), "rdf:Description") == 0;
+    });
+    if (first_desc)
+        decode_xmp_node(first_desc, spec);
 #if DEBUG_XMP_READ
     std::cerr << "XMP total parse time " << timer() << "\n";
 #endif
