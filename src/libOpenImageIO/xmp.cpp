@@ -299,13 +299,14 @@ add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
 
     // See if it's in the xmp table, which will tell us something about the
     // proper type (everything in the xml itself just looks like a string).
-    if (const XMPtag* xt = xmp_tagmap_ref().find(xmlname)) {
-        if (!xt->oiioname || !xt->oiioname[0])
+    const XMPtag* xmptagptr = xmp_tagmap_ref().find(xmlname);
+    if (xmptagptr) {
+        if (!xmptagptr->oiioname || !xmptagptr->oiioname[0])
             return 0;  // ignore it purposefully
         // Found
-        oiioname = xt->oiioname;
-        oiiotype = xt->oiiotype;
-        special  = xt->special;
+        oiioname = xmptagptr->oiioname;
+        oiiotype = xmptagptr->oiiotype;
+        special  = xmptagptr->special;
     }
 
     // Also try looking it up to see if it's a known exif tag.
@@ -329,6 +330,21 @@ add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
         else if (tifftype == TIFF_NOTYPE)
             return 0;  // skip
     }
+
+    if (Strutil::istarts_with(xmlname, "tiff:")) {
+        if (!xmptagptr)  // Ignore any "tiff:" entry not in the table
+            return 0;
+        if (special & TiffRedundant)  // Ignore ones marked redundant
+            return 0;
+        // Ignore any TIFF related ones we already have set in the spec, don't
+        // let the XMP version overwrite what we gleaned directly from the
+        // file.
+        if (spec.find_attribute(oiioname))
+            return 0;
+    }
+
+    if (special & Suppress)
+        return 0;  // Marked as one to suppress
 
     // Guess the type if unknown
     if (oiiotype == TypeUnknown) {
