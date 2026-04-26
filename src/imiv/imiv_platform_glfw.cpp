@@ -245,6 +245,13 @@ platform_glfw_destroy_window(GLFWwindow* window)
         glfwDestroyWindow(window);
 }
 
+void
+platform_glfw_set_window_title(GLFWwindow* window, const char* title)
+{
+    if (window != nullptr && title != nullptr)
+        glfwSetWindowTitle(window, title);
+}
+
 bool
 platform_glfw_supports_vulkan(std::string& error_message)
 {

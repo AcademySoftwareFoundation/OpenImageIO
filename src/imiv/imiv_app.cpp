@@ -217,6 +217,14 @@ namespace {
         return sanitize_display_format_preference(static_cast<int>(requested));
     }
 
+    std::string main_window_title(BackendKind backend,
+                                  const DisplayPresentationInfo& presentation)
+    {
+        return Strutil::fmt::format("ImIv v.{} [{} / {}]", OIIO_VERSION_STRING,
+                                    backend_cli_name(backend),
+                                    display_presentation_name(presentation));
+    }
+
     void apply_glfw_topmost_state_to_platform_windows(GLFWwindow* main_window,
                                                       bool always_on_top)
     {
@@ -429,8 +437,7 @@ run(const AppConfig& config)
     }
 
     const std::string window_title
-        = Strutil::fmt::format("ImIv v.{} [{}]", OIIO_VERSION_STRING,
-                               backend_cli_name(active_backend));
+        = main_window_title(active_backend, DisplayPresentationInfo {});
     GLFWwindow* window
         = platform_glfw_create_main_window(active_backend,
                                            requested_display_format, 1600, 900,
@@ -503,6 +510,10 @@ run(const AppConfig& config)
                                framebuffer_height, startup_error)) {
         return fail_bootstrap(false, true, false);
     }
+    const std::string resolved_window_title
+        = main_window_title(active_backend,
+                            renderer_state.display_presentation);
+    platform_glfw_set_window_title(window, resolved_window_title.c_str());
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -568,6 +579,8 @@ run(const AppConfig& config)
               FileDialog::available() ? "enabled" : "disabled");
         print("imiv: requested display format: {}\n",
               display_format_cli_name(requested_display_format));
+        print("imiv: display presentation: {}\n",
+              display_presentation_name(renderer_state.display_presentation));
     }
 
 #if !defined(IMGUI_ENABLE_TEST_ENGINE)

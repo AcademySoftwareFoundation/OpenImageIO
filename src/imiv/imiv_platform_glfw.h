@@ -28,6 +28,8 @@ platform_glfw_create_main_window(BackendKind backend,
                                  std::string& error_message);
 void
 platform_glfw_destroy_window(GLFWwindow* window);
+void
+platform_glfw_set_window_title(GLFWwindow* window, const char* title);
 
 bool
 platform_glfw_supports_vulkan(std::string& error_message);

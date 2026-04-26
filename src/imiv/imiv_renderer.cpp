@@ -759,4 +759,31 @@ renderer_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
     return vtable->screen_capture(viewport_id, x, y, w, h, pixels, user_data);
 }
 
+const char*
+display_dynamic_range_name(DisplayDynamicRange range)
+{
+    switch (range) {
+    case DisplayDynamicRange::Sdr: return "SDR";
+    case DisplayDynamicRange::Edr: return "EDR";
+    case DisplayDynamicRange::Hdr: return "HDR";
+    case DisplayDynamicRange::Unknown: break;
+    }
+    return "unknown";
+}
+
+std::string
+display_presentation_name(const DisplayPresentationInfo& info)
+{
+    const std::string bits = info.color_bits > 0
+                                 ? OIIO::Strutil::fmt::format("{}-bit",
+                                                              info.color_bits)
+                                 : std::string("**-bit");
+    std::string label
+        = OIIO::Strutil::fmt::format("{} {}", bits,
+                                     display_dynamic_range_name(info.range));
+    if (info.format_request_fell_back)
+        label += " fallback";
+    return label;
+}
+
 }  // namespace Imiv

@@ -22,12 +22,21 @@ struct RendererBackendVTable;
 struct RendererBackendState;
 struct RendererTextureBackendState;
 
+enum class DisplayDynamicRange : int { Unknown = 0, Sdr = 1, Edr = 2, Hdr = 3 };
+
+struct DisplayPresentationInfo {
+    int color_bits                = 8;
+    DisplayDynamicRange range     = DisplayDynamicRange::Sdr;
+    bool format_request_fell_back = false;
+};
+
 struct RendererState {
     const RendererBackendVTable* vtable = nullptr;
     RendererBackendState* backend       = nullptr;
     BackendKind active_backend          = BackendKind::Auto;
     DisplayFormatPreference requested_display_format
         = DisplayFormatPreference::Auto;
+    DisplayPresentationInfo display_presentation;
     bool verbose_logging           = false;
     bool verbose_validation_output = false;
     bool log_imgui_texture_updates = false;
@@ -239,5 +248,9 @@ renderer_frame_present(RendererState& renderer_state);
 bool
 renderer_screen_capture(ImGuiID viewport_id, int x, int y, int w, int h,
                         unsigned int* pixels, void* user_data);
+const char*
+display_dynamic_range_name(DisplayDynamicRange range);
+std::string
+display_presentation_name(const DisplayPresentationInfo& info);
 
 }  // namespace Imiv

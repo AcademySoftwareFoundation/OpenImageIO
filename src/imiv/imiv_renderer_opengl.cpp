@@ -1807,10 +1807,8 @@ void main()
         return true;
     }
 
-    void log_opengl_framebuffer_bits(RendererState& renderer_state)
+    void update_opengl_display_presentation(RendererState& renderer_state)
     {
-        if (!renderer_state.verbose_logging)
-            return;
         GLint red_bits   = 0;
         GLint green_bits = 0;
         GLint blue_bits  = 0;
@@ -1819,12 +1817,23 @@ void main()
         glGetIntegerv(GL_GREEN_BITS, &green_bits);
         glGetIntegerv(GL_BLUE_BITS, &blue_bits);
         glGetIntegerv(GL_ALPHA_BITS, &alpha_bits);
-        std::cout << "imiv: OpenGL display format requested="
-                  << display_format_cli_name(
-                         renderer_state.requested_display_format)
-                  << " actual framebuffer bits=" << red_bits << ','
-                  << green_bits << ',' << blue_bits << ',' << alpha_bits
-                  << "\n";
+        DisplayPresentationInfo info;
+        info.color_bits = std::min(red_bits, std::min(green_bits, blue_bits));
+        if (info.color_bits <= 0)
+            info.color_bits = 0;
+        info.range                    = DisplayDynamicRange::Sdr;
+        info.format_request_fell_back = renderer_state.requested_display_format
+                                            == DisplayFormatPreference::Rgb10A2
+                                        && info.color_bits < 10;
+        renderer_state.display_presentation = info;
+        if (renderer_state.verbose_logging) {
+            std::cout << "imiv: OpenGL display format requested="
+                      << display_format_cli_name(
+                             renderer_state.requested_display_format)
+                      << " actual framebuffer bits=" << red_bits << ','
+                      << green_bits << ',' << blue_bits << ',' << alpha_bits
+                      << "\n";
+        }
     }
 
     const RendererBackendVTable k_opengl_vtable = {
@@ -1871,7 +1880,7 @@ void main()
                 return false;
             state->window = window;
             platform_glfw_make_context_current(window);
-            log_opengl_framebuffer_bits(renderer_state);
+            update_opengl_display_presentation(renderer_state);
             error_message.clear();
             return true;
         },

@@ -198,6 +198,44 @@ namespace {
         return "unknown";
     }
 
+    int metal_display_color_bits(MTLPixelFormat pixel_format)
+    {
+        switch (pixel_format) {
+        case MTLPixelFormatBGRA8Unorm: return 8;
+        case MTLPixelFormatRGB10A2Unorm:
+        case MTLPixelFormatBGR10A2Unorm: return 10;
+        case MTLPixelFormatRGBA16Float: return 16;
+        default: break;
+        }
+        return 0;
+    }
+
+    DisplayDynamicRange metal_display_dynamic_range(MTLPixelFormat pixel_format)
+    {
+        switch (pixel_format) {
+        case MTLPixelFormatBGRA8Unorm:
+        case MTLPixelFormatRGB10A2Unorm:
+        case MTLPixelFormatBGR10A2Unorm: return DisplayDynamicRange::Sdr;
+        case MTLPixelFormatRGBA16Float: return DisplayDynamicRange::Hdr;
+        default: break;
+        }
+        return DisplayDynamicRange::Unknown;
+    }
+
+    void update_metal_display_presentation(RendererState& renderer_state,
+                                           MTLPixelFormat pixel_format)
+    {
+        DisplayPresentationInfo info;
+        info.color_bits = metal_display_color_bits(pixel_format);
+        info.range      = metal_display_dynamic_range(pixel_format);
+        info.format_request_fell_back = renderer_state.requested_display_format
+                                            == DisplayFormatPreference::Rgb10A2
+                                        && (info.color_bits < 10
+                                            || info.range
+                                                   != DisplayDynamicRange::Sdr);
+        renderer_state.display_presentation = info;
+    }
+
     void configure_metal_display_formats(MetalRendererBackendState& state,
                                          RendererState& renderer_state)
     {
@@ -2070,6 +2108,8 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         state->render_pass               = [MTLRenderPassDescriptor new];
         renderer_set_framebuffer_size(renderer_state, width, height);
         update_drawable_size(renderer_state);
+        update_metal_display_presentation(renderer_state,
+                                          state->display_pixel_format);
         if (renderer_state.verbose_logging) {
             const bool fell_back = state->requested_display_format
                                        == DisplayFormatPreference::Rgb10A2

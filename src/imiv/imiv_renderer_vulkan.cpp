@@ -62,6 +62,49 @@ namespace {
         return backend_state<VulkanState>(renderer_state);
     }
 
+    int vulkan_display_color_bits(VkFormat format)
+    {
+        switch (format) {
+        case VK_FORMAT_B8G8R8A8_UNORM:
+        case VK_FORMAT_B8G8R8A8_SRGB:
+        case VK_FORMAT_R8G8B8A8_UNORM:
+        case VK_FORMAT_R8G8B8A8_SRGB:
+        case VK_FORMAT_B8G8R8_UNORM:
+        case VK_FORMAT_B8G8R8_SRGB:
+        case VK_FORMAT_R8G8B8_UNORM:
+        case VK_FORMAT_R8G8B8_SRGB: return 8;
+        case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+        case VK_FORMAT_A2R10G10B10_UNORM_PACK32: return 10;
+        default: break;
+        }
+        return 0;
+    }
+
+    DisplayDynamicRange vulkan_display_dynamic_range(VkColorSpaceKHR color_space)
+    {
+        switch (color_space) {
+        case VK_COLORSPACE_SRGB_NONLINEAR_KHR: return DisplayDynamicRange::Sdr;
+        default: break;
+        }
+        return DisplayDynamicRange::Unknown;
+    }
+
+    void update_vulkan_display_presentation(RendererState& renderer_state,
+                                            const VulkanState& vk_state)
+    {
+        DisplayPresentationInfo info;
+        info.color_bits = vulkan_display_color_bits(
+            vk_state.window_data.SurfaceFormat.format);
+        info.range = vulkan_display_dynamic_range(
+            vk_state.window_data.SurfaceFormat.colorSpace);
+        info.format_request_fell_back = renderer_state.requested_display_format
+                                            == DisplayFormatPreference::Rgb10A2
+                                        && (info.color_bits < 10
+                                            || info.range
+                                                   != DisplayDynamicRange::Sdr);
+        renderer_state.display_presentation = info;
+    }
+
     bool vulkan_get_viewer_texture_refs(const ViewerState& viewer,
                                         const PlaceholderUiState& ui_state,
                                         ImTextureRef& main_texture_ref,
@@ -267,6 +310,7 @@ namespace {
             width, height, vk_state->min_image_count,
             vk_state->window_image_usage);
         name_window_frame_objects(*vk_state);
+        update_vulkan_display_presentation(renderer_state, *vk_state);
         vk_state->window_data.FrameIndex = 0;
         vk_state->swapchain_rebuild      = false;
     }
@@ -306,7 +350,10 @@ namespace {
             if (vk_state == nullptr)
                 return false;
             renderer_set_framebuffer_size(renderer_state, width, height);
-            return setup_vulkan_window(*vk_state, width, height, error_message);
+            if (!setup_vulkan_window(*vk_state, width, height, error_message))
+                return false;
+            update_vulkan_display_presentation(renderer_state, *vk_state);
+            return true;
         },
         [](RendererState& renderer_state, GLFWwindow* window,
            std::string& error_message) {
