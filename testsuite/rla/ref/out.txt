@@ -322,5 +322,11 @@ Full command line was:
 oiiotool ERROR: read : "src/crash-1.rla": rla image full/display resolution must be at least 1x1, but the file specified -281x18999x1. Possible corrupt input?
 Full command line was:
 > oiiotool src/crash-1.rla -o crash5.exr
+oiiotool ERROR: read : "src/crash-5152.rla": Read error: malformed RLE record
+Full command line was:
+> oiiotool src/crash-5152.rla -o crash6.exr
+oiiotool ERROR: read : "src/crash-5159.rla": Read error: couldn't read RLE data span
+Full command line was:
+> oiiotool src/crash-5159.rla -o crash7.exr
 Comparing "rlacrop.rla" and "ref/rlacrop.rla"
 PASS
