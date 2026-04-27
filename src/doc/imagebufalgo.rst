@@ -2192,6 +2192,66 @@ Image comparison and statistics
 
 |
 
+.. _sec-iba-flip:
+
+FLIP perceptual difference
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. doxygengroup:: FLIP_diff
+   :content-only:
+..
+
+  Examples:
+
+  .. tabs::
+
+     .. code-tab:: c++
+
+        ImageBuf ref ("ref.exr");
+        ImageBuf test ("test.exr");
+
+        // Basic use: returns 1-channel float error map in [0,1].
+        ImageBuf flipmap = ImageBufAlgo::FLIP_diff(ref, test);
+        OIIO::print("Mean FLIP error: {}\n",
+                    flipmap.spec().get_float_attribute("FLIP:meanerror"));
+        OIIO::print("Max  FLIP error: {} at ({}, {})\n",
+                    flipmap.spec().get_float_attribute("FLIP:maxerror"),
+                    flipmap.spec().get_int_attribute("FLIP:maxx"),
+                    flipmap.spec().get_int_attribute("FLIP:maxy"));
+
+        // LDR mode (display-referred images only):
+        ImageBufAlgo::FLIP_diff(flipmap, ref, test, { {"hdr", 0} });
+
+        // For a false-color visualization, pass the result to color_map():
+        ImageBuf colored = ImageBufAlgo::color_map(flipmap, 0, "magma");
+
+     .. code-tab:: py
+
+        ref = ImageBuf("ref.exr")
+        test = ImageBuf("test.exr")
+
+        # Basic use: returns 1-channel float error map in [0,1].
+        flipmap = ImageBufAlgo.FLIP_diff(ref, test)
+        print("Mean FLIP error:", flipmap.spec().get_float_attribute("FLIP:meanerror"))
+        print("Max  FLIP error:", flipmap.spec().get_float_attribute("FLIP:maxerror"),
+              "at", flipmap.spec().get_int_attribute("FLIP:maxx"),
+              flipmap.spec().get_int_attribute("FLIP:maxy"))
+
+        # For a false-color visualization, pass the result to color_map():
+        colored = ImageBufAlgo.color_map(flipmap, 0, "magma")
+
+        # LDR mode:
+        flipmap = ImageBufAlgo.FLIP_diff(ref, test, hdr=0)
+
+     .. code-tab:: bash oiiotool
+
+        # Default HDR mode, outputting per-pixel error map
+        oiiotool ref.exr test.exr --flipdiff -o errormap.exr
+        # Output the false color visualization)
+        oiiotool ref.exr test.exr --flipdiff:colormap=magma -o errorvis.exr
+
+|
+
 .. doxygenfunction:: isConstantColor
 ..
 

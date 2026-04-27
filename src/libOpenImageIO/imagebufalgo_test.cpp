@@ -1327,6 +1327,73 @@ test_yee()
 
 
 
+void
+test_FLIP()
+{
+    OIIO::print("Testing FLIP_diff comparison\n");
+
+    // FLIP_diff(A, A) should produce an all-zero error map.
+    ImageSpec spec(32, 32, 3, TypeDesc::FLOAT);
+    ImageBuf img(spec);
+    ImageBufAlgo::fill(img, { 0.3f, 0.5f, 0.7f });
+    ImageBuf result = ImageBufAlgo::experimental::FLIP_diff(img, img);
+    OIIO_CHECK_ASSERT(!result.has_error());
+    OIIO_CHECK_EQUAL(result.nchannels(), 1);
+    OIIO_CHECK_EQUAL_THRESH(result.spec().get_float_attribute("FLIP:maxerror"),
+                            0.0f, 1.0e-5f);
+
+    // FLIP_diff(black, white) should produce a nonzero error map in [0,1].
+    ImageBuf black(spec), white(spec);
+    ImageBufAlgo::fill(black, { 0.0f, 0.0f, 0.0f });
+    ImageBufAlgo::fill(white, { 1.0f, 1.0f, 1.0f });
+    ImageBuf bw = ImageBufAlgo::experimental::FLIP_diff(black, white);
+    OIIO_CHECK_ASSERT(!bw.has_error());
+    OIIO_CHECK_EQUAL(bw.nchannels(), 1);
+    // Max error should be positive and in range [0,1].
+    float maxerror  = bw.spec().get_float_attribute("FLIP:maxerror");
+    float meanerror = bw.spec().get_float_attribute("FLIP:meanerror");
+    OIIO_CHECK_EQUAL(maxerror, ImageBufAlgo::computePixelStats(bw).max[0]);
+    OIIO_CHECK_ASSERT(maxerror > 0.0);
+    OIIO_CHECK_ASSERT(meanerror > 0.0);
+    OIIO_CHECK_ASSERT(maxerror <= 1.0);
+
+    // Test FLIP_ppd helper.
+    float ppd = ImageBufAlgo::experimental::FLIP_ppd(0.7f, 3840.0f, 0.7f);
+    OIIO_CHECK_ASSERT(ppd > 60.0f && ppd < 80.0f);
+
+    // Benchmarking
+    Benchmarker bench;
+    bench.trials(ntrials);
+    bench.iterations(iterations);
+#if defined(NDEBUG) || !defined(OIIO_CI)
+    const int xres = 4096, yres = 2160;
+#else
+    // Only for debug builds that are part of OIIO's CI - reduce resolution to
+    // make it run faster
+    const int xres = 4096 / 2, yres = 2160 / 2;
+#endif
+    ImageSpec bigspec(xres, yres, 3, TypeFloat);
+    ImageBuf ramp  = ImageBufAlgo::fill({ 0.0f, 0.0f, 0.0f },
+                                        { 1.0f, 0.0f, 0.0f },
+                                        { 0.0f, 1.0f, 0.0f },
+                                        { 0.0f, 0.0f, 1.0f }, bigspec.roi());
+    ImageBuf noisy = ramp;
+    ImageBufAlgo::noise(noisy, "gaussian", 0.0, 0.001f);
+    ImageBuf flipresult(ImageSpec(xres, yres, 1, TypeFloat));
+    bench(Strutil::format("FLIP_diff() LDR {}", xres), [&]() {
+        auto buf OIIO_MAYBE_UNUSED
+            = ImageBufAlgo::experimental::FLIP_diff(flipresult, noisy, ramp,
+                                                    { { "hdr", 0 } });
+    });
+    bench(Strutil::format("FLIP_diff() HDR {}", xres), [&]() {
+        auto buf OIIO_MAYBE_UNUSED
+            = ImageBufAlgo::experimental::FLIP_diff(flipresult, noisy, ramp,
+                                                    { { "hdr", 1 } });
+    });
+}
+
+
+
 // Raw function to reverse channels
 bool
 chan_reverse(span<float> d, cspan<float> s)
@@ -1754,6 +1821,7 @@ main(int argc, char** argv)
     test_opencv();
     test_color_management();
     test_yee();
+    test_FLIP();
     test_demosaic();
     test_simple_perpixel<float>();
     test_simple_perpixel<half>();

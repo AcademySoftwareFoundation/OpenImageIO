@@ -1320,6 +1320,59 @@ IBA_compare_Yee(const ImageBuf& A, const ImageBuf& B,
 
 
 
+// FLIP_diff wrappers: two overloads matching the C++ API.
+// Stats are returned as metadata attributes on the result ImageBuf:
+//   "FLIP:meanerror", "FLIP:maxerror", "FLIP:maxx", "FLIP:maxy",
+//   "FLIP:startExposure", "FLIP:stopExposure", "FLIP:numExposures".
+
+static ImageBuf
+IBA_FLIP_diff_ret(const ImageBuf& ref, const ImageBuf& test, int hdr = 1,
+                  float maxluminance = 2.0f, float medianluminance = 0.18f,
+                  float ppd = 0.0f, const std::string& tonemapper = "aces",
+                  ROI roi = ROI::All(), int nthreads = 0)
+{
+    ParamValueList opts;
+    opts["hdr"]             = hdr;
+    opts["tonemapper"]      = tonemapper;
+    opts["maxluminance"]    = maxluminance;
+    opts["medianluminance"] = medianluminance;
+    if (ppd > 0.0f)
+        opts["ppd"] = ppd;
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::experimental::FLIP_diff(ref, test, opts, roi,
+                                                 nthreads);
+}
+
+static bool
+IBA_FLIP_diff(ImageBuf& dst, const ImageBuf& ref, const ImageBuf& test,
+              int hdr = 1, float maxluminance = 2.0f,
+              float medianluminance = 0.18f, float ppd = 0.0f,
+              const std::string& tonemapper = "aces", ROI roi = ROI::All(),
+              int nthreads = 0)
+{
+    ParamValueList opts;
+    opts["hdr"]             = hdr;
+    opts["tonemapper"]      = tonemapper;
+    opts["maxluminance"]    = maxluminance;
+    opts["medianluminance"] = medianluminance;
+    if (ppd > 0.0f)
+        opts["ppd"] = ppd;
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::experimental::FLIP_diff(dst, ref, test, opts, roi,
+                                                 nthreads);
+}
+
+float
+IBA_FLIP_ppd(float monitor_distance_m = 0.7f, float screen_width_px = 3840.0f,
+             float screen_width_m = 0.7f)
+{
+    return ImageBufAlgo::experimental::FLIP_ppd(monitor_distance_m,
+                                                screen_width_px,
+                                                screen_width_m);
+}
+
+
+
 std::string
 IBA_computePixelHashSHA1(const ImageBuf& src, const std::string& extrainfo,
                          ROI roi = ROI::All(), int blocksize = 0,
@@ -2947,6 +3000,19 @@ declare_imagebufalgo(py::module& m)
         .def_static("compare_Yee", &IBA_compare_Yee, "A"_a, "B"_a, "result"_a,
                     "luminance"_a = 100, "fov"_a = 45, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
+
+        .def_static("FLIP_diff", &IBA_FLIP_diff_ret, "ref"_a, "test"_a,
+                    "hdr"_a = 1, "maxluminance"_a = 2.0f,
+                    "medianluminance"_a = 0.18f, "ppd"_a = 0.0f,
+                    "tonemapper"_a = "aces", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+        .def_static("FLIP_diff", &IBA_FLIP_diff, "dst"_a, "ref"_a, "test"_a,
+                    "hdr"_a = 1, "maxluminance"_a = 2.0f,
+                    "medianluminance"_a = 0.18f, "ppd"_a = 0.0f,
+                    "tonemapper"_a = "aces", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+        .def_static("FLIP_ppd", &IBA_FLIP_ppd, "monitor_distance_m"_a = 0.7f,
+                    "screen_width_px"_a = 3840.0f, "screen_width_m"_a = 0.7f)
 
         .def_static("isConstantColor", &IBA_isConstantColor, "src"_a,
                     "threshold"_a = 0.0f, "roi"_a = ROI::All(),
