@@ -40,3 +40,5 @@ These exist only under `src/python/` today; there are **no** corresponding `py_*
 ## Conventions
 
 When adding coverage, prefer mirroring the existing `declare_*` split in `src/python/` unless a file becomes too large.
+
+Extend **testsuite** coverage for any migrated code that is not already covered, so **parity with pybind11** is demonstrated rather than only claimed. Follow the existing `testsuite/python-*` scripts and `ref/out.txt` pattern where applicable.
