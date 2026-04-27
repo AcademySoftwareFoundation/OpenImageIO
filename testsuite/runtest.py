@@ -77,8 +77,8 @@ os.putenv('OIIO_TESTSUITE_IMAGEDIR', OIIO_TESTSUITE_IMAGEDIR)
 refdir = "ref/"
 refdirlist = [ refdir ]
 mytest = os.path.split(os.path.abspath(os.getcwd()))[-1]
-if str(mytest).endswith('.batch') :
-    mytest = mytest.split('.')[0]
+if str(mytest).endswith('.batch') or str(mytest).endswith('.nanobind') :
+    mytest = mytest.rsplit('.', 1)[0]
 test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
                             os.path.join(OIIO_TESTSUITE_ROOT, mytest))
 

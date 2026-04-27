@@ -8,6 +8,31 @@ set (PYTHON_VERSION "" CACHE STRING "Target version of python to find")
 option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library" OFF)
 option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'" OFF)
 set (PYMODULE_SUFFIX "" CACHE STRING "Suffix to add to Python module init namespace")
+set (OIIO_PYTHON_BINDINGS_BACKEND "pybind11" CACHE STRING
+     "Which Python binding backend(s) to build: pybind11, nanobind, or both")
+set_property (CACHE OIIO_PYTHON_BINDINGS_BACKEND PROPERTY STRINGS
+              pybind11 nanobind both)
+
+# Normalize and validate the user-facing backend selector early so the rest
+# of the file can make simple boolean decisions.
+string (TOLOWER "${OIIO_PYTHON_BINDINGS_BACKEND}" OIIO_PYTHON_BINDINGS_BACKEND)
+if (NOT OIIO_PYTHON_BINDINGS_BACKEND MATCHES "^(pybind11|nanobind|both)$")
+    message (FATAL_ERROR
+             "OIIO_PYTHON_BINDINGS_BACKEND must be one of: pybind11, nanobind, both")
+endif ()
+
+# Derive internal switches used by the top-level CMakeLists and the Python
+# helper macros below.
+set (OIIO_BUILD_PYTHON_PYBIND11 OFF)
+set (OIIO_BUILD_PYTHON_NANOBIND OFF)
+if (OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "pybind11"
+        OR OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "both")
+    set (OIIO_BUILD_PYTHON_PYBIND11 ON)
+endif ()
+if (OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "nanobind"
+        OR OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "both")
+    set (OIIO_BUILD_PYTHON_NANOBIND ON)
+endif ()
 if (WIN32)
     set (PYLIB_LIB_TYPE SHARED CACHE STRING "Type of library to build for python module (MODULE or SHARED)")
 else ()
@@ -54,6 +79,15 @@ macro (find_python)
                                 Python3_Development.Module_FOUND
                                 Python3_Interpreter_FOUND )
 
+    if (OIIO_BUILD_PYTHON_NANOBIND)
+        # nanobind's CMake package expects the generic FindPython targets and
+        # variables (Python::Module, Python_EXECUTABLE, etc.), not the
+        # versioned Python3::* targets that the rest of OIIO uses today.
+        find_package (Python ${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}
+                      EXACT REQUIRED
+                      COMPONENTS ${_py_components})
+    endif ()
+
     # The version that was found may not be the default or user
     # defined one.
     set (PYTHON_VERSION_FOUND ${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR})
@@ -63,12 +97,41 @@ macro (find_python)
     set (PythonInterp3_FIND_VERSION PYTHON_VERSION_FOUND)
     set (PythonInterp3_FIND_VERSION_MAJOR ${Python3_VERSION_MAJOR})
 
+    if (NOT DEFINED PYTHON_SITE_ROOT_DIR)
+        set (PYTHON_SITE_ROOT_DIR
+             "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_FOUND}/site-packages")
+    endif ()
     if (NOT DEFINED PYTHON_SITE_DIR)
-        set (PYTHON_SITE_DIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_FOUND}/site-packages/OpenImageIO")
+        set (PYTHON_SITE_DIR "${PYTHON_SITE_ROOT_DIR}/OpenImageIO")
     endif ()
     message (VERBOSE "    Python site packages dir ${PYTHON_SITE_DIR}")
+    message (VERBOSE "    Python site packages root ${PYTHON_SITE_ROOT_DIR}")
     message (VERBOSE "    Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
     message (VERBOSE "    Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
+endmacro()
+
+
+# Help CMake locate nanobind when it was installed as a Python package.
+macro (discover_nanobind_cmake_dir)
+    if (nanobind_DIR OR nanobind_ROOT OR "$ENV{nanobind_DIR}" OR "$ENV{nanobind_ROOT}")
+        return()
+    endif ()
+
+    if (NOT Python3_Interpreter_FOUND)
+        return()
+    endif ()
+
+    execute_process (
+        COMMAND ${Python3_EXECUTABLE} -m nanobind --cmake_dir
+        RESULT_VARIABLE _oiio_nanobind_result
+        OUTPUT_VARIABLE _oiio_nanobind_cmake_dir
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
+    if (_oiio_nanobind_result EQUAL 0
+            AND EXISTS "${_oiio_nanobind_cmake_dir}/nanobind-config.cmake")
+        set (nanobind_DIR "${_oiio_nanobind_cmake_dir}" CACHE PATH
+             "Path to the nanobind CMake package" FORCE)
+    endif ()
 endmacro()
 
 
@@ -163,3 +226,62 @@ macro (setup_python_module)
 
 endmacro ()
 
+
+###########################################################################
+# nanobind
+
+macro (setup_python_module_nanobind)
+    cmake_parse_arguments (lib "" "TARGET;MODULE"
+                           "SOURCES;LIBS;INCLUDES;SYSTEM_INCLUDE_DIRS;PACKAGE_FILES"
+                           ${ARGN})
+
+    set (target_name ${lib_TARGET})
+
+    if (NOT COMMAND nanobind_add_module)
+        discover_nanobind_cmake_dir()
+        find_package (nanobind CONFIG REQUIRED)
+    endif ()
+
+    nanobind_add_module(${target_name} ${lib_SOURCES})
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND TARGET nanobind-static)
+        target_compile_options (nanobind-static PRIVATE -Wno-error=format-nonliteral)
+    endif ()
+
+    target_include_directories (${target_name}
+                                PRIVATE ${lib_INCLUDES})
+    target_include_directories (${target_name}
+                                SYSTEM PRIVATE ${lib_SYSTEM_INCLUDE_DIRS})
+    target_link_libraries (${target_name}
+                           PRIVATE ${lib_LIBS})
+
+    set (_module_LINK_FLAGS "${VISIBILITY_MAP_COMMAND} ${EXTRA_DSO_LINK_ARGS}")
+    if (UNIX AND NOT APPLE)
+        set (_module_LINK_FLAGS "${_module_LINK_FLAGS} -Wl,--exclude-libs,ALL")
+    endif ()
+    set_target_properties (${target_name} PROPERTIES
+                           LINK_FLAGS ${_module_LINK_FLAGS}
+                           OUTPUT_NAME ${lib_MODULE}
+                           DEBUG_POSTFIX "")
+
+    if (SKBUILD)
+        set (_nanobind_install_dir .)
+    else ()
+        set (_nanobind_install_dir ${PYTHON_SITE_DIR})
+    endif ()
+
+    # Keep nanobind modules isolated in the build tree so they don't alter
+    # how the existing top-level OpenImageIO module is imported during tests.
+    set_target_properties (${target_name} PROPERTIES
+            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/nanobind/OpenImageIO
+            ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/nanobind/OpenImageIO
+            )
+
+    install (TARGETS ${target_name}
+             RUNTIME DESTINATION ${_nanobind_install_dir} COMPONENT user
+             LIBRARY DESTINATION ${_nanobind_install_dir} COMPONENT user)
+
+    if (lib_PACKAGE_FILES)
+        install (FILES ${lib_PACKAGE_FILES}
+                 DESTINATION ${_nanobind_install_dir} COMPONENT user)
+    endif ()
+endmacro ()

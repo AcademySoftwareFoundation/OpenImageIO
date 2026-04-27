@@ -1,0 +1,44 @@
+# Nanobind migration status (vs `src/python` pybind11)
+
+Generated from the binding sources. The nanobind extension is `PyOpenImageIONanobind` / module `_OpenImageIO` (see `CMakeLists.txt`).
+
+## Migrated — full parity with pybind for the bound surface
+
+| Python / C++ surface | Source file(s) |
+| --- | --- |
+| <code>TypeDesc</code><br>Enums:<br><ul><li><code>BASETYPE</code></li><li><code>AGGREGATE</code></li><li><code>VECSEMANTICS</code></li></ul> Module <code>Type*</code> constants | `py_typedesc.cpp` |
+| Types:<br><ul><li><code>ParamValue</code></li><li><code>ParamValueList</code></li></ul><br>Enums:<br><ul><li><code>Interp</code></li></ul> | `py_paramvalue.cpp` |
+| <code>ROI</code><br>Free functions:<br><ul><li><code>union</code></li><li><code>intersection</code></li><li><code>get_roi</code></li><li><code>get_roi_full</code></li><li><code>set_roi</code></li><li><code>set_roi_full</code></li></ul> | `py_roi.cpp` |
+| <ul><li><code>ImageSpec</code></li></ul> | `py_imagespec.cpp` |
+
+## Migrated — partial (gaps vs pybind)
+
+| File (scope) | Has been migrated | Missing / gap |
+| --- | --- | --- |
+| `py_oiio.cpp` (`_OpenImageIO` module) | <ul><li><code>attribute</code> (one-arg and typed)</li><li><code>get_int_attribute</code></li><li><code>get_float_attribute</code></li><li><code>get_string_attribute</code></li><li><code>getattribute</code></li><li><code>__version__</code></li></ul> | <ul><li><code>geterror</code></li><li><code>get_bytes_attribute</code></li><li>Module <code>set_colorspace</code> (helper taking <code>ImageSpec</code> — the instance method is on <code>ImageSpec</code> in nanobind)</li><li><code>set_colorspace_rec709_gamma</code></li><li><code>equivalent_colorspace</code></li><li><code>is_imageio_format_name</code></li><li><code>AutoStride</code></li><li><code>openimageio_version</code>, <code>VERSION</code>, <code>VERSION_STRING</code>, <code>VERSION_MAJOR</code>, <code>VERSION_MINOR</code>, <code>VERSION_PATCH</code>, <code>INTRO_STRING</code></li><li>Optional: stack traces when <code>OPENIMAGEIO_DEBUG_PYTHON</code> is set (<code>Sysutil</code>)</li></ul> |
+| `py_paramvalue.cpp` (`ParamValue` / `ParamValueList`) | <code>ParamValue</code> / <code>ParamValueList</code> match pybind for the rest of the surface. | <code>paramvalue_from_pyobject</code>: no pybind-style path for <code>UINT8</code> + <code>bytes</code> with <code>type.arraylen</code> (incl. inferred length from <code>bytes</code> size). |
+| `py_oiio.cpp` + `py_typedesc.cpp` (`TypeDesc`, buffer typing) | <code>TypeDesc</code> and shared helpers used for attributes. | Helper <code>typedesc_from_python_array_code</code>: pybind maps <code>l</code>→INT64, <code>L</code>→UINT64; nanobind maps <code>l</code>/<code>i</code>→INT, <code>L</code>/<code>I</code>→UINT. Affects buffer/array attribute code paths, not <code>TypeDesc("...")</code> strings. |
+| `__init__.py` (package) | Env / DLL path setup, <code>from ._OpenImageIO import *</code>, version docstring. | <strong>TODO:</strong> Python CLI entry-point trampolines when the install layout matches the full wheel. |
+
+---
+
+## Not migrated — entire pybind modules
+
+These exist only under `src/python/` today; there are **no** corresponding `py_*.cpp` files in `src/python-nanobind/`.
+
+| pybind file | Main Python types / API |
+| --- | --- |
+| `py_imageinput.cpp` | <ul><li><code>ImageInput</code></li><li>open, read, formats, …</li></ul> |
+| `py_imageoutput.cpp` | <code>ImageOutput</code> |
+| `py_imagebuf.cpp` | <code>ImageBuf</code> |
+| `py_imagebufalgo.cpp` | <ul><li><code>ImageBufAlgo</code> (namespace)</li><li><code>PixelStats</code></li><li><code>CompareResults</code></li><li>Exposed <code>IBA_*</code> helpers</li></ul> |
+| `py_texturesys.cpp` | <ul><li><code>Wrap</code></li><li><code>MipMode</code></li><li><code>InterpMode</code></li><li><code>TextureOpt</code></li><li><code>TextureSystem</code></li></ul> |
+| `py_imagecache.cpp` | <code>ImageCache</code> (wrapped) |
+| `py_colorconfig.cpp` | <code>ColorConfig</code> |
+| `py_deepdata.cpp` | <code>DeepData</code> |
+
+---
+
+## Conventions
+
+When adding coverage, prefer mirroring the existing `declare_*` split in `src/python/` unless a file becomes too large.
