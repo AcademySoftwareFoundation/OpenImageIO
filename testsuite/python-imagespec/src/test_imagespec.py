@@ -109,6 +109,9 @@ try:
     print ("get_string_attribute('foo_str') retrieves", s.get_string_attribute ("foo_str"))
     print ("get_string_attribute('foo_str_no') retrieves", s.get_string_attribute ("foo_str_no"))
     print ("get_string_attribute('foo_str_no','xx') retrieves", s.get_string_attribute ("foo_str_no", "xx"))
+    gb = s.get_bytes_attribute ("foo_str", "")
+    print ("get_bytes_attribute('foo_str') type is bytes:", isinstance (gb, bytes))
+    print ("get_bytes_attribute('foo_str') == foo_str bytes:", gb == b"blah")
     print ()
     print ("getattribute('foo_int') retrieves", s.getattribute("foo_int"))
     print ("getattribute('foo_float') retrieves", s.getattribute("foo_float"))
@@ -151,6 +154,28 @@ try:
     print (s.serialize("xml"))
     print ("serialize(text, human):")
     print (s.serialize("text", "detailedhuman"))
+    print ()
+
+    repl = oiio.ParamValueList ()
+    repl.attribute ("replaced", "yes")
+    s.extra_attribs = repl
+    print ("after extra_attribs assignment, len =", len (s.extra_attribs))
+    print ("  replaced =", s.get_string_attribute ("replaced", ""))
+
+    xml = s.to_xml ()
+    print ("to_xml starts with <ImageSpec:", xml.strip().startswith ("<ImageSpec"))
+    s2 = oiio.ImageSpec()
+    s2.from_xml (xml)
+    print ("from_xml preserved replaced:", s2.get_string_attribute ("replaced", ""))
+
+    print ("valid_tile_range aligned:", s.valid_tile_range (1, 641, 2, 482, 3, 4))
+    print ("valid_tile_range misaligned:", s.valid_tile_range (2, 640, 2, 480, 3, 4))
+
+    dimsrc = oiio.ImageSpec (11, 22, 1, oiio.HALF)
+    s3 = oiio.ImageSpec()
+    s3.attribute ("keep_me", "still_here")
+    s3.copy_dimensions (dimsrc)
+    print ("copy_dimensions:", s3.width, s3.height, s3.format, "keep_me =", s3.get_string_attribute ("keep_me", ""))
     print ()
 
     s.attribute("dog", "Spot")
