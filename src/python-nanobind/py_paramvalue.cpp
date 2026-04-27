@@ -98,15 +98,15 @@ paramvalue_from_pyobject(string_view name, TypeDesc type, int nvalues,
         }
     } else if (type.basetype == TypeDesc::UINT8 && type.arraylen
                && nb::isinstance<nb::bytes>(obj)) {
-        TypeDesc t     = type;
-        nb::bytes b    = nb::cast<nb::bytes>(obj);
+        TypeDesc t  = type;
+        nb::bytes b = nb::cast<nb::bytes>(obj);
         const std::string s(b.c_str(), b.size());
         if (t.arraylen < 0)
             t.arraylen = static_cast<int>(s.size()) / nvalues;
         if (t.arraylen * nvalues == static_cast<int>(s.size())) {
-            std::vector<uint8_t> vals(
-                reinterpret_cast<const uint8_t*>(s.data()),
-                reinterpret_cast<const uint8_t*>(s.data()) + s.size());
+            std::vector<uint8_t> vals(reinterpret_cast<const uint8_t*>(s.data()),
+                                      reinterpret_cast<const uint8_t*>(s.data())
+                                          + s.size());
             pv.init(name, t, nvalues, interp, vals.data());
         }
     } else if (type.basetype == TypeDesc::UINT8) {
