@@ -21,6 +21,22 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
 
+# Build a single ENVIRONMENT list entry "PYTHONPATH=..." for CTest. Prepends
+# prefix_dir to the value CMake saw in $ENV{PYTHONPATH} at configure time (so
+# local PYTHONPATH is preserved when it was set for the cmake run).
+function (oiio_tests_pythonpath_env_entry out_var prefix_dir)
+    if (WIN32)
+        set (_separator ";")
+    else ()
+        set (_separator ":")
+    endif ()
+    set (_pythonpath "${prefix_dir}")
+    if (DEFINED ENV{PYTHONPATH} AND NOT "$ENV{PYTHONPATH}" STREQUAL "")
+        set (_pythonpath "${prefix_dir}${_separator}$ENV{PYTHONPATH}")
+    endif ()
+    set (${out_var} "PYTHONPATH=${_pythonpath}" PARENT_SCOPE)
+endfunction ()
+
 
 # oiio_add_tests() - add a set of test cases.
 #
@@ -228,25 +244,49 @@ macro (oiio_add_all_tests)
     # Python interpreter itself won't be linked with the right asan
     # libraries to run correctly.
     if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE)
-        oiio_add_tests (
-            docs-examples-python
-            python-colorconfig
-            python-deep 
-            python-imagebuf
-            python-imagecache
-            python-imageoutput
-            python-imagespec
-            python-paramlist
-            python-roi
-            python-texturesys
-            python-typedesc
-            filters
-            )
-        # These Python tests also need access to oiio-images
-        oiio_add_tests (
-            python-imageinput python-imagebufalgo
-            IMAGEDIR oiio-images
-            )
+        oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
+            "${CMAKE_BINARY_DIR}/lib/python/site-packages")
+        oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
+            "${CMAKE_BINARY_DIR}/lib/python/nanobind")
+        set (nanobind_python_tests
+             python-imagespec
+             python-paramlist
+             python-roi
+             python-typedesc)
+        set (nanobind_python_test_suffix ".nanobind")
+        if (OIIO_BUILD_PYTHON_PYBIND11)
+            oiio_add_tests (
+                docs-examples-python
+                python-colorconfig
+                python-deep
+                python-imagebuf
+                python-imagecache
+                python-imageoutput
+                python-imagespec
+                python-paramlist
+                python-roi
+                python-texturesys
+                python-typedesc
+                filters
+                ENVIRONMENT "${_pybind_tests_pythonpath}"
+                )
+            # These Python tests also need access to oiio-images
+            oiio_add_tests (
+                python-imageinput python-imagebufalgo
+                IMAGEDIR oiio-images
+                ENVIRONMENT "${_pybind_tests_pythonpath}"
+                )
+        else ()
+            set (nanobind_python_test_suffix "")
+        endif ()
+
+        if (OIIO_BUILD_PYTHON_NANOBIND)
+            oiio_add_tests (
+                ${nanobind_python_tests}
+                SUFFIX ${nanobind_python_test_suffix}
+                ENVIRONMENT "${_nanobind_tests_pythonpath}"
+                )
+        endif ()
     endif ()
 
     oiio_add_tests (oiiotool-color
