@@ -8,6 +8,9 @@ Testing individual ParamValue:
   item g color (0.25, 0.5, 0.75)
   item ucarr uint8[10] [49 50 51  0  0 97 98 99  1 88]
   item bts uint8[10] [49 50 51  0  0 97 98 99  1 88]
+  item u8unsized uint8[10] [49 50 51 52 53 54 55 56 57 48]
+  item u8fix_n2 uint8[2] [ 97  98  99 100 101 102]
+  item u8var_n2 uint8[4] [49 50 51 52 53 54 55 56]
 
 Testing ParamValueList:
 pl length is 9
