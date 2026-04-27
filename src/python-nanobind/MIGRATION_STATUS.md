@@ -2,22 +2,20 @@
 
 Generated from the binding sources. The nanobind extension is `PyOpenImageIONanobind` / module `_OpenImageIO` (see `CMakeLists.txt`).
 
-## Migrated — full parity with pybind for the bound surface
+## Migrated — full parity with pybind (no known gaps for this surface)
 
 | Source file | Python / C++ API |
 | --- | --- |
-| `py_typedesc.cpp` | <code>TypeDesc</code><br>Enums:<br><ul><li><code>BASETYPE</code></li><li><code>AGGREGATE</code></li><li><code>VECSEMANTICS</code></li></ul> Module <code>Type*</code> constants |
-| `py_paramvalue.cpp` | Types:<br><ul><li><code>ParamValue</code></li><li><code>ParamValueList</code></li></ul><br>Enums:<br><ul><li><code>Interp</code></li></ul> |
 | `py_roi.cpp` | <code>ROI</code><br>Free functions:<br><ul><li><code>union</code></li><li><code>intersection</code></li><li><code>get_roi</code></li><li><code>get_roi_full</code></li><li><code>set_roi</code></li><li><code>set_roi_full</code></li></ul> |
-| `py_imagespec.cpp` | <ul><li><code>ImageSpec</code></li></ul> |
 
-## Migrated — partial (gaps vs pybind)
+## Migrated — partial (gaps or intentional deltas vs pybind)
 
-| Source file | Migrated (vs pybind) | Missing (vs pybind) |
+| Source file | Migrated (vs pybind) | Missing or divergent (vs pybind) |
 | --- | --- | --- |
-| `py_oiio.cpp` (`_OpenImageIO` module) | <ul><li><code>attribute</code> (one-arg and typed)</li><li><code>get_int_attribute</code></li><li><code>get_float_attribute</code></li><li><code>get_string_attribute</code></li><li><code>getattribute</code></li><li><code>__version__</code></li></ul> | <ul><li><code>geterror</code></li><li><code>get_bytes_attribute</code></li><li>Module <code>set_colorspace</code> (helper taking <code>ImageSpec</code> — the instance method is on <code>ImageSpec</code> in nanobind)</li><li><code>set_colorspace_rec709_gamma</code></li><li><code>equivalent_colorspace</code></li><li><code>is_imageio_format_name</code></li><li><code>AutoStride</code></li><li><code>openimageio_version</code>, <code>VERSION</code>, <code>VERSION_STRING</code>, <code>VERSION_MAJOR</code>, <code>VERSION_MINOR</code>, <code>VERSION_PATCH</code>, <code>INTRO_STRING</code></li><li>Optional: stack traces when <code>OPENIMAGEIO_DEBUG_PYTHON</code> is set (<code>Sysutil</code>)</li></ul> |
-| `py_paramvalue.cpp` (`ParamValue` / `ParamValueList`) | <code>ParamValue</code> / <code>ParamValueList</code> match pybind for the rest of the surface. | <code>paramvalue_from_pyobject</code>: no pybind-style path for <code>UINT8</code> + <code>bytes</code> with <code>type.arraylen</code> (incl. inferred length from <code>bytes</code> size). |
-| `py_oiio.cpp` + `py_typedesc.cpp` (`TypeDesc`, buffer typing) | <code>TypeDesc</code> and shared helpers used for attributes. | Helper <code>typedesc_from_python_array_code</code>: pybind maps <code>l</code>→INT64, <code>L</code>→UINT64; nanobind maps <code>l</code>/<code>i</code>→INT, <code>L</code>/<code>I</code>→UINT. Affects buffer/array attribute code paths, not <code>TypeDesc("...")</code> strings. |
+| `py_oiio.cpp` (`_OpenImageIO` module) | <ul><li><code>attribute</code> (one-arg and typed)</li><li><code>get_int_attribute</code></li><li><code>get_float_attribute</code></li><li><code>get_string_attribute</code></li><li><code>getattribute</code></li><li><code>__version__</code></li></ul> | <ul><li><code>geterror</code></li><li><code>get_bytes_attribute</code></li><li>Module <code>set_colorspace</code> (helper taking <code>ImageSpec</code> — the instance method is on <code>ImageSpec</code> in nanobind)</li><li><code>set_colorspace_rec709_gamma</code></li><li><code>equivalent_colorspace</code></li><li><code>is_imageio_format_name</code></li><li><code>AutoStride</code></li><li><code>openimageio_version</code>, <code>VERSION</code>, <code>VERSION_STRING</code>, <code>VERSION_MAJOR</code>, <code>VERSION_MINOR</code>, <code>VERSION_PATCH</code>, <code>INTRO_STRING</code></li><li>Optional: stack traces when <code>OPENIMAGEIO_DEBUG_PYTHON</code> is set (<code>Sysutil</code>)</li><li><code>make_pyobject</code>: no pybind-style <code>debugfmt</code> when the type is unhandled (returns default quietly)</li></ul> |
+| `py_typedesc.cpp` | <code>TypeDesc</code><br>Enums: <code>BASETYPE</code>, <code>AGGREGATE</code>, <code>VECSEMANTICS</code><br>Module <code>Type*</code> constants | Helper <code>typedesc_from_python_array_code</code> (used for buffer/array attribute values): pybind maps <code>l</code>→INT64, <code>L</code>→UINT64; nanobind maps <code>l</code>/<code>i</code>→INT, <code>L</code>/<code>I</code>→UINT. Does not affect <code>TypeDesc("...")</code> string construction. |
+| `py_paramvalue.cpp` | Types: <code>ParamValue</code>, <code>ParamValueList</code><br>Enum: <code>Interp</code><br>Rest of the bound surface matches pybind. | <code>paramvalue_from_pyobject</code>: no pybind-style path for <code>UINT8</code> + <code>bytes</code> with <code>type.arraylen</code> (incl. inferred length from <code>bytes</code> size). Typed attribute paths that rely on <code>typedesc_from_python_array_code</code> share the same buffer-format caveat as <code>py_typedesc.cpp</code>. |
+| `py_imagespec.cpp` | <code>ImageSpec</code> (bound methods/properties as implemented). | Typed <code>attribute</code> / buffer paths use shared helpers; same <code>typedesc_from_python_array_code</code> behavior as <code>py_typedesc.cpp</code>. |
 | `__init__.py` (package) | Env / DLL path setup, <code>from ._OpenImageIO import *</code>, version docstring. | <strong>TODO:</strong> Python CLI entry-point trampolines when the install layout matches the full wheel. |
 
 ---
