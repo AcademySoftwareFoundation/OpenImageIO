@@ -446,8 +446,7 @@ ColorConfig::Impl::inventory()
                     scene_linear_alias = lin->getName();
                 return;  // If any non-"raw" spaces were defined, we're done
             }
-        } catch (OCIO::Exception& e) {
-            error("Exception from OCIO: {}", e.what());
+        } catch (...) {
         }
     }
 
@@ -684,8 +683,7 @@ ColorConfig::Impl::classify_by_conversions(CSInfo& cs)
                 cs.setflag(CSInfo::is_ACEScg | CSInfo::is_linear_response,
                            ACEScg_alias);
             }
-        } catch (OCIO::Exception& e) {
-            error("Exception from OCIO: {}", e.what());
+        } catch (...) {
         }
     }
 
@@ -782,8 +780,7 @@ ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
     try {
         return OCIO::Config::IdentifyBuiltinColorSpace(config_, builtinconfig_,
                                                        name);
-    } catch (OCIO::Exception& e) {
-        error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return nullptr;
 }
@@ -952,8 +949,7 @@ ColorConfig::getColorSpaceFamilyByName(string_view name) const
                 std::string(name).c_str());
             if (c)
                 return c->getFamily();
-        } catch (OCIO::Exception& e) {
-            getImpl()->error("Exception from OCIO: {}", e.what());
+        } catch (...) {
         }
     }
     return nullptr;
@@ -986,8 +982,7 @@ ColorConfig::getRoleByIndex(int index) const
     try {
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getRoleName(index);
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return nullptr;
 }
@@ -1010,8 +1005,7 @@ ColorConfig::getNumLooks() const
     try {
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getNumLooks();
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return 0;
 }
@@ -1024,8 +1018,7 @@ ColorConfig::getLookNameByIndex(int index) const
     try {
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getLookNameByIndex(index);
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return nullptr;
 }
@@ -1060,8 +1053,7 @@ ColorConfig::Impl::isColorSpaceLinear(string_view name) const
                                                OCIO::REFERENCE_SPACE_SCENE)
                    || config_->isColorSpaceLinear(c_str(name),
                                                   OCIO::REFERENCE_SPACE_DISPLAY);
-        } catch (const std::exception& e) {
-            error("ColorConfig error: {}", e.what());
+        } catch (...) {
             return false;
         }
     }
@@ -1121,9 +1113,7 @@ ColorConfig::getColorSpaceNameByRole(string_view role) const
                 //                role);
                 return c->getName();
             }
-        } catch (OCIO::Exception& e) {
-            getImpl()->error("Exception from OCIO: {}", e.what());
-            return nullptr;
+        } catch (...) {
         }
     }
 
@@ -1132,7 +1122,7 @@ ColorConfig::getColorSpaceNameByRole(string_view role) const
         || Strutil::iequals(role, "scene_linear"))
         return "linear";
 
-    return NULL;  // Dunno what role
+    return nullptr;  // Dunno what role
 }
 
 
@@ -1168,8 +1158,7 @@ ColorConfig::getColorSpaceDataType(string_view name, int* bits) const
                 case OCIO::BIT_DEPTH_F32: *bits = 32; return TypeDesc::FLOAT;
                 }
             }
-        } catch (OCIO::Exception& e) {
-            getImpl()->error("Exception from OCIO: {}", e.what());
+        } catch (...) {
         }
     }
     return TypeUnknown;
@@ -1183,8 +1172,7 @@ ColorConfig::getNumDisplays() const
     try {
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getNumDisplays();
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return 0;
 }
@@ -1197,8 +1185,7 @@ ColorConfig::getDisplayNameByIndex(int index) const
     try {
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getDisplay(index);
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return nullptr;
 }
@@ -1225,8 +1212,7 @@ ColorConfig::getNumViews(string_view display) const
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getNumViews(
                 std::string(display).c_str());
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return 0;
 }
@@ -1242,8 +1228,7 @@ ColorConfig::getViewNameByIndex(string_view display, int index) const
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getView(std::string(display).c_str(),
                                                index);
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return nullptr;
 }
@@ -1269,8 +1254,7 @@ ColorConfig::getDefaultDisplayName() const
     try {
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getDefaultDisplay();
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return nullptr;
 }
@@ -1285,8 +1269,7 @@ ColorConfig::getDefaultViewName(string_view display) const
     try {
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getDefaultView(c_str(display));
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return nullptr;
 }
@@ -1305,8 +1288,7 @@ ColorConfig::getDefaultViewName(string_view display,
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getDefaultView(c_str(display),
                                                       c_str(inputColorSpace));
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return nullptr;
 }
@@ -1324,8 +1306,7 @@ ColorConfig::getDisplayViewColorSpaceName(const std::string& display,
             if (strcmp(c_str(name), "<USE_DISPLAY_NAME>") == 0)
                 name = display;
             return c_str(name);
-        } catch (OCIO::Exception& e) {
-            getImpl()->error("Exception from OCIO: {}", e.what());
+        } catch (...) {
         }
     }
     return nullptr;
@@ -1341,8 +1322,7 @@ ColorConfig::getDisplayViewLooks(const std::string& display,
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getDisplayViewLooks(display.c_str(),
                                                            view.c_str());
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return nullptr;
 }
@@ -1355,8 +1335,7 @@ ColorConfig::getNumNamedTransforms() const
     try {
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getNumNamedTransforms();
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return 0;
 }
@@ -1369,8 +1348,7 @@ ColorConfig::getNamedTransformNameByIndex(int index) const
     try {
         if (getImpl()->config_ && !disable_ocio)
             return getImpl()->config_->getNamedTransformNameByIndex(index);
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return nullptr;
 }
@@ -1432,8 +1410,7 @@ ColorConfig::Impl::resolve(string_view name) const
             OCIO::ConstColorSpaceRcPtr cs = config->getColorSpace(c_str(name));
             if (cs)
                 return cs->getName();
-        } catch (OCIO::Exception& e) {
-            error("Exception from OCIO: {}", e.what());
+        } catch (...) {
         }
     }
     // OCIO did not know this name as a color space, role, or alias.
@@ -1559,7 +1536,9 @@ public:
                                       chanstride, xstride, ystride);
             m_cpuproc->apply(pid);
         } catch (OCIO::Exception& e) {
-            OIIO::print("OCIO error in apply: {}\n", e.what());
+            OIIO::errorfmt("OCIO error in apply: {}\n", e.what());
+            // FIXME -- some day, we should make ColorProcessor::apply return
+            // a status, and we should indicate here that it failed.
         }
     }
 
@@ -2032,8 +2011,7 @@ ColorConfig::getColorSpaceFromFilepath(string_view str) const
             string_view r = getImpl()->config_->getColorSpaceFromFilepath(
                 s.c_str());
             return r;
-        } catch (OCIO::Exception& e) {
-            getImpl()->error("Exception from OCIO: {}", e.what());
+        } catch (...) {
         }
     }
     // Fall back on parseColorSpaceFromString
@@ -2051,8 +2029,7 @@ ColorConfig::getColorSpaceFromFilepath(string_view str, string_view default_cs,
                 s.c_str());
             if (!getImpl()->config_->filepathOnlyMatchesDefaultRule(s.c_str()))
                 return r;
-        } catch (OCIO::Exception& e) {
-            getImpl()->error("Exception from OCIO: {}", e.what());
+        } catch (...) {
         }
     }
     if (cs_name_match) {
@@ -2068,8 +2045,7 @@ ColorConfig::filepathOnlyMatchesDefaultRule(string_view str) const
 {
     try {
         return getImpl()->config_->filepathOnlyMatchesDefaultRule(c_str(str));
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("Exception from OCIO: {}", e.what());
+    } catch (...) {
     }
     return false;
 }
@@ -2248,8 +2224,8 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
                 std::string(resolve(colorspace)).c_str());
             if (c)
                 interop_id = c->getInteropID();
-        } catch (OCIO::Exception& e) {
-            getImpl()->error("Exception from OCIO: {}", e.what());
+        } catch (...) {
+            interop_id = nullptr;
         }
         if (interop_id) {
             return interop_id;
