@@ -409,7 +409,13 @@ time_get_pixels()
     bench.trials(ntrials);
     bench.iterations(iterations);
     const int nchans = 4;
+#if defined(NDEBUG) || !defined(OIIO_CI)
     const int xres = 2000, yres = 1000;
+#else
+    // Only for debug builds that are part of OIIO's CI - reduce resolution to
+    // make it run faster
+    const int xres = 1000, yres = 500;
+#endif
     ImageBuf A(ImageSpec(xres, yres, nchans, TypeDesc::FLOAT));
     ImageBufAlgo::zero(A);
 
@@ -609,7 +615,14 @@ void
 time_iterators()
 {
     print("Timing iterator operations:\n");
+
+#if defined(NDEBUG) || !defined(OIIO_CI)
     const int rez = 4096, nchans = 4;
+#else
+    // Only for debug builds that are part of OIIO's CI - reduce resolution to
+    // make it run faster
+    const int rez = 1024, nchans = 4;
+#endif
     ImageSpec spec(rez, rez, nchans, TypeFloat);
     ImageBuf img(spec);
     ImageBufAlgo::fill(img, { 0.25f, 0.5f, 0.75f, 1.0f });
