@@ -247,4 +247,6 @@ type 'TypeURational'
 type 'TypeUInt'
     c_str "uint"
 
+Passed: array('l')+int[2] does not mis-read int64 as two 32-bit ints (matches pybind)
+
 Done.

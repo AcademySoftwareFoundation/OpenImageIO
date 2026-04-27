@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import array
 import OpenImageIO as oiio
 
 
@@ -213,6 +214,29 @@ try:
     breakdown_test (oiio.TypeURational, "TypeURational", verbose=False)
     breakdown_test (oiio.TypeUInt,      "TypeUInt",      verbose=False)
     print ("")
+
+    # 8-byte array('l'): PEP 3118 'l' must not be treated as 32-bit int when
+    # copying into int[2], or the first 8 bytes are split into (low32, high32)
+    # and the attribute can read as (1, 0) for values [1, 2] (see
+    # typedesc_from_python_array_code in py_oiio.cpp). Where C long is
+    # 4 bytes, the check below is skipped; the final message is unchanged so
+    # reference output is stable across platforms.
+    _passed_msg = (
+        "Passed: array('l')+int[2] does not mis-read int64 as two 32-bit ints (matches pybind)"
+    )
+    if array.array("l", [0]).itemsize == 8:
+        b = array.array("l", [1, 2])
+        spec = oiio.ImageSpec()
+        spec.attribute("regression_k", oiio.TypeDesc("int[2]"), memoryview(b))
+        v = spec.get("regression_k", None)
+        if v is not None and tuple(v) == (1, 0):
+            print(
+                "Failed: array('l')+int[2] mis-stored (1,0) — 'l' must not be INT32-typed in buffer code"
+            )
+        else:
+            print(_passed_msg)
+    else:
+        print(_passed_msg)
 
     print ("Done.")
 except Exception as detail:

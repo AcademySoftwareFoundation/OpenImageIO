@@ -59,10 +59,14 @@ typedesc_from_python_array_code(string_view code)
         return TypeDesc::INT16;
     if (code == "H")
         return TypeDesc::UINT16;
-    if (code == "i" || code == "l")
+    if (code == "i")
         return TypeDesc::INT;
-    if (code == "I" || code == "L")
+    if (code == "I")
         return TypeDesc::UINT;
+    if (code == "l")
+        return TypeDesc::INT64;
+    if (code == "L")
+        return TypeDesc::UINT64;
     if (code == "q")
         return TypeDesc::INT64;
     if (code == "Q")
