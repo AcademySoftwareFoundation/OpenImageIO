@@ -21,6 +21,22 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
 
+# Build a single ENVIRONMENT list entry "PYTHONPATH=..." for CTest. Prepends
+# prefix_dir to the value CMake saw in $ENV{PYTHONPATH} at configure time (so
+# local PYTHONPATH is preserved when it was set for the cmake run).
+function (oiio_tests_pythonpath_env_entry out_var prefix_dir)
+    if (WIN32)
+        set (_separator ";")
+    else ()
+        set (_separator ":")
+    endif ()
+    set (_pythonpath "${prefix_dir}")
+    if (DEFINED ENV{PYTHONPATH} AND NOT "$ENV{PYTHONPATH}" STREQUAL "")
+        set (_pythonpath "${prefix_dir}${_separator}$ENV{PYTHONPATH}")
+    endif ()
+    set (${out_var} "PYTHONPATH=${_pythonpath}" PARENT_SCOPE)
+endfunction ()
+
 
 # oiio_add_tests() - add a set of test cases.
 #
@@ -33,7 +49,6 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
 #                    [ DISABLEVAR variable_name ... ]
 #                    [ SUFFIX suffix ]
 #                    [ ENVIRONMENT "VAR=value" ... ]
-#                    [ ENVIRONMENT_MODIFICATION "VAR=op:value" ... ]
 #                  )
 #
 # The optional argument IMAGEDIR is used to check whether external test images
@@ -56,12 +71,8 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
 # The optional ENVIRONMENT is a list of environment variables to set for the
 # test.
 #
-# The optional ENVIRONMENT_MODIFICATION is a list of environment variable
-# modifications in the format accepted by the CTest ENVIRONMENT_MODIFICATION
-# property.
-#
 macro (oiio_add_tests)
-    cmake_parse_arguments (_ats "" "SUFFIX;TESTNAME" "URL;IMAGEDIR;LABEL;FOUNDVAR;ENABLEVAR;DISABLEVAR;ENVIRONMENT;ENVIRONMENT_MODIFICATION" ${ARGN})
+    cmake_parse_arguments (_ats "" "SUFFIX;TESTNAME" "URL;IMAGEDIR;LABEL;FOUNDVAR;ENABLEVAR;DISABLEVAR;ENVIRONMENT" ${ARGN})
        # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
     set (_ats_testdir "${OIIO_TESTSUITE_IMAGEDIR}/${_ats_IMAGEDIR}")
     # If there was a FOUNDVAR param specified and that variable name is
@@ -136,11 +147,6 @@ macro (oiio_add_tests)
                              "OIIO_TESTSUITE_CUR=${_testdir}"
                              "Python_EXECUTABLE=${Python3_EXECUTABLE}"
                              ${_ats_ENVIRONMENT})
-            if (_ats_ENVIRONMENT_MODIFICATION)
-                set_property(TEST ${_testname} APPEND PROPERTY
-                             ENVIRONMENT_MODIFICATION
-                             ${_ats_ENVIRONMENT_MODIFICATION})
-            endif ()
             if (NOT ${_ats_testdir} STREQUAL "")
                 set_property(TEST ${_testname} APPEND PROPERTY ENVIRONMENT
                              "OIIO_TESTSUITE_IMAGEDIR=${_ats_testdir}")
@@ -238,8 +244,10 @@ macro (oiio_add_all_tests)
     # Python interpreter itself won't be linked with the right asan
     # libraries to run correctly.
     if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE)
-        set (pybind11_python_path_mod
-             "PYTHONPATH=path_list_prepend:${CMAKE_BINARY_DIR}/lib/python/site-packages")
+        oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
+            "${CMAKE_BINARY_DIR}/lib/python/site-packages")
+        oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
+            "${CMAKE_BINARY_DIR}/lib/python/nanobind")
         set (nanobind_python_tests
              python-imagespec
              python-paramlist
@@ -260,13 +268,13 @@ macro (oiio_add_all_tests)
                 python-texturesys
                 python-typedesc
                 filters
-                ENVIRONMENT_MODIFICATION ${pybind11_python_path_mod}
+                ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
             # These Python tests also need access to oiio-images
             oiio_add_tests (
                 python-imageinput python-imagebufalgo
                 IMAGEDIR oiio-images
-                ENVIRONMENT_MODIFICATION ${pybind11_python_path_mod}
+                ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
         else ()
             set (nanobind_python_test_suffix "")
@@ -276,8 +284,7 @@ macro (oiio_add_all_tests)
             oiio_add_tests (
                 ${nanobind_python_tests}
                 SUFFIX ${nanobind_python_test_suffix}
-                ENVIRONMENT_MODIFICATION
-                    "PYTHONPATH=path_list_prepend:${CMAKE_BINARY_DIR}/lib/python/nanobind"
+                ENVIRONMENT "${_nanobind_tests_pythonpath}"
                 )
         endif ()
     endif ()
