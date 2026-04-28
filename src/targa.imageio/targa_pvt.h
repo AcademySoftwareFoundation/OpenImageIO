@@ -34,9 +34,9 @@ typedef struct {
     uint8_t idlen;         ///< image comment length
     uint8_t cmap_type;     ///< palette type
     uint8_t type;          ///< image type (see tga_image_type)
-    uint16_t cmap_first;   ///< offset to first entry
-    uint16_t cmap_length;  ///<
-    uint8_t cmap_size;     ///< palette size
+    uint16_t cmap_first;   ///< offset to first stored color entry
+    uint16_t cmap_length;  ///< number of stored color map entries
+    uint8_t cmap_size;     ///< bits per palette entry: 15, 16, 24, or 32
     uint16_t x_origin;     ///<
     uint16_t y_origin;     ///<
     uint16_t width;        ///< image width

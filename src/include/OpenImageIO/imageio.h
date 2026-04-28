@@ -721,7 +721,7 @@ public:
     /// Retrieve the named metadata attribute and return its value as an
     /// `int`. Any integer type will convert to `int` by truncation or
     /// expansion, string data will parsed into an `int` if its contents
-    /// consist of of the text representation of one integer. Floating point
+    /// consist of the text representation of one integer. Floating point
     /// data will not succeed in converting to an `int`. If no such metadata
     /// exists, or are of a type that cannot be converted, the `defaultval`
     /// will be returned.
@@ -730,7 +730,7 @@ public:
     /// Retrieve the named metadata attribute and return its value as a
     /// `float`. Any integer or floating point type will convert to `float`
     /// in the obvious way (like a C cast), and so will string metadata if
-    /// its contents consist of of the text representation of one floating
+    /// its contents consist of the text representation of one floating
     /// point value. If no such metadata exists, or are of a type that cannot
     /// be converted, the `defaultval` will be returned.
     float get_float_attribute (string_view name, float defaultval=0) const;

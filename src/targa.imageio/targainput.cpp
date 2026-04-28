@@ -203,7 +203,6 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         errorfmt("Palette image with no palette");
         return false;
     }
-
     if (is_palette()) {
         if (m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE) {
             // it should be an error for TYPE_RGB* as well, but apparently some
@@ -214,6 +213,12 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         if (m_tga.cmap_size != 15 && m_tga.cmap_size != 16
             && m_tga.cmap_size != 24 && m_tga.cmap_size != 32) {
             errorfmt("Illegal palette entry size: {} bits", m_tga.cmap_size);
+            return false;
+        }
+        if (m_tga.cmap_first + m_tga.cmap_length > (uint64_t(1) << m_tga.bpp)) {
+            errorfmt(
+                "Too big a color palette ({}) for {} bpp, assume corruption",
+                m_tga.cmap_first + m_tga.cmap_length, m_tga.bpp);
             return false;
         }
     }
@@ -572,18 +577,20 @@ TGAInput::decode_pixel(unsigned char* in, unsigned char* out,
                        unsigned char* palette, int bytespp, int palbytespp,
                        size_t palette_alloc_size)
 {
-    unsigned int k = 0;
+    uint64_t k = 0;
     // I hate nested switches...
     switch (m_tga.type) {
     case TYPE_PALETTED:
     case TYPE_PALETTED_RLE:
         for (int i = 0; i < bytespp; ++i)
             k |= in[i] << (8 * i);  // Assemble it in little endian order
-        k = (m_tga.cmap_first + k) * palbytespp;
-        if (k + palbytespp > palette_alloc_size) {
+        if (k < m_tga.cmap_first || k >= m_tga.cmap_first + m_tga.cmap_length) {
             errorfmt("Corrupt palette index");
             return false;
         }
+        // The palette indices stored in the file's pixels are absolute, so
+        // subtract the start offset to correctly index from the palette.
+        k = (k - m_tga.cmap_first) * uint64_t(palbytespp);
         switch (palbytespp) {
         case 2:
             // see the comment for 16bpp RGB below for an explanation of this

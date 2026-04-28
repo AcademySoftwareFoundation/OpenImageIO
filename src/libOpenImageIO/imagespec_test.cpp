@@ -259,6 +259,8 @@ test_get_attribute()
     spec.attribute("pi", float(M_PI));
     spec.attribute("bar", "barbarbar?");
     spec["baz"] = (unsigned int)14;
+    spec.attribute("foostring", "42");
+    spec.attribute("pistring", Strutil::to_string(float(M_PI)));
 
     OIIO_CHECK_EQUAL(spec.get_int_attribute("width"), 640);
     OIIO_CHECK_EQUAL(spec.get_int_attribute("height"), 480);
@@ -282,8 +284,13 @@ test_get_attribute()
     OIIO_CHECK_EQUAL(spec.get_int_attribute("foo"), 42);
     OIIO_CHECK_EQUAL(spec.get_int_attribute("pi", 4), 4);  // should fail int
     OIIO_CHECK_EQUAL(spec.get_float_attribute("pi"), float(M_PI));
+    OIIO_CHECK_EQUAL(spec.get_float_attribute("foo"), 42.0f);
+    OIIO_CHECK_EQUAL(spec.get_float_attribute("pistring"),
+                     spec.get_float_attribute("pi"));
     OIIO_CHECK_EQUAL(spec.get_int_attribute("bar"), 0);
-    OIIO_CHECK_EQUAL(spec.get_int_attribute("bar"), 0);
+    OIIO_CHECK_EQUAL(spec.get_int_attribute("foostring"), 42);
+    OIIO_CHECK_EQUAL(spec.get_string_attribute("foostring"), "42");
+    OIIO_CHECK_EQUAL(spec.get_string_attribute("foo"), "42");
     OIIO_CHECK_EQUAL(spec.get_string_attribute("bar"), "barbarbar?");
     OIIO_CHECK_ASSERT(spec.find_attribute("foo") != NULL);
     OIIO_CHECK_ASSERT(spec.find_attribute("Foo") != NULL);

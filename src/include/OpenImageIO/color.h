@@ -121,11 +121,12 @@ public:
     int getColorSpaceIndex(string_view name) const;
 
     /// Get the name of the color space representing the named role,
-    /// or NULL if none could be identified.
+    /// or nullptr if none could be identified.
     const char* getColorSpaceNameByRole(string_view role) const;
 
     /// Get the data type that OCIO thinks this color space is. The name
-    /// may be either a color space name or a role.
+    /// may be either a color space name or a role. For an unknown space or
+    /// any error, return TypeUnknown.
     OIIO::TypeDesc getColorSpaceDataType(string_view name, int* bits) const;
 
     /// Retrieve the full list of known color space names, as a vector
@@ -133,13 +134,14 @@ public:
     std::vector<std::string> getColorSpaceNames() const;
 
     /// Get the name of the color space family of the named color space,
-    /// or NULL if none could be identified.
+    /// or nullptr if none could be identified.
     const char* getColorSpaceFamilyByName(string_view name) const;
 
     // Get the number of Roles defined in this configuration
     int getNumRoles() const;
 
-    /// Query the name of the specified Role.
+    /// Query the name of the specified Role, or return nullptr if there is no
+    /// role with that index.
     const char* getRoleByIndex(int index) const;
 
     /// Retrieve the full list of known Roles, as a vector of strings.
@@ -148,7 +150,8 @@ public:
     /// Get the number of Looks defined in this configuration
     int getNumLooks() const;
 
-    /// Query the name of the specified Look.
+    /// Query the name of the specified Look, or return nullptr if there is no
+    /// look with that index.
     const char* getLookNameByIndex(int index) const;
 
     /// Retrieve the full list of known look names, as a vector of strings.
@@ -157,7 +160,8 @@ public:
     /// Get the number of NamedTransforms defined in this configuration
     int getNumNamedTransforms() const;
 
-    /// Query the name of the specified NamedTransform.
+    /// Query the name of the specified NamedTransform, or nullptr if there is
+    /// no NamedTransform with that index.
     const char* getNamedTransformNameByIndex(int index) const;
 
     /// Retrieve the full list of known NamedTransforms, as a vector of strings
@@ -221,7 +225,8 @@ public:
     /// Get the number of displays defined in this configuration
     int getNumDisplays() const;
 
-    /// Query the name of the specified display.
+    /// Query the name of the specified display, or nullptr if there is no
+    /// display with that index.
     const char* getDisplayNameByIndex(int index) const;
 
     /// Retrieve the full list of known display names, as a vector of
@@ -236,7 +241,9 @@ public:
     /// display will be used.
     int getNumViews(string_view display = "") const;
 
-    /// Query the name of the specified view for the specified display
+    /// Query the name of the specified view for the specified display, or
+    /// nullptr if there is no view with that index or if the display is not
+    /// found.
     const char* getViewNameByIndex(string_view display, int index) const;
 
     /// Retrieve the full list of known view names for the display, as a
@@ -247,12 +254,14 @@ public:
     /// Query the name of the default view for the specified display. If the
     /// display is empty or not specified, the default display will be used.
     /// This version does not consider the input color space.
+    /// Returns nullptr for failure.
     const char* getDefaultViewName(string_view display = "") const;
 
     /// Query the name of the default view for the specified display, given
     /// the input color space. If `display` is "default" or an empty string,
     /// the default display will be used. The input color space is used to
     /// determine the most appropriate default view for the given display.
+    /// Returns nullptr for failure.
     const char* getDefaultViewName(string_view display,
                                    string_view inputColorSpace) const;
 

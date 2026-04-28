@@ -142,6 +142,12 @@ if (TEX_BATCH_SIZE)
     add_compile_definitions (OIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE})
 endif ()
 
+# If we're building this just for CI, define a symbol so the code can
+# tell (and reduce complexity of some tests)
+set_option (OIIO_CI "Set if this build is for our GHA CI" OFF)
+if (OIIO_CI)
+    add_compile_definitions (OIIO_CI=1)
+endif ()
 
 # Namespace settings
 #

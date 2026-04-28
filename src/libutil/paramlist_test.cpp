@@ -284,8 +284,11 @@ test_from_string()
 void
 populate_pvl(ParamValueList& pl)
 {
-    pl["foo"]  = 42;
-    pl["pi"]   = float(M_PI);
+    pl["foo"]       = 42;
+    pl["foostring"] = "42";
+    pl["pi"]        = float(M_PI);
+    pl["pistring"]  = Strutil::to_string(float(M_PI));
+
     pl["bar"]  = "barbarbar?";
     pl["bar2"] = std::string("barbarbar?");
     pl["bar3"] = ustring("barbarbar?");
@@ -307,12 +310,17 @@ test_paramlist()
     print("ParamValueList pl footprint is: {}\n", pvt::footprint(pl));
 
     OIIO_CHECK_EQUAL(pl.get_int("foo"), 42);
+    OIIO_CHECK_EQUAL(pl.get_int("foostring"), 42);
+    OIIO_CHECK_EQUAL(pl.get_int("foostring", -12, false, false), -12);
     OIIO_CHECK_EQUAL(pl.get_int("pi", 4), 4);  // should fail int
     OIIO_CHECK_EQUAL(pl.get_float("pi"), float(M_PI));
+    OIIO_CHECK_EQUAL(pl.get_float("pistring"), float(M_PI));
+    OIIO_CHECK_EQUAL(pl.get_float("pistring", 3.0f, false, false), 3.0f);
     OIIO_CHECK_EQUAL(pl.get_int("bar"), 0);
     OIIO_CHECK_EQUAL(pl.get_int("bar"), 0);
     OIIO_CHECK_EQUAL(pl.get_string("bar"), "barbarbar?");
     OIIO_CHECK_EQUAL(pl.get_string("foo"), "42");
+    OIIO_CHECK_EQUAL(pl.get_string("foo", "fail", false, false), "fail");
     OIIO_CHECK_ASSERT(pl.find("foo") != pl.cend());
     OIIO_CHECK_ASSERT(pl.find("Foo") == pl.cend());
     OIIO_CHECK_ASSERT(pl.find("Foo", TypeDesc::UNKNOWN, false) != pl.cend());

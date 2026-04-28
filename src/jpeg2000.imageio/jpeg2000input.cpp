@@ -392,7 +392,9 @@ Jpeg2000Input::ojph_read_image()
     int ch              = m_spec.nchannels;
     ojph::param_siz siz = codestream.access_siz();
 
-    const int bufsize = w * h * ch * buffer_bpp;
+    const size_t bufsize
+        = clamped_mult64(clamped_mult64(uint64_t(w), uint64_t(h)),
+                         clamped_mult64(uint64_t(ch), uint64_t(buffer_bpp)));
     m_buf.resize(bufsize);
     codestream.create();
 
@@ -621,6 +623,14 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     m_spec.full_y      = m_image->y0;
     m_spec.full_width  = m_image->x1;
     m_spec.full_height = m_image->y1;
+
+    // Validation of resolution
+    if (!check_open(m_spec,
+                    { 0, std::numeric_limits<int>::max(), 0,
+                      std::numeric_limits<int>::max(), 0, 1, 0, 16384 })) {
+        close();
+        return false;
+    }
 
     m_spec.attribute("oiio:BitsPerSample", maxPrecision);
     m_spec.set_colorspace("srgb_rec709_scene");
