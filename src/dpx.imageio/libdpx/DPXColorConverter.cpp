@@ -41,10 +41,9 @@
 namespace dpx {
 	template <typename DATA>
 	static inline bool SwapRGBABytes(OIIO::cspan<DATA> input, OIIO::span<DATA> output) {
-		size_t pixels = input.size() / 4;
-        if (pixels * 4 + 3 >= input.size() || pixels * 4 + 3 >= output.size())
-            return false;
-        // Because we checked the lengths, we can just use data pointers below
+        // Because we are within the lengths by definition, we can just use
+        // data pointers below to avoid a bounds check on every one.
+        size_t pixels = input.size() / 4;
         for (size_t i = 0; i < pixels; i++) {
 			DATA a = input.data()[i * 4 + 0], b = input.data()[i * 4 + 1];
 			output.data()[i * 4 + 0] = input.data()[i * 4 + 3];
