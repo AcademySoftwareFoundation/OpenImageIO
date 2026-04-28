@@ -238,12 +238,16 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
         ImTextureRef closeup_texture_ref;
         bool has_main_texture           = false;
         bool has_closeup_texture        = false;
+        bool main_texture_linear        = false;
+        bool closeup_texture_linear     = false;
         bool image_canvas_hovered       = false;
         bool image_canvas_active        = false;
         PendingZoomRequest pending_zoom = shortcut_zoom_request;
         renderer_get_viewer_texture_refs(viewer, ui_state, main_texture_ref,
-                                         has_main_texture, closeup_texture_ref,
-                                         has_closeup_texture);
+                                         has_main_texture, main_texture_linear,
+                                         closeup_texture_ref,
+                                         has_closeup_texture,
+                                         closeup_texture_linear);
         ImageCoordinateMap coord_map;
         coord_map.source_width  = viewer.image.width;
         coord_map.source_height = viewer.image.height;
@@ -305,8 +309,10 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
                                          coord_map.image_rect_max);
             draw_list->PushClipRect(coord_map.viewport_rect_min,
                                     coord_map.viewport_rect_max, true);
+            queue_texture_sampler_callback(draw_list, main_texture_linear);
             draw_list->AddImage(main_texture_ref, coord_map.image_rect_min,
                                 coord_map.image_rect_max);
+            queue_texture_sampler_callback(draw_list, true);
             draw_list->PopClipRect();
         } else if (!has_main_texture) {
             const bool texture_loading = renderer_texture_is_loading(
@@ -541,10 +547,9 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
         if (zoom_changed)
             queue_auto_subimage_from_zoom(viewer);
 
-        const OverlayPanelRect pixel_panel
-            = draw_pixel_closeup_overlay(viewer, ui_state, coord_map,
-                                         closeup_texture_ref,
-                                         has_closeup_texture, fonts);
+        const OverlayPanelRect pixel_panel = draw_pixel_closeup_overlay(
+            viewer, ui_state, coord_map, closeup_texture_ref,
+            has_closeup_texture, closeup_texture_linear, fonts);
         draw_area_probe_overlay(viewer, ui_state, coord_map, pixel_panel,
                                 fonts);
     } else if (viewer.last_error.empty()) {

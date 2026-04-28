@@ -55,6 +55,7 @@ struct VulkanTexture {
     bool preview_submit_pending             = false;
     bool preview_dirty                      = false;
     bool preview_params_valid               = false;
+    bool linear_filter_supported            = true;
     PreviewControls last_preview_controls   = {};
     PreviewControls preview_submit_controls = {};
 
@@ -119,6 +120,8 @@ struct VulkanTexture {
                                                false);
         preview_dirty          = std::exchange(other.preview_dirty, false);
         preview_params_valid = std::exchange(other.preview_params_valid, false);
+        linear_filter_supported = std::exchange(other.linear_filter_supported,
+                                                true);
         last_preview_controls = std::exchange(other.last_preview_controls, {});
         preview_submit_controls = std::exchange(other.preview_submit_controls,
                                                 {});

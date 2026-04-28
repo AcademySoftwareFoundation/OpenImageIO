@@ -105,17 +105,20 @@ namespace {
         renderer_state.display_presentation = info;
     }
 
-    bool vulkan_get_viewer_texture_refs(const ViewerState& viewer,
-                                        const PlaceholderUiState& ui_state,
-                                        ImTextureRef& main_texture_ref,
-                                        bool& has_main_texture,
-                                        ImTextureRef& closeup_texture_ref,
-                                        bool& has_closeup_texture)
+    bool vulkan_get_viewer_texture_refs(
+        const ViewerState& viewer, const PlaceholderUiState& ui_state,
+        ImTextureRef& main_texture_ref, bool& has_main_texture,
+        bool& main_texture_linear, ImTextureRef& closeup_texture_ref,
+        bool& has_closeup_texture, bool& closeup_texture_linear)
     {
         const VulkanTexture* texture = texture_backend_state<VulkanTexture>(
             viewer.texture);
         if (texture == nullptr || !viewer.texture.preview_initialized)
             return false;
+
+        main_texture_linear = ui_state.linear_interpolation
+                              && texture->linear_filter_supported;
+        closeup_texture_linear = false;
 
         VkDescriptorSet main_set = ui_state.linear_interpolation
                                        ? texture->set

@@ -87,10 +87,11 @@ namespace {
             texture.width  = 0;
             texture.height = 0;
             texture.debug_label.clear();
-            texture.source_ready         = false;
-            texture.preview_initialized  = false;
-            texture.preview_dirty        = false;
-            texture.preview_params_valid = false;
+            texture.source_ready            = false;
+            texture.preview_initialized     = false;
+            texture.preview_dirty           = false;
+            texture.preview_params_valid    = false;
+            texture.linear_filter_supported = true;
             return;
         }
 
@@ -187,10 +188,11 @@ namespace {
         texture.width  = 0;
         texture.height = 0;
         texture.debug_label.clear();
-        texture.source_ready         = false;
-        texture.preview_initialized  = false;
-        texture.preview_dirty        = false;
-        texture.preview_params_valid = false;
+        texture.source_ready            = false;
+        texture.preview_initialized     = false;
+        texture.preview_dirty           = false;
+        texture.preview_params_valid    = false;
+        texture.linear_filter_supported = true;
     }
 
     bool ensure_texture_upload_submit_resources(VulkanState& vk_state,
@@ -736,8 +738,9 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
             = (output_props.optimalTilingFeatures
                & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
               != 0;
-        const VkFilter filter = has_linear_filter ? VK_FILTER_LINEAR
-                                                  : VK_FILTER_NEAREST;
+        texture.linear_filter_supported = has_linear_filter;
+        const VkFilter filter           = has_linear_filter ? VK_FILTER_LINEAR
+                                                            : VK_FILTER_NEAREST;
         const VkSamplerCreateInfo sampler_ci = make_clamped_sampler_create_info(
             filter, filter, VK_SAMPLER_MIPMAP_MODE_LINEAR, 0.0f, 1000.0f);
         const auto create_texture_sampler = [&](const VkSamplerCreateInfo& ci,
@@ -750,25 +753,6 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         if (!create_texture_sampler(sampler_ci, texture.sampler,
                                     "vkCreateSampler failed",
                                     "imiv.viewer.sampler")) {
-            break;
-        }
-
-        VkSamplerCreateInfo pixelview_sampler_ci   = sampler_ci;
-        VkSamplerCreateInfo nearest_mag_sampler_ci = sampler_ci;
-        nearest_mag_sampler_ci.magFilter           = VK_FILTER_NEAREST;
-        pixelview_sampler_ci.magFilter             = VK_FILTER_NEAREST;
-        pixelview_sampler_ci.minFilter             = VK_FILTER_NEAREST;
-        pixelview_sampler_ci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-        if (!create_texture_sampler(
-                nearest_mag_sampler_ci, texture.nearest_mag_sampler,
-                "vkCreateSampler failed for nearest-mag view",
-                "imiv.viewer.nearest_mag_sampler")) {
-            break;
-        }
-        if (!create_texture_sampler(pixelview_sampler_ci,
-                                    texture.pixelview_sampler,
-                                    "vkCreateSampler failed for pixel closeup",
-                                    "imiv.viewer.pixelview_sampler")) {
             break;
         }
 
@@ -908,27 +892,9 @@ create_texture(VulkanState& vk_state, const LoadedImage& image,
         compute_set                   = VK_NULL_HANDLE;
 
         texture.set = ImGui_ImplVulkan_AddTexture(
-            texture.sampler, texture.view,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            texture.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         if (texture.set == VK_NULL_HANDLE) {
             error_message = "ImGui_ImplVulkan_AddTexture failed";
-            break;
-        }
-        texture.nearest_mag_set = ImGui_ImplVulkan_AddTexture(
-            texture.nearest_mag_sampler, texture.view,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-        if (texture.nearest_mag_set == VK_NULL_HANDLE) {
-            error_message
-                = "ImGui_ImplVulkan_AddTexture failed for nearest-mag "
-                  "view";
-            break;
-        }
-        texture.pixelview_set = ImGui_ImplVulkan_AddTexture(
-            texture.pixelview_sampler, texture.view,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-        if (texture.pixelview_set == VK_NULL_HANDLE) {
-            error_message
-                = "ImGui_ImplVulkan_AddTexture failed for pixel closeup";
             break;
         }
 

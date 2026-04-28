@@ -86,6 +86,19 @@ draw_padded_message(const char* message, float x_pad, float y_pad)
 }
 
 void
+queue_texture_sampler_callback(ImDrawList* draw_list, bool linear)
+{
+    if (draw_list == nullptr)
+        return;
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    const ImDrawCallback callback
+        = linear ? platform_io.DrawCallback_SetSamplerLinear
+                 : platform_io.DrawCallback_SetSamplerNearest;
+    if (callback != nullptr)
+        draw_list->AddCallback(callback, nullptr);
+}
+
+void
 set_aux_window_defaults(const ImVec2& offset, const ImVec2& size,
                         bool reset_layout)
 {

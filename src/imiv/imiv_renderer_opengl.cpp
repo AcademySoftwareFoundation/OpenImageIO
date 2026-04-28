@@ -1402,12 +1402,11 @@ void main()
         return true;
     }
 
-    bool opengl_get_viewer_texture_refs(const ViewerState& viewer,
-                                        const PlaceholderUiState& ui_state,
-                                        ImTextureRef& main_texture_ref,
-                                        bool& has_main_texture,
-                                        ImTextureRef& closeup_texture_ref,
-                                        bool& has_closeup_texture)
+    bool opengl_get_viewer_texture_refs(
+        const ViewerState& viewer, const PlaceholderUiState& ui_state,
+        ImTextureRef& main_texture_ref, bool& has_main_texture,
+        bool& main_texture_linear, ImTextureRef& closeup_texture_ref,
+        bool& has_closeup_texture, bool& closeup_texture_linear)
     {
         const RendererTextureBackendState* state
             = texture_backend_state<RendererTextureBackendState>(
@@ -1421,16 +1420,19 @@ void main()
         if (main_texture != 0) {
             main_texture_ref = ImTextureRef(
                 static_cast<ImTextureID>(static_cast<intptr_t>(main_texture)));
-            has_main_texture = true;
+            has_main_texture    = true;
+            main_texture_linear = main_texture == state->preview_linear_texture;
         }
 
         const GLuint closeup_texture = state->preview_nearest_texture != 0
                                            ? state->preview_nearest_texture
                                            : state->preview_linear_texture;
         if (closeup_texture != 0) {
-            closeup_texture_ref = ImTextureRef(static_cast<ImTextureID>(
+            closeup_texture_ref    = ImTextureRef(static_cast<ImTextureID>(
                 static_cast<intptr_t>(closeup_texture)));
-            has_closeup_texture = true;
+            has_closeup_texture    = true;
+            closeup_texture_linear = closeup_texture
+                                     == state->preview_linear_texture;
         }
         return has_main_texture || has_closeup_texture;
     }

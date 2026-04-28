@@ -467,24 +467,26 @@ renderer_texture_is_loading(const RendererTexture& texture)
 }
 
 void
-renderer_get_viewer_texture_refs(const ViewerState& viewer,
-                                 const PlaceholderUiState& ui_state,
-                                 ImTextureRef& main_texture_ref,
-                                 bool& has_main_texture,
-                                 ImTextureRef& closeup_texture_ref,
-                                 bool& has_closeup_texture)
+renderer_get_viewer_texture_refs(
+    const ViewerState& viewer, const PlaceholderUiState& ui_state,
+    ImTextureRef& main_texture_ref, bool& has_main_texture,
+    bool& main_texture_linear, ImTextureRef& closeup_texture_ref,
+    bool& has_closeup_texture, bool& closeup_texture_linear)
 {
     main_texture_ref                    = ImTextureRef();
     closeup_texture_ref                 = ImTextureRef();
     has_main_texture                    = false;
     has_closeup_texture                 = false;
+    main_texture_linear                 = false;
+    closeup_texture_linear              = false;
     const RendererBackendVTable* vtable = texture_dispatch_vtable(
         viewer.texture);
     if (vtable == nullptr || vtable->get_viewer_texture_refs == nullptr)
         return;
     vtable->get_viewer_texture_refs(viewer, ui_state, main_texture_ref,
-                                    has_main_texture, closeup_texture_ref,
-                                    has_closeup_texture);
+                                    has_main_texture, main_texture_linear,
+                                    closeup_texture_ref, has_closeup_texture,
+                                    closeup_texture_linear);
 }
 
 bool

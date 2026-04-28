@@ -1798,12 +1798,11 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
                                          error_message);
     }
 
-    bool metal_get_viewer_texture_refs(const ViewerState& viewer,
-                                       const PlaceholderUiState& ui_state,
-                                       ImTextureRef& main_texture_ref,
-                                       bool& has_main_texture,
-                                       ImTextureRef& closeup_texture_ref,
-                                       bool& has_closeup_texture)
+    bool metal_get_viewer_texture_refs(
+        const ViewerState& viewer, const PlaceholderUiState& ui_state,
+        ImTextureRef& main_texture_ref, bool& has_main_texture,
+        bool& main_texture_linear, ImTextureRef& closeup_texture_ref,
+        bool& has_closeup_texture, bool& closeup_texture_linear)
     {
         const RendererTextureBackendState* state
             = texture_backend_state<RendererTextureBackendState>(
@@ -1817,16 +1816,20 @@ fragment float4 imivPreviewFragment(VertexOut in [[stage_in]],
         if (main_texture_id == ImTextureID_Invalid)
             main_texture_id = state->preview_linear_tex_id;
         if (main_texture_id != ImTextureID_Invalid) {
-            main_texture_ref = ImTextureRef(main_texture_id);
-            has_main_texture = true;
+            main_texture_ref    = ImTextureRef(main_texture_id);
+            has_main_texture    = true;
+            main_texture_linear = main_texture_id
+                                  == state->preview_linear_tex_id;
         }
 
         ImTextureID closeup_texture_id = state->preview_nearest_tex_id;
         if (closeup_texture_id == ImTextureID_Invalid)
             closeup_texture_id = state->preview_linear_tex_id;
         if (closeup_texture_id != ImTextureID_Invalid) {
-            closeup_texture_ref = ImTextureRef(closeup_texture_id);
-            has_closeup_texture = true;
+            closeup_texture_ref    = ImTextureRef(closeup_texture_id);
+            has_closeup_texture    = true;
+            closeup_texture_linear = closeup_texture_id
+                                     == state->preview_linear_tex_id;
         }
         return has_main_texture || has_closeup_texture;
     }

@@ -460,7 +460,8 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
                            PlaceholderUiState& ui_state,
                            const ImageCoordinateMap& map,
                            ImTextureRef closeup_texture,
-                           bool has_closeup_texture, const AppFonts& fonts)
+                           bool has_closeup_texture,
+                           bool closeup_texture_linear, const AppFonts& fonts)
 {
     OverlayPanelRect panel;
     if (!ui_state.show_pixelview_window || !map.valid)
@@ -621,8 +622,10 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
                             static_cast<float>(ybegin) / display_h);
         const ImVec2 uv_max(static_cast<float>(xend) / display_w,
                             static_cast<float>(yend) / display_h);
+        queue_texture_sampler_callback(draw_list, closeup_texture_linear);
         draw_list->AddImage(closeup_texture, closeup_min, closeup_max, uv_min,
                             uv_max, IM_COL32_WHITE);
+        queue_texture_sampler_callback(draw_list, true);
 
         const float cell_w = closeup_window_size / patch_w;
         const float cell_h = closeup_window_size / patch_h;

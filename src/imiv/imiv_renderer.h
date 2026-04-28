@@ -176,12 +176,11 @@ bool
 renderer_texture_is_loading(const RendererTexture& texture);
 
 void
-renderer_get_viewer_texture_refs(const ViewerState& viewer,
-                                 const PlaceholderUiState& ui_state,
-                                 ImTextureRef& main_texture_ref,
-                                 bool& has_main_texture,
-                                 ImTextureRef& closeup_texture_ref,
-                                 bool& has_closeup_texture);
+renderer_get_viewer_texture_refs(
+    const ViewerState& viewer, const PlaceholderUiState& ui_state,
+    ImTextureRef& main_texture_ref, bool& has_main_texture,
+    bool& main_texture_linear, ImTextureRef& closeup_texture_ref,
+    bool& has_closeup_texture, bool& closeup_texture_linear);
 
 bool
 renderer_create_texture(RendererState& renderer_state, const LoadedImage& image,

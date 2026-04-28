@@ -18,6 +18,7 @@
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
 //  2026-XX-XX: Metal: Added support for multiple windows via the ImGuiPlatformIO interface.
+//  2026-04-26: Metal: Added support for standard draw callbacks (in platform_io): DrawCallback_ResetRenderState, DrawCallback_SetSamplerLinear, DrawCallback_SetSamplerNearest.
 //  2026-04-14: Metal: use a dedicated bufferCacheLock to avoid crashing when bufferCache is replaced by a new object while being used for @synchronize(). (#9367)
 //  2026-04-03: Metal: avoid redundant vertex buffer bind in SetupRenderState. (#9343)
 //  2026-03-19: Fixed issue in ImGui_ImplMetal_RenderDrawData() if ImTextureID_Invalid is defined to be != 0, which became the default since 2026-03-12. (#9295, #9310)
@@ -93,6 +94,8 @@ ImGui_ImplMetal_InvalidateDeviceObjectsForPlatformWindows();
 @property (nonatomic, strong) id<MTLDevice> device;
 @property (nonatomic, strong) id<MTLDepthStencilState> depthStencilState;
 @property (nonatomic, strong) id<MTLSamplerState> defaultSamplerState;
+@property (nonatomic, strong) id<MTLSamplerState> linearSamplerState;
+@property (nonatomic, strong) id<MTLSamplerState> nearestSamplerState;
 @property (nonatomic, strong) FramebufferDescriptor*
     framebufferDescriptor;  // framebuffer descriptor for current frame; transient
 @property (nonatomic, strong) NSMutableDictionary*
@@ -125,6 +128,26 @@ static void
 ImGui_ImplMetal_DestroyBackendData()
 {
     IM_DELETE(ImGui_ImplMetal_GetBackendData());
+}
+
+// Draw callbacks. They are intentionally empty and used as stable identifiers
+// for the render loop, matching Dear ImGui's standard backend convention.
+static void
+ImGui_ImplMetal_DrawCallback_ResetRenderState(const ImDrawList*,
+                                              const ImDrawCmd*)
+{
+}
+
+static void
+ImGui_ImplMetal_DrawCallback_SetSamplerLinear(const ImDrawList*,
+                                              const ImDrawCmd*)
+{
+}
+
+static void
+ImGui_ImplMetal_DrawCallback_SetSamplerNearest(const ImDrawList*,
+                                               const ImDrawCmd*)
+{
 }
 
 static inline CFTimeInterval
@@ -175,7 +198,8 @@ ImGui_ImplMetal_CreateDeviceObjects(MTL::Device* device)
 bool
 ImGui_ImplMetal_Init(id<MTLDevice> device)
 {
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io                  = ImGui::GetIO();
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
     IMGUI_CHECKVERSION();
     IM_ASSERT(io.BackendRendererUserData == nullptr
               && "Already initialized a renderer backend!");
@@ -192,6 +216,13 @@ ImGui_ImplMetal_Init(id<MTLDevice> device)
 
     bd->SharedMetalContext        = [[MetalContext alloc] init];
     bd->SharedMetalContext.device = device;
+
+    platform_io.DrawCallback_ResetRenderState
+        = ImGui_ImplMetal_DrawCallback_ResetRenderState;
+    platform_io.DrawCallback_SetSamplerLinear
+        = ImGui_ImplMetal_DrawCallback_SetSamplerLinear;
+    platform_io.DrawCallback_SetSamplerNearest
+        = ImGui_ImplMetal_DrawCallback_SetSamplerNearest;
 
     ImGui_ImplMetal_InitMultiViewportSupport();
 
@@ -375,6 +406,8 @@ ImGui_ImplMetal_RenderDrawData(ImDrawData* draw_data,
     // Render command lists
     size_t vertexBufferOffset = 0;
     size_t indexBufferOffset  = 0;
+    id<MTLSamplerState> currentSamplerState
+        = bd->SharedMetalContext.defaultSamplerState;
     for (const ImDrawList* draw_list : draw_data->CmdLists) {
         memcpy((char*)vertexBuffer.buffer.contents + vertexBufferOffset,
                draw_list->VtxBuffer.Data,
@@ -387,15 +420,26 @@ ImGui_ImplMetal_RenderDrawData(ImDrawData* draw_data,
             const ImDrawCmd* pcmd = &draw_list->CmdBuffer[cmd_i];
             if (pcmd->UserCallback) {
                 // User callback, registered via ImDrawList::AddCallback()
-                // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
-                if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
+                if (pcmd->UserCallback
+                    == ImGui_ImplMetal_DrawCallback_ResetRenderState) {
                     ImGui_ImplMetal_SetupRenderState(draw_data, commandBuffer,
                                                      commandEncoder,
                                                      renderPipelineState,
                                                      vertexBuffer,
                                                      vertexBufferOffset);
-                else
+                    currentSamplerState
+                        = bd->SharedMetalContext.defaultSamplerState;
+                } else if (pcmd->UserCallback
+                           == ImGui_ImplMetal_DrawCallback_SetSamplerLinear) {
+                    currentSamplerState
+                        = bd->SharedMetalContext.linearSamplerState;
+                } else if (pcmd->UserCallback
+                           == ImGui_ImplMetal_DrawCallback_SetSamplerNearest) {
+                    currentSamplerState
+                        = bd->SharedMetalContext.nearestSamplerState;
+                } else {
                     pcmd->UserCallback(draw_list, pcmd);
+                }
             } else {
                 // Project scissor/clipping rectangles into framebuffer space
                 ImVec2 clip_min((pcmd->ClipRect.x - clip_off.x) * clip_scale.x,
@@ -431,9 +475,8 @@ ImGui_ImplMetal_RenderDrawData(ImDrawData* draw_data,
                 [commandEncoder setScissorRect:scissorRect];
 
                 // Bind texture, Draw
-                id<MTLSamplerState> sampler_state
-                    = bd->SharedMetalContext.defaultSamplerState;
-                ImTextureID tex_id = pcmd->GetTexID();
+                id<MTLSamplerState> sampler_state = currentSamplerState;
+                ImTextureID tex_id                = pcmd->GetTexID();
                 if (tex_id != ImTextureID_Invalid) {
                     id metal_object = (__bridge id)(void*)(intptr_t)(tex_id);
                     if ([metal_object isKindOfClass:[MetalTexture class]]) {
@@ -578,7 +621,14 @@ ImGui_ImplMetal_CreateDeviceObjects(id<MTLDevice> device)
     samplerDescriptor.mipFilter                 = MTLSamplerMipFilterLinear;
     samplerDescriptor.sAddressMode = MTLSamplerAddressModeClampToEdge;
     samplerDescriptor.tAddressMode = MTLSamplerAddressModeClampToEdge;
-    bd->SharedMetalContext.defaultSamplerState = [device
+    bd->SharedMetalContext.linearSamplerState = [device
+        newSamplerStateWithDescriptor:samplerDescriptor];
+    bd->SharedMetalContext.defaultSamplerState
+        = bd->SharedMetalContext.linearSamplerState;
+    samplerDescriptor.minFilter                = MTLSamplerMinMagFilterNearest;
+    samplerDescriptor.magFilter                = MTLSamplerMinMagFilterNearest;
+    samplerDescriptor.mipFilter                = MTLSamplerMipFilterNearest;
+    bd->SharedMetalContext.nearestSamplerState = [device
         newSamplerStateWithDescriptor:samplerDescriptor];
     ImGui_ImplMetal_CreateDeviceObjectsForPlatformWindows();
 #    ifdef IMGUI_IMPL_METAL_CPP
@@ -602,6 +652,8 @@ ImGui_ImplMetal_DestroyDeviceObjects()
     ImGui_ImplMetal_InvalidateDeviceObjectsForPlatformWindows();
     [bd->SharedMetalContext.renderPipelineStateCache removeAllObjects];
     bd->SharedMetalContext.defaultSamplerState = nil;
+    bd->SharedMetalContext.linearSamplerState  = nil;
+    bd->SharedMetalContext.nearestSamplerState = nil;
     bd->SharedMetalContext.depthStencilState   = nil;
 }
 

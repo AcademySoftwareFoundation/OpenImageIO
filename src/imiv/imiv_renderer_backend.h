@@ -11,12 +11,11 @@ namespace Imiv {
 struct RendererBackendVTable {
     BackendKind kind = BackendKind::Auto;
     bool (*probe_runtime_support)(std::string& error_message) = nullptr;
-    bool (*get_viewer_texture_refs)(const ViewerState& viewer,
-                                    const PlaceholderUiState& ui_state,
-                                    ImTextureRef& main_texture_ref,
-                                    bool& has_main_texture,
-                                    ImTextureRef& closeup_texture_ref,
-                                    bool& has_closeup_texture)
+    bool (*get_viewer_texture_refs)(
+        const ViewerState& viewer, const PlaceholderUiState& ui_state,
+        ImTextureRef& main_texture_ref, bool& has_main_texture,
+        bool& main_texture_linear, ImTextureRef& closeup_texture_ref,
+        bool& has_closeup_texture, bool& closeup_texture_linear)
         = nullptr;
     bool (*texture_is_loading)(const RendererTexture& texture) = nullptr;
     bool (*create_texture)(RendererState& renderer_state,

@@ -36,7 +36,8 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
                            PlaceholderUiState& ui_state,
                            const ImageCoordinateMap& map,
                            ImTextureRef closeup_texture,
-                           bool has_closeup_texture, const AppFonts& fonts);
+                           bool has_closeup_texture,
+                           bool closeup_texture_linear, const AppFonts& fonts);
 void
 draw_area_probe_overlay(const ViewerState& viewer,
                         const PlaceholderUiState& ui_state,
