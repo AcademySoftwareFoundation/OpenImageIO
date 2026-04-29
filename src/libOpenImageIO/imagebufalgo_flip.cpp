@@ -1242,7 +1242,8 @@ ImageBufAlgo::experimental::FLIP_diff(const ImageBuf& ref, const ImageBuf& test,
                                       KWArgs options, ROI roi, int nthreads)
 {
     ImageBuf dst;
-    FLIP_diff(dst, ref, test, options, roi, nthreads);
+    (void)FLIP_diff(dst, ref, test, options, roi, nthreads);
+    // Ignoring error return is ok here because the error is reported in dst
     return dst;
 }
 
