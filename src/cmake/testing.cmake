@@ -154,6 +154,7 @@ macro (oiio_add_all_tests)
                     oiiotool-text
                     oiiotool-xform
                     diff
+                    flip
                     dither dup-channels
                     jpeg jpeg-corrupt jpeg-metadata
                     maketx oiiotool-maketx

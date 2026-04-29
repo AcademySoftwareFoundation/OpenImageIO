@@ -3259,6 +3259,132 @@ action_pdiff(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --flipdiff
+// See imagebufalgo_flip.cpp for both the underlying aglorithm code, as well
+// as combined discussion of OIIO's implementation, both the IBA parts and the
+// oiiotool parts.
+static void
+action_flipdiff(Oiiotool& ot, cspan<const char*> argv)
+{
+    if (ot.postpone_callback(2, action_flipdiff, argv))
+        return;
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
+
+    if (!ot.experimental) {
+        ot.errorfmt(
+            command,
+            "--flipdiff cannot be used without the --experimental flag.");
+        return;
+    }
+
+    // Pop reference (deeper) and test (top) images.
+    ImageRecRef test = ot.pop();
+    ImageRecRef ref  = ot.pop();
+    ot.read(ref);
+    ot.read(test);
+
+    const ImageBuf& img_ref  = (*ref)(0, 0);
+    const ImageBuf& img_test = (*test)(0, 0);
+
+    // Parse options from the command token, e.g.
+    //     --flipdiff:hdr=1:colormap=magma
+    auto options = ot.extract_options(command);
+
+    float fail_threshold = options.get_float("fail", 10.0f);
+    bool do_passfail     = (fail_threshold < 10.0f);
+    bool do_print        = options.get_int("print", 1);
+
+    ImageBuf dst;
+    bool ok = ImageBufAlgo::experimental::FLIP_diff(dst, img_ref, img_test,
+                                                    options);
+    if (!ok) {
+        ot.error(command, dst.geterror());
+        return;
+    }
+
+    // Read stats from result metadata before any colormap step
+    // (colormap creates a new ImageBuf that won't carry the attributes).
+    const ImageSpec& spec(dst.spec());
+    float meanerror     = spec.get_float_attribute("FLIP:meanerror");
+    float maxerror      = spec.get_float_attribute("FLIP:maxerror");
+    int maxx            = spec.get_int_attribute("FLIP:maxx");
+    int maxy            = spec.get_int_attribute("FLIP:maxy");
+    float startExposure = spec.get_float_attribute("FLIP:startExposure");
+    float stopExposure  = spec.get_float_attribute("FLIP:stopExposure");
+    int numExposures    = spec.get_int_attribute("FLIP:numExposures");
+
+    // oiiotool convenience: if the user passed colormap=NAME, apply a
+    // false-color visualization to the single-channel error map.
+    string_view cmap = options.get_string("colormap", "");
+    if (!cmap.empty()) {
+        ImageBuf colorized;
+        if (!ImageBufAlgo::color_map(colorized, dst, 0, cmap)) {
+            ot.error(command, colorized.geterror());
+            return;
+        }
+        dst = std::move(colorized);
+        // Transfer the attribs to the color map
+        dst.specmod().attribute("FLIP:meanerror", meanerror);
+        dst.specmod().attribute("FLIP:maxerror", maxerror);
+        dst.specmod().attribute("FLIP:maxx", maxx);
+        dst.specmod().attribute("FLIP:maxy", maxy);
+        if (numExposures) {
+            dst.specmod().attribute("FLIP:startExposure", startExposure);
+            dst.specmod().attribute("FLIP:stopExposure", stopExposure);
+            dst.specmod().attribute("FLIP:numExposures", numExposures);
+        }
+    }
+
+    // Print results unless the user specified --flipdiff:print=0
+    if (do_print || do_passfail) {
+        OIIO::print("FLIP diff of \"{}\" vs \"{}\"\n", ref->name(),
+                    test->name());
+        ot.printed_info = true;
+    }
+    if (do_print || (do_passfail && maxerror > fail_threshold)) {
+        // Only print 4 significant digits -- there's not enough precision for
+        // more than that to be meaningful.
+        OIIO::print("  Mean FLIP error  = {:.4g}\n", meanerror);
+        OIIO::print("  Max FLIP error   = {:.4g}", maxerror);
+        if (maxerror != 0) {
+            OIIO::print("  @ ({}, {})  values are ", maxx, maxy);
+            for (int c = 0; c < img_ref.nchannels(); ++c)
+                OIIO::print("{}{}", c ? ", " : "",
+                            img_ref.getchannel(maxx, maxy, 0, c));
+            OIIO::print(" vs ");
+            for (int c = 0; c < img_test.nchannels(); ++c)
+                OIIO::print("{}{}", c ? ", " : "",
+                            img_test.getchannel(maxx, maxy, 0, c));
+        }
+        OIIO::print("\n");
+        if (numExposures > 0) {
+            OIIO::print("  Exposure range   = [{:.3g}, {:.3g}] ({} stops)\n",
+                        startExposure, stopExposure, numExposures);
+        }
+        ot.printed_info = true;
+    }
+
+    // Push result error-map onto the stack.
+    auto dstref = std::make_shared<ImageBuf>(std::move(dst));
+    ot.push(new ImageRec(dstref, false));
+
+    if (do_passfail) {
+        if (maxerror > fail_threshold) {
+            // ot.errorfmt("--flipdiff",
+            //             "FAILURE: FLIP comparison max error {} > threshold {}",
+            //             maxerror, fail_threshold);
+            ot.return_value = EXIT_FAILURE;
+            OIIO::print("FAILURE\n");
+        } else {
+            OIIO::print("PASS\n");
+        }
+        ot.printed_info = true;
+    }
+}
+
+
+
 BINARY_IMAGE_OP(add, ImageBufAlgo::add);          // --add
 BINARY_IMAGE_OP(sub, ImageBufAlgo::sub);          // --sub
 BINARY_IMAGE_OP(mul, ImageBufAlgo::mul);          // --mul
@@ -6897,8 +7023,11 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)")
       .OTACTION(action_diff);
     ap.arg("--pdiff")
-      .help("Print report on the perceptual difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)")
+      .help("Print report on the Yee perceptual difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)")
       .OTACTION(action_pdiff);
+    ap.arg("--flipdiff")
+      .help("[EXPERIMENTAL] Compute FLIP perceptual difference of two images (options: hdr=1, colormap=NAME, ppd=67.02, maxluminance=2.0)")
+      .OTACTION(action_flipdiff);
     ap.arg("--add")
       .help("Add two images")
       .OTACTION(action_add);
