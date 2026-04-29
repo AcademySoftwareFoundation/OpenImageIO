@@ -511,7 +511,7 @@ RLAInput::decode_rle_span(span<unsigned char> buf, int n, int stride,
             // run count negative: repeat bytes literally
             count = -count;  // make it positive
             if (count > n)
-                break;       // asking for a count that will overrun the buffer
+                break;  // asking for a count that will overrun the buffer
             for (; count && n > 0 && e < elen; --count, b += stride, --n)
                 buf[b] = encoded[e++];
         }
