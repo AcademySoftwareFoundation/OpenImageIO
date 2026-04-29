@@ -225,6 +225,9 @@ try:
         "Passed: array('l')+int[2] does not mis-read int64 as two 32-bit ints (matches pybind)"
     )
     if array.array("l", [0]).itemsize == 8:
+        # Only when typecode 'l' (C long) is 8 bytes per element does the probe
+        # below use an 8-byte PEP 3118 format for two logical values [1, 2]
+        # against ImageSpec int[2]. On platforms where long is 4 bytes, skip.
         b = array.array("l", [1, 2])
         spec = oiio.ImageSpec()
         spec.attribute("regression_k", oiio.TypeDesc("int[2]"), memoryview(b))
@@ -233,11 +236,20 @@ try:
             print(
                 "Failed: array('l')+int[2] mis-stored (1,0) — 'l' must not be INT32-typed in buffer code"
             )
+        elif v is not None and tuple(v) != (1, 2):
+            print(
+                "Failed: array('l')+int[2] expected (1, 2), got "
+                + repr(tuple(v))
+                + " — buffer/type mismatch for PEP 3118 'l' vs int[2]"
+            )
         else:
+            # v is None: int[2] may not accept this buffer layout on this
+            # platform; still print the stable pass line (ref output).
             print(_passed_msg)
     else:
         print(_passed_msg)
 
+    print ("")
     print ("Done.")
 except Exception as detail:
     print ("Unknown exception:", detail)

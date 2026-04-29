@@ -23,6 +23,10 @@ setup_python_module_nanobind (
 )
 
 if (OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "nanobind")
-    install (FILES __init__.py
-             DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+    if (SKBUILD)
+        install (FILES __init__.py DESTINATION . COMPONENT user)
+    else ()
+        install (FILES __init__.py
+                 DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+    endif ()
 endif ()

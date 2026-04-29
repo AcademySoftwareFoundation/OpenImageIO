@@ -71,6 +71,7 @@ channelindex('G') = 1
 channel_name(1) = G
 channelformat(1) = uint8
 
+get u8_from_u16_probe (reject uint16 buffer): REJECTED
 get_int_attribute('foo_int') retrieves 14
 get_int_attribute('foo_int',21) with default retrieves 14
 get_int_attribute('foo_no',23) retrieves 23

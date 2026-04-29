@@ -284,9 +284,6 @@ py_buffer_to_stdvector(std::vector<T>& vals, const nb::handle& obj)
             if (format.basetype == TypeDesc::UINT8)
                 vals.emplace_back(
                     reinterpret_cast<const unsigned char*>(data)[i]);
-            else if (format.basetype == TypeDesc::UINT16)
-                vals.emplace_back(static_cast<unsigned char>(
-                    reinterpret_cast<const unsigned short*>(data)[i]));
             else
                 ok = false;
         } else {
@@ -353,6 +350,37 @@ C_to_val_or_tuple(const T* vals, TypeDesc type, int nvalues = 1)
     const size_t n = type.numelements() * type.aggregate * nvalues;
     if (n == 1 && !type.arraylen)
         return nb::cast(vals[0]);
+    return C_to_tuple(vals, n);
+}
+
+template<>
+inline nb::tuple
+C_to_tuple(cspan<half> vals)
+{
+    nb::list list;
+    for (size_t i = 0; i < vals.size(); ++i)
+        list.append(static_cast<float>(vals[i]));
+    return nb::steal<nb::tuple>(PyList_AsTuple(list.ptr()));
+}
+
+template<>
+inline nb::tuple
+C_to_tuple(const half* vals, size_t size)
+{
+    nb::list list;
+    for (size_t i = 0; i < size; ++i)
+        list.append(static_cast<float>(vals[i]));
+    return nb::steal<nb::tuple>(PyList_AsTuple(list.ptr()));
+}
+
+template<>
+inline nb::object
+C_to_val_or_tuple(const half* vals, TypeDesc type, int nvalues)
+{
+    OIIO_DASSERT(vals && nvalues);
+    const size_t n = type.numelements() * type.aggregate * nvalues;
+    if (n == 1 && !type.arraylen)
+        return nb::cast(static_cast<float>(vals[0]));
     return C_to_tuple(vals, n);
 }
 

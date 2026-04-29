@@ -97,6 +97,12 @@ try:
                  (1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1))
     s.attribute ("smpte:TimeCode", oiio.TypeTimeCode, (18356486, 4294967295))
     s.attribute ("ucarr", "uint8[10]", numpy.array([49, 50, 51, 0, 0, 97, 98, 99, 1, 88], dtype='B'))
+    # uint8[2] attribute with a uint16 buffer: element type does not match, and
+    # 300 is not a uint8; the attribute should not be stored.
+    s.attribute ("u8_from_u16_probe", "uint8[2]",
+                 numpy.array([300, 2], dtype=numpy.uint16))
+    print ("get u8_from_u16_probe (reject uint16 buffer):",
+           s.get("u8_from_u16_probe", "REJECTED"))
     s["delfoo_str"] =  "egg"
     s["delfoo_int"] = 29
     s["delfoo_float"] = 99.5
