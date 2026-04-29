@@ -28,6 +28,7 @@ static float gammaval             = 1.0f;
 static bool verbose = false;
 static int nthreads = 0;  // default: use #cores threads if available
 static std::vector<std::string> filenames;
+static std::string out_filename;
 static int tile[3]   = { 0, 0, 1 };
 static bool scanline = false;
 //static bool zfile = false;
@@ -69,10 +70,12 @@ getargs(int argc, char* argv[])
     ap.options ("iconvert -- copy images with format conversions and other alterations\n"
                 OIIO_INTRO_STRING "\n"
                 "Usage:  iconvert [options] inputfile outputfile\n"
+                "   or:  iconvert [options] inputfile -o outputfile\n"
                 "   or:  iconvert --inplace [options] file...\n",
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose status messages",
+                "-o %s:FILENAME", &out_filename, "Output filename",
                 "--threads %d:NTHREADS", &nthreads, "Number of threads (default 0 = #cores)",
                 "-d %s:TYPE", &dataformatname, "Set the output data format to one of:"
                         "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
@@ -115,6 +118,17 @@ getargs(int argc, char* argv[])
         return;
     }
 
+    if (!out_filename.empty() && filenames.size() == 1) {
+        // -o mode: one positional arg is input, -o specifies output
+        filenames.push_back(out_filename);
+    } else if (!out_filename.empty() && filenames.size() != 1) {
+        OIIO::print(stderr,
+                    "iconvert: -o requires exactly one input filename.\n");
+        ap.usage();
+        ap.abort();
+        return_code = EXIT_FAILURE;
+        return;
+    }
     if (filenames.size() != 2 && !inplace) {
         OIIO::print(
             stderr,
