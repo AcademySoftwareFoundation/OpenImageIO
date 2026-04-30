@@ -24,3 +24,8 @@ rgba.webp            :   64 x   64, 4 channel, uint8 webp
     channel list: R, G, B, A
     oiio:ColorSpace: "srgb_rec709_scene"
     oiio:UnassociatedAlpha: 1
+short-exif-len0.webp-ok
+short-exif-len4.webp-ok
+short-exif-len5.webp-ok
+short-exif-len6.webp-ok
+short-exif-len13.webp-ok

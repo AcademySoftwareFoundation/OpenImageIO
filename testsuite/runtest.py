@@ -325,8 +325,11 @@ def testtex_command (file: str, extraargs: str="", silent: bool=False, concat: b
 
 
 # Construct a command that will run iconvert and append its output to out.txt
-def iconvert (args: str, silent: bool=False, concat: bool=True, failureok: bool=False) -> str:
+def iconvert (args: str, silent: bool=False, concat: bool=True,
+              failureok: bool=False, successmessage: str="") -> str:
     cmd = (oiio_app("iconvert") + " " + args)
+    if successmessage:
+        cmd = "(" + cmd + " && echo " + successmessage + ")"
     if not silent :
         cmd += redirect
     if failureok :
