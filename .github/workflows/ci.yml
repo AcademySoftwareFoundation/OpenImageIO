@@ -355,6 +355,7 @@ jobs:
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;JXL;Nuke;OpenGL;openjph;OpenVDB;Ptex;pystring;Qt5;R3DSDK;' }}${{matrix.optional_deps_append}}
       build_local_deps: ${{ matrix.build_local_deps }}
+      oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -381,6 +382,7 @@ jobs:
 
           - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.4 ocio2.4
             nametag: linux-latest-releases
+            oiio_python_bindings_backend: both
             runner: ubuntu-24.04
             cc_compiler: gcc-13
             cxx_compiler: g++-13
@@ -656,6 +658,7 @@ jobs:
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'Nuke;R3DSDK;' }}${{matrix.optional_deps_append}}
       build_local_deps: ${{ matrix.build_local_deps }}
+      oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -676,6 +679,7 @@ jobs:
           - desc: MacOS-14-ARM aclang15/C++20/py3.13
             runner: macos-14
             nametag: macos14-arm-py313
+            oiio_python_bindings_backend: both
             cc_compiler: /usr/bin/clang
             cxx_compiler: /usr/bin/clang++
             cxx_std: 20
@@ -739,6 +743,7 @@ jobs:
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;openjph;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
       build_local_deps: ${{ matrix.build_local_deps }}
+      oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -753,6 +758,7 @@ jobs:
           - desc: Windows-2025 VS2022
             runner: windows-2025
             nametag: windows-2025
+            oiio_python_bindings_backend: both
             generator: "Visual Studio 17 2022"
             python_ver: "3.12"
             ctest_test_timeout: "240"
