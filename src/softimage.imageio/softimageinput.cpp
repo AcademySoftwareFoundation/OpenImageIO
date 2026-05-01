@@ -175,6 +175,8 @@ SoftimageInput::read_native_scanline(int subimage, int miplevel, int y,
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
+    if (y < 0 || y >= m_spec.height)
+        return false;
 
     bool result = false;
     if (y == (int)m_scanline_markers.size() - 1) {
@@ -271,9 +273,14 @@ SoftimageInput::read_next_scanline(void* data)
             ok = read_pixels_pure_run_length(cp, data);
         } else if (type == MIXED_RUN_LENGTH) {
             ok = read_pixels_mixed_run_length(cp, data);
+        } else {
+            errorfmt("Unsupported channel packet encoding {:d} in \"{}\"",
+                     int(cp.type), m_filename);
+            close();
+            return false;
         }
         if (!ok) {
-            errorfmt("Failed to read channel packed type {:d} from \"{}\"",
+            errorfmt("Failed to read channel packet type {:d} from \"{}\"",
                      int(cp.type), m_filename);
             close();
             return false;
@@ -345,6 +352,12 @@ SoftimageInput::read_pixels_pure_run_length(
         if (fread(&curCount, 1, 1, m_fd) != 1)
             return false;
 
+        // Zero-length run is malformed
+        if (curCount == 0) {
+            errorfmt("Invalid RLE data");
+            return false;
+        }
+
         // Clamp to avoid writing past the end of the scanline buffer
         if (linePixelCount + curCount > m_pic_header.width)
             curCount = m_pic_header.width - linePixelCount;
@@ -353,7 +366,7 @@ SoftimageInput::read_pixels_pure_run_length(
             // data pointer is set so we're supposed to write data there
             size_t pixelSize   = pixelChannelSize * channels.size();
             uint8_t* pixelData = new uint8_t[pixelSize];
-            if (fread(pixelData, pixelSize, 1, m_fd) != pixelSize)
+            if (fread(pixelData, 1, pixelSize, m_fd) != pixelSize)
                 return false;
 
             // Now we've got the pixel value we need to push it into the data
@@ -470,6 +483,12 @@ SoftimageInput::read_pixels_mixed_run_length(
                     OIIO::swap_endian(&longCount);
             } else {
                 longCount = curCount - 127;
+            }
+
+            // Zero-length run is malformed
+            if (longCount == 0) {
+                errorfmt("Invalid RLE data");
+                return false;
             }
 
             // Clamp to avoid writing past the end of the scanline buffer
