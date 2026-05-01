@@ -50,6 +50,9 @@ private:
     std::vector<softimage_pvt::ChannelPacket> m_channel_packets;
     std::string m_filename;
     std::vector<fpos_t> m_scanline_markers;
+    // Maps absolute channel index (0=R,1=G,2=B,3=A) to sequential output
+    // offset within the scanline buffer.  Initialized to -1 (unused).
+    int m_channel_map[4];
 };
 
 
@@ -76,6 +79,7 @@ SoftimageInput::init()
     m_filename.clear();
     m_channel_packets.clear();
     m_scanline_markers.clear();
+    std::fill(m_channel_map, m_channel_map + 4, -1);
 }
 
 
@@ -110,7 +114,6 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
 
     // Get the ChannelPackets
     ChannelPacket curPacket;
-    int nchannels = 0;
     std::vector<std::string> encodings;
     do {
         // Read the next packet into curPacket and store it off
@@ -126,12 +129,30 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
             close();
             return false;
         }
+        if (curPacket.channelCode == 0) {
+            errorfmt("Channel packet with no channels");
+            close();
+            return false;
+        }
         m_channel_packets.push_back(curPacket);
 
-        // Add the number of channels in this packet to nchannels
-        nchannels += curPacket.channels().size();
         encodings.push_back(encoding_name(m_channel_packets.back().type));
+
+        if (m_channel_packets.size() > 4) {
+            errorfmt("Too many channel packets");
+            close();
+            return false;
+        }
     } while (curPacket.chained);
+
+    // Build channel map: absolute RGBA index -> sequential output offset
+    int nchannels = 0;
+    {
+        for (auto& cp : m_channel_packets)
+            for (int ch : cp.channels())
+                if (m_channel_map[ch] == -1)
+                    m_channel_map[ch] = nchannels++;
+    }
 
     // Get the depth per pixel per channel
     TypeDesc chanType = TypeDesc::UINT8;
@@ -314,7 +335,8 @@ SoftimageInput::read_pixels_uncompressed(
                     //read the data into the correct place
                     if (fread(&scanlineData[(pixelX * pixelChannelSize
                                              * m_spec.nchannels)
-                                            + (channel * pixelChannelSize)
+                                            + (m_channel_map[channel]
+                                               * pixelChannelSize)
                                             + curByte],
                               1, 1, m_fd)
                         != 1)
@@ -383,7 +405,8 @@ SoftimageInput::read_pixels_pure_run_length(
                         //put the data into the correct place
                         scanlineData[(pixelX * pixelChannelSize
                                       * m_spec.nchannels)
-                                     + (channels[curChan] * pixelChannelSize)
+                                     + (m_channel_map[channels[curChan]]
+                                        * pixelChannelSize)
                                      + curByte]
                             = pixelData[(curChan * pixelChannelSize) + curByte];
                     }
@@ -445,12 +468,12 @@ SoftimageInput::read_pixels_mixed_run_length(
                                 curByte = ((pixelChannelSize)-1) - curByte;
 
                             //read the data into the correct place
-                            if (fread(
-                                    &scanlineData[(pixelX * pixelChannelSize
-                                                   * m_spec.nchannels)
-                                                  + (channel * pixelChannelSize)
-                                                  + curByte],
-                                    1, 1, m_fd)
+                            if (fread(&scanlineData[(pixelX * pixelChannelSize
+                                                     * m_spec.nchannels)
+                                                    + (m_channel_map[channel]
+                                                       * pixelChannelSize)
+                                                    + curByte],
+                                      1, 1, m_fd)
                                 != 1)
                                 return false;
                         }
@@ -519,7 +542,8 @@ SoftimageInput::read_pixels_mixed_run_length(
                             //put the data into the correct place
                             scanlineData[(pixelX * pixelChannelSize
                                           * m_spec.nchannels)
-                                         + (channels[curChan] * pixelChannelSize)
+                                         + (m_channel_map[channels[curChan]]
+                                            * pixelChannelSize)
                                          + curByte]
                                 = pixelData[(curChan * pixelChannelSize)
                                             + curByte];
