@@ -1,3 +1,23 @@
+Release 3.0.18.0 (May 1, 2026) -- compared to 3.0.17.0
+---------------------------------------------------------
+  - *ImageSpec*: ImageSpec::get_string_attribute didn't correctly translate to string [#5161](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5161)
+  - *bmp*: Correctly handle the combination of greyscale + RLE compression [#5163](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5163)
+  - *dds*: Corruption protection: validate resolution + overflow care [#5131](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5131)
+  - *heif*: Fix incorrect tracking of current subimage [#5166](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5166)
+  - *jpeg2000*: Watch out for int overflow in buffer size computation [#5143](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5143)
+  - *rla*: Harden against corrupted files [#5153](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5153)
+  - *sgi*: Better detection of corrupt RLE info that could overflow [#5141](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5141)
+  - *softimage*: Hardening against corrupted input: prevent buffer overruns from corrupt RLE, malformed channel packets, and other invalid data. [#5142](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5142) [#5155](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5155) [#5156](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5156)
+  - *targa*: Protection against corrupt, mis-sized palette [#5165](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5165)
+  - *tiff*: Care with missing rowsperstrip [#5160](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5160)
+  - *tiff*: More care ignoring XMP tags that should not be used [#5162](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5162)
+  - *xmp*: Correctly parse XMP with self-closing elements [#5106](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5106)
+  - *build*: Fix Makefile wrapper to properly quote test regex [#5146](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5146)
+  - *ci*: Fix breakage because fmtlib changed 'master' to 'main' [#5127](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5127)
+  - *ci*: Unbreak Mac CI by adding jpeg-xl install [#5139](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5139)
+  - *admin*: Update security instructions to emphasize reporting via GitHub [#5149](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5149)
+
+
 Release 3.0.17.0 (Apr 1, 2026) -- compared to 3.0.16.0
 ---------------------------------------------------------
   - *IBA*: Handle offset data windows in fillholes_pushpull [#5105](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5105)
