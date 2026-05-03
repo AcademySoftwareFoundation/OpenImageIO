@@ -25,6 +25,9 @@ Comparison: of flip.tif and flop.tif
   warns 2034 fails 2034
 Relative comparison: of flip.tif and flop.tif
   warns 1946 fails 1896
+FLIP_diff same vs same: mean=0 max=0
+FLIP_diff black vs white: mean=0.96738 max=0.96738
+FLIP_ppd = 67.02
 isConstantColor on pink image is (1 0.50196 0.50196)
 isConstantColor on checker is  None
 Is cmul1.exr monochrome?  True

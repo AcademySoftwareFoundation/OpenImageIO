@@ -71,6 +71,7 @@ channelindex('G') = 1
 channel_name(1) = G
 channelformat(1) = uint8
 
+get u8_from_u16_probe (reject uint16 buffer): REJECTED
 get_int_attribute('foo_int') retrieves 14
 get_int_attribute('foo_int',21) with default retrieves 14
 get_int_attribute('foo_no',23) retrieves 23
@@ -80,6 +81,8 @@ get_float_attribute('foo_float_no',2.7) retrieves 2.700000047683716
 get_string_attribute('foo_str') retrieves blah
 get_string_attribute('foo_str_no') retrieves 
 get_string_attribute('foo_str_no','xx') retrieves xx
+get_bytes_attribute('foo_str') type is bytes: True
+get_bytes_attribute('foo_str') == foo_str bytes: True
 
 getattribute('foo_int') retrieves 14
 getattribute('foo_float') retrieves 3.140000104904175
@@ -183,6 +186,14 @@ serialize(text, human):
     ucarr: 49, 50, 51, 0, 0, 97, 98, 99, 1, 88
     smpte:TimeCode: 01:18:19:06
 
+
+after extra_attribs assignment, len = 1
+  replaced = yes
+to_xml starts with <ImageSpec: True
+from_xml preserved replaced: yes
+valid_tile_range aligned: True
+valid_tile_range misaligned: False
+copy_dimensions: 11 22 half keep_me = still_here
 
 Added dog:  Spot
 After erasing dog, dog =  None

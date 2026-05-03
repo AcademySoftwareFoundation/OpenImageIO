@@ -8,9 +8,21 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
 ### ⛰️  New features and public API changes:
 * *New image file format support:*
 * *oiiotool new features and major improvements*:
+  - `oiiotool --flipdiff` computes the FLIP perceptual difference between two
+    images, prints statistics, and leaves the error map on the image stack for
+    further processing or saving. Options: `hdr=1` for HDR-FLIP, `colormap=NAME`
+    to apply a false-color map (e.g. "magma"), `ppd=N` to override pixels-per-
+    degree, `tonemapper=NAME` for HDR tonemapper ("aces", "reinhard", "hable").
 * *Command line utilities*:
   - *iv*: Flip, rotate and save image [#5003](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5003) (by Valery Angelique) (3.2.0.0, 3.1.11.0)
 * *ImageBuf/ImageBufAlgo*:
+  - `ImageBufAlgo::FLIP()` computes the FLIP (eLearning perceptual Image
+    difference Predictor) metric between two LDR or HDR images. The result is
+    a single-channel float image with per-pixel FLIP error in [0,1]. A
+    `FLIPResults` struct returns mean error, max error, and location. The
+    optional `colormap` kwarg applies a false-color map to the result.
+    `FLIP_ppd()` helper computes pixels-per-degree for a given display setup.
+    Python bindings and `oiiotool --flipdiff` are also provided.
   - *ImageBuf*: `IB::localpixels_as_[writable_]byte_image_span` [#5011](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5011) (3.2.0.0, 3.1.10.0)
 * *ImageCache/TextureSystem*:
   - *api/TS*: `IBA::make_texture()` now honors "maketx:threads" hint [#5014](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5014) (3.2.0.0, 3.1.10.0)

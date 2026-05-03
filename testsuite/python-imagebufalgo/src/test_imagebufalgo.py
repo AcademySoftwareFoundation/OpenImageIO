@@ -417,6 +417,25 @@ try:
     print ("  warns", compresults.nwarn, "fails", compresults.nfail)
 
     # compare_Yee,
+
+    # FLIP_diff
+    black = make_constimage(64, 64, 3, oiio.FLOAT, (0, 0, 0))
+    white = make_constimage(64, 64, 3, oiio.FLOAT, (1, 1, 1))
+    same  = make_constimage(64, 64, 3, oiio.FLOAT, (0.5, 0.5, 0.5))
+    errmap = ImageBufAlgo.FLIP_diff(same, same)
+    print("FLIP_diff same vs same: mean=%.5g max=%.5g"
+          % (errmap.spec().get_float_attribute("FLIP:meanerror"),
+             errmap.spec().get_float_attribute("FLIP:maxerror")))
+    errmap = ImageBufAlgo.FLIP_diff(black, white)
+    print("FLIP_diff black vs white: mean=%.5g max=%.5g"
+          % (errmap.spec().get_float_attribute("FLIP:meanerror"),
+             errmap.spec().get_float_attribute("FLIP:maxerror")))
+    assert (errmap.spec().get_float_attribute("FLIP:meanerror") > 0
+            and errmap.spec().get_float_attribute("FLIP:maxerror") <= 1.0)
+    ppd = ImageBufAlgo.FLIP_ppd(0.7, 3840, 0.7)
+    print("FLIP_ppd = %.4g" % ppd)
+    assert 60 < ppd < 80
+
     # isConstantColor, isConstantChannel
 
     b = ImageBuf (ImageSpec(256,256,3,oiio.UINT8))

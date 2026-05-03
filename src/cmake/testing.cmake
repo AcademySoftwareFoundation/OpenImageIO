@@ -21,6 +21,23 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
 
+# Build a single ENVIRONMENT list entry "PYTHONPATH=..." for CTest.
+# On Windows, keep this deterministic and do not append inherited PYTHONPATH:
+# semicolon-separated values can be split by CMake list processing when used
+# as test ENVIRONMENT entries.
+function (oiio_tests_pythonpath_env_entry out_var prefix_dir)
+    if (WIN32)
+        set (_pythonpath "${prefix_dir}")
+    else ()
+        if (DEFINED ENV{PYTHONPATH} AND NOT "$ENV{PYTHONPATH}" STREQUAL "")
+            string (CONCAT _pythonpath "${prefix_dir}" ":" "$ENV{PYTHONPATH}")
+        else ()
+            set (_pythonpath "${prefix_dir}")
+        endif ()
+    endif ()
+    set (${out_var} "PYTHONPATH=${_pythonpath}" PARENT_SCOPE)
+endfunction ()
+
 
 # oiio_add_tests() - add a set of test cases.
 #
@@ -168,6 +185,7 @@ macro (oiio_add_all_tests)
                     oiiotool-text
                     oiiotool-xform
                     diff
+                    flip
                     dither dup-channels
                     jpeg jpeg-corrupt jpeg-metadata
                     maketx oiiotool-maketx
@@ -228,25 +246,60 @@ macro (oiio_add_all_tests)
     # Python interpreter itself won't be linked with the right asan
     # libraries to run correctly.
     if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE)
-        oiio_add_tests (
-            docs-examples-python
-            python-colorconfig
-            python-deep 
-            python-imagebuf
-            python-imagecache
-            python-imageoutput
-            python-imagespec
-            python-paramlist
-            python-roi
-            python-texturesys
-            python-typedesc
-            filters
-            )
-        # These Python tests also need access to oiio-images
-        oiio_add_tests (
-            python-imageinput python-imagebufalgo
-            IMAGEDIR oiio-images
-            )
+        if (WIN32)
+            # On Windows CI we run the install target before tests. Use the
+            # installed package path to avoid multi-config output layout quirks.
+            set (_installed_python_site_packages
+                "${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_ROOT_DIR}")
+            oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
+                "${_installed_python_site_packages}")
+            oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
+                "${CMAKE_BINARY_DIR}/lib/python/nanobind/$<CONFIG>")
+        else ()
+            oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
+                "${CMAKE_BINARY_DIR}/lib/python/site-packages")
+            oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
+                "${CMAKE_BINARY_DIR}/lib/python/nanobind")
+        endif ()
+        set (nanobind_python_tests
+             python-imagespec
+             python-paramlist
+             python-roi
+             python-typedesc)
+        set (nanobind_python_test_suffix ".nanobind")
+        if (OIIO_BUILD_PYTHON_PYBIND11)
+            oiio_add_tests (
+                docs-examples-python
+                python-colorconfig
+                python-deep
+                python-imagebuf
+                python-imagecache
+                python-imageoutput
+                python-imagespec
+                python-paramlist
+                python-roi
+                python-texturesys
+                python-typedesc
+                filters
+                ENVIRONMENT "${_pybind_tests_pythonpath}"
+                )
+            # These Python tests also need access to oiio-images
+            oiio_add_tests (
+                python-imageinput python-imagebufalgo
+                IMAGEDIR oiio-images
+                ENVIRONMENT "${_pybind_tests_pythonpath}"
+                )
+        else ()
+            set (nanobind_python_test_suffix "")
+        endif ()
+
+        if (OIIO_BUILD_PYTHON_NANOBIND)
+            oiio_add_tests (
+                ${nanobind_python_tests}
+                SUFFIX ${nanobind_python_test_suffix}
+                ENVIRONMENT "${_nanobind_tests_pythonpath}"
+                )
+        endif ()
     endif ()
 
     oiio_add_tests (oiiotool-color
@@ -266,7 +319,7 @@ macro (oiio_add_all_tests)
 
     oiio_add_tests ( python-imagebufalgo
         FOUNDVAR hwy_FOUND
-        ENABLEVAR OIIO_USE_HWY  USE_PYTHON
+        ENABLEVAR OIIO_USE_HWY  USE_PYTHON OIIO_BUILD_PYTHON_PYBIND11
         DISABLEVAR BUILD_OIIOUTIL_ONLY SANITIZE
         SUFFIX ".hwy"
         ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1"

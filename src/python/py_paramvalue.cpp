@@ -11,9 +11,25 @@ static ParamValue
 ParamValue_from_pyobject(string_view name, TypeDesc type, int nvalues,
                          ParamValue::Interp interp, const py::object& obj)
 {
+    ParamValue pv;
+    // Unsized uint8[] + bytes infers arraylen — must run before numelements().
+    if (type.basetype == TypeDesc::UINT8 && type.arraylen
+        && py::isinstance<py::bytes>(obj)) {
+        TypeDesc t    = type;
+        std::string s = obj.cast<py::bytes>();
+        if (type.arraylen < 0)
+            t.arraylen = int(s.size()) / nvalues;
+        if (t.arraylen * nvalues == int(s.size())) {
+            std::vector<uint8_t> vals((const uint8_t*)s.data(),
+                                      (const uint8_t*)s.data() + s.size());
+            pv.init(name, t, nvalues, interp, vals.data());
+            return pv;
+        }
+        return pv;
+    }
+
     size_t expected_size = size_t(type.numelements() * type.aggregate
                                   * nvalues);
-    ParamValue pv;
     if (type.basetype == TypeDesc::INT) {
         std::vector<int> vals;
         py_to_stdvector(vals, obj);
@@ -43,18 +59,6 @@ ParamValue_from_pyobject(string_view name, TypeDesc type, int nvalues,
             for (auto& val : vals)
                 u.emplace_back(val);
             pv.init(name, type, nvalues, interp, &u[0]);
-            return pv;
-        }
-    } else if (type.basetype == TypeDesc::UINT8 && type.arraylen
-               && py::isinstance<py::bytes>(obj)) {
-        // Special case: converting a "bytes" object to a byte array
-        std::string s = obj.cast<py::bytes>();
-        if (type.arraylen < 0)  // convert un-specified length to real length
-            type.arraylen = int(s.size()) / nvalues;
-        if (type.arraylen * nvalues == int(s.size())) {
-            std::vector<uint8_t> vals((const uint8_t*)s.data(),
-                                      (const uint8_t*)s.data() + s.size());
-            pv.init(name, type, nvalues, interp, vals.data());
             return pv;
         }
     } else if (type.basetype == TypeDesc::UINT8) {

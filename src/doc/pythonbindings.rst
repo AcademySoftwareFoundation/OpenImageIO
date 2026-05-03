@@ -3287,6 +3287,98 @@ Image comparison and statistics
 
 
 
+.. py:method:: ImageBuf ImageBufAlgo.FLIP_diff (ref, test, hdr=1, maxluminance=2.0, medianluminance=0.18, ppd=0.0, tonemapper="aces", roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.FLIP_diff (dst, ref, test, hdr=1, maxluminance=2.0, medianluminance=0.18, ppd=0.0, tonemapper="aces", roi=ROI.All, nthreads=0)
+
+    WARNING: This is EXPERIMENTAL and may change at any time. Do not rely
+    on it prior to the release of OIIO 3.2.
+
+    Compute the `FLIP <https://research.nvidia.com/publication/2020-07_flip-difference-evaluator-alternating-images>`_
+    perceptual difference between images `ref` and `test`, returning a
+    single-channel float error map whose pixel values lie in [0,1].  Higher
+    values indicate larger perceived differences.
+
+    If the image's ``oiio:ColorSpace`` metadata does not clearly define a
+    color space, it will be assumed to be ``lin_rec709_scene`` before
+    processing. Three channels starting at ``roi.chbegin`` are used.
+
+    Summary statistics are stored as metadata attributes on the result
+    ``ImageBuf``:
+
+    .. code-block:: python
+
+        errmap = ImageBufAlgo.FLIP_diff (ref_image, test_image)
+        errmap.spec().get_float_attribute("FLIP:meanerror")   # mean perceptual error
+        errmap.spec().get_float_attribute("FLIP:maxerror")    # maximum per-pixel error
+        errmap.spec().get_int_attribute("FLIP:maxx")          # x coordinate of max-error pixel
+        errmap.spec().get_int_attribute("FLIP:maxy")          # y coordinate of max-error pixel
+        errmap.spec().get_float_attribute("FLIP:startExposure") # HDR: first exposure stop used
+        errmap.spec().get_float_attribute("FLIP:stopExposure")  # HDR: last exposure stop used
+        errmap.spec().get_int_attribute("FLIP:numExposures")  # HDR: number of exposure steps used
+
+    Options:
+
+    * `hdr` (int, default 1) — set to 0 to force use of LDR-FLIP mode (should
+      only be used for images in a LDR display-referred color space).
+    * `maxluminance` (float, default 2.0) — estimated maximum luminance
+    * `medianluminance` (float, default 0.18) — estimated median luminance
+    * `ppd` (float, default 67.02) — pixels per degree of visual angle
+    * `tonemapper` (str, default ``"aces"``) — HDR tonemapper:
+      ``"aces"``, ``"reinhard"``, or ``"hable"``
+    * `startExposure`, `stopExposure` (float) - The start and end exposures
+      for HDR FLIP. If not supplied, they will be computed automatically based
+      on the `maxluminance`, which if it is 0, will be computed based on the
+      value range in the reference image.
+    * `numExposures` (int) - The number of exposures used for HDR FLIP. If
+      not supplied, it will be computed automatically.
+
+    Tip: For a false-color visualization pass the result to
+    :py:meth:`ImageBufAlgo.color_map`.
+
+    See also :py:meth:`ImageBufAlgo.FLIP_ppd` for computing `ppd` from
+    display geometry.
+
+    This was added in OpenImageIO 3.2.
+
+    Example:
+
+    .. code-block:: python
+
+        ref  = ImageBuf("ref.exr")
+        test = ImageBuf("test.exr")
+
+        # Basic use: 1-channel float error map in [0,1].
+        errmap = ImageBufAlgo.FLIP_diff(ref, test)
+        print("Mean FLIP error:", errmap.spec().get_float_attribute("FLIP:meanerror"))
+        print("Max  FLIP error:", errmap.spec().get_float_attribute("FLIP:maxerror"),
+              "at", errmap.spec().get_int_attribute("FLIP:maxx"),
+              errmap.spec().get_int_attribute("FLIP:maxy"))
+
+        # LDR mode (display-referred images only):
+        errmap = ImageBufAlgo.FLIP_diff(ref, test, hdr=0)
+
+        # False-color visualization:
+        colored = ImageBufAlgo.color_map(errmap, 0, "magma")
+
+
+
+.. py:method:: float ImageBufAlgo.FLIP_ppd (monitor_distance_m=0.7, screen_width_px=3840, screen_width_m=0.7)
+
+    Compute the pixels-per-degree value for use as the `ppd` argument to
+    :py:meth:`ImageBufAlgo.FLIP_diff`, given the viewing distance in meters,
+    the screen width in pixels, and the screen width in meters.  The default
+    values correspond to ~67 ppd (a common desktop monitor at typical viewing
+    distance).
+
+    Example:
+
+    .. code-block:: python
+
+        ppd = ImageBufAlgo.FLIP_ppd(0.5, 2560, 0.6)
+        errmap = ImageBufAlgo.FLIP_diff(ref, test, ppd=ppd)
+
+
+
 .. py:method:: tuple ImageBufAlgo.isConstantColor (src, threshold=0.0, roi=ROI.All, nthreads=0)
 
     If all pixels of `src` within the ROI have the same values (for the

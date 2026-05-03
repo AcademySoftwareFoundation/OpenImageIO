@@ -1901,6 +1901,10 @@ Writing images
           221  > 1,1,1
         65315  within range
 
+
+:program:`oiiotool` commands that compare images
+================================================
+
 .. option:: --diff
             --fail <A> --failpercent <B> --hardfail <C>
             --warn <A> --warnpercent <B> --hardwarn <C>
@@ -1925,10 +1929,90 @@ Writing images
 .. option:: --pdiff
 
     This command computes the difference of the current image and the next
-    image on the stack using a perceptual metric, and prints whether or not
-    they match according to that metric.  This command does not alter the
+    image on the stack using the Yee perceptual metric, and prints whether or
+    not they match according to that metric.  This command does not alter the
     image stack.
 
+.. option:: --flipdiff
+
+    Compute the FLIP perceptual difference of the top two images on the stack
+    (removing them), optionally print error metrics, and leave the per-pixel
+    error map on the stack.
+
+    Limitations: Currently, this only operates on the first subimage,
+    and the first three (RGB) channels, and does not work on volumetric
+    or "deep" images.
+
+    Optional appended modifiers include:
+
+      `:hdr=` *int* (default: 1)
+        If nonzero, computes the HDR FLIP comparison. If zero, computes
+        the LDR FLIP comparision. The default is 1, for HDR mode.
+      `:maxluminance=` *float* (default: 2.0)
+        The top of the expected luminance range, used to compute exposure
+        settings. If set to 0.0, the "startExposure" and "stopExposure"
+        will be used instead. The default is 2.0, which should be adequate
+        for most production scenarios.
+      `:medianluminance=` *float* (default: 0.18)
+        The assumed median luminance (used if "maxluminance" is not 0, so
+        we are using these estimates instead of measuring from the image).
+        The default 0.18 assumes that "middle grey" is a good guess for
+        a typical median luminance of the image.
+      `:ppd=` *float* (default:67.02)
+        Specifies the horizontal pixels per degree of viewing. The default
+        value of 67.02 is computed as the value for a 3840 pixel (2xHD) image
+        filling a display that is 0.7m wide, 0.7m in front of the viewer.
+      `:tonemapper=` *name* (default: "aces")
+        Specifies the HDR tonemapper: one of "aces" (default), "reinhard", or
+        "hable".
+      `:startExposure=` *float* `:stopExposure=` *float*
+        If supplied, and if "maxluminance" is set to 0, specify start and stop
+        exposures for the HDR FLIP method. If not supplied, they will be
+        automatically computed from the contents of the image.
+      `:numExposures=` *int* (default: 0)
+        The number of exposures for HDR FLIP computation (default: 0, which
+        means to automatically compute it).
+      `:colormap=` *name*
+        If absent or empty, the output error image will be a single channel
+        grey value. If present and the name of a color map (the same set
+        accepted by the oiiotool `--colormap` action), the output error
+        image will be a 3-channel RGB false-color visualization of the
+        perceptual error for each pixel.
+      `:print=` *int* (default: 1)
+        If nonzero, will print information such as the average and maximum
+        error of the pixels. The default is 1, meaning that the report will
+        print to stdout. Set to 0 to suppress the printing.
+      `:fail=` *float*
+        If set, a PASS/FAIL message will be printed to the console, with
+        "failing" meaning that any pixel's error metric exceeded the threshold
+        specified as the value for this parameter. In the case of a failure,
+        the oiiotool run itself will have a shell error code.
+
+    The command also sets metadata on the result image based on the FLIP
+    computation:
+
+      `"FLIP:meanerror"`
+        Mean of error map in [0,1].
+      `"FLIP:maxerror"`
+        Maximum perceptual pixel error.
+      `"FLIP:maxx"`
+        x coordinate of the pixel with the highest error.
+      `"FLIP:maxy"`
+        y coordinate of the pixel with the highest error.
+      `"FLIP:startExposure"`, `"FLIP:stopExposure"`
+        (HDR mode only) The start and stop exposure stops used.
+      `"FLIP:numExposures"`
+        (HDR mode only) Number of exposure steps used.
+
+    Examples::
+
+        # Default HDR mode, with false-color visualization
+        oiiotool reference.exr test.exr --flipdiff:colormap=magma -o error.exr
+
+        # LDR mode (for display-referred images), 1-channel error map
+        oiiotool reference.jpg test.jpg --flipdiff:hdr=0 -o error.exr
+
+    This command was added in OIIO 3.2.
 
 
 :program:`oiiotool` commands that change the current image metadata

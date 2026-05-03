@@ -225,7 +225,7 @@ jobs:
             container: aswf/ci-oiio:2025.5
             cxx_std: 17
             build_type: Debug
-            ctest_test_timeout: "240"
+            ctest_test_timeout: "300"
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 11.2.0

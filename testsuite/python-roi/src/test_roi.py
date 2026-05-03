@@ -57,6 +57,14 @@ try:
     print ("r contains (1000,10) (expect no): ", r.contains(1000,10))
     print ("r contains roi(10,20,10,20,0,1,0,1) (expect yes): ", r.contains(oiio.ROI(10,20,10,20,0,1,0,1)))
     print ("r contains roi(1010,1020,10,20,0,1,0,1) (expect no): ", r.contains(oiio.ROI(1010,1020,10,20,0,1,0,1)))
+    # Cover the 6-argument ROI constructor and the contains(x, y, z, ch)
+    # overload with explicit z/channel arguments.
+    r4 = oiio.ROI (0, 10, 0, 10, 2, 4)
+    print ("ROI(0, 10, 0, 10, 2, 4) =", r4)
+    r5 = oiio.ROI (0, 10, 0, 10, 2, 4, 1, 3)
+    print ("r5 contains (1,1,2,1) (expect yes): ", r5.contains(1,1,2,1))
+    print ("r5 contains (1,1,1,1) (expect no): ", r5.contains(1,1,1,1))
+    print ("r5 contains (1,1,2,3) (expect no): ", r5.contains(1,1,2,3))
 
     A = oiio.ROI (0, 10, 0, 8, 0, 1, 0, 4)
     B = oiio.ROI (5, 15, -1, 10, 0, 1, 0, 4)

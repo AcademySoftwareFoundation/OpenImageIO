@@ -159,6 +159,31 @@ equivalent(vector,color) True
 vector.equivalent(float) False
 equivalent(vector,float) False
 
+type 'mutated FLOAT, VEC3, COLOR, array of 2'
+    c_str "color[2]"
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.COLOR
+    arraylen 2
+    str(t) = "color[2]"
+    size = 24
+    elementtype = color
+    numelements = 2
+    basevalues = 6
+    elementsize = 12
+    basesize = 4
+type 'fromstring('point')'
+    c_str "point"
+after unarray('float[2]') = float
+vector is_vec2,is_vec3,is_vec4 = False True False
+box2i is_box2,is_box3 = True False
+all_types_equal([uint8,uint8]) = True
+all_types_equal([uint8,uint16]) = False
+repr(TypeFloat) = <TypeDesc 'float'>
+
+implicit enum ImageSpec roi = 0 8 0 9 0 1 0 3
+implicit str ImageSpec roi = 0 8 0 9 0 1 0 3
+
 type 'TypeFloat'
     c_str "float"
 type 'TypeColor'
@@ -221,5 +246,7 @@ type 'TypeURational'
     c_str "rational2ui"
 type 'TypeUInt'
     c_str "uint"
+
+Passed: array('l')+int[2] does not mis-read int64 as two 32-bit ints (matches pybind)
 
 Done.

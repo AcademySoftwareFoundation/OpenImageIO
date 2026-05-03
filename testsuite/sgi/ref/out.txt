@@ -32,5 +32,4 @@ src/broken01.sgi :    8 x    2, 1 channel, uint8 sgi
     SHA-1: Corrupt RLE data
     channel list: Y
     compression: "rle"
-iinfo ERROR: Could not read src/broken01.sgi:
-	Corrupt RLE data
+iinfo ERROR: "src/broken01.sgi" : Corrupt RLE data

@@ -50,6 +50,9 @@ private:
     std::vector<softimage_pvt::ChannelPacket> m_channel_packets;
     std::string m_filename;
     std::vector<fpos_t> m_scanline_markers;
+    // Maps absolute channel index (0=R,1=G,2=B,3=A) to sequential output
+    // offset within the scanline buffer.  Initialized to -1 (unused).
+    int m_channel_map[4];
 };
 
 
@@ -76,6 +79,7 @@ SoftimageInput::init()
     m_filename.clear();
     m_channel_packets.clear();
     m_scanline_markers.clear();
+    std::fill(m_channel_map, m_channel_map + 4, -1);
 }
 
 
@@ -110,7 +114,6 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
 
     // Get the ChannelPackets
     ChannelPacket curPacket;
-    int nchannels = 0;
     std::vector<std::string> encodings;
     do {
         // Read the next packet into curPacket and store it off
@@ -126,12 +129,30 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
             close();
             return false;
         }
+        if (curPacket.channelCode == 0) {
+            errorfmt("Channel packet with no channels");
+            close();
+            return false;
+        }
         m_channel_packets.push_back(curPacket);
 
-        // Add the number of channels in this packet to nchannels
-        nchannels += curPacket.channels().size();
         encodings.push_back(encoding_name(m_channel_packets.back().type));
+
+        if (m_channel_packets.size() > 4) {
+            errorfmt("Too many channel packets");
+            close();
+            return false;
+        }
     } while (curPacket.chained);
+
+    // Build channel map: absolute RGBA index -> sequential output offset
+    int nchannels = 0;
+    {
+        for (auto& cp : m_channel_packets)
+            for (int ch : cp.channels())
+                if (m_channel_map[ch] == -1)
+                    m_channel_map[ch] = nchannels++;
+    }
 
     // Get the depth per pixel per channel
     TypeDesc chanType = TypeDesc::UINT8;
@@ -174,6 +195,8 @@ SoftimageInput::read_native_scanline(int subimage, int miplevel, int y,
 {
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
+        return false;
+    if (y < 0 || y >= m_spec.height)
         return false;
 
     bool result = false;
@@ -271,9 +294,14 @@ SoftimageInput::read_next_scanline(void* data)
             ok = read_pixels_pure_run_length(cp, data);
         } else if (type == MIXED_RUN_LENGTH) {
             ok = read_pixels_mixed_run_length(cp, data);
+        } else {
+            errorfmt("Unsupported channel packet encoding {:d} in \"{}\"",
+                     int(cp.type), m_filename);
+            close();
+            return false;
         }
         if (!ok) {
-            errorfmt("Failed to read channel packed type {:d} from \"{}\"",
+            errorfmt("Failed to read channel packet type {:d} from \"{}\"",
                      int(cp.type), m_filename);
             close();
             return false;
@@ -307,7 +335,8 @@ SoftimageInput::read_pixels_uncompressed(
                     //read the data into the correct place
                     if (fread(&scanlineData[(pixelX * pixelChannelSize
                                              * m_spec.nchannels)
-                                            + (channel * pixelChannelSize)
+                                            + (m_channel_map[channel]
+                                               * pixelChannelSize)
                                             + curByte],
                               1, 1, m_fd)
                         != 1)
@@ -345,6 +374,12 @@ SoftimageInput::read_pixels_pure_run_length(
         if (fread(&curCount, 1, 1, m_fd) != 1)
             return false;
 
+        // Zero-length run is malformed
+        if (curCount == 0) {
+            errorfmt("Invalid RLE data");
+            return false;
+        }
+
         // Clamp to avoid writing past the end of the scanline buffer
         if (linePixelCount + curCount > m_pic_header.width)
             curCount = m_pic_header.width - linePixelCount;
@@ -353,7 +388,7 @@ SoftimageInput::read_pixels_pure_run_length(
             // data pointer is set so we're supposed to write data there
             size_t pixelSize   = pixelChannelSize * channels.size();
             uint8_t* pixelData = new uint8_t[pixelSize];
-            if (fread(pixelData, pixelSize, 1, m_fd) != pixelSize)
+            if (fread(pixelData, 1, pixelSize, m_fd) != pixelSize)
                 return false;
 
             // Now we've got the pixel value we need to push it into the data
@@ -370,7 +405,8 @@ SoftimageInput::read_pixels_pure_run_length(
                         //put the data into the correct place
                         scanlineData[(pixelX * pixelChannelSize
                                       * m_spec.nchannels)
-                                     + (channels[curChan] * pixelChannelSize)
+                                     + (m_channel_map[channels[curChan]]
+                                        * pixelChannelSize)
                                      + curByte]
                             = pixelData[(curChan * pixelChannelSize) + curByte];
                     }
@@ -432,12 +468,12 @@ SoftimageInput::read_pixels_mixed_run_length(
                                 curByte = ((pixelChannelSize)-1) - curByte;
 
                             //read the data into the correct place
-                            if (fread(
-                                    &scanlineData[(pixelX * pixelChannelSize
-                                                   * m_spec.nchannels)
-                                                  + (channel * pixelChannelSize)
-                                                  + curByte],
-                                    1, 1, m_fd)
+                            if (fread(&scanlineData[(pixelX * pixelChannelSize
+                                                     * m_spec.nchannels)
+                                                    + (m_channel_map[channel]
+                                                       * pixelChannelSize)
+                                                    + curByte],
+                                      1, 1, m_fd)
                                 != 1)
                                 return false;
                         }
@@ -472,6 +508,12 @@ SoftimageInput::read_pixels_mixed_run_length(
                 longCount = curCount - 127;
             }
 
+            // Zero-length run is malformed
+            if (longCount == 0) {
+                errorfmt("Invalid RLE data");
+                return false;
+            }
+
             // Clamp to avoid writing past the end of the scanline buffer
             if (linePixelCount + longCount > m_pic_header.width)
                 longCount = m_pic_header.width - linePixelCount;
@@ -500,7 +542,8 @@ SoftimageInput::read_pixels_mixed_run_length(
                             //put the data into the correct place
                             scanlineData[(pixelX * pixelChannelSize
                                           * m_spec.nchannels)
-                                         + (channels[curChan] * pixelChannelSize)
+                                         + (m_channel_map[channels[curChan]]
+                                            * pixelChannelSize)
                                          + curByte]
                                 = pixelData[(curChan * pixelChannelSize)
                                             + curByte];
