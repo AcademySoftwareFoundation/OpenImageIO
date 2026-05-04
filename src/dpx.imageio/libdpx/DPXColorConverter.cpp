@@ -34,19 +34,22 @@
 
 
 #include "DPXColorConverter.h"
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/span.h>
 #include <algorithm>
 
 namespace dpx {
 	template <typename DATA>
-	static inline bool SwapRGBABytes(const DATA *input, DATA *output, int pixels) {
-		// copy the data that could be destroyed to an additional buffer in case input == output
-		DATA tmp[2];
-		for (int i = 0; i < pixels; i++) {
-			memcpy(tmp, &input[i * 4], sizeof(DATA) * 2);
-			output[i * 4 + 0] = input[i * 4 + 3];
-			output[i * 4 + 1] = input[i * 4 + 2];
-			output[i * 4 + 2] = tmp[1];
-			output[i * 4 + 3] = tmp[0];
+	static inline bool SwapRGBABytes(OIIO::cspan<DATA> input, OIIO::span<DATA> output) {
+        // Because we are within the lengths by definition, we can just use
+        // data pointers below to avoid a bounds check on every one.
+        size_t pixels = input.size() / 4;
+        for (size_t i = 0; i < pixels; i++) {
+			DATA a = input.data()[i * 4 + 0], b = input.data()[i * 4 + 1];
+			output.data()[i * 4 + 0] = input.data()[i * 4 + 3];
+			output.data()[i * 4 + 1] = input.data()[i * 4 + 2];
+			output.data()[i * 4 + 2] = b;
+			output.data()[i * 4 + 3] = a;
 		}
 		return true;
 	}
@@ -107,12 +110,12 @@ namespace dpx {
 
 	// 4:4:4
 	template <typename DATA, unsigned int max>
-	static bool ConvertCbYCrToRGB(const Characteristic space, const DATA *input, DATA *output, const int pixels) {
+	static bool ConvertCbYCrToRGB(const Characteristic space, const DATA *input, DATA *output, const size_t pixels) {
 		const float *matrix = GetYCbCrToRGBColorMatrix(space);
 		if (matrix == NULL)
 			return false;
 		DATA RGB[3];
-		for (int i = 0; i < pixels; i++) {
+		for (size_t i = 0; i < pixels; i++) {
 			ConvertPixelYCbCrToRGB<DATA, max>(&input[i * 3], RGB, matrix);
 			memcpy(&output[i * 3], RGB, sizeof(DATA) * 3);
 		}
@@ -121,12 +124,12 @@ namespace dpx {
 
 	// 4:4:4:4
 	template <typename DATA, unsigned int max>
-	static bool ConvertCbYCrAToRGBA(const Characteristic space, const DATA *input, DATA *output, const int pixels) {
+	static bool ConvertCbYCrAToRGBA(const Characteristic space, const DATA *input, DATA *output, const size_t pixels) {
 		const float *matrix = GetYCbCrToRGBColorMatrix(space);
 		if (matrix == NULL)
 			return false;
 		DATA RGBA[4];
-		for (int i = 0; i < pixels; i++) {
+		for (size_t i = 0; i < pixels; i++) {
 			ConvertPixelYCbCrToRGB<DATA, max>(&input[i * 4], RGBA, matrix);
 			RGBA[3] = input[i * 4 + 3];
 			memcpy(&output[i * 4], RGBA, sizeof(DATA) * 4);
@@ -136,12 +139,12 @@ namespace dpx {
 
 	// 4:2:2
 	template <typename DATA, unsigned int max>
-	static bool ConvertCbYCrYToRGB(const Characteristic space, const DATA *input, DATA *output, const int pixels) {
+	static bool ConvertCbYCrYToRGB(const Characteristic space, const DATA *input, DATA *output, const size_t pixels) {
 		const float *matrix = GetYCbCrToRGBColorMatrix(space);
 		if (matrix == NULL)
 			return false;
 		DATA CbYCr[3];
-		for (int i = 0; i < pixels; i++) {
+		for (size_t i = 0; i < pixels; i++) {
 			// upsample to 4:4:4
 			// FIXME: proper interpolation
 			CbYCr[0] = input[(i | 1) * 2];	// Cb
@@ -155,12 +158,12 @@ namespace dpx {
 
 	// 4:2:2:4
 	template <typename DATA, unsigned int max>
-	static bool ConvertCbYACrYAToRGBA(const Characteristic space, const DATA *input, DATA *output, const int pixels) {
+	static bool ConvertCbYACrYAToRGBA(const Characteristic space, const DATA *input, DATA *output, const size_t pixels) {
 		const float *matrix = GetYCbCrToRGBColorMatrix(space);
 		if (matrix == NULL)
 			return false;
 		DATA CbYCr[3];
-		for (int i = 0; i < pixels; i++) {
+		for (size_t i = 0; i < pixels; i++) {
 			// upsample to 4:4:4
 			// FIXME: proper interpolation
 			CbYCr[0] = input[(i | 1) * 3];	// Cb
@@ -174,7 +177,7 @@ namespace dpx {
 	}
 
 	static inline bool ConvertToRGBInternal(const Descriptor desc, const DataSize size, const Characteristic space,
-		const void *input, void *output, const int pixels) {
+		const void *input, void *output, const size_t pixels) {
 		switch (desc) {
 			// redundant calls
 			case kRGB:
@@ -185,19 +188,19 @@ namespace dpx {
 			case kABGR:
 				switch (size) {
 					case kByte:
-						return SwapRGBABytes<U8>((const U8 *)input, (U8 *)output, pixels);
+						return SwapRGBABytes(OIIO::cspan<U8>((const U8*)input, pixels*4), OIIO::span<U8>((U8*)output, pixels*4));
 					case kWord:
-						return SwapRGBABytes<U16>((const U16 *)input, (U16 *)output, pixels);
+						return SwapRGBABytes(OIIO::cspan<U16>((const U16*)input, pixels*4), OIIO::span<U16>((U16*)output, pixels*4));
 					case kInt:
-						return SwapRGBABytes<U32>((const U32 *)input, (U32 *)output, pixels);
+						return SwapRGBABytes(OIIO::cspan<U32>((const U32*)input, pixels*4), OIIO::span<U32>((U32*)output, pixels*4));
 					case kFloat:
-						return SwapRGBABytes<R32>((const R32 *)input, (R32 *)output, pixels);
+						return SwapRGBABytes(OIIO::cspan<R32>((const R32*)input, pixels*4), OIIO::span<R32>((R32*)output, pixels*4));
 					case kDouble:
-						return SwapRGBABytes<R64>((const R64 *)input, (R64 *)output, pixels);
+						return SwapRGBABytes(OIIO::cspan<R64>((const R64*)input, pixels*4), OIIO::span<R64>((R64*)output, pixels*4));
 				}
 				// shouldn't ever get here
 				return false;
-				
+
 
 			// FIXME: can this be translated to RGB?
 			//case kCompositeVideo:
@@ -287,7 +290,7 @@ namespace dpx {
 		}
 	}
 
-	static inline int QueryRGBBufferSizeInternal(const Descriptor desc, const int pixels, const int bytes) {
+	static inline int64_t QueryRGBBufferSizeInternal(const Descriptor desc, const size_t pixels, const size_t bytes) {
 		switch (desc) {
 			//case kCompositeVideo:	// FIXME: can this be translated to RGB?
 			case kCbYCrY:	// 4:2:2 -> RGB, requires allocation
@@ -329,9 +332,10 @@ namespace dpx {
 		}
 	}
 
-	int QueryRGBBufferSize(const Header &header, const int element, const Block &block) {
+	int64_t QueryRGBBufferSize(const Header &header, const size_t element, const Block &block) {
 		return QueryRGBBufferSizeInternal(header.ImageDescriptor(element),
-			(block.x2 - block.x1 + 1) * (block.y2 - block.y1 + 1),
+			OIIO::clamped_mult64(block.x2 - block.x1 + 1,
+                                 block.y2 - block.y1 + 1),
 			header.ComponentByteCount(element));
 	}
 
@@ -344,10 +348,12 @@ namespace dpx {
 #endif /* NOT USED IN OIIO */
 
 	bool ConvertToRGB(const Header &header, const int element, const void *input, void *output, const Block &block) {
-		return ConvertToRGBInternal(header.ImageDescriptor(element),
-			header.ComponentDataSize(element), header.Colorimetric(element),
-			input, output, (block.x2 - block.x1 + 1) * (block.y2 - block.y1 + 1));
-	}
+        return ConvertToRGBInternal(
+            header.ImageDescriptor(element),
+            header.ComponentDataSize(element), header.Colorimetric(element),
+            input, output, OIIO::clamped_mult64(block.x2 - block.x1 + 1,
+                                                block.y2 - block.y1 + 1));
+    }
 
 #if 0 /* NOT USED IN OIIO */
 	bool ConvertToRGB(const Header &header, const int element, const void *input, void *output) {
@@ -479,7 +485,7 @@ namespace dpx {
 #endif /* NOT USED IN OIIO */
 
 	static inline bool ConvertToNativeInternal(const Descriptor desc, const DataSize size, const Characteristic space,
-		const void *input, void *output, const int pixels) {
+		const void *input, void *output, const size_t pixels) {
 		switch (desc) {
 			// redundant calls
 			case kRGB:
@@ -491,15 +497,15 @@ namespace dpx {
 			case kABGR:
 				switch (size) {
 					case kByte:
-						return SwapRGBABytes<U8>((const U8 *)input, (U8 *)output, pixels);
+						return SwapRGBABytes(OIIO::cspan<U8>((const U8*)input, pixels*4), OIIO::span<U8>((U8*)output, pixels*4));
 					case kWord:
-						return SwapRGBABytes<U16>((const U16 *)input, (U16 *)output, pixels);
+						return SwapRGBABytes(OIIO::cspan<U16>((const U16*)input, pixels*4), OIIO::span<U16>((U16*)output, pixels*4));
 					case kInt:
-						return SwapRGBABytes<U32>((const U32 *)input, (U32 *)output, pixels);
+						return SwapRGBABytes(OIIO::cspan<U32>((const U32*)input, pixels*4), OIIO::span<U32>((U32*)output, pixels*4));
 					case kFloat:
-						return SwapRGBABytes<R32>((const R32 *)input, (R32 *)output, pixels);
+						return SwapRGBABytes(OIIO::cspan<R32>((const R32*)input, pixels*4), OIIO::span<R32>((R32*)output, pixels*4));
 					case kDouble:
-						return SwapRGBABytes<R64>((const R64 *)input, (R64 *)output, pixels);
+						return SwapRGBABytes(OIIO::cspan<R64>((const R64*)input, pixels*4), OIIO::span<R64>((R64*)output, pixels*4));
 				}
 				// shouldn't ever get here
 				return false;
@@ -647,7 +653,7 @@ namespace dpx {
 	}
 #endif /* NOT USED IN OIIO */
 
-	bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const int width, const int height, const void *input, void *output) {
-		return ConvertToNativeInternal(desc, compSize, cmetr, input, output, width * height);
+	bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const size_t width, const size_t height, const void *input, void *output) {
+		return ConvertToNativeInternal(desc, compSize, cmetr, input, output, OIIO::clamped_mult64(width, height));
 	}
 }
