@@ -54,8 +54,9 @@ namespace dpx
 	* of the buffer in bytes; sign: positive - memory needs to be allocated,
 	* negative - allocation is optional, decoded data can replace the input
 	*/
-	int QueryRGBBufferSize(const Header &header, const int element, const Block &block);
+	int64_t QueryRGBBufferSize(const Header &header, const size_t element, const Block &block);
 
+#if 0 /* NOT USED IN OIIO */
 	/*!
 	* \brief Query the size of the buffer necessary to hold the decoded RGB data
 	* \param header DPX header
@@ -64,7 +65,8 @@ namespace dpx
 	* of the buffer in bytes; sign: positive - memory needs to be allocated,
 	* negative - allocation is optional, decoded data can replace the input
 	*/
-	int QueryRGBBufferSize(const Header &header, const int element);
+	int QueryRGBBufferSize(const Header &header, const size_t element);
+#endif
 
 	/*!
 	* \brief Convert native data from the input buffer into RGB in the output buffer
@@ -78,6 +80,7 @@ namespace dpx
 	*/
 	bool ConvertToRGB(const Header &header, const int element, const void *input, void *output, const Block &block);
 
+#if 0 /* NOT USED IN OIIO */
 	/*!
 	* \brief Convert native data from the input buffer into RGB in the output buffer
 	* \param header DPX header
@@ -122,6 +125,7 @@ namespace dpx
 	* \return success true/false
 	*/
     bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const void *input, void *output, const Block &block);
+#endif
 
 	/*!
 	* \brief Convert RGB data from the input buffer into native format in the output buffer
@@ -132,7 +136,7 @@ namespace dpx
 	* \param output output buffer data; can be same as input if \ref QueryNativeBufferSize returns a negative number
 	* \return success true/false
 	*/
-	bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const int width, const int height, const void *input, void *output);
+	bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const size_t width, const size_t height, const void *input, void *output);
 
 }
 
