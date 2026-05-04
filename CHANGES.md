@@ -1,3 +1,8 @@
+Release 3.0.18.1 (May 3, 2026) -- compared to 3.0.18.0
+---------------------------------------------------------
+  - *dpx*: Several safety fixes for corrupt DPX files: integer overflow protection in buffer size calculations, span-based pointer safety, and use of check_open() for resolution/channel validation [#5170](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5170)
+
+
 Release 3.0.18.0 (May 1, 2026) -- compared to 3.0.17.0
 ---------------------------------------------------------
   - *ImageSpec*: ImageSpec::get_string_attribute didn't correctly translate to string [#5161](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5161)
