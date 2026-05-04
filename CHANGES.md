@@ -1,3 +1,8 @@
+Release 3.1.13.1 (May 3, 2026) -- compared to 3.1.13.0
+---------------------------------------------------------
+  - *dpx*: Several safety fixes for corrupt DPX files: integer overflow protection in buffer size calculations, span-based pointer safety, and use of check_open() for resolution/channel validation [#5170](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5170)
+
+
 Release 3.1.13.0 (May 1, 2026) -- compared to 3.1.12.0
 ---------------------------------------------------------
   - *IBA*: Add FLIP perceptual image difference metric as an experimental feature for testing, including new `ImageBufAlgo::experimental::FLIP_diff()` C++ API, Python `ImageBufAlgo.FLIP_diff()`, and `oiiotool --flipdiff` command. Also introduces `oiiotool --experimental` flag to enable experimental features not yet part of the stable API. [#5154](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5154) [#5171](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5171) [#5147](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5147)
