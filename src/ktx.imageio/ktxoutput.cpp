@@ -1,0 +1,963 @@
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+// TODO: only set this if libktx is statically built/linked against
+// Per KTX-Software BUILDING.md:
+//  > When linking to the static library, make sure to
+//  > define `KHRONOS_STATIC` before including KTX header files.
+//  > This is especially important on Windows.
+#ifndef BUILD_SHARED_LIBS
+#    define KHRONOS_STATIC 1
+#endif
+
+#include "ktx_pvt.h"
+#include <cstdint>
+#include <ktx.h>
+
+#include "bc7enc-rdo/bc7enc.h" /* for BC7 encoder */
+#include "bc7enc-rdo/rgbcx.h"  /* for BC1-BC5 encoders */
+// TODO: ETC encoders
+// TODO: BC6HS/BC6HU encoders
+
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+class KtxOutput final : public ImageOutput {
+public:
+    KtxOutput() {}
+
+    ~KtxOutput() override { close(); }
+
+    const char* format_name(void) const override { return "ktx"; }
+
+    int supports(string_view feature) const override
+    {
+        return (
+            // as per the KTX1/2 specs:
+            //  registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_keyvalue_data
+            feature == "arbitrary_metadata" ||
+            /* ktx supports 3D textures, cubmap textures, texture arrays, ... */
+            feature == "multiimage" ||
+            /* not sure ... this naming is confusing */
+            feature == "mipmap");
+    }
+
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+
+    bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+                         const void* data, stride_t xstride = AutoStride,
+                         stride_t ystride = AutoStride) override;
+
+    bool close() override;
+
+private:
+    std::string m_filename;
+
+    ktxTexture2* m_tex { nullptr };
+
+    uint32_t m_nlayers { 1 };
+
+    uint32_t m_miplevels { 1 };
+
+    ktxSupercmpScheme m_superCmp { KTX_SS_NONE };
+
+    khr_df_model_e m_colormodel { KHR_DF_MODEL_UNSPECIFIED };
+
+    BlockCompression m_cmp { BlockCompression::NONE };
+
+    /// libktx only supports writing whole images (i.e., (miplevel, layer, face_slice/depth)
+    /// hence why we keep a large std::vector at all times. This is also needed because we
+    /// apply compression upon file closure and not each time on write_scanline(s).
+    std::vector<uint8_t> m_img;
+
+    // TODO: what about volumetric textures? do we keep an array of these very
+    // large vectors? For the moment, these are just not supported.
+
+    void init();
+
+    VkFormat figure_vkformat_from_spec() const;
+
+    bool basisu_basislz_compress();
+
+    bool basisu_uastc_compress();
+
+    bool write_ktx2();
+
+    inline bool check_bcn_spans(cspan<uint8_t> src, span<uint8_t> dst,
+                                size_t width, size_t height,
+                                BlockCompression cmp) const;
+
+    void encode_bc1(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                    size_t height);
+
+    void encode_bc3(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                    size_t height);
+
+    void encode_bc4(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                    size_t height);
+
+    void encode_bc5(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                    size_t height);
+
+    void encode_bc7(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                    size_t height, const bc7enc_compress_block_params* params);
+
+    // void generate_mip_levels(const image_span<const std::byte>& base_lvl_image,
+    //                          ImageInput& inputFile, uint32_t numMipLevels,
+    //                          uint32_t layerIndex, uint32_t faceIndex,
+    //                          uint32_t depthSliceIndex);
+};
+
+
+
+OIIO_PLUGIN_EXPORTS_BEGIN
+
+OIIO_EXPORT ImageOutput*
+ktx_output_imageio_create()
+{
+    return new KtxOutput;
+}
+OIIO_EXPORT const char* ktx_output_extensions[] = { "ktx2", nullptr };
+
+OIIO_PLUGIN_EXPORTS_END
+
+
+
+bool
+KtxOutput::open(const std::string& name, const ImageSpec& newspec,
+                OpenMode mode)
+{
+    // TODO: verify the x, y, z limits (probably not 65535)
+    if (!check_open(mode, newspec, { 0, 65535, 0, 65535, 0, 65535, 0, 4 }))
+        return false;
+
+    // Save name and spec for later use
+    m_filename = name;
+
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(m_filename))
+        return false;
+
+    // TODO: get_int_attribute causes a segfault and I have no idea why ...
+    // Weirdly, calling find_attribute directly (and checking the resulting
+    // pointer) works, but not get_int_attribute ...
+
+    // keep this commented in case we need it
+    /*
+    cspan<uint8_t> dfd;
+    ParamValue* dfdQ = m_spec.find_attribute("ktx:dfd", TypeDesc::UINT8);
+    if (dfdQ) {
+        dfd = dfdQ->as_cspan<uint8_t>();
+        std::cout << "[ktxoutput] found dfd with len: " << dfdQ->nvalues()
+                  << '\n';
+    }
+
+    // Copy dfd data from const span because ktxTextureCreateInfo does not take
+    // a const uint8_t ptr.
+    ktx_uint32_t* pDfd { nullptr };
+    std::vector<uint8_t> dfd_copy;
+    if (!dfd.empty()) {
+        dfd_copy.assign(dfd.begin(), dfd.end());
+        pDfd = reinterpret_cast<ktx_uint32_t*>(dfd_copy.data());
+        std::cout << "pDfd is set to != nullptr" << '\n';
+    }
+    */
+
+    //
+    // Use sensible default in case the input data did not originate from a KTX2
+    // file and the user did not provide a supercompression scheme. KTX2 usually
+    // uses Basis LZ supercompression scheme to benefit from both: smaller
+    // disk filesizes and on-the-fly transcoding to a supported native GPU
+    // format.
+    //
+    ParamValue* superCmpSchemQ
+        = m_spec.find_attribute("ktx:supercompressionscheme", TypeDesc::UINT32);
+    if (superCmpSchemQ) {
+        m_superCmp = static_cast<ktxSupercmpScheme>(
+            *reinterpret_cast<const uint32_t*>(superCmpSchemQ->data()));
+        // std::cout << "[ktxoutput] found supercompression scheme: " << m_superCmp
+        //           << '\n';
+    }
+
+
+    // Get transfer function (for color space conversions)
+    // ParamValue* tfQ = m_spec.find_attribute("ktx:transferfunction",
+    //                                         TypeDesc::UINT32);
+    // if (tfQ) {
+    //     m_tf = static_cast<khr_df_transfer_e>(
+    //         *reinterpret_cast<const uint32_t*>(tfQ->data()));
+    //     std::cout << "[ktxoutput] found tf: " << m_tf << '\n';
+    // }
+
+    // Get color model (to detect GPU compression, Basis Universal format, etc.)
+    ParamValue* colorModelQ = m_spec.find_attribute("ktx:colormodel",
+                                                    TypeDesc::UINT32);
+    if (colorModelQ) {
+        m_colormodel = static_cast<khr_df_model_e>(
+            *reinterpret_cast<const uint32_t*>(colorModelQ->data()));
+        // std::cout << "[ktxoutput] found color model: " << m_colormodel << '\n';
+    }
+
+    // Do an early check on supported supercompressionscheme values
+    if (m_superCmp != KTX_SS_BASIS_LZ && m_superCmp != KTX_SS_NONE) {
+        // doing an `errorfmt()` then `close()` causes a seg fault...
+        close();
+        errorfmt("unsupported super compression scheme: {}",
+                 static_cast<uint32_t>(m_superCmp));
+        return false;
+    }
+
+    // Get original VkFormat (i.e., before potential decompression/transcoding)
+    // or the vkformat explicitly set via the "ktx:vkformat" attribute.
+    auto vkFormat         = VkFormat::VK_FORMAT_UNDEFINED;
+    ParamValue* vkFormatQ = m_spec.find_attribute("ktx:vkformat",
+                                                  TypeDesc::UINT32);
+    if (vkFormatQ) {
+        vkFormat = static_cast<VkFormat>(
+            *reinterpret_cast<const uint32_t*>(vkFormatQ->data()));
+        // Get GPU-block-compression from provided VkFormat
+        if (vkFormat != VK_FORMAT_UNDEFINED) {
+            FormatInfo format_info;
+            if (!extract_info_from_format(vkFormat, format_info)) {
+                close();
+                errorfmt("Could not extract format info from provided "
+                         "VkFormat: {}. This format is probably unsupported.",
+                         static_cast<uint32_t>(vkFormat));
+                return false;
+            }
+            m_cmp = format_info.compression;
+        }
+        // std::cout << "[ktxoutput] found vkformat: " << vkFormat << '\n';
+    }
+
+    //
+    // Since we are using libktx's ktxTexture2_CompressAstc, the format has to
+    // be set to an uncompressed VkFormat otherwise we get KTX_INVALID_OPERATION
+    // error code.
+    //
+    if (m_cmp == BlockCompression::ASTC)
+        vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
+
+    // Id a basis universal format compression is not requested and
+    // "ktx:vkformat" is VK_FORMAT_UNDEFINED, then we error out. The user has to
+    // set the vkformat so that we know in which format we write the texture to.
+    if ((m_colormodel != KHR_DF_MODEL_ETC1S
+         && m_colormodel != KHR_DF_MODEL_UASTC)
+        && vkFormat == VK_FORMAT_UNDEFINED) {
+        // TODO: maybe don't error out and set the format depending on the nchannels?
+        // (e.g., 4 + srgb_rec709_scene colorspace => VK_FORMAT_R8G8B8A8_SRGB)
+        close();
+        errorfmt(
+            "VkFormat is set to VK_FORMAT_UNDEFINED even though the "
+            "supercompressionscheme is not Basis LZ. You have to set the "
+            "target VkFormat by setting the ImageSpec's attribute 'ktx:vkformat'.");
+        return false;
+    }
+
+    //
+    // If we intend to compress to BasisLZ/ETC1S or UASTC then we need to figure
+    // the VkFormat so that ktxTexture_SetImageFromMemory does not segfault.
+    // (makes sense, since we are creating a KTX texture and telling it to
+    // allocate storage, how would it know the size of a given subimage if we
+    // provide it with VK_FORMAT_UNDEFINED?)
+    //
+    if ((m_colormodel == KHR_DF_MODEL_ETC1S
+         || m_colormodel == KHR_DF_MODEL_UASTC)
+        && vkFormat == VK_FORMAT_UNDEFINED) {
+        vkFormat = figure_vkformat_from_spec();
+    } else if (m_colormodel == KHR_DF_MODEL_ETC1S
+               || m_colormodel == KHR_DF_MODEL_UASTC) {
+        // TODO: It could be that the user explicitly provided a vkformat - in which
+        // case we have to make sure it aligns with the spec.
+        // if (!is_vkformat_aligned_with_spec()) ...
+        close();
+        errorfmt("Expected vkformat to be VK_FORMAT_UNDEFINED for Basis "
+                 "Universal (UASTC or ETC1S) target KTX textures.");
+        return false;
+    }
+
+    // get number of mip levels
+    m_miplevels            = 1;
+    ParamValue* miplevelsQ = m_spec.find_attribute("ktx:miplevels",
+                                                   TypeDesc::UINT32);
+    if (miplevelsQ) {
+        m_miplevels = *reinterpret_cast<const uint32_t*>(miplevelsQ->data());
+    }
+
+    if (m_miplevels > 1) {
+        close();
+        errorfmt("Cannot re-generate mip levels because there is no way to "
+                 "know the original filter that was used to generate them.");
+        return false;
+    }
+
+    //
+    // TODO: sanity checks on provided attributes (e.g., certain
+    // supercompression schemes cannot be applied to certain basisu formats,
+    // etc.)
+    //
+
+    // get number of layers
+    m_nlayers            = 1;
+    ParamValue* nlayersQ = m_spec.find_attribute("ktx:nlayers",
+                                                 TypeDesc::UINT32);
+    if (nlayersQ) {
+        m_nlayers = *reinterpret_cast<const uint32_t*>(nlayersQ->data());
+    }
+
+    // std::cout << "vkformat: " << vkFormat << '\n';
+    // std::cout << "mip levels: " << m_miplevels << '\n';
+    // std::cout << "nlayers: " << m_nlayers << '\n';
+    // std::cout << "[width, height, depth]: [" << m_spec.width << ", "
+    //           << m_spec.height << ", " << m_spec.depth << "] \n";
+
+    // TODO: avoid some of these static casts into ktx_uint*_t types by storing
+    // uint*_t as unsigned integers and not as integers.
+    OIIO_ASSERT(vkFormat != VK_FORMAT_UNDEFINED);  // otherwise segfault
+    ktxTextureCreateInfo create_info;
+    create_info.glInternalformat = 0;  // Ignored as we'll create a KTX2 texture
+    create_info.vkFormat         = vkFormat;
+    create_info.pDfd             = nullptr;
+    create_info.baseWidth        = static_cast<ktx_uint32_t>(m_spec.width);
+    create_info.baseHeight       = static_cast<ktx_uint32_t>(m_spec.height);
+    create_info.baseDepth        = static_cast<ktx_uint32_t>(m_spec.depth);
+    create_info.numDimensions    = 2;  // TODO: this is currently hardcoded
+    create_info.numLevels        = 1;  // static_cast<ktx_uint32_t>(m_miplevels)
+    create_info.numLayers        = 1;  // static_cast<ktx_uint32_t>(nlayers)
+    create_info.numFaces         = 1;  // TODO: this is currently hardcoded
+    create_info.isArray          = KTX_FALSE;
+    create_info.generateMipmaps  = KTX_FALSE;
+
+    if (auto status = ktxTexture2_Create(&create_info,
+                                         KTX_TEXTURE_CREATE_ALLOC_STORAGE,
+                                         &m_tex);
+        status != KTX_SUCCESS) {
+        close();
+        errorfmt("ktxTexture_Create return KTX exit error code: {}",
+                 static_cast<uint32_t>(status));
+        return false;
+    }
+
+    // Reserve space for base level mipmap
+    if (!m_tex->isCompressed) {
+        m_img.resize(ktxTexture_GetImageSize(ktxTexture(m_tex), 0));
+    } else {
+        // TODO:
+        // Not compressed => make sure that vector's size matches the expected
+        // size from the set raw VkFormat:
+        // (e.g., VK_FORMAT_R8G8_SRGB => width * height * 3 )
+        m_img.resize(m_spec.scanline_bytes() * m_spec.height);
+        rgbcx::init(rgbcx::bc1_approx_mode::cBC1Ideal);
+    }
+
+    return true;
+}
+
+
+
+bool
+KtxOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+                          stride_t xstride)
+{
+    return write_scanlines(y, y + 1, z, format, data, xstride);
+}
+
+
+
+// TODO: use the span alternative. Apparently, there isn't one that takes a
+// depth parameter (i.e., z).
+bool
+KtxOutput::write_scanlines(int ybegin, int yend,
+                           int _ /* slice or face or layer */, TypeDesc format,
+                           const void* data, stride_t xstride, stride_t ystride)
+{
+    // std::cout << "write_scanlines called with: ybegin=" << ybegin
+    //           << "; yend=" << yend << "; z=" << z << "; format=" << format
+    //           << "; xstride=" << xstride << '\n';
+
+    m_spec.auto_stride(xstride, format, spec().nchannels);
+    // const void* origdata = data;
+    if (format == TypeUnknown)
+        format = m_spec.format;
+
+    const size_t pitch = m_spec.scanline_bytes();
+    auto pSrc          = reinterpret_cast<const uint8_t*>(data);
+    size_t offset      = ybegin * pitch;
+    size_t datalen     = (yend - ybegin) * pitch;
+
+    memcpy(m_img.data() + offset, pSrc, datalen);
+    // std::cout << "write_scanlines success" << '\n';
+    return true;
+}
+
+
+
+bool
+KtxOutput::close()
+{
+    // Check if already closed => if so, then the KTX2 file is already saved
+    if (!ioproxy_opened()) {
+        init();
+        return true;
+    }
+
+    bool result = true;
+    if (m_tex) {
+        // Apparently we can't do (or I don't know yet how to) partial writes
+        // using libktx. We can only write whole ktxTextures all together.
+        if (result)
+            result = write_ktx2();  // TODO: can this throw? (prob not)
+        ktxTexture_Destroy(ktxTexture(m_tex));
+    }
+    init();
+    return result;
+}
+
+
+
+void
+KtxOutput::init()
+{
+    // TODO: calling open() after close() on this hasn't been testes yet ...
+    m_tex        = nullptr;
+    m_superCmp   = KTX_SS_NONE;
+    m_colormodel = KHR_DF_MODEL_UNSPECIFIED;
+    // TODO: other stuff...
+    ioproxy_clear();
+}
+
+
+
+VkFormat
+KtxOutput::figure_vkformat_from_spec() const
+{
+    // TODO: check colorspace and return VkFormat accordingly
+    // TODO: check format (TypeDesc) and return VkFormat accordingly
+    switch (m_spec.nchannels) {
+    case 1: return VK_FORMAT_R8_SRGB;
+    case 2: return VK_FORMAT_R8G8_SRGB;
+    case 3: return VK_FORMAT_R8G8B8_SRGB;
+    case 4: return VK_FORMAT_R8G8B8A8_SRGB;
+    }
+    return VK_FORMAT_R8G8B8A8_SRGB;
+}
+
+
+
+//
+// Applies BasisLZ/ETC1S supercompression to this KTX2 texture. The ImageSpec is
+// queried (searched) for attribute that determine the BasisLZ/ETC1S compression
+// params (see ktxBasisParams struct in libktx).
+//
+bool
+KtxOutput::basisu_basislz_compress()
+{
+    // TODO: retrieve BasisLZ/ETC1S compression params. `ktx info` prints some
+    // Basis Supercompression Global Data that might be useful in figuring out
+    // what params the original data was compressed with so that we can reproduce
+    // it.
+    // TODO: expose as "ktx:" attribute(s)
+    ktxBasisParams params;
+    params.structSize            = sizeof(ktxBasisParams);
+    params.codec                 = ktx_basis_codec_e::KTX_BASIS_CODEC_ETC1S;
+    params.threadCount           = 1;
+    params.etc1sCompressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
+    if (auto status = ktxTexture2_CompressBasisEx(m_tex, &params);
+        status != KTX_SUCCESS) {
+        errorfmt("ktxTexture2_CompressBasisEx returned error code: ",
+                 static_cast<uint32_t>(status));
+        return false;
+    }
+    return true;
+}
+
+
+
+//
+// Applies UASTC basis universal 'compression' to this KTX2 texture.
+// The ImageSpec is queried (searched) for attribute that determine the UASTC
+// compression params (see ktxBasisParams struct in libktx).
+//
+bool
+KtxOutput::basisu_uastc_compress()
+{
+    // TODO: expose parameters
+    ktxBasisParams params;
+    params.structSize  = sizeof(ktxBasisParams);
+    params.codec       = ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_LDR_4x4;
+    params.threadCount = 1;
+    // .uastcFlags  = KTX_PACK_UASTC_LEVEL_DEFAULT,
+    // TODO: set uastcRDONoMultithreading for testing
+    if (auto status = ktxTexture2_CompressBasisEx(m_tex, &params);
+        status != KTX_SUCCESS) {
+        errorfmt("ktxTexture2_CompressBasisEx returned error code: ",
+                 static_cast<uint32_t>(status));
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+KtxOutput::write_ktx2()
+{
+    // TODO: this attribute should be ignored in testing.
+    // Add/overwrite the KTXwriter metadata entry. The specs encourages us to do
+    // so.
+    char writer[100];
+    snprintf(writer, sizeof(writer), "oiio version %d - plugin version %d",
+             OPENIMAGEIO_VERSION, OIIO_PLUGIN_VERSION);
+    ktxHashList_AddKVPair(&m_tex->kvDataHead, KTX_WRITER_KEY,
+                          (ktx_uint32_t)strlen(writer) + 1, writer);
+    // std::cout << "KTXwrite: " << writer << '\n';
+
+    // dimensions for current mip level
+    const size_t width  = std::max(m_tex->baseWidth >> 0, 1u);
+    const size_t height = std::max(m_tex->baseHeight >> 0, 1u);
+
+    //
+    // In case data was read from an input KTX2 file with mipmaps, we have to
+    // write the base level then generate mipmaps up to the specified level
+    // (via the "ktx:miplevels" attribute). KTX-Software (not necessarily
+    // libktx), surely has a function somewhere that generates these mipmaps.
+    // Ideally, we should follow the exact same implementation used in
+    // KTX-Software to generate the mipmaps.
+    //
+    // Note 1:
+    //  You may notice the `generateMipmaps` flag in the ktxTexture struct, it
+    //  is just used to instruct Vulkan or OpenGL to generate mipmaps for the
+    //  texture to be uploaded NOT for mipmap generation on the CPU.
+    //
+    // Note 2:
+    //  There is apparently no metadata to know which filter (+ params) that
+    //  was used to generate the mipmaps.
+    //
+    // Important:
+    //  If the VkFormat related to the KTX texture creation is wrongly set, this
+    //  will cause a segfault!
+    //
+    if (!m_tex->isCompressed) {
+        if (auto status = ktxTexture_SetImageFromMemory(ktxTexture(m_tex), 0, 0,
+                                                        0, m_img.data(),
+                                                        m_img.size());
+            status != KTX_SUCCESS) {
+            has_error();
+            errorfmt(
+                "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
+                static_cast<uint32_t>(status));
+            return false;
+        }
+    } else if (m_cmp == BlockCompression::BC1 || m_cmp == BlockCompression::BC3
+               || m_cmp == BlockCompression::BC4
+               || m_cmp == BlockCompression::BC5
+               || m_cmp == BlockCompression::BC7) {
+        //
+        // Is this a BCn GPU block compressed texture? If so, we need to encode
+        // to target block compression. To do so, we create another intermediate
+        // std::vector (is there a better alternative?)
+        //
+        std::vector<uint8_t> img_compressed;
+        img_compressed.resize(ktxTexture_GetImageSize(ktxTexture(m_tex), 0));
+        switch (m_cmp) {
+        case BlockCompression::BC1:
+            if (!check_bcn_spans(m_img, img_compressed, width, height, m_cmp))
+                return false;
+            encode_bc1(m_img, img_compressed, width, height);
+            break;
+
+        case BlockCompression::BC3:
+            if (!check_bcn_spans(m_img, img_compressed, width, height, m_cmp))
+                return false;
+            encode_bc3(m_img, img_compressed, width, height);
+            break;
+
+        case BlockCompression::BC4:
+            if (!check_bcn_spans(m_img, img_compressed, width, height, m_cmp))
+                return false;
+            encode_bc4(m_img, img_compressed, width, height);
+            break;
+
+        case BlockCompression::BC5:
+            if (!check_bcn_spans(m_img, img_compressed, width, height, m_cmp))
+                return false;
+            encode_bc5(m_img, img_compressed, width, height);
+            break;
+
+        case BlockCompression::BC7: {
+            // MUST be called before calling bc7enc_compress_block() (or you'll get artifacts).
+            bc7enc_compress_block_init();
+
+            // Make sure to init BC7 block compression params to default. There is
+            // simply no way to figure out the originally used params from KTX2 file so
+            // we use defaults.
+            bc7enc_compress_block_params cmp_params;
+            bc7enc_compress_block_params_init(&cmp_params);
+            if (!check_bcn_spans(m_img, img_compressed, width, height, m_cmp))
+                return false;
+            encode_bc7(m_img, img_compressed, width, height, &cmp_params);
+            break;
+        }
+        default: return false;
+        }
+
+        if (auto status = ktxTexture_SetImageFromMemory(ktxTexture(m_tex), 0, 0,
+                                                        0,
+                                                        img_compressed.data(),
+                                                        img_compressed.size());
+            status != KTX_SUCCESS) {
+            errorfmt(
+                "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
+                static_cast<uint32_t>(status));
+            return false;
+        }
+    } else if (m_cmp == BlockCompression::ASTC) {
+        // First set uncompressed images
+        if (auto status = ktxTexture_SetImageFromMemory(ktxTexture(m_tex), 0, 0,
+                                                        0, m_img.data(),
+                                                        m_img.size());
+            status != KTX_SUCCESS) {
+            has_error();
+            errorfmt(
+                "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
+                static_cast<uint32_t>(status));
+            return false;
+        }
+
+        // Then compress the whole texture to ASTC format
+        // TODO: expose ASTC compression quality parameter as spec attribute
+        if (auto status = ktxTexture2_CompressAstc(m_tex, 0);
+            status != KTX_SUCCESS) {
+            errorfmt("ktxTexture2_CompressAstc returned KTX exit error code: {}",
+                     static_cast<uint32_t>(status));
+            return false;
+        }
+    }
+
+    // If basis universal compression is requested (i.e., to BasisLZ/ETC1S
+    // or UASTC), compress the texture before writing.
+    if (m_colormodel == KHR_DF_MODEL_ETC1S) {
+        if (!basisu_basislz_compress())
+            return false;
+    } else if (m_colormodel == KHR_DF_MODEL_UASTC) {
+        if (!basisu_uastc_compress())
+            return false;
+    }
+
+    // Finally, apply the supercompression scheme (if any)
+    if (m_superCmp == KTX_SS_ZLIB) {
+        if (auto status = ktxTexture2_DeflateZLIB(m_tex, 0);
+            status != KTX_SUCCESS) {
+            errorfmt("ktxTexture2_DeflateZLIB returned KTX exit error code: {}",
+                     static_cast<uint32_t>(status));
+            return false;
+        }
+
+    } else if (m_superCmp == KTX_SS_ZSTD) {
+        if (auto status = ktxTexture2_DeflateZstd(m_tex, 0);
+            status != KTX_SUCCESS) {
+            errorfmt("ktxTexture2_DeflateZstd returned KTX exit error code: {}",
+                     static_cast<uint32_t>(status));
+            return false;
+        }
+    }
+
+    Filesystem::IOProxy* m_io = ioproxy();
+    if (!strcmp(m_io->proxytype(), "file")) {
+        auto fd = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
+        if (auto status = ktxTexture2_WriteToStdioStream(m_tex, fd);
+            status != KTX_SUCCESS) {
+            errorfmt(
+                "ktxTexture2_WriteToStdioStream returned KTX exit error code: {}",
+                static_cast<uint32_t>(status));
+            return false;
+        }
+        return true;
+    }
+
+    // TODO: this hasn't been tested yet
+    if (!strcmp(m_io->proxytype(), "vecoutput")) {
+        auto proxy = reinterpret_cast<Filesystem::IOVecOutput*>(m_io);
+        ktx_uint8_t* buff;
+        ktx_size_t buff_size;
+        if (auto status = ktxTexture2_WriteToMemory(m_tex, &buff, &buff_size);
+            status != KTX_SUCCESS) {
+            errorfmt(
+                "ktxTexture2_WriteToMemory returned KTX exit error code: {}",
+                static_cast<uint32_t>(status));
+            return false;
+        }
+        /* Cleanup when we go out of scope or on exception */
+        auto _ = std::unique_ptr<ktx_uint8_t[]>(buff);
+        proxy->write(buff, buff_size);
+        return true;
+    }
+
+    // OIIO should guarantee that this never happens
+    errorfmt("unexpected IOProxy type: {}", m_io->proxytype());
+    return false;
+}
+
+
+
+//
+// Makes sure that provided source BCn blocks span and target span (where blocks
+// will be decoded into) are of sufficient sizes.
+// This should be called before any decode_bcn() functions.
+//
+inline bool
+KtxOutput::check_bcn_spans(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                           size_t height, BlockCompression cmp) const
+{
+    const size_t nchannels { static_cast<size_t>(m_spec.nchannels) };
+    const int nblocks_x { static_cast<int>(
+        std::ceil(width / (float)BCN_BLOCK_SIZE)) };
+    const int nblocks_y { static_cast<int>(
+        std::ceil(height / (float)BCN_BLOCK_SIZE)) };
+    size_t expected_nchannels;
+    size_t expected_dst_size;
+
+    /* Safety checks */
+    if ((width % BCN_BLOCK_SIZE != 0) || (height % BCN_BLOCK_SIZE != 0)) {
+        errorfmt("To use BCn block compression, the image's dimensions have "
+                 "to be a multiple of: {}",
+                 BCN_BLOCK_SIZE);
+        return false;
+    }
+
+    switch (cmp) {
+    case BlockCompression::BC1:
+        expected_nchannels = BC1_OUTPUT_NCHANNELS;
+        expected_dst_size  = nblocks_x * nblocks_y * BC1_BLOCK_SIZE;
+        break;
+
+    case BlockCompression::BC3:
+        expected_nchannels = BC3_OUTPUT_NCHANNELS;
+        expected_dst_size  = nblocks_x * nblocks_y * BC3_BLOCK_SIZE;
+        break;
+
+    case BlockCompression::BC4:
+        expected_nchannels = BC4_OUTPUT_NCHANNELS;
+        expected_dst_size  = nblocks_x * nblocks_y * BC4_BLOCK_SIZE;
+        break;
+
+    case BlockCompression::BC5:
+        expected_nchannels = BC5_OUTPUT_NCHANNELS;
+        expected_dst_size  = nblocks_x * nblocks_y * BC5_BLOCK_SIZE;
+        break;
+
+    case BlockCompression::BC7:
+        expected_nchannels = BC7_OUTPUT_NCHANNELS;
+        expected_dst_size  = nblocks_x * nblocks_y * BC7_BLOCK_SIZE;
+        break;
+
+    default:
+        errorfmt("Unsupported block compression format: {}",
+                 static_cast<uint32_t>(m_cmp));
+        return false;
+    }
+
+    if (nchannels != expected_nchannels) {
+        errorfmt("Current BCn scheme is expected to encode {}-channel-images "
+                 "but provided image got: {} channels.",
+                 nchannels);
+        return false;
+    }
+
+    const size_t expected_src_size { width * height * expected_nchannels };
+    if (src.size() < expected_src_size) {
+        errorfmt("The source data buffer's size is smaller than expected. "
+                 "Expected {} bytes but provided buffer only has {} bytes.",
+                 expected_src_size, src.size());
+        return false;
+    }
+
+    if (dst.size() < expected_dst_size) {
+        errorfmt("The size of the destination buffer to hold current BCn "
+                 "scheme's compressed blocks is smaller than expected. "
+                 "Expected {} bytes but provided buffer only has {} bytes.",
+                 expected_dst_size, dst.size());
+        return false;
+    }
+    return true;
+}
+
+
+
+void
+KtxOutput::encode_bc1(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                      size_t height)
+{
+    uint8_t* dst_ptr { dst.data() };
+    const size_t pixels_pitch { BCN_BLOCK_SIZE
+                                * BC1_OUTPUT_NCHANNELS };  // 4 x 4
+    uint8_t pPixels[BCN_BLOCK_SIZE * pixels_pitch];        // 4 x 4 x 4
+
+    // Row-major loop over blocks
+    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
+        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
+            // extract/copy source block
+            for (size_t i { 0 }; i < BCN_BLOCK_SIZE; ++i) {
+                // copy 4 pixels (32bpp) to pPixels
+                memcpy(pPixels + i * pixels_pitch,
+                       src.data() + (y + i) * width * BC1_OUTPUT_NCHANNELS
+                           + x * BC1_OUTPUT_NCHANNELS,
+                       pixels_pitch);
+            }
+            // BC1: 8 bytes -> 4 x 4 x 4 = 64 bytes
+            rgbcx::encode_bc1(10, dst_ptr,
+                              reinterpret_cast<const uint8_t*>(pPixels), true,
+                              false);
+            dst_ptr += BC1_BLOCK_SIZE;
+        }
+    }
+}
+
+
+
+void
+KtxOutput::encode_bc3(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                      size_t height)
+{
+    uint8_t* dst_ptr { dst.data() };
+    const size_t pixels_pitch { BCN_BLOCK_SIZE
+                                * BC3_OUTPUT_NCHANNELS };  // 4 x 4
+    uint8_t pPixels[BCN_BLOCK_SIZE * pixels_pitch];        // 4 x 4 x 4
+
+    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
+        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
+            for (size_t i { 0 }; i < BCN_BLOCK_SIZE; ++i)
+                memcpy(pPixels + i * pixels_pitch,
+                       src.data() + (y + i) * width * BC3_OUTPUT_NCHANNELS
+                           + x * BC3_OUTPUT_NCHANNELS,
+                       pixels_pitch);
+            // BC3: 16 bytes -> 4 x 4 x 4 = 64 bytes
+            rgbcx::encode_bc3(10, dst_ptr,
+                              reinterpret_cast<const uint8_t*>(pPixels));
+            dst_ptr += BC3_BLOCK_SIZE;
+        }
+    }
+}
+
+
+
+void
+KtxOutput::encode_bc4(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                      size_t height)
+{
+    uint8_t* dst_ptr { dst.data() };
+    const size_t pixels_pitch { BCN_BLOCK_SIZE
+                                * BC4_OUTPUT_NCHANNELS };  // 4 x 1
+    uint8_t pPixels[BCN_BLOCK_SIZE * pixels_pitch];        // 4 x 4 x 1
+
+    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
+        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
+            for (size_t i { 0 }; i < BCN_BLOCK_SIZE; ++i)
+                memcpy(pPixels + i * pixels_pitch,
+                       src.data() + (y + i) * width * BC4_OUTPUT_NCHANNELS
+                           + x * BC4_OUTPUT_NCHANNELS,
+                       pixels_pitch);
+            // BC4: 8 bytes -> 4 x 4 x 1 = 16 bytes
+            rgbcx::encode_bc4(dst_ptr,
+                              reinterpret_cast<const uint8_t*>(pPixels),
+                              /* stride */ BC4_OUTPUT_NCHANNELS);
+            dst_ptr += BC4_BLOCK_SIZE;
+        }
+    }
+}
+
+
+
+void
+KtxOutput::encode_bc5(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                      size_t height)
+{
+    uint8_t* dst_ptr { dst.data() };
+    const size_t pixels_pitch { BCN_BLOCK_SIZE
+                                * BC5_OUTPUT_NCHANNELS };  // 4 x 2
+    uint8_t pPixels[BCN_BLOCK_SIZE * pixels_pitch];        // 4 x 4 x 2
+
+    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
+        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
+            for (size_t i { 0 }; i < BCN_BLOCK_SIZE; ++i)
+                memcpy(pPixels + i * pixels_pitch,
+                       src.data() + (y + i) * width * BC5_OUTPUT_NCHANNELS
+                           + x * BC5_OUTPUT_NCHANNELS,
+                       pixels_pitch);
+            // BC5: 16 bytes -> 4 x 4 x 2 = 32 bytes
+            rgbcx::encode_bc5(dst_ptr,
+                              reinterpret_cast<const uint8_t*>(pPixels), 0, 1,
+                              /* stride */ BC5_OUTPUT_NCHANNELS);
+            dst_ptr += BC5_BLOCK_SIZE;
+        }
+    }
+}
+
+
+
+void
+KtxOutput::encode_bc7(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
+                      size_t height, const bc7enc_compress_block_params* params)
+{
+    uint8_t* dst_ptr { dst.data() };
+    const size_t pixels_pitch { BCN_BLOCK_SIZE
+                                * BC7_OUTPUT_NCHANNELS };  // 4 x 4
+    uint8_t pPixels[BCN_BLOCK_SIZE * pixels_pitch];        // 4 x 4 x 4
+
+    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
+        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
+            for (size_t i { 0 }; i < BCN_BLOCK_SIZE; ++i)
+                memcpy(pPixels + i * pixels_pitch,
+                       src.data() + (y + i) * width * BC7_OUTPUT_NCHANNELS
+                           + x * BC7_OUTPUT_NCHANNELS,
+                       pixels_pitch);
+            // BC7: 16 bytes -> 4 x 4 x 4 = 64 bytes
+            bc7enc_compress_block(dst_ptr,
+                                  reinterpret_cast<const uint8_t*>(pPixels),
+                                  params);
+            dst_ptr += BC7_BLOCK_SIZE;
+        }
+    }
+}
+
+
+
+// void
+// KtxOutput::generate_mip_levels(const image_span<const std::byte>& base_lvl_image,
+//                                ImageInput& inputFile, uint32_t numMipLevels,
+//                                uint32_t layerIndex, uint32_t faceIndex,
+//                                uint32_t depthSliceIndex)
+// {
+//     //if (isFormatINT(static_cast<VkFormat>(texture->vkFormat)))
+//     //    fatal(rc::NOT_SUPPORTED, "Mipmap generation for SINT or UINT format {} is not supported.",
+//     //          toString(static_cast<VkFormat>(texture->vkFormat)));
+//
+//     for (uint32_t mipLevelIndex = 1; mipLevelIndex < numMipLevels;
+//          ++mipLevelIndex) {
+//         const auto mipImageWidth  = std::max(1u, m_tex->baseWidth
+//                                                      >> (mipLevelIndex));
+//         const auto mipImageHeight = std::max(1u, m_tex->baseHeight
+//                                                      >> (mipLevelIndex));
+//
+//         ROI roi(0, mipImageHeight, 0, mipImageWidth, 0, 1, /*chans:*/ 0, 4);
+//         ImageBuf dst = ImageBufAlgo::resample(Src, true, roi);
+//         // if (options.normalize)
+//         //     image->normalize();
+//
+//         // const auto imageData = convert(levelImage, options.vkFormat, inputFile,
+//         //                                true);
+//
+//         const auto ret = ktxTexture_SetImageFromMemory(
+//             m_tex, mipLevelIndex, layerIndex,
+//             faceIndex
+//                 + depthSliceIndex,  // Faces and Depths are mutually exclusive, Addition is acceptable
+//             NULL, 0);
+//         // (ret == KTX_SUCCESS && "Internal error");
+//     }
+// }
+
+OIIO_PLUGIN_NAMESPACE_END

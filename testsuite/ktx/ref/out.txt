@@ -1,0 +1,180 @@
+Reading ../oiio-images/ktx2/2d_rgb8.ktx2
+../oiio-images/ktx2/2d_rgb8.ktx2 :   40 x   40, 3 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: 5BFA8296353869F0D950DC016A7E31C08D513EE8
+    channel list: R, G, B
+    ktx:colormodel: 1
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx create v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 29
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ../oiio-images/ktx2/2d_rgba8.ktx2
+../oiio-images/ktx2/2d_rgba8.ktx2 :   40 x   40, 4 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: 9B40384A9B89EE338F24212AB876C14F9BABDBC0
+    channel list: R, G, B, A
+    ktx:colormodel: 1
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx create v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 43
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ../oiio-images/ktx2/2d_uastc.ktx2
+../oiio-images/ktx2/2d_uastc.ktx2 :   40 x   40, 4 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: A41EE02136B25739FB99520244FF5D0C69A0353C
+    channel list: R, G, B, A
+    ktx:colormodel: 166
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx create v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 0
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ../oiio-images/ktx2/2d_etc1s.ktx2
+../oiio-images/ktx2/2d_etc1s.ktx2 :   40 x   40, 4 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: CD540B1FE2CE1F85BE11F7EC21446A8405844029
+    channel list: R, G, B, A
+    ktx:colormodel: 163
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx create v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 1
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 0
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ../oiio-images/ktx2/2d_astc4x4.ktx2
+../oiio-images/ktx2/2d_astc4x4.ktx2 :   40 x   40, 4 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: 0F24F23031B85B09E74A4E35D7EC519A9A9259CC
+    channel list: R, G, B, A
+    ktx:colormodel: 162
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx transcode v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 158
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ../oiio-images/ktx2/2d_bc1.ktx2
+../oiio-images/ktx2/2d_bc1.ktx2 :   40 x   40, 4 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: 0E7F8EBBCA431855C12D2BF5A638AC46922582CC
+    channel list: R, G, B, A
+    ktx:colormodel: 128
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx transcode v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 132
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ../oiio-images/ktx2/2d_bc3.ktx2
+../oiio-images/ktx2/2d_bc3.ktx2 :   40 x   40, 4 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: B88FED8C339C75154B4D79FEBFADA05CAA06B4E4
+    channel list: R, G, B, A
+    ktx:colormodel: 130
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx transcode v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 138
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ../oiio-images/ktx2/2d_bc4.ktx2
+../oiio-images/ktx2/2d_bc4.ktx2 :   40 x   40, 1 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: E0352908B50C8CEC4593866CE8704532EE42A600
+    channel list: R
+    ktx:colormodel: 131
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx transcode v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 139
+    oiio:ColorSpace: "lin_rec709_scene"
+Reading ../oiio-images/ktx2/2d_bc5.ktx2
+../oiio-images/ktx2/2d_bc5.ktx2 :   40 x   40, 2 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: F136624C2A6714A137A0155DAF47C86A31D69ECD
+    channel list: R, G
+    ktx:colormodel: 132
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx transcode v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 141
+    oiio:ColorSpace: "lin_rec709_scene"
+Reading ../oiio-images/ktx2/2d_bc7.ktx2
+../oiio-images/ktx2/2d_bc7.ktx2 :   40 x   40, 4 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: 1A8C2DBD9F198A97E15348E26D39B81B565D447C
+    channel list: R, G, B, A
+    ktx:colormodel: 134
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx transcode v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 146
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ../oiio-images/ktx2/2d_etc1.ktx2
+../oiio-images/ktx2/2d_etc1.ktx2 :   40 x   40, 4 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: 365A5301637FA43F7D7787874A440AA40C9C4E3E
+    channel list: R, G, B, A
+    ktx:colormodel: 161
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx transcode v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 148
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading ../oiio-images/ktx2/2d_etc2.ktx2
+../oiio-images/ktx2/2d_etc2.ktx2 :   40 x   40, 4 channel, uint8 ktx
+    MIP-map levels: 40x40 20x20 10x10 5x5 2x2 1x1
+    SHA-1: 6E71EEF6D68C31DE010657E64F9A2030048BCC0F
+    channel list: R, G, B, A
+    ktx:colormodel: 161
+    ktx:generatemipmaps: 0
+    ktx:KTXwriter: "ktx transcode v4.3.1~1 / libktx v4.3.0~1"
+    ktx:miplevels: 6
+    ktx:nlayers: 1
+    ktx:supercompressionscheme: 0
+    ktx:texturekind: 1
+    ktx:version: "2.0"
+    ktx:vkformat: 152
+    oiio:ColorSpace: "srgb_rec709_scene"
