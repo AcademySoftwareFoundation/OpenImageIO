@@ -3832,10 +3832,10 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
     // N.B. Don't log time, it will be caught by the constituent parts
     const int req = (IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_REQUIRE_ALPHA
                      | IBAprep_NO_SUPPORT_VOLUME);
-    bool preserve_dst_format = dst.initialized() && &dst != &src;
     if (!IBAprep(roi, &dst, &src, req))
         return false;
 #if OIIO_USE_HWY
+    bool preserve_dst_format = dst.initialized() && &dst != &src;
     if (OIIO::pvt::enable_hwy && fillholes_pushpull_hwy_supported(src, roi))
         return fillholes_pushpull_hwy(dst, src, nthreads, preserve_dst_format);
 #endif
