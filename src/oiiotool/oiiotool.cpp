@@ -5566,6 +5566,8 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
             // Try to deduce the color space it's in
             std::string colorspace(
                 ot.colorconfig().getColorSpaceFromFilepath(filename, "", true));
+            if (colorspace == "unknown")
+                colorspace.clear();
             if (colorspace.size() && ot.debug)
                 OIIO::print("  From {}, we deduce color space \"{}\"\n",
                             filename, colorspace);
