@@ -384,6 +384,9 @@ install (EXPORT OIIO_EXPORTED_TARGETS
 
 
 if (PROJECT_IS_TOP_LEVEL AND BUILD_TESTING AND ${PROJ_NAME}_BUILD_TESTS)
+    if (NOT BUILD_OIIOUTIL_ONLY)
+        add_subdirectory (testsuite/texture-device)
+    endif ()
     oiio_setup_test_data()
     oiio_add_all_tests()
 endif ()
