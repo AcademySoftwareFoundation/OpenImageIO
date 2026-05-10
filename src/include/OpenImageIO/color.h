@@ -175,6 +175,9 @@ public:
     /// will return false if it's not sure.
     bool isColorSpaceLinear(string_view name) const;
 
+    /// Is the color space non-color-managed "data"?
+    bool isData(string_view name) const;
+
     /// Retrieve the full list of aliases for the named color space.
     std::vector<std::string> getAliases(string_view color_space) const;
 

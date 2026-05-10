@@ -53,6 +53,10 @@ try:
     print ("get_color_interop_id([1, 13, 1, 1]) = ", config.get_color_interop_id([1, 13, 1, 1]))
     print ("get_cicp('pq_rec2020_display') = ", config.get_cicp("pq_rec2020_display"))
     print ("get_cicp('unknown_interop_id') = ", config.get_cicp("unknown_interop_id"))
+    print ("isColorSpaceLinear('scene_linear') = ", config.isColorSpaceLinear('scene_linear'))
+    print ("isColorSpaceLinear('srgb') = ", config.isColorSpaceLinear('srgb'))
+    print ("isData('scene_linear') = ", config.isData('scene_linear'))
+    print ("isData('Raw') = ", config.isData('Raw'))
     print ("")
 
     config = oiio.ColorConfig(str(TEST_CONFIG_PATH))
