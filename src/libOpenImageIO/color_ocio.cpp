@@ -610,7 +610,8 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
                    ACEScg_alias);
     } else if (Strutil::iequals(cs.name, "Rec709")) {
         cs.setflag(CSInfo::is_Rec709, Rec709_alias);
-    } else if (Strutil::iequals(cs.name, "Raw")) {
+    } else if (config_
+               && Strutil::iequals(cs.name, config_->getCanonicalName("data"))) {
         cs.setflag(CSInfo::is_data);
     }
 #ifdef OIIO_SITE_spi
