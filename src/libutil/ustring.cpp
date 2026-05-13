@@ -2,12 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <cstdlib>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/unordered_map_concurrent.h>
 #include <OpenImageIO/ustring.h>
@@ -43,10 +46,40 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
         , memory_usage(sizeof(*this) + POOL_SIZE
                        + sizeof(ustring::TableRep*) * BASE_CAPACITY)
     {
+        all_pools.push_back(pool);
     }
 
     ~TableRepMap()
     { /* just let memory leak */
+    }
+
+    void clear()
+    {
+        ustring_write_lock_t lock(mutex);
+        // Destroy all TableRep objects. The destructor safely handles the
+        // case where the internal std::string aliases the pool chars.
+        for (size_t i = 0; i <= mask; ++i) {
+            if (entries[i])
+                entries[i]->~TableRep();
+        }
+        // Free all pool allocations and large individual allocations.
+        for (char* p : all_pools)
+            free(p);
+        all_pools.clear();
+        for (char* p : large_allocs)
+            free(p);
+        large_allocs.clear();
+        free(entries);
+        // Re-initialize to a fresh, usable state.
+        mask    = BASE_CAPACITY - 1;
+        entries = static_cast<ustring::TableRep**>(
+            calloc(BASE_CAPACITY, sizeof(ustring::TableRep*)));
+        pool         = static_cast<char*>(malloc(POOL_SIZE));
+        pool_offset  = 0;
+        num_entries  = 0;
+        memory_usage = sizeof(*this) + POOL_SIZE
+                       + sizeof(ustring::TableRep*) * BASE_CAPACITY;
+        all_pools.push_back(pool);
     }
 
     size_t get_memory_usage()
@@ -187,13 +220,15 @@ private:
 
         if (len >= POOL_SIZE) {
             memory_usage += len;
-            return (char*)malloc(len);  // no need to try and use the pool
+            char* p = (char*)malloc(len);
+            large_allocs.push_back(p);
+            return p;
         }
         if (pool_offset + len > POOL_SIZE) {
-            // NOTE: old pool will leak - this is ok because ustrings cannot be freed
             memory_usage += POOL_SIZE;
             pool        = (char*)malloc(POOL_SIZE);
             pool_offset = 0;
+            all_pools.push_back(pool);
         }
         char* result = pool + pool_offset;
         pool_offset += len;
@@ -207,6 +242,8 @@ private:
     char* pool;
     size_t pool_offset = 0;
     size_t memory_usage;
+    std::vector<char*> all_pools;
+    std::vector<char*> large_allocs;
 #ifdef USTRING_TRACK_NUM_LOOKUPS
     size_t num_lookups = 0;
 #endif
@@ -247,6 +284,12 @@ struct UstringTable {
         for (auto& bin : bins)
             num += bin.get_num_entries();
         return num;
+    }
+
+    void clear()
+    {
+        for (auto& bin : bins)
+            bin.clear();
     }
 
 #    ifdef USTRING_TRACK_NUM_LOOKUPS
@@ -678,3 +721,32 @@ ustring::memory()
 }
 
 OIIO_NAMESPACE_3_1_END
+
+
+OIIO_NAMESPACE_BEGIN
+namespace pvt {
+
+// If nonzero, the ustring table will be freed at process exit. This is off by
+// default because cleanup is unnecessary (the OS reclaims the memory) and can
+// add measurable time at exit for large tables. Enable it when using valgrind
+// or other leak detectors to suppress false positives. Settable via
+// OIIO::attribute("ustring:cleanup",1) or the OIIO_USTRING_CLEANUP
+// environment variable.
+OIIO_UTIL_API int oiio_ustring_cleanup = Strutil::stoi(
+    Sysutil::getenv("OIIO_USTRING_CLEANUP"));
+
+// Register an atexit handler once at startup. The handler checks the flag at
+// exit time, so it covers both the env-var path (flag set here) and the
+// OIIO::attribute() path (flag set later at runtime).
+static int ustring_cleanup_atexit_registered = []() {
+    std::atexit([]() {
+        if (pvt::oiio_ustring_cleanup) {
+            v3_1::ustring_table().clear();
+            v3_1::reverse_map().clear();
+        }
+    });
+    return 0;
+}();
+
+}  // namespace pvt
+OIIO_NAMESPACE_END
