@@ -42,11 +42,10 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
     TableRepMap()
         : entries(static_cast<ustring::TableRep**>(
             calloc(BASE_CAPACITY, sizeof(ustring::TableRep*))))
-        , pool(static_cast<char*>(malloc(POOL_SIZE)))
-        , memory_usage(sizeof(*this) + POOL_SIZE
+        , memory_usage(sizeof(*this)
                        + sizeof(ustring::TableRep*) * BASE_CAPACITY)
     {
-        all_pools.push_back(pool);
+        allocate_pool_block();
     }
 
     ~TableRepMap()
@@ -63,23 +62,19 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
                 entries[i]->~TableRep();
         }
         // Free all pool allocations and large individual allocations.
-        for (char* p : all_pools)
-            free(p);
         all_pools.clear();
-        for (char* p : large_allocs)
-            free(p);
+        all_pools.shrink_to_fit();
         large_allocs.clear();
+        large_allocs.shrink_to_fit();
         free(entries);
         // Re-initialize to a fresh, usable state.
         mask    = BASE_CAPACITY - 1;
         entries = static_cast<ustring::TableRep**>(
             calloc(BASE_CAPACITY, sizeof(ustring::TableRep*)));
-        pool         = static_cast<char*>(malloc(POOL_SIZE));
-        pool_offset  = 0;
         num_entries  = 0;
-        memory_usage = sizeof(*this) + POOL_SIZE
+        memory_usage = sizeof(*this)
                        + sizeof(ustring::TableRep*) * BASE_CAPACITY;
-        all_pools.push_back(pool);
+        allocate_pool_block();
     }
 
     size_t get_memory_usage()
@@ -212,6 +207,9 @@ private:
         return new (repmem) ustring::TableRep(str, hash);
     }
 
+    // Allocate `len` bytes from the pool. Allocate a new pool block if len
+    // doesn't fit in the current block. In the unlikely even that len > the
+    // pool block size, do a separate allocation just for it.
     char* pool_alloc(size_t len)
     {
         // round up to nearest multiple of pointer size to guarantee proper alignment of TableRep objects
@@ -220,30 +218,36 @@ private:
 
         if (len >= POOL_SIZE) {
             memory_usage += len;
-            char* p = (char*)malloc(len);
-            large_allocs.push_back(p);
+            char* p = new char[len];
+            large_allocs.emplace_back(p);
             return p;
         }
         if (pool_offset + len > POOL_SIZE) {
-            memory_usage += POOL_SIZE;
-            pool        = (char*)malloc(POOL_SIZE);
-            pool_offset = 0;
-            all_pools.push_back(pool);
+            allocate_pool_block();
         }
         char* result = pool + pool_offset;
         pool_offset += len;
         return result;
     }
 
+    // Allocate one more standard POOL_SIZE block for `pool`
+    void allocate_pool_block()
+    {
+        memory_usage += POOL_SIZE;
+        pool        = new char[POOL_SIZE];
+        pool_offset = 0;
+        all_pools.emplace_back(pool);
+    }
+
     OIIO_CACHE_ALIGN mutable ustring_mutex_t mutex;
-    size_t mask = BASE_CAPACITY - 1;
-    ustring::TableRep** entries;
-    size_t num_entries = 0;
-    char* pool;
-    size_t pool_offset = 0;
-    size_t memory_usage;
-    std::vector<char*> all_pools;
-    std::vector<char*> large_allocs;
+    size_t mask                 = BASE_CAPACITY - 1;
+    ustring::TableRep** entries = nullptr;
+    size_t num_entries          = 0;
+    char* pool                  = nullptr;  // Current pool block we're using
+    size_t pool_offset          = 0;        // Next offset within current block
+    size_t memory_usage         = 0;        // Total memory usage
+    std::vector<std::unique_ptr<char[]>> all_pools;
+    std::vector<std::unique_ptr<char[]>> large_allocs;
 #ifdef USTRING_TRACK_NUM_LOOKUPS
     size_t num_lookups = 0;
 #endif
@@ -741,6 +745,10 @@ OIIO_UTIL_API int oiio_ustring_cleanup = Strutil::stoi(
 static int ustring_cleanup_atexit_registered = []() {
     std::atexit([]() {
         if (pvt::oiio_ustring_cleanup) {
+#ifndef NDEBUG
+            OIIO::print("ustring: freeing table resources ({} bytes)\n",
+                        v3_1::ustring_table().get_memory_usage());
+#endif
             v3_1::ustring_table().clear();
             v3_1::reverse_map().clear();
         }
