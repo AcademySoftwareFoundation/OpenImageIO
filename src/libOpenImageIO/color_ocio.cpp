@@ -165,6 +165,7 @@ struct CSInfo {
         is_lin_srgb        = 8,   // sRGB/Rec709 primaries, linear response
         is_ACEScg          = 16,  // ACEScg
         is_Rec709          = 32,  // Rec709 primaries and transfer function
+        is_data            = 64,  // Non-color-managed data
         is_known           = is_srgb | is_lin_srgb | is_ACEScg | is_Rec709
     };
     int m_flags   = 0;
@@ -340,6 +341,8 @@ public:
     get_to_builtin_cpu_proc(const char* my_from, const char* builtin_to) const;
 
     bool isColorSpaceLinear(string_view name) const;
+
+    bool isData(string_view name) const;
 
 private:
     // Return the CSInfo flags for the given color space name
@@ -608,6 +611,9 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
                    ACEScg_alias);
     } else if (Strutil::iequals(cs.name, "Rec709")) {
         cs.setflag(CSInfo::is_Rec709, Rec709_alias);
+    } else if (config_
+               && Strutil::iequals(cs.name, config_->getCanonicalName("data"))) {
+        cs.setflag(CSInfo::is_data);
     }
 #ifdef OIIO_SITE_spi
     // Ugly SPI-specific hacks, so sorry
@@ -620,6 +626,9 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
     } else if (cs.name == "srgblnf" || cs.name == "srgblnh"
                || cs.name == "srgbln16" || cs.name == "srgbln8") {
         cs.setflag(CSInfo::is_lin_srgb, lin_srgb_alias);
+    } else if (Strutil::starts_with(cs.name, "nc")) {
+        cs.setflag(CSInfo::is_data);
+        DBG("Classifying {} as data based on SPI name\n", cs.name);
     }
 #endif
 
@@ -650,6 +659,10 @@ ColorConfig::Impl::classify_by_conversions(CSInfo& cs)
 
     if (isColorSpaceLinear(cs.name))
         cs.setflag(CSInfo::is_linear_response);
+    if (cs.ocio_cs && cs.ocio_cs->isData()) {
+        cs.setflag(CSInfo::is_data);
+        DBG("Classifying {} as data isData() [1]\n", cs.name);
+    }
 
     // If the name didn't already tell us what it is, and we have a new enough
     // OCIO that has built-in configs, test whether this color space is
@@ -684,7 +697,12 @@ ColorConfig::Impl::classify_by_conversions(CSInfo& cs)
                 cs.setflag(CSInfo::is_ACEScg | CSInfo::is_linear_response,
                            ACEScg_alias);
             }
-        } catch (...) {
+            if (cs.ocio_cs->isData()) {
+                cs.setflag(CSInfo::is_data);
+                DBG("Classifying {} as data isData() [2]\n", cs.name);
+            }
+        } catch (OCIO::Exception& e) {
+            DBG("OCIO exception in classify_by_conversions: {}", e.what());
         }
     }
 
@@ -1069,6 +1087,25 @@ ColorConfig::Impl::isColorSpaceLinear(string_view name) const
            || Strutil::istarts_with(name, "lin_")
            || Strutil::iends_with(name, "_linear")
            || Strutil::iends_with(name, "_lin");
+}
+
+
+
+bool
+ColorConfig::isData(string_view name) const
+{
+    return getImpl()->isData(name);
+}
+
+
+
+bool
+ColorConfig::Impl::isData(string_view name) const
+{
+    if (const CSInfo* cs = find(name)) {
+        return cs->flags() & CSInfo::is_data;
+    }
+    return false;
 }
 
 

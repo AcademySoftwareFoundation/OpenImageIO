@@ -124,6 +124,18 @@ declare_colorconfig(py::module& m)
                  return self.getNamedTransformAliases(named_transform);
              })
         .def(
+            "isColorSpaceLinear",
+            [](const ColorConfig& self, const std::string& name) {
+                return self.isColorSpaceLinear(name);
+            },
+            "name"_a)
+        .def(
+            "isData",
+            [](const ColorConfig& self, const std::string& name) {
+                return self.isData(name);
+            },
+            "name"_a)
+        .def(
             "getColorSpaceFromFilepath",
             [](const ColorConfig& self, const std::string& filepath) {
                 return std::string(self.getColorSpaceFromFilepath(filepath));
