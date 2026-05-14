@@ -49,11 +49,11 @@ These rules are intentional and should stay true as backend work continues.
    interfaces.
 2. Backend-specific work belongs behind the renderer seam.
    Current seam entry points live in:
-   - [imiv_renderer.h](/mnt/f/gh/openimageio/src/imiv/imiv_renderer.h)
-   - [imiv_renderer_backend.h](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_backend.h)
+   - [imiv_renderer.h](imiv_renderer.h)
+   - [imiv_renderer_backend.h](imiv_renderer_backend.h)
 3. Platform-specific window/bootstrap work belongs in:
-   - [imiv_platform_glfw.h](/mnt/f/gh/openimageio/src/imiv/imiv_platform_glfw.h)
-   - [imiv_platform_glfw.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_platform_glfw.cpp)
+   - [imiv_platform_glfw.h](imiv_platform_glfw.h)
+   - [imiv_platform_glfw.cpp](imiv_platform_glfw.cpp)
 4. Backend-specific code should live in backend-specific translation units:
    - Vulkan: `imiv_renderer_vulkan.cpp` + `imiv_vulkan_*`
    - Metal: `imiv_renderer_metal.mm`
@@ -97,14 +97,14 @@ Status:
 Implementation:
 
 - renderer seam:
-  - [imiv_renderer_vulkan.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_vulkan.cpp)
+  - [imiv_renderer_vulkan.cpp](imiv_renderer_vulkan.cpp)
 - Vulkan-specific modules:
-  - [imiv_vulkan_setup.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_setup.cpp)
-  - [imiv_vulkan_runtime.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_runtime.cpp)
-  - [imiv_vulkan_texture.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_texture.cpp)
-  - [imiv_vulkan_preview.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_preview.cpp)
-  - [imiv_vulkan_ocio.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_ocio.cpp)
-  - [imiv_capture.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_capture.cpp)
+  - [imiv_vulkan_setup.cpp](imiv_vulkan_setup.cpp)
+  - [imiv_vulkan_runtime.cpp](imiv_vulkan_runtime.cpp)
+  - [imiv_vulkan_texture.cpp](imiv_vulkan_texture.cpp)
+  - [imiv_vulkan_preview.cpp](imiv_vulkan_preview.cpp)
+  - [imiv_vulkan_ocio.cpp](imiv_vulkan_ocio.cpp)
+  - [imiv_capture.cpp](imiv_capture.cpp)
 
 Constraints:
 
@@ -129,7 +129,7 @@ Status:
 
 Implementation:
 
-- [imiv_renderer_opengl.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_opengl.cpp)
+- [imiv_renderer_opengl.cpp](imiv_renderer_opengl.cpp)
 
 Hard constraints:
 
@@ -190,7 +190,7 @@ Status:
 
 Implementation:
 
-- [imiv_renderer_metal.mm](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_metal.mm)
+- [imiv_renderer_metal.mm](imiv_renderer_metal.mm)
 
 Current scope:
 
@@ -212,27 +212,30 @@ Planned direction:
 
 Important constraints:
 
-- keep Metal-specific sampler control in the local ImGui Metal backend fork
-  instead of assuming upstream Dear ImGui provides nearest sampling control
+- requires Dear ImGui 1.92.8 or newer; older checkouts are rejected at
+  configure time
+- keep Metal-specific sampler control on Dear ImGui's standard renderer draw
+  callbacks (`DrawCallback_SetSamplerLinear` and
+  `DrawCallback_SetSamplerNearest`)
 
 Manual verification:
 
 - canonical cross-platform backend verifier:
-  - [imiv_backend_verify.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_backend_verify.py)
+  - [imiv_backend_verify.py](tools/imiv_backend_verify.py)
 - shared RGB-input regression:
-  - [imiv_rgb_input_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_rgb_input_regression.py)
+  - [imiv_rgb_input_regression.py](tools/imiv_rgb_input_regression.py)
 - shared nearest-vs-linear sampling regression:
-  - [imiv_sampling_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_sampling_regression.py)
+  - [imiv_sampling_regression.py](tools/imiv_sampling_regression.py)
 - compatibility frontends:
-  - [imiv_macos_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_macos_backend_verify.sh)
-  - [imiv_linux_backend_verify.sh](/mnt/f/gh/openimageio/src/imiv/tools/imiv_linux_backend_verify.sh)
-  - [imiv_windows_backend_verify.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_windows_backend_verify.py)
+  - [imiv_macos_backend_verify.sh](tools/imiv_macos_backend_verify.sh)
+  - [imiv_linux_backend_verify.sh](tools/imiv_linux_backend_verify.sh)
+  - [imiv_windows_backend_verify.py](tools/imiv_windows_backend_verify.py)
 - Metal smoke regression without screenshot/readback dependency:
-  - [imiv_metal_smoke_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_smoke_regression.py)
+  - [imiv_metal_smoke_regression.py](tools/imiv_metal_smoke_regression.py)
 - Metal screenshot smoke regression:
-  - [imiv_metal_screenshot_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_screenshot_regression.py)
+  - [imiv_metal_screenshot_regression.py](tools/imiv_metal_screenshot_regression.py)
 - Metal orientation regression:
-  - [imiv_metal_orientation_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_metal_orientation_regression.py)
+  - [imiv_metal_orientation_regression.py](tools/imiv_metal_orientation_regression.py)
 
 Current automated coverage:
 

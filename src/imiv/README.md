@@ -6,6 +6,8 @@ Canonical cross-platform verifier:
 python src/imiv/tools/imiv_backend_verify.py ...
 ```
 
+The configured Dear ImGui checkout must be 1.92.8 or newer.
+
 Use the same runner everywhere. It selects the right regression set for the
 requested backend.
 

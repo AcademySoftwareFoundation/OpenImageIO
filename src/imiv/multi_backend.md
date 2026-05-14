@@ -50,7 +50,7 @@ Backends are compiled independently through CMake:
 
 Generated build metadata lives in:
 
-- [imiv_build_config.h.in](/mnt/f/gh/openimageio/src/imiv/imiv_build_config.h.in)
+- [imiv_build_config.h.in](imiv_build_config.h.in)
 
 Generated build-capability macros:
 
@@ -91,8 +91,8 @@ renderer assets. It does **not** eliminate all runtime shader work:
 
 The runtime backend metadata layer lives in:
 
-- [imiv_backend.h](/mnt/f/gh/openimageio/src/imiv/imiv_backend.h)
-- [imiv_renderer.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer.cpp)
+- [imiv_backend.h](imiv_backend.h)
+- [imiv_renderer.cpp](imiv_renderer.cpp)
 
 Core types:
 
@@ -136,7 +136,7 @@ Implemented CLI options:
 
 Entry point:
 
-- [imiv_main.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_main.cpp)
+- [imiv_main.cpp](imiv_main.cpp)
 
 Behavior:
 
@@ -149,7 +149,7 @@ Behavior:
 
 Implemented in:
 
-- [imiv_aux_windows.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_aux_windows.cpp)
+- [imiv_aux_windows.cpp](imiv_aux_windows.cpp)
 
 Behavior:
 
@@ -167,13 +167,13 @@ Persistence:
 - `renderer_backend=auto|vulkan|metal|opengl`
 - stored in `imiv.inf`
 - loaded/saved through:
-  - [imiv_viewer.h](/mnt/f/gh/openimageio/src/imiv/imiv_viewer.h)
-  - [imiv_viewer.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_viewer.cpp)
+  - [imiv_viewer.h](imiv_viewer.h)
+  - [imiv_viewer.cpp](imiv_viewer.cpp)
 
 
 ## Platform Policy
 
-Current runtime default resolution in [imiv_renderer.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer.cpp):
+Current runtime default resolution in [imiv_renderer.cpp](imiv_renderer.cpp):
 
 ### Windows
 
@@ -223,35 +223,35 @@ split introduced earlier.
 
 Shared renderer interfaces:
 
-- [imiv_renderer.h](/mnt/f/gh/openimageio/src/imiv/imiv_renderer.h)
-- [imiv_renderer_backend.h](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_backend.h)
-- [imiv_renderer.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer.cpp)
+- [imiv_renderer.h](imiv_renderer.h)
+- [imiv_renderer_backend.h](imiv_renderer_backend.h)
+- [imiv_renderer.cpp](imiv_renderer.cpp)
 
 Backend implementations:
 
 - Vulkan:
-  - [imiv_renderer_vulkan.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_vulkan.cpp)
-  - [imiv_vulkan_setup.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_setup.cpp)
-  - [imiv_vulkan_runtime.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_runtime.cpp)
-  - [imiv_vulkan_texture.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_texture.cpp)
-  - [imiv_vulkan_preview.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_preview.cpp)
-  - [imiv_vulkan_ocio.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_vulkan_ocio.cpp)
+  - [imiv_renderer_vulkan.cpp](imiv_renderer_vulkan.cpp)
+  - [imiv_vulkan_setup.cpp](imiv_vulkan_setup.cpp)
+  - [imiv_vulkan_runtime.cpp](imiv_vulkan_runtime.cpp)
+  - [imiv_vulkan_texture.cpp](imiv_vulkan_texture.cpp)
+  - [imiv_vulkan_preview.cpp](imiv_vulkan_preview.cpp)
+  - [imiv_vulkan_ocio.cpp](imiv_vulkan_ocio.cpp)
 - Metal:
-  - [imiv_renderer_metal.mm](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_metal.mm)
+  - [imiv_renderer_metal.mm](imiv_renderer_metal.mm)
 - OpenGL:
-  - [imiv_renderer_opengl.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_renderer_opengl.cpp)
+  - [imiv_renderer_opengl.cpp](imiv_renderer_opengl.cpp)
 
 Platform layer:
 
-- [imiv_platform_glfw.h](/mnt/f/gh/openimageio/src/imiv/imiv_platform_glfw.h)
-- [imiv_platform_glfw.cpp](/mnt/f/gh/openimageio/src/imiv/imiv_platform_glfw.cpp)
+- [imiv_platform_glfw.h](imiv_platform_glfw.h)
+- [imiv_platform_glfw.cpp](imiv_platform_glfw.cpp)
 
 
 ## Validation
 
 Canonical shared verifier:
 
-- [imiv_backend_verify.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_backend_verify.py)
+- [imiv_backend_verify.py](tools/imiv_backend_verify.py)
 
 Shared suite:
 
@@ -266,9 +266,9 @@ Shared suite:
 
 Related focused regressions:
 
-- [imiv_rgb_input_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_rgb_input_regression.py)
-- [imiv_sampling_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_sampling_regression.py)
-- [imiv_backend_preferences_regression.py](/mnt/f/gh/openimageio/src/imiv/tools/imiv_backend_preferences_regression.py)
+- [imiv_rgb_input_regression.py](tools/imiv_rgb_input_regression.py)
+- [imiv_sampling_regression.py](tools/imiv_sampling_regression.py)
+- [imiv_backend_preferences_regression.py](tools/imiv_backend_preferences_regression.py)
 
 Optional shared per-backend CTest entries:
 

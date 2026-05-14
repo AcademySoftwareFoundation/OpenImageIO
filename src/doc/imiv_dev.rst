@@ -946,7 +946,9 @@ Configuring the build
 Important cache variables from `src/imiv/CMakeLists.txt` include:
 
 * `OIIO_IMIV_IMGUI_ROOT`
-  path to the Dear ImGui checkout used by :program:`imiv`.
+  path to the Dear ImGui checkout used by :program:`imiv`. The checkout must
+  provide Dear ImGui 1.92.8 or newer; older versions are rejected at configure
+  time.
 * `OIIO_IMIV_TEST_ENGINE_ROOT`
   path to the Dear ImGui Test Engine checkout.
 * `OIIO_IMIV_DEFAULT_RENDERER`
