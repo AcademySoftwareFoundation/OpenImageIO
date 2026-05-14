@@ -258,6 +258,9 @@ Recent focused GUI regressions in `src/imiv/tools/` include:
 * `imiv_save_window_ocio_regression.py`
   GUI-driven `Export As...` OCIO export, including view-baked display/view
   validation against `oiiotool --ociodisplay`.
+* `imiv_display_format_regression.py`
+  launch-time display-format request and backend fallback reporting for the
+  `rgb10a2` path.
 * `imiv_large_image_switch_regression.py`
   GPU-backend large-image queue switching. It currently has focused `ctest`
   entries for Vulkan, OpenGL, and Metal where those backends are enabled,
@@ -395,12 +398,13 @@ Metal::
       --trace
 
 This wrapper fans out into the focused regression scripts for smoke, RGB-input
-coverage, UX, nearest-vs-linear sampling, and OCIO
+coverage, display-format reporting, UX, nearest-vs-linear sampling, and OCIO
 fallback/config-source/live-update coverage, and stores the resulting logs in
 files such as:
 
 * `verify_smoke.log`
 * `verify_rgb.log`
+* `verify_display_format.log`
 * `verify_ux.log`
 * `verify_sampling.log`
 * `verify_ocio_missing.log`
@@ -459,6 +463,10 @@ Run the focused Vulkan/OpenGL/Metal large-image switch regressions::
 Run the backend-preference regression::
 
     ctest --test-dir build_u -V -R '^imiv_backend_preferences_regression$'
+
+Run the display-format regression::
+
+    ctest --test-dir build_u -V -R '^imiv_display_format_regression$'
 
 If `OIIO_IMIV_ADD_BACKEND_VERIFY_CTEST=ON` was enabled at configure time, the
 longer backend-wide verification entries are also added:

@@ -1096,6 +1096,10 @@ The current implemented non-default request is `rgb10a2` for 10-bit SDR
 presentation. `hdr` is parsed as a reserved value but falls back to `auto`
 until the backends have an explicit HDR/EDR color-space path.
 
+Test Engine state dumps report the active backend display request and actual
+presentation under `backend.display`. The display-format regression requests
+`rgb10a2` and accepts either real 10-bit output or an explicit fallback report.
+
 For isolated local repros and tests, set `IMIV_CONFIG_HOME` so preference
 changes do not bleed into your normal user config.
 

@@ -257,6 +257,7 @@ Shared suite:
 
 - `smoke`
 - `rgb`
+- `display_format`
 - `ux`
 - `sampling`
 - `ocio_missing`
@@ -267,6 +268,7 @@ Shared suite:
 Related focused regressions:
 
 - [imiv_rgb_input_regression.py](tools/imiv_rgb_input_regression.py)
+- [imiv_display_format_regression.py](tools/imiv_display_format_regression.py)
 - [imiv_sampling_regression.py](tools/imiv_sampling_regression.py)
 - [imiv_backend_preferences_regression.py](tools/imiv_backend_preferences_regression.py)
 

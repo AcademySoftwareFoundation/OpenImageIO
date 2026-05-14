@@ -714,7 +714,7 @@ run(const AppConfig& config)
 
 #if defined(IMGUI_ENABLE_TEST_ENGINE)
     ViewerStateJsonWriteContext test_engine_state_ctx
-        = { &viewer, &workspace, &ui_state, active_backend };
+        = { &viewer, &workspace, &ui_state, &renderer_state, active_backend };
     TestEngineHooks test_engine_hooks;
     test_engine_hooks.image_window_title       = k_image_window_title;
     test_engine_hooks.screen_capture           = renderer_screen_capture;

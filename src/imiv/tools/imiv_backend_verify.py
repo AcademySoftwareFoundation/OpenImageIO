@@ -196,6 +196,35 @@ def _rgb_checks(
     return [("rgb", cmd, out_dir / "verify_rgb.log", None)]
 
 
+def _display_format_checks(
+    repo_root: Path,
+    backend: str,
+    exe: Path,
+    run_cwd: Path,
+    out_dir: Path,
+    image: Path,
+    env_script: Path | None,
+    trace: bool,
+) -> list[tuple[str, list[str], Path, dict[str, str] | None]]:
+    script = repo_root / "src" / "imiv" / "tools" / "imiv_display_format_regression.py"
+    cmd = script_command(
+        script,
+        backend=backend,
+        exe=exe,
+        run_cwd=run_cwd,
+        out_dir=out_dir / "runtime_display_format",
+        trace=trace,
+        extra=[
+            "--open",
+            str(image),
+            "--display-format",
+            "rgb10a2",
+        ],
+        env_script=env_script,
+    )
+    return [("display_format", cmd, out_dir / "verify_display_format.log", None)]
+
+
 def _ocio_checks(
     repo_root: Path,
     backend: str,
@@ -564,6 +593,18 @@ def main() -> int:
         )
     )
     checks.extend(
+        _display_format_checks(
+            repo_root,
+            args.backend,
+            imiv,
+            run_cwd,
+            out_dir,
+            image_path,
+            env_script,
+            args.trace,
+        )
+    )
+    checks.extend(
         _ux_checks(
             repo_root,
             args.backend,
@@ -606,6 +647,7 @@ def main() -> int:
     failures: list[str] = []
     smoke_failed = False
     skip_after_smoke = {
+        "display_format",
         "ocio_missing",
         "ocio_config_source",
         "ocio_live",
@@ -643,6 +685,8 @@ def main() -> int:
     print(f"  runtime+s:   {out_dir / 'runtime'}")
     print(f"  rgb:         {out_dir / 'verify_rgb.log'}")
     print(f"  runtime+rgb: {out_dir / 'runtime_rgb'}")
+    print(f"  display:     {out_dir / 'verify_display_format.log'}")
+    print(f"  runtime+df:  {out_dir / 'runtime_display_format'}")
     print(f"  ux:          {out_dir / 'verify_ux.log'}")
     print(f"  runtime+ux:  {out_dir / 'runtime_ux'}")
     print(f"  sampling:    {out_dir / 'verify_sampling.log'}")

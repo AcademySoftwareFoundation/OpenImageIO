@@ -537,6 +537,23 @@ if (TARGET imiv
             TIMEOUT 120)
 
     add_test (
+        NAME imiv_display_format_regression
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/imiv_display_format_regression.py"
+            --bin "$<TARGET_FILE:imiv>"
+            --cwd "$<TARGET_FILE_DIR:imiv>"
+            ${_imiv_ctest_default_backend_args}
+            --env-script "${CMAKE_BINARY_DIR}/imiv_env.sh"
+            --out-dir "${CMAKE_BINARY_DIR}/imiv_captures/display_format_regression"
+            --open "${PROJECT_SOURCE_DIR}/ASWF/logos/openimageio-stacked-gradient.png"
+            --display-format rgb10a2)
+    set_tests_properties (
+        imiv_display_format_regression PROPERTIES
+            LABELS "imiv;imiv_display;gui"
+            TIMEOUT 120)
+
+    add_test (
         NAME imiv_sampling_regression
         COMMAND
             "${Python3_EXECUTABLE}"

@@ -45,6 +45,7 @@ struct ViewerStateJsonWriteContext {
     const ViewerState* viewer           = nullptr;
     const MultiViewWorkspace* workspace = nullptr;
     const PlaceholderUiState* ui_state  = nullptr;
+    const RendererState* renderer_state = nullptr;
     BackendKind active_backend          = BackendKind::Auto;
 };
 

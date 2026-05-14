@@ -343,8 +343,45 @@ namespace {
         std::fputs("\n    }\n  }", f);
     }
 
+    void
+    test_engine_json_write_display_state(FILE* f,
+                                         const PlaceholderUiState& ui_state,
+                                         const RendererState* renderer_state)
+    {
+        const DisplayFormatPreference requested_display_format
+            = renderer_state != nullptr
+                  ? renderer_state->requested_display_format
+                  : sanitize_display_format_preference(ui_state.display_format);
+        const DisplayPresentationInfo display_presentation
+            = renderer_state != nullptr ? renderer_state->display_presentation
+                                        : DisplayPresentationInfo {};
+        const std::string presentation_name = display_presentation_name(
+            display_presentation);
+
+        std::fputs(",\n    \"display\": {\n", f);
+        std::fputs("      \"requested_format\": ", f);
+        test_engine_json_write_escaped(f, display_format_cli_name(
+                                              requested_display_format));
+        std::fputs(",\n      \"requested_format_display\": ", f);
+        test_engine_json_write_escaped(f, display_format_display_name(
+                                              requested_display_format));
+        std::fputs(",\n      \"color_bits\": ", f);
+        std::fprintf(f, "%d", display_presentation.color_bits);
+        std::fputs(",\n      \"dynamic_range\": ", f);
+        test_engine_json_write_escaped(f, display_dynamic_range_name(
+                                              display_presentation.range));
+        std::fputs(",\n      \"presentation\": ", f);
+        test_engine_json_write_escaped(f, presentation_name.c_str());
+        std::fputs(",\n      \"format_request_fell_back\": ", f);
+        std::fputs(display_presentation.format_request_fell_back ? "true"
+                                                                 : "false",
+                   f);
+        std::fputs("\n    }", f);
+    }
+
     void test_engine_json_write_backend_state(
-        FILE* f, const PlaceholderUiState& ui_state, BackendKind active_backend)
+        FILE* f, const PlaceholderUiState& ui_state, BackendKind active_backend,
+        const RendererState* renderer_state)
     {
         const BackendKind requested_backend = sanitize_backend_kind(
             ui_state.renderer_backend);
@@ -404,6 +441,7 @@ namespace {
         test_engine_json_write_string_array(f, unavailable_backends);
         std::fputs(",\n    \"not_compiled\": ", f);
         test_engine_json_write_string_array(f, not_compiled_backends);
+        test_engine_json_write_display_state(f, ui_state, renderer_state);
         std::fputs(",\n    \"unavailable_reason\": {\n", f);
         bool first_reason = true;
         for (const BackendRuntimeInfo& info : runtime_backend_info()) {
@@ -651,7 +689,8 @@ write_test_engine_viewer_state_json(const std::filesystem::path& out_path,
     }
     std::fputs("]", f);
     test_engine_json_write_view_recipe_state(f, viewer);
-    test_engine_json_write_backend_state(f, ui_state, ctx->active_backend);
+    test_engine_json_write_backend_state(f, ui_state, ctx->active_backend,
+                                         ctx->renderer_state);
     test_engine_json_write_ocio_state(f, ui_state);
     std::fputs("\n}\n", f);
     std::fflush(f);

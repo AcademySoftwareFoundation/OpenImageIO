@@ -75,6 +75,12 @@ def main() -> int:
         help="Optional runtime backend override passed to imiv",
     )
     ap.add_argument(
+        "--display-format",
+        default="",
+        choices=("", "auto", "rgba8", "rgb10a2", "hdr"),
+        help="Optional display-format override passed to imiv",
+    )
+    ap.add_argument(
         "--open",
         action="append",
         default=[],
@@ -458,6 +464,8 @@ def main() -> int:
         cmd = [str(exe)]
         if args.backend:
             cmd.extend(["--backend", args.backend])
+        if args.display_format:
+            cmd.extend(["--display-format", args.display_format])
         cmd.append("-F")
         cmd.extend(str(path) for path in open_paths)
         return subprocess.run(
