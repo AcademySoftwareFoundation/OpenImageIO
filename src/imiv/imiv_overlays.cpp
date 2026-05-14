@@ -225,11 +225,11 @@ draw_image_selection_overlay(const ViewerState& viewer,
             draw_list->AddRectFilled(rect_min, rect_max,
                                      IM_COL32(72, 196, 255, 42), 0.0f);
             draw_list->AddRect(rect_min, rect_max, IM_COL32(72, 196, 255, 255),
-                               0.0f, 0, 1.2f);
+                               0.0f, 1.2f);
         }
     } else if (image_selection_rect_to_screen(viewer, map, rect_min, rect_max)) {
         draw_list->AddRect(rect_min, rect_max, IM_COL32(72, 196, 255, 255),
-                           0.0f, 0, 1.2f);
+                           0.0f, 1.2f);
     } else {
         draw_list->PopClipRect();
         return;

@@ -1156,22 +1156,17 @@ Files using this include:
 These helpers are practical, but they are not the same stability level as the
 core public UI API. When updating Dear ImGui, check them first.
 
-Local Metal backend fork
-^^^^^^^^^^^^^^^^^^^^^^^^
+Metal backend sampler callbacks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`src/imiv/external/imgui_impl_metal_imiv.mm` is an intentional local fork of
-the Dear ImGui Metal backend.
+The Metal backend uses the upstream Dear ImGui Metal renderer. Linear and
+nearest image sampling are selected through Dear ImGui's standard renderer
+draw callbacks rather than through local backend extensions.
 
-It adds:
+When updating Dear ImGui, check that `ImGuiPlatformIO` still exposes:
 
-* `ImGui_ImplMetal_CreateUserTextureID()`
-* `ImGui_ImplMetal_DestroyUserTextureID()`
-
-That extension exists because :program:`imiv` needs per-texture sampler choice
-for the linear and nearest preview textures. This is a reasonable design, but
-it is not upstream vanilla Dear ImGui backend code. Treat it as local
-maintenance surface and re-check it whenever upstream Metal backend code
-changes.
+* `DrawCallback_SetSamplerLinear`
+* `DrawCallback_SetSamplerNearest`
 
 Dear ImGui Test Engine internals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

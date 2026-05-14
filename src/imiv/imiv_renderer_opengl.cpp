@@ -336,6 +336,7 @@ namespace {
                                       std::string& error_message);
     bool ensure_preview_framebuffer(RendererBackendState& state,
                                     std::string& error_message);
+    void update_opengl_display_presentation(RendererState& renderer_state);
 
     const char* open_gl_glsl_version()
     {
@@ -1623,6 +1624,7 @@ void main()
         platform_glfw_make_context_current(state->window);
         if (ImGui_ImplOpenGL3_Init(state->glsl_version)) {
             state->imgui_initialized = true;
+            update_opengl_display_presentation(renderer_state);
             error_message.clear();
             return true;
         }
@@ -1882,7 +1884,6 @@ void main()
                 return false;
             state->window = window;
             platform_glfw_make_context_current(window);
-            update_opengl_display_presentation(renderer_state);
             error_message.clear();
             return true;
         },

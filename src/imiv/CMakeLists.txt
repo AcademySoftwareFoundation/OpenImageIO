@@ -137,7 +137,7 @@ endif ()
 if (_imiv_want_metal)
     list (APPEND _imiv_imgui_required_files
           "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_metal.h"
-          "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui_impl_metal_imiv.mm")
+          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_metal.mm")
 endif ()
 if (_imiv_want_opengl)
     list (APPEND _imiv_imgui_required_files
@@ -620,7 +620,7 @@ if (_imiv_enabled_vulkan)
 endif ()
 if (_imiv_enabled_metal)
     list (APPEND _imiv_imgui_renderer_sources
-          "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui_impl_metal_imiv.mm")
+          "${OIIO_IMIV_IMGUI_ROOT}/backends/imgui_impl_metal.mm")
 endif ()
 if (_imiv_enabled_opengl)
     list (APPEND _imiv_imgui_renderer_sources
