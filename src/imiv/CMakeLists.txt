@@ -161,6 +161,26 @@ if (NOT _imiv_imgui_found)
              "\n\n   WARNING: Dear ImGui not found at '${OIIO_IMIV_IMGUI_ROOT}' -- 'imiv' will not be built!\n")
     return ()
 endif ()
+
+set (_imiv_min_imgui_version_num 19280)
+file (STRINGS "${OIIO_IMIV_IMGUI_ROOT}/imgui.h" _imiv_imgui_version_num_line
+      REGEX "^#define[ \t]+IMGUI_VERSION_NUM[ \t]+[0-9]+")
+string (REGEX REPLACE
+        "^#define[ \t]+IMGUI_VERSION_NUM[ \t]+([0-9]+).*" "\\1"
+        _imiv_imgui_version_num "${_imiv_imgui_version_num_line}")
+if (NOT _imiv_imgui_version_num)
+    set (_imiv_imgui_version_num "unknown")
+endif ()
+if (_imiv_imgui_version_num STREQUAL "unknown"
+    OR _imiv_imgui_version_num LESS _imiv_min_imgui_version_num)
+    record_build_dependency (
+        ImGui NOTFOUND
+        NOT_FOUND_EXPLANATION
+            "(found ${_imiv_imgui_version_num}, need ${_imiv_min_imgui_version_num} or newer)")
+    message (STATUS
+             "\n\n   WARNING: Dear ImGui at '${OIIO_IMIV_IMGUI_ROOT}' is too old for imiv -- need 1.92.8 or newer!\n")
+    return ()
+endif ()
 record_build_dependency (ImGui FOUND)
 
 include ("${CMAKE_CURRENT_LIST_DIR}/cmake/imiv_sources.cmake")

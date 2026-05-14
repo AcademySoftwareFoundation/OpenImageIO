@@ -286,7 +286,8 @@ namespace {
         draw_list->AddRect(pos, ImVec2(pos.x + panel_w, pos.y + panel_h),
                            IM_COL32(175, 185, 205, 255),
                            UiMetrics::OverlayPanel::kCornerRounding,
-                           UiMetrics::OverlayPanel::kBorderThickness);
+                           UiMetrics::OverlayPanel::kBorderThickness,
+                           ImDrawFlags_None);
 
         ImVec2 text_pos(pos.x + pad_x, pos.y + pad_y);
         for (const std::string& line : lines) {
@@ -576,7 +577,8 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
                              UiMetrics::OverlayPanel::kCornerRounding);
     draw_list->AddRect(closeup_min, closeup_max, IM_COL32(175, 185, 205, 255),
                        UiMetrics::OverlayPanel::kCornerRounding,
-                       UiMetrics::OverlayPanel::kBorderThickness);
+                       UiMetrics::OverlayPanel::kBorderThickness,
+                       ImDrawFlags_None);
 
     const bool render_zoom_patch = has_closeup_texture
                                    && !viewer.image.path.empty()
@@ -676,7 +678,8 @@ draw_pixel_closeup_overlay(const ViewerState& viewer,
                              UiMetrics::OverlayPanel::kCornerRounding);
     draw_list->AddRect(text_min, text_max, IM_COL32(175, 185, 205, 255),
                        UiMetrics::OverlayPanel::kCornerRounding,
-                       UiMetrics::OverlayPanel::kBorderThickness);
+                       UiMetrics::OverlayPanel::kBorderThickness,
+                       ImDrawFlags_None);
     ImVec2 text_pos(text_min.x + text_pad_x, text_min.y + text_pad_y);
     for (size_t i = 0; i < lines.size(); ++i) {
         const std::string& line = lines[i];

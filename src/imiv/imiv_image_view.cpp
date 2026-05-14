@@ -328,10 +328,12 @@ draw_image_window_contents(ViewerState& viewer, PlaceholderUiState& ui_state,
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             draw_list->AddRect(coord_map.image_rect_min,
                                coord_map.image_rect_max,
-                               IM_COL32(250, 210, 80, 255), 0.0f, 1.5f);
+                               IM_COL32(250, 210, 80, 255), 0.0f, 1.5f,
+                               ImDrawFlags_None);
             draw_list->AddRect(coord_map.viewport_rect_min,
                                coord_map.viewport_rect_max,
-                               IM_COL32(80, 200, 255, 220), 0.0f, 1.0f);
+                               IM_COL32(80, 200, 255, 220), 0.0f, 1.0f,
+                               ImDrawFlags_None);
 
             ImVec2 center_screen(0.0f, 0.0f);
             if (source_uv_to_screen(coord_map, ImVec2(0.5f, 0.5f),
