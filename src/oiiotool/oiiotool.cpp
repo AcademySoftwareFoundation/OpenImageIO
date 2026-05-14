@@ -5905,10 +5905,11 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         TypeDesc type;
         int bits;
         type = ot.colorconfig().getColorSpaceDataType(outcolorspace, &bits);
-        if (type.basetype != TypeDesc::UNKNOWN) {
+        if (type != TypeUnknown && type != TypeFloat) {
             if (ot.debug)
-                std::cout << "  Deduced data type " << type << " (" << bits
-                          << "bits) for output to " << filename << "\n";
+                OIIO::print(
+                    "  Deduced data type {} ({} bits) for output to {}\n", type,
+                    bits, filename);
             if ((ot.output_dataformat && ot.output_dataformat != type)
                 || (bits && ot.output_bitspersample
                     && ot.output_bitspersample != bits)) {

@@ -14,6 +14,14 @@ if not os.getenv("OpenImageIO_ROOT"):
         os.environ["OpenImageIO_ROOT"] = _here
 
 if platform.system() == "Windows":
+    # MSVC multi-config builds often put _OpenImageIO*.pyd under OpenImageIO/<Config>/
+    # while this __init__.py lives in OpenImageIO/. Extend the package search path
+    # so `from . import _OpenImageIO` resolves (no CMake per-config output juggling).
+    for _cfg in ("Release", "Debug", "RelWithDebInfo", "MinSizeRel"):
+        _subdir = os.path.join(_here, _cfg)
+        if os.path.isdir(_subdir) and _subdir not in __path__:
+            __path__.append(_subdir)
+
     _bin_dir = os.path.join(_here, "bin")
     if os.path.exists(_bin_dir):
         os.add_dll_directory(_bin_dir)

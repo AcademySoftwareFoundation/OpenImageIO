@@ -88,6 +88,9 @@ on:
         type: string
       build_local_deps:
         type: string
+      oiio_python_bindings_backend:
+        type: string
+        default: ''
     secrets:
         PASSED_GITHUB_TOKEN:
           required: false
@@ -136,6 +139,7 @@ jobs:
       OpenImageIO_BUILD_LOCAL_DEPS: ${{inputs.build_local_deps}}
       SETENVS: ${{inputs.setenvs}}
       DEPCMDS: ${{inputs.depcmds}}
+      OIIO_PYTHON_BINDINGS_BACKEND: ${{ inputs.oiio_python_bindings_backend }}
 
     steps:
       - name: install nodejs20glibc2.17

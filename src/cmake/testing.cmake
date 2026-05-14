@@ -253,14 +253,12 @@ macro (oiio_add_all_tests)
                 "${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_ROOT_DIR}")
             oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
                 "${_installed_python_site_packages}")
-            oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
-                "${CMAKE_BINARY_DIR}/lib/python/nanobind/$<CONFIG>")
         else ()
             oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
                 "${CMAKE_BINARY_DIR}/lib/python/site-packages")
-            oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
-                "${CMAKE_BINARY_DIR}/lib/python/nanobind")
         endif ()
+        oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
+            "${CMAKE_BINARY_DIR}/lib/python/nanobind")
         set (nanobind_python_tests
              python-imagespec
              python-paramlist
