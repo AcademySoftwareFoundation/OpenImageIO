@@ -102,6 +102,27 @@ def tiles_write() -> None:
         # END-imageoutput-tiles
 
 
+def copy_write() -> None:
+    from OpenImageIO import ImageInput, ImageOutput
+
+    # BEGIN-imageoutput-copy
+    # Open the input file
+    inp = ImageInput.open("input.exr")
+
+    # Make an output spec, identical to the input except for metadata
+    out_spec = inp.spec()
+    out_spec.attribute("ImageDescription", "My Title")
+
+    # Create the output file and copy the image
+    out = ImageOutput.create("output.exr")
+    out.open("output.exr", out_spec)
+    out.copy_image(inp)
+
+    # Clean up
+    out.close()
+    inp.close()
+    # END-imageoutput-copy
+
 
 if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
@@ -109,3 +130,4 @@ if __name__ == '__main__':
     simple_write()
     scanlines_write()
     tiles_write()
+    copy_write()
