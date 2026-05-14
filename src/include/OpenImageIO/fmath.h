@@ -200,6 +200,7 @@ floor2(int x) noexcept
 template <typename V, typename M>
 inline OIIO_HOSTDEVICE V round_to_multiple (V value, M multiple)
 {
+    OIIO_DASSERT(multiple > M(0));
     if (value >= 0)
         value += V(multiple) - 1;
     return value - (value % V(multiple));
@@ -615,11 +616,15 @@ inline simd::vfloat16 floorfrac (const simd::vfloat16& x, simd::vint16 *xint) {
 
 /// Convert degrees to radians.
 template <typename T>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE T radians (T deg) { return deg * T(M_PI / 180.0); }
+OIIO_FORCEINLINE OIIO_HOSTDEVICE constexpr T radians (T deg) {
+    return deg * T(M_PI / 180.0);
+}
 
 /// Convert radians to degrees
 template <typename T>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE T degrees (T rad) { return rad * T(180.0 / M_PI); }
+OIIO_FORCEINLINE OIIO_HOSTDEVICE constexpr T degrees (T rad) {
+    return rad * T(180.0 / M_PI);
+}
 
 
 /// Faster floating point negation, in cases where you aren't too picky
@@ -911,20 +916,11 @@ convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
 
 
 #if defined(_HALF_H_) || defined(IMATH_HALF_H_)
+// Specialize for half only if half.h is included prior to fmath.h
 template<>
-OIIO_UTIL_API
-void convert_type<half,float> (const half *src, float *dst, size_t n,
-                               float /*_min*/, float /*_max*/);
-template<>
-OIIO_UTIL_API
-void convert_type<float,half> (const float *src, half *dst, size_t n,
-                               half /*_min*/, half /*_max*/);
-
-#if OIIO_FMATH_HEADER_ONLY
-// Not just the declarations, give the definitions here.
-template<>
-void convert_type<half,float> (const half *src, float *dst, size_t n,
-                               float /*_min*/, float /*_max*/)
+inline void
+convert_type<half,float> (const half *src, float *dst, size_t n,
+                          float /*_min*/, float /*_max*/)
 {
 #if OIIO_SIMD >= 8 && OIIO_F16C_ENABLED
     // If f16c ops are enabled, it's worth doing this by 8's
@@ -944,7 +940,7 @@ void convert_type<half,float> (const half *src, float *dst, size_t n,
 }
 
 template<>
-void
+inline void
 convert_type<float,half> (const float *src, half *dst, size_t n,
                           half /*_min*/, half /*_max*/)
 {
@@ -964,7 +960,6 @@ convert_type<float,half> (const float *src, half *dst, size_t n,
     while (n--)
         *dst++ = *src++;
 }
-#endif /* if OIIO_FMATH_HEADER_ONLY */
 #endif /* if defined(IMATH_HALF_H_) */
 
 #endif /* ifndef __CUDA_ARCH__ */

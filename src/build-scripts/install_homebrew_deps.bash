@@ -57,6 +57,9 @@ if [[ "$OIIO_BREW_INSTALL_PACKAGES" == "" ]] ; then
     if [[ "${USE_QT:=1}" != "0" ]] && [[ "${INSTALL_QT:=1}" != "0" ]] ; then
         OIIO_BREW_INSTALL_PACKAGES+=" qt${QT_VERSION}"
     fi
+    if [[ "${OIIO_PYTHON_BINDINGS_BACKEND:-}" == "both" || "${OIIO_PYTHON_BINDINGS_BACKEND:-}" == "nanobind" ]] ; then
+        OIIO_BREW_INSTALL_PACKAGES+=" nanobind"
+    fi
 fi
 brew install --display-times -q $OIIO_BREW_INSTALL_PACKAGES $OIIO_BREW_EXTRA_INSTALL_PACKAGES || true
 

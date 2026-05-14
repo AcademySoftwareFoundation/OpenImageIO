@@ -15,6 +15,19 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 namespace webp_pvt {
 
 
+static bool
+webp_exif_payload_has_tiff_header(cspan<uint8_t> exif)
+{
+    const size_t exif_header_size = 6;
+    const bool has_exif_header    = exif.size() >= exif_header_size
+                                 && exif[0] == 'E' && exif[1] == 'x'
+                                 && exif[2] == 'i' && exif[3] == 'f'
+                                 && exif[4] == 0 && exif[5] == 0;
+    const size_t tiff_header_offset = has_exif_header ? exif_header_size : 0;
+    return exif.size() >= tiff_header_offset + sizeof(TIFFHeader);
+}
+
+
 class WebpInput final : public ImageInput {
 public:
     WebpInput() {}
@@ -181,9 +194,9 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
     WebPChunkIterator chunk_iter;
     if (m_demux_flags & EXIF_FLAG
         && WebPDemuxGetChunk(m_demux, "EXIF", 1, &chunk_iter)) {
-        decode_exif(string_view((const char*)chunk_iter.chunk.bytes + 6,
-                                chunk_iter.chunk.size - 6),
-                    m_spec);
+        cspan<uint8_t> exif_span(chunk_iter.chunk.bytes, chunk_iter.chunk.size);
+        if (webp_exif_payload_has_tiff_header(exif_span))
+            decode_exif(exif_span, m_spec);
         WebPDemuxReleaseChunkIterator(&chunk_iter);
     }
     if (m_demux_flags & XMP_FLAG

@@ -19,7 +19,8 @@ certain metadata to the image.
 
 The `iconvert` utility is invoked as follows:
 
-    `iconvert` *optiions input output*
+    `iconvert` *options input output*
+    `iconvert` *options input* `-o` *output*
 
 Where *input* and *output* name the input image and desired output filename.
 The image files may be of any format recognized by OpenImageIO (i.e., for
@@ -146,6 +147,10 @@ keywords, or arbitrary string metadata::
 .. describe:: -v
 
     Verbose status messages.
+
+.. describe:: -o filename
+
+    Specify the output filename. (Alternately, the `-o` can be dropped.)
 
 .. describe:: --threads n
 

@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.18.2...4.0)
 
-set (OpenImageIO_VERSION "3.2.0.1")
+set (OpenImageIO_VERSION "3.2.0.2")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
      "Version override (use with caution)!")
 mark_as_advanced (OpenImageIO_VERSION_OVERRIDE)
@@ -142,6 +142,12 @@ if (TEX_BATCH_SIZE)
     add_compile_definitions (OIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE})
 endif ()
 
+# If we're building this just for CI, define a symbol so the code can
+# tell (and reduce complexity of some tests)
+set_option (OIIO_CI "Set if this build is for our GHA CI" OFF)
+if (OIIO_CI)
+    add_compile_definitions (OIIO_CI=1)
+endif ()
 
 # Namespace settings
 #
@@ -309,7 +315,12 @@ else ()
     set (_py_dev_found Python3_Development.Module_FOUND)
 endif ()
 if (USE_PYTHON AND ${_py_dev_found} AND NOT BUILD_OIIOUTIL_ONLY)
-    add_subdirectory (src/python)
+    if (OIIO_BUILD_PYTHON_PYBIND11)
+        add_subdirectory (src/python)
+    endif ()
+    if (OIIO_BUILD_PYTHON_NANOBIND)
+        add_subdirectory (src/python-nanobind)
+    endif ()
 else ()
     message (STATUS "Not building Python bindings: USE_PYTHON=${USE_PYTHON}, Python3_Development.Module_FOUND=${Python3_Development.Module_FOUND}")
 endif ()

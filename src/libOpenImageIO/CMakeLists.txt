@@ -51,7 +51,7 @@ set (libOpenImageIO_srcs
                           imagebufalgo_xform.cpp
                           imagebufalgo_demosaic.cpp
                           imagebufalgo_yee.cpp
-                          imagebufalgo_yee.cpp
+                          imagebufalgo_flip.cpp
                           deepdata.cpp exif.cpp exif-canon.cpp
                           formatspec.cpp
                           icc.cpp imagebuf.cpp
@@ -263,11 +263,13 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                           LINK_LIBRARIES OpenImageIO Imath::Imath
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_image_span ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/image_span_test)
+    set_tests_properties (unit_image_span PROPERTIES COST 10)
 
     fancy_add_executable (NAME imagebuf_test SRC imagebuf_test.cpp
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_imagebuf ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebuf_test)
+    set_tests_properties (unit_imagebuf PROPERTIES COST 30)
 
     fancy_add_executable (NAME imagecache_test SRC imagecache_test.cpp
                           LINK_LIBRARIES OpenImageIO
@@ -284,6 +286,7 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                           FOLDER "Unit Tests" NO_INSTALL)
     target_compile_definitions (imagebufalgo_test PRIVATE OIIO_USE_HWY=${_oiio_use_hwy})
     add_test (unit_imagebufalgo ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebufalgo_test)
+    set_tests_properties (unit_imagebufalgo PROPERTIES PROCESSORS 2 COST 60)
 
     fancy_add_executable (NAME imagespec_test SRC imagespec_test.cpp
                           LINK_LIBRARIES OpenImageIO
@@ -294,6 +297,7 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_imageinout ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imageinout_test)
+    set_tests_properties (unit_imageinout PROPERTIES PROCESSORS 2 COST 30)
 
     if (NOT DEFINED ENV{OpenImageIO_CI})
         fancy_add_executable (NAME imagespeed_test SRC imagespeed_test.cpp

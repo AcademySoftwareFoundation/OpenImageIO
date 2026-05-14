@@ -44,6 +44,11 @@ src/corrupt-icc-4552.jpg : 1500 x 1000, 3 channel, uint8 jpeg
     ICCProfile:rendering_intent: "Unknown"
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "srgb_rec709_scene"
+short-exif-app1-len4-ok
+short-exif-app1-len5-ok
+short-icc-app2-len11-ok
+short-icc-app2-len12-ok
+short-icc-app2-len13-ok
 oiiotool ERROR: read : JPEG error: Corrupt JPEG data: 256 extraneous bytes before marker 0xdb ("src/corrupt-iptc-8011.jpg")
 Corrupted IPTC data
 Full command line was:

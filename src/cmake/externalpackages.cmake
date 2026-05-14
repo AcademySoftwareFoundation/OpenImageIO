@@ -118,8 +118,12 @@ endif()
 if (USE_PYTHON)
     find_python()
 endif ()
-if (USE_PYTHON)
+if (USE_PYTHON AND OIIO_BUILD_PYTHON_PYBIND11)
     checked_find_package (pybind11 REQUIRED VERSION_MIN 2.7)
+endif ()
+if (USE_PYTHON AND OIIO_BUILD_PYTHON_NANOBIND)
+    discover_nanobind_cmake_dir()
+    checked_find_package (nanobind CONFIG REQUIRED)
 endif ()
 
 

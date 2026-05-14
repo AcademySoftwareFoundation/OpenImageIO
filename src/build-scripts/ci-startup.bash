@@ -36,7 +36,7 @@ export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages:$P
 export COMPILER=${COMPILER:=gcc}
 export CC=${CC:=gcc}
 export CXX=${CXX:=g++}
-export OpenImageIO_CI=true
+export OpenImageIO_CI=1
 export USE_NINJA=${USE_NINJA:=1}
 export CMAKE_GENERATOR=${CMAKE_GENERATOR:=Ninja}
 export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:=Release}

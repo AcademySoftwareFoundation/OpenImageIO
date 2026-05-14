@@ -13,28 +13,31 @@ Stats for tahoe-small.tif:
   max         =  [0.8784314393997192, 1.0, 1.0]
   avg         =  [0.10193096846342087, 0.21669696271419525, 0.4254732131958008]
   stddev      =  [0.13176830112934113, 0.23792722821235657, 0.3826749324798584]
-  nancount    =  [0L, 0L, 0L]
-  infcount    =  [0L, 0L, 0L]
-  finitecount =  [196608L, 196608L, 196608L]
+  nancount    =  [0, 0, 0]
+  infcount    =  [0, 0, 0]
+  finitecount =  [196608, 196608, 196608]
 Comparison: of flip.tif and flop.tif
   mean = 0.0068759
   rms  = 0.051175
   PSNR = 25.819
   max  = 0.45098
-  max @ (214L, 88L, 0L, 0L)
+  max @ (214, 88, 0, 0)
   warns 2034 fails 2034
 Relative comparison: of flip.tif and flop.tif
   warns 1946 fails 1896
+FLIP_diff same vs same: mean=0 max=0
+FLIP_diff black vs white: mean=0.96738 max=0.96738
+FLIP_ppd = 67.02
 isConstantColor on pink image is (1 0.50196 0.50196)
 isConstantColor on checker is  None
 Is cmul1.exr monochrome?  True
 Is cmul2.exr monochrome?  False
-color range counts =  (4L, 8L, 4L)
+color range counts =  (4, 8, 4)
 Nonzero region is:  100 180 100 180 0 1 0 3
 SHA-1 of bsplinekernel.exr is: D5826B66A5313F9A32D42C5CF49C90EC4E7F84BF
-R hist:  (10000L, 0L, 0L, 0L)
-G hist:  (10000L, 0L, 0L, 0L)
-B hist:  (0L, 10000L, 0L, 0L)
+R hist:  (10000, 0, 0, 0)
+G hist:  (10000, 0, 0, 0)
+B hist:  (0, 10000, 0, 0)
 Done.
 Comparing "black.tif" and "ref/black.tif"
 PASS

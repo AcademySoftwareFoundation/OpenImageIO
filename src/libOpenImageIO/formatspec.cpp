@@ -646,7 +646,7 @@ string_view
 ImageSpec::get_string_attribute(string_view name, string_view defaultval) const
 {
     ParamValue tmpparam;
-    const ParamValue* p = find_attribute(name, tmpparam, TypeDesc::STRING);
+    const ParamValue* p = find_attribute(name, tmpparam);
     return p ? p->get_ustring() : defaultval;
 }
 

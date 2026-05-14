@@ -2163,6 +2163,7 @@ PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          OIIO_CONST_FUNC= \
                          OIIO_MAYBE_UNUSED= \
                          OIIO_NODISCARD:= \
+                         OIIO_NODISCARD_ERROR:= \
                          OIIO_DEPRECATED(x)=[[deprecated]] \
                          OIIO_FORMAT_DEPRECATED:= \
                          OIIO_FORCEINLINE=inline \

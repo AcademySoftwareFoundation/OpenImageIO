@@ -8,6 +8,10 @@
 failureok = 1
 redirect = ' >> out.txt 2>&1 '
 
+command += oiiotool("--create 1x1 3 -d uint8 -o base-short-marker.jpg")
+command += run_app(pythonbin + " src/make-short-marker-jpegs.py", silent=True)
+
+
 # This file has a corrupted Exif block in the metadata. It used to
 # crash on some platforms, on others would be caught by address sanitizer.
 # Fixed by #1635. This test serves to guard against regressions.
@@ -24,6 +28,20 @@ command += run_app (oiio_app("iconvert") + " src/corrupt-icc-4551.jpg out-4551.j
 
 # This file has a corrupted ICC profile block
 command += info_command ("src/corrupt-icc-4552.jpg", safematch=True)
+
+# These files have short APP1/APP2 metadata marker payloads that used to be
+# read past their saved-marker buffers before being ignored. Use iconvert to
+# a null output to force a full input read.
+command += iconvert("short-exif-app1-len4.jpg out.null",
+                    successmessage="short-exif-app1-len4-ok")
+command += iconvert("short-exif-app1-len5.jpg out.null",
+                    successmessage="short-exif-app1-len5-ok")
+command += iconvert("short-icc-app2-len11.jpg out.null",
+                    successmessage="short-icc-app2-len11-ok")
+command += iconvert("short-icc-app2-len12.jpg out.null",
+                    successmessage="short-icc-app2-len12-ok")
+command += iconvert("short-icc-app2-len13.jpg out.null",
+                    successmessage="short-icc-app2-len13-ok")
 
 # This file had corrupted IPTC data
 command += oiiotool("-oiioattrib imageinput:strict 1 -info -v src/corrupt-iptc-8011.jpg")

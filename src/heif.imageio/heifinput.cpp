@@ -79,6 +79,7 @@ public:
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
     bool close() override;
+    int current_subimage(void) const override { return m_subimage; }
     bool seek_subimage(int subimage, int miplevel) override;
     bool read_native_scanline(int subimage, int miplevel, int y, int z,
                               void* data) override;
@@ -188,16 +189,18 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
     try {
         m_ctx->read_from_reader(*m_reader);
 
-        m_item_ids   = m_ctx->get_list_of_top_level_image_IDs();
+        // Get the item IDs for each subimage, and force the "primary" one to
+        // have index 0.
         m_primary_id = m_ctx->get_primary_image_ID();
-        for (size_t i = 0; i < m_item_ids.size(); ++i)
-            if (m_item_ids[i] == m_primary_id) {
-                m_item_ids.erase(m_item_ids.begin() + i);
-                break;
-            }
+        m_item_ids.resize(0);
+        m_item_ids.push_back(m_primary_id);
+        for (auto id : m_ctx->get_list_of_top_level_image_IDs()) {
+            if (id != m_primary_id)
+                m_item_ids.push_back(id);
+        }
         // std::cout << " primary id: " << m_primary_id << "\n";
         // std::cout << " item ids: " << Strutil::join(m_item_ids, ", ") << "\n";
-        m_num_subimages = 1 + int(m_item_ids.size());
+        m_num_subimages = int(m_item_ids.size());
 
     } catch (const heif::Error& err) {
         std::string e = err.get_message();

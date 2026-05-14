@@ -77,8 +77,8 @@ os.putenv('OIIO_TESTSUITE_IMAGEDIR', OIIO_TESTSUITE_IMAGEDIR)
 refdir = "ref/"
 refdirlist = [ refdir ]
 mytest = os.path.split(os.path.abspath(os.getcwd()))[-1]
-if str(mytest).endswith('.batch') :
-    mytest = mytest.split('.')[0]
+if str(mytest).endswith('.batch') or str(mytest).endswith('.nanobind') :
+    mytest = mytest.rsplit('.', 1)[0]
 test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
                             os.path.join(OIIO_TESTSUITE_ROOT, mytest))
 
@@ -297,13 +297,10 @@ def rw_command (dir: str, filename: str, testwrite: bool=True, use_oiiotool: boo
         cmd = ""
     if output_filename == "" :
         output_filename = filename
+    tool = "oiiotool" if use_oiiotool else "iconvert"
     if testwrite :
-        if use_oiiotool :
-            cmd = (cmd + oiio_app("oiiotool") + preargs + " " + fn
-                   + " " + extraargs + " -o " + output_filename + redirect + ";\n")
-        else :
-            cmd = (cmd + oiio_app("iconvert") + preargs + " " + fn
-                   + " " + extraargs + " " + output_filename + redirect + ";\n")
+        cmd = (cmd + oiio_app(tool) + preargs + " " + fn
+               + " " + extraargs + " -o " + output_filename + redirect + ";\n")
         cmd = (cmd + oiio_app("idiff") + " -a " + fn
                + " -fail " + str(failthresh)
                + " -failpercent " + str(failpercent)
@@ -325,8 +322,11 @@ def testtex_command (file: str, extraargs: str="", silent: bool=False, concat: b
 
 
 # Construct a command that will run iconvert and append its output to out.txt
-def iconvert (args: str, silent: bool=False, concat: bool=True, failureok: bool=False) -> str:
+def iconvert (args: str, silent: bool=False, concat: bool=True,
+              failureok: bool=False, successmessage: str="") -> str:
     cmd = (oiio_app("iconvert") + " " + args)
+    if successmessage:
+        cmd = "(" + cmd + " && echo " + successmessage + ")"
     if not silent :
         cmd += redirect
     if failureok :

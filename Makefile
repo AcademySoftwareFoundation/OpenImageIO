@@ -159,7 +159,7 @@ MY_CMAKE_FLAGS += -DTEX_BATCH_SIZE:STRING="${TEX_BATCH_SIZE}"
 endif
 
 ifneq (${TEST},)
-TEST_FLAGS += -R ${TEST}
+TEST_FLAGS += -R '${TEST}'
 endif
 
 ifneq (${USE_CCACHE},)

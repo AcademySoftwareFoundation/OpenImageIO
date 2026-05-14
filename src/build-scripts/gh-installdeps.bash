@@ -230,5 +230,16 @@ fi
 df -h .
 df -h /host/root || true
 
+# nanobind's CMake config is discovered via `python -m nanobind --cmake_dir`.
+# Version + wheel hash: src/build-scripts/ci-requirements-nanobind.txt (CodeQL / supply chain).
+if [[ "${OIIO_PYTHON_BINDINGS_BACKEND:-}" == "both" || "${OIIO_PYTHON_BINDINGS_BACKEND:-}" == "nanobind" ]] ; then
+    _oiio_nanobind_requirements_file="$PWD/src/build-scripts/ci-requirements-nanobind.txt"
+    if [[ "$ASWF_ORG" != ""  ]] ; then
+        time pip3 install -r "$_oiio_nanobind_requirements_file" --require-hashes || true
+    else
+        time pip3${PIP_SUFFIX} install -r "$_oiio_nanobind_requirements_file" --require-hashes
+    fi
+fi
+
 # Save the env for use by other stages
 src/build-scripts/save-env.bash

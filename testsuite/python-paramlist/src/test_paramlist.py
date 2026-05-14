@@ -50,8 +50,41 @@ try:
     # Construct from numpy byte array
     pv = oiio.ParamValue("ucarr", "uint8[10]", numpy.array([49, 50, 51, 0, 0, 97, 98, 99, 1, 88], dtype='B'))
     print_param_value(pv)
-    # Construct from bytes
+
+    # C++: paramvalue_from_pyobject UINT8 + Python bytes (pybind parity). Copy raw
+    # bytes when type.arraylen is set, len(bytes) == arraylen*nvalues, and if
+    # arraylen<0 (uint8[]), set arraylen = len(bytes)//nvalues first.
+
+    # Setup: fixed width uint8[10], single value — exercises bytes special case without inference.
     pv = oiio.ParamValue("bts", "uint8[10]", b'123\x00\x00abc\x01X')
+    # Check: name/type/value match ref; bytes land as uint8[10] (10*1==10).
+    print_param_value(pv)
+
+    # Setup: unsized uint8[], nvalues 1 — must infer arraylen 10 from len(bytes).
+    pv = oiio.ParamValue("u8unsized", oiio.TypeDesc("uint8[]"), b"1234567890")
+    # Check: type prints as uint8[10] (inferred) and payload matches the string bytes.
+    print_param_value(pv)
+
+    # Setup: uint8[2] with nvalues=3, 6 bytes — fixed arraylen, multiple ParamValue "values".
+    pv = oiio.ParamValue(
+        "u8fix_n2",
+        oiio.TypeDesc("uint8[2]"),
+        3,
+        oiio.Interp.CONSTANT,
+        b"abcdef",
+    )
+    # Check: 2*3==6; same special-case path, no arraylen<0 branch.
+    print_param_value(pv)
+
+    # Setup: unsized uint8[], nvalues=2, 8 bytes — infer arraylen=4, then 4*2==8.
+    pv = oiio.ParamValue(
+        "u8var_n2",
+        oiio.TypeDesc("uint8[]"),
+        2,
+        oiio.Interp.CONSTANT,
+        b"12345678",
+    )
+    # Check: type uint8[4] with 2 nvalues; exercises inference with nvalues>1.
     print_param_value(pv)
 
     print ("")

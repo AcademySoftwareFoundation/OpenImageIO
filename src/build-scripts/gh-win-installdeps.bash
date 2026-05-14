@@ -39,6 +39,11 @@ elif [[ "$PYTHON_VERSION" == "3.14" ]] ; then
 fi
 pip install numpy
 
+if [[ "${OIIO_PYTHON_BINDINGS_BACKEND:-}" == "both" || "${OIIO_PYTHON_BINDINGS_BACKEND:-}" == "nanobind" ]] ; then
+    _oiio_nanobind_requirements_file="$PWD/src/build-scripts/ci-requirements-nanobind.txt"
+    "${Python_EXECUTABLE:-python}" -m pip install -r "$_oiio_nanobind_requirements_file" --require-hashes
+fi
+
 
 # In case we need vcpkg, example:
 # echo "All pre-installed VCPkg installs:"

@@ -475,10 +475,12 @@
 // override the default, for example to flag discarded errors in older
 // versions of OIIO, or to disable the warnings in future versions of OIIO.
 #ifndef OIIO_NODISCARD_ERROR_ENABLE
-#    if OIIO_VERSION_LESS(3, 3, 0)
-#        define OIIO_NODISCARD_ERROR_ENABLE 0 /* disable for now */
+#    if OIIO_VERSION_GREATER_EQUAL(3, 3, 0) || defined(OIIO_INTERNAL)
+         /* enable for OIIO >= 3.3, or now for OIIO's own build */
+#        define OIIO_NODISCARD_ERROR_ENABLE 1
 #    else
-#        define OIIO_NODISCARD_ERROR_ENABLE 1 /* enable for OIIO >= 3.3 */
+         /* disable for now externally */
+#        define OIIO_NODISCARD_ERROR_ENABLE 0
 #    endif
 #endif
 

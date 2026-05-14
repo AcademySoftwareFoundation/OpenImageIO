@@ -41,12 +41,15 @@ static bool compute_stats = false;
 
 
 
-static void
+static bool
 print_sha1(ImageInput* input, int subimage, int miplevel)
 {
     std::string err;
     std::string s1 = pvt::compute_sha1(input, subimage, miplevel, err);
+    if (err.size())
+        input->errorfmt("{}", err);
     OIIO::print("    SHA-1: {}\n", err.size() ? err : s1);
+    return err.empty();
 }
 
 
@@ -68,7 +71,7 @@ read_input(const std::string& filename, ImageBuf& img, int subimage = 0,
 
 
 
-static void
+static bool
 print_stats(const std::string& filename, const ImageSpec& originalspec,
             int subimage = 0, int miplevel = 0, bool indentmip = false)
 {
@@ -77,7 +80,7 @@ print_stats(const std::string& filename, const ImageSpec& originalspec,
     ImageBuf input(filename);
     if (!read_input(filename, input, subimage, miplevel)) {
         // Note: read_input prints an error message if one occurs
-        return;
+        return false;
     }
 
     std::string err;
@@ -85,8 +88,9 @@ print_stats(const std::string& filename, const ImageSpec& originalspec,
         OIIO::print("{}Stats: (unable to compute)\n", indent);
         if (err.size())
             std::cerr << "Error: " << err << "\n";
-        return;
+        return false;
     }
+    return true;
 }
 
 
@@ -236,12 +240,12 @@ brief_format_name(TypeDesc type, int bits = 0)
 
 // prints basic info (resolution, width, height, depth, channels, data format,
 // and format name) about given subimage.
-static void
+static bool
 print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
                     ImageInput* input, const std::string& filename)
 {
     if (!input->seek_subimage(current_subimage, 0))
-        return;
+        return false;
     spec = input->spec(current_subimage);
 
     if (!metamatch.empty()
@@ -249,7 +253,7 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
             "resolution, width, height, depth, channels, sha-1, stats",
             field_re)) {
         // nothing to do here
-        return;
+        return true;
     }
 
     int nmip = 1;
@@ -285,13 +289,15 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
     if (printres && nmip > 1)
         OIIO::print("\n");
 
+    bool ok = true;
     if (compute_sha1
         && (metamatch.empty() || std::regex_search("sha-1", field_re))) {
         if (filenameprefix)
             OIIO::print("{} : ", filename);
         // Before sha-1, be sure to point back to the highest-res MIP level
         input->seek_subimage(current_subimage, 0);
-        print_sha1(input, current_subimage, 0);
+        if (!print_sha1(input, current_subimage, 0))
+            ok = false;
     }
 
     if (verbose)
@@ -299,7 +305,7 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
 
     if (compute_stats
         && (metamatch.empty() || std::regex_search("stats", field_re))) {
-        for (int m = 0; m < nmip; ++m) {
+        for (int m = 0; m < nmip && ok; ++m) {
             ImageSpec mipspec = input->spec_dimensions(current_subimage, m);
             if (filenameprefix)
                 OIIO::print("{} : ", filename);
@@ -307,17 +313,17 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
                 OIIO::print("    MIP {} of {} ({} x {}):\n", m, nmip,
                             mipspec.width, mipspec.height);
             }
-            print_stats(filename, spec, current_subimage, m, nmip > 1);
+            if (!print_stats(filename, spec, current_subimage, m, nmip > 1))
+                ok = false;
         }
     }
 
-    if (!input->seek_subimage(current_subimage, 0))
-        return;
+    return input->seek_subimage(current_subimage, 0) && ok;
 }
 
 
 
-static void
+static bool
 print_info(const std::string& filename, size_t namefieldlength,
            ImageInput* input, ImageSpec& spec, bool verbose, bool sum,
            long long& totalsize)
@@ -412,8 +418,11 @@ print_info(const std::string& filename, size_t namefieldlength,
     if (!subimages)
         num_of_subimages = 1;
     for (int i = 0; i < num_of_subimages; ++i) {
-        print_info_subimage(i, num_of_subimages, spec, input, filename);
+        if (!print_info_subimage(i, num_of_subimages, spec, input, filename))
+            return false;
     }
+
+    return true;
 }
 
 
@@ -480,7 +489,16 @@ main(int argc, const char* argv[])
             continue;
         }
         ImageSpec spec = in->spec();
-        print_info(s, longestname, in.get(), spec, verbose, sum, totalsize);
+        if (!print_info(s, longestname, in.get(), spec, verbose, sum,
+                        totalsize)) {
+            std::string err;
+            if (in->has_error())
+                err = in->geterror();
+            OIIO::print(std::cerr, "iinfo ERROR: \"{}\" : {}\n", s,
+                        err.size() ? err : std::string("Could not open file."));
+            returncode = EXIT_FAILURE;
+            continue;
+        }
     }
 
     if (sum)
