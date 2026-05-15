@@ -233,6 +233,9 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
             m_spec.attribute("oiio:UnassociatedAlpha", 1);
     }
 
+    if (!check_open(m_spec, { 0, (1 << 14) - 1, 0, (1 << 14) - 1, 0, 1, 0, 4 }))
+        return false;
+
     seek_subimage(0, 0);
     spec = m_spec;
     return true;
