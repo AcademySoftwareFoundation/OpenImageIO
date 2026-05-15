@@ -807,7 +807,7 @@ ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
 
 
 
-ColorConfig::ColorConfig(string_view filename) { reset(filename); }
+ColorConfig::ColorConfig(string_view filename) { (void)reset(filename); }
 
 
 
