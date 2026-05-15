@@ -1613,7 +1613,7 @@ test_demosaic_algo(const ImageBuf& src_image, const ImageBuf& mosaiced_image,
         std::string ext  = type.is_floating_point() ? "exr" : "png";
         std::string path = file_name + "_" + test_name + "." + ext;
         auto imageOutput = ImageOutput::create(ext);
-        imageOutput->open(path, demosaiced_image.spec());
+        (void)imageOutput->open(path, demosaiced_image.spec());
         demosaiced_image.write(imageOutput.get());
     }
 }
@@ -1650,7 +1650,7 @@ test_demosaic(const DemosaicTestConfig& config, const ImageBuf& src_image,
                 std::string path = file_name + "_src." + ext;
 
                 auto imageOutput = ImageOutput::create(ext);
-                imageOutput->open(path, mosaiced_image.spec());
+                (void)imageOutput->open(path, mosaiced_image.spec());
                 mosaiced_image.write(imageOutput.get());
             }
 
@@ -1741,7 +1741,7 @@ test_demosaic()
 
     if (write_files) {
         auto imageOutput = OIIO::ImageOutput::create("exr");
-        imageOutput->open("source.exr", src_image.spec());
+        (void)imageOutput->open("source.exr", src_image.spec());
         src_image.write(imageOutput.get());
     }
 

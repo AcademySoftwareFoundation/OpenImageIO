@@ -792,7 +792,9 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
         // ImageBuf::write transfers any errors from the ImageOutput to
         // the ImageBuf.
         errorfmt("Write failed: {}", img->geterror());
-        out->close();
+        if (!out->close()) {
+            errorfmt("Close failed: {}", out->geterror());
+        }
         return false;
     }
 
@@ -965,7 +967,9 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                 // ImageOutput to the ImageBuf.
                 errorfmt("Error writing \"{}\" : {}", outputfilename,
                          small->geterror());
-                out->close();
+                if (!out->close()) {
+                    errorfmt("Close failed: {}", out->geterror());
+                }
                 return false;
             }
             double wtime = writetimer();
