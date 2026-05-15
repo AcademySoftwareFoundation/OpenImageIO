@@ -2325,8 +2325,7 @@ static void
 set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
 {
     OIIO_DASSERT(argv.size() == 2);
-    ot.colorconfig().reset(argv[1]);
-    if (ot.colorconfig().has_error()) {
+    if (!ot.colorconfig().reset(argv[1])) {
         ot.errorfmt("--colorconfig", "{}", ot.colorconfig().geterror());
     }
 }
