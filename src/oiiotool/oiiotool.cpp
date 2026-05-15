@@ -2836,6 +2836,38 @@ action_channels(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --nchannels
+static void
+action_nchannels(Oiiotool& ot, cspan<const char*> argv)
+{
+    if (ot.postpone_callback(1, action_nchannels, argv))
+        return;
+
+    // Get the requested number of channels
+    int n = Strutil::stoi(ot.express(argv[1]));
+    if (n < 1) {
+        ot.errorfmt(argv[0], "nchannels must be at least 1 (got {})", n);
+        return;
+    }
+
+    // We build the indices into a vector, then join them into a string.
+    std::vector<int> indices;
+    for (int i = 0; i < n; ++i)
+        indices.push_back(i);
+
+    // Convert to ustring to ensure the underlying char* is interned.
+    // This guarantees the pointer remains valid even if action_channels
+    // defers execution (postpones) beyond the scope of this function.
+    ustring channel_list(Strutil::join(indices, ","));
+
+    // Hand off to action_channels with our generated index list.
+    // this ensures we are always doing the same thing as --ch
+    const char* fake_argv[] = { argv[0], channel_list.c_str() };
+    action_channels(ot, fake_argv);
+}
+
+
+
 // --chappend
 static void
 action_chappend(Oiiotool& ot, cspan<const char*> argv)
@@ -7277,6 +7309,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--ch %s:CHANLIST")
       .help("Select or shuffle channels (e.g., \"R,G,B\", \"B,G,R\", \"2,3,4\")")
       .OTACTION(action_channels);
+    ap.arg("--nchannels %d:N")
+      .help("Force the current image to have N channels (padding with 0.0 as needed)")
+      .OTACTION(action_nchannels);
     ap.arg("--chappend")
       .help("Append the channels of the last two images")
       .OTACTION(action_chappend);
