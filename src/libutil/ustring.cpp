@@ -40,11 +40,9 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
                   "BASE_CAPACITY must be a power of 2");
 
     TableRepMap()
-        : entries(static_cast<ustring::TableRep**>(
-            calloc(BASE_CAPACITY, sizeof(ustring::TableRep*))))
-        , memory_usage(sizeof(*this)
-                       + sizeof(ustring::TableRep*) * BASE_CAPACITY)
+        : memory_usage(sizeof(*this))
     {
+        resize_entries(BASE_CAPACITY);
         allocate_pool_block();
     }
 
@@ -52,29 +50,23 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
     { /* just let memory leak */
     }
 
-    void clear()
+    // Free all allocated resources. Note that this leaves the TableRepMap
+    // in an unusable state.
+    void free_resources()
     {
         ustring_write_lock_t lock(mutex);
-        // Destroy all TableRep objects. The destructor safely handles the
-        // case where the internal std::string aliases the pool chars.
-        for (size_t i = 0; i <= mask; ++i) {
-            if (entries[i])
-                entries[i]->~TableRep();
-        }
-        // Free all pool allocations and large individual allocations.
+        // Destroy TableRep objects FIRST, while the pool/large-alloc memory
+        // they live in is still valid. Their destructors may read/write the
+        // surrounding allocation and (on some platforms) the std::string
+        // subobject owns a separate heap buffer that only gets freed here.
+        destroy_entries();
+        entries.clear();
+        entries.shrink_to_fit();
+        // Now safe to free the backing buffers.
         all_pools.clear();
         all_pools.shrink_to_fit();
         large_allocs.clear();
         large_allocs.shrink_to_fit();
-        free(entries);
-        // Re-initialize to a fresh, usable state.
-        mask    = BASE_CAPACITY - 1;
-        entries = static_cast<ustring::TableRep**>(
-            calloc(BASE_CAPACITY, sizeof(ustring::TableRep*)));
-        num_entries  = 0;
-        memory_usage = sizeof(*this)
-                       + sizeof(ustring::TableRep*) * BASE_CAPACITY;
-        allocate_pool_block();
     }
 
     size_t get_memory_usage()
@@ -174,31 +166,35 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
 private:
     void grow()
     {
-        size_t new_mask = mask * 2 + 1;
+        // Temporarily hold the old entries while we are copying them
+        std::vector<ustring::TableRep*> old_entries;
+        old_entries.swap(entries);
+        size_t old_num_entries = num_entries;
+        size_t to_copy         = old_num_entries;
 
-        // NOTE: only increment by half because we are doubling the entries and freeing the old
-        memory_usage += (mask + 1) * sizeof(ustring::TableRep*);
+        // Make bigger space for new entries table and new mask
+        resize_entries(2 * old_entries.size());
 
-        ustring::TableRep** new_entries = static_cast<ustring::TableRep**>(
-            calloc(new_mask + 1, sizeof(ustring::TableRep*)));
-        size_t to_copy = num_entries;
+        // Copy each entry from old into the new, recomputing the hash because
+        // the mask has changd.
         for (size_t i = 0; to_copy != 0; i++) {
-            if (entries[i] == 0)
+            if (old_entries[i] == nullptr)
                 continue;
-            size_t pos = entries[i]->hashed & new_mask, dist = 0;
+            // i is old position, pos will be new position
+            size_t pos = old_entries[i]->hashed & mask, dist = 0;
             for (;;) {
-                if (new_entries[pos] == 0)
+                if (entries[pos] == 0)
                     break;
                 ++dist;
-                pos = (pos + dist) & new_mask;  // quadratic probing
+                pos = (pos + dist) & mask;  // quadratic probing
             }
-            new_entries[pos] = entries[i];
+            entries[pos]   = old_entries[i];
+            old_entries[i] = nullptr;
             to_copy--;
         }
 
-        free(entries);
-        entries = new_entries;
-        mask    = new_mask;
+        // old_entries will free when we exit this function
+        memory_usage -= sizeof(ustring::TableRep*) * old_entries.size();
     }
 
     ustring::TableRep* make_rep(string_view str, uint64_t hash)
@@ -239,18 +235,41 @@ private:
         all_pools.emplace_back(pool);
     }
 
-    OIIO_CACHE_ALIGN mutable ustring_mutex_t mutex;
-    size_t mask                 = BASE_CAPACITY - 1;
-    ustring::TableRep** entries = nullptr;
-    size_t num_entries          = 0;
-    char* pool                  = nullptr;  // Current pool block we're using
-    size_t pool_offset          = 0;        // Next offset within current block
-    size_t memory_usage         = 0;        // Total memory usage
+    void destroy_entries()
+    {
+        // Destroy all TableRep objects. The destructor safely handles the
+        // case where the internal std::string aliases the pool chars.
+        for (auto& e : entries) {
+            if (e) {
+                e->~TableRep();
+                e = nullptr;
+            }
+        }
+    }
+
+    void resize_entries(size_t newsize)
+    {
+        OIIO_CONTRACT_ASSERT(entries.empty());
+        OIIO_CONTRACT_ASSERT_MSG((newsize & (newsize - 1)) == 0,
+                                 "New entries size must be power of 2");
+        entries.resize(newsize, nullptr);
+        memory_usage += sizeof(ustring::TableRep*) * entries.size();
+        num_entries = 0;
+        mask        = newsize - 1;
+    }
+
+    std::vector<ustring::TableRep*> entries;
+    size_t mask         = BASE_CAPACITY - 1;
+    size_t num_entries  = 0;
+    char* pool          = nullptr;  // Current pool block we're using
+    size_t pool_offset  = 0;        // Next offset within current block
+    size_t memory_usage = 0;        // Total memory usage
     std::vector<std::unique_ptr<char[]>> all_pools;
     std::vector<std::unique_ptr<char[]>> large_allocs;
 #ifdef USTRING_TRACK_NUM_LOOKUPS
     size_t num_lookups = 0;
 #endif
+    OIIO_CACHE_ALIGN mutable ustring_mutex_t mutex;
 };
 
 #if 0
@@ -290,10 +309,10 @@ struct UstringTable {
         return num;
     }
 
-    void clear()
+    void free_resources()
     {
         for (auto& bin : bins)
-            bin.clear();
+            bin.free_resources();
     }
 
 #    ifdef USTRING_TRACK_NUM_LOOKUPS
@@ -749,7 +768,7 @@ static int ustring_cleanup_atexit_registered = []() {
             OIIO::print("ustring: freeing table resources ({} bytes)\n",
                         v3_1::ustring_table().get_memory_usage());
 #endif
-            v3_1::ustring_table().clear();
+            v3_1::ustring_table().free_resources();
             v3_1::reverse_map().clear();
         }
     });
