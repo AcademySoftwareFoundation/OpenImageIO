@@ -2401,6 +2401,14 @@ current top image.
     name, nor value), then this will just leave the images as-is, without
     any unnecessary expense or pointless copying of images in memory.
 
+.. option:: --nchannels <n>
+
+    Replaces the top image with a new image whose channels are the the first *n*
+    channels of the input image. If *n* is less than the number of
+    channels in the input image, the extra channels will simply be ignored.
+    If *n* is greater than the number of channels in the input image, the
+    additional channels will be filled with 0 values.
+
 .. option:: --chappend
 
     Replaces the top two (or more) images on the stack with a single new
