@@ -41,8 +41,8 @@ class OIIO_API ColorProcessor {
 public:
     ColorProcessor() {};
     virtual ~ColorProcessor(void) {};
-    virtual bool isNoOp() const { return false; }
-    virtual bool hasChannelCrosstalk() const { return false; }
+    OIIO_NODISCARD virtual bool isNoOp() const { return false; }
+    OIIO_NODISCARD virtual bool hasChannelCrosstalk() const { return false; }
 
     // Convert an array/image of color values. The strides are the distance,
     // in bytes, between subsequent color channels, pixels, and scanlines.
@@ -93,11 +93,11 @@ public:
     ///
     /// Multiple calls to this are potentially expensive. A ColorConfig
     /// should usually be shared by an app for its entire runtime.
-    bool reset(string_view filename = "");
+    OIIO_NODISCARD_ERROR bool reset(string_view filename = "");
 
     /// Has an error string occurred?
     /// (This will not affect the error state.)
-    bool has_error() const;
+    OIIO_NODISCARD bool has_error() const;
 
     /// DEPRECATED(2.4), old name for has_error().
     OIIO_DEPRECATED("Use has_error()")
@@ -106,80 +106,82 @@ public:
     /// This routine will return the error string (and by default, clear any
     /// error flags).  If no error has occurred since the last time
     /// geterror() was called, it will return an empty string.
-    std::string geterror(bool clear = true) const;
+    OIIO_NODISCARD std::string geterror(bool clear = true) const;
 
     /// Get the number of ColorSpace(s) defined in this configuration
-    int getNumColorSpaces() const;
+    OIIO_NODISCARD int getNumColorSpaces() const;
 
     /// Query the name of the specified ColorSpace.
-    const char* getColorSpaceNameByIndex(int index) const;
+    OIIO_NODISCARD const char* getColorSpaceNameByIndex(int index) const;
 
     /// Given a color space name, return the index of an equivalent color
     /// space, or -1 if not found. It will first look for an exact match of
     /// the name, but if not found, will match a color space that is
     /// "equivalent" to the named color space.
-    int getColorSpaceIndex(string_view name) const;
+    OIIO_NODISCARD int getColorSpaceIndex(string_view name) const;
 
     /// Get the name of the color space representing the named role,
     /// or nullptr if none could be identified.
-    const char* getColorSpaceNameByRole(string_view role) const;
+    OIIO_NODISCARD const char* getColorSpaceNameByRole(string_view role) const;
 
     /// Get the data type that OCIO thinks this color space is. The name
     /// may be either a color space name or a role. For an unknown space or
     /// any error, return TypeUnknown.
-    OIIO::TypeDesc getColorSpaceDataType(string_view name, int* bits) const;
+    OIIO_NODISCARD OIIO::TypeDesc getColorSpaceDataType(string_view name,
+                                                        int* bits) const;
 
     /// Retrieve the full list of known color space names, as a vector
     /// of strings.
-    std::vector<std::string> getColorSpaceNames() const;
+    OIIO_NODISCARD std::vector<std::string> getColorSpaceNames() const;
 
     /// Get the name of the color space family of the named color space,
     /// or nullptr if none could be identified.
-    const char* getColorSpaceFamilyByName(string_view name) const;
+    OIIO_NODISCARD const char* getColorSpaceFamilyByName(string_view name) const;
 
     // Get the number of Roles defined in this configuration
-    int getNumRoles() const;
+    OIIO_NODISCARD int getNumRoles() const;
 
     /// Query the name of the specified Role, or return nullptr if there is no
     /// role with that index.
-    const char* getRoleByIndex(int index) const;
+    OIIO_NODISCARD const char* getRoleByIndex(int index) const;
 
     /// Retrieve the full list of known Roles, as a vector of strings.
-    std::vector<std::string> getRoles() const;
+    OIIO_NODISCARD std::vector<std::string> getRoles() const;
 
     /// Get the number of Looks defined in this configuration
-    int getNumLooks() const;
+    OIIO_NODISCARD int getNumLooks() const;
 
     /// Query the name of the specified Look, or return nullptr if there is no
     /// look with that index.
-    const char* getLookNameByIndex(int index) const;
+    OIIO_NODISCARD const char* getLookNameByIndex(int index) const;
 
     /// Retrieve the full list of known look names, as a vector of strings.
-    std::vector<std::string> getLookNames() const;
+    OIIO_NODISCARD std::vector<std::string> getLookNames() const;
 
     /// Get the number of NamedTransforms defined in this configuration
-    int getNumNamedTransforms() const;
+    OIIO_NODISCARD int getNumNamedTransforms() const;
 
     /// Query the name of the specified NamedTransform, or nullptr if there is
     /// no NamedTransform with that index.
-    const char* getNamedTransformNameByIndex(int index) const;
+    OIIO_NODISCARD const char* getNamedTransformNameByIndex(int index) const;
 
     /// Retrieve the full list of known NamedTransforms, as a vector of strings
-    std::vector<std::string> getNamedTransformNames() const;
+    OIIO_NODISCARD std::vector<std::string> getNamedTransformNames() const;
 
     /// Retrieve the full list of aliases for the named NamedTransform.
-    std::vector<std::string>
+    OIIO_NODISCARD std::vector<std::string>
     getNamedTransformAliases(string_view named_transform) const;
 
     /// Is the color space known to be linear? This is very conservative, and
     /// will return false if it's not sure.
-    bool isColorSpaceLinear(string_view name) const;
+    OIIO_NODISCARD bool isColorSpaceLinear(string_view name) const;
 
     /// Is the color space non-color-managed "data"?
-    bool isData(string_view name) const;
+    OIIO_NODISCARD bool isData(string_view name) const;
 
     /// Retrieve the full list of aliases for the named color space.
-    std::vector<std::string> getAliases(string_view color_space) const;
+    OIIO_NODISCARD std::vector<std::string>
+    getAliases(string_view color_space) const;
 
     /// Given the specified input and output ColorSpace, request a handle to
     /// a ColorProcessor.  It is possible that this will return an empty
@@ -193,10 +195,10 @@ public:
     ///
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
-    ColorProcessorHandle createColorProcessor(
+    OIIO_NODISCARD ColorProcessorHandle createColorProcessor(
         string_view inputColorSpace, string_view outputColorSpace,
         string_view context_key = "", string_view context_value = "") const;
-    ColorProcessorHandle
+    OIIO_NODISCARD ColorProcessorHandle
     createColorProcessor(ustring inputColorSpace, ustring outputColorSpace,
                          ustring context_key   = ustring(),
                          ustring context_value = ustring()) const;
@@ -214,70 +216,73 @@ public:
     ///
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
-    ColorProcessorHandle
-    createLookTransform(string_view looks, string_view inputColorSpace,
-                        string_view outputColorSpace, bool inverse = false,
-                        string_view context_key   = "",
-                        string_view context_value = "") const;
-    ColorProcessorHandle
-    createLookTransform(ustring looks, ustring inputColorSpace,
-                        ustring outputColorSpace, bool inverse = false,
-                        ustring context_key   = ustring(),
-                        ustring context_value = ustring()) const;
+    OIIO_NODISCARD ColorProcessorHandle createLookTransform(
+        string_view looks, string_view inputColorSpace,
+        string_view outputColorSpace, bool inverse = false,
+        string_view context_key = "", string_view context_value = "") const;
+    OIIO_NODISCARD ColorProcessorHandle createLookTransform(
+        ustring looks, ustring inputColorSpace, ustring outputColorSpace,
+        bool inverse = false, ustring context_key = ustring(),
+        ustring context_value = ustring()) const;
 
     /// Get the number of displays defined in this configuration
-    int getNumDisplays() const;
+    OIIO_NODISCARD int getNumDisplays() const;
 
     /// Query the name of the specified display, or nullptr if there is no
     /// display with that index.
-    const char* getDisplayNameByIndex(int index) const;
+    OIIO_NODISCARD const char* getDisplayNameByIndex(int index) const;
 
     /// Retrieve the full list of known display names, as a vector of
     /// strings.
-    std::vector<std::string> getDisplayNames() const;
+    OIIO_NODISCARD std::vector<std::string> getDisplayNames() const;
 
     /// Get the name of the default display.
-    const char* getDefaultDisplayName() const;
+    OIIO_NODISCARD const char* getDefaultDisplayName() const;
 
     /// Get the number of views for a given display defined in this
     /// configuration. If the display is empty or not specified, the default
     /// display will be used.
-    int getNumViews(string_view display = "") const;
+    OIIO_NODISCARD int getNumViews(string_view display = "") const;
 
     /// Query the name of the specified view for the specified display, or
     /// nullptr if there is no view with that index or if the display is not
     /// found.
-    const char* getViewNameByIndex(string_view display, int index) const;
+    OIIO_NODISCARD const char* getViewNameByIndex(string_view display,
+                                                  int index) const;
 
     /// Retrieve the full list of known view names for the display, as a
     /// vector of strings. If the display is empty or not specified, the
     /// default display will be used.
-    std::vector<std::string> getViewNames(string_view display = "") const;
+    OIIO_NODISCARD std::vector<std::string>
+    getViewNames(string_view display = "") const;
 
     /// Query the name of the default view for the specified display. If the
     /// display is empty or not specified, the default display will be used.
     /// This version does not consider the input color space.
     /// Returns nullptr for failure.
-    const char* getDefaultViewName(string_view display = "") const;
+    OIIO_NODISCARD const char*
+    getDefaultViewName(string_view display = "") const;
 
     /// Query the name of the default view for the specified display, given
     /// the input color space. If `display` is "default" or an empty string,
     /// the default display will be used. The input color space is used to
     /// determine the most appropriate default view for the given display.
     /// Returns nullptr for failure.
-    const char* getDefaultViewName(string_view display,
-                                   string_view inputColorSpace) const;
+    OIIO_NODISCARD const char*
+    getDefaultViewName(string_view display, string_view inputColorSpace) const;
 
     /// Returns the colorspace attribute of the (display, view) pair. (Note
     /// that this may be either a color space or a display color space.)
     /// Returns nullptr for failure.
-    const char* getDisplayViewColorSpaceName(const std::string& display,
-                                             const std::string& view) const;
+    OIIO_NODISCARD const char*
+    getDisplayViewColorSpaceName(const std::string& display,
+                                 const std::string& view) const;
 
     /// Returns the looks attribute of a (display, view) pair. Returns nullptr
     /// for failure.
-    const char* getDisplayViewLooks(const std::string& display,
-                                    const std::string& view) const;
+    OIIO_NODISCARD const char*
+    getDisplayViewLooks(const std::string& display,
+                        const std::string& view) const;
 
     /// Construct a processor to transform from the given color space
     /// to the color space of the given display and view. You may optionally
@@ -300,17 +305,15 @@ public:
     ///
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
-    ColorProcessorHandle
-    createDisplayTransform(string_view display, string_view view,
-                           string_view inputColorSpace, string_view looks = "",
-                           bool inverse = false, string_view context_key = "",
-                           string_view context_value = "") const;
-    ColorProcessorHandle
-    createDisplayTransform(ustring display, ustring view,
-                           ustring inputColorSpace, ustring looks = ustring(),
-                           bool inverse          = false,
-                           ustring context_key   = ustring(),
-                           ustring context_value = ustring()) const;
+    OIIO_NODISCARD ColorProcessorHandle createDisplayTransform(
+        string_view display, string_view view, string_view inputColorSpace,
+        string_view looks = "", bool inverse = false,
+        string_view context_key = "", string_view context_value = "") const;
+    OIIO_NODISCARD ColorProcessorHandle createDisplayTransform(
+        ustring display, ustring view, ustring inputColorSpace,
+        ustring looks = ustring(), bool inverse = false,
+        ustring context_key   = ustring(),
+        ustring context_value = ustring()) const;
 
     OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
     ColorProcessorHandle
@@ -343,10 +346,10 @@ public:
     ///
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
-    ColorProcessorHandle createFileTransform(string_view name,
-                                             bool inverse = false) const;
-    ColorProcessorHandle createFileTransform(ustring name,
-                                             bool inverse = false) const;
+    OIIO_NODISCARD ColorProcessorHandle
+    createFileTransform(string_view name, bool inverse = false) const;
+    OIIO_NODISCARD ColorProcessorHandle
+    createFileTransform(ustring name, bool inverse = false) const;
 
     /// Construct a processor to perform color transforms determined by an
     /// OpenColorIO NamedTransform. It is possible that this will return an
@@ -358,14 +361,12 @@ public:
     ///
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
-    ColorProcessorHandle
-    createNamedTransform(string_view name, bool inverse = false,
-                         string_view context_key   = "",
-                         string_view context_value = "") const;
-    ColorProcessorHandle
-    createNamedTransform(ustring name, bool inverse = false,
-                         ustring context_key   = ustring(),
-                         ustring context_value = ustring()) const;
+    OIIO_NODISCARD ColorProcessorHandle createNamedTransform(
+        string_view name, bool inverse = false, string_view context_key = "",
+        string_view context_value = "") const;
+    OIIO_NODISCARD ColorProcessorHandle createNamedTransform(
+        ustring name, bool inverse = false, ustring context_key = ustring(),
+        ustring context_value = ustring()) const;
 
     /// Construct a processor to perform color transforms specified by a
     /// 4x4 matrix.
@@ -375,14 +376,14 @@ public:
     ///
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
-    ColorProcessorHandle createMatrixTransform(M44fParam M,
-                                               bool inverse = false) const;
+    OIIO_NODISCARD ColorProcessorHandle
+    createMatrixTransform(M44fParam M, bool inverse = false) const;
 
     /// Given a filepath, ask OCIO what color space it thinks the file
     /// should be, based on how the name matches file naming rules in the
     /// OCIO config.  (This is mostly a wrapper around OCIO's
     /// ColorConfig::getColorSpaceFromFilepath.)
-    string_view getColorSpaceFromFilepath(string_view str) const;
+    OIIO_NODISCARD string_view getColorSpaceFromFilepath(string_view str) const;
 
     /// Given a filepath, ask OCIO what color space it thinks the file
     /// should be, based on how the name matches file naming rules in the
@@ -390,50 +391,52 @@ public:
     /// the OCIO config's default color space. If `cs_name_match` is
     /// true, additionally attempt to match the color space name in the
     /// filename, if the OCIO config heuristics fail to find a match.
-    string_view getColorSpaceFromFilepath(string_view str,
-                                          string_view default_cs,
-                                          bool cs_name_match = false) const;
+    OIIO_NODISCARD string_view getColorSpaceFromFilepath(string_view str,
+                                                         string_view default_cs,
+                                                         bool cs_name_match
+                                                         = false) const;
 
     /// Given a filepath, returns whether the result of
     /// getColorSpaceFromFilepath() is the failover condition, due
     /// to the OCIO config's file rules not otherwise finding a match
     /// for the filepath.
-    bool filepathOnlyMatchesDefaultRule(string_view str) const;
+    OIIO_NODISCARD bool filepathOnlyMatchesDefaultRule(string_view str) const;
 
     /// Given a string (like a filename), look for the longest, right-most
     /// colorspace substring that appears. Returns "" if no such color space
     /// is found.
-    string_view parseColorSpaceFromString(string_view str) const;
+    OIIO_NODISCARD string_view parseColorSpaceFromString(string_view str) const;
 
     /// Turn the name, which could be a color space, an alias, a role, or
     /// an OIIO-understood universal name (like "sRGB") into a canonical
     /// color space name. If the name is not recognized, return "".
-    string_view resolve(string_view name) const;
+    OIIO_NODISCARD string_view resolve(string_view name) const;
 
     /// Are the two color space names/aliases/roles equivalent?
-    bool equivalent(string_view color_space,
-                    string_view other_color_space) const;
+    OIIO_NODISCARD bool equivalent(string_view color_space,
+                                   string_view other_color_space) const;
 
     /// Find CICP code corresponding to the colorspace.
     /// Return a cspan of 4 ints, or an empty span if not found.
     ///
     /// @version 3.1
-    cspan<int> get_cicp(string_view colorspace) const;
+    OIIO_NODISCARD cspan<int> get_cicp(string_view colorspace) const;
 
     /// Find color interop ID for the given colorspace.
     /// Returns empty string if not found.
     ///
     /// @version 3.1
-    string_view get_color_interop_id(string_view colorspace) const;
+    OIIO_NODISCARD string_view
+    get_color_interop_id(string_view colorspace) const;
 
     /// Find color interop ID corresponding to the CICP code.
     /// Returns empty string if not found.
     ///
     /// @version 3.1
-    string_view get_color_interop_id(const int cicp[4]) const;
+    OIIO_NODISCARD string_view get_color_interop_id(const int cicp[4]) const;
 
     /// Return a filename or other identifier for the config we're using.
-    std::string configname() const;
+    OIIO_NODISCARD std::string configname() const;
 
     /// Set the spec's metadata to presume that color space is `name` (or to
     /// assume nothing about the color space if `name` is empty). The core
@@ -453,18 +456,18 @@ public:
     void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const;
 
     /// Return if OpenImageIO was built with OCIO support
-    static bool supportsOpenColorIO();
+    OIIO_NODISCARD static bool supportsOpenColorIO();
 
     /// Return the hex OCIO version (maj<<24 + min<<16 + patch), or 0 if no
     /// OCIO support is available.
-    static int OpenColorIO_version_hex();
+    OIIO_NODISCARD static int OpenColorIO_version_hex();
 
     /// Return a default ColorConfig, which is a singleton that will be
     /// created the first time it is needed.  It will be initialized with the
     /// OCIO environment variable, if it exists, or the OCIO built-in config
     /// (for OCIO >= 2.2).  If neither of those is possible, it will be
     /// initialized with a built-in minimal config.
-    static const ColorConfig& default_colorconfig();
+    OIIO_NODISCARD static const ColorConfig& default_colorconfig();
 
 private:
     ColorConfig(const ColorConfig&)            = delete;
@@ -491,7 +494,7 @@ OIIO_NAMESPACE_BEGIN
 /// Utility -- convert sRGB value to linear transfer function, without
 /// any change in color primaries.
 ///    http://en.wikipedia.org/wiki/SRGB
-inline float
+OIIO_NODISCARD inline float
 sRGB_to_linear(float x)
 {
     return (x <= 0.04045f) ? (x * (1.0f / 12.92f))
@@ -500,7 +503,7 @@ sRGB_to_linear(float x)
 
 
 #ifndef __CUDA_ARCH__
-inline simd::vfloat4
+OIIO_NODISCARD inline simd::vfloat4
 sRGB_to_linear(const simd::vfloat4& x)
 {
     return simd::select(
@@ -511,7 +514,7 @@ sRGB_to_linear(const simd::vfloat4& x)
 
 /// Utility -- convert linear value to sRGB transfer function, without
 /// any change in color primaries.
-inline float
+OIIO_NODISCARD inline float
 linear_to_sRGB(float x)
 {
     return (x <= 0.0031308f) ? (12.92f * x)
@@ -522,7 +525,7 @@ linear_to_sRGB(float x)
 #ifndef __CUDA_ARCH__
 /// Utility -- convert linear value to sRGB transfer function, without
 /// any change in color primaries.
-inline simd::vfloat4
+OIIO_NODISCARD inline simd::vfloat4
 linear_to_sRGB(const simd::vfloat4& x)
 {
     // x = simd::max (x, simd::vfloat4::Zero());
@@ -535,7 +538,7 @@ linear_to_sRGB(const simd::vfloat4& x)
 /// Utility -- convert Rec709 value to linear transfer function, without
 /// any change in color primaries.
 ///    http://en.wikipedia.org/wiki/Rec._709
-inline float
+OIIO_NODISCARD inline float
 Rec709_to_linear(float x)
 {
     if (x < 0.081f)
@@ -546,7 +549,7 @@ Rec709_to_linear(float x)
 
 /// Utility -- convert linear value to Rec709 transfer function, without
 /// any change in color primaries.
-inline float
+OIIO_NODISCARD inline float
 linear_to_Rec709(float x)
 {
     if (x < 0.018f)
