@@ -360,6 +360,10 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
 
     m_spec = ImageSpec(info.xsize, info.ysize, m_channels, m_data_type);
 
+    if (!check_open(m_spec,
+                    { 0, (1 << 30) - 1, 0, (1 << 30) - 1, 0, 1, 0, 4099 }))
+        return false;
+
     // Read ICC profile
     if (m_icc_profile.size() && m_icc_profile.data()) {
         m_spec.attribute("ICCProfile",
