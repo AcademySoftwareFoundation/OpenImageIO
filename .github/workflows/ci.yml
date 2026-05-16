@@ -284,7 +284,7 @@ jobs:
           - desc: VFX2023 gcc11/C++17 py3.10 exr3.1 ocio2.2
             nametag: linux-vfx2023
             runner: ubuntu-latest
-            container: aswf/ci-osl:2023-clang15
+            container: aswf/ci-osl:2023-clang15.2
             python_ver: "3.10"
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
@@ -293,7 +293,7 @@ jobs:
           - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2023.icc
             runner: ubuntu-latest
-            container: aswf/ci-osl:2023
+            container: aswf/ci-osl:2023-clang15.2
             opencolorio_ver: v2.2.1
             python_ver: "3.10"
             # simd: "avx2,f16c"
