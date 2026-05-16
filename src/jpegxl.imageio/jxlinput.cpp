@@ -164,6 +164,13 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    if (!valid_file(m_io)) {
+        DBG std::cout << "JxlInput::valid_file() return false\n";
+        errorfmt("Possible corrupt file, "
+                 "JPEG XL signature verification failed\n");
+        return false;
+    }
+
     m_decoder = JxlDecoderMake(nullptr);
     if (m_decoder == nullptr) {
         DBG std::cout << "JxlDecoderMake failed\n";
