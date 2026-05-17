@@ -833,13 +833,17 @@ fix_config_file_rules(OCIO::ConfigRcPtr& config)
         DBG("  rule {}/{}: pat='{}' ext='{}' -> \"{}\"\n", i, rules->getName(i),
             rules->getRegex(i), rules->getExtension(i),
             rules->getColorSpace(i));
+#if 0
+        // If we wanted to doctor just the exr rule, here's how:
         if (Strutil::iequals(rules->getExtension(i), "exr")) {
             // Change the rule for exr extension, if it exists, to "unknown".
             // Make no assumptions. OCIO's built-in configs think it should be
             // ACES2065-1, which is almost never right.
             rules->setColorSpace(i, "unknown");
             DBG("    changed cs to \"{}\"\n", rules->getColorSpace(i));
-        } else if (!strcmp(rules->getName(i), "Default")) {
+        } else
+#endif
+        if (!strcmp(rules->getName(i), "Default")) {
             // Default rule or one that matches everything -- for OIIO, we
             // just want to change this to unknown. We made decisions about
             // default per-file-format color space decisions in the individual
@@ -2402,20 +2406,6 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
     if (!colorconfig)
         colorconfig = &ColorConfig::default_colorconfig();
 
-    if (colorconfig->isData(from) || colorconfig->equivalent(from, "raw")) {
-        // If the input color space is not color managed, the transformation
-        // is meaningless, just set 'to' to the same space so that the whole
-        // thing is a no-op, including continuing to think it's in the raw
-        // space.
-        to = from;
-    } else if (colorconfig->isData(to) || colorconfig->equivalent(to, "raw")) {
-        // If the output color space is not color managed, the transformation
-        // is meaningless, just make it look like it's already in the 'from'
-        // space. Note that this DOES change the apparent color space label
-        // to the requested raw output space.
-        from = to;
-    }
-
     ColorProcessorHandle processor
         = colorconfig->createColorProcessor(colorconfig->resolve(from),
                                             colorconfig->resolve(to),
@@ -2433,7 +2423,10 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
     logtime.stop(-1);  // transition to other colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok) {
+        // Coming from a non-color space preserves the original space
         // DBG("done, setting output colorspace to {}\n", to);
+        if (colorconfig->isData(from))
+            to = from;
         dst.specmod().set_colorspace(to);
     }
     return ok;
