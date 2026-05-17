@@ -74,6 +74,12 @@ private:
     bool read_file_scanline(void* data, int y);
     bool read_file_header();
 
+    static string_view read_header_to_buffer(std::vector<char>& buffer,
+                                             Filesystem::IOProxy* io);
+    static string_view append_remainder_to_buffer(std::vector<char>& buffer,
+                                                  Filesystem::IOProxy* io,
+                                                  string_view remaining);
+
     template<typename T> bool nextVal(T& val);
 
     template<class T>
@@ -111,43 +117,6 @@ static const imagesize_t max_pnm_header_size = 1024;
 // 1GiB rough limit on file size to avoid loading arbitrarily
 // large files into memory
 static const imagesize_t max_pnm_file_size = 1024 * 1024 * 1024;
-
-
-
-// Read only enough of the file to contain the header (at momst 1KB) into buffer
-static string_view
-read_header_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io)
-{
-    imagesize_t header_size = std::min(static_cast<imagesize_t>(io->size()),
-                                       max_pnm_header_size);
-    buffer.resize(header_size);
-    io->pread(buffer.data(), header_size, 0);
-    return string_view(buffer.data(), buffer.size());
-}
-
-
-
-// buffer contains at most the first 1K of the file. At this point, we know
-// the file seems valid. Read the rest in, appending to what we have, and
-// return the adjusted string_view of the contents.
-static string_view
-append_remainder_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io,
-                           string_view remaining)
-{
-    // Assume we've already read the header into buffer
-    imagesize_t header_size    = buffer.size();
-    imagesize_t full_size      = std::min(static_cast<imagesize_t>(io->size()),
-                                          max_pnm_file_size);
-    ptrdiff_t remaining_offset = remaining.data() - buffer.data();
-
-    buffer.resize(full_size);
-    io->pread(buffer.data() + header_size, full_size - header_size,
-              header_size);
-    
-    string_view result { buffer.data(), buffer.size() };
-    result.remove_prefix(remaining_offset);
-    return result;
-}
 
 
 
@@ -434,6 +403,45 @@ PNMInput::read_file_header()
     }
     m_spec.set_colorspace("Rec709");
     return true;
+}
+
+
+
+// Read only enough of the file to contain the header (at momst 1KB) into buffer
+string_view
+PNMInput::read_header_to_buffer(std::vector<char>& buffer,
+                                Filesystem::IOProxy* io)
+{
+    imagesize_t header_size = std::min(static_cast<imagesize_t>(io->size()),
+                                       max_pnm_header_size);
+    buffer.resize(header_size);
+    io->pread(buffer.data(), header_size, 0);
+    return string_view(buffer.data(), buffer.size());
+}
+
+
+
+// buffer contains at most the first 1K of the file. At this point, we know
+// the file seems valid. Read the rest in, appending to what we have, and
+// return the adjusted string_view of the contents.
+string_view
+PNMInput::append_remainder_to_buffer(std::vector<char>& buffer,
+                                     Filesystem::IOProxy* io,
+                                     string_view remaining)
+{
+    // Assume we've already read the header into buffer
+    imagesize_t header_size    = buffer.size();
+    imagesize_t full_size      = std::min(static_cast<imagesize_t>(io->size()),
+                                          max_pnm_file_size);
+    ptrdiff_t remaining_offset = remaining.data() - buffer.data();
+
+    buffer.resize(full_size);
+    io->pread(buffer.data() + header_size, full_size - header_size,
+              header_size);
+    
+    string_view result { buffer.data(), buffer.size() };
+    result.remove_prefix(remaining_offset);
+    return result;
 }
 
 
