@@ -127,13 +127,13 @@ read_image_data_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io,
                           string_view remaining)
 {
     // Assume we've already read the header into buffer
-    imagesize_t header_size = buffer.size();
-    imagesize_t full_size   = std::min(static_cast<imagesize_t>(io->size()),
-                                       max_pnm_file_size);
+    imagesize_t header_size    = buffer.size();
+    imagesize_t full_size      = std::min(static_cast<imagesize_t>(io->size()),
+                                          max_pnm_file_size);
     ptrdiff_t remaining_offset = remaining.data() - buffer.data();
 
     buffer.resize(full_size);
-    io->pread(buffer.data() + header_size, full_size - header_size, 
+    io->pread(buffer.data() + header_size, full_size - header_size,
               header_size);
     
     string_view result { buffer.data(), buffer.size() };
