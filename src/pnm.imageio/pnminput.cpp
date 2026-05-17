@@ -113,8 +113,7 @@ static const imagesize_t max_pnm_file_size = 1024 * 1024 * 1024;
 static string_view
 read_header_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io)
 {
-    // couch std::min in parentheses to work around annoying windows.h defs
-    imagesize_t header_size = (std::min)(static_cast<imagesize_t>(io->size()),
+    imagesize_t header_size = std::min(static_cast<imagesize_t>(io->size()),
                                        max_pnm_header_size);
     buffer.resize(header_size);
     io->pread(buffer.data(), header_size, 0);
@@ -129,9 +128,8 @@ read_image_data_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io,
 {
     // Assume we've already read the header into buffer
     imagesize_t header_size = buffer.size();
-    // couch std::min in parentheses to work around annoying windows.h defs
-    imagesize_t full_size   = (std::min)(static_cast<imagesize_t>(io->size()),
-                                         max_pnm_file_size);
+    imagesize_t full_size   = std::min(static_cast<imagesize_t>(io->size()),
+                                       max_pnm_file_size);
     ptrdiff_t remaining_offset = remaining.data() - buffer.data();
 
     buffer.resize(full_size);
