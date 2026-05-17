@@ -110,6 +110,7 @@ static const imagesize_t max_pnm_file_size = 1024 * 1024 * 1024;
 
 
 
+// Read only enough of the file to contain the header (at momst 1KB) into buffer
 static string_view
 read_header_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io)
 {
@@ -122,9 +123,12 @@ read_header_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io)
 
 
 
+// buffer contains at most the first 1K of the file. At this point, we know
+// the file seems valid. Read the rest in, appending to what we have, and
+// return the adjusted string_view of the contents.
 static string_view
-read_image_data_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io,
-                          string_view remaining)
+append_remainder_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io,
+                           string_view remaining)
 {
     // Assume we've already read the header into buffer
     imagesize_t header_size    = buffer.size();
