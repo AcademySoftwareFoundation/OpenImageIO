@@ -433,6 +433,39 @@ PNMInput::read_file_header()
 
 
 bool
+PNMInput::valid_file(Filesystem::IOProxy* ioproxy) const
+{
+    DBG std::cout << "PNMInput::valid_file()\n";
+
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
+
+    std::vector<char> buffer;
+    string_view header = read_header_to_buffer(buffer, ioproxy);
+    
+    int width, height;
+    if (auto basic_info = read_type_and_resolution(header)) {
+        std::tie(std::ignore, width, height) = *basic_info;
+    } else {
+        return false;
+    }
+
+    // Per spec, width and height must both be positive integers.
+    // No formal upper limit is placed on width/height, but for sanity,
+    // assume dimensions should be no greater than 2^12
+    if (width < 0 || 4096 < width)
+        return false;
+    if (height < 0 || 4096 < height)
+        return false;
+
+    DBG std::cout << "PNMInput::valid_file returned true\n";
+
+    return true;
+}
+
+
+
+bool
 PNMInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
@@ -500,37 +533,5 @@ PNMInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     return true;
 }
 
-
-
-bool
-PNMInput::valid_file(Filesystem::IOProxy* ioproxy) const
-{
-    DBG std::cout << "PNMInput::valid_file()\n";
-
-    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
-        return false;
-
-    std::vector<char> buffer;
-    string_view header = read_header_to_buffer(buffer, ioproxy);
-    
-    int width, height;
-    if (auto basic_info = read_type_and_resolution(header)) {
-        std::tie(std::ignore, width, height) = *basic_info;
-    } else {
-        return false;
-    }
-
-    // Per spec, width and height must both be positive integers.
-    // No formal upper limit is placed on width/height, but for sanity,
-    // assume dimensions should be no greater than 2^12
-    if (width < 0 || 4096 < width)
-        return false;
-    if (height < 0 || 4096 < height)
-        return false;
-
-    DBG std::cout << "PNMInput::valid_file returned true\n";
-
-    return true;
-}
 
 OIIO_PLUGIN_NAMESPACE_END
