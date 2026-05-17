@@ -28,7 +28,7 @@ enum PNMType { P1, P2, P3, P4, P5, P6, Pf, PF };
 
 
 
-using PNMBasicInfo = std::tuple<PNMType, int, int>; // type, width, height
+using PNMBasicInfo = std::tuple<PNMType, int, int>;  // type, width, height
 
 
 
@@ -48,7 +48,7 @@ public:
     int current_subimage(void) const override { return 0; }
     bool read_native_scanline(int subimage, int miplevel, int y, int z,
                               void* data) override;
-    bool valid_file (Filesystem::IOProxy* ioproxy) const override;
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
 
 private:
     PNMType m_pnm_type;
@@ -106,7 +106,7 @@ static const imagesize_t max_pnm_header_size = 1024;
 
 // 1GiB rough limit on file size to avoid loading arbitrarily
 // large files into memory
-static const imagesize_t max_pnm_file_size = 1024*1024*1024;
+static const imagesize_t max_pnm_file_size = 1024 * 1024 * 1024;
 
 
 
@@ -130,15 +130,15 @@ read_image_data_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io,
     // Assume we've already read the header into buffer
     imagesize_t header_size = buffer.size();
     // couch std::min in parentheses to work around annoying windows.h defs
-    imagesize_t full_size = (std::min)(static_cast<imagesize_t>(io->size()),
-                                     max_pnm_file_size);
+    imagesize_t full_size   = (std::min)(static_cast<imagesize_t>(io->size()),
+                                         max_pnm_file_size);
     ptrdiff_t remaining_offset = remaining.data() - buffer.data();
 
     buffer.resize(full_size);
     io->pread(buffer.data() + header_size, full_size - header_size, 
-       header_size);
+              header_size);
     
-    string_view result {buffer.data(), buffer.size()};
+    string_view result { buffer.data(), buffer.size() };
     result.remove_prefix(remaining_offset);
     return result;
 }
@@ -154,7 +154,7 @@ skip_header_comments(string_view& header)
 
 
 
-template<typename T> 
+template<typename T>
 inline static bool
 parse_next_header_value(string_view& header, T& val)
 {
@@ -286,7 +286,7 @@ read_type_and_resolution(string_view& header)
     if (!parse_next_header_value(header, height))
         return std::nullopt;
     
-    return PNMBasicInfo{ type, width, height };
+    return PNMBasicInfo { type, width, height };
 }
 
 
@@ -456,8 +456,8 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
 
     // Read the whole file's contents into m_file_contents
     Filesystem::IOProxy* m_io = ioproxy();
-    m_remaining = read_header_to_buffer(m_file_contents, m_io);
-    m_pfm_flip  = false;
+    m_remaining               = read_header_to_buffer(m_file_contents, m_io);
+    m_pfm_flip                = false;
 
     if (!read_file_header())
         return false;
@@ -465,10 +465,9 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     if (!check_open(m_spec))  // check for apparently invalid values
         return false;
 
-    m_remaining = read_image_data_to_buffer(m_file_contents, m_io, 
-                                  m_remaining);
+    m_remaining = read_image_data_to_buffer(m_file_contents, m_io, m_remaining);
     m_after_header = m_remaining;
-    newspec = m_spec;
+    newspec        = m_spec;
 
     return true;
 }
@@ -501,7 +500,7 @@ PNMInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 
 
-bool 
+bool
 PNMInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
     DBG std::cout << "PNMInput::valid_file()\n";
