@@ -28,7 +28,11 @@ enum PNMType { P1, P2, P3, P4, P5, P6, Pf, PF };
 
 
 
-using PNMBasicInfo = std::tuple<PNMType, int, int>;  // type, width, height
+struct PNMBasicInfo {
+    PNMType type;
+    int width;
+    int height;
+};
 
 
 
@@ -384,7 +388,9 @@ PNMInput::read_file_header()
     int width, height;
 
     if (auto basic_info = read_type_and_resolution(m_remaining)) {
-        std::tie(m_pnm_type, width, height) = *basic_info;
+        m_pnm_type = basic_info->type;
+        width      = basic_info->width;
+        height     = basic_info->height;
     } else {
         return false;
     }
@@ -445,7 +451,8 @@ PNMInput::valid_file(Filesystem::IOProxy* ioproxy) const
     
     int width, height;
     if (auto basic_info = read_type_and_resolution(header)) {
-        std::tie(std::ignore, width, height) = *basic_info;
+        width  = basic_info->width;
+        height = basic_info->height;
     } else {
         return false;
     }
@@ -500,7 +507,8 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     if (!check_open(m_spec))  // check for apparently invalid values
         return false;
 
-    m_remaining = append_remainder_to_buffer(m_file_contents, m_io, m_remaining);
+    m_remaining = append_remainder_to_buffer(m_file_contents, m_io,
+                                             m_remaining);
     m_after_header = m_remaining;
     newspec        = m_spec;
 
