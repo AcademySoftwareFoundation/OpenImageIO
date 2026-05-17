@@ -129,9 +129,7 @@ filled_image(cspan<float> value, int width = 4, int height = 4,
 // the value array).
 inline ImageBuf
 filled_image(cspan<float> value, TypeDesc dtype)
-{
-    return filled_image(value, 4, 4, dtype);
-}
+{ return filled_image(value, 4, 4, dtype); }
 
 
 
@@ -1255,9 +1253,9 @@ test_opencv()
         std::cout << loaded_image.geterror() << 'n';
         return;
     }
-    auto cv_image = cv::Mat {};
+    auto cv_image = cv::Mat { };
     try {
-        bool ok = OIIO::ImageBufAlgo::to_OpenCV(cv_image, loaded_image, {}, 1);
+        bool ok = OIIO::ImageBufAlgo::to_OpenCV(cv_image, loaded_image, { }, 1);
         OIIO_CHECK_ASSERT(ok);
         if (!ok) {
             std::cout << "Error when converting: " << OIIO::geterror() << '\n';
@@ -1406,7 +1404,7 @@ chan_reverse(span<float> d, cspan<float> s)
 // Functor to reverse channels
 class ChannelReverser {
 public:
-    ChannelReverser() {}
+    ChannelReverser() { }
     bool operator()(span<float> d, cspan<float> s)
     {
         for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
@@ -1448,7 +1446,7 @@ test_simple_perpixel()
         // Test with lambda, including variable capture
         float bias = 0.0;  // Force capture of this variable
         result     = ImageBufAlgo::perpixel_op(src, [&](span<float> d,
-                                                    cspan<float> s) {
+                                                        cspan<float> s) {
             for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
                 d[c] = s[nc - 1 - c] + bias;
             return true;
