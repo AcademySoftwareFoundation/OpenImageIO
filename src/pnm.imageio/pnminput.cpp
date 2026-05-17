@@ -114,7 +114,8 @@ static string_view
 read_header_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io)
 {
     // couch std::min in parentheses to work around annoying windows.h defs
-    imagesize_t header_size = (std::min)(io->size(), max_pnm_header_size);
+    imagesize_t header_size = (std::min)(static_cast<imagesize_t>(io->size()),
+                                       max_pnm_header_size);
     buffer.resize(header_size);
     io->pread(buffer.data(), header_size, 0);
     return string_view(buffer.data(), buffer.size());
@@ -129,11 +130,12 @@ read_image_data_to_buffer(std::vector<char>& buffer, Filesystem::IOProxy* io,
     // Assume we've already read the header into buffer
     imagesize_t header_size = buffer.size();
     // couch std::min in parentheses to work around annoying windows.h defs
-    imagesize_t full_image_size = (std::min)(io->size(), max_pnm_file_size);
+    imagesize_t full_size = (std::min)(static_cast<imagesize_t>(io->size()),
+                                     max_pnm_file_size);
     ptrdiff_t remaining_offset = remaining.data() - buffer.data();
 
-    buffer.resize(full_image_size);
-    io->pread(buffer.data() + header_size, full_image_size - header_size, 
+    buffer.resize(full_size);
+    io->pread(buffer.data() + header_size, full_size - header_size, 
        header_size);
     
     string_view result {buffer.data(), buffer.size()};
