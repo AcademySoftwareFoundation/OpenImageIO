@@ -507,8 +507,8 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     if (!check_open(m_spec))  // check for apparently invalid values
         return false;
 
-    m_remaining = append_remainder_to_buffer(m_file_contents, m_io,
-                                             m_remaining);
+    m_remaining    = append_remainder_to_buffer(m_file_contents, m_io,
+                                                m_remaining);
     m_after_header = m_remaining;
     newspec        = m_spec;
 
