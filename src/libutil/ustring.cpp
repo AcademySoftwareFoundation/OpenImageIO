@@ -174,6 +174,7 @@ private:
 
         // Make bigger space for new entries table and new mask
         resize_entries(2 * old_entries.size());
+        num_entries = old_num_entries;
 
         // Copy each entry from old into the new, recomputing the hash because
         // the mask has changd.
