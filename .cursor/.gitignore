@@ -1,0 +1,4 @@
+# Cursor Composer session history (per-user)
+composer/
+# Cursor chat logs (per-user)
+chat/
