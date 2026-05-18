@@ -764,10 +764,6 @@ OIIO_UTIL_API int oiio_ustring_cleanup = Strutil::stoi(
 static int ustring_cleanup_atexit_registered = []() {
     std::atexit([]() {
         if (pvt::oiio_ustring_cleanup) {
-#ifndef NDEBUG
-            OIIO::print("ustring: freeing table resources ({} bytes)\n",
-                        v3_1::ustring_table().get_memory_usage());
-#endif
             v3_1::ustring_table().free_resources();
             v3_1::reverse_map().clear();
         }
