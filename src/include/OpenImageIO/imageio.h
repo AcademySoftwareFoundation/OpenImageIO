@@ -3953,6 +3953,15 @@ OIIO_API std::string geterror(bool clear = true);
 ///   enable globally in an environment where security is a higher priority
 ///   than being tolerant of partially broken image files.
 ///
+/// - `ustring:cleanup` (int: 0)
+///
+///    If nonzero, upon exit, do a thorough (and possibly expensive) teardown
+///    of ustring internal resources to ensure that there are no apparent
+///    memory leaks. This is only desirable in certain debugging situations.
+///    Ordinarily, it is better to finish as quickly as possible, so the
+///    default of 0 skips a time consuming and pointless teardown of the
+///    ustring internal allocations when the app exits.
+///
 /// EXAMPLES:
 /// ```
 ///     // Setting single simple values simply:
