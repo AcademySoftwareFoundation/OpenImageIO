@@ -15,6 +15,24 @@
 #include <OpenImageIO/unordered_map_concurrent.h>
 #include <OpenImageIO/ustring.h>
 
+
+
+OIIO_NAMESPACE_BEGIN
+namespace pvt {
+
+// If nonzero, the ustring table will be freed at process exit. This is off by
+// default because cleanup is unnecessary (the OS reclaims the memory) and can
+// add measurable time at exit for large tables. Enable it when using valgrind
+// or other leak detectors to suppress false positives. Settable via
+// OIIO::attribute("ustring:cleanup",1) or the OIIO_USTRING_CLEANUP
+// environment variable.
+OIIO_UTIL_API int oiio_ustring_cleanup = Strutil::stoi(
+    Sysutil::getenv("OIIO_USTRING_CLEANUP"));
+
+}  // namespace pvt
+OIIO_NAMESPACE_END
+
+
 OIIO_NAMESPACE_3_1_BEGIN
 
 // Use rw spin locks
@@ -47,26 +65,21 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
     }
 
     ~TableRepMap()
-    { /* just let memory leak */
-    }
-
-    // Free all allocated resources. Note that this leaves the TableRepMap
-    // in an unusable state.
-    void free_resources()
     {
-        ustring_write_lock_t lock(mutex);
-        // Destroy TableRep objects FIRST, while the pool/large-alloc memory
-        // they live in is still valid. Their destructors may read/write the
-        // surrounding allocation and (on some platforms) the std::string
-        // subobject owns a separate heap buffer that only gets freed here.
-        destroy_entries();
-        entries.clear();
-        entries.shrink_to_fit();
-        // Now safe to free the backing buffers.
-        all_pools.clear();
-        all_pools.shrink_to_fit();
-        large_allocs.clear();
-        large_allocs.shrink_to_fit();
+        if (OIIO::pvt::oiio_ustring_cleanup) {
+            // If requested, take the time to properly destroy all the
+            // entries, and also the unique_ptr arrays all_pools and
+            // large_allocs will naturally free their contents after this
+            // destructor body ends.
+            destroy_entries();
+        } else {
+            // If no ustring cleanup was requested, take the fastest possible
+            // route to exit, just release the pointers and let them leak!
+            for (auto& p : all_pools)
+                (void)p.release();
+            for (auto& p : large_allocs)
+                (void)p.release();
+        }
     }
 
     size_t get_memory_usage()
@@ -308,12 +321,6 @@ struct UstringTable {
         for (auto& bin : bins)
             num += bin.get_num_entries();
         return num;
-    }
-
-    void free_resources()
-    {
-        for (auto& bin : bins)
-            bin.free_resources();
     }
 
 #    ifdef USTRING_TRACK_NUM_LOOKUPS
@@ -745,32 +752,3 @@ ustring::memory()
 }
 
 OIIO_NAMESPACE_3_1_END
-
-
-OIIO_NAMESPACE_BEGIN
-namespace pvt {
-
-// If nonzero, the ustring table will be freed at process exit. This is off by
-// default because cleanup is unnecessary (the OS reclaims the memory) and can
-// add measurable time at exit for large tables. Enable it when using valgrind
-// or other leak detectors to suppress false positives. Settable via
-// OIIO::attribute("ustring:cleanup",1) or the OIIO_USTRING_CLEANUP
-// environment variable.
-OIIO_UTIL_API int oiio_ustring_cleanup = Strutil::stoi(
-    Sysutil::getenv("OIIO_USTRING_CLEANUP"));
-
-// Register an atexit handler once at startup. The handler checks the flag at
-// exit time, so it covers both the env-var path (flag set here) and the
-// OIIO::attribute() path (flag set later at runtime).
-static int ustring_cleanup_atexit_registered = []() {
-    std::atexit([]() {
-        if (pvt::oiio_ustring_cleanup) {
-            v3_1::ustring_table().free_resources();
-            v3_1::reverse_map().clear();
-        }
-    });
-    return 0;
-}();
-
-}  // namespace pvt
-OIIO_NAMESPACE_END
