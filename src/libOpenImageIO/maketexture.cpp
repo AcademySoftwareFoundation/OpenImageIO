@@ -189,9 +189,9 @@ interppixel_NDC(const ImageBuf& buf, float x, float y, span<float> pixel,
         int ynext = OIIO::clamp(ytexel + 1, ymin, ymax);
         ytexel    = OIIO::clamp(ytexel, ymin, ymax);
         float w0  = (1.0f - yfrac)
-                    * sinf((float)M_PI * (ytexel + 0.5f) / (float)fh);
-        float w1  = yfrac * sinf((float)M_PI * (ynext + 0.5f) / (float)fh);
-        yfrac     = w1 / (w0 + w1);
+                   * sinf((float)M_PI * (ytexel + 0.5f) / (float)fh);
+        float w1 = yfrac * sinf((float)M_PI * (ynext + 0.5f) / (float)fh);
+        yfrac    = w1 / (w0 + w1);
     }
 
     // Bilinearly interpolate
@@ -658,7 +658,9 @@ fix_latl_edges(ImageBuf& buf)
 
 inline std::string
 formatres(const ImageSpec& spec)
-{ return Strutil::fmt::format("{}x{}", spec.width, spec.height); }
+{
+    return Strutil::fmt::format("{}x{}", spec.width, spec.height);
+}
 
 
 
@@ -1239,7 +1241,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     int local_mb_thresh = configspec.get_int_attribute("maketx:read_local_MB",
                                                        1024);
     bool read_local     = (src->spec().image_bytes()
-                           < imagesize_t(local_mb_thresh * 1024 * 1024));
+                       < imagesize_t(local_mb_thresh * 1024 * 1024));
 
     bool verbose       = configspec.get_int_attribute("maketx:verbose") != 0;
     double misc_time_1 = alltime.lap();
@@ -1360,10 +1362,10 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             // the Gaussian inverse CDF to transform the uniform distribution
             // to Gaussian.
             for (uint64_t j = 0; j < bins; j++) {
-                float u   = float(hist[j]) / hist[bins - 1];
-                float g   = 0.5f
-                            + cdf_sigma * M_SQRT2
-                                  * fast_ierf(c_sigma_inv * (2.0f * u - 1.0f));
+                float u = float(hist[j]) / hist[bins - 1];
+                float g = 0.5f
+                          + cdf_sigma * M_SQRT2
+                                * fast_ierf(c_sigma_inv * (2.0f * u - 1.0f));
                 invCDF[j] = std::min(1.0f, std::max(0.0f, g));
             }
             configspec.attribute("invCDF_" + std::to_string(i),
@@ -1927,8 +1929,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     const int sha1_blocksize = 256;
     std::string hash_digest  = configspec.get_int_attribute("maketx:hash", 1)
                                    ? ImageBufAlgo::computePixelHashSHA1(
-                                         *toplevel, addlHashData.str(),
-                                         ROI::All(), sha1_blocksize, nthreads)
+                                      *toplevel, addlHashData.str(), ROI::All(),
+                                      sha1_blocksize, nthreads)
                                    : "";
     if (hash_digest.length()) {
         if (out->supports("arbitrary_metadata")) {
