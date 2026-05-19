@@ -496,6 +496,7 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
 
     if (!out->close()) {
         errorfmt("Error closing \"{}\" : {}", out_filename, out->geterror());
+        ok = false;
     }
     in->close();
 
