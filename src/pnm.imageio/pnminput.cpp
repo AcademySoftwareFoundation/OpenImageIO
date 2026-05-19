@@ -260,7 +260,7 @@ read_type_and_resolution(string_view& header)
         return std::nullopt;
     if (!parse_next_header_value(header, height))
         return std::nullopt;
-    
+
     return PNMBasicInfo { type, width, height };
 }
 
@@ -438,7 +438,7 @@ PNMInput::append_remainder_to_buffer(std::vector<char>& buffer,
     buffer.resize(full_size);
     io->pread(buffer.data() + header_size, full_size - header_size,
               header_size);
-    
+
     string_view result { buffer.data(), buffer.size() };
     result.remove_prefix(remaining_offset);
     return result;
@@ -456,7 +456,7 @@ PNMInput::valid_file(Filesystem::IOProxy* ioproxy) const
 
     std::vector<char> buffer;
     string_view header = read_header_to_buffer(buffer, ioproxy);
-    
+
     int width, height;
     if (auto basic_info = read_type_and_resolution(header)) {
         width  = basic_info->width;
