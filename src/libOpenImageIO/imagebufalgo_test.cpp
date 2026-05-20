@@ -1743,7 +1743,8 @@ test_demosaic()
 
     if (write_files) {
         auto imageOutput = OIIO::ImageOutput::create("exr");
-        (void)imageOutput->open("source.exr", src_image.spec());
+        bool ok = imageOutput->open("source.exr", src_image.spec());
+        OIIO_ASSERT(ok);
         src_image.write(imageOutput.get());
     }
 
