@@ -16,26 +16,29 @@ if (NOT @fmt_LOCAL_BUILD@ AND NOT @OIIO_INTERNALIZE_FMT@)
     find_dependency(fmt)
 endif ()
 
+find_dependency(OpenColorIO)
+find_dependency(OpenEXR)
+if (@OIIO_TBB@)
+    find_dependency(TBB)
+endif ()
+if (@JPEG_FOUND@)
+    find_dependency(JPEG)
+endif()
+if (@WebP_FOUND@)
+    find_dependency(WebP)
+endif()
+
 if (NOT @BUILD_SHARED_LIBS@)
     # This is required in static library builds, as e.g. PNG::PNG appears among
     # INTERFACE_LINK_LIBRARIES. If the project does not know about PNG target, it will cause
     # configuration error about unknown targets being linked in.
     find_dependency(TIFF)
-    find_dependency(OpenColorIO)
-    if (@JPEG_FOUND@)
-        find_dependency(JPEG)
-    endif()
     if (@PNG_FOUND@)
         find_dependency(PNG)
     endif()
     if (@DCMTK_FOUND@)
         find_dependency(DCMTK)
     endif()
-    # The following have the same problem except that INTERFACE_LINK_LIBRARIES use
-    # TARGET_NAME_IF_EXISTS, so the error only happens on link time.
-    if (@OIIO_TBB@)
-        find_dependency(TBB)
-    endif ()
 endif ()
 
 # Compute the installation prefix relative to this file. Note that cmake files are installed
