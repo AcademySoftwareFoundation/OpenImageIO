@@ -494,7 +494,10 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
         } while (ok && in->seek_subimage(subimage, miplevel));
     }
 
-    out->close();
+    if (!out->close()) {
+        errorfmt("Error closing \"{}\" : {}", out_filename, out->geterror());
+        ok = false;
+    }
     in->close();
 
     // Figure out a time for the input file -- either one supplied by
