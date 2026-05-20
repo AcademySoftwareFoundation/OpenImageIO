@@ -203,7 +203,6 @@ time_write_scanline_at_a_time()
 
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
-    bool ok                  = true;
     for (int y = 0; y < outspec.height && ok; ++y) {
         ok = out->write_scanline(y + outspec.y, outspec.z, bufspec.format,
                                  &buffer[scanlinesize * y]);
@@ -220,7 +219,6 @@ time_write_64_scanlines_at_a_time()
     OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
     OIIO_ASSERT(ok);
-    bool ok                  = true;
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
     for (int y = 0; y < outspec.height && ok; y += 64) {
@@ -246,7 +244,6 @@ time_write_tile_at_a_time()
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
     imagesize_t planesize    = outspec.height * scanlinesize;
-    bool ok                  = true;
     for (int z = 0; z < outspec.depth && ok; z += outspec.tile_depth) {
         for (int y = 0; y < outspec.height && ok; y += outspec.tile_height) {
             for (int x = 0; x < outspec.width && ok; x += outspec.tile_width) {
@@ -272,7 +269,6 @@ time_write_tiles_row_at_a_time()
 
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
-    bool ok                  = true;
     for (int z = 0; z < outspec.depth && ok; z += outspec.tile_depth) {
         for (int y = 0; y < outspec.height && ok; y += outspec.tile_height) {
             ok = out->write_tiles(outspec.x, outspec.x + outspec.width,
