@@ -57,6 +57,12 @@ try:
     print ("isColorSpaceLinear('srgb') = ", config.isColorSpaceLinear('srgb'))
     print ("isData('scene_linear') = ", config.isData('scene_linear'))
     print ("isData('Raw') = ", config.isData('Raw'))
+    print ("equivalent('ACEScg', 'Raw'):", config.equivalent("ACEScg", "Raw"))
+    print ("getColorSpaceFromFilepath('in_acescg.exr') =", config.getColorSpaceFromFilepath("in_acescg.exr"))
+    print ("getColorSpaceFromFilepath('in_srgb_tx.exr') =", config.getColorSpaceFromFilepath("in_srgb_tx.exr"))
+    print ("getColorSpaceFromFilepath('in_raw.exr') =", config.getColorSpaceFromFilepath("in_raw.exr"))
+    print ("getColorSpaceFromFilepath('none.exr') =", config.getColorSpaceFromFilepath("none.exr"))
+    print ("getColorSpaceFromFilepath('noclue.exr') =", config.getColorSpaceFromFilepath("noclue.exr"))
     print ("")
 
     config = oiio.ColorConfig(str(TEST_CONFIG_PATH))

@@ -35,6 +35,12 @@ isColorSpaceLinear('scene_linear') =  True
 isColorSpaceLinear('srgb') =  False
 isData('scene_linear') =  False
 isData('Raw') =  True
+equivalent('ACEScg', 'Raw'): False
+getColorSpaceFromFilepath('in_acescg.exr') = ACEScg
+getColorSpaceFromFilepath('in_srgb_tx.exr') = sRGB Encoded Rec.709 (sRGB)
+getColorSpaceFromFilepath('in_raw.exr') = Raw
+getColorSpaceFromFilepath('none.exr') = Raw
+getColorSpaceFromFilepath('noclue.exr') = unknown
 
 Loaded test OCIO config: oiio_test_v0.9.2.ocio
 Parsed color space for filepath 'foo_lin_ap1.exr': ACEScg
