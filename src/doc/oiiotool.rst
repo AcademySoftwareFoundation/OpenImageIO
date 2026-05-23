@@ -2503,7 +2503,7 @@ current top image.
 
         --create 1920x1080 3         # RGB with w=1920, h=1080, x=0, y=0
         --create 1024x768+100+0 4    # RGBA with w=1024, h=768, x=100, y=0
-        --create 1024x768,100,0 4    # same, usign comma notation
+        --create 1024x768,100,0 4    # same, using comma notation
         --create:type=uint8 1920x1080 3  # RGB, store internally as uint8
 
 
