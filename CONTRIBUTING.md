@@ -93,15 +93,15 @@ High-level summary:
 Please do read the whole [Policy on AI Coding Assistants](docs/dev/AI_Policy.md)
 for all the details.
 
-The repository includes configuration for several AI coding assistants
-(Claude Code, Cursor, GitHub Copilot, OpenAI Codex, Opencode). Much of this
-uses symbolic links to keep a single source of truth in `AGENTS.md`. **Windows
-users** must enable symlink support before cloning or the agent integrations
-will silently malfunction:
+The repository supports several AI coding assistants (Claude Code, Cursor,
+GitHub Copilot, OpenAI Codex, Opencode). After cloning, run the setup script
+for whichever tool(s) you use:
 
-1. Enable [Windows Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development)
-2. `git config --global core.symlinks true`
-3. Then clone (or re-clone) the repository.
+```
+.agents/setup-agent claude      # or: cursor, codex, opencode, copilot, all
+```
+
+See [docs/dev/Agentic_Coding.md](docs/dev/Agentic_Coding.md) for details.
 
 
 Contributor License Agreement (CLA) and Intellectual Property

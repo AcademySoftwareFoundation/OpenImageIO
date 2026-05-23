@@ -1,1 +1,0 @@
-../../.agents/skills/release-notes-update/SKILL.md

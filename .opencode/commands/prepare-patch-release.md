@@ -1,1 +1,0 @@
-../../.agents/skills/prepare-patch-release/SKILL.md
