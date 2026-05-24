@@ -185,7 +185,6 @@ endif ()
 if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG))
     # gcc specific options
     add_compile_options ("-Wno-unused-local-typedefs")
-    add_compile_options ("-Wno-unused-result")
     add_compile_options ("-Wno-aligned-new")
     add_compile_options ("-Wno-noexcept-type")
 endif ()
