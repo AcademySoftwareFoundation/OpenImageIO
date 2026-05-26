@@ -286,22 +286,39 @@ template<typename T>
 static bool
 scan_offset(string_view str, T& x, T& y)
 {
-    return Strutil::parse_value(str, x)
-           && (str.size() && (str[0] == '+' || str[0] == '-'))
-           && Strutil::parse_value(str, y);
+    string_view orig = str;
+    if (Strutil::parse_value(str, x)
+        && (str.size() && (str[0] == '+' || str[0] == '-'))
+        && Strutil::parse_value(str, y))
+        return true;
+    str = orig;
+    if (Strutil::parse_value(str, x) && Strutil::parse_char(str, ',')
+        && Strutil::parse_value(str, y))
+        return true;
+    return false;
 }
+
 
 
 template<typename T>
 static bool
 scan_res_offset(string_view str, T& w, T& h, T& x, T& y)
 {
-    return Strutil::parse_value(str, w) && Strutil::parse_char(str, 'x')
-           && Strutil::parse_value(str, h)
-           && (str.size() && (str[0] == '+' || str[0] == '-'))
-           && Strutil::parse_value(str, x)
-           && (str.size() && (str[0] == '+' || str[0] == '-'))
-           && Strutil::parse_value(str, y);  // NOSONAR
+    string_view orig = str;
+    if (Strutil::parse_value(str, w) && Strutil::parse_char(str, 'x')
+        && Strutil::parse_value(str, h)
+        && (str.size() && (str[0] == '+' || str[0] == '-'))
+        && Strutil::parse_value(str, x)
+        && (str.size() && (str[0] == '+' || str[0] == '-'))
+        && Strutil::parse_value(str, y))
+        return true;
+    str = orig;
+    if (Strutil::parse_value(str, w) && Strutil::parse_char(str, 'x')
+        && Strutil::parse_value(str, h) && Strutil::parse_char(str, ',')
+        && Strutil::parse_value(str, x) && Strutil::parse_char(str, ',')
+        && Strutil::parse_value(str, y))
+        return true;
+    return false;
 }
 
 
@@ -968,7 +985,7 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     if (tilesize.size()) {
         int x, y;  // dummy vals for adjust_geometry
         ot.adjust_geometry("-o", requested_tilewidth, requested_tileheight, x,
-                           y, tilesize.c_str(), false);
+                           y, tilesize.c_str(), false, false);
     }
     bool requested_scanline = fileoptions.get_int("scanline",
                                                   ot.output_scanline);
@@ -1775,7 +1792,23 @@ unit_test_adjust_geometry(Oiiotool& ot)
     OIIO_CHECK_ASSERT(
         !ot.adjust_geometry("foo", w, h, x, y, "10x20+100+200", true, false));
 
-    // res
+    // geom with comma notation for origin
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "10x20,100,200")
+                      && x == 100 && y == 200 && w == 10 && h == 20);
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "10x20,-100,-200")
+                      && x == -100 && y == -200 && w == 10 && h == 20);
+    w = 100, h = 50, x = y = 0;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "20x0,100,200")
+                      && x == 100 && y == 200 && w == 20 && h == 10);
+    w = 100, h = 50, x = y = 0;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "0x20,100,200")
+                      && x == 100 && y == 200 && w == 40 && h == 20);
+    OIIO_CHECK_ASSERT(
+        !ot.adjust_geometry("foo", w, h, x, y, "10x20+100+200", true, false));
+
+    // res only
     w = h = x = y = -42;
     OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "10x20") && x == -42
                       && y == -42 && w == 10 && h == 20);
@@ -1807,6 +1840,23 @@ unit_test_adjust_geometry(Oiiotool& ot)
     w = h = x = y = -42;
     OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "+100+200")
                       && x == 100 && y == 200 && w == -42 && h == -42);
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "+100-200")
+                      && x == 100 && y == -200 && w == -42 && h == -42);
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "-100+200")
+                      && x == -100 && y == 200 && w == -42 && h == -42);
+
+    // offset with comma notation
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "100,200")
+                      && x == 100 && y == 200 && w == -42 && h == -42);
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "100,-200")
+                      && x == 100 && y == -200 && w == -42 && h == -42);
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "-100,200")
+                      && x == -100 && y == 200 && w == -42 && h == -42);
 
     // scale by factor
     w = 640;
