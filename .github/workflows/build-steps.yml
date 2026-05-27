@@ -77,6 +77,11 @@ on:
         type: string
       sonar:
         type: string
+      # Note: Remove old_node and everything that handles its being nonzero,
+      # when we branch for 3.2. We no longer have any CI jobs in main that
+      # need it, but we are not yet removing it, for the sake of not making
+      # this file diverge from the release branch quite yet, to make
+      # backporting CI fixes easy.
       old_node:
         type: string
         default: 0
