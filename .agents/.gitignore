@@ -1,0 +1,16 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+# Ignore skills that might be installed locally by a developer, to prevent
+# cluttering the output of `git status` and prevent people from accidentally
+# checking in locally installed skills.
+skills/*
+
+# But don't ignore the ones that belong to this project and are checked in. As
+# we add skills that we intend to commit and make available to all project
+# developers, they must be individually added here if they don't start with
+# "oiio-".
+!skills/oiio-*/
+!skills/prepare-patch-release/
+!skills/release-notes-update/
