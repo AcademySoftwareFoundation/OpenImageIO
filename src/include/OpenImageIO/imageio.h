@@ -985,12 +985,12 @@ public:
     ///         A `unique_ptr` that will close and free the ImageInput when
     ///         it exits scope or is reset. The pointer will be empty if the
     ///         required writer was not able to be created.
-    static unique_ptr open (const std::string& filename,
+    OIIO_NODISCARD_ERROR static unique_ptr open (const std::string& filename,
                             const ImageSpec *config = nullptr,
                             Filesystem::IOProxy* ioproxy = nullptr);
 
     /// Create and open an ImageInput using a UTF-16 encoded wstring filename.
-    static unique_ptr open (const std::wstring& filename,
+    OIIO_NODISCARD_ERROR static unique_ptr open (const std::wstring& filename,
                             const ImageSpec *config = nullptr,
                             Filesystem::IOProxy* ioproxy = nullptr) {
         return open(Strutil::utf16_to_utf8(filename), config, ioproxy);
