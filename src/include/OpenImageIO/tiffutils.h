@@ -182,7 +182,7 @@ tiff_dir_data (const TIFFDirEntry &td, cspan<uint8_t> data);
 /// somehow malformed.  The binary data pointed to by 'exif' should
 /// start with a TIFF directory header.
 OIIO_NODISCARD_ERROR OIIO_API bool decode_exif (cspan<uint8_t> exif, ImageSpec &spec);
-OIIO_API bool decode_exif (string_view exif, ImageSpec &spec);
+OIIO_NODISCARD_ERROR OIIO_API bool decode_exif (string_view exif, ImageSpec &spec);
 
 /// Construct an Exif data block from the ImageSpec, appending the Exif
 /// data as a big blob to the char vector. Endianness can be specified with
@@ -193,13 +193,13 @@ OIIO_API void encode_exif (const ImageSpec &spec, std::vector<char> &blob,
 /// Helper: For the given OIIO metadata attribute name, look up the Exif tag
 /// ID, TIFFDataType (expressed as an int), and count. Return true and fill
 /// in the fields if found, return false if not found.
-OIIO_API bool exif_tag_lookup (string_view name, int &tag,
+OIIO_NODISCARD_ERROR OIIO_API bool exif_tag_lookup (string_view name, int &tag,
                                int &tifftype, int &count);
 
 /// Helper: For the given OIIO metadata attribute name, look up the GPS tag
 /// ID, TIFFDataType (expressed as an int), and count. Return true and fill
 /// in the fields if found, return false if not found.
-OIIO_API bool gps_tag_lookup (string_view name, int &tag,
+OIIO_NODISCARD_ERROR OIIO_API bool gps_tag_lookup (string_view name, int &tag,
                               int &tifftype, int &count);
 
 /// Add metadata to spec based on raw IPTC (International Press
@@ -213,7 +213,7 @@ OIIO_API bool gps_tag_lookup (string_view name, int &tag,
 OIIO_NODISCARD_ERROR OIIO_API bool decode_iptc_iim (string_view iptc, ImageSpec &spec);
 
 // DEPRECATED(3.2) -- unsafe version
-OIIO_API bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
+OIIO_NODISCARD_ERROR OIIO_API bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
 
 /// Find all the IPTC-amenable metadata in spec and assemble it into an
 /// IIM data block in iptc.  This is a utility function to make it easy

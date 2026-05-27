@@ -1509,7 +1509,10 @@ TIFFInput::readspec(bool read_meta)
         } else {
             iptc.assign(iptcdata, iptcdata + iptcsize);
         }
-        decode_iptc_iim(&iptc[0], iptcsize, m_spec);
+        bool ok = decode_iptc_iim(&iptc[0], iptcsize, m_spec);
+        if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt("Could not decode IPTC metadata in TIFF file");
+        }
     }
 
     // Search for an XML packet containing XMP (IPTC, Exif, etc.)

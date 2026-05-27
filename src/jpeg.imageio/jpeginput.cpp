@@ -296,8 +296,13 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         if (is_exif_marker(m)) {
             // The block starts with "Exif\0\0", so skip 6 bytes to get
             // to the start of the actual Exif data TIFF directory
-            decode_exif(string_view((char*)m->data + 6, m->data_length - 6),
-                        m_spec);
+            bool ok = decode_exif(string_view((char*)m->data + 6,
+                                              m->data_length - 6),
+                                  m_spec);
+            if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+                errorfmt("Could not decode Exif data in JPEG file");
+                return false;
+            }
         } else if (m->marker == (JPEG_APP0 + 1) && m->data_length >= 28
                    && !strncmp((const char*)m->data,
                                "http://ns.adobe.com/xap/1.0/", 28)) {  //NOSONAR

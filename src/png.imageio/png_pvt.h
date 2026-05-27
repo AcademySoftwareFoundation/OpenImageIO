@@ -171,7 +171,7 @@ decode_png_text_exif(string_view raw, ImageSpec& spec)
         raw.remove_prefix(2);
     }
     if (Strutil::istarts_with(decoded, "Exif")) {
-        decode_exif(decoded, spec);
+        return decode_exif(decoded, spec);
     }
     return false;
 }
