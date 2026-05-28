@@ -1,0 +1,294 @@
+#!/usr/bin/env bash
+# .agents/setup-agent — Set up AI coding tool integration for this repository.
+#
+# Creates the tool-specific symlinks and config files needed to use the shared
+# resources in AGENTS.md and .agents/ with your preferred AI coding assistant.
+# Run "setup-agent <tool>" once after cloning; re-running is always safe.
+#
+# The canonical project instructions live in AGENTS.md (root) and skills live
+# in .agents/skills/<name>/SKILL.md. Everything tool-specific is either a
+# symlink into those locations, or a thin wrapper that references them.
+# Tool-specific directories (.claude/, .cursor/, etc.) are git-ignored so that
+# each developer runs this script for the tool they actually use.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# TOOL STRATEGIES (update this section when tool conventions change)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# CLAUDE CODE
+#   Reads:   .claude/CLAUDE.md (project) or CLAUDE.md (root) — NOT AGENTS.md natively.
+#            If Anthropic eventually adds native AGENTS.md support, the
+#            .claude/CLAUDE.md wrapper can be retired.
+#   Skills:  .claude/skills/  (each subdirectory is a skill)
+#   Setup:   Write .claude/CLAUDE.md containing "@AGENTS.md" (Claude's include
+#            syntax), symlink .claude/skills -> ../.agents/skills.
+#   Docs:    https://docs.anthropic.com/en/docs/claude-code/memory
+#            https://docs.anthropic.com/en/docs/claude-code/skills
+#
+# OPENAI CODEX
+#   Reads:   AGENTS.md natively — no wrapper needed.
+#   Skills:  .agents/skills/ natively, and also .codex/skills/ as a fallback.
+#   Setup:   Symlink .codex/skills -> ../.agents/skills so either path works.
+#   Docs:    https://developers.openai.com/codex/guides/agents-md
+#            https://developers.openai.com/codex/skills
+#
+# CURSOR
+#   Reads:   .cursor/rules/*.mdc files — does NOT read AGENTS.md natively.
+#            If Cursor adds native AGENTS.md support, the rules symlink can be
+#            retired.
+#   Skills:  Cursor uses a different slash-command mechanism; .agents/skills/
+#            are not directly usable today, but the convention may change.
+#   Setup:   Symlink .cursor/rules/project.mdc -> ../../AGENTS.md so Cursor
+#            picks up our instructions as a project rule.
+#   Docs:    https://docs.cursor.com/context/rules-for-ai
+#            https://docs.cursor.com/cmdk/overview
+#
+# OPENCODE
+#   Reads:   AGENTS.md natively — no wrapper needed.
+#   Skills:  Documented to read .agents/skills/ natively, but in practice also
+#            requires .opencode/commands/<name>.md symlinks (as of 2025-05).
+#            Remove the per-command symlinks once opencode reliably finds
+#            .agents/skills/ on its own.
+#   Setup:   Symlink .opencode/skills -> ../.agents/skills (future-proof),
+#            plus individual .opencode/commands/<name>.md -> skill SKILL.md
+#            files (current workaround).
+#   Docs:    https://opencode.ai/docs/configuration
+#            https://opencode.ai/docs/skills
+#
+# GITHUB COPILOT
+#   Reads:   AGENTS.md natively (VS Code Copilot ≥ 1.99 / GitHub Copilot Chat).
+#            Also reads .github/copilot-instructions.md as a fallback for older
+#            clients or non-VS Code surfaces.
+#   Skills:  .agents/skills/ natively supported.
+#   Setup:   Symlink .github/copilot-instructions.md -> ../AGENTS.md so older
+#            clients also receive our instructions. Remove once all Copilot
+#            surfaces reliably pick up AGENTS.md directly.
+#   Docs:    https://code.visualstudio.com/docs/copilot/customization/custom-instructions
+#            https://docs.github.com/en/copilot/concepts/about-prompting-copilot
+#            https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
+# ─────────────────────────────────────────────────────────────────────────────
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SKILLS_DIR=".agents/skills"
+SUPPORTED_TOOLS="claude codex cursor opencode copilot"
+
+usage() {
+    cat <<EOF
+Usage: .agents/setup-agent <tool|all|clear|list> [tool...]
+
+Commands:
+  <tool> [...]  Set up one or more tools
+  all           Set up all supported tools
+  clear         Remove all tool-specific setup created by this script
+  clear <tool>  Remove setup for one specific tool
+  list          List supported tools
+
+Supported tools: $SUPPORTED_TOOLS
+
+Examples:
+  .agents/setup-agent claude
+  .agents/setup-agent claude cursor
+  .agents/setup-agent all
+  .agents/setup-agent clear
+  .agents/setup-agent clear opencode
+EOF
+}
+
+rel() { echo "${1#"$REPO_ROOT"/}"; }
+
+# Create a symlink only if the path doesn't already exist.
+# Silent if the link already points to the correct target.
+safe_symlink() {
+    local link="$1" target="$2"
+    if [ -L "$link" ] && [ "$(readlink "$link")" = "$target" ]; then
+        return 0
+    elif [ -e "$link" ] || [ -L "$link" ]; then
+        echo "  SKIP (already exists): $(rel "$link")"
+        return 0
+    fi
+    mkdir -p "$(dirname "$link")"
+    ln -s "$target" "$link"
+    echo "  LINK: $(rel "$link") -> $target"
+}
+
+# Write a file only if the path doesn't already exist.
+safe_write() {
+    local file="$1"
+    shift
+    local content="$*"
+    if [ -e "$file" ]; then
+        echo "  SKIP (already exists): $(rel "$file")"
+        return 0
+    fi
+    mkdir -p "$(dirname "$file")"
+    printf '%s\n' "$content" > "$file"
+    echo "  FILE: $(rel "$file")"
+}
+
+# Remove a symlink only if it still points to the expected target.
+safe_remove_symlink() {
+    local link="$1" expected_target="$2"
+    [ ! -L "$link" ] && return 0
+    if [ "$(readlink "$link")" = "$expected_target" ]; then
+        rm "$link"
+        echo "  REMOVED: $(rel "$link")"
+    else
+        echo "  SKIP (modified, not removing): $(rel "$link")"
+    fi
+}
+
+# Remove a file only if its content still matches what we wrote.
+safe_remove_file() {
+    local file="$1"
+    shift
+    local expected="$*"
+    [ ! -f "$file" ] || [ -L "$file" ] && return 0
+    if [ "$(cat "$file")" = "$expected" ]; then
+        rm "$file"
+        echo "  REMOVED: $(rel "$file")"
+    else
+        echo "  SKIP (modified, not removing): $(rel "$file")"
+    fi
+}
+
+try_rmdir() { rmdir "$1" 2>/dev/null && echo "  RMDIR: $(rel "$1")" || true; }
+
+#------------------------------------------------------------------------------
+# Claude Code  (.claude/)
+#------------------------------------------------------------------------------
+setup_claude() {
+    echo "Setting up Claude Code..."
+    safe_write   "$REPO_ROOT/.claude/CLAUDE.md"  "@AGENTS.md"
+    safe_symlink "$REPO_ROOT/.claude/skills"     "../.agents/skills"
+    safe_write   "$REPO_ROOT/.claude/.gitignore" "settings.local.json"
+}
+clear_claude() {
+    echo "Removing Claude Code setup..."
+    safe_remove_file    "$REPO_ROOT/.claude/CLAUDE.md"  "@AGENTS.md"
+    safe_remove_symlink "$REPO_ROOT/.claude/skills"     "../.agents/skills"
+    safe_remove_file    "$REPO_ROOT/.claude/.gitignore" "settings.local.json"
+    try_rmdir "$REPO_ROOT/.claude"
+}
+
+#------------------------------------------------------------------------------
+# OpenAI Codex  (.codex/)
+#------------------------------------------------------------------------------
+setup_codex() {
+    echo "Setting up OpenAI Codex..."
+    safe_symlink "$REPO_ROOT/.codex/skills"     "../.agents/skills"
+    safe_write   "$REPO_ROOT/.codex/.gitignore" "*.log"
+}
+clear_codex() {
+    echo "Removing OpenAI Codex setup..."
+    safe_remove_symlink "$REPO_ROOT/.codex/skills"     "../.agents/skills"
+    safe_remove_file    "$REPO_ROOT/.codex/.gitignore" "*.log"
+    try_rmdir "$REPO_ROOT/.codex"
+}
+
+#------------------------------------------------------------------------------
+# Cursor  (.cursor/)
+#------------------------------------------------------------------------------
+setup_cursor() {
+    echo "Setting up Cursor..."
+    safe_symlink "$REPO_ROOT/.cursor/rules/project.mdc" "../../AGENTS.md"
+    safe_write   "$REPO_ROOT/.cursor/.gitignore"        "$(printf 'composer/\nchat/')"
+}
+clear_cursor() {
+    echo "Removing Cursor setup..."
+    safe_remove_symlink "$REPO_ROOT/.cursor/rules/project.mdc" "../../AGENTS.md"
+    safe_remove_file    "$REPO_ROOT/.cursor/.gitignore"        "$(printf 'composer/\nchat/')"
+    try_rmdir "$REPO_ROOT/.cursor/rules"
+    try_rmdir "$REPO_ROOT/.cursor"
+}
+
+#------------------------------------------------------------------------------
+# Opencode  (.opencode/)
+#------------------------------------------------------------------------------
+OPENCODE_GITIGNORE="$(printf 'node_modules\npackage.json\npackage-lock.json\nbun.lock')"
+
+setup_opencode() {
+    echo "Setting up Opencode..."
+    safe_symlink "$REPO_ROOT/.opencode/skills"     "../.agents/skills"
+    safe_write   "$REPO_ROOT/.opencode/.gitignore" "$OPENCODE_GITIGNORE"
+    # Individual command links (needed in practice despite docs implying otherwise)
+    for skill_dir in "$REPO_ROOT/$SKILLS_DIR"/*/; do
+        [ -d "$skill_dir" ] || continue
+        local skill_name
+        skill_name="$(basename "$skill_dir")"
+        safe_symlink "$REPO_ROOT/.opencode/commands/${skill_name}.md" \
+                     "../../$SKILLS_DIR/${skill_name}/SKILL.md"
+    done
+}
+clear_opencode() {
+    echo "Removing Opencode setup..."
+    safe_remove_symlink "$REPO_ROOT/.opencode/skills" "../.agents/skills"
+    safe_remove_file    "$REPO_ROOT/.opencode/.gitignore" "$OPENCODE_GITIGNORE"
+    for skill_dir in "$REPO_ROOT/$SKILLS_DIR"/*/; do
+        [ -d "$skill_dir" ] || continue
+        local skill_name
+        skill_name="$(basename "$skill_dir")"
+        safe_remove_symlink "$REPO_ROOT/.opencode/commands/${skill_name}.md" \
+                            "../../$SKILLS_DIR/${skill_name}/SKILL.md"
+    done
+    try_rmdir "$REPO_ROOT/.opencode/commands"
+    try_rmdir "$REPO_ROOT/.opencode"
+}
+
+#------------------------------------------------------------------------------
+# GitHub Copilot  (.github/copilot-instructions.md)
+# Copilot natively reads AGENTS.md, but also checks copilot-instructions.md.
+#------------------------------------------------------------------------------
+setup_copilot() {
+    echo "Setting up GitHub Copilot..."
+    safe_symlink "$REPO_ROOT/.github/copilot-instructions.md" "../AGENTS.md"
+}
+clear_copilot() {
+    echo "Removing GitHub Copilot setup..."
+    safe_remove_symlink "$REPO_ROOT/.github/copilot-instructions.md" "../AGENTS.md"
+}
+
+#------------------------------------------------------------------------------
+# Dispatch
+#------------------------------------------------------------------------------
+run_tool() {
+    local action="$1" tool="$2"
+    case "$tool" in
+        claude)   "${action}_claude"   ;;
+        codex)    "${action}_codex"    ;;
+        cursor)   "${action}_cursor"   ;;
+        opencode) "${action}_opencode" ;;
+        copilot)  "${action}_copilot"  ;;
+        *)
+            echo "Unknown tool: $tool  (supported: $SUPPORTED_TOOLS)" >&2
+            exit 1
+            ;;
+    esac
+}
+
+[ $# -eq 0 ] && { usage; exit 0; }
+
+case "$1" in
+    all)
+        for t in $SUPPORTED_TOOLS; do run_tool setup "$t"; done
+        ;;
+    clear)
+        shift
+        if [ $# -eq 0 ]; then
+            for t in $SUPPORTED_TOOLS; do run_tool clear "$t"; done
+        else
+            for t in "$@"; do run_tool clear "$t"; done
+        fi
+        ;;
+    list)
+        echo "Supported tools: $SUPPORTED_TOOLS"
+        ;;
+    -h|--help|help)
+        usage
+        ;;
+    *)
+        for t in "$@"; do run_tool setup "$t"; done
+        ;;
+esac
