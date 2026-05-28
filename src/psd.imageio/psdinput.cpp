@@ -214,6 +214,7 @@ private:
     std::vector<std::string> m_alpha_names;
     //Index of the transparent color, if any (for Indexed color mode only)
     int16_t m_transparency_index;
+    bool m_has_transparency_index;
     //Background color
     float m_background_color[4];
     ///< Do not convert unassociated alpha
@@ -331,7 +332,15 @@ private:
                 if (c != alpha_channel) {
                     float alpha = data[alpha_channel] * scale;
                     float f     = data[c];
-                    data[c] = T(f - (((1.0f - alpha) * background[c]) / scale));
+                    float value = f
+                                  - (((1.0f - alpha) * background[c]) / scale);
+                    if (std::numeric_limits<T>::is_integer) {
+                        if (value < 0.0f)
+                            value = 0.0f;
+                        else if (value > float(std::numeric_limits<T>::max()))
+                            value = float(std::numeric_limits<T>::max());
+                    }
+                    data[c] = T(value);
                 }
     }
 
@@ -915,6 +924,7 @@ PSDInput::init()
     m_channels.clear();
     m_alpha_names.clear();
     m_transparency_index      = -1;
+    m_has_transparency_index  = false;
     m_keep_unassociated_alpha = false;
     m_background_color[0]     = 1.0;
     m_background_color[1]     = 1.0;
@@ -1265,15 +1275,23 @@ PSDInput::load_resource_1039(uint32_t length)
 
 
 bool
-PSDInput::load_resource_1047(uint32_t /*length*/)
+PSDInput::load_resource_1047(uint32_t length)
 {
+    if (length != sizeof(m_transparency_index)) {
+        errorfmt("[Image Resource] Transparency index length {} is invalid",
+                 length);
+        return false;
+    }
+
     if (!read_bige<int16_t>(m_transparency_index))
         return false;
-    if (m_transparency_index < 0 || m_transparency_index >= 768) {
+    if (m_transparency_index < 0 || m_transparency_index >= 256) {
         errorfmt("[Image Resource] Transparency index {} is out of range",
                  m_transparency_index);
         return false;
     }
+
+    m_has_transparency_index = true;
     return true;
 }
 
@@ -1990,7 +2008,7 @@ PSDInput::setup()
             spec_channel_count++;
             raw_channel_count++;
         } else if (m_header.color_mode == ColorMode_Indexed
-                   && m_transparency_index) {
+                   && m_has_transparency_index) {
             spec_channel_count++;
         }
     }
@@ -2154,7 +2172,11 @@ PSDInput::indexed_to_rgb(span<unsigned char> dst, cspan<unsigned char> src,
     OIIO_ASSERT(src.size() && dst.size());
     // The color table is 768 bytes which is 256 * 3 channels (always RGB)
     const auto& table(m_color_data.data);
-    if (m_transparency_index >= 0) {
+    if (src.size() < span_size_t(width))
+        return false;
+    if (m_has_transparency_index) {
+        if (dst.size() < span_size_t(width) * 4)
+            return false;
         for (int i = 0; i < width; ++i) {
             int index = src[i];
             if (index == m_transparency_index) {
@@ -2170,6 +2192,8 @@ PSDInput::indexed_to_rgb(span<unsigned char> dst, cspan<unsigned char> src,
             }
         }
     } else {
+        if (dst.size() < span_size_t(width) * 3)
+            return false;
         for (int i = 0; i < width; ++i) {
             int index      = src[i];
             dst[3 * i + 0] = table[index];        // R
