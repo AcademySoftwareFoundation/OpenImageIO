@@ -29,4 +29,11 @@ gastest.o
 /*.tx
 /*.log
 
+# AI coding tool directories — generated locally by .agents/setup-agent
+.claude/
+.codex/
+.cursor/
+.opencode/
+.github/copilot-instructions.md
+
 

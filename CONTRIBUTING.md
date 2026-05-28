@@ -101,6 +101,16 @@ High-level summary:
 Please do read the whole [Policy on AI Coding Assistants](docs/dev/AI_Policy.md)
 for all the details.
 
+The repository supports several AI coding assistants (Claude Code, Cursor,
+GitHub Copilot, OpenAI Codex, Opencode). After cloning, run the setup script
+for whichever tool(s) you use:
+
+```
+.agents/setup-agent claude      # or: cursor, codex, opencode, copilot, all
+```
+
+See [docs/dev/Agentic_Coding.md](docs/dev/Agentic_Coding.md) for details.
+
 
 Contributor License Agreement (CLA) and Intellectual Property
 -------------------------------------------------------------
