@@ -985,12 +985,12 @@ public:
     ///         A `unique_ptr` that will close and free the ImageInput when
     ///         it exits scope or is reset. The pointer will be empty if the
     ///         required writer was not able to be created.
-    OIIO_NODISCARD_ERROR static unique_ptr open (const std::string& filename,
+    OIIO_NODISCARD static unique_ptr open (const std::string& filename,
                             const ImageSpec *config = nullptr,
                             Filesystem::IOProxy* ioproxy = nullptr);
 
     /// Create and open an ImageInput using a UTF-16 encoded wstring filename.
-    OIIO_NODISCARD_ERROR static unique_ptr open (const std::wstring& filename,
+    OIIO_NODISCARD static unique_ptr open (const std::wstring& filename,
                             const ImageSpec *config = nullptr,
                             Filesystem::IOProxy* ioproxy = nullptr) {
         return open(Strutil::utf16_to_utf8(filename), config, ioproxy);
@@ -1143,10 +1143,10 @@ public:
     ///
     /// @returns
     ///         `true` upon success, or `false` upon failure.
-    virtual bool valid_file (const std::string& filename) const;
+    OIIO_NODISCARD_ERROR virtual bool valid_file (const std::string& filename) const;
 
     /// Check valid file using a UTF-16 encoded wstring filename.
-    bool valid_file (const std::wstring& filename) const {
+    OIIO_NODISCARD_ERROR bool valid_file (const std::wstring& filename) const {
         return valid_file(Strutil::utf16_to_utf8(filename));
     }
 
