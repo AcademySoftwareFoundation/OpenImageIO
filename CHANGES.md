@@ -310,7 +310,7 @@ Release 3.1 (Oct 2, 2025) -- compared to 3.0.x
   - *png*: Alpha premultiplication adjustment and attribute [#4585](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4585) (3.1.1.0)
   - *png*: Increase allowed width/height limit [#4655](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4655) (by Jesse Yurkovich) (3.1.1.0)
   - *png*: CICP metadata support for PNG [#4746](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4746) (by Zach Lewis) (3.1.5.0)
-  - *pnm*: Broken pgm having memory access error [#4559](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4559) (3.1.0.0)
+  - *pnm*: Broken pgm having memory access error [#4559](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4559). Fixes CVE-2024-55194. (3.1.0.0)
   - *psd*: Perform endian byteswap on correct buffer area for PSD RLE [#4600](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4600) (by Jesse Yurkovich) (3.1.1.0)
   - *psd*: ICC profile reading improvements, especially for PSD [#4644](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4644) (3.1.1.0)
   - *psd*: Updated tag recognition for psb [#4663](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4663) (by Lydia Zheng) (3.1.1.0)
@@ -820,7 +820,7 @@ Release 3.0.2.0 (Jan 1, 2025) -- compared to 3.0.1.0
 - *various formats*: Detect invalid ICC profile tags [#4557](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4557) [#4565](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4565)
 - *various formats*: IPTC fields have length limits, protect against attributes passed that are too long to fit in them. [#4568](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4568)
 - *pnm*: Handle broken pnm files with invalid resolution [#4561](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4561)
-- *pnm*: Handle broken pgm having memory access error [#4559](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4559)
+- *pnm*: Handle broken pgm having memory access error [#4559](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4559) Fixes CVE-2024-55194.
 - *int*: Some LoggedTimer instances lacked a variable name [#4571](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4571)
 - *build*: Use target_compile_options (fixes a LibRaw build issue) [#4556](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4556) (by Don Olmstead)
 - *ci*: Refactor using a single steps workflow [#4545](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4545)
