@@ -1,3 +1,29 @@
+Release 3.1.14.0 (Jun 1, 2026) -- compared to 3.1.13.1
+---------------------------------------------------------
+  - *oiiotool*: Add `--nchannels` flag for parity with maketx. [#5198](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5198) (by Danny Greenstein)
+  - *oiiotool*: Commands taking offsets or geometry arguments now accept a more flexible offset notation with commas as alternative separators (e.g., `X,Y` or `WxH,X,Y` in addition to the X11-style `+X+Y` form). This affects `--create`, `--crop`, `--cut`, `--fit`, `--fullsize`, `--origin`, `--originoffset`, `--paste`, `--pattern`, `--printstats`, `--resize`. [#5209](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5209)
+  - *oiiotool*: Be more cautious about implicit promotion to float when `--autocc` is used alongside explicit color space names. [#5192](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5192)
+  - *color mgmt*: For OCIO built-in configs, replace the default file rules with more sensible ones that avoid spurious matches (e.g., no longer assumes all `.exr` files use ACES2065-1 primaries). [#5194](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5194)
+  - *iconvert*: Allow `-o outfile` for output file designation, for parity with oiiotool syntax. [#5173](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5173)
+  - *ColorConfig*: New `isData()` API method to query if a color space is a data space; fix Python `isColorSpaceLinear()`. [#5191](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5191)
+  - *ustring*: Allow freeing the ustring table via `OIIO::attribute("ustring:cleanup", 1)` or env var `OIIO_USTRING_CLEANUP=1`, useful for suppressing false positives in memory leak detection tools. [#5213](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5213)
+  - *dicom*: Enforce reasonable resolution limits to guard against corrupt files. [#5167](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5167) (3.1.14.0, 3.0.19.0)
+  - *gif*: Preserve RGB values of transparent-indexed pixels (previously only alpha was set, zeroing the RGB channels). [#5188](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5188) (by Lumina Wang)
+  - *jpeg*: More correctly handle bounds checks for malformed APP1 Exif and APP2 ICC metadata markers. [#5174](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5174) (by Vlad Erium)
+  - *jpeg-xl*: Enforce format resolution limits, for better detection of corrupt or invalid files. [#5202](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5202) (by Hannah Gulka)
+  - *jpeg-xl*: Prevent JXL reader from loading or allocating memory for arbitrarily large non-image files. [#5203](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5203) (by Maxwell Iverson) (3.1.14.0, 3.0.19.0)
+  - *pnm*: Prevent PNM reader from loading or allocating memory for arbitrarily large non-image files. [#5203](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5203) (by Maxwell Iverson) (3.1.14.0, 3.0.19.0)
+  - *psd*: Fix indexed transparency. [#5177](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5177) (by Vlad Erium)
+  - *softimage*: Fix possible small allocation leak in RLE decoder. [#5182](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5182)
+  - *webp*: Fix bounds handling for WebP EXIF metadata chunks. [#5175](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5175) (by Vlad Erium)
+  - *webp*: Enforce format resolution limits, for better detection of corrupt or invalid files. [#5202](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5202) (by Hannah Gulka)
+  - *perf(windows)*: Speedup various file system operations on Windows using native APIs. [#5199](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5199) (by Lumina Wang)
+  - *build*: Remove `-Wno-unused-result` from gcc compile options, surfacing more potential warnings. [#5214](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5214) (by Luna Kim)
+  - *ci*: Fix broken CI by locking down aswf container for 2023 [#5200](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5200); remove deprecated windows-2025 runner [#5189](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5189)
+  - *admin*: Add CVE-2024-55194 (long since fixed) to security alerts. [#5216](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5216)
+  - *Contributors*: First-time contributors to this release: Hannah Gulka, Luna Kim, Marta Feriani, Maxwell Iverson.
+
+
 Release 3.1.13.1 (May 3, 2026) -- compared to 3.1.13.0
 ---------------------------------------------------------
   - *dpx*: Several safety fixes for corrupt DPX files: integer overflow protection in buffer size calculations, span-based pointer safety, and use of check_open() for resolution/channel validation [#5170](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5170)
