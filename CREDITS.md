@@ -158,6 +158,7 @@ lg@openimageio.org
 * Matteo F. Vescovi
 * Matthew E. Levine
 * Max Liani
+* Maxwell Iverson
 * Mel Massadian
 * Merwan Achibet
 * Michael Cho

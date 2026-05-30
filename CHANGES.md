@@ -1,3 +1,12 @@
+Release 3.0.19.0 (Jun 1, 2026) -- compared to 3.0.18.1
+---------------------------------------------------------
+  - *pnm,jxl*: Prevent PNM/JXL readers from loading, or doing allocations for, arbitrarily large non-image files [#5203](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5203) (by Maxwell Iverson)
+  - *dicom*: Enforce reasonable resolution limits to guard against corrupt file [#5167](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5167)
+  - *build*: Test building with clang 22.1, fix warnings uncovered [#5067](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5067)
+  - *ci*: Fix broken CI by locking down aswf container for 2023 [#5200](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5200)
+  - *tests*: New ref image for libheif 1.22 [#5212](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5212)
+
+
 Release 3.0.18.1 (May 3, 2026) -- compared to 3.0.18.0
 ---------------------------------------------------------
   - *dpx*: Several safety fixes for corrupt DPX files: integer overflow protection in buffer size calculations, span-based pointer safety, and use of check_open() for resolution/channel validation [#5170](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5170)
