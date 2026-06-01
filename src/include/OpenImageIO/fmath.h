@@ -409,7 +409,7 @@ lerp (const T& v0, const T& v1, const Q& x)
 
 
 
-/// Bilinearly interoplate values v0-v3 (v0 upper left, v1 upper right,
+/// Bilinearly interpolate values v0-v3 (v0 upper left, v1 upper right,
 /// v2 lower left, v3 lower right) at coordinates (s,t) and return the
 /// result.  This is a template, and so should work for any types.
 template <class T, class Q>
@@ -423,7 +423,7 @@ bilerp(const T& v0, const T& v1, const T& v2, const T& v3, const Q& s, const Q& 
 
 
 
-/// Bilinearly interoplate arrays of values v0-v3 (v0 upper left, v1
+/// Bilinearly interpolate arrays of values v0-v3 (v0 upper left, v1
 /// upper right, v2 lower left, v3 lower right) at coordinates (s,t),
 /// storing the results in 'result'.  These are all vectors, so do it
 /// for each of 'n' contiguous values (using the same s,t interpolants).
@@ -441,7 +441,7 @@ bilerp (const T *v0, const T *v1,
 
 
 
-/// Bilinearly interoplate arrays of values v0-v3 (v0 upper left, v1
+/// Bilinearly interpolate arrays of values v0-v3 (v0 upper left, v1
 /// upper right, v2 lower left, v3 lower right) at coordinates (s,t),
 /// SCALING the interpolated value by 'scale' and then ADDING to
 /// 'result'.  These are all vectors, so do it for each of 'n'
@@ -461,7 +461,7 @@ bilerp_mad (const T *v0, const T *v1,
 
 
 
-/// Trilinearly interoplate arrays of values v0-v7 (v0 upper left top, v1
+/// Trilinearly interpolate arrays of values v0-v7 (v0 upper left top, v1
 /// upper right top, ...) at coordinates (s,t,r), and return the
 /// result.  This is a template, and so should work for any types.
 template <class T, class Q>
@@ -478,7 +478,7 @@ trilerp (T v0, T v1, T v2, T v3, T v4, T v5, T v6, T v7, Q s, Q t, Q r)
 
 
 
-/// Trilinearly interoplate arrays of values v0-v7 (v0 upper left top, v1
+/// Trilinearly interpolate arrays of values v0-v7 (v0 upper left top, v1
 /// upper right top, ...) at coordinates (s,t,r),
 /// storing the results in 'result'.  These are all vectors, so do it
 /// for each of 'n' contiguous values (using the same s,t,r interpolants).
@@ -498,7 +498,7 @@ trilerp (const T *v0, const T *v1, const T *v2, const T *v3,
 
 
 
-/// Trilinearly interoplate arrays of values v0-v7 (v0 upper left top, v1
+/// Trilinearly interpolate arrays of values v0-v7 (v0 upper left top, v1
 /// upper right top, ...) at coordinates (s,t,r),
 /// SCALING the interpolated value by 'scale' and then ADDING to
 /// 'result'.  These are all vectors, so do it for each of 'n'
@@ -544,7 +544,7 @@ inline OIIO_HOSTDEVICE void evalBSplineWeightDerivs (T dw[4], T fraction)
 
 
 
-/// Bicubically interoplate arrays of pointers arranged in a 4x4 pattern
+/// Bicubically interpolate arrays of pointers arranged in a 4x4 pattern
 /// with val[0] pointing to the data in the upper left corner, val[15]
 /// pointing to the lower right) at coordinates (s,t), storing the
 /// results in 'result'.  These are all vectors, so do it for each of
@@ -580,7 +580,7 @@ ifloor (float x)
 /// Return (x-floor(x)) and put (int)floor(x) in *xint.  This is similar
 /// to the built-in modf, but returns a true int, always rounds down
 /// (compared to modf which rounds toward 0), and always returns
-/// frac >= 0 (comapred to modf which can return <0 if x<0).
+/// frac >= 0 (compared to modf which can return <0 if x<0).
 OIIO_NODISCARD inline OIIO_HOSTDEVICE float
 floorfrac (float x, int *xint)
 {
