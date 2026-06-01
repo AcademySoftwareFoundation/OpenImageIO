@@ -138,7 +138,7 @@ OIIO_NAMESPACE_BEGIN
 /// Quick test for whether an integer is a power of 2.
 ///
 template<typename T>
-inline OIIO_HOSTDEVICE constexpr bool
+OIIO_NODISCARD inline OIIO_HOSTDEVICE constexpr bool
 ispow2(T x) noexcept
 {
     // Numerous references for this bit trick are on the web.  The
@@ -155,7 +155,7 @@ ispow2(T x) noexcept
 
 /// Round up to next higher power of 2 (return x if it's already a power
 /// of 2).
-inline OIIO_HOSTDEVICE constexpr int
+OIIO_NODISCARD inline OIIO_HOSTDEVICE constexpr int
 ceil2(int x) noexcept
 {
     // Here's a version with no loops.
@@ -178,7 +178,7 @@ ceil2(int x) noexcept
 
 /// Round down to next lower power of 2 (return x if it's already a power
 /// of 2).
-inline OIIO_HOSTDEVICE constexpr int
+OIIO_NODISCARD inline OIIO_HOSTDEVICE constexpr int
 floor2(int x) noexcept
 {
     // Make all bits past the first 1 also be 1, i.e. 0001xxxx -> 00011111
@@ -198,7 +198,7 @@ floor2(int x) noexcept
 /// `round_to_multiple(10,10) == 10`, `round_to_multiple(17,10) == 20`, and
 /// `round_to_multiple(-17,10) == -10`.
 template <typename V, typename M>
-inline OIIO_HOSTDEVICE V round_to_multiple (V value, M multiple)
+OIIO_NODISCARD inline OIIO_HOSTDEVICE V round_to_multiple (V value, M multiple)
 {
     OIIO_DASSERT(multiple > M(0));
     if (value >= 0)
@@ -213,7 +213,7 @@ inline OIIO_HOSTDEVICE V round_to_multiple (V value, M multiple)
 /// round_to_multiple). This is a template that should work for any
 /// integer type.
 template<typename T>
-inline OIIO_HOSTDEVICE T
+OIIO_NODISCARD inline OIIO_HOSTDEVICE T
 round_to_multiple_of_pow2(T x, T m)
 {
     OIIO_DASSERT(ispow2(m));
@@ -227,7 +227,8 @@ round_to_multiple_of_pow2(T x, T m)
 /// `round_down_to_multiple(17,10) == 10`, and
 /// `round_down_to_multiple(-17,10) == -20`.
 template <typename V, typename M>
-inline OIIO_HOSTDEVICE V round_down_to_multiple (V value, M multiple)
+OIIO_NODISCARD inline OIIO_HOSTDEVICE V
+round_down_to_multiple (V value, M multiple)
 {
     if (value < 0)
         value -= V(multiple - 1);
@@ -238,7 +239,7 @@ inline OIIO_HOSTDEVICE V round_down_to_multiple (V value, M multiple)
 
 /// Multiply two unsigned 32-bit ints safely, carefully checking for
 /// overflow, and clamping to uint32_t's maximum value.
-inline OIIO_HOSTDEVICE uint32_t
+OIIO_NODISCARD inline OIIO_HOSTDEVICE uint32_t
 clamped_mult32(uint32_t a, uint32_t b)
 {
     const uint32_t Err = std::numeric_limits<uint32_t>::max();
@@ -250,7 +251,7 @@ clamped_mult32(uint32_t a, uint32_t b)
 
 /// Multiply two unsigned 64-bit ints safely, carefully checking for
 /// overflow, and clamping to uint64_t's maximum value.
-inline OIIO_HOSTDEVICE uint64_t
+OIIO_NODISCARD inline OIIO_HOSTDEVICE uint64_t
 clamped_mult64(uint64_t a, uint64_t b)
 {
     uint64_t ab = a * b;
@@ -264,7 +265,7 @@ clamped_mult64(uint64_t a, uint64_t b)
 
 // safe_mod is like integer a%b, but safely returns 0 when b==0.
 template <class T>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE T
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 safe_mod(T a, T b)
 {
     return b ? (a % b) : T(0);
@@ -286,7 +287,7 @@ safe_mod(T a, T b)
 
 /// clamp a to bounds [low,high].
 template <class T>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE T
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 clamp (const T& a, const T& low, const T& high)
 {
 #if 1
@@ -312,38 +313,38 @@ clamp (const T& a, const T& low, const T& high)
 
 #ifndef __CUDA_ARCH__
 // Specialization of clamp for vfloat4
-template<> OIIO_FORCEINLINE simd::vfloat4
+template<> OIIO_NODISCARD OIIO_FORCEINLINE simd::vfloat4
 clamp (const simd::vfloat4& a, const simd::vfloat4& low, const simd::vfloat4& high)
 {
     return simd::min (high, simd::max (low, a));
 }
 
-template<> OIIO_FORCEINLINE simd::vfloat8
+template<> OIIO_NODISCARD OIIO_FORCEINLINE simd::vfloat8
 clamp (const simd::vfloat8& a, const simd::vfloat8& low, const simd::vfloat8& high)
 {
     return simd::min (high, simd::max (low, a));
 }
 
-template<> OIIO_FORCEINLINE simd::vfloat16
+template<> OIIO_NODISCARD OIIO_FORCEINLINE simd::vfloat16
 clamp (const simd::vfloat16& a, const simd::vfloat16& low, const simd::vfloat16& high)
 {
     return simd::min (high, simd::max (low, a));
 }
 
 // Specialization of clamp for vint4
-template<> OIIO_FORCEINLINE simd::vint4
+template<> OIIO_NODISCARD OIIO_FORCEINLINE simd::vint4
 clamp (const simd::vint4& a, const simd::vint4& low, const simd::vint4& high)
 {
     return simd::min (high, simd::max (low, a));
 }
 
-template<> OIIO_FORCEINLINE simd::vint8
+template<> OIIO_NODISCARD OIIO_FORCEINLINE simd::vint8
 clamp (const simd::vint8& a, const simd::vint8& low, const simd::vint8& high)
 {
     return simd::min (high, simd::max (low, a));
 }
 
-template<> OIIO_FORCEINLINE simd::vint16
+template<> OIIO_NODISCARD OIIO_FORCEINLINE simd::vint16
 clamp (const simd::vint16& a, const simd::vint16& low, const simd::vint16& high)
 {
     return simd::min (high, simd::max (low, a));
@@ -360,7 +361,8 @@ clamp (const simd::vint16& a, const simd::vint16& low, const simd::vint16& high)
 // least as much precision as a multiply followed by a separate add."
 
 /// Fused multiply and add: (a*b + c)
-OIIO_FORCEINLINE OIIO_HOSTDEVICE float madd (float a, float b, float c) {
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE float
+madd (float a, float b, float c) {
     // NOTE: GCC/ICC will turn this (for float) into a FMA unless
     // explicitly asked not to, clang will do so if -ffp-contract=fast.
     OIIO_CLANG_PRAGMA(clang fp contract(fast))
@@ -369,7 +371,8 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float madd (float a, float b, float c) {
 
 
 /// Fused multiply and subtract: (a*b - c)
-OIIO_FORCEINLINE OIIO_HOSTDEVICE float msub (float a, float b, float c) {
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE float
+msub (float a, float b, float c) {
     OIIO_CLANG_PRAGMA(clang fp contract(fast))
     return a * b - c;
 }
@@ -377,7 +380,8 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float msub (float a, float b, float c) {
 
 
 /// Fused negative multiply and add: -(a*b) + c
-OIIO_FORCEINLINE OIIO_HOSTDEVICE float nmadd (float a, float b, float c) {
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE float
+nmadd (float a, float b, float c) {
     OIIO_CLANG_PRAGMA(clang fp contract(fast))
     return c - (a * b);
 }
@@ -385,7 +389,8 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float nmadd (float a, float b, float c) {
 
 
 /// Negative fused multiply and subtract: -(a*b) - c
-OIIO_FORCEINLINE OIIO_HOSTDEVICE float nmsub (float a, float b, float c) {
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE float
+nmsub (float a, float b, float c) {
     OIIO_CLANG_PRAGMA(clang fp contract(fast))
     return -(a * b) - c;
 }
@@ -395,7 +400,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float nmsub (float a, float b, float c) {
 /// Linearly interpolate values v0-v1 at x: v0*(1-x) + v1*x.
 /// This is a template, and so should work for any types.
 template <class T, class Q>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE T
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 lerp (const T& v0, const T& v1, const Q& x)
 {
     // NOTE: a*(1-x) + b*x is much more numerically stable than a+x*(b-a)
@@ -408,7 +413,7 @@ lerp (const T& v0, const T& v1, const Q& x)
 /// v2 lower left, v3 lower right) at coordinates (s,t) and return the
 /// result.  This is a template, and so should work for any types.
 template <class T, class Q>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE T
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 bilerp(const T& v0, const T& v1, const T& v2, const T& v3, const Q& s, const Q& t)
 {
     // NOTE: a*(t-1) + b*t is much more numerically stable than a+t*(b-a)
@@ -460,7 +465,7 @@ bilerp_mad (const T *v0, const T *v1,
 /// upper right top, ...) at coordinates (s,t,r), and return the
 /// result.  This is a template, and so should work for any types.
 template <class T, class Q>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE T
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 trilerp (T v0, T v1, T v2, T v3, T v4, T v5, T v6, T v7, Q s, Q t, Q r)
 {
     // NOTE: a*(t-1) + b*t is much more numerically stable than a+t*(b-a)
@@ -564,7 +569,7 @@ bicubic_interp (const T **val, T s, T t, int n, T *result)
 
 
 /// Return floor(x) cast to an int.
-OIIO_FORCEINLINE OIIO_HOSTDEVICE int
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE int
 ifloor (float x)
 {
     return (int)floorf(x);
@@ -576,7 +581,7 @@ ifloor (float x)
 /// to the built-in modf, but returns a true int, always rounds down
 /// (compared to modf which rounds toward 0), and always returns
 /// frac >= 0 (compared to modf which can return <0 if x<0).
-inline OIIO_HOSTDEVICE float
+OIIO_NODISCARD inline OIIO_HOSTDEVICE float
 floorfrac (float x, int *xint)
 {
 #if 1
@@ -592,19 +597,19 @@ floorfrac (float x, int *xint)
 
 
 #ifndef __CUDA_ARCH__
-inline simd::vfloat4 floorfrac (const simd::vfloat4& x, simd::vint4 *xint) {
+OIIO_NODISCARD inline simd::vfloat4 floorfrac (const simd::vfloat4& x, simd::vint4 *xint) {
     simd::vfloat4 f = simd::floor(x);
     *xint = simd::vint4(f);
     return x - f;
 }
 
-inline simd::vfloat8 floorfrac (const simd::vfloat8& x, simd::vint8 *xint) {
+OIIO_NODISCARD inline simd::vfloat8 floorfrac (const simd::vfloat8& x, simd::vint8 *xint) {
     simd::vfloat8 f = simd::floor(x);
     *xint = simd::vint8(f);
     return x - f;
 }
 
-inline simd::vfloat16 floorfrac (const simd::vfloat16& x, simd::vint16 *xint) {
+OIIO_NODISCARD inline simd::vfloat16 floorfrac (const simd::vfloat16& x, simd::vint16 *xint) {
     simd::vfloat16 f = simd::floor(x);
     *xint = simd::vint16(f);
     return x - f;
@@ -616,13 +621,13 @@ inline simd::vfloat16 floorfrac (const simd::vfloat16& x, simd::vint16 *xint) {
 
 /// Convert degrees to radians.
 template <typename T>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE constexpr T radians (T deg) {
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE constexpr T radians (T deg) {
     return deg * T(M_PI / 180.0);
 }
 
 /// Convert radians to degrees
 template <typename T>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE constexpr T degrees (T rad) {
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE constexpr T degrees (T rad) {
     return rad * T(180.0 / M_PI);
 }
 
@@ -646,7 +651,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE constexpr T degrees (T rad) {
 /// It's also safe (though pointless) to use fast_neg for integer types,
 /// where both `-x` and `0-x` are implemented as a `neg` instruction.
 template <typename T>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE T
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 fast_neg(const T &x) {
     return T(0) - x;
 }
@@ -687,7 +692,7 @@ sincos (double x, double* sine, double* cosine)
 /// Return -1 if x<0, 0 if x==0, 1 if x>0. For floating point types, this is
 /// not friendly to NaN inputs!
 template<typename T>
-inline OIIO_HOSTDEVICE T sign(T x)
+OIIO_NODISCARD inline OIIO_HOSTDEVICE T sign(T x)
 {
     return x < T(0) ? T(-1) : (x == T(0) ? T(0) : T(1));
 }
