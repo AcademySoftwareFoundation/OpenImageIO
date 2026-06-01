@@ -103,6 +103,7 @@ lg@openimageio.org
 * Gregor Mueckl
 * Grégoire De Lillo
 * Guillaume Chatelet
+* Hannah Gulka
 * Hanspeter Niederstrasser
 * Harry Mallon
 * Heiko Becker
@@ -152,6 +153,7 @@ lg@openimageio.org
 * Lukasz Maliszewski
 * Luke Emrose
 * Lumina Wang
+* Luna Kim
 * Lydia Zheng
 * M Joonas Pihlaja
 * Malcolm Humphreys
@@ -159,6 +161,7 @@ lg@openimageio.org
 * Manuel Leonhardt
 * Marcos Fajardo
 * Marie Fetiveau
+* Marta Feriani
 * Mariusz Szczepanczyk
 * Mark Boorer
 * Mark Visser
@@ -166,6 +169,7 @@ lg@openimageio.org
 * Matteo F. Vescovi
 * Matthew E. Levine
 * Max Liani
+* Maxwell Iverson
 * Mel Massadian
 * Merwan Achibet
 * Michael Cho
