@@ -107,7 +107,9 @@ template<typename Tag, typename Basetype> struct StrongParam {
 
 private:
     Basetype m_val;
-    static_assert(std::is_trivial<Basetype>::value, "Need trivial type");
+    static_assert(std::is_trivially_copyable_v<Basetype>
+                      && std::is_trivially_copyable_v<Basetype>,
+                  "Need trivial type");
 };
 
 OIIO_NAMESPACE_3_1_END
