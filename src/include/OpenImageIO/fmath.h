@@ -993,7 +993,7 @@ inline void convert_type (const S *src, D *dst, size_t n)
 template<typename S, typename D>
 void convert_type (cspan<S> src, span<D> dst,
                    D min = std::numeric_limits<D>::min(),
-                   D max = std::numeric_limits<D>::min())
+                   D max = std::numeric_limits<D>::max())
 {
     OIIO_DASSERT(src.size() == dst.size());
     convert_type(src.data(), dst.data(), std::min(src.size(), dst.size()),
