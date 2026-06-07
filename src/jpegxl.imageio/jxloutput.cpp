@@ -6,11 +6,12 @@
 #include <cstdio>
 #include <vector>
 
-#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
+
+#include "imageio_pvt.h"
 
 #include <jxl/decode.h>
 #include <jxl/encode.h>
@@ -542,30 +543,19 @@ JxlOutput::save_image(const void* data)
     bool wrote_colorspace = false;
 
     // Write the ICC profile, if available
-    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
-        "ICCProfile");
-    if (icc_profile_parameter != nullptr) {
-        unsigned char* icc_profile
-            = (unsigned char*)icc_profile_parameter->data();
-        uint32_t length = icc_profile_parameter->type().size();
-        if (icc_profile && length) {
-            if (JXL_ENC_SUCCESS
-                != JxlEncoderSetICCProfile(m_encoder.get(), icc_profile,
-                                           length)) {
-                errorfmt("JxlEncoderSetICCProfile failed\n");
-            }
+    std::vector<uint8_t> icc_profile = pvt::get_colorspace_icc_profile(m_spec);
+    if (icc_profile.size()) {
+        if (JXL_ENC_SUCCESS
+            != JxlEncoderSetICCProfile(m_encoder.get(), icc_profile.data(),
+                                       icc_profile.size())) {
+            errorfmt("JxlEncoderSetICCProfile failed\n");
+        } else {
             wrote_colorspace = true;
         }
     }
 
     // Write CICP
-    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-    const ParamValue* p    = m_spec.find_attribute("CICP",
-                                                   TypeDesc(TypeDesc::INT, 4));
-    string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
-    cspan<int> cicp        = (p) ? p->as_cspan<int>()
-                             : (!wrote_colorspace) ? colorconfig.get_cicp(colorspace)
-                                                   : cspan<int>();
+    cspan<int> cicp = pvt::get_colorspace_cicp(m_spec, !wrote_colorspace);
     if (!cicp.empty()) {
         // JXL only has a subset of CICP, only write if supported. Custom
         // primaries and white point are not currently used but could help
