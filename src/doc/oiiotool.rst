@@ -2339,6 +2339,37 @@ current top image.
     Additionally, this command can be used to remove one subimage (leaving
     the others) by using the optional modifier `--subimage:delete=1`.
 
+.. option:: --get-thumbnail
+
+    Replace the top image on the stack with its embedded thumbnail.
+    A thumbnail is a property of the whole file, not of an individual subimage.
+    Because this replaces the top image, use ``--dup`` beforehand if you also
+    want to keep the original.
+
+    Optional appended modifiers include:
+
+    `:fail=` *int* (default: 1)
+      If 1, it is an error if the image has no embedded thumbnail.
+      If 0, an empty (0x0) image is pushed in its place instead, so a batch
+      script can continue; guard any subsequent output (see the example
+      below), since writing the empty image is itself an error.
+
+    `:index=` *int* (default: 0)
+      Selects which embedded thumbnail to retrieve, for formats that can
+      store more than one (such as some camera raw formats). Currently only
+      the primary thumbnail (`index=0`, the default) is available; a nonzero
+      value is an error until multiple-thumbnail support is added (see issue
+      #4888).
+
+    Examples::
+
+        # Save the thumbnail
+        oiiotool input.exr --dup --get-thumbnail -o thumb.jpg
+
+        # Batch-safe: substitute an empty image for missing thumbnails, and
+        # guard the output so only real thumbnails are written
+        oiiotool input.exr --get-thumbnail:fail=0 --if "{TOP.width}" -o thumb.jpg --endif
+
 .. option:: --sisplit
 
     Remove the top image from the stack, split it into its constituent

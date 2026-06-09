@@ -3214,6 +3214,54 @@ action_subimage_append_all(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --get-thumbnail
+static void
+action_get_thumbnail(Oiiotool& ot, cspan<const char*> argv)
+{
+    if (ot.postpone_callback(1, action_get_thumbnail, argv))
+        return;
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
+
+    // Parse options from the command token, e.g.
+    //     --get-thumbnail:fail=0:index=0
+    auto options = ot.extract_options(command);
+
+    bool fail_if_missing = options.get_int("fail", 1);
+    int index            = options.get_int("index", 0);
+
+    // The current ImageInput/ImageBuf API exposes only a single (primary)
+    // thumbnail per subimage. Formats that embed multiple thumbnails at
+    // different resolutions (such as some camera raw formats) cannot yet be
+    // distinguished, so for now only index 0 is valid. The `:index=` modifier
+    // reserves the syntax for when the API gains multi-thumbnail support.
+    // See https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4888
+    if (index != 0) {
+        ot.errorfmt(command,
+                    "Thumbnail index {} is not available; only the primary "
+                    "thumbnail (index 0) is currently supported",
+                    index);
+        return;
+    }
+
+    ImageRecRef A = ot.pop();
+    ot.read(A);
+
+    auto thumb = (*A)(0, 0).get_thumbnail();
+    if (!thumb || !thumb->initialized()) {
+        if (fail_if_missing) {
+            ot.errorfmt(command, "Image \"{}\" has no thumbnail", A->name());
+            ot.push(A);
+            return;
+        }
+        ot.push(new ImageRec(ImageBufRef(new ImageBuf()), false));
+        return;
+    }
+    ot.push(new ImageRec(ImageBufRef(new ImageBuf(*thumb)), false));
+}
+
+
+
 // --colorcount
 static void
 action_colorcount(Oiiotool& ot, cspan<const char*> argv)
@@ -7393,6 +7441,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--flatten")
       .help("Flatten deep image to non-deep")
       .OTACTION(action_flatten);
+    ap.arg("--get-thumbnail")
+      .help("Extract an embedded thumbnail (options: fail=, index=)")
+      .OTACTION(action_get_thumbnail);
 
     ap.separator("Image stack manipulation:");
     ap.arg("--label %s")

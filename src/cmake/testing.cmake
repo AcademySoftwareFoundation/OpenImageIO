@@ -183,6 +183,7 @@ macro (oiio_add_all_tests)
                     oiiotool-readerror
                     oiiotool-subimage
                     oiiotool-text
+                    oiiotool-thumbnail
                     oiiotool-xform
                     diff
                     flip
