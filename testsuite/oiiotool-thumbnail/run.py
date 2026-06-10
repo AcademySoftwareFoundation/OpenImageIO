@@ -37,4 +37,24 @@ command += oiiotool (no_thumb + " --get-thumbnail:index=-1", failureok=True)
 command += oiiotool (psd + " --get-thumbnail:index=1", failureok=True)
 command += oiiotool (no_thumb + " --get-thumbnail:index=1:fail=0", failureok=True)
 
+# Test that the -i:get_thumbnail=1 read modifier produces the same thumbnail
+# as the equivalent --get-thumbnail command above
+command += oiiotool ("-i:get_thumbnail=1 " + psd + " -o thumb_i.tif")
+command += info_command ("thumb_i.tif", verbose=False, hash=False)
+command += oiiotool ("--diff thumb_i.tif thumb.tif")
+
+# Test that autoorient/autocc act on the thumbnail not the main image
+command += oiiotool ("--autoorient -i:get_thumbnail=1 " + psd
+                     + " --echo \"autoorient {TOP.width}x{TOP.height}\"")
+command += oiiotool ("--autocc -i:get_thumbnail=1 " + psd
+                     + " --echo \"autocc {TOP.width}x{TOP.height}\"")
+
+# Test that -i:get_thumbnail=1 mirrors `--get-thumbnail`
+command += oiiotool ("-i:get_thumbnail=1 " + no_thumb, failureok=True)
+command += oiiotool ("-i:get_thumbnail=1:fail=0 " + no_thumb + " --echo \"fail=0 path completed\"")
+command += oiiotool ("-i:get_thumbnail=1:index=1 " + psd, failureok=True)
+
+# Test that -i:get_thumbnail=0 returns the main image
+command += oiiotool ("-i:get_thumbnail=0 " + psd + " --echo \"get_thumbnail=0 {TOP.width}x{TOP.height}\"")
+
 outputs = [ "thumb.tif", "out.txt" ]

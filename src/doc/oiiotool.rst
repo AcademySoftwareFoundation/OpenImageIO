@@ -1232,6 +1232,18 @@ Reading images
         to following the input with a `--ch` command, except that by integrating
         into the `-i`, it potentially can avoid the I/O of the unneeded
         channels.
+      `:get_thumbnail=` *int*
+        If nonzero, read the file's embedded thumbnail instead of its main
+        image (equivalent to a following `--get-thumbnail`). The `:fail=` and
+        `:index=` modifiers are forwarded (e.g. `-i:get_thumbnail=1:fail=0`),
+        and any auto-orientation or color conversion applies to the thumbnail.
+        Since a thumbnail is display-referred (typically sRGB), `:autocc=` will
+        linearize it like any other input.
+
+        Examples::
+
+            # Extract just the thumbnail from a large image
+            oiiotool -i:get_thumbnail=1 input.psd -o thumb.jpg
 
 .. option:: --iconfig <name> <value>
 
@@ -2342,7 +2354,7 @@ current top image.
 .. option:: --get-thumbnail
 
     Replace the top image on the stack with its embedded thumbnail.
-    A thumbnail is a property of the whole file, not of an individual subimage.
+    The thumbnail associated with the first subimage (subimage 0) is used.
     Because this replaces the top image, use ``--dup`` beforehand if you also
     want to keep the original.
 
@@ -2364,11 +2376,11 @@ current top image.
     Examples::
 
         # Save the thumbnail
-        oiiotool input.exr --dup --get-thumbnail -o thumb.jpg
+        oiiotool input.psd --dup --get-thumbnail -o thumb.jpg
 
         # Batch-safe: substitute an empty image for missing thumbnails, and
         # guard the output so only real thumbnails are written
-        oiiotool input.exr --get-thumbnail:fail=0 --if "{TOP.width}" -o thumb.jpg --endif
+        oiiotool input.psd --get-thumbnail:fail=0 --if "{TOP.width}" -o thumb.jpg --endif
 
 .. option:: --sisplit
 

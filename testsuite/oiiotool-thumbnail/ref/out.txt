@@ -24,5 +24,18 @@ Full command line was:
 oiiotool ERROR: --get-thumbnail:index=1:fail=0 : Thumbnail index 1 is not available; only the primary thumbnail (index 0) is currently supported
 Full command line was:
 > oiiotool ../common/tahoe-small.tif --get-thumbnail:index=1:fail=0
+thumb_i.tif          :  160 x  120, 3 channel, uint8 tiff
+Computing diff of "thumb_i.tif" vs "thumb.tif"
+PASS
+autoorient 160x120
+autocc 160x120
+oiiotool ERROR: --get-thumbnail : Image "../common/tahoe-small.tif" has no thumbnail
+Full command line was:
+> oiiotool -i:get_thumbnail=1 ../common/tahoe-small.tif
+fail=0 path completed
+oiiotool ERROR: --get-thumbnail:index=1 : Thumbnail index 1 is not available; only the primary thumbnail (index 0) is currently supported
+Full command line was:
+> oiiotool -i:get_thumbnail=1:index=1 src/with-thumbnail.psd
+get_thumbnail=0 200x150
 Comparing "thumb.tif" and "ref/thumb.tif"
 PASS
