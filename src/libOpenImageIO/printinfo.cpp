@@ -221,11 +221,10 @@ print_deep_stats(std::ostream& out, string_view indent, const ImageBuf& input,
     int xend = spec.x + spec.width;
     int yend = spec.y + spec.height;
     int zend = spec.z + spec.depth;
-    size_t p = 0;
     std::vector<size_t> nsamples_histogram;
     for (int z = spec.z; z < zend; ++z) {
         for (int y = spec.y; y < yend; ++y) {
-            for (int x = spec.x; x < xend; ++x, ++p) {
+            for (int x = spec.x; x < xend; ++x) {
                 size_t samples = input.deep_samples(x, y, z);
                 totalsamples += samples;
                 if (samples == maxsamples)
