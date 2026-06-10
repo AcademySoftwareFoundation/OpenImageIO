@@ -286,22 +286,39 @@ template<typename T>
 static bool
 scan_offset(string_view str, T& x, T& y)
 {
-    return Strutil::parse_value(str, x)
-           && (str.size() && (str[0] == '+' || str[0] == '-'))
-           && Strutil::parse_value(str, y);
+    string_view orig = str;
+    if (Strutil::parse_value(str, x)
+        && (str.size() && (str[0] == '+' || str[0] == '-'))
+        && Strutil::parse_value(str, y))
+        return true;
+    str = orig;
+    if (Strutil::parse_value(str, x) && Strutil::parse_char(str, ',')
+        && Strutil::parse_value(str, y))
+        return true;
+    return false;
 }
+
 
 
 template<typename T>
 static bool
 scan_res_offset(string_view str, T& w, T& h, T& x, T& y)
 {
-    return Strutil::parse_value(str, w) && Strutil::parse_char(str, 'x')
-           && Strutil::parse_value(str, h)
-           && (str.size() && (str[0] == '+' || str[0] == '-'))
-           && Strutil::parse_value(str, x)
-           && (str.size() && (str[0] == '+' || str[0] == '-'))
-           && Strutil::parse_value(str, y);  // NOSONAR
+    string_view orig = str;
+    if (Strutil::parse_value(str, w) && Strutil::parse_char(str, 'x')
+        && Strutil::parse_value(str, h)
+        && (str.size() && (str[0] == '+' || str[0] == '-'))
+        && Strutil::parse_value(str, x)
+        && (str.size() && (str[0] == '+' || str[0] == '-'))
+        && Strutil::parse_value(str, y))
+        return true;
+    str = orig;
+    if (Strutil::parse_value(str, w) && Strutil::parse_char(str, 'x')
+        && Strutil::parse_value(str, h) && Strutil::parse_char(str, ',')
+        && Strutil::parse_value(str, x) && Strutil::parse_char(str, ',')
+        && Strutil::parse_value(str, y))
+        return true;
+    return false;
 }
 
 
@@ -968,7 +985,7 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     if (tilesize.size()) {
         int x, y;  // dummy vals for adjust_geometry
         ot.adjust_geometry("-o", requested_tilewidth, requested_tileheight, x,
-                           y, tilesize.c_str(), false);
+                           y, tilesize.c_str(), false, false);
     }
     bool requested_scanline = fileoptions.get_int("scanline",
                                                   ot.output_scanline);
@@ -1775,7 +1792,23 @@ unit_test_adjust_geometry(Oiiotool& ot)
     OIIO_CHECK_ASSERT(
         !ot.adjust_geometry("foo", w, h, x, y, "10x20+100+200", true, false));
 
-    // res
+    // geom with comma notation for origin
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "10x20,100,200")
+                      && x == 100 && y == 200 && w == 10 && h == 20);
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "10x20,-100,-200")
+                      && x == -100 && y == -200 && w == 10 && h == 20);
+    w = 100, h = 50, x = y = 0;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "20x0,100,200")
+                      && x == 100 && y == 200 && w == 20 && h == 10);
+    w = 100, h = 50, x = y = 0;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "0x20,100,200")
+                      && x == 100 && y == 200 && w == 40 && h == 20);
+    OIIO_CHECK_ASSERT(
+        !ot.adjust_geometry("foo", w, h, x, y, "10x20+100+200", true, false));
+
+    // res only
     w = h = x = y = -42;
     OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "10x20") && x == -42
                       && y == -42 && w == 10 && h == 20);
@@ -1807,6 +1840,23 @@ unit_test_adjust_geometry(Oiiotool& ot)
     w = h = x = y = -42;
     OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "+100+200")
                       && x == 100 && y == 200 && w == -42 && h == -42);
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "+100-200")
+                      && x == 100 && y == -200 && w == -42 && h == -42);
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "-100+200")
+                      && x == -100 && y == 200 && w == -42 && h == -42);
+
+    // offset with comma notation
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "100,200")
+                      && x == 100 && y == 200 && w == -42 && h == -42);
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "100,-200")
+                      && x == 100 && y == -200 && w == -42 && h == -42);
+    w = h = x = y = -42;
+    OIIO_CHECK_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "-100,200")
+                      && x == -100 && y == 200 && w == -42 && h == -42);
 
     // scale by factor
     w = 640;
@@ -2325,8 +2375,7 @@ static void
 set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
 {
     OIIO_DASSERT(argv.size() == 2);
-    ot.colorconfig().reset(argv[1]);
-    if (ot.colorconfig().has_error()) {
+    if (!ot.colorconfig().reset(argv[1])) {
         ot.errorfmt("--colorconfig", "{}", ot.colorconfig().geterror());
     }
 }
@@ -2832,6 +2881,38 @@ action_channels(Oiiotool& ot, cspan<const char*> argv)
             R->update_spec_from_imagebuf(s, m);
         }
     }
+}
+
+
+
+// --nchannels
+static void
+action_nchannels(Oiiotool& ot, cspan<const char*> argv)
+{
+    if (ot.postpone_callback(1, action_nchannels, argv))
+        return;
+
+    // Get the requested number of channels
+    int n = Strutil::stoi(ot.express(argv[1]));
+    if (n < 1) {
+        ot.errorfmt(argv[0], "nchannels must be at least 1 (got {})", n);
+        return;
+    }
+
+    // We build the indices into a vector, then join them into a string.
+    std::vector<int> indices;
+    for (int i = 0; i < n; ++i)
+        indices.push_back(i);
+
+    // Convert to ustring to ensure the underlying char* is interned.
+    // This guarantees the pointer remains valid even if action_channels
+    // defers execution (postpones) beyond the scope of this function.
+    ustring channel_list(Strutil::join(indices, ","));
+
+    // Hand off to action_channels with our generated index list.
+    // this ensures we are always doing the same thing as --ch
+    const char* fake_argv[] = { argv[0], channel_list.c_str() };
+    action_channels(ot, fake_argv);
 }
 
 
@@ -5566,6 +5647,8 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
             // Try to deduce the color space it's in
             std::string colorspace(
                 ot.colorconfig().getColorSpaceFromFilepath(filename, "", true));
+            if (colorspace == "unknown")
+                colorspace.clear();
             if (colorspace.size() && ot.debug)
                 OIIO::print("  From {}, we deduce color space \"{}\"\n",
                             filename, colorspace);
@@ -7277,6 +7360,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--ch %s:CHANLIST")
       .help("Select or shuffle channels (e.g., \"R,G,B\", \"B,G,R\", \"2,3,4\")")
       .OTACTION(action_channels);
+    ap.arg("--nchannels %d:N")
+      .help("Force the current image to have N channels (padding with 0.0 as needed)")
+      .OTACTION(action_nchannels);
     ap.arg("--chappend")
       .help("Append the channels of the last two images")
       .OTACTION(action_chappend);

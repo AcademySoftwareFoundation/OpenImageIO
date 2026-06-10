@@ -201,8 +201,8 @@ struct CSInfo {
 // Hidden implementation of ColorConfig
 class ColorConfig::Impl {
 public:
-    OCIO::ConstConfigRcPtr config_;
-    OCIO::ConstConfigRcPtr builtinconfig_;
+    OCIO::ConfigRcPtr config_;
+    OCIO::ConfigRcPtr builtinconfig_;
 
 private:
     std::vector<CSInfo> colorspaces;
@@ -807,11 +807,58 @@ ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
 
 
 
-ColorConfig::ColorConfig(string_view filename) { reset(filename); }
+ColorConfig::ColorConfig(string_view filename) { (void)reset(filename); }
 
 
 
 ColorConfig::~ColorConfig() {}
+
+
+
+// OIIO doctoring of OCIO configs for different default file rules. Currently,
+// we only do this for built-in configs.
+static void
+fix_config_file_rules(OCIO::ConfigRcPtr& config)
+{
+    OIIO_CONTRACT_ASSERT(config);
+    DBG("Fixing up rules:\n");
+#if 1
+    // Just start with a clean slate
+    auto rules = OCIO::FileRules::Create();
+#else
+    // Alternate universe: Start with the existing rules
+    auto rules = config->getFileRules()->createEditableCopy();
+#endif
+    for (size_t i = 0, e = rules->getNumEntries(); i != e; ++i) {
+        DBG("  rule {}/{}: pat='{}' ext='{}' -> \"{}\"\n", i, rules->getName(i),
+            rules->getRegex(i), rules->getExtension(i),
+            rules->getColorSpace(i));
+#if 0
+        // If we wanted to doctor just the exr rule, here's how:
+        if (Strutil::iequals(rules->getExtension(i), "exr")) {
+            // Change the rule for exr extension, if it exists, to "unknown".
+            // Make no assumptions. OCIO's built-in configs think it should be
+            // ACES2065-1, which is almost never right.
+            rules->setColorSpace(i, "unknown");
+            DBG("    changed cs to \"{}\"\n", rules->getColorSpace(i));
+        } else
+#endif
+        if (!strcmp(rules->getName(i), "Default")) {
+            // Default rule or one that matches everything -- for OIIO, we
+            // just want to change this to unknown. We made decisions about
+            // default per-file-format color space decisions in the individual
+            // readers. We don't even consider file extension to be reliable
+            // evidence of the file type.
+            rules->setColorSpace(i, "unknown");
+            DBG("    changed cs to \"{}\"\n", rules->getColorSpace(i));
+        }
+    }
+
+    // But make the path search rule (look for the right-most color space name
+    // embedded in the path) have precedence over file naming rules.
+    rules->insertPathSearchRule(0);
+    config->setFileRules(rules);
+}
 
 
 
@@ -825,7 +872,10 @@ ColorConfig::Impl::init(string_view filename)
     OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
 
     try {
-        builtinconfig_ = OCIO::Config::CreateFromFile("ocio://default");
+        auto cfg = OCIO::Config::CreateFromFile("ocio://default");
+        OIIO_CONTRACT_ASSERT(cfg);
+        builtinconfig_ = cfg->createEditableCopy();
+        fix_config_file_rules(builtinconfig_);
     } catch (OCIO::Exception& e) {
         error("Error making OCIO built-in config: {}", e.what());
     }
@@ -841,10 +891,13 @@ ColorConfig::Impl::init(string_view filename)
     } else {
         // Either filename passed, or taken from $OCIO, and it seems to exist
         try {
-            config_ = OCIO::Config::CreateFromFile(
-                std::string(filename).c_str());
             configname(filename);
-            m_config_is_built_in = Strutil::istarts_with(filename, "ocio://");
+            auto cfg = OCIO::Config::CreateFromFile(
+                std::string(filename).c_str());
+            if (cfg)
+                config_ = cfg->createEditableCopy();
+            if (config_ && Strutil::istarts_with(filename, "ocio://"))
+                fix_config_file_rules(config_);
         } catch (OCIO::Exception& e) {
             error("Error reading OCIO config \"{}\": {}", filename, e.what());
         } catch (...) {
@@ -2344,33 +2397,36 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
         from = src.spec().get_string_attribute("oiio:Colorspace",
                                                "scene_linear");
     }
-    if (from.empty() || to.empty()) {
-        dst.errorfmt("Unknown color space name");
+    if (from.empty() || from == "unknown" || to.empty() || to == "unknown") {
+        dst.errorfmt("Unknown color space name (from=\"{}\", to=\"{}\")", from,
+                     to);
         return false;
     }
-    ColorProcessorHandle processor;
-    {
-        if (!colorconfig)
-            colorconfig = &ColorConfig::default_colorconfig();
-        processor
-            = colorconfig->createColorProcessor(colorconfig->resolve(from),
-                                                colorconfig->resolve(to),
-                                                context_key, context_value);
-        if (!processor) {
-            if (colorconfig->has_error())
-                dst.errorfmt("{}", colorconfig->geterror());
-            else
-                dst.errorfmt(
-                    "Could not construct the color transform {} -> {} (unknown error)",
-                    from, to);
-            return false;
-        }
+
+    if (!colorconfig)
+        colorconfig = &ColorConfig::default_colorconfig();
+
+    ColorProcessorHandle processor
+        = colorconfig->createColorProcessor(colorconfig->resolve(from),
+                                            colorconfig->resolve(to),
+                                            context_key, context_value);
+    if (!processor) {
+        if (colorconfig->has_error())
+            dst.errorfmt("{}", colorconfig->geterror());
+        else
+            dst.errorfmt(
+                "Could not construct the color transform {} -> {} (unknown error)",
+                from, to);
+        return false;
     }
 
     logtime.stop(-1);  // transition to other colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok) {
+        // Coming from a non-color space preserves the original space
         // DBG("done, setting output colorspace to {}\n", to);
+        if (colorconfig->isData(from))
+            to = from;
         dst.specmod().set_colorspace(to);
     }
     return ok;

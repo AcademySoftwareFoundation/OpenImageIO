@@ -125,11 +125,36 @@ tiles_write()
 
 
 
+void
+copy_write()
+{
+    // BEGIN-imageoutput-copy
+    // Open the input file
+    auto in = ImageInput::open("input.exr");
+
+    // Make an output spec, identical to the input except for metadata
+    ImageSpec out_spec = in->spec();
+    out_spec.attribute("ImageDescription", "My Title");
+
+    // Create the output file and copy the image
+    auto out = ImageOutput::create("output.exr");
+    out->open("output.exr", out_spec);
+    out->copy_image(in.get());
+
+    // Clean up
+    out->close();
+    in->close();
+    // END-imageoutput-copy
+}
+
+
+
 int
 main(int /*argc*/, char** /*argv*/)
 {
     simple_write();
     scanlines_write();
     tiles_write();
+    copy_write();
     return 0;
 }

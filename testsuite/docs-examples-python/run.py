@@ -19,6 +19,7 @@ command += run_app("cmake -E copy " + test_source_dir + "/../common/with_nans.ti
 command += run_app("cmake -E copy " + test_source_dir + "/../common/checker_with_alpha.exr checker_with_alpha.exr")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/unpremult.tif unpremult.tif")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/bayer.png bayer.png")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr input.exr")
 
 command += oiio_app("oiiotool") +  "--pattern fill:top=0:bottom=1 256x256 1 -o mono.exr > out.txt ;"
 

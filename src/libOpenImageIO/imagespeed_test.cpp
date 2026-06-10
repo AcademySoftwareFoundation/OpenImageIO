@@ -187,7 +187,8 @@ time_write_image()
     OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
     OIIO_ASSERT(ok);
-    out->write_image(bufspec.format, &buffer[0]);
+    ok = out->write_image(bufspec.format, &buffer[0]);
+    OIIO_CONTRACT_ASSERT(ok);
 }
 
 
@@ -202,10 +203,11 @@ time_write_scanline_at_a_time()
 
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
-    for (int y = 0; y < outspec.height; ++y) {
-        out->write_scanline(y + outspec.y, outspec.z, bufspec.format,
-                            &buffer[scanlinesize * y]);
+    for (int y = 0; y < outspec.height && ok; ++y) {
+        ok = out->write_scanline(y + outspec.y, outspec.z, bufspec.format,
+                                 &buffer[scanlinesize * y]);
     }
+    OIIO_ASSERT(ok);
 }
 
 
@@ -217,16 +219,16 @@ time_write_64_scanlines_at_a_time()
     OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
     OIIO_ASSERT(ok);
-
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
-    for (int y = 0; y < outspec.height; y += 64) {
-        out->write_scanlines(y + outspec.y,
-                             std::min(y + outspec.y + 64,
-                                      outspec.y + outspec.height),
-                             outspec.z, bufspec.format,
-                             &buffer[scanlinesize * y]);
+    for (int y = 0; y < outspec.height && ok; y += 64) {
+        ok = out->write_scanlines(y + outspec.y,
+                                  std::min(y + outspec.y + 64,
+                                           outspec.y + outspec.height),
+                                  outspec.z, bufspec.format,
+                                  &buffer[scanlinesize * y]);
     }
+    OIIO_ASSERT(ok);
 }
 
 
@@ -242,16 +244,17 @@ time_write_tile_at_a_time()
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
     imagesize_t planesize    = outspec.height * scanlinesize;
-    for (int z = 0; z < outspec.depth; z += outspec.tile_depth) {
-        for (int y = 0; y < outspec.height; y += outspec.tile_height) {
-            for (int x = 0; x < outspec.width; x += outspec.tile_width) {
-                out->write_tile(x + outspec.x, y + outspec.y, z + outspec.z,
-                                bufspec.format,
-                                &buffer[scanlinesize * y + pixelsize * x],
-                                pixelsize, scanlinesize, planesize);
+    for (int z = 0; z < outspec.depth && ok; z += outspec.tile_depth) {
+        for (int y = 0; y < outspec.height && ok; y += outspec.tile_height) {
+            for (int x = 0; x < outspec.width && ok; x += outspec.tile_width) {
+                ok = out->write_tile(x + outspec.x, y + outspec.y,
+                                     z + outspec.z, bufspec.format,
+                                     &buffer[scanlinesize * y + pixelsize * x],
+                                     pixelsize, scanlinesize, planesize);
             }
         }
     }
+    OIIO_ASSERT(ok);
 }
 
 
@@ -266,15 +269,19 @@ time_write_tiles_row_at_a_time()
 
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
-    for (int z = 0; z < outspec.depth; z += outspec.tile_depth) {
-        for (int y = 0; y < outspec.height; y += outspec.tile_height) {
-            out->write_tiles(outspec.x, outspec.x + outspec.width,
-                             y + outspec.y, y + outspec.y + outspec.tile_height,
-                             z + outspec.z, z + outspec.z + outspec.tile_depth,
-                             bufspec.format, &buffer[scanlinesize * y],
-                             pixelsize /*xstride*/, scanlinesize /*ystride*/);
+    for (int z = 0; z < outspec.depth && ok; z += outspec.tile_depth) {
+        for (int y = 0; y < outspec.height && ok; y += outspec.tile_height) {
+            ok = out->write_tiles(outspec.x, outspec.x + outspec.width,
+                                  y + outspec.y,
+                                  y + outspec.y + outspec.tile_height,
+                                  z + outspec.z,
+                                  z + outspec.z + outspec.tile_depth,
+                                  bufspec.format, &buffer[scanlinesize * y],
+                                  pixelsize /*xstride*/,
+                                  scanlinesize /*ystride*/);
         }
     }
+    OIIO_ASSERT(ok);
 }
 
 

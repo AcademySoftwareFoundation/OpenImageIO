@@ -40,88 +40,6 @@ concurrency:
 
 jobs:
 
-  aswf-old:
-    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
-    name: "(old) ${{matrix.desc}}"
-    uses: ./.github/workflows/build-steps.yml
-    with:
-      nametag: ${{ matrix.nametag || 'unnamed!' }}
-      runner: ${{ matrix.runner || 'ubuntu-latest' }}
-      container: ${{ matrix.container }}
-      container_volumes: '["/node20217:/node20217:rw,rshared", "/node20217:/__e/node20:ro,rshared]"]'
-      cc_compiler: ${{ matrix.cc_compiler }}
-      cxx_compiler: ${{ matrix.cxx_compiler }}
-      cxx_std: ${{ matrix.cxx_std || '17' }}
-      build_type: ${{ matrix.build_type || 'Release' }}
-      depcmds: ${{ matrix.depcmds }}
-      extra_artifacts: ${{ matrix.extra_artifacts }}
-      fmt_ver: ${{ matrix.fmt_ver }}
-      fmt_commit: ${{ matrix.fmt_commit }}
-      opencolorio_ver: ${{ matrix.opencolorio_ver }}
-      openexr_ver: ${{ matrix.openexr_ver }}
-      pybind11_ver: ${{ matrix.pybind11_ver }}
-      python_ver: ${{ matrix.python_ver }}
-      setenvs: ${{ matrix.setenvs }}
-      simd: ${{ matrix.simd }}
-      skip_build: ${{ matrix.skip_build }}
-      skip_tests: ${{ matrix.skip_tests }}
-      abi_check: ${{ matrix.abi_check }}
-      benchmark: ${{ matrix.benchmark }}
-      build_docs: ${{ matrix.build_docs }}
-      clang_format: ${{ matrix.clang_format }}
-      generator: ${{ matrix.generator }}
-      ctest_args: ${{ matrix.ctest_args }}
-      ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
-      coverage: ${{ matrix.coverage || 0 }}
-      sonar: ${{ matrix.sonar || 0 }}
-      old_node: ${{ matrix.old_node || 0 }}
-      # Override required_deps to be 'all' and explicitly list as optional
-      # only the ones we are intentionally not testing for those jobs.
-      required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'DCMTK;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
-      build_local_deps: ${{ matrix.build_local_deps }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - desc: VP2022 gcc9/C++17 py39 exr3.1 ocio2.3
-            nametag: linux-vfx2022
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2022-clang11
-            vfxyear: 2022
-            old_node: 1
-            cxx_std: 17
-            python_ver: 3.9
-            simd: "avx2,f16c"
-            fmt_ver: 9.0.0
-            fmt_commit: c4ee726532178e556d923372f29163bd206d7732
-            opencolorio_ver: v2.3.0
-            pybind11_ver: v2.9.0
-            setenvs: export FREETYPE_VERSION=VER-2-12-0
-                            BUILD_PNG_VERSION=1.6.30
-                            WebP_BUILD_VERSION=1.5.0
-                            WebP_GIT_COMMIT=a4d7a715337ded4451fec90ff8ce79728e04126c
-            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
-          - desc: VP2022 clang13/C++17 py39 avx2 exr3.1 ocio2.3
-            nametag: linux-vfx2022.clang13
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2022-clang13
-            vfxyear: 2022
-            old_node: 1
-            cc_compiler: clang
-            cxx_compiler: clang++
-            cxx_std: 17
-            opencolorio_ver: v2.3.2
-            pybind11_ver: v2.8.1
-            python_ver: 3.9
-            simd: "avx2,f16c"
-            fmt_ver: 9.1.0
-            fmt_commit: a33701196adfad74917046096bf5a2aa0ab0bb50
-            setenvs: export FREETYPE_VERSION=VER-2-12-0
-                            BUILD_PNG_VERSION=1.6.30
-            optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
-
-
   #
   # Linux Tests using ASWF-docker containers
   #
@@ -171,7 +89,7 @@ jobs:
           - desc: VFX2023 gcc11/C++17 py3.10 exr3.1 ocio2.3
             nametag: linux-vfx2023
             runner: ubuntu-latest
-            container: aswf/ci-osl:2023-clang15
+            container: aswf/ci-osl:2023-clang15.2
             opencolorio_ver: v2.3.0
             python_ver: "3.10"
             simd: "avx2,f16c"
