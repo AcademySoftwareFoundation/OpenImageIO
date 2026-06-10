@@ -3245,7 +3245,11 @@ action_get_thumbnail(Oiiotool& ot, cspan<const char*> argv)
     }
 
     ImageRecRef A = ot.pop();
-    ot.read(A);
+    // Reading the spec loads the thumbnail, so avoid a full pixel read.
+    if (!ot.read_nativespec(A)) {
+        ot.push(A);
+        return;
+    }
 
     auto thumb = (*A)(0, 0).get_thumbnail();
     if (!thumb || !thumb->initialized()) {
@@ -5543,6 +5547,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                                                     ot.printinfo_format);
     TypeDesc input_dataformat(fileoptions.get_string("type"));
     std::string channel_set = fileoptions["ch"];
+    bool get_thumbnail      = fileoptions.get_int("get_thumbnail", 0);
 
     for (int i = 0; i < std::ssize(argv); i++) {
         // FIXME: this loop is pointless, since there is ever only one arg
@@ -5684,6 +5689,20 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         // Everything past this point should be credited to other ops, so stop
         // the input timer.
         timer.stop();
+
+        if (get_thumbnail && !substitute) {
+            // Swap in the embedded thumbnail via the --get-thumbnail logic.
+            // Done before autoorient/autocc so they apply to the thumbnail.
+            std::string thumbcmd = "--get-thumbnail";
+            if (fileoptions.contains("fail"))
+                thumbcmd += Strutil::fmt::format(":fail={}",
+                                                 fileoptions.get_int("fail"));
+            if (fileoptions.contains("index"))
+                thumbcmd += Strutil::fmt::format(":index={}",
+                                                 fileoptions.get_int("index"));
+            const char* argv[] = { thumbcmd.c_str() };
+            action_get_thumbnail(ot, argv);
+        }
 
         if (ot.autoorient) {
             void action_reorient(Oiiotool & ot, cspan<const char*> argv);
@@ -6990,7 +7009,8 @@ Oiiotool::getargs(int argc, char* argv[])
 
     ap.separator("Commands that read images:");
     ap.arg("-i %s:FILENAME")
-      .help("Input file (options: autocc=, ch=, info=, infoformat=, native=, now=, type=, unpremult=)")
+      .help("Input file (options: autocc=, ch=, get_thumbnail=, info=, "
+            "infoformat=, native=, now=, type=, unpremult=)")
       .OTACTION(input_file);
     ap.arg("--iconfig %s:NAME %s:VALUE")
       .help("Sets input config attribute (options: type=...)")
