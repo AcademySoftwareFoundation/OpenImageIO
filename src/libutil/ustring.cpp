@@ -595,7 +595,7 @@ ustring::make_unique(string_view strref)
             std::string s = Strutil::escape_chars(strref);
             print(stderr, "IDEMPOTENT RE-HASH! |{}|\n", s);
             for (auto c : s)
-                print(stderr, c > 0 ? "{:c}" : "\\{:03o}",
+                print(stderr, fmt::runtime(c > 0 ? "{:c}" : "\\{:03o}"),
                       static_cast<unsigned char>(c));
             print(stderr, "\n");
 #    endif
