@@ -6,13 +6,10 @@
 # pystring by hand!
 ######################################################################
 
-set_cache (pystring_BUILD_VERSION 1.1.4 "pystring version for local builds")
+set_cache (pystring_BUILD_VERSION 1.2.0 "pystring version for local builds")
 set (pystring_GIT_REPOSITORY "https://github.com/imageworks/pystring")
-# See imageworks/pystring issue #43,  git commit #c5ca4f5
-# We require pystring commits made after the v1.1.4 tag to properly install headers!
-# TODO: Set this to "v${pystring_BUILD_VERSION}" once 1.1.5 is released
-set (pystring_GIT_TAG master)
-
+set (pystring_GIT_TAG "v${pystring_BUILD_VERSION}" "Git branch or tag")
+set (pystring_GIT_COMMIT "1922c8f2b48e3beb6831c27b4811b58995e986cf")
 
 set_cache (pystring_BUILD_SHARED_LIBS OFF
            DOC "Should a local pystring build, if necessary, build shared libraries" ADVANCED)
