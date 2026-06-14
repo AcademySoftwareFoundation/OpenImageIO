@@ -27,9 +27,9 @@ beyond the legal forms.
 
 ### How to Become a Contributor
 
-* Review the coding standards and [contributing
-  guidelines](../CONTRIBUTING.md) to ensure your contribution is in line with
-  the project's coding and styling guidelines.
+* Review the coding standards and [contributing guidelines](CONTRIBUTING.md)
+  to ensure your contribution is in line with the project's coding and styling
+  guidelines.
 
 * Sign the Individual CLA, or if you are employed by an organization that
   might have any claim to IP you create, have your organization sign the
@@ -79,8 +79,9 @@ request that the TSC restore them to active Committer status.
 ## Technical Steering Committee
 
 The Technical Steering Committee (TSC) has final authority over this project.
-As defined in the project charter, in addition to committer activities, TSC
-responsibilities also include, but are not limited to:
+As defined in the project [technical charter](https://github.com/AcademySoftwareFoundation/foundation/blob/main/project_charters/openimageio_charter.pdf), in
+addition to committer activities, TSC responsibilities also include, but are
+not limited to:
 
 * Coordinating technical direction of the Project.
 
@@ -130,13 +131,12 @@ represents the project at all ASWF TAC meetings.
 
 Current voting members of the TSC are:
 
-* **Chair and TAC representative**: Daniel Greenstein - Sony Pictures Imageworks (possibly interim?)
+* **Chair and TAC representative**: Daniel Greenstein - Sony Pictures Imageworks
 * **Chief Architect**: Larry Gritz - Sony Pictures Imageworks
 * Anton Dukhovnikov - Wētā Digital / Unity
 * Jesse Yurkovich - Blender
 * Joseph Goldstone - ARRI
-* Lewis Wakeland - Disney TV Animation
-* Luke Emrose - Animal Logic (interim?)
+* Luke Emrose - Animal Logic
 * Martin Davies - LAIKA
 * Robin Rowe - Heroic Robots
 * Thiago Ize - Autodesk
@@ -213,3 +213,6 @@ Due to the challenges of scheduling a global meeting with participants in
 several time zones, the TSC will seek to resolve as many agenda items as
 possible outside of meetings on the public mailing list or through GitHub
 issues, discussions, and pull requests.
+
+Meeting notes (usually very brief) can be found at: https://docs.google.com/document/d/1quSh1K5U2jUDi3cB1eX84i9Y2p7r58w1fZMXM8rnH-w/
+
