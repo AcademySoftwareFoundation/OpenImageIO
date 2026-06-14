@@ -64,10 +64,14 @@ following your instructions. Please quote the exact error message you
 received. If you are having trouble building, please post the full cmake
 output of a fresh VERBOSE=1 build.
 
-Suspected security vulnerabilities should be reported by the same process.
-
-If confidentiality precludes a public question or issue for any reason, you
-may contact us privately at [security@openimageio.org](security@openimageio.org).
+[SECURITY.md](SECURITY.md) details our security policies and lists prior security advisories. True exploitable security vulnerabilities
+that should be fixed before disclosure should be reported by filing a GitHub
+[security advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/new).
+If that is not possible, it is also fine to email your report to
+security@openimageio.org. Only the project administrators have access to these
+reports. For problems that you don't think are really exploitable
+vulnerabilities, you are encouraged to just file a regular issue, as described
+above.
 
 
 Policy on AI Tools
