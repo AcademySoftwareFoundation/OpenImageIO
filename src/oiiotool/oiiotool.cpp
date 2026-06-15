@@ -6008,8 +6008,8 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     }
     bool supports_displaywindow  = out->supports("displaywindow");
     bool supports_negativeorigin = out->supports("negativeorigin");
-    bool supports_tiles = out->supports("tiles") || ot.output_force_tiles;
-    bool procedural     = out->supports("procedural");
+    bool supports_tiles     = out->supports("tiles") || ot.output_force_tiles;
+    bool procedural         = out->supports("procedural");
     bool supports_thumbnail = out->supports("thumbnail");
     if (!ot.read()) {
         return;

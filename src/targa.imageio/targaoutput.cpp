@@ -688,7 +688,7 @@ TGAOutput::set_thumbnail(const ImageBuf& thumb)
         return false;
     }
     // TARGA thumbnails must be UINT8, and each dimension is stored in a single
-    // byte, so the maximum size is 255 (256 would truncate to 0 and the reader 
+    // byte, so the maximum size is 255 (256 would truncate to 0 and the reader
     // would treat the thumbnail as absent).
     if (thumb.spec().width >= 256 || thumb.spec().height >= 256) {
         // Resize to fit within 255 while preserving aspect ratio.

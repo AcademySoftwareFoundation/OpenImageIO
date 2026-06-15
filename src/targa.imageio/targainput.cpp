@@ -700,7 +700,7 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
         if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha
             && m_alpha_type != TGA_ALPHA_PREMULTIPLIED) {
             bool alpha0_everywhere = (m_tga_version == 1);
-            int64_t size        = thumbspec.image_pixels();
+            int64_t size           = thumbspec.image_pixels();
             unsigned char* tpx     = (unsigned char*)thumb.localpixels();
             for (int64_t i = 0; i < size; ++i)
                 if (tpx[i * thumbspec.nchannels + m_spec.alpha_channel]) {

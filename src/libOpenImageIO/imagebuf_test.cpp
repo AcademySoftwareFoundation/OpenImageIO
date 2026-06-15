@@ -583,8 +583,7 @@ test_thumbnail_tga()
         auto rt = in.get_thumbnail();
         OIIO_CHECK_ASSERT(rt && rt->initialized());
         OIIO_CHECK_EQUAL(
-            ImageBufAlgo::compare(*rt, rgba_thumb, 0.005f, 0.005f).nfail,
-            0);
+            ImageBufAlgo::compare(*rt, rgba_thumb, 0.005f, 0.005f).nfail, 0);
     }
 
     for (const char* f :
