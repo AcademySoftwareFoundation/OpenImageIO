@@ -1,3 +1,10 @@
+Release 3.1.14.1 (Jun 14, 2026) -- compared to 3.1.14.0
+---------------------------------------------------------
+  - *build*: Fix build break when auto-build pystring is needed, after it updated to v1.2.0. [#5235](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5235)
+  - *admin*: Clarify security policy to explain what qualifies as a vulnerability. [#5232](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5232)
+  - *admin*: Misc administrative docs fixups. [#5233](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5233)
+
+
 Release 3.1.14.0 (Jun 1, 2026) -- compared to 3.1.13.1
 ---------------------------------------------------------
   - *oiiotool*: Add `--nchannels` flag for parity with maketx. [#5198](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5198) (by Danny Greenstein)
@@ -525,6 +532,26 @@ asterisk) had not previously contributed to the project.
 
 ---
 ---
+
+
+Release 3.0.19.1 (Jun 14, 2026) -- compared to 3.0.19.0
+---------------------------------------------------------
+  - *build*: Fix build break when auto-build pystring is needed, after it updated to v1.2.0 [#5235](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5235)
+  - *admin*: Clarify security policy to explain what qualifies as a vulnerability [#5232](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5232)
+
+
+Release 3.0.19.0 (Jun 1, 2026) -- compared to 3.0.18.1
+---------------------------------------------------------
+  - *pnm,jxl*: Prevent PNM/JXL readers from loading, or doing allocations for, arbitrarily large non-image files [#5203](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5203) (by Maxwell Iverson)
+  - *dicom*: Enforce reasonable resolution limits to guard against corrupt file [#5167](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5167)
+  - *build*: Test building with clang 22.1, fix warnings uncovered [#5067](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5067)
+  - *ci*: Fix broken CI by locking down aswf container for 2023 [#5200](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5200)
+  - *tests*: New ref image for libheif 1.22 [#5212](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5212)
+
+
+Release 3.0.18.1 (May 3, 2026) -- compared to 3.0.18.0
+---------------------------------------------------------
+  - *dpx*: Several safety fixes for corrupt DPX files: integer overflow protection in buffer size calculations, span-based pointer safety, and use of check_open() for resolution/channel validation [#5170](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5170)
 
 
 Release 3.0.18.0 (May 1, 2026) -- compared to 3.0.17.0

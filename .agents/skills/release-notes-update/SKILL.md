@@ -26,9 +26,14 @@ Arguments: `$ARGUMENTS`
    ```
    Read `/tmp/cliff-out.md` to see the raw output.
 
-3. **Read CHANGES.md** to see the current top of the file and understand where to insert.
+3. Look up the GitHub user ID's for each author, which should be discernable
+   from the posted PRs (but not from the local commits), and change the git
+   cliff output that lists the author's name as `(by First Last)` to `(by
+   githubid / First Last)`.
 
-4. **Format the release notes** according to the release type:
+4. **Read CHANGES.md** to see the current top of the file and understand where to insert.
+
+5. **Format the release notes** according to the release type:
 
 ### For patch releases:
 
