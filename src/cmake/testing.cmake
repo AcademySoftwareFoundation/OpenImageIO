@@ -183,7 +183,7 @@ macro (oiio_add_all_tests)
                     oiiotool-readerror
                     oiiotool-subimage
                     oiiotool-text
-                    oiiotool-thumbnail
+                    oiiotool-get-thumbnail
                     oiiotool-xform
                     diff
                     flip
@@ -450,6 +450,8 @@ macro (oiio_add_all_tests)
                     ENABLEVAR ENABLE_TARGA
                     IMAGEDIR oiio-images)
     endif()
+    oiio_add_tests (oiiotool-set-thumbnail
+                    ENABLEVAR ENABLE_TARGA)
     if (WIN32)
         if (OIIO_BUILD_TOOLS)
             # Add test for long path handling if support is enabled at the system level.

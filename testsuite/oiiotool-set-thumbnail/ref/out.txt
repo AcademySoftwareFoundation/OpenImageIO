@@ -1,0 +1,33 @@
+after set-thumbnail: 512x384
+Reading out.tga
+out.tga              :  512 x  384, 3 channel, uint8 targa
+    SHA-1: 55B55C41EB65BF7B741671DBFFA29CA970D4877C
+    channel list: R, G, B
+    compression: "rle"
+    thumbnail_height: 38
+    thumbnail_nchannels: 3
+    thumbnail_width: 50
+    oiio:BitsPerSample: 8
+    targa:version: 2
+Computing diff of "thumb.tif" vs "resize"
+PASS
+Reading no_thumb.tif
+no_thumb.tif         :  512 x  384, 3 channel, uint8 tiff
+    channel list: R, G, B
+    compression: "lzw"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    XResolution: 72
+    YResolution: 72
+    oiio:BitsPerSample: 8
+    tiff:Compression: 5
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
+oiiotool ERROR: --set-thumbnail : Thumbnail image "" is empty
+Full command line was:
+> oiiotool ../common/tahoe-small.tif --dup --get-thumbnail:fail=0 --set-thumbnail
+oiiotool WARNING: --set-thumbnail : pending command never executed
+oiiotool WARNING : oiiotool produced no output. Did you forget -o?

@@ -2382,6 +2382,19 @@ current top image.
         # guard the output so only real thumbnails are written
         oiiotool input.psd --get-thumbnail:fail=0 --if "{TOP.width}" -o thumb.jpg --endif
 
+.. option:: --set-thumbnail
+
+    Remove the top image from the stack and attach it as the thumbnail of the
+    image now on top (stored on the first subimage). The thumbnail may be
+    prepared beforehand with the usual image operations. It is written out only
+    if the output format supports embedded thumbnails, and may be resized or
+    otherwise adjusted to satisfy that format's restrictions.
+
+    Examples::
+
+        # Attach a 128x128 box-filtered copy of the image as its thumbnail
+        oiiotool input.exr --dup --resize:filter=box 128x128 --set-thumbnail -o out_with_thumb.tga
+
 .. option:: --sisplit
 
     Remove the top image from the stack, split it into its constituent
