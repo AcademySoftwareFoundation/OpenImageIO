@@ -6,12 +6,16 @@
 #define OIIO_FMT_H
 
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/type_traits.h>
 
-// We want the header-only implementation of fmt
-#ifndef FMT_HEADER_ONLY
-#    define FMT_HEADER_ONLY
+// By default OIIO uses the header-only implementation of fmt. Builds that opt
+// into compiled external fmt must use the same mode in OIIO and consumers.
+#if !OIIO_USE_COMPILED_FMT
+#    ifndef FMT_HEADER_ONLY
+#        define FMT_HEADER_ONLY
+#    endif
 #endif
 
 #if OIIO_VERSION_LESS(3, 1, 2)
