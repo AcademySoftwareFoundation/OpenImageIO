@@ -34,20 +34,16 @@ body = """
     | filter(attribute="scope")
     | sort(attribute="scope") %}
         {% raw %}  {% endraw %}- *{{commit.scope}}*:{% if commit.breaking %} [**breaking**]{% endif %} \
-            {{ commit.message | upper_first | split(pat="\n") | nth(n=0) }}\
-            {% if commit.author.name != 'Larry Gritz' %} \
-            (by {{ commit.author.name }})\
-            {% endif %}
+            {{ commit.message | upper_first | split(pat="\n") | nth(n=0) }} \
+            (by {{ commit.author.name }})
     {%- endfor -%}
     {% raw %}\n{% endraw %}\
     {%- for commit in commits %}
         {%- if commit.scope -%}
         {% else -%}
             {% raw %}  {% endraw %}- *(uncategorized)*:{% if commit.breaking %} [**breaking**]{% endif %} \
-                {{ commit.message | upper_first | split(pat="\n") | nth(n=0) }}\
-                {% if commit.author.name != 'Larry Gritz' %} \
-                (by {{ commit.author.name }})\
-                {% endif %}
+                {{ commit.message | upper_first | split(pat="\n") | nth(n=0) }} \
+                (by {{ commit.author.name }})
         {% endif -%}
     {% endfor -%}
 {% endfor %}\n

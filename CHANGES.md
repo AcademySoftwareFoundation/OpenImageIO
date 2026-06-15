@@ -1,3 +1,9 @@
+Release 3.0.19.1 (Jun 14, 2026) -- compared to 3.0.19.0
+---------------------------------------------------------
+  - *build*: Fix build break when auto-build pystring is needed, after it updated to v1.2.0 [#5235](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5235)
+  - *admin*: Clarify security policy to explain what qualifies as a vulnerability [#5232](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5232)
+
+
 Release 3.0.19.0 (Jun 1, 2026) -- compared to 3.0.18.1
 ---------------------------------------------------------
   - *pnm,jxl*: Prevent PNM/JXL readers from loading, or doing allocations for, arbitrarily large non-image files [#5203](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5203) (by Maxwell Iverson)
