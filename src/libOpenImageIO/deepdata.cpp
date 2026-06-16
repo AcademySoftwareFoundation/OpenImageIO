@@ -971,7 +971,7 @@ DeepData::split(int64_t pixel, float depth)
         float zb = deep_value(pixel, zbackchan, s);  // z back
         if (zf < depth && zb > depth) {
             // The sample spans depth, so split it.
-            // See http://www.openexr.com/InterpretingDeepPixels.pdf
+            // See https://openexr.com/en/latest/InterpretingDeepPixels.html
             splits_occurred = true;
             insert_samples(pixel, s + 1);
             copy_deep_sample(pixel, s + 1, *this, pixel, s);
@@ -1114,7 +1114,7 @@ DeepData::merge_overlaps(int64_t pixel)
         if (zf == deep_value(pixel, zchan, s - 1)
             && zb == deep_value(pixel, zbackchan, s - 1)) {
             // The samples overlap exactly, merge them per
-            // See http://www.openexr.com/InterpretingDeepPixels.pdf
+            // See https://openexr.com/en/latest/InterpretingDeepPixels.html
             for (int c = 0; c < nchans; ++c) {  // set the colors
                 int alphachan = m_impl->m_myalphachannel[c];
                 if (alphachan < 0)
