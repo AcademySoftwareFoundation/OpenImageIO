@@ -56,6 +56,11 @@ OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_CLANG_VERSION >= 180000
 #    pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
+#if OIIO_APPLE_CLANG_VERSION >= 210000
+#    pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#    pragma clang diagnostic ignored "-Wformat-nonliteral"
+#    pragma clang diagnostic ignored "-Wdeprecated-literal-operator"
+#endif
 
 #include <OpenImageIO/detail/fmt/format.h>
 #include <OpenImageIO/detail/fmt/ostream.h>
