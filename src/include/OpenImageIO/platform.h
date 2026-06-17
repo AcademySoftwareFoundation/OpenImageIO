@@ -174,8 +174,10 @@
 // See https://en.cppreference.com/w/cpp/compiler_support
 //
 // OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (14, 17, ...)
-// OIIO_CONSTEXPR17 :
-// OIIO_CONSTEXPR20 : constexpr for C++ >= the designated version, otherwise
+// OIIO_CONSTEXPR17 : depreated, always `constexpr`
+// OIIO_CONSTEXPR20 :
+// OIIO_CONSTEXPR23 :
+// OIIO_CONSTEXPR26 : constexpr for C++ >= the designated version, otherwise
 //                    nothing (this is useful for things that can only be
 //                    constexpr for particular versions or greater).
 //
@@ -187,18 +189,26 @@
 // package is compiling against OIIO and using these headers (OIIO may be
 // C++17 but the client package may be newer, or vice versa -- use these two
 // symbols to differentiate these cases, when important).
-#if (__cplusplus >= 202302L)
+#if (__cplusplus >= 202603L)
+#    define OIIO_CPLUSPLUS_VERSION 26
+#    define OIIO_CONSTEXPR20 constexpr
+#    define OIIO_CONSTEXPR23 constexpr
+#    define OIIO_CONSTEXPR26 constexpr
+#elif (__cplusplus >= 202302L)
 #    define OIIO_CPLUSPLUS_VERSION 23
 #    define OIIO_CONSTEXPR20 constexpr
 #    define OIIO_CONSTEXPR23 constexpr
+#    define OIIO_CONSTEXPR26 /* not constexpr before C++26 */
 #elif (__cplusplus >= 202001L)
 #    define OIIO_CPLUSPLUS_VERSION 20
 #    define OIIO_CONSTEXPR20 constexpr
 #    define OIIO_CONSTEXPR23 /* not constexpr before C++23 */
+#    define OIIO_CONSTEXPR26 /* not constexpr before C++26 */
 #elif (__cplusplus >= 201703L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
 #    define OIIO_CPLUSPLUS_VERSION 17
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
 #    define OIIO_CONSTEXPR23 /* not constexpr before C++23 */
+#    define OIIO_CONSTEXPR26 /* not constexpr before C++26 */
 #else
 #    error "This version of OIIO is meant to work only with C++17 and above"
 #endif
