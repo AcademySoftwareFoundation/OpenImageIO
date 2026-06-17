@@ -134,6 +134,8 @@ def test_sample_sort () :
             dd.set_deep_value (p, 3, s, 0.5)   # A
             dd.set_deep_value (p, 4, s, 20.0 - s)  # Z: decreasing!
             dd.set_deep_value (p, 5, s, 20.0 - s + 0.5)  # Zback
+        # Make sample 0's Z tie with sample 1's so that sort falls back to Zback
+        dd.set_deep_value (p, 4, 0, 19)     # sample 0, Z=19 (was 20)
     print_deep_image (dd, "Before z sort,")
     dd.sort (1)
     print_deep_image (dd, "After z sort of pixel 1,")
