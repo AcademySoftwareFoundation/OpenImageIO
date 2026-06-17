@@ -402,7 +402,8 @@ ImageBufAlgo::deep_holdout(ImageBuf& dst, const ImageBuf& src,
         if (srcpixel < 0)
             continue;  // Nothing in this pixel
         int dstpixel = dst.pixelindex(x, y, z, true);
-        dstdd.copy_deep_pixel(dstpixel, srcdd, srcpixel);
+        bool ok      = dstdd.copy_deep_pixel(dstpixel, srcdd, srcpixel);
+        OIIO_CONTRACT_ASSERT(ok);
         int threshpixel = thresh.pixelindex(x, y, z, true);
         if (threshpixel < 0)
             continue;  // No threshold mask for this pixel
