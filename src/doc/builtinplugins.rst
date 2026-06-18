@@ -2333,7 +2333,11 @@ options are supported:
        initialization. This populates the image attributes which depend on the
        pixel values.
        (Default: 0)
-
+   * - ``raw:bad_pixels``
+     - string
+     - A path to a file containing the list of bad pixels in libraw format:
+       a plain text where each line describes a single bad pixel using three
+       numbers separated by whitespace for the column, row and UNIX timestamp.
 |
 
 .. _sec-bundledplugins-rla:
