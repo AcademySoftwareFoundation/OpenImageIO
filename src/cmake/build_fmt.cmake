@@ -20,7 +20,7 @@ build_dependency_with_cmake(fmt
     GIT_COMMIT      ${fmt_GIT_COMMIT}
     CMAKE_ARGS
         # -D CMAKE_INSTALL_LIBDIR=lib
-        # Don't built unnecessary parts of fmt
+        # Don't build unnecessary parts of fmt
         -D FMT_DOC=OFF
         -D FMT_TEST=OFF
     )
