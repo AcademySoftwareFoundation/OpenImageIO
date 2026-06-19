@@ -107,8 +107,8 @@ checked_find_package (JXL
 # allow this to be overridden to use the distro-provided package if desired.
 option (USE_EXTERNAL_PUGIXML "Use an externally built shared library version of the pugixml library" OFF)
 if (USE_EXTERNAL_PUGIXML)
-    checked_find_package (pugixml REQUIRED
-                          VERSION_MIN 1.8
+    checked_find_package (pugixml CONFIG REQUIRED
+                          VERSION_MIN 1.11
                           DEFINITIONS USE_EXTERNAL_PUGIXML=1)
 else ()
     message (STATUS "Using internal PugiXML")
