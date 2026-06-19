@@ -80,7 +80,7 @@ jobs:
       # Override required_deps to be 'all' and explicitly list as optional
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'DCMTK;FFmpeg;JXL;Libheif;Nuke;OpenCV;openjph;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
+      optional_deps: ${{ matrix.optional_deps || 'DCMTK;FFmpeg;JXL;Libheif;Nuke;OpenCV;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
       build_local_deps: ${{ matrix.build_local_deps }}
     strategy:
       fail-fast: false
@@ -123,6 +123,8 @@ jobs:
             fmt_commit: f5e54359df4c26b6230fc61d38aa294581393084
             pybind11_ver: v2.12.0
             setenvs: export PUGIXML_VERSION=v1.14
+                            openjph_CMAKE_C_COMPILER=gcc
+                            openjph_CMAKE_CXX_COMPILER=g++
             optional_deps_append: "LibRaw"
           - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025
@@ -136,7 +138,7 @@ jobs:
             pybind11_ver: v2.13.6
             benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.15
-            optional_deps_append: "openjph;Qt6"
+            optional_deps_append: "Qt6"
           - desc: VFX2025 Debug gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025-debug
             runner: ubuntu-latest
@@ -150,7 +152,7 @@ jobs:
             fmt_commit: 40626af88bd7df9a5fb80be7b25ac85b122d6c21
             pybind11_ver: v2.13.6
             setenvs: export PUGIXML_VERSION=v1.15
-            optional_deps_append: "openjph;Qt6"
+            optional_deps_append: "Qt6"
           # - desc: VFX2025 Static gcc11/C++17 py3.11 exr3.3 ocio2.4
           #   nametag: linux-vfx2025-static
           #   runner: ubuntu-latest
@@ -163,7 +165,7 @@ jobs:
           #   benchmark: 1
           #   setenvs: export PUGIXML_VERSION=v1.15
           #                   BUILD_SHARED_LIBS=OFF
-          #   optional_deps_append: "openjph;Qt6"
+          #   optional_deps_append: "Qt6"
           - desc: VFX2025 icx/C++17 py3.11 exr3.3 ocio2.4 qt5.15
             nametag: linux-vfx2025.icx
             runner: ubuntu-latest
@@ -179,8 +181,10 @@ jobs:
             setenvs: export USE_OPENVDB=0 USE_OPENCV=0
                             UHDR_CMAKE_C_COMPILER=gcc
                             UHDR_CMAKE_CXX_COMPILER=g++
+                            openjph_CMAKE_C_COMPILER=gcc
+                            openjph_CMAKE_CXX_COMPILER=g++
             # Building libuhdr with icx results in test failures
-            optional_deps_append: "LibRaw;Ptex;openjph;Qt6"
+            optional_deps_append: "LibRaw;Ptex;Qt6"
           - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2026
             runner: ubuntu-latest
@@ -226,7 +230,7 @@ jobs:
             abi_check: d4c8024633dba8bb3c01d22b65ce9bc7a1ae215e
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
-            optional_deps_append: "openjph;Qt6"
+            optional_deps_append: "Qt6"
 
 
   #
@@ -271,7 +275,7 @@ jobs:
       # Override required_deps to be 'all' and explicitly list as optional
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;JXL;Nuke;OpenGL;openjph;OpenVDB;Ptex;pystring;Qt5;R3DSDK;Libheif;' }}${{matrix.optional_deps_append}}
+      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;JXL;Nuke;OpenGL;OpenVDB;Ptex;pystring;Qt5;R3DSDK;Libheif;' }}${{matrix.optional_deps_append}}
       build_local_deps: ${{ matrix.build_local_deps }}
       oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || '' }}
     strategy:
@@ -365,7 +369,7 @@ jobs:
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
             required_deps: all
-            optional_deps: 'CUDAToolkit;DCMTK;JXL;libuhdr;Nuke;OpenCV;OpenGL;openjph;R3DSDK;'
+            optional_deps: 'CUDAToolkit;DCMTK;JXL;libuhdr;Nuke;OpenCV;OpenGL;R3DSDK;'
           - desc: all local builds gcc12 C++17 avx2 exr3.2 ocio2.3
             nametag: linux-local-builds
             runner: ubuntu-22.04
@@ -395,6 +399,8 @@ jobs:
             python_ver: "3.12"
             simd: avx2,f16c
             setenvs: export USE_OPENVDB=0
+                            openjph_CMAKE_C_COMPILER=gcc
+                            openjph_CMAKE_CXX_COMPILER=g++
           - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.4 ocio2.4
             nametag: linux-arm-latest-releases
             runner: ubuntu-24.04-arm
@@ -483,19 +489,21 @@ jobs:
             python_ver: "3.9"
             python_action_ver: "3.9"
             llvm_action_ver: "11"
-            setenvs: export  CMAKE_VERSION=3.18.2
-                             PTEX_VERSION=v2.3.2
-                             WEBP_VERSION=v1.1.0
-                             PUGIXML_VERSION=v1.8
-                             BUILD_PNG_VERSION=1.6.0
-                             PIP_SUFFIX=.9
-                             PIP_INSTALLS=numpy
-                             OIIO_CC=clang
-                             OIIO_CXX=clang++
-                             Robinmap_BUILD_VERSION=1.2.0
-                             Robinmap_GIT_COMMIT=68ff7325b3898fca267a103bad5c509e8861144d
-                             TIFF_BUILD_VERSION=4.0.0
-                             TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
+            setenvs: export CMAKE_VERSION=3.18.2
+                            PTEX_VERSION=v2.3.2
+                            WEBP_VERSION=v1.1.0
+                            PUGIXML_VERSION=v1.8
+                            BUILD_PNG_VERSION=1.6.0
+                            PIP_SUFFIX=.9
+                            PIP_INSTALLS=numpy
+                            OIIO_CC=clang
+                            OIIO_CXX=clang++
+                            Robinmap_BUILD_VERSION=1.2.0
+                            Robinmap_GIT_COMMIT=68ff7325b3898fca267a103bad5c509e8861144d
+                            TIFF_BUILD_VERSION=4.0.0
+                            TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
+                            openjph_CMAKE_C_COMPILER=gcc
+                            openjph_CMAKE_CXX_COMPILER=g++
                             #  OpenJPEG_BUILD_VERSION=2.2.0
                             #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
             optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
@@ -663,7 +671,7 @@ jobs:
       # built. But we would like to add more dependencies and reduce this list
       # of exceptions in the future.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;openjph;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
+      optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
       build_local_deps: ${{ matrix.build_local_deps }}
       oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || '' }}
     strategy:

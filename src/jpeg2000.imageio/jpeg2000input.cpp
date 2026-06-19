@@ -396,7 +396,11 @@ Jpeg2000Input::ojph_read_image()
         = clamped_mult64(clamped_mult64(uint64_t(w), uint64_t(h)),
                          clamped_mult64(uint64_t(ch), uint64_t(buffer_bpp)));
     m_buf.resize(bufsize);
-    codestream.create();
+    try {
+        codestream.create();
+    } catch (const std::runtime_error& e) {
+        errorfmt("openjph exception {}", e.what());
+    }
 
     int file_bit_depth = siz.get_bit_depth(0);  // Assuming RGBA are the same.
 
@@ -406,7 +410,13 @@ Jpeg2000Input::ojph_read_image()
         for (int c = 0; c < ch; ++c)
             for (int i = 0; i < h; ++i) {
                 ojph::ui32 comp_num;
-                ojph::line_buf* line = codestream.pull(comp_num);
+                ojph::line_buf* line = nullptr;
+                try {
+                    line = codestream.pull(comp_num);
+                } catch (const std::runtime_error& e) {
+                    errorfmt("openjph exception {}", e.what());
+                }
+
                 const ojph::si32* sp = line->i32;
                 OIIO_DASSERT(int(comp_num) == c);
                 if (m_spec.format == TypeDesc::UCHAR) {
@@ -430,7 +440,13 @@ Jpeg2000Input::ojph_read_image()
         for (int i = 0; i < h; ++i) {
             for (int c = 0; c < ch; ++c) {
                 ojph::ui32 comp_num;
-                ojph::line_buf* line = codestream.pull(comp_num);
+                ojph::line_buf* line = nullptr;
+                try {
+                    line = codestream.pull(comp_num);
+                } catch (const std::runtime_error& e) {
+                    errorfmt("openjph exception {}", e.what());
+                }
+
                 const ojph::si32* sp = line->i32;
                 OIIO_DASSERT(int(comp_num) == c);
                 if (m_spec.format == TypeDesc::UCHAR) {
