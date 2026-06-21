@@ -4,6 +4,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+# save the error output
+redirect = " >> out.txt 2>&1 "
+
+
 # ../fits-image/pg93:
 # tst0001.fits to tst0014.fits
 imagedir = OIIO_TESTSUITE_IMAGEDIR + "/pg93"
@@ -20,3 +24,9 @@ files = [ "file001.fits", "file002.fits", "file003.fits",
           "file009.fits", "file012.fits" ]
 for f in files :
     command += rw_command (imagedir, f)
+
+
+# Regression tests for broken files
+command += info_command ("src/broken_no_END.fits", verbose=False, failureok=True)
+
+outputs = [ "out.txt" ]

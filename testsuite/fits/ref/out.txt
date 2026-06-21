@@ -712,3 +712,6 @@ AIPS   CLEAN NITER= 12000 PRODUCT=1"
     oiio:subimages: 1
 Comparing "../fits-images/ftt4b/file012.fits" and "file012.fits"
 PASS
+oiiotool ERROR: read : "src/broken_no_END.fits": Hit end of file unexpectedly (offset=5760)
+Full command line was:
+> oiiotool --info --hash src/broken_no_END.fits
