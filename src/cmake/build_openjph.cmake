@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-set_cache (openjph_BUILD_VERSION 0.28.1 "openjph version for local builds")
+set_cache (openjph_BUILD_VERSION 0.30.1 "openjph version for local builds")
 set (openjph_GIT_REPOSITORY "https://github.com/aous72/OpenJPH.git")
 set (openjph_GIT_TAG "${openjph_BUILD_VERSION}")
-set_cache (openjph_GIT_COMMIT "96996b055c39a6165ce5bc036d5ea77e24951008"
+set_cache (openjph_GIT_COMMIT "1ce857c7f14dd78dd8f4bdfabe43dc17f8408a42"
            "commit hash to verify tag against")
 set_cache (openjph_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local openjph build, if necessary, build shared libraries" ADVANCED)

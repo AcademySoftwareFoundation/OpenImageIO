@@ -11,7 +11,7 @@ set -ex
 
 # Repo and branch/tag/commit of openjph to download if we don't have it yet
 OPENJPH_REPO=${OPENJPH_REPO:=https://github.com/aous72/OpenJPH.git}
-OPENJPH_VERSION=${OPENJPH_VERSION:=0.28.1}
+OPENJPH_VERSION=${OPENJPH_VERSION:=0.30.1}
 
 # Where to put openjph repo source (default to the ext area)
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
