@@ -8,3 +8,7 @@ command += oiiotool (OIIO_TESTSUITE_IMAGEDIR+"/grid.tif --scanline -o gridscanli
 command += diff_command (OIIO_TESTSUITE_IMAGEDIR+"/grid.tif", "gridscanline.iff")
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR+"/grid.tif --tile 64 64 -o gridtile.iff")
 command += diff_command (OIIO_TESTSUITE_IMAGEDIR+"/grid.tif", "gridtile.iff")
+
+# Regression test: verify reading of 16 bit rgba + float z (used to have a
+# buffer overrun)
+command += info_command("src//tiny_rgba16z.iff", hash=True)
