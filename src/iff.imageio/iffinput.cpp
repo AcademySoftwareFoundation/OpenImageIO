@@ -814,10 +814,6 @@ IffInput::readimg()
                                           + (py * m_header.width + xmin)
                                                 * m_header.pixel_bytes();
 
-                        std::vector<uint16_t> scanline(tw
-                                                       * m_header.rgba_count);
-                        span<uint16_t> sl_span(scanline);
-
                         int sx = 0;
                         for (uint16_t px = xmin; px <= xmax; ++px, ++sx) {
                             size_t offset = (sy * tw + sx)
@@ -834,6 +830,9 @@ IffInput::readimg()
                                 = input.subspan(offset,
                                                 m_header.rgba_channels_bytes());
 
+                            uint8_t* out_p = out_dy
+                                             + sx * m_header.pixel_bytes();
+
                             for (int c = m_header.rgba_count - 1; c >= 0; --c) {
                                 uint16_t pixel;
                                 memcpy(&pixel, pixel_in.data() + c * 2, 2);
@@ -842,20 +841,10 @@ IffInput::readimg()
                                     swap_endian(&pixel);
                                 }
 
-                                if (sl_span.empty()) {
-                                    errorfmt(
-                                        "scanline span overflow at ({}, {})",
-                                        px, py);
-                                    return false;
-                                }
-
-                                sl_span.front() = pixel;
-                                sl_span         = sl_span.subspan(1);
+                                memcpy(out_p, &pixel, sizeof(pixel));
+                                out_p += sizeof(pixel);
                             }
                         }
-
-                        memcpy(out_dy, scanline.data(),
-                               tw * m_header.pixel_bytes());
                     }
                 }
             } else {
