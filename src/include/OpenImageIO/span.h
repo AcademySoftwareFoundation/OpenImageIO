@@ -154,40 +154,51 @@ public:
     /// Assignment copies the pointer and length, not the data.
     constexpr span& operator= (const span &copy) = default;
 
-    /// Subspan containing the first Count elements of the span.
+    /// Subspan containing the first Count elements of the span. The count
+    /// must be be no more than the current size.
     template<size_type Count>
     constexpr span<element_type, Count> first () const {
+        OIIO_CONTRACT_ASSERT(Count <= m_size);
         return { m_data, Count };
     }
-    /// Subspan containing the last Count elements of the span.
+    /// Subspan containing the last Count elements of the span. The count must
+    /// be be no more than the current size.
     template<size_type Count>
     constexpr span<element_type, Count> last () const {
+        OIIO_CONTRACT_ASSERT(Count <= m_size);
         return { m_data + m_size - Count, Count };
     }
 
     /// Subspan starting at templated Offset and containing Count elements.
+    /// The requested subspan must lie within the current range of the span.
     template<size_type Offset, size_type Count = dynamic_extent>
     constexpr span<element_type, Count> subspan () const {
+        OIIO_CONTRACT_ASSERT(Offset <= m_size && (Count == dynamic_extent
+                                                  || Count <= m_size - Offset));
         return { m_data + Offset, Count != dynamic_extent ? Count : (Extent != dynamic_extent ? Extent - Offset : m_size - Offset) };
     }
 
-    /// Subspan containing just the first `count` elements. The count will be
-    /// clamped to be no more than the current size.
+    /// Subspan containing just the first `count` elements. The count must be
+    /// no more than the current size.
     constexpr span<element_type, dynamic_extent> first (size_type count) const {
+        OIIO_CONTRACT_ASSERT(count <= m_size);
         return { m_data, std::min(count, m_size) };
     }
 
-    /// Subspan containing just the last `count` elements. The count will be
-    /// clamped to be no more than the current size.
+    /// Subspan containing just the last `count` elements. The count must be
+    /// be no more than the current size.
     constexpr span<element_type, dynamic_extent> last (size_type count) const {
+        OIIO_CONTRACT_ASSERT(count <= m_size);
         count = std::min(count, m_size);
         return { m_data + ( m_size - count ), count };
     }
 
-    /// Subspan starting at offset and containing count elements. The range
-    /// requested will be clamped to the current size of the span.
+    /// Subspan starting at offset and containing count elements. The
+    /// requested subspan must lie within the current range of the span.
     constexpr span<element_type, dynamic_extent>
     subspan (size_type offset, size_type count = dynamic_extent) const {
+        OIIO_CONTRACT_ASSERT(offset <= m_size && (count == dynamic_extent
+                                                  || count <= m_size - offset));
         offset = std::min(offset, m_size);
         count = std::min(count, m_size - offset);
         return { m_data + offset, count };

@@ -243,11 +243,21 @@ checked_find_package (Robinmap REQUIRED
 
 # fmtlib
 set_option (OIIO_INTERNALIZE_FMT "Copy fmt headers into <install>/include/OpenImageIO/detail/fmt" ON)
+set_option (OIIO_USE_COMPILED_FMT "Link against compiled fmt::fmt instead of header-only fmt" OFF)
+if (OIIO_USE_COMPILED_FMT)
+    set (OIIO_USE_COMPILED_FMT_VALUE 1)
+else ()
+    set (OIIO_USE_COMPILED_FMT_VALUE 0)
+endif ()
 checked_find_package (fmt REQUIRED
                       VERSION_MIN 9.0
                       BUILD_LOCAL missing
                      )
-get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
+if (OIIO_USE_COMPILED_FMT)
+    get_target_property(FMT_INCLUDE_DIR fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
+else ()
+    get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
+endif ()
 
 # Ktx for KTX textures
 # Note for KTX developers: set VERSION_MIN to 0.0.0 if you have a locally-built

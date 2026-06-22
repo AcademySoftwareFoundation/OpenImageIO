@@ -53,7 +53,11 @@ extern atomic_ll IB_local_mem_current;
 extern atomic_ll IB_local_mem_peak;
 extern std::atomic<float> IB_total_open_time;
 extern std::atomic<float> IB_total_image_read_time;
-extern OIIO_UTIL_API int oiio_use_tbb;  // This lives in libOpenImageIO_Util
+
+// These live in libOpenImageIO_Util
+extern OIIO_UTIL_API int oiio_use_tbb;
+extern OIIO_UTIL_API int oiio_ustring_cleanup;
+
 OIIO_API const std::vector<std::string>&
 font_dirs();
 OIIO_API const std::vector<std::string>&

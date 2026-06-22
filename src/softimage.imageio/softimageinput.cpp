@@ -368,6 +368,9 @@ SoftimageInput::read_pixels_pure_run_length(
     size_t pixelChannelSize = curPacket.size / 8;
     // We're going to need to use the channels more than once
     std::vector<int> channels = curPacket.channels();
+    // Allocate space for a pixel to read into
+    size_t pixelSize   = pixelChannelSize * channels.size();
+    uint8_t* pixelData = OIIO_ALLOCA(uint8_t, pixelSize);
     // Read the pixels until we've read them all
     while (linePixelCount < m_pic_header.width) {
         // Read the repeats for the run length - return false if read fails
@@ -386,8 +389,6 @@ SoftimageInput::read_pixels_pure_run_length(
 
         if (data) {
             // data pointer is set so we're supposed to write data there
-            size_t pixelSize   = pixelChannelSize * channels.size();
-            uint8_t* pixelData = new uint8_t[pixelSize];
             if (fread(pixelData, 1, pixelSize, m_fd) != pixelSize)
                 return false;
 
@@ -412,7 +413,6 @@ SoftimageInput::read_pixels_pure_run_length(
                     }
                 }
             }
-            delete[] pixelData;
         } else {
             // data pointer is null so we should just seek to the next scanline
             // If the seek fails return false
@@ -440,6 +440,9 @@ SoftimageInput::read_pixels_mixed_run_length(
     size_t pixelChannelSize = curPacket.size / 8;
     // We're going to need to use the channels more than once
     std::vector<int> channels = curPacket.channels();
+    // Allocate space for a pixel to read into
+    size_t pixelSize   = pixelChannelSize * channels.size();
+    uint8_t* pixelData = OIIO_ALLOCA(uint8_t, pixelSize);
     // Read the pixels until we've read them all
     while (linePixelCount < m_pic_header.width) {
         // Read the repeats for the run length - return false if read fails
@@ -520,8 +523,6 @@ SoftimageInput::read_pixels_mixed_run_length(
 
             if (data) {
                 // data pointer is set so we're supposed to write data there
-                size_t pixelSize   = pixelChannelSize * channels.size();
-                uint8_t* pixelData = new uint8_t[pixelSize];
                 if (fread(pixelData, 1, pixelSize, m_fd) != pixelSize)
                     return false;
 
@@ -550,7 +551,6 @@ SoftimageInput::read_pixels_mixed_run_length(
                         }
                     }
                 }
-                delete[] pixelData;
             } else {
                 // data pointer is null so we should just seek to the
                 // next scanline.  If the seek fails return false.

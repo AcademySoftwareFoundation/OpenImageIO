@@ -52,6 +52,28 @@ OIIO_PLUGIN_EXPORTS_END
 static const uint8_t JPEG_MAGIC1 = 0xff;
 static const uint8_t JPEG_MAGIC2 = 0xd8;
 
+static const char exif_marker_prefix[] = "Exif\0";
+
+static const char icc_marker_prefix[] = "ICC_PROFILE";
+
+static bool
+is_exif_marker(jpeg_saved_marker_ptr marker)
+{
+    return marker->marker == (JPEG_APP0 + 1)
+           && marker->data_length >= sizeof(exif_marker_prefix)
+           && !memcmp(marker->data, exif_marker_prefix,
+                      sizeof(exif_marker_prefix));
+}
+
+static bool
+is_icc_profile_marker(jpeg_saved_marker_ptr marker)
+{
+    return marker->marker == (JPEG_APP0 + 2)
+           && marker->data_length >= ICC_HEADER_SIZE
+           && !memcmp(marker->data, icc_marker_prefix,
+                      sizeof(icc_marker_prefix));
+}
+
 
 // For explanations of the error handling, see the "example.c" in the
 // libjpeg distribution.
@@ -271,8 +293,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         m_spec.attribute(JPEG_SUBSAMPLING_ATTR, subsampling);
 
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list; m; m = m->next) {
-        if (m->marker == (JPEG_APP0 + 1) && m->data_length >= 4
-            && !strncmp((const char*)m->data, "Exif", 4)) {
+        if (is_exif_marker(m)) {
             // The block starts with "Exif\0\0", so skip 6 bytes to get
             // to the start of the actual Exif data TIFF directory
             decode_exif(string_view((char*)m->data + 6, m->data_length - 6),
@@ -394,8 +415,7 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
     memset(marker_present, 0, (MAX_SEQ_NO + 1));
 
     for (jpeg_saved_marker_ptr m = cinfo->marker_list; m; m = m->next) {
-        if (m->marker == (JPEG_APP0 + 2)
-            && !strcmp((const char*)m->data, "ICC_PROFILE")) {
+        if (is_icc_profile_marker(m)) {
             if (num_markers == 0)
                 num_markers = GETJOCTET(m->data[13]);
             else if (num_markers != GETJOCTET(m->data[13]))
@@ -427,8 +447,7 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
 
     // and fill it in
     for (jpeg_saved_marker_ptr m = cinfo->marker_list; m; m = m->next) {
-        if (m->marker == (JPEG_APP0 + 2)
-            && !strcmp((const char*)m->data, "ICC_PROFILE")) {
+        if (is_icc_profile_marker(m)) {
             int seq_no = GETJOCTET(m->data[12]);
             if (data_offset[seq_no] + data_length[seq_no] > icc_buf.size()) {
                 errorfmt("Possible corrupt file, invalid ICC profile\n");

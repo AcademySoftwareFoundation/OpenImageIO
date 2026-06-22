@@ -346,8 +346,14 @@ Filesystem::exists(string_view path) noexcept
 bool
 Filesystem::is_directory(string_view path) noexcept
 {
+#ifdef _WIN32
+    DWORD attr = GetFileAttributesW(
+        Strutil::utf8_to_utf16wstring(path).c_str());
+    return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY);
+#else
     error_code ec;
     return filesystem::is_directory(u8path(path), ec);
+#endif
 }
 
 
@@ -355,8 +361,15 @@ Filesystem::is_directory(string_view path) noexcept
 bool
 Filesystem::is_regular(string_view path) noexcept
 {
+#ifdef _WIN32
+    DWORD attr = GetFileAttributesW(
+        Strutil::utf8_to_utf16wstring(path).c_str());
+    return attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)
+           && !(attr & FILE_ATTRIBUTE_REPARSE_POINT);  // exclude symlinks
+#else
     error_code ec;
     return filesystem::is_regular_file(u8path(path), ec);
+#endif
 }
 
 
@@ -774,9 +787,18 @@ Filesystem::last_write_time(string_view path, std::time_t time) noexcept
 uint64_t
 Filesystem::file_size(string_view path) noexcept
 {
+#ifdef _WIN32
+    WIN32_FILE_ATTRIBUTE_DATA data {};
+    if (!GetFileAttributesExW(Strutil::utf8_to_utf16wstring(path).c_str(),
+                              GetFileExInfoStandard, &data))
+        return 0;
+    return (static_cast<uint64_t>(data.nFileSizeHigh) << 32)
+           | static_cast<uint64_t>(data.nFileSizeLow);
+#else
     error_code ec;
     uint64_t sz = filesystem::file_size(u8path(path), ec);
     return ec ? 0 : sz;
+#endif
 }
 
 

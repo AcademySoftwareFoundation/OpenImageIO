@@ -373,6 +373,10 @@ attribute(string_view name, TypeDesc type, const void* val)
 
     // Things below here need to buarded by the attrib_mutex
     std::lock_guard lock(attrib_mutex);
+    if (name == "debug" && type == TypeInt) {
+        oiio_print_debug = *(const int*)val;
+        return true;
+    }
     if (name == "read_chunk" && type == TypeInt) {
         oiio_read_chunk = *(const int*)val;
         return true;
@@ -447,10 +451,6 @@ attribute(string_view name, TypeDesc type, const void* val)
         oiio_use_tbb = *(const int*)val;
         return true;
     }
-    if (name == "debug" && type == TypeInt) {
-        oiio_print_debug = *(const int*)val;
-        return true;
-    }
     if (name == "log_times" && type == TypeInt) {
         oiio_log_times = *(const int*)val;
         return true;
@@ -469,6 +469,10 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (name == "try_all_readers" && type == TypeInt) {
         oiio_try_all_readers = *(const int*)val;
+        return true;
+    }
+    if (name == "ustring:cleanup" && type == TypeInt) {
+        oiio_ustring_cleanup = *(const int*)val;
         return true;
     }
 
@@ -511,6 +515,10 @@ getattribute(string_view name, TypeDesc type, void* val)
 
     // Things below here need to buarded by the attrib_mutex
     std::lock_guard lock(attrib_mutex);
+    if (name == "debug" && type == TypeInt) {
+        *(int*)val = oiio_print_debug;
+        return true;
+    }
     if (name == "read_chunk" && type == TypeInt) {
         *(int*)val = oiio_read_chunk;
         return true;
@@ -649,8 +657,8 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(int*)val = oiio_use_tbb;
         return true;
     }
-    if (name == "debug" && type == TypeInt) {
-        *(int*)val = oiio_print_debug;
+    if (name == "ustring:cleanup" && type == TypeInt) {
+        *(int*)val = oiio_ustring_cleanup;
         return true;
     }
     if (name == "log_times" && type == TypeInt) {

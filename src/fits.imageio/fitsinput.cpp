@@ -210,142 +210,159 @@ FitsInput::close(void)
 bool
 FitsInput::read_fits_header(void)
 {
-    std::string fits_header(HEADER_SIZE, 0);
+    // Arbitrary limit to the number of header blocks in a file before we
+    // conclude that it's a corrupted file. There are FITS files that *could*
+    // have more headers, but there is no real limit, so we just pick one.
+    // Somebody will let us know if they ever encounter a real world file that
+    // intentionally exceeds this.
+    constexpr int max_blocks = 10000;
 
-    // we read whole header at once
-    if (fread(&fits_header[0], 1, HEADER_SIZE, m_fd) != HEADER_SIZE) {
-        if (feof(m_fd))
-            errorfmt("Hit end of file unexpectedly (offset={})", ftell(m_fd));
-        else
-            errorfmt("read error");
-        return false;  // Read failed
+    for (int h = 0; h < max_blocks; ++h) {
+        std::string fits_header(HEADER_SIZE, 0);
+
+        // we read whole header at once
+        if (fread(&fits_header[0], 1, HEADER_SIZE, m_fd) != HEADER_SIZE) {
+            if (feof(m_fd))
+                errorfmt("Hit end of file unexpectedly (offset={})",
+                         ftell(m_fd));
+            else
+                errorfmt("read error");
+            return false;  // Read failed
+        }
+
+        bool found_end = false;
+        for (int i = 0; i < CARDS_PER_HEADER; ++i) {
+            std::string card(CARD_SIZE, 0);
+            // reading card number i
+            memcpy(&card[0], &fits_header[i * CARD_SIZE], CARD_SIZE);
+
+            std::string keyname, value;
+            fits_pvt::unpack_card(card, keyname, value);
+
+            // END means that this is end of the FITS header
+            // we can now add to the ImageSpec COMMENT, HISTORY and HIERARCH keys
+            if (keyname == "END") {
+                // removing white spaces that we use to separate lines of comments
+                // from the end ot the string
+                m_comment  = m_comment.substr(0,
+                                              m_comment.size() - m_sep.size());
+                m_history  = m_history.substr(0,
+                                              m_history.size() - m_sep.size());
+                m_hierarch = m_hierarch.substr(0, m_hierarch.size()
+                                                      - m_sep.size());
+                add_to_spec("Comment", m_comment);
+                add_to_spec("History", m_history);
+                add_to_spec("Hierarch", m_hierarch);
+                found_end = true;
+                break;
+            }
+
+            if (keyname == "SIMPLE" || keyname == "XTENSION")
+                continue;
+
+            // setting up some important fields
+            // m_bitpix - format of the data (eg. bpp)
+            // m_naxes - number of axes
+            // width, height and depth of the image
+            if (keyname == "BITPIX") {
+                m_bitpix = Strutil::stoi(&card[10]);
+                continue;
+            }
+            if (keyname == "NAXIS") {
+                m_naxes = Strutil::stoi(&card[10]);
+                m_naxis.resize(m_naxes);
+                continue;
+            }
+            if (Strutil::starts_with(keyname, "NAXIS")) {
+                int i = Strutil::stoi(keyname.substr(5));
+                if (i > 0 && i <= m_naxes)
+                    m_naxis[i - 1] = Strutil::stoi(&card[10]);
+                continue;
+            }
+            if (keyname == "ORIENTAT") {
+                add_to_spec("Orientation", value);
+                continue;
+            }
+            if (keyname == "DATE") {
+                add_to_spec("DateTime", convert_date(value));
+                continue;
+            }
+            if (keyname == "COMMENT") {
+                m_comment += (value + m_sep);
+                continue;
+            }
+            if (keyname == "HISTORY") {
+                m_history += (value + m_sep);
+                continue;
+            }
+            if (keyname == "HIERARCH") {
+                m_hierarch += (value + m_sep);
+                continue;
+            }
+
+            Strutil::to_lower(keyname);  // make lower case
+            if (keyname.size() >= 1)
+                keyname[0] = toupper(keyname[0]);
+            add_to_spec(keyname, value);
+        }
+
+        // Fix up dimensions
+        while (m_naxes > 1 && m_naxis[m_naxes - 1] == 1) {
+            --m_naxes;
+        }
+        if (m_naxes < 0 || m_naxes > 4) {
+            errorfmt("Number of data axes {} not supported", m_naxes);
+            return false;
+        }
+        m_spec.nchannels = 1;
+        m_spec.depth     = 1;
+        if (m_naxes == 0 || m_naxis[0] == 0) {
+            m_spec.width = m_spec.height = 0;
+        } else if (m_naxes == 1) {
+            m_spec.width  = m_naxis[0];
+            m_spec.height = 1;
+        } else if (m_naxes == 2) {
+            m_spec.width  = m_naxis[0];
+            m_spec.height = m_naxis[1];
+        } else if (m_naxes == 3 && m_naxis[0] <= 4) {
+            // 3D, small number of most-rapidly changing dimension: color image?
+            m_spec.nchannels = m_naxis[0];
+            m_spec.width     = m_naxis[1];
+            m_spec.height    = m_naxis[2];
+        } else if (m_naxes == 3) {
+            // 3D, large number of most-rapidly changing dimension: volume?
+            m_spec.width  = m_naxis[0];
+            m_spec.height = m_naxis[1];
+            m_spec.depth  = m_naxis[2];
+        } else if (m_naxes == 4) {
+            // 4D... volume + color?
+            m_spec.nchannels = m_naxis[0];
+            m_spec.width     = m_naxis[1];
+            m_spec.height    = m_naxis[2];
+            m_spec.depth     = m_naxis[3];
+        } else {
+            errorfmt("Don't know now to read {}-channel FITS image", m_naxes);
+            return false;
+        }
+        m_spec.full_width  = m_spec.width;
+        m_spec.full_height = m_spec.height;
+        m_spec.full_depth  = m_spec.depth;
+
+        m_spec.attribute("oiio:subimages", (int)m_subimages.size());
+
+        // if (m_spec.width < 1 || m_spec.height < 1 || m_spec.depth < 1 ||
+        //     m_spec.nchannels < 1) {
+        //     errorfmt("Don't know now to read empty (0 pixel) FITS image");
+        //     return false;
+        // }
+
+        // if we didn't found END keyword in current header, we read next one
+        if (found_end)
+            return true;
     }
 
-    bool found_end = false;
-    for (int i = 0; i < CARDS_PER_HEADER; ++i) {
-        std::string card(CARD_SIZE, 0);
-        // reading card number i
-        memcpy(&card[0], &fits_header[i * CARD_SIZE], CARD_SIZE);
-
-        std::string keyname, value;
-        fits_pvt::unpack_card(card, keyname, value);
-
-        // END means that this is end of the FITS header
-        // we can now add to the ImageSpec COMMENT, HISTORY and HIERARCH keys
-        if (keyname == "END") {
-            // removing white spaces that we use to separate lines of comments
-            // from the end ot the string
-            m_comment  = m_comment.substr(0, m_comment.size() - m_sep.size());
-            m_history  = m_history.substr(0, m_history.size() - m_sep.size());
-            m_hierarch = m_hierarch.substr(0, m_hierarch.size() - m_sep.size());
-            add_to_spec("Comment", m_comment);
-            add_to_spec("History", m_history);
-            add_to_spec("Hierarch", m_hierarch);
-            found_end = true;
-            break;
-        }
-
-        if (keyname == "SIMPLE" || keyname == "XTENSION")
-            continue;
-
-        // setting up some important fields
-        // m_bitpix - format of the data (eg. bpp)
-        // m_naxes - number of axes
-        // width, height and depth of the image
-        if (keyname == "BITPIX") {
-            m_bitpix = Strutil::stoi(&card[10]);
-            continue;
-        }
-        if (keyname == "NAXIS") {
-            m_naxes = Strutil::stoi(&card[10]);
-            m_naxis.resize(m_naxes);
-            continue;
-        }
-        if (Strutil::starts_with(keyname, "NAXIS")) {
-            int i = Strutil::stoi(keyname.substr(5));
-            if (i > 0 && i <= m_naxes)
-                m_naxis[i - 1] = Strutil::stoi(&card[10]);
-            continue;
-        }
-        if (keyname == "ORIENTAT") {
-            add_to_spec("Orientation", value);
-            continue;
-        }
-        if (keyname == "DATE") {
-            add_to_spec("DateTime", convert_date(value));
-            continue;
-        }
-        if (keyname == "COMMENT") {
-            m_comment += (value + m_sep);
-            continue;
-        }
-        if (keyname == "HISTORY") {
-            m_history += (value + m_sep);
-            continue;
-        }
-        if (keyname == "HIERARCH") {
-            m_hierarch += (value + m_sep);
-            continue;
-        }
-
-        Strutil::to_lower(keyname);  // make lower case
-        if (keyname.size() >= 1)
-            keyname[0] = toupper(keyname[0]);
-        add_to_spec(keyname, value);
-    }
-
-    // Fix up dimensions
-    while (m_naxes > 1 && m_naxis[m_naxes - 1] == 1) {
-        --m_naxes;
-    }
-    if (m_naxes < 0 || m_naxes > 4) {
-        errorfmt("Number of data axes {} not supported", m_naxes);
-        return false;
-    }
-    m_spec.nchannels = 1;
-    m_spec.depth     = 1;
-    if (m_naxes == 0 || m_naxis[0] == 0) {
-        m_spec.width = m_spec.height = 0;
-    } else if (m_naxes == 1) {
-        m_spec.width  = m_naxis[0];
-        m_spec.height = 1;
-    } else if (m_naxes == 2) {
-        m_spec.width  = m_naxis[0];
-        m_spec.height = m_naxis[1];
-    } else if (m_naxes == 3 && m_naxis[0] <= 4) {
-        // 3D, small number of most-rapidly changing dimension: color image?
-        m_spec.nchannels = m_naxis[0];
-        m_spec.width     = m_naxis[1];
-        m_spec.height    = m_naxis[2];
-    } else if (m_naxes == 3) {
-        // 3D, large number of most-rapidly changing dimension: volume?
-        m_spec.width  = m_naxis[0];
-        m_spec.height = m_naxis[1];
-        m_spec.depth  = m_naxis[2];
-    } else if (m_naxes == 4) {
-        // 4D... volume + color?
-        m_spec.nchannels = m_naxis[0];
-        m_spec.width     = m_naxis[1];
-        m_spec.height    = m_naxis[2];
-        m_spec.depth     = m_naxis[3];
-    } else {
-        errorfmt("Don't know now to read {}-channel FITS image", m_naxes);
-        return false;
-    }
-    m_spec.full_width  = m_spec.width;
-    m_spec.full_height = m_spec.height;
-    m_spec.full_depth  = m_spec.depth;
-
-    m_spec.attribute("oiio:subimages", (int)m_subimages.size());
-
-    // if (m_spec.width < 1 || m_spec.height < 1 || m_spec.depth < 1 ||
-    //     m_spec.nchannels < 1) {
-    //     errorfmt("Don't know now to read empty (0 pixel) FITS image");
-    //     return false;
-    // }
-
-    // if we didn't found END keyword in current header, we read next one
-    return found_end ? true : read_fits_header();
+    errorfmt("No END keyword found after reading {} header blocks", max_blocks);
+    return false;  // Never found the end
 }
 
 

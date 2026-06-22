@@ -14,9 +14,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 
 ### Required dependencies -- OIIO will not build at all without these
 
- * C++17 or higher (also builds with C++20 and C++23)
+ * C++17 or higher (also builds with C++20, C++23, and C++26)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
+     * Note that no matter which version you compile with internally,
+       OIIO's public APIs only require C++17 features.
  * Compilers: gcc 9.3 - 15.2, clang 10 - 22, MSVS 2017 - 2026 (v19.14
    and up), Intel OneAPI C++ compiler 2022+.
  * CMake >= 3.18.2 (tested through 4.3)
@@ -66,7 +68,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 5.0 (tested through 6.1.2)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.11 (1.16 required for correct orientation support and
-       1.17 required for monochrome HEIC support; tested through 1.21.2)
+       1.17 required for monochrome HEIC support; tested through 1.22.0)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.7.0)

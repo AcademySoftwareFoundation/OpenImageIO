@@ -35,11 +35,25 @@ command += oiiotool ("../common/tahoe-tiny.tif --echo \"initial keywords={TOP[ke
                      "--clear-keywords " +
                      "--echo \"after clearing, keywords={TOP[keywords]}\" ")
 
-# Test --origin and --originoffset
-command += oiiotool ('--create 64x64 3 --origin +10+20 ' +
-                     '--echo "after --origin, {TOP.geom}" ' +
+# Test --origin and --originoffset with "X11 geometry" syntax
+command += oiiotool ('--create 64x64+1+1 3 ' + 
+                     '--echo "initial, {TOP.geom}" ' +
+                     '--origin +10+20 ' +
+                     '--echo " after --origin +10+20, {TOP.geom}" ' +
+                     '--origin -10-20 ' +
+                     '--echo " after --origin -10-20, {TOP.geom}" ' +
                      '--originoffset +100+200 ' +
-                     '--echo "after --originoffset, {TOP.geom}"')
+                     '--echo " after --originoffset +100+200, {TOP.geom}"')
+
+# Test --origin and --originoffset with "comma" syntax
+command += oiiotool ('--create 64x64,1,1 3 ' + 
+                     '--echo "initial, {TOP.geom}" ' +
+                     '--origin 10,20 ' +
+                     '--echo " after --origin 10,20, {TOP.geom}" ' +
+                     '--origin -10,-20 ' +
+                     '--echo " after --origin -10,-20, {TOP.geom}" ' +
+                     '--originoffset 100,200 ' +
+                     '--echo " after --originoffset 100,200, {TOP.geom}"')
 
 # Test adding and erasing attribs to multiple subimages
 command += oiiotool ("--create 64x64 3 -dup --siappend " +

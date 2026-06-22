@@ -57,9 +57,9 @@ private:
     int m_subimage;
     InStream* m_stream = nullptr;
     dpx::Reader m_dpx;
-    std::vector<unsigned char> m_userBuf;
+    default_init_vector<unsigned char> m_userBuf;
+    default_init_vector<unsigned char> m_decodebuf;  // temporary decode buffer
     bool m_rawcolor;
-    std::vector<unsigned char> m_decodebuf;  // temporary decode buffer
 
     /// Reset everything to initial state
     ///
