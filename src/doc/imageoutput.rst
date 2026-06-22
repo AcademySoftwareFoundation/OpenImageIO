@@ -1438,41 +1438,19 @@ without alteration while modifying the image description metadata:
 
 .. tabs::
 
-   .. code-tab:: c++
+   .. tab:: C++
+         .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imageoutput.cpp
+          :language: c++
+          :start-after: BEGIN-imageoutput-copy
+          :end-before: END-imageoutput-copy
+          :dedent: 4
 
-      // Open the input file
-      auto in = ImageInput::open ("input.jpg");
-  
-      // Make an output spec, identical to the input except for metadata
-      ImageSpec out_spec = in->spec();
-      out_spec.attribute ("ImageDescription", "My Title");
-  
-      // Create the output file and copy the image
-      auto out = ImageOutput::create ("output.jpg");
-      out->open ("output.jpg", out_spec);
-      out->copy_image (in);
-  
-      // Clean up
-      out->close ();
-      in->close ();
-
-   .. code-tab:: py
-
-      # Open the input file
-      inp = ImageInput.open ("input.jpg")
-  
-      # Make an output spec, identical to the input except for metadata
-      out_spec = inp.spec()
-      out_spec.attribute ("ImageDescription", "My Title")
-  
-      # Create the output file and copy the image
-      out = ImageOutput.create ("output.jpg")
-      out.open ("output.jpg", out_spec)
-      out.copy_image (inp)
-  
-      # Clean up
-      out.close ()
-      inp.close ()
+   .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageoutput.py
+          :language: py
+          :start-after: BEGIN-imageoutput-copy
+          :end-before: END-imageoutput-copy
+          :dedent: 4
 
 
 

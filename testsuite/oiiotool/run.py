@@ -266,6 +266,24 @@ command += oiiotool (f"--create 2x2 1 -o {root_folder}/folder2/out.tif")
 command += oiiotool (f"--create-dir --create 2x2 1 -o {root_folder}/folder2/out.tif")
 command += oiiotool (f"--info {root_folder}/folder2/out.tif")
 
+
+# in a tif the single channel doesn't really have a name so oiio gives it the name Y
+# so if you naively do --ch R you'll get a black image (with a warning which we capture in out.txt)
+command += oiiotool ("src/single_channel_tif.tif --ch R -o single_channel_black.tif")
+# using nchannels 1 will always do the right thing
+command += oiiotool ("src/single_channel_tif.tif --nchannels 1 -o single_channel_good.tif")
+# exrs have explicit channel names, but you don't need to know the name if you are using nchannels
+# so you can easily process a mix of frames without thinking about the name of the channels
+# this can also be accomplished with --ch 0, but --nchannels 1 is a bit more intuitive
+# and matches maketx
+command += oiiotool ("src/single_channel_y.exr --nchannels 1 -o single_channel_good_y.exr")
+command += oiiotool ("src/single_channel_r.exr --nchannels 1 -o single_channel_good_r.exr")
+
+# the info -v will print out the channel names and make sure they came out good in the output
+command += oiiotool ("--info -v single_channel_good_y.exr | grep 'channel list'")
+command += oiiotool ("--info -v single_channel_good_r.exr | grep 'channel list'")
+
+
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
 # below.
@@ -312,6 +330,10 @@ outputs = [
             "const5-rgb.tif",
             "box_over_missing2.tif",
             "box_over_missing3.tif",
+            "single_channel_black.tif",
+            "single_channel_good.tif",
+            "single_channel_good_y.exr",
+            "single_channel_good_r.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

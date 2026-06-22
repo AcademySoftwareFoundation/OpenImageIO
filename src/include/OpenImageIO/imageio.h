@@ -456,7 +456,7 @@ public:
     /// whole image.  If this returns false, the image is much too big
     /// to allocate and read all at once, so client apps beware and check
     /// these routines for overflows!
-    bool size_t_safe() const noexcept {
+    OIIO_NODISCARD bool size_t_safe() const noexcept {
         const imagesize_t big = std::numeric_limits<size_t>::max();
         return image_bytes() < big && scanline_bytes() < big &&
             tile_bytes() < big;
@@ -775,7 +775,7 @@ public:
     /// Helper function to verify that the given pixel range exactly covers a
     /// set of 2D tiles.  Also returns false if the spec indicates that the
     /// image isn't tiled at all.
-    bool valid_tile_range (int xbegin, int xend, int ybegin, int yend) noexcept {
+    OIIO_NODISCARD bool valid_tile_range (int xbegin, int xend, int ybegin, int yend) noexcept {
         return (tile_width &&
                 ((xbegin-x) % tile_width)  == 0 &&
                 ((ybegin-y) % tile_height) == 0 &&
@@ -786,7 +786,7 @@ public:
     /// Helper function to verify that the given pixel range exactly covers a
     /// set of 3D tiles.  Also returns false if the spec indicates that the
     /// image isn't tiled at all.
-    bool valid_tile_range (int xbegin, int xend, int ybegin, int yend,
+    OIIO_NODISCARD bool valid_tile_range (int xbegin, int xend, int ybegin, int yend,
                            int zbegin, int zend) noexcept {
         return (tile_width &&
                 ((xbegin-x) % tile_width)  == 0 &&
@@ -2572,11 +2572,11 @@ public:
     ///                     append another subimage (`AppendSubimage`), or
     ///                     append another MIP level (`AppendMIPLevel`).
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool open (const std::string &filename, const ImageSpec &newspec,
+    OIIO_NODISCARD_ERROR virtual bool open (const std::string &filename, const ImageSpec &newspec,
                        OpenMode mode=Create) = 0;
 
     /// Open an ImageOutput using a UTF-16 encoded wstring filename.
-    bool open (const std::wstring &filename, const ImageSpec &newspec,
+    OIIO_NODISCARD_ERROR bool open (const std::wstring &filename, const ImageSpec &newspec,
                OpenMode mode=Create) {
         return open(Strutil::utf16_to_utf8(filename), newspec, mode);
     }
@@ -2603,7 +2603,7 @@ public:
     ///                      Pointer to an array of `ImageSpec` objects
     ///                      describing each of the expected subimages.
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool open (const std::string &filename,
+    OIIO_NODISCARD_ERROR virtual bool open (const std::string &filename,
                        int subimages OIIO_MAYBE_UNUSED,
                        const ImageSpec *specs) {
         // Default implementation: just a regular open, assume that
@@ -2611,7 +2611,7 @@ public:
         return open (filename, specs[0]);
     }
 
-    bool open (const std::wstring &filename, int subimages OIIO_MAYBE_UNUSED,
+    OIIO_NODISCARD_ERROR bool open (const std::wstring &filename, int subimages OIIO_MAYBE_UNUSED,
                const ImageSpec *specs) {
         // Default implementation: just a regular open, assume that
         // appending will work.
@@ -2625,7 +2625,7 @@ public:
 
     /// Closes the currently open file associated with this ImageOutput and
     /// frees any memory or resources associated with it.
-    virtual bool close () = 0;
+    OIIO_NODISCARD_ERROR virtual bool close () = 0;
     /// @}
 
     // clang-format on
@@ -2687,13 +2687,14 @@ public:
     ///                     y, and z).
     /// @returns            `true` upon success, or `false` upon failure.
     ///
-    virtual bool write_image(TypeDesc format,
-                             const image_span<const std::byte>& data);
+    OIIO_NODISCARD_ERROR virtual bool
+    write_image(TypeDesc format, const image_span<const std::byte>& data);
 
     /// A version of `write_image()` taking an `image_span<T>`, where the type
     /// of the underlying data is `T`.  This is a convenience wrapper around
     /// the `write_image()` that takes an `image_span<const std::byte>`.
-    template<typename T> bool write_image(const image_span<T>& data)
+    template<typename T>
+    OIIO_NODISCARD_ERROR bool write_image(const image_span<T>& data)
     {
         return write_image(TypeDescFromC<T>::value(),
                            as_image_span_bytes(data));
@@ -2702,7 +2703,7 @@ public:
     /// A version of `write_image()` taking a `cspan<T>`, which assumes
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `write_image()` that takes an `image_span<const T>`.
-    template<typename T> bool write_image(span<T> data)
+    template<typename T> OIIO_NODISCARD_ERROR bool write_image(span<T> data)
     {
         auto ispan = image_span<const T>(data.data(), m_spec.nchannels,
                                          m_spec.width, m_spec.height,
@@ -2734,14 +2735,16 @@ public:
     ///                     dimension (channel, x, y, z).
     /// @returns            `true` upon success, or `false` upon failure.
     ///
-    virtual bool write_scanline(int y, TypeDesc format,
-                                const image_span<const std::byte>& data);
+    OIIO_NODISCARD_ERROR virtual bool
+    write_scanline(int y, TypeDesc format,
+                   const image_span<const std::byte>& data);
 
     /// A version of `write_scanline()` taking an `image_span<T>`, where the
     /// type of the underlying data is `T`.  This is a convenience wrapper
     /// around the `write_scanline()` that takes an `image_span<const
     /// std::byte>`.
-    template<typename T> bool write_scanline(int y, const image_span<T>& data)
+    template<typename T>
+    OIIO_NODISCARD_ERROR bool write_scanline(int y, const image_span<T>& data)
     {
         // reduce to type + image_span<byte>
         return write_scanline(y, TypeDescFromC<T>::value(),
@@ -2751,7 +2754,8 @@ public:
     /// A version of `write_scanline()` taking a `cspan<T>`, which assumes
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `write_scanline()` that takes an `image_span<const T>`.
-    template<typename T> bool write_scanline(int y, span<T> data)
+    template<typename T>
+    OIIO_NODISCARD_ERROR bool write_scanline(int y, span<T> data)
     {
         // reduce to type + image_span<byte>
         return write_scanline(y, image_span<T>(data.data(), m_spec.nchannels,
@@ -2783,8 +2787,9 @@ public:
     ///                     dimension (channel, x, y, z).
     /// @returns            `true` upon success, or `false` upon failure.
     ///
-    virtual bool write_scanlines(int ybegin, int yend, TypeDesc format,
-                                 const image_span<const std::byte>& data);
+    OIIO_NODISCARD_ERROR virtual bool
+    write_scanlines(int ybegin, int yend, TypeDesc format,
+                    const image_span<const std::byte>& data);
 
     /// A version of `write_scanlines()` taking an `image_span<T>`, where the
     /// type of the underlying data is `T`.  This is a convenience wrapper
@@ -2802,7 +2807,8 @@ public:
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `write_scanlines()` that takes an `image_span<const T>`.
     template<typename T>
-    bool write_scanlines(int ybegin, int yend, span<T> data)
+    OIIO_NODISCARD_ERROR bool write_scanlines(int ybegin, int yend,
+                                              span<T> data)
     {
         auto ispan = image_span<T>(data.data(), m_spec.nchannels, m_spec.width,
                                    yend - ybegin, 1);
@@ -2839,14 +2845,16 @@ public:
     /// Added in OIIO 3.1, this is the "safe" preferred alternative to
     /// the version of write_tile that takes raw pointers.
     ///
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const image_span<const std::byte>& data);
+    OIIO_NODISCARD_ERROR virtual bool
+    write_tile(int x, int y, int z, TypeDesc format,
+               const image_span<const std::byte>& data);
 
     /// A version of `write_tile()` taking an `image_span<T>`, where the type
     /// of the underlying data is `T`.  This is a convenience wrapper around
     /// the `write_tile()` that takes an `image_span<const std::byte>`.
     template<typename T>
-    bool write_tile(int x, int y, int z, const image_span<T>& data)
+    OIIO_NODISCARD_ERROR bool write_tile(int x, int y, int z,
+                                         const image_span<T>& data)
     {
         return write_tile(x, y, z, TypeDescFromC<T>::value(),
                           as_image_span_bytes(data));
@@ -2855,7 +2863,8 @@ public:
     /// A version of `write_tile()` taking a `cspan<T>`, which assumes
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `write_tile()` that takes an `image_span<const T>`.
-    template<typename T> bool write_tile(int x, int y, int z, span<T> data)
+    template<typename T>
+    OIIO_NODISCARD_ERROR bool write_tile(int x, int y, int z, span<T> data)
     {
         auto ispan = image_span<T>(data.data(), m_spec.nchannels,
                                    m_spec.tile_width, m_spec.tile_height,
@@ -2891,16 +2900,18 @@ public:
     ///                     dimension (channel, x, y, z).
     /// @returns            `true` upon success, or `false` upon failure.
     ///
-    virtual bool write_tiles(int xbegin, int xend, int ybegin, int yend,
-                             int zbegin, int zend, TypeDesc format,
-                             const image_span<const std::byte>& data);
+    OIIO_NODISCARD_ERROR virtual bool
+    write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                int zend, TypeDesc format,
+                const image_span<const std::byte>& data);
 
     /// A version of `write_tiles()` taking an `image_span<T>`, where the type
     /// of the underlying data is `T`.  This is a convenience wrapper around
     /// the `write_tiles()` that takes an `image_span<const std::byte>`.
     template<typename T>
-    bool write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                     int zend, const image_span<T>& data)
+    OIIO_NODISCARD_ERROR bool write_tiles(int xbegin, int xend, int ybegin,
+                                          int yend, int zbegin, int zend,
+                                          const image_span<T>& data)
     {
         return write_tiles(xbegin, xend, ybegin, yend, zbegin, zend,
                            TypeDescFromC<T>::value(),
@@ -2911,8 +2922,9 @@ public:
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `write_tiles()` that takes an `image_span<const T>`.
     template<typename T>
-    bool write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                     int zend, span<T> data)
+    OIIO_NODISCARD_ERROR bool write_tiles(int xbegin, int xend, int ybegin,
+                                          int yend, int zbegin, int zend,
+                                          span<T> data)
     {
         auto ispan = image_span<T>(data.data(), m_spec.nchannels, xend - xbegin,
                                    yend - ybegin, zend - zbegin);
@@ -2946,17 +2958,19 @@ public:
     ///                     dimension (channel, x, y, z).
     /// @returns            `true` upon success, or `false` upon failure.
     ///
-    virtual bool write_rectangle(int xbegin, int xend, int ybegin, int yend,
-                                 int zbegin, int zend, TypeDesc format,
-                                 const image_span<const std::byte>& data);
+    OIIO_NODISCARD_ERROR virtual bool
+    write_rectangle(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                    int zend, TypeDesc format,
+                    const image_span<const std::byte>& data);
 
     /// A version of `write_rectangle()` taking an `image_span<T>`, where the
     /// type of the underlying data is `T`.  This is a convenience wrapper
     /// around the `write_rectangle()` that takes an `image_span<const
     /// std::byte>`.
     template<typename T>
-    bool write_rectangle(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                         int zend, const image_span<T>& data)
+    OIIO_NODISCARD_ERROR bool write_rectangle(int xbegin, int xend, int ybegin,
+                                              int yend, int zbegin, int zend,
+                                              const image_span<T>& data)
     {
         return write_rectangle(xbegin, xend, ybegin, yend, zbegin, zend,
                                TypeDescFromC<T>::value(),
@@ -2967,8 +2981,9 @@ public:
     /// contiguous strides in all dimensions. This is a convenience wrapper
     /// around the `write_rectangle()` that takes an `image_span<const T>`.
     template<typename T>
-    bool write_rectangle(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                         int zend, span<T> data)
+    OIIO_NODISCARD_ERROR bool write_rectangle(int xbegin, int xend, int ybegin,
+                                              int yend, int zbegin, int zend,
+                                              span<T> data)
     {
         auto ispan = image_span<const T>(data.data(), m_spec.nchannels,
                                          xend - xbegin, yend - ybegin,
@@ -2989,7 +3004,7 @@ public:
     /// @param  deepdata    A `DeepData` object with the data for these
     ///                     scanlines.
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool write_deep_scanlines (int ybegin, int yend, int z,
+    OIIO_NODISCARD_ERROR virtual bool write_deep_scanlines (int ybegin, int yend, int z,
                                        const DeepData &deepdata);
 
     /// Write the block of deep tiles that include all pixels in
@@ -3012,7 +3027,7 @@ public:
     /// @note The call will fail if the image is not tiled, or if the pixel
     /// ranges do not fall along tile (or image) boundaries, or if it is not
     /// a valid tile range.
-    virtual bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+    OIIO_NODISCARD_ERROR virtual bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
                                    int zbegin, int zend,
                                    const DeepData &deepdata);
 
@@ -3021,7 +3036,7 @@ public:
     ///
     /// @param  deepdata    A `DeepData` object with the data for the image.
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool write_deep_image (const DeepData &deepdata);
+    OIIO_NODISCARD_ERROR virtual bool write_deep_image (const DeepData &deepdata);
 
     /// Specify a reduced-resolution ("thumbnail") version of the image.
     /// Note that many image formats may require the thumbnail to be
@@ -3103,7 +3118,7 @@ public:
     /// @param  xstride     The distance in bytes between successive
     ///                     pixels in `data` (or `AutoStride`).
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool write_scanline (int y, int z, TypeDesc format,
+    OIIO_NODISCARD_ERROR virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride=AutoStride);
 
     /// Write multiple scanlines that include pixels (*,y,z) for all ybegin
@@ -3121,7 +3136,7 @@ public:
     ///                     The distance in bytes between successive pixels
     ///                     and scanlines (or `AutoStride`).
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool write_scanlines (int ybegin, int yend, int z,
+    OIIO_NODISCARD_ERROR virtual bool write_scanlines (int ybegin, int yend, int z,
                                   TypeDesc format, const void *data,
                                   stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride);
@@ -3147,7 +3162,7 @@ public:
     ///
     /// @note This call will fail if the image is not tiled, or if (x,y,z)
     /// is not the upper left corner coordinates of a tile.
-    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+    OIIO_NODISCARD_ERROR virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
@@ -3186,7 +3201,7 @@ public:
     /// @note The call will fail if the image is not tiled, or if the pixel
     /// ranges do not fall along tile (or image) boundaries, or if it is not
     /// a valid tile range.
-    virtual bool write_tiles (int xbegin, int xend, int ybegin, int yend,
+    OIIO_NODISCARD_ERROR virtual bool write_tiles (int xbegin, int xend, int ybegin, int yend,
                               int zbegin, int zend, TypeDesc format,
                               const void *data, stride_t xstride=AutoStride,
                               stride_t ystride=AutoStride,
@@ -3218,7 +3233,7 @@ public:
     ///
     /// @note The call will fail for a format plugin that does not return
     /// true for `supports("rectangles")`.
-    virtual bool write_rectangle (int xbegin, int xend, int ybegin, int yend,
+    OIIO_NODISCARD_ERROR virtual bool write_rectangle (int xbegin, int xend, int ybegin, int yend,
                                   int zbegin, int zend, TypeDesc format,
                                   const void *data, stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride,
@@ -3247,7 +3262,7 @@ public:
     /// @param  progress_callback/progress_callback_data
     ///                     Optional progress callback.
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool write_image (TypeDesc format, const void *data,
+    OIIO_NODISCARD_ERROR virtual bool write_image (TypeDesc format, const void *data,
                               stride_t xstride=AutoStride,
                               stride_t ystride=AutoStride,
                               stride_t zstride=AutoStride,
@@ -3283,7 +3298,7 @@ public:
     ///
     /// @param  in          A pointer to the open `ImageInput` to read from.
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool copy_image (ImageInput *in);
+    OIIO_NODISCARD_ERROR virtual bool copy_image (ImageInput *in);
 
     // General message passing between client and image output server. This
     // is currently undefined and is reserved for future use.
@@ -3952,6 +3967,16 @@ OIIO_API std::string geterror(bool clear = true);
 ///   further decode anything in the file. This may be a better choice to
 ///   enable globally in an environment where security is a higher priority
 ///   than being tolerant of partially broken image files.
+///
+/// - `ustring:cleanup` (int: 0)
+///
+///    If nonzero, upon exit, do a thorough (and possibly expensive) teardown
+///    of ustring internal resources to ensure that there are no apparent
+///    memory leaks. This is only desirable in certain debugging situations.
+///    Ordinarily, it is better to finish as quickly as possible, so the
+///    default of 0 skips a time consuming and pointless teardown of the
+///    ustring internal allocations when the app exits. Note that this can
+///    also be enabled with the `OIIO_USTRING_CLEANUP` environment variable.
 ///
 /// EXAMPLES:
 /// ```

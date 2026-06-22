@@ -9,6 +9,7 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/half.h>
 #include <OpenImageIO/paramlist.h>
+#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/ustring.h>
 
 
@@ -108,16 +109,16 @@ static void
 parse_elements(string_view value, ParamValue& p)
 {
     auto data = p.as_span<T>();
-    value.remove_prefix(value.find_first_not_of(" \t"));
     for (auto&& d : data) {
+        Strutil::skip_whitespace(value);
         // Make a temporary copy so we for sure have a 0-terminated string.
         std::string temp = value;
         // Grab the first value from it
         d = Strutil::from_string<T>(temp);
         // Skip the value (eat until we find a delimiter -- space, comma, tab)
-        value.remove_prefix(value.find_first_of(" ,\t"));
-        // Skip the delimiter
-        value.remove_prefix(value.find_first_not_of(" ,\t"));
+        (void)Strutil::parse_until(value, " ,\t");
+        // Skip the comma delimiter, if it exists (and any leading whitespace)
+        (void)Strutil::parse_char(value, ',');
         if (value.empty())
             break;  // done if nothing left to parse
     }

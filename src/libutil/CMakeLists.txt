@@ -83,7 +83,11 @@ function (setup_oiio_util_library targetname)
 
     if (OIIO_INTERNALIZE_FMT OR fmt_LOCAL_BUILD)
         add_dependencies(${targetname} fmt_internal_target)
-    else ()
+    endif ()
+    if (OIIO_USE_COMPILED_FMT)
+        target_link_libraries (${targetname}
+                               PUBLIC fmt::fmt)
+    elseif (NOT OIIO_INTERNALIZE_FMT AND NOT fmt_LOCAL_BUILD)
         target_link_libraries (${targetname}
                                PUBLIC fmt::fmt-header-only)
     endif ()

@@ -1811,7 +1811,10 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
     }
     if (!write(out.get(), progress_callback, progress_callback_data))
         return false;
-    out->close();
+    if (!out->close()) {
+        error(out->geterror());
+        return false;
+    }
     if (progress_callback)
         progress_callback(progress_callback_data, 0);
     return true;

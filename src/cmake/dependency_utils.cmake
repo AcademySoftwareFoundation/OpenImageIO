@@ -680,7 +680,8 @@ macro (build_dependency_with_cmake pkgname)
             message (FATAL_ERROR
                 "${pkgname}: Tag ${_pkg_GIT_TAG} resolved to commit "
                 "${_pkg_actual_commit}, but expected ${_pkg_GIT_COMMIT}. "
-                "This may indicate the tag was tampered with or moved.")
+                "This may indicate the tag was tampered with or moved. "
+                "Setting ${PROJECT_NAME}_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS=ON will disable this check.")
         endif ()
     elseif (NOT "${_pkg_GIT_COMMIT}" STREQUAL "")
         # Only commit hash specified: checkout that commit directly.

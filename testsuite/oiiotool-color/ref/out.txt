@@ -1,6 +1,14 @@
 oiiotool ERROR: --colorconfig : Requested non-existent OCIO config "missing.ocio"
 Full command line was:
 > oiiotool --nostderr --colorconfig missing.ocio -echo "Nonexistent config"
+nope: 0.5,0.5,0.5 half
+raw: 0.5,0.5,0.5 half
+acescg: 0.5,0.5,0.5 half
+srgb_tx: 0.213989,0.213989,0.213989 half
+nope: 0.5,0.5,0.5 half
+raw: 0.5,0.5,0.5 half
+acescg: 0.5,0.5,0.5 half
+srgb_tx: 0.735352,0.735352,0.735352 half
 Comparing "colormap-inferno.tif" and "ref/colormap-inferno.tif"
 PASS
 Comparing "colormap-custom.tif" and "ref/colormap-custom.tif"

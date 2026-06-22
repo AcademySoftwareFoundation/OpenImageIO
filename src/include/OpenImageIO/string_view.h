@@ -239,6 +239,7 @@ public:
     /// Remove the first n characters from the view.
     constexpr void remove_prefix(size_type n) noexcept
     {
+        OIIO_CONTRACT_ASSERT(n <= m_len);
         if (n > m_len)
             n = m_len;
         m_chars += n;
@@ -247,6 +248,7 @@ public:
     /// Remove the last n characters from the view.
     constexpr void remove_suffix(size_type n) noexcept
     {
+        OIIO_CONTRACT_ASSERT(n <= m_len);
         if (n > m_len)
             n = m_len;
         m_len -= n;

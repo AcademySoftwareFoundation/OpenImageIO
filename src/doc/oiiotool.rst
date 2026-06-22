@@ -1836,7 +1836,11 @@ Writing images
         full data window of the image. The rectangle can be specified using
         either of these image geometry notations:
 
+            *width* x *height*
+
             *width* x *height* [+-] *xoffset* [+-] *yoffset*
+
+            *width* x *height* , *xoffset* , *yoffset*
 
             *xmin,ymin,xmax,ymax*
 
@@ -2226,14 +2230,17 @@ current top image.
 
     Set the pixel data window origin, essentially translating the existing
     pixel data window to a different position on the image plane.
-    The new data origin is in the form::
+    The new data origin is in either of these forms::
     
          [+-]x[+-]y
+
+         x,y
 
     Examples::
 
         --origin +20+10           x=20, y=10
         --origin +0-40            x=0, y=-40
+        --origin 0,-40            x=0, y=-40   using comma notation
 
 
 .. option:: --originoffset <offset>
@@ -2243,12 +2250,15 @@ current top image.
     The offset is in the form::
     
          [+-]x[+-]y
+         
+         x,y
 
     Examples::
 
         # Assuming the old origin was +100+20...
         --originoffset +20+10           # new x=120, y=30
         --originoffset +0-40            # new x=100, y=-20
+        --originoffset 0,-40            # new x=100, y=-20   comma notation
 
 
 .. option:: --fullsize <size>
@@ -2256,7 +2266,11 @@ current top image.
     Set the display/full window size and/or offset.  The size is in the
     form
 
+        *width* x *height*
+
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
+
+        *width* x *height* , *xoffset* , *yoffset*
 
     If either the offset or resolution is omitted, it will remain
     unchanged.
@@ -2266,7 +2280,9 @@ current top image.
     ============================  ============================================
     `--fullsize 1920x1080`        resolution w=1920, h=1080, offset unchanged
     `--fullsize -20-30`           resolution unchanged, x=-20, y=-30
+    `--fullsize -20,-30`          resolution unchanged, x=-20, y=-30
     `--fullsize 1024x768+100+0`   resolution w=1024, h=768, offset x=100, y=0
+    `--fullsize 1024x768,100,0`   resolution w=1024, h=768, offset x=100, y=0
     ============================  ============================================
 
 
@@ -2385,6 +2401,14 @@ current top image.
     name, nor value), then this will just leave the images as-is, without
     any unnecessary expense or pointless copying of images in memory.
 
+.. option:: --nchannels <n>
+
+    Replaces the top image with a new image whose channels are the the first *n*
+    channels of the input image. If *n* is less than the number of
+    channels in the input image, the extra channels will simply be ignored.
+    If *n* is greater than the number of channels in the input image, the
+    additional channels will be filled with 0 values.
+
 .. option:: --chappend
 
     Replaces the top two (or more) images on the stack with a single new
@@ -2463,7 +2487,11 @@ current top image.
     
     The *size* is in the form
     
+        *width* x *height*
+
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
+
+        *width* x *height* , *xoffset* , *yoffset*
 
     If the offset is omitted, it will be x=0, y=0. Optional appended
     arguments include:
@@ -2475,6 +2503,7 @@ current top image.
 
         --create 1920x1080 3         # RGB with w=1920, h=1080, x=0, y=0
         --create 1024x768+100+0 4    # RGBA with w=1024, h=768, x=100, y=0
+        --create 1024x768,100,0 4    # same, using comma notation
         --create:type=uint8 1920x1080 3  # RGB, store internally as uint8
 
 
@@ -2486,7 +2515,11 @@ current top image.
 
     The *size* is in the form
 
+        *width* x *height*
+
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
+
+        *width* x *height* , *xoffset* , *yoffset*
 
     If the offset is omitted, it will be x=0, y=0. Optional appended
     arguments include:
@@ -3109,9 +3142,9 @@ current top image.
     "background" -- and uses the pixels of the foreground to replace those
     of the background, with foreground pixel (0,0) being pasted to the
     background at the *location* specified (expressed as `+xpos+ypos`, e.g.,
-    `+100+50`, or of course using `-` for negative offsets). Only pixels
-    within the actual data region of the foreground image are pasted in this
-    manner.
+    `+100+50`, or of course using `-` for negative offsets, or alternately
+    with a comma as `xpos,ypos`). Only pixels within the actual data region of
+    the foreground image are pasted in this manner.
 
     Note that if location is +0+0, the foreground image's data region will
     be copied to its same position in the background image (this is useful
@@ -3144,6 +3177,9 @@ current top image.
 
         # Merge many non-overlapping "tiles" into one combined image
         oiiotool img*.exr -paste:mergeroi=1:all=1 +0+0 -o combined.exr
+
+        # Comma-separated notation is fine also
+        oiiotool fg.exr bg.exr -paste 100,100 -o out.exr
 
 
 .. option:: --pastemeta <location>
@@ -3418,6 +3454,8 @@ current top image.
 
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
 
+        *width* x *height* , *xoffset* , *yoffset*
+
     or
 
         *xmin,ymin,xmax,ymax*
@@ -3474,6 +3512,8 @@ current top image.
 
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
 
+        *width* x *height* , *xoffset* , *yoffset*
+
     or
 
         *xmin,ymin,xmax,ymax*
@@ -3501,6 +3541,8 @@ current top image.
             *width* x *height*
 
             *width* x *height* [+-] *xoffset* [+-] *yoffset*
+
+            *width* x *height* , *xoffset* , *yoffset*
 
             *xmin,ymin,xmax,ymax*
 
@@ -3534,6 +3576,8 @@ current top image.
             *width* x *height*
 
             *width* x *height* [+-] *xoffset* [+-] *yoffset*
+
+            *width* x *height* , *xoffset* , *yoffset*
 
             *xmin,ymin,xmax,ymax*
 
@@ -3609,6 +3653,8 @@ current top image.
             *width* x *height*
 
             *width* x *height* [+-] *xoffset* [+-] *yoffset*
+
+            *width* x *height* , *xoffset* , *yoffset*
 
     Optional appended modifiers include:
 

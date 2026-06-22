@@ -273,7 +273,9 @@ ImageBuf_repr_png(const ImageBuf& self)
     if (!out || !out->open("temp.png", altered_spec))
         return py::bytes();
     self.write(out.get());
-    out->close();
+    if (!out->close()) {
+        return py::bytes();
+    }
 
     // Cast to const char* and return as python bytes
     const char* char_ptr = reinterpret_cast<const char*>(file_buffer.data());

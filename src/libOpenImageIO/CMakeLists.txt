@@ -299,12 +299,10 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
     add_test (unit_imageinout ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imageinout_test)
     set_tests_properties (unit_imageinout PROPERTIES PROCESSORS 2 COST 30)
 
-    if (NOT DEFINED ENV{OpenImageIO_CI})
-        fancy_add_executable (NAME imagespeed_test SRC imagespeed_test.cpp
-                              LINK_LIBRARIES OpenImageIO
-                              FOLDER "Unit Tests" NO_INSTALL)
-        #add_test (imagespeed_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagespeed_test)
-    endif ()
+    fancy_add_executable (NAME imagespeed_test SRC imagespeed_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    #add_test (imagespeed_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagespeed_test)
 
     fancy_add_executable (NAME compute_test SRC compute_test.cpp
                           LINK_LIBRARIES OpenImageIO

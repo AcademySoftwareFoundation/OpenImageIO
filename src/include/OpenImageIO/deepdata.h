@@ -116,12 +116,12 @@ public:
     /// pixel index.
     int capacity(int64_t pixel) const;
 
-    /// Insert `n` samples of the specified pixel, betinning at the sample
+    /// Insert `n` samples of the specified pixel, beginning at the sample
     /// position index. After insertion, the new samples will have
     /// uninitialized values.
     void insert_samples(int64_t pixel, int samplepos, int n = 1);
 
-    /// Erase `n` samples of the specified pixel, betinning at the sample
+    /// Erase `n` samples of the specified pixel, beginning at the sample
     /// position index.
     void erase_samples(int64_t pixel, int samplepos, int n = 1);
 
