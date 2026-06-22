@@ -17,17 +17,11 @@
 #include <ktx.h>
 #include <optional>
 
-// #include "ConvectionKernels/ConvectionKernels_BC67.h" /* for BC6HS/BC6HU decoders */
-#define ETCDEC_IMPLEMENTATION
-#include "bc7enc-rdo/bc7decomp.h" /* for BC7 decoder */
-#include "bc7enc-rdo/rgbcx.h"     /* for BC1-BC5 decoders */
-#include "etcdec.h"               /* for ETC2 decoders */
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class KtxInput final : public ImageInput {
 public:
-    KtxInput() {}
+    KtxInput() { }
 
     ~KtxInput() override { close(); }
 
@@ -135,32 +129,6 @@ private:
     TextureKind get_texture_kind() const;
 
     std::string get_colorspace() const;
-
-    inline void cpy_decoded_block(const uint8_t* pSrc, uint8_t* dst, size_t x,
-                                  size_t y, size_t width, size_t height,
-                                  size_t nchannels) const;
-
-    template<typename T, typename P>
-    inline bool check_bcn_spans(cspan<T> src, span<P> dst, int level,
-                                BlockCompression cmp) const;
-
-    void decode_bc1(cspan<uint8_t> src, span<uint8_t> dst, int level) const;
-    void decode_bc3(cspan<uint8_t> src, span<uint8_t> dst, int level) const;
-    void decode_bc4(cspan<uint8_t> src, span<uint8_t> dst, int level) const;
-    void decode_bc5(cspan<uint8_t> src, span<uint8_t> dst, int level) const;
-    // void decode_bc6h(cspan<uint8_t> src, span<int16_t> dst, int level,
-    //                  bool is_signed) const;
-    void decode_bc7(cspan<uint8_t> src, span<uint8_t> dst, int level) const;
-
-    inline bool check_etc_spans(cspan<uint8_t> src, span<uint8_t> dst,
-                                int level, BlockCompression cmp) const;
-
-    void decode_etc2_rgb(cspan<uint8_t> src, span<uint8_t> dst,
-                         int level) const;
-    void decode_etc2_rgba(cspan<uint8_t> src, span<uint8_t> dst,
-                          int level) const;
-    void decode_etc2_rgb_a1(cspan<uint8_t> src, span<uint8_t> dst,
-                            int level) const;
 };
 
 
@@ -172,14 +140,10 @@ OIIO_EXPORT int ktx_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char*
 ktx_imageio_library_version()
-{
-    return "ktx v5.0.0-rc1";
-}  // hardcoded because I couldn't expose KTX_VERSION
+{ return "ktx v5.0.0-rc1"; }  // hardcoded because I couldn't expose KTX_VERSION
 OIIO_EXPORT ImageInput*
 ktx_input_imageio_create()
-{
-    return new KtxInput;
-}
+{ return new KtxInput; }
 OIIO_EXPORT const char* ktx_input_extensions[] = { "ktx2", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -271,8 +235,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // worse, 3D array textures.
     //
     // TODO:
-    // Implementing the per-subimage allocation approach requires a significant
-    // effort. For the moment, let's make sure this approach is working (i.e.,
+    // Implementing the per-subimage allocation approach requires some effort.
+    // For the moment, let's make sure this approach is working (i.e.,
     // all tests are passing) then let's profile and see what more experienced
     // users might say about this.
     //
@@ -619,11 +583,6 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 65535, 0, 4 }))
         return false;
 
-    // Initialize BC1, BC3, BC4 and BC5 decoder library
-    if (m_cmp == BlockCompression::BC1 || m_cmp == BlockCompression::BC3
-        || m_cmp == BlockCompression::BC4 || m_cmp == BlockCompression::BC5)
-        rgbcx::init(rgbcx::bc1_approx_mode::cBC1Ideal);
-
     if (!seek_subimage(0, 0))
         // errorfmt is set via seek_subimage
         return false;
@@ -723,19 +682,17 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     //          ktxTexture2_DecodeAstc call.
     //          This currently decodes the whole texture (all miplevels, all
     //          slices, etc.) into memory.
-    //          TODO: implement decode_astc for per-miplvl/subimage decoding.
+    //          TODO: wait for my PR in libktx to implement decode_astc for
+    //                per-miplvl/subimage decoding.
     //
-    //    BCn:  we implement decode_bcn using 3rd party BCn decoder
-    //          via bcdec (at https://github.com/iOrange/bcdec). This allows us
-    //          to do a per-miplvl and per-subimage decode hence why we don't
-    //          decode here but rather in seek_subimage.
+    //    BCn:  libktx will provide decoders/encoders for BCn block compression
+    //          via ktxTexture2_DecodeBCn. TODO: wait for my RP in libktx to get
+    //          merged then add BCn support.
     //
-    //    ETC2: we implement decode_etc using 3rd party ETC decoder
-    //          via etcdec (https://github.com/iOrange/etcdec). This allows us
-    //          to do a per-miplvl and per-subimage decode hence why we don't
-    //          decode here but rather in seek_subimage.
+    //    ETC2: TODO: some licensing clarification is needed from the part of
+    //                etcunpack usage in libktx.
     //
-    //    PVRTC:  TODO
+    //    PVRTC: TODO: wait for libktx PR.
     //
     if (m_tex2->isCompressed /* i.e., is GPU block compressed? */) {
         ktx_size_t offset;
@@ -752,91 +709,46 @@ KtxInput::seek_subimage(int subimage, int miplevel)
                                                         miplevel));
 
         switch (m_cmp) {
-            /* BCn formats */
-        case BlockCompression::BC1: {
-            // TODO: is std::vector<>::resize() a nop when the vector already has that exact size?
-            m_buf.resize(width * height * BC1_OUTPUT_NCHANNELS);
-            span<uint8_t> dst_span(m_buf.data(), m_buf.size());
-            if (!check_bcn_spans(src_span, dst_span, miplevel, m_cmp))
-                return false;
-            decode_bc1(src_span, dst_span, miplevel);
-            break;
-        }
-
-        case BlockCompression::BC3: {
-            m_buf.resize(width * height * BC3_OUTPUT_NCHANNELS);
-            span<uint8_t> dst_span(m_buf.data(), m_buf.size());
-            if (!check_bcn_spans(src_span, dst_span, miplevel, m_cmp))
-                return false;
-            decode_bc3(src_span, dst_span, miplevel);
-            break;
-        }
-
-        case BlockCompression::BC4: {
-            m_buf.resize(width * height * BC4_OUTPUT_NCHANNELS);
-            span<uint8_t> dst_span(m_buf.data(), m_buf.size());
-            if (!check_bcn_spans(src_span, dst_span, miplevel, m_cmp))
-                return false;
-            decode_bc4(src_span, dst_span, miplevel);
-            break;
-        }
-
-        case BlockCompression::BC5: {
-            m_buf.resize(width * height * BC5_OUTPUT_NCHANNELS);
-            span<uint8_t> dst_span(m_buf.data(), m_buf.size());
-            if (!check_bcn_spans(src_span, dst_span, miplevel, m_cmp))
-                return false;
-            decode_bc5(src_span, dst_span, miplevel);
-            break;
-        }
-
-            /* HDR format */
-            // case BlockCompression::BC6HS: {
-            //     m_buf.resize(width * height * BC6H_OUTPUT_NCHANNELS * 2);
-            //     span<int16_t> dst_span(reinterpret_cast<int16_t*>(m_buf.data()),
-            //                            m_buf.size() / 2);
-            //     if (!check_bcn_spans(src_span, dst_span, miplevel, m_cmp))
-            //         return false;
-            //     decode_bc6h(src_span, dst_span, miplevel, /* is_signed */ true);
-            //     break;
+            /* BCn LDR formats */
+        case BlockCompression::BC1:
+        case BlockCompression::BC2:
+        case BlockCompression::BC3:
+        case BlockCompression::BC4:
+        case BlockCompression::BC5:
+        case BlockCompression::BC7:
+            //
+            // TODO: wait for my PR in libktx to be merged
+            //
+            // Note:
+            // ktxTexture2_DecodeBCn internally creates a new ktxTexture2 texture
+            // and populates it with decoded data from the originally provided
+            // texture. At the end, it moves the decoded data to m_tex and
+            // destroys the temporarily created texture.
+            //
+            // This operation is expensive (both in memory and CPU cycles).
+            // After this, m_tex2->isCompressed will be false => this will only
+            // be called once.
+            //
+            // if (auto status = ktxTexture2_DecodeBCn(m_tex2);
+            //     status != KTX_SUCCESS) {
+            //     errorfmt("failed to decode BCn-compressed texture. "
+            //              "ktxTexture2_DecodeBCn returned Ktx error code: {}",
+            //              static_cast<uint32_t>(status));
+            //     return false;
             // }
+            // break;
+            return false;
 
-        case BlockCompression::BC7: {
-            m_buf.resize(width * height * BC7_OUTPUT_NCHANNELS);
-            span<uint8_t> dst_span(m_buf.data(), m_buf.size());
-            if (!check_bcn_spans(src_span, dst_span, miplevel, m_cmp))
-                return false;
-            decode_bc7(src_span, dst_span, miplevel);
-            break;
-        }
+            /* BCn HDR formats - TODO */
+        case BlockCompression::BC6HU:
+        case BlockCompression::BC6HS:
+            return false;
 
             /* ETC formats */
-        case BlockCompression::ETC2_RGB: {
-            m_buf.resize(width * height * ETC2_RGB_OUTPUT_NCHANNELS);
-            span<uint8_t> dst_span(m_buf.data(), m_buf.size());
-            if (!check_etc_spans(src_span, dst_span, miplevel, m_cmp))
-                return false;
-            decode_etc2_rgb(src_span, dst_span, miplevel);
-            break;
-        }
-
-        case BlockCompression::ETC2_RGB_A1: {
-            m_buf.resize(width * height * ETC2_RGB_A1_OUTPUT_NCHANNELS);
-            span<uint8_t> dst_span(m_buf.data(), m_buf.size());
-            if (!check_etc_spans(src_span, dst_span, miplevel, m_cmp))
-                return false;
-            decode_etc2_rgb_a1(src_span, dst_span, miplevel);
-            break;
-        }
-
-        case BlockCompression::ETC2_RGBA: {
-            m_buf.resize(width * height * ETC2_RGBA_OUTPUT_NCHANNELS);
-            span<uint8_t> dst_span(m_buf.data(), m_buf.size());
-            if (!check_etc_spans(src_span, dst_span, miplevel, m_cmp))
-                return false;
-            decode_etc2_rgba(src_span, dst_span, miplevel);
-            break;
-        }
+        case BlockCompression::ETC2_RGB:
+        case BlockCompression::ETC2_RGB_A1:
+        case BlockCompression::ETC2_RGBA:
+            return false;
 
             /* ASTC formats */
         case BlockCompression::ASTC:
@@ -847,7 +759,7 @@ KtxInput::seek_subimage(int subimage, int miplevel)
             // texture. At the end, it moves the decoded data to m_tex and
             // destroys the temporarily created texture.
             //
-            // This operation is very expensive (both in memory and CPU cycles).
+            // This operation is expensive (both in memory and CPU cycles).
             // After this, m_tex2->isCompressed will be false => this will only
             // be called once.
             //
@@ -866,13 +778,13 @@ KtxInput::seek_subimage(int subimage, int miplevel)
             return false;
         }
 
-        m_pitch = width * m_spec.nchannels
-                  * m_spec.format.size() /* 1 for LDR, 2 for HDR formats */;
+        m_pitch    = width * m_spec.nchannels
+                     * m_spec.format.size() /* 1 for LDR, 2 for HDR formats */;
         m_data_ptr = m_buf.data();
     }
 
-    // Do NOT change this to `else` statement because this handles the ASTC case
-    // above (which, again, sets m_tex2->isCompressed to `false`)
+    // Do NOT change this to `else` statement because this handles the ASTC and
+    // BCn cases above (which, again, sets m_tex2->isCompressed to `false`)
     if (!m_tex2->isCompressed) {
         //
         // GetImageOffset implements internal checks depending on texture kind (e.g.,
@@ -965,7 +877,7 @@ OpenImageIO::KtxInput::valid_file(Filesystem::IOProxy* ioproxy) const
         return false;
 
     // per KTX2 specs: the first 12 bytes of a KTX2 file are used to identify it
-    uint8_t magic[12] {};
+    uint8_t magic[12] { };
     const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
 
     return (numRead == sizeof(magic))
@@ -1038,448 +950,6 @@ KtxInput::get_colorspace() const
     // TODO: need to generate test files before adding support for any other
     // colorspaces
     return "unknown";
-}
-
-//
-// Copies a decoded block (e.g., a decoded BC7 block) from provided pSrc to
-// provided pDst. For each row of the decoded block, performs a memcpy to the
-// destination block while accounting for potential non-multiple-of-block-size
-// destination dimensions.
-//
-// Source:
-//
-//  <-------------- block size ------------->
-//  +---------------------------------------+
-//  | pSrc + 0 | ... | pSrc + src_pitch - 1 | <-- row: 0
-//  |                                       |
-//  |          | ... |                      |
-//  |                                       |
-//  |          | ... |                      |
-//  |                                       |
-//  |          | ... |                      |
-//  |                                       |
-//  |          | ... |                      |
-//  |                                       |
-//  |          | ... |                      | <-- row: block_size - 1
-//  +---------------------------------------+
-//
-//
-// Destination:
-//
-//  <-------------------- width ----------------->
-//  +--------------------------------------------+
-//  | pDst    | ... | pDst + dst_pitch - 1       | <-- row: 0
-//  |                                            |
-//  |                                            |
-//  | pDst + y * dst_pitch * nchannels * x -> +--|---+ <- destination block
-//  |                                         |  |xxx|
-//  |                                         |  |xxx|
-//  |                                         +--|---+
-//  |                                            |
-//  |                                            |
-//  |                                            |
-//  |                                            | <-- row: height - 1
-//  +--------------------------------------------+
-//
-// Source and destination SHOULD have the same stride (i.e., nchannels).
-//
-inline void
-KtxInput::cpy_decoded_block(const uint8_t* pSrc, uint8_t* dst, size_t x,
-                            size_t y, size_t width, size_t height,
-                            size_t nchannels /* stride */) const
-{
-    // TODO: expose this as param
-    constexpr size_t kBlockSize { 4 };
-    const size_t src_pitch = kBlockSize * nchannels;
-    const size_t dst_pitch = width * nchannels;
-    int cols               = std::min(kBlockSize, width - x);
-    uint8_t* pDst          = dst + y * dst_pitch + nchannels * x;
-    for (size_t py { 0 }; py < kBlockSize && y + py < height; ++py) {
-        memcpy(pDst, pSrc, cols * nchannels);
-        pSrc += src_pitch;
-        pDst += dst_pitch;
-    }
-}
-
-
-//
-// Makes sure that provided source BCn blocks span and target span (where blocks
-// will be decoded into) are of sufficient sizes.
-// You should call this before any decode_bcn() functions.
-//
-template<typename T, typename P>
-inline bool
-KtxInput::check_bcn_spans(cspan<T> src, span<P> dst, int level,
-                          BlockCompression cmp) const
-{
-    const size_t nchannels { static_cast<size_t>(m_spec.nchannels) };
-    const size_t width  = std::max(m_tex->baseWidth >> level, 1u);
-    const size_t height = std::max(m_tex->baseHeight >> level, 1u);
-    size_t expected_nchannels;
-    size_t expected_dst_size;
-    size_t expected_src_size;
-    const int nblocks_x { static_cast<int>(
-        std::ceil(width / (float)BCN_BLOCK_SIZE)) };
-    const int nblocks_y { static_cast<int>(
-        std::ceil(height / (float)BCN_BLOCK_SIZE)) };
-
-    switch (cmp) {
-    case BlockCompression::BC1:
-        expected_nchannels = BC1_OUTPUT_NCHANNELS;
-        expected_dst_size  = width * height * BC1_OUTPUT_NCHANNELS;
-        expected_src_size  = nblocks_x * nblocks_y * BC1_BLOCK_SIZE;
-        break;
-
-    case BlockCompression::BC3:
-        expected_nchannels = BC3_OUTPUT_NCHANNELS;
-        expected_dst_size  = width * height * BC3_OUTPUT_NCHANNELS;
-        expected_src_size  = nblocks_x * nblocks_y * BC3_BLOCK_SIZE;
-        break;
-
-    case BlockCompression::BC4:
-        expected_nchannels = BC4_OUTPUT_NCHANNELS;
-        expected_dst_size  = width * height * BC4_OUTPUT_NCHANNELS;
-        expected_src_size  = nblocks_x * nblocks_y * BC4_BLOCK_SIZE;
-        break;
-
-    case BlockCompression::BC5:
-        expected_nchannels = BC5_OUTPUT_NCHANNELS;
-        expected_dst_size  = width * height * BC5_OUTPUT_NCHANNELS;
-        expected_src_size  = nblocks_x * nblocks_y * BC5_BLOCK_SIZE;
-        break;
-
-        // case KHR_DF_MODEL_BC6H:
-        //     expected_nchannels = BC6H_OUTPUT_NCHANNELS;
-        //     expected_dst_size  = width * height * BC6H_OUTPUT_NCHANNELS;
-        //     expected_src_size  = nblocks_x * nblocks_y * BC6H_BLOCK_SIZE;
-        //     break;
-
-    case BlockCompression::BC7:
-        expected_nchannels = BC7_OUTPUT_NCHANNELS;
-        expected_dst_size  = width * height * BC7_OUTPUT_NCHANNELS;
-        expected_src_size  = nblocks_x * nblocks_y * BC7_BLOCK_SIZE;
-        break;
-
-    default: return false;
-    }
-
-    if (nchannels != expected_nchannels) {
-        errorfmt("Current BCn scheme is expected to decode into "
-                 "{}-channel-images but target image got: {} channels.",
-                 expected_nchannels, nchannels);
-        return false;
-    }
-
-    if (src.size() < expected_src_size) {
-        errorfmt("The source data buffer's size is smaller than expected. "
-                 "Expected {} bytes but provided buffer only has {} bytes.",
-                 expected_src_size, src.size());
-        return false;
-    }
-
-    if (dst.size() < expected_dst_size) {
-        errorfmt(
-            "The size of the destination buffer to hold decoded BCn "
-            "blocks is smaller than expected. Expected {} bytes but provided "
-            "buffer only has {} bytes.",
-            expected_dst_size, dst.size());
-        return false;
-    }
-    return true;
-}
-
-
-void
-KtxInput::decode_bc1(cspan<uint8_t> src, span<uint8_t> dst, int level) const
-{
-    const size_t width  = std::max(m_tex2->baseWidth >> level, 1u);
-    const size_t height = std::max(m_tex2->baseHeight >> level, 1u);
-
-    const size_t rgba_pitch = BCN_BLOCK_SIZE * BC1_OUTPUT_NCHANNELS;
-    uint8_t rgba[BCN_BLOCK_SIZE * rgba_pitch]; /* 64 bytes */
-    const uint8_t* src_blocks = src.data();
-
-    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
-            // BC1: 8 bytes -> 4 x 4 x 4 = 64 bytes
-            rgbcx::unpack_bc1(src_blocks, rgba, true);
-            src_blocks += BC1_BLOCK_SIZE;
-            cpy_decoded_block(rgba, dst.data(), x, y, width, height,
-                              BC1_OUTPUT_NCHANNELS);
-        }
-    }
-}
-
-
-void
-KtxInput::decode_bc3(cspan<uint8_t> src, span<uint8_t> dst, int level) const
-{
-    const size_t width  = std::max(m_tex2->baseWidth >> level, 1u);
-    const size_t height = std::max(m_tex2->baseHeight >> level, 1u);
-
-    const size_t rgba_pitch = BCN_BLOCK_SIZE * BC3_OUTPUT_NCHANNELS;
-    uint8_t rgba[BCN_BLOCK_SIZE * rgba_pitch]; /* 64 bytes */
-    const uint8_t* src_blocks = src.data();
-
-    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
-            // BC3: 16 bytes -> 4 x 4 x 4 = 64 bytes
-            rgbcx::unpack_bc3(src_blocks, rgba);
-            src_blocks += BC3_BLOCK_SIZE;
-            cpy_decoded_block(rgba, dst.data(), x, y, width, height,
-                              BC3_OUTPUT_NCHANNELS);
-        }
-    }
-}
-
-
-void
-KtxInput::decode_bc4(cspan<uint8_t> src, span<uint8_t> dst, int level) const
-{
-    const size_t width  = std::max(m_tex2->baseWidth >> level, 1u);
-    const size_t height = std::max(m_tex2->baseHeight >> level, 1u);
-
-    const size_t r_pitch = BCN_BLOCK_SIZE * BC4_OUTPUT_NCHANNELS;
-    uint8_t r[BCN_BLOCK_SIZE * r_pitch]; /* 16 bytes */
-    const uint8_t* src_blocks = src.data();
-
-    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
-            // BC4: 8 bytes -> 4 x 4 x 1 = 16 bytes
-            rgbcx::unpack_bc4(src_blocks, r, /* stride */ BC4_OUTPUT_NCHANNELS);
-            src_blocks += BC4_BLOCK_SIZE;
-            cpy_decoded_block(r, dst.data(), x, y, width, height,
-                              BC4_OUTPUT_NCHANNELS);
-        }
-    }
-}
-
-
-void
-KtxInput::decode_bc5(cspan<uint8_t> src, span<uint8_t> dst, int level) const
-{
-    const size_t width  = std::max(m_tex2->baseWidth >> level, 1u);
-    const size_t height = std::max(m_tex2->baseHeight >> level, 1u);
-
-    const size_t rg_pitch = BCN_BLOCK_SIZE * BC5_OUTPUT_NCHANNELS;
-    uint8_t rg[BCN_BLOCK_SIZE * rg_pitch]; /* 32 bytes */
-    const uint8_t* src_blocks = src.data();
-
-    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
-            // BC5: 16 bytes -> 4 x 4 x 2 = 32 bytes
-            rgbcx::unpack_bc5(src_blocks, rg, 0, 1,
-                              /* stride */ BC5_OUTPUT_NCHANNELS);
-            src_blocks += BC5_BLOCK_SIZE;
-            cpy_decoded_block(rg, dst.data(), x, y, width, height,
-                              BC5_OUTPUT_NCHANNELS);
-        }
-    }
-}
-
-// TODO: this is not yet tested because apparently I can't (or ktx can't)
-// generate a BC6HS/BC6HU KTX file...
-// void
-// KtxInput::decode_bc6h(cspan<uint8_t> src, span<int16_t> dst, int level,
-//                       bool is_signed) const
-// {
-//     constexpr size_t kBlockSize { 4 };
-//     constexpr size_t nchannels { BC6H_OUTPUT_NCHANNELS };
-//     const size_t width  = std::max(m_tex2->baseWidth >> level, 1u);
-//     const size_t height = std::max(m_tex2->baseHeight >> level, 1u);
-//     const size_t pitch  = width * nchannels;
-//
-//     cvtt::PixelBlockF16 rgbx; /* int16_t m_pixels[16][4]; */
-//     constexpr int rgbx_pitch { kBlockSize * 4 };
-//     const uint8_t* src_blocks = src.data();
-//
-//     for (size_t y { 0 }; y < height; y += kBlockSize) {
-//         for (size_t x { 0 }; x < width; x += kBlockSize) {
-//             // BC6: 16 bytes -> 4 x 4 x 3 x 2 = 32 bytes
-//
-//             cvtt::Internal::BC6HComputer::UnpackOne(rgbx, src_blocks,
-//                                                     is_signed);
-//             src_blocks += BC6H_BLOCK_SIZE;
-//
-//             // copy HDR block into destination
-//             const int16_t* pSrc = rgbx.m_pixels[0];
-//             int16_t* pDst       = dst.data() + y * pitch + x * nchannels;
-//             const int cols      = std::min(kBlockSize, width - x);
-//             for (size_t py { 0 }; py < kBlockSize && y + py < height; ++py) {
-//                 memcpy(pDst, pSrc, cols * nchannels * 2);
-//                 pSrc += rgbx_pitch;
-//                 pDst += pitch;
-//             }
-//         }
-//     }
-// }
-
-
-void
-KtxInput::decode_bc7(cspan<uint8_t> src, span<uint8_t> dst, int level) const
-{
-    const size_t width  = std::max(m_tex2->baseWidth >> level, 1u);
-    const size_t height = std::max(m_tex2->baseHeight >> level, 1u);
-
-    const size_t rgba_pitch = BCN_BLOCK_SIZE * BC7_OUTPUT_NCHANNELS;
-    uint8_t rgba[BCN_BLOCK_SIZE * rgba_pitch]; /* 64 bytes */
-    const uint8_t* src_blocks = src.data();
-
-    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
-            // BC7: 16 bytes -> 4 x 4 x 4 = 64 bytes
-            bc7decomp::unpack_bc7(src_blocks,
-                                  reinterpret_cast<bc7decomp::color_rgba*>(
-                                      rgba));
-            src_blocks += BC7_BLOCK_SIZE;
-            cpy_decoded_block(rgba, dst.data(), x, y, width, height,
-                              BC7_OUTPUT_NCHANNELS);
-        }
-    }
-}
-
-
-//
-// Makes sure that provided source ETC blocks span and target span (where blocks
-// will be decoded into) are of sufficient sizes.
-// You should call this before any decode_etc() functions.
-//
-inline bool
-KtxInput::check_etc_spans(cspan<uint8_t> src, span<uint8_t> dst, int level,
-                          BlockCompression cmp) const
-{
-    const size_t nchannels { static_cast<size_t>(m_spec.nchannels) };
-    const size_t width  = std::max(m_tex->baseWidth >> level, 1u);
-    const size_t height = std::max(m_tex->baseHeight >> level, 1u);
-    size_t expected_nchannels;
-    size_t expected_dst_size;
-    size_t expected_src_size;
-    const int nblocks_x { static_cast<int>(
-        std::ceil(width / (float)ETC_BLOCK_SIZE)) };
-    const int nblocks_y { static_cast<int>(
-        std::ceil(height / (float)ETC_BLOCK_SIZE)) };
-
-    switch (cmp) {
-    case BlockCompression::ETC2_RGB:
-        expected_nchannels = ETC2_RGB_OUTPUT_NCHANNELS;
-        expected_dst_size  = width * height * ETC2_RGB_OUTPUT_NCHANNELS;
-        expected_src_size  = nblocks_x * nblocks_y * ETCDEC_ETC_RGB_BLOCK_SIZE;
-        break;
-
-    case BlockCompression::ETC2_RGB_A1:
-        expected_nchannels = ETC2_RGB_A1_OUTPUT_NCHANNELS;
-        expected_dst_size  = width * height * ETC2_RGB_A1_OUTPUT_NCHANNELS;
-        expected_src_size  = nblocks_x * nblocks_y
-                            * ETCDEC_ETC_RGB_A1_BLOCK_SIZE;
-        break;
-
-    case BlockCompression::ETC2_RGBA:
-        expected_nchannels = ETC2_RGBA_OUTPUT_NCHANNELS;
-        expected_dst_size  = width * height * ETC2_RGBA_OUTPUT_NCHANNELS;
-        expected_src_size  = nblocks_x * nblocks_y * ETCDEC_EAC_RGBA_BLOCK_SIZE;
-        break;
-
-    default:
-        errorfmt("Unsupported ETCO compression format: {}",
-                 static_cast<uint32_t>(cmp));
-        return false;
-    }
-
-    if (nchannels != expected_nchannels) {
-        errorfmt("Current ETC scheme is expected to decode into "
-                 "{}-channel-images but target image got: {} channels.",
-                 expected_nchannels, nchannels);
-        return false;
-    }
-
-    if (src.size() < expected_src_size) {
-        errorfmt("The source data buffer's size is smaller than expected. "
-                 "Expected {} bytes but provided buffer only has {} bytes.",
-                 expected_src_size, src.size());
-        return false;
-    }
-
-    if (dst.size() < expected_dst_size) {
-        errorfmt(
-            "The size of the destination buffer to hold decoded ETC "
-            "blocks is smaller than expected. Expected {} bytes but provided "
-            "buffer only has {} bytes.",
-            expected_dst_size, dst.size());
-        return false;
-    }
-    return true;
-}
-
-
-void
-KtxInput::decode_etc2_rgb(cspan<uint8_t> src, span<uint8_t> dst,
-                          int level) const
-{
-    const size_t width  = std::max(m_tex2->baseWidth >> level, 1u);
-    const size_t height = std::max(m_tex2->baseHeight >> level, 1u);
-
-    const size_t rgbx_pitch = ETC_BLOCK_SIZE * ETC2_RGB_OUTPUT_NCHANNELS;
-    uint8_t rgbx[ETC_BLOCK_SIZE * rgbx_pitch]; /* 64 bytes */
-    const uint8_t* src_blocks = src.data();
-
-    for (size_t y { 0 }; y < height; y += ETC_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += ETC_BLOCK_SIZE) {
-            // ETC2_RGB: 8 bytes -> 4 x 4 x (3 + 1) = 64 bytes (alpha ignored)
-            etcdec_etc_rgb(src_blocks, rgbx,
-                           ETC_BLOCK_SIZE * ETC2_RGB_OUTPUT_NCHANNELS);
-            src_blocks += ETCDEC_ETC_RGB_BLOCK_SIZE;
-            cpy_decoded_block(rgbx, dst.data(), x, y, width, height,
-                              ETC2_RGB_OUTPUT_NCHANNELS);
-        }
-    }
-}
-
-
-void
-KtxInput::decode_etc2_rgba(cspan<uint8_t> src, span<uint8_t> dst,
-                           int level) const
-{
-    const size_t width  = std::max(m_tex2->baseWidth >> level, 1u);
-    const size_t height = std::max(m_tex2->baseHeight >> level, 1u);
-
-    const size_t rgba_pitch = ETC_BLOCK_SIZE * ETC2_RGBA_OUTPUT_NCHANNELS;
-    uint8_t rgba[ETC_BLOCK_SIZE * rgba_pitch]; /* 64 bytes */
-    const uint8_t* src_blocks = src.data();
-
-    for (size_t y { 0 }; y < height; y += ETC_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += ETC_BLOCK_SIZE) {
-            // ETC2_RGBA: 16 bytes -> 4 x 4 x 4 = 64 bytes
-            etcdec_eac_rgba(src_blocks, rgba,
-                            ETC_BLOCK_SIZE * ETC2_RGBA_OUTPUT_NCHANNELS);
-            src_blocks += ETCDEC_EAC_RGBA_BLOCK_SIZE;
-            cpy_decoded_block(rgba, dst.data(), x, y, width, height,
-                              ETC2_RGBA_OUTPUT_NCHANNELS);
-        }
-    }
-}
-
-
-void
-KtxInput::decode_etc2_rgb_a1(cspan<uint8_t> src, span<uint8_t> dst,
-                             int level) const
-{
-    const size_t width  = std::max(m_tex2->baseWidth >> level, 1u);
-    const size_t height = std::max(m_tex2->baseHeight >> level, 1u);
-
-    const size_t rgba_pitch = ETC_BLOCK_SIZE * ETC2_RGB_A1_OUTPUT_NCHANNELS;
-    uint8_t rgba[ETC_BLOCK_SIZE * rgba_pitch]; /* 64 bytes */
-    const uint8_t* src_blocks = src.data();
-
-    for (size_t y { 0 }; y < height; y += ETC_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += ETC_BLOCK_SIZE) {
-            // ETC2_RGB_A1: 8 bytes -> 4 x 4 x 4 = 64 bytes
-            etcdec_etc_rgb_a1(src_blocks, rgba,
-                              ETC_BLOCK_SIZE * ETC2_RGB_A1_OUTPUT_NCHANNELS);
-            src_blocks += ETCDEC_ETC_RGB_A1_BLOCK_SIZE;
-            cpy_decoded_block(rgba, dst.data(), x, y, width, height,
-                              ETC2_RGB_A1_OUTPUT_NCHANNELS);
-        }
-    }
 }
 
 OIIO_PLUGIN_NAMESPACE_END

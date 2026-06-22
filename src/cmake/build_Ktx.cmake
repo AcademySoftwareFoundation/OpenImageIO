@@ -1,6 +1,6 @@
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/Academ SoftwareFoundation/OpenImageIO
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 set_cache (Ktx_BUILD_VERSION v5.0.0-rc1 "Ktx version for local builds")
 set (Ktx_GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git")
@@ -29,11 +29,11 @@ build_dependency_with_cmake(Ktx
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON
         -D LIBKTX_VERSION_READ_ONLY=OFF
         -D LIBKTX_VERSION_FULL=ON
-        -D LIBKTX_FEATURE_KTX1=OFF
+        -D LIBKTX_FEATURE_KTX1=ON  # Setting this to OFF causes linker issues
         -D LIBKTX_FEATURE_KTX2=ON
         -D LIBKTX_FEATURE_VK_UPLOAD=OFF
         -D LIBKTX_FEATURE_GL_UPLOAD=OFF
-        -D LIBKTX_FEATURE_ETC_UNPACK=ON
+        -D LIBKTX_FEATURE_ETC_UNPACK=OFF # This has some weird licensing and I don't feel comfortable including it ...
         # as per KTX-Software:
         # > Intel Macs have support for SSE, but if you're building universal
         # > binaries, you have to disable SSE or the build will fail.

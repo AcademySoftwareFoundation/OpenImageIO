@@ -15,11 +15,6 @@
 #include <cstdint>
 #include <ktx.h>
 
-#include "bc7enc-rdo/bc7enc.h" /* for BC7 encoder */
-#include "bc7enc-rdo/rgbcx.h"  /* for BC1-BC5 encoders */
-// TODO: ETC encoders
-// TODO: BC6HS/BC6HU encoders
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class KtxOutput final : public ImageOutput {
@@ -86,25 +81,6 @@ private:
     bool basisu_uastc_compress();
 
     bool write_ktx2();
-
-    inline bool check_bcn_spans(cspan<uint8_t> src, span<uint8_t> dst,
-                                size_t width, size_t height,
-                                BlockCompression cmp) const;
-
-    void encode_bc1(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                    size_t height);
-
-    void encode_bc3(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                    size_t height);
-
-    void encode_bc4(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                    size_t height);
-
-    void encode_bc5(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                    size_t height);
-
-    void encode_bc7(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                    size_t height, const bc7enc_compress_block_params* params);
 
     // void generate_mip_levels(const image_span<const std::byte>& base_lvl_image,
     //                          ImageInput& inputFile, uint32_t numMipLevels,
@@ -351,7 +327,6 @@ KtxOutput::open(const std::string& name, const ImageSpec& newspec,
         // size from the set raw VkFormat:
         // (e.g., VK_FORMAT_R8G8_SRGB => width * height * 3 )
         m_img.resize(m_spec.scanline_bytes() * m_spec.height);
-        rgbcx::init(rgbcx::bc1_approx_mode::cBC1Ideal);
     }
 
     return true;
@@ -516,10 +491,6 @@ KtxOutput::write_ktx2()
                           (ktx_uint32_t)strlen(writer) + 1, writer);
     // std::cout << "KTXwrite: " << writer << '\n';
 
-    // dimensions for current mip level
-    const size_t width  = std::max(m_tex->baseWidth >> 0, 1u);
-    const size_t height = std::max(m_tex->baseHeight >> 0, 1u);
-
     //
     // In case data was read from an input KTX2 file with mipmaps, we have to
     // write the base level then generate mipmaps up to the specified level
@@ -556,65 +527,27 @@ KtxOutput::write_ktx2()
                || m_cmp == BlockCompression::BC4
                || m_cmp == BlockCompression::BC5
                || m_cmp == BlockCompression::BC7) {
-        //
-        // Is this a BCn GPU block compressed texture? If so, we need to encode
-        // to target block compression. To do so, we create another intermediate
-        // std::vector (is there a better alternative?)
-        //
-        std::vector<uint8_t> img_compressed;
-        img_compressed.resize(ktxTexture_GetImageSize(ktxTexture(m_tex), 0));
-        switch (m_cmp) {
-        case BlockCompression::BC1:
-            if (!check_bcn_spans(m_img, img_compressed, width, height, m_cmp))
-                return false;
-            encode_bc1(m_img, img_compressed, width, height);
-            break;
+        // First set uncompressed texture
+        // if (auto status = ktxTexture_SetImageFromMemory(ktxTexture(m_tex), 0, 0,
+        //                                                 0, m_img.data(),
+        //                                                 m_img.size());
+        //     status != KTX_SUCCESS) {
+        //     has_error();
+        //     errorfmt(
+        //         "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
+        //         static_cast<uint32_t>(status));
+        //     return false;
+        // }
 
-        case BlockCompression::BC3:
-            if (!check_bcn_spans(m_img, img_compressed, width, height, m_cmp))
-                return false;
-            encode_bc3(m_img, img_compressed, width, height);
-            break;
-
-        case BlockCompression::BC4:
-            if (!check_bcn_spans(m_img, img_compressed, width, height, m_cmp))
-                return false;
-            encode_bc4(m_img, img_compressed, width, height);
-            break;
-
-        case BlockCompression::BC5:
-            if (!check_bcn_spans(m_img, img_compressed, width, height, m_cmp))
-                return false;
-            encode_bc5(m_img, img_compressed, width, height);
-            break;
-
-        case BlockCompression::BC7: {
-            // MUST be called before calling bc7enc_compress_block() (or you'll get artifacts).
-            bc7enc_compress_block_init();
-
-            // Make sure to init BC7 block compression params to default. There is
-            // simply no way to figure out the originally used params from KTX2 file so
-            // we use defaults.
-            bc7enc_compress_block_params cmp_params;
-            bc7enc_compress_block_params_init(&cmp_params);
-            if (!check_bcn_spans(m_img, img_compressed, width, height, m_cmp))
-                return false;
-            encode_bc7(m_img, img_compressed, width, height, &cmp_params);
-            break;
-        }
-        default: return false;
-        }
-
-        if (auto status = ktxTexture_SetImageFromMemory(ktxTexture(m_tex), 0, 0,
-                                                        0,
-                                                        img_compressed.data(),
-                                                        img_compressed.size());
-            status != KTX_SUCCESS) {
-            errorfmt(
-                "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
-                static_cast<uint32_t>(status));
-            return false;
-        }
+        // Then compress the whole texture to BCn format
+        // TODO: expose BCn compression quality parameter as spec attribute
+        // if (auto status = ktxTexture2_CompressBCn(m_tex, nullptr);
+        //     status != KTX_SUCCESS) {
+        //     errorfmt("ktxTexture2_CompressBCn returned KTX exit error code: {}",
+        //              static_cast<uint32_t>(status));
+        //     return false;
+        // }
+        return false;
     } else if (m_cmp == BlockCompression::ASTC) {
         // First set uncompressed images
         if (auto status = ktxTexture_SetImageFromMemory(ktxTexture(m_tex), 0, 0,
@@ -700,228 +633,6 @@ KtxOutput::write_ktx2()
     // OIIO should guarantee that this never happens
     errorfmt("unexpected IOProxy type: {}", m_io->proxytype());
     return false;
-}
-
-
-
-//
-// Makes sure that provided source BCn blocks span and target span (where blocks
-// will be decoded into) are of sufficient sizes.
-// This should be called before any decode_bcn() functions.
-//
-inline bool
-KtxOutput::check_bcn_spans(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                           size_t height, BlockCompression cmp) const
-{
-    const size_t nchannels { static_cast<size_t>(m_spec.nchannels) };
-    const int nblocks_x { static_cast<int>(
-        std::ceil(width / (float)BCN_BLOCK_SIZE)) };
-    const int nblocks_y { static_cast<int>(
-        std::ceil(height / (float)BCN_BLOCK_SIZE)) };
-    size_t expected_nchannels;
-    size_t expected_dst_size;
-
-    /* Safety checks */
-    if ((width % BCN_BLOCK_SIZE != 0) || (height % BCN_BLOCK_SIZE != 0)) {
-        errorfmt("To use BCn block compression, the image's dimensions have "
-                 "to be a multiple of: {}",
-                 BCN_BLOCK_SIZE);
-        return false;
-    }
-
-    switch (cmp) {
-    case BlockCompression::BC1:
-        expected_nchannels = BC1_OUTPUT_NCHANNELS;
-        expected_dst_size  = nblocks_x * nblocks_y * BC1_BLOCK_SIZE;
-        break;
-
-    case BlockCompression::BC3:
-        expected_nchannels = BC3_OUTPUT_NCHANNELS;
-        expected_dst_size  = nblocks_x * nblocks_y * BC3_BLOCK_SIZE;
-        break;
-
-    case BlockCompression::BC4:
-        expected_nchannels = BC4_OUTPUT_NCHANNELS;
-        expected_dst_size  = nblocks_x * nblocks_y * BC4_BLOCK_SIZE;
-        break;
-
-    case BlockCompression::BC5:
-        expected_nchannels = BC5_OUTPUT_NCHANNELS;
-        expected_dst_size  = nblocks_x * nblocks_y * BC5_BLOCK_SIZE;
-        break;
-
-    case BlockCompression::BC7:
-        expected_nchannels = BC7_OUTPUT_NCHANNELS;
-        expected_dst_size  = nblocks_x * nblocks_y * BC7_BLOCK_SIZE;
-        break;
-
-    default:
-        errorfmt("Unsupported block compression format: {}",
-                 static_cast<uint32_t>(m_cmp));
-        return false;
-    }
-
-    if (nchannels != expected_nchannels) {
-        errorfmt("Current BCn scheme is expected to encode {}-channel-images "
-                 "but provided image got: {} channels.",
-                 nchannels);
-        return false;
-    }
-
-    const size_t expected_src_size { width * height * expected_nchannels };
-    if (src.size() < expected_src_size) {
-        errorfmt("The source data buffer's size is smaller than expected. "
-                 "Expected {} bytes but provided buffer only has {} bytes.",
-                 expected_src_size, src.size());
-        return false;
-    }
-
-    if (dst.size() < expected_dst_size) {
-        errorfmt("The size of the destination buffer to hold current BCn "
-                 "scheme's compressed blocks is smaller than expected. "
-                 "Expected {} bytes but provided buffer only has {} bytes.",
-                 expected_dst_size, dst.size());
-        return false;
-    }
-    return true;
-}
-
-
-
-void
-KtxOutput::encode_bc1(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                      size_t height)
-{
-    uint8_t* dst_ptr { dst.data() };
-    const size_t pixels_pitch { BCN_BLOCK_SIZE
-                                * BC1_OUTPUT_NCHANNELS };  // 4 x 4
-    uint8_t pPixels[BCN_BLOCK_SIZE * pixels_pitch];        // 4 x 4 x 4
-
-    // Row-major loop over blocks
-    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
-            // extract/copy source block
-            for (size_t i { 0 }; i < BCN_BLOCK_SIZE; ++i) {
-                // copy 4 pixels (32bpp) to pPixels
-                memcpy(pPixels + i * pixels_pitch,
-                       src.data() + (y + i) * width * BC1_OUTPUT_NCHANNELS
-                           + x * BC1_OUTPUT_NCHANNELS,
-                       pixels_pitch);
-            }
-            // BC1: 8 bytes -> 4 x 4 x 4 = 64 bytes
-            rgbcx::encode_bc1(10, dst_ptr,
-                              reinterpret_cast<const uint8_t*>(pPixels), true,
-                              false);
-            dst_ptr += BC1_BLOCK_SIZE;
-        }
-    }
-}
-
-
-
-void
-KtxOutput::encode_bc3(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                      size_t height)
-{
-    uint8_t* dst_ptr { dst.data() };
-    const size_t pixels_pitch { BCN_BLOCK_SIZE
-                                * BC3_OUTPUT_NCHANNELS };  // 4 x 4
-    uint8_t pPixels[BCN_BLOCK_SIZE * pixels_pitch];        // 4 x 4 x 4
-
-    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
-            for (size_t i { 0 }; i < BCN_BLOCK_SIZE; ++i)
-                memcpy(pPixels + i * pixels_pitch,
-                       src.data() + (y + i) * width * BC3_OUTPUT_NCHANNELS
-                           + x * BC3_OUTPUT_NCHANNELS,
-                       pixels_pitch);
-            // BC3: 16 bytes -> 4 x 4 x 4 = 64 bytes
-            rgbcx::encode_bc3(10, dst_ptr,
-                              reinterpret_cast<const uint8_t*>(pPixels));
-            dst_ptr += BC3_BLOCK_SIZE;
-        }
-    }
-}
-
-
-
-void
-KtxOutput::encode_bc4(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                      size_t height)
-{
-    uint8_t* dst_ptr { dst.data() };
-    const size_t pixels_pitch { BCN_BLOCK_SIZE
-                                * BC4_OUTPUT_NCHANNELS };  // 4 x 1
-    uint8_t pPixels[BCN_BLOCK_SIZE * pixels_pitch];        // 4 x 4 x 1
-
-    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
-            for (size_t i { 0 }; i < BCN_BLOCK_SIZE; ++i)
-                memcpy(pPixels + i * pixels_pitch,
-                       src.data() + (y + i) * width * BC4_OUTPUT_NCHANNELS
-                           + x * BC4_OUTPUT_NCHANNELS,
-                       pixels_pitch);
-            // BC4: 8 bytes -> 4 x 4 x 1 = 16 bytes
-            rgbcx::encode_bc4(dst_ptr,
-                              reinterpret_cast<const uint8_t*>(pPixels),
-                              /* stride */ BC4_OUTPUT_NCHANNELS);
-            dst_ptr += BC4_BLOCK_SIZE;
-        }
-    }
-}
-
-
-
-void
-KtxOutput::encode_bc5(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                      size_t height)
-{
-    uint8_t* dst_ptr { dst.data() };
-    const size_t pixels_pitch { BCN_BLOCK_SIZE
-                                * BC5_OUTPUT_NCHANNELS };  // 4 x 2
-    uint8_t pPixels[BCN_BLOCK_SIZE * pixels_pitch];        // 4 x 4 x 2
-
-    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
-            for (size_t i { 0 }; i < BCN_BLOCK_SIZE; ++i)
-                memcpy(pPixels + i * pixels_pitch,
-                       src.data() + (y + i) * width * BC5_OUTPUT_NCHANNELS
-                           + x * BC5_OUTPUT_NCHANNELS,
-                       pixels_pitch);
-            // BC5: 16 bytes -> 4 x 4 x 2 = 32 bytes
-            rgbcx::encode_bc5(dst_ptr,
-                              reinterpret_cast<const uint8_t*>(pPixels), 0, 1,
-                              /* stride */ BC5_OUTPUT_NCHANNELS);
-            dst_ptr += BC5_BLOCK_SIZE;
-        }
-    }
-}
-
-
-
-void
-KtxOutput::encode_bc7(cspan<uint8_t> src, span<uint8_t> dst, size_t width,
-                      size_t height, const bc7enc_compress_block_params* params)
-{
-    uint8_t* dst_ptr { dst.data() };
-    const size_t pixels_pitch { BCN_BLOCK_SIZE
-                                * BC7_OUTPUT_NCHANNELS };  // 4 x 4
-    uint8_t pPixels[BCN_BLOCK_SIZE * pixels_pitch];        // 4 x 4 x 4
-
-    for (size_t y { 0 }; y < height; y += BCN_BLOCK_SIZE) {
-        for (size_t x { 0 }; x < width; x += BCN_BLOCK_SIZE) {
-            for (size_t i { 0 }; i < BCN_BLOCK_SIZE; ++i)
-                memcpy(pPixels + i * pixels_pitch,
-                       src.data() + (y + i) * width * BC7_OUTPUT_NCHANNELS
-                           + x * BC7_OUTPUT_NCHANNELS,
-                       pixels_pitch);
-            // BC7: 16 bytes -> 4 x 4 x 4 = 64 bytes
-            bc7enc_compress_block(dst_ptr,
-                                  reinterpret_cast<const uint8_t*>(pPixels),
-                                  params);
-            dst_ptr += BC7_BLOCK_SIZE;
-        }
-    }
 }
 
 

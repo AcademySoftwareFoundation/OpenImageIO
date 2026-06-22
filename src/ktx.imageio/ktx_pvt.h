@@ -9,31 +9,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#define BCN_BLOCK_SIZE 4
-#define ETC_BLOCK_SIZE 4
-
-#define BC1_BLOCK_SIZE 8
-#define BC2_BLOCK_SIZE 16
-#define BC3_BLOCK_SIZE 16
-#define BC4_BLOCK_SIZE 8
-#define BC5_BLOCK_SIZE 16
-#define BC6H_BLOCK_SIZE 16
-#define BC7_BLOCK_SIZE 16
-
-#define BC1_OUTPUT_NCHANNELS 4
-#define BC3_OUTPUT_NCHANNELS 4
-#define BC4_OUTPUT_NCHANNELS 1
-#define BC5_OUTPUT_NCHANNELS 2
-#define BC6H_OUTPUT_NCHANNELS 4
-#define BC7_OUTPUT_NCHANNELS 4
-
-// ETC2_RGB decompresses to RGBA (otherwise another inner loop with memcpy)
-#define ETC2_RGB_OUTPUT_NCHANNELS 4
-#define ETC2_RGBA_OUTPUT_NCHANNELS 4
-#define ETC2_RGB_A1_OUTPUT_NCHANNELS 4
-
-
-
 // this is: "«KTX 20»\r\n\x1A\n"
 static const uint8_t KTX2_IDENTIFIER[12] { 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32,
                                            0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
