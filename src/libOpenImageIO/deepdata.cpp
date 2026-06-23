@@ -1167,7 +1167,8 @@ DeepData::merge_overlaps(int64_t pixel)
 
 
 void
-DeepData::merge_deep_pixels(int64_t pixel, const DeepData& src, int srcpixel)
+DeepData::merge_deep_pixels(int64_t pixel, const DeepData& src,
+                            int64_t srcpixel)
 {
     int srcsamples = src.samples(srcpixel);
     if (srcsamples == 0)
@@ -1201,6 +1202,15 @@ DeepData::merge_deep_pixels(int64_t pixel, const DeepData& src, int srcpixel)
 
     // Now merge the overlaps
     merge_overlaps(pixel);
+}
+
+
+
+// DEPRECATED(3.2): use the version with int64_t
+void
+DeepData::merge_deep_pixels(int64_t pixel, const DeepData& src, int srcpixel)
+{
+    merge_deep_pixels(pixel, src, int64_t(srcpixel));
 }
 
 

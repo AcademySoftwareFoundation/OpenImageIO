@@ -188,7 +188,13 @@ public:
     /// Merge the samples of `src`'s pixel into this `DeepData`'s pixel.
     /// Return `true` if ok, `false` if the operation could not be
     /// performed.
+    void merge_deep_pixels(int64_t pixel, const DeepData& src,
+                           int64_t srcpixel);
+
+#ifdef OIIO_INTERNAL
+    // DEPRECATED(3.2): use the version with int64_t
     void merge_deep_pixels(int64_t pixel, const DeepData& src, int srcpixel);
+#endif
 
     /// Return the z depth at which the pixel reaches full opacity.
     float opaque_z(int64_t pixel) const;
