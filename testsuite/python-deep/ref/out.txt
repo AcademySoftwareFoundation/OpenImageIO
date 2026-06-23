@@ -104,19 +104,19 @@ Testing sort...
 Before z sort, dd has 2 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
   Nsamples[ 0 ] = 4  (capacity= 4 ) samples:
-  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 19.00 /  [5 Zback] 20.50 / 
   sample 1 :  [0 R] 0.10 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 19.00 /  [5 Zback] 19.50 / 
   sample 2 :  [0 R] 0.20 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 18.00 /  [5 Zback] 18.50 / 
   sample 3 :  [0 R] 0.30 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 17.00 /  [5 Zback] 17.50 / 
   Nsamples[ 1 ] = 4  (capacity= 4 ) samples:
-  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 19.00 /  [5 Zback] 20.50 / 
   sample 1 :  [0 R] 0.10 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 19.00 /  [5 Zback] 19.50 / 
   sample 2 :  [0 R] 0.20 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 18.00 /  [5 Zback] 18.50 / 
   sample 3 :  [0 R] 0.30 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 17.00 /  [5 Zback] 17.50 / 
 After z sort of pixel 1, dd has 2 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
   Nsamples[ 0 ] = 4  (capacity= 4 ) samples:
-  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 19.00 /  [5 Zback] 20.50 / 
   sample 1 :  [0 R] 0.10 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 19.00 /  [5 Zback] 19.50 / 
   sample 2 :  [0 R] 0.20 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 18.00 /  [5 Zback] 18.50 / 
   sample 3 :  [0 R] 0.30 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 17.00 /  [5 Zback] 17.50 / 
@@ -124,7 +124,7 @@ After z sort of pixel 1, dd has 2 pixels, 6 channels.
   sample 0 :  [0 R] 0.30 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 17.00 /  [5 Zback] 17.50 / 
   sample 1 :  [0 R] 0.20 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 18.00 /  [5 Zback] 18.50 / 
   sample 2 :  [0 R] 0.10 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 19.00 /  [5 Zback] 19.50 / 
-  sample 3 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+  sample 3 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 19.00 /  [5 Zback] 20.50 / 
 
 Testing merge_overlaps...
 Before merge_overlaps, dd has 2 pixels, 6 channels.
