@@ -1033,7 +1033,8 @@ namespace {
 // Comparator functor for depth sorting sample indices of a deep pixel.
 class SampleComparator {
 public:
-    SampleComparator(const DeepData& dd, int pixel, int zchan, int zbackchan)
+    SampleComparator(const DeepData& dd, int64_t pixel, int zchan,
+                     int zbackchan)
         : deepdata(dd)
         , pixel(pixel)
         , zchan(zchan)
@@ -1057,7 +1058,7 @@ public:
 
 private:
     const DeepData& deepdata;
-    int pixel;
+    int64_t pixel;
     int zchan, zbackchan;
 };
 
@@ -1071,7 +1072,7 @@ DeepData::sort(int64_t pixel)
     int zchan = m_impl->m_z_channel;
     if (zchan < 0)
         return;  // No channel labeled Z -- we don't know what to do
-    int zbackchan = m_impl->m_z_channel;
+    int zbackchan = m_impl->m_zback_channel;
     if (zbackchan < 0)
         zbackchan = zchan;
     int nsamples = samples(pixel);
@@ -1121,14 +1122,9 @@ DeepData::merge_overlaps(int64_t pixel)
                     continue;  // Not color or alpha
                 if (alphachan == c)
                     continue;  // Adjust the alphas in a second pass below
-                float a1 = (alphachan < 0)
-                               ? 1.0f
-                               : clamp(deep_value(pixel, alphachan, s - 1),
-                                       0.0f, 1.0f);
-                float a2 = (alphachan < 0)
-                               ? 1.0f
-                               : clamp(deep_value(pixel, alphachan, s), 0.0f,
-                                       1.0f);
+                float a1 = clamp(deep_value(pixel, alphachan, s - 1), 0.0f,
+                                 1.0f);
+                float a2 = clamp(deep_value(pixel, alphachan, s), 0.0f, 1.0f);
                 float c1 = deep_value(pixel, c, s - 1);
                 float c2 = deep_value(pixel, c, s);
                 float am = a1 + a2 - a1 * a2;
@@ -1155,14 +1151,9 @@ DeepData::merge_overlaps(int64_t pixel)
                 int alphachan = m_impl->m_myalphachannel[c];
                 if (alphachan != c)
                     continue;  // This pass is only for alphas
-                float a1 = (alphachan < 0)
-                               ? 1.0f
-                               : clamp(deep_value(pixel, alphachan, s - 1),
-                                       0.0f, 1.0f);
-                float a2 = (alphachan < 0)
-                               ? 1.0f
-                               : clamp(deep_value(pixel, alphachan, s), 0.0f,
-                                       1.0f);
+                float a1 = clamp(deep_value(pixel, alphachan, s - 1), 0.0f,
+                                 1.0f);
+                float a2 = clamp(deep_value(pixel, alphachan, s), 0.0f, 1.0f);
                 float am = a1 + a2 - a1 * a2;
                 set_deep_value(pixel, c, s - 1, am);  // setting alpha
             }
