@@ -44,7 +44,7 @@ jobs:
   # Linux Tests using ASWF-docker containers
   #
   linux-aswf:
-    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') && ! contains(github.ref, 'fuzz-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -237,7 +237,7 @@ jobs:
   # Linux Tests using GHA Ubuntu runners directly
   #
   linux-ubuntu:
-    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') && ! contains(github.ref, 'fuzz-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -553,7 +553,7 @@ jobs:
   # MacOS Tests
   #
   macos:
-    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'linux-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'linux-only') && ! contains(github.ref, 'fuzz-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -638,7 +638,7 @@ jobs:
   # Windows Tests
   #
   windows:
-    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'linux-only') && ! contains(github.ref, 'macos-only') }}
+    if: ${{ (github.event.repository.fork == false || github.event_name != 'schedule') && ! contains(github.ref, 'linux-only') && ! contains(github.ref, 'macos-only') && ! contains(github.ref, 'fuzz-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -696,3 +696,31 @@ jobs:
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
             benchmark: 1
             oiio_python_bindings_backend: both
+
+  #
+  # Verify every format reported by fuzz_image --list-formats has a corpus
+  # directory in src/fuzz/corpora/. Fails with a clear message when a new
+  # format plugin is added without a corresponding corpus directory.
+  #
+  fuzz-corpus-lint:
+    name: "Fuzz corpus coverage lint"
+    if: ${{ github.event.repository.fork == false || github.event_name != 'schedule' }}
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      runner: ubuntu-latest
+      nametag: fuzz-corpus-lint
+      container: aswf/ci-oiio:2026.3
+      cc_compiler: clang
+      cxx_compiler: clang++
+      build_type: Release
+      cxx_std: 20
+      python_ver: "3.13"
+      simd: "avx2,f16c"
+      pybind11_ver: v3.0.0
+      skip_tests: '1'
+      fuzz_corpus_lint: true
+      setenvs: export USE_PYTHON=0
+                      OIIO_BUILD_FUZZ_TARGETS=ON
+                      INSTALL_DOCS=OFF
+                      OIIO_BUILD_TOOLS=OFF
+                      OIIO_BUILD_TESTS=OFF

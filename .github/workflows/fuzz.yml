@@ -1,0 +1,93 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+name: Fuzz
+
+on:
+  schedule:
+    # Nightly at 10:00 UTC
+    - cron: "0 10 * * *"
+  push:
+    # Run on pushes to main or any branch whose name contains "fuzz"
+    branches:
+      - main
+      - '*fuzz*'
+    paths:
+      - 'src/**'
+      - '.github/workflows/fuzz.yml'
+      - '.github/workflows/build-steps.yml'
+  workflow_dispatch:
+    inputs:
+      format:
+        description: "Format name to fuzz (leave empty for all)"
+        required: false
+        default: ""
+
+permissions: read-all
+
+# Allow subsequent pushes to the same PR or REF to cancel any previous jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  fuzz:
+    name: "Fuzz ${{ matrix.format }} (tier ${{ matrix.tier }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Tier 1: complex/high-risk formats — 5.5 hour fuzz window (19800)
+          - { format: openexr,  tier: 1, max_total_time: 1200 }
+          - { format: tiff,     tier: 1, max_total_time: 1200 }
+          - { format: jpeg,     tier: 1, max_total_time: 1200 }
+          - { format: png,      tier: 1, max_total_time: 1200 }
+          - { format: dpx,      tier: 1, max_total_time: 1200 }
+          - { format: psd,      tier: 1, max_total_time: 1200 }
+          - { format: heif,     tier: 1, max_total_time: 1200 }
+          - { format: jpegxl,   tier: 1, max_total_time: 1200 }
+          - { format: jpeg2000, tier: 1, max_total_time: 1200 }
+          - { format: raw,      tier: 1, max_total_time: 1200 }
+          # Tier 2: simpler formats — 1 hour fuzz window (3600)
+          - { format: bmp,       tier: 2, max_total_time: 600 }
+          - { format: cineon,    tier: 2, max_total_time: 600 }
+          - { format: dds,       tier: 2, max_total_time: 600 }
+          - { format: dicom,     tier: 2, max_total_time: 600 }
+          - { format: fits,      tier: 2, max_total_time: 600 }
+          - { format: gif,       tier: 2, max_total_time: 600 }
+          - { format: hdr,       tier: 2, max_total_time: 600 }
+          - { format: ico,       tier: 2, max_total_time: 600 }
+          - { format: iff,       tier: 2, max_total_time: 600 }
+          - { format: pnm,       tier: 2, max_total_time: 600 }
+          - { format: rla,       tier: 2, max_total_time: 600 }
+          - { format: sgi,       tier: 2, max_total_time: 600 }
+          - { format: softimage, tier: 2, max_total_time: 600 }
+          - { format: targa,     tier: 2, max_total_time: 600 }
+          - { format: ffmpeg,    tier: 2, max_total_time: 600 }
+          - { format: webp,      tier: 2, max_total_time: 600 }
+          - { format: zfile,     tier: 2, max_total_time: 600 }
+          - { format: openvdb,   tier: 2, max_total_time: 600 }
+          - { format: ptex,      tier: 2, max_total_time: 600 }
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      runner: ubuntu-latest
+      nametag: fuzz-linux-clang
+      container: aswf/ci-oiio:2026.3
+      cc_compiler: clang
+      cxx_compiler: clang++
+      build_type: Release
+      cxx_std: 20
+      python_ver: "3.13"
+      simd: "avx2,f16c"
+      pybind11_ver: v3.0.0
+      skip_tests: '1'
+      fuzz_format: ${{ matrix.format }}
+      fuzz_max_time: ${{ matrix.max_total_time }}
+      setenvs: export SANITIZE=address,undefined
+                      USE_PYTHON=0
+                      OIIO_BUILD_FUZZ_TARGETS=ON
+                      INSTALL_DOCS=OFF
+                      OIIO_BUILD_TOOLS=OFF
+                      OIIO_BUILD_TESTS=OFF
