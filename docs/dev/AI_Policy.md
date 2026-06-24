@@ -1,5 +1,4 @@
 Policy on AI Coding Assistants
-==============================
 
 - Initial policy merged 23-Mar-2026
 

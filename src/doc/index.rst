@@ -66,6 +66,7 @@ OpenImageIO |version|
    :maxdepth: 2
 
    oiiotool
+   imiv
    iinfo
    iconvert
    igrep
@@ -98,4 +99,3 @@ OpenImageIO |version|
     sphinx-tabs plugin for Sphinx:
         https://pypi.org/project/sphinx-tabs/
         https://sphinx-tabs.readthedocs.io/en/latest/#
-
