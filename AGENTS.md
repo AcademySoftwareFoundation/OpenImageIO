@@ -180,3 +180,8 @@ author is responsible for understanding, testing, and defending all changes.
 
 - `CONTRIBUTING.md` : general contribution guidelines and recap of coding
   conventions.
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+at `specs/001-image-fuzzing/plan.md`.
+<!-- SPECKIT END -->
