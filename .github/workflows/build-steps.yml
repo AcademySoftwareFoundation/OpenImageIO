@@ -96,6 +96,14 @@ on:
       oiio_python_bindings_backend:
         type: string
         default: ''
+      fuzz_format:
+        type: string
+        default: ''
+        description: "If non-empty, run fuzz tests for this format after the build"
+      fuzz_max_time:
+        type: string
+        default: '3600'
+        description: "Max seconds for the fuzz run (-max_total_time)"
     secrets:
         PASSED_GITHUB_TOKEN:
           required: false
@@ -256,6 +264,82 @@ jobs:
         if: inputs.benchmark == '1'
         shell: bash
         run: src/build-scripts/ci-benchmark.bash
+      # - name: Build fuzz target
+      #   if: inputs.fuzz_format != ''
+      #   shell: bash
+      #   run: cmake --build build --target all_fuzz_targets
+
+      - name: Checkout oiio-images for fuzz seeding
+        if: inputs.fuzz_format != ''
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: AcademySoftwareFoundation/OpenImageIO-images
+          path: oiio-images
+          fetch-depth: 1
+
+      - name: Restore fuzz corpus cache
+        if: inputs.fuzz_format != ''
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          key: fuzz-corpus-${{ inputs.fuzz_format }}-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            fuzz-corpus-${{ inputs.fuzz_format }}-${{ github.ref_name }}-
+            fuzz-corpus-${{ inputs.fuzz_format }}-
+          path: corpus/${{ inputs.fuzz_format }}
+
+      - name: Seed fuzz corpus
+        if: inputs.fuzz_format != ''
+        shell: bash
+        run: |
+          mkdir -p corpus/${{ inputs.fuzz_format }}
+          python3 src/fuzz/populate_corpora.py \
+            --format ${{ inputs.fuzz_format }} \
+            --dest corpus
+          cp -rn src/fuzz/corpora/${{ inputs.fuzz_format }}/* \
+            corpus/${{ inputs.fuzz_format }}/ 2>/dev/null || true
+
+      - name: Run fuzzer
+        if: inputs.fuzz_format != ''
+        shell: bash
+        env:
+          OIIO_FUZZ_FORMAT: ${{ inputs.fuzz_format }}
+        run: |
+          if ! $OpenImageIO_ROOT/bin/fuzz_image --list-formats 2>/dev/null \
+               | grep -qx '${{ inputs.fuzz_format }}'; then
+            echo "::notice::Format '${{ inputs.fuzz_format }}' not compiled in this build; skipping fuzz run."
+            exit 0
+          fi
+          $OpenImageIO_ROOT/bin/fuzz_image \
+            corpus/${{ inputs.fuzz_format }} \
+            -max_total_time=${{ inputs.fuzz_max_time }} \
+            -timeout=60 \
+            -detect_leaks=0 \
+            -artifact_prefix=crash_${{ inputs.fuzz_format }}_ \
+            -jobs=$(nproc) -workers=$(nproc)
+
+      - name: Save fuzz corpus cache
+        if: always() && inputs.fuzz_format != ''
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          key: fuzz-corpus-${{ inputs.fuzz_format }}-${{ github.ref_name }}-${{ github.run_id }}
+          path: corpus/${{ inputs.fuzz_format }}
+
+      - name: Upload fuzz crash artifacts
+        if: always() && inputs.fuzz_format != ''
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: fuzz-crashes-${{ inputs.fuzz_format }}-${{ github.run_id }}
+          path: crash_${{ inputs.fuzz_format }}_*
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Fuzz job summary
+        if: always() && inputs.fuzz_format != ''
+        shell: bash
+        run: |
+          count=$(find . -maxdepth 1 -name "crash_${{ inputs.fuzz_format }}_*" | wc -l | tr -d ' ')
+          echo "Format: ${{ inputs.fuzz_format }} — ${count} crash(es)" >> $GITHUB_STEP_SUMMARY
+
       - name: clang-format
         if: inputs.clang_format == '1'
         shell: bash
