@@ -246,6 +246,11 @@ HdrInput::open(const std::string& name, ImageSpec& newspec)
     }
     m_spec.full_width  = m_spec.width;
     m_spec.full_height = m_spec.height;
+    // Validation of resolution
+    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })) {
+        close();
+        return false;
+    }
 
     // FIXME -- should we do anything about exposure, software,
     // pixaspect, primaries?  (N.B. rgbe.c doesn't even handle most of them)
