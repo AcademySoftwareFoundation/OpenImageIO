@@ -22,3 +22,6 @@ MtTamWest.hdr        : 1214 x  732, 3 channel, float hdr
     Stats FiniteCount: 888648 888648 888648 888648 
     Constant: No
     Monochrome: No
+oiiotool ERROR: read : "src/crash-res.hdr": hdr image resolution may not exceed 65535x65535, but the file appears to be 8888888x4. Possible corrupt input?
+Full command line was:
+> oiiotool -nostderr -oiioattrib try_all_readers 0 src/crash-res.hdr -o test.exr

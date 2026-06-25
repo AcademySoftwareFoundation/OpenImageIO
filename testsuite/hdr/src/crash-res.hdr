@@ -1,0 +1,4 @@
+
+FORMAT=32-bit_rle_rgbe
+
+-Y4 +X8888888A'8
