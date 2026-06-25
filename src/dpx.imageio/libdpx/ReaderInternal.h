@@ -231,10 +231,12 @@ namespace dpx
 			//      the pattern repeats every 96 bits
 			
 			// first determine the word that the data element completely resides in
-			U16 *d1 = reinterpret_cast<U16 *>(reinterpret_cast<U8 *>(readBuf)+((i * bitDepth) / 8 /*bits*/));
-			
-			// place the component in the MSB and mask it for both 10-bit and 12-bit
-			U16 d2 = (*d1 << (REVERSE - ((i % REMAIN) * MULTIPLIER))) & MASK;
+			U8 *d1 = reinterpret_cast<U8 *>(readBuf)+((i * bitDepth) / 8 /*bits*/);
+			U16 d2;
+			memcpy(&d2, d1, sizeof(U16));  // Use memcpy to launder any misalignment
+
+			// place the component in the MSB and mask it for both 10-bit and 12-bit.
+			d2 = (d2 << (REVERSE - ((i % REMAIN) * MULTIPLIER))) & MASK;
 			
 			// For the 10/12 bit cases, specialize the 16-bit conversion by
 			// repacking into the LSB and using a specialized conversion
