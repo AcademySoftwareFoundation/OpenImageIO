@@ -39,37 +39,37 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Tier 1: complex/high-risk formats — 5.5 hour fuzz window
-          - { format: exr,      tier: 1, max_total_time: 19800 }
-          - { format: tiff,     tier: 1, max_total_time: 19800 }
-          - { format: jpeg,     tier: 1, max_total_time: 19800 }
-          - { format: png,      tier: 1, max_total_time: 19800 }
-          - { format: dpx,      tier: 1, max_total_time: 19800 }
-          - { format: psd,      tier: 1, max_total_time: 19800 }
-          - { format: heif,     tier: 1, max_total_time: 19800 }
-          - { format: jpegxl,   tier: 1, max_total_time: 19800 }
-          - { format: jpeg2000, tier: 1, max_total_time: 19800 }
-          - { format: raw,      tier: 1, max_total_time: 19800 }
-          # Tier 2: simpler formats — 1 hour fuzz window
-          - { format: bmp,       tier: 2, max_total_time: 3600 }
-          - { format: cineon,    tier: 2, max_total_time: 3600 }
-          - { format: dds,       tier: 2, max_total_time: 3600 }
-          - { format: dicom,     tier: 2, max_total_time: 3600 }
-          - { format: fits,      tier: 2, max_total_time: 3600 }
-          - { format: gif,       tier: 2, max_total_time: 3600 }
-          - { format: hdr,       tier: 2, max_total_time: 3600 }
-          - { format: ico,       tier: 2, max_total_time: 3600 }
-          - { format: iff,       tier: 2, max_total_time: 3600 }
-          - { format: pnm,       tier: 2, max_total_time: 3600 }
-          - { format: rla,       tier: 2, max_total_time: 3600 }
-          - { format: sgi,       tier: 2, max_total_time: 3600 }
-          - { format: softimage, tier: 2, max_total_time: 3600 }
-          - { format: targa,     tier: 2, max_total_time: 3600 }
-          - { format: ffmpeg,    tier: 2, max_total_time: 3600 }
-          - { format: webp,      tier: 2, max_total_time: 3600 }
-          - { format: zfile,     tier: 2, max_total_time: 3600 }
-          - { format: openvdb,   tier: 2, max_total_time: 3600 }
-          - { format: ptex,      tier: 2, max_total_time: 3600 }
+          # Tier 1: complex/high-risk formats — 5.5 hour fuzz window (19800)
+          - { format: exr,      tier: 1, max_total_time: 600 }
+          - { format: tiff,     tier: 1, max_total_time: 600 }
+          - { format: jpeg,     tier: 1, max_total_time: 600 }
+          - { format: png,      tier: 1, max_total_time: 600 }
+          - { format: dpx,      tier: 1, max_total_time: 600 }
+          - { format: psd,      tier: 1, max_total_time: 600 }
+          - { format: heif,     tier: 1, max_total_time: 600 }
+          - { format: jpegxl,   tier: 1, max_total_time: 600 }
+          - { format: jpeg2000, tier: 1, max_total_time: 600 }
+          - { format: raw,      tier: 1, max_total_time: 600 }
+          # Tier 2: simpler formats — 1 hour fuzz window (3600)
+          - { format: bmp,       tier: 2, max_total_time: 360 }
+          - { format: cineon,    tier: 2, max_total_time: 360 }
+          - { format: dds,       tier: 2, max_total_time: 360 }
+          - { format: dicom,     tier: 2, max_total_time: 360 }
+          - { format: fits,      tier: 2, max_total_time: 360 }
+          - { format: gif,       tier: 2, max_total_time: 360 }
+          - { format: hdr,       tier: 2, max_total_time: 360 }
+          - { format: ico,       tier: 2, max_total_time: 360 }
+          - { format: iff,       tier: 2, max_total_time: 360 }
+          - { format: pnm,       tier: 2, max_total_time: 360 }
+          - { format: rla,       tier: 2, max_total_time: 360 }
+          - { format: sgi,       tier: 2, max_total_time: 360 }
+          - { format: softimage, tier: 2, max_total_time: 360 }
+          - { format: targa,     tier: 2, max_total_time: 360 }
+          - { format: ffmpeg,    tier: 2, max_total_time: 360 }
+          - { format: webp,      tier: 2, max_total_time: 360 }
+          - { format: zfile,     tier: 2, max_total_time: 360 }
+          - { format: openvdb,   tier: 2, max_total_time: 360 }
+          - { format: ptex,      tier: 2, max_total_time: 360 }
     uses: ./.github/workflows/build-steps.yml
     with:
       runner: ubuntu-latest
