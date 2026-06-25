@@ -25,5 +25,6 @@ command += oiiotool("src/crash-3951.rla -o crash4.exr", failureok = True)
 command += oiiotool("src/crash-1.rla -o crash5.exr", failureok = True)
 command += oiiotool("src/crash-5152.rla -o crash6.exr", failureok = True)
 command += oiiotool("src/crash-5159.rla -o crash7.exr", failureok = True)
+command += oiiotool("src/crash-badrle.rla -o crash8.exr", failureok = True)
 
 outputs = [ "rlacrop.rla", 'out.txt' ]
