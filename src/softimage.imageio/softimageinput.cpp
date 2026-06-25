@@ -114,6 +114,7 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
 
     // Get the ChannelPackets
     ChannelPacket curPacket;
+    int bits_per_channel = 0;
     std::vector<std::string> encodings;
     do {
         // Read the next packet into curPacket and store it off
@@ -129,13 +130,37 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
             close();
             return false;
         }
-        if (curPacket.channelCode == 0) {
-            errorfmt("Channel packet with no channels");
+
+        if (bits_per_channel == 0) {
+            bits_per_channel = curPacket.size;
+        } else if (curPacket.size != bits_per_channel) {
+            errorfmt("Inconsistent bits per channel {}", curPacket.size);
             close();
             return false;
         }
-        m_channel_packets.push_back(curPacket);
 
+        if ((curPacket.type & 0x3) > MIXED_RUN_LENGTH) {
+            errorfmt("Unsupported channel encoding {}",
+                     static_cast<int>(curPacket.type));
+            close();
+            return false;
+        }
+
+        if (curPacket.channelCode
+            & ~(RED_CHANNEL | GREEN_CHANNEL | BLUE_CHANNEL | ALPHA_CHANNEL)) {
+            errorfmt("Unsupported channel code 0x{:x}",
+                     static_cast<int>(curPacket.channelCode));
+            close();
+            return false;
+        }
+
+        if (curPacket.channelCode == 0) {
+            errorfmt("Channel packet has no channels");
+            close();
+            return false;
+        }
+
+        m_channel_packets.push_back(curPacket);
         encodings.push_back(encoding_name(m_channel_packets.back().type));
 
         if (m_channel_packets.size() > 4) {

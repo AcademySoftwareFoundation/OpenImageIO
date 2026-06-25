@@ -44,3 +44,6 @@ src/broken01.pic :   16 x    4, 1 channel, uint8 softimage
     Stats FiniteCount: 64 
     Constant: No
     Monochrome: Yes
+inconsistent-bpc-uncompressed-rejected
+inconsistent-bpc-pure-rle-rejected
+inconsistent-bpc-mixed-rle-rejected
