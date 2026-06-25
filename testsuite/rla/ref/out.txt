@@ -328,5 +328,8 @@ Full command line was:
 oiiotool ERROR: read : "src/crash-5159.rla": Read error: couldn't read RLE data span
 Full command line was:
 > oiiotool src/crash-5159.rla -o crash7.exr
+oiiotool ERROR: read : "src/crash-badrle.rla": Read error: malformed RLE record
+Full command line was:
+> oiiotool src/crash-badrle.rla -o crash8.exr
 Comparing "rlacrop.rla" and "ref/rlacrop.rla"
 PASS
