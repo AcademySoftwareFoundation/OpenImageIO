@@ -502,17 +502,22 @@ RLAInput::decode_rle_span(span<unsigned char> buf, int n, int stride,
         int count = (signed char)encoded[e++];
         if (count >= 0) {
             // run count positive: value repeated count+1 times
-            if (count + 1 > n)
+            ++count;
+            if (count > n)
                 break;  // asking for a count that will overrun the buffer
-            for (int i = 0; i <= count; ++i, b += stride, --n)
+            if (e + 1 > elen)
+                break;  // asking for a count will run out of encoded bytes
+            for (int i = 0; i < count; ++i, b += stride, --n)
                 buf[b] = encoded[e];
-            ++e;
+            ++e;  // we consumed exactly one encoded byte
         } else {
             // run count negative: repeat bytes literally
             count = -count;  // make it positive
             if (count > n)
                 break;  // asking for a count that will overrun the buffer
-            for (; count && n > 0 && e < elen; --count, b += stride, --n)
+            if (e + count > elen)
+                break;  // asking for a count will run out of encoded bytes
+            for (int i = 0; i < count; ++i, b += stride, --n)
                 buf[b] = encoded[e++];
         }
     }
