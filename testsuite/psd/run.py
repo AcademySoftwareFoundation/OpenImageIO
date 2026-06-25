@@ -34,4 +34,7 @@ command += info_command ("src/crash-005c.psd", failureok=True)
 command += info_command ("src/crash-8a15.psd", failureok=True)
 # Corruption where bad zip compression data caused a buffer overrun
 command += info_command (OIIO_TESTSUITE_IMAGEDIR + "/corrupt_20260312a.psd", failureok=True)
-
+# Corruption where invalid layer resolution caused a huge allocation
+command += info_command ("src/crash-layerres.psd", failureok=True)
+# Corruption where eof was hit in the end of a string read
+command += info_command ("src/crash-eofstring.psd", failureok=True)
