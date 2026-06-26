@@ -697,32 +697,22 @@ jobs:
   fuzz-corpus-lint:
     name: "Fuzz corpus coverage lint"
     if: ${{ github.event.repository.fork == false || github.event_name != 'schedule' }}
-    runs-on: ubuntu-latest
-    container: aswf/ci-oiio:2026.3
-    steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
-      - name: Configure (fuzz_image only, no tests)
-        run: |
-          cmake -B build -S . \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DOIIO_BUILD_FUZZ_TARGETS=ON \
-            -DUSE_PYTHON=0 \
-            -DBUILD_TESTING=OFF
-      - name: Build fuzz_image
-        run: cmake --build build --target fuzz_image -j$(nproc)
-      - name: Check fuzz corpus coverage
-        run: |
-          build/src/fuzz/fuzz_image --list-formats | sort > /tmp/formats.txt
-          ls src/fuzz/corpora/ | sort > /tmp/corpus_dirs.txt
-          missing=$(comm -23 /tmp/formats.txt /tmp/corpus_dirs.txt)
-          if [ -n "$missing" ]; then
-            echo "ERROR: Missing corpus director(ies) for compiled-in format(s):"
-            echo "$missing" | sed 's/^/  src\/fuzz\/corpora\//'
-            echo ""
-            echo "Add src/fuzz/corpora/<format>/ with at least a .gitkeep for each."
-            exit 1
-          fi
-          count=$(wc -l < /tmp/formats.txt | tr -d ' ')
-          echo "OK: all ${count} compiled-in formats have corpus directories."
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      runner: ubuntu-latest
+      nametag: fuzz-corpus-lint
+      container: aswf/ci-oiio:2026.3
+      cc_compiler: clang
+      cxx_compiler: clang++
+      build_type: Release
+      cxx_std: 20
+      python_ver: "3.13"
+      simd: "avx2,f16c"
+      pybind11_ver: v3.0.0
+      skip_tests: '1'
+      fuzz_corpus_lint: true
+      setenvs: export USE_PYTHON=0
+                      OIIO_BUILD_FUZZ_TARGETS=ON
+                      INSTALL_DOCS=OFF
+                      OIIO_BUILD_TOOLS=OFF
+                      OIIO_BUILD_TESTS=OFF

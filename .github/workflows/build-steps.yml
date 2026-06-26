@@ -104,6 +104,10 @@ on:
         type: string
         default: '3600'
         description: "Max seconds for the fuzz run (-max_total_time)"
+      fuzz_corpus_lint:
+        type: boolean
+        default: false
+        description: "If true, verify every compiled-in format has a corpus directory"
     secrets:
         PASSED_GITHUB_TOKEN:
           required: false
@@ -268,6 +272,23 @@ jobs:
       #   if: inputs.fuzz_format != ''
       #   shell: bash
       #   run: cmake --build build --target all_fuzz_targets
+
+      - name: Check fuzz corpus coverage
+        if: inputs.fuzz_corpus_lint
+        shell: bash
+        run: |
+          $OpenImageIO_ROOT/bin/fuzz_image --list-formats | sort > /tmp/formats.txt
+          ls src/fuzz/corpora/ | sort > /tmp/corpus_dirs.txt
+          missing=$(comm -23 /tmp/formats.txt /tmp/corpus_dirs.txt)
+          if [ -n "$missing" ]; then
+            echo "ERROR: Missing corpus director(ies) for compiled-in format(s):"
+            echo "$missing" | sed 's/^/  src\/fuzz\/corpora\//'
+            echo ""
+            echo "Add src/fuzz/corpora/<format>/ with at least a .gitkeep for each."
+            exit 1
+          fi
+          count=$(wc -l < /tmp/formats.txt | tr -d ' ')
+          echo "OK: all ${count} compiled-in formats have corpus directories."
 
       - name: Checkout oiio-images for fuzz seeding
         if: inputs.fuzz_format != ''
