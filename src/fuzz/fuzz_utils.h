@@ -40,7 +40,7 @@ oiio_fuzz_read(const uint8_t* data, size_t size, const char* fake_filename)
         return;
     }
     const OIIO::ImageSpec& spec = inp->spec();
-    if (spec.image_pixels() > 0 && spec.image_pixels() < 64 * 1024 * 1024) {
+    if (spec.image_pixels() > 0 && spec.image_pixels() < 256 * 1024 * 1024) {
         std::vector<uint8_t> buf(spec.image_pixels() * spec.nchannels);
         (void)inp->read_image(0, 0, 0, spec.nchannels, OIIO::TypeUInt8,
                               buf.data());
@@ -64,7 +64,8 @@ oiio_fuzz_read_multi(const uint8_t* data, size_t size,
     }
     do {
         const OIIO::ImageSpec& spec = inp->spec();
-        if (spec.image_pixels() > 0 && spec.image_pixels() < 64 * 1024 * 1024) {
+        if (spec.image_pixels() > 0
+            && spec.image_pixels() < 256 * 1024 * 1024) {
             std::vector<uint8_t> buf(spec.image_pixels() * spec.nchannels);
             (void)inp->read_image(inp->current_subimage(), 0, 0, spec.nchannels,
                                   OIIO::TypeUInt8, buf.data());
@@ -110,7 +111,7 @@ oiio_fuzz_read_dispatch(const uint8_t* data, size_t size,
         return;
     }
     const OIIO::ImageSpec& spec = inp->spec();
-    if (spec.image_pixels() > 0 && spec.image_pixels() < 64 * 1024 * 1024) {
+    if (spec.image_pixels() > 0 && spec.image_pixels() < 256 * 1024 * 1024) {
         std::vector<uint8_t> buf(spec.image_pixels() * spec.nchannels);
         (void)inp->read_image(0, 0, 0, spec.nchannels, OIIO::TypeUInt8,
                               buf.data());
