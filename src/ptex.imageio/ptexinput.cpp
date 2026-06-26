@@ -5,6 +5,7 @@
 #include <Ptexture.h>
 
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/typedesc.h>
 
@@ -27,6 +28,7 @@ public:
                 || feature == "iptc"  // Because of arbitrary_metadata
                 || feature == "multiimage" || feature == "mipmap");
     }
+    bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool close() override;
     int current_subimage(void) const override
@@ -95,6 +97,15 @@ ptex_imageio_library_version()
 OIIO_EXPORT const char* ptex_input_extensions[] = { "ptex", "ptx", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
+
+
+
+bool
+PtexInput::valid_file(const std::string& filename) const
+{
+    std::string first4;
+    return Filesystem::read_text_file(filename, first4, 4) && first4 == "Ptex";
+}
 
 
 
