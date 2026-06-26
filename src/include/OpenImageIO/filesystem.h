@@ -429,15 +429,15 @@ public:
     virtual void close () { }
     virtual bool opened () const { return mode() != Closed; }
     virtual int64_t tell() const { return m_pos; }
-    // Seek to the position, returning true on success, false on failure.
-    // Note the difference between this and std::fseek() which returns 0 on
-    // success, and -1 on failure.
+    /// Seek to the position, returning true on success, false on failure.
+    /// Note the difference between this and std::fseek() which returns 0 on
+    /// success, and -1 on failure.
     virtual bool seek (int64_t offset) { m_pos = offset; return true; }
-    // Read `size` bytes at the current position into `buf[]`, returning the
-    // number of bytes successfully read.
+    /// Read `size` bytes at the current position into `buf[]`, returning the
+    /// number of bytes successfully read.
     virtual size_t read (void *buf, size_t size);
-    // Write `size` bytes from `buf[]` at the current position, returning the
-    // number of bytes successfully written.
+    /// Write `size` bytes from `buf[]` at the current position, returning the
+    /// number of bytes successfully written.
     virtual size_t write (const void *buf, size_t size);
 
     /// Read `size` bytes starting at the `offset` position into `buf[]`,
@@ -454,7 +454,7 @@ public:
     /// other function of IOProxy.
     virtual size_t pwrite (const void *buf, size_t size, int64_t offset);
 
-    // Return the total size of the proxy data, in bytes.
+    /// Return the total size of the proxy data, in bytes.
     virtual size_t size () const { return 0; }
     virtual void flush() { }
 
