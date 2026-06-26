@@ -82,6 +82,16 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
 
+#ifdef USE_OPENEXR_CORE
+// Defined in exrinput_c.cpp. Declare here at C++ namespace scope (not inside
+// the extern "C" block below) so the linkage matches the definition in the
+// non-embedded (dynamic plugin) build where OIIO_PLUGIN_EXPORTS_BEGIN is
+// `extern "C"`.
+extern ImageInput*
+openexrcore_input_imageio_create();
+#endif
+
+
 // Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
@@ -91,7 +101,6 @@ openexr_input_imageio_create()
 #ifdef USE_OPENEXR_CORE
     if (pvt::openexr_core) {
         // Strutil::print("selecting core\n");
-        extern ImageInput* openexrcore_input_imageio_create();
         return openexrcore_input_imageio_create();
     }
 #endif
