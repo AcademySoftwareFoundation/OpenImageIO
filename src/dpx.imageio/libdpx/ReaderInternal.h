@@ -38,6 +38,8 @@
 
 
 #include <algorithm>
+#include <cstdint>
+
 #include "BaseTypeConverter.h"
 
 
@@ -143,13 +145,13 @@ namespace dpx
 			int actline = line + block.y1;
 
 			// first get line offset
-			long offset = actline * lineLength;
+			int64_t offset = int64_t(actline) * lineLength;
 
 			// add in eoln padding
-			offset += line * eolnPad;
-			
+			offset += int64_t(line) * eolnPad;
+
 			// add in offset within the current line, rounding down so to catch any components within the word
-			offset += block.x1 * numberOfComponents / 3 * 4;
+			offset += int64_t(block.x1) * numberOfComponents / 3 * 4;
 			
 			
 			// get the read count in bytes, round to the 32-bit boundary
@@ -278,8 +280,8 @@ namespace dpx
 		for (int line = 0; line < height; line++)
 		{
 			// determine offset into image element
-			long offset = (line + block.y1) * (lineSize * sizeof(U32)) +
-						(block.x1 * numberOfComponents * dataSize / 32 * sizeof(U32)) + (line * eolnPad);
+			int64_t offset = int64_t(line + block.y1) * (lineSize * sizeof(U32)) +
+						(int64_t(block.x1) * numberOfComponents * dataSize / 32 * sizeof(U32)) + int64_t(line) * eolnPad;
 	
 			// calculate read size
 			int readSize = ((block.x2 - block.x1 + 1) * numberOfComponents * dataSize);
@@ -340,20 +342,20 @@ namespace dpx
 		{
 			
 			// determine offset into image element
-			long offset = (line + block.y1) * imageWidth * numberOfComponents * bytes +
-						block.x1 * numberOfComponents * bytes + (line * eolnPad);
+			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * bytes +
+						int64_t(block.x1) * numberOfComponents * bytes + int64_t(line) * eolnPad;
 						
 			if (BUFTYPE == SRCTYPE)
 			{
-				fd->ReadDirect(dpxHeader, element, offset, reinterpret_cast<unsigned char *>(data + (width*line)), width*bytes);
+				fd->ReadDirect(dpxHeader, element, offset, reinterpret_cast<unsigned char *>(data + int64_t(width)*line), int64_t(width)*bytes);
 			}
 			else
 			{
-				fd->Read(dpxHeader, element, offset, readBuf, width*bytes);
-							
-				// convert data		
+				fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*bytes);
+
+				// convert data
 				for (int i = 0; i < width; i++)
-					BaseTypeConverter(readBuf[i], data[width*line+i]);
+					BaseTypeConverter(readBuf[i], data[int64_t(width)*line+i]);
 			}
 	
 		}
@@ -384,17 +386,17 @@ namespace dpx
 		for (int line = 0; line < height; line++)
 		{
 			// determine offset into image element
-			long offset = (line + block.y1) * imageWidth * numberOfComponents * 2 +
-						block.x1 * numberOfComponents * 2 + (line * eolnPad);
+			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * 2 +
+						int64_t(block.x1) * numberOfComponents * 2 + int64_t(line) * eolnPad;
 	
-			fd->Read(dpxHeader, element, offset, readBuf, width*2);
-				
-			// convert data		
+			fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*2);
+
+			// convert data
 			for (int i = 0; i < width; i++)
 			{
 				U16 d1 = readBuf[i];
 				BaseTypeConvertU12ToU16(d1, d1);
-				BaseTypeConverter(d1, data[width*line+i]);
+				BaseTypeConverter(d1, data[int64_t(width)*line+i]);
 			}
 		}
 
@@ -530,7 +532,7 @@ namespace dpx
 			{
 				for (nc = 0; nc < numberOfComponents; nc++)
 				{
-					SRC d1 = src[(y * width * numberOfComponents) + (x * numberOfComponents) + nc];
+					SRC d1 = src[int64_t(y) * width * numberOfComponents + int64_t(x) * numberOfComponents + nc];
 					BaseTypeConverter(d1, dst[dstoff+((x-block.x1)*numberOfComponents) + nc]);
 				}	
 			}
