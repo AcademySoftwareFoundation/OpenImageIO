@@ -41,3 +41,7 @@ target_link_options (fuzz_image PRIVATE
 # and local "cmake --build . --target all_fuzz_targets".
 # add_custom_target (all_fuzz_targets DEPENDS fuzz_image)
 install_targets (fuzz_image)
+
+# Install the libFuzzer options file alongside the binary so it is picked up
+# automatically when running: ./fuzz_image [flags] corpus/
+install (FILES fuzz_image.options DESTINATION ${CMAKE_INSTALL_BINDIR})
