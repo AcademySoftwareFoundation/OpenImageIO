@@ -72,22 +72,53 @@ jobs:
           - { format: ptex,      tier: 2, max_total_time: 360 }
     uses: ./.github/workflows/build-steps.yml
     with:
+      # EXPERIMENT: Instead of building against the aswf/ci-oiio container's
+      # pinned (older) dependency versions, run on a bare ubuntu-latest runner
+      # and build the latest releases of all dependencies from source, set up
+      # like the linux-latest-releases job in ci.yml (but with clang instead
+      # of gcc, since the fuzz sanitizer/libFuzzer build requires clang). The
+      # hypothesis is that some fuzz crashes stem from weaker error detection
+      # in older dependency versions; newer deps may not exhibit them.
       runner: ubuntu-latest
-      nametag: fuzz-linux-clang
-      container: aswf/ci-oiio:2026.3
+      nametag: fuzz-linux-clang-latest
       cc_compiler: clang
       cxx_compiler: clang++
       build_type: Release
-      cxx_std: 20
-      python_ver: "3.13"
+      cxx_std: 23
+      fmt_ver: 12.2.0
+      fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
+      opencolorio_ver: v2.5.0
+      openexr_ver: v3.4.13
+      pybind11_ver: v3.0.2
+      python_ver: "3.12"
       simd: "avx2,f16c"
-      pybind11_ver: v3.0.0
       skip_tests: '1'
       fuzz_format: ${{ matrix.format }}
       fuzz_max_time: ${{ matrix.max_total_time }}
+      # Require all deps to actually be present so we know the newer versions
+      # are really being used; explicitly list the ones we are not building.
+      # DCMTK and JXL are kept required (not optional) so the dicom and
+      # jpegxl format plugins are guaranteed to be compiled in and fuzzed;
+      # their dev packages are force-installed below via EXTRA_DEP_PACKAGES.
+      required_deps: all
+      optional_deps: 'CUDAToolkit;Nuke;OpenCV;OpenGL;openjph;OpenVDB;R3DSDK'
       setenvs: export SANITIZE=address,undefined
                       USE_PYTHON=0
                       OIIO_BUILD_FUZZ_TARGETS=ON
                       INSTALL_DOCS=OFF
                       OIIO_BUILD_TOOLS=OFF
                       OIIO_BUILD_TESTS=OFF
+                      EXTRA_DEP_PACKAGES="libjxl-dev libdcmtk-dev"
+                      LIBJPEGTURBO_VERSION=3.1.2
+                      LIBPNG_VERSION=v1.6.50
+                      LIBRAW_VERSION=0.22.0
+                      LIBTIFF_VERSION=v4.7.1
+                      OPENJPEG_VERSION=v2.5.4
+                      PTEX_VERSION=v2.5.0
+                      PUGIXML_VERSION=v1.16
+                      WEBP_VERSION=v1.6.0
+                      FREETYPE_VERSION=VER-2-14-1
+                      USE_OPENVDB=0
+                      UHDR_CMAKE_C_COMPILER=clang
+                      UHDR_CMAKE_CXX_COMPILER=clang++
+                      OPENCOLORIO_CXX=clang++
