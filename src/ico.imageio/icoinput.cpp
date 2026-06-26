@@ -57,6 +57,7 @@ private:
     int m_color_type;      ///< PNG color model type
     int m_interlace_type;  ///< PNG interlace type
     Imath::Color3f m_bg;   ///< PNG background color
+    bool m_err = false;
 
     /// Reset everything to initial state
     ///
@@ -65,6 +66,7 @@ private:
         m_subimage = -1;
         m_png      = NULL;
         m_info     = NULL;
+        m_err      = false;
         memset(&m_ico, 0, sizeof(m_ico));
         m_buf.clear();
         ioproxy_clear();
@@ -81,6 +83,7 @@ private:
         ICOInput* icoinput = (ICOInput*)png_get_io_ptr(png_ptr);
         OIIO_DASSERT(icoinput);
         if (!icoinput->ioread(data, length)) {
+            icoinput->m_err = true;
             png_chunk_error(png_ptr, icoinput->geterror(false).c_str());
         }
     }
@@ -231,11 +234,15 @@ ICOInput::seek_subimage(int subimage, int miplevel)
 
         png_set_sig_bytes(m_png, 8);  // already read 8 bytes
 
-        if (!PNG_pvt::read_info(m_png, m_info, m_bpp, m_color_type,
-                                m_interlace_type, m_bg, m_spec, true))
+        bool ok = PNG_pvt::read_info(m_png, m_info, m_bpp, m_color_type,
+                                     m_interlace_type, m_bg, m_spec, true);
+        if (!ok || m_err
+            || !check_open(m_spec, { 0, 256, 0, 256, 0, 1, 0, 4 })) {
+            // Technically, PNGs can be bigger, but we think nobody will make
+            // ICO files (even those that are png underneath) this big, so
+            // assume anything over 2^16 res is bogus.
             return false;
-        if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 }))
-            return false;
+        }
 
         m_spec.attribute("oiio:BitsPerSample", m_bpp / m_spec.nchannels);
 
@@ -312,7 +319,7 @@ ICOInput::readimg()
 
         //std::cerr << "[ico] PNG buffer size = " << m_buf.size () << "\n";
 
-        if (s.length()) {
+        if (s.length() || m_err || has_error()) {
             errorfmt("{}", s);
             return false;
         }
