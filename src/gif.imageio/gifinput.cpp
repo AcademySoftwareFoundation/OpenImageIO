@@ -6,7 +6,13 @@
 #include <memory>
 #include <vector>
 
+// Prevent a conflict between gif_lib.h's reallocarray declaration (no
+// exception spec) and glibc's stdlib.h version (noexcept/__THROW). Clang
+// treats the mismatch as a hard error in C++ mode. We rename it away here
+// since gifinput.cpp never calls reallocarray directly.
+#define reallocarray giflib_reallocarray_private_
 #include <gif_lib.h>
+#undef reallocarray
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
