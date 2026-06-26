@@ -39,4 +39,5 @@ target_link_options (fuzz_image PRIVATE
 
 # all_fuzz_targets is the conventional build alias used by OSS-Fuzz build.sh
 # and local "cmake --build . --target all_fuzz_targets".
-add_custom_target (all_fuzz_targets DEPENDS fuzz_image)
+# add_custom_target (all_fuzz_targets DEPENDS fuzz_image)
+install_targets (fuzz_image)

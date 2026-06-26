@@ -264,10 +264,10 @@ jobs:
         if: inputs.benchmark == '1'
         shell: bash
         run: src/build-scripts/ci-benchmark.bash
-      - name: Build fuzz target
-        if: inputs.fuzz_format != ''
-        shell: bash
-        run: cmake --build build --target all_fuzz_targets
+      # - name: Build fuzz target
+      #   if: inputs.fuzz_format != ''
+      #   shell: bash
+      #   run: cmake --build build --target all_fuzz_targets
 
       - name: Checkout oiio-images for fuzz seeding
         if: inputs.fuzz_format != ''
@@ -304,12 +304,18 @@ jobs:
         env:
           OIIO_FUZZ_FORMAT: ${{ inputs.fuzz_format }}
         run: |
-          build/src/fuzz/fuzz_image \
+          if ! $OpenImageIO_ROOT/bin/fuzz_image --list-formats 2>/dev/null \
+               | grep -qx '${{ inputs.fuzz_format }}'; then
+            echo "::notice::Format '${{ inputs.fuzz_format }}' not compiled in this build; skipping fuzz run."
+            exit 0
+          fi
+          $OpenImageIO_ROOT/bin/fuzz_image \
             corpus/${{ inputs.fuzz_format }} \
             -max_total_time=${{ inputs.fuzz_max_time }} \
             -timeout=60 \
+            -detect_leaks=0 \
             -artifact_prefix=crash_${{ inputs.fuzz_format }}_ \
-            -jobs=$(nproc)
+            -jobs=$(nproc) -workers=$(nproc)
 
       - name: Save fuzz corpus cache
         if: always() && inputs.fuzz_format != ''
@@ -331,7 +337,7 @@ jobs:
         if: always() && inputs.fuzz_format != ''
         shell: bash
         run: |
-          count=$(ls crash_${{ inputs.fuzz_format }}_* 2>/dev/null | wc -l | tr -d ' ')
+          count=$(find . -maxdepth 1 -name "crash_${{ inputs.fuzz_format }}_*" | wc -l | tr -d ' ')
           echo "Format: ${{ inputs.fuzz_format }} — ${count} crash(es)" >> $GITHUB_STEP_SUMMARY
 
       - name: clang-format

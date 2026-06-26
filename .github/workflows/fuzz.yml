@@ -40,7 +40,7 @@ jobs:
       matrix:
         include:
           # Tier 1: complex/high-risk formats — 5.5 hour fuzz window (19800)
-          - { format: exr,      tier: 1, max_total_time: 600 }
+          - { format: openexr,  tier: 1, max_total_time: 600 }
           - { format: tiff,     tier: 1, max_total_time: 600 }
           - { format: jpeg,     tier: 1, max_total_time: 600 }
           - { format: png,      tier: 1, max_total_time: 600 }
