@@ -611,6 +611,48 @@ test_mutable_iterator_with_imagecache()
 
 
 
+// Regression test: copy-constructing an ImageCache-backed ImageBuf must
+// preserve the buffer span's strides. A default-constructed bufspan has zero
+// strides, which made retile() resolve every pixel to tile offset 0, so the
+// whole copied image read back as a constant (the value of pixel 0,0). See
+// the ImageBuf copy constructor's "cache-based or deep" branch.
+void
+test_copy_of_imagecache_backed()
+{
+    // Make a 16x16 1-channel float image where every pixel has a distinct
+    // value (so a "constant" misread is obvious), write it.
+    char srcfilename[] = "tmp_copy_ic.exr";
+    const int W = 16, H = 16;
+    ImageSpec fsize(W, H, 1, TypeFloat);
+    ImageBuf src(fsize);
+    for (ImageBuf::Iterator<float> it(src); !it.done(); ++it)
+        it[0] = float(it.x() + it.y() * W);
+    src.write(srcfilename);
+
+    // Open it cache-backed (not force-read into local memory).
+    ImageBuf buf(srcfilename, 0, 0, ImageCache::create());
+    OIIO_CHECK_EQUAL(buf.storage(), ImageBuf::IMAGECACHE);
+    OIIO_CHECK_ASSERT(!buf.localpixels());
+
+    // Copy-construct -- this is what ImageBufAlgo::make_texture does to an
+    // ImageCache-backed input buffer.
+    ImageBuf copy(buf);
+    OIIO_CHECK_EQUAL(copy.storage(), ImageBuf::IMAGECACHE);
+    OIIO_CHECK_ASSERT(!copy.localpixels());
+
+    // Every pixel of the copy must still read its distinct value, not a
+    // constant. Iterate (exercises retile) and also spot-check getchannel.
+    for (ImageBuf::ConstIterator<float> it(copy); !it.done(); ++it)
+        OIIO_CHECK_EQUAL(it[0], float(it.x() + it.y() * W));
+    OIIO_CHECK_EQUAL(copy.getchannel(W - 1, H - 1, 0, 0),
+                     float((W - 1) + (H - 1) * W));
+
+    ImageCache::create()->invalidate(ustring(srcfilename));
+    Filesystem::remove(srcfilename);
+}
+
+
+
 void
 time_iterators()
 {
@@ -788,6 +830,7 @@ main(int argc, char* argv[])
     iterator_wrap_test<ImageBuf::ConstIterator<float>>(ImageBuf::WrapMirror,
                                                        "mirror");
     test_mutable_iterator_with_imagecache();
+    test_copy_of_imagecache_backed();
     time_iterators();
     test_iterator_concurrency();
 
