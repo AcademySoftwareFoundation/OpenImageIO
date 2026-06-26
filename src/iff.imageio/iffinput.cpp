@@ -293,11 +293,16 @@ IffInput::read_header()
             return false;
 
         chunksize = align_chunk(size, 4);
+        if (size_t(iotell()) + size > ioproxy()->size()) {
+            errorfmt("nonsensical chunk size {} at position {} file size {}\n",
+                     size, iotell(), ioproxy()->size());
+            return false;
+        }
 
         // chunk type: FOR4
         if (std::memcmp(chunktype, iff_for4_tag, 4) == 0) {
             if (!ioread(&chunktype, 1, sizeof(chunktype))) {
-                errorfmt("IFF error io seek failed for type");
+                errorfmt("IFF error io read failed for type");
                 return false;
             }
 
@@ -308,6 +313,12 @@ IffInput::read_header()
                         return false;
 
                     chunksize = align_chunk(size, 4);
+                    if (size_t(iotell()) + size > ioproxy()->size()) {
+                        errorfmt(
+                            "nonsensical chunk size {} at position {} file size {}\n",
+                            size, iotell(), ioproxy()->size());
+                        return false;
+                    }
 
                     // chunk type: TBHD
                     if (std::memcmp(chunktype, iff_tbhd_tag, 4) == 0) {
@@ -355,7 +366,11 @@ IffInput::read_header()
                         // RGB(A) format
                         if (flags & RGBA) {
                             // test if black is set
-                            OIIO_DASSERT(!(flags & BLACK));
+                            if (flags & BLACK) {
+                                errorfmt("Invalid header flag combination {:x}",
+                                         flags);
+                                return false;
+                            }
 
                             if (flags & RGB)
                                 m_header.rgba_count = 3;
@@ -388,6 +403,12 @@ IffInput::read_header()
                             }
 
                             chunksize = align_chunk(size, 4);
+                            if (size_t(iotell()) + size > ioproxy()->size()) {
+                                errorfmt(
+                                    "nonsensical chunk size {} at position {} file size {}\n",
+                                    size, iotell(), ioproxy()->size());
+                                return false;
+                            }
 
                             // chunk type: AUTH
                             if (std::memcmp(chunktype, iff_auth_tag, 4) == 0) {
@@ -424,6 +445,14 @@ IffInput::read_header()
                                         if (!read_chunk(chunktype, size))
                                             return false;
                                         chunksize = align_chunk(size, 4);
+                                        if (size_t(iotell()) + size
+                                            > ioproxy()->size()) {
+                                            errorfmt(
+                                                "nonsensical chunk size {} at position {} file size {}\n",
+                                                size, iotell(),
+                                                ioproxy()->size());
+                                            return false;
+                                        }
 
                                         // chunk type: RGBA
                                         if (std::memcmp(chunktype, iff_rgba_tag,
