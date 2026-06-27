@@ -1,6 +1,13 @@
-# Nanobind migration status (vs `src/python` pybind11)
+# Nanobind migration status
 
-Generated from the binding sources. The nanobind extension is `PyOpenImageIONanobind` / module `_OpenImageIO` (see `CMakeLists.txt`).
+Nanobind shares binding sources with pybind11 under `src/python/` (see
+`py_backend.h` and `python_dual_backend_srcs` in `CMakeLists.txt`). Configure
+with `-DOIIO_PYTHON_BINDINGS_BACKEND=nanobind` for nanobind-only (`PyOpenImageIO`
+/ module `OpenImageIO` in site-packages), or `both` to also build
+`PyOpenImageIONanobind` (`_OpenImageIO` under `lib/python/nanobind/OpenImageIO`).
+Nanobind-only code paths live in `py_oiio.h` / `py_oiio.cpp` behind
+`OIIO_PY_BACKEND_NANOBIND`. Shared Python↔C++ conversion helpers live in
+`py_oiio.h` for both backends.
 
 ## Migrated — full parity with pybind (no known gaps for this surface)
 
@@ -15,14 +22,14 @@ Generated from the binding sources. The nanobind extension is `PyOpenImageIONano
 
 | Source file | Migrated (vs pybind) | Missing or divergent (vs pybind) |
 | --- | --- | --- |
-| `py_oiio.cpp` (`_OpenImageIO` module) | <ul><li><code>attribute</code> (one-arg and typed)</li><li><code>get_int_attribute</code></li><li><code>get_float_attribute</code></li><li><code>get_string_attribute</code></li><li><code>getattribute</code></li><li><code>__version__</code></li></ul> | <ul><li><code>geterror</code></li><li><code>get_bytes_attribute</code></li><li>Module <code>set_colorspace</code> (helper taking <code>ImageSpec</code> — the instance method is on <code>ImageSpec</code> in nanobind)</li><li><code>set_colorspace_rec709_gamma</code></li><li><code>equivalent_colorspace</code></li><li><code>is_imageio_format_name</code></li><li><code>AutoStride</code></li><li><code>openimageio_version</code>, <code>VERSION</code>, <code>VERSION_STRING</code>, <code>VERSION_MAJOR</code>, <code>VERSION_MINOR</code>, <code>VERSION_PATCH</code>, <code>INTRO_STRING</code></li><li>Optional: stack traces when <code>OPENIMAGEIO_DEBUG_PYTHON</code> is set (<code>Sysutil</code>)</li><li><code>make_pyobject</code>: no pybind-style <code>debugfmt</code> when the type is unhandled (returns default quietly)</li></ul> |
-| `__init__.py` (package) | Env / DLL path setup, <code>from ._OpenImageIO import *</code>, version docstring. | <strong>TODO:</strong> Python CLI entry-point trampolines when the install layout matches the full wheel. |
+| `py_oiio.cpp` (`OpenImageIO` module) | <ul><li><code>attribute</code> (one-arg and typed)</li><li><code>get_int_attribute</code></li><li><code>get_float_attribute</code></li><li><code>get_string_attribute</code></li><li><code>getattribute</code></li><li><code>__version__</code>, <code>VERSION_STRING</code></li></ul> | <ul><li><code>geterror</code></li><li><code>get_bytes_attribute</code></li><li>Module <code>set_colorspace</code> (helper taking <code>ImageSpec</code> — the instance method is on <code>ImageSpec</code> in nanobind)</li><li><code>set_colorspace_rec709_gamma</code></li><li><code>equivalent_colorspace</code></li><li><code>is_imageio_format_name</code></li><li><code>AutoStride</code></li><li><code>openimageio_version</code>, <code>VERSION</code>, <code>VERSION_MAJOR</code>, <code>VERSION_MINOR</code>, <code>VERSION_PATCH</code>, <code>INTRO_STRING</code></li><li>Optional: stack traces when <code>OPENIMAGEIO_DEBUG_PYTHON</code> is set (<code>Sysutil</code>)</li><li><code>make_pyobject</code>: no pybind-style <code>debugfmt</code> when the type is unhandled (returns default quietly)</li></ul> |
+| `__init__.py` (package) | Shared with pybind11: env / DLL path setup, <code>from .OpenImageIO import *</code>. | <strong>TODO:</strong> Python CLI entry-point trampolines when the install layout matches the full wheel. |
 
 ---
 
 ## Not migrated — entire pybind modules
 
-These exist only under `src/python/` today; there are **no** corresponding `py_*.cpp` files in `src/python-nanobind/`.
+These exist only in the pybind11 module today (not in `python_dual_backend_srcs`).
 
 | Source file | Python / C++ API |
 | --- | --- |
