@@ -14,7 +14,8 @@ command += pythonbin + " src/test_imageoutput.py >> out.txt ;"
 
 # compare the outputs -- these are custom because they compare to grid.tif
 files = [ "grid-image.tif", "grid-scanline.tif", "grid-scanlines.tif",
-          "grid-timage.tif", "grid-tile.tif", "grid-tiles.tif", "grid-half.exr" ]
+          "grid-timage.tif", "grid-tile.tif", "grid-tiles.tif", "grid-half.exr",
+          "copy_image.tif" ]
 for f in files :
     command += (oiio_app("idiff") + " -fail 0.001 -warn 0.001 "
                 + f + " ../common/grid.tif >> out.txt ;")
