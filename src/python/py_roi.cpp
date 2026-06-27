@@ -27,14 +27,14 @@ void
 declare_roi(py_module& m)
 {
     py::class_<ROI>(m, "ROI")
-        OIIO_PY_DEF_RW("xbegin", &ROI::xbegin)
-        OIIO_PY_DEF_RW("xend", &ROI::xend)
-        OIIO_PY_DEF_RW("ybegin", &ROI::ybegin)
-        OIIO_PY_DEF_RW("yend", &ROI::yend)
-        OIIO_PY_DEF_RW("zbegin", &ROI::zbegin)
-        OIIO_PY_DEF_RW("zend", &ROI::zend)
-        OIIO_PY_DEF_RW("chbegin", &ROI::chbegin)
-        OIIO_PY_DEF_RW("chend", &ROI::chend)
+        .OIIO_PY_RW("xbegin", &ROI::xbegin)
+        .OIIO_PY_RW("xend", &ROI::xend)
+        .OIIO_PY_RW("ybegin", &ROI::ybegin)
+        .OIIO_PY_RW("yend", &ROI::yend)
+        .OIIO_PY_RW("zbegin", &ROI::zbegin)
+        .OIIO_PY_RW("zend", &ROI::zend)
+        .OIIO_PY_RW("chbegin", &ROI::chbegin)
+        .OIIO_PY_RW("chend", &ROI::chend)
 
         .def(py::init<>())
         .def(py::init<int, int, int, int>())
@@ -43,18 +43,17 @@ declare_roi(py_module& m)
         .def(py::init<const ROI&>())
 
         // .def("defined",   [](const ROI& roi) { return (int)roi.defined(); })
-        OIIO_PY_DEF_PROP_RO("defined", &ROI::defined)
-        OIIO_PY_DEF_PROP_RO("width", &ROI::width)
-        OIIO_PY_DEF_PROP_RO("height", &ROI::height)
-        OIIO_PY_DEF_PROP_RO("depth", &ROI::depth)
-        OIIO_PY_DEF_PROP_RO("nchannels", &ROI::nchannels)
-        OIIO_PY_DEF_PROP_RO("npixels", &ROI::npixels)
+        .OIIO_PY_PROP_RO("defined", &ROI::defined)
+        .OIIO_PY_PROP_RO("width", &ROI::width)
+        .OIIO_PY_PROP_RO("height", &ROI::height)
+        .OIIO_PY_PROP_RO("depth", &ROI::depth)
+        .OIIO_PY_PROP_RO("nchannels", &ROI::nchannels)
+        .OIIO_PY_PROP_RO("npixels", &ROI::npixels)
         .def("contains", &roi_contains_coord, "x"_a, "y"_a, "z"_a = 0,
              "ch"_a = 0)
         .def("contains", &roi_contains_roi, "other"_a)
 
-        OIIO_PY_DEF_READONLY_STATIC_LAMBDA(
-            "All", [](const py::object&) { return ROI::All(); })
+        .OIIO_PY_RO_STATIC("All", [](const py::object&) { return ROI::All(); })
 
         // Conversion to string
         .def("__str__",
@@ -72,6 +71,7 @@ declare_roi(py_module& m)
         .def(py::self == py::self)  // operator==   // NOSONAR
         .def(py::self != py::self)  // operator!=   // NOSONAR
         ;
+
 
     m.def("union", &roi_union);
     m.def("intersection", &roi_intersection);

@@ -13,15 +13,14 @@
 #    include <nanobind/stl/string.h>
 #    include <nanobind/stl/vector.h>
 
-namespace py = nanobind;
+namespace py    = nanobind;
 using py_module = nanobind::module_;
 using namespace py::literals;
 
-#    define OIIO_PY_DEF_RW(name, member) .def_rw(name, member)
-#    define OIIO_PY_DEF_PROP_RO(name, member) .def_prop_ro(name, member)
-#    define OIIO_PY_DEF_PROP_RW(name, get, set) .def_prop_rw(name, get, set)
-#    define OIIO_PY_DEF_READONLY_STATIC_LAMBDA(name, lambda)                 \
-        .def_prop_ro_static(name, lambda)
+#    define OIIO_PY_RW def_rw
+#    define OIIO_PY_PROP_RO def_prop_ro
+#    define OIIO_PY_PROP_RW def_prop_rw
+#    define OIIO_PY_RO_STATIC def_prop_ro_static
 
 namespace oiio_py {
 
@@ -92,21 +91,20 @@ make_numpy_array(T* data, size_t size)
 
 }  // namespace oiio_py
 
-#else // pybind11
+#else  // pybind11
 
 #    include <pybind11/numpy.h>
 #    include <pybind11/operators.h>
 #    include <pybind11/pybind11.h>
 
-namespace py = pybind11;
+namespace py    = pybind11;
 using py_module = pybind11::module;
 using namespace py::literals;
 
-#    define OIIO_PY_DEF_RW(name, member) .def_readwrite(name, member)
-#    define OIIO_PY_DEF_PROP_RO(name, member) .def_property_readonly(name, member)
-#    define OIIO_PY_DEF_PROP_RW(name, get, set) .def_property(name, get, set)
-#    define OIIO_PY_DEF_READONLY_STATIC_LAMBDA(name, lambda)                 \
-        .def_property_readonly_static(name, lambda)
+#    define OIIO_PY_RW def_readwrite
+#    define OIIO_PY_PROP_RO def_property_readonly
+#    define OIIO_PY_PROP_RW def_property
+#    define OIIO_PY_RO_STATIC def_property_readonly_static
 
 namespace oiio_py {
 
@@ -127,8 +125,7 @@ make_tuple(size_t size, F&& fill)
     return result;
 }
 
-inline constexpr auto ref_internal =
-    py::return_value_policy::reference_internal;
+inline constexpr auto ref_internal = py::return_value_policy::reference_internal;
 
 template<typename T>
 inline auto

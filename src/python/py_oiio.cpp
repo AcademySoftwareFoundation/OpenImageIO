@@ -7,8 +7,8 @@
 #include <OpenImageIO/sysutil.h>
 
 #if defined(OIIO_PY_BACKEND_NANOBIND)
-#    include <cstring>
 #    include <OpenImageIO/oiioversion.h>
+#    include <cstring>
 #endif
 
 namespace PyOpenImageIO {
@@ -374,16 +374,18 @@ declare_pybind_global_functions(py_module& m)
             set_colorspace(spec, name);
         },
         "spec"_a, "name"_a);
-    m.def("set_colorspace_rec709_gamma",
-          [](ImageSpec& spec, float gamma) {
-              set_colorspace_rec709_gamma(spec, gamma);
-          },
-          "spec"_a, "gamma"_a);
-    m.def("equivalent_colorspace",
-          [](const std::string& a, const std::string& b) {
-              return equivalent_colorspace(a, b);
-          },
-          "a"_a, "b"_a);
+    m.def(
+        "set_colorspace_rec709_gamma",
+        [](ImageSpec& spec, float gamma) {
+            set_colorspace_rec709_gamma(spec, gamma);
+        },
+        "spec"_a, "gamma"_a);
+    m.def(
+        "equivalent_colorspace",
+        [](const std::string& a, const std::string& b) {
+            return equivalent_colorspace(a, b);
+        },
+        "a"_a, "b"_a);
     m.def(
         "is_imageio_format_name",
         [](const std::string& name) {
@@ -420,13 +422,13 @@ declare_module_attributes(py_module& m)
 
 }  // namespace PyOpenImageIO
 
-#define OIIO_DECLARE_NB_MODULE(x) NB_MODULE(x, m)
+#    define OIIO_DECLARE_NB_MODULE(x) NB_MODULE(x, m)
 
-#if defined(OIIO_PY_NANOBIND_ISOLATED_PACKAGE)
+#    if defined(OIIO_PY_NANOBIND_ISOLATED_PACKAGE)
 OIIO_DECLARE_NB_MODULE(_OpenImageIO)
-#else
+#    else
 OIIO_DECLARE_NB_MODULE(OpenImageIO)
-#endif
+#    endif
 {
     m.doc() = "OpenImageIO nanobind bindings.";
 
@@ -441,7 +443,7 @@ OIIO_DECLARE_NB_MODULE(OpenImageIO)
 // MODULE name as a #define. Google for Argument-Prescan for additional
 // info on why this is necessary
 
-#define OIIO_DECLARE_PYMODULE(x) PYBIND11_MODULE(x, m)
+#    define OIIO_DECLARE_PYMODULE(x) PYBIND11_MODULE(x, m)
 
 OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
 {

@@ -61,27 +61,28 @@ declare_typedesc(py_module& m)
         .value("BOX", TypeDesc::BOX)
         .export_values();
 
+
     py::class_<TypeDesc>(m, "TypeDesc")
         // basetype, aggregate, and vecsemantics should look like BASETYPE,
         // AGGREGATE, VECSEMANTICS, but since they are stored as unsigned
         // char, def_readwrite() doesn't do the right thing. Instead, we
         // use set_foo/get_foo wrappers, but from Python it looks like
         // regular member access.
-        OIIO_PY_DEF_PROP_RW(
+        .OIIO_PY_PROP_RW(
             "basetype",
             [](TypeDesc t) { return TypeDesc::BASETYPE(t.basetype); },
             [](TypeDesc& t, TypeDesc::BASETYPE b) { return t.basetype = b; })
-        OIIO_PY_DEF_PROP_RW(
+        .OIIO_PY_PROP_RW(
             "aggregate",
             [](TypeDesc t) { return TypeDesc::AGGREGATE(t.aggregate); },
             [](TypeDesc& t, TypeDesc::AGGREGATE b) { return t.aggregate = b; })
-        OIIO_PY_DEF_PROP_RW(
+        .OIIO_PY_PROP_RW(
             "vecsemantics",
             [](TypeDesc t) { return TypeDesc::VECSEMANTICS(t.vecsemantics); },
             [](TypeDesc& t, TypeDesc::VECSEMANTICS b) {
                 return t.vecsemantics = b;
             })
-        OIIO_PY_DEF_RW("arraylen", &TypeDesc::arraylen)
+        .OIIO_PY_RW("arraylen", &TypeDesc::arraylen)
         // Constructors: () [defined implicitly], (base), (base, agg),
         // (base,agg,vecsem), (base,agg,vecsem,arraylen), string.
         .def(py::init<>())
@@ -101,7 +102,8 @@ declare_typedesc(py_module& m)
         //   .def(init<TypeDesc::BASETYPE, int>())
         //   .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, int>())
         // FIXME -- I bet this works with Pybind11
-        .def("c_str", [](const TypeDesc& self) { return oiio_py::str(self.c_str()); })
+        .def("c_str",
+             [](const TypeDesc& self) { return oiio_py::str(self.c_str()); })
         .def("numelements", &TypeDesc::numelements)
         .def("basevalues", &TypeDesc::basevalues)
         .def("size", &TypeDesc::size)
@@ -114,31 +116,36 @@ declare_typedesc(py_module& m)
              })
         .def("equivalent", &TypeDesc::equivalent)
         .def("unarray", &TypeDesc::unarray)
-        .def("is_vec2",
-             [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
-                 return t.is_vec2(b);
-             },
-             "b"_a = TypeDesc::FLOAT)
-        .def("is_vec3",
-             [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
-                 return t.is_vec3(b);
-             },
-             "b"_a = TypeDesc::FLOAT)
-        .def("is_vec4",
-             [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
-                 return t.is_vec4(b);
-             },
-             "b"_a = TypeDesc::FLOAT)
-        .def("is_box2",
-             [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
-                 return t.is_box2(b);
-             },
-             "b"_a = TypeDesc::FLOAT)
-        .def("is_box3",
-             [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
-                 return t.is_box3(b);
-             },
-             "b"_a = TypeDesc::FLOAT)
+        .def(
+            "is_vec2",
+            [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
+                return t.is_vec2(b);
+            },
+            "b"_a = TypeDesc::FLOAT)
+        .def(
+            "is_vec3",
+            [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
+                return t.is_vec3(b);
+            },
+            "b"_a = TypeDesc::FLOAT)
+        .def(
+            "is_vec4",
+            [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
+                return t.is_vec4(b);
+            },
+            "b"_a = TypeDesc::FLOAT)
+        .def(
+            "is_box2",
+            [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
+                return t.is_box2(b);
+            },
+            "b"_a = TypeDesc::FLOAT)
+        .def(
+            "is_box3",
+            [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
+                return t.is_box3(b);
+            },
+            "b"_a = TypeDesc::FLOAT)
         .def_static("all_types_equal",
                     [](const std::vector<TypeDesc>& types) {
                         return TypeDesc::all_types_equal(types);
@@ -153,6 +160,7 @@ declare_typedesc(py_module& m)
         .def("__repr__", [](TypeDesc t) {
             return oiio_py::str("<TypeDesc '" + std::string(t.c_str()) + "'>");
         });
+
 
     // Declare that a BASETYPE is implicitly convertible to a TypeDesc.
     // This keeps us from having to separately declare func(TypeDesc)

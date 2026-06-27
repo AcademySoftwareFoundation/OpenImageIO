@@ -243,8 +243,7 @@ py_indexable_pod_to_stdvector(std::vector<TypeDesc>& vals, const PYT& obj)
         } else if (py::isinstance<TypeDesc::BASETYPE>(elem)) {
             vals.emplace_back(TypeDesc(py::cast<TypeDesc::BASETYPE>(elem)));
         } else if (py::isinstance<py::str>(elem)) {
-            vals.emplace_back(
-                TypeDesc(oiio_py::str_to_stdstring(elem)));
+            vals.emplace_back(TypeDesc(oiio_py::str_to_stdstring(elem)));
         } else {
             // FIXME? Other cases?
             vals.emplace_back(TypeUnknown);
@@ -372,7 +371,7 @@ py_buffer_to_stdvector(std::vector<T>& vals, const py::object& obj)
     }
 
     const size_t count = static_cast<size_t>(view.len) / view.itemsize;
-    ok                 = buffer_format_to_stdvector(vals, format, view.buf, count);
+    ok = buffer_format_to_stdvector(vals, format, view.buf, count);
     PyBuffer_Release(&view);
     return ok;
 }
@@ -514,9 +513,8 @@ template<>
 inline py::tuple
 C_to_tuple<TypeDesc>(cspan<TypeDesc> vals)
 {
-    return oiio_py::make_tuple(vals.size(), [&](size_t i) {
-        return py::cast(vals[i]);
-    });
+    return oiio_py::make_tuple(vals.size(),
+                               [&](size_t i) { return py::cast(vals[i]); });
 }
 
 

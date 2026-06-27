@@ -59,39 +59,39 @@ void
 declare_imagespec(py_module& m)
 {
     py::class_<ImageSpec>(m, "ImageSpec")
-        OIIO_PY_DEF_RW("x", &ImageSpec::x)
-        OIIO_PY_DEF_RW("y", &ImageSpec::y)
-        OIIO_PY_DEF_RW("z", &ImageSpec::z)
-        OIIO_PY_DEF_RW("width", &ImageSpec::width)
-        OIIO_PY_DEF_RW("height", &ImageSpec::height)
-        OIIO_PY_DEF_RW("depth", &ImageSpec::depth)
-        OIIO_PY_DEF_RW("full_x", &ImageSpec::full_x)
-        OIIO_PY_DEF_RW("full_y", &ImageSpec::full_y)
-        OIIO_PY_DEF_RW("full_z", &ImageSpec::full_z)
-        OIIO_PY_DEF_RW("full_width", &ImageSpec::full_width)
-        OIIO_PY_DEF_RW("full_height", &ImageSpec::full_height)
-        OIIO_PY_DEF_RW("full_depth", &ImageSpec::full_depth)
-        OIIO_PY_DEF_RW("tile_width", &ImageSpec::tile_width)
-        OIIO_PY_DEF_RW("tile_height", &ImageSpec::tile_height)
-        OIIO_PY_DEF_RW("tile_depth", &ImageSpec::tile_depth)
-        OIIO_PY_DEF_RW("nchannels", &ImageSpec::nchannels)
-        OIIO_PY_DEF_RW("format", &ImageSpec::format)
-        OIIO_PY_DEF_PROP_RW(
+        .OIIO_PY_RW("x", &ImageSpec::x)
+        .OIIO_PY_RW("y", &ImageSpec::y)
+        .OIIO_PY_RW("z", &ImageSpec::z)
+        .OIIO_PY_RW("width", &ImageSpec::width)
+        .OIIO_PY_RW("height", &ImageSpec::height)
+        .OIIO_PY_RW("depth", &ImageSpec::depth)
+        .OIIO_PY_RW("full_x", &ImageSpec::full_x)
+        .OIIO_PY_RW("full_y", &ImageSpec::full_y)
+        .OIIO_PY_RW("full_z", &ImageSpec::full_z)
+        .OIIO_PY_RW("full_width", &ImageSpec::full_width)
+        .OIIO_PY_RW("full_height", &ImageSpec::full_height)
+        .OIIO_PY_RW("full_depth", &ImageSpec::full_depth)
+        .OIIO_PY_RW("tile_width", &ImageSpec::tile_width)
+        .OIIO_PY_RW("tile_height", &ImageSpec::tile_height)
+        .OIIO_PY_RW("tile_depth", &ImageSpec::tile_depth)
+        .OIIO_PY_RW("nchannels", &ImageSpec::nchannels)
+        .OIIO_PY_RW("format", &ImageSpec::format)
+        .OIIO_PY_PROP_RW(
             "channelformats",
             [](const ImageSpec& spec) {
                 return ImageSpec_get_channelformats(spec);
             },
             &ImageSpec_set_channelformats)
-        OIIO_PY_DEF_PROP_RW("channelnames", &ImageSpec_get_channelnames,
-                            &ImageSpec_set_channelnames)
-        OIIO_PY_DEF_RW("alpha_channel", &ImageSpec::alpha_channel)
-        OIIO_PY_DEF_RW("z_channel", &ImageSpec::z_channel)
-        OIIO_PY_DEF_RW("deep", &ImageSpec::deep)
-        OIIO_PY_DEF_RW("extra_attribs", &ImageSpec::extra_attribs)
+        .OIIO_PY_PROP_RW("channelnames", &ImageSpec_get_channelnames,
+                         &ImageSpec_set_channelnames)
+        .OIIO_PY_RW("alpha_channel", &ImageSpec::alpha_channel)
+        .OIIO_PY_RW("z_channel", &ImageSpec::z_channel)
+        .OIIO_PY_RW("deep", &ImageSpec::deep)
+        .OIIO_PY_RW("extra_attribs", &ImageSpec::extra_attribs)
 
-        OIIO_PY_DEF_PROP_RW("roi", &ImageSpec::roi, &ImageSpec::set_roi)
-        OIIO_PY_DEF_PROP_RW("roi_full", &ImageSpec::roi_full,
-                            &ImageSpec::set_roi_full)
+        .OIIO_PY_PROP_RW("roi", &ImageSpec::roi, &ImageSpec::set_roi)
+        .OIIO_PY_PROP_RW("roi_full", &ImageSpec::roi_full,
+                         &ImageSpec::set_roi_full)
 
         .def(py::init<>())
         .def(py::init<int, int, int, TypeDesc>())
@@ -285,7 +285,8 @@ declare_imagespec(py_module& m)
                  ParamValue tmpparam;
                  auto p = self.find_attribute(key, tmpparam);
                  if (p == nullptr)
-                     oiio_py::throw_key_error("key '" + key + "' does not exist");
+                     oiio_py::throw_key_error("key '" + key
+                                              + "' does not exist");
                  return make_pyobject(p->data(), p->type());
              })
         // __setitem__ is the dict-like `ImageSpec[key] = value` assignment
