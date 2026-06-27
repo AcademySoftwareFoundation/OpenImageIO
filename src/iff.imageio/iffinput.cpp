@@ -642,6 +642,11 @@ IffInput::readimg()
 
             // get image size
             // skip coordinates, uint16_t (2) * 4 = 8
+            if (chunksize <= 8) {
+                errorfmt("nonsensical RGBA chunk size {} (must be > 8)\n",
+                         size);
+                return false;
+            }
             uint32_t image_size = chunksize - 8;
 
             // check tile
