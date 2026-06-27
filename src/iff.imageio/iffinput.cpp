@@ -394,6 +394,21 @@ IffInput::read_header()
                             OIIO_DASSERT(bytes == 0);
                         }
 
+                        // Validate the color channel configuration. A
+                        // legitimate Maya IFF stores RGB (3) or RGBA (4)
+                        // color channels (optionally plus Z). Corrupt flag
+                        // combinations -- such as ALPHA without RGB -- yield
+                        // channel counts the format never produces and that
+                        // the tile decoder cannot represent, which previously
+                        // led to out-of-bounds writes while decompressing.
+                        if ((flags & RGBA) && m_header.rgba_count != 3
+                            && m_header.rgba_count != 4) {
+                            errorfmt(
+                                "IFF error unsupported channel configuration (flags {:#x})",
+                                flags);
+                            return false;
+                        }
+
                         // read chunks
                         for (;;) {
                             // get type
