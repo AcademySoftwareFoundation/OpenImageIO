@@ -431,6 +431,13 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         return false;
     }
 
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
+    // Cap LibRaw's internal allocations. This must be set *before* unpack().
+    // Default max is 2048 MB.
+    m_processor->imgdata.rawparams.max_raw_memory_mb
+        = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
+#endif
+
     OIIO_ASSERT(!m_unpacked);
     if (unpack) {
         if ((ret = m_processor->unpack()) != LIBRAW_SUCCESS) {
@@ -469,12 +476,6 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
 
     // Output 16 bit images
     m_processor->imgdata.params.output_bps = 16;
-
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
-    // Exposing max_raw_memory_mb setting. Default max is 2048.
-    m_processor->imgdata.rawparams.max_raw_memory_mb
-        = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
-#endif
 
     // Disable exposure correction (unless config "raw:auto_bright" == 1)
     m_processor->imgdata.params.no_auto_bright
