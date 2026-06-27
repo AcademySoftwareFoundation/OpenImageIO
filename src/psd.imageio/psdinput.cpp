@@ -1525,8 +1525,15 @@ PSDInput::load_layer(Layer& layer)
     if (!ok)
         return false;
 
-    layer.width  = std::abs((int)layer.right - (int)layer.left);
-    layer.height = std::abs((int)layer.bottom - (int)layer.top);
+    // The rectangle coordinates are signed 32-bit (a layer may have negative
+    // offsets), stored in unsigned fields. Reinterpret as int32, then widen to
+    // int64 before subtracting: a plain int subtraction can overflow (undefined
+    // behavior) on corrupt files with extreme values. The absolute difference
+    // of two int32 always fits in uint32.
+    int64_t w    = int64_t(int32_t(layer.right)) - int64_t(int32_t(layer.left));
+    int64_t h    = int64_t(int32_t(layer.bottom)) - int64_t(int32_t(layer.top));
+    layer.width  = uint32_t(w < 0 ? -w : w);
+    layer.height = uint32_t(h < 0 ? -h : h);
     if (!validate_resolution("Layer Record", layer.width, layer.height))
         return false;
     layer.channel_info.resize(layer.channel_count);
