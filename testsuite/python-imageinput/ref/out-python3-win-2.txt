@@ -205,6 +205,39 @@ Testing write and read of TIFF CMYK with auto RGB translation:
  [0.24705884 0.49803925 0.49803925]]
 
 
+Testing ImageInput.create:
+  create succeeded: True
+  format_name is tiff: True
+  create invalid returns None: True
+
+Testing valid_file and supports:
+  valid_file good: True
+  valid_file bad: True
+  supports returns numeric: True
+  grid supports mipmap: True
+
+Testing seek_subimage state:
+  initial sub/mip: 0 0
+  seek mip 2: True
+  after seek sub/mip: 0 2
+  spec(0,2) width: 256
+  read_image sub/mip/ch ndim: 3
+
+Testing read_native_deep_image:
+  deep file: True
+  read_native_deep_image ok: True
+  deep pixels: 19200 channels: 2
+
+Testing get_thumbnail:
+  get_thumbnail returns ImageBuf: True
+  thumbnail initialized: False
+
+Testing has_error/geterror:
+  scanline on tiled None: True
+  has_error: True
+  geterror persists: True
+  has_error after clear: False
+
 is_imageio_format_name('tiff') = True
 is_imageio_format_name('txff') = False
 Done.
