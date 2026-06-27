@@ -261,9 +261,25 @@ TGAOutput::write_tga20_data_fields()
             OIIO_DASSERT(tw && th && tc == m_spec.nchannels);
             ofs_thumb = (uint32_t)iotell();
             // dump thumbnail size
-            if (!write(tw) || !write(th)
-                || !write(m_thumb.localpixels(), m_thumb.spec().image_bytes()))
+            if (!write(tw) || !write(th))
                 return false;
+            // Encode the thumbnail in TGA pixel order: write scanlines
+            // bottom-up, deassociate alpha, and convert RGB(A) to BGR(A).
+            // Similar to `TGAOutput::write_scanline`.
+            std::vector<unsigned char> buf(m_thumb.spec().scanline_bytes());
+            for (int y = th - 1; y >= 0; --y) {
+                if (!m_thumb.get_pixels(ROI(0, tw, y, y + 1, 0, 1, 0, tc),
+                                        make_span(buf)))
+                    return false;
+                if (m_convert_alpha)
+                    deassociateAlpha(buf.data(), tw, tc, m_spec.alpha_channel,
+                                     m_gamma);
+                if (tc >= 3)
+                    for (int x = 0; x < tw; ++x)
+                        std::swap(buf[x * tc], buf[x * tc + 2]);
+                if (!write(buf.data(), tc, tw))
+                    return false;
+            }
         }
 
         // prepare the footer
@@ -671,15 +687,17 @@ TGAOutput::set_thumbnail(const ImageBuf& thumb)
         // Zero size thumbnail or channels don't match
         return false;
     }
-    // TARGA has a limitation of 256 res for thumbnail dimensions, and
-    // must be UINT8.
+    // TARGA thumbnails must be UINT8, and each dimension is stored in a single
+    // byte, so the maximum size is 255 (256 would truncate to 0 and the reader
+    // would treat the thumbnail as absent).
     if (thumb.spec().width >= 256 || thumb.spec().height >= 256) {
-        ROI roi(0, 256, 0, 256, 0, 1, 0, thumb.nchannels());
+        // Resize to fit within 255 while preserving aspect ratio.
+        ROI roi(0, 255, 0, 255, 0, 1, 0, thumb.nchannels());
         float ratio = float(thumb.spec().width) / float(thumb.spec().height);
         if (ratio >= 1.0f) {
-            roi.yend = (int)roundf(256.0f / ratio);
+            roi.yend = (int)roundf(255.0f / ratio);
         } else {
-            roi.xend = (int)roundf(256.0f * ratio);
+            roi.xend = (int)roundf(255.0f * ratio);
         }
         m_thumb = ImageBufAlgo::resize(thumb, ImageBufAlgo::KWArgs(), roi,
                                        this->threads());
