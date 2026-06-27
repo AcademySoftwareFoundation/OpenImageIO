@@ -6,6 +6,11 @@
 
 #include <OpenImageIO/sysutil.h>
 
+#if defined(OIIO_PY_BACKEND_NANOBIND)
+#    include <cstring>
+#    include <OpenImageIO/oiioversion.h>
+#endif
+
 namespace PyOpenImageIO {
 
 
@@ -65,6 +70,8 @@ typedesc_from_python_array_code(string_view code)
 }
 
 
+
+#ifndef OIIO_PY_BACKEND_NANOBIND
 
 oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf)
 {
@@ -191,12 +198,17 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
 
 
 
+#endif  // !OIIO_PY_BACKEND_NANOBIND
+
+
+
 py::object
 make_pyobject(const void* data, TypeDesc type, int nvalues,
               py::object defaultvalue)
 {
-    if (!data || !nvalues)
-        return defaultvalue;
+    if (!data || !nvalues) {
+        return oiio_py::return_object(defaultvalue);
+    }
     if (type.basetype == TypeDesc::INT32)
         return C_to_val_or_tuple((const int*)data, type, nvalues);
     if (type.basetype == TypeDesc::FLOAT)
@@ -223,16 +235,15 @@ make_pyobject(const void* data, TypeDesc type, int nvalues,
         // take possession of it.
         int n = type.arraylen * nvalues;
         if (n <= 0)
-            return defaultvalue;
-        uint8_t* ucdata(new uint8_t[n]);
-        std::memcpy(ucdata, data, n);
-        return make_numpy_array(ucdata, 1, 1, size_t(type.arraylen),
-                                size_t(nvalues));
+            return oiio_py::return_object(defaultvalue);
+        auto* copy = new uint8_t[n];
+        std::memcpy(copy, data, static_cast<size_t>(n));
+        return oiio_py::make_numpy_array(copy, static_cast<size_t>(n));
     }
     if (type.basetype == TypeDesc::UINT8)
         return C_to_val_or_tuple((const unsigned char*)data, type, nvalues);
     debugfmt("Don't know how to handle type {}\n", type);
-    return defaultvalue;
+    return oiio_py::return_object(defaultvalue);
 }
 
 
@@ -240,7 +251,7 @@ make_pyobject(const void* data, TypeDesc type, int nvalues,
 static py::object
 oiio_getattribute_typed(const std::string& name, TypeDesc type = TypeUnknown)
 {
-    if (type == TypeDesc::UNKNOWN)
+    if (type == TypeUnknown)
         return py::none();
     char* data = OIIO_ALLOCA(char, type.size());
     if (!OIIO::getattribute(name, type, data))
@@ -270,25 +281,21 @@ struct oiio_global_attrib_wrapper {
 };
 
 
-
-// This OIIO_DECLARE_PYMODULE mojo is necessary if we want to pass in the
-// MODULE name as a #define. Google for Argument-Prescan for additional
-// info on why this is necessary
-
-#define OIIO_DECLARE_PYMODULE(x) PYBIND11_MODULE(x, m)
-
-OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
+static void
+declare_global_bindings(py_module& m)
 {
-    using namespace pybind11::literals;
-
-    if (Sysutil::getenv("OPENIMAGEIO_DEBUG_PYTHON") != "")
-        Sysutil::setup_crash_stacktrace("stdout");
-
-    // Basic helper classes
     declare_typedesc(m);
     declare_paramvalue(m);
     declare_imagespec(m);
     declare_roi(m);
+}
+
+
+
+#ifndef OIIO_PY_BACKEND_NANOBIND
+static void
+declare_pybind_bindings(py_module& m)
+{
     declare_deepdata(m);
     declare_colorconfig(m);
 
@@ -306,9 +313,14 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
     declare_texturesystem(m);
 
     declare_imagebufalgo(m);
+}
+#endif
 
-    // Global (OpenImageIO scope) functions and symbols
-    m.def("geterror", &OIIO::geterror, "clear"_a = true);
+
+
+static void
+declare_global_attribute_functions(py_module& m)
+{
     m.def("attribute", [](const std::string& name, const py::object& obj) {
         oiio_global_attrib_wrapper wrapper;
         attribute_onearg(wrapper, name, obj);
@@ -324,55 +336,125 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
         [](const std::string& name, int def) {
             return OIIO::get_int_attribute(name, def);
         },
-        py::arg("name"), py::arg("defaultval") = 0);
+        "name"_a, "defaultval"_a = 0);
     m.def(
         "get_float_attribute",
         [](const std::string& name, float def) {
             return OIIO::get_float_attribute(name, def);
         },
-        py::arg("name"), py::arg("defaultval") = 0.0f);
+        "name"_a, "defaultval"_a = 0.0f);
     m.def(
         "get_string_attribute",
         [](const std::string& name, const std::string& def) {
-            return PY_STR(std::string(OIIO::get_string_attribute(name, def)));
+            return oiio_py::str(
+                std::string(OIIO::get_string_attribute(name, def)));
         },
-        py::arg("name"), py::arg("defaultval") = "");
+        "name"_a, "defaultval"_a = "");
+    m.def("getattribute", &oiio_getattribute_typed, "name"_a,
+          "type"_a = TypeUnknown);
+}
+
+
+
+#ifndef OIIO_PY_BACKEND_NANOBIND
+static void
+declare_pybind_global_functions(py_module& m)
+{
+    m.def("geterror", &OIIO::geterror, "clear"_a = true);
     m.def(
         "get_bytes_attribute",
         [](const std::string& name, const std::string& def) {
-            return py::bytes(
-                std::string(OIIO::get_string_attribute(name, def)));
+            std::string s(OIIO::get_string_attribute(name, def));
+            return py::bytes(s.data(), s.size());
         },
-        py::arg("name"), py::arg("defaultval") = "");
-    m.def("getattribute", &oiio_getattribute_typed);
+        "name"_a, "defaultval"_a = "");
     m.def(
         "set_colorspace",
         [](ImageSpec& spec, const std::string& name) {
             set_colorspace(spec, name);
         },
-        py::arg("spec"), py::arg("name"));
-    m.def("set_colorspace_rec709_gamma", [](ImageSpec& spec, float gamma) {
-        set_colorspace_rec709_gamma(spec, gamma);
-    });
+        "spec"_a, "name"_a);
+    m.def("set_colorspace_rec709_gamma",
+          [](ImageSpec& spec, float gamma) {
+              set_colorspace_rec709_gamma(spec, gamma);
+          },
+          "spec"_a, "gamma"_a);
     m.def("equivalent_colorspace",
           [](const std::string& a, const std::string& b) {
               return equivalent_colorspace(a, b);
-          });
+          },
+          "a"_a, "b"_a);
     m.def(
         "is_imageio_format_name",
         [](const std::string& name) {
             return OIIO::is_imageio_format_name(name);
         },
-        py::arg("name"));
+        "name"_a);
+}
+#endif
+
+
+
+static void
+declare_module_attributes(py_module& m)
+{
+#if defined(OIIO_PY_BACKEND_NANOBIND)
+    m.attr("__version__")    = OIIO_VERSION_STRING;
+    m.attr("VERSION_STRING") = OIIO_VERSION_STRING;
+#else
     m.attr("AutoStride")          = AutoStride;
     m.attr("openimageio_version") = OIIO_VERSION;
     m.attr("VERSION")             = OIIO_VERSION;
-    m.attr("VERSION_STRING")      = PY_STR(OIIO_VERSION_STRING);
+    m.attr("VERSION_STRING")      = oiio_py::str(OIIO_VERSION_STRING);
     m.attr("VERSION_MAJOR")       = OIIO_VERSION_MAJOR;
     m.attr("VERSION_MINOR")       = OIIO_VERSION_MINOR;
     m.attr("VERSION_PATCH")       = OIIO_VERSION_PATCH;
-    m.attr("INTRO_STRING")        = PY_STR(OIIO_INTRO_STRING);
-    m.attr("__version__")         = PY_STR(OIIO_VERSION_STRING);
+    m.attr("INTRO_STRING")        = oiio_py::str(OIIO_INTRO_STRING);
+    m.attr("__version__")         = oiio_py::str(OIIO_VERSION_STRING);
+#endif
+}
+
+
+
+#if defined(OIIO_PY_BACKEND_NANOBIND)
+
+}  // namespace PyOpenImageIO
+
+#define OIIO_DECLARE_NB_MODULE(x) NB_MODULE(x, m)
+
+#if defined(OIIO_PY_NANOBIND_ISOLATED_PACKAGE)
+OIIO_DECLARE_NB_MODULE(_OpenImageIO)
+#else
+OIIO_DECLARE_NB_MODULE(OpenImageIO)
+#endif
+{
+    m.doc() = "OpenImageIO nanobind bindings.";
+
+    PyOpenImageIO::declare_global_bindings(m);
+    PyOpenImageIO::declare_global_attribute_functions(m);
+    PyOpenImageIO::declare_module_attributes(m);
+}
+
+#else  // pybind11
+
+// This OIIO_DECLARE_PYMODULE mojo is necessary if we want to pass in the
+// MODULE name as a #define. Google for Argument-Prescan for additional
+// info on why this is necessary
+
+#define OIIO_DECLARE_PYMODULE(x) PYBIND11_MODULE(x, m)
+
+OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
+{
+    if (Sysutil::getenv("OPENIMAGEIO_DEBUG_PYTHON") != "")
+        Sysutil::setup_crash_stacktrace("stdout");
+
+    declare_global_bindings(m);
+    declare_pybind_bindings(m);
+    declare_global_attribute_functions(m);
+    declare_pybind_global_functions(m);
+    declare_module_attributes(m);
 }
 
 }  // namespace PyOpenImageIO
+
+#endif  // OIIO_PY_BACKEND_NANOBIND

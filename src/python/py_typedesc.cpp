@@ -10,7 +10,7 @@ namespace PyOpenImageIO {
 
 // Declare the OIIO TypeDesc type to Python
 void
-declare_typedesc(py::module& m)
+declare_typedesc(py_module& m)
 {
     py::enum_<TypeDesc::BASETYPE>(m, "BASETYPE")
         .value("UNKNOWN", TypeDesc::UNKNOWN)
@@ -67,21 +67,21 @@ declare_typedesc(py::module& m)
         // char, def_readwrite() doesn't do the right thing. Instead, we
         // use set_foo/get_foo wrappers, but from Python it looks like
         // regular member access.
-        .def_property(
+        OIIO_PY_DEF_PROP_RW(
             "basetype",
             [](TypeDesc t) { return TypeDesc::BASETYPE(t.basetype); },
             [](TypeDesc& t, TypeDesc::BASETYPE b) { return t.basetype = b; })
-        .def_property(
+        OIIO_PY_DEF_PROP_RW(
             "aggregate",
             [](TypeDesc t) { return TypeDesc::AGGREGATE(t.aggregate); },
             [](TypeDesc& t, TypeDesc::AGGREGATE b) { return t.aggregate = b; })
-        .def_property(
+        OIIO_PY_DEF_PROP_RW(
             "vecsemantics",
             [](TypeDesc t) { return TypeDesc::VECSEMANTICS(t.vecsemantics); },
             [](TypeDesc& t, TypeDesc::VECSEMANTICS b) {
                 return t.vecsemantics = b;
             })
-        .def_readwrite("arraylen", &TypeDesc::arraylen)
+        OIIO_PY_DEF_RW("arraylen", &TypeDesc::arraylen)
         // Constructors: () [defined implicitly], (base), (base, agg),
         // (base,agg,vecsem), (base,agg,vecsem,arraylen), string.
         .def(py::init<>())
@@ -101,7 +101,7 @@ declare_typedesc(py::module& m)
         //   .def(init<TypeDesc::BASETYPE, int>())
         //   .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, int>())
         // FIXME -- I bet this works with Pybind11
-        .def("c_str", [](const TypeDesc& self) { return PY_STR(self.c_str()); })
+        .def("c_str", [](const TypeDesc& self) { return oiio_py::str(self.c_str()); })
         .def("numelements", &TypeDesc::numelements)
         .def("basevalues", &TypeDesc::basevalues)
         .def("size", &TypeDesc::size)
@@ -114,11 +114,31 @@ declare_typedesc(py::module& m)
              })
         .def("equivalent", &TypeDesc::equivalent)
         .def("unarray", &TypeDesc::unarray)
-        .def("is_vec2", &TypeDesc::is_vec2)
-        .def("is_vec3", &TypeDesc::is_vec3)
-        .def("is_vec4", &TypeDesc::is_vec4)
-        .def("is_box2", &TypeDesc::is_box2)
-        .def("is_box3", &TypeDesc::is_box3)
+        .def("is_vec2",
+             [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
+                 return t.is_vec2(b);
+             },
+             "b"_a = TypeDesc::FLOAT)
+        .def("is_vec3",
+             [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
+                 return t.is_vec3(b);
+             },
+             "b"_a = TypeDesc::FLOAT)
+        .def("is_vec4",
+             [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
+                 return t.is_vec4(b);
+             },
+             "b"_a = TypeDesc::FLOAT)
+        .def("is_box2",
+             [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
+                 return t.is_box2(b);
+             },
+             "b"_a = TypeDesc::FLOAT)
+        .def("is_box3",
+             [](const TypeDesc& t, TypeDesc::BASETYPE b = TypeDesc::FLOAT) {
+                 return t.is_box3(b);
+             },
+             "b"_a = TypeDesc::FLOAT)
         .def_static("all_types_equal",
                     [](const std::vector<TypeDesc>& types) {
                         return TypeDesc::all_types_equal(types);
@@ -129,9 +149,9 @@ declare_typedesc(py::module& m)
         .def(py::self != py::self)  // operator!=   //NOSONAR
 
         // Conversion to string
-        .def("__str__", [](TypeDesc t) { return PY_STR(t.c_str()); })
+        .def("__str__", [](TypeDesc t) { return oiio_py::str(t.c_str()); })
         .def("__repr__", [](TypeDesc t) {
-            return PY_STR("<TypeDesc '" + std::string(t.c_str()) + "'>");
+            return oiio_py::str("<TypeDesc '" + std::string(t.c_str()) + "'>");
         });
 
     // Declare that a BASETYPE is implicitly convertible to a TypeDesc.
@@ -143,6 +163,54 @@ declare_typedesc(py::module& m)
     // This let you call foo("uint8") anyplace it would normally expect
     // foo(TypeUInt8).
     py::implicitly_convertible<py::str, TypeDesc>();
+
+#if defined(OIIO_PY_BACKEND_NANOBIND)
+    // Pybind11's .export_values() above copies enum members onto the module
+    // (oiio.FLOAT, oiio.VEC3, ...). Nanobind has no equivalent here, so set
+    // them explicitly to keep the same public API.
+    m.attr("UNKNOWN")   = py::cast(TypeDesc::UNKNOWN);
+    m.attr("NONE")      = py::cast(TypeDesc::NONE);
+    m.attr("UCHAR")     = py::cast(TypeDesc::UCHAR);
+    m.attr("UINT8")     = py::cast(TypeDesc::UINT8);
+    m.attr("CHAR")      = py::cast(TypeDesc::CHAR);
+    m.attr("INT8")      = py::cast(TypeDesc::INT8);
+    m.attr("UINT16")    = py::cast(TypeDesc::UINT16);
+    m.attr("USHORT")    = py::cast(TypeDesc::USHORT);
+    m.attr("SHORT")     = py::cast(TypeDesc::SHORT);
+    m.attr("INT16")     = py::cast(TypeDesc::INT16);
+    m.attr("UINT")      = py::cast(TypeDesc::UINT);
+    m.attr("UINT32")    = py::cast(TypeDesc::UINT32);
+    m.attr("INT")       = py::cast(TypeDesc::INT);
+    m.attr("INT32")     = py::cast(TypeDesc::INT32);
+    m.attr("ULONGLONG") = py::cast(TypeDesc::ULONGLONG);
+    m.attr("UINT64")    = py::cast(TypeDesc::UINT64);
+    m.attr("LONGLONG")  = py::cast(TypeDesc::LONGLONG);
+    m.attr("INT64")     = py::cast(TypeDesc::INT64);
+    m.attr("HALF")      = py::cast(TypeDesc::HALF);
+    m.attr("FLOAT")     = py::cast(TypeDesc::FLOAT);
+    m.attr("DOUBLE")    = py::cast(TypeDesc::DOUBLE);
+    m.attr("STRING")    = py::cast(TypeDesc::STRING);
+    m.attr("PTR")       = py::cast(TypeDesc::PTR);
+    m.attr("LASTBASE")  = py::cast(TypeDesc::LASTBASE);
+
+    m.attr("SCALAR")   = py::cast(TypeDesc::SCALAR);
+    m.attr("VEC2")     = py::cast(TypeDesc::VEC2);
+    m.attr("VEC3")     = py::cast(TypeDesc::VEC3);
+    m.attr("VEC4")     = py::cast(TypeDesc::VEC4);
+    m.attr("MATRIX33") = py::cast(TypeDesc::MATRIX33);
+    m.attr("MATRIX44") = py::cast(TypeDesc::MATRIX44);
+
+    m.attr("NOXFORM")     = py::cast(TypeDesc::NOXFORM);
+    m.attr("NOSEMANTICS") = py::cast(TypeDesc::NOSEMANTICS);
+    m.attr("COLOR")       = py::cast(TypeDesc::COLOR);
+    m.attr("POINT")       = py::cast(TypeDesc::POINT);
+    m.attr("VECTOR")      = py::cast(TypeDesc::VECTOR);
+    m.attr("NORMAL")      = py::cast(TypeDesc::NORMAL);
+    m.attr("TIMECODE")    = py::cast(TypeDesc::TIMECODE);
+    m.attr("KEYCODE")     = py::cast(TypeDesc::KEYCODE);
+    m.attr("RATIONAL")    = py::cast(TypeDesc::RATIONAL);
+    m.attr("BOX")         = py::cast(TypeDesc::BOX);
+#endif
 
     // Global constants of common TypeDescs
     m.attr("TypeUnknown")   = TypeUnknown;
