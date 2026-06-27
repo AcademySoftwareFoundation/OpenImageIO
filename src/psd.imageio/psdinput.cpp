@@ -1250,6 +1250,17 @@ PSDInput::load_resource_1036(uint32_t length)
 bool
 PSDInput::load_resource_1039(uint32_t length)
 {
+    if (length > 10 * 1024 * 1024) {
+        if (OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt(
+                "Implausibly large ICC profile ({} bytes), presumed corrupted file\n",
+                length);
+            return false;
+        } else {
+            // non-strict mode: skip the probable corruption, but no error
+            return true;
+        }
+    }
     std::unique_ptr<uint8_t[]> icc_buf(new uint8_t[length]);
     if (!ioread(icc_buf.get(), length))
         return false;
@@ -1297,6 +1308,17 @@ PSDInput::load_resource_1047(uint32_t length)
 bool
 PSDInput::load_resource_1058(uint32_t length)
 {
+    if (length > 10 * 1024 * 1024) {
+        if (OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt(
+                "Implausibly large Exif profile ({} bytes), presumed corrupted file\n",
+                length);
+            return false;
+        } else {
+            // non-strict mode: skip the probable corruption, but no error
+            return true;
+        }
+    }
     std::string data(length, 0);
     if (!ioread(&data[0], length))
         return false;
@@ -1323,6 +1345,17 @@ PSDInput::load_resource_1059(uint32_t length)
 bool
 PSDInput::load_resource_1060(uint32_t length)
 {
+    if (length > 10 * 1024 * 1024) {
+        if (OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt(
+                "Implausibly large XMP profile ({} bytes), presumed corrupted file\n",
+                length);
+            return false;
+        } else {
+            // non-strict mode: skip the probable corruption, but no error
+            return true;
+        }
+    }
     std::string data(length, 0);
     if (!ioread(&data[0], length))
         return false;
