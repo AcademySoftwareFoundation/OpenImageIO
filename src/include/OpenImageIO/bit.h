@@ -22,7 +22,7 @@ OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE To
 bitcast(const From& from) noexcept
 {
     static_assert(sizeof(From) == sizeof(To),
-                  "bit_cast must be between objects of the same size");
+                  "bitcast must be between objects of the same size");
     // NOTE: this is the only standards compliant way of doing this type of
     // casting. This seems to generate optimal code for gcc, clang, MSVS, and
     // icx, for both scalar code and vectorized loops, but icc fails to
