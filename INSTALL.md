@@ -83,7 +83,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for JPEG XL images:
      * libjxl >= 0.10.1 (tested through 0.11.2)
  * If you want support for j2c files:
-     * OpenJPH >= 0.21.2 (tested through 0.26)
+     * OpenJPH >= 0.21.2 (tested through 0.30)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
