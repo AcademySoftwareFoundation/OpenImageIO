@@ -91,10 +91,10 @@ oiio_fuzz_read_dispatch(const uint8_t* data, size_t size,
     static std::string tmppath;
     if (tmppath.empty()) {
         // unique_path() substitutes '%%%%' with random hex digits.
-        OIIO::string_view ext = OIIO::Filesystem::extension(fake_filename);
-        std::string base      = OIIO::Filesystem::unique_path(
+        std::string ext  = OIIO::Filesystem::extension(fake_filename);
+        std::string base = OIIO::Filesystem::unique_path(
             OIIO::Filesystem::temp_directory_path() + "/oiio_fuzz_%%%%");
-        tmppath = base + std::string(ext);
+        tmppath = base + ext;
     }
 
     // Write fuzz data.
