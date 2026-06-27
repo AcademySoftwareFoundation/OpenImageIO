@@ -1423,15 +1423,16 @@ Filesystem::IOMemReader::pread(void* buf, size_t size, int64_t offset)
     // N.B. No lock necessary
     if (!m_buf.size() || !size)
         return 0;
-    if (size + size_t(offset) > std::size(m_buf)) {
-        if (offset < 0 || size_t(offset) >= std::size(m_buf)) {
-            error(Strutil::fmt::format(
-                "Invalid pread offset {} for an IOMemReader buffer of size {}",
-                offset, m_buf.size()));
-            return 0;
-        }
-        size = std::size(m_buf) - size_t(offset);
+    // Validate the offset before any arithmetic that could overflow.
+    if (offset < 0 || size_t(offset) >= m_buf.size()) {
+        error(Strutil::format(
+            "Invalid pread offset {} for an IOMemReader buffer of size {}",
+            offset, m_buf.size()));
+        return 0;
     }
+    // offset is now known to be in [0, buffer size), so this subtraction
+    // cannot underflow. Clamp the read to the bytes actually available.
+    size = std::min(size, m_buf.size() - size_t(offset));
     memcpy(buf, m_buf.data() + offset, size);
     return size;
 }
