@@ -335,6 +335,7 @@ jobs:
             -max_total_time=${{ inputs.fuzz_max_time }} \
             -max_len=16777216 \
             -rss_limit_mb=4096 \
+            -malloc_limit_mb=2048 \
             -timeout=60 \
             -detect_leaks=0 \
             -artifact_prefix=crash_${{ inputs.fuzz_format }}_ \
