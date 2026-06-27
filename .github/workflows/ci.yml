@@ -460,7 +460,7 @@ jobs:
             setenvs: export  CMAKE_VERSION=3.18.2
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
-                             PUGIXML_VERSION=v1.8
+                             PUGIXML_VERSION=v1.11
                              BUILD_PNG_VERSION=1.6.0
                              PIP_SUFFIX=.9
                              PIP_INSTALLS=numpy
@@ -488,7 +488,7 @@ jobs:
             setenvs: export  CMAKE_VERSION=3.18.2
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
-                             PUGIXML_VERSION=v1.8
+                             PUGIXML_VERSION=v1.11
                              BUILD_PNG_VERSION=1.6.0
                              PIP_SUFFIX=.9
                              PIP_INSTALLS=numpy
@@ -529,7 +529,7 @@ jobs:
                              USE_OPENCV=0
                              USE_LIBUHDR=0
                              FREETYPE_VERSION=VER-2-10-0
-                             PUGIXML_VERSION=v1.8
+                             PUGIXML_VERSION=v1.11
                              BUILD_PNG_VERSION=1.6.0
                              PIP_SUFFIX=.9
                              PIP_INSTALLS=numpy
