@@ -167,6 +167,24 @@ companion repos at fuzz time.
 4. None set → the binary prints available formats and exits with an error.
 
 
+## Memory limits and false-positive OOMs
+
+libFuzzer enforces an `rss_limit_mb` (set in `src/fuzz/fuzz_image.options`,
+currently 4096 MB) and reports a crash if the process exceeds it. OIIO's own
+decode-bomb guards default to much larger values (`limits:imagesize_MB` =
+32768, `limits:resolution` = 1048576), so a corrupt header claiming a multi-GB
+image would trip libFuzzer's OOM kill before OIIO's guard rejects it — a false
+positive.
+
+To keep the two budgets commensurate, `OIIO_FUZZ_INIT` (in
+`src/fuzz/fuzz_utils.h`) lowers OIIO's limits well under the RSS budget:
+`limits:imagesize_MB` to 2048 (half the budget, leaving headroom for decode
+scratch and process overhead) and `limits:resolution` to 65536. With these in
+place OIIO rejects oversized headers through its normal error path instead of
+allocating into an OOM kill. If you change `rss_limit_mb`, update these limits
+to match.
+
+
 ## CI overview
 
 - **Nightly fuzz** (`.github/workflows/fuzz.yml`): 29-format parallel matrix,
