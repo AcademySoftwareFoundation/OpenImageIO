@@ -11,6 +11,28 @@ if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         "Set CMAKE_CXX_COMPILER=clang++ (detected: ${CMAKE_CXX_COMPILER_ID}).")
 endif ()
 
+# Apple's clang (CMAKE_CXX_COMPILER_ID "AppleClang", as shipped with Xcode and
+# the Command Line Tools) does not ship the libFuzzer runtime
+# (libclang_rt.fuzzer_osx.a), so -fsanitize=fuzzer fails to link. Require an
+# upstream LLVM clang instead (e.g. `brew install llvm`).
+if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    message (FATAL_ERROR
+        "OIIO_BUILD_FUZZ_TARGETS=ON does not work with Apple's clang, which "
+        "lacks the libFuzzer runtime. Install upstream LLVM (e.g. "
+        "'brew install llvm') and configure with "
+        "-DCMAKE_CXX_COMPILER=$(brew --prefix llvm)/bin/clang++ "
+        "-DCMAKE_C_COMPILER=$(brew --prefix llvm)/bin/clang.")
+endif ()
+
+# The fuzz targets are always instrumented with the address sanitizer (see the
+# target_compile_options below), independently of the global SANITIZE option.
+# _FORTIFY_SOURCE is incompatible with ASan (clang predefines it to 0), so strip
+# any inherited _FORTIFY_SOURCE define for this directory to avoid a
+# -Wmacro-redefined error when OIIO's hardening defined it.
+get_directory_property (_fuzz_defs COMPILE_DEFINITIONS)
+list (FILTER _fuzz_defs EXCLUDE REGEX "^_FORTIFY_SOURCE")
+set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "${_fuzz_defs}")
+
 # Resolve the fuzzing engine.
 # - Local dev: defaults to -fsanitize=fuzzer (links the libFuzzer runtime).
 # - OSS-Fuzz: sets LIB_FUZZING_ENGINE to a .a path for the chosen engine.

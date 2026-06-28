@@ -15,6 +15,12 @@ artifacts.
 
 - **clang ≥ 14** with libFuzzer support (`-fsanitize=fuzzer`). GCC does not
   support libFuzzer and will be rejected by CMake with a clear error.
+  - On **macOS**, Apple's clang (from Xcode / Command Line Tools) does *not*
+    ship the libFuzzer runtime, so `-fsanitize=fuzzer` fails to link. Install
+    upstream LLVM (`brew install llvm`) and point CMake at it:
+    `-DCMAKE_C_COMPILER=$(brew --prefix llvm)/bin/clang
+    -DCMAKE_CXX_COMPILER=$(brew --prefix llvm)/bin/clang++`. CMake will reject
+    AppleClang with a clear error.
 - **CMake ≥ 3.15**
 - All optional format libraries you want fuzz coverage for (the same ones
   used in a normal OIIO build). The `aswf/ci-oiio:2026.3` container has all
