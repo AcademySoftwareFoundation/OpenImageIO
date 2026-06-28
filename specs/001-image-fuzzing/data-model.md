@@ -7,7 +7,7 @@
 ### FuzzTarget
 
 Represents one logical fuzz target — a format + its GHA job configuration. All formats
-share a single compiled binary (`fuzz_image`); a FuzzTarget is a runtime configuration,
+share a single compiled binary (`oiio_fuzz_image`); a FuzzTarget is a runtime configuration,
 not a separate binary.
 
 | Field | Type | Description |
@@ -19,14 +19,14 @@ not a separate binary.
 | `is_multi_subimage` | bool | True for formats supporting multiple subimages (exr, tiff) |
 | `is_dispatch` | bool | True for dispatch plugins that use `ImageInput::create()` (raw, ffmpeg) |
 | `source_file` | path | `src/fuzz/fuzz_image.cpp` (same for all formats) |
-| `binary_path` | path | `build/src/fuzz/fuzz_image` (one binary; OSS-Fuzz adds per-format symlinks) |
+| `binary_path` | path | `build/src/fuzz/oiio_fuzz_image` (one binary; OSS-Fuzz adds per-format symlinks) |
 | `corpus_dir` | path | `src/fuzz/corpora/<format>/` |
 
 **Constraints**:
 - `format` MUST be unique and MUST appear in `OIIO::get_string_attribute("extension_list")`.
 - `primary_ext` MUST match one of the format's registered extensions in OIIO.
 - A `corpus_dir` MUST exist for every format in `extension_list` (excluding `null`, `term`);
-  absence is caught by the CI lint step (`./fuzz_image --list-formats`).
+  absence is caught by the CI lint step (`./oiio_fuzz_image --list-formats`).
 - Formats with optional third-party libraries (heif, jpegxl, jpeg2000, raw, dicom,
   ffmpeg, openvdb, ptex) appear in `extension_list` only when the library is compiled in;
   no CMake guards needed in the single harness source.

@@ -2,7 +2,7 @@
 
 **Feature**: 001-image-fuzzing | **Date**: 2026-06-24 (revised)
 
-There is one fuzz harness binary (`fuzz_image`) that handles all supported image formats.
+There is one fuzz harness binary (`oiio_fuzz_image`) that handles all supported image formats.
 It discovers formats at runtime and dispatches based on the active format selection.
 This contract specifies what `fuzz_image.cpp` and `fuzz_utils.h` MUST satisfy.
 
@@ -13,9 +13,9 @@ This contract specifies what `fuzz_image.cpp` and `fuzz_utils.h` MUST satisfy.
 The active format for a given run is resolved in priority order:
 
 1. **`OIIO_FUZZ_FORMAT` environment variable** — used by GHA matrix jobs
-   (`OIIO_FUZZ_FORMAT=jpeg ./fuzz_image corpus/jpeg/ ...`)
+   (`OIIO_FUZZ_FORMAT=jpeg ./oiio_fuzz_image corpus/jpeg/ ...`)
 2. **`basename(argv[0])`** — used by OSS-Fuzz per-format symlinks
-   (`fuzz_jpeg -> fuzz_image`; binary reads its own name, strips `fuzz_` prefix)
+   (`fuzz_jpeg -> oiio_fuzz_image`; binary reads its own name, strips `fuzz_` prefix)
 3. **`--format=<name>` pseudo-argument** — parsed in `LLVMFuzzerInitialize` before
    libFuzzer strips its own flags; useful for local one-off runs
 4. **None set** — harness MUST abort with a clear error message listing available formats
@@ -122,7 +122,7 @@ Each format has a corpus directory at `src/fuzz/corpora/<format>/`.
 - Files MUST be valid images for the format.
 - File names MUST be lowercase hexadecimal or descriptive (no spaces).
 - The directory MAY be empty (slower but valid — fuzzer starts from random bytes).
-- **Presence is mandatory**: the CI lint step (`./fuzz_image --list-formats`) fails if
+- **Presence is mandatory**: the CI lint step (`./oiio_fuzz_image --list-formats`) fails if
   any format returned by `extension_list` (excluding `null`, `term`) lacks a
   `src/fuzz/corpora/<format>/` directory.
 
@@ -134,9 +134,9 @@ OSS-Fuzz requires separate named binaries per fuzz target. `build.sh` satisfies 
 creating per-format symlinks in `$OUT/`:
 
 ```bash
-cp $WORK/build/src/fuzz/fuzz_image $OUT/
-for fmt in $(./fuzz_image --list-formats); do
-    ln -s fuzz_image $OUT/fuzz_${fmt}
+cp $WORK/build/src/fuzz/oiio_fuzz_image $OUT/
+for fmt in $(./oiio_fuzz_image --list-formats); do
+    ln -s oiio_fuzz_image $OUT/fuzz_${fmt}
     zip -j $OUT/fuzz_${fmt}_seed_corpus.zip src/fuzz/corpora/${fmt}/* 2>/dev/null || true
 done
 ```

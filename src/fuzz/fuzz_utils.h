@@ -17,16 +17,17 @@
 // One-time OIIO setup: single-threaded mode plus memory limits sized to the
 // fuzzer's own RSS budget.
 //
-// libFuzzer's rss_limit_mb (see fuzz_image.options, currently 4096 MB) kills
-// the process if it exceeds that resident size. OIIO's default decode-bomb
-// guards (limits:imagesize_MB = 32768, limits:resolution = 1048576) are far
-// larger than that budget, so a corrupt header claiming a multi-GB image would
-// trip the fuzzer's OOM kill *before* OIIO's own guard rejects it -- a false
-// positive crash. Lowering OIIO's limits well under the RSS budget lets OIIO
-// reject such headers cleanly via the normal error path. imagesize_MB is set
-// to half the RSS budget to leave headroom for decode scratch, the input
-// buffer, and process overhead; resolution caps any single dimension to a
-// value no real image reaches but that bounds per-scanline allocations.
+// libFuzzer's rss_limit_mb (see oiio_fuzz_image.options, currently 4096 MB)
+// kills the process if it exceeds that resident size. OIIO's default
+// decode-bomb guards (limits:imagesize_MB = 32768, limits:resolution =
+// 1048576) are far larger than that budget, so a corrupt header claiming a
+// multi-GB image would trip the fuzzer's OOM kill *before* OIIO's own guard
+// rejects it -- a false positive crash. Lowering OIIO's limits well under the
+// RSS budget lets OIIO reject such headers cleanly via the normal error path.
+// imagesize_MB is set to half the RSS budget to leave headroom for decode
+// scratch, the input buffer, and process overhead; resolution caps any single
+// dimension to a value no real image reaches but that bounds per-scanline
+// allocations.
 //
 // Safe to call from LLVMFuzzerInitialize; idempotent via static flag.
 #define OIIO_FUZZ_INIT                                    \

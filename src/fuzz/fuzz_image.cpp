@@ -19,10 +19,10 @@ using OIIO::Strutil::starts_with;
 
 
 // Active format for this process, set once in LLVMFuzzerInitialize.
-static std::string g_format;  // e.g., "jpeg"
-static std::string g_fake;    // fake filename for open, e.g., "input.jpg"
-static bool g_is_dispatch;    // true for raw, ffmpeg (no IOProxy support)
-static bool g_is_multi;       // true for formats with multiple subimages
+static std::string format_name;  // e.g., "jpeg"
+static std::string fake_name;    // fake filename for open, e.g., "input.jpg"
+static bool is_dispatch;         // true for raw, ffmpeg (no IOProxy support)
+static bool is_multi;            // true for formats with multiple subimages
 
 
 // Return all known format names sorted, excluding internal pseudo-formats.
@@ -103,10 +103,10 @@ LLVMFuzzerInitialize(int* argc, char*** argv)
         exit(1);
     }
 
-    g_format      = format;
-    g_is_dispatch = oiio_format_is_dispatch(g_format);
-    g_is_multi    = oiio_format_is_multi(g_format);
-    g_fake        = "input." + oiio_format_primary_ext(g_format);
+    format_name = format;
+    is_dispatch = oiio_format_is_dispatch(format_name);
+    is_multi    = oiio_format_is_multi(format_name);
+    fake_name   = "input." + oiio_format_primary_ext(format_name);
 
     return 0;
 }
@@ -116,11 +116,11 @@ LLVMFuzzerInitialize(int* argc, char*** argv)
 extern "C" int
 LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    if (g_is_dispatch)
-        oiio_fuzz_read_dispatch(data, size, g_fake.c_str());
-    else if (g_is_multi)
-        oiio_fuzz_read_multi(data, size, g_fake.c_str());
+    if (is_dispatch)
+        oiio_fuzz_read_dispatch(data, size, fake_name.c_str());
+    else if (is_multi)
+        oiio_fuzz_read_multi(data, size, fake_name.c_str());
     else
-        oiio_fuzz_read(data, size, g_fake.c_str());
+        oiio_fuzz_read(data, size, fake_name.c_str());
     return 0;
 }

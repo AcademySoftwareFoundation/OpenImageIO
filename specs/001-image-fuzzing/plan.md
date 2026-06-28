@@ -9,12 +9,12 @@
 Add a libFuzzer-based fuzzing infrastructure to OpenImageIO that exercises all supported
 image format readers via the `ImageInput` API using in-memory `IOProxy` buffers for
 maximum throughput. A new `src/fuzz/` directory holds a single dynamic dispatch harness
-(`fuzz_image`) plus a shared helper and seed corpora. The harness queries
+(`oiio_fuzz_image`) plus a shared helper and seed corpora. The harness queries
 `OIIO::get_string_attribute("extension_list")` at startup to discover every compiled-in
 format automatically — new format plugins are covered without any manual harness update.
 A new `.github/workflows/fuzz.yml` runs nightly as a parallel matrix (one GHA job per
 format), each job setting `OIIO_FUZZ_FORMAT=<format>` to target a single format and its
-corpus. For OSS-Fuzz, per-format symlinks (`fuzz_jpeg -> fuzz_image`) let the binary
+corpus. For OSS-Fuzz, per-format symlinks (`fuzz_jpeg -> oiio_fuzz_image`) let the binary
 read its own name from `argv[0]` to determine the format. The CMake build is gated by
 `OIIO_BUILD_FUZZ_TARGETS=OFF` and reuses the existing `SANITIZE` mechanism.
 Documentation lives in `docs/dev/fuzzing.md`.
@@ -72,7 +72,7 @@ specs/001-image-fuzzing/
 
 ```text
 src/fuzz/
-├── CMakeLists.txt           # OIIO_BUILD_FUZZ_TARGETS gate; builds fuzz_image target
+├── CMakeLists.txt           # OIIO_BUILD_FUZZ_TARGETS gate; builds oiio_fuzz_image target
 ├── fuzz_utils.h             # Shared: IOMemReader wrapper, OOM guard, OIIO init,
 │                            #   format dispatch helpers, LLVMFuzzerInitialize
 ├── fuzz_image.cpp           # Single dynamic dispatch harness — one binary for all formats
@@ -112,14 +112,14 @@ src/fuzz/
 docs/dev/fuzzing.md          # Local fuzzing quickstart + crash reproduction guide
 ```
 
-**Structure Decision**: Single `src/fuzz/` subtree with one `fuzz_image` binary that
+**Structure Decision**: Single `src/fuzz/` subtree with one `oiio_fuzz_image` binary that
 discovers formats at runtime via `OIIO::get_string_attribute("extension_list")`. The
 active format is selected via the `OIIO_FUZZ_FORMAT` environment variable (used by GHA
 jobs) or by reading `basename(argv[0])` (used by OSS-Fuzz per-format symlinks). Seed
 corpora are committed alongside the harness source. Evolved corpus lives only in GHA
 cache (never committed).
 
-**New format coverage guarantee**: A CI lint step (`./fuzz_image --list-formats`) diffs
+**New format coverage guarantee**: A CI lint step (`./oiio_fuzz_image --list-formats`) diffs
 the runtime format list against `src/fuzz/corpora/` directories and fails if any format
 is missing a corpus directory. This replaces the manual "remember to add a harness"
 burden with an automated check.

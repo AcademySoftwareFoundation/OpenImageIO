@@ -54,26 +54,26 @@
     "OIIO_BUILD_FUZZ_TARGETS requires clang") endif()`
   - Resolve fuzzing engine: `if(DEFINED ENV{LIB_FUZZING_ENGINE}) set(OIIO_FUZZING_ENGINE
     "$ENV{LIB_FUZZING_ENGINE}") else() set(OIIO_FUZZING_ENGINE "-fsanitize=fuzzer") endif()`
-  - Single target: `add_executable(fuzz_image fuzz_image.cpp)`; `target_link_libraries(fuzz_image
+  - Single target: `add_executable(oiio_fuzz_image fuzz_image.cpp)`; `target_link_libraries(oiio_fuzz_image
     PRIVATE OpenImageIO)`; `target_compile_options(-fsanitize=address,undefined
     -fno-omit-frame-pointer)`; `target_link_options(-fsanitize=address,undefined
     ${OIIO_FUZZING_ENGINE})`
-  - Alias `fuzz_image` as the `all_fuzz_targets` custom target (for OSS-Fuzz `build.sh`)
+  - Alias `oiio_fuzz_image` as the `all_fuzz_targets` custom target (for OSS-Fuzz `build.sh`)
 
 **Checkpoint**: `cmake -B build -DOIIO_BUILD_FUZZ_TARGETS=ON -DSANITIZE=address,undefined`
-configures cleanly; `fuzz_image` target defined but not yet buildable (source not yet written).
+configures cleanly; `oiio_fuzz_image` target defined but not yet buildable (source not yet written).
 
 ---
 
 ## Phase 3: User Story 2 — Dynamic Dispatch Fuzz Harness (Priority: P1)
 
-**Goal**: One `fuzz_image` binary covering all formats dynamically, per the contract in
+**Goal**: One `oiio_fuzz_image` binary covering all formats dynamically, per the contract in
 `contracts/harness-contract.md`. New formats are covered automatically with no harness
-changes; the CI lint step (`./fuzz_image --list-formats`) enforces corpus coverage.
+changes; the CI lint step (`./oiio_fuzz_image --list-formats`) enforces corpus coverage.
 
-**Independent Test**: Build `fuzz_image`. Run `OIIO_FUZZ_FORMAT=jpeg ./fuzz_image
-src/fuzz/corpora/jpeg/ -max_total_time=30` and `OIIO_FUZZ_FORMAT=png ./fuzz_image
-src/fuzz/corpora/png/ -max_total_time=30`. Both exit 0. Run `./fuzz_image --list-formats`
+**Independent Test**: Build `oiio_fuzz_image`. Run `OIIO_FUZZ_FORMAT=jpeg ./oiio_fuzz_image
+src/fuzz/corpora/jpeg/ -max_total_time=30` and `OIIO_FUZZ_FORMAT=png ./oiio_fuzz_image
+src/fuzz/corpora/png/ -max_total_time=30`. Both exit 0. Run `./oiio_fuzz_image --list-formats`
 and confirm at least 20 format names are printed.
 
 - [x] T006 [US2] Implement `src/fuzz/fuzz_image.cpp`:
@@ -100,13 +100,13 @@ and confirm at least 20 format names are printed.
     - Return 0
 
 - [x] T007 [US2] Add CI lint step to `.github/workflows/ci.yml` (the existing non-fuzz CI,
-  not the fuzz workflow): a step that builds `fuzz_image` in the sanitizer job (or a
-  dedicated short job), runs `./fuzz_image --list-formats`, and diffs the output against
+  not the fuzz workflow): a step that builds `oiio_fuzz_image` in the sanitizer job (or a
+  dedicated short job), runs `./oiio_fuzz_image --list-formats`, and diffs the output against
   the set of `src/fuzz/corpora/` directory names; fails with a clear message if any format
   is missing a corpus directory
 
-**Checkpoint**: `cmake --build build --target fuzz_image` succeeds. `OIIO_FUZZ_FORMAT=jpeg
-./build/src/fuzz/fuzz_image src/fuzz/corpora/jpeg/ -max_total_time=30` runs for 30 seconds
+**Checkpoint**: `cmake --build build --target oiio_fuzz_image` succeeds. `OIIO_FUZZ_FORMAT=jpeg
+./build/src/fuzz/oiio_fuzz_image src/fuzz/corpora/jpeg/ -max_total_time=30` runs for 30 seconds
 and exits 0.
 
 ---
@@ -118,7 +118,7 @@ each targeting one format via `OIIO_FUZZ_FORMAT`, uploading crash artifacts, per
 evolved corpus in GHA cache.
 
 **Independent Test**: Trigger `workflow_dispatch` on the branch. The workflow builds
-`fuzz_image` once, then matrix jobs each run `OIIO_FUZZ_FORMAT=<format> ./fuzz_image ...`
+`oiio_fuzz_image` once, then matrix jobs each run `OIIO_FUZZ_FORMAT=<format> ./oiio_fuzz_image ...`
 without crashing. Introducing a known-bad input causes the matching job to upload a
 crash artifact.
 
@@ -139,7 +139,7 @@ crash artifact.
   - Checkout step
   - CMake configure: `cmake -B build -DOIIO_BUILD_FUZZ_TARGETS=ON -DSANITIZE=address,undefined
     -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++`
-  - CMake build: `cmake --build build --target fuzz_image -j$(nproc)` (one binary serves all
+  - CMake build: `cmake --build build --target oiio_fuzz_image -j$(nproc)` (one binary serves all
     formats; each matrix job just sets the env var)
 - [x] T038 [US1] Add corpus cache restore step to `.github/workflows/fuzz.yml` before the fuzz
   run step:
@@ -149,7 +149,7 @@ crash artifact.
     src/fuzz/corpora/${{ matrix.format }}/* corpus/${{ matrix.format }}/ 2>/dev/null || true`
 - [x] T039 [US1] Add fuzz run step to `.github/workflows/fuzz.yml`:
   - `env: {OIIO_FUZZ_FORMAT: "${{ matrix.format }}"}`
-  - `./build/src/fuzz/fuzz_image corpus/${{ matrix.format }} -max_total_time=${{ matrix.max_total_time }}
+  - `./build/src/fuzz/oiio_fuzz_image corpus/${{ matrix.format }} -max_total_time=${{ matrix.max_total_time }}
     -timeout=60 -artifact_prefix=crash_${{ matrix.format }}_ -jobs=$(nproc)`
   - `continue-on-error: false` (non-zero exit from sanitizer finding fails the step)
 - [x] T040 [US1] Add corpus save and crash artifact upload steps (`if: always()` on both):
@@ -160,7 +160,7 @@ crash artifact.
   - Job summary: `echo "Format: ${{ matrix.format }} — $(ls crash_${{ matrix.format }}_* 2>/dev/null
     | wc -l) crash(es)" >> $GITHUB_STEP_SUMMARY`
 
-**Checkpoint**: Trigger `workflow_dispatch` manually. All matrix jobs start, build `fuzz_image`,
+**Checkpoint**: Trigger `workflow_dispatch` manually. All matrix jobs start, build `oiio_fuzz_image`,
 and run with `OIIO_FUZZ_FORMAT` set. Tier-2 short-duration jobs complete first.
 
 ---
@@ -169,7 +169,7 @@ and run with `OIIO_FUZZ_FORMAT` set. Tier-2 short-duration jobs complete first.
 
 **Goal**: Every format's corpus directory has 1–5 valid seed files sourced from existing test repositories; formats without existing files get synthetic seeds.
 
-**Independent Test**: For TIFF, EXR, and PNG, verify `src/fuzz/corpora/<format>/` contains at least one valid image (parseable by `oiiotool --info`). Verify `OIIO_FUZZ_FORMAT=tiff ./fuzz_image src/fuzz/corpora/tiff/ -runs=0` etc. exit 0 for all three.
+**Independent Test**: For TIFF, EXR, and PNG, verify `src/fuzz/corpora/<format>/` contains at least one valid image (parseable by `oiiotool --info`). Verify `OIIO_FUZZ_FORMAT=tiff ./oiio_fuzz_image src/fuzz/corpora/tiff/ -runs=0` etc. exit 0 for all three.
 
 - [x] T041 [US3] Create `src/fuzz/populate_corpora.py` — idempotent Python script that:
   - Defines a source map: each format → list of glob patterns relative to known repo roots (`testsuite/`, `../oiio-images/`, `../j2kp4files_v1_5/`, `../fits-images/`, `../dicom-images-pvt/`, `testsuite/ffmpeg/ref/`) per the table in `research.md §6`
@@ -180,11 +180,11 @@ and run with `OIIO_FUZZ_FORMAT` set. Tier-2 short-duration jobs complete first.
 - [x] T042 [US3] Run `python src/fuzz/populate_corpora.py` against a local checkout that has the companion repos (`../oiio-images`, etc.) present; commit the resulting seed files to `src/fuzz/corpora/`
 - [x] T043 [P] [US3] Generate synthetic seeds for the ~4 formats with no source files (hdr, iff, jpegxl, zfile) using `oiiotool --create 64x64 3 --ch R,G,B -o <format>` or format-specific tools; add to `src/fuzz/corpora/<format>/`
 - [ ] T044 [US3] Verify all seed corpora: for each format, run `OIIO_FUZZ_FORMAT=<format>
-  ./build/src/fuzz/fuzz_image src/fuzz/corpora/<format>/ -runs=0` (process seeds, no
+  ./build/src/fuzz/oiio_fuzz_image src/fuzz/corpora/<format>/ -runs=0` (process seeds, no
   mutation); all must exit 0
 
 **Checkpoint**: 29 corpus directories all non-empty. `OIIO_FUZZ_FORMAT=jpeg
-./build/src/fuzz/fuzz_image src/fuzz/corpora/jpeg/ -runs=0` exits 0 in under 5 seconds.
+./build/src/fuzz/oiio_fuzz_image src/fuzz/corpora/jpeg/ -runs=0` exits 0 in under 5 seconds.
 
 ---
 
@@ -192,23 +192,23 @@ and run with `OIIO_FUZZ_FORMAT` set. Tier-2 short-duration jobs complete first.
 
 **Goal**: `docs/dev/fuzzing.md` lets a developer with clang build, run, and reproduce a crash within 15 minutes of reading it.
 
-**Independent Test**: A developer with no prior context follows `docs/dev/fuzzing.md` step by step on macOS or Linux with clang ≥ 14; they build `fuzz_image`, run it for 60 seconds targeting JPEG, then reproduce a known crash input.
+**Independent Test**: A developer with no prior context follows `docs/dev/fuzzing.md` step by step on macOS or Linux with clang ≥ 14; they build `oiio_fuzz_image`, run it for 60 seconds targeting JPEG, then reproduce a known crash input.
 
 - [x] T045 [US4] Create `docs/dev/fuzzing.md` with:
   - Prerequisites: clang ≥ 14, CMake ≥ 3.15; note gcc not supported
   - Build: cmake configure with `OIIO_BUILD_FUZZ_TARGETS=ON`, `SANITIZE=address,undefined`,
     `CMAKE_C_COMPILER=clang`, `CMAKE_CXX_COMPILER=clang++`; `cmake --build build --target
-    fuzz_image`; note `LIB_FUZZING_ENGINE=-fsanitize=fuzzer` default for local use
-  - Listing formats: `./build/src/fuzz/fuzz_image --list-formats`
-  - Running a format: `OIIO_FUZZ_FORMAT=jpeg ./build/src/fuzz/fuzz_image
+    oiio_fuzz_image`; note `LIB_FUZZING_ENGINE=-fsanitize=fuzzer` default for local use
+  - Listing formats: `./build/src/fuzz/oiio_fuzz_image --list-formats`
+  - Running a format: `OIIO_FUZZ_FORMAT=jpeg ./build/src/fuzz/oiio_fuzz_image
     src/fuzz/corpora/jpeg/ -max_total_time=60`; explain `-timeout`, `-jobs`, `-runs=0`
   - Reproducing a CI crash: download artifact, run `OIIO_FUZZ_FORMAT=<format>
-    ./build/src/fuzz/fuzz_image <crash_file>`; explain ASan output
+    ./build/src/fuzz/oiio_fuzz_image <crash_file>`; explain ASan output
   - Adding corpus seeds for a new format: create `src/fuzz/corpora/<format>/`, add seed
     files (≤100 KB each); the lint check enforces this automatically
   - What happens when a new format is added to OIIO: it appears in `--list-formats`
     automatically; the lint step fails until a corpus dir is created (this is intentional)
-  - Minimizing a crash: `OIIO_FUZZ_FORMAT=<format> ./fuzz_image -minimize_crash=1
+  - Minimizing a crash: `OIIO_FUZZ_FORMAT=<format> ./oiio_fuzz_image -minimize_crash=1
     -exact_artifact_path=min_crash crash_file`
   - Link to `specs/001-image-fuzzing/quickstart.md` for more detail
 
@@ -234,12 +234,12 @@ and run with `OIIO_FUZZ_FORMAT` set. Tier-2 short-duration jobs complete first.
 - [ ] T048 [US5] Create `ossfuzz/build.sh` per `research.md §8` and `contracts/harness-contract.md §OSS-Fuzz`:
   - cmake configure using `$CC`, `$CXX`, `$SRC`, `$WORK`; `-DOIIO_BUILD_FUZZ_TARGETS=ON`,
     `-DSANITIZE=address,undefined`
-  - `cmake --build $WORK/build --target fuzz_image -j$(nproc)`
-  - `cp $WORK/build/src/fuzz/fuzz_image $OUT/`
+  - `cmake --build $WORK/build --target oiio_fuzz_image -j$(nproc)`
+  - `cp $WORK/build/src/fuzz/oiio_fuzz_image $OUT/`
   - Symlink loop and corpus zip using `--list-formats` output:
     ```bash
-    for fmt in $($OUT/fuzz_image --list-formats); do
-        ln -sf fuzz_image $OUT/fuzz_${fmt}
+    for fmt in $($OUT/oiio_fuzz_image --list-formats); do
+        ln -sf oiio_fuzz_image $OUT/fuzz_${fmt}
         zip -j $OUT/fuzz_${fmt}_seed_corpus.zip $SRC/openimageio/src/fuzz/corpora/${fmt}/* 2>/dev/null || true
     done
     ```
@@ -250,7 +250,7 @@ and run with `OIIO_FUZZ_FORMAT` set. Tier-2 short-duration jobs complete first.
   OSS-Fuzz clone; fix any build script issues
 
 **Checkpoint**: `infra/helper.py build_fuzzers openimageio` exits 0 and `$OUT/` contains
-`fuzz_image` plus per-format symlinks `fuzz_jpeg`, `fuzz_exr`, etc.
+`oiio_fuzz_image` plus per-format symlinks `fuzz_jpeg`, `fuzz_exr`, etc.
 
 ---
 
@@ -261,8 +261,8 @@ and run with `OIIO_FUZZ_FORMAT` set. Tier-2 short-duration jobs complete first.
 - [ ] T051 [P] Confirm copyright + SPDX header present in both `src/fuzz/*.cpp` and
   `src/fuzz/*.h` files
 - [ ] T052 Add `src/fuzz/` mention to `CLAUDE.md` repo map and to `docs/dev/Architecture.md`
-- [ ] T053 End-to-end smoke test: build `fuzz_image`, then for each Tier 2 format run
-  `OIIO_FUZZ_FORMAT=<fmt> ./build/src/fuzz/fuzz_image src/fuzz/corpora/<fmt>/ -runs=0`;
+- [ ] T053 End-to-end smoke test: build `oiio_fuzz_image`, then for each Tier 2 format run
+  `OIIO_FUZZ_FORMAT=<fmt> ./build/src/fuzz/oiio_fuzz_image src/fuzz/corpora/<fmt>/ -runs=0`;
   all must exit 0
 
 ---
@@ -274,17 +274,17 @@ and run with `OIIO_FUZZ_FORMAT` set. Tier-2 short-duration jobs complete first.
 - **Setup (Phase 1)**: No dependencies — start immediately
 - **Foundational (Phase 2)**: Requires Phase 1 complete — blocks Phases 3 and 4
 - **US2 Harness (Phase 3)**: Requires Phase 2 (`fuzz_utils.h` and `CMakeLists.txt` done)
-- **US1 GHA Workflow (Phase 4)**: Requires Phase 3 (`fuzz_image` must exist and build)
-- **US3 Corpus (Phase 5)**: Requires Phase 3 (needs `fuzz_image` to verify seeds with `-runs=0`)
+- **US1 GHA Workflow (Phase 4)**: Requires Phase 3 (`oiio_fuzz_image` must exist and build)
+- **US3 Corpus (Phase 5)**: Requires Phase 3 (needs `oiio_fuzz_image` to verify seeds with `-runs=0`)
 - **US4 Docs (Phase 6)**: Requires Phase 3 and 4 to be functionally complete
-- **US5 OSS-Fuzz (Phase 7)**: Requires Phase 3 (`fuzz_image` and `--list-formats` must work)
+- **US5 OSS-Fuzz (Phase 7)**: Requires Phase 3 (`oiio_fuzz_image` and `--list-formats` must work)
 - **Polish (Phase 8)**: Requires all implementation phases
 
 ### User Story Dependencies
 
 - **US2 (P1)**: Unblocked after Phase 2 — no dependency on other stories
-- **US1 (P1)**: Depends on US2 (`fuzz_image` binary must exist)
-- **US3 (P2)**: Depends on US2 (needs compiled `fuzz_image` for `-runs=0` verification)
+- **US1 (P1)**: Depends on US2 (`oiio_fuzz_image` binary must exist)
+- **US3 (P2)**: Depends on US2 (needs compiled `oiio_fuzz_image` for `-runs=0` verification)
 - **US4 (P2)**: Depends on US1 and US2 (documents the working system)
 - **US5 (P3)**: Depends on US2 (`--list-formats` drives the symlink loop in `build.sh`)
 
@@ -314,15 +314,15 @@ Phase 7: T046, T047 in parallel → T048 → T049
 
 1. Phase 1: Setup (done ✓)
 2. Phase 2: Foundational (`fuzz_utils.h` + `CMakeLists.txt`)
-3. Phase 3: US2 — single `fuzz_image` binary with dynamic dispatch
+3. Phase 3: US2 — single `oiio_fuzz_image` binary with dynamic dispatch
 4. Phase 4: US1 — GHA workflow with `OIIO_FUZZ_FORMAT` per matrix job
 5. **STOP and VALIDATE**: Trigger `workflow_dispatch`; all matrix jobs run; no infrastructure failures
 6. Merge — nightly fuzzing is live
 
 ### Incremental Delivery
 
-1. Phase 1 + 2 → Build system works; `fuzz_image` target defined
-2. Phase 3 (US2) → `fuzz_image` compiles, any format fuzzable locally → Core value
+1. Phase 1 + 2 → Build system works; `oiio_fuzz_image` target defined
+2. Phase 3 (US2) → `oiio_fuzz_image` compiles, any format fuzzable locally → Core value
 3. Phase 4 (US1) → Nightly CI live → **MVP delivered**
 4. Phase 5 (US3) → Seeds populated → Fuzzer efficiency dramatically improved
 5. Phase 6 (US4) → Docs → Developers can self-serve locally

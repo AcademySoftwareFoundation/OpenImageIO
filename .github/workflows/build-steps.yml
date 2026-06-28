@@ -277,7 +277,7 @@ jobs:
         if: inputs.fuzz_corpus_lint
         shell: bash
         run: |
-          $OpenImageIO_ROOT/bin/fuzz_image --list-formats | sort > /tmp/formats.txt
+          $OpenImageIO_ROOT/bin/oiio_fuzz_image --list-formats | sort > /tmp/formats.txt
           ls src/fuzz/corpora/ | sort > /tmp/corpus_dirs.txt
           missing=$(comm -23 /tmp/formats.txt /tmp/corpus_dirs.txt)
           if [ -n "$missing" ]; then
@@ -325,12 +325,12 @@ jobs:
         env:
           OIIO_FUZZ_FORMAT: ${{ inputs.fuzz_format }}
         run: |
-          if ! $OpenImageIO_ROOT/bin/fuzz_image --list-formats 2>/dev/null \
+          if ! $OpenImageIO_ROOT/bin/oiio_fuzz_image --list-formats 2>/dev/null \
                | grep -qx '${{ inputs.fuzz_format }}'; then
             echo "::notice::Format '${{ inputs.fuzz_format }}' not compiled in this build; skipping fuzz run."
             exit 0
           fi
-          $OpenImageIO_ROOT/bin/fuzz_image \
+          $OpenImageIO_ROOT/bin/oiio_fuzz_image \
             corpus/${{ inputs.fuzz_format }} \
             -max_total_time=${{ inputs.fuzz_max_time }} \
             -max_len=16777216 \

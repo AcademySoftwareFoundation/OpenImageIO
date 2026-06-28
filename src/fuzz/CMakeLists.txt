@@ -20,28 +20,32 @@ else ()
     set (OIIO_FUZZING_ENGINE "-fsanitize=fuzzer")
 endif ()
 
-add_executable (fuzz_image fuzz_image.cpp)
+# Executable is named oiio_fuzz_image (not just fuzz_image) so that if it is
+# ever accidentally built and installed, the name makes clear which package it
+# belongs to. The source file keeps its shorter fuzz_image.cpp name.
+add_executable (oiio_fuzz_image fuzz_image.cpp)
 
-target_link_libraries (fuzz_image PRIVATE OpenImageIO)
+target_link_libraries (oiio_fuzz_image PRIVATE OpenImageIO)
 
 # -fsanitize=fuzzer-no-link instruments code for coverage tracing without
 # linking the fuzzer runtime; the runtime comes from OIIO_FUZZING_ENGINE at
 # link time. address+undefined catch memory errors and UB respectively.
-target_compile_options (fuzz_image PRIVATE
+target_compile_options (oiio_fuzz_image PRIVATE
     -fsanitize=fuzzer-no-link,address,undefined
     -fno-omit-frame-pointer
 )
 
-target_link_options (fuzz_image PRIVATE
+target_link_options (oiio_fuzz_image PRIVATE
     ${OIIO_FUZZING_ENGINE}
     -fsanitize=address,undefined
 )
 
 # all_fuzz_targets is the conventional build alias used by OSS-Fuzz build.sh
 # and local "cmake --build . --target all_fuzz_targets".
-# add_custom_target (all_fuzz_targets DEPENDS fuzz_image)
-install_targets (fuzz_image)
+# add_custom_target (all_fuzz_targets DEPENDS oiio_fuzz_image)
+install_targets (oiio_fuzz_image)
 
-# Install the libFuzzer options file alongside the binary so it is picked up
-# automatically when running: ./fuzz_image [flags] corpus/
-install (FILES fuzz_image.options DESTINATION ${CMAKE_INSTALL_BINDIR})
+# Install the libFuzzer options file alongside the binary. OSS-Fuzz/ClusterFuzz
+# keys the options file to the binary basename, so it is named to match:
+# oiio_fuzz_image.options.
+install (FILES oiio_fuzz_image.options DESTINATION ${CMAKE_INSTALL_BINDIR})

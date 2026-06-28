@@ -698,7 +698,7 @@ jobs:
             oiio_python_bindings_backend: both
 
   #
-  # Verify every format reported by fuzz_image --list-formats has a corpus
+  # Verify every format reported by oiio_fuzz_image --list-formats has a corpus
   # directory in src/fuzz/corpora/. Fails with a clear message when a new
   # format plugin is added without a corresponding corpus directory.
   #

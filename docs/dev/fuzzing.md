@@ -5,8 +5,8 @@
 
 OpenImageIO uses [libFuzzer](https://llvm.org/docs/LibFuzzer.html) to
 exercise image format readers against malformed input. A single binary,
-`fuzz_image`, covers all compiled-in formats by dispatching at runtime based
-on the `OIIO_FUZZ_FORMAT` environment variable. Nightly CI fuzzes every
+`oiio_fuzz_image`, covers all compiled-in formats by dispatching at runtime
+based on the `OIIO_FUZZ_FORMAT` environment variable. Nightly CI fuzzes every
 format in parallel; crash reproducers are uploaded as GitHub Actions
 artifacts.
 
@@ -31,7 +31,7 @@ cmake -B build -S . \
     -DOIIO_BUILD_FUZZ_TARGETS=ON \
     -DSANITIZE=address,undefined
 
-cmake --build build --target fuzz_image -j$(nproc)
+cmake --build build --target oiio_fuzz_image -j$(nproc)
 ```
 
 `OIIO_BUILD_FUZZ_TARGETS=ON` is the only new flag. `SANITIZE=address,undefined`
@@ -46,7 +46,7 @@ is picked up automatically by `src/fuzz/CMakeLists.txt`.
 ## Listing supported formats
 
 ```bash
-build/src/fuzz/fuzz_image --list-formats
+build/src/fuzz/oiio_fuzz_image --list-formats
 ```
 
 Prints one format name per line for every format compiled into this build.
@@ -59,7 +59,7 @@ here lacks a directory under `src/fuzz/corpora/`.
 ```bash
 # Fuzz JPEG for 60 seconds using the seed corpus as a starting point:
 OIIO_FUZZ_FORMAT=jpeg \
-    build/src/fuzz/fuzz_image \
+    build/src/fuzz/oiio_fuzz_image \
     src/fuzz/corpora/jpeg/ \
     -max_total_time=60
 
@@ -83,7 +83,7 @@ crash reproducers as `crash_<hash>` files in the current directory.
 
 ```bash
 OIIO_FUZZ_FORMAT=<format> \
-    build/src/fuzz/fuzz_image \
+    build/src/fuzz/oiio_fuzz_image \
     crash_<format>_<hash>
 ```
 
@@ -98,7 +98,7 @@ Reduce a crash reproducer to the smallest input that still triggers it:
 
 ```bash
 OIIO_FUZZ_FORMAT=<format> \
-    build/src/fuzz/fuzz_image \
+    build/src/fuzz/oiio_fuzz_image \
     -minimize_crash=1 \
     -exact_artifact_path=min_crash \
     crash_<format>_<hash>
@@ -131,7 +131,7 @@ oiiotool --create 64x64 3 --ch R,G,B -o src/fuzz/corpora/<format>/seed.<ext>
 
 ```bash
 OIIO_FUZZ_FORMAT=<format> \
-    build/src/fuzz/fuzz_image \
+    build/src/fuzz/oiio_fuzz_image \
     src/fuzz/corpora/<format>/ \
     -runs=0
 ```
@@ -158,23 +158,23 @@ companion repos at fuzz time.
 
 ## How format selection works
 
-`fuzz_image` resolves the active format in priority order:
+`oiio_fuzz_image` resolves the active format in priority order:
 
 1. `OIIO_FUZZ_FORMAT` environment variable — used by CI matrix jobs.
 2. `basename(argv[0])` stripped of `fuzz_` prefix — used by OSS-Fuzz
-   per-format symlinks (`fuzz_jpeg → fuzz_image`).
+   per-format symlinks (`fuzz_jpeg → oiio_fuzz_image`).
 3. `--format=<name>` command-line argument.
 4. None set → the binary prints available formats and exits with an error.
 
 
 ## Memory limits and false-positive OOMs
 
-libFuzzer enforces an `rss_limit_mb` (set in `src/fuzz/fuzz_image.options`,
-currently 4096 MB) and reports a crash if the process exceeds it. OIIO's own
-decode-bomb guards default to much larger values (`limits:imagesize_MB` =
-32768, `limits:resolution` = 1048576), so a corrupt header claiming a multi-GB
-image would trip libFuzzer's OOM kill before OIIO's guard rejects it — a false
-positive.
+libFuzzer enforces an `rss_limit_mb` (set in
+`src/fuzz/oiio_fuzz_image.options`, currently 4096 MB) and reports a crash if
+the process exceeds it. OIIO's own decode-bomb guards default to much larger
+values (`limits:imagesize_MB` = 32768, `limits:resolution` = 1048576), so a
+corrupt header claiming a multi-GB image would trip libFuzzer's OOM kill before
+OIIO's guard rejects it — a false positive.
 
 To keep the two budgets commensurate, `OIIO_FUZZ_INIT` (in
 `src/fuzz/fuzz_utils.h`) lowers OIIO's limits well under the RSS budget:
@@ -191,8 +191,8 @@ to match.
   Tier 1 formats run for 5.5 hours, Tier 2 for 1 hour. Evolved corpus is
   cached per format per branch.
 - **Corpus lint** (`fuzz-corpus-lint` job in `.github/workflows/ci.yml`):
-  builds `fuzz_image` on every PR, runs `--list-formats`, and fails if any
-  compiled-in format lacks a `src/fuzz/corpora/<format>/` directory.
+  builds `oiio_fuzz_image` on every PR, runs `--list-formats`, and fails if
+  any compiled-in format lacks a `src/fuzz/corpora/<format>/` directory.
 
 
 ## OSS-Fuzz
