@@ -1594,6 +1594,23 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
             spec.nchannels, OIIO::pvt::limit_channels);
         return false;
     }
+    if (OIIO::pvt::limit_resolution
+        && (spec.width > OIIO::pvt::limit_resolution
+            || spec.height > OIIO::pvt::limit_resolution
+            || spec.depth > OIIO::pvt::limit_resolution)) {
+        if (spec.depth > 1) {
+            errorfmt(
+                "{} image dimension {}x{}x{} exceeds \"limits:resolution\" = {} for a single dimension. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:resolution\".",
+                format_name(), spec.width, spec.height, spec.depth,
+                OIIO::pvt::limit_resolution);
+        } else {
+            errorfmt(
+                "{} image dimension {}x{} exceeds \"limits:resolution\" = {} for a single dimension. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:resolution\".",
+                format_name(), spec.width, spec.height,
+                OIIO::pvt::limit_resolution);
+        }
+        return false;
+    }
     if (OIIO::pvt::limit_imagesize_MB
         && spec.image_bytes(true)
                > OIIO::pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {

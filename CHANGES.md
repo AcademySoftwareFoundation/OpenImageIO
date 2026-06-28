@@ -34,6 +34,12 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
 * *ImageCache/TextureSystem*:
   - *api/TS*: `IBA::make_texture()` now honors "maketx:threads" hint [#5014](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5014) (3.2.0.0, 3.1.10.0)
 * New global attribute queries via OIIO::getattribute():
+  - `limits:resolution` (default: 1048576) is a new settable/queryable global
+    attribute that caps the maximum number of pixels along any single image
+    dimension. `ImageInput::check_open` rejects files exceeding it. This
+    complements `limits:imagesize_MB` to catch corrupt headers that are tiny
+    in one dimension but absurdly large in another, which can defeat the
+    total-pixel-memory check.
 * Miscellaneous API changes:
   - *api*: Versioned namespace to preserve ABI compatibility between minor releases [#4869](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4869) (3.2.0.0)
   - *fmath.h*: `degrees()` and `radians()` are now `constexpr`. [#5151](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5151) (3.2.0.1, 3.1.13.0)

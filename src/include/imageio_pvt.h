@@ -46,6 +46,7 @@ extern int png_linear_premult;
 extern int enable_hwy;
 extern int limit_channels;
 extern int limit_imagesize_MB;
+extern int limit_resolution;
 extern int imagebuf_print_uncaught_errors;
 extern int imagebuf_use_imagecache;
 extern int imageinput_strict;
