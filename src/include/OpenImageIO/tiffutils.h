@@ -181,8 +181,8 @@ tiff_dir_data (const TIFFDirEntry &td, cspan<uint8_t> data);
 /// ImageSpec.  Return true if all is ok, false if the exif block was
 /// somehow malformed.  The binary data pointed to by 'exif' should
 /// start with a TIFF directory header.
-OIIO_API bool decode_exif (cspan<uint8_t> exif, ImageSpec &spec);
-OIIO_API bool decode_exif (string_view exif, ImageSpec &spec);
+OIIO_NODISCARD_ERROR OIIO_API bool decode_exif (cspan<uint8_t> exif, ImageSpec &spec);
+OIIO_NODISCARD_ERROR OIIO_API bool decode_exif (string_view exif, ImageSpec &spec);
 
 /// Construct an Exif data block from the ImageSpec, appending the Exif
 /// data as a big blob to the char vector. Endianness can be specified with
@@ -193,13 +193,13 @@ OIIO_API void encode_exif (const ImageSpec &spec, std::vector<char> &blob,
 /// Helper: For the given OIIO metadata attribute name, look up the Exif tag
 /// ID, TIFFDataType (expressed as an int), and count. Return true and fill
 /// in the fields if found, return false if not found.
-OIIO_API bool exif_tag_lookup (string_view name, int &tag,
+OIIO_NODISCARD_ERROR OIIO_API bool exif_tag_lookup (string_view name, int &tag,
                                int &tifftype, int &count);
 
 /// Helper: For the given OIIO metadata attribute name, look up the GPS tag
 /// ID, TIFFDataType (expressed as an int), and count. Return true and fill
 /// in the fields if found, return false if not found.
-OIIO_API bool gps_tag_lookup (string_view name, int &tag,
+OIIO_NODISCARD_ERROR OIIO_API bool gps_tag_lookup (string_view name, int &tag,
                               int &tifftype, int &count);
 
 /// Add metadata to spec based on raw IPTC (International Press
@@ -210,10 +210,10 @@ OIIO_API bool gps_tag_lookup (string_view name, int &tag,
 /// metadata without having to duplicate functionality within each
 /// plugin.  Note that IIM is actually considered obsolete and is
 /// replaced by an XML scheme called XMP.
-OIIO_API bool decode_iptc_iim (string_view iptc, ImageSpec &spec);
+OIIO_NODISCARD_ERROR OIIO_API bool decode_iptc_iim (string_view iptc, ImageSpec &spec);
 
 // DEPRECATED(3.2) -- unsafe version
-OIIO_API bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
+OIIO_NODISCARD_ERROR OIIO_API bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
 
 /// Find all the IPTC-amenable metadata in spec and assemble it into an
 /// IIM data block in iptc.  This is a utility function to make it easy
@@ -222,14 +222,14 @@ OIIO_API bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
 /// that IIM is actually considered obsolete and is replaced by an XML
 /// scheme called XMP. Return true if it was successful and any items
 /// were encoded.
-OIIO_API bool encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
+OIIO_NODISCARD_ERROR OIIO_API bool encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
 
 /// Add metadata to spec based on XMP data in an XML block.  Return true
 /// if all is ok, false if the xml was somehow malformed.  This is a
 /// utility function to make it easy for multiple format plugins to
 /// support embedding XMP metadata without having to duplicate
 /// functionality within each plugin.
-OIIO_API bool decode_xmp (cspan<uint8_t> xml, ImageSpec &spec);
+OIIO_NODISCARD_ERROR OIIO_API bool decode_xmp (cspan<uint8_t> xml, ImageSpec &spec);
 OIIO_API bool decode_xmp (string_view xml, ImageSpec &spec);
 
 /// Find all the relevant metadata (IPTC, Exif, etc.) in spec and
@@ -246,7 +246,7 @@ OIIO_API std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
 /// the contents of `error` to something useful).  This is a utility function
 /// to make it easy for multiple format plugins to support embedding ICC
 /// metadata without having to duplicate functionality within each plugin.
-OIIO_API bool decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec,
+OIIO_NODISCARD_ERROR OIIO_API bool decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec,
                                  std::string& error);
 
 

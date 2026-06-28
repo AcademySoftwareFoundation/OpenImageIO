@@ -934,7 +934,10 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         // was because of a size mixup on our part that has since been fixed.
         // Should we re-enable it by default in the future?
         std::vector<char> iptc;
-        encode_iptc_iim(m_spec, iptc);
+        bool iptc_ok = encode_iptc_iim(m_spec, iptc);
+        if (!iptc_ok) {
+            errorfmt("Failed to encode IPTC metadata for writing");
+        }
         if (iptc.size()) {
             TIFFSetField(m_tif, TIFFTAG_RICHTIFFIPTC, iptc.size(), &iptc[0]);
         }

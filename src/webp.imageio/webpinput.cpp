@@ -195,9 +195,14 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
     if (m_demux_flags & EXIF_FLAG
         && WebPDemuxGetChunk(m_demux, "EXIF", 1, &chunk_iter)) {
         cspan<uint8_t> exif_span(chunk_iter.chunk.bytes, chunk_iter.chunk.size);
+        bool ok = true;
         if (webp_exif_payload_has_tiff_header(exif_span))
-            decode_exif(exif_span, m_spec);
+            ok = decode_exif(exif_span, m_spec);
         WebPDemuxReleaseChunkIterator(&chunk_iter);
+        if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt("Possible corrupt file, could not decode EXIF metadata");
+            return false;
+        }
     }
     if (m_demux_flags & XMP_FLAG
         && WebPDemuxGetChunk(m_demux, "XMP ", 1, &chunk_iter)) {
