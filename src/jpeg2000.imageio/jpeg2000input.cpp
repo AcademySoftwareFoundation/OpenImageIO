@@ -602,6 +602,26 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
             close();
             return false;
         }
+
+        // Guard against decompression bombs / corrupt headers. check_open's
+        // absolute size limit (limits:imagesize_MB, default 32 GB) does not
+        // catch a bogus resolution that happens to land under the limit -- a
+        // tiny codestream claiming a multi-gigabyte image. opj_decode would
+        // then hang and allocate gigabytes. A real codestream that decodes to
+        // a large image is itself large, so also reject when the claimed
+        // uncompressed size dwarfs the actual file size by an implausible
+        // factor (no real JPEG2000 compresses anywhere near this much).
+        const imagesize_t bomb_ratio = 10000;
+        imagesize_t uncompressed     = provspec.image_bytes(true);
+        int64_t filesize             = ioproxy() ? ioproxy()->size() : 0;
+        if (uncompressed > (imagesize_t(1) << 30) && filesize > 0
+            && uncompressed > imagesize_t(filesize) * bomb_ratio) {
+            errorfmt("JPEG2000 header claims a {} MB image from a {} byte file; "
+                     "probably a corrupt or malicious header",
+                     uncompressed >> 20, filesize);
+            close();
+            return false;
+        }
     }
 
     // The header passed the size guard; decode the actual pixel data.
