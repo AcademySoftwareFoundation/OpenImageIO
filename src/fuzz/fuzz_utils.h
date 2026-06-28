@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <string>
@@ -44,8 +45,60 @@
 
 
 
+// Read all pixels of one subimage in small chunks, exercising the decode path
+// without ever allocating a buffer proportional to the whole image. Tiled
+// images are read one row of tiles at a time; scanline images are read 16 rows
+// at a time. This keeps the resident buffer tiny so a corrupt-but-large image
+// does not trip the fuzzer's RSS limit with a false positive. Read errors are
+// intentionally ignored.
+inline void
+oiio_fuzz_read_subimage(OIIO::ImageInput* inp, int subimage)
+{
+    const OIIO::ImageSpec& spec = inp->spec();
+    if (spec.image_pixels() <= 0 || spec.nchannels <= 0)
+        return;
+    const int nch = spec.nchannels;
+
+    if (spec.tile_width > 0) {
+        // Tiled: read a full-width row of tiles (one tile high, one tile deep)
+        // per iteration. Tile extents are clamped to the image so a corrupt
+        // header claiming a giant tile cannot force a giant buffer; read_tiles
+        // accepts the image edge in place of a tile boundary.
+        const int th = std::min(spec.tile_height > 0 ? spec.tile_height : 1,
+                                spec.height);
+        const int td = std::min(spec.tile_depth > 0 ? spec.tile_depth : 1,
+                                spec.depth);
+        const int xbegin = spec.x;
+        const int xend   = spec.x + spec.width;
+        std::vector<uint8_t> buf(size_t(spec.width) * th * td * nch);
+        for (int z = spec.z; z < spec.z + spec.depth; z += td) {
+            const int zend = std::min(z + td, spec.z + spec.depth);
+            for (int y = spec.y; y < spec.y + spec.height; y += th) {
+                const int yend = std::min(y + th, spec.y + spec.height);
+                OIIO::image_span<uint8_t> ispan(buf.data(), nch, xend - xbegin,
+                                                yend - y, zend - z);
+                (void)inp->read_tiles(subimage, 0, xbegin, xend, y, yend, z,
+                                      zend, 0, nch, ispan);
+            }
+        }
+    } else {
+        // Scanline: read 16 rows at a time. read_scanlines is 2D-oriented, so
+        // depth is treated as 1 (volumetric data is tiled).
+        const int chunk = 16;
+        std::vector<uint8_t> buf(size_t(spec.width) * chunk * nch);
+        for (int y = spec.y; y < spec.y + spec.height; y += chunk) {
+            const int yend = std::min(y + chunk, spec.y + spec.height);
+            OIIO::image_span<uint8_t> ispan(buf.data(), nch, spec.width,
+                                            yend - y, 1);
+            (void)inp->read_scanlines(subimage, 0, y, yend, 0, nch, ispan);
+        }
+    }
+}
+
+
+
 // Standard single-subimage read. Wraps raw bytes in IOMemReader, opens via
-// the public ImageInput API, reads pixels with an OOM guard, then closes.
+// the public ImageInput API, reads pixels in small chunks, then closes.
 inline void
 oiio_fuzz_read(const uint8_t* data, size_t size, const char* fake_filename)
 {
@@ -55,19 +108,14 @@ oiio_fuzz_read(const uint8_t* data, size_t size, const char* fake_filename)
         (void)OIIO::geterror();
         return;
     }
-    const OIIO::ImageSpec& spec = inp->spec();
-    if (spec.image_pixels() > 0 && spec.image_pixels() < 256 * 1024 * 1024) {
-        std::vector<uint8_t> buf(spec.image_pixels() * spec.nchannels);
-        (void)inp->read_image(0, 0, 0, spec.nchannels, OIIO::TypeUInt8,
-                              buf.data());
-    }
+    oiio_fuzz_read_subimage(inp.get(), 0);
     inp->close();
 }
 
 
 
 // Multi-subimage read for formats that support multiple subimages (e.g.,
-// EXR, TIFF). Iterates all subimages with the same OOM guard per subimage.
+// EXR, TIFF). Iterates all subimages, reading each in small chunks.
 inline void
 oiio_fuzz_read_multi(const uint8_t* data, size_t size,
                      const char* fake_filename)
@@ -79,13 +127,7 @@ oiio_fuzz_read_multi(const uint8_t* data, size_t size,
         return;
     }
     do {
-        const OIIO::ImageSpec& spec = inp->spec();
-        if (spec.image_pixels() > 0
-            && spec.image_pixels() < 256 * 1024 * 1024) {
-            std::vector<uint8_t> buf(spec.image_pixels() * spec.nchannels);
-            (void)inp->read_image(inp->current_subimage(), 0, 0, spec.nchannels,
-                                  OIIO::TypeUInt8, buf.data());
-        }
+        oiio_fuzz_read_subimage(inp.get(), inp->current_subimage());
     } while (inp->seek_subimage(inp->current_subimage() + 1, 0));
     inp->close();
 }
@@ -126,12 +168,7 @@ oiio_fuzz_read_dispatch(const uint8_t* data, size_t size,
         (void)OIIO::geterror();  // discard any errors
         return;
     }
-    const OIIO::ImageSpec& spec = inp->spec();
-    if (spec.image_pixels() > 0 && spec.image_pixels() < 256 * 1024 * 1024) {
-        std::vector<uint8_t> buf(spec.image_pixels() * spec.nchannels);
-        (void)inp->read_image(0, 0, 0, spec.nchannels, OIIO::TypeUInt8,
-                              buf.data());
-    }
+    oiio_fuzz_read_subimage(inp.get(), 0);
     inp->close();
 }
 
