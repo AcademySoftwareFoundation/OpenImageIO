@@ -5,23 +5,31 @@
 # This file is only reached when OIIO_BUILD_FUZZ_TARGETS=ON (guarded in the
 # root CMakeLists.txt).
 
+# libFuzzer requires a capable clang. If the compiler can't build the fuzz
+# targets, skip them with a warning rather than failing the whole configure --
+# that lets the rest of OIIO still build in a tree that happens to have
+# OIIO_BUILD_FUZZ_TARGETS=ON with an unsuitable compiler.
+#
+# - GCC does not support libFuzzer at all.
+# - Apple's clang (CMAKE_CXX_COMPILER_ID "AppleClang", shipped with Xcode and
+#   the Command Line Tools) does not ship the libFuzzer runtime
+#   (libclang_rt.fuzzer_osx.a), so -fsanitize=fuzzer fails to link. Use an
+#   upstream LLVM clang instead (e.g. `brew install llvm`).
 if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    message (FATAL_ERROR
-        "OIIO_BUILD_FUZZ_TARGETS=ON requires clang. "
-        "Set CMAKE_CXX_COMPILER=clang++ (detected: ${CMAKE_CXX_COMPILER_ID}).")
+    message (WARNING
+        "OIIO_BUILD_FUZZ_TARGETS=ON requires clang; skipping fuzz targets "
+        "(detected ${CMAKE_CXX_COMPILER_ID}). Set "
+        "CMAKE_CXX_COMPILER=clang++ to build them.")
+    return ()
 endif ()
-
-# Apple's clang (CMAKE_CXX_COMPILER_ID "AppleClang", as shipped with Xcode and
-# the Command Line Tools) does not ship the libFuzzer runtime
-# (libclang_rt.fuzzer_osx.a), so -fsanitize=fuzzer fails to link. Require an
-# upstream LLVM clang instead (e.g. `brew install llvm`).
 if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-    message (FATAL_ERROR
+    message (WARNING
         "OIIO_BUILD_FUZZ_TARGETS=ON does not work with Apple's clang, which "
-        "lacks the libFuzzer runtime. Install upstream LLVM (e.g. "
-        "'brew install llvm') and configure with "
+        "lacks the libFuzzer runtime; skipping fuzz targets. Install upstream "
+        "LLVM (e.g. 'brew install llvm') and configure with "
         "-DCMAKE_CXX_COMPILER=$(brew --prefix llvm)/bin/clang++ "
         "-DCMAKE_C_COMPILER=$(brew --prefix llvm)/bin/clang.")
+    return ()
 endif ()
 
 # The fuzz targets are always instrumented with the address sanitizer (see the
