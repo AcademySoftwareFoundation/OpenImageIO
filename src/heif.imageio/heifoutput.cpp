@@ -103,7 +103,7 @@ bool
 HeifOutput::open(const std::string& name, const ImageSpec& newspec,
                  OpenMode mode)
 {
-    if (!check_open(mode, newspec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 },
+    if (!check_open(mode, newspec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 4 },
                     uint64_t(OpenChecks::Disallow2Channel)))
         return false;
 

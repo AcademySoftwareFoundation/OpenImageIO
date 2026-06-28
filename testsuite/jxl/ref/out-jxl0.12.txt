@@ -87,8 +87,7 @@ tahoe-cicp-displayp3.jxl :  128 x   96, 3 channel, uint8 jpegxl
     ICCProfile:profile_version: "4.4.0"
     ICCProfile:rendering_intent: "Perceptual"
     oiio:ColorSpace: "srgb_p3d65_scene"
-oiiotool ERROR: read : "src/crash-bfd2220.jxl": Uncompressed image size 822997745664.0 MB exceeds the 16384 MB limit.
-Image claimed to be 328438676x164219338, 4-channel float. Possible corrupt input?
-If this is a valid file, raise the OIIO attribute "limits:imagesize_MB".
+oiiotool ERROR: read : "src/crash-bfd2220.jxl": jpegxl image dimension 328438676x164219338 exceeds "limits:resolution" = 1048576 for a single dimension. Possible corrupt input?
+If you're sure this is a valid file, raise the OIIO global attribute "limits:resolution".
 Full command line was:
 > oiiotool -info -oiioattrib limits:imagesize_MB 16384 src/crash-bfd2220.jxl

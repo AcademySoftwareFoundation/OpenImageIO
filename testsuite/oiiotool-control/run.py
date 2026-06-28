@@ -141,6 +141,7 @@ command += oiiotool ('-echo "This should make an error:" ' +
 
 # Test getattribute in an expression
 command += oiiotool ('-echo "Expr getattribute(\"limits:channels\") = {getattribute(\"limits:channels\")}"')
+command += oiiotool ('-echo "Expr getattribute(\"limits:resolution\") = {getattribute(\"limits:resolution\")}"')
 
 # Test --if --else --endif
 command += oiiotool ('-echo "Testing if with true cond (expect output):" -set i 42 -if "{i}" -echo "  inside if clause, i={i}" -endif -echo "  done" -echo " "')

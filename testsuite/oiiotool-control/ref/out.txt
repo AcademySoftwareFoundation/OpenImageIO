@@ -112,6 +112,7 @@ oiiotool ERROR: -set : Invalid variable name "3"
 Full command line was:
 > oiiotool -echo "This should make an error:" -set 3 5
 Expr getattribute(limits:channels) = 1024
+Expr getattribute(limits:resolution) = 1.04858e+06
 Testing if with true cond (expect output):
   inside if clause, i=42
   done
