@@ -68,6 +68,10 @@ LLVMFuzzerInitialize(int* argc, char*** argv)
         if (arg == "--list-formats") {
             for (auto& fmt : all_formats())
                 print("{}\n", fmt);
+            // Flush before exit(): ASan's LSAN atexit hook calls _Exit() when
+            // it finds leaks, skipping stdio auto-flush.  Flushing first
+            // ensures the list is on the pipe regardless of the atexit order.
+            fflush(stdout);
             exit(0);
         }
         if (starts_with(arg, "--format=")) {

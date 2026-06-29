@@ -92,3 +92,4 @@ jobs:
                       INSTALL_DOCS=OFF
                       OIIO_BUILD_TOOLS=OFF
                       OIIO_BUILD_TESTS=OFF
+                      OpenImageIO_BUILD_LOCAL_DEPS="TIFF,libdeflate"

@@ -320,14 +320,21 @@ jobs:
             corpus/${{ inputs.fuzz_format }}/ 2>/dev/null || true
 
       - name: Run fuzzer
+        id: run_fuzzer
         if: inputs.fuzz_format != ''
         shell: bash
         env:
           OIIO_FUZZ_FORMAT: ${{ inputs.fuzz_format }}
         run: |
-          if ! $OpenImageIO_ROOT/bin/oiio_fuzz_image --list-formats 2>/dev/null \
-               | grep -qx '${{ inputs.fuzz_format }}'; then
+          fuzz_bin="$OpenImageIO_ROOT/bin/oiio_fuzz_image"
+          if [ ! -x "$fuzz_bin" ]; then
+            echo "::error::$fuzz_bin not found — was OIIO_BUILD_FUZZ_TARGETS=ON passed to cmake?"
+            exit 1
+          fi
+          if ! ASAN_OPTIONS="${ASAN_OPTIONS:+$ASAN_OPTIONS:}detect_leaks=0" \
+               "$fuzz_bin" --list-formats | grep -qx '${{ inputs.fuzz_format }}'; then
             echo "::notice::Format '${{ inputs.fuzz_format }}' not compiled in this build; skipping fuzz run."
+            touch ".fuzz-skipped-${{ inputs.fuzz_format }}"
             exit 0
           fi
           $OpenImageIO_ROOT/bin/oiio_fuzz_image \
@@ -362,7 +369,21 @@ jobs:
         shell: bash
         run: |
           count=$(find . -maxdepth 1 -name "crash_${{ inputs.fuzz_format }}_*" | wc -l | tr -d ' ')
-          echo "Format: ${{ inputs.fuzz_format }} — ${count} crash(es)" >> $GITHUB_STEP_SUMMARY
+          status="SUCCEEDED"
+          detail="fuzzer ran for the full configured duration and found no crashing inputs"
+
+          if [ "${{ steps.run_fuzzer.outcome }}" = "failure" ]; then
+            status="FAILED"
+            detail="fuzzer ran and found a problem (crash/timeout/OOM); see uploaded crash artifacts"
+          elif [ -f ".fuzz-skipped-${{ inputs.fuzz_format }}" ]; then
+            status="SKIPPED"
+            detail="fuzzing was not run because this format is not compiled/implemented in this build"
+          fi
+
+          echo "Format: ${{ inputs.fuzz_format }}" >> $GITHUB_STEP_SUMMARY
+          echo "Status: ${status}" >> $GITHUB_STEP_SUMMARY
+          echo "Detail: ${detail}" >> $GITHUB_STEP_SUMMARY
+          echo "Crash artifacts found: ${count}" >> $GITHUB_STEP_SUMMARY
 
       - name: clang-format
         if: inputs.clang_format == '1'
