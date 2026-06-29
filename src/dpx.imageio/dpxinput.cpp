@@ -58,8 +58,9 @@ private:
     InStream* m_stream = nullptr;
     dpx::Reader m_dpx;
     std::vector<unsigned char> m_userBuf;
-    bool m_rawcolor;
     std::vector<unsigned char> m_decodebuf;  // temporary decode buffer
+    size_t m_filesize = 0;
+    bool m_rawcolor;
 
     /// Reset everything to initial state
     ///
@@ -137,7 +138,8 @@ DPXInput::open(const std::string& name, ImageSpec& newspec)
     if (!ioproxy_use_or_open(name))
         return false;
 
-    m_stream = new InStream(ioproxy());
+    m_filesize = ioproxy()->size();
+    m_stream   = new InStream(ioproxy());
     if (!m_stream) {
         errorfmt("Could not open file \"{}\"", name);
         return false;
@@ -547,6 +549,11 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     // data is per-file, not per-element)
     if (m_userBuf.empty() && m_dpx.header.UserSize() != 0
         && m_dpx.header.UserSize() != 0xFFFFFFFF) {
+        if (m_dpx.header.UserSize() > m_filesize) {
+            errorfmt("Corrupt userbuf: size claims {} but whole file size is {}",
+                     m_dpx.header.UserSize(), m_filesize);
+            return false;
+        }
         m_userBuf.resize(m_dpx.header.UserSize());
         m_dpx.ReadUserData(&m_userBuf[0]);
     }
