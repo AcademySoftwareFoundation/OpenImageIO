@@ -69,6 +69,9 @@ on:
         type: string
       sonar:
         type: string
+      old_node:
+        type: string
+        default: '0'
       nametag:
         type: string
     secrets:
@@ -111,8 +114,17 @@ jobs:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
+      - name: install nodejs20glibc2.17
+        if: inputs.old_node == '1'
+        run: |
+          curl --silent https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.xz | tar -xJ --strip-components 1 -C /node20217 -f -
       - name: Checkout repo
+        if: inputs.old_node != '1'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Checkout repo-OLD
+        if: inputs.old_node == '1'
+        # Must use an old checkout action for old containers.
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
       - name: Build setup
         shell: bash
         run: |
