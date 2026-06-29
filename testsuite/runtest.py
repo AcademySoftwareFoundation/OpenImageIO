@@ -337,7 +337,8 @@ def iconvert (args: str, silent: bool=False, concat: bool=True,
 
 
 # Construct a command that will run oiiotool and append its output to out.txt
-def oiiotool (args: str, silent: bool=False, concat: bool=True, failureok: bool=False) -> str:
+def oiiotool (args: str, silent: bool=False, concat: bool=True,
+             failureok: bool=False) -> str:
     cmd = (oiio_app("oiiotool") + " " + args)
     if not silent :
         cmd += redirect
