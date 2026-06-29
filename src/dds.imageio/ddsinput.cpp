@@ -1009,7 +1009,8 @@ DDSInput::internal_readimg(unsigned char* dst, size_t w, size_t h, size_t d)
                 size_t k = (z * h * w + y * w) * m_spec.nchannels;
                 for (size_t x = 0; x < w; x++, k += m_spec.nchannels) {
                     uint32_t pixel = 0;
-                    memcpy(&pixel, tmp.get() + x * m_Bpp, m_Bpp);
+                    memcpy(&pixel, tmp.get() + x * m_Bpp,
+                           std::min(m_Bpp, (int)sizeof(pixel)));
                     for (int ch = 0; ch < m_spec.nchannels; ++ch) {
                         dst[k + ch]
                             = bit_range_convert((pixel & m_dds.fmt.masks[ch])
