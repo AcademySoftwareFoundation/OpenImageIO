@@ -11,3 +11,6 @@ command += oiiotool (OIIO_TESTSUITE_IMAGEDIR+"/ScanLines/MtTamWest.exr -o MtTamW
 command += oiiotool ("-v -info -stats MtTamWest.hdr")
 # To double check, get stats on the original for comparison -- should be close
 command += oiiotool ("-stats " + OIIO_TESTSUITE_IMAGEDIR+"/ScanLines/MtTamWest.exr")
+
+# Regression test: invalid resolution
+command += oiiotool ("-nostderr -oiioattrib try_all_readers 0 src/crash-res.hdr -o test.exr", failureok = True)

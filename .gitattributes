@@ -9,3 +9,9 @@
 
 *.h linguist-language=C++
 src/libOpenImageIO/bluenoise.inc -linguist-detectable
+
+# Image test fixtures are binary and must never be CRLF-converted on
+# checkout. Some (e.g. tiny/corrupt HDR files) are mostly ASCII and would
+# otherwise be misdetected as text, breaking byte-exact reader tests.
+*.hdr binary
+*.rgbe binary
