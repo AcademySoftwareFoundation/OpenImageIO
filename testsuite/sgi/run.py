@@ -14,3 +14,7 @@ for f in files:
 # Regression testing of error handling and corrupt files
 command += info_command ("--stats src/broken01.sgi",
                          info_program="iinfo", failureok=True)
+# broken02.sgi has a corrupt header (zsize=0) whose RLE offset table was sized
+# inconsistently with the scanline indexing, causing a null-pointer crash.
+command += info_command ("--stats src/broken02.sgi",
+                         info_program="iinfo", failureok=True)
