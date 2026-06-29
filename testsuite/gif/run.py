@@ -15,3 +15,8 @@ for f in files:
 # Test write / conversion to GIF
 command += oiiotool (OIIO_TESTSUITE_ROOT+"/common/tahoe-tiny.tif -o tahoe-tiny.gif")
 command += info_command ("tahoe-tiny.gif")
+
+# Regression tests
+command += oiiotool ("-nostderr -oiioattrib try_all_readers 0 src/crash_4163.gif -o test.exr", failureok = True)
+
+outputs = [ "tahoe-tiny.gif", "out.txt" ]
