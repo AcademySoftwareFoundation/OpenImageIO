@@ -6,12 +6,11 @@ name: Fuzz
 
 on:
   schedule:
-    # Nightly at 10:00 UTC
+    # Nightly at 10:00 UTC — main fork only (filtered via job condition below)
     - cron: "0 10 * * *"
   push:
-    # Run on pushes to main or any branch whose name contains "fuzz"
+    # Run on any branch whose name contains "fuzz"
     branches:
-      - main
       - '*fuzz*'
     paths:
       - 'src/**'
@@ -35,41 +34,43 @@ concurrency:
 jobs:
   fuzz:
     name: "Fuzz ${{ matrix.format }} (tier ${{ matrix.tier }})"
+    # Scheduled runs only on the canonical fork; push runs anywhere (branch filter above ensures "fuzz" substring)
+    if: github.event_name != 'schedule' || github.repository == 'AcademySoftwareFoundation/OpenImageIO'
     strategy:
       fail-fast: false
       matrix:
         include:
           # Tier 1: complex/high-risk formats — 5.5 hour fuzz window (19800)
-          - { format: openexr,  tier: 1, max_total_time: 1200 }
-          - { format: tiff,     tier: 1, max_total_time: 1200 }
-          - { format: jpeg,     tier: 1, max_total_time: 1200 }
-          - { format: png,      tier: 1, max_total_time: 1200 }
-          - { format: dpx,      tier: 1, max_total_time: 1200 }
-          - { format: psd,      tier: 1, max_total_time: 1200 }
-          - { format: heif,     tier: 1, max_total_time: 1200 }
-          - { format: jpegxl,   tier: 1, max_total_time: 1200 }
-          - { format: jpeg2000, tier: 1, max_total_time: 1200 }
-          - { format: raw,      tier: 1, max_total_time: 1200 }
+          - { format: openexr,  tier: 1, max_total_time: 1800 }
+          - { format: tiff,     tier: 1, max_total_time: 1800 }
+          - { format: jpeg,     tier: 1, max_total_time: 1800 }
+          - { format: png,      tier: 1, max_total_time: 1800 }
+          - { format: dpx,      tier: 1, max_total_time: 1800 }
+          - { format: psd,      tier: 1, max_total_time: 1800 }
+          - { format: heif,     tier: 1, max_total_time: 1800 }
+          - { format: jpegxl,   tier: 1, max_total_time: 1800 }
+          - { format: jpeg2000, tier: 1, max_total_time: 1800 }
+          - { format: raw,      tier: 1, max_total_time: 1800 }
           # Tier 2: simpler formats — 1 hour fuzz window (3600)
-          - { format: bmp,       tier: 2, max_total_time: 600 }
-          - { format: cineon,    tier: 2, max_total_time: 600 }
-          - { format: dds,       tier: 2, max_total_time: 600 }
-          - { format: dicom,     tier: 2, max_total_time: 600 }
-          - { format: fits,      tier: 2, max_total_time: 600 }
-          - { format: gif,       tier: 2, max_total_time: 600 }
-          - { format: hdr,       tier: 2, max_total_time: 600 }
-          - { format: ico,       tier: 2, max_total_time: 600 }
-          - { format: iff,       tier: 2, max_total_time: 600 }
-          - { format: pnm,       tier: 2, max_total_time: 600 }
-          - { format: rla,       tier: 2, max_total_time: 600 }
-          - { format: sgi,       tier: 2, max_total_time: 600 }
-          - { format: softimage, tier: 2, max_total_time: 600 }
-          - { format: targa,     tier: 2, max_total_time: 600 }
-          - { format: ffmpeg,    tier: 2, max_total_time: 600 }
-          - { format: webp,      tier: 2, max_total_time: 600 }
-          - { format: zfile,     tier: 2, max_total_time: 600 }
-          - { format: openvdb,   tier: 2, max_total_time: 600 }
-          - { format: ptex,      tier: 2, max_total_time: 600 }
+          - { format: bmp,       tier: 2, max_total_time: 1200 }
+          - { format: cineon,    tier: 2, max_total_time: 1200 }
+          - { format: dds,       tier: 2, max_total_time: 1200 }
+          - { format: dicom,     tier: 2, max_total_time: 1200 }
+          - { format: fits,      tier: 2, max_total_time: 1200 }
+          - { format: gif,       tier: 2, max_total_time: 1200 }
+          - { format: hdr,       tier: 2, max_total_time: 1200 }
+          - { format: ico,       tier: 2, max_total_time: 1200 }
+          - { format: iff,       tier: 2, max_total_time: 1200 }
+          - { format: pnm,       tier: 2, max_total_time: 1200 }
+          - { format: rla,       tier: 2, max_total_time: 1200 }
+          - { format: sgi,       tier: 2, max_total_time: 1200 }
+          - { format: softimage, tier: 2, max_total_time: 1200 }
+          - { format: targa,     tier: 2, max_total_time: 1200 }
+          - { format: ffmpeg,    tier: 2, max_total_time: 1200 }
+          - { format: webp,      tier: 2, max_total_time: 1200 }
+          - { format: zfile,     tier: 2, max_total_time: 1200 }
+          - { format: openvdb,   tier: 2, max_total_time: 1200 }
+          - { format: ptex,      tier: 2, max_total_time: 1200 }
     uses: ./.github/workflows/build-steps.yml
     with:
       runner: ubuntu-latest
