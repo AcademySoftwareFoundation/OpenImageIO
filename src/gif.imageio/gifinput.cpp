@@ -453,7 +453,8 @@ GIFInput::report_last_error(void)
 {
     // GIFLIB_MAJOR >= 5 looks properly thread-safe, in that the error is
     // guaranteed to be specific to this open file.
-    errorfmt("{}", GifErrorString(m_gif_file->Error));
+    const char* err = GifErrorString(m_gif_file->Error);
+    errorfmt("{}", (err && err[0]) ? err : "unknown error");
 }
 
 
