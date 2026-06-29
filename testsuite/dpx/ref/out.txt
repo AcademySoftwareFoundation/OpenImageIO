@@ -158,3 +158,6 @@ grey.dpx             :  512 x  512, 1 channel, uint10 dpx
     oiio:subimages: 1
 Comparing "grey.dpx" and "ref/grey.tif"
 PASS
+oiiotool ERROR: read : "src/crash-badusersize.dpx": Corrupt userbuf: size claims 4160749568 but whole file size is 2054
+Full command line was:
+> oiiotool src/crash-badusersize.dpx -o test.tif

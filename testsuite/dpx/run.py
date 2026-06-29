@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+redirect = " >> out.txt 2>&1 "
+
 files = [ "dpx_nuke_10bits_rgb.dpx", "dpx_nuke_16bits_rgba.dpx" ]
 for f in files:
     command += rw_command (OIIO_TESTSUITE_IMAGEDIR, f)
@@ -31,3 +33,7 @@ command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/dpx_nuke_16bits_rgba.dpx"
                     " -chsum:weight=0.333,0.333,0.333 -chnames Y -ch Y -o grey.dpx")
 command += info_command("grey.dpx", safematch=True)
 command += diff_command("grey.dpx", "ref/grey.tif")
+
+
+# Regression tests
+command += oiiotool("src/crash-badusersize.dpx -o test.tif", failureok=True)
