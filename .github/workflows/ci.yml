@@ -455,7 +455,8 @@ jobs:
             python_ver: "3.9"
             python_action_ver: "3.9"
             gcc_action_ver: 9
-            setenvs: export  CMAKE_VERSION=3.18.2
+            # CMAKE_VERSION changed from 3.18.2 so that libktx can be built
+            setenvs: export  CMAKE_VERSION=3.23
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              PUGIXML_VERSION=v1.8
@@ -483,7 +484,7 @@ jobs:
             python_ver: "3.9"
             python_action_ver: "3.9"
             llvm_action_ver: "11"
-            setenvs: export  CMAKE_VERSION=3.18.2
+            setenvs: export  CMAKE_VERSION=3.23
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              PUGIXML_VERSION=v1.8
@@ -520,7 +521,7 @@ jobs:
             gcc_action_ver: 9
             simd: 0
             setenvs: export  EMBEDPLUGINS=0
-                             CMAKE_VERSION=3.18.2
+                             CMAKE_VERSION=3.23
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              USE_JPEGTURBO=0

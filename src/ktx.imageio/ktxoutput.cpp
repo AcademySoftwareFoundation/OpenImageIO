@@ -64,6 +64,8 @@ private:
 
     BlockCompression m_cmp { BlockCompression::NONE };
 
+    std::vector<unsigned char> m_scratch;
+
     /// libktx only supports writing whole images (i.e., (miplevel, layer, face_slice/depth)
     /// hence why we keep a large std::vector at all times. This is also needed because we
     /// apply compression upon file closure and not each time on write_scanline(s).
@@ -73,8 +75,6 @@ private:
     // large vectors? For the moment, these are just not supported.
 
     void init();
-
-    VkFormat figure_vkformat_from_spec() const;
 
     bool basisu_basislz_compress();
 
@@ -108,15 +108,25 @@ KtxOutput::open(const std::string& name, const ImageSpec& newspec,
                 OpenMode mode)
 {
     // TODO: verify the x, y, z limits (probably not 65535)
+    // This does: m_spec = newspec
     if (!check_open(mode, newspec, { 0, 65535, 0, 65535, 0, 65535, 0, 4 }))
         return false;
 
     // Save name and spec for later use
     m_filename = name;
 
+    // If not uint8, default to uint8 (HDR not yet supported)
+    if (m_spec.format
+        != TypeDesc::UINT8 /* && m_spec.format != TypeDesc::UINT16 */)
+        m_spec.set_format(TypeDesc::UINT8);
+
     ioproxy_retrieve_from_config(m_spec);
     if (!ioproxy_use_or_open(m_filename))
         return false;
+
+    std::string colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
+                                                         "srgb_rec709_scene");
+    bool is_srgb           = colorspace == "srgb_rec709_scene";
 
     // TODO: get_int_attribute causes a segfault and I have no idea why ...
     // Weirdly, calling find_attribute directly (and checking the resulting
@@ -187,8 +197,10 @@ KtxOutput::open(const std::string& name, const ImageSpec& newspec,
         return false;
     }
 
-    // Get original VkFormat (i.e., before potential decompression/transcoding)
-    // or the vkformat explicitly set via the "ktx:vkformat" attribute.
+    //
+    // If provided, get target VkFormat explicitly set via the "ktx:vkformat"
+    // attribute.
+    //
     auto vkFormat         = VkFormat::VK_FORMAT_UNDEFINED;
     ParamValue* vkFormatQ = m_spec.find_attribute("ktx:vkformat",
                                                   TypeDesc::UINT32);
@@ -198,7 +210,7 @@ KtxOutput::open(const std::string& name, const ImageSpec& newspec,
         // Get GPU-block-compression from provided VkFormat
         if (vkFormat != VK_FORMAT_UNDEFINED) {
             FormatInfo format_info;
-            if (!extract_info_from_format(vkFormat, format_info)) {
+            if (!get_info_from_vkformat(vkFormat, format_info)) {
                 close();
                 errorfmt("Could not extract format info from provided "
                          "VkFormat: {}. This format is probably unsupported.",
@@ -211,6 +223,23 @@ KtxOutput::open(const std::string& name, const ImageSpec& newspec,
     }
 
     //
+    // User provided nothing about neither the target VkFormat nor the target
+    // super-compression scheme. Choose a sane default from provided spec (i.e.,
+    // nchannels + bit depth). Two choices: compress to raw format and nullify
+    // the benefit of writing a KTX2 at the benefit of a losseless write. Or,
+    // use UASTC format which is what is typically used within KTX.
+    //
+    if (vkFormat == VK_FORMAT_UNDEFINED
+        && m_colormodel == KHR_DF_MODEL_UNSPECIFIED) {
+        if (m_spec.format != TypeDesc::UINT8) {
+            close();
+            errorfmt("Non-LDR input is not yet supported.");
+            return false;
+        }
+        m_colormodel = KHR_DF_MODEL_UASTC;
+    }
+
+    //
     // Since we are using libktx's ktxTexture2_CompressAstc, the format has to
     // be set to an uncompressed VkFormat otherwise we get KTX_INVALID_OPERATION
     // error code.
@@ -218,18 +247,18 @@ KtxOutput::open(const std::string& name, const ImageSpec& newspec,
     if (m_cmp == BlockCompression::ASTC)
         vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
 
-    // Id a basis universal format compression is not requested and
+    //
+    // If a Basis Universal format compression is not requested and
     // "ktx:vkformat" is VK_FORMAT_UNDEFINED, then we error out. The user has to
     // set the vkformat so that we know in which format we write the texture to.
+    //
     if ((m_colormodel != KHR_DF_MODEL_ETC1S
          && m_colormodel != KHR_DF_MODEL_UASTC)
         && vkFormat == VK_FORMAT_UNDEFINED) {
-        // TODO: maybe don't error out and set the format depending on the nchannels?
-        // (e.g., 4 + srgb_rec709_scene colorspace => VK_FORMAT_R8G8B8A8_SRGB)
         close();
         errorfmt(
             "VkFormat is set to VK_FORMAT_UNDEFINED even though the "
-            "supercompressionscheme is not Basis LZ. You have to set the "
+            "supercompression scheme is not BasisLZ. You have to set the "
             "target VkFormat by setting the ImageSpec's attribute 'ktx:vkformat'.");
         return false;
     }
@@ -244,7 +273,8 @@ KtxOutput::open(const std::string& name, const ImageSpec& newspec,
     if ((m_colormodel == KHR_DF_MODEL_ETC1S
          || m_colormodel == KHR_DF_MODEL_UASTC)
         && vkFormat == VK_FORMAT_UNDEFINED) {
-        vkFormat = figure_vkformat_from_spec();
+        vkFormat = get_vkformat_from_info(m_spec.nchannels, m_spec.format,
+                                          is_srgb);
     } else if (m_colormodel == KHR_DF_MODEL_ETC1S
                || m_colormodel == KHR_DF_MODEL_UASTC) {
         // TODO: It could be that the user explicitly provided a vkformat - in which
@@ -347,18 +377,38 @@ KtxOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 // depth parameter (i.e., z).
 bool
 KtxOutput::write_scanlines(int ybegin, int yend,
-                           int _ /* slice or face or layer */, TypeDesc format,
+                           int z /* slice or face or layer */, TypeDesc format,
                            const void* data, stride_t xstride, stride_t ystride)
 {
     // std::cout << "write_scanlines called with: ybegin=" << ybegin
     //           << "; yend=" << yend << "; z=" << z << "; format=" << format
     //           << "; xstride=" << xstride << '\n';
 
-    m_spec.auto_stride(xstride, format, spec().nchannels);
+    stride_t zstride = AutoStride;
+    m_spec.auto_stride(xstride, ystride, zstride, format, spec().nchannels,
+                       m_spec.width, m_spec.height);
     // const void* origdata = data;
+
+    // to_native_rectangle will do this check and assignment. Keep it here for
+    // consistency with JPEG writer
     if (format == TypeUnknown)
         format = m_spec.format;
 
+    //
+    // Convert to the native format the current specs expects. This is needed,
+    // for instance, to convert a given TypeDesc::FLOAT into native format that
+    // this KTX2 writer expects (i.e., TypeDesc::UINT8 or TypeDesc::UINT16).
+    //
+    // Returned data pointer may be the same as the provided pointer (i.e., no
+    // conversion is needed because supplied data is already in native format).
+    //
+    data = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width, ybegin, yend,
+                               z, z + 1, format, data, xstride, ystride,
+                               zstride, m_scratch, false, 0, ybegin, z);
+
+    // data should now be contiguous and of the expected format (UINT8 or
+    // UINT16) so simply memcpy into internal buffer that will be written on
+    // close().
     const size_t pitch = m_spec.scanline_bytes();
     auto pSrc          = reinterpret_cast<const uint8_t*>(data);
     size_t offset      = ybegin * pitch;
@@ -384,8 +434,7 @@ KtxOutput::close()
     if (m_tex) {
         // Apparently we can't do (or I don't know yet how to) partial writes
         // using libktx. We can only write whole ktxTextures all together.
-        if (result)
-            result = write_ktx2();  // TODO: can this throw? (prob not)
+        result = write_ktx2();  // TODO: can this throw? (prob not)
         ktxTexture_Destroy(ktxTexture(m_tex));
     }
     init();
@@ -407,22 +456,6 @@ KtxOutput::init()
 
 
 
-VkFormat
-KtxOutput::figure_vkformat_from_spec() const
-{
-    // TODO: check colorspace and return VkFormat accordingly
-    // TODO: check format (TypeDesc) and return VkFormat accordingly
-    switch (m_spec.nchannels) {
-    case 1: return VK_FORMAT_R8_SRGB;
-    case 2: return VK_FORMAT_R8G8_SRGB;
-    case 3: return VK_FORMAT_R8G8B8_SRGB;
-    case 4: return VK_FORMAT_R8G8B8A8_SRGB;
-    }
-    return VK_FORMAT_R8G8B8A8_SRGB;
-}
-
-
-
 //
 // Applies BasisLZ/ETC1S supercompression to this KTX2 texture. The ImageSpec is
 // queried (searched) for attribute that determine the BasisLZ/ETC1S compression
@@ -436,11 +469,14 @@ KtxOutput::basisu_basislz_compress()
     // what params the original data was compressed with so that we can reproduce
     // it.
     // TODO: expose as "ktx:" attribute(s)
-    ktxBasisParams params;
+    ktxBasisParams params        = { 0 };
     params.structSize            = sizeof(ktxBasisParams);
     params.codec                 = ktx_basis_codec_e::KTX_BASIS_CODEC_ETC1S;
+    params.verbose               = false;
+    params.noSSE                 = false;
     params.threadCount           = 1;
     params.etc1sCompressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
+    // TODO: expose RDO support for ETC1S
     if (auto status = ktxTexture2_CompressBasisEx(m_tex, &params);
         status != KTX_SUCCESS) {
         errorfmt("ktxTexture2_CompressBasisEx returned error code: ",
@@ -461,12 +497,15 @@ bool
 KtxOutput::basisu_uastc_compress()
 {
     // TODO: expose parameters
-    ktxBasisParams params;
-    params.structSize  = sizeof(ktxBasisParams);
-    params.codec       = ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_LDR_4x4;
-    params.threadCount = 1;
-    // .uastcFlags  = KTX_PACK_UASTC_LEVEL_DEFAULT,
-    // TODO: set uastcRDONoMultithreading for testing
+    ktxBasisParams params = { 0 };
+    params.structSize     = sizeof(ktxBasisParams);
+    params.codec          = ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_LDR_4x4;
+    params.verbose        = false;
+    params.noSSE          = false;
+    params.threadCount    = 1;
+    params.uastcFlags     = KTX_PACK_UASTC_LEVEL_DEFAULT;
+    params.uastcRDO       = false;
+    // TODO: expose RDO support for UASTC
     if (auto status = ktxTexture2_CompressBasisEx(m_tex, &params);
         status != KTX_SUCCESS) {
         errorfmt("ktxTexture2_CompressBasisEx returned error code: ",
@@ -517,7 +556,6 @@ KtxOutput::write_ktx2()
                                                         0, m_img.data(),
                                                         m_img.size());
             status != KTX_SUCCESS) {
-            has_error();
             errorfmt(
                 "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
                 static_cast<uint32_t>(status));
@@ -532,7 +570,6 @@ KtxOutput::write_ktx2()
         //                                                 0, m_img.data(),
         //                                                 m_img.size());
         //     status != KTX_SUCCESS) {
-        //     has_error();
         //     errorfmt(
         //         "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
         //         static_cast<uint32_t>(status));
@@ -547,6 +584,7 @@ KtxOutput::write_ktx2()
         //              static_cast<uint32_t>(status));
         //     return false;
         // }
+        errorfmt("Writing/Encoding BCn compression is not yet supported.");
         return false;
     } else if (m_cmp == BlockCompression::ASTC) {
         // First set uncompressed images
@@ -554,7 +592,6 @@ KtxOutput::write_ktx2()
                                                         0, m_img.data(),
                                                         m_img.size());
             status != KTX_SUCCESS) {
-            has_error();
             errorfmt(
                 "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
                 static_cast<uint32_t>(status));

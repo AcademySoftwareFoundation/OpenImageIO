@@ -298,7 +298,7 @@ struct FormatInfo {
 // test file with the same VkFormat).
 //
 inline bool
-extract_info_from_format(VkFormat vkformat, FormatInfo& formatinfo)
+get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
 {
     // clang-format off
     switch (vkformat) {
@@ -327,6 +327,32 @@ extract_info_from_format(VkFormat vkformat, FormatInfo& formatinfo)
 }
 
 
+
+inline VkFormat
+get_vkformat_from_info(int nchannels, TypeDesc format, bool srgb_colorspace)
+{
+    if (format != TypeDesc::UINT8)
+        return VK_FORMAT_UNDEFINED;
+
+    switch (nchannels) {
+    case 1:
+        return srgb_colorspace ? VK_FORMAT_R8_SRGB : VK_FORMAT_R8_UNORM;
+        break;
+    case 2:
+        return srgb_colorspace ? VK_FORMAT_R8G8_SRGB : VK_FORMAT_R8G8_UNORM;
+        break;
+    case 3:
+        return srgb_colorspace ? VK_FORMAT_R8G8B8_SRGB : VK_FORMAT_R8G8B8_UNORM;
+        break;
+    case 4:
+        return srgb_colorspace ? VK_FORMAT_R8G8B8A8_SRGB
+                               : VK_FORMAT_R8G8B8A8_UNORM;
+        break;
+    default: break;
+    }
+
+    return VK_FORMAT_UNDEFINED;
+}
 
 // TODO
 inline void

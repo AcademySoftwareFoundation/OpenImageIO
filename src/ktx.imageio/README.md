@@ -197,6 +197,60 @@ transcoding support, supercompression decompression support, etc.).
   - Commit hash: see `OpenImageIO/src/cmake/build_Ktx.cmake`
   - License: Many subresources.
 
+# Building OIIO
+
+To build (with required dependencies and fetch tests):
+
+  1. add REQUIRED to force local build:
+
+   ```cmake
+    checked_find_package (Ktx REQUIRED VERSION_MIN 5.0.0 BUILD_LOCAL missing)
+   ```
+
+   or if you have a HEAD:main Ktx locally installed, change the above to:
+
+   ```cmake
+    checked_find_package (Ktx REQUIRED VERSION_MIN 0.0.0)
+   ```
+
+  1. pystring dependency for OpenColor dependency will probably fail (just
+  change the tag commit hash and add required as such:
+  `checked_find_package(pystring REQUIRED VERSION_MIN 1.1.4)`)
+
+  1. and force libjpeg-Turbo local build by adding `REQUIRED`:
+
+  ```cmake
+  checked_find_package (libjpeg-turbo REQUIRED
+                        VERSION_MIN 2.1
+                        DEFINITIONS USE_JPEG_TURBO=1)
+  ```
+
+  1. build using CMake
+
+   ```bash
+   cmake -S . -B build/ -DCMAKE_BUILD_TYPE=DEBUG -DOIIO_DOWNLOAD_MISSING_TESTDATA=ON -DOpenImageIO_BUILD_MISSING_DEPS=required
+   ```
+
+  1. build will probably because of 'pystring not found' error, so run it again.
+
+To test (of course, make sure image assets are downloaded - see the CMake flag above):
+
+  1. Invoke ctest (just see how top-level Makefile invokes it)
+   ```bash
+   cd build/
+   ctest -V --force-new-ctest-process --output-on-failure
+   ```
+
+
+## Misc Notes for Developers
+
+Use `clang-format-17` for formatting and not whatever newest version you have
+on your machine (in my case, clang-format v18 caused clang-format CI to fail):
+
+```bash
+find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\)' -exec clang-format-17 -style=file -i {} \;
+```
+
 ## Resources
 
 - [KTX2 Specs](https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html)

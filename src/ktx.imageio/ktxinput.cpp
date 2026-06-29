@@ -21,7 +21,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class KtxInput final : public ImageInput {
 public:
-    KtxInput() { }
+    KtxInput() {}
 
     ~KtxInput() override { close(); }
 
@@ -140,10 +140,14 @@ OIIO_EXPORT int ktx_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char*
 ktx_imageio_library_version()
-{ return "ktx v5.0.0-rc1"; }  // hardcoded because I couldn't expose KTX_VERSION
+{
+    return "ktx v5.0.0-rc1";
+}  // hardcoded because I couldn't expose KTX_VERSION
 OIIO_EXPORT ImageInput*
 ktx_input_imageio_create()
-{ return new KtxInput; }
+{
+    return new KtxInput;
+}
 OIIO_EXPORT const char* ktx_input_extensions[] = { "ktx2", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -541,8 +545,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     auto format = static_cast<VkFormat>(m_tex2->vkFormat);
     if (m_tex2->isCompressed) {
         FormatInfo format_info;
-        if (!extract_info_from_format(static_cast<VkFormat>(format),
-                                      format_info)) {
+        if (!get_info_from_vkformat(static_cast<VkFormat>(format),
+                                    format_info)) {
             errorfmt(
                 "Failed to extract info (e.g., nchannels, typedesc, etc.) from VkFormat: {}",
                 static_cast<uint32_t>(format));
@@ -567,8 +571,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //
     {
         FormatInfo format_info;
-        if (!extract_info_from_format(static_cast<VkFormat>(format),
-                                      format_info)) {
+        if (!get_info_from_vkformat(static_cast<VkFormat>(format),
+                                    format_info)) {
             errorfmt(
                 "Failed to extract info (e.g., nchannels, typedesc, etc.) from VkFormat: {}",
                 static_cast<uint32_t>(format));
@@ -778,8 +782,8 @@ KtxInput::seek_subimage(int subimage, int miplevel)
             return false;
         }
 
-        m_pitch    = width * m_spec.nchannels
-                     * m_spec.format.size() /* 1 for LDR, 2 for HDR formats */;
+        m_pitch = width * m_spec.nchannels
+                  * m_spec.format.size() /* 1 for LDR, 2 for HDR formats */;
         m_data_ptr = m_buf.data();
     }
 
@@ -877,7 +881,7 @@ OpenImageIO::KtxInput::valid_file(Filesystem::IOProxy* ioproxy) const
         return false;
 
     // per KTX2 specs: the first 12 bytes of a KTX2 file are used to identify it
-    uint8_t magic[12] { };
+    uint8_t magic[12] {};
     const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
 
     return (numRead == sizeof(magic))

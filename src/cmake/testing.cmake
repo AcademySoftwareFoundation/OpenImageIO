@@ -544,7 +544,7 @@ endfunction()
 function (oiio_setup_test_data)
   # TODO: revert this after accepting OpenImageIO-images PR and before merging (just so that the CI passes)
     oiio_get_test_data (oiio-images
-                        REPO https://github.com/AcademySoftwareFoundation/OpenImageIO-images.git
+                        REPO https://github.com/walcht/OpenImageIO-images.git
                         BRANCH main)
     oiio_get_test_data (openexr-images
                         REPO https://github.com/AcademySoftwareFoundation/openexr-images.git

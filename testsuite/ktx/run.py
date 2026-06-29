@@ -15,13 +15,6 @@ files = [
     "2d_etc1s.ktx2",
     # GPU-block-compressed formats
     "2d_astc4x4.ktx2",
-    "2d_bc1.ktx2",
-    "2d_bc3.ktx2",
-    "2d_bc4.ktx2",
-    "2d_bc5.ktx2",
-    "2d_bc7.ktx2",
-    "2d_etc1.ktx2",
-    "2d_etc2.ktx2",
 ]
 
 for f in files:
