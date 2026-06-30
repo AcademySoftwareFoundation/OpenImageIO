@@ -92,8 +92,8 @@ checked_find_package (libuhdr
 
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.0
-                      RECOMMEND_MIN 4.2
-                      RECOMMEND_MIN_REASON "4.2 for GPS support")
+                      RECOMMEND_MIN 4.5
+                      RECOMMEND_MIN_REASON "4.2+ for GPS, 4.5+ various security fixes")
 alias_library_if_not_exists (TIFF::TIFF TIFF::tiff)
 
 # JPEG XL

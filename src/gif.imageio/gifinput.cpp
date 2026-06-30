@@ -337,7 +337,8 @@ GIFInput::read_subimage_data()
 
     if (m_subimage == 0 || m_previous_disposal_method == DISPOSE_BACKGROUND) {
         // make whole canvas transparent
-        std::fill(m_canvas.begin(), m_canvas.end(), 0x00);
+        m_canvas.clear();
+        m_canvas.resize(m_spec.image_pixels() * size_t(4), 0x00);
     }
 
     // decode scanline index if image is interlaced
@@ -412,7 +413,6 @@ GIFInput::seek_subimage(int subimage, int miplevel)
             return false;
         }
         m_subimage = -1;
-        m_canvas.resize(m_gif_file->SWidth * m_gif_file->SHeight * 4);
     }
 
     // skip subimages preceding the requested one
@@ -436,6 +436,10 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     m_spec.full_width  = m_spec.width;
     m_spec.full_depth  = m_spec.depth;
 
+    if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 })) {
+        return false;
+    }
+
     m_subimage = subimage;
 
     // draw subimage on canvas
@@ -453,7 +457,8 @@ GIFInput::report_last_error(void)
 {
     // GIFLIB_MAJOR >= 5 looks properly thread-safe, in that the error is
     // guaranteed to be specific to this open file.
-    errorfmt("{}", GifErrorString(m_gif_file->Error));
+    const char* err = GifErrorString(m_gif_file->Error);
+    errorfmt("{}", (err && err[0]) ? err : "unknown error");
 }
 
 
