@@ -15,3 +15,7 @@ src/bad_rgba_chunk_size.iff :   64 x   64, 3 channel, uint16 iff
     channel list: R, G, B
     tile size: 1 x 1
     compression: "rle"
+oiiotool ERROR: read : "src/zbuffer_only.iff": IFF error ZBUFFER-only (Z-depth) images are not supported
+IFF error could not read header
+Full command line was:
+> oiiotool --info -v -a --hash src/zbuffer_only.iff
