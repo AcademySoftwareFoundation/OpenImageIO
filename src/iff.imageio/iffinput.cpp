@@ -386,21 +386,27 @@ IffInput::read_header()
                         }
                         // Z format.
                         else if (flags & ZBUFFER) {
-                            // todo: we have not seen a sample of this
-                            m_header.rgba_count = 1;
-                            m_header.rgba_bits  = 32;  // 32bit
-                            // NOTE: Z_F32 support - not supported
-                            OIIO_DASSERT(bytes == 0);
+                            // A ZBUFFER-only (no RGBA) image would be 32-bit
+                            // depth data. The tile decoder only handles 8- and
+                            // 16-bit RGBA pixels, so such a file can never be
+                            // decoded. Exposing it as a 16-bit ImageSpec while
+                            // the internal pixel size stayed 32-bit previously
+                            // caused read_native_tile to write past the
+                            // caller's tile buffer. Reject it outright.
+                            errorfmt(
+                                "IFF error ZBUFFER-only (Z-depth) images are not supported");
+                            return false;
                         }
 
                         // Validate the color channel configuration. A
                         // legitimate Maya IFF stores RGB (3) or RGBA (4)
                         // color channels (optionally plus Z). Corrupt flag
-                        // combinations -- such as ALPHA without RGB -- yield
-                        // channel counts the format never produces and that
-                        // the tile decoder cannot represent, which previously
-                        // led to out-of-bounds writes while decompressing.
-                        if ((flags & RGBA) && m_header.rgba_count != 3
+                        // combinations -- such as ALPHA without RGB, or no
+                        // color flags at all -- yield channel counts the
+                        // format never produces and that the tile decoder
+                        // cannot represent, which previously led to
+                        // out-of-bounds writes while decompressing.
+                        if (m_header.rgba_count != 3
                             && m_header.rgba_count != 4) {
                             errorfmt(
                                 "IFF error unsupported channel configuration (flags {:#x})",
@@ -538,8 +544,13 @@ IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
         lock_guard lock(*this);
 
         if (m_buf.empty()) {
-            if (!readimg())
+            if (!readimg()) {
+                // readimg() may have partially resized m_buf before failing.
+                // Clear it so a subsequent tile request does not skip the
+                // (failed) decode and copy from a half-initialized buffer.
+                m_buf.clear();
                 return false;
+            }
         }
     }
 
