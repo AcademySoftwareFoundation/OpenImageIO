@@ -356,7 +356,7 @@ jobs:
           path: corpus/${{ inputs.fuzz_format }}
 
       - name: Upload fuzz crash artifacts
-        if: always() && inputs.fuzz_format != ''
+        if: always() && inputs.fuzz_format != '' && steps.run_fuzzer.outcome == 'failure'
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: fuzz-crashes-${{ inputs.fuzz_format }}-${{ github.run_id }}
@@ -369,21 +369,18 @@ jobs:
         shell: bash
         run: |
           count=$(find . -maxdepth 1 -name "crash_${{ inputs.fuzz_format }}_*" | wc -l | tr -d ' ')
-          status="SUCCEEDED"
-          detail="fuzzer ran for the full configured duration and found no crashing inputs"
-
           if [ "${{ steps.run_fuzzer.outcome }}" = "failure" ]; then
-            status="FAILED"
-            detail="fuzzer ran and found a problem (crash/timeout/OOM); see uploaded crash artifacts"
+            echo "Format: ${{ inputs.fuzz_format }}" >> $GITHUB_STEP_SUMMARY
+            echo "Status: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "Detail: fuzzer ran and found a problem (crash/timeout/OOM); see uploaded crash artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "Crash artifacts found: ${count}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           elif [ -f ".fuzz-skipped-${{ inputs.fuzz_format }}" ]; then
-            status="SKIPPED"
-            detail="fuzzing was not run because this format is not compiled/implemented in this build"
+            echo "Format: ${{ inputs.fuzz_format }}" >> $GITHUB_STEP_SUMMARY
+            echo "Status: SKIPPED" >> $GITHUB_STEP_SUMMARY
+            echo "Detail: fuzzing was not run because this format is not compiled/implemented in this build" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
-
-          echo "Format: ${{ inputs.fuzz_format }}" >> $GITHUB_STEP_SUMMARY
-          echo "Status: ${status}" >> $GITHUB_STEP_SUMMARY
-          echo "Detail: ${detail}" >> $GITHUB_STEP_SUMMARY
-          echo "Crash artifacts found: ${count}" >> $GITHUB_STEP_SUMMARY
 
       - name: clang-format
         if: inputs.clang_format == '1'
