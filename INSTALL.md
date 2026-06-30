@@ -81,7 +81,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want to be able to read "ultra-HDR" embedded in JPEG files:
      * libultrahdr >= 1.3 (tested through 1.4)
  * If you want support for JPEG XL images:
-     * libjxl >= 0.10.1 (tested through 0.11.2)
+     * libjxl >= 0.10.1 (tested through 0.12.0)
  * If you want support for j2c files:
      * OpenJPH >= 0.21.2 (tested through 0.30)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
