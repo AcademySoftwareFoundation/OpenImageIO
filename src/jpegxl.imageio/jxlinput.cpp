@@ -283,6 +283,17 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             format.num_channels = info.num_color_channels
                                   + info.num_extra_channels;
             m_channels = info.num_color_channels + info.num_extra_channels;
+
+            // Validate dimensions/channel count before the decoder proceeds
+            // further and may attempt huge allocations on corrupt inputs.
+            ImageSpec earlyspec(info.xsize, info.ysize, m_channels,
+                                m_data_type);
+            if (!check_open(earlyspec, { 0, (1 << 30) - 1, 0, (1 << 30) - 1, 0,
+                                         1, 0, 4099 })) {
+                errorfmt("Corrupt JPEG XL basic image dimensions/channels");
+                return false;
+            }
+
             JxlResizableParallelRunnerSetThreads(
                 m_runner.get(),
                 JxlResizableParallelRunnerSuggestThreads(info.xsize,
