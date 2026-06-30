@@ -38,3 +38,5 @@ command += info_command (OIIO_TESTSUITE_IMAGEDIR + "/corrupt_20260312a.psd", fai
 command += info_command ("src/crash-layerres.psd", failureok=True)
 # Corruption where eof was hit in the end of a string read
 command += info_command ("src/crash-eofstring.psd", failureok=True)
+# Corruption where short per-channel rows could overrun interleaving
+command += info_command ("src/crash-rowbounds-f999.psd", failureok=True)
