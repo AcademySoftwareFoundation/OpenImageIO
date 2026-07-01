@@ -1535,13 +1535,25 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                       * size_t((xend - xbegin + tilew - 1)
                                                / tilew));
 
+    // Row stride of the caller's destination buffer. The caller sized its
+    // contiguous buffer for the requested rectangle [xbegin,requested_xend),
+    // so rows are spaced by that width -- NOT padded up to a whole number of
+    // tiles, and NOT the width clamped to the level edge below. Using the
+    // padded whole-tile width (nxtiles*tilew) would make the decoder write
+    // each row further apart than the caller's rows actually are, overrunning
+    // the end of the buffer when the last tile column is partial (level width
+    // not a multiple of the tile width). Clamping xend first would instead
+    // pack rows too tightly for a caller that legitimately requested a
+    // tile-aligned xend past the level edge (valid per
+    // ImageSpec::valid_tile_range). Only the clamped columns hold real data.
+    int requested_xend   = xend;
+    size_t scanlinebytes = size_t(requested_xend - xbegin) * pixelbytes;
+
     xend        = std::min(xend, spec.x + levw);
     yend        = std::min(yend, spec.y + levh);
     zend        = std::min(zend, spec.z + spec.depth);
     int nxtiles = (xend - xbegin + tilew - 1) / tilew;
     int nytiles = (yend - ybegin + tileh - 1) / tileh;
-
-    size_t scanlinebytes = size_t(nxtiles) * size_t(tilew) * pixelbytes;
 
     DBGEXR(
         "exr rnt {}:{}:{} ({}-{}|{}x{})[{}-{}] -> t {}, {} n {}, {} pb {} sb {} tsz {}x{}\n",

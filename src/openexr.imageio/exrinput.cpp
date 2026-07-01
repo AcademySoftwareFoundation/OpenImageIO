@@ -1413,6 +1413,11 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     size_t pixelbytes = m_spec.pixel_bytes(chbegin, chend, true);
     int firstxtile    = (xbegin - m_spec.x) / m_spec.tile_width;
     int firstytile    = (ybegin - m_spec.y) / m_spec.tile_height;
+    // Remember the caller's requested xend before we clamp it to the image
+    // edge below. The caller sized its destination buffer for the rectangle
+    // [xbegin, requested_xend), so that width -- not the clamped one -- is the
+    // stride between the caller's rows.
+    int requested_xend = xend;
     // clamp to the image edge
     xend = std::min(xend, m_spec.x + m_spec.width);
     yend = std::min(yend, m_spec.y + m_spec.height);
@@ -1456,10 +1461,20 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
             return false;
         }
         if (data != origdata) {
-            stride_t user_scanline_bytes = (xend - xbegin) * pixelbytes;
+            // Copy the padded whole-tile temporary buffer back into the
+            // caller's buffer. The source rows in the temporary buffer are
+            // spaced by the padded whole-tile stride, but the destination rows
+            // are spaced by the caller's requested rectangle width. Using the
+            // padded stride for the destination too would write past the end
+            // of the caller's buffer whenever the requested width is not a
+            // whole number of tiles (e.g. a rectangle read ending at the image
+            // edge). Only the valid (clamped) columns actually contain data.
+            stride_t user_scanline_bytes  = (xend - xbegin) * pixelbytes;
+            stride_t dest_scanline_stride = (requested_xend - xbegin)
+                                            * pixelbytes;
             stride_t scanline_stride = nxtiles * m_spec.tile_width * pixelbytes;
             for (int y = ybegin; y < yend; ++y)
-                memcpy((char*)origdata + (y - ybegin) * scanline_stride,
+                memcpy((char*)origdata + (y - ybegin) * dest_scanline_stride,
                        (char*)data + (y - ybegin) * scanline_stride,
                        user_scanline_bytes);
         }
