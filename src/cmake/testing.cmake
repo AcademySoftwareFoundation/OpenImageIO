@@ -274,6 +274,7 @@ macro (oiio_add_all_tests)
                 python-imagecache
                 python-imageoutput
                 python-imagespec
+                python-oiio
                 python-paramlist
                 python-roi
                 python-texturesys

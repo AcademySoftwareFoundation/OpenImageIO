@@ -12,6 +12,7 @@ import os
 
 OIIO_TESTSUITE_IMAGEDIR = os.getenv('OIIO_TESTSUITE_IMAGEDIR',
                                     '../oiio-images')
+OIIO_TESTSUITE_ROOT = os.getenv('OIIO_TESTSUITE_ROOT', '')
 
 # Print the contents of an ImageSpec
 def print_imagespec (spec: oiio.ImageSpec, subimage=0, mip=0, msg="") :
@@ -257,6 +258,83 @@ def test_tiff_cmyk() :
 
 
 
+def test_imageinput_api () :
+    print ("Testing ImageInput.create:")
+    probe = oiio.ImageInput.create ("testu16.tif")
+    print ("  create succeeded:", probe is not None)
+    if probe :
+        print ("  format_name is tiff:", probe.format_name() == "tiff")
+    invalid = oiio.ImageInput.create ("no_such_format.zzz")
+    print ("  create invalid returns None:", invalid is None)
+    oiio.geterror()  # clear global error from failed create
+    print ("")
+
+    print ("Testing valid_file and supports:")
+    tahoe = OIIO_TESTSUITE_IMAGEDIR + "/tahoe-gps.jpg"
+    ii = oiio.ImageInput.open (tahoe)
+    assert ii is not None
+    print ("  valid_file good:", ii.valid_file (tahoe))
+    print ("  valid_file bad:", not ii.valid_file ("badname.tif"))
+    print ("  supports returns numeric:",
+           isinstance (ii.supports ("mipmap"), (int, bool)))
+    ii.close ()
+    ii = oiio.ImageInput.open ("grid.tx")
+    assert ii is not None
+    print ("  grid supports mipmap:", bool (ii.supports ("mipmap")))
+    ii.close ()
+    print ("")
+
+    print ("Testing seek_subimage state:")
+    ii = oiio.ImageInput.open ("grid.tx")
+    assert ii is not None
+    print ("  initial sub/mip:", ii.current_subimage(), ii.current_miplevel())
+    ok = ii.seek_subimage (0, 2)
+    print ("  seek mip 2:", ok)
+    print ("  after seek sub/mip:", ii.current_subimage(), ii.current_miplevel())
+    spec_m2 = ii.spec (0, 2)
+    print ("  spec(0,2) width:", spec_m2.width)
+    data = ii.read_image (0, 2, 0, 2, oiio.UINT8)
+    print ("  read_image sub/mip/ch ndim:",
+           data.ndim if data is not None else -1)
+    ii.close ()
+    print ("")
+
+    print ("Testing read_native_deep_image:")
+    deep_path = OIIO_TESTSUITE_ROOT + "/oiiotool-deep/src/deepalpha.exr"
+    ii = oiio.ImageInput.open (deep_path)
+    assert ii is not None
+    print ("  deep file:", ii.spec().deep)
+    dd = ii.read_native_deep_image ()
+    print ("  read_native_deep_image ok:", dd is not None)
+    if dd :
+        print ("  deep pixels:", dd.pixels, "channels:", dd.channels)
+    ii.close ()
+    print ("")
+
+    print ("Testing get_thumbnail:")
+    ii = oiio.ImageInput.open (OIIO_TESTSUITE_IMAGEDIR + "/tahoe-gps.jpg")
+    assert ii is not None
+    thumb = ii.get_thumbnail ()
+    print ("  get_thumbnail returns ImageBuf:", isinstance (thumb, oiio.ImageBuf))
+    print ("  thumbnail initialized:", thumb.initialized)
+    ii.close ()
+    print ("")
+
+    print ("Testing has_error/geterror:")
+    ii = oiio.ImageInput.open ("grid.tx")
+    assert ii is not None
+    data = ii.read_scanline (0, 0, oiio.UINT8)
+    print ("  scanline on tiled None:", data is None)
+    print ("  has_error:", ii.has_error)
+    err1 = ii.geterror (clear=False)
+    err2 = ii.geterror (clear=False)
+    print ("  geterror persists:", len (err1) > 0 and err1 == err2)
+    ii.geterror (clear=True)
+    print ("  has_error after clear:", ii.has_error)
+    ii.close ()
+    print ("")
+
+
 
 ######################################################################
 # main test starts here
@@ -320,6 +398,8 @@ try:
 
     test_tiff_remembering_config()
     test_tiff_cmyk()
+
+    test_imageinput_api ()
 
     # Test is_imageio_format_name
     print ("is_imageio_format_name('tiff') =", oiio.is_imageio_format_name('tiff'))

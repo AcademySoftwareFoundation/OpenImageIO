@@ -1,0 +1,68 @@
+Testing version constants:
+  __version__ looks valid: True
+  VERSION_STRING looks valid: True
+  __version__ == VERSION_STRING: True
+  VERSION == openimageio_version: True
+  VERSION matches major/minor/patch encoding: True
+  VERSION is positive: True
+  VERSION_MAJOR >= 1: True
+  VERSION_MINOR >= 0: True
+  VERSION_PATCH >= 0: True
+  INTRO_STRING starts with OpenImageIO: True
+  AutoStride = -9223372036854775808
+
+Testing is_imageio_format_name:
+  tiff = True
+  openexr = True
+  txff = False
+
+Testing equivalent_colorspace:
+  sRGB vs sRGB = True
+  linear vs Linear = True
+  sRGB vs linear = False
+
+Testing set_colorspace module helpers:
+  after set_colorspace(sRGB): sRGB
+  after set_colorspace(empty): 
+  after set_colorspace_rec709_gamma(2.2): g22_rec709_scene
+
+Testing global attribute() one-arg:
+  plugin_searchpath str: path/A:path/B
+  threads int: 6
+  debug int: 0
+  font_searchpath str: /fonts
+  font_searchpath bytes type: True
+  font_searchpath bytes: b'/fonts'
+
+Testing global attribute() typed:
+  threads typed get: 4
+  version typed looks valid: True
+  version typed == __version__: True
+  missing typed get: None
+
+Testing global get_*_attribute defaults:
+  get_int missing: 99
+  get_float missing: 1.5
+  get_string missing: default
+  get_bytes missing: b'default'
+  get_int plugin_searchpath (wrong type) default: 77
+  get_float on int attribute returns default: True
+
+Testing getattribute() with TypeUnknown:
+  getattribute(missing, TypeUnknown): None
+
+Testing getattribute() one-arg (pybind default):
+  one-arg: TypeError
+
+Testing attribute() type error:
+  attribute bad type: TypeError
+
+Testing geterror:
+  geterror before error: ''
+  open returned: None
+  geterror(clear=False) nonempty: True
+  geterror persists: True
+  geterror(clear=True) same as prior: True
+  geterror after clear: ''
+
+Done.
