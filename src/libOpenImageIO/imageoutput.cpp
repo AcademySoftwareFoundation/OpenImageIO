@@ -30,8 +30,20 @@ using namespace pvt;
 using namespace OIIO::pvt;
 
 
-// store an error message per thread, for a specific ImageInput
-static thread_local tsl::robin_map<uint64_t, std::string> output_error_messages;
+// Store an error message per thread, for a specific ImageOutput (keyed by
+// the ImageOutput's unique id). Wrapped in a small struct carrying an "alive"
+// flag set false by its own destructor, so that an ImageOutput destroyed
+// during thread/program teardown -- after this thread_local has already been
+// destroyed (the static destruction order fiasco) -- can detect that and skip
+// touching the dead map.
+namespace {
+struct OutputErrorMessages {
+    tsl::robin_map<uint64_t, std::string> map;
+    bool alive = true;
+    ~OutputErrorMessages() { alive = false; }
+};
+}  // namespace
+static thread_local OutputErrorMessages output_error_messages;
 static std::atomic_int64_t output_next_id(0);
 
 
@@ -94,10 +106,14 @@ ImageOutput::ImageOutput()
 
 ImageOutput::~ImageOutput()
 {
-    // Erase any leftover errors from this thread
-    // TODO: can we clear other threads' errors?
-    // TODO: potentially unsafe due to the static destruction order fiasco
-    // output_error_messages.erase(this);
+    // Erase any leftover error for this ImageOutput so the per-thread map does
+    // not grow without bound when many outputs are created. Guard against the
+    // static destruction order fiasco: if the thread_local map has already
+    // been destroyed, its 'alive' flag is false and we must not touch it.
+    // TODO: this only clears the entry if we are destroyed on the same thread
+    // that accumulated the error; cross-thread errors still leak.
+    if (output_error_messages.alive)
+        output_error_messages.map.erase(m_impl->m_id);
 }
 
 
@@ -392,7 +408,7 @@ ImageOutput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& err_str = output_error_messages[m_impl->m_id];
+    std::string& err_str = output_error_messages.map[m_impl->m_id];
     OIIO_DASSERT(
         err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
@@ -859,8 +875,8 @@ ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, TypeDesc format,
 bool
 ImageOutput::has_error() const
 {
-    auto iter = output_error_messages.find(m_impl->m_id);
-    if (iter == output_error_messages.end())
+    auto iter = output_error_messages.map.find(m_impl->m_id);
+    if (iter == output_error_messages.map.end())
         return false;
     return iter.value().size() > 0;
 }
@@ -871,11 +887,11 @@ std::string
 ImageOutput::geterror(bool clear) const
 {
     std::string e;
-    auto iter = output_error_messages.find(m_impl->m_id);
-    if (iter != output_error_messages.end()) {
+    auto iter = output_error_messages.map.find(m_impl->m_id);
+    if (iter != output_error_messages.map.end()) {
         e = iter.value();
         if (clear)
-            output_error_messages.erase(iter);
+            output_error_messages.map.erase(iter);
     }
     return e;
 }
