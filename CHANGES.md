@@ -1,3 +1,24 @@
+Release 3.1.15.0 (Jul 1, 2026) -- compared to 3.1.14.1
+---------------------------------------------------------
+  - *deepdata*: Widen `merge_deep_pixels` srcpixel to int64_t, change its return type, and add `OIIO_NODISCARD_ERROR`. [#5252](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5252) [#5253](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5253) (by @luna-y-kim / Luna Kim)
+  - *ImageBuf*: Fix copy ctor of IC-backed ImageBuf zeroing bufspan strides. [#5244](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5244)
+  - *cineon*: More robust to invalid numbers of channels and bit depths; also fixes a channel-naming counter bug and a memory leak in init(). [#5250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5250) (3.1.15.0, 3.0.20.0)
+  - *deepdata*: Correct Zback channel in `sort()`, change int pixel to int64_t. [#5241](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5241) (by @luna-y-kim / Luna Kim)
+  - *fits*: Fix stack overflow from recursive header-block reading on corrupt files; convert to an iterative loop with a 10000-header safety limit. [#5248](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5248) (3.1.15.0, 3.0.20.0)
+  - *fmath.h*: Fix typo in `convert_type` default argument, `min()` should have been `max()`. [#5227](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5227) (by @luna-y-kim / Luna Kim)
+  - *hdr*: Make the HDR reader tolerant to CR in the ASCII header. [#5261](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5261)
+  - *iff*: Fix allocation bug when reading 16 bit RGBA + float z (buffer size did not account for the z channel). [#5251](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5251) (3.1.15.0, 3.0.20.0)
+  - *tiff*: The "tiff:half" hint was only applying to first MIP level. [#5240](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5240)
+  - *ci*: Fixes to build_opencolorio.bash script [#5219](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5219); upgrade 'latest' CI tests to OpenEXR v3.4.14, fmt 12.2, PugiXML v1.16 [#5245](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5245).
+  - *build*: Add support for gcc-15 [#5126](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5126), gcc-16 [#5225](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5225), and C++26 [#5230](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5230), each tested in CI.
+  - *build*: Suppress warnings in fmt library when building on Mac. [#5237](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5237) (by @antond-weta / Anton Dukhovnikov) (3.1.15.0, 3.0.20.0)
+  - *int*: Remove deprecated `std::codecvt` from strutil.cpp internals. [#5107](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5107)
+  - *docs*: Fix typos in fmath.h comments. [#5222](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5222) (by @luna-y-kim / Luna Kim) (3.1.15.0, 3.0.20.0)
+  - *docs*: Fix typos and update reference link in deepdata comments. [#5238](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5238) (by @luna-y-kim / Luna Kim)
+  - *docs*: Clarify plugin.h explanations by saying their Unix-like equivalents. [#5226](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5226)
+  - *docs*: Fix typo in bitcast docs. [#5255](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5255)
+
+
 Release 3.1.14.1 (Jun 14, 2026) -- compared to 3.1.14.0
 ---------------------------------------------------------
   - *build*: Fix build break when auto-build pystring is needed, after it updated to v1.2.0. [#5235](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5235)
@@ -532,6 +553,16 @@ asterisk) had not previously contributed to the project.
 
 ---
 ---
+
+
+Release 3.0.20.0 (Jul 1, 2026) -- compared to 3.0.19.1
+---------------------------------------------------------
+  - *cineon*: More robust to invalid numbers of channels and bit depths; also fixes a channel-naming counter bug and a memory leak in init(). [#5250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5250)
+  - *fits*: Fix stack overflow from recursive header-block reading on corrupt files; convert to an iterative loop with a 10000-header safety limit. [#5248](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5248)
+  - *iff*: Fix allocation bug when reading 16 bit RGBA + float z (buffer size did not account for the z channel). [#5251](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5251)
+  - *ci*: Address disabled old node support on aswf-old jobs for OIIO 3.0. [#5278](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5278)
+  - *build*: Suppress warnings in fmt library when building on Mac. [#5237](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5237) (by @antond-weta / Anton Dukhovnikov)
+  - *docs*: Fix typos in fmath.h comments. [#5222](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5222) (by @luna-y-kim / Luna Kim)
 
 
 Release 3.0.19.1 (Jun 14, 2026) -- compared to 3.0.19.0
