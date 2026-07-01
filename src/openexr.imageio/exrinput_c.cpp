@@ -1118,6 +1118,9 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     // if (m_miplevel == 0 && part.nmiplevels > 1)
     //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
+    if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 1 << 12 }))
+        return false;
+
     if (miplevel == 0 && part.levelmode == EXR_TILE_ONE_LEVEL) {
         return true;
     }
