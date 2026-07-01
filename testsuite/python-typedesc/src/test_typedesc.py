@@ -164,6 +164,22 @@ try:
     print ("box2i is_box2,is_box3 =",
            oiio.TypeDesc("box2i").is_box2(oiio.INT),
            oiio.TypeDesc("box2i").is_box3(oiio.INT))
+    vector = oiio.TypeDesc("vector")
+    box2 = oiio.TypeDesc("box2")
+    box2i = oiio.TypeDesc("box2i")
+    print ("vector is_vec2(),is_vec3(),is_vec4() defaults =",
+           vector.is_vec2(), vector.is_vec3(), vector.is_vec4())
+    print ("vector defaults match explicit FLOAT =",
+           vector.is_vec2() == vector.is_vec2(oiio.FLOAT),
+           vector.is_vec3() == vector.is_vec3(oiio.FLOAT),
+           vector.is_vec4() == vector.is_vec4(oiio.FLOAT))
+    print ("box2 is_box2(),is_box3() defaults =",
+           box2.is_box2(), box2.is_box3())
+    print ("box2 defaults match explicit FLOAT =",
+           box2.is_box2() == box2.is_box2(oiio.FLOAT),
+           box2.is_box3() == box2.is_box3(oiio.FLOAT))
+    print ("box2i is_box2() default vs INT =",
+           box2i.is_box2(), box2i.is_box2(oiio.INT))
     print ("all_types_equal([uint8,uint8]) =",
            oiio.TypeDesc.all_types_equal([oiio.TypeDesc("uint8"),
                                           oiio.TypeDesc("uint8")]))

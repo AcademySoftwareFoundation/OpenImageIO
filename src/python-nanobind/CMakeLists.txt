@@ -3,11 +3,11 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 set (nanobind_srcs
-     py_oiio.cpp
-     py_paramvalue.cpp
-     py_roi.cpp
-     py_imagespec.cpp
-     py_typedesc.cpp)
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_oiio.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_paramvalue.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_roi.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_imagespec.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_typedesc.cpp)
 
 set (nanobind_build_package_dir ${CMAKE_BINARY_DIR}/lib/python/nanobind/OpenImageIO)
 file (MAKE_DIRECTORY ${nanobind_build_package_dir})
@@ -20,13 +20,11 @@ setup_python_module_nanobind (
     MODULE    _OpenImageIO
     SOURCES   ${nanobind_srcs}
     LIBS      OpenImageIO
+    PACKAGE_FILES __init__.py
 )
 
-if (OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "nanobind")
-    if (SKBUILD)
-        install (FILES __init__.py DESTINATION . COMPONENT user)
-    else ()
-        install (FILES __init__.py
-                 DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
-    endif ()
-endif ()
+target_compile_definitions (PyOpenImageIONanobind
+                            PRIVATE OIIO_PY_BACKEND_NANOBIND
+                                    OIIO_PY_NANOBIND_ISOLATED_PACKAGE)
+target_include_directories (PyOpenImageIONanobind
+                            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../python)
