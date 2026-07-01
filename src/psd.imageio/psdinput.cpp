@@ -1013,24 +1013,35 @@ PSDInput::validate_header()
         errorfmt("[Header] invalid depth {}", m_header.depth);
         return false;
     }
-    if (m_WantRaw)
-        return true;
-
-    //There are other (undocumented) color modes not listed here
+    // Reject any color mode outside the known set before the RawColor early
+    // return below: setup() indexes mode_channel_count/mode_channel_names by
+    // m_header.color_mode unconditionally (even for raw reads), so an
+    // out-of-table value (or one of the undocumented gaps, e.g. 5 and 6)
+    // must never reach that point regardless of m_WantRaw.
     switch (m_header.color_mode) {
     case ColorMode_Bitmap:
     case ColorMode_Indexed:
     case ColorMode_RGB:
     case ColorMode_Grayscale:
     case ColorMode_CMYK:
-    case ColorMode_Multichannel: break;
+    case ColorMode_Multichannel:
+    case ColorMode_Duotone:
+    case ColorMode_Lab: break;
+    default:
+        errorfmt("[Header] unrecognized color mode {:d}", m_header.color_mode);
+        return false;
+    }
+
+    if (m_WantRaw)
+        return true;
+
+    // Duotone and Lab are only supported via the raw path (handled above).
+    switch (m_header.color_mode) {
     case ColorMode_Duotone:
     case ColorMode_Lab:
         errorfmt("[Header] unsupported color mode {:d}", m_header.color_mode);
         return false;
-    default:
-        errorfmt("[Header] unrecognized color mode {:d}", m_header.color_mode);
-        return false;
+    default: break;
     }
     return true;
 }
