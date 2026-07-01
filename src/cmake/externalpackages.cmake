@@ -259,6 +259,11 @@ else ()
     get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
 endif ()
 
+# Ktx for KTX textures
+checked_find_package (Ktx
+  VERSION_MIN 5.0.0
+  BUILD_LOCAL missing
+)
 
 ###########################################################################
 
