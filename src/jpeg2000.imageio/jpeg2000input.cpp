@@ -597,11 +597,33 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
         return false;
     }
 
+    // The JPEG2000 canvas (x0,y0)-(x1,y1) is the authoritative image size.
+    // Each component samples that canvas at its own subsampling factor.
+    const unsigned int canvas_w = (m_image->x1 > m_image->x0)
+                                      ? m_image->x1 - m_image->x0
+                                      : 0;
+    const unsigned int canvas_h = (m_image->y1 > m_image->y0)
+                                      ? m_image->y1 - m_image->y0
+                                      : 0;
     for (int c = 0; c < channelCount; ++c) {
         const opj_image_comp_t& comp(m_image->comps[c]);
         if (!comp.data) {
             errorfmt("Could not read Jpeg2000 component, no channel data {}",
                      c);
+            close();
+            return false;
+        }
+        // Reject corrupt files whose component geometry is inconsistent with
+        // the image canvas. A subsampling factor must be nonzero and cannot
+        // exceed the canvas (a step larger than the whole image is not a real
+        // image); such values otherwise inflate the derived ImageSpec far
+        // beyond the actual canvas and lead to out-of-bounds reads of the
+        // decoded component data.
+        if (comp.dx == 0 || comp.dy == 0 || comp.dx > canvas_w
+            || comp.dy > canvas_h) {
+            errorfmt(
+                "Invalid Jpeg2000 component {} subsampling {}x{} for {}x{} image",
+                c, comp.dx, comp.dy, canvas_w, canvas_h);
             close();
             return false;
         }
@@ -800,15 +822,25 @@ Jpeg2000Input::copy_scanline(int y, int /*z*/, void* data)
     int bits = sizeof(T) * 8;
     for (int c = 0; c < nc; ++c) {
         const opj_image_comp_t& comp(m_image->comps[c]);
-        int chan_ybegin = comp.y0, chan_yend = comp.y0 + comp.h * comp.dy;
-        int chan_xend = comp.w * comp.dx;
-        int yoff      = (y - comp.y0) / comp.dy;
+        // The decoded component data is a comp.w x comp.h array of samples,
+        // possibly subsampled by comp.dx/comp.dy relative to the full image.
+        // A malformed file can have component geometry that doesn't match the
+        // image spec, so bounds-check every access against the actual array
+        // rather than trusting the dimensions to line up.
+        if (!comp.data || comp.dx == 0 || comp.dy == 0) {
+            for (int x = 0; x < m_spec.width; ++x)
+                scanline[x * nc + c] = T(0);
+            continue;
+        }
+        int comp_row = (y - int(comp.y0)) / int(comp.dy);
         for (int x = 0; x < m_spec.width; ++x) {
-            if (yoff < chan_ybegin || yoff >= chan_yend || x > chan_xend) {
+            int comp_col = x / int(comp.dx);
+            if (comp_row < 0 || comp_row >= int(comp.h) || comp_col < 0
+                || comp_col >= int(comp.w)) {
                 // Outside the window of this channel
                 scanline[x * nc + c] = T(0);
             } else {
-                unsigned int val = comp.data[yoff * comp.w + x / comp.dx];
+                unsigned int val = comp.data[comp_row * comp.w + comp_col];
                 if (comp.sgnd)
                     val += (1 << (bits / 2 - 1));
                 scanline[x * nc + c] = (T)bit_range_convert(val, comp.prec,
