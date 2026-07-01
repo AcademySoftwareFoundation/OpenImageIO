@@ -1232,6 +1232,18 @@ Reading images
         to following the input with a `--ch` command, except that by integrating
         into the `-i`, it potentially can avoid the I/O of the unneeded
         channels.
+      `:get_thumbnail=` *int*
+        If nonzero, read the file's embedded thumbnail instead of its main
+        image (equivalent to a following `--get-thumbnail`). The `:fail=` and
+        `:index=` modifiers are forwarded (e.g. `-i:get_thumbnail=1:fail=0`),
+        and any auto-orientation or color conversion applies to the thumbnail.
+        Since a thumbnail is display-referred (typically sRGB), `:autocc=` will
+        linearize it like any other input.
+
+        Examples::
+
+            # Extract just the thumbnail from a large image
+            oiiotool -i:get_thumbnail=1 input.psd -o thumb.jpg
 
 .. option:: --iconfig <name> <value>
 
@@ -2338,6 +2350,50 @@ current top image.
 
     Additionally, this command can be used to remove one subimage (leaving
     the others) by using the optional modifier `--subimage:delete=1`.
+
+.. option:: --get-thumbnail
+
+    Replace the top image on the stack with its embedded thumbnail.
+    The thumbnail associated with the first subimage (subimage 0) is used.
+    Because this replaces the top image, use ``--dup`` beforehand if you also
+    want to keep the original.
+
+    Optional appended modifiers include:
+
+    `:fail=` *int* (default: 1)
+      If 1, it is an error if the image has no embedded thumbnail.
+      If 0, an empty (0x0) image is pushed in its place instead, so a batch
+      script can continue; guard any subsequent output (see the example
+      below), since writing the empty image is itself an error.
+
+    `:index=` *int* (default: 0)
+      Selects which embedded thumbnail to retrieve, for formats that can
+      store more than one (such as some camera raw formats). Currently only
+      the primary thumbnail (`index=0`, the default) is available; a nonzero
+      value is an error until multiple-thumbnail support is added (see issue
+      #4888).
+
+    Examples::
+
+        # Save the thumbnail
+        oiiotool input.psd --dup --get-thumbnail -o thumb.jpg
+
+        # Batch-safe: substitute an empty image for missing thumbnails, and
+        # guard the output so only real thumbnails are written
+        oiiotool input.psd --get-thumbnail:fail=0 --if "{TOP.width}" -o thumb.jpg --endif
+
+.. option:: --set-thumbnail
+
+    Remove the top image from the stack and attach it as the thumbnail of the
+    image now on top (stored on the first subimage). The thumbnail may be
+    prepared beforehand with the usual image operations. It is written out only
+    if the output format supports embedded thumbnails, and may be resized or
+    otherwise adjusted to satisfy that format's restrictions.
+
+    Examples::
+
+        # Attach a 128x128 box-filtered copy of the image as its thumbnail
+        oiiotool input.exr --dup --resize:filter=box 128x128 --set-thumbnail -o out_with_thumb.tga
 
 .. option:: --sisplit
 
