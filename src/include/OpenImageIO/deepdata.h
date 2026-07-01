@@ -158,14 +158,16 @@ public:
     /// Copy a deep sample from `src` to this `DeepData`. They must have the
     /// same channel layout. Return `true` if ok, `false` if the operation
     /// could not be performed.
-    bool copy_deep_sample(int64_t pixel, int sample, const DeepData& src,
-                          int64_t srcpixel, int srcsample);
+    OIIO_NODISCARD_ERROR bool copy_deep_sample(int64_t pixel, int sample,
+                                               const DeepData& src,
+                                               int64_t srcpixel, int srcsample);
 
     /// Copy an entire deep pixel from `src` to this `DeepData`, completely
     /// replacing any pixel data for that pixel. They must have the same
     /// channel layout. Return `true` if ok, `false` if the operation could
     /// not be performed.
-    bool copy_deep_pixel(int64_t pixel, const DeepData& src, int64_t srcpixel);
+    OIIO_NODISCARD_ERROR bool
+    copy_deep_pixel(int64_t pixel, const DeepData& src, int64_t srcpixel);
 
     /// Split all samples of that pixel at the given depth zsplit. Samples
     /// that span z (i.e. z < zsplit < zback) will be split into two samples
@@ -188,8 +190,8 @@ public:
     /// Merge the samples of `src`'s pixel into this `DeepData`'s pixel.
     /// Return `true` if ok, `false` if the operation could not be
     /// performed.
-    void merge_deep_pixels(int64_t pixel, const DeepData& src,
-                           int64_t srcpixel);
+    OIIO_NODISCARD_ERROR bool
+    merge_deep_pixels(int64_t pixel, const DeepData& src, int64_t srcpixel);
 
 #ifdef OIIO_INTERNAL
     // DEPRECATED(3.2): use the version with int64_t

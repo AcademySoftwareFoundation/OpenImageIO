@@ -59,11 +59,11 @@ DeepData_set_deep_value_uint(DeepData& dd, int64_t pixel, int channel,
 // merge_deep_pixels is overloaded: the public int64_t version and an
 // internal-only int version (DEPRECATED(3.2)) which is kept for ABI.
 // To avoid ambiguity, wrap it to specify the int64_t version.
-void
+bool
 DeepData_merge_deep_pixels(DeepData& dd, int64_t pixel, const DeepData& src,
                            int64_t srcpixel)
 {
-    dd.merge_deep_pixels(pixel, src, srcpixel);
+    return dd.merge_deep_pixels(pixel, src, srcpixel);
 }
 
 
