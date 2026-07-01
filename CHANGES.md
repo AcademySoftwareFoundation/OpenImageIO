@@ -1,3 +1,13 @@
+Release 3.0.20.0 (Jul 1, 2026) -- compared to 3.0.19.1
+---------------------------------------------------------
+  - *cineon*: More robust to invalid numbers of channels and bit depths; also fixes a channel-naming counter bug and a memory leak in init() [#5250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5250) (by @lgritz / Larry Gritz)
+  - *fits*: Fix stack overflow from recursive header-block reading on corrupt files; convert to an iterative loop with a 10000-header safety limit [#5248](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5248) (by @lgritz / Larry Gritz)
+  - *iff*: Fix allocation bug when reading 16 bit RGBA + float z (buffer size did not account for the z channel) [#5251](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5251) (by @lgritz / Larry Gritz)
+  - *ci*: Address disabled old node support on aswf-old jobs for OIIO 3.0 [#5278](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5278) (by @lgritz / Larry Gritz)
+  - *build*: Suppress warnings in fmt library when building on Mac [#5237](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5237) (by @antond-weta / Anton Dukhovnikov)
+  - *docs*: Fix typos in fmath.h comments [#5222](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5222) (by @luna-y-kim / Luna Kim)
+
+
 Release 3.0.19.1 (Jun 14, 2026) -- compared to 3.0.19.0
 ---------------------------------------------------------
   - *build*: Fix build break when auto-build pystring is needed, after it updated to v1.2.0 [#5235](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5235)

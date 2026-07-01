@@ -42,7 +42,7 @@ Follow the skeleton in `docs/dev/Changes-skeleton-patch.md`:
 ```
 Release X.Y.Z.W (Month DD, YYYY) -- compared to X.Y.Z.W-1
 ---------------------------------------------------------
-- *category*: Description. [#NNNN](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/NNNN) (by author)
+- *category*: Description. [#NNNN](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/NNNN) (by @authorid / author-full-name)
 ```
 
 Rules:
