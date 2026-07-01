@@ -188,7 +188,7 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (!seek_subimage(subimage, miplevel))
         return false;
 
-    if (y < 0 || y > m_spec.height)
+    if (y < 0 || y >= m_spec.height)
         return false;
 
     y = m_spec.height - y - 1;
@@ -410,16 +410,26 @@ SgiInput::read_header()
 bool
 SgiInput::read_offset_tables()
 {
-    int tables_size = m_sgi_header.ysize * m_sgi_header.zsize;
+    // The RLE offset/length tables hold one entry per (scanline, channel),
+    // i.e. height * nchannels entries each. For a well-formed file this equals
+    // the header's ysize*zsize, but we deliberately size by the validated spec
+    // dimensions -- which are also what read_native_scanline() uses to index
+    // the tables -- so a corrupt header with bogus ysize/zsize cannot desync
+    // the table size from the indices and provoke an out-of-bounds access.
+    int tables_size = m_spec.height * m_spec.nchannels;
+    if (tables_size <= 0) {
+        errorfmt("Invalid SGI image dimensions");
+        return false;
+    }
     start_tab.resize(tables_size);
     length_tab.resize(tables_size);
-    if (!ioread(&start_tab[0], sizeof(uint32_t), tables_size)
-        || !ioread(&length_tab[0], sizeof(uint32_t), tables_size))
+    if (!ioread(start_tab.data(), sizeof(uint32_t), tables_size)
+        || !ioread(length_tab.data(), sizeof(uint32_t), tables_size))
         return false;
 
     if (littleendian()) {
-        swap_endian(&length_tab[0], length_tab.size());
-        swap_endian(&start_tab[0], start_tab.size());
+        swap_endian(length_tab.data(), length_tab.size());
+        swap_endian(start_tab.data(), start_tab.size());
     }
     return true;
 }

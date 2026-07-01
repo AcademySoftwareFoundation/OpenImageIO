@@ -33,3 +33,4 @@ src/broken01.sgi :    8 x    2, 1 channel, uint8 sgi
     channel list: Y
     compression: "rle"
 iinfo ERROR: "src/broken01.sgi" : Corrupt RLE data
+iinfo ERROR: "src/broken02.sgi" : Read error: hit end of file in sgi reader
