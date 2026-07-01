@@ -1,0 +1,4 @@
+texture-device: startup-ok
+texture-device: passes=3
+texture-device: requests=0
+texture-device: wrote out.exr
