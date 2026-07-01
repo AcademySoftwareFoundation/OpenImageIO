@@ -49,8 +49,10 @@
 // without ever allocating a buffer proportional to the whole image. Tiled
 // images are read one row of tiles at a time; scanline images are read 16 rows
 // at a time. This keeps the resident buffer tiny so a corrupt-but-large image
-// does not trip the fuzzer's RSS limit with a false positive. Read errors are
-// intentionally ignored.
+// does not trip the fuzzer's RSS limit with a false positive. A read error
+// stops the scan immediately (matching how iconvert/oiiotool bail out on the
+// first read failure) rather than looping through every remaining chunk of a
+// corrupt image, which previously produced fuzzer timeout false positives.
 inline void
 oiio_fuzz_read_subimage(OIIO::ImageInput* inp, int subimage)
 {
@@ -77,8 +79,9 @@ oiio_fuzz_read_subimage(OIIO::ImageInput* inp, int subimage)
                 const int yend = std::min(y + th, spec.y + spec.height);
                 OIIO::image_span<uint8_t> ispan(buf.data(), nch, xend - xbegin,
                                                 yend - y, zend - z);
-                (void)inp->read_tiles(subimage, 0, xbegin, xend, y, yend, z,
-                                      zend, 0, nch, ispan);
+                if (!inp->read_tiles(subimage, 0, xbegin, xend, y, yend, z,
+                                     zend, 0, nch, ispan))
+                    return;
             }
         }
     } else {
@@ -90,7 +93,8 @@ oiio_fuzz_read_subimage(OIIO::ImageInput* inp, int subimage)
             const int yend = std::min(y + chunk, spec.y + spec.height);
             OIIO::image_span<uint8_t> ispan(buf.data(), nch, spec.width,
                                             yend - y, 1);
-            (void)inp->read_scanlines(subimage, 0, y, yend, 0, nch, ispan);
+            if (!inp->read_scanlines(subimage, 0, y, yend, 0, nch, ispan))
+                return;
         }
     }
 }
