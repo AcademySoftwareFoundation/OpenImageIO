@@ -209,7 +209,8 @@ DeepData::DeepData(const DeepData& src, cspan<TypeDesc> channeltypes)
     set_all_samples(src.all_samples());
     // Copy the data from src to this
     for (int64_t p = 0, np = pixels(); p < np; ++p) {
-        copy_deep_pixel(p, src, p);
+        bool ok = copy_deep_pixel(p, src, p);
+        OIIO_CONTRACT_ASSERT(ok);
     }
 }
 
@@ -974,7 +975,9 @@ DeepData::split(int64_t pixel, float depth)
             // See https://openexr.com/en/latest/InterpretingDeepPixels.html
             splits_occurred = true;
             insert_samples(pixel, s + 1);
-            copy_deep_sample(pixel, s + 1, *this, pixel, s);
+            // copy_deep_sample at this point with these arguments likely returns true
+            bool ok = copy_deep_sample(pixel, s + 1, *this, pixel, s);
+            OIIO_CONTRACT_ASSERT(ok);
             set_deep_value(pixel, zbackchan, s, depth);
             set_deep_value(pixel, zchan, s + 1, depth);
             // We have to proceed in two passes, since we may reuse the
@@ -1166,26 +1169,28 @@ DeepData::merge_overlaps(int64_t pixel)
 
 
 
-void
+bool
 DeepData::merge_deep_pixels(int64_t pixel, const DeepData& src,
                             int64_t srcpixel)
 {
     int srcsamples = src.samples(srcpixel);
     if (srcsamples == 0)
-        return;  // No samples to merge
+        return true;  // No samples to merge
     int dstsamples = samples(pixel);
     if (dstsamples == 0) {
         // Nothing in our pixel yet, so just copy src's pixel
-        copy_deep_pixel(pixel, src, srcpixel);
-        return;
+        return copy_deep_pixel(pixel, src, srcpixel);
     }
 
     // Need to merge the pixels
 
     // First, merge all of src's samples into our pixel
     set_samples(pixel, dstsamples + srcsamples);
-    for (int i = 0; i < srcsamples; ++i)
-        copy_deep_sample(pixel, dstsamples + i, src, srcpixel, i);
+    for (int i = 0; i < srcsamples; ++i) {
+        bool ok = copy_deep_sample(pixel, dstsamples + i, src, srcpixel, i);
+        if (!ok)
+            return false;
+    }
 
     // Now ALL the samples from both images are in our pixel.
     // Mutually split the samples against each other.
@@ -1202,6 +1207,7 @@ DeepData::merge_deep_pixels(int64_t pixel, const DeepData& src,
 
     // Now merge the overlaps
     merge_overlaps(pixel);
+    return true;
 }
 
 
@@ -1210,7 +1216,9 @@ DeepData::merge_deep_pixels(int64_t pixel, const DeepData& src,
 void
 DeepData::merge_deep_pixels(int64_t pixel, const DeepData& src, int srcpixel)
 {
-    merge_deep_pixels(pixel, src, int64_t(srcpixel));
+    // Deprecated overload stays void, so discard the bool status from
+    // the int64_t version.
+    (void)merge_deep_pixels(pixel, src, int64_t(srcpixel));
 }
 
 
