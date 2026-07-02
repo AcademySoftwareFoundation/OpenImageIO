@@ -4,6 +4,8 @@
 
 #include "blend.h"
 
+#include "arena.h"
+
 int
 main()
 {
@@ -12,8 +14,9 @@ main()
     texture_device::BlendOp op;
     op.width  = 1;
     op.height = 1;
-    texture_device::blend_kernel(0, 0,
-                                 texture_device::tagged_ptr<void>(&op, "Host"));
+    texture_device::blend_kernel(
+        0, 0,
+        texture_device::tagged_ptr<void>(&op, texture_device::Host::run_tag()));
 
     // Force an observable read of kernel-mutated state to avoid DCE.
     volatile bool kernel_recorded_failure = op.texture_system.failures();

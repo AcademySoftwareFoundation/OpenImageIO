@@ -18,6 +18,13 @@ and relaunches until all required data is resident.
 The test is intentionally scalar and pragmatic. It prioritizes architecture,
 correctness, and integration points over peak performance.
 
+The executable supports two memory modes:
+
+- non-unified (default): host and device allocations are distinct and explicit
+	copies are required.
+- unified (`--unified`): host and device may share the same underlying pointer,
+	while keeping the same manager/managed synchronization flow.
+
 # The Arena and tagged_ptr framework
 
 `Host` and `MockDevice` are the concrete arenas; both implement `alloc/free`,
@@ -27,6 +34,18 @@ correctness, and integration points over peak performance.
 `tagged_ptr<T>` carries a lightweight context tag with every pointer. Dereference
 checks the tag against the active execution context and aborts on mismatch —
 catching accidental cross-boundary access without runtime overhead.
+
+## Unified memory policy in this prototype
+
+Unified mode is controlled by `NullArena::use_unified_memory`.
+
+- Allocation order for mirrored data is device first, then host with `mirror`.
+- In unified mode, host `alloc(mirror, ...)` returns `mirror` and does not
+	allocate another block.
+- Host `free()` treats mirrored unified pointers as externally owned, so the
+	device-side owner frees once.
+- Direction checks in `copy_to/copy_from/copy_in` still validate host vs device
+	intent, but accept unified-tagged pointers.
 
 ## Optional CUDA arena sketch
 
@@ -43,13 +62,14 @@ The runtime still uses `MockDevice`; `CudaArena` is a future integration sketch.
 The launch model is fail-and-retry:
 
 ```cpp
-// copy_to/copy_from take tagged_ptr<[const] void> to enforce context safety;
-// the snippet uses &op as shorthand for tagged_ptr<const void>(&op, "Host").
+// copy_to/copy_from take tagged_ptr<[const] void> with explicit memory tags.
 for (int pass = 0; pass < max_passes; ++pass) {
 	textures.begin_launch();
-	device.copy_to(device_op, &op, sizeof(op));
+	device.copy_to(device_op, tagged_ptr<const void>(&op, Host::mem_tag()),
+	               sizeof(op));
 	device.run(width, height, &blend_kernel, device_op);
-	device.copy_from(&op, device_op, sizeof(op));
+	device.copy_from(tagged_ptr<void>(&op, Host::mem_tag()), device_op,
+	                 sizeof(op));
 
 	textures.sync_from_managed();
 
@@ -142,7 +162,7 @@ Below is a sketch of how the managed mirror is constructed, synced, and transfer
     DTextureSystem<Host, MockDevice> texsys_host(host, device, texsys_gpu);
 	...
 	texsys_host.sync_to_managed();
-	device.copy_to(dptr, tagged_ptr<const void>(&texsys_host, "Host"),
+	device.copy_to(dptr, tagged_ptr<const void>(&texsys_host, Host::mem_tag()),
                        sizeof(DTextureSystem<MockDevice>));
 ```
 

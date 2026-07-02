@@ -105,11 +105,11 @@ public:
         m_managed.m_capacity   = m_capacity;
         m_managed.m_size       = m_size.load();
         m_managed.m_overflowed = m_overflowed.load();
-        m_managed.m_owner      = true;
+        m_managed.m_owner      = false;
         m_managed.m_slots
             = m_managed.m_arena->alloc(sizeof(Slot) * capacity,
                                        "ClosedHashMap::ClosedHashMap");
-        m_slots = m_arena->alloc(sizeof(Slot) * capacity,
+        m_slots = m_arena->alloc(m_managed.m_slots, sizeof(Slot) * capacity,
                                  "ClosedHashMap::ClosedHashMap");
 
         // Initialize manager-side slot states. Managed side is synchronized
@@ -141,8 +141,11 @@ public:
 
     ~ClosedHashMap()
     {
-        if (m_owner)
+        if (m_owner) {
+            if constexpr (IsManager)
+                m_managed.m_arena->free(m_managed.m_slots);
             m_arena->free(m_slots);
+        }
     }
 
     bool insert(const Key& key, const Value& value)
@@ -314,28 +317,40 @@ private:
         return static_cast<uint32_t>(slot_state(key) % m_capacity);
     }
 
-    bool resize(uint32_t new_capacity)
+    OPT_FUNCT(IsManager, bool)
+    resize(uint32_t new_capacity)
     {
-        tagged_ptr<Slot> old_slots = m_slots;
-        m_slots                    = m_arena->alloc(sizeof(Slot) * new_capacity,
-                                                    "ClosedHashMap::resize");
-        uint32_t old_capacity      = m_capacity;
-        m_capacity                 = new_capacity;
+        tagged_ptr<Slot> old_slots         = m_slots;
+        tagged_ptr<Slot> old_managed_slots = nullptr;
+        uint32_t old_capacity              = m_capacity;
         if constexpr (IsManager) {
-            clear();
-            // Reinsert so probe positions are rebuilt for the new capacity.
-            for (uint32_t i = 0; i < old_capacity; ++i) {
-                const Slot& slot     = old_slots[i];
-                const uint64_t state = slot.state.load();
-                if (state == kEmptyState || state == kReservedState)
-                    continue;
+            old_managed_slots = m_managed.m_slots;
+            m_managed.m_slots
+                = m_managed.m_arena->alloc(sizeof(Slot) * new_capacity,
+                                           "ClosedHashMap::resize");
+            m_managed.m_capacity = new_capacity;
+            m_slots              = m_arena->alloc(m_managed.m_slots,
+                                                  sizeof(Slot) * new_capacity,
+                                                  "ClosedHashMap::resize");
+        } else
+            m_slots = m_arena->alloc(nullptr, sizeof(Slot) * new_capacity,
+                                     "ClosedHashMap::resize");
+        m_capacity = new_capacity;
+
+        // Reinsert so probe positions are rebuilt for the new capacity.
+        clear();
+        for (uint32_t i = 0; i < old_capacity; ++i) {
+            const Slot& slot     = old_slots[i];
+            const uint64_t state = slot.state.load();
+            if (state != kEmptyState && state != kReservedState)
                 insert(slot.key, slot.value);
-            }
-            m_managed.resize(new_capacity);
+        }
+
+        if constexpr (IsManager) {
+            m_managed.m_arena->free(old_managed_slots);
             m_managed.m_arena->copy_to(m_managed.m_slots, m_slots,
                                        sizeof(Slot) * m_capacity);
-        }  // Otherwise reallocating slots is enough, manager will copy data
-
+        }
         m_arena->free(old_slots);
         return true;
     }

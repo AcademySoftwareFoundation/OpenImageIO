@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <unordered_map>
 
@@ -29,9 +30,24 @@ namespace texture_device {
 
 class NullArena {
 public:
+    static bool use_unified_memory;
+
+    static uint64_t g_arena_context;
     using Kernel = void (*)(int x, int y, tagged_ptr<void> data);
 
     // Methods an arena should implement
+    static constexpr uint64_t run_tag() { return 0; }
+    static constexpr uint64_t mem_tag() { return run_tag(); }
+
+    // Allocation contract for mirrored data:
+    // 1. Allocate the device arena first.
+    // 2. Allocate the host arena second, passing the device pointer as
+    //    `mirror`.
+    // In unified mode, host alloc should detect that `mirror` is already a
+    // shared pointer and skip allocating a second block.
+    tagged_ptr<void> alloc(tagged_ptr<void> mirror, size_t bytes,
+                           const char* purpose);
+    // Non-mirrored allocation path when no counterpart pointer exists.
     tagged_ptr<void> alloc(size_t bytes, const char* purpose);
     void free(tagged_ptr<void> p);
     void copy_to(tagged_ptr<void> device, tagged_ptr<const void> host,
@@ -46,9 +62,20 @@ public:
 
 class Host : public NullArena {
 public:
+    static constexpr uint64_t run_tag() { return maketag("Host"); }
+    static uint64_t mem_tag()
+    {
+        return use_unified_memory ? unified_ptr_tag() : run_tag();
+    }
+
     ~Host();
 
-    tagged_ptr<void> alloc(size_t bytes, const char* purpose);
+    tagged_ptr<void> alloc(tagged_ptr<void> mirror, size_t bytes,
+                           const char* purpose);
+    tagged_ptr<void> alloc(size_t bytes, const char* purpose)
+    {
+        return alloc(nullptr, bytes, purpose);
+    }
     void free(tagged_ptr<void> p);
     void copy_to(tagged_ptr<void> device, tagged_ptr<const void> host,
                  size_t bytes);
@@ -92,6 +119,12 @@ private:
 
 class MockDevice : public NullArena {
 public:
+    static constexpr uint64_t run_tag() { return maketag("MockDevice"); }
+    static uint64_t mem_tag()
+    {
+        return use_unified_memory ? unified_ptr_tag() : run_tag();
+    }
+
     template<typename T> using Atomic = Host::Atomic<T>;
     using NullArena::Kernel;
 
@@ -123,6 +156,12 @@ private:
 // This is intentionally not wired into the current test flow.
 class CudaArena : public NullArena {
 public:
+    static constexpr uint64_t run_tag() { return maketag("CudaDevice"); }
+    static uint64_t mem_tag()
+    {
+        return use_unified_memory ? unified_ptr_tag() : run_tag();
+    }
+
     template<typename T>
 #    ifdef __CUDA_ARCH__
     struct Atomic : public cuda::atomic<T> {

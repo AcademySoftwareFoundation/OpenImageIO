@@ -110,7 +110,6 @@ public:
         , m_arena(&arena)
         , m_managed(managed)
         , m_staging_page(nullptr)
-        , m_staging_index(0)
     {
         // Initialize managed-side storage explicitly; assignment would force
         // m_owner=false and break teardown invariants when no pages are grown.
@@ -119,7 +118,6 @@ public:
         m_managed.m_size          = 0;
         m_managed.m_owner         = false;
         m_managed.m_arena         = &marena;
-        m_staging_page = m_arena->alloc(sizeof(Page), "Stream::Stream()");
     }
 
     ~Stream()
@@ -132,11 +130,13 @@ public:
                 m_managed.m_arena->free(m_managed.m_pages);
                 m_managed.m_pages = nullptr;
                 m_arena->free(m_staging_page);
-                m_staging_page = nullptr;
             }
             m_arena->free(m_pages);
         }
     }
+
+    uint32_t staging_index() const { return m_size % kPageSize; }
+    uint32_t staging_page() const { return m_size % kPageSize; }
 
     OPT_FUNCT(IsManager, void)
     clear()
@@ -153,33 +153,15 @@ public:
                                                * m_page_capacity);
             }
         }
-        m_staging_index = m_size = m_managed.m_size = 0;
+        m_size = m_managed.m_size = 0;
     }
 
     OPT_FUNCT(IsManager, uint32_t)
     push_back(const T& value)
     {
-        // When a page fills, flush the staging page into managed-visible
-        // storage before starting the next one.
-        if (m_size && (m_size % kPageSize) == 0)
-            sync_stage();
-        uint32_t req_page_capacity = (m_size + kPageSize) / kPageSize;
-        if (req_page_capacity > m_page_capacity)
-            grow_page_capacity();
-        uint32_t page = req_page_capacity - 1;
-        if (!m_pages[page]) {
-            // Pages are allocated in managed arena memory so device-side reads
-            // can index them directly after sync.
-            m_pages[page] = m_managed.m_arena->alloc(sizeof(Page),
-                                                     "Stream::push_back");
-            m_managed.m_arena->copy_to(m_managed.m_pages, m_pages,
-                                       sizeof(tagged_ptr<Page>)
-                                           * m_page_capacity);
-            m_staging_index = 0;
-        }
-        (*m_staging_page)[m_staging_index] = value;
+        ensure_space();
+        (*m_staging_page)[staging_index()] = value;
         m_size++;
-        m_staging_index = m_size % kPageSize;
         return m_size - 1;
     }
 
@@ -206,28 +188,75 @@ private:
         return m_size / kPageSize + (m_size % kPageSize ? 1 : 0);
     }
 
+    OPT_FUNCT(IsManager, void)
+    ensure_space()
+    {
+        if (!m_staging_page) {
+            // First time
+            grow_page_capacity();
+            m_pages[0] = m_managed.m_arena->alloc(sizeof(Page),
+                                                  "Stream::push_back");
+            m_managed.m_arena->copy_to(m_managed.m_pages, m_pages,
+                                       sizeof(tagged_ptr<Page>)
+                                           * m_page_capacity);
+            m_staging_page = m_arena->alloc(m_pages[0], sizeof(Page),
+                                            "Stream::Stream()");
+        } else if (m_size && (m_size % kPageSize == 0)) {
+            // Make room for the next push_back
+            const bool unified_stage = m_pages[staging_page()]
+                                       == m_staging_page;
+            sync_stage();
+            uint32_t req_page_capacity = (m_size + kPageSize) / kPageSize;
+            if (req_page_capacity > m_page_capacity)
+                grow_page_capacity();
+            uint32_t page = req_page_capacity - 1;
+            if (!m_pages[page]) {
+                // Pages are allocated in managed arena memory so device-side reads
+                // can index them directly after sync.
+                m_pages[page] = m_managed.m_arena->alloc(sizeof(Page),
+                                                         "Stream::push_back");
+                m_managed.m_arena->copy_to(m_managed.m_pages, m_pages,
+                                           sizeof(tagged_ptr<Page>)
+                                               * m_page_capacity);
+            }
+            if (unified_stage)
+                m_staging_page = m_pages[page];
+        }
+    }
+
     size_t grow_page_capacity()
     {
         // Both manager and managed
         uint32_t newcap = m_page_capacity ? m_page_capacity * 2 : 2;
-        tagged_ptr<tagged_ptr<Page>> newp
-            = m_arena->alloc(sizeof(tagged_ptr<Page>) * newcap,
-                             "Stream::grow_page_capacity");
+        tagged_ptr<tagged_ptr<Page>> old_pages         = m_pages;
+        tagged_ptr<tagged_ptr<Page>> old_managed_pages = nullptr;
+        if constexpr (IsManager) {
+            old_managed_pages = m_managed.m_pages;
+            m_managed.m_pages
+                = m_managed.m_arena->alloc(sizeof(tagged_ptr<Page>) * newcap,
+                                           "Stream::grow_page_capacity");
+            m_pages                   = m_arena->alloc(m_managed.m_pages,
+                                                       sizeof(tagged_ptr<Page>) * newcap,
+                                                       "Stream::grow_page_capacity");
+            m_managed.m_page_capacity = newcap;
+            m_managed.m_owner         = false;
+        } else
+            m_pages = m_arena->alloc(nullptr, sizeof(tagged_ptr<Page>) * newcap,
+                                     "Stream::grow_page_capacity");
         // Ensure newly allocated pointer slots start null.
-        std::fill_n(newp.get(), newcap, tagged_ptr<Page>(nullptr));
-        m_arena->copy_in(newp, m_pages,
+        std::fill_n(m_pages.get(), newcap, tagged_ptr<Page>(nullptr));
+        m_arena->copy_in(m_pages, old_pages,
                          sizeof(tagged_ptr<Page>) * m_page_capacity);
         m_page_capacity = newcap;
-        if (m_owner)
-            m_arena->free(m_pages);
-        m_pages = newp;
-        m_owner = true;
-        // Managed only
         if constexpr (IsManager) {
-            m_managed.grow_page_capacity();
-            m_managed.m_owner = false;
-            assert(m_page_capacity == m_managed.m_page_capacity);
+            m_managed.m_arena->copy_to(m_managed.m_pages, m_pages,
+                                       sizeof(tagged_ptr<Page>)
+                                           * m_page_capacity);
+            m_arena->free(old_managed_pages);
         }
+        if (m_owner)
+            m_arena->free(old_pages);
+        m_owner = true;
         return m_page_capacity;
     }
 
@@ -254,7 +283,6 @@ private:
     // Manager only
     OPT_FIELD(IsManager, Managed&) m_managed;
     OPT_FIELD(IsManager, tagged_ptr<Page>) m_staging_page;
-    OPT_FIELD(IsManager, uint32_t) m_staging_index;
 };
 
 }  // namespace texture_device

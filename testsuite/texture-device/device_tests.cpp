@@ -136,6 +136,35 @@ run_device_unit_tests()
         return false;
 
     {
+        const bool prev_unified       = NullArena::use_unified_memory;
+        NullArena::use_unified_memory = true;
+
+        Host unified_host;
+        MockDevice unified_device;
+
+        tagged_ptr<void> device_ptr
+            = unified_device.alloc(256, "unit::unified_device_first");
+        if (!device_ptr || device_ptr.tag() != unified_ptr_tag()) {
+            NullArena::use_unified_memory = prev_unified;
+            return false;
+        }
+
+        tagged_ptr<void> host_ptr
+            = unified_host.alloc(device_ptr, 256, "unit::unified_host_mirror");
+        if (!host_ptr || host_ptr.get() != device_ptr.get()
+            || host_ptr.tag() != unified_ptr_tag()) {
+            NullArena::use_unified_memory = prev_unified;
+            return false;
+        }
+
+        // Host should treat mirrored unified pointers as externally owned.
+        unified_host.free(host_ptr);
+        unified_device.free(device_ptr);
+
+        NullArena::use_unified_memory = prev_unified;
+    }
+
+    {
         DTextureSystem<Host> system(host);
         using Access = DTextureSystemTestAccess<Host, NullArena>;
         TextureRecord tex;

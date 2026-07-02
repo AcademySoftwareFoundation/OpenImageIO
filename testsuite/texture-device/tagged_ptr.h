@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <type_traits>
 
 #include <OpenImageIO/strutil.h>
@@ -17,22 +16,21 @@ namespace texture_device {
 #define OPT_FUNCT(condition, return_type) \
     template<typename __Q = return_type> std::enable_if_t<condition, __Q>
 
-extern uint64_t g_tagged_ptr_context;
-
-inline uint64_t
-ptrtag(const char* s)
-{
-    if (!s || !s[0])
-        return 0;
-    return OIIO::Strutil::strhash64(std::strlen(s), s);
-}
+uint64_t
+arena_context();
 
 template<size_t N>
 inline constexpr uint64_t
-ptrtag(const char (&s)[N])
+maketag(const char (&s)[N])
 {
     static_assert(N > 1, "tag literal must be non-empty");
     return OIIO::Strutil::strhash64(N - 1, s);
+}
+
+inline constexpr uint64_t
+unified_ptr_tag()
+{
+    return maketag("unified");
 }
 
 template<class T> class tagged_ptr {
@@ -56,9 +54,9 @@ public:
 
     template<class U,
              class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-    tagged_ptr(U* p, const char* context_tag)
+    tagged_ptr(U* p, uint64_t tag)
         : m_ptr(p)
-        , m_tag(ptrtag(context_tag))
+        , m_tag(tag)
     {
     }
 
@@ -114,21 +112,7 @@ public:
     bool operator==(std::nullptr_t) const { return m_ptr == nullptr; }
     bool operator!=(std::nullptr_t) const { return m_ptr != nullptr; }
 
-    bool operator==(const tagged_ptr<T>& other) const
-    {
-        return m_ptr == other.get() && m_tag == other.tag();
-    }
-
-    bool operator!=(const tagged_ptr<T>& other) const
-    {
-        return !(*this == other);
-    }
-
     bool is(uint64_t tag) const { return m_tag == tag; }
-    bool is(const char* context_tag) const
-    {
-        return m_tag == ptrtag(context_tag);
-    }
     uint64_t tag() const { return m_tag; }
 
     OPT_FUNCT(!IsVoid, ElementRef)
@@ -158,13 +142,27 @@ private:
     void check_deref_allowed() const
     {
         // Enforce explicit host/device context boundaries at dereference time.
-        if (m_tag != g_tagged_ptr_context)
+        if (m_tag != arena_context() && m_tag != unified_ptr_tag())
             std::abort();
     }
 
     T* m_ptr       = nullptr;
     uint64_t m_tag = 0;
 };
+
+template<class T, class U>
+inline bool
+operator==(const tagged_ptr<T>& a, const tagged_ptr<U>& b)
+{
+    return a.get() == b.get() && a.tag() == b.tag();
+}
+
+template<class T, class U>
+inline bool
+operator!=(const tagged_ptr<T>& a, const tagged_ptr<U>& b)
+{
+    return !(a == b);
+}
 
 }  // namespace texture_device
 

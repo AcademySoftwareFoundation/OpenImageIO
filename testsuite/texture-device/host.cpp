@@ -7,12 +7,14 @@
 #include "texture_device_impl.h"  // IWYU pragma: keep
 #include "texture_loader.h"
 
+#include <OpenImageIO/argparse.h>
 #include <OpenImageIO/imageio.h>
 
 #include <iostream>
 #include <string>
 #include <vector>
 
+using OIIO::ArgParse;
 using OIIO::ImageOutput;
 using OIIO::ImageSpec;
 using OIIO::TypeDesc;
@@ -22,6 +24,7 @@ using texture_device::BlendOp;
 using texture_device::DTextureSystem;
 using texture_device::Host;
 using texture_device::MockDevice;
+using texture_device::NullArena;
 using texture_device::Request;
 using texture_device::RGBA;
 using texture_device::run_device_unit_tests;
@@ -50,8 +53,27 @@ write_output(const std::string& filename, int width, int height,
 }  // namespace
 
 int
-main()
+main(int argc, char* argv[])
 {
+    NullArena::use_unified_memory = false;
+    std::string output_filename("out.exr");
+
+    ArgParse ap;
+    // clang-format off
+    ap.intro("texture-device -- mock device texture workflow test")
+            .usage("texture-device [--unified] [--output filename]");
+        ap.arg("--unified", &NullArena::use_unified_memory)
+      .help("Run with unified memory enabled")
+      .action(ArgParse::store_true());
+    ap.arg("--output %s:FILENAME", &output_filename)
+      .help("Output EXR filename");
+    // clang-format on
+    if (ap.parse(argc, (const char**)argv) < 0) {
+        std::cout << "texture-device: " << ap.geterror() << "\n";
+        ap.print_help();
+        return 2;
+    }
+
     if (!run_device_unit_tests()) {
         std::cout << "texture-device: unit-tests-failed\n";
         return 2;
@@ -89,7 +111,8 @@ main()
                                                   "host::output_buffer");
     tagged_ptr<void> device_op     = device.alloc(sizeof(BlendOp),
                                                   "host::blend_op");
-    device.copy_to(device_output, tagged_ptr<const void>(output.data(), "Host"),
+    device.copy_to(device_output,
+                   tagged_ptr<const void>(output.data(), Host::mem_tag()),
                    output_bytes);
 
     op.output_buffer = device_output;
@@ -99,10 +122,11 @@ main()
     bool converged           = false;
     for (int pass = 0; pass < max_passes; ++pass) {
         textures.begin_launch();
-        device.copy_to(device_op, tagged_ptr<const void>(&op, "Host"),
+        device.copy_to(device_op, tagged_ptr<const void>(&op, Host::mem_tag()),
                        sizeof(op));
         device.run(width, height, &blend_kernel, device_op);
-        device.copy_from(tagged_ptr<void>(&op, "Host"), device_op, sizeof(op));
+        device.copy_from(tagged_ptr<void>(&op, Host::mem_tag()), device_op,
+                         sizeof(op));
         ++completed_passes;
 
         textures.sync_from_managed();
@@ -127,18 +151,21 @@ main()
     if (!converged)
         std::cout << "texture-device: retry-limit-hit\n";
 
-    device.copy_from(tagged_ptr<void>(output.data(), "Host"), device_output,
-                     output_bytes);
+    device.copy_from(tagged_ptr<void>(output.data(), Host::mem_tag()),
+                     device_output, output_bytes);
 
-    (void)write_output("out.exr", width, height, output);
+    (void)write_output(output_filename, width, height, output);
 
     device.free(device_op);
     device.free(device_output);
 
+    std::cout << "texture-device: mode="
+              << (NullArena::use_unified_memory ? "unified" : "non-unified")
+              << "\n";
     std::cout << "texture-device: startup-ok\n";
     std::cout << "texture-device: passes=" << completed_passes << "\n";
     std::cout << "texture-device: requests=" << textures.request_queue().size()
               << "\n";
-    std::cout << "texture-device: wrote out.exr\n";
+    std::cout << "texture-device: wrote " << output_filename << "\n";
     return 0;
 }
