@@ -62,3 +62,6 @@ for f in files:
 command += info_command ("src/crash-1634.dds", hash=True)
 command += info_command ("src/crash-1635.dds", hash=True)
 command += info_command ("src/crash-3950.dds", hash=True)
+# crash-bpp.dds has a corrupt bytes-per-pixel that used to drive a multi-GB
+# allocation (OOM) before the native bpp was sanity-checked.
+command += info_command ("src/crash-bpp.dds", hash=True)
