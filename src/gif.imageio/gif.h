@@ -340,7 +340,11 @@ void GifSplitPalette(uint8_t* image, int numPixels, int firstElt, int lastElt, i
     if(bRange > gRange) splitCom = 2;
     if(rRange > bRange && rRange > gRange) splitCom = 0;
 
-    int subPixelsA = numPixels * (splitElt - firstElt) / (lastElt - firstElt);
+    // numPixels*(splitElt-firstElt) can overflow int32 for images beyond
+    // about 16.9M pixels (e.g. 4117x4117); do the multiply in 64 bits. The
+    // final quotient is always <= numPixels, so it safely narrows back.
+    int subPixelsA = (int)((int64_t)numPixels * (splitElt - firstElt)
+                           / (lastElt - firstElt));
     int subPixelsB = numPixels-subPixelsA;
 
     GifPartitionByMedian(image, 0, numPixels, splitCom, subPixelsA);
