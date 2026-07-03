@@ -2,11 +2,47 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <cstring>
+
 #include "softimage_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace softimage_pvt;
+
+
+
+namespace {
+
+// Decode n (1 or 2) on-disk big-endian bytes into a native integer.
+inline uint16_t
+assemble_be(const uint8_t* bytes, size_t n)
+{
+    return n == 2 ? uint16_t((uint16_t(bytes[0]) << 8) | bytes[1]) : bytes[0];
+}
+
+
+// Widen 8-bit to 16-bit via exact bit replication (v*257, since
+// 255*257==65535); the only possible promotion, since packet depths are
+// only ever 8 or 16 bits.
+inline uint16_t
+promote_depth(uint16_t value, size_t packetBytes, size_t storageBytes)
+{
+    return packetBytes == storageBytes ? value : uint16_t(value * 257);
+}
+
+
+// Store storageBytes of value at dst in native machine byte order.
+inline void
+store_native(uint8_t* dst, uint16_t value, size_t storageBytes)
+{
+    if (storageBytes == 1)
+        dst[0] = uint8_t(value);
+    else
+        memcpy(dst, &value, sizeof(uint16_t));
+}
+
+}  // namespace
 
 
 
@@ -51,8 +87,16 @@ private:
     std::string m_filename;
     std::vector<fpos_t> m_scanline_markers;
     // Maps absolute channel index (0=R,1=G,2=B,3=A) to sequential output
-    // offset within the scanline buffer.  Initialized to -1 (unused).
+    // channel number in the ImageSpec.  Initialized to -1 (unused).
     int m_channel_map[4];
+    // Byte offset of each absolute channel within a pixel.  Valid only
+    // where m_channel_map is >= 0.
+    size_t m_channel_byte_offset[4];
+    // Uniform storage size (bytes) for all channels: the widest packet
+    // depth in the file.  Narrower channels are promoted to it on read.
+    size_t m_storage_bytes;
+    // Native bytes per pixel (nchannels * m_storage_bytes).
+    size_t m_pixel_bytes;
 };
 
 
@@ -80,6 +124,9 @@ SoftimageInput::init()
     m_channel_packets.clear();
     m_scanline_markers.clear();
     std::fill(m_channel_map, m_channel_map + 4, -1);
+    std::fill(m_channel_byte_offset, m_channel_byte_offset + 4, size_t(0));
+    m_storage_bytes = 0;
+    m_pixel_bytes   = 0;
 }
 
 
@@ -145,30 +192,39 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
         }
     } while (curPacket.chained);
 
-    // Build channel map: absolute RGBA index -> sequential output offset
-    int nchannels = 0;
-    {
-        for (auto& cp : m_channel_packets)
-            for (int ch : cp.channels())
-                if (m_channel_map[ch] == -1)
-                    m_channel_map[ch] = nchannels++;
+    // Build channel map: absolute RGBA index -> sequential output channel.
+    // Packets may have different bit depths; rather than expose that as
+    // per-channel formats (a legacy format isn't worth the resulting
+    // non-uniform, potentially misaligned pixel layout), we always store
+    // a single uniform format -- the widest depth present -- and promote
+    // narrower channels (see promote_depth()) as they're read.
+    int nchannels   = 0;
+    TypeDesc widest = TypeDesc::UINT8;
+    for (auto& cp : m_channel_packets) {
+        if (cp.size == 16)
+            widest = TypeDesc::UINT16;
+        for (int ch : cp.channels())
+            if (m_channel_map[ch] == -1)
+                m_channel_map[ch] = nchannels++;
     }
-
-    // Get the depth per pixel per channel
-    TypeDesc chanType = TypeDesc::UINT8;
-    if (curPacket.size == 16)
-        chanType = TypeDesc::UINT16;
 
     // Set the details in the ImageSpec
     m_spec = ImageSpec(m_pic_header.width, m_pic_header.height, nchannels,
-                       chanType);
+                       widest);
 
     if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })) {
         close();
         return false;
     }
 
-    m_spec.attribute("BitsPerSample", (int)curPacket.size);
+    // Precompute the uniform, naturally-aligned byte layout.
+    m_storage_bytes = widest.size();
+    m_pixel_bytes   = nchannels * m_storage_bytes;
+    for (int ch = 0; ch < 4; ++ch)
+        if (m_channel_map[ch] >= 0)
+            m_channel_byte_offset[ch] = m_channel_map[ch] * m_storage_bytes;
+
+    m_spec.attribute("BitsPerSample", (int)(widest.size() * 8));
 
     m_spec.attribute("softimage:compression", Strutil::join(encodings, ","));
 
@@ -326,22 +382,15 @@ SoftimageInput::read_pixels_uncompressed(
         uint8_t* scanlineData = (uint8_t*)data;
         for (size_t pixelX = 0; pixelX < m_pic_header.width; pixelX++) {
             for (int channel : channels) {
-                for (size_t byte = 0; byte < pixelChannelSize; byte++) {
-                    // Get which byte we should be placing this in depending on endianness
-                    size_t curByte = byte;
-                    if (littleendian())
-                        curByte = ((pixelChannelSize)-1) - curByte;
-
-                    //read the data into the correct place
-                    if (fread(&scanlineData[(pixelX * pixelChannelSize
-                                             * m_spec.nchannels)
-                                            + (m_channel_map[channel]
-                                               * pixelChannelSize)
-                                            + curByte],
-                              1, 1, m_fd)
-                        != 1)
-                        return false;
-                }
+                uint8_t raw[2] = { 0, 0 };
+                if (fread(raw, 1, pixelChannelSize, m_fd) != pixelChannelSize)
+                    return false;
+                uint16_t value
+                    = promote_depth(assemble_be(raw, pixelChannelSize),
+                                    pixelChannelSize, m_storage_bytes);
+                store_native(&scanlineData[(pixelX * m_pixel_bytes)
+                                           + m_channel_byte_offset[channel]],
+                             value, m_storage_bytes);
             }
         }
     } else {
@@ -392,26 +441,23 @@ SoftimageInput::read_pixels_pure_run_length(
             if (fread(pixelData, 1, pixelSize, m_fd) != pixelSize)
                 return false;
 
-            // Now we've got the pixel value we need to push it into the data
+            // Decode and promote each channel's value once per run, then
+            // repeat it for each pixel in the run.
+            uint16_t chanValues[4];
+            for (size_t curChan = 0; curChan < channels.size(); curChan++)
+                chanValues[curChan] = promote_depth(
+                    assemble_be(pixelData + curChan * pixelChannelSize,
+                                pixelChannelSize),
+                    pixelChannelSize, m_storage_bytes);
+
             uint8_t* scanlineData = (uint8_t*)data;
             for (size_t pixelX = linePixelCount;
                  pixelX < linePixelCount + curCount; pixelX++) {
-                for (size_t curChan = 0; curChan < channels.size(); curChan++) {
-                    for (size_t byte = 0; byte < pixelChannelSize; byte++) {
-                        // Get which byte we should be placing this in depending on endianness
-                        size_t curByte = byte;
-                        if (littleendian())
-                            curByte = ((pixelChannelSize)-1) - curByte;
-
-                        //put the data into the correct place
-                        scanlineData[(pixelX * pixelChannelSize
-                                      * m_spec.nchannels)
-                                     + (m_channel_map[channels[curChan]]
-                                        * pixelChannelSize)
-                                     + curByte]
-                            = pixelData[(curChan * pixelChannelSize) + curByte];
-                    }
-                }
+                for (size_t curChan = 0; curChan < channels.size(); curChan++)
+                    store_native(
+                        &scanlineData[(pixelX * m_pixel_bytes)
+                                      + m_channel_byte_offset[channels[curChan]]],
+                        chanValues[curChan], m_storage_bytes);
             }
         } else {
             // data pointer is null so we should just seek to the next scanline
@@ -464,22 +510,17 @@ SoftimageInput::read_pixels_mixed_run_length(
                 for (size_t pixelX = linePixelCount;
                      pixelX < linePixelCount + curCount; pixelX++) {
                     for (int channel : channels) {
-                        for (size_t byte = 0; byte < pixelChannelSize; byte++) {
-                            // Get which byte we should be placing this in depending on endianness
-                            size_t curByte = byte;
-                            if (littleendian())
-                                curByte = ((pixelChannelSize)-1) - curByte;
-
-                            //read the data into the correct place
-                            if (fread(&scanlineData[(pixelX * pixelChannelSize
-                                                     * m_spec.nchannels)
-                                                    + (m_channel_map[channel]
-                                                       * pixelChannelSize)
-                                                    + curByte],
-                                      1, 1, m_fd)
-                                != 1)
-                                return false;
-                        }
+                        uint8_t raw[2] = { 0, 0 };
+                        if (fread(raw, 1, pixelChannelSize, m_fd)
+                            != pixelChannelSize)
+                            return false;
+                        uint16_t value
+                            = promote_depth(assemble_be(raw, pixelChannelSize),
+                                            pixelChannelSize, m_storage_bytes);
+                        store_native(
+                            &scanlineData[(pixelX * m_pixel_bytes)
+                                          + m_channel_byte_offset[channel]],
+                            value, m_storage_bytes);
                     }
                 }
             } else {
@@ -526,30 +567,25 @@ SoftimageInput::read_pixels_mixed_run_length(
                 if (fread(pixelData, 1, pixelSize, m_fd) != pixelSize)
                     return false;
 
-                // Now we've got the pixel value we need to push it into
-                // the data.
+                // Decode and promote each channel's value once per run,
+                // then repeat it for each pixel in the run.
+                uint16_t chanValues[4];
+                for (size_t curChan = 0; curChan < channels.size(); curChan++)
+                    chanValues[curChan] = promote_depth(
+                        assemble_be(pixelData + curChan * pixelChannelSize,
+                                    pixelChannelSize),
+                        pixelChannelSize, m_storage_bytes);
+
                 uint8_t* scanlineData = (uint8_t*)data;
                 for (size_t pixelX = linePixelCount;
                      pixelX < linePixelCount + longCount; pixelX++) {
                     for (size_t curChan = 0; curChan < channels.size();
-                         curChan++) {
-                        for (size_t byte = 0; byte < pixelChannelSize; byte++) {
-                            // Get which byte we should be placing this
-                            // in depending on endianness.
-                            size_t curByte = byte;
-                            if (littleendian())
-                                curByte = ((pixelChannelSize)-1) - curByte;
-
-                            //put the data into the correct place
-                            scanlineData[(pixelX * pixelChannelSize
-                                          * m_spec.nchannels)
-                                         + (m_channel_map[channels[curChan]]
-                                            * pixelChannelSize)
-                                         + curByte]
-                                = pixelData[(curChan * pixelChannelSize)
-                                            + curByte];
-                        }
-                    }
+                         curChan++)
+                        store_native(
+                            &scanlineData
+                                [(pixelX * m_pixel_bytes)
+                                 + m_channel_byte_offset[channels[curChan]]],
+                            chanValues[curChan], m_storage_bytes);
                 }
             } else {
                 // data pointer is null so we should just seek to the

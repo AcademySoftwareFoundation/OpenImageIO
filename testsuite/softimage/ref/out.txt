@@ -44,3 +44,18 @@ src/broken01.pic :   16 x    4, 1 channel, uint8 softimage
     Stats FiniteCount: 64 
     Constant: No
     Monochrome: Yes
+src/mixed-bitdepth.pic :    2 x    1, 2 channel, uint16 softimage
+    SHA-1: 52D6B72AAD7084E2ECF1550D500A66C42F408ED1
+    channel list: R, G
+    BitsPerSample: 16
+    ImageDescription: "Mixed packet bit-depth overflow PoC"
+    softimage:compression: "none,none"
+    Stats Min: 4386 21845 (of 65535)
+    Stats Max: 13124 26214 (of 65535)
+    Stats Avg: 8755.00 24029.50 (of 65535)
+    Stats StdDev: 4369.00 2184.50 (of 65535)
+    Stats NanCount: 0 0 
+    Stats InfCount: 0 0 
+    Stats FiniteCount: 2 2 
+    Constant: No
+    Monochrome: No
