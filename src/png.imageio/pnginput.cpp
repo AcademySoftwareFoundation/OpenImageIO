@@ -92,7 +92,13 @@ private:
         OIIO_DASSERT(pnginput);
         if (!pnginput->ioread(data, length)) {
             pnginput->m_err = true;
-            png_chunk_error(png_ptr, pnginput->geterror(false).c_str());
+            // png_chunk_error() does not return -- it longjmps back to
+            // libpng's setjmp point, which skips C++ destructors. Copy the
+            // message into a plain stack buffer so no heap-allocated
+            // std::string is left alive (and leaked) across the longjmp.
+            char msg[256];
+            Strutil::safe_strcpy(msg, pnginput->geterror(false), sizeof(msg));
+            png_chunk_error(png_ptr, msg);
         }
     }
 
