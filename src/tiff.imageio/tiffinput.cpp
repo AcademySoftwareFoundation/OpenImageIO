@@ -2232,7 +2232,6 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // Make room for, and read the raw (still compressed) strips. As each
     // one is read, kick off the decompress and any other extras, to execute
     // in parallel.
-    task_set tasks(pool);
     bool ok        = true;  // failed compression will stash a false here
     int y          = ybegin;
     size_t ystride = m_spec.scanline_bytes(true);
@@ -2246,6 +2245,9 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     std::unique_ptr<char[]> compressed_scratch;
     std::unique_ptr<char[]> separate_tmp(
         m_separate ? new char[strip_bytes * nstrips * planes] : nullptr);
+    // It's important to declare tasks last so everything else captured by the
+    // lambda will survive the ~task_set() wait for the queued work.
+    task_set tasks(pool);
 
     if (read_raw_strips) {
         // Make room for, and read the raw (still compressed) strips. As each
@@ -2330,13 +2332,16 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // If we have left over scanlines, read them serially
     m_next_scanline = y - m_spec.y;
     for (; y < yend; ++y) {
-        bool ok = read_native_scanline_locked(subimage, miplevel, y, data);
-        if (!ok)
-            return false;
+        if (!read_native_scanline_locked(subimage, miplevel, y, data)) {
+            ok = false;
+            break;
+            // Note: it's important to break and not return here, so that we
+            // don't bypass the tasks.wait().
+        }
         data = data.subspan(ystride);
     }
     tasks.wait();
-    return true;
+    return ok;
 }
 
 
