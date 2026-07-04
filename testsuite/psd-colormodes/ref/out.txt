@@ -23,6 +23,10 @@ indexed-transparency-0.psd :  200 x  150, 4 channel, uint8 psd
 indexed-transparency-255.psd :  200 x  150, 4 channel, uint8 psd
     SHA-1: BEF32B02F44B369E39670DC2E2D2D1578B4998AD
 indexed-transparency-256-rejected
+oiiotool ERROR: read : [Header] unrecognized color mode 20
+failed to open "src/bad_colormode.psd": failed load_header
+Full command line was:
+> oiiotool --nostderr --info --iconfig oiio:RawColor 1 src/bad_colormode.psd
 Comparing "pattern2-8-rgb.psd.tif" and "ref/pattern2.tif"
 PASS
 Comparing "pattern2-16-rgb.psd.tif" and "ref/pattern2.tif"
