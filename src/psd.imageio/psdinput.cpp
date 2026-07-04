@@ -1013,11 +1013,7 @@ PSDInput::validate_header()
         errorfmt("[Header] invalid depth {}", m_header.depth);
         return false;
     }
-    // Reject any color mode outside the known set before the RawColor early
-    // return below: setup() indexes mode_channel_count/mode_channel_names by
-    // m_header.color_mode unconditionally (even for raw reads), so an
-    // out-of-table value (or one of the undocumented gaps, e.g. 5 and 6)
-    // must never reach that point regardless of m_WantRaw.
+    // Reject color modes outside the known set
     switch (m_header.color_mode) {
     case ColorMode_Bitmap:
     case ColorMode_Indexed:
