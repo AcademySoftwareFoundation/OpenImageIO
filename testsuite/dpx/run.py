@@ -37,3 +37,11 @@ command += diff_command("grey.dpx", "ref/grey.tif")
 
 # Regression tests
 command += oiiotool("src/crash-badusersize.dpx -o test.tif", failureok=True)
+
+# Regression test: crafted DPX with a 1-channel, 10-bit, "Filled method A"
+# packed subimage whose width (80) is not a multiple of 3. The 1-channel
+# work-around in Read10bitFilled() swapped the first and third datum of
+# each group of 3 packed samples, but did not check that a full group of 3
+# remained for the last (partial) group in the scanline, writing/reading
+# one uint16 past the end of the caller's scanline buffer.
+command += info_command("src/crash-1chan-10bit-filled-methodA.dpx", safematch=True)
