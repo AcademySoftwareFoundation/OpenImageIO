@@ -179,7 +179,9 @@ jobs:
             setenvs: export USE_OPENVDB=0 USE_OPENCV=0
                             UHDR_CMAKE_C_COMPILER=gcc
                             UHDR_CMAKE_CXX_COMPILER=g++
-            # Building libuhdr with icx results in test failures
+                            KTX_CMAKE_C_COMPILER=gcc
+                            KTX_CMAKE_CXX_COMPILER=g++
+            # Building libuhdr and libktx with icx results in test failures
             optional_deps_append: "LibRaw;Ptex;openjph;Qt6"
           - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2026
@@ -455,8 +457,7 @@ jobs:
             python_ver: "3.9"
             python_action_ver: "3.9"
             gcc_action_ver: 9
-            # CMAKE_VERSION changed from 3.18.2 so that libktx can be built
-            setenvs: export  CMAKE_VERSION=3.23
+            setenvs: export  CMAKE_VERSION=3.18.2
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              PUGIXML_VERSION=v1.8
@@ -484,7 +485,7 @@ jobs:
             python_ver: "3.9"
             python_action_ver: "3.9"
             llvm_action_ver: "11"
-            setenvs: export  CMAKE_VERSION=3.23
+            setenvs: export  CMAKE_VERSION=3.18.2
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              PUGIXML_VERSION=v1.8
@@ -521,7 +522,7 @@ jobs:
             gcc_action_ver: 9
             simd: 0
             setenvs: export  EMBEDPLUGINS=0
-                             CMAKE_VERSION=3.23
+                             CMAKE_VERSION=3.18.2
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              USE_JPEGTURBO=0

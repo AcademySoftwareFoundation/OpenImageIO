@@ -16,6 +16,7 @@
 #include "ktx_pvt.h"
 #include <ktx.h>
 #include <optional>
+#include <vkformat_enum.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -76,11 +77,6 @@ public:
 private:
     std::string m_filename;
 
-    /// Buffer to hold the decoded GPU-block-compressed format. This is only
-    /// used to hold BCn or ECT decompressed data for a particular
-    /// miplevel/subimage.
-    std::vector<uint8_t> m_buf;
-
     /// Non-owning pointer to KTX2 texture. The texture is managed by libktx
     /// and should be destroyed via a 'ktxTexture_Destroy()' call.
     ktxTexture* m_tex { nullptr };
@@ -89,14 +85,7 @@ private:
     ktxTexture2* m_tex2 { nullptr };
 
     /// Non-owning pointer to first byte of the requested (miplevel, slice).
-    ///
-    /// For non-GPU-compressed formats, this points to first byte of the whole
-    /// texture data.
-    ///
-    /// For GPU-compressed formats:
-    ///  - BCn: this is simply m_buf.data()
-    ///  - ETC: this is simply m_buf.data()
-    ///  - ASTC: this points to first byte of the whole decompressed texture
+    /// This points to first byte of the whole texture data.
     uint8_t* m_data_ptr { nullptr };
 
     ktx_uint32_t m_pitch { 0 };  ///< Row pitch for current mip level.
@@ -108,10 +97,10 @@ private:
 
     /// GPU block compression kind (only set in case of GPU-block-compressed KTX
     /// textures).
-    BlockCompression m_cmp = BlockCompression::NONE;
+    BlockCompression m_cmp { BlockCompression::NONE };
 
     /// Original VkFormat (i.e., before applying any decompression or transcoding).
-    VkFormat m_vkformat;
+    VkFormat m_vkformat { VK_FORMAT_UNDEFINED };
 
     std::unique_ptr<ImageSpec> m_config;  ///< Saved copy of configuration spec
 
@@ -123,8 +112,8 @@ private:
     /// Helper function: performs the actual pixel decoding.
     bool internal_readimg(unsigned char* dst, int w, int h, int d);
 
-    bool ktx_magic_cmp(const uint8_t* KTX_MAGIC, const uint8_t* sig,
-                       size_t start) const;
+    /// Checks the magic
+    bool ktx_magic_cmp(const uint8_t* sig, size_t start) const;
 
     TextureKind get_texture_kind() const;
 
@@ -142,7 +131,7 @@ OIIO_EXPORT const char*
 ktx_imageio_library_version()
 {
     return "ktx v5.0.0-rc1";
-}  // hardcoded because I couldn't expose KTX_VERSION
+}  // TODO: hardcoded because I couldn't expose KTX_VERSION
 OIIO_EXPORT ImageInput*
 ktx_input_imageio_create()
 {
@@ -477,6 +466,95 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     //
+    // Decode GPU-compression if any (using libktx). Supported formats:
+    //
+    //    ASTC: libktx provides decoders for ASTC block compression via the
+    //          ktxTexture2_DecodeAstc call.
+    //          This currently decodes the whole texture (all miplevels, all
+    //          slices, etc.) into memory.
+    //
+    //    BCn:  libktx will provide decoders/encoders for BCn block compression
+    //          via ktxTexture2_DecodeBCn.
+    //          TODO: wait for my RP in libktx to get merged then add BCn
+    //          support.
+    //
+    //    ETC2: TODO: some licensing clarification is needed from the part of
+    //                etcunpack usage in libktx.
+    //
+    //    PVRTC: TODO: wait for libktx PR.
+    //
+    if (m_tex2->isCompressed /* i.e., is GPU block compressed? */) {
+        switch (m_cmp) {
+            /* BCn GPU formats */
+        case BlockCompression::BC1:
+        case BlockCompression::BC2:
+        case BlockCompression::BC3:
+        case BlockCompression::BC4:
+        case BlockCompression::BC5:
+        case BlockCompression::BC6HU:
+        case BlockCompression::BC6HS:
+        case BlockCompression::BC7:
+            //
+            // TODO: wait for my PR in libktx to be merged
+            //
+            // Note:
+            // ktxTexture2_DecodeBCn internally creates a new ktxTexture2 texture
+            // and populates it with decoded data from the originally provided
+            // texture. At the end, it moves the decoded data to m_tex and
+            // destroys the temporarily created texture.
+            //
+            // This operation is expensive (both in memory and CPU cycles).
+            // After this, m_tex2->isCompressed will be false => this will only
+            // be called once.
+            //
+            // if (auto status = ktxTexture2_DecodeBCn(m_tex2);
+            //     status != KTX_SUCCESS) {
+            //     errorfmt("failed to decode BCn-compressed texture. "
+            //              "ktxTexture2_DecodeBCn returned Ktx error code: {}",
+            //              static_cast<uint32_t>(status));
+            //     return false;
+            // }
+            // break;
+            errorfmt("BCn GPU-compressed formats are not yet supported.");
+            return false;
+
+            /* ETC formats */
+        case BlockCompression::ETC2_RGB:
+        case BlockCompression::ETC2_RGB_A1:
+        case BlockCompression::ETC2_RGBA:
+            errorfmt("ETC GPU-compressed formats are not yet supported.");
+            return false;
+
+            /* ASTC formats */
+        case BlockCompression::ASTC:
+            //
+            // Note:
+            // ktxTexture2_DecodeAstc internally creates a new ktxTexture2 texture
+            // and populates it with decoded data from the originally provided
+            // texture. At the end, it moves the decoded data to m_tex and
+            // destroys the temporarily created texture.
+            //
+            // This operation is expensive (both in memory and CPU cycles).
+            // After this, m_tex2->isCompressed will be false => this will only
+            // be called once.
+            //
+            if (auto status = ktxTexture2_DecodeAstc(m_tex2);
+                status != KTX_SUCCESS) {
+                errorfmt("failed to decode ASTC-compressed texture. "
+                         "ktxTexture2_DecodeAstc returned Ktx error code: {}",
+                         static_cast<uint32_t>(status));
+                return false;
+            }
+            break;
+
+        default:
+            errorfmt("Unknown/unsupported GPU block compression kind: {}",
+                     static_cast<uint32_t>(m_cmp));
+            return false;
+        }
+    }
+
+    //
     // This could mean one of the following as per the specs at:
     // https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_use_of_vk_format_undefined
     //
@@ -679,133 +757,30 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     m_spec.height = height;
     m_spec.depth  = depth;
 
-    //
-    // Decode GPU-compression if any. Supported formats:
-    //
-    //    ASTC: libktx provides decoders for ASTC block compression via the
-    //          ktxTexture2_DecodeAstc call.
-    //          This currently decodes the whole texture (all miplevels, all
-    //          slices, etc.) into memory.
-    //          TODO: wait for my PR in libktx to implement decode_astc for
-    //                per-miplvl/subimage decoding.
-    //
-    //    BCn:  libktx will provide decoders/encoders for BCn block compression
-    //          via ktxTexture2_DecodeBCn. TODO: wait for my RP in libktx to get
-    //          merged then add BCn support.
-    //
-    //    ETC2: TODO: some licensing clarification is needed from the part of
-    //                etcunpack usage in libktx.
-    //
-    //    PVRTC: TODO: wait for libktx PR.
-    //
-    if (m_tex2->isCompressed /* i.e., is GPU block compressed? */) {
-        ktx_size_t offset;
-        if (auto status = ktxTexture2_GetImageOffset(m_tex2, miplevel,
-                                                     arr_layer, face_slice,
-                                                     &offset);
-            status != KTX_SUCCESS) {
-            return status;
-        }
-        // TODO: Are pointer indices [offset, offset + size[ safe?
-        // Encoded blocks
-        cspan<uint8_t> src_span(m_tex2->pData + offset,
-                                ktxTexture_GetImageSize(ktxTexture(m_tex),
-                                                        miplevel));
-
-        switch (m_cmp) {
-            /* BCn LDR formats */
-        case BlockCompression::BC1:
-        case BlockCompression::BC2:
-        case BlockCompression::BC3:
-        case BlockCompression::BC4:
-        case BlockCompression::BC5:
-        case BlockCompression::BC7:
-            //
-            // TODO: wait for my PR in libktx to be merged
-            //
-            // Note:
-            // ktxTexture2_DecodeBCn internally creates a new ktxTexture2 texture
-            // and populates it with decoded data from the originally provided
-            // texture. At the end, it moves the decoded data to m_tex and
-            // destroys the temporarily created texture.
-            //
-            // This operation is expensive (both in memory and CPU cycles).
-            // After this, m_tex2->isCompressed will be false => this will only
-            // be called once.
-            //
-            // if (auto status = ktxTexture2_DecodeBCn(m_tex2);
-            //     status != KTX_SUCCESS) {
-            //     errorfmt("failed to decode BCn-compressed texture. "
-            //              "ktxTexture2_DecodeBCn returned Ktx error code: {}",
-            //              static_cast<uint32_t>(status));
-            //     return false;
-            // }
-            // break;
-            return false;
-
-            /* BCn HDR formats - TODO */
-        case BlockCompression::BC6HU:
-        case BlockCompression::BC6HS:
-            return false;
-
-            /* ETC formats */
-        case BlockCompression::ETC2_RGB:
-        case BlockCompression::ETC2_RGB_A1:
-        case BlockCompression::ETC2_RGBA:
-            return false;
-
-            /* ASTC formats */
-        case BlockCompression::ASTC:
-            //
-            // Note:
-            // ktxTexture2_DecodeAstc internally creates a new ktxTexture2 texture
-            // and populates it with decoded data from the originally provided
-            // texture. At the end, it moves the decoded data to m_tex and
-            // destroys the temporarily created texture.
-            //
-            // This operation is expensive (both in memory and CPU cycles).
-            // After this, m_tex2->isCompressed will be false => this will only
-            // be called once.
-            //
-            if (auto status = ktxTexture2_DecodeAstc(m_tex2);
-                status != KTX_SUCCESS) {
-                errorfmt("failed to decode ASTC-compressed texture. "
-                         "ktxTexture2_DecodeAstc returned Ktx error code: {}",
-                         static_cast<uint32_t>(status));
-                return false;
-            }
-            break;
-
-        default:
-            errorfmt("Unknown/unsupported GPU block compression kind: {}",
-                     static_cast<uint32_t>(m_cmp));
-            return false;
-        }
-
-        m_pitch = width * m_spec.nchannels
-                  * m_spec.format.size() /* 1 for LDR, 2 for HDR formats */;
-        m_data_ptr = m_buf.data();
+    // Should never be true (because the texture is decompressed in open())
+    if (m_tex2->isCompressed) {
+        OIIO_ASSERT(
+            false
+            && "KTX2 texture should be decompressed before a call to subimage.");
+        return false;
     }
 
-    // Do NOT change this to `else` statement because this handles the ASTC and
-    // BCn cases above (which, again, sets m_tex2->isCompressed to `false`)
-    if (!m_tex2->isCompressed) {
-        //
-        // GetImageOffset implements internal checks depending on texture kind (e.g.,
-        // 3D, cubemap, etc.) and incase of invalid input, KTX_INVALID_OPERATION is
-        // returned.
-        //
-        ktx_size_t offset;
-        if (auto status = ktxTexture_GetImageOffset(m_tex, miplevel, arr_layer,
-                                                    face_slice, &offset);
-            status != KTX_SUCCESS) {
-            errorfmt("ktxTexture_GetImageOffset failed with exit code: {}",
-                     static_cast<uint32_t>(status));
-            return false;
-        }
-        m_pitch    = ktxTexture_GetRowPitch(m_tex, miplevel);
-        m_data_ptr = m_tex2->pData + offset;
+    //
+    // GetImageOffset implements internal checks depending on texture kind (e.g.,
+    // 3D, cubemap, etc.) and incase of invalid input, KTX_INVALID_OPERATION is
+    // returned.
+    //
+    ktx_size_t offset;
+    if (auto status = ktxTexture_GetImageOffset(m_tex, miplevel, arr_layer,
+                                                face_slice, &offset);
+        status != KTX_SUCCESS) {
+        errorfmt("ktxTexture_GetImageOffset failed with exit code: {}",
+                 static_cast<uint32_t>(status));
+        return false;
     }
+    m_data_ptr = m_tex2->pData + offset;
+    m_pitch    = ktxTexture_GetRowPitch(m_tex, miplevel);
+
     return true;
 }
 
@@ -873,6 +848,7 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 }
 
 
+
 bool
 OpenImageIO::KtxInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
@@ -884,20 +860,23 @@ OpenImageIO::KtxInput::valid_file(Filesystem::IOProxy* ioproxy) const
     uint8_t magic[12] {};
     const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
 
-    return (numRead == sizeof(magic))
-           && this->ktx_magic_cmp(KTX2_IDENTIFIER, magic, 0);
+    return (numRead == sizeof(magic)) && this->ktx_magic_cmp(magic, 0);
 }
+
 
 
 bool
-KtxInput::ktx_magic_cmp(const uint8_t* KTX_MAGIC, const uint8_t* sig,
-                        size_t start) const
+KtxInput::ktx_magic_cmp(const uint8_t* sig, size_t start) const
 {
-    for (size_t i = start; (i - start) < sizeof(KTX_MAGIC); ++i)
-        if (sig[i] != KTX_MAGIC[i])
+    // this is: "«KTX 20»\r\n\x1A\n"
+    const uint8_t KTX2_IDENTIFIER[12] { 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32,
+                                        0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
+    for (size_t i = start; (i - start) < sizeof(KTX2_IDENTIFIER); ++i)
+        if (sig[i] != KTX2_IDENTIFIER[i])
             return false;
     return true;
 }
+
 
 
 TextureKind
@@ -921,6 +900,7 @@ KtxInput::get_texture_kind() const
     default: return TextureKind::SINGLE_TEXTURE_2D;
     }
 }
+
 
 
 std::string

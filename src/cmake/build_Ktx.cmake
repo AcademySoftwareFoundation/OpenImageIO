@@ -11,6 +11,10 @@ set_cache (Ktx_BUILD_SHARED_LIBS OFF ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
 
 string (MAKE_C_IDENTIFIER ${Ktx_BUILD_VERSION} Ktx_VERSION_IDENT)
 
+# Override C/C++ compiler (useful when running CI with unsupported Intel's compiler ICX)
+set_cache (KTX_CMAKE_C_COMPILER ${CMAKE_C_COMPILER} "libktx build C compiler override" ADVANCED)
+set_cache (KTX_CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER} "libktx build C++ compiler override" ADVANCED)
+
 # for detailed build instructions, see:
 #   https://github.com/KhronosGroup/KTX-Software/blob/main/BUILDING.md
 # KTX-Software not only provides Ktx but also a set of cli tools and load
@@ -34,6 +38,8 @@ build_dependency_with_cmake(Ktx
         -D LIBKTX_FEATURE_VK_UPLOAD=OFF
         -D LIBKTX_FEATURE_GL_UPLOAD=OFF
         -D LIBKTX_FEATURE_ETC_UNPACK=OFF # This has some weird licensing and I don't feel comfortable including it ...
+        -D CMAKE_C_COMPILER=${KTX_CMAKE_C_COMPILER}
+        -D CMAKE_CXX_COMPILER=${KTX_CMAKE_CXX_COMPILER}
         # as per KTX-Software:
         # > Intel Macs have support for SSE, but if you're building universal
         # > binaries, you have to disable SSE or the build will fail.
