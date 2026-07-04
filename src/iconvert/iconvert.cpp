@@ -475,14 +475,36 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
             } else {
                 // Need to do it by hand for some reason.  Future expansion in which
                 // only a subset of channels are copied, or some such.
-                std::vector<char> pixels((size_t)outspec.image_bytes(true));
+                // A format of UNKNOWN requests a per-channel native copy
+                // (used to preserve mixed per-channel formats). That is only
+                // valid if the output actually stores each channel in the
+                // input's native format. If it remaps any channel (e.g.
+                // OpenEXR promoting uint16/uint8 to half), copy through the
+                // output's stored format so integer values are rescaled
+                // rather than bit-reinterpreted.
+                TypeDesc xferformat = outspec.format;
+                if (xferformat == TypeDesc::UNKNOWN) {
+                    const ImageSpec& storedspec(out->spec());
+                    for (int c = 0; c < outspec.nchannels; ++c)
+                        if (inspec.channelformat(c)
+                            != storedspec.channelformat(c)) {
+                            xferformat = storedspec.format;
+                            break;
+                        }
+                }
+                size_t bufbytes = (xferformat == TypeDesc::UNKNOWN)
+                                      ? (size_t)outspec.image_bytes(true)
+                                      : (size_t)outspec.image_pixels()
+                                            * outspec.nchannels
+                                            * xferformat.size();
+                std::vector<char> pixels(bufbytes);
                 ok = in->read_image(subimage, miplevel, 0, outspec.nchannels,
-                                    outspec.format, &pixels[0]);
+                                    xferformat, &pixels[0]);
                 if (!ok) {
                     OIIO::print(stderr, "iconvert ERROR reading \"{}\": {}\n",
                                 in_filename, in->geterror());
                 } else {
-                    ok = out->write_image(outspec.format, &pixels[0]);
+                    ok = out->write_image(xferformat, &pixels[0]);
                     if (!ok)
                         OIIO::print(stderr,
                                     "iconvert ERROR writing \"{}\": {}\n",
