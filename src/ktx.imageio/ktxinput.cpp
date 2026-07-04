@@ -16,7 +16,6 @@
 #include "ktx_pvt.h"
 #include <ktx.h>
 #include <optional>
-#include <vkformat_enum.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
