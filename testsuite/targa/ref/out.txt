@@ -187,8 +187,7 @@ Reading ../oiio-images/targa/round_grill.tga
 Comparing "../oiio-images/targa/round_grill.tga" and "round_grill.tga"
 PASS
 Converting src/crash1.tga to crash1.exr
-iconvert ERROR copying "src/crash1.tga" to "crash1.exr" :
-	Read error: hit end of file in targa reader
+iconvert ERROR: TGA header claims image size 1506428560 bytes, implausible for 1886 bytes of remaining file data
 oiiotool ERROR: read : "src/crash2.tga": Palette image with no palette
 Full command line was:
 > oiiotool --oiioattrib try_all_readers 0 src/crash2.tga -o crash2.exr
@@ -204,9 +203,7 @@ Full command line was:
 oiiotool ERROR: read : "src/crash1708.tga": Too big a color palette (382) for 8 bpp, assume corruption
 Full command line was:
 > oiiotool --oiioattrib try_all_readers 0 src/crash1708.tga -o crash1708.exr
-oiiotool ERROR: read : "src/crash3952.tga": Uncompressed image size 15231.5 MB exceeds the 1024 MB limit.
-Image claimed to be 60927x65535, 4-channel uint8. Possible corrupt input?
-If this is a valid file, raise the OIIO attribute "limits:imagesize_MB".
+oiiotool ERROR: read : "src/crash3952.tga": TGA header claims image size 15971403780 bytes, implausible for 3 bytes of remaining file data
 Full command line was:
 > oiiotool --oiioattrib limits:imagesize_MB 1024 --oiioattrib try_all_readers 0 src/crash3952.tga -o crash3952.exr
 oiiotool ERROR: read : "src/crash-20250423.tga": Corrupt palette index

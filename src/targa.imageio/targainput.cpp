@@ -254,6 +254,34 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
     if (m_tga.type >= TYPE_PALETTED_RLE)
         m_spec.attribute("compression", "rle");
 
+    // The width/height/bpp fields are not cross-checked against how much
+    // pixel data the file actually contains, so a corrupt header can claim
+    // an arbitrarily large image (e.g. thousands of pixels square) backed
+    // by only a few bytes of real data. Reject implausible claims before
+    // committing to a potentially huge allocation in readimg(). Compare
+    // against the *on-disk* pixel size (palette/16-bit storage is smaller
+    // per pixel than the decoded, unpacked ImageSpec) -- and RLE can expand
+    // at most 128x (a 1-byte run-length count can encode up to 128 output
+    // pixels from very little input) -- so give a generous bound based on
+    // how much data remains in the file.
+    {
+        int bytespp              = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
+        uint64_t raw_pixel_bytes = uint64_t(m_tga.width)
+                                   * uint64_t(m_tga.height) * uint64_t(bytespp);
+        uint64_t filesize(ioproxy()->size());
+        uint64_t pos(iotell());
+        uint64_t avail               = filesize > pos ? filesize - pos : 0;
+        uint64_t max_plausible_bytes = (m_tga.type >= TYPE_PALETTED_RLE)
+                                           ? avail * 128
+                                           : avail;
+        if (raw_pixel_bytes > max_plausible_bytes) {
+            errorfmt(
+                "TGA header claims image size {} bytes, implausible for {} bytes of remaining file data",
+                raw_pixel_bytes, avail);
+            return false;
+        }
+    }
+
     /*std::cerr << "[tga] " << m_tga.width << "x" << m_tga.height << "@"
               << (int)m_tga.bpp << " (" << m_spec.nchannels
               << ") type " << (int)m_tga.type << "\n";*/
