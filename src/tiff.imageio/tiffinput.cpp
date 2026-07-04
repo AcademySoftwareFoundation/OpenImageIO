@@ -2048,6 +2048,9 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     }
 
     // Handle less-than-full bit depths
+    bool use_scratch_dest = m_separate
+                            || (m_photometric == PHOTOMETRIC_SEPARATED
+                                && !m_raw_color);
     if (m_bitspersample < 8) {
         // m_scratch now holds nvals n-bit values, contig or separate
         m_scratch2.resize(input_bytes);
@@ -2055,7 +2058,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             bit_convert(m_separate ? m_spec.width : nvals,
                         &m_scratch2[plane_bytes * c], m_bitspersample,
-                        m_separate
+                        use_scratch_dest
                             ? &m_scratch[plane_bytes * c]
                             : (unsigned char*)data.data() + plane_bytes * c,
                         8);
@@ -2066,7 +2069,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             bit_convert(m_separate ? m_spec.width : nvals,
                         &m_scratch2[plane_bytes * c], m_bitspersample,
-                        m_separate
+                        use_scratch_dest
                             ? &m_scratch[plane_bytes * c]
                             : (unsigned char*)data.data() + plane_bytes * c,
                         16);
@@ -2077,7 +2080,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             bit_convert(m_separate ? m_spec.width : nvals,
                         &m_scratch2[plane_bytes * c], m_bitspersample,
-                        m_separate
+                        use_scratch_dest
                             ? &m_scratch[plane_bytes * c]
                             : (unsigned char*)data.data() + plane_bytes * c,
                         32);
