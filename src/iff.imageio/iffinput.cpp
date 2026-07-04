@@ -610,13 +610,9 @@ IffInput::readimg()
     // set position tile may be called randomly
     ioseek(m_tbmp_start);
 
-    // The TBHD width/height/channel fields are not otherwise cross-checked
-    // against how much tile data the file actually contains, so a corrupt
-    // header can claim an arbitrarily large image (e.g. 16k x 16k) backed by
-    // only a few hundred bytes of real data. Reject implausible claims
-    // before committing to a potentially huge allocation. RLE can expand at
-    // most 128x (a 2-byte run encodes up to 128 output bytes), so give a
-    // generous bound based on how much tile data remains in the file.
+    // Check that the image size claimed is plausible for the size of the
+    // remainder of the file. RLE can expand at most 128x (a 2-byte run
+    // encodes up to 128 output bytes).
     uint64_t filesize = uint64_t(ioproxy()->size());
     uint64_t avail    = filesize > m_tbmp_start ? filesize - m_tbmp_start : 0;
     uint64_t max_plausible_bytes = (m_header.compression == iff_pvt::RLE)
