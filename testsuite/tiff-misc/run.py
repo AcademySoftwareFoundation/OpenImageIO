@@ -32,4 +32,12 @@ command += info_command ("gps.tif", safematch=True, hash=False)
 # Test bug with corrupt cmyk file
 command += iconvert ("src/crash-cmyk-e12b.tif out.tif", failureok=True)
 
+# Regression test: CMYK (photometric=separated) TIFF missing its
+# BitsPerSample tag, which makes libtiff default it to 1 bit/sample. When
+# unpacking the sub-8-bit samples for the CMYK->RGB conversion, the bit
+# unpacker was writing all 4 input channels' worth of unpacked samples
+# directly into the 3-channel RGB output buffer instead of scratch space,
+# causing a heap buffer overflow.
+command += info_command ("src/crash-cmyk-1bit.tif", safematch=True)
+
 outputs = [ "check1.tif", "out.txt" ]
