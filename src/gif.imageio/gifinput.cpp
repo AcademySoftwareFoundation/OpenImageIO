@@ -206,7 +206,8 @@ GIFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (y < 0 || y > m_spec.height || !m_canvas.size())
         return false;
 
-    memcpy(data, &m_canvas[y * m_spec.width * m_spec.nchannels],
+    memcpy(data,
+           &m_canvas[int64_t(y) * int64_t(m_spec.width) * m_spec.nchannels],
            m_spec.width * m_spec.nchannels);
 
     return true;
@@ -366,7 +367,7 @@ GIFInput::read_subimage_data()
                     return false;
                 }
                 int x   = window_left + wx;
-                int idx = m_spec.nchannels * (y * m_spec.width + x);
+                int64_t idx = m_spec.nchannels * (int64_t(y) * m_spec.width + x);
                 if (0 <= x && x < m_spec.width) {
                     m_canvas[idx]     = colormap[fscanline[wx]].Red;
                     m_canvas[idx + 1] = colormap[fscanline[wx]].Green;
