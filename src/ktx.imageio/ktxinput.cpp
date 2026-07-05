@@ -126,8 +126,8 @@ OIIO_EXPORT int ktx_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 ktx_imageio_library_version()
 {
-    return "ktx v5.0.0-rc1";
-}  // TODO: hardcoded because I couldn't expose KTX_VERSION
+    return "ktx v" Ktx_VERSION;
+}
 OIIO_EXPORT ImageInput*
 ktx_input_imageio_create()
 {
