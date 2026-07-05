@@ -30,6 +30,7 @@ public:
     int supports(string_view feature) const override
     {
         return (
+            feature == "ioproxy" ||
             // as per the KTX1/2 specs:
             // https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_keyvalue_data
             feature == "arbitrary_metadata" ||
@@ -78,21 +79,17 @@ private:
 
     /// Non-owning pointer to KTX2 texture. The texture is managed by libktx
     /// and should be destroyed via a 'ktxTexture_Destroy()' call.
-    ktxTexture* m_tex { nullptr };
-
-    /// m_tex2 reinterpret_cast'ed to KtxTexture2* for convenience.
-    ktxTexture2* m_tex2 { nullptr };
+    ktxTexture2* m_tex { nullptr };
 
     /// Non-owning pointer to first byte of the requested (miplevel, slice).
     /// This points to first byte of the whole texture data.
     uint8_t* m_data_ptr { nullptr };
 
-    ktx_uint32_t m_pitch { 0 };  ///< Row pitch for current mip level.
-    ktx_size_t m_offset { 0 };   ///< Current offset from subimage call.
-    int m_subimage { -1 };       ///< What subimage are we looking at?
-    int m_nbrsubimages { -1 };   ///< Number of slices/faces in texture
-    int m_miplevel { -1 };       ///< What mip level are we looking at?
-    int m_nbrmiplevels { -1 };   ///< Number of mip levels
+    ktx_size_t m_offset { 0 };  ///< Current offset from subimage call.
+    int m_subimage { -1 };      ///< What subimage are we looking at?
+    int m_nbrsubimages { -1 };  ///< Number of slices/faces in texture
+    int m_miplevel { -1 };      ///< What mip level are we looking at?
+    int m_nbrmiplevels { -1 };  ///< Number of mip levels
 
     /// GPU block compression kind (only set in case of GPU-block-compressed KTX
     /// textures).
@@ -190,10 +187,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 {
     m_filename = name;
 
-    if (!ioproxy_use_or_open(name)) {
-        errorfmt("ioproxy_use_or_open(\"{}\") failed", name);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     // If an IOProxy was passed, it had better be a File or a MemReader
     Filesystem::IOProxy* m_io = ioproxy();
@@ -237,7 +232,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //
     if (proxytype == "file") {
         auto fd  = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
-        auto res = ktxTexture_CreateFromStdioStream(
+        auto res = ktxTexture2_CreateFromStdioStream(
             fd, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &m_tex);
         if (KTX_SUCCESS != res) {
             errorfmt("Failed to create ktx texture using "
@@ -247,7 +242,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     } else /* (proxytype == "memreader") */ {
         OIIO_ASSERT(proxytype == "memreader");
         auto buff = reinterpret_cast<Filesystem::IOMemReader*>(m_io)->buffer();
-        auto res  = ktxTexture_CreateFromMemory(
+        auto res  = ktxTexture2_CreateFromMemory(
             buff.data(), buff.size(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
             &m_tex);
         if (KTX_SUCCESS != res) {
@@ -257,13 +252,13 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
-    m_tex2         = reinterpret_cast<ktxTexture2*>(m_tex);
-    m_nbrmiplevels = m_tex2->numLevels;
-    m_nbrsubimages = m_tex2->numFaces;
+    m_nbrmiplevels = m_tex->numLevels;
+    m_nbrsubimages = m_tex->numFaces;
 
-    m_spec       = ImageSpec(m_tex2->baseWidth, m_tex2->baseHeight,
-                             4 /* dummy value - will be overwritten */);
-    m_spec.depth = m_spec.full_depth = m_tex2->baseDepth;
+    m_spec       = ImageSpec(m_tex->baseWidth, m_tex->baseHeight,
+                             4 /* dummy value - will be overwritten */,
+                             TypeDesc::UINT8);
+    m_spec.depth = m_spec.full_depth = m_tex->baseDepth;
     std::string colorspace           = get_colorspace();
     m_spec.set_colorspace(colorspace);
 
@@ -281,7 +276,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     m_spec.extra_attribs.attribute("ktx:supercompressionscheme",
                                    TypeDesc::UINT32, 1,
                                    cspan<uint32_t>(
-                                       m_tex2->supercompressionScheme));
+                                       m_tex->supercompressionScheme));
 
     m_spec.extra_attribs.attribute("ktx:texturekind", TypeDesc::UINT32, 1,
                                    cspan<uint32_t>(static_cast<uint32_t>(
@@ -305,16 +300,16 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // if a Basis Universal scheme has to be applied.
     m_spec.extra_attribs.attribute("ktx:colormodel", TypeDesc::UINT32, 1,
                                    cspan<uint32_t>(
-                                       ktxTexture2_GetColorModel_e(m_tex2)));
+                                       ktxTexture2_GetColorModel_e(m_tex)));
 
     // m_spec.extra_attribs.attribute("ktx:transferfunction", TypeDesc::UINT32, 1,
     //                                cspan<uint32_t>(transfer_function));
 
     // TODO: do we actually need the dfd data to re-generate the same KTX2 file?
-    // uint32_t dfdTotalSize = *m_tex2->pDfd;
+    // uint32_t dfdTotalSize = *m_tex->pDfd;
     // m_spec.extra_attribs.attribute("ktx:dfd", TypeDesc::UINT8, dfdTotalSize,
     //                                make_cspan(reinterpret_cast<const uint8_t*>(
-    //                                               m_tex2->pDfd),
+    //                                               m_tex->pDfd),
     //                                           dfdTotalSize));
 
     //
@@ -420,14 +415,14 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // KTX_SS_BASIS_LZ supercompression schemes. New schemes may be added to the
     // spec hence why we do a strict if check.
     //
-    if (m_tex2->supercompressionScheme != KTX_SS_NONE
-        && m_tex2->supercompressionScheme != KTX_SS_ZSTD
-        && m_tex2->supercompressionScheme != KTX_SS_ZLIB
-        && m_tex2->supercompressionScheme != KTX_SS_BASIS_LZ) {
+    if (m_tex->supercompressionScheme != KTX_SS_NONE
+        && m_tex->supercompressionScheme != KTX_SS_ZSTD
+        && m_tex->supercompressionScheme != KTX_SS_ZLIB
+        && m_tex->supercompressionScheme != KTX_SS_BASIS_LZ) {
         // vendor-specific or newly introduced supercompression schemes (not
         // supported)
         errorfmt("unsuppoted supercompression scheme: {}",
-                 static_cast<uint32_t>(m_tex2->supercompressionScheme));
+                 static_cast<uint32_t>(m_tex->supercompressionScheme));
         return false;
     }
 
@@ -439,8 +434,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // Call this BEFORE (potential) ktxTexture2_TranscodeBasis call
     //
     m_spec.extra_attribs.attribute("ktx:vkformat", TypeDesc::UINT32, 1,
-                                   cspan<uint32_t>(static_cast<uint32_t>(
-                                       m_tex2->vkFormat)));
+                                   cspan<uint32_t>(
+                                       static_cast<uint32_t>(m_tex->vkFormat)));
 
     //
     // Do we need to transcode this texture (i.e., is this a Basis Universal
@@ -453,9 +448,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // This modifies the KtxTexture2 (m_tex) therefore make sure to save
     // essential properties for proper KTX2 regeneration.
     //
-    if (ktxTexture2_NeedsTranscoding(m_tex2)) {
+    if (ktxTexture2_NeedsTranscoding(m_tex)) {
         if (auto status = ktxTexture2_TranscodeBasis(
-                m_tex2, ktx_transcode_fmt_e::KTX_TTF_RGBA32, 0);
+                m_tex, ktx_transcode_fmt_e::KTX_TTF_RGBA32, 0);
             status != KTX_SUCCESS) {
             errorfmt("failed to transcode KTX2 texture to raw pixels. "
                      "ktxTexture2_TranscodeBasis returned Ktx error code: {}",
@@ -482,7 +477,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //
     //    PVRTC: TODO: wait for libktx PR.
     //
-    if (m_tex2->isCompressed /* i.e., is GPU block compressed? */) {
+    if (m_tex->isCompressed /* i.e., is GPU block compressed? */) {
         switch (m_cmp) {
             /* BCn GPU formats */
         case BlockCompression::BC1:
@@ -503,10 +498,10 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             // destroys the temporarily created texture.
             //
             // This operation is expensive (both in memory and CPU cycles).
-            // After this, m_tex2->isCompressed will be false => this will only
+            // After this, m_tex->isCompressed will be false => this will only
             // be called once.
             //
-            // if (auto status = ktxTexture2_DecodeBCn(m_tex2);
+            // if (auto status = ktxTexture2_DecodeBCn(m_tex);
             //     status != KTX_SUCCESS) {
             //     errorfmt("failed to decode BCn-compressed texture. "
             //              "ktxTexture2_DecodeBCn returned Ktx error code: {}",
@@ -534,10 +529,10 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             // destroys the temporarily created texture.
             //
             // This operation is expensive (both in memory and CPU cycles).
-            // After this, m_tex2->isCompressed will be false => this will only
+            // After this, m_tex->isCompressed will be false => this will only
             // be called once.
             //
-            if (auto status = ktxTexture2_DecodeAstc(m_tex2);
+            if (auto status = ktxTexture2_DecodeAstc(m_tex);
                 status != KTX_SUCCESS) {
                 errorfmt("failed to decode ASTC-compressed texture. "
                          "ktxTexture2_DecodeAstc returned Ktx error code: {}",
@@ -576,7 +571,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //      do not have corresponding Vulkan formats.
     //      TODO
     //
-    if (m_tex2->vkFormat == VK_FORMAT_UNDEFINED) {
+    if (m_tex->vkFormat == VK_FORMAT_UNDEFINED) {
         // TODO: check case (4) - color model
 
         // check case (3) - non-Vulkan GPU formats (here we simply map these
@@ -619,8 +614,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // state of data in OIIO is always decompressed (i.e., we never return
     // block-compressed data from read_native_scanline(s) functions).
     //
-    auto format = static_cast<VkFormat>(m_tex2->vkFormat);
-    if (m_tex2->isCompressed) {
+    auto format = static_cast<VkFormat>(m_tex->vkFormat);
+    if (m_tex->isCompressed) {
         FormatInfo format_info;
         if (!get_info_from_vkformat(static_cast<VkFormat>(format),
                                     format_info)) {
@@ -668,6 +663,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         // errorfmt is set via seek_subimage
         return false;
 
+    OIIO_ASSERT(m_data_ptr != nullptr);
+
     newspec = m_spec;
     return true;
 }
@@ -681,7 +678,7 @@ KtxInput::close()
     if (!ioproxy_opened())
         return true;
     if (m_tex) {
-        ktxTexture_Destroy(m_tex);
+        ktxTexture2_Destroy(m_tex);
         m_tex = nullptr;
     }
     ioproxy_clear();
@@ -748,16 +745,16 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     // dimensions of a miplevel. See:
     //  https://github.com/KhronosGroup/KTX-Software/lib/src/texture.c
     //
-    const size_t width  = std::max(m_tex2->baseWidth >> miplevel, 1u);
-    const size_t height = std::max(m_tex2->baseHeight >> miplevel, 1u);
-    const size_t depth  = std::max(m_tex2->baseDepth >> miplevel, 1u);
+    const size_t width  = std::max(m_tex->baseWidth >> miplevel, 1u);
+    const size_t height = std::max(m_tex->baseHeight >> miplevel, 1u);
+    const size_t depth  = std::max(m_tex->baseDepth >> miplevel, 1u);
 
     m_spec.width  = width;
     m_spec.height = height;
     m_spec.depth  = depth;
 
     // Should never be true (because the texture is decompressed in open())
-    if (m_tex2->isCompressed) {
+    if (m_tex->isCompressed) {
         OIIO_ASSERT(
             false
             && "KTX2 texture should be decompressed before a call to subimage.");
@@ -770,15 +767,18 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     // returned.
     //
     ktx_size_t offset;
-    if (auto status = ktxTexture_GetImageOffset(m_tex, miplevel, arr_layer,
-                                                face_slice, &offset);
+    if (auto status = ktxTexture2_GetImageOffset(m_tex, miplevel, arr_layer,
+                                                 face_slice, &offset);
         status != KTX_SUCCESS) {
-        errorfmt("ktxTexture_GetImageOffset failed with exit code: {}",
+        errorfmt("ktxTexture2_GetImageOffset failed with exit code: {}",
                  static_cast<uint32_t>(status));
         return false;
     }
-    m_data_ptr = m_tex2->pData + offset;
-    m_pitch    = ktxTexture_GetRowPitch(m_tex, miplevel);
+    m_data_ptr = m_tex->pData + offset;
+    const uint32_t pitch
+        = ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(m_tex),
+                                 miplevel);
+    OIIO_ASSERT(pitch == m_spec.scanline_bytes());
 
     return true;
 }
@@ -790,6 +790,11 @@ KtxInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     lock_guard lock(*this);
+
+    // Since we will access m_spec
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+
     return read_native_scanlines(subimage, miplevel, y, y + 1,
                                  as_writable_bytes(data, m_spec.scanline_bytes(
                                                              true)));
@@ -808,9 +813,7 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     }
 
-    // avoid calling seek_subimage because this will NOT be thread-safe and
-    // we have to introduce a lock which will make this slower (read note above
-    // about how libktx inflates all data in open()).
+    // Since we will access m_spec
     if (!seek_subimage(subimage, miplevel))
         return false;
 
@@ -825,6 +828,10 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                 int yend, span<std::byte> data)
 {
     lock_guard lock(*this);
+
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+
     // is provided [ybegin, yend[ valid?
     if (ybegin < 0 || ybegin >= yend || yend > m_spec.height) {
         // out of range scanlines
@@ -839,8 +846,12 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         // errorfmt is set within valid_raw_span_size
         return false;
 
+    OIIO_ASSERT(m_data_ptr != nullptr);
+
+    const size_t pitch = m_spec.scanline_bytes();
+
     // since miplevel is valid => get number of bytes in a row for this mip
-    memcpy(data.data(), m_data_ptr, m_pitch * (yend - ybegin));
+    memcpy(data.data(), m_data_ptr, pitch * (yend - ybegin));
     // std::cout << "read_native_scanlines(" << subimage << ", " << miplevel
     //           << ", " << ybegin << ", " << yend << ")" << '\n';
     return true;
@@ -910,8 +921,8 @@ KtxInput::get_colorspace() const
     // for OIIO colorspaces, see:
     //  https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/src/libOpenImageIO/color_ocio.cpp
     khr_df_transfer_e transfer_function = ktxTexture2_GetTransferFunction_e(
-        m_tex2);
-    khr_df_primaries_e primaries = ktxTexture2_GetPrimaries_e(m_tex2);
+        m_tex);
+    khr_df_primaries_e primaries = ktxTexture2_GetPrimaries_e(m_tex);
     // std::cout << "tf: " << transfer_function << "; primaries: " << primaries
     //           << '\n';
     switch (transfer_function) {

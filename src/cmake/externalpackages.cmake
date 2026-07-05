@@ -259,20 +259,16 @@ else ()
     get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
 endif ()
 
-# Ktx for KTX textures
-# Note for KTX developers: set VERSION_MIN to 0.0.0 if you have a locally-built
-# tracking HEAD:main of KTX-Software because building non-tagged libktx sets the
-# version to 0.0.0
+# Ktx for KTX2 textures
 #
-# libktx doesn't support IntelLLVM and compilers other than gcc, clang, and
-# MSVC.
-if (MSVC OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU"
-         OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-    checked_find_package (Ktx
-      VERSION_MIN 5.0.0
-      BUILD_LOCAL missing
-    )
-endif()
+# Note for KTX plugin developers:
+#   set VERSION_MIN to 0.0.0 if you have a locally-built tracking HEAD:main of
+#   KTX-Software because building non-tagged libktx sets the version to 0.0.0.
+#
+checked_find_package (Ktx
+  VERSION_MIN 5.0.0
+  BUILD_LOCAL missing
+)
 
 ###########################################################################
 

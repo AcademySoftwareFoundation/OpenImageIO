@@ -28,6 +28,7 @@ public:
     int supports(string_view feature) const override
     {
         return (
+            feature == "alpha" || feature == "ioproxy" ||
             // as per the KTX1/2 specs:
             //  registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_keyvalue_data
             feature == "arbitrary_metadata" ||
