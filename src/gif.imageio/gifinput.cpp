@@ -366,8 +366,9 @@ GIFInput::read_subimage_data()
                         fscanline[wx], wx, y, colormap_count);
                     return false;
                 }
-                int x   = window_left + wx;
-                int64_t idx = m_spec.nchannels * (int64_t(y) * m_spec.width + x);
+                int x       = window_left + wx;
+                int64_t idx = m_spec.nchannels
+                              * (int64_t(y) * m_spec.width + x);
                 if (0 <= x && x < m_spec.width) {
                     m_canvas[idx]     = colormap[fscanline[wx]].Red;
                     m_canvas[idx + 1] = colormap[fscanline[wx]].Green;
