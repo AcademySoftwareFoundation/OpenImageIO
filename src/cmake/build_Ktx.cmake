@@ -3,9 +3,11 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 set_cache (Ktx_BUILD_VERSION v5.0.0-rc1 "Ktx version for local builds")
-set_cache (Ktx_GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git")
+set_cache (Ktx_GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
+              "git repository from where to fetch libktx")
 set_cache (Ktx_GIT_TAG "${Ktx_BUILD_VERSION}" "Git branch or tag")
-set_cache (Ktx_GIT_COMMIT "6269d2752ed04446c2d4749f54f3aad4f94555b5")
+set_cache (Ktx_GIT_COMMIT "6269d2752ed04446c2d4749f54f3aad4f94555b5"
+              "commit hash to verify tag/branch against")
 set_cache (Ktx_BUILD_SHARED_LIBS OFF ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local Ktx build, if necessary, build shared libraries" ADVANCED)
 
