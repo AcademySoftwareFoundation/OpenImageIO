@@ -468,7 +468,7 @@ jobs:
                              Robinmap_GIT_COMMIT=68ff7325b3898fca267a103bad5c509e8861144d
                              TIFF_BUILD_VERSION=4.0.0
                              TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
-                             Ktx_GIT_TAG=v4.3.2
+                             Ktx_BUILD_VERSION=v4.3.2
                              Ktx_GIT_COMMIT=91ace88675ac59a97e55d0378a6602a9ae6b98bd
                             #  OpenJPEG_BUILD_VERSION=2.2.0
                             #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
@@ -501,7 +501,7 @@ jobs:
                              Robinmap_GIT_COMMIT=68ff7325b3898fca267a103bad5c509e8861144d
                              TIFF_BUILD_VERSION=4.0.0
                              TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
-                             Ktx_GIT_TAG=v4.3.2
+                             Ktx_BUILD_VERSION=v4.3.2
                              Ktx_GIT_COMMIT=91ace88675ac59a97e55d0378a6602a9ae6b98bd
                             #  OpenJPEG_BUILD_VERSION=2.2.0
                             #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
@@ -543,7 +543,7 @@ jobs:
                              Robinmap_GIT_COMMIT=68ff7325b3898fca267a103bad5c509e8861144d
                              TIFF_BUILD_VERSION=4.0.0
                              TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
-                             Ktx_GIT_TAG=v4.3.2
+                             Ktx_BUILD_VERSION=v4.3.2
                              Ktx_GIT_COMMIT=91ace88675ac59a97e55d0378a6602a9ae6b98bd
             # libktx > 4.3.2 requires CMake >= 3.22
             required_deps: none
