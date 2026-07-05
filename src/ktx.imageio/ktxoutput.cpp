@@ -661,10 +661,10 @@ KtxOutput::write_ktx2()
                 static_cast<uint32_t>(status));
             return false;
         }
-        // Cleanup when we go out of scope or on exception
-        // Do not do an array style destruction (via unique_ptr<ktx_uint8_t[]>) as this does
-        // not match how the data was originally allocated (via malloc)
-        auto _ = std::unique_ptr<ktx_uint8_t>(buff);
+        // Cleanup when we go out of scope or on exception (make sure to use
+        // matching deallocator, i.e., free())
+        auto _ = std::unique_ptr<ktx_uint8_t, decltype(std::free)*>(buff,
+                                                                    std::free);
         proxy->write(buff, buff_size);
         return true;
     }
