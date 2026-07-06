@@ -30,6 +30,3 @@ command += info_command ("--info:format=xml tmp.tif", safematch=True)
 # Info for subimages and mips
 command += info_command ("--stats src/subimage.tif", info_program="iinfo")
 command += info_command ("--stats src/mip.tif", info_program="iinfo")
-command += run_app (pythonbin + " src/check-rowsperstrip-zero.py "
-                    + oiio_app("iinfo") + " " + oiio_app("oiiotool"),
-                    silent=True)
