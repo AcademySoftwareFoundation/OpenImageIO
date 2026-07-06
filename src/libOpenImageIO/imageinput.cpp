@@ -32,6 +32,14 @@ static thread_local tsl::robin_map<uint64_t, std::string> input_error_messages;
 static std::atomic_int64_t input_next_id(0);
 
 
+static int
+safe_rows_per_strip(const ImageSpec& spec)
+{
+    int rps = spec.get_int_attribute("tiff:RowsPerStrip", 64);
+    return rps > 0 ? rps : 64;
+}
+
+
 class ImageInput::Impl {
 public:
     Impl()
@@ -365,7 +373,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+            rps = safe_rows_per_strip(m_spec);
         // FIXME: does the above search of metadata have a significant cost?
     }
     if (spec.image_bytes() < 1) {
@@ -1108,7 +1116,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+            rps = safe_rows_per_strip(m_spec);
     }
     if (spec.image_bytes() < 1) {
         errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
@@ -1201,7 +1209,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+            rps = safe_rows_per_strip(m_spec);
     }
     if (spec.image_bytes() < 1) {
         errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
