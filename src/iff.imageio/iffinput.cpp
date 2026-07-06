@@ -281,6 +281,12 @@ IffInput::open(const std::string& name, ImageSpec& spec)
     // we save this position - it will be helpful in read_native_tile
     m_tbmp_start = m_header.tbmp_start;
 
+    // Validity check resolutions. Width and height are a uint16, but this is
+    // an old format, we are guessing that there are no Maya IFF files that
+    // are > 64k pixels per side.
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 5 }))
+        return false;
+
     spec = m_spec;
     return true;
 }
