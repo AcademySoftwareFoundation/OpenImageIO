@@ -1,0 +1,14 @@
+Reading negrps.tif
+negrps.tif           :    1 x    1, 3 channel, float tiff
+    SHA-1: 2771C32B635C7C7154A48DBE4F54B3449ABC6B50
+    channel list: R, G, B
+    compression: "zip"
+    DateTime: "2026:07:03 07:11:01"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    Software: "OpenImageIO 3.2.0.2dev : 2C50DDDC920616B428C03D5F6786B396201DAF23"
+    oiio:BitsPerSample: 32
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
