@@ -306,9 +306,28 @@ jobs:
             python_ver: "3.13"
             simd: "avx2,f16c"
             pybind11_ver: v3.0.0
-            benchmark: 1
-            # setenvs: export 
             optional_deps_append: "Qt5;Qt6"
+
+          - desc: VFX2027 gcc14/C++20 py3.13 exr3.4 ocio2.5
+            nametag: linux-vfx2027
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2027
+            cxx_std: 20
+            python_ver: "3.13"
+            simd: "avx2,f16c"
+            pybind11_ver: v3.0.4
+            benchmark: 1
+          - desc: VFX2027 clang21/C++20 py3.13 exr3.4 ocio2.5
+            nametag: linux-vfx2027-clang
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2027
+            cc_compiler: clang
+            cxx_compiler: clang++
+            cxx_std: 20
+            python_ver: "3.13"
+            simd: "avx2,f16c"
+            pybind11_ver: v3.0.4
+
           - desc: Sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
