@@ -26,6 +26,16 @@
 
 
 OIIO_NAMESPACE_3_1_BEGIN
+
+
+static int
+safe_rows_per_strip(const ImageSpec& spec)
+{
+    int rps = spec.get_int_attribute("tiff:RowsPerStrip", 64);
+    return rps > 0 ? rps : 64;
+}
+
+
 using namespace pvt;
 using namespace OIIO::pvt;
 
@@ -665,7 +675,7 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
     } else {  // Scanline image
         // Split into reasonable chunks -- try to use around 64 MB, but
         // round up to a multiple of the TIFF rows per strip (or 64).
-        int rps   = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+        int rps   = safe_rows_per_strip(m_spec);
         int chunk = std::max(1, (1 << 26) / int(m_spec.scanline_bytes(true)));
         chunk     = round_to_multiple(chunk, rps);
 
