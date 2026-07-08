@@ -62,6 +62,11 @@
 #    include <unistd.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#    include <chrono>
+#    include <unistd.h>
+#endif
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/strutil.h>
@@ -130,6 +135,8 @@ Sysutil::memory_used(bool resident)
     // FIXME -- does somebody know a good method for figuring this out for
     // FreeBSD?
     return 0;  // Punt
+#elif defined(__EMSCRIPTEN__)
+    return 0;
 #else
     // No idea what platform this is
     OIIO_ASSERT(0 && "Need to implement Sysutil::memory_used on this platform");
@@ -202,6 +209,8 @@ Sysutil::physical_memory()
     sysctl(mib, 2, &physical_memory, &length, NULL, 0);
     return physical_memory;
 
+#elif defined(__EMSCRIPTEN__)
+    return 0;
 #else
     // No idea what platform this is
     OIIO_ASSERT(
@@ -268,7 +277,8 @@ Sysutil::this_program_path()
     size_t cb = sizeof(filename);
     int r     = 1;
     sysctl(mib, 4, filename, &cb, NULL, 0);
-#elif defined(__GNU__) || defined(__OpenBSD__) || defined(_WIN32)
+#elif defined(__GNU__) || defined(__OpenBSD__) || defined(_WIN32) \
+    || defined(__EMSCRIPTEN__)
     int r = 0;
 #else
     // No idea what platform this is
@@ -299,6 +309,8 @@ Sysutil::usleep(unsigned long useconds)
 {
 #ifdef _WIN32
     Sleep(useconds / 1000);  // Win32 Sleep() is milliseconds, not micro
+#elif defined(__EMSCRIPTEN__)
+    std::this_thread::sleep_for(std::chrono::microseconds(useconds));
 #else
     ::usleep(useconds);  // *nix usleep() is in microseconds
 #endif
