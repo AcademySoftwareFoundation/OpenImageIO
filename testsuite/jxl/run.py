@@ -5,6 +5,8 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+redirect = " >> out.txt 2>&1 "
+
 # Test adding and extracting ICC profiles
 command += oiiotool ("../common/tahoe-tiny.tif --iccread ref/test-jxl.icc -o tahoe-icc.jxl")
 command += info_command ("tahoe-icc.jxl", safematch=True)
@@ -18,6 +20,9 @@ command += info_command ("tahoe-cicp-dcip3.jxl", safematch=True)
 
 command += oiiotool ("../common/tahoe-tiny.tif --cicp \"12,13,0,1\" -o tahoe-cicp-displayp3.jxl")
 command += info_command ("tahoe-cicp-displayp3.jxl", safematch=True)
+
+# Corrupt input that previously triggered an oversized allocation path in JXL decode
+command += oiiotool ("-info -oiioattrib limits:imagesize_MB 16384 src/crash-bfd2220.jxl", failureok=True)
 
 outputs = [
             "test-jxl.icc",
