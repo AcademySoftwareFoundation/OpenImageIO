@@ -143,7 +143,7 @@ private:
     };
 
     struct Layer {
-        uint32_t top, left, bottom, right;
+        int32_t top, left, bottom, right;
         uint32_t width, height;
         uint16_t channel_count;
 
@@ -157,7 +157,7 @@ private:
         uint32_t extra_length;
 
         struct MaskData {
-            uint32_t top, left, bottom, right;
+            int32_t top, left, bottom, right;
             uint8_t default_color;
             uint8_t flags;
         };
@@ -1557,16 +1557,22 @@ bool
 PSDInput::load_layer(Layer& layer)
 {
     bool ok = true;
-    ok &= read_bige<uint32_t>(layer.top);
-    ok &= read_bige<uint32_t>(layer.left);
-    ok &= read_bige<uint32_t>(layer.bottom);
-    ok &= read_bige<uint32_t>(layer.right);
+    ok &= read_bige<int32_t>(layer.top);
+    ok &= read_bige<int32_t>(layer.left);
+    ok &= read_bige<int32_t>(layer.bottom);
+    ok &= read_bige<int32_t>(layer.right);
     ok &= read_bige<uint16_t>(layer.channel_count);
     if (!ok)
         return false;
 
-    layer.width  = std::abs((int)layer.right - (int)layer.left);
-    layer.height = std::abs((int)layer.bottom - (int)layer.top);
+    // The rectangle coordinates are signed 32-bit (a layer may have negative
+    // offsets). Widen to int64 before subtracting: a plain int32 subtraction
+    // can overflow (undefined behavior) on corrupt files with extreme values.
+    // The absolute difference of two int32 always fits in uint32.
+    int64_t w    = int64_t(layer.right) - int64_t(layer.left);
+    int64_t h    = int64_t(layer.bottom) - int64_t(layer.top);
+    layer.width  = uint32_t(w < 0 ? -w : w);
+    layer.height = uint32_t(h < 0 ? -h : h);
     if (!validate_resolution("Layer Record", layer.width, layer.height))
         return false;
     layer.channel_info.resize(layer.channel_count);
@@ -1608,10 +1614,10 @@ PSDInput::load_layer(Layer& layer)
         auto lmd_end   = lmd_start + lmd_length;
 
         if (lmd_length >= 4 * 4 + 1 * 2) {
-            ok &= read_bige<uint32_t>(layer.mask_data.top);
-            ok &= read_bige<uint32_t>(layer.mask_data.left);
-            ok &= read_bige<uint32_t>(layer.mask_data.bottom);
-            ok &= read_bige<uint32_t>(layer.mask_data.right);
+            ok &= read_bige<int32_t>(layer.mask_data.top);
+            ok &= read_bige<int32_t>(layer.mask_data.left);
+            ok &= read_bige<int32_t>(layer.mask_data.bottom);
+            ok &= read_bige<int32_t>(layer.mask_data.right);
             ok &= read_bige<uint8_t>(layer.mask_data.default_color);
             ok &= read_bige<uint8_t>(layer.mask_data.flags);
         }
@@ -1694,10 +1700,16 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     // Use mask_data size when channel_id is -2
     uint32_t width, height;
     if (channel_info.channel_id == ChannelID_LayerMask) {
-        width  = (uint32_t)std::abs((int)layer.mask_data.right
-                                    - (int)layer.mask_data.left);
-        height = (uint32_t)std::abs((int)layer.mask_data.bottom
-                                    - (int)layer.mask_data.top);
+        // Widen to int64 before subtracting: a plain int32 subtraction can
+        // overflow (undefined behavior) on corrupt files with extreme
+        // values. The absolute difference of two int32 always fits in
+        // uint32.
+        int64_t w = int64_t(layer.mask_data.right)
+                    - int64_t(layer.mask_data.left);
+        int64_t h = int64_t(layer.mask_data.bottom)
+                    - int64_t(layer.mask_data.top);
+        width  = uint32_t(w < 0 ? -w : w);
+        height = uint32_t(h < 0 ? -h : h);
     } else {
         width  = layer.width;
         height = layer.height;
