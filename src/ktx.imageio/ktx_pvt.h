@@ -5,6 +5,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/tiffutils.h>
+#include <ktx.h>
 #include <string>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -376,6 +377,16 @@ struct FormatInfo {
     BlockCompression compression { BlockCompression::NONE };
     VkFormat decompressed_format { VK_FORMAT_UNDEFINED };
 };
+
+
+
+/// Wrapper around ktxTexture_Destroy (which is a macro) to be passed as a
+/// deleter to smart pointers
+static void
+ktxTexture_Deleter(ktxTexture2* tex)
+{
+    ktxTexture_Destroy((ktxTexture*)tex);
+}
 
 
 

@@ -53,7 +53,10 @@ public:
 private:
     std::string m_filename;
 
-    ktxTexture2* m_tex { nullptr };
+    /// KTX2 texture.
+    std::unique_ptr<ktxTexture2, decltype(ktxTexture_Deleter)*> m_tex {
+        nullptr, ktxTexture_Deleter
+    };
 
     uint32_t m_nlayers { 1 };
 
@@ -339,19 +342,23 @@ KtxOutput::open(const std::string& name, const ImageSpec& newspec,
     create_info.isArray          = KTX_FALSE;
     create_info.generateMipmaps  = KTX_FALSE;
 
-    if (auto status = ktxTexture2_Create(&create_info,
-                                         KTX_TEXTURE_CREATE_ALLOC_STORAGE,
-                                         &m_tex);
-        status != KTX_SUCCESS) {
+    ktxTexture2* p_tex = nullptr;
+    auto result        = ktxTexture2_Create(&create_info,
+                                            KTX_TEXTURE_CREATE_ALLOC_STORAGE, &p_tex);
+    m_tex.reset(p_tex);
+
+    if (result != KTX_SUCCESS) {
         close();
         errorfmt("ktxTexture_Create return KTX exit error code: {}",
-                 static_cast<uint32_t>(status));
+                 static_cast<uint32_t>(result));
         return false;
     }
 
     // Reserve space for base level mipmap
     if (!m_tex->isCompressed) {
-        m_img.resize(ktxTexture_GetImageSize(ktxTexture(m_tex), 0));
+        m_img.resize(
+            ktxTexture_GetImageSize(reinterpret_cast<ktxTexture*>(m_tex.get()),
+                                    0));
     } else {
         // TODO:
         // Not compressed => make sure that vector's size matches the expected
@@ -436,7 +443,6 @@ KtxOutput::close()
         // Apparently we can't do (or I don't know yet how to) partial writes
         // using libktx. We can only write whole ktxTextures all together.
         result = write_ktx2();  // TODO: can this throw? (prob not)
-        ktxTexture_Destroy(ktxTexture(m_tex));
     }
     init();
     return result;
@@ -470,15 +476,20 @@ KtxOutput::basisu_basislz_compress()
     // what params the original data was compressed with so that we can reproduce
     // it.
     // TODO: expose as "ktx:" attribute(s)
-    ktxBasisParams params        = { 0 };
-    params.structSize            = sizeof(ktxBasisParams);
+    ktxBasisParams params = { 0 };
+    params.structSize     = sizeof(ktxBasisParams);
+#if Ktx_VERSION >= OIIO_MAKE_VERSION(5, 0, 0)
     params.codec                 = ktx_basis_codec_e::KTX_BASIS_CODEC_ETC1S;
-    params.verbose               = false;
-    params.noSSE                 = false;
-    params.threadCount           = 1;
     params.etc1sCompressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
+#else
+    params.uastc            = false;
+    params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
+#endif
+    params.verbose     = false;
+    params.noSSE       = false;
+    params.threadCount = 1;
     // TODO: expose RDO support for ETC1S
-    if (auto status = ktxTexture2_CompressBasisEx(m_tex, &params);
+    if (auto status = ktxTexture2_CompressBasisEx(m_tex.get(), &params);
         status != KTX_SUCCESS) {
         errorfmt("ktxTexture2_CompressBasisEx returned error code: ",
                  static_cast<uint32_t>(status));
@@ -500,14 +511,18 @@ KtxOutput::basisu_uastc_compress()
     // TODO: expose parameters
     ktxBasisParams params = { 0 };
     params.structSize     = sizeof(ktxBasisParams);
-    params.codec          = ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_LDR_4x4;
-    params.verbose        = false;
-    params.noSSE          = false;
-    params.threadCount    = 1;
-    params.uastcFlags     = KTX_PACK_UASTC_LEVEL_DEFAULT;
-    params.uastcRDO       = false;
+#if Ktx_VERSION >= OIIO_MAKE_VERSION(5, 0, 0)
+    params.codec = ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_LDR_4x4;
+#else
+    params.uastc = true;
+#endif
+    params.verbose     = false;
+    params.noSSE       = false;
+    params.threadCount = 1;
+    params.uastcFlags  = KTX_PACK_UASTC_LEVEL_DEFAULT;
+    params.uastcRDO    = false;
     // TODO: expose RDO support for UASTC
-    if (auto status = ktxTexture2_CompressBasisEx(m_tex, &params);
+    if (auto status = ktxTexture2_CompressBasisEx(m_tex.get(), &params);
         status != KTX_SUCCESS) {
         errorfmt("ktxTexture2_CompressBasisEx returned error code: ",
                  static_cast<uint32_t>(status));
@@ -553,8 +568,8 @@ KtxOutput::write_ktx2()
     //  will cause a segfault!
     //
     if (!m_tex->isCompressed) {
-        if (auto status = ktxTexture_SetImageFromMemory(ktxTexture(m_tex), 0, 0,
-                                                        0, m_img.data(),
+        if (auto status = ktxTexture_SetImageFromMemory(ktxTexture(m_tex.get()),
+                                                        0, 0, 0, m_img.data(),
                                                         m_img.size());
             status != KTX_SUCCESS) {
             errorfmt(
@@ -589,9 +604,9 @@ KtxOutput::write_ktx2()
         return false;
     } else if (m_cmp == BlockCompression::ASTC) {
         // First set uncompressed images
-        if (auto status = ktxTexture_SetImageFromMemory(ktxTexture(m_tex), 0, 0,
-                                                        0, m_img.data(),
-                                                        m_img.size());
+        if (auto status = ktxTexture_SetImageFromMemory(
+                reinterpret_cast<ktxTexture*>(m_tex.get()), 0, 0, 0,
+                m_img.data(), m_img.size());
             status != KTX_SUCCESS) {
             errorfmt(
                 "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
@@ -601,7 +616,7 @@ KtxOutput::write_ktx2()
 
         // Then compress the whole texture to ASTC format
         // TODO: expose ASTC compression quality parameter as spec attribute
-        if (auto status = ktxTexture2_CompressAstc(m_tex, 0);
+        if (auto status = ktxTexture2_CompressAstc(m_tex.get(), 0);
             status != KTX_SUCCESS) {
             errorfmt("ktxTexture2_CompressAstc returned KTX exit error code: {}",
                      static_cast<uint32_t>(status));
@@ -621,7 +636,7 @@ KtxOutput::write_ktx2()
 
     // Finally, apply the supercompression scheme (if any)
     if (m_superCmp == KTX_SS_ZLIB) {
-        if (auto status = ktxTexture2_DeflateZLIB(m_tex, 0);
+        if (auto status = ktxTexture2_DeflateZLIB(m_tex.get(), 0);
             status != KTX_SUCCESS) {
             errorfmt("ktxTexture2_DeflateZLIB returned KTX exit error code: {}",
                      static_cast<uint32_t>(status));
@@ -629,7 +644,7 @@ KtxOutput::write_ktx2()
         }
 
     } else if (m_superCmp == KTX_SS_ZSTD) {
-        if (auto status = ktxTexture2_DeflateZstd(m_tex, 0);
+        if (auto status = ktxTexture2_DeflateZstd(m_tex.get(), 0);
             status != KTX_SUCCESS) {
             errorfmt("ktxTexture2_DeflateZstd returned KTX exit error code: {}",
                      static_cast<uint32_t>(status));
@@ -640,7 +655,8 @@ KtxOutput::write_ktx2()
     Filesystem::IOProxy* m_io = ioproxy();
     if (!strcmp(m_io->proxytype(), "file")) {
         auto fd = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
-        if (auto status = ktxTexture2_WriteToStdioStream(m_tex, fd);
+        if (auto status = ktxTexture_WriteToStdioStream(
+                reinterpret_cast<ktxTexture*>(m_tex.get()), fd);
             status != KTX_SUCCESS) {
             errorfmt(
                 "ktxTexture2_WriteToStdioStream returned KTX exit error code: {}",
@@ -654,7 +670,8 @@ KtxOutput::write_ktx2()
         auto proxy = reinterpret_cast<Filesystem::IOVecOutput*>(m_io);
         ktx_uint8_t* buff;
         ktx_size_t buff_size;
-        if (auto status = ktxTexture2_WriteToMemory(m_tex, &buff, &buff_size);
+        if (auto status = ktxTexture_WriteToMemory(
+                reinterpret_cast<ktxTexture*>(m_tex.get()), &buff, &buff_size);
             status != KTX_SUCCESS) {
             errorfmt(
                 "ktxTexture2_WriteToMemory returned KTX exit error code: {}",

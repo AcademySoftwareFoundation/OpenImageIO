@@ -80,9 +80,10 @@ public:
 private:
     std::string m_filename;
 
-    /// Non-owning pointer to KTX2 texture. The texture is managed by libktx
-    /// and should be destroyed via a 'ktxTexture_Destroy()' call.
-    ktxTexture2* m_tex { nullptr };
+    /// KTX2 texture.
+    std::unique_ptr<ktxTexture2, decltype(ktxTexture_Deleter)*> m_tex {
+        nullptr, ktxTexture_Deleter
+    };
 
     /// Non-owning pointer to first byte of the requested (miplevel, slice).
     /// This points to first byte of the whole texture data.
@@ -235,9 +236,11 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //  https://github.com/KhronosGroup/KTX-Software/blob/main/lib/src/texture.c
     //
     if (proxytype == "file") {
-        auto fd  = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
-        auto res = ktxTexture2_CreateFromStdioStream(
-            fd, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &m_tex);
+        auto fd = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
+        ktxTexture2* p_tex = nullptr;
+        auto res           = ktxTexture2_CreateFromStdioStream(
+            fd, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &p_tex);
+        m_tex.reset(p_tex);
         if (KTX_SUCCESS != res) {
             errorfmt("Failed to create ktx texture using "
                      "ktxTexture_CreateFromStdioStream");
@@ -246,9 +249,11 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     } else /* (proxytype == "memreader") */ {
         OIIO_ASSERT(proxytype == "memreader");
         auto buff = reinterpret_cast<Filesystem::IOMemReader*>(m_io)->buffer();
-        auto res  = ktxTexture2_CreateFromMemory(
+        ktxTexture2* p_tex = nullptr;
+        auto res           = ktxTexture2_CreateFromMemory(
             buff.data(), buff.size(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-            &m_tex);
+            &p_tex);
+        m_tex.reset(p_tex);
         if (KTX_SUCCESS != res) {
             errorfmt(
                 "Failed to create ktx texture using ktxTexture_CreateFromMemory");
@@ -303,8 +308,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // Store colormodel so that if a KTX2 is requested to be generated, we know
     // if a Basis Universal scheme has to be applied.
     m_spec.extra_attribs.attribute("ktx:colormodel", TypeDesc::UINT32, 1,
-                                   cspan<uint32_t>(
-                                       ktxTexture2_GetColorModel_e(m_tex)));
+                                   cspan<uint32_t>(ktxTexture2_GetColorModel_e(
+                                       m_tex.get())));
 
     // m_spec.extra_attribs.attribute("ktx:transferfunction", TypeDesc::UINT32, 1,
     //                                cspan<uint32_t>(transfer_function));
@@ -452,9 +457,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // This modifies the KtxTexture2 (m_tex) therefore make sure to save
     // essential properties for proper KTX2 regeneration.
     //
-    if (ktxTexture2_NeedsTranscoding(m_tex)) {
+    if (ktxTexture2_NeedsTranscoding(m_tex.get())) {
         if (auto status = ktxTexture2_TranscodeBasis(
-                m_tex, ktx_transcode_fmt_e::KTX_TTF_RGBA32, 0);
+                m_tex.get(), ktx_transcode_fmt_e::KTX_TTF_RGBA32, 0);
             status != KTX_SUCCESS) {
             errorfmt("failed to transcode KTX2 texture to raw pixels. "
                      "ktxTexture2_TranscodeBasis returned Ktx error code: {}",
@@ -688,10 +693,6 @@ KtxInput::close()
     // Check if already closed
     if (!ioproxy_opened())
         return true;
-    if (m_tex) {
-        ktxTexture2_Destroy(m_tex);
-        m_tex = nullptr;
-    }
     ioproxy_clear();
     return true;
 };
@@ -778,8 +779,9 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     // returned.
     //
     ktx_size_t offset;
-    if (auto status = ktxTexture2_GetImageOffset(m_tex, miplevel, arr_layer,
-                                                 face_slice, &offset);
+    if (auto status
+        = ktxTexture_GetImageOffset(reinterpret_cast<ktxTexture*>(m_tex.get()),
+                                    miplevel, arr_layer, face_slice, &offset);
         status != KTX_SUCCESS) {
         errorfmt("ktxTexture2_GetImageOffset failed with exit code: {}",
                  static_cast<uint32_t>(status));
@@ -787,7 +789,7 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     }
     m_data_ptr = m_tex->pData + offset;
     const uint32_t pitch
-        = ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(m_tex),
+        = ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(m_tex.get()),
                                  miplevel);
     OIIO_ASSERT(pitch == m_spec.scanline_bytes());
 
@@ -936,8 +938,10 @@ KtxInput::get_colorspace() const
     //  Don't use ktxTexture2_GetPrimaries_e/ktxTexture2_GetTransferFunction_e as these are only
     //  available in newer versions of libktx (>= 5.0.0, I think)
     //
-    const auto transfer_function = static_cast<khr_df_transfer_e>(KHR_DFDVAL(m_tex->pDfd+1, TRANSFER));
-    const auto primaries = static_cast<khr_df_primaries_e>(KHR_DFDVAL(m_tex->pDfd+1, PRIMARIES));
+    const auto transfer_function = static_cast<khr_df_transfer_e>(
+        KHR_DFDVAL(m_tex->pDfd + 1, TRANSFER));
+    const auto primaries = static_cast<khr_df_primaries_e>(
+        KHR_DFDVAL(m_tex->pDfd + 1, PRIMARIES));
     // std::cout << "tf: " << transfer_function << "; primaries: " << primaries
     //           << '\n';
     switch (transfer_function) {
