@@ -227,6 +227,7 @@ private:
     GlobalMaskInfo m_global_mask_info;
     ImageDataSection m_image_data;
     ImageBuf m_thumbnail;
+    uint32_t m_maxres = 30000;  // Maximum resolution based on header version
 
     //Reset to initial state
     void init();
@@ -236,6 +237,7 @@ private:
     bool read_header();
     bool validate_header();
     static bool validate_signature(const char signature[4]);
+    bool validate_resolution(string_view name, uint32_t width, uint32_t height);
 
     //Color Mode Data
     bool load_color_data();
@@ -436,7 +438,8 @@ private:
         return true;
     }
 
-    int read_pascal_string(std::string& s, uint16_t mod_padding);
+    bool read_pascal_string(std::string& s, uint16_t mod_padding,
+                            int* bytes_read = nullptr);
 
     // Swap a planar bytespan representing the bytes of a float vector to its
     // interleaved byte order. This is per scanline
@@ -967,6 +970,22 @@ PSDInput::validate_signature(const char signature[4])
 
 
 bool
+PSDInput::validate_resolution(string_view name, uint32_t width, uint32_t height)
+{
+    if (width < 1 || width > m_maxres) {
+        errorfmt("[{}] invalid image width {}", name, width);
+        return false;
+    }
+    if (height < 1 || height > m_maxres) {
+        errorfmt("[{}] invalid image height {}", name, height);
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
 PSDInput::validate_header()
 {
     if (!validate_signature(m_header.signature)) {
@@ -981,32 +1000,13 @@ PSDInput::validate_header()
         errorfmt("[Header] invalid channel count");
         return false;
     }
-    switch (m_header.version) {
-    case 1:
-        // PSD
-        // width/height range: [1,30000]
-        if (m_header.height < 1 || m_header.height > 30000) {
-            errorfmt("[Header] invalid image height");
-            return false;
-        }
-        if (m_header.width < 1 || m_header.width > 30000) {
-            errorfmt("[Header] invalid image width");
-            return false;
-        }
-        break;
-    case 2:
-        // PSB (Large Document Format)
-        // width/height range: [1,300000]
-        if (m_header.height < 1 || m_header.height > 300000) {
-            errorfmt("[Header] invalid image height {}", m_header.height);
-            return false;
-        }
-        if (m_header.width < 1 || m_header.width > 300000) {
-            errorfmt("[Header] invalid image width {}", m_header.width);
-            return false;
-        }
-        break;
-    }
+    if (m_header.version == 2 /* PSB - Large Document Format */)
+        m_maxres = 300000;
+    else /* PSD */
+        m_maxres = 30000;
+    if (!validate_resolution("Header", m_header.height, m_header.width))
+        return false;
+
     // Valid depths are 1,8,16,32
     if (m_header.depth != 1 && m_header.depth != 8 && m_header.depth != 16
         && m_header.depth != 32) {
@@ -1212,7 +1212,10 @@ PSDInput::load_resource_1006(uint32_t length)
     int32_t bytes_remaining = length;
     std::string name;
     while (bytes_remaining >= 2) {
-        bytes_remaining -= read_pascal_string(name, 1);
+        int b = 0;
+        if (!read_pascal_string(name, 1, &b))
+            return false;
+        bytes_remaining -= b;
         m_alpha_names.push_back(name);
     }
     return true;
@@ -1564,6 +1567,8 @@ PSDInput::load_layer(Layer& layer)
 
     layer.width  = std::abs((int)layer.right - (int)layer.left);
     layer.height = std::abs((int)layer.bottom - (int)layer.top);
+    if (!validate_resolution("Layer Record", layer.width, layer.height))
+        return false;
     layer.channel_info.resize(layer.channel_count);
     for (uint16_t channel = 0; channel < layer.channel_count; channel++) {
         ChannelInfo& channel_info = layer.channel_info[channel];
@@ -1629,7 +1634,10 @@ PSDInput::load_layer(Layer& layer)
     if (!ok)
         return false;
 
-    extra_remaining -= read_pascal_string(layer.name, 4);
+    int b = 0;
+    if (!read_pascal_string(layer.name, 4, &b))
+        return false;
+    extra_remaining -= b;
     while (ok && extra_remaining >= 12) {
         layer.additional_info.emplace_back();
         Layer::AdditionalInfo& info = layer.additional_info.back();
@@ -1694,6 +1702,8 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         width  = layer.width;
         height = layer.height;
     }
+    if (!validate_resolution("layer_channel", width, height))
+        return false;
     channel_info.width  = width;
     channel_info.height = height;
 
@@ -2266,33 +2276,40 @@ PSDInput::set_type_desc()
 
 
 
-int
-PSDInput::read_pascal_string(std::string& s, uint16_t mod_padding)
+bool
+PSDInput::read_pascal_string(std::string& s, uint16_t mod_padding,
+                             int* bytes_read)
 {
+    if (bytes_read)
+        *bytes_read = 0;
+    int bytes = 0;
     s.clear();
     uint8_t length;
-    int bytes = 0;
-    if (ioread((char*)&length, 1)) {
-        bytes = 1;
-        if (length == 0) {
-            if (ioseek(mod_padding - 1, SEEK_CUR))
-                bytes += mod_padding - 1;
-        } else {
-            s.resize(length);
-            if (ioread(&s[0], length)) {
-                bytes += length;
-                if (mod_padding > 0) {
-                    for (int padded_length = length + 1;
-                         padded_length % mod_padding != 0; padded_length++) {
-                        if (!ioseek(1, SEEK_CUR))
-                            break;
-                        bytes++;
-                    }
-                }
+    if (!ioread((char*)&length, 1))
+        return false;
+    bytes = 1;
+    if (length == 0) {
+        if (ioseek(mod_padding - 1, SEEK_CUR))
+            bytes += mod_padding - 1;
+        else
+            return false;
+    } else {
+        s.resize(length);
+        if (!ioread(&s[0], length))
+            return false;
+        bytes += length;
+        if (mod_padding > 0) {
+            for (int padded_length = length + 1;
+                 padded_length % mod_padding != 0; padded_length++) {
+                if (!ioseek(1, SEEK_CUR))
+                    return false;
+                bytes++;
             }
         }
     }
-    return bytes;
+    if (bytes_read)
+        *bytes_read = bytes;
+    return true;
 }
 
 
