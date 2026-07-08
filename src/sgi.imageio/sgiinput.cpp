@@ -50,7 +50,7 @@ private:
 
     // read channel scanline data from file, uncompress it and save the data
     // to 'outbuf' buffer. Return true if ok, false if there was a read error.
-    bool uncompress_rle_channel(int scanline_off, int scanline_len,
+    bool uncompress_rle_channel(int64_t scanline_off, int64_t scanline_len,
                                 span<unsigned char> outbf);
 };
 
@@ -199,9 +199,9 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // reading and uncompressing first channel (red in RGBA images)
         for (int c = 0; c < m_spec.nchannels; ++c) {
             // offset for this scanline/channel
-            ptrdiff_t off             = y + c * m_spec.height;
-            ptrdiff_t scanline_offset = start_tab[off];
-            ptrdiff_t scanline_length = length_tab[off];
+            ptrdiff_t off           = y + c * m_spec.height;
+            int64_t scanline_offset = start_tab[off];
+            int64_t scanline_length = length_tab[off];
             channeldata[c].resize(m_spec.width * bpc);
             if (!uncompress_rle_channel(scanline_offset, scanline_length,
                                         make_span(channeldata[c])))
@@ -245,10 +245,16 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
 
 bool
-SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
+SgiInput::uncompress_rle_channel(int64_t scanline_off, int64_t scanline_len,
                                  span<unsigned char> outbuf)
 {
-    int bpc = m_sgi_header.bpc;
+    int bpc          = m_sgi_header.bpc;
+    int64_t filesize = ioproxy() ? ioproxy()->size() : 0;
+    if (scanline_off < 0 || scanline_len < 0 || scanline_off > filesize
+        || scanline_len > filesize - scanline_off) {
+        errorfmt("Corrupt RLE offset/length table");
+        return false;
+    }
     std::unique_ptr<unsigned char[]> rle_scanline_alloc(
         new unsigned char[scanline_len]);
     auto rle_scanline = make_span(rle_scanline_alloc.get(), scanline_len);

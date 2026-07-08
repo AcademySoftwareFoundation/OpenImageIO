@@ -18,3 +18,10 @@ command += info_command ("--stats src/broken01.sgi",
 # inconsistently with the scanline indexing, causing a null-pointer crash.
 command += info_command ("--stats src/broken02.sgi",
                          info_program="iinfo", failureok=True)
+# broken03.sgi and broken04.sgi have RLE scanline length/offset table entries
+# that are bogus huge values. Truncating them to `int` produced negative
+# lengths that turned into huge allocation requests, aborting the process.
+command += info_command ("--stats src/broken03.sgi",
+                         info_program="iinfo", failureok=True)
+command += info_command ("--stats src/broken04.sgi",
+                         info_program="iinfo", failureok=True)

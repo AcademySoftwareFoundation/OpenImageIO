@@ -34,3 +34,13 @@ src/broken01.sgi :    8 x    2, 1 channel, uint8 sgi
     compression: "rle"
 iinfo ERROR: "src/broken01.sgi" : Corrupt RLE data
 iinfo ERROR: "src/broken02.sgi" : Read error: hit end of file in sgi reader
+src/broken03.sgi :   16 x   48, 1 channel, uint8 sgi
+    SHA-1: Corrupt RLE offset/length table
+    channel list: Y
+    compression: "rle"
+iinfo ERROR: "src/broken03.sgi" : Corrupt RLE offset/length table
+src/broken04.sgi :   64 x   49, 3 channel, uint16 sgi
+    SHA-1: Corrupt RLE offset/length table
+    channel list: R, G, B
+    compression: "rle"
+iinfo ERROR: "src/broken04.sgi" : Corrupt RLE offset/length table
