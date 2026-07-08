@@ -13,6 +13,9 @@
 #    define KHRONOS_STATIC 1
 #endif
 
+#define Ktx_VERSION \
+    OIIO_MAKE_VERSION(Ktx_VERSION_MAJOR, Ktx_VERSION_MINOR, Ktx_VERSION_PATCH)
+
 #include "ktx_pvt.h"
 #include <ktx.h>
 #include <optional>
@@ -126,7 +129,8 @@ OIIO_EXPORT int ktx_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 ktx_imageio_library_version()
 {
-    return "ktx v" Ktx_VERSION;
+    return "ktx v" OIIO_STRINGIZE(Ktx_VERSION_MAJOR) "." OIIO_STRINGIZE(
+        Ktx_VERSION_MINOR) "." OIIO_STRINGIZE(Ktx_VERSION_PATCH);
 }
 OIIO_EXPORT ImageInput*
 ktx_input_imageio_create()
@@ -521,6 +525,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
             /* ASTC formats */
         case BlockCompression::ASTC:
+#if Ktx_VERSION > OIIO_MAKE_VERSION(4, 3, 2)
             //
             // Note:
             // ktxTexture2_DecodeAstc internally creates a new ktxTexture2 texture
@@ -540,6 +545,12 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                 return false;
             }
             break;
+#else
+            errorfmt(
+                "ASTC decoding is not available in libktx v{}. Consider using libktx > 4.3.2",
+                Ktx_VERSION);
+            return false;
+#endif
 
         default:
             errorfmt("Unknown/unsupported GPU block compression kind: {}",
@@ -916,13 +927,17 @@ KtxInput::get_texture_kind() const
 std::string
 KtxInput::get_colorspace() const
 {
+    //
     // for set of, see:
     //  https://github.com/KhronosGroup/KTX-Software/blob/main/external/dfdutils/KHR/khr_df.h
     // for OIIO colorspaces, see:
     //  https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/src/libOpenImageIO/color_ocio.cpp
-    khr_df_transfer_e transfer_function = ktxTexture2_GetTransferFunction_e(
-        m_tex);
-    khr_df_primaries_e primaries = ktxTexture2_GetPrimaries_e(m_tex);
+    //
+    //  Don't use ktxTexture2_GetPrimaries_e/ktxTexture2_GetTransferFunction_e as these are only
+    //  available in newer versions of libktx (>= 5.0.0, I think)
+    //
+    const auto transfer_function = static_cast<khr_df_transfer_e>(KHR_DFDVAL(m_tex->pDfd+1, TRANSFER));
+    const auto primaries = static_cast<khr_df_primaries_e>(KHR_DFDVAL(m_tex->pDfd+1, PRIMARIES));
     // std::cout << "tf: " << transfer_function << "; primaries: " << primaries
     //           << '\n';
     switch (transfer_function) {

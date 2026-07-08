@@ -266,7 +266,7 @@ endif ()
 #   KTX-Software because building non-tagged libktx sets the version to 0.0.0.
 #
 checked_find_package (Ktx
-  VERSION_MIN 5.0.0
+  VERSION_MIN 4.3.2
   BUILD_LOCAL missing
 )
 
