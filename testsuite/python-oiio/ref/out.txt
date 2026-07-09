@@ -51,8 +51,8 @@ Testing global get_*_attribute defaults:
 Testing getattribute() with TypeUnknown:
   getattribute(missing, TypeUnknown): None
 
-Testing getattribute() one-arg (pybind default):
-  one-arg: TypeError
+Testing getattribute() one-arg (default type):
+  one-arg: no exception
 
 Testing attribute() type error:
   attribute bad type: TypeError
