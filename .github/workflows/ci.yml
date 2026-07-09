@@ -610,6 +610,7 @@ jobs:
                             Ktx_GIT_REPOSITORY=https://github.com/atteneder/KTX-Software.git
                             Ktx_BUILD_VERSION=fix/macOS-universal-5.0.0
                             Ktx_GIT_COMMIT=0ad1fc3b3f0c0403f25186829bccc81aee9a6921
+                            CMAKE_OSX_ARCHITECTURES=x86_64
             # Temporarily link to the PR that addresses libktx build issues
             # TODO: revert this before merging, don't forget!!!
             optional_deps_append: 'OpenCV;OpenVDB;Qt5;Qt6'
