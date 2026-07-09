@@ -478,7 +478,7 @@ KtxOutput::basisu_basislz_compress()
     // TODO: expose as "ktx:" attribute(s)
     ktxBasisParams params = { 0 };
     params.structSize     = sizeof(ktxBasisParams);
-#if Ktx_VERSION >= OIIO_MAKE_VERSION(5, 0, 0)
+#if Ktx_VERSION >= OIIO_MAKE_VERSION(5, 0, 0) || Ktx_VERSION == Ktx_VERSIONLESS
     params.codec                 = ktx_basis_codec_e::KTX_BASIS_CODEC_ETC1S;
     params.etc1sCompressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
 #else
@@ -511,7 +511,7 @@ KtxOutput::basisu_uastc_compress()
     // TODO: expose parameters
     ktxBasisParams params = { 0 };
     params.structSize     = sizeof(ktxBasisParams);
-#if Ktx_VERSION >= OIIO_MAKE_VERSION(5, 0, 0)
+#if Ktx_VERSION >= OIIO_MAKE_VERSION(5, 0, 0) || Ktx_VERSION == Ktx_VERSIONLESS
     params.codec = ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_LDR_4x4;
 #else
     params.uastc = true;

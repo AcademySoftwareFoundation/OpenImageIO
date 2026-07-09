@@ -527,7 +527,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
             /* ASTC formats */
         case BlockCompression::ASTC:
-#if Ktx_VERSION > OIIO_MAKE_VERSION(4, 3, 2)
+#if Ktx_VERSION > OIIO_MAKE_VERSION(4, 3, 2) || Ktx_VERSION == Ktx_VERSIONLESS
             //
             // Note:
             // ktxTexture2_DecodeAstc internally creates a new ktxTexture2 texture

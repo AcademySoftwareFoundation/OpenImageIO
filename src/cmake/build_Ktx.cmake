@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-set_cache (Ktx_BUILD_VERSION v5.0.0-rc1 "Ktx version for local builds")
+set_cache (Ktx_BUILD_VERSION main "Ktx version for local builds")
 set_cache (Ktx_GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
               "git repository from where to fetch libktx")
 set_cache (Ktx_GIT_TAG "${Ktx_BUILD_VERSION}" "Git branch or tag")

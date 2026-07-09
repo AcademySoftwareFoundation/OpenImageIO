@@ -11,6 +11,9 @@
 #define Ktx_VERSION \
     OIIO_MAKE_VERSION(Ktx_VERSION_MAJOR, Ktx_VERSION_MINOR, Ktx_VERSION_PATCH)
 
+// main branch of KTX-Software (libktx) does not set the version of libktx
+#define Ktx_VERSIONLESS OIIO_MAKE_VERSION(0, 0, 0)
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 enum class TextureKind : uint32_t {
