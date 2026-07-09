@@ -119,7 +119,7 @@ try:
            oiio.getattribute ("not_a_real_attr", oiio.TypeUnknown))
     print ("")
 
-    print ("Testing getattribute() one-arg (pybind default):")
+    print ("Testing getattribute() one-arg (default type):")
     try:
         oiio.getattribute ("not_a_real_attr")
         print ("  one-arg: no exception")
