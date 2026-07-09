@@ -8,6 +8,9 @@
 #include <ktx.h>
 #include <string>
 
+#define Ktx_VERSION \
+    OIIO_MAKE_VERSION(Ktx_VERSION_MAJOR, Ktx_VERSION_MINOR, Ktx_VERSION_PATCH)
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 enum class TextureKind : uint32_t {

@@ -13,9 +13,6 @@
 #    define KHRONOS_STATIC 1
 #endif
 
-#define Ktx_VERSION \
-    OIIO_MAKE_VERSION(Ktx_VERSION_MAJOR, Ktx_VERSION_MINOR, Ktx_VERSION_PATCH)
-
 #include "ktx_pvt.h"
 #include <ktx.h>
 #include <optional>
@@ -542,7 +539,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             // After this, m_tex->isCompressed will be false => this will only
             // be called once.
             //
-            if (auto status = ktxTexture2_DecodeAstc(m_tex);
+            if (auto status = ktxTexture2_DecodeAstc(m_tex.get());
                 status != KTX_SUCCESS) {
                 errorfmt("failed to decode ASTC-compressed texture. "
                          "ktxTexture2_DecodeAstc returned Ktx error code: {}",
