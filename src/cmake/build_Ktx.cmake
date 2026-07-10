@@ -72,6 +72,7 @@ else() # v5.0.0-rc1 or a branch with similar CMake setup
           -D LIBKTX_FEATURE_VK_UPLOAD=OFF
           -D LIBKTX_FEATURE_GL_UPLOAD=OFF
           -D LIBKTX_FEATURE_ETC_UNPACK=OFF # This has some weird licensing and I don't feel comfortable including it ...
+          -D ASTCENC_ISA_SSE41=ON
           -D CMAKE_C_COMPILER=${KTX_CMAKE_C_COMPILER}
           -D CMAKE_CXX_COMPILER=${KTX_CMAKE_CXX_COMPILER}
           # as per KTX-Software:
