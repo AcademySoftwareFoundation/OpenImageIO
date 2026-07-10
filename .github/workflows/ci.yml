@@ -606,6 +606,9 @@ jobs:
             ctest_test_timeout: 1200
             setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
                             INSTALL_QT=0 INSTALL_OPENCV=0 INSTALL_OPENVDB=0
+                            ASTCENC_ISA_SSE41=ON
+                            CMAKE_OSX_ARCHITECTURES=x86_64
+                            BASISU_SSE=ON BASISU_OPENCL=OFF
             # Temporarily link to the PR that addresses libktx build issues
             # TODO: revert this before merging, don't forget!!!
             optional_deps_append: 'OpenCV;OpenVDB;Qt5;Qt6'
