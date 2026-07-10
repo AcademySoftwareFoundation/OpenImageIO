@@ -135,7 +135,7 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
   - *imageio*: `valid_file()` now checks the file header for magic words for more reliable format detection. [#5266](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5266) (3.2.0.3)
   - *imageio*: Ignore invalid RowsPerStrip chunking. [#5300](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5300) (by @br0nzu / Dongju Lee) (3.2.0.3)
   - *bmp*: Validate scanline file position before reading, to catch corrupt files. [#5274](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5274) (3.2.0.3)
-  - *cineon*: More robust to invalid numbers of channels and bit depths; also fixes a channel-naming counter bug and a memory leak in `init()`. [#5250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5250) (3.2.0.3, 3.1.15.0, 3.0.20.0)
+  - *cineon*: More robust to invalid numbers of channels and bit depths; also fixes a channel-naming counter bug and a memory leak in `init()`. CVE-2026-59181 [#5250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5250) (3.2.0.3, 3.1.15.0, 3.0.20.0)
   - *cineon*: Validate bit depth against libcineon's supported set. [#5283](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5283) (3.2.0.3)
   - *dds*: Reject corrupt bytes-per-pixel values before they force a huge allocation. [#5286](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5286) (3.2.0.3)
   - *dds*: Clamp pixel memcpy to `sizeof(uint32_t)` to prevent a stack overflow. [#5287](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5287) (3.2.0.3)
@@ -143,7 +143,7 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
   - *dpx*: Detect corrupt userbuf size with an overflow guard. [#5271](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5271) (3.2.0.3)
   - *ffmpeg*: Align swscale output buffers. [#5301](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5301) (by @br0nzu / Dongju Lee) (3.2.0.3)
   - *filesystem*: Overflow-safe bounds check in `IOMemReader::pread`. [#5262](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5262) (3.2.0.3)
-  - *fits*: Fix recursion stack overflow from too many header blocks on corrupt files; convert to an iterative loop with a safety limit. [#5248](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5248) (3.2.0.3, 3.1.15.0, 3.0.20.0)
+  - *fits*: Fix recursion stack overflow from too many header blocks on corrupt files; convert to an iterative loop with a safety limit. CVE-2026-59156 [#5248](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5248) (3.2.0.3, 3.1.15.0, 3.0.20.0)
   - *fmath.h*: Fix typo in `convert_type` default argument, `min()` should have been `max()`. [#5227](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5227) (by @luna-y-kim / Luna Kim) (3.2.0.3, 3.1.15.0)
   - *gif*: Handle empty error string from gif_lib. [#5269](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5269) (3.2.0.3)
   - *gif*: Address corrupt files with bad resolutions and integer overflow. [#5257](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5257) (3.2.0.3)
@@ -153,7 +153,7 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
   - *hdr*: Validate resolution to detect corrupted files. [#5256](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5256) (3.2.0.3)
   - *ico*: Better error checking for PNG-in-ICO files. [#5264](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5264) (3.2.0.3)
   - *ico,png*: Avoid leaking an error string across a `png_chunk_error` longjmp. [#5289](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5289) (3.2.0.3)
-  - *iff*: Fix allocation bug when reading 16 bit RGBA + float z (buffer size didn't account for the z channel). [#5251](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5251) (3.2.0.3, 3.1.15.0, 3.0.20.0)
+  - *iff*: Fix allocation bug when reading 16 bit RGBA + float z (buffer size didn't account for the z channel). CVE-2026-59956 [#5251](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5251) (3.2.0.3, 3.1.15.0, 3.0.20.0)
   - *iff*: Detect corrupt chunk sizes, flags, and channel configurations. [#5268](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5268) (3.2.0.3)
   - *iff*: Add resolution validity checking. [#5285](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5285) (3.2.0.3)
   - *iff*: Reject implausible image dimensions before allocating the tile buffer. [#5284](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5284) (3.2.0.3)
@@ -285,6 +285,34 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
 
 ---
 ---
+
+
+Release 3.1.15.0 (Jul 1, 2026) -- compared to 3.1.14.1
+---------------------------------------------------------
+  - *deepdata*: Widen `merge_deep_pixels` srcpixel to int64_t, change its return type, and add `OIIO_NODISCARD_ERROR`. [#5252](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5252) [#5253](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5253) (by @luna-y-kim / Luna Kim)
+  - *ImageBuf*: Fix copy ctor of IC-backed ImageBuf zeroing bufspan strides. [#5244](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5244)
+  - *cineon*: More robust to invalid numbers of channels and bit depths; also fixes a channel-naming counter bug and a memory leak in init(). [#5250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5250) (3.1.15.0, 3.0.20.0)
+  - *deepdata*: Correct Zback channel in `sort()`, change int pixel to int64_t. [#5241](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5241) (by @luna-y-kim / Luna Kim)
+  - *fits*: Fix stack overflow from recursive header-block reading on corrupt files; convert to an iterative loop with a 10000-header safety limit. [#5248](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5248) (3.1.15.0, 3.0.20.0)
+  - *fmath.h*: Fix typo in `convert_type` default argument, `min()` should have been `max()`. [#5227](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5227) (by @luna-y-kim / Luna Kim)
+  - *hdr*: Make the HDR reader tolerant to CR in the ASCII header. [#5261](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5261)
+  - *iff*: Fix allocation bug when reading 16 bit RGBA + float z (buffer size did not account for the z channel). CVE-2026-59956 [#5251](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5251) (3.1.15.0, 3.0.20.0)
+  - *tiff*: The "tiff:half" hint was only applying to first MIP level. [#5240](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5240)
+  - *int*: Remove deprecated `std::codecvt` from strutil.cpp internals. [#5107](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5107)
+  - *ci*: Fixes to build_opencolorio.bash script [#5219](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5219); upgrade 'latest' CI tests to OpenEXR v3.4.14, fmt 12.2, PugiXML v1.16 [#5245](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5245).
+  - *build*: Add support for gcc-15 [#5126](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5126), gcc-16 [#5225](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5225), and C++26 [#5230](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5230), each tested in CI.
+  - *build*: Suppress warnings in fmt library when building on Mac. [#5237](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5237) (by @antond-weta / Anton Dukhovnikov) (3.1.15.0, 3.0.20.0)
+  - *docs*: Fix typos in fmath.h comments. [#5222](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5222) (by @luna-y-kim / Luna Kim) (3.1.15.0, 3.0.20.0)
+  - *docs*: Fix typos and update reference link in deepdata comments. [#5238](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5238) (by @luna-y-kim / Luna Kim)
+  - *docs*: Clarify plugin.h explanations by saying their Unix-like equivalents. [#5226](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5226)
+  - *docs*: Fix typo in bitcast docs. [#5255](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5255)
+
+
+Release 3.1.14.1 (Jun 14, 2026) -- compared to 3.1.14.0
+---------------------------------------------------------
+  - *build*: Fix build break when auto-build pystring is needed, after it updated to v1.2.0. [#5235](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5235)
+  - *admin*: Clarify security policy to explain what qualifies as a vulnerability. [#5232](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5232)
+  - *admin*: Misc administrative docs fixups. [#5233](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5233)
 
 
 Release 3.1.14.0 (Jun 1, 2026) -- compared to 3.1.13.1
@@ -812,6 +840,22 @@ asterisk) had not previously contributed to the project.
 
 ---
 ---
+
+
+Release 3.0.20.0 (Jul 1, 2026) -- compared to 3.0.19.1
+---------------------------------------------------------
+  - *cineon*: More robust to invalid numbers of channels and bit depths; also fixes a channel-naming counter bug and a memory leak in init(). [#5250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5250)
+  - *fits*: Fix stack overflow from recursive header-block reading on corrupt files; convert to an iterative loop with a 10000-header safety limit. [#5248](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5248)
+  - *iff*: Fix allocation bug when reading 16 bit RGBA + float z (buffer size did not account for the z channel). CVE-2026-59956 [#5251](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5251)
+  - *ci*: Address disabled old node support on aswf-old jobs for OIIO 3.0. [#5278](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5278)
+  - *build*: Suppress warnings in fmt library when building on Mac. [#5237](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5237) (by @antond-weta / Anton Dukhovnikov)
+  - *docs*: Fix typos in fmath.h comments. [#5222](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5222) (by @luna-y-kim / Luna Kim)
+
+
+Release 3.0.19.1 (Jun 14, 2026) -- compared to 3.0.19.0
+---------------------------------------------------------
+  - *build*: Fix build break when auto-build pystring is needed, after it updated to v1.2.0 [#5235](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5235)
+  - *admin*: Clarify security policy to explain what qualifies as a vulnerability [#5232](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5232)
 
 
 Release 3.0.19.0 (Jun 1, 2026) -- compared to 3.0.18.1
