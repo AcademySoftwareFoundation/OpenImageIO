@@ -83,12 +83,19 @@ private:
 };
 
 
+// Defined in heifinput.cpp. Declare here at C++ namespace scope (not inside
+// the extern "C" block below) so the linkage matches the definition in the
+// non-embedded (dynamic plugin) build where OIIO_PLUGIN_EXPORTS_BEGIN is
+// `extern "C"`.
+extern void
+oiio_heif_init();
+
+
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
 heif_output_imageio_create()
 {
-    extern void oiio_heif_init();
     oiio_heif_init();
     return new HeifOutput;
 }
