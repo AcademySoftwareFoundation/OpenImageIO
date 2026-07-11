@@ -4,10 +4,18 @@
 
 set (nanobind_srcs
      ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_oiio.cpp
-     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_paramvalue.cpp
      ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_roi.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_typedesc.cpp
      ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_imagespec.cpp
-     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_typedesc.cpp)
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_paramvalue.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_deepdata.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_colorconfig.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_imageinput.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_imageoutput.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_imagebuf.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_imagecache.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_texturesys.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/../python/py_imagebufalgo.cpp)
 
 set (nanobind_build_package_dir ${CMAKE_BINARY_DIR}/lib/python/nanobind/OpenImageIO)
 file (MAKE_DIRECTORY ${nanobind_build_package_dir})

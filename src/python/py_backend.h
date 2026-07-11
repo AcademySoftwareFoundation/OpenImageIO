@@ -10,7 +10,11 @@
 #    include <nanobind/nanobind.h>
 #    include <nanobind/ndarray.h>
 #    include <nanobind/operators.h>
+#    include <nanobind/stl/array.h>
+#    include <nanobind/stl/optional.h>
 #    include <nanobind/stl/string.h>
+#    include <nanobind/stl/string_view.h>
+#    include <nanobind/stl/unique_ptr.h>
 #    include <nanobind/stl/vector.h>
 
 namespace py    = nanobind;
@@ -18,9 +22,14 @@ using py_module = nanobind::module_;
 using namespace py::literals;
 
 #    define OIIO_PY_RW def_rw
+#    define OIIO_PY_RO def_ro
 #    define OIIO_PY_PROP_RO def_prop_ro
 #    define OIIO_PY_PROP_RW def_prop_rw
+// Allow assigning None to a property (nanobind rejects it unless annotated).
+#    define OIIO_PY_PROP_RW_NONE(name, getter, setter) \
+        def_prop_rw(name, getter, setter, py::for_setter(py::arg().none()))
 #    define OIIO_PY_RO_STATIC def_prop_ro_static
+#    define OIIO_PY_RO def_ro
 
 namespace oiio_py {
 
@@ -41,13 +50,16 @@ make_tuple(size_t size, F&& fill)
     return py::steal<py::tuple>(PyList_AsTuple(list.ptr()));
 }
 
+inline constexpr auto ref          = py::rv_policy::reference;
 inline constexpr auto ref_internal = py::rv_policy::reference_internal;
 
+// Copy into std::string so temporary string_view contents stay valid;
+// nanobind's string caster turns this into a Python str.
 template<typename T>
-inline auto
+inline std::string
 str(T&& x)
 {
-    return std::forward<T>(x);
+    return std::string(std::forward<T>(x));
 }
 
 inline void
@@ -102,9 +114,12 @@ using py_module = pybind11::module;
 using namespace py::literals;
 
 #    define OIIO_PY_RW def_readwrite
+#    define OIIO_PY_RO def_readonly
 #    define OIIO_PY_PROP_RO def_property_readonly
 #    define OIIO_PY_PROP_RW def_property
+#    define OIIO_PY_PROP_RW_NONE def_property
 #    define OIIO_PY_RO_STATIC def_property_readonly_static
+#    define OIIO_PY_RO def_readonly
 
 namespace oiio_py {
 
@@ -125,6 +140,7 @@ make_tuple(size_t size, F&& fill)
     return result;
 }
 
+inline constexpr auto ref = py::return_value_policy::reference;
 inline constexpr auto ref_internal = py::return_value_policy::reference_internal;
 
 template<typename T>

@@ -69,10 +69,8 @@ ImageCacheWrap::get_pixels(const std::string& filename_, int subimage,
 
 
 void
-declare_imagecache(py::module& m)
+declare_imagecache(py_module& m)
 {
-    using namespace pybind11::literals;
-
     py::class_<ImageCacheWrap>(m, "ImageCache")
         .def(py::init<bool>(), "shared"_a = true)
         // .def_static("create", &ImageCacheWrap::create,
@@ -144,10 +142,10 @@ declare_imagecache(py::module& m)
         // .def("release_tile", &ImageCacheWrap::release_tile)
         // .def("tile_pixels", &ImageCacheWrap::tile_pixels)
 
-        .def_property_readonly("has_error",
-                               [](ImageCacheWrap& self) {
-                                   return self.m_cache->has_error();
-                               })
+        .OIIO_PY_PROP_RO("has_error",
+                         [](ImageCacheWrap& self) {
+                             return self.m_cache->has_error();
+                         })
         .def(
             "geterror",
             [](ImageCacheWrap& self, bool clear) {

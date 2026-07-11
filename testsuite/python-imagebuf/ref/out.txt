@@ -14,6 +14,10 @@ Resetting to be a writable 640x480,3 Float:
   alpha channel =  -1
   z channel =  -1
   deep =  False
+Constructing with ImageBuf(spec, zero):
+  zero=True pixel (0,0): (0.0, 0.0, 0.0)
+  zero=False then setpixel (0,0): (0.25, 0.5, 0.75)
+
 Constructing from a bare numpy array:
  from 3D, shape is float 0 2 0 3 0 1 0 4
   resolution 2x3+0+0
@@ -29,6 +33,7 @@ Constructing from a bare numpy array:
 
  from 4D, shape is float 0 2 0 2 0 2 0 4
 
+ from 0-d array has_error: True
 Testing read of ../common/textures/grid.tx:
 channels: 4
 name: ../common/textures/grid.tx
