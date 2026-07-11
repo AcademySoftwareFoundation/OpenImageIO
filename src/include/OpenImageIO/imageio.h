@@ -2276,6 +2276,8 @@ protected:
     ///   implied by `range`.
     /// * Whether the channel count is within the `"limits:channels"` OIIO
     ///   attribute.
+    /// * Whether any single dimension (width, height, depth) is within the
+    ///   `"limits:resolution"` OIIO attribute.
     /// * The total uncompressed pixel data size is expected to be within the
     ///   `"limits:imagesize_MB"` OIIO attribute.
     /// * The full_{width,height,depth} are valid and within the range.
@@ -3860,6 +3862,18 @@ OIIO_API std::string geterror(bool clear = true);
 ///    situations when images larger than this are expected to be encountered,
 ///    you should raise this limit. Setting the limit to 0 means having no
 ///    limit.
+///
+/// - `int limits:resolution` (1048576)
+///
+///    When nonzero, the maximum number of pixels allowed along any single
+///    dimension (width, height, or depth) of an image. Images whose headers
+///    indicate a larger dimension might be assumed to be corrupted or
+///    malicious files. This complements `limits:imagesize_MB` by catching a
+///    header that is small in one dimension but absurdly large in another,
+///    which could otherwise slip under the total-size limit. The default is
+///    1048576 (2^20). In situations when images with a larger single
+///    dimension are expected to be encountered, you should raise this limit.
+///    Setting the limit to 0 means having no limit. (Added in version 3.2.)
 ///
 /// - `int log_times` (0)
 ///

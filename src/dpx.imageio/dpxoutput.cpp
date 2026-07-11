@@ -180,7 +180,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     if (is_opened())
         close();  // Close any already-opened file
 
-    if (!check_open(mode, userspec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 256 }))
+    if (!check_open(mode, userspec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 256 }))
         return false;
 
     // From here out, all the heavy lifting is done for Create

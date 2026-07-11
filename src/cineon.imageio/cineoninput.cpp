@@ -130,7 +130,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     m_spec = ImageSpec(m_cin.header.Width(), m_cin.header.Height(), nchannels,
                        typedesc);
 
-    if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 8 })) {
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 8 })) {
         return false;
     }
 

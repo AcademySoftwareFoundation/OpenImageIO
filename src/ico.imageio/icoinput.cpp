@@ -243,7 +243,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
         bool ok = PNG_pvt::read_info(m_png, m_info, m_bpp, m_color_type,
                                      m_interlace_type, m_bg, m_spec, true);
         if (!ok || m_err
-            || !check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 })) {
+            || !check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 4 })) {
             return false;
         }
 
