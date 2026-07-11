@@ -3,19 +3,40 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 set_cache (Ktx_BUILD_VERSION main "Ktx version for local builds")
-set_cache (Ktx_GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
-              "git repository from where to fetch libktx")
+set       (Ktx_GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git")
 set_cache (Ktx_GIT_TAG "${Ktx_BUILD_VERSION}" "Git branch or tag")
 set_cache (Ktx_GIT_COMMIT "2ca7d54109f4c23298a969f22b68769e94138de5"
               "commit hash to verify tag/branch against")
 set_cache (Ktx_BUILD_SHARED_LIBS OFF ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
-           DOC "Should a local Ktx build, if necessary, build shared libraries" ADVANCED)
+              DOC "Should a local Ktx build, if necessary, build shared libraries" ADVANCED)
+
+# TODO: if libktx is built as a shared library, astcenc have to be linked-against.
+#       I don't know how to 'cleanly' do this in OIIO CMake (yet).
+#       Even though all CIs pass, do not merge before addressing this!
 
 string (MAKE_C_IDENTIFIER ${Ktx_BUILD_VERSION} Ktx_VERSION_IDENT)
 
 # Override C/C++ compiler (useful when running CI with unsupported Intel's compiler ICX)
 set_cache (KTX_CMAKE_C_COMPILER ${CMAKE_C_COMPILER} "libktx build C compiler override" ADVANCED)
 set_cache (KTX_CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER} "libktx build C++ compiler override" ADVANCED)
+
+# On x86_64, libktx defaults to using AVX2 for ASTC. For Intel-based MacOS, the
+# default AVX2 requires x86_64h which may not be available (e.g., Intel-based
+# MacOS Github Actions CIs). For ARM64 libktx defaults to using Neon. For
+# 'unknown' CPUs, SIMD is disabled (see KTX-Software/lib/CMakeLists.txt for details).
+#
+# Possible values:
+#   - "": default, let libktx decide
+#   - ASTCENC_ISA_NATIVE: native SIMD
+#   - ASTCENC_ISA_NONE: disable SIMD
+#   - ASTCENC_ISA_SVE_256: slowest on Arm
+#   - ASTCENC_ISA_SVE_128: 2nd fastest on Arm
+#   - ASTCENC_ISA_NEON: fasted on Arm
+#   - ASTCENC_ISA_AVX2: fastest on x86_64 (may not be supported on Intel-based MacOS runners)
+#   - ASTCENC_ISA_SSE41: 2nd fastest on x86_64 (guaranteed to be supported)
+#   - ASTCENC_ISA_SSE2: slowest on x86_64 (guaranteed to be supported)
+#
+set_cache (Ktx_ASTCENC_ISA "" "ASTC specific SIMD instruction set. See astc-encoder/CMakeLists.txt for more details" ADVANCED)
 
 #
 # The only two tested libktx versions are:
@@ -51,6 +72,7 @@ if (Ktx_BUILD_VERSION STREQUAL "v4.3.2")
           -D KTX_FEATURE_KTX2=ON 
           -D KTX_FEATURE_VK_UPLOAD=OFF
           -D KTX_FEATURE_GL_UPLOAD=OFF
+          $<$<BOOL:${Ktx_ASTCENC_ISA}>:-D ${Ktx_ASTCENC_ISA}=ON>
           -D CMAKE_C_COMPILER=${KTX_CMAKE_C_COMPILER}
           -D CMAKE_CXX_COMPILER=${KTX_CMAKE_CXX_COMPILER}
       )
@@ -72,7 +94,7 @@ else() # v5.0.0-rc1 or a branch with similar CMake setup
           -D LIBKTX_FEATURE_VK_UPLOAD=OFF
           -D LIBKTX_FEATURE_GL_UPLOAD=OFF
           -D LIBKTX_FEATURE_ETC_UNPACK=OFF # This has some weird licensing and I don't feel comfortable including it ...
-          -D ASTCENC_ISA_SSE41=ON
+          $<$<BOOL:${Ktx_ASTCENC_ISA}>:-D ${Ktx_ASTCENC_ISA}=ON>
           -D CMAKE_C_COMPILER=${KTX_CMAKE_C_COMPILER}
           -D CMAKE_CXX_COMPILER=${KTX_CMAKE_CXX_COMPILER}
           # as per KTX-Software:
