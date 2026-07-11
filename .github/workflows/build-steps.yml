@@ -96,6 +96,18 @@ on:
       oiio_python_bindings_backend:
         type: string
         default: ''
+      fuzz_format:
+        type: string
+        default: ''
+        description: "If non-empty, run fuzz tests for this format after the build"
+      fuzz_max_time:
+        type: string
+        default: '3600'
+        description: "Max seconds for the fuzz run (-max_total_time)"
+      fuzz_corpus_lint:
+        type: boolean
+        default: false
+        description: "If true, verify every compiled-in format has a corpus directory"
     secrets:
         PASSED_GITHUB_TOKEN:
           required: false
@@ -260,6 +272,52 @@ jobs:
         if: inputs.clang_format == '1'
         shell: bash
         run: src/build-scripts/run-clang-format.bash
+      - name: Check ABI
+        if: inputs.abi_check != ''
+        shell: bash
+        run: |
+            src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
+
+      - name: Checkout oiio-images for fuzz seeding
+        if: inputs.fuzz_format != ''
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: AcademySoftwareFoundation/OpenImageIO-images
+          path: oiio-images
+          fetch-depth: 1
+      - name: Restore fuzz corpus cache
+        if: inputs.fuzz_format != ''
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          key: fuzz-corpus-${{ inputs.fuzz_format }}-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            fuzz-corpus-${{ inputs.fuzz_format }}-${{ github.ref_name }}-
+            fuzz-corpus-${{ inputs.fuzz_format }}-
+          path: corpus/${{ inputs.fuzz_format }}
+      - name: Fuzz
+        id: fuzz
+        if: inputs.fuzz_format != '' || inputs.fuzz_corpus_lint
+        shell: bash
+        env:
+          OIIO_FUZZ_FORMAT: ${{ inputs.fuzz_format }}
+          OIIO_FUZZ_MAX_TIME: ${{ inputs.fuzz_max_time }}
+          OIIO_FUZZ_CORPUS_LINT: ${{ inputs.fuzz_corpus_lint }}
+        run: src/build-scripts/ci-fuzztest.bash
+      - name: Save fuzz corpus cache
+        if: always() && inputs.fuzz_format != ''
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          key: fuzz-corpus-${{ inputs.fuzz_format }}-${{ github.ref_name }}-${{ github.run_id }}
+          path: corpus/${{ inputs.fuzz_format }}
+      - name: Upload fuzz crash artifacts
+        if: always() && inputs.fuzz_format != '' && steps.fuzz.outcome == 'failure'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: fuzz-crashes-${{ inputs.fuzz_format }}-${{ github.run_id }}
+          path: crash_${{ inputs.fuzz_format }}_*
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Code coverage
         if: inputs.coverage == '1'
         run: src/build-scripts/ci-coverage.bash
@@ -276,11 +334,6 @@ jobs:
             # sonar-scanner --define sonar.cfamily.compile-commands="${BUILD_WRAPPER_OUT_DIR}/compile_commands.json"
             time sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.compile-commands="$BUILD_WRAPPER_OUT_DIR/compile_commands.json" --define sonar.cfamily.gcov.reportsPath="_coverage" --define sonar.cfamily.threads="$PARALLEL"
         # Consult https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/ for more information and options
-      - name: Check ABI
-        if: inputs.abi_check != ''
-        shell: bash
-        run: |
-            src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
       - name: Build Docs
         if: inputs.build_docs == '1'
         shell: bash
