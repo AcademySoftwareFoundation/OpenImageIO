@@ -207,11 +207,10 @@ private:
 
     bool copy_and_check_spec(const ImageSpec& srcspec, ImageSpec& dstspec)
     {
-        // Arbitrarily limit res to 1M x 1M and 4k channels, assuming anything
-        // beyond that is more likely to be a mistake than a legit request. We
-        // may have to come back to this if these assumptions are wrong.
+        // Limit channels to 4k; actual per-dimension resolution limits are
+        // enforced separately via the "limits:resolution" attribute.
         if (!check_open(Create, srcspec,
-                        { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 1 << 12 }))
+                        { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 }))
             return false;
         if (&dstspec != &m_spec)
             dstspec = m_spec;
