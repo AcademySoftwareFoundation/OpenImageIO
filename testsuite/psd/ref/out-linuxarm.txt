@@ -2117,3 +2117,9 @@ oiiotool ERROR: read : Read error: hit end of file in psd reader
 failed to open "src/crash-eofstring.psd": failed load_resources
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-eofstring.psd
+Reading src/crash-rowbounds-f999.psd
+oiiotool ERROR: -info : SHA-1: Corrupt PSD channel data for row 0
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-rowbounds-f999.psd
+src/crash-rowbounds-f999.psd :   10 x  111, 3 channel, uint8 psd
+    channel list: R, G, B

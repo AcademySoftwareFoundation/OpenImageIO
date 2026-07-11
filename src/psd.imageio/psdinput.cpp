@@ -306,7 +306,7 @@ private:
     // Interleave channels (RRRGGGBBB -> RGBRGBRGB) while copying from
     // channel_buffers[0..nchans-1] to dst.
     template<typename T>
-    static void
+    static bool
     interleave_row(T* dst, cspan<std::vector<unsigned char>> channel_buffers,
                    int width, int nchans);
 
@@ -808,16 +808,25 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         || m_header.color_mode == ColorMode_Grayscale) {
         switch (bps) {
         case 4:
-            interleave_row((float*)dst, channel_buffers, spec.width,
-                           spec.nchannels);
+            if (!interleave_row((float*)dst, channel_buffers, spec.width,
+                                spec.nchannels)) {
+                errorfmt("Corrupt PSD channel data for row {}", y + spec.y);
+                return false;
+            }
             break;
         case 2:
-            interleave_row((unsigned short*)dst, channel_buffers, spec.width,
-                           spec.nchannels);
+            if (!interleave_row((unsigned short*)dst, channel_buffers,
+                                spec.width, spec.nchannels)) {
+                errorfmt("Corrupt PSD channel data for row {}", y + spec.y);
+                return false;
+            }
             break;
         default:
-            interleave_row((unsigned char*)dst, channel_buffers, spec.width,
-                           spec.nchannels);
+            if (!interleave_row((unsigned char*)dst, channel_buffers,
+                                spec.width, spec.nchannels)) {
+                errorfmt("Corrupt PSD channel data for row {}", y + spec.y);
+                return false;
+            }
             break;
         }
     } else if (m_header.color_mode == ColorMode_CMYK) {
@@ -825,8 +834,11 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         switch (bps) {
         case 4: {
             std::unique_ptr<float[]> cmyk(new float[cmyklen]);
-            interleave_row(cmyk.get(), channel_buffers, spec.width,
-                           channel_count);
+            if (!interleave_row(cmyk.get(), channel_buffers, spec.width,
+                                channel_count)) {
+                errorfmt("Corrupt PSD channel data for row {}", y + spec.y);
+                return false;
+            }
             cmyk_to_rgb(spec.width, make_cspan(cmyk.get(), cmyklen),
                         channel_count,
                         make_span((float*)dst, spec.width * spec.nchannels),
@@ -835,8 +847,11 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         }
         case 2: {
             std::unique_ptr<unsigned short[]> cmyk(new unsigned short[cmyklen]);
-            interleave_row(cmyk.get(), channel_buffers, spec.width,
-                           channel_count);
+            if (!interleave_row(cmyk.get(), channel_buffers, spec.width,
+                                channel_count)) {
+                errorfmt("Corrupt PSD channel data for row {}", y + spec.y);
+                return false;
+            }
             cmyk_to_rgb(spec.width, make_cspan(cmyk.get(), cmyklen),
                         channel_count,
                         make_span((uint16_t*)dst, spec.width * spec.nchannels),
@@ -845,8 +860,11 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         }
         default: {
             std::unique_ptr<unsigned char[]> cmyk(new unsigned char[cmyklen]);
-            interleave_row(cmyk.get(), channel_buffers, spec.width,
-                           channel_count);
+            if (!interleave_row(cmyk.get(), channel_buffers, spec.width,
+                                channel_count)) {
+                errorfmt("Corrupt PSD channel data for row {}", y + spec.y);
+                return false;
+            }
             cmyk_to_rgb(spec.width, make_cspan(cmyk.get(), cmyklen),
                         channel_count,
                         make_span((uint8_t*)dst, spec.width * spec.nchannels),
@@ -2184,16 +2202,24 @@ PSDInput::read_channel_row(ChannelInfo& channel_info, uint32_t row, char* data)
 
 
 template<typename T>
-void
+bool
 PSDInput::interleave_row(T* dst,
                          cspan<std::vector<unsigned char>> channel_buffers,
                          int width, int nchans)
 {
+    if (!dst || width < 0 || nchans < 0
+        || span_size_t(channel_buffers.size()) < size_t(nchans))
+        return false;
+
+    const uint64_t row_bytes = uint64_t(width) * sizeof(T);
     for (int c = 0; c < nchans; ++c) {
+        if (channel_buffers[c].size() < row_bytes)
+            return false;
         const T* cbuf = reinterpret_cast<const T*>(channel_buffers[c].data());
         for (int x = 0; x < width; ++x)
             dst[nchans * x + c] = cbuf[x];
     }
+    return true;
 }
 
 
