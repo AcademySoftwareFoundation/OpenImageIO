@@ -38,14 +38,14 @@ set_cache (KTX_CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER} "libktx build C++ compil
 #
 set_cache (Ktx_ASTCENC_ISA "" "ASTC specific SIMD instruction set. See astc-encoder/CMakeLists.txt for more details" ADVANCED)
 
-string(JOIN " " CMAKE_ARGS_STR
-  "-D CMAKE_POSITION_INDEPENDENT_CODE=ON"
-  "-D CMAKE_C_COMPILER=${KTX_CMAKE_C_COMPILER}"
-  "-D CMAKE_CXX_COMPILER=${KTX_CMAKE_CXX_COMPILER}"
+set(CMAKE_ARGS_LIST
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+    -DCMAKE_C_COMPILER=${KTX_CMAKE_C_COMPILER}
+    -DCMAKE_CXX_COMPILER=${KTX_CMAKE_CXX_COMPILER}
 )
 
 if(Ktx_ASTCENC_ISA)
-  string(APPEND CMAKE_ARGS_STR " -D ${Ktx_ASTCENC_ISA}=ON")
+    list(APPEND CMAKE_ARGS_LIST -D${Ktx_ASTCENC_ISA}=ON)
 endif()
 
 #
@@ -70,36 +70,36 @@ endif()
 if (Ktx_BUILD_VERSION STREQUAL "v4.3.2")
   # Because you can't negate variables in CMake ...
   if(Ktx_BUILD_SHARED_LIBS)
-    set(Ktx_BUILD_STATIC_LIBS OFF)
+      set(Ktx_BUILD_STATIC_LIBS OFF)
   else()
-    set(Ktx_BUILD_STATIC_LIBS ON)
+      set(Ktx_BUILD_STATIC_LIBS ON)
   endif()
-  string(APPEND CMAKE_ARGS_STR
-    " -D KTX_FEATURE_STATIC_LIBRARY=${Ktx_BUILD_STATIC_LIBS}"  # no BUILD_SHARED_LIBS in older libktx versions ...
-    " -D KTX_FEATURE_TOOLS=OFF"
-    " -D KTX_FEATURE_TESTS=OFF"
-    " -D KTX_FEATURE_KTX1=ON"
-    " -D KTX_FEATURE_KTX2=ON"
-    " -D KTX_FEATURE_KTX2=ON"
-    " -D KTX_FEATURE_GL_UPLOAD=OFF"
+  list(APPEND CMAKE_ARGS_LIST
+      -DKTX_FEATURE_STATIC_LIBRARY=${Ktx_BUILD_STATIC_LIBS}  # no BUILD_SHARED_LIBS in older libktx versions ...
+      -DKTX_FEATURE_TOOLS=OFF
+      -DKTX_FEATURE_TESTS=OFF
+      -DKTX_FEATURE_KTX1=ON
+      -DKTX_FEATURE_KTX2=ON
+      -DKTX_FEATURE_KTX2=ON
+      -DKTX_FEATURE_GL_UPLOAD=OFF
   )
   build_dependency_with_cmake(Ktx
       VERSION         ${Ktx_BUILD_VERSION}
       GIT_REPOSITORY  ${Ktx_GIT_REPOSITORY}
       GIT_TAG         ${Ktx_GIT_TAG}
       GIT_COMMIT      ${Ktx_GIT_COMMIT}
-      CMAKE_ARGS      ${CMAKE_ARGS_STR})
+      CMAKE_ARGS      ${CMAKE_ARGS_LIST})
 else() # v5.0.0-rc1 or a branch with similar CMake setup
-  string(APPEND CMAKE_ARGS_STR
-    " -D BUILD_SHARED_LIBS=${Ktx_BUILD_SHARED_LIBS}"
-    " -D CMAKE_INSTALL_LIBDIR=lib"
-    " -D LIBKTX_VERSION_READ_ONLY=OFF"
-    " -D LIBKTX_VERSION_FULL=ON"
-    " -D LIBKTX_FEATURE_KTX1=ON"  # Setting this to OFF causes linker issues
-    " -D LIBKTX_FEATURE_KTX2=ON"
-    " -D LIBKTX_FEATURE_VK_UPLOAD=OFF"
-    " -D LIBKTX_FEATURE_GL_UPLOAD=OFF"
-    " -D LIBKTX_FEATURE_ETC_UNPACK=OFF"  # This has some weird licensing and I don't feel comfortable including it ...
+  list(APPEND CMAKE_ARGS_LIST
+      -DBUILD_SHARED_LIBS=${Ktx_BUILD_SHARED_LIBS}
+      -DCMAKE_INSTALL_LIBDIR=lib
+      -DLIBKTX_VERSION_READ_ONLY=OFF
+      -DLIBKTX_VERSION_FULL=ON
+      -DLIBKTX_FEATURE_KTX1=ON  # Setting this to OFF causes linker issues
+      -DLIBKTX_FEATURE_KTX2=ON
+      -DLIBKTX_FEATURE_VK_UPLOAD=OFF
+      -DLIBKTX_FEATURE_GL_UPLOAD=OFF
+      -DLIBKTX_FEATURE_ETC_UNPACK=OFF  # This has some weird licensing and I don't feel comfortable including it ...
   )
   build_dependency_with_cmake(Ktx
       VERSION         ${Ktx_BUILD_VERSION}
@@ -107,7 +107,7 @@ else() # v5.0.0-rc1 or a branch with similar CMake setup
       GIT_TAG         ${Ktx_GIT_TAG}
       GIT_COMMIT      ${Ktx_GIT_COMMIT}
       SOURCE_SUBDIR   lib  # To only build Ktx, cmake has to point to: KTX-Software/lib
-      CMAKE_ARGS      ${CMAKE_ARGS_STR})
+      CMAKE_ARGS      ${CMAKE_ARGS_LIST})
 endif()
 
 # Set some things up that we'll need for a subsequent find_package to work
