@@ -445,6 +445,27 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
 #endif
 
+    // Guard against decompression bombs / corrupt headers before calling
+    // unpack(). LibRaw's own caps (65535/dimension, max_raw_memory_mb) are
+    // far larger than this and miss a bogus-but-plausible resolution from
+    // a truncated/fuzzed file; unpack() would then spend a long time
+    // decoding garbage instead of erroring out. Real raw sensor data
+    // never compresses anywhere near this ratio, so genuine files pass.
+    {
+        int64_t raw_width        = m_processor->imgdata.sizes.raw_width;
+        int64_t raw_height       = m_processor->imgdata.sizes.raw_height;
+        int64_t raw_bps          = m_processor->imgdata.rawdata.color.raw_bps;
+        int64_t declared_bytes   = raw_width * raw_height * raw_bps / 8;
+        int64_t filesize         = Filesystem::file_size(name);
+        const int64_t bomb_ratio = 10000;
+        if (filesize > 0 && declared_bytes > filesize * bomb_ratio) {
+            errorfmt("Raw header for \"{}\" claims a {} MB image from a {} "
+                     "byte file; probably a corrupt or truncated file",
+                     m_filename, declared_bytes >> 20, filesize);
+            return false;
+        }
+    }
+
     OIIO_ASSERT(!m_unpacked);
     if (unpack) {
         if ((ret = m_processor->unpack()) != LIBRAW_SUCCESS) {
@@ -480,6 +501,12 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
                        m_processor->imgdata.idata.colors, TypeDesc::UINT16);
     // Move the exif attribs we already read into the spec we care about
     m_spec.extra_attribs.swap(exifspec.extra_attribs);
+
+    // Enforce OIIO's global decode-bomb limits (limits:resolution,
+    // limits:imagesize_MB) and LibRaw's own 65535-per-dimension cap.
+    // idata.colors maxes out at 4 (some 4-color CFA patterns).
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 }))
+        return false;
 
     // Output 16 bit images
     m_processor->imgdata.params.output_bps = 16;
