@@ -348,6 +348,46 @@ color_space_analyzed(const ColorConfig& config, string_view name);
 
 
 // ---------------------------------------------------------------------------
+// Color space fingerprints -- the probe-based numeric signature ColorConfig
+// computes for a color space so equivalent spaces can be recognized by value
+// rather than by name. For internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// A color space fingerprint: the floats produced by transforming a fixed
+/// probe from the reference role to the color space, tagged with which
+/// reference kind (scene vs display) selected the probe. `values` is empty
+/// when the space is unknown or cannot be probed.
+struct ColorSpaceFingerprint {
+    int reference_kind = 0;     ///< OCIO ReferenceSpaceType (0 scene, 1 display)
+    std::vector<float> values;  ///< probe floats; empty if not computable
+    bool computed() const { return !values.empty(); }
+};
+
+/// Compute the color space fingerprint for `name` in `config`. Probing runs on
+/// a lazily built, processor-cache-disabled copy of the config and is
+/// byte-reproducible across builds. Returns an empty fingerprint
+/// (values.empty()) when the space is unknown or cannot be probed. For
+/// internal/test use only.
+OIIO_API ColorSpaceFingerprint
+color_space_fingerprint(const ColorConfig& config, string_view name);
+
+/// Whether two color space fingerprints denote the same color space under the
+/// exact, tolerance-gated identity comparison: reference kinds must match,
+/// vector lengths must match, and every identity-probe float must agree within
+/// the fingerprint tolerance (the trailing linearity probes are excluded). For
+/// internal/test use only.
+OIIO_API bool
+color_space_fingerprints_match(const ColorSpaceFingerprint& a,
+                               const ColorSpaceFingerprint& b);
+
+/// The names of `config`'s "simple" color spaces that were successfully
+/// fingerprinted, in the deterministic sorted order the engine iterates them
+/// (reusing the classification simple-space cache). For internal/test use only.
+OIIO_API std::vector<std::string>
+color_space_fingerprint_order(const ColorConfig& config);
+
+
+// ---------------------------------------------------------------------------
 // Color interop ID grammar and sanitization -- the ID grammar and
 // sanitization rules from the CIF recommendation "An ID for Color Interop"
 // (Annexes B and C):

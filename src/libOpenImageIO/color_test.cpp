@@ -429,6 +429,71 @@ colorspaces:
 
 
 
+// Exercise color space fingerprinting: the probe protocol, the exact
+// tolerance-gated matcher (including the scene-vs-display reference-kind gate),
+// byte-reproducibility, and deterministic sorted iteration. Uses OCIO's
+// built-in default config, which carries the aces_interchange role this slice
+// assumes is resolved.
+static void
+test_color_space_fingerprint()
+{
+    using OIIO::pvt::color_space_fingerprint;
+    using OIIO::pvt::color_space_fingerprint_order;
+    using OIIO::pvt::color_space_fingerprints_match;
+    using OIIO::pvt::ColorSpaceFingerprint;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    // ocio:// built-in configs require OCIO >= 2.2.
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02020000)
+        return;
+
+    ColorConfig cc("ocio://default");
+    if (cc.has_error() || cc.getNumColorSpaces() == 0)
+        return;  // built-in configs unavailable in this OCIO build
+
+    // A space and one of its aliases are the same OCIO color space, so their
+    // fingerprints are byte-identical -- and match within tolerance.
+    ColorSpaceFingerprint ap0      = color_space_fingerprint(cc, "ACES2065-1");
+    ColorSpaceFingerprint ap0alias = color_space_fingerprint(cc, "lin_ap0");
+    OIIO_CHECK_ASSERT(ap0.computed());
+    OIIO_CHECK_ASSERT(ap0alias.computed());
+    OIIO_CHECK_ASSERT(color_space_fingerprints_match(ap0, ap0alias));
+    OIIO_CHECK_ASSERT(ap0.values == ap0alias.values);  // byte-identical
+
+    // The same space fingerprinted twice yields byte-identical floats
+    // (OPTIMIZATION_NONE + reused probe config).
+    ColorSpaceFingerprint ap0again = color_space_fingerprint(cc, "ACES2065-1");
+    OIIO_CHECK_ASSERT(ap0.values == ap0again.values);
+
+    // Two distinct scene spaces (lin_ap0 vs an sRGB-encoded space) do NOT
+    // match.
+    ColorSpaceFingerprint srgb = color_space_fingerprint(cc, "sRGB - Texture");
+    OIIO_CHECK_ASSERT(srgb.computed());
+    OIIO_CHECK_ASSERT(srgb.reference_kind == ap0.reference_kind);
+    OIIO_CHECK_FALSE(color_space_fingerprints_match(ap0, srgb));
+
+    // A scene space and a display space never compare equal: the reference-kind
+    // gate rejects them before any float comparison.
+    ColorSpaceFingerprint disp = color_space_fingerprint(cc, "sRGB - Display");
+    if (disp.computed()) {
+        OIIO_CHECK_ASSERT(disp.reference_kind != ap0.reference_kind);
+        OIIO_CHECK_FALSE(color_space_fingerprints_match(ap0, disp));
+    }
+
+    // Unknown names produce an empty (uncomputed) fingerprint.
+    OIIO_CHECK_FALSE(color_space_fingerprint(cc, "no_such_space").computed());
+
+    // The bulk pass iterates the classification's sorted simple-space cache, so
+    // the fingerprinted names come back in deterministic sorted order.
+    std::vector<std::string> order = color_space_fingerprint_order(cc);
+    OIIO_CHECK_ASSERT(!order.empty());
+    OIIO_CHECK_ASSERT(std::is_sorted(order.begin(), order.end()));
+    OIIO_CHECK_ASSERT(order == color_space_fingerprint_order(cc));  // stable
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -448,6 +513,7 @@ main(int argc, char* argv[])
     test_interop_id_grammar();
     test_registry_invariants();
     test_color_space_classification();
+    test_color_space_fingerprint();
 
     return unit_test_failures != 0;
 }

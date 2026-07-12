@@ -6,6 +6,7 @@
 #include <cmath>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -228,6 +229,27 @@ static_assert(int(OIIO::pvt::ColorSpaceIsData) == CSInfo::is_data
               "pvt::ColorSpaceAnalysis must mirror CSInfo classification bits");
 
 
+// Color space fingerprint probe layout. The identity probe is the first
+// kFingerprintBasePixels RGBA pixels (primaries, black, dark neutral, white);
+// a trailing linearity quartet -- four (dark, bright) pairs -- rides in the
+// same vector (total kFingerprintProbePixels pixels) but is excluded from
+// equality matching (see fingerprints_match).
+static constexpr int kFingerprintBasePixels  = 6;
+static constexpr int kFingerprintProbePixels = 14;  // 6 identity + 8 linearity
+// Absolute (not relative) tolerance: scene probes are bounded [0,1] ACES and
+// display probes bounded [0,~1.1] XYZ, so one epsilon works everywhere. Chosen
+// empirically to separate distinct spaces while tolerating cross-optimization
+// float noise. Ceiling: less discriminating for HDR values well above 1.0.
+static constexpr float kFingerprintAbsTolerance = 5e-3f;
+
+// The reference-space probe sets after normalization into a config's reference
+// space; the raw calibrated values live in initialize_probe_values().
+struct ProbeValues {
+    std::vector<float> scene;
+    std::vector<float> display;
+};
+
+
 
 // Hidden implementation of ColorConfig
 class ColorConfig::Impl {
@@ -262,6 +284,18 @@ private:
     // verdict; it is cleared with the Impl (i.e. the config) lifetime.
     mutable std::mutex m_learned_complex_mutex;
     mutable std::unordered_set<std::string> m_learned_complex;
+
+    // The probe config used for fingerprinting: a processor-cache-disabled
+    // editable copy of config_, built lazily on the first fingerprint query
+    // (constructing a ColorConfig touches none of it). Building probe
+    // processors is one-shot -- each probe runs once -- so OCIO's processor
+    // cache would only add lock contention and pin every probe processor for
+    // the life of the config; disabling it is the documented fast path. The
+    // normalized scene/display probe values are derived from this copy.
+    mutable OCIO::ConstConfigRcPtr m_probe_config;
+    mutable OCIO::ConstContextRcPtr m_probe_context;
+    mutable ProbeValues m_probe_values;
+    mutable bool m_probe_ready = false;
 
 public:
     Impl(ColorConfig* self)
@@ -397,6 +431,18 @@ public:
     // the config's active colorspace enumeration.
     int analysisFlags(string_view name, bool* active = nullptr);
 
+    // Compute the color space fingerprint for `name` (transform the fixed
+    // probe from the reference role to the space). Builds the probe config
+    // lazily on first use. Returns nullopt if the space is unknown or can't be
+    // probed. Defined below, after the probe helpers it relies on.
+    std::optional<OIIO::pvt::ColorSpaceFingerprint>
+    computeFingerprint(string_view name) const;
+
+    // Fingerprint every "simple" color space, iterating the classification's
+    // sorted simple-space cache so the result order is deterministic.
+    std::vector<std::pair<std::string, OIIO::pvt::ColorSpaceFingerprint>>
+    fingerprintSimpleColorSpaces() const;
+
     // Whether analyze() has already run for the named space, WITHOUT
     // triggering it (used to verify lazy behavior). False for unknown names.
     bool analysisComputed(string_view name) const
@@ -488,6 +534,11 @@ private:
     // NOT be called from within a lock of the mutex. Defined below, after the
     // transform-policy helpers it relies on.
     void analyze(CSInfo* cs);
+
+    // Build the processor-cache-disabled probe config and its normalized probe
+    // values, lazily and once, under the same double-checked pattern as
+    // examine(). Should NOT be called from within a lock of the mutex.
+    void ensureProbeConfig() const;
 
     void debug_print_aliases()
     {
@@ -2811,6 +2862,389 @@ struct ColorConfigClassificationPeek {
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Color space fingerprints: transform a fixed probe from the reference role
+// to a color space and compare the resulting floats to recognize equivalent
+// spaces by value. The probe constants are calibrated -- do not retype.
+
+namespace {
+using namespace OCIO;
+
+// The two directions a color space's transform can be authored in. If only the
+// opposite direction is authored, use it inverted; if neither is (the literal
+// reference space), an identity matrix stands in.
+struct DirectionalTransform {
+    ConstTransformRcPtr transform;
+    TransformDirection direction = TRANSFORM_DIR_FORWARD;
+};
+
+DirectionalTransform
+transform_for_direction(const ConstColorSpaceRcPtr& cs,
+                        ColorSpaceDirection direction)
+{
+    if (auto t = cs->getTransform(direction))
+        return { t, TRANSFORM_DIR_FORWARD };
+    if (auto opp = cs->getTransform(ColorSpaceDirection(1 - int(direction))))
+        return { opp, TRANSFORM_DIR_INVERSE };
+    return { MatrixTransform::Create(), TRANSFORM_DIR_FORWARD };
+}
+
+// Fingerprint probe protocol.
+//
+// Six RGBA identity pixels per reference-space kind (24 floats), transformed
+// FROM the reference space TO each color space; the results are the identity
+// fingerprint:
+//   Pixel 0-2: chromatic primaries covering the reference gamut triangle.
+//   Pixel 3:   black (0,0,0), 50% alpha.
+//   Pixel 4:   dark neutral (~18% grey).
+//   Pixel 5:   diffuse white -- (1,1,1) for scene, D65 illuminant for display.
+// A linearity quartet (pixels 6-13) is appended so the same probe can later
+// derive per-space linearity, but it is excluded from equality matching.
+//
+// The calibrated probe is authored in the interchange reference primaries
+// (ACES AP0 for scene, CIE-XYZ-D65 for display). initialize_probe_values first
+// normalizes it into THIS config's reference space (in case the config's
+// reference primaries differ) by applying the interchange space's
+// to-reference transform, so fingerprints are comparable across configs. This
+// slice assumes the config resolves the interchange role.
+//
+// Optimization is disabled (OPTIMIZATION_NONE) throughout so results are
+// byte-for-byte reproducible across builds and platforms.
+ProbeValues
+initialize_probe_values(const ConstConfigRcPtr& config,
+                        const ConstContextRcPtr& context)
+{
+    // clang-format off
+    std::vector<float> acesVals = {
+        0.408933127871f,
+        0.106169822808f,
+        0.027842572707f,
+        0.0f,
+        0.374615373650f,
+        0.739417755017f,
+        0.118862613721f,
+        0.0f,
+        0.171696591718f,
+        0.104272268468f,
+        0.786227391453f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.5f,
+        0.037018876439f,
+        0.030827687576f,
+        0.021641700645f,
+        0.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        // Linearity quartet: four (dark, bright) pairs at 0.0625 / 4.0 --
+        // neutral, R, G, B -- mirroring OCIO's isColorSpaceLinear probe.
+        0.0625f,
+        0.0625f,
+        0.0625f,
+        0.0f,
+        4.0f,
+        4.0f,
+        4.0f,
+        0.0f,
+        0.0625f,
+        0.0f,
+        0.0f,
+        0.0f,
+        4.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0625f,
+        0.0f,
+        0.0f,
+        0.0f,
+        4.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0625f,
+        0.0f,
+        0.0f,
+        0.0f,
+        4.0f,
+        0.0f,
+    };
+    std::vector<float> xyzVals = {
+        0.383684057405f,
+        0.213552088801f,
+        0.030478901760f,
+        0.0f,
+        0.350178969169f,
+        0.657853997550f,
+        0.127445793983f,
+        0.0f,
+        0.173708304342f,
+        0.081402847459f,
+        0.858056140808f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.5f,
+        0.034956685913f,
+        0.033530856964f,
+        0.023553027375f,
+        0.0f,
+        0.950455927052f,
+        1.0f,
+        1.089057750760f,
+        1.0f,
+        // Linearity quartet -- display-linear XYZ units.
+        0.0625f,
+        0.0625f,
+        0.0625f,
+        0.0f,
+        4.0f,
+        4.0f,
+        4.0f,
+        0.0f,
+        0.0625f,
+        0.0f,
+        0.0f,
+        0.0f,
+        4.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0625f,
+        0.0f,
+        0.0f,
+        0.0f,
+        4.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0625f,
+        0.0f,
+        0.0f,
+        0.0f,
+        4.0f,
+        0.0f,
+    };
+    // clang-format on
+    OIIO_DASSERT(acesVals.size() == size_t(kFingerprintProbePixels) * 4
+                 && xyzVals.size() == size_t(kFingerprintProbePixels) * 4);
+
+    // Normalize the scene probe into this config's scene reference space.
+    try {
+        auto cs = config->getColorSpace(ROLE_INTERCHANGE_SCENE);
+        if (!cs)
+            cs = config->getColorSpace("ACES2065-1");
+        if (!cs)
+            cs = config->getColorSpace("lin_ap0_scene");
+        if (cs) {
+            auto toRef = transform_for_direction(cs,
+                                                 COLORSPACE_DIR_TO_REFERENCE);
+            auto proc = config->getProcessor(context, toRef.transform,
+                                             toRef.direction);
+            if (!proc->isNoOp()) {
+                auto cpu = proc->getOptimizedCPUProcessor(OPTIMIZATION_NONE);
+                PackedImageDesc img(acesVals.data(), long(acesVals.size() / 4),
+                                    1, 4);
+                cpu->apply(img);
+            }
+        }
+    } catch (...) {
+    }
+
+    // Same for the display probe (CIE-XYZ-D65 reference), if the config has
+    // any display-referred spaces at all.
+    try {
+        if (config->getNumColorSpaces(SEARCH_REFERENCE_SPACE_DISPLAY,
+                                      COLORSPACE_ALL)
+            > 0) {
+            auto cs = config->getColorSpace(ROLE_INTERCHANGE_DISPLAY);
+            if (!cs)
+                cs = config->getColorSpace("CIE-XYZ-D65");
+            if (!cs)
+                cs = config->getColorSpace("lin_ciexyzd65_display");
+            if (cs) {
+                auto toRef
+                    = transform_for_direction(cs, COLORSPACE_DIR_TO_REFERENCE);
+                auto proc = config->getProcessor(context, toRef.transform,
+                                                 toRef.direction);
+                if (!proc->isNoOp()) {
+                    auto cpu = proc->getOptimizedCPUProcessor(
+                        OPTIMIZATION_NONE);
+                    PackedImageDesc img(xyzVals.data(),
+                                        long(xyzVals.size() / 4), 1, 4);
+                    cpu->apply(img);
+                }
+            }
+        }
+    } catch (...) {
+    }
+
+    return { std::move(acesVals), std::move(xyzVals) };
+}
+
+// Transform the (reference-space) probe by the color space's from-reference
+// transform; the resulting floats are its fingerprint. The space's reference
+// kind (scene vs display) selects which probe set is used.
+std::optional<OIIO::pvt::ColorSpaceFingerprint>
+compute_fingerprint(const ConstConfigRcPtr& config,
+                    const ConstColorSpaceRcPtr& cs,
+                    const ConstContextRcPtr& context, const ProbeValues& probes)
+{
+    if (!cs)
+        return std::nullopt;
+    try {
+        auto fromRef = transform_for_direction(cs,
+                                               COLORSPACE_DIR_FROM_REFERENCE);
+        auto proc = config->getProcessor(context, fromRef.transform,
+                                         fromRef.direction);
+        auto cpu = proc->getOptimizedCPUProcessor(OPTIMIZATION_NONE);
+        const int kind = int(cs->getReferenceSpaceType());
+        std::vector<float> values = kind == int(REFERENCE_SPACE_DISPLAY)
+                                        ? probes.display
+                                        : probes.scene;
+        PackedImageDesc img(values.data(), long(values.size() / 4), 1, 4);
+        cpu->apply(img);
+        return OIIO::pvt::ColorSpaceFingerprint{ kind, std::move(values) };
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+// Exact, tolerance-gated identity match. Reference kinds must match (a scene
+// and a display space never compare equal), vector lengths must match, and
+// every identity-probe float must agree within kFingerprintAbsTolerance. The
+// first structural mismatch or first out-of-tolerance float returns false. The
+// trailing linearity quartet (pixels 6-13) is excluded: its 4.0 inputs clamp
+// differently through LUT-backed curves than through analytic ones (e.g. an
+// ICC TRC table vs ExponentWithLinear), which would turn equivalent spaces
+// into false mismatches. There is deliberately no best/closest scoring.
+bool
+fingerprints_match(const OIIO::pvt::ColorSpaceFingerprint& left,
+                   const OIIO::pvt::ColorSpaceFingerprint& right)
+{
+    if (left.reference_kind != right.reference_kind)
+        return false;
+    if (left.values.size() != right.values.size())
+        return false;
+    const size_t bound = std::min(right.values.size(),
+                                  size_t(kFingerprintBasePixels) * 4);
+    for (size_t i = 0; i < bound; ++i)
+        if (std::abs(left.values[i] - right.values[i])
+            > kFingerprintAbsTolerance)
+            return false;
+    return true;
+}
+
+}  // namespace
+
+
+
+void
+ColorConfig::Impl::ensureProbeConfig() const
+{
+    {
+        spin_rw_read_lock lock(m_mutex);
+        if (m_probe_ready)
+            return;
+    }
+
+    // Build the probe config and normalize its probes OUTSIDE the lock (the
+    // OCIO calls take their own locks); publish under the write lock, letting
+    // a racing builder's work be discarded (flyweight: duplicate work allowed,
+    // blocking never).
+    OCIO::ConstConfigRcPtr probe_config;
+    OCIO::ConstContextRcPtr probe_context;
+    ProbeValues probe_values;
+    if (config_ && !disable_ocio) {
+        try {
+            OCIO::ConfigRcPtr editable = config_->createEditableCopy();
+            editable->setProcessorCacheFlags(OCIO::PROCESSOR_CACHE_OFF);
+            probe_config  = editable;
+            probe_context = probe_config->getCurrentContext();
+            probe_values = initialize_probe_values(probe_config, probe_context);
+        } catch (...) {
+            probe_config.reset();
+        }
+    }
+
+    spin_rw_write_lock lock(m_mutex);
+    if (!m_probe_ready) {
+        m_probe_config  = std::move(probe_config);
+        m_probe_context = std::move(probe_context);
+        m_probe_values  = std::move(probe_values);
+        m_probe_ready   = true;
+    }
+}
+
+
+
+std::optional<OIIO::pvt::ColorSpaceFingerprint>
+ColorConfig::Impl::computeFingerprint(string_view name) const
+{
+    ensureProbeConfig();
+
+    OCIO::ConstConfigRcPtr config;
+    OCIO::ConstContextRcPtr context;
+    ProbeValues probes;
+    {
+        spin_rw_read_lock lock(m_mutex);
+        config  = m_probe_config;
+        context = m_probe_context;
+        probes  = m_probe_values;
+    }
+    if (!config)
+        return std::nullopt;
+    auto cs = config->getColorSpace(std::string(name).c_str());
+    return compute_fingerprint(config, cs, context, probes);
+}
+
+
+
+std::vector<std::pair<std::string, OIIO::pvt::ColorSpaceFingerprint>>
+ColorConfig::Impl::fingerprintSimpleColorSpaces() const
+{
+    std::vector<std::pair<std::string, OIIO::pvt::ColorSpaceFingerprint>> out;
+
+    // Iterate the classification's sorted simple-space cache (already sorted),
+    // so the fingerprinted order is deterministic. Gather it before touching
+    // the probe state's lock (getSimpleColorSpaces() takes m_mutex itself).
+    const std::vector<std::string>& simple = getSimpleColorSpaces();
+    ensureProbeConfig();
+
+    OCIO::ConstConfigRcPtr config;
+    OCIO::ConstContextRcPtr context;
+    ProbeValues probes;
+    {
+        spin_rw_read_lock lock(m_mutex);
+        config  = m_probe_config;
+        context = m_probe_context;
+        probes  = m_probe_values;
+    }
+    if (!config)
+        return out;
+
+    out.reserve(simple.size());
+    for (const auto& name : simple) {
+        auto cs = config->getColorSpace(name.c_str());
+        auto fp = compute_fingerprint(config, cs, context, probes);
+        if (fp)
+            out.emplace_back(name, std::move(*fp));
+    }
+    return out;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Color Interop ID
 
 namespace {
@@ -3798,6 +4232,38 @@ color_space_analyzed(const ColorConfig& config, string_view name)
 {
     auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
     return impl ? impl->analysisComputed(name) : false;
+}
+
+
+ColorSpaceFingerprint
+color_space_fingerprint(const ColorConfig& config, string_view name)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    if (!impl)
+        return {};
+    auto fp = impl->computeFingerprint(name);
+    return fp ? std::move(*fp) : ColorSpaceFingerprint{};
+}
+
+bool
+color_space_fingerprints_match(const ColorSpaceFingerprint& a,
+                               const ColorSpaceFingerprint& b)
+{
+    return v3_1::fingerprints_match(a, b);
+}
+
+std::vector<std::string>
+color_space_fingerprint_order(const ColorConfig& config)
+{
+    std::vector<std::string> names;
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    if (!impl)
+        return names;
+    auto fingerprints = impl->fingerprintSimpleColorSpaces();
+    names.reserve(fingerprints.size());
+    for (auto& entry : fingerprints)
+        names.push_back(std::move(entry.first));
+    return names;
 }
 
 }  // namespace pvt
