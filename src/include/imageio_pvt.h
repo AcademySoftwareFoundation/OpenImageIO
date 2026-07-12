@@ -301,6 +301,15 @@ interop_identities_config_size();
 OIIO_API bool
 interop_identities_config_resolves(string_view interop_id);
 
+/// The `name:` of every color space declared in OIIO's built-in interop
+/// identities config (see interop_identities_config_size), in the config's
+/// own enumeration order. By construction, each entry's `name:` equals its
+/// `interop_id:` in the source config -- this does not include entries only
+/// reachable as an alias. Empty if OCIO support is unavailable or the
+/// embedded config failed to parse. For internal/test use only.
+OIIO_API std::vector<std::string>
+interop_identities_config_names();
+
 
 // ---------------------------------------------------------------------------
 // Color interop ID grammar and sanitization -- the ID grammar and

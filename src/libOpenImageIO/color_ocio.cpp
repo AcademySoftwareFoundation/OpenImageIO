@@ -3165,6 +3165,20 @@ interop_identities_config_resolves(string_view interop_id)
     }
 }
 
+std::vector<std::string>
+interop_identities_config_names()
+{
+    std::vector<std::string> names;
+    auto config = build_interop_identities_config();
+    if (!config)
+        return names;
+    int n = config->getNumColorSpaces();
+    names.reserve(n);
+    for (int i = 0; i < n; ++i)
+        names.emplace_back(config->getColorSpaceNameByIndex(i));
+    return names;
+}
+
 }  // namespace pvt
 
 OIIO_NAMESPACE_END

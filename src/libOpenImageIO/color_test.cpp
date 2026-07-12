@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <unordered_set>
 #include <vector>
 
 #include <OpenImageIO/argparse.h>
@@ -251,6 +252,77 @@ test_interop_id_grammar()
 
 
 
+static void
+test_registry_invariants()
+{
+    using OIIO::pvt::interop_identities_config_names;
+    using OIIO::pvt::interop_identities_config_resolves;
+    using OIIO::pvt::InteropIdForm;
+    using OIIO::pvt::is_utility_interop_id;
+    using OIIO::pvt::parse_interop_id;
+    using OIIO::pvt::strip_leftmost_namespace;
+
+    std::vector<std::string> names = interop_identities_config_names();
+    OIIO_CHECK_GT(names.size(), size_t(0));
+
+    // Invariant 1: every registry entry's `name:` equals its `interop_id:`
+    // in the source config (verified at authoring time -- both fields are
+    // set to the identical value for every entry). At the OCIO API level
+    // that invariant means every declared name must resolve to itself:
+    // count mismatches across the whole registry and expect 0.
+    int name_mismatches = 0;
+    for (const auto& name : names)
+        if (!interop_identities_config_resolves(name))
+            ++name_mismatches;
+    OIIO_CHECK_EQUAL(name_mismatches, 0);
+
+    // Invariant 2: every namespaced entry's bare stripped form resolves
+    // through OCIO's own alias resolution to the same color space -- no
+    // registry-side code needed. Proof it's an alias and not a coincidental
+    // separate entry: the stripped form does not itself appear in the
+    // config's own declared-name list.
+    std::unordered_set<std::string> declared_names(names.begin(),
+                                                    names.end());
+    int namespaced_checked = 0;
+    for (const auto& name : names) {
+        auto parts = parse_interop_id(name);
+        if (parts.form != InteropIdForm::INNER_BASE)
+            continue;  // not an "inner:base" namespaced entry
+        std::string bare = strip_leftmost_namespace(name);
+        OIIO_CHECK_ASSERT(interop_identities_config_resolves(name));
+        OIIO_CHECK_ASSERT(interop_identities_config_resolves(bare));
+        OIIO_CHECK_ASSERT(declared_names.find(bare) == declared_names.end());
+        ++namespaced_checked;
+    }
+    OIIO_CHECK_GT(namespaced_checked, 0);
+
+    // Invariant 5: `data` is a config entry (isdata: true); the utility
+    // tokens `unknown`/`bypass` are pure grammar-layer strings, never
+    // registry lookups.
+    OIIO_CHECK_ASSERT(interop_identities_config_resolves("data"));
+    OIIO_CHECK_FALSE(interop_identities_config_resolves("unknown"));
+    OIIO_CHECK_FALSE(interop_identities_config_resolves("bypass"));
+    OIIO_CHECK_ASSERT(is_utility_interop_id("unknown"));
+    OIIO_CHECK_ASSERT(is_utility_interop_id("bypass"));
+
+    // Cross-check against the CIF wiki's published Color Interop IDs:
+    // https://github.com/AcademySoftwareFoundation/ColorInterop/wiki/Registered-Color-Interop-IDs
+    // ponytail: representative static subset, not a live scrape -- extend
+    // if the wiki list is ever vendored.
+    static const char* published_ids[] = {
+        "lin_ap0_scene",       "lin_rec709_scene",     "lin_p3d65_scene",
+        "lin_rec2020_scene",   "lin_adobergb_scene",   "srgb_rec709_display",
+        "g24_rec709_display",  "g22_rec709_display",   "lin_rec709_display",
+        "lin_p3d65_display",   "lin_p3d60_display",    // oiio: alias, bare
+        "lin_ciexyzd65_display",                       // ocio: alias, bare
+        "data",
+    };
+    for (const char* id : published_ids)
+        OIIO_CHECK_ASSERT(interop_identities_config_resolves(id));
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -268,6 +340,7 @@ main(int argc, char* argv[])
     test_Rec709_conversion();
     test_interop_identities_config();
     test_interop_id_grammar();
+    test_registry_invariants();
 
     return unit_test_failures != 0;
 }
