@@ -307,8 +307,8 @@ test_registry_invariants()
 
     // Cross-check against the CIF wiki's published Color Interop IDs:
     // https://github.com/AcademySoftwareFoundation/ColorInterop/wiki/Registered-Color-Interop-IDs
-    // ponytail: representative static subset, not a live scrape -- extend
-    // if the wiki list is ever vendored.
+    // A representative subset of the published IDs; extend to the full
+    // list if it is ever vendored.
     static const char* published_ids[] = {
         "lin_ap0_scene",       "lin_rec709_scene",     "lin_p3d65_scene",
         "lin_rec2020_scene",   "lin_adobergb_scene",   "srgb_rec709_display",
