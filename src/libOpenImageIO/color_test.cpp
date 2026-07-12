@@ -17,6 +17,8 @@
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/unittest.h>
 
+#include "imageio_pvt.h"
+
 
 using namespace OIIO;
 using namespace simd;
@@ -120,6 +122,15 @@ test_Rec709_conversion()
 
 
 
+static void
+test_interop_identities_config()
+{
+    int nspaces = OIIO::pvt::interop_identities_config_size();
+    OIIO_CHECK_GT(nspaces, 0);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -135,6 +146,7 @@ main(int argc, char* argv[])
 
     test_sRGB_conversion();
     test_Rec709_conversion();
+    test_interop_identities_config();
 
     return unit_test_failures != 0;
 }

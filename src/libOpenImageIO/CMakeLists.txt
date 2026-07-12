@@ -7,6 +7,22 @@ if (VERBOSE)
 endif ()
 configure_file (buildopts.h.in "${CMAKE_BINARY_DIR}/include/buildopts.h" @ONLY)
 
+# Compile the built-in interop identities config (an OCIO config OIIO
+# ships with, similar in spirit to OCIO's own builtin configs) into a
+# header as a hex byte array, so it can be parsed at runtime with no
+# external file dependency.
+set (INTEROP_IDENTITIES_CONFIG_PATH
+     "${CMAKE_CURRENT_SOURCE_DIR}/interop-identities-config.ocio")
+file (READ "${INTEROP_IDENTITIES_CONFIG_PATH}" INTEROP_HEX_CONTENTS HEX)
+string (REGEX MATCHALL "([A-Za-z0-9][A-Za-z0-9])" INTEROP_SEPARATED_HEX
+        "${INTEROP_HEX_CONTENTS}")
+list (JOIN INTEROP_SEPARATED_HEX ",0x" INTEROP_FORMATTED_HEX)
+string (PREPEND INTEROP_FORMATTED_HEX "0x")
+string (APPEND INTEROP_FORMATTED_HEX ",0x00")
+set (INTEROP_IDENTITIES_CONFIG_HEX ${INTEROP_FORMATTED_HEX})
+configure_file (interop_identities_config.h.in
+                 "${CMAKE_BINARY_DIR}/include/interop_identities_config.h" @ONLY)
+
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 
 if (NOT USE_EXTERNAL_PUGIXML)

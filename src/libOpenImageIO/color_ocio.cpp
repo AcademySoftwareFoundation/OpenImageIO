@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,8 @@
     (((maj) << 24) | ((min) << 16) | (patch))
 
 #include <OpenColorIO/OpenColorIO.h>
+
+#include "interop_identities_config.h"
 
 namespace OCIO = OCIO_NAMESPACE;
 
@@ -3057,5 +3060,56 @@ set_colorspace_rec709_gamma(ImageSpec& spec, float gamma)
     ColorConfig::default_colorconfig().set_colorspace_rec709_gamma(spec, gamma);
 }
 
+OIIO_NAMESPACE_END
+
+
+
+// pvt::interop_identities_config_size() is declared (OIIO_API) in the
+// library's "current" namespace by imageio_pvt.h, so it must be defined
+// there too, not inside the ABI-versioned v3_1 namespace the rest of this
+// file lives in.
+OIIO_NAMESPACE_BEGIN
+
+namespace {
+
+// Return OIIO's built-in interop identities config: a small config OIIO
+// ships with (compiled in, see interop_identities_config.h) that defines
+// color spaces for the CIF-published interop identities OIIO knows how to
+// reliably recognize and relate in other OCIO configs. Parsed once per
+// process and reused for the life of the process. For now this is just the
+// embedded config as-is, for use with linked OCIO versions that predate
+// native interop ID support; extend this to overlay onto OCIO's own
+// builtin studio config once the minimum linked OCIO version provides one.
+OCIO::ConstConfigRcPtr
+build_interop_identities_config()
+{
+    // Parse once and reuse for all ColorConfig instances -- function-local
+    // static initialization is thread-safe (C++11 magic statics), so no
+    // extra mutex is needed here.
+    static OCIO::ConstConfigRcPtr s_interop_identities_config =
+        []() -> OCIO::ConstConfigRcPtr {
+        try {
+            std::istringstream iss(kInteropIdentitiesConfig);
+            return OCIO::Config::CreateFromStream(iss);
+        } catch (OCIO::Exception&) {
+            return {};
+        }
+    }();
+    return s_interop_identities_config;
+}
+
+}  // namespace
+
+
+namespace pvt {
+
+int
+interop_identities_config_size()
+{
+    auto config = build_interop_identities_config();
+    return config ? config->getNumColorSpaces() : 0;
+}
+
+}  // namespace pvt
 
 OIIO_NAMESPACE_END

@@ -1,0 +1,999 @@
+ocio_profile_version: 2.3  # Keep in sync with OpenImageIO minimum OCIO version
+
+name: interop-identities-config-v3.2.0.2
+
+description: |
+  OpenImageIO Reference Interop Identities
+  ----------------------------------------
+  A minimal config defining a core set of simple color spaces that OpenImageIO
+  knows about and can reliably recognize and relate in other OpenColorIO configs.
+
+# There is a 1:1 relationship between a color interop ID and a color space.
+# (No two color spaces share the same interop_id value)
+
+# This config provides functionally equivalent color spaces found in the following configs:
+#   - core-display-config-v1.0.0
+#   - core-renderer-config-v1.1.0
+#   - ocio://studio-config-v4.0.0_aces-v2.0_ocio-v2.5
+
+# Note: This config provides OCIO-2.3-compatible apprixmations of the following color spaces:
+#   - applelog_rec2020_scene
+#   - applelog_applewg_scene
+#
+
+# Additionally, this config provides the following color spaces:
+#   - tlog_egamut2_scene
+#   - tlog_egamut_scene
+#   - lin_egamut2_scene
+#   - lin_egamut_scene
+
+
+# Note:
+
+roles:
+  aces_interchange: lin_ap0_scene
+  cie_xyz_d65_interchange: lin_ciexyzd65_display
+  compositing_log: ocio:acescct_ap1_scene
+  color_timing: ocio:acescct_ap1_scene
+  scene_linear: lin_ap1_scene
+  default: data
+
+file_rules:
+  - !<Rule> {name: Default, colorspace: default}
+
+shared_views:
+  - !<View> {name: None, colorspace: data}
+
+displays:
+  g24_rec709_display:
+    - !<Views> [None]
+
+default_view_transform: scene_to_display_bridge
+
+view_transforms:
+  - !<ViewTransform>
+    name: scene_to_display_bridge
+    from_scene_reference: !<BuiltinTransform> {style: UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD}
+
+  - !<ViewTransform>
+    name: video_colorimetry
+    from_display_reference: !<MatrixTransform> {}
+
+
+display_colorspaces:
+  - !<ColorSpace>
+    name: ocio:lin_ciexyzd65_display
+    aliases: [lin_ciexyzd65_display]
+    interop_id: ocio:lin_ciexyzd65_display
+    encoding: display-linear
+
+  - !<ColorSpace>
+    name: g24_rec709_display
+    interop_id: g24_rec709_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [3.24096994190452, -1.53738317757009, -0.498610760293003, 0, -0.96924363628088, 1.87596750150772, 0.0415550574071756, 0, 0.0556300796969936, -0.203976958888976, 1.05697151424288, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.4, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: srgb_rec709_display
+    interop_id: srgb_rec709_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [3.24096994190452, -1.53738317757009, -0.498610760293003, 0, -0.96924363628088, 1.87596750150772, 0.0415550574071756, 0, 0.0556300796969936, -0.203976958888976, 1.05697151424288, 0, 0, 0, 0, 1]}
+        - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: srgb_p3d65_display
+    interop_id: srgb_p3d65_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
+        - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: srgbe_p3d65_display
+    interop_id: srgbe_p3d65_display
+    encoding: hdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
+        - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: pq_p3d65_display
+    interop_id: pq_p3d65_display
+    encoding: hdr-video
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_ST2084-P3-D65}
+
+  - !<ColorSpace>
+    name: pq_rec2020_display
+    interop_id: pq_rec2020_display
+    encoding: hdr-video
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_REC.2100-PQ}
+
+  - !<ColorSpace>
+    name: hlg_rec2020_display
+    interop_id: hlg_rec2020_display
+    encoding: hdr-video
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_REC.2100-HLG-1000nit}
+
+  - !<ColorSpace>
+    name: g22_rec709_display
+    interop_id: g22_rec709_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [3.24096994190452, -1.53738317757009, -0.498610760293003, 0, -0.96924363628088, 1.87596750150772, 0.0415550574071756, 0, 0.0556300796969936, -0.203976958888976, 1.05697151424288, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: g22_adobergb_display
+    interop_id: g22_adobergb_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.04158790381075, -0.56500697427886, -0.34473135077833, 0, -0.96924363628088, 1.87596750150772, 0.0415550574071756, 0, 0.0134442806320311, -0.118362392231018, 1.01517499439121, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.19921875, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: g26_xyzd65_display
+    interop_id: g26_xyzd65_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<RangeTransform> {name: dci_white_headroom_scaling, min_in_value: 0, max_in_value: 1, min_out_value: 0, max_out_value: 0.916555279740309, style: noClamp}
+        - !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: pq_xyzd65_display
+    interop_id: pq_xyzd65_display
+    encoding: hdr-video
+    from_display_reference: !<BuiltinTransform> {style: CURVE - LINEAR_to_ST-2084}
+
+  - !<ColorSpace>
+    name: g26_p3d65_display
+    interop_id: g26_p3d65_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: lin_rec709_display
+    interop_id: lin_rec709_display
+    encoding: display-linear
+    from_display_reference: !<MatrixTransform> {matrix: [3.24096994190452, -1.53738317757009, -0.498610760293003, 0, -0.96924363628088, 1.87596750150772, 0.0415550574071756, 0, 0.0556300796969936, -0.203976958888976, 1.05697151424288, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: lin_rec2020_display
+    interop_id: lin_rec2020_display
+    encoding: display-linear
+    from_display_reference: !<MatrixTransform> {matrix: [1.71665118797127, -0.355670783776392, -0.25336628137366, 0, -0.666684351832489, 1.61648123663494, 0.0157685458139111, 0, 0.0176398574453108, -0.0427706132578085, 0.942103121235474, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: lin_p3d65_display
+    interop_id: lin_p3d65_display
+    encoding: display-linear
+    from_display_reference: !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:lin_p3d60_display
+    aliases: [lin_p3d60_display]
+    interop_id: oiio:lin_p3d60_display
+    encoding: display-linear
+    from_display_reference: !<MatrixTransform> {matrix: [2.428254486659579, -0.8829845365909165, -0.3902128535864839, 0, -0.8298796755579264, 1.761010282177743, 0.02548420795558374, 0, 0.0357496871967511, -0.07725558667884613, 0.9579630500444209, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:lin_p3dci_display
+    aliases: [lin_p3dci_display]
+    interop_id: oiio:lin_p3dci_display
+    encoding: display-linear
+    from_display_reference: !<MatrixTransform> {matrix: [2.690225911625597, -1.094001937366136, -0.4250823476747523, 0, -0.820082184273491, 1.750480908292057, 0.02660195421220572, 0, 0.03624575465400463, -0.07858083680558862, 0.9587469936609856, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:lin_rec601_display
+    aliases: [lin_rec601_display]
+    interop_id: oiio:lin_rec601_display
+    encoding: display-linear
+    from_display_reference: !<MatrixTransform> {matrix: [3.50600328272467, -1.73979072630283, -0.544058268362742, 0, -1.06904755985382, 1.97777888272879, 0.0351714193371952, 0, 0.0563065917341277, -0.196975654820772, 1.04995232821873, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:lin_rec601pal_display
+    aliases: [lin_rec601pal_display]
+    interop_id: oiio:lin_rec601pal_display
+    encoding: display-linear
+    from_display_reference: !<MatrixTransform> {matrix: [3.06336109008327, -1.39339017490737, -0.47582373799753, 0, -0.96924363628088, 1.87596750150772, 0.0415550574071756, 0, 0.0678610475535669, -0.228799269620496, 1.06908961801603, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:lin_prophoto_display
+    aliases: [lin_prophoto_display]
+    interop_id: oiio:lin_prophoto_display
+    encoding: display-linear
+    from_display_reference: !<MatrixTransform> {matrix: [1.403202937830473, -0.2230228699288882, -0.1016104785179563, 0, -0.5262303211926748, 1.481617422559838, 0.0170250890727386, 0, -0.0112022652862215, 0.01824640347962093, 0.9112472274915043, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:g22_p3d65_display
+    aliases: [g22_p3d65_display]
+    interop_id: oiio:g22_p3d65_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+         - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
+         - !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: oiio:g22_p3d50_display
+    aliases: [g22_p3d50_display]
+    interop_id: oiio:g22_p3d50_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+         - !<MatrixTransform> {matrix: [2.269934220031717, -0.7640647616398722, -0.3612367402299742, 0, -0.8319646652340708, 1.758261999687511, 0.02982738744488601, 0, 0.03538246899197704, -0.08050866718457697, 0.9612705929386961, 0, 0, 0, 0, 1]}
+         - !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: oiio:g22_adobergbd50_display
+    aliases: [g22_adobergbd50_display]
+    interop_id: oiio:g22_adobergbd50_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+         - !<MatrixTransform> {matrix: [1.89962028078498, -0.4629418709191543, -0.3145503384567722, 0, -0.9844639775403073, 1.882267684831269, 0.04905335603507256, 0, 0.001647427195160767, -0.1387994903192507, 1.044236343374566, 0, 0, 0, 0, 1]}
+         - !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: oiio:g24_rec601_display
+    aliases: [g24_rec601_display]
+    interop_id: oiio:g24_rec601_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [3.50600328272467, -1.73979072630283, -0.544058268362742, 0, -1.06904755985382, 1.97777888272879, 0.0351714193371952, 0, 0.0563065917341277, -0.196975654820772, 1.04995232821873, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.4, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: oiio:g24_rec601pal_display
+    aliases: [g24_rec601pal_display]
+    interop_id: oiio:g24_rec601pal_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [3.06336109008327, -1.39339017490737, -0.47582373799753, 0, -0.96924363628088, 1.87596750150772, 0.0415550574071756, 0, 0.0678610475535669, -0.228799269620496, 1.06908961801603, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.4, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: oiio:g24_rec2020_display
+    aliases: [g24_rec2020_display]
+    interop_id: oiio:g24_rec2020_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [1.71665118797127, -0.355670783776392, -0.25336628137366, 0, -0.666684351832489, 1.61648123663494, 0.0157685458139111, 0, 0.0176398574453108, -0.0427706132578085, 0.942103121235474, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.4, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: oiio:g26_p3dci_display
+    aliases: [g26_p3dci_display]
+    interop_id: oiio:g26_p3dci_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.690225911625597, -1.094001937366136, -0.4250823476747523, 0, -0.820082184273491, 1.750480908292057, 0.02660195421220572, 0, 0.03624575465400463, -0.07858083680558862, 0.9587469936609856, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: oiio:g26_p3d60_display
+    aliases: [g26_p3d60_display]
+    interop_id: oiio:g26_p3d60_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.428254486659579, -0.8829845365909165, -0.3902128535864839, 0, -0.8298796755579264, 1.761010282177743, 0.02548420795558374, 0, 0.0357496871967511, -0.07725558667884613, 0.9579630500444209, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
+    name: oiio:pq_rec709_display
+    aliases: [pq_rec709_display]
+    interop_id: oiio:pq_rec709_display
+    encoding: hdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [3.24096994190452, -1.53738317757009, -0.498610760293003, 0, -0.96924363628088, 1.87596750150772, 0.0415550574071756, 0, 0.0556300796969936, -0.203976958888976, 1.05697151424288, 0, 0, 0, 0, 1]}
+        - !<BuiltinTransform> {style: CURVE - LINEAR_to_ST-2084}
+
+  - !<ColorSpace>
+    name: data
+    interop_id: data
+    encoding: data
+    isdata: true
+
+colorspaces:
+  - !<ColorSpace>
+    name: lin_ap0_scene
+    interop_id: lin_ap0_scene
+    encoding: scene-linear
+
+  - !<ColorSpace>
+    name: lin_ap1_scene
+    interop_id: lin_ap1_scene
+    encoding: scene-linear
+    to_scene_reference: !<BuiltinTransform> {style: ACEScg_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: lin_rec709_scene
+    interop_id: lin_rec709_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.439632981919491, 0.382988698151554, 0.177378319928955, 0, 0.0897764429588424, 0.813439428748981, 0.0967841282921771, 0, 0.0175411703831727, 0.111546553302387, 0.87091227631444, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: lin_p3d65_scene
+    interop_id: lin_p3d65_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.518933487597981, 0.28625658638669, 0.194809926015329, 0, 0.0738593830470598, 0.819845163936986, 0.106295453015954, 0, -0.000307011368446647, 0.0438070502536223, 0.956499961114824, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: lin_rec2020_scene
+    interop_id: lin_rec2020_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.679085634706912, 0.157700914643159, 0.163213450649929, 0, 0.0460020030800595, 0.859054673002908, 0.0949433239170327, 0, -0.000573943187616196, 0.0284677684080264, 0.97210617477959, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: lin_adobergb_scene
+    interop_id: lin_adobergb_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.614763305501725, 0.200243702572018, 0.184992991926256, 0, 0.125539404683864, 0.773521622216629, 0.100938973099507, 0, 0.0245287963611042, 0.0671715435381276, 0.908299660100768, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: lin_ciexyzd65_scene
+    interop_id: lin_ciexyzd65_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> { matrix: [1.0634954914942, 0.00640891019711789, -0.0158067866176054, 0, -0.492074127923892, 1.36822340747333, 0.0913370883144736, 0, -0.00281646163925351, 0.00464417105680067, 0.916418574593656, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:acescc_ap1_scene
+    aliases: [acescc_ap1_scene]
+    interop_id: ocio:acescc_ap1_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: ACEScc_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:acescct_ap1_scene
+    aliases: [acescct_ap1_scene]
+    interop_id: ocio:acescct_ap1_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: ACEScct_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:adx10_apd_scene
+    aliases: [adx10_apd_scene]
+    interop_id: ocio:adx10_apd_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: ADX10_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:adx16_apd_scene
+    aliases: [adx16_apd_scene]
+    interop_id: ocio:adx16_apd_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: ADX16_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:arrilogc3_awg3_scene
+    aliases: [arrilogc3_awg3_scene]
+    interop_id: ocio:arrilogc3_awg3_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: ARRI_ALEXA-LOGC-EI800-AWG_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:lin_awg3_scene
+    aliases: [lin_awg3_scene]
+    interop_id: ocio:lin_awg3_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.680205505106279, 0.236136601606481, 0.0836578932872398, 0, 0.0854149797421404, 1.01747087860704, -0.102885858349182, 0, 0.00205652166929683, -0.0625625003847921, 1.06050597871549, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:arrilogc4_awg4_scene
+    aliases: [arrilogc4_awg4_scene]
+    interop_id: ocio:arrilogc4_awg4_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: ARRI_LOGC4_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:lin_awg4_scene
+    aliases: [lin_awg4_scene]
+    interop_id: ocio:lin_awg4_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.750957362824734, 0.144422786709757, 0.104619850465509, 0, 0.000821837079380207, 1.007397584885, -0.00821942196438358, 0, -0.000499952143533471, -0.000854177231436971, 1.00135412937497, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:bmdfilm5_wg5_scene
+    aliases: [bmdfilm5_wg5_scene]
+    interop_id: ocio:bmdfilm5_wg5_scene
+    encoding: log
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<LogCameraTransform> {base: 2.71828182845905, log_side_slope: 0.0869287606549122, log_side_offset: 0.530013339229194, lin_side_offset: 0.00549407243225781, lin_side_break: 0.005, direction: inverse}
+        - !<MatrixTransform> {matrix: [0.647091325580708, 0.242595385134207, 0.110313289285085, 0, 0.0651915997328519, 1.02504756760476, -0.0902391673376125, 0, -0.0275570729194699, -0.0805887097177784, 1.10814578263725, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:lin_bmdwg5_scene
+    aliases: [lin_bmdwg5_scene]
+    interop_id: ocio:lin_bmdwg5_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.647091325580708, 0.242595385134207, 0.110313289285085, 0, 0.0651915997328519, 1.02504756760476, -0.0902391673376125, 0, -0.0275570729194699, -0.0805887097177784, 1.10814578263725, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:davinci_dwg_scene
+    aliases: [davinci_dwg_scene]
+    interop_id: ocio:davinci_dwg_scene
+    encoding: log
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<LogCameraTransform> {log_side_slope: 0.07329248, log_side_offset: 0.51304736, lin_side_offset: 0.0075, lin_side_break: 0.00262409, linear_slope: 10.44426855, direction: inverse}
+        - !<MatrixTransform> {matrix: [0.748270290272981, 0.167694659554328, 0.0840350501726906, 0, 0.0208421234689102, 1.11190474268894, -0.132746866157851, 0, -0.0915122574225729, -0.127746712807307, 1.21925897022988, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:lin_dwg_scene
+    aliases: [lin_dwg_scene]
+    interop_id: ocio:lin_dwg_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.748270290272981, 0.167694659554328, 0.0840350501726906, 0, 0.0208421234689102, 1.11190474268894, -0.132746866157851, 0, -0.0915122574225729, -0.127746712807307, 1.21925897022988, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:canonlog3_cgamutd55_scene
+    aliases: [canonlog3_cgamutd55_scene]
+    interop_id: ocio:canonlog3_cgamutd55_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: CANON_CLOG3-CGAMUT_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:canonlog2_cgamutd55_scene
+    aliases: [canonlog2_cgamutd55_scene]
+    interop_id: ocio:canonlog2_cgamutd55_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: CANON_CLOG2-CGAMUT_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:lin_cgamutd55_scene
+    aliases: [lin_cgamutd55_scene]
+    interop_id: ocio:lin_cgamutd55_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {name: cgamutd65_to_ap0-bfd, matrix: [0.763064454775734, 0.14902116113706, 0.0879143840872056, 0, 0.00365745670512393, 1.10696038037622, -0.110617837081339, 0, -0.0094077940457189, -0.218383304989987, 1.22779109903571, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:djilog_dgamut_scene
+    aliases: [djilog_dgamut_scene]
+    interop_id: ocio:djilog_dgamut_scene
+    encoding: log
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<LogCameraTransform> {name: djilog, base: 10, log_side_slope: 0.256662970719888, log_side_offset: 0.58455504907396, lin_side_slope: 0.9892, lin_side_offset: 0.0108, lin_side_break: 0.00758078675, direction: inverse}
+        - !<MatrixTransform> {matrix: [0.691279245585754, 0.214382527745956, 0.0943382266682902, 0, 0.0662224037667752, 1.0116160801876, -0.0778384839543733, 0, -0.0172985410341745, -0.0773788501012682, 1.09467739113544, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:lin_dgamut_scene
+    aliases: [lin_dgamut_scene]
+    interop_id: ocio:lin_dgamut_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.691279245585754, 0.214382527745956, 0.0943382266682902, 0, 0.0662224037667752, 1.0116160801876, -0.0778384839543733, 0, -0.0172985410341745, -0.0773788501012682, 1.09467739113544, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:vlog_vgamut_scene
+    aliases: [vlog_vgamut_scene]
+    interop_id: ocio:vlog_vgamut_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: PANASONIC_VLOG-VGAMUT_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:lin_vgamut_scene
+    aliases: [lin_vgamut_scene]
+    interop_id: ocio:lin_vgamut_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.72461670413153, 0.166915288193706, 0.108468007674764, 0, 0.021390245413146, 0.984908155703054, -0.00629840111620089, 0, -0.00923556287076561, -0.00105690563900513, 1.01029246850977, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:redlog3g10_rwg_scene
+    aliases: [redlog3g10_rwg_scene]
+    interop_id: ocio:redlog3g10_rwg_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: RED_LOG3G10-RWG_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:lin_rwg_scene
+    aliases: [lin_rwg_scene]
+    interop_id: ocio:lin_rwg_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.785058804068092, 0.0838587565440846, 0.131082439387823, 0, 0.0231738348454756, 1.08789754919233, -0.111071384037806, 0, -0.0737604353682082, -0.314590072290208, 1.38835050765842, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:slog3_sgamut3_scene
+    aliases: [slog3_sgamut3_scene]
+    interop_id: ocio:slog3_sgamut3_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: SONY_SLOG3-SGAMUT3_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:slog3_sgamut3cine_scene
+    aliases: [slog3_sgamut3cine_scene]
+    interop_id: ocio:slog3_sgamut3cine_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: SONY_SLOG3-SGAMUT3.CINE_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:slog3_sgamut3venice_scene
+    aliases: [slog3_sgamut3venice_scene]
+    interop_id: ocio:slog3_sgamut3venice_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: SONY_SLOG3-SGAMUT3-VENICE_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:slog3_sgamut3cinevenice_scene
+    aliases: [slog3_sgamut3cinevenice_scene]
+    interop_id: ocio:slog3_sgamut3cinevenice_scene
+    encoding: log
+    to_scene_reference: !<BuiltinTransform> {style: SONY_SLOG3-SGAMUT3.CINE-VENICE_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: ocio:lin_sgamut3_scene
+    aliases: [lin_sgamut3_scene]
+    interop_id: ocio:lin_sgamut3_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.75298259539984, 0.143370216235557, 0.103647188364603, 0, 0.0217076974414429, 1.01531883550528, -0.0370265329467195, 0, -0.00941605274963355, 0.00337041785882367, 1.00604563489081, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:lin_sgamut3cine_scene
+    aliases: [lin_sgamut3cine_scene]
+    interop_id: ocio:lin_sgamut3cine_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.638788667185978, 0.272351433711262, 0.0888598991027595, 0, -0.00391590602528224, 1.0880732308974, -0.0841573248721177, 0, -0.0299072021239151, -0.0264325799101947, 1.05633978203411, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:lin_sgamut3venice_scene
+    aliases: [lin_sgamut3venice_scene]
+    interop_id: ocio:lin_sgamut3venice_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.793329741146434, 0.089078625620677, 0.117591633232888, 0, 0.0155810585252582, 1.03271230692988, -0.0482933654551394, 0, -0.0188647477991488, 0.0127694120973433, 1.00609533570181, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:lin_sgamut3cinevenice_scene
+    aliases: [lin_sgamut3cinevenice_scene]
+    interop_id: ocio:lin_sgamut3cinevenice_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.674257092126512, 0.220571735923397, 0.10517117195009, 0, -0.00931360607857167, 1.10595886142466, -0.0966452553460855, 0, -0.0382090673002312, -0.017938376600236, 1.05614744390047, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: g18_rec709_scene
+    interop_id: g18_rec709_scene
+    encoding: sdr-video
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<ExponentTransform> {value: 1.8, style: pass_thru}
+        - !<MatrixTransform> {matrix: [0.439632981919491, 0.382988698151554, 0.177378319928955, 0, 0.0897764429588424, 0.813439428748981, 0.0967841282921771, 0, 0.0175411703831727, 0.111546553302387, 0.87091227631444, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: g22_rec709_scene
+    interop_id: g22_rec709_scene
+    encoding: sdr-video
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<ExponentTransform> {value: 2.2, style: pass_thru}
+        - !<MatrixTransform> {matrix: [0.439632981919491, 0.382988698151554, 0.177378319928955, 0, 0.0897764429588424, 0.813439428748981, 0.0967841282921771, 0, 0.0175411703831727, 0.111546553302387, 0.87091227631444, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: srgb_rec709_scene
+    interop_id: srgb_rec709_scene
+    encoding: sdr-video
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055}
+        - !<MatrixTransform> {matrix: [0.439632981919491, 0.382988698151554, 0.177378319928955, 0, 0.0897764429588424, 0.813439428748981, 0.0967841282921771, 0, 0.0175411703831727, 0.111546553302387, 0.87091227631444, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: g22_ap1_scene
+    interop_id: g22_ap1_scene
+    encoding: sdr-video
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<ExponentTransform> {value: 2.2, style: pass_thru}
+        - !<BuiltinTransform> {style: ACEScg_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: srgb_ap1_scene
+    interop_id: srgb_ap1_scene
+    encoding: sdr-video
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055}
+        - !<BuiltinTransform> {style: ACEScg_to_ACES2065-1}
+
+  - !<ColorSpace>
+    name: srgb_p3d65_scene
+    interop_id: srgb_p3d65_scene
+    encoding: sdr-video
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055}
+        - !<MatrixTransform> {matrix: [0.518933487597981, 0.28625658638669, 0.194809926015329, 0, 0.0738593830470598, 0.819845163936986, 0.106295453015954, 0, -0.000307011368446647, 0.0438070502536223, 0.956499961114824, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: g22_adobergb_scene
+    interop_id: g22_adobergb_scene
+    encoding: sdr-video
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<ExponentTransform> {value: 2.19921875, style: pass_thru}
+        - !<MatrixTransform> {matrix: [0.614763305501725, 0.200243702572018, 0.184992991926256, 0, 0.125539404683864, 0.773521622216629, 0.100938973099507, 0, 0.0245287963611042, 0.0671715435381276, 0.908299660100768, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: g24_rec709_scene
+    interop_id: g24_rec709_scene
+    encoding: sdr-video
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<ExponentTransform> {value: 2.4, style: pass_thru}
+        - !<MatrixTransform> {matrix: [0.439632981919491, 0.382988698151554, 0.177378319928955, 0, 0.0897764429588424, 0.813439428748981, 0.0967841282921771, 0, 0.0175411703831727, 0.111546553302387, 0.87091227631444, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:itu709_rec709_scene
+    aliases: [itu709_rec709_scene]
+    interop_id: ocio:itu709_rec709_scene
+    encoding: sdr-video
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<ExponentWithLinearTransform> {gamma: 2.22222222222222, offset: 0.099}
+        - !<MatrixTransform> {matrix: [0.439632981919491, 0.382988698151554, 0.177378319928955, 0, 0.0897764429588424, 0.813439428748981, 0.0967841282921771, 0, 0.0175411703831727, 0.111546553302387, 0.87091227631444, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:tlog_egamut2_scene
+    aliases: [tlog_egamut2_scene]
+    interop_id: oiio:tlog_egamut2_scene
+    encoding: log
+    to_scene_reference: !<GroupTransform>
+      name: FilmLight T-Log E-Gamut 2 to ACES2065-1 (Bradford)
+      children:
+        - !<LogCameraTransform> {base: 2.71828182845905, log_side_slope: 0.0923290259657735, log_side_offset: 0.552012656860665, lin_side_offset: 0.00570482440424738, lin_side_break: 0, linear_slope: 16.1843764896659, direction: inverse}
+        - !<MatrixTransform> {matrix: [0.7869672130650944, 0.1457254369940862, 0.06730734994081916, 0, 0.002609205419855227, 1.060618803211994, -0.06322800863184939, 0, -0.1146390279150544, -0.0763975967506527, 1.191036624665707, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:tlog_egamut_scene
+    aliases: [tlog_egamut_scene]
+    interop_id: oiio:tlog_egamut_scene
+    encoding: log
+    to_scene_reference: !<GroupTransform>
+      name: FilmLight T-Log E-Gamut to ACES2065-1 (Bradford)
+      children:
+        - !<LogCameraTransform> {base: 2.71828182845905, log_side_slope: 0.0923290259657735, log_side_offset: 0.552012656860665, lin_side_offset: 0.00570482440424738, lin_side_break: 0, linear_slope: 16.1843764896659, direction: inverse}
+        - !<MatrixTransform> {matrix: [0.753622174263, 0.180866271257401, 0.0655115693807602, 0, 0.0266947727650404, 1.03484630584717, -0.0615410692989826, 0, -0.0957930535078049, -0.0634663999080658, 1.15925943851471, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:lin_egamut_scene
+    aliases: [lin_egamut_scene]
+    interop_id: oiio:lin_egamut_scene
+    encoding: scene-linear
+    to_scene_reference: !<GroupTransform>
+      name: FilmLight E-Gamut to AP0 (Bradford)
+      children:
+        - !<MatrixTransform> {matrix: [0.753622174263, 0.180866271257401, 0.0655115693807602, 0, 0.0266947727650404, 1.03484630584717, -0.0615410692989826, 0, -0.0957930535078049, -0.0634663999080658, 1.15925943851471, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:lin_egamut2_scene
+    aliases: [lin_egamut2_scene]
+    interop_id: oiio:lin_egamut2_scene
+    encoding: scene-linear
+    to_scene_reference: !<GroupTransform>
+      name: FilmLight E-Gamut 2 to AP0 (Bradford)
+      children:
+        - !<MatrixTransform> {matrix: [0.7869672130650944, 0.1457254369940862, 0.06730734994081916, 0, 0.002609205419855227, 1.060618803211994, -0.06322800863184939, 0, -0.1146390279150544, -0.0763975967506527, 1.191036624665707, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:applelog_applewg_scene
+    aliases: [applelog_applewg_scene]
+    interop_id: oiio:applelog_applewg_scene
+    encoding: log
+    to_scene_reference: !<GroupTransform>
+      name: CURVE - APPLE_LOG_to_LINEAR (approx)
+      children:
+        - !<GradingRGBCurveTransform>
+          style: log
+          master: {
+            control_points: [
+              0, -0.05641088,
+              0.07142857, -0.01754535,
+              0.1428571, -0.001446721,
+              0.2142857, 0.0109339,
+              0.2857143, 0.02707084,
+              0.3571429, 0.05586433,
+              0.4285714, 0.1072412,
+              0.5, 0.1989139,
+              0.5714286, 0.3624875,
+              0.6428571, 0.6543552,
+              0.7142857, 1.175141,
+              0.7857143, 2.10439,
+              0.8571429, 3.762468,
+              0.9285714, 6.721011,
+              1, 12
+            ],
+            slopes: [
+              229.9316, 0.2720587, 0.1923746, 0.1667871, 0.2976018,
+              0.5310171, 0.9475048, 1.690653, 3.016667, 5.382701,
+              9.604466, 17.13745, 30.57871, 54.56223, 97.35654]
+          }
+        - !<RangeTransform> {min_in_value: -0.05641088, min_out_value: -0.05641088}
+        - !<MatrixTransform> {matrix: [0.694961049318096, 0.241405268785364, 0.06363368189654, 0, 0.0473627464149325, 1.00429592505428, -0.0516586714692158, 0, -0.021989789359883, -0.0289891049714743, 1.05097889433136, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: oiio:applelog_rec2020_scene
+    aliases: [applelog_rec2020_scene]
+    interop_id: oiio:applelog_rec2020_scene
+    encoding: log
+    to_scene_reference: !<GroupTransform>
+      name: CURVE - APPLE_LOG_to_LINEAR (approx)
+      children:
+        - !<GradingRGBCurveTransform>
+          style: log
+          master: {
+            control_points: [
+              0, -0.05641088,
+              0.07142857, -0.01754535,
+              0.1428571, -0.001446721,
+              0.2142857, 0.0109339,
+              0.2857143, 0.02707084,
+              0.3571429, 0.05586433,
+              0.4285714, 0.1072412,
+              0.5, 0.1989139,
+              0.5714286, 0.3624875,
+              0.6428571, 0.6543552,
+              0.7142857, 1.175141,
+              0.7857143, 2.10439,
+              0.8571429, 3.762468,
+              0.9285714, 6.721011,
+              1, 12
+            ],
+            slopes: [
+              229.9316, 0.2720587, 0.1923746, 0.1667871, 0.2976018,
+              0.5310171, 0.9475048, 1.690653, 3.016667, 5.382701,
+              9.604466, 17.13745, 30.57871, 54.56223, 97.35654]
+          }
+        - !<RangeTransform> {min_in_value: -0.05641088, min_out_value: -0.05641088}
+        - !<MatrixTransform> {matrix: [0.679085634706912, 0.157700914643159, 0.163213450649929, 0, 0.0460020030800595, 0.859054673002908, 0.0949433239170327, 0, -0.000573943187616196, 0.0284677684080264, 0.97210617477959, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ocio:lin_applewg_scene
+    aliases: [lin_applewg_scene]
+    interop_id: ocio:lin_applewg_scene
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.694961049318096, 0.241405268785364, 0.06363368189654, 0, 0.0473627464149325, 1.00429592505428, -0.0516586714692158, 0, -0.021989789359883, -0.0289891049714743, 1.05097889433136, 0, 0, 0, 0, 1]}
+
+
+named_transforms:
+  # # Requires OCIO-2.4+
+  # - !<NamedTransform>
+  #   name: crv_applelog
+  #   encoding: log
+  #   transform: !<BuiltinTransform> {style: CURVE - APPLE_LOG_to_LINEAR}  # OCIO-2.4+
+
+  - !<NamedTransform>
+    name: crv_identity
+    aliases: [crv_g10_scene, crv_identity_scene]
+    encoding: scene-linear
+    transform: !<BuiltinTransform> {style: identity}
+
+  - !<NamedTransform>
+    name: crv_identity_display
+    aliases: [crv_g10_display, crv_identity_display]
+    encoding: display-linear
+    transform: !<BuiltinTransform> {style: identity}
+
+  - !<NamedTransform>
+    name: crv_applelog
+    aliases: [crv_applelog]
+    encoding: log
+    transform: !<GroupTransform>
+      name: CURVE - APPLE_LOG_to_LINEAR (approx)
+      children:
+        - !<GradingRGBCurveTransform>
+          style: log
+          master: {
+            control_points: [
+              0, -0.05641088,
+              0.07142857, -0.01754535,
+              0.1428571, -0.001446721,
+              0.2142857, 0.0109339,
+              0.2857143, 0.02707084,
+              0.3571429, 0.05586433,
+              0.4285714, 0.1072412,
+              0.5, 0.1989139,
+              0.5714286, 0.3624875,
+              0.6428571, 0.6543552,
+              0.7142857, 1.175141,
+              0.7857143, 2.10439,
+              0.8571429, 3.762468,
+              0.9285714, 6.721011,
+              1, 12
+            ],
+            slopes: [
+              229.9316, 0.2720587, 0.1923746, 0.1667871, 0.2976018,
+              0.5310171, 0.9475048, 1.690653, 3.016667, 5.382701,
+              9.604466, 17.13745, 30.57871, 54.56223, 97.35654]
+          }
+        - !<RangeTransform> {min_in_value: -0.05641088, min_out_value: -0.05641088}
+
+  - !<NamedTransform>
+    name: crv_acescct
+    encoding: log
+    transform: !<LogCameraTransform> {base: 2, log_side_slope: 0.0570776, log_side_offset: 0.413745, lin_side_break: 0.0078125, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_acescc
+    encoding: log
+    transform: !<LogAffineTransform> {base: 2, log_side_slope: 0.0570776, log_side_offset: 0.413745, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_jplog2
+    encoding: log
+    transform: !<LogCameraTransform> {base: 2, log_side_slope: 0.048875855327468, log_side_offset: 0.513176931573804, lin_side_break: 0.006801176276, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_arrilogc3
+    aliases: [crv_arrilogc3_ei800]
+    encoding: log
+    transform: !<LogCameraTransform> {base: 10, log_side_slope: 0.247189638318671, log_side_offset: 0.385536998692443, lin_side_slope: 5.55555555555556, lin_side_offset: 0.0522722750251688, lin_side_break: 0.0105909904954696, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_arrilogc4
+    aliases: [crb_arrilogc4]
+    encoding: log
+    transform: !<LogCameraTransform> {log_side_slope: 0.0647954196341293, log_side_offset: -0.295908392682586, lin_side_slope: 2231.82630906769, lin_side_offset: 64, lin_side_break: -0.0180569961199113, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_bmdfilm5
+    encoding: log
+    transform: !<LogCameraTransform> {base: 2.71828182845905, log_side_slope: 0.0869287606549122, log_side_offset: 0.530013339229194, lin_side_offset: 0.00549407243225781, lin_side_break: 0.005, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_davinci
+    encoding: log
+    transform:  !<LogCameraTransform> {log_side_slope: 0.07329248, log_side_offset: 0.51304736, lin_side_offset: 0.0075, lin_side_break: 0.00262409, linear_slope: 10.44426855, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_clog2
+    encoding: log
+    transform: !<BuiltinTransform> {style: CURVE - CANON_CLOG2_to_LINEAR}
+
+  - !<NamedTransform>
+    name: crv_clog3
+    encoding: log
+    transform: !<BuiltinTransform> {style: CURVE - CANON_CLOG3_to_LINEAR}
+
+  - !<NamedTransform>
+    name: crv_dlog
+    encoding: log
+    transform: !<LogCameraTransform> {base: 10, log_side_slope: 0.256662970719888, log_side_offset: 0.58455504907396, lin_side_slope: 0.9892, lin_side_offset: 0.0108, lin_side_break: 0.00758078675, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_vlog
+    encoding: log
+    transform: !<LogCameraTransform> {base: 10, log_side_slope: 0.241514, log_side_offset: 0.598206, lin_side_offset: 0.00873, lin_side_break: 0.01, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_redlog3g10
+    encoding: log
+    transform: !<LogCameraTransform> {base: 10, log_side_slope: 0.224282, lin_side_slope: 155.975327, lin_side_offset: 2.55975327, lin_side_break: -0.01, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_slog3
+    encoding: log
+    transform: !<LogCameraTransform> {base: 10, log_side_slope: 0.255620723362659, log_side_offset: 0.410557184750733, lin_side_slope: 5.26315789473684, lin_side_offset: 0.0526315789473684, lin_side_break: 0.01125, linear_slope: 6.62194371177582, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_g18_scene
+    encoding: sdr-video
+    inverse_transform: !<ExponentTransform> {value: 1.8, style: pass_thru, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_g22_scene
+    encoding: sdr-video
+    inverse_transform: !<ExponentTransform> {value: 2.2, style: pass_thru, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_g22_display
+    encoding: sdr-video
+    inverse_transform: !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_g24_scene
+    encoding: sdr-video
+    inverse_transform: !<ExponentTransform> {value: 2.4, style: pass_thru, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_g24_display
+    encoding: sdr-video
+    inverse_transform: !<ExponentTransform> {value: 2.4, style: mirror, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_g26_scene
+    encoding: sdr-video
+    inverse_transform: !<ExponentTransform> {value: 2.6, style: pass_thru, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_g26_display
+    encoding: sdr-video
+    inverse_transform: !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_adobe_scene
+    encoding: sdr-video
+    inverse_transform: !<ExponentTransform> {value: 2.19921875, style: pass_thru, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_adobe_display
+    encoding: sdr-video
+    inverse_transform: !<ExponentTransform> {value: 2.19921875, style: mirror, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_itu709_scene
+    encoding: sdr-video
+    inverse_transform: !<ExponentWithLinearTransform> {gamma: 2.22222222222222, offset: 0.099, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_srgb_scene
+    encoding: sdr-video
+    inverse_transform: !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_srgb_display
+    encoding: sdr-video
+    inverse_transform: !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, direction: inverse, style: mirror}
+
+  - !<NamedTransform>
+    name: crv_dcdm_display
+    encoding: sdr-video
+    inverse_transform: !<GroupTransform>
+      name: Gamma 2.6 (DCI Headroom scaling)
+      children:
+        - !<MatrixTransform> {matrix: [0.916555279740309, 0, 0, 0, 0, 0.916555279740309, 0, 0, 0, 0, 0.916555279740309, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
+
+  - !<NamedTransform>
+    name: crv_pq_display
+    aliases: [crv_pq, crv_st2084]
+    encoding: hdr-video
+    transform: !<BuiltinTransform> {style: CURVE - ST-2084_to_LINEAR}
+    inverse_transform: !<BuiltinTransform> {style: CURVE - LINEAR_to_ST-2084}
+
+  # TODO: Requires OCIO-2.5+
+  # - !<NamedTransform>
+  #   name: crv_hlg_display
+  #   aliases: [crv_hlg, hlg_crv, hlgoetf_crv, crv_hlgoetf]
+  #   encoding: hdr-video
+  #   inverse_transform: !<BuiltinTransform> {style: CURVE - HLG-OETF-INVERSE}
+
+  - !<NamedTransform>
+    name: crv_adx
+    aliases: [crv_adx10, crv_adx16]
+    encoding: log
+    transform: !<GroupTransform>
+      name: ADX curve (matrices stripped via inv(pre) @ ADX10_builtin @ inv(post))
+      children:
+        - !<MatrixTransform> {matrix: [0.663776386589531, -0.150104581885995, -0.0249132514288534, 0, -0.0443734428293291, 0.512862057089928, 0.0202699390140833, 0, -0.135766917390027, -0.018002472804857, 0.642527943469567, 0, 0, 0, 0, 1]}
+        - !<BuiltinTransform> {style: ADX10_to_ACES2065-1}
+        - !<MatrixTransform> {matrix: [1.42259797810109, -0.21254450579002, -0.210055572866798, 0, -0.22160404257784, 1.36010316591325, -0.138500508340491, 0, -0.00232421023980401, -0.120267226196429, 1.12260266246286, 0, 0, 0, 0, 1]}
+
+  - !<NamedTransform>
+    name: full_to_narrow
+    transform: !<GroupTransform>
+      name: Full-range to narrow-range (No clamp)
+      children:
+        - !<RangeTransform> {min_in_value: 0, max_in_value: 1, min_out_value: 0.0625610948191593, max_out_value: 0.93841642228739, style: noClamp}
+
+  - !<NamedTransform>
+    name: narrow_to_full
+    transform: !<GroupTransform>
+      name: Narrow-range to Full-range (No clamp)
+      children:
+        - !<RangeTransform> {min_in_value: 0.0625610948191593, max_in_value: 0.93841642228739, min_out_value: 0, max_out_value: 1, style: noClamp}

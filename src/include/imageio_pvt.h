@@ -282,6 +282,17 @@ device_unified_malloc(size_t size);
 OIIO_API void
 device_free(void* mem);
 
+
+/// Number of color spaces in OIIO's built-in interop identities config --
+/// a small OCIO config OIIO ships with (compiled in) that defines color
+/// spaces for the CIF-published interop identities OIIO knows how to
+/// reliably recognize and relate in other OCIO configs. The config is
+/// parsed on first call and the result reused for the life of the
+/// process. Returns 0 if OCIO support is unavailable or the embedded
+/// config failed to parse. For internal/test use only.
+OIIO_API int
+interop_identities_config_size();
+
 }  // namespace pvt
 
 
