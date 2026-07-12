@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <unordered_set>
@@ -16,6 +17,7 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/unittest.h>
@@ -30,9 +32,11 @@ using namespace simd;
 // Aid for things that are too short to benchmark accurately
 #define REP10(x) x, x, x, x, x, x, x, x, x, x
 
-static int iterations = 1000000;
-static int ntrials    = 5;
-static bool verbose   = false;
+static int iterations   = 1000000;
+static int ntrials      = 5;
+static bool verbose     = false;
+static bool bench_mode  = false;
+static bool bench_child = false;
 
 
 
@@ -50,6 +54,12 @@ getargs(int argc, char* argv[])
       .help(Strutil::fmt::format("Number of iterations (default: {})", iterations));
     ap.arg("--trials %d", &ntrials)
       .help("Number of trials");
+    ap.arg("--bench", &bench_mode)
+      .help("Run the interop engine's cold/warm benchmark phases (timings + "
+            "cardinality counts; not a pass/fail gate)");
+    ap.arg("--bench-child-construct", &bench_child)
+      .help("Internal: used by --bench to measure ColorConfig construction "
+            "in a fresh subprocess; do not use directly");
     // clang-format on
 
     ap.parse(argc, (const char**)argv);
@@ -799,6 +809,131 @@ colorspaces:
 
 
 
+// True-cold construction helper: re-exec'd as a fresh subprocess by
+// run_bench_phases() below (see comment there for why). Prints
+// "construct_ms <value>" and exits -- no other tests run.
+static int
+bench_child_construct_and_exit()
+{
+    Timer timer;
+    ColorConfig cc("ocio://default");
+    std::cout << Strutil::fmt::format("construct_ms {:.6f}\n", timer() * 1000.0);
+    return cc.has_error() ? 1 : 0;
+}
+
+
+
+// --bench mode: cold/warm phase timings and cardinality counts for the
+// color space fingerprint engine, feeding the numbers a design write-up
+// needs. Not a pass/fail gate -- prints only, asserts nothing about perf.
+// Uses OCIO's built-in default config (ocio:// requires OCIO >= 2.2).
+static void
+run_bench_phases()
+{
+    using OIIO::pvt::color_space_analysis_flags;
+    using OIIO::pvt::color_space_fingerprint_cache_reset;
+    using OIIO::pvt::color_space_fingerprint_cached;
+    using OIIO::pvt::color_space_fingerprint_order;
+
+    if (!ColorConfig::supportsOpenColorIO()
+        || ColorConfig::OpenColorIO_version_hex() < 0x02020000) {
+        std::cout << "--bench: OCIO built-in configs unavailable, skipping.\n";
+        return;
+    }
+
+    // The same probe name test_color_space_fingerprint() already relies on
+    // being present in ocio://default.
+    static const char* probe_name = "ACES2065-1";
+
+    // Phase 1: load_ms -- cold ColorConfig construction, before this process
+    // has touched any interop machinery. Re-measured at the end (after every
+    // phase below has run) to show construction cost stays flat regardless
+    // of how much interop work has happened elsewhere in-process -- the
+    // "zero construction cost" evidence for the fully-lazy claim.
+    Timer t_load;
+    ColorConfig cc("ocio://default");
+    double load_ms = t_load() * 1000.0;
+    if (cc.has_error() || cc.getNumColorSpaces() == 0) {
+        std::cout << "--bench: built-in config unavailable, skipping.\n";
+        return;
+    }
+    std::cout << Strutil::fmt::format("load_ms                : {:10.4f}\n",
+                                       load_ms);
+
+    // Phase 2: simple_catalog_ms -- the first classification query for any
+    // name triggers the config-wide "simple color space" catalog scan
+    // (cached thereafter). This is the cold-classify number.
+    Timer t_catalog;
+    color_space_analysis_flags(cc, probe_name);
+    double simple_catalog_ms = t_catalog() * 1000.0;
+    std::cout << Strutil::fmt::format("simple_catalog_ms      : {:10.4f}\n",
+                                       simple_catalog_ms);
+
+    // Phase 3: cold_resolve_ms / warm_resolve_ms -- first-vs-second
+    // fingerprint-cache lookup for one name.
+    color_space_fingerprint_cache_reset();
+    Timer t_cold_resolve;
+    color_space_fingerprint_cached(cc, probe_name);
+    double cold_resolve_ms = t_cold_resolve() * 1000.0;
+    Timer t_warm_resolve;
+    color_space_fingerprint_cached(cc, probe_name);
+    double warm_resolve_ms = t_warm_resolve() * 1000.0;
+    std::cout << Strutil::fmt::format("cold_resolve_ms        : {:10.4f}\n",
+                                       cold_resolve_ms);
+    std::cout << Strutil::fmt::format("warm_resolve_ms        : {:10.4f}\n",
+                                       warm_resolve_ms);
+
+    // Phase 4: fingerprint_vector_ms -- the bulk all-simple-spaces
+    // fingerprint pass (uncached; the classification catalog is already
+    // warm from phase 2, so this isolates fingerprint compute cost).
+    Timer t_vector;
+    std::vector<std::string> order = color_space_fingerprint_order(cc);
+    double fingerprint_vector_ms = t_vector() * 1000.0;
+    std::cout << Strutil::fmt::format(
+        "fingerprint_vector_ms  : {:10.4f}  (simple_candidate_count={}, "
+        "fingerprint_vector_count={})\n",
+        fingerprint_vector_ms, order.size(), order.size());
+
+    // Re-measure load_ms after all the interop machinery above has run, to
+    // show it hasn't grown.
+    Timer t_load_after;
+    ColorConfig cc_after("ocio://default");
+    double load_ms_after = t_load_after() * 1000.0;
+    (void)cc_after;
+    std::cout << Strutil::fmt::format(
+        "load_ms (after interop): {:10.4f}  (baseline load_ms={:.4f})\n",
+        load_ms_after, load_ms);
+
+    // True-cold construction: a same-process measurement understates the
+    // fully-lazy claim, since process-level OCIO/OS caches (file reads,
+    // etc.) persist across ColorConfig instances within this same run --
+    // spawn a fresh subprocess per config so construct_ms isn't
+    // contaminated by that.
+    std::string cmd = "\"" + Sysutil::this_program_path()
+                       + "\" --bench-child-construct";
+#ifdef _MSC_VER
+    FILE* pipe = _popen(cmd.c_str(), "r");
+#else
+    FILE* pipe = popen(cmd.c_str(), "r");
+#endif
+    double subprocess_construct_ms = -1.0;
+    if (pipe) {
+        char line[256];
+        if (fgets(line, sizeof(line), pipe))
+            sscanf(line, "construct_ms %lf", &subprocess_construct_ms);
+#ifdef _MSC_VER
+        _pclose(pipe);
+#else
+        pclose(pipe);
+#endif
+    }
+    std::cout << Strutil::fmt::format(
+        "construct_ms (true cold, subprocess): {:10.4f}\n",
+        subprocess_construct_ms);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -812,6 +947,11 @@ main(int argc, char* argv[])
 
     getargs(argc, argv);
 
+    // Internal subprocess entry point for run_bench_phases()'s true-cold
+    // construction measurement -- runs nothing else.
+    if (bench_child)
+        return bench_child_construct_and_exit();
+
     test_sRGB_conversion();
     test_Rec709_conversion();
     test_interop_identities_config();
@@ -821,6 +961,11 @@ main(int argc, char* argv[])
     test_color_space_fingerprint();
     test_config_interoperability();
     test_color_space_fingerprint_cache();
+
+    // --bench is opt-in and heavy; the default `ctest -R unit_color` run
+    // never sets it.
+    if (bench_mode)
+        run_bench_phases();
 
     return unit_test_failures != 0;
 }
