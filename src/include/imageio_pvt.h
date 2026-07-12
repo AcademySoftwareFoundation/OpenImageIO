@@ -388,6 +388,52 @@ color_space_fingerprint_order(const ColorConfig& config);
 
 
 // ---------------------------------------------------------------------------
+// Config interoperability check -- whether a config resolves a scene-referred
+// interchange space (ACES2065-1 / the aces_interchange role) that cross-config
+// color features anchor on, and the in-memory "interopified" repair copy built
+// for configs that don't. Computed lazily on first query; constructing a
+// ColorConfig runs none of it. For internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// Whether `config` is color-interoperable: it resolves a scene interchange
+/// space by role, a well-known ACES2065-1 alias, or builtin identification.
+/// Triggers the lazy interop bootstrap. For internal/test use only.
+OIIO_API bool
+color_config_is_interoperable(const ColorConfig& config);
+
+/// The name of the scene interchange color space `config` resolves, or empty
+/// if it is not interoperable. Triggers the lazy interop bootstrap. For
+/// internal/test use only.
+OIIO_API std::string
+color_config_interchange_name(const ColorConfig& config);
+
+/// Whether the lazy interop bootstrap has already run for `config`. Does NOT
+/// trigger it -- used to verify that constructing a ColorConfig does no interop
+/// work. For internal/test use only.
+OIIO_API bool
+color_config_interop_computed(const ColorConfig& config);
+
+/// Whether `config` emitted the once-per-config "not color-interoperable"
+/// warning (true only for the config instance that first warned for a given
+/// config structure). Triggers the lazy interop bootstrap. For internal/test
+/// use only.
+OIIO_API bool
+color_config_interop_warned(const ColorConfig& config);
+
+/// Whether the interopified (repaired, in-memory) copy of `config` resolves a
+/// scene interchange -- true even for non-interoperable configs once repaired.
+/// Triggers the lazy interop bootstrap. For internal/test use only.
+OIIO_API bool
+color_config_interopified_resolves_scene_interchange(const ColorConfig& config);
+
+/// Whether the interopified copy of `config` has its OCIO processor cache
+/// disabled (as the one-shot probe path requires). Triggers the lazy interop
+/// bootstrap. For internal/test use only.
+OIIO_API bool
+color_config_interopified_cache_off(const ColorConfig& config);
+
+
+// ---------------------------------------------------------------------------
 // Color interop ID grammar and sanitization -- the ID grammar and
 // sanitization rules from the CIF recommendation "An ID for Color Interop"
 // (Annexes B and C):

@@ -494,6 +494,122 @@ test_color_space_fingerprint()
 
 
 
+// Exercise the config interoperability check: a config carrying the
+// aces_interchange role is interoperable and does not warn; a stripped config
+// is not interoperable, gets an in-memory interopified repair copy that DOES
+// resolve a scene interchange (with the OCIO processor cache off, leaving the
+// original config unmutated), and warns exactly once per config structure. The
+// whole thing is lazy -- constructing a ColorConfig runs none of it.
+static void
+test_config_interoperability()
+{
+    using OIIO::pvt::color_config_interchange_name;
+    using OIIO::pvt::color_config_interop_computed;
+    using OIIO::pvt::color_config_interop_warned;
+    using OIIO::pvt::color_config_interopified_cache_off;
+    using OIIO::pvt::color_config_interopified_resolves_scene_interchange;
+    using OIIO::pvt::color_config_is_interoperable;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    // A config that declares an aces_interchange role is interoperable.
+    static const char* interop_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ref}
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+)";
+    // A config that resolves no scene interchange at all -- but does have a
+    // scene-referred identity (reference) space to anchor a repair on.
+    static const char* stripped_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ref}
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: log_space
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+)";
+
+    std::string interop_path = Filesystem::temp_directory_path()
+                               + "/oiio_color_test_interop.ocio";
+    std::string stripped_path = Filesystem::temp_directory_path()
+                                + "/oiio_color_test_stripped.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(interop_path, interop_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(stripped_path, stripped_yaml));
+
+    // --- Interoperable config ---------------------------------------------
+    {
+        ColorConfig cc(interop_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        // Fully lazy: construction ran no interop bootstrap.
+        OIIO_CHECK_FALSE(color_config_interop_computed(cc));
+
+        OIIO_CHECK_ASSERT(color_config_is_interoperable(cc));
+        // ...and querying it is what triggered the bootstrap.
+        OIIO_CHECK_ASSERT(color_config_interop_computed(cc));
+        // The aces_interchange role points at "ref".
+        OIIO_CHECK_EQUAL(color_config_interchange_name(cc), "ref");
+        // An interoperable config never warns.
+        OIIO_CHECK_FALSE(color_config_interop_warned(cc));
+    }
+
+    // --- Non-interoperable config -----------------------------------------
+    {
+        ColorConfig cc(stripped_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        OIIO_CHECK_FALSE(color_config_interop_computed(cc));
+
+        // The original config resolves no scene interchange.
+        OIIO_CHECK_FALSE(color_config_is_interoperable(cc));
+        OIIO_CHECK_ASSERT(color_config_interop_computed(cc));
+        OIIO_CHECK_ASSERT(color_config_interchange_name(cc).empty());
+
+        // But the in-memory interopified copy was repaired to resolve one,
+        // with the processor cache off -- and the original config is
+        // unmutated (is_interoperable stays false above).
+        OIIO_CHECK_ASSERT(
+            color_config_interopified_resolves_scene_interchange(cc));
+        OIIO_CHECK_ASSERT(color_config_interopified_cache_off(cc));
+
+        // It warned exactly once: this instance emitted the warning, and a
+        // second query is silent (the lazy gate ran the bootstrap only once).
+        OIIO_CHECK_ASSERT(color_config_interop_warned(cc));
+        OIIO_CHECK_FALSE(color_config_is_interoperable(cc));
+        OIIO_CHECK_ASSERT(color_config_interop_warned(cc));
+
+        // A second ColorConfig over the same (structurally identical) config
+        // does not warn again: the once-per-config-structure guard is
+        // process-global.
+        ColorConfig cc2(stripped_path);
+        OIIO_CHECK_FALSE(color_config_is_interoperable(cc2));
+        OIIO_CHECK_FALSE(color_config_interop_warned(cc2));
+        // ...yet it still gets its own repaired, cache-off copy.
+        OIIO_CHECK_ASSERT(
+            color_config_interopified_resolves_scene_interchange(cc2));
+    }
+
+    Filesystem::remove(interop_path);
+    Filesystem::remove(stripped_path);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -514,6 +630,7 @@ main(int argc, char* argv[])
     test_registry_invariants();
     test_color_space_classification();
     test_color_space_fingerprint();
+    test_config_interoperability();
 
     return unit_test_failures != 0;
 }

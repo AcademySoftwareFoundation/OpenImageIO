@@ -3,12 +3,14 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -297,6 +299,20 @@ private:
     mutable ProbeValues m_probe_values;
     mutable bool m_probe_ready = false;
 
+    // Interoperability assertion + in-memory bootstrap state, computed lazily
+    // on the first interop query (see ensure_interop()); constructing a
+    // ColorConfig runs none of it. `interopified` is a PROCESSOR_CACHE_OFF
+    // editable copy of config_, repaired to resolve a scene (and, where
+    // possible, display) interchange -- config_ itself is never mutated.
+    struct InteropState {
+        bool is_interoperable = false;        // config_ carries a scene interchange
+        std::string interchange_colorspace;   // discovered interchange space name
+        OCIO::ConstConfigRcPtr interopified;  // repaired probe copy of config_
+        bool warned = false;                  // this config emitted the warning
+    };
+    mutable InteropState m_interop;
+    mutable bool m_interop_ready = false;
+
 public:
     Impl(ColorConfig* self)
         : m_self(self)
@@ -443,6 +459,16 @@ public:
     std::vector<std::pair<std::string, OIIO::pvt::ColorSpaceFingerprint>>
     fingerprintSimpleColorSpaces() const;
 
+    // Interoperability assertion/bootstrap queries (each triggers the lazy
+    // bootstrap, except interopComputed(), which must NOT, so callers can
+    // verify that constructing a ColorConfig does no interop work).
+    bool interopIsInteroperable() const;
+    std::string interopInterchangeName() const;
+    bool interopComputed() const;  // does not trigger the bootstrap
+    bool interopWarned() const;
+    bool interopifiedResolvesSceneInterchange() const;
+    bool interopifiedCacheOff() const;
+
     // Whether analyze() has already run for the named space, WITHOUT
     // triggering it (used to verify lazy behavior). False for unknown names.
     bool analysisComputed(string_view name) const
@@ -539,6 +565,18 @@ private:
     // values, lazily and once, under the same double-checked pattern as
     // examine(). Should NOT be called from within a lock of the mutex.
     void ensureProbeConfig() const;
+
+    // Discover the scene interchange space of config_ (the verbatim discovery
+    // order), filling `state.is_interoperable`/`interchange_colorspace`.
+    // Reads config_; mutates only the passed-in state.
+    void interop_bootstrap(InteropState& state) const;
+
+    // Run the interoperability assertion + in-memory bootstrap once, lazily,
+    // under the same double-checked pattern as examine(): discover whether
+    // config_ is interoperable, build the interopified probe copy, and warn
+    // once per structural config if the assertion fails. Should NOT be called
+    // from within a lock of the mutex. ColorConfig construction never runs it.
+    void ensure_interop() const;
 
     void debug_print_aliases()
     {
@@ -3156,18 +3194,24 @@ ColorConfig::Impl::ensureProbeConfig() const
             return;
     }
 
-    // Build the probe config and normalize its probes OUTSIDE the lock (the
-    // OCIO calls take their own locks); publish under the write lock, letting
-    // a racing builder's work be discarded (flyweight: duplicate work allowed,
-    // blocking never).
+    // Probe through the interopified copy: it is already a PROCESSOR_CACHE_OFF
+    // editable copy of config_ repaired to resolve the scene (and, where
+    // possible, display) interchange, so fingerprinting works even for configs
+    // that don't natively carry the interchange role -- and there is no second
+    // editable copy to build. ensure_interop() builds it lazily and leaves
+    // config_ untouched. Normalize the probes OUTSIDE the lock (OCIO takes its
+    // own locks); publish under the write lock, letting a racing builder's work
+    // be discarded (flyweight: duplicate work allowed, blocking never).
+    ensure_interop();
     OCIO::ConstConfigRcPtr probe_config;
     OCIO::ConstContextRcPtr probe_context;
     ProbeValues probe_values;
-    if (config_ && !disable_ocio) {
+    {
+        spin_rw_read_lock lock(m_mutex);
+        probe_config = m_interop.interopified;
+    }
+    if (probe_config) {
         try {
-            OCIO::ConfigRcPtr editable = config_->createEditableCopy();
-            editable->setProcessorCacheFlags(OCIO::PROCESSOR_CACHE_OFF);
-            probe_config  = editable;
             probe_context = probe_config->getCurrentContext();
             probe_values = initialize_probe_values(probe_config, probe_context);
         } catch (...) {
@@ -4098,11 +4142,14 @@ OIIO_NAMESPACE_END
 
 
 
-// pvt::interop_identities_config_size() is declared (OIIO_API) in the
-// library's "current" namespace by imageio_pvt.h, so it must be defined
-// there too, not inside the ABI-versioned v3_1 namespace the rest of this
-// file lives in.
-OIIO_NAMESPACE_BEGIN
+// The built-in interop identities config and the interoperability
+// assertion/bootstrap machinery below touch ColorConfig::Impl, which lives in
+// the ABI-versioned v3_1 namespace -- so they must too. The OIIO_API pvt
+// shims that expose them are declared (by imageio_pvt.h) in the library's
+// "current" namespace and are defined further down in a separate
+// OIIO_NAMESPACE_BEGIN block; those reach back here with explicit v3_1::
+// qualification.
+OIIO_NAMESPACE_3_1_BEGIN
 
 namespace {
 
@@ -4171,22 +4218,502 @@ build_interop_identities_config()
     return s_interop_identities_config;
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Interoperability assertion + in-memory bootstrap.
+//
+// A config is "color-interoperable" when it resolves a scene-referred
+// interchange space (ACES2065-1 / the aces_interchange role) that cross-config
+// color features anchor on. For configs that don't, we synthesize a repaired,
+// PROCESSOR_CACHE_OFF *copy* ("interopified") that does -- the original config
+// is never mutated. All of this runs lazily on the first interop query. The
+// free helpers below live in the same anonymous namespace as
+// build_interop_identities_config() (opened above); the Impl methods that use
+// them are defined after it is closed.
+
+// Scene-referred interchange discovery aliases, tried in order. The role name
+// is first so an explicit aces_interchange role always wins; the rest are the
+// well-known ACES2065-1 / AP0 spellings different configs use.
+static const std::array<const char*, 16> kSceneInterchangeAliases = {
+    OCIO::ROLE_INTERCHANGE_SCENE,
+    "aces2065-1",
+    "ACES: Linear - AP0",
+    "aces 2065-1",
+    "aces",
+    "aces20651",
+    "aces - aces2065-1",
+    "ap0ln",
+    "ap0",
+    "lin_ap0_scene",
+    "lin_ap0",
+    "ap0_linear",
+    "ap0_lin",
+    "linear ap0",
+    "linear - aces ap0",
+    "linear - ap0",
+};
+
+// Display-referred interchange discovery aliases (CIE-XYZ-D65), role first.
+static const std::array<const char*, 4> kDisplayInterchangeAliases = {
+    OCIO::ROLE_INTERCHANGE_DISPLAY,
+    "CIE-XYZ-D65",
+    "CIE-XYZ D65",
+    "lin_ciexyzd65_display",
+};
+
+// The STRUCTURAL cache id: identifies the config's structure independent of
+// any context (distinct from getCacheID(), which folds in the current
+// context). Used as the memo/warn key so a context-invariant result is shared
+// across every context a config is queried with.
+std::string
+get_config_cache_id(const OCIO::ConstConfigRcPtr& config)
+{
+    if (!config)
+        return {};
+    try {
+        const char* id = config->getCacheID(OCIO::ConstContextRcPtr{});
+        return id ? std::string(id) : std::string();
+    } catch (...) {
+        return {};
+    }
+}
+
+// Resolve `name` (a color space name, alias, or role) to a real color space
+// name in `config`, or empty if it doesn't resolve.
+std::string
+try_canonical_name(const OCIO::ConstConfigRcPtr& config, const char* name)
+{
+    if (!name || !*name)
+        return {};
+    try {
+        if (auto cs = config->getColorSpace(name))
+            return cs->getName();
+        const char* canonical = config->getCanonicalName(name);
+        if (canonical && *canonical)
+            if (auto cs = config->getColorSpace(canonical))
+                return cs->getName();
+    } catch (...) {
+    }
+    return {};
+}
+
+// Discover the scene interchange color space name: the alias list (role name
+// first), then OCIO's builtin identification against OIIO's interop identities
+// config. Returns empty if the config resolves no scene interchange.
+std::string
+discover_scene_interchange(const OCIO::ConstConfigRcPtr& config)
+{
+    if (!config)
+        return {};
+    for (const char* alias : kSceneInterchangeAliases)
+        if (std::string name = try_canonical_name(config, alias); !name.empty())
+            return name;
+    if (auto ids = build_interop_identities_config()) {
+        try {
+            const char* id = OCIO::Config::IdentifyBuiltinColorSpace(
+                config, ids, OCIO::ROLE_INTERCHANGE_SCENE);
+            if (id && *id)
+                return id;
+        } catch (...) {
+        }
+    }
+    return {};
+}
+
+// Mirror of discover_scene_interchange for the display-referred side.
+std::string
+discover_display_interchange(const OCIO::ConstConfigRcPtr& config)
+{
+    if (!config)
+        return {};
+    for (const char* alias : kDisplayInterchangeAliases)
+        if (std::string name = try_canonical_name(config, alias); !name.empty())
+            return name;
+    if (auto ids = build_interop_identities_config()) {
+        try {
+            const char* id = OCIO::Config::IdentifyBuiltinColorSpace(
+                config, ids, OCIO::ROLE_INTERCHANGE_DISPLAY);
+            if (id && *id)
+                return id;
+        } catch (...) {
+        }
+    }
+    return {};
+}
+
+// The scene-referred identity (reference) space: a non-data scene space with
+// neither a to- nor a from-reference transform. Returns its name, or empty.
+std::string
+find_scene_reference_identity(const OCIO::ConstConfigRcPtr& config)
+{
+    const int n = config->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_SCENE,
+                                            OCIO::COLORSPACE_ALL);
+    for (int i = 0; i < n; ++i) {
+        const char* name = config->getColorSpaceNameByIndex(
+            OCIO::SEARCH_REFERENCE_SPACE_SCENE, OCIO::COLORSPACE_ALL, i);
+        if (!name || !*name)
+            continue;
+        auto cs = config->getColorSpace(name);
+        if (!cs || cs->isData())
+            continue;
+        const bool toRef = bool(
+            cs->getTransform(OCIO::COLORSPACE_DIR_TO_REFERENCE));
+        const bool fromRef = bool(
+            cs->getTransform(OCIO::COLORSPACE_DIR_FROM_REFERENCE));
+        if (!toRef && !fromRef)
+            return name;
+    }
+    return {};
+}
+
+// Bootstrap display-referred interchange on an editable copy: ensure a
+// scene_reference role, then a ROLE_INTERCHANGE_DISPLAY space (synthesizing
+// lin_ciexyzd65_display if the config carries none), and -- only if the config
+// has no default view transform yet -- a scene_to_display_bridge chaining the
+// scene reference to CIE-XYZ-D65. Touches only `editable`.
+void
+bootstrap_display_interchange(const OCIO::ConfigRcPtr& editable,
+                              const std::string& interchangeScene)
+{
+    if (interchangeScene.empty())
+        return;
+
+    // Ensure a scene_reference role.
+    std::string sceneRefName = find_scene_reference_identity(editable);
+    if (!sceneRefName.empty()) {
+        try {
+            editable->setRole("scene_reference", sceneRefName.c_str());
+        } catch (...) {
+        }
+    }
+
+    // If the config already resolves a display interchange, bind the role and
+    // stop.
+    if (std::string existing = discover_display_interchange(editable);
+        !existing.empty()) {
+        try {
+            editable->setRole(OCIO::ROLE_INTERCHANGE_DISPLAY, existing.c_str());
+        } catch (...) {
+        }
+        return;
+    }
+
+    // Otherwise synthesize lin_ciexyzd65_display as the display reference.
+    try {
+        auto displayRef = OCIO::ColorSpace::Create(
+            OCIO::REFERENCE_SPACE_DISPLAY);
+        displayRef->setName("lin_ciexyzd65_display");
+        displayRef->setEncoding("display-linear");
+        editable->addColorSpace(displayRef);
+        editable->setRole(OCIO::ROLE_INTERCHANGE_DISPLAY,
+                          "lin_ciexyzd65_display");
+        editable->setRole("display_reference", "lin_ciexyzd65_display");
+    } catch (...) {
+        return;
+    }
+
+    // Build a scene_to_display_bridge view transform, but only if the config
+    // does not already declare a default one.
+    try {
+        const char* existingVt = editable->getDefaultViewTransformName();
+        if (existingVt && *existingVt)
+            return;
+
+        auto ap0ToXyz = OCIO::BuiltinTransform::Create();
+        ap0ToXyz->setStyle("UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD");
+
+        OCIO::ConstTransformRcPtr bridge;
+        auto acesCS = editable->getColorSpace(interchangeScene.c_str());
+        const bool acesIsSceneRef
+            = acesCS && !acesCS->getTransform(OCIO::COLORSPACE_DIR_TO_REFERENCE);
+        if (acesIsSceneRef || sceneRefName.empty()
+            || sceneRefName == interchangeScene) {
+            // The scene reference is (treated as) AP0: use the builtin alone.
+            bridge = ap0ToXyz;
+        } else {
+            // Chain scene_reference -> aces_interchange, then AP0 -> XYZ-D65.
+            auto group = OCIO::GroupTransform::Create();
+            auto proc  = editable->getProcessor(sceneRefName.c_str(),
+                                                interchangeScene.c_str());
+            group->appendTransform(
+                proc->getOptimizedProcessor(OCIO::OPTIMIZATION_DEFAULT)
+                    ->createGroupTransform());
+            group->appendTransform(ap0ToXyz);
+            bridge = group;
+        }
+
+        auto vt = OCIO::ViewTransform::Create(OCIO::REFERENCE_SPACE_SCENE);
+        vt->setName("scene_to_display_bridge");
+        vt->setTransform(bridge, OCIO::VIEWTRANSFORM_DIR_FROM_REFERENCE);
+        editable->addViewTransform(vt);
+        editable->setDefaultViewTransformName("scene_to_display_bridge");
+    } catch (...) {
+        // View transform synthesis failed -- the display interchange role is
+        // still set, so cross-config processors work for many spaces anyway.
+    }
+}
+
+// Return the "interopified" copy of `config`: a PROCESSOR_CACHE_OFF editable
+// copy repaired to resolve a scene (and, where possible, display) interchange.
+// Memoized process-wide by structural cache id (first-writer-wins) so all
+// ColorConfig instances of the same config structure share one copy. `config`
+// itself is never mutated. Returns {} if OCIO can't build the copy.
+OCIO::ConstConfigRcPtr
+interopify_config(const OCIO::ConstConfigRcPtr& config)
+{
+    if (!config)
+        return {};
+    const std::string key = get_config_cache_id(config);
+
+    static spin_rw_mutex s_mutex;
+    static std::unordered_map<std::string, OCIO::ConstConfigRcPtr> s_memo;
+    if (!key.empty()) {
+        spin_rw_read_lock lock(s_mutex);
+        auto it = s_memo.find(key);
+        if (it != s_memo.end())
+            return it->second;
+    }
+
+    // Build the repaired copy OUTSIDE the lock.
+    OCIO::ConstConfigRcPtr result;
+    try {
+        OCIO::ConfigRcPtr editable = config->createEditableCopy();
+        std::string interchange = discover_scene_interchange(editable);
+        if (!interchange.empty()) {
+            // Config carries the interchange space; bind the role to it if the
+            // role itself is absent.
+            if (!editable->getColorSpace(OCIO::ROLE_INTERCHANGE_SCENE))
+                editable->setRole(OCIO::ROLE_INTERCHANGE_SCENE,
+                                  interchange.c_str());
+        } else if (std::string identity
+                   = find_scene_reference_identity(editable);
+                   !identity.empty()) {
+            // Repair: anchor lin_ap0_scene on the scene-referred identity space
+            // and make it the scene interchange. For now this treats the
+            // config's scene reference as AP0; synthesize a real scene-linear
+            // -> AP0 transform via a builtin color space when the reference is
+            // known not to be AP0.
+            if (!editable->getColorSpace("lin_ap0_scene")) {
+                auto cs = OCIO::ColorSpace::Create(OCIO::REFERENCE_SPACE_SCENE);
+                cs->setName("lin_ap0_scene");
+                cs->setEncoding("scene-linear");
+                editable->addColorSpace(cs);
+            }
+            editable->setRole(OCIO::ROLE_INTERCHANGE_SCENE, "lin_ap0_scene");
+            interchange = "lin_ap0_scene";
+        }
+
+        // Ensure lin_ap0_scene resolves (as an alias of the interchange space)
+        // so the probe path's fallback lookups find it by that name.
+        if (!interchange.empty()
+            && !editable->getColorSpace("lin_ap0_scene")) {
+            if (auto cs = editable->getColorSpace(interchange.c_str())) {
+                auto editableCS = cs->createEditableCopy();
+                editableCS->addAlias("lin_ap0_scene");
+                editable->addColorSpace(editableCS);
+            }
+        }
+
+        bootstrap_display_interchange(editable, interchange);
+
+        // Probe processors are one-shot (results are memoized upstream), so
+        // OCIO's per-config processor cache yields no hits here while adding
+        // mutex contention, a full-cache scan on every miss, and keeping every
+        // probe processor alive; disabling it is the documented fast path.
+        editable->setProcessorCacheFlags(OCIO::PROCESSOR_CACHE_OFF);
+        result = editable;
+    } catch (...) {
+        return {};
+    }
+
+    if (key.empty() || !result)
+        return result;
+    spin_rw_write_lock lock(s_mutex);
+    return s_memo.emplace(key, result).first->second;  // existing on race
+}
+
+// Warn at most once per STRUCTURAL config id across the process. Returns true
+// only for the caller that first records `id` (which should emit the warning).
+// spin_rw_mutex-guarded set, mirroring the learned-complex blacklist shape.
+bool
+note_interop_warning(const std::string& id)
+{
+    static spin_rw_mutex s_mutex;
+    static std::unordered_set<std::string> s_warned;
+    {
+        spin_rw_read_lock lock(s_mutex);
+        if (s_warned.count(id))
+            return false;
+    }
+    spin_rw_write_lock lock(s_mutex);
+    return s_warned.insert(id).second;
+}
+
 }  // namespace
 
+
+
+void
+ColorConfig::Impl::interop_bootstrap(InteropState& state) const
+{
+    state.is_interoperable = false;
+    state.interchange_colorspace.clear();
+    if (!config_ || disable_builtin_configs)
+        return;
+
+    std::string name = discover_scene_interchange(config_);
+    // Builtin config naming convention: ocio://default resolves the role name
+    // itself even when the alias list above discovers nothing.
+    if (name.empty() && Strutil::iequals(configname(), "ocio://default"))
+        name = OCIO::ROLE_INTERCHANGE_SCENE;
+    if (!name.empty()) {
+        state.interchange_colorspace = name;
+        state.is_interoperable       = true;
+    }
+}
+
+
+
+void
+ColorConfig::Impl::ensure_interop() const
+{
+    {
+        spin_rw_read_lock lock(m_mutex);
+        if (m_interop_ready)
+            return;
+    }
+
+    // Do all OCIO work OUTSIDE the lock (OCIO takes its own locks; a racing
+    // builder's work is simply discarded -- duplicate work is fine, blocking
+    // is not), then publish under the write lock. Same discipline as examine()
+    // and ensureProbeConfig(); ColorConfig construction never reaches here.
+    InteropState state;
+    interop_bootstrap(state);
+    if (config_ && !disable_ocio)
+        state.interopified = interopify_config(config_);
+
+    // Non-interoperable configs warn exactly once per structural config id
+    // across the process (cross-config color features are otherwise silently
+    // unavailable). Skip when builtin configs are disabled -- we didn't
+    // actually assess interoperability in that case.
+    if (!state.is_interoperable && config_ && !disable_builtin_configs) {
+        const std::string key = get_config_cache_id(config_);
+        if (!key.empty() && note_interop_warning(key)) {
+            Strutil::print(stderr,
+                           "OpenImageIO ColorConfig: \"{}\" is not "
+                           "color-interoperable (no scene interchange role "
+                           "found); cross-config color features unavailable\n",
+                           configname());
+            state.warned = true;
+        }
+    }
+
+    spin_rw_write_lock lock(m_mutex);
+    if (!m_interop_ready) {
+        m_interop       = std::move(state);
+        m_interop_ready = true;
+    }
+}
+
+
+
+bool
+ColorConfig::Impl::interopIsInteroperable() const
+{
+    ensure_interop();
+    spin_rw_read_lock lock(m_mutex);
+    return m_interop.is_interoperable;
+}
+
+
+
+std::string
+ColorConfig::Impl::interopInterchangeName() const
+{
+    ensure_interop();
+    spin_rw_read_lock lock(m_mutex);
+    return m_interop.interchange_colorspace;
+}
+
+
+
+bool
+ColorConfig::Impl::interopComputed() const
+{
+    spin_rw_read_lock lock(m_mutex);
+    return m_interop_ready;
+}
+
+
+
+bool
+ColorConfig::Impl::interopWarned() const
+{
+    ensure_interop();
+    spin_rw_read_lock lock(m_mutex);
+    return m_interop.warned;
+}
+
+
+
+bool
+ColorConfig::Impl::interopifiedResolvesSceneInterchange() const
+{
+    ensure_interop();
+    OCIO::ConstConfigRcPtr cfg;
+    {
+        spin_rw_read_lock lock(m_mutex);
+        cfg = m_interop.interopified;
+    }
+    if (!cfg)
+        return false;
+    try {
+        if (cfg->getColorSpace(OCIO::ROLE_INTERCHANGE_SCENE))
+            return true;
+        const char* canon = cfg->getCanonicalName(OCIO::ROLE_INTERCHANGE_SCENE);
+        return canon && *canon;
+    } catch (...) {
+        return false;
+    }
+}
+
+
+
+bool
+ColorConfig::Impl::interopifiedCacheOff() const
+{
+    ensure_interop();
+    OCIO::ConstConfigRcPtr cfg;
+    {
+        spin_rw_read_lock lock(m_mutex);
+        cfg = m_interop.interopified;
+    }
+    return cfg && cfg->getProcessorCacheFlags() == OCIO::PROCESSOR_CACHE_OFF;
+}
+
+OIIO_NAMESPACE_END
+
+
+
+// The pvt shims below are declared (OIIO_API) in the library's "current"
+// namespace by imageio_pvt.h, so they must be defined there too, not inside
+// the ABI-versioned v3_1 namespace the helpers above live in.
+OIIO_NAMESPACE_BEGIN
 
 namespace pvt {
 
 int
 interop_identities_config_size()
 {
-    auto config = build_interop_identities_config();
+    auto config = v3_1::build_interop_identities_config();
     return config ? config->getNumColorSpaces() : 0;
 }
 
 bool
 interop_identities_config_resolves(string_view interop_id)
 {
-    auto config = build_interop_identities_config();
+    auto config = v3_1::build_interop_identities_config();
     if (!config || interop_id.empty())
         return false;
     try {
@@ -4203,7 +4730,7 @@ std::vector<std::string>
 interop_identities_config_names()
 {
     std::vector<std::string> names;
-    auto config = build_interop_identities_config();
+    auto config = v3_1::build_interop_identities_config();
     if (!config)
         return names;
     int n = config->getNumColorSpaces();
@@ -4264,6 +4791,49 @@ color_space_fingerprint_order(const ColorConfig& config)
     for (auto& entry : fingerprints)
         names.push_back(std::move(entry.first));
     return names;
+}
+
+
+bool
+color_config_is_interoperable(const ColorConfig& config)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    return impl ? impl->interopIsInteroperable() : false;
+}
+
+std::string
+color_config_interchange_name(const ColorConfig& config)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    return impl ? impl->interopInterchangeName() : std::string();
+}
+
+bool
+color_config_interop_computed(const ColorConfig& config)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    return impl ? impl->interopComputed() : false;
+}
+
+bool
+color_config_interop_warned(const ColorConfig& config)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    return impl ? impl->interopWarned() : false;
+}
+
+bool
+color_config_interopified_resolves_scene_interchange(const ColorConfig& config)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    return impl ? impl->interopifiedResolvesSceneInterchange() : false;
+}
+
+bool
+color_config_interopified_cache_off(const ColorConfig& config)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    return impl ? impl->interopifiedCacheOff() : false;
 }
 
 }  // namespace pvt
