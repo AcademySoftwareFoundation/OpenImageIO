@@ -312,6 +312,42 @@ interop_identities_config_names();
 
 
 // ---------------------------------------------------------------------------
+// Color-space classification -- how ColorConfig internally classifies a
+// color space for interop matching (the "simple" transform allowlist and
+// related properties). For internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// Classification bit flags for a color space. These mirror the internal
+/// CSInfo classification bits exactly (a static_assert in color_ocio.cpp
+/// keeps them in sync), so a color_space_analysis_flags() result can be
+/// tested against them.
+enum ColorSpaceAnalysis {
+    ColorSpaceIsData              = 64,    // "isdata: true" in the config
+    ColorSpaceIsUnique            = 128,   // has OCIO category "is-unique"
+    ColorSpaceShouldSkipMatching  = 256,   // never a matching candidate
+    ColorSpaceHasComplexTransform = 512,   // rejected by the simple allowlist
+    ColorSpaceIsSimple            = 1024,  // member of the simple set
+    ColorSpaceIsContextInvariant  = 2048,  // no context vars affect it
+};
+
+/// Compute (lazily, on first request for this config) and return the interop
+/// classification flags (see ColorSpaceAnalysis) for the color space `name`
+/// in `config`. `active`, if non-null, receives whether the space is part of
+/// the config's active colorspace enumeration. Returns 0 for unknown names.
+/// For internal/test use only.
+OIIO_API int
+color_space_analysis_flags(const ColorConfig& config, string_view name,
+                           bool* active = nullptr);
+
+/// Whether the lazy classification pass has already run for `name` in
+/// `config`. Does NOT trigger classification -- used to verify that
+/// constructing a ColorConfig does no classification work. Returns false for
+/// unknown names. For internal/test use only.
+OIIO_API bool
+color_space_analyzed(const ColorConfig& config, string_view name);
+
+
+// ---------------------------------------------------------------------------
 // Color interop ID grammar and sanitization -- the ID grammar and
 // sanitization rules from the CIF recommendation "An ID for Color Interop"
 // (Annexes B and C):

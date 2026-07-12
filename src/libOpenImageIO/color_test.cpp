@@ -12,6 +12,7 @@
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
@@ -323,6 +324,111 @@ test_registry_invariants()
 
 
 
+// Exercise the color-space classification pass: the simple-transform
+// allowlist and the lazy per-space analysis that sets the classification
+// bits. Uses a minimal generated OCIO config. CDL and ACES-OUTPUT builtins
+// stand in for the general "complex transform" class (which also covers
+// LUT3D/LOOK); a matrix+TF space and a context-varying-but-resolvable
+// ColorSpaceTransform reference cover the simple cases.
+static void
+test_color_space_classification()
+{
+    using OIIO::pvt::color_space_analysis_flags;
+    using OIIO::pvt::color_space_analyzed;
+    namespace P = OIIO::pvt;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    static const char* config_yaml = R"(ocio_profile_version: 2.1
+
+environment:
+  SHOT_CS: matrix_tf_space
+search_path: ""
+roles:
+  scene_linear: ref
+  default: ref
+
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ref}
+
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: rawdata
+    isdata: true
+
+  - !<ColorSpace>
+    name: matrix_tf_space
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+
+  - !<ColorSpace>
+    name: cdl_space
+    from_scene_reference: !<CDLTransform> {slope: [0.9, 1.1, 1.0]}
+
+  - !<ColorSpace>
+    name: aces_output_space
+    from_scene_reference: !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-VIDEO_1.0}
+
+  - !<ColorSpace>
+    name: camera_log
+    to_scene_reference: !<ColorSpaceTransform> {src: $SHOT_CS, dst: ref}
+)";
+
+    std::string config_path = Filesystem::temp_directory_path()
+                              + "/oiio_color_test_classify.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(config_path, config_yaml));
+
+    ColorConfig cc(config_path);
+    OIIO_CHECK_ASSERT(!cc.has_error());
+
+    // Fully lazy: constructing the ColorConfig runs no classification.
+    OIIO_CHECK_FALSE(color_space_analyzed(cc, "matrix_tf_space"));
+
+    // Matrix + transfer function: a simple, context-invariant space. The
+    // first flags query is what triggers the lazy analysis.
+    int mflags = color_space_analysis_flags(cc, "matrix_tf_space");
+    OIIO_CHECK_ASSERT(mflags & P::ColorSpaceIsSimple);
+    OIIO_CHECK_ASSERT(mflags & P::ColorSpaceIsContextInvariant);
+    OIIO_CHECK_FALSE(mflags & P::ColorSpaceHasComplexTransform);
+    // ...and now it has been analyzed.
+    OIIO_CHECK_ASSERT(color_space_analyzed(cc, "matrix_tf_space"));
+
+    // Complex transforms (CDL, ACES-OUTPUT) are rejected by the allowlist.
+    int cdlflags = color_space_analysis_flags(cc, "cdl_space");
+    OIIO_CHECK_ASSERT(cdlflags & P::ColorSpaceHasComplexTransform);
+    OIIO_CHECK_FALSE(cdlflags & P::ColorSpaceIsSimple);
+    int acesflags = color_space_analysis_flags(cc, "aces_output_space");
+    OIIO_CHECK_ASSERT(acesflags & P::ColorSpaceHasComplexTransform);
+    OIIO_CHECK_FALSE(acesflags & P::ColorSpaceIsSimple);
+
+    // A data space is flagged is_data and is never a matching candidate.
+    int dflags = color_space_analysis_flags(cc, "rawdata");
+    OIIO_CHECK_ASSERT(dflags & P::ColorSpaceIsData);
+    OIIO_CHECK_ASSERT(dflags & P::ColorSpaceShouldSkipMatching);
+    OIIO_CHECK_FALSE(dflags & P::ColorSpaceIsSimple);
+
+    // A space whose transform references a context variable is not context
+    // invariant, but (resolving through the context) is still simple.
+    int cflags = color_space_analysis_flags(cc, "camera_log");
+    OIIO_CHECK_FALSE(cflags & P::ColorSpaceIsContextInvariant);
+    OIIO_CHECK_ASSERT(cflags & P::ColorSpaceIsSimple);
+
+    // Unknown names classify as nothing.
+    OIIO_CHECK_EQUAL(color_space_analysis_flags(cc, "no_such_space"), 0);
+    OIIO_CHECK_FALSE(color_space_analyzed(cc, "no_such_space"));
+
+    Filesystem::remove(config_path);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -341,6 +447,7 @@ main(int argc, char* argv[])
     test_interop_identities_config();
     test_interop_id_grammar();
     test_registry_invariants();
+    test_color_space_classification();
 
     return unit_test_failures != 0;
 }

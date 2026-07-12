@@ -5,8 +5,10 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <tsl/robin_map.h>
@@ -169,10 +171,21 @@ struct CSInfo {
         is_ACEScg          = 16,  // ACEScg
         is_Rec709          = 32,  // Rec709 primaries and transfer function
         is_data            = 64,  // Non-color-managed data
-        is_known           = is_srgb | is_lin_srgb | is_ACEScg | is_Rec709
+        is_known           = is_srgb | is_lin_srgb | is_ACEScg | is_Rec709,
+        // Color-space classification bits, computed lazily by Impl::analyze()
+        // (a second pass, separate from the classify_* heuristics that set
+        // the bits above). Used to decide which spaces are stable candidates
+        // for interop matching.
+        is_unique             = 128,   // has OCIO category "is-unique"
+        should_skip_matching  = 256,   // never a matching candidate
+        has_complex_transform = 512,   // rejected by the simple allowlist
+        is_simple             = 1024,  // member of the simple set
+        is_context_invariant  = 2048,  // no context vars affect this space
     };
     int m_flags   = 0;
     bool examined = false;
+    bool analyzed = false;  // classification bits computed (see Impl::analyze)
+    bool active   = true;   // member of the active colorspace enumeration
     std::string canonical;  // Canonical name for this color space
     OCIO::ConstColorSpaceRcPtr ocio_cs;
 
@@ -200,6 +213,21 @@ struct CSInfo {
 };
 
 
+// The classification bits observed by tests through pvt::ColorSpaceAnalysis
+// (imageio_pvt.h) are the raw CSInfo classification bits; keep the two in
+// sync so a shim result is interpreted correctly.
+static_assert(int(OIIO::pvt::ColorSpaceIsData) == CSInfo::is_data
+                  && int(OIIO::pvt::ColorSpaceIsUnique) == CSInfo::is_unique
+                  && int(OIIO::pvt::ColorSpaceShouldSkipMatching)
+                         == CSInfo::should_skip_matching
+                  && int(OIIO::pvt::ColorSpaceHasComplexTransform)
+                         == CSInfo::has_complex_transform
+                  && int(OIIO::pvt::ColorSpaceIsSimple) == CSInfo::is_simple
+                  && int(OIIO::pvt::ColorSpaceIsContextInvariant)
+                         == CSInfo::is_context_invariant,
+              "pvt::ColorSpaceAnalysis must mirror CSInfo classification bits");
+
+
 
 // Hidden implementation of ColorConfig
 class ColorConfig::Impl {
@@ -222,6 +250,18 @@ private:
     std::string m_configname;
     ColorConfig* m_self       = nullptr;
     bool m_config_is_built_in = false;
+
+    // Cache of the "simple" color space names (those that survive the
+    // transform allowlist), sorted, computed once on first request under the
+    // same double-checked pattern as examine().
+    mutable std::vector<std::string> m_simple_color_spaces_cache;
+    mutable bool m_simple_color_spaces_cached = false;
+
+    // Color spaces learned to be complex only at query time (e.g. a transform
+    // that failed to realize). This is a per-query hint, not a permanent
+    // verdict; it is cleared with the Impl (i.e. the config) lifetime.
+    mutable std::mutex m_learned_complex_mutex;
+    mutable std::unordered_set<std::string> m_learned_complex;
 
 public:
     Impl(ColorConfig* self)
@@ -347,6 +387,40 @@ public:
 
     bool isData(string_view name) const;
 
+    // The sorted set of "simple" color space names (those that survive the
+    // transform allowlist), computed once and cached.
+    const std::vector<std::string>& getSimpleColorSpaces() const;
+
+    // Return the CSInfo classification flags for the named color space,
+    // computing them lazily on first request (see analyze()). Returns 0 for
+    // unknown names. `active`, if non-null, receives whether the space is in
+    // the config's active colorspace enumeration.
+    int analysisFlags(string_view name, bool* active = nullptr);
+
+    // Whether analyze() has already run for the named space, WITHOUT
+    // triggering it (used to verify lazy behavior). False for unknown names.
+    bool analysisComputed(string_view name) const
+    {
+        const CSInfo* cs = find(name);
+        if (!cs)
+            return false;
+        spin_rw_read_lock lock(m_mutex);
+        return cs->analyzed;
+    }
+
+    // Record a color space as complex for the life of this config, so later
+    // queries skip it. This is a hint, not a permanent verdict.
+    void markLearnedComplex(string_view name) const
+    {
+        std::lock_guard<std::mutex> lock(m_learned_complex_mutex);
+        m_learned_complex.emplace(name);
+    }
+    bool isLearnedComplex(string_view name) const
+    {
+        std::lock_guard<std::mutex> lock(m_learned_complex_mutex);
+        return m_learned_complex.count(std::string(name)) != 0;
+    }
+
 private:
     // Return the CSInfo flags for the given color space name
     int flags(string_view name)
@@ -406,6 +480,14 @@ private:
             }
         }
     }
+
+    // If the CSInfo's classification bits haven't been computed yet, do so.
+    // Same double-checked lazy pattern as examine(), but a separate pass:
+    // it needs the simple-space scan, not the classify_* heuristics, and is
+    // a wholly new entry point not wired through add()/inventory(). Should
+    // NOT be called from within a lock of the mutex. Defined below, after the
+    // transform-policy helpers it relies on.
+    void analyze(CSInfo* cs);
 
     void debug_print_aliases()
     {
@@ -2211,6 +2293,524 @@ ColorConfig::parseColorSpaceFromString(string_view str) const
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Color-space classification: the "simple" transform allowlist and the lazy
+// per-space analysis pass that sets the CSInfo classification bits.
+
+namespace {
+using namespace OCIO;
+
+// Shared classification of atomic (non-structural) transform types. Returns
+// true when the transform is simple enough for interop matching. GROUP,
+// FILE, and COLORSPACE are structural -- they need recursive or deferred
+// handling that differs by caller, so callers handle those themselves. This
+// is the single policy switch shared by the recursive authored-transform
+// scan (containsBlockableTransform) and, in the future, op-by-op inspection
+// of a realized GroupTransform.
+bool
+isSimpleAtomicTransform(const ConstTransformRcPtr& transform)
+{
+    if (!transform)
+        return true;
+    switch (transform->getTransformType()) {
+    case TRANSFORM_TYPE_LUT3D:
+    case TRANSFORM_TYPE_CDL:
+    case TRANSFORM_TYPE_LOOK:
+    case TRANSFORM_TYPE_DISPLAY_VIEW: return false;
+
+    case TRANSFORM_TYPE_BUILTIN: {
+        auto builtin = DynamicPtrCast<const BuiltinTransform>(transform);
+        if (builtin) {
+            string_view style(builtin->getStyle() ? builtin->getStyle() : "");
+            // ACES rendering pipelines (output + LMT) carry rendering, tone
+            // mapping, and look logic that defeats the primaries+TF
+            // fingerprint. "DISPLAY - CIE-XYZ-D65_to_*" builtins, by
+            // contrast, are pure display encodings (matrix + transfer
+            // function) and fingerprint cleanly -- keep them simple.
+            if (Strutil::starts_with(style, "ACES-OUTPUT")
+                || Strutil::starts_with(style, "ACES-LMT"))
+                return false;
+        }
+        return true;
+    }
+
+    case TRANSFORM_TYPE_FIXED_FUNCTION: {
+#if OCIO_VERSION_HEX <= MAKE_OCIO_VERSION_HEX(2, 4, 0)
+        return false;
+#else
+        auto ff = DynamicPtrCast<const FixedFunctionTransform>(transform);
+        if (ff) {
+            const auto style = ff->getStyle();
+            if (style == FIXED_FUNCTION_LIN_TO_DOUBLE_LOG
+                || style == FIXED_FUNCTION_LIN_TO_GAMMA_LOG)
+                return true;
+        }
+        return false;
+#endif
+    }
+
+    case TRANSFORM_TYPE_MATRIX:
+    case TRANSFORM_TYPE_RANGE:
+    case TRANSFORM_TYPE_EXPONENT:
+    case TRANSFORM_TYPE_EXPONENT_WITH_LINEAR:
+    case TRANSFORM_TYPE_LOG:
+    case TRANSFORM_TYPE_LOG_AFFINE:
+    case TRANSFORM_TYPE_LOG_CAMERA:
+    case TRANSFORM_TYPE_ALLOCATION:
+    case TRANSFORM_TYPE_LUT1D:
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
+    case TRANSFORM_TYPE_GRADING_RGB_CURVE:
+#endif
+        return true;
+
+    default:
+        // Unknown/unclassified transform types are not simple.
+        return false;
+    }
+}
+
+// Does any string authored into this transform reference a context var, or
+// could a FileTransform in it resolve through a context-dependent search
+// path? Direct (non-recursive) scan of the authored transform only, except
+// recursing through GROUP.
+// For now a '$'-substring scan stands in for per-search-path-entry analysis;
+// upgrade to per-entry var analysis if configs with mixed var/non-var search
+// paths need finer verdicts.
+bool
+transformUsesContextVars(const ConstTransformRcPtr& transform,
+                         bool search_path_has_vars)
+{
+    if (!transform)
+        return false;
+    auto has_var = [](const char* s) {
+        return s && Strutil::contains(s, "$");
+    };
+    switch (transform->getTransformType()) {
+    case TRANSFORM_TYPE_FILE: {
+        auto ft = DynamicPtrCast<const FileTransform>(transform);
+        if (!ft)
+            return false;
+        return has_var(ft->getSrc()) || has_var(ft->getCCCId())
+               || search_path_has_vars;
+    }
+    case TRANSFORM_TYPE_GROUP: {
+        auto gt = DynamicPtrCast<const GroupTransform>(transform);
+        for (int i = 0, e = gt ? gt->getNumTransforms() : 0; i < e; ++i)
+            if (transformUsesContextVars(gt->getTransform(i),
+                                         search_path_has_vars))
+                return true;
+        return false;
+    }
+    case TRANSFORM_TYPE_COLORSPACE: {
+        auto cst = DynamicPtrCast<const ColorSpaceTransform>(transform);
+        if (!cst)
+            return false;
+        return has_var(cst->getSrc()) || has_var(cst->getDst());
+    }
+    default: return false;
+    }
+}
+
+bool
+fileTransformIsBlockable(const ConstFileTransformRcPtr& fileTransform)
+{
+    if (!fileTransform) {
+        return true;
+    }
+    const char* src = fileTransform->getSrc();
+    if (!src || !*src) {
+        return true;
+    }
+    if (Strutil::iends_with(src, ".spi1d")
+        || Strutil::iends_with(src, ".spimtx")) {
+        return false;
+    }
+    return true;
+}
+
+bool
+containsBlockableTransform(const ConstConfigRcPtr& config,
+                           const ConstContextRcPtr& context,
+                           const ConstTransformRcPtr& transform,
+                           std::unordered_set<std::string>& keep,
+                           std::unordered_set<std::string>& omit);
+bool
+containsBlockableTransform(const ConstConfigRcPtr& config,
+                           const ConstContextRcPtr& context, const char* name,
+                           std::unordered_set<std::string>& keep,
+                           std::unordered_set<std::string>& omit);
+bool
+containsBlockableTransform(const ConstConfigRcPtr& config,
+                           const ConstTransformRcPtr& transform,
+                           std::unordered_set<std::string>& keep,
+                           std::unordered_set<std::string>& omit);
+
+// Walk every color space, keeping the ones with only simple transforms.
+// keep/omit memoize spaces already scanned so referenced sub-transforms
+// aren't rescanned.
+std::unordered_set<std::string>
+scan_simple_color_space_names(const ConstConfigRcPtr& config)
+{
+    std::unordered_set<std::string> keep;
+    if (!config) {
+        return keep;
+    }
+
+    std::unordered_set<std::string> omit;
+    ConstContextRcPtr ctx = config->getCurrentContext();
+
+    const int n = config->getNumColorSpaces(SEARCH_REFERENCE_SPACE_ALL,
+                                            COLORSPACE_ALL);
+    for (int i = 0; i < n; ++i) {
+        const char* name
+            = config->getColorSpaceNameByIndex(SEARCH_REFERENCE_SPACE_ALL,
+                                               COLORSPACE_ALL, i);
+        if (!name || !*name) {
+            continue;
+        }
+        if (keep.count(name) || omit.count(name)) {
+            continue;
+        }
+
+        if (containsBlockableTransform(config, ctx, name, keep, omit)) {
+            omit.insert(name);
+        } else {
+            keep.insert(name);
+        }
+    }
+
+    return keep;
+}
+
+bool
+colorSpaceHasBlockableTransform(const ConstConfigRcPtr& config,
+                                const ConstColorSpaceRcPtr& cs,
+                                std::unordered_set<std::string>& keep,
+                                std::unordered_set<std::string>& omit)
+{
+    if (!cs) {
+        return true;
+    }
+    const char* csName = cs->getName();
+    if (cs->isData()) {
+        if (csName && *csName)
+            omit.insert(csName);
+        return true;
+    }
+    if (csName && keep.count(csName)) {
+        return false;
+    }
+
+    ConstTransformRcPtr toRef = cs->getTransform(COLORSPACE_DIR_TO_REFERENCE);
+    if (toRef && containsBlockableTransform(config, toRef, keep, omit)) {
+        if (csName && *csName)
+            omit.insert(csName);
+        return true;
+    }
+
+    ConstTransformRcPtr fromRef = cs->getTransform(
+        COLORSPACE_DIR_FROM_REFERENCE);
+    if (fromRef && containsBlockableTransform(config, fromRef, keep, omit)) {
+        if (csName && *csName)
+            omit.insert(csName);
+        return true;
+    }
+
+    if (csName && *csName)
+        keep.insert(csName);
+    return false;
+}
+
+bool
+namedTransformHasBlockableTransform(const ConstConfigRcPtr& config,
+                                    const ConstNamedTransformRcPtr& nt,
+                                    std::unordered_set<std::string>& keep,
+                                    std::unordered_set<std::string>& omit)
+{
+    if (!nt) {
+        return true;
+    }
+    ConstTransformRcPtr fwd = nt->getTransform(TRANSFORM_DIR_FORWARD);
+    if (fwd && containsBlockableTransform(config, fwd, keep, omit)) {
+        return true;
+    }
+    ConstTransformRcPtr rev = nt->getTransform(TRANSFORM_DIR_INVERSE);
+    if (rev && containsBlockableTransform(config, rev, keep, omit)) {
+        return true;
+    }
+    return false;
+}
+
+bool
+containsBlockableTransform(const ConstConfigRcPtr& config,
+                           const ConstContextRcPtr& context, const char* name,
+                           std::unordered_set<std::string>& keep,
+                           std::unordered_set<std::string>& omit)
+{
+    if (!name || !*name) {
+        return true;
+    }
+    ConstContextRcPtr ctx = context ? context : config->getCurrentContext();
+    auto name_cs          = ctx->resolveStringVar(c_str(name));
+
+
+    ConstColorSpaceRcPtr cs = config->getColorSpace(c_str(name_cs));
+    if (cs) {
+        if (omit.count(c_str(cs->getName()))) {
+            return true;
+        }
+        if (keep.count(c_str(cs->getName()))) {
+            return false;
+        }
+        return colorSpaceHasBlockableTransform(config, cs, keep, omit);
+    }
+
+    ConstNamedTransformRcPtr nt = config->getNamedTransform(c_str(name_cs));
+    if (!nt) {
+        return true;
+    }
+    return namedTransformHasBlockableTransform(config, nt, keep, omit);
+}
+
+bool
+containsBlockableTransform(const ConstConfigRcPtr& config,
+                           const ConstTransformRcPtr& transform,
+                           std::unordered_set<std::string>& keep,
+                           std::unordered_set<std::string>& omit)
+{
+    return containsBlockableTransform(config, config->getCurrentContext(),
+                                      transform, keep, omit);
+}
+
+bool
+containsBlockableTransform(const ConstConfigRcPtr& config,
+                           const ConstContextRcPtr& context,
+                           const ConstTransformRcPtr& transform,
+                           std::unordered_set<std::string>& keep,
+                           std::unordered_set<std::string>& omit)
+{
+    if (!transform) {
+        return false;
+    }
+
+    ConstContextRcPtr ctx = context ? context : config->getCurrentContext();
+
+    switch (transform->getTransformType()) {
+    case TRANSFORM_TYPE_FILE: {
+        ConstFileTransformRcPtr ft = DynamicPtrCast<const FileTransform>(
+            transform);
+        return fileTransformIsBlockable(ft);
+    }
+    case TRANSFORM_TYPE_GROUP: {
+        ConstGroupTransformRcPtr gt = DynamicPtrCast<const GroupTransform>(
+            transform);
+        if (!gt)
+            return false;
+        for (int i = 0, e = gt->getNumTransforms(); i < e; ++i) {
+            if (containsBlockableTransform(config, ctx, gt->getTransform(i),
+                                           keep, omit)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    case TRANSFORM_TYPE_COLORSPACE: {
+        ConstColorSpaceTransformRcPtr cst
+            = DynamicPtrCast<const ColorSpaceTransform>(transform);
+        if (!cst) {
+            return true;
+        }
+
+        const char* src = cst->getSrc();
+        const char* dst = cst->getDst();
+
+        auto src_cs_name            = ctx->resolveStringVar(c_str(src));
+        auto dst_cs_name            = ctx->resolveStringVar(c_str(dst));
+        ConstColorSpaceRcPtr src_cs = config->getColorSpace(c_str(src_cs_name));
+        ConstColorSpaceRcPtr dst_cs = config->getColorSpace(c_str(dst_cs_name));
+
+        if (!src_cs && dst_cs) {
+            bool blocked = containsBlockableTransform(config, ctx,
+                                                      c_str(dst_cs->getName()),
+                                                      keep, omit);
+            return blocked;
+        }
+        if (!dst_cs && src_cs) {
+            bool blocked = containsBlockableTransform(config, ctx,
+                                                      c_str(src_cs->getName()),
+                                                      keep, omit);
+            return blocked;
+        }
+
+        if (src_cs && dst_cs) {
+            if (omit.count(src_cs->getName())
+                || omit.count(dst_cs->getName())) {
+                return true;
+            }
+            if (keep.count(c_str(src_cs->getName()))
+                && keep.count(c_str(dst_cs->getName())))
+                return false;
+            bool blocked = containsBlockableTransform(config, ctx,
+                                                      c_str(src_cs->getName()),
+                                                      keep, omit);
+            if (blocked)
+                return true;
+            blocked = containsBlockableTransform(config, ctx,
+                                                 c_str(dst_cs->getName()), keep,
+                                                 omit);
+            return blocked;
+        }
+        return true;
+    }
+    default:
+        // Atomic (non-structural) types: defer to the shared allowlist.
+        return !isSimpleAtomicTransform(transform);
+    }
+}
+
+// The unsorted set of "simple" color space names for a config. "Simple"
+// means likely stable for interop matching: not data, not "is-unique", and
+// not blocked by an unsupported/complex transform construct (the policy
+// lives in containsBlockableTransform()).
+std::vector<std::string>
+get_simple_color_spaces(const ConstConfigRcPtr& config)
+{
+    std::vector<std::string> simpleSpaces;
+    auto keep = scan_simple_color_space_names(config);
+    simpleSpaces.reserve(keep.size());
+    for (const auto& name : keep) {
+        simpleSpaces.emplace_back(name);
+    }
+    return simpleSpaces;
+}
+
+}  // namespace
+
+
+
+const std::vector<std::string>&
+ColorConfig::Impl::getSimpleColorSpaces() const
+{
+    {
+        spin_rw_read_lock lock(m_mutex);
+        if (m_simple_color_spaces_cached)
+            return m_simple_color_spaces_cache;
+    }
+
+    auto simple_spaces = get_simple_color_spaces(config_);
+    std::sort(simple_spaces.begin(), simple_spaces.end());
+
+    {
+        spin_rw_write_lock lock(m_mutex);
+        if (!m_simple_color_spaces_cached) {
+            m_simple_color_spaces_cache  = std::move(simple_spaces);
+            m_simple_color_spaces_cached = true;
+        }
+        return m_simple_color_spaces_cache;
+    }
+}
+
+
+
+void
+ColorConfig::Impl::analyze(CSInfo* cs)
+{
+    if (cs->analyzed)
+        return;
+
+    // Gather everything that takes its own locks *before* locking m_mutex
+    // (the lock-ordering hazard examine() also avoids).
+    const std::vector<std::string>& simple = getSimpleColorSpaces();
+
+    int flagval = 0;
+    bool active = true;
+    if (config_ && !disable_ocio) {
+        OCIO::ConstColorSpaceRcPtr ocs = config_->getColorSpace(
+            cs->name.c_str());
+        if (ocs) {
+            if (ocs->isData())
+                flagval |= CSInfo::is_data;
+            if (ocs->hasCategory("is-unique"))
+                flagval |= CSInfo::is_unique;
+
+            const char* sp   = config_->getSearchPath();
+            bool sp_has_vars = sp && Strutil::contains(sp, "$");
+            if (!transformUsesContextVars(
+                    ocs->getTransform(OCIO::COLORSPACE_DIR_TO_REFERENCE),
+                    sp_has_vars)
+                && !transformUsesContextVars(
+                    ocs->getTransform(OCIO::COLORSPACE_DIR_FROM_REFERENCE),
+                    sp_has_vars))
+                flagval |= CSInfo::is_context_invariant;
+
+            // Membership in the active colorspace enumeration.
+            // For now O(n) scan per analyzed space; build a name set once if
+            // analysis of whole large configs becomes hot.
+            active      = false;
+            const int n = config_->getNumColorSpaces(
+                OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ACTIVE);
+            for (int i = 0; i < n; ++i) {
+                const char* aname = config_->getColorSpaceNameByIndex(
+                    OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ACTIVE,
+                    i);
+                if (aname && cs->name == aname) {
+                    active = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (std::binary_search(simple.begin(), simple.end(), cs->name))
+        flagval |= CSInfo::is_simple;
+    else if (!(flagval & CSInfo::is_data))
+        flagval |= CSInfo::has_complex_transform;
+    if ((flagval & (CSInfo::is_data | CSInfo::is_unique))
+        || isLearnedComplex(cs->name))
+        flagval |= CSInfo::should_skip_matching;
+
+    spin_rw_write_lock lock(m_mutex);
+    if (!cs->analyzed) {
+        cs->setflag(flagval);
+        cs->active   = active;
+        cs->analyzed = true;
+    }
+}
+
+
+
+int
+ColorConfig::Impl::analysisFlags(string_view name, bool* active)
+{
+    CSInfo* cs = find(name);
+    if (!cs) {
+        if (active)
+            *active = false;
+        return 0;
+    }
+    analyze(cs);
+    spin_rw_read_lock lock(m_mutex);
+    if (active)
+        *active = cs->active;
+    return cs->flags();
+}
+
+
+
+namespace pvt {
+// Grants the color-space classification test shims (declared in
+// imageio_pvt.h, defined in the current namespace below) access to the
+// private ColorConfig::Impl, which lives only in this translation unit.
+struct ColorConfigClassificationPeek {
+    static ColorConfig::Impl* impl(const ColorConfig& config)
+    {
+        return config.getImpl();
+    }
+};
+}  // namespace pvt
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Color Interop ID
 
 namespace {
@@ -3177,6 +3777,27 @@ interop_identities_config_names()
     for (int i = 0; i < n; ++i)
         names.emplace_back(config->getColorSpaceNameByIndex(i));
     return names;
+}
+
+
+int
+color_space_analysis_flags(const ColorConfig& config, string_view name,
+                           bool* active)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    if (!impl) {
+        if (active)
+            *active = false;
+        return 0;
+    }
+    return impl->analysisFlags(name, active);
+}
+
+bool
+color_space_analyzed(const ColorConfig& config, string_view name)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    return impl ? impl->analysisComputed(name) : false;
 }
 
 }  // namespace pvt
