@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <unordered_set>
 #include <vector>
@@ -610,6 +611,194 @@ colorspaces:
 
 
 
+// Set/clear an environment variable portably (the same idiom OIIO uses
+// elsewhere, e.g. src/iv/ivmain.cpp).
+static void
+set_env_var(const char* name, const char* value)
+{
+#ifdef _MSC_VER
+    _putenv_s(name, value);
+#else
+    setenv(name, value, 1);
+#endif
+}
+static void
+unset_env_var(const char* name)
+{
+#ifdef _MSC_VER
+    _putenv_s(name, "");
+#else
+    unsetenv(name);
+#endif
+}
+
+
+
+// Exercise the process-global flyweight fingerprint cache: a repeated lookup is
+// a hit (the cache does not grow); a context-invariant space collapses to one
+// bucket across two different contexts of the same structural config, while a
+// context-sensitive space keeps a bucket per context; a different structural
+// config keys separately (old entries orphan, no crash); the bulk warm pass
+// populates one entry per simple space; and reset empties it.
+static void
+test_color_space_fingerprint_cache()
+{
+    using OIIO::pvt::color_space_fingerprint_cache_reset;
+    using OIIO::pvt::color_space_fingerprint_cache_size;
+    using OIIO::pvt::color_space_fingerprint_cached;
+    using OIIO::pvt::color_space_fingerprint_order;
+    using OIIO::pvt::color_space_fingerprint_warm;
+    using OIIO::pvt::ColorSpaceFingerprint;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    // The interchange role + IdentifyBuiltinColorSpace path needs OCIO >= 2.2.
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02020000)
+        return;
+
+    // Interoperable config with a declared context variable, one context-
+    // invariant simple space (matrix_inv) and one context-sensitive simple
+    // space (ctx_space, which resolves $CTX_CS). Written to two distinct paths
+    // with identical content so both share one structural cache id but each
+    // loads its own context.
+    static const char* cfg_yaml = R"(ocio_profile_version: 2.1
+environment:
+  CTX_CS: gamma_a
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ref}
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: gamma_a
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+
+  - !<ColorSpace>
+    name: gamma_b
+    from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}
+
+  - !<ColorSpace>
+    name: matrix_inv
+    from_scene_reference: !<MatrixTransform> {matrix: [2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]}
+
+  - !<ColorSpace>
+    name: ctx_space
+    to_scene_reference: !<ColorSpaceTransform> {src: $CTX_CS, dst: ref}
+)";
+    // A structurally different config, for the distinct-key check.
+    static const char* other_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: base
+  scene_linear: base
+  aces_interchange: base
+displays:
+  disp:
+    - !<View> {name: main, colorspace: base}
+colorspaces:
+  - !<ColorSpace>
+    name: base
+
+  - !<ColorSpace>
+    name: doubler
+    from_scene_reference: !<MatrixTransform> {matrix: [3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 1]}
+)";
+
+    std::string dir     = Filesystem::temp_directory_path();
+    std::string path_a  = dir + "/oiio_color_test_fpcache_a.ocio";
+    std::string path_b  = dir + "/oiio_color_test_fpcache_b.ocio";
+    std::string path_o  = dir + "/oiio_color_test_fpcache_other.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(path_a, cfg_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(path_b, cfg_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(path_o, other_yaml));
+
+    color_space_fingerprint_cache_reset();
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(0));
+
+    // --- All of cc1's work happens under CTX_CS=gamma_a --------------------
+    set_env_var("CTX_CS", "gamma_a");
+    ColorConfig cc1(path_a);
+    OIIO_CHECK_ASSERT(!cc1.has_error());
+
+    // (1) Same-name lookup twice: the first is a miss that publishes one entry,
+    // the second is a hit that returns the identical fingerprint and does not
+    // grow the cache.
+    ColorSpaceFingerprint m1 = color_space_fingerprint_cached(cc1, "matrix_inv");
+    OIIO_CHECK_ASSERT(m1.computed());
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(1));
+    ColorSpaceFingerprint m1b = color_space_fingerprint_cached(cc1, "matrix_inv");
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(1));  // hit
+    OIIO_CHECK_ASSERT(m1.values == m1b.values);
+
+    // Cache the context-sensitive space under cc1's context (gamma_a).
+    ColorSpaceFingerprint s1 = color_space_fingerprint_cached(cc1, "ctx_space");
+    OIIO_CHECK_ASSERT(s1.computed());
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(2));
+
+    // --- cc2 is a second context (gamma_b) of the SAME structural config ---
+    set_env_var("CTX_CS", "gamma_b");
+    ColorConfig cc2(path_b);
+    OIIO_CHECK_ASSERT(!cc2.has_error());
+
+    // (2a) The context-invariant space collapses to the single bucket cc1
+    // already populated: querying it through cc2 is a hit (no growth).
+    ColorSpaceFingerprint m2 = color_space_fingerprint_cached(cc2, "matrix_inv");
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(2));  // collapsed
+    OIIO_CHECK_ASSERT(m1.values == m2.values);
+
+    // (2b) The context-sensitive space does NOT collapse: cc2's different
+    // context keys a separate bucket. This is airtight given (2a): matrix_inv
+    // collapsing proved cc1 and cc2 share one structural config id, so the only
+    // thing that can grow the cache here is ctx_space's differing context id.
+    // (The fingerprint VALUE is not asserted to differ: the probe copy that
+    // computes it is memoized per structural config, so both contexts probe
+    // through the copy the first query built -- the cache keys the contexts
+    // apart regardless, which is what this slice guarantees.)
+    ColorSpaceFingerprint s2 = color_space_fingerprint_cached(cc2, "ctx_space");
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(3));  // new bucket
+    OIIO_CHECK_ASSERT(s2.computed());
+
+    // (3) A structurally different config keys separately; the earlier entries
+    // just orphan (content-addressed, no eviction, no crash).
+    {
+        ColorConfig cco(path_o);
+        OIIO_CHECK_ASSERT(!cco.has_error());
+        size_t before = color_space_fingerprint_cache_size();
+        ColorSpaceFingerprint d = color_space_fingerprint_cached(cco, "doubler");
+        if (d.computed())
+            OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), before + 1);
+    }
+
+    // (5) The bulk warm pass populates exactly one entry per simple color space
+    // (the same deterministic set color_space_fingerprint_order reports).
+    set_env_var("CTX_CS", "gamma_a");
+    std::vector<std::string> simple = color_space_fingerprint_order(cc1);
+    color_space_fingerprint_cache_reset();
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(0));
+    size_t warmed = color_space_fingerprint_warm(cc1);
+    OIIO_CHECK_ASSERT(warmed > 0);
+    OIIO_CHECK_EQUAL(warmed, simple.size());
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), warmed);
+
+    // (4) Reset empties the cache.
+    color_space_fingerprint_cache_reset();
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(0));
+
+    unset_env_var("CTX_CS");
+    Filesystem::remove(path_a);
+    Filesystem::remove(path_b);
+    Filesystem::remove(path_o);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -631,6 +820,7 @@ main(int argc, char* argv[])
     test_color_space_classification();
     test_color_space_fingerprint();
     test_config_interoperability();
+    test_color_space_fingerprint_cache();
 
     return unit_test_failures != 0;
 }

@@ -388,6 +388,42 @@ color_space_fingerprint_order(const ColorConfig& config);
 
 
 // ---------------------------------------------------------------------------
+// Color space fingerprint cache -- a process-global flyweight cache of the
+// fingerprints above, keyed on (structural config cache id, context cache id,
+// color space name) with a context-invariant bucket collapse so a
+// context-invariant space is fingerprinted once and shared across every context
+// of the same structural config. Content-addressed (no invalidation): a changed
+// config or context yields new keys and orphans the old entries. For
+// internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// Return the fingerprint for `name` in `config`, from the process-global
+/// fingerprint cache. A cache hit is a cheap read; a miss computes the
+/// fingerprint (outside the cache lock) and publishes it first-writer-wins.
+/// Returns an empty fingerprint when the space is unknown or cannot be probed.
+/// For internal/test use only.
+OIIO_API ColorSpaceFingerprint
+color_space_fingerprint_cached(const ColorConfig& config, string_view name);
+
+/// Fingerprint every "simple" color space in `config` and publish each into the
+/// process-global fingerprint cache (the bulk "warm" pass). Returns how many
+/// were fingerprinted. For internal/test use only.
+OIIO_API size_t
+color_space_fingerprint_warm(const ColorConfig& config);
+
+/// The number of entries currently in the process-global fingerprint cache.
+/// For internal/test use only.
+OIIO_API size_t
+color_space_fingerprint_cache_size();
+
+/// Empty the process-global fingerprint cache. For test/debug reset only --
+/// never needed in steady state, since keys are content-addressed. For
+/// internal/test use only.
+OIIO_API void
+color_space_fingerprint_cache_reset();
+
+
+// ---------------------------------------------------------------------------
 // Config interoperability check -- whether a config resolves a scene-referred
 // interchange space (ACES2065-1 / the aces_interchange role) that cross-config
 // color features anchor on, and the in-memory "interopified" repair copy built

@@ -24,6 +24,7 @@
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/unordered_map_concurrent.h>
 
 #include "imageio_pvt.h"
 
@@ -458,6 +459,18 @@ public:
     // sorted simple-space cache so the result order is deterministic.
     std::vector<std::pair<std::string, OIIO::pvt::ColorSpaceFingerprint>>
     fingerprintSimpleColorSpaces() const;
+
+    // Look up (or compute and publish) the fingerprint for `name` in the
+    // process-global flyweight fingerprint cache. A hit is a cheap read; a miss
+    // computes the fingerprint OUTSIDE any cache lock and publishes it
+    // first-writer-wins. Returns nullopt if the space can't be fingerprinted.
+    std::optional<OIIO::pvt::ColorSpaceFingerprint>
+    fingerprintCached(string_view name);
+
+    // Fingerprint every "simple" color space and publish each into the
+    // process-global flyweight cache. Returns how many were fingerprinted (the
+    // deterministic bulk "warm" pass; see fingerprintSimpleColorSpaces()).
+    std::size_t fingerprintWarm();
 
     // Interoperability assertion/bootstrap queries (each triggers the lazy
     // bootstrap, except interopComputed(), which must NOT, so callers can
@@ -4692,6 +4705,130 @@ ColorConfig::Impl::interopifiedCacheOff() const
     return cfg && cfg->getProcessorCacheFlags() == OCIO::PROCESSOR_CACHE_OFF;
 }
 
+
+
+namespace {
+
+// Process-global flyweight color space fingerprint cache. Keyed on
+// (structural config cache id, context cache id, color space name) with a
+// context-invariant bucket collapse (see fingerprint_cache_key). Reuses OIIO's
+// existing sharded concurrent map -- find_or_insert is exactly the
+// first-writer-wins publish this needs, retrieve() is the cheap read-locked
+// hit. Content-addressed: a changed config or context simply produces new keys,
+// so stale entries orphan harmlessly -- there is no invalidation or eviction
+// path. clear() exists only for test/debug reset, never called from steady
+// state (see fingerprint_cache_reset).
+using FingerprintCache
+    = unordered_map_concurrent<std::string, OIIO::pvt::ColorSpaceFingerprint>;
+
+FingerprintCache&
+fingerprint_cache()
+{
+    static FingerprintCache cache;
+    return cache;
+}
+
+// Build the cache key for `name`. A context-invariant space collapses to a
+// single per-structural-config bucket ("<cfgId>|invariant|<name>"); every other
+// space -- including one the classifier hasn't proven invariant, or doesn't
+// know at all -- stays context-scoped ("<ctxId>|<cfgId>|<name>"), so nothing is
+// ever shared that wasn't proven stable. The config component is the STRUCTURAL
+// cache id (get_config_cache_id), never the context-folded getCacheID(), which
+// is what makes the invariant collapse sound: the structural id doesn't change
+// when only context vars do.
+std::string
+fingerprint_cache_key(const std::string& cfgId, const std::string& ctxId,
+                      bool invariant, string_view name)
+{
+    return invariant
+               ? Strutil::fmt::format("{}|invariant|{}", cfgId, name)
+               : Strutil::fmt::format("{}|{}|{}", ctxId, cfgId, name);
+}
+
+// The structural config id + current-context id components of a cache key, read
+// from `config`. Empty structural id means the config can't be keyed.
+void
+fingerprint_cache_scope(const OCIO::ConstConfigRcPtr& config, std::string& cfgId,
+                        std::string& ctxId)
+{
+    cfgId = get_config_cache_id(config);
+    ctxId.clear();
+    if (!config)
+        return;
+    try {
+        if (auto ctx = config->getCurrentContext())
+            if (const char* id = ctx->getCacheID())
+                ctxId = id;
+    } catch (...) {
+    }
+}
+
+}  // namespace
+
+
+
+std::optional<OIIO::pvt::ColorSpaceFingerprint>
+ColorConfig::Impl::fingerprintCached(string_view name)
+{
+    // No config, or a config with no structural id, can't be keyed: fall back
+    // to a direct (uncached) compute rather than pollute the shared cache.
+    std::string cfgId, ctxId;
+    fingerprint_cache_scope(config_, cfgId, ctxId);
+    if (cfgId.empty())
+        return computeFingerprint(name);
+
+    // Classify first so the key builder knows whether this space is context-
+    // invariant (a shared bucket) or must stay context-scoped. analyze() is
+    // memoized and far cheaper than the fingerprint probe it guards.
+    const bool invariant = (analysisFlags(name) & CSInfo::is_context_invariant)
+                           != 0;
+    const std::string key = fingerprint_cache_key(cfgId, ctxId, invariant, name);
+    auto& cache           = fingerprint_cache();
+
+    // Cheap read-locked hit.
+    OIIO::pvt::ColorSpaceFingerprint fp;
+    if (cache.retrieve(key, fp))
+        return fp;
+
+    // Miss: compute OUTSIDE the cache lock (never call OCIO while holding it),
+    // then publish first-writer-wins. A racing builder's entry wins and ours is
+    // discarded (flyweight: duplicate work allowed, blocking never). Failures
+    // are not cached, so a later query retries.
+    auto computed = computeFingerprint(name);
+    if (!computed)
+        return std::nullopt;
+    auto result = cache.find_or_insert(key, *computed);
+    return result.first->second;  // the published value (possibly another
+                                  // thread's, on race)
+}
+
+
+
+std::size_t
+ColorConfig::Impl::fingerprintWarm()
+{
+    std::string cfgId, ctxId;
+    fingerprint_cache_scope(config_, cfgId, ctxId);
+    if (cfgId.empty())
+        return 0;
+
+    // Compute every simple space's fingerprint OUTSIDE the cache lock (the bulk
+    // pass already iterates the sorted simple-space set deterministically and
+    // skips spaces that don't fingerprint), then publish each into the cache.
+    auto fingerprints = fingerprintSimpleColorSpaces();
+    auto& cache       = fingerprint_cache();
+    std::size_t count = 0;
+    for (auto& entry : fingerprints) {
+        const bool invariant
+            = (analysisFlags(entry.first) & CSInfo::is_context_invariant) != 0;
+        const std::string key = fingerprint_cache_key(cfgId, ctxId, invariant,
+                                                      entry.first);
+        cache.find_or_insert(key, entry.second);
+        ++count;
+    }
+    return count;
+}
+
 OIIO_NAMESPACE_END
 
 
@@ -4791,6 +4928,36 @@ color_space_fingerprint_order(const ColorConfig& config)
     for (auto& entry : fingerprints)
         names.push_back(std::move(entry.first));
     return names;
+}
+
+
+ColorSpaceFingerprint
+color_space_fingerprint_cached(const ColorConfig& config, string_view name)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    if (!impl)
+        return {};
+    auto fp = impl->fingerprintCached(name);
+    return fp ? std::move(*fp) : ColorSpaceFingerprint{};
+}
+
+std::size_t
+color_space_fingerprint_warm(const ColorConfig& config)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    return impl ? impl->fingerprintWarm() : 0;
+}
+
+std::size_t
+color_space_fingerprint_cache_size()
+{
+    return v3_1::fingerprint_cache().size();
+}
+
+void
+color_space_fingerprint_cache_reset()
+{
+    v3_1::fingerprint_cache().clear();
 }
 
 
