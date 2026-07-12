@@ -75,6 +75,7 @@ set (libOpenImageIO_srcs
                           imageoutput.cpp
                           iptc.cpp xmp.cpp
                           color_ocio.cpp
+                          interop_id.cpp
                           maketexture.cpp
                           bluenoise.cpp
                           printinfo.cpp

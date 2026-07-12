@@ -131,6 +131,114 @@ test_interop_identities_config()
 
 
 
+static void
+test_interop_id_grammar()
+{
+    using OIIO::pvt::InteropIdForm;
+    using OIIO::pvt::is_utility_interop_id;
+    using OIIO::pvt::is_valid_interop_id;
+    using OIIO::pvt::parse_interop_id;
+    using OIIO::pvt::sanitize_id_token;
+    using OIIO::pvt::strip_leftmost_namespace;
+
+    // Validity + form, per the CIF Annex B grammar (4 legal forms; 3+
+    // colons is always invalid).
+    OIIO_CHECK_ASSERT(is_valid_interop_id("lin_ap0_scene"));
+    OIIO_CHECK_EQUAL((int)parse_interop_id("lin_ap0_scene").form,
+                      (int)InteropIdForm::BASE);
+
+    // "local:srgb" is an ordinary INNER_BASE id at the grammar layer --
+    // the grammar has zero knowledge of "local" as special; that's a
+    // question one layer up (resolution code checking
+    // form == OUTER_INNER_BASE && inner == "local").
+    {
+        auto parts = parse_interop_id("local:srgb");
+        OIIO_CHECK_ASSERT(is_valid_interop_id("local:srgb"));
+        OIIO_CHECK_EQUAL((int)parts.form, (int)InteropIdForm::INNER_BASE);
+        OIIO_CHECK_EQUAL(parts.inner, "local");
+        OIIO_CHECK_EQUAL(parts.base, "srgb");
+    }
+
+    {
+        auto parts = parse_interop_id("show1-config:local:srgb");
+        OIIO_CHECK_ASSERT(is_valid_interop_id("show1-config:local:srgb"));
+        OIIO_CHECK_EQUAL((int)parts.form,
+                          (int)InteropIdForm::OUTER_INNER_BASE);
+        OIIO_CHECK_EQUAL(parts.outer, "show1-config");
+        OIIO_CHECK_EQUAL(parts.inner, "local");
+        OIIO_CHECK_EQUAL(parts.base, "srgb");
+    }
+
+    {
+        auto parts = parse_interop_id("my-studio::srgb");
+        OIIO_CHECK_ASSERT(is_valid_interop_id("my-studio::srgb"));
+        OIIO_CHECK_EQUAL((int)parts.form,
+                          (int)InteropIdForm::OUTER_BLANK_BASE);
+        OIIO_CHECK_EQUAL(parts.outer, "my-studio");
+        OIIO_CHECK_ASSERT(parts.inner.empty());
+        OIIO_CHECK_EQUAL(parts.base, "srgb");
+    }
+
+    OIIO_CHECK_FALSE(is_valid_interop_id(""));
+    OIIO_CHECK_FALSE(is_valid_interop_id(":base"));
+    OIIO_CHECK_FALSE(is_valid_interop_id(":inner:base"));
+    OIIO_CHECK_FALSE(is_valid_interop_id("a:b:c:d"));
+    // Validation never folds case or sanitizes.
+    OIIO_CHECK_FALSE(is_valid_interop_id("Lin_AP0_Scene"));
+    OIIO_CHECK_FALSE(is_valid_interop_id("caf\xc3\xa9"));  // "café"
+    OIIO_CHECK_FALSE(is_valid_interop_id("\xe4\xb8\xad"));  // "中"
+    OIIO_CHECK_FALSE(is_valid_interop_id("outer::"));
+    OIIO_CHECK_FALSE(is_valid_interop_id("outer:"));
+    OIIO_CHECK_FALSE(is_valid_interop_id("lin_ap0_scene:"));
+
+    // Sanitization (Annex C, 5-step precedence).
+    OIIO_CHECK_EQUAL(sanitize_id_token("lin_ap0_scene"), "lin_ap0_scene");
+    OIIO_CHECK_EQUAL(sanitize_id_token("ACEScg"), "acescg");
+    OIIO_CHECK_EQUAL(sanitize_id_token("sRGB - Texture"), "srgb_-_texture");
+    OIIO_CHECK_EQUAL(sanitize_id_token("a{b}c"), "a(b)c");
+    OIIO_CHECK_EQUAL(sanitize_id_token("a<b>c"), "a(b)c");
+    OIIO_CHECK_EQUAL(sanitize_id_token("a,b"), "a.b");
+    OIIO_CHECK_EQUAL(sanitize_id_token("a;b"), "a|b");
+    OIIO_CHECK_EQUAL(sanitize_id_token("a:b"), "a|b");
+    OIIO_CHECK_EQUAL(sanitize_id_token("a'b\"c"), "a#b#c");
+    OIIO_CHECK_EQUAL(sanitize_id_token("a\\b"), "a/b");
+    OIIO_CHECK_EQUAL(sanitize_id_token("a!b=c@d"), "a*b*c*d");
+    // Non-ASCII: one '^' per whole UTF-8 code point, never per byte.
+    {
+        std::string cafe = "caf\xc3\xa9";  // "café", 2-byte 'é'
+        std::string got  = sanitize_id_token(cafe);
+        OIIO_CHECK_EQUAL(got, "caf^");
+        OIIO_CHECK_EQUAL(got.size(), size_t(4));
+    }
+    {
+        std::string zhong = "\xe4\xb8\xad";  // "中", 3-byte code point
+        std::string got   = sanitize_id_token(zhong);
+        OIIO_CHECK_EQUAL(got, "^");
+        OIIO_CHECK_EQUAL(got.size(), size_t(1));
+    }
+    OIIO_CHECK_EQUAL(sanitize_id_token("a\xe4\xb8\xad" "b"), "a^b");
+
+    // Namespace stripping: pure substring op, independent of validity,
+    // never assumes the result is itself a valid id.
+    OIIO_CHECK_EQUAL(strip_leftmost_namespace("a:b:c"), "b:c");
+    OIIO_CHECK_EQUAL(strip_leftmost_namespace("a::c"), ":c");
+    OIIO_CHECK_EQUAL(strip_leftmost_namespace("a"), "a");
+    // Load-bearing: the blank-inner leading colon is retained, so the
+    // result is NOT "srgb".
+    OIIO_CHECK_EQUAL(strip_leftmost_namespace("my-studio::srgb"), ":srgb");
+    OIIO_CHECK_NE(strip_leftmost_namespace("my-studio::srgb"),
+                  std::string("srgb"));
+
+    // Utility tokens: case-sensitive exact membership, no grammar
+    // involvement.
+    OIIO_CHECK_ASSERT(is_utility_interop_id("data"));
+    OIIO_CHECK_ASSERT(is_utility_interop_id("unknown"));
+    OIIO_CHECK_ASSERT(is_utility_interop_id("bypass"));
+    OIIO_CHECK_FALSE(is_utility_interop_id("Data"));
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -147,6 +255,7 @@ main(int argc, char* argv[])
     test_sRGB_conversion();
     test_Rec709_conversion();
     test_interop_identities_config();
+    test_interop_id_grammar();
 
     return unit_test_failures != 0;
 }
