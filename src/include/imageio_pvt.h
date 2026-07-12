@@ -293,6 +293,14 @@ device_free(void* mem);
 OIIO_API int
 interop_identities_config_size();
 
+/// True if OIIO's built-in interop identities config (see
+/// interop_identities_config_size) resolves `interop_id` -- i.e. the config
+/// has a color space reachable by that name or alias. Returns false if OCIO
+/// support is unavailable, the config failed to build, or the id is empty or
+/// unknown. For internal/test use only.
+OIIO_API bool
+interop_identities_config_resolves(string_view interop_id);
+
 
 // ---------------------------------------------------------------------------
 // Color interop ID grammar and sanitization -- the ID grammar and

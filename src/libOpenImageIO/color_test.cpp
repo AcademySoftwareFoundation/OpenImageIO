@@ -127,6 +127,18 @@ test_interop_identities_config()
 {
     int nspaces = OIIO::pvt::interop_identities_config_size();
     OIIO_CHECK_GT(nspaces, 0);
+
+    // With OCIO >= 2.5 (0x02050000) the config is built on OCIO's own builtin
+    // studio config, so it must still resolve a studio-native identity -- that
+    // is, the registry is the studio config's superset, hence its space count
+    // is at least the studio baseline -- and it must also resolve OIIO's own
+    // additions layered on top.
+    if (ColorConfig::OpenColorIO_version_hex() >= 0x02050000) {
+        OIIO_CHECK_ASSERT(
+            OIIO::pvt::interop_identities_config_resolves("ACES2065-1"));
+        OIIO_CHECK_ASSERT(OIIO::pvt::interop_identities_config_resolves(
+            "oiio:lin_p3d60_display"));
+    }
 }
 
 

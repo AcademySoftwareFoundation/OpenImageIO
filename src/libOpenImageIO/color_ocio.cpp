@@ -3072,25 +3072,64 @@ OIIO_NAMESPACE_BEGIN
 
 namespace {
 
-// Return OIIO's built-in interop identities config: a small config OIIO
-// ships with (compiled in, see interop_identities_config.h) that defines
+// Return OIIO's built-in interop identities config: a config that defines
 // color spaces for the CIF-published interop identities OIIO knows how to
-// reliably recognize and relate in other OCIO configs. Parsed once per
-// process and reused for the life of the process. For now this is just the
-// embedded config as-is, for use with linked OCIO versions that predate
-// native interop ID support; extend this to overlay onto OCIO's own
-// builtin studio config once the minimum linked OCIO version provides one.
+// reliably recognize and relate in other OCIO configs. Built once per
+// process and reused for the life of the process.
+//
+// With a linked OCIO that predates native interop ID support, this is the
+// small config OIIO ships compiled in (see interop_identities_config.h),
+// parsed as-is. With OCIO >= 2.5 -- which ships builtin studio configs that
+// already carry the CIF interop identities natively (every color space has
+// getInteropID() set) -- it is OCIO's latest builtin studio config with only
+// the identities that config doesn't already provide layered on top of a
+// mutable copy.
 OCIO::ConstConfigRcPtr
 build_interop_identities_config()
 {
-    // Parse once and reuse for all ColorConfig instances -- function-local
+    // Build once and reuse for all ColorConfig instances -- function-local
     // static initialization is thread-safe (C++11 magic statics), so no
     // extra mutex is needed here.
     static OCIO::ConstConfigRcPtr s_interop_identities_config =
         []() -> OCIO::ConstConfigRcPtr {
         try {
             std::istringstream iss(kInteropIdentitiesConfig);
-            return OCIO::Config::CreateFromStream(iss);
+            OCIO::ConstConfigRcPtr embedded
+                = OCIO::Config::CreateFromStream(iss);
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+            // Start from OCIO's own latest builtin studio config and layer in
+            // only the embedded identities it doesn't already carry. Each
+            // embedded entry's color space name equals its interop_id by
+            // construction, so the prefix and lookup below key on the name:
+            //   - skip "ocio:"-namespaced identities: the studio config
+            //     defines the OCIO namespace itself;
+            //   - add "oiio:"-namespaced identities: OIIO-only additions the
+            //     studio config never carries;
+            //   - add bare CIF identities only when the studio config doesn't
+            //     already resolve the name, so its own (superior) definition
+            //     always wins where present.
+            OCIO::ConfigRcPtr config
+                = OCIO::Config::CreateFromBuiltinConfig(
+                      "ocio://studio-config-latest")
+                      ->createEditableCopy();
+            for (int i = 0, n = embedded->getNumColorSpaces(); i < n; ++i) {
+                const char* name = embedded->getColorSpaceNameByIndex(i);
+                if (Strutil::starts_with(name, "ocio:"))
+                    continue;
+                if (config->getColorSpace(name))
+                    continue;
+                config->addColorSpace(embedded->getColorSpace(name));
+            }
+            // For now the overlay adds the few bare CIF identities this build's
+            // OCIO >= 2.5 studio config turns out not to carry (mostly display
+            // identities); most bare identities are already present as
+            // aliases. Reconfirm which the studio config carries before OCIO
+            // >= 2.5 becomes OIIO's minimum, when the embedded config can
+            // shrink to just the "oiio:" delta.
+            return config;
+#else
+            return embedded;
+#endif
         } catch (OCIO::Exception&) {
             return {};
         }
@@ -3108,6 +3147,22 @@ interop_identities_config_size()
 {
     auto config = build_interop_identities_config();
     return config ? config->getNumColorSpaces() : 0;
+}
+
+bool
+interop_identities_config_resolves(string_view interop_id)
+{
+    auto config = build_interop_identities_config();
+    if (!config || interop_id.empty())
+        return false;
+    try {
+        // getColorSpace resolves by color space name or alias, which is how
+        // every CIF identity in this config is reachable (see the config's
+        // per-entry name/alias scheme).
+        return bool(config->getColorSpace(std::string(interop_id).c_str()));
+    } catch (OCIO::Exception&) {
+        return false;
+    }
 }
 
 }  // namespace pvt
