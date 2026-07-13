@@ -1907,11 +1907,14 @@ resolve_data_utility(const OCIO::ConstConfigRcPtr& config, string_view requested
         }
         if (!cs || !cs->isData())
             continue;
-        // A one-space OCIO::Config::CreateRaw() config injects a synthetic data
-        // space literally named "raw"; skip it unless a role explicitly targets
-        // the requested token, so an empty config does not spuriously resolve
-        // "data"/"bypass" to it.
-        if (Strutil::iequals(nm, "raw") && req_target != nm)
+        // A one-space OCIO::Config::CreateRaw() config is nothing but a
+        // synthetic data space named "raw". Skip that space so an empty/raw
+        // config does not spuriously resolve "data"/"bypass" to it -- but key
+        // the skip on the config's single-colorspace shape (n == 1), not the
+        // name alone: a real config may legitimately hold a data space named
+        // "Raw" alongside others, and that one is a valid target. A role
+        // explicitly naming the requested token still wins.
+        if (n == 1 && Strutil::iequals(nm, "raw") && req_target != nm)
             continue;
         int rank;
         if (data_space_identifies_as(cs, nm, req, req_target))

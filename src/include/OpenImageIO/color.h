@@ -433,7 +433,9 @@ public:
     /// If none of these recognize the name, the name is returned unchanged.
     OIIO_NODISCARD string_view resolve(string_view name) const;
 
-    /// Are the two color space names/aliases/roles equivalent?
+    /// Are the two color space names/aliases/roles equivalent? Each name is
+    /// resolve()d first, so color interop IDs and aliases participate on either
+    /// side.
     OIIO_NODISCARD bool equivalent(string_view color_space,
                                    string_view other_color_space) const;
 
