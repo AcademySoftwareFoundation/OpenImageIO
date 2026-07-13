@@ -590,6 +590,11 @@ colorspaces:
         OIIO_CHECK_FALSE(color_config_is_interoperable(cc));
         OIIO_CHECK_ASSERT(color_config_interop_computed(cc));
         OIIO_CHECK_ASSERT(color_config_interchange_name(cc).empty());
+        // The bootstrap warning is debug-gated + recorded in-memory only --
+        // it must NOT pollute the ColorConfig error string (R4): a
+        // non-interoperable config that nobody has tried to cross-config-
+        // convert with is otherwise perfectly healthy.
+        OIIO_CHECK_FALSE(cc.has_error());
 
         // But the in-memory interopified copy was repaired to resolve one,
         // with the processor cache off -- and the original config is
@@ -603,6 +608,8 @@ colorspaces:
         OIIO_CHECK_ASSERT(color_config_interop_warned(cc));
         OIIO_CHECK_FALSE(color_config_is_interoperable(cc));
         OIIO_CHECK_ASSERT(color_config_interop_warned(cc));
+        // Still no error string, even after two failed bootstrap queries.
+        OIIO_CHECK_FALSE(cc.has_error());
 
         // A second ColorConfig over the same (structurally identical) config
         // does not warn again: the once-per-config-structure guard is
@@ -858,9 +865,13 @@ colorspaces:
         ColorConfig cc(non_path);
         OIIO_CHECK_ASSERT(!cc.has_error());
         // Confirm the fixture is non-interoperable and its repair is unusable.
+        // This triggers the lazy bootstrap (and its once-per-config warning).
         OIIO_CHECK_FALSE(OIIO::pvt::color_config_is_interoperable(cc));
         OIIO_CHECK_FALSE(
             OIIO::pvt::color_config_interopified_resolves_scene_interchange(cc));
+        // R4/scope (c): the bootstrap warning never sets the error string --
+        // has_error() stays false until a cross-config route is attempted.
+        OIIO_CHECK_FALSE(cc.has_error());
 
         auto handle = cc.createColorProcessor("enc", "lin_ap1_scene");
         // Non-strict parsing: the gate is closed, so no bridge is built; the

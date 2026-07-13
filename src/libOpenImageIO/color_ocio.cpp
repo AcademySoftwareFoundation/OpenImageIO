@@ -310,6 +310,9 @@ private:
         std::string interchange_colorspace;   // discovered interchange space name
         OCIO::ConstConfigRcPtr interopified;  // repaired probe copy of config_
         bool warned = false;                  // this config emitted the warning
+        std::string warning_message;  // the composed once-per-config warning
+                                       // (recorded here, NOT on the ColorConfig
+                                       // error string -- see ensure_interop()).
     };
     mutable InteropState m_interop;
     mutable bool m_interop_ready = false;
@@ -4777,16 +4780,34 @@ ColorConfig::Impl::ensure_interop() const
 
     // Non-interoperable configs warn exactly once per structural config id
     // across the process (cross-config color features are otherwise silently
-    // unavailable). Skip when builtin configs are disabled -- we didn't
-    // actually assess interoperability in that case.
+    // unavailable). This is a WARNING, not an error: it is deliberately never
+    // written to the ColorConfig error string here. That string is a single
+    // overwrite-on-set slot shared per config (see error()/geterror() above),
+    // so setting it at bootstrap -- before any cross-config route is even
+    // attempted -- would make has_error() true for callers who never touch
+    // cross-config features, polluting otherwise-healthy same-config use and
+    // risking a spurious trip of the uncaught-error exit dump. Instead: an
+    // OIIO::debug line (attr/env-gated, never an unconditional stderr print --
+    // R4) plus the same composed message recorded in-memory on this Impl,
+    // available to callers/tests without touching the shared error string.
+    // reconcile_cross_config{,_display} compose their own why+how-to-fix
+    // error text only if/when a cross-config route is actually attempted and
+    // fails (unchanged by this slice). Skip when builtin configs are
+    // disabled -- we didn't actually assess interoperability in that case.
     if (!state.is_interoperable && config_ && !disable_builtin_configs) {
         const std::string key = get_config_cache_id(config_);
         if (!key.empty() && note_interop_warning(key)) {
-            Strutil::print(stderr,
-                           "OpenImageIO ColorConfig: \"{}\" is not "
-                           "color-interoperable (no scene interchange role "
-                           "found); cross-config color features unavailable\n",
-                           configname());
+            state.warning_message = Strutil::fmt::format(
+                "OpenImageIO ColorConfig \"{}\" is not color-interoperable: "
+                "no scene interchange role (aces_interchange) could be found "
+                "or repaired. Cross-config color conversions and display "
+                "transforms are unavailable for this config -- OCIO strict "
+                "parsing will error on them, non-strict parsing will pass "
+                "them through unchanged. Add the aces_interchange role (and "
+                "a matching color space) to this config to enable "
+                "cross-config features.",
+                configname());
+            Strutil::debug("{}\n", state.warning_message);
             state.warned = true;
         }
     }
