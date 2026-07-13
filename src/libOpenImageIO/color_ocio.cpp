@@ -4389,6 +4389,11 @@ try_canonical_name(const OCIO::ConstConfigRcPtr& config, const char* name)
 // Discover the scene interchange color space name: the alias list (role name
 // first), then OCIO's builtin identification against OIIO's interop identities
 // config. Returns empty if the config resolves no scene interchange.
+//
+// Version-dependent quality, not a defect: IdentifyBuiltinColorSpace's
+// interchange-heuristics were reworked in OCIO 2.3.1 (#1913), so results on
+// non-trivial configs can differ between 2.3.0 and 2.3.1+. Both are correct
+// per their own version's heuristic; this is not version-gated here.
 std::string
 discover_scene_interchange(const OCIO::ConstConfigRcPtr& config)
 {
@@ -4542,6 +4547,27 @@ bootstrap_display_interchange(const OCIO::ConfigRcPtr& editable,
     }
 }
 
+#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 3, 1)
+// OCIO < 2.3.1 bug: Config::createEditableCopy() drops the source config's
+// default view transform *name* (fixed in 2.3.1). Capture it from `src`
+// before/around the copy and, if `copy` comes back with no default view
+// transform name while `src` had one, re-set it. Shared shape so a later
+// standalone fix for OIIO's own bootstrap-copy call sites can reuse it.
+void
+preserve_default_view_transform(const OCIO::ConstConfigRcPtr& src,
+                                const OCIO::ConfigRcPtr& copy)
+{
+    if (!src || !copy)
+        return;
+    const char* srcName = src->getDefaultViewTransformName();
+    if (!srcName || !*srcName)
+        return;
+    const char* copyName = copy->getDefaultViewTransformName();
+    if (!copyName || !*copyName)
+        copy->setDefaultViewTransformName(srcName);
+}
+#endif
+
 // Return the "interopified" copy of `config`: a PROCESSOR_CACHE_OFF editable
 // copy repaired to resolve a scene (and, where possible, display) interchange.
 // Memoized process-wide by structural cache id (first-writer-wins) so all
@@ -4567,6 +4593,9 @@ interopify_config(const OCIO::ConstConfigRcPtr& config)
     OCIO::ConstConfigRcPtr result;
     try {
         OCIO::ConfigRcPtr editable = config->createEditableCopy();
+#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 3, 1)
+        preserve_default_view_transform(config, editable);
+#endif
         std::string interchange = discover_scene_interchange(editable);
         if (!interchange.empty()) {
             // Config carries the interchange space; bind the role to it if the
@@ -4697,6 +4726,11 @@ processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
 // side to that config's current context. On any OCIO failure the processor is
 // null and `errmsg` is set from the exception -- never thrown across the
 // boundary, never silent.
+//
+// Version-dependent quality, not a defect: display-view data-space no-op
+// semantics changed in OCIO 2.3.1 (#1896) -- a display/view that is itself a
+// data space is a no-op transform on 2.3.1+, whereas 2.3.0 could produce a
+// non-identity result in that case. No workaround here; document only.
 OCIO::ConstProcessorRcPtr
 display_processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
                               string_view src_name,
