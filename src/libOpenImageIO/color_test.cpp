@@ -1122,6 +1122,170 @@ colorspaces:
 
 
 
+// Exercise ColorConfig::get_color_interop_id(string_view)'s four-step write
+// cascade (declared/isData -> registry fingerprint match -> generated
+// config-local id -> empty). As with test_interop_resolve, separate small
+// fixture configs isolate each step so one config's setup can't accidentally
+// satisfy a different step's assertion.
+static void
+test_interop_derive()
+{
+    using OIIO::pvt::sanitize_id_token;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    // The `interop_id:` color space attribute (native getInteropID()) needs
+    // OCIO >= 2.5; gate the fixtures that declare it.
+    const bool has_interop_id_attr = ColorConfig::OpenColorIO_version_hex()
+                                     >= 0x02050000;
+
+    // ---- Base fixture (no interop_id attribute -- safe on any linked OCIO
+    // version): isData sub-case, registry fingerprint match, no-match falling
+    // through to a generated local id, and an unresolvable query. The config
+    // name and the generated space's name both carry spaces/mixed case, so a
+    // passing local-id assertion also proves both segments are sanitized
+    // independently. ------------------------------------------------------
+    static const char* named_yaml = R"(ocio_profile_version: 2.1
+name: "MyDerive Config"
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: implicit_data_space
+    isdata: true
+
+  - !<ColorSpace>
+    name: registry_equivalent_space
+
+  - !<ColorSpace>
+    name: My Unmatched Curve
+    aliases: [my_unmatched_curve]
+    from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}
+)";
+    std::string named_path = Filesystem::temp_directory_path()
+                             + "/oiio_color_test_derive_named.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(named_path, named_yaml));
+    {
+        ColorConfig cc(named_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+
+        // Step 1, utility sub-case: a data space with no declared interop_id
+        // resolves to "data" -- before any fingerprint tier runs, even though
+        // this identity space would ALSO fingerprint-match the registry's
+        // lin_ap0_scene identity.
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("implicit_data_space"),
+                          "data");
+
+        // Step 2: an identity-transform space with no declared id and no
+        // registry-precluding classification is genuinely fingerprint-
+        // equivalent to the built-in registry's "lin_ap0_scene" identity
+        // (also an identity transform) -- returns the REGISTRY identity's own
+        // id, not the query's own name.
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("registry_equivalent_space"),
+                          "lin_ap0_scene");
+
+        // Step 2 miss -> step 3: no registry scene-side entry is a bare
+        // gamma-exponent curve, so this space has no fingerprint match; the
+        // config has a name and the query resolves to a real space, so a
+        // config-local id is generated. Both segments are sanitized
+        // independently per the CIF grammar (spaces -> '_', lowercased) --
+        // built here via the landed pvt::sanitize_id_token so this assertion
+        // exercises the same function the production code calls, rather than
+        // a hand-typed guess at its output shape.
+        std::string expected_local = sanitize_id_token("MyDerive Config")
+                                     + ":local:"
+                                     + sanitize_id_token("My Unmatched Curve");
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("my_unmatched_curve"),
+                          expected_local);
+
+        // Step 3 precondition: the query itself must resolve to a real space
+        // -- a config-local id is never generated for a name this config
+        // doesn't know, even though the config has a name.
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("no_such_space_at_all"), "");
+    }
+    Filesystem::remove(named_path);
+
+    // ---- Unnamed-config fixture: the same "no registry match" curve space,
+    // but the config has no `name:` set. Step 3 requires a non-empty config
+    // name, so this is empty -- and since nothing earlier in the cascade
+    // matches either, this doubles as the decisive "total miss returns
+    // empty" guard: the legacy static id/CICP table (step 2.5) never fires
+    // as a guessed default here, and no other tier steps in to fill the gap.
+    // -----------------------------------------------------------------------
+    {
+        static const char* unnamed_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: My Unmatched Curve
+    aliases: [my_unmatched_curve]
+    from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}
+)";
+        std::string unnamed_path = Filesystem::temp_directory_path()
+                                   + "/oiio_color_test_derive_unnamed.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(unnamed_path, unnamed_yaml));
+        ColorConfig cc(unnamed_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("my_unmatched_curve"), "");
+        Filesystem::remove(unnamed_path);
+    }
+
+    if (has_interop_id_attr) {
+        // ---- Declared interop_id precedence: the single most important
+        // regression vector for step 1 -- an explicit, author-declared
+        // interop_id is unconditionally authoritative, beating even a
+        // fingerprint match that a same-shaped identity space would
+        // otherwise win at step 2. (oicio's analog of this vector exercises
+        // it across a (strict, explicitUnknown) flag matrix; OIIO's
+        // get_color_interop_id(string_view) takes no such flags -- there is
+        // nothing else to vary -- so one config proves the same precedence.)
+        // -------------------------------------------------------------
+        static const char* declared_yaml = R"(ocio_profile_version: 2.1
+name: gatedcfg
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: declared_explicit_space
+    interop_id: "custom:explicit_id"
+)";
+        std::string declared_path = Filesystem::temp_directory_path()
+                                    + "/oiio_color_test_derive_declared.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(declared_path, declared_yaml));
+        ColorConfig cc(declared_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        // Would fingerprint-match "lin_ap0_scene" (identity transform) if the
+        // declared attribute didn't win first.
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("declared_explicit_space"),
+                          "custom:explicit_id");
+        Filesystem::remove(declared_path);
+    }
+}
+
+
+
 // True-cold construction helper: re-exec'd as a fresh subprocess by
 // run_bench_phases() below (see comment there for why). Prints
 // "construct_ms <value>" and exits -- no other tests run.
@@ -1275,6 +1439,7 @@ main(int argc, char* argv[])
     test_config_interoperability();
     test_color_space_fingerprint_cache();
     test_interop_resolve();
+    test_interop_derive();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
     // never sets it.
