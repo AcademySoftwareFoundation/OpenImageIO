@@ -483,6 +483,16 @@ cross_config_probe(const ColorConfig& src_config, string_view src_name,
                    cspan<float> probe, string_view context_key = {},
                    string_view context_value = {});
 
+/// Route `local_name` in `config`'s in-memory interop-repaired copy to
+/// `registry_name` in the built-in interop identities config through the pvt
+/// cross-config chokepoint, and apply the result to the 3-channel `probe`.
+/// This is the reference the public ColorConfig::createColorProcessor bridge
+/// path should reproduce (probe-pixel agreement, abs 1e-6/channel). Returns an
+/// empty vector if the route can't be built. For internal/test use only.
+OIIO_API std::vector<float>
+identities_route_probe(const ColorConfig& config, string_view local_name,
+                       string_view registry_name, cspan<float> probe);
+
 
 // ---------------------------------------------------------------------------
 // Color interop ID grammar and sanitization -- the ID grammar and
