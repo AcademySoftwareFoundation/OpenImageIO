@@ -1785,7 +1785,7 @@ resolve_explicit_interop_id(const OCIO::ConstConfigRcPtr& config,
 #if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
     std::string id(name);
     std::string id_stripped = OIIO::pvt::strip_leftmost_namespace(id);
-    // ponytail: linear scan over the catalog, no cached inverted map -- tier 1c
+    // Linear scan over the catalog; add a cached inverted map if this tier gets hot.
     // only fires when the direct/stripped/local tiers all miss (a rare path),
     // so a per-query scan is cheaper than maintaining a cache. Build the map if
     // this ever shows up hot.
