@@ -493,6 +493,18 @@ OIIO_API std::vector<float>
 identities_route_probe(const ColorConfig& config, string_view local_name,
                        string_view registry_name, cspan<float> probe);
 
+/// Route `registry_name` in the built-in interop identities config into
+/// `config`'s in-memory interop-repaired copy display/view (`display`, `view`)
+/// through the pvt cross-config display-view chokepoint, and apply the result
+/// to the 3-channel `probe`. This is the reference the public
+/// ColorConfig::createDisplayTransform cross-config bridge path should reproduce
+/// (probe-pixel agreement, abs 1e-6/channel). Returns an empty vector if the
+/// route can't be built. For internal/test use only.
+OIIO_API std::vector<float>
+identities_display_route_probe(const ColorConfig& config,
+                               string_view registry_name, string_view display,
+                               string_view view, cspan<float> probe);
+
 
 // ---------------------------------------------------------------------------
 // Color interop ID grammar and sanitization -- the ID grammar and

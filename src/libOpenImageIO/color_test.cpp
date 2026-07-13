@@ -924,6 +924,203 @@ colorspaces:
 
 
 
+// Exercise the cross-config DISPLAY route in ColorConfig::createDisplayTransform
+// (decision 3, R3): when the INPUT color space is absent from the current config
+// but is a registry-known interop identity, and the config defines the requested
+// display/view, the display transform routes the foreign source through the
+// built-in interop identities config into this config's display/view -- the same
+// strict/lenient/narration contract as the color-space route. The prototype's
+// silent setSrc(ROLE_SCENE_LINEAR) continue-on-failure (trap #1) is replaced by
+// the strict-aware fallback: strict OFF -> pass-through (pixels UNCHANGED, NOT
+// reinterpreted as scene_linear); strict ON -> hard error.
+static void
+test_cross_config_display()
+{
+    using OIIO::pvt::identities_display_route_probe;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    // The two-config display-view GetProcessorFromConfigs overload needs
+    // OCIO >= 2.3.
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02030000)
+        return;
+    // The route bridges a registry AP1 (ACEScg) identity into the config's
+    // display/view; skip if this build's identities config doesn't carry it.
+    if (!OIIO::pvt::interop_identities_config_resolves("lin_ap1_scene"))
+        return;
+
+    // An interoperable config (aces_interchange -> ap0) that defines a display/
+    // view locally but LACKS the registry-known scene space "lin_ap1_scene".
+    static const char* interop_yaml = R"(ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: ap0
+  scene_linear: ap0
+  aces_interchange: ap0
+displays:
+  disp:
+    - !<View> {name: view1, colorspace: g22}
+colorspaces:
+  - !<ColorSpace>
+    name: ap0
+
+  - !<ColorSpace>
+    name: g22
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+)";
+    // Same config, but with OCIO strict parsing enabled.
+    static const char* strict_yaml = R"(ocio_profile_version: 2.1
+strictparsing: true
+search_path: ""
+roles:
+  default: ap0
+  scene_linear: ap0
+  aces_interchange: ap0
+displays:
+  disp:
+    - !<View> {name: view1, colorspace: g22}
+colorspaces:
+  - !<ColorSpace>
+    name: ap0
+
+  - !<ColorSpace>
+    name: g22
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+)";
+    // A NON-interoperable config that still defines a display/view. Its spaces
+    // are all from-reference (gamma) with no transformless scene reference to
+    // anchor a repair, so the interopified copy resolves no scene interchange
+    // (gate stays closed). The view color space "out" is a REAL transform from
+    // scene_linear, so a scene_linear->display transform is non-identity -- this
+    // is what makes the trap-1 regression assertion meaningful.
+    static const char* non_yaml = R"(ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: enc
+  scene_linear: enc
+displays:
+  disp:
+    - !<View> {name: view1, colorspace: out}
+colorspaces:
+  - !<ColorSpace>
+    name: enc
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+
+  - !<ColorSpace>
+    name: out
+    from_scene_reference: !<ExponentTransform> {value: [3.0, 3.0, 3.0, 1]}
+)";
+
+    std::string interop_path = Filesystem::temp_directory_path()
+                               + "/oiio_color_test_xdisp_interop.ocio";
+    std::string strict_path = Filesystem::temp_directory_path()
+                              + "/oiio_color_test_xdisp_strict.ocio";
+    std::string non_path = Filesystem::temp_directory_path()
+                           + "/oiio_color_test_xdisp_non.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(interop_path, interop_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(strict_path, strict_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(non_path, non_yaml));
+
+    const float probe[3] = { 0.18f, 0.42f, 0.73f };
+
+    // --- Success: registry-known input absent locally routes via the display
+    //     bridge, reproducing the direct chokepoint route (abs 1e-6/channel) ----
+    {
+        ColorConfig cc(interop_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+
+        auto handle = cc.createDisplayTransform("disp", "view1",
+                                                "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);
+        // A real AP1->display transform, not a pass-through no-op.
+        if (handle)
+            OIIO_CHECK_FALSE(handle->isNoOp());
+        OIIO_CHECK_FALSE(cc.has_error());
+
+        float got[3] = { probe[0], probe[1], probe[2] };
+        if (handle)
+            handle->apply(got);
+        auto ref = identities_display_route_probe(cc, "lin_ap1_scene", "disp",
+                                                  "view1", probe);
+        OIIO_CHECK_EQUAL(ref.size(), size_t(3));
+        if (ref.size() == 3)
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(got[c], ref[c], 1e-6f);
+    }
+
+    // --- Zero behavior change: a local input space resolves as before ---------
+    {
+        ColorConfig cc(interop_path);
+        auto handle = cc.createDisplayTransform("disp", "view1", "ap0");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);
+        OIIO_CHECK_FALSE(cc.has_error());
+    }
+
+    // --- Trap-1 regression, strict OFF: the foreign input is NOT silently
+    //     treated as scene_linear -- the route falls back to a pass-through
+    //     (pixels UNCHANGED) and records a why + how-to-fix message. THIS is the
+    //     test of the slice. --------------------------------------------------
+    {
+        ColorConfig cc(non_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        OIIO_CHECK_FALSE(OIIO::pvt::color_config_is_interoperable(cc));
+        OIIO_CHECK_FALSE(
+            OIIO::pvt::color_config_interopified_resolves_scene_interchange(cc));
+
+        auto handle = cc.createDisplayTransform("disp", "view1",
+                                                "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);  // non-null fallback
+        float passthru[3] = { probe[0], probe[1], probe[2] };
+        if (handle)
+            handle->apply(passthru);
+        // Pixels unchanged: the input was NOT reinterpreted as scene_linear.
+        for (int c = 0; c < 3; ++c)
+            OIIO_CHECK_EQUAL_THRESH(passthru[c], probe[c], 1e-6f);
+        OIIO_CHECK_ASSERT(cc.has_error());
+        std::string err = cc.geterror();
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "not color-interoperable"));
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "display transform"));
+
+        // Prove the pass-through is meaningful, not a coincidental identity: had
+        // the source been reinterpreted as scene_linear (the role space "enc"),
+        // the display transform WOULD have changed the pixels.
+        ColorConfig cc2(non_path);
+        auto trap = cc2.createDisplayTransform("disp", "view1", "enc");
+        OIIO_CHECK_ASSERT(trap.get() != nullptr);
+        float trapped[3] = { probe[0], probe[1], probe[2] };
+        if (trap)
+            trap->apply(trapped);
+        bool trap_changes = false;
+        for (int c = 0; c < 3; ++c)
+            if (std::abs(trapped[c] - probe[c]) > 1e-4f)
+                trap_changes = true;
+        OIIO_CHECK_ASSERT(trap_changes);
+    }
+
+    // --- Trap-1 regression, strict ON: hard error (today's behavior) ----------
+    {
+        ColorConfig cc(strict_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        OIIO_CHECK_ASSERT(OIIO::pvt::color_config_is_interoperable(cc));
+
+        auto handle = cc.createDisplayTransform("disp", "view1",
+                                                "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(handle.get() == nullptr);  // hard error, no processor
+        OIIO_CHECK_ASSERT(cc.has_error());
+        std::string err = cc.geterror();
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "strict parsing"));
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "registry-known interop"));
+    }
+
+    Filesystem::remove(interop_path);
+    Filesystem::remove(strict_path);
+    Filesystem::remove(non_path);
+}
+
+
+
 // Set/clear an environment variable portably (the same idiom OIIO uses
 // elsewhere, e.g. src/iv/ivmain.cpp).
 static void
@@ -1265,6 +1462,7 @@ main(int argc, char* argv[])
     test_config_interoperability();
     test_cross_config_processor();
     test_cross_config_conversion();
+    test_cross_config_display();
     test_color_space_fingerprint_cache();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
