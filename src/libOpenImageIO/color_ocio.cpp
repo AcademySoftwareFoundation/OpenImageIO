@@ -4563,6 +4563,53 @@ note_interop_warning(const std::string& id)
     return s_warned.insert(id).second;
 }
 
+
+
+// The cross-config chokepoint: the single wrapper over OCIO's two-config
+// GetProcessorFromConfigs. Every cross-config color route funnels through
+// here (color-space now; a display-view sibling with the explicit-interchange
+// overload lands in a later slice), so the failure policy lives in exactly one
+// place. Both configs must expose the interchange role GetProcessorFromConfigs
+// needs (aces_interchange for scene-referred names, cie_xyz_d65_interchange
+// for display-referred) -- that is the caller's obligation, satisfied by the
+// interoperability bootstrap/repair above. With both contexts null the 4-arg
+// overload is used (OCIO takes each config's current context); otherwise the
+// context-aware overload runs, defaulting a missing side to that config's
+// current context. On any OCIO failure the processor is null and `errmsg` is
+// set from the exception -- never thrown across the boundary, never silent.
+OCIO::ConstProcessorRcPtr
+processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
+                       string_view src_name,
+                       const OCIO::ConstConfigRcPtr& dst_config,
+                       string_view dst_name, std::string& errmsg,
+                       const OCIO::ConstContextRcPtr& src_context = nullptr,
+                       const OCIO::ConstContextRcPtr& dst_context = nullptr)
+{
+    errmsg.clear();
+    if (!src_config || !dst_config) {
+        errmsg = "Cross-config processor requires two valid configs";
+        return {};
+    }
+    const std::string src(src_name);
+    const std::string dst(dst_name);
+    try {
+        if (!src_context && !dst_context)
+            return OCIO::Config::GetProcessorFromConfigs(src_config, src.c_str(),
+                                                         dst_config, dst.c_str());
+        OCIO::ConstContextRcPtr sctx = src_context ? src_context
+                                                   : src_config->getCurrentContext();
+        OCIO::ConstContextRcPtr dctx = dst_context ? dst_context
+                                                   : dst_config->getCurrentContext();
+        return OCIO::Config::GetProcessorFromConfigs(sctx, src_config, src.c_str(),
+                                                     dctx, dst_config, dst.c_str());
+    } catch (OCIO::Exception& e) {
+        errmsg = e.what();
+    } catch (...) {
+        errmsg = "Unknown error in OpenColorIO GetProcessorFromConfigs";
+    }
+    return {};
+}
+
 }  // namespace
 
 
@@ -5001,6 +5048,61 @@ color_config_interopified_cache_off(const ColorConfig& config)
 {
     auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
     return impl ? impl->interopifiedCacheOff() : false;
+}
+
+
+std::vector<float>
+cross_config_probe(const ColorConfig& src_config, string_view src_name,
+                   const ColorConfig& dst_config, string_view dst_name,
+                   cspan<float> probe, string_view context_key,
+                   string_view context_value)
+{
+    std::vector<float> out;
+    auto* src_impl = v3_1::pvt::ColorConfigClassificationPeek::impl(src_config);
+    auto* dst_impl = v3_1::pvt::ColorConfigClassificationPeek::impl(dst_config);
+    if (!src_impl || !dst_impl)
+        return out;
+    OCIO::ConstConfigRcPtr sc = src_impl->config_;
+    OCIO::ConstConfigRcPtr dc = dst_impl->config_;
+    if (!sc || !dc) {
+        dst_impl->error("Cross-config probe requires two OCIO-backed configs");
+        return out;
+    }
+    if (probe.size() != 3) {
+        dst_impl->error("Cross-config probe expects a 3-channel pixel");
+        return out;
+    }
+
+    // A non-empty key/value pair drives the context-aware overload: set the var
+    // on both configs' current contexts, exercising the chokepoint's 6-arg path.
+    OCIO::ConstContextRcPtr sctx, dctx;
+    if (context_key.size() && context_value.size()) {
+        const std::string k(context_key), v(context_value);
+        auto se = sc->getCurrentContext()->createEditableCopy();
+        se->setStringVar(k.c_str(), v.c_str());
+        sctx = se;
+        auto de = dc->getCurrentContext()->createEditableCopy();
+        de->setStringVar(k.c_str(), v.c_str());
+        dctx = de;
+    }
+
+    std::string err;
+    auto proc = v3_1::processor_from_configs(sc, src_name, dc, dst_name, err,
+                                             sctx, dctx);
+    if (!proc) {
+        dst_impl->error("{}", err);
+        return out;
+    }
+    // Probe-pixel comparison discipline (abs 1e-6/channel): apply the default
+    // CPU processor to the caller's pixel and hand back the transformed floats.
+    out.assign(probe.begin(), probe.end());
+    try {
+        proc->getDefaultCPUProcessor()->applyRGB(out.data());
+    } catch (OCIO::Exception& e) {
+        dst_impl->error("{}", e.what());
+        out.clear();
+    }
+    return out;
 }
 
 }  // namespace pvt

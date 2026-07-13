@@ -621,6 +621,126 @@ colorspaces:
 
 
 
+// Exercise the cross-config processor chokepoint (pvt::cross_config_probe, a
+// wrapper over OCIO's two-config GetProcessorFromConfigs): a route bridged
+// between two structurally distinct configs that share the aces_interchange
+// role reproduces the destination config's own transform (probe pixel agrees
+// within 1e-6); a config with no interchange role fails with a null processor
+// and the OCIO role message set on the destination; and a context key/value
+// pair smoke-drives the context-aware overload.
+static void
+test_cross_config_processor()
+{
+    using OIIO::pvt::cross_config_probe;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    // Two-config GetProcessorFromConfigs / the interchange-role machinery needs
+    // OCIO >= 2.3.
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02030000)
+        return;
+
+    // Source config: the scene interchange (aces_interchange -> ref) is the
+    // route's source endpoint.
+    static const char* src_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+)";
+    // Destination config: shares the interchange (ref) and adds a gamma space
+    // reachable from it. Structurally distinct from src (it has g22), so the
+    // route genuinely crosses configs.
+    static const char* dst_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: g22
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+)";
+    // A config with no scene interchange role at all: unbridgeable.
+    static const char* noninterop_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+)";
+
+    std::string src_path = Filesystem::temp_directory_path()
+                           + "/oiio_color_test_xconfig_src.ocio";
+    std::string dst_path = Filesystem::temp_directory_path()
+                           + "/oiio_color_test_xconfig_dst.ocio";
+    std::string non_path = Filesystem::temp_directory_path()
+                           + "/oiio_color_test_xconfig_non.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(src_path, src_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(dst_path, dst_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(non_path, noninterop_yaml));
+
+    ColorConfig src_cc(src_path);
+    ColorConfig dst_cc(dst_path);
+    ColorConfig non_cc(non_path);
+    OIIO_CHECK_ASSERT(!src_cc.has_error());
+    OIIO_CHECK_ASSERT(!dst_cc.has_error());
+    OIIO_CHECK_ASSERT(!non_cc.has_error());
+
+    const float probe[3] = { 0.18f, 0.42f, 0.73f };
+
+    // --- Success: cross-config route equals the destination's own transform --
+    {
+        auto got = cross_config_probe(src_cc, "ref", dst_cc, "g22", probe);
+        OIIO_CHECK_EQUAL(got.size(), size_t(3));
+        OIIO_CHECK_ASSERT(!dst_cc.has_error());
+
+        // Independent reference: the destination config's own ref->g22
+        // processor, applied to the same probe pixel.
+        auto ref = dst_cc.createColorProcessor("ref", "g22");
+        OIIO_CHECK_ASSERT(ref.get() != nullptr);
+        float expected[3] = { probe[0], probe[1], probe[2] };
+        if (ref)
+            ref->apply(expected);
+        if (got.size() == 3)
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(got[c], expected[c], 1e-6f);
+    }
+
+    // --- Missing-role failure: empty result + OCIO role message set on dst ---
+    {
+        auto got = cross_config_probe(src_cc, "ref", non_cc, "ref", probe);
+        OIIO_CHECK_ASSERT(got.empty());
+        OIIO_CHECK_ASSERT(non_cc.has_error());
+        std::string err = non_cc.geterror();
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "aces_interchange"));
+    }
+
+    // --- Context-aware overload smoke: a key/value pair builds a processor ---
+    {
+        auto got = cross_config_probe(src_cc, "ref", dst_cc, "g22", probe,
+                                      "LUT", "identity");
+        OIIO_CHECK_EQUAL(got.size(), size_t(3));
+        OIIO_CHECK_ASSERT(!dst_cc.has_error());
+    }
+
+    Filesystem::remove(src_path);
+    Filesystem::remove(dst_path);
+    Filesystem::remove(non_path);
+}
+
+
+
 // Set/clear an environment variable portably (the same idiom OIIO uses
 // elsewhere, e.g. src/iv/ivmain.cpp).
 static void
@@ -960,6 +1080,7 @@ main(int argc, char* argv[])
     test_color_space_classification();
     test_color_space_fingerprint();
     test_config_interoperability();
+    test_cross_config_processor();
     test_color_space_fingerprint_cache();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run

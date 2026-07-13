@@ -468,6 +468,21 @@ color_config_interopified_resolves_scene_interchange(const ColorConfig& config);
 OIIO_API bool
 color_config_interopified_cache_off(const ColorConfig& config);
 
+/// Exercise the central cross-config processor chokepoint: build a processor
+/// from `src_name` in `src_config` to `dst_name` in `dst_config` through the
+/// configs' shared OCIO interchange roles, apply it to the 3-channel `probe`
+/// pixel, and return the transformed floats. A non-empty context_key/value
+/// pair drives the chokepoint's context-aware overload. On failure returns an
+/// empty vector and sets the error on `dst_config` (retrievable via
+/// dst_config.geterror()); the chokepoint never throws. Comparisons should use
+/// probe-pixel agreement (abs 1e-6/channel), not byte-identical processors. For
+/// internal/test use only.
+OIIO_API std::vector<float>
+cross_config_probe(const ColorConfig& src_config, string_view src_name,
+                   const ColorConfig& dst_config, string_view dst_name,
+                   cspan<float> probe, string_view context_key = {},
+                   string_view context_value = {});
+
 
 // ---------------------------------------------------------------------------
 // Color interop ID grammar and sanitization -- the ID grammar and
