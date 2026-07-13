@@ -43,6 +43,7 @@ getColorSpaceFromFilepath('none.exr') = Raw
 getColorSpaceFromFilepath('noclue.exr') = unknown
 
 Loaded test OCIO config: oiio_test_v0.9.2.ocio
+resolve('myapp:g24_rec709'): Gamma 2.4 Encoded Rec.709 (sRGB)
 Parsed color space for filepath 'foo_lin_ap1.exr': ACEScg
 Default color space: lin_rec709
 Default display: sRGB (~2.22) - Display

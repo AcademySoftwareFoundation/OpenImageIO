@@ -809,6 +809,319 @@ colorspaces:
 
 
 
+// Exercise the enriched ColorConfig::resolve() read-side tiers: the
+// stripped-namespace retry, the config-local "<config>:local:<base>" form,
+// the explicit interop_id attribute match (one-side-stripped only, never
+// both), the data/bypass utility-token ranking (and "unknown"'s deliberate
+// exclusion from it), and the registry-equivalence (fingerprint) tier --
+// plus the historical passthrough-on-total-miss regression guard. Small
+// hand-built OCIO configs, same pattern as test_color_space_classification /
+// test_config_interoperability, isolate each tier so one config's fixtures
+// can't accidentally satisfy a different tier's assertion.
+static void
+test_interop_resolve()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    // OCIO >= 2.5 is required for the `interop_id:` color space attribute
+    // (native getInteropID()); tiers that depend on it are gated below.
+    const bool has_interop_id_attr = ColorConfig::OpenColorIO_version_hex()
+                                     >= 0x02050000;
+
+    // ---- Base fixture: stripped-namespace, config-local, literal-unknown,
+    // and total-miss passthrough. No interop_id attributes -- safe to parse
+    // on any linked OCIO version. -----------------------------------------
+    static const char* base_yaml = R"(ocio_profile_version: 2.1
+name: resolvetest
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ref}
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: gamma24_space
+    aliases: [g24_rec709_scene]
+    from_scene_reference: !<ExponentTransform> {value: [2.4, 2.4, 2.4, 1]}
+
+  - !<ColorSpace>
+    name: local_target
+    aliases: [my_local_alias, unknown]
+    from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}
+)";
+    std::string base_path = Filesystem::temp_directory_path()
+                            + "/oiio_color_test_resolve_base.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(base_path, base_yaml));
+    {
+        ColorConfig cc(base_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+
+        // Tier 1a': stripped-namespace retry -- the full string
+        // "myapp:g24_rec709_scene" matches no name/alias/role, but stripping
+        // the one leftmost namespace reaches the real alias.
+        OIIO_CHECK_EQUAL(cc.resolve("myapp:g24_rec709_scene"), "gamma24_space");
+
+        // Tier 1a'': config-local "<config>:local:<base>" form, matched
+        // against names/aliases only. A hit through an alias...
+        OIIO_CHECK_EQUAL(cc.resolve("resolvetest:local:my_local_alias"),
+                          "local_target");
+        // ...and a miss when the base names nothing in this config (proves
+        // the tier doesn't fall back to a fuzzy match).
+        OIIO_CHECK_EQUAL(cc.resolve("resolvetest:local:no_such_space"),
+                          "resolvetest:local:no_such_space");
+
+        // "unknown" is a literal name/alias lookup only -- never routed
+        // through the ranked data-space search. Reachable here because
+        // local_target happens to carry it as a literal alias (ordinary
+        // tier 1a), not because of any utility-token machinery.
+        OIIO_CHECK_EQUAL(cc.resolve("unknown"), "local_target");
+
+        // Regression guard: a name that matches nothing in any tier is
+        // still passed through unchanged (main's historical behavior).
+        OIIO_CHECK_EQUAL(cc.resolve("totally_unrecognized_id"),
+                          "totally_unrecognized_id");
+    }
+    Filesystem::remove(base_path);
+
+    // ---- Uppercase fixture: an OCIO name/alias lookup is case-insensitive,
+    // so a literal (capitalized) "Unknown"/"Bypass" color space is reachable
+    // via tier 1a's pre-existing OCIO lookup regardless of the CIF grammar's
+    // lowercase-only validity rule (is_valid_interop_id, already covered by
+    // test_interop_id_grammar) -- resolve() is not gated on id validity, by
+    // design, so it doesn't re-derive that grammar-level invariant. What IS
+    // decisive and worth guarding here: the new utility-ranking tier
+    // (resolve_data_utility) never even runs for these, because tier 1a's
+    // OCIO-native lookup already satisfied the query first.
+    {
+        static const char* upper_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: Uppercase_Utility
+    aliases: [Unknown, Bypass]
+    isdata: true
+)";
+        std::string upper_path = Filesystem::temp_directory_path()
+                                 + "/oiio_color_test_resolve_upper.ocio";
+        OIIO_CHECK_ASSERT(Filesystem::write_text_file(upper_path, upper_yaml));
+        ColorConfig cc(upper_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        OIIO_CHECK_EQUAL(cc.resolve("unknown"), "Uppercase_Utility");
+        OIIO_CHECK_EQUAL(cc.resolve("bypass"), "Uppercase_Utility");
+        Filesystem::remove(upper_path);
+    }
+
+    if (has_interop_id_attr) {
+        // ---- Explicit interop_id attribute: safe directions -- exactly
+        // one side stripped -- still match. ---------------------------
+        static const char* safe_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: attr_bare_y
+    interop_id: "y"
+    from_scene_reference: !<ExponentTransform> {value: [1.5, 1.5, 1.5, 1]}
+
+  - !<ColorSpace>
+    name: attr_ns_z
+    interop_id: "app2:z"
+    from_scene_reference: !<ExponentTransform> {value: [1.6, 1.6, 1.6, 1]}
+)";
+        std::string safe_path = Filesystem::temp_directory_path()
+                                + "/oiio_color_test_resolve_safe.ocio";
+        OIIO_CHECK_ASSERT(Filesystem::write_text_file(safe_path, safe_yaml));
+        {
+            ColorConfig cc(safe_path);
+            OIIO_CHECK_ASSERT(!cc.has_error());
+            // Query-side stripped: bare attribute "y" matches namespaced
+            // query "app:y".
+            OIIO_CHECK_EQUAL(cc.resolve("app:y"), "attr_bare_y");
+            // Attribute-side stripped: namespaced attribute "app2:z"
+            // matches bare query "z".
+            OIIO_CHECK_EQUAL(cc.resolve("z"), "attr_ns_z");
+        }
+        Filesystem::remove(safe_path);
+
+        // ---- Explicit interop_id attribute: the both-sides-stripped
+        // cross-namespace false positive is rejected. -------------------
+        static const char* reject_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: attr_oiio_x
+    interop_id: "oiio:x"
+    from_scene_reference: !<ExponentTransform> {value: [1.7, 1.7, 1.7, 1]}
+)";
+        std::string reject_path = Filesystem::temp_directory_path()
+                                  + "/oiio_color_test_resolve_reject.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(reject_path, reject_yaml));
+        {
+            ColorConfig cc(reject_path);
+            OIIO_CHECK_ASSERT(!cc.has_error());
+            // "oiio:x" and "ocio:x" both strip to "x", but neither raw side
+            // matches -- a miss, not a false positive.
+            OIIO_CHECK_EQUAL(cc.resolve("ocio:x"), "ocio:x");
+        }
+        Filesystem::remove(reject_path);
+
+        // ---- Utility-token ranking: rank 0 (self-identity via interop_id)
+        // short-circuits for both "bypass" and "data". --------------------
+        static const char* rank_full_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: bypass_named
+    interop_id: bypass
+    isdata: true
+
+  - !<ColorSpace>
+    name: data_named
+    interop_id: data
+    isdata: true
+
+  - !<ColorSpace>
+    name: plain_data_space
+    isdata: true
+)";
+        std::string rank_full_path = Filesystem::temp_directory_path()
+                                     + "/oiio_color_test_resolve_rank_full.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(rank_full_path, rank_full_yaml));
+        {
+            ColorConfig cc(rank_full_path);
+            OIIO_CHECK_ASSERT(!cc.has_error());
+            OIIO_CHECK_EQUAL(cc.resolve("bypass"), "bypass_named");
+            OIIO_CHECK_EQUAL(cc.resolve("data"), "data_named");
+            // "unknown" is never ranked -- no literal "unknown" name/alias
+            // exists here, so it's a total miss even though data spaces do.
+            OIIO_CHECK_EQUAL(cc.resolve("unknown"), "unknown");
+        }
+        Filesystem::remove(rank_full_path);
+
+        // ---- Utility-token ranking: without a self-identified space, a
+        // plain data space (rank 1) beats one identified as the OTHER
+        // token (rank 2). The "data" query's mirror case runs through the
+        // identical ranking code path (data_space_identifies_as / rank
+        // computation are symmetric in token/other), so one direction is
+        // sufficient coverage here.
+        static const char* rank_partial_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: data_named
+    interop_id: data
+    isdata: true
+
+  - !<ColorSpace>
+    name: plain_data_space
+    isdata: true
+)";
+        std::string rank_partial_path
+            = Filesystem::temp_directory_path()
+              + "/oiio_color_test_resolve_rank_partial.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(rank_partial_path, rank_partial_yaml));
+        {
+            ColorConfig cc(rank_partial_path);
+            OIIO_CHECK_ASSERT(!cc.has_error());
+            // No space here self-identifies as "bypass"; data_named
+            // identifies as the OTHER token (rank 2), so the plain data
+            // space (rank 1) wins.
+            OIIO_CHECK_EQUAL(cc.resolve("bypass"), "plain_data_space");
+        }
+        Filesystem::remove(rank_partial_path);
+    }
+
+    // ---- Registry equivalence (tier 2): a query that names no local
+    // space, but is fingerprint-identical to a registry identity, resolves
+    // to this config's OWN equivalent space -- never a cross-config
+    // processor. Both this config's "aces_interchange" anchor and the
+    // queried space are identity (no transform), matching the registry's
+    // own AP0 reference space (ACES2065-1) exactly. A utility token stays
+    // an automatic miss even though this config is otherwise interoperable
+    // and reaches this tier. -------------------------------------------
+    {
+        static const char* registry_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: my_ap0_ref
+  scene_linear: my_ap0_ref
+  aces_interchange: my_ap0_ref
+colorspaces:
+  - !<ColorSpace>
+    name: my_ap0_ref
+
+  - !<ColorSpace>
+    name: another_ap0_identity_space
+)";
+        std::string registry_path = Filesystem::temp_directory_path()
+                                    + "/oiio_color_test_resolve_registry.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(registry_path, registry_yaml));
+        ColorConfig cc(registry_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+
+        // Neither space is named or aliased "lin_ap0_scene" -- only a
+        // registry fingerprint match can reach one via that id. Both
+        // "my_ap0_ref" and "another_ap0_identity_space" are identity (no
+        // transform), so both are genuinely fingerprint-equivalent; the
+        // tier walks the config's simple spaces in deterministic sorted
+        // order and returns the first match, which alphabetically is
+        // "another_ap0_identity_space".
+        OIIO_CHECK_EQUAL(cc.resolve("lin_ap0_scene"),
+                          "another_ap0_identity_space");
+
+        // A utility token has no registry fingerprint and must not attempt
+        // one, even on a config that is otherwise interoperable and would
+        // reach tier 2.
+        OIIO_CHECK_EQUAL(cc.resolve("data"), "data");
+        OIIO_CHECK_EQUAL(cc.resolve("bypass"), "bypass");
+        OIIO_CHECK_EQUAL(cc.resolve("unknown"), "unknown");
+
+        Filesystem::remove(registry_path);
+    }
+}
+
+
+
 // True-cold construction helper: re-exec'd as a fresh subprocess by
 // run_bench_phases() below (see comment there for why). Prints
 // "construct_ms <value>" and exits -- no other tests run.
@@ -961,6 +1274,7 @@ main(int argc, char* argv[])
     test_color_space_fingerprint();
     test_config_interoperability();
     test_color_space_fingerprint_cache();
+    test_interop_resolve();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
     // never sets it.
