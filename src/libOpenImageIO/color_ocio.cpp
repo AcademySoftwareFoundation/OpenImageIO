@@ -472,6 +472,18 @@ public:
     // deterministic bulk "warm" pass; see fingerprintSimpleColorSpaces()).
     std::size_t fingerprintWarm();
 
+    // Step 2 of ColorConfig::get_color_interop_id(): the write-side analog of
+    // resolve_registry_equivalence(). Given a color space name that already
+    // resolves to a real space in this config, fingerprint it and return the
+    // built-in registry identity it is definitionally equal to -- i.e. the
+    // REGISTRY space's own interop id, not the query's name. Empty on no match.
+    // Gated to skip data / config-unique / skip-matching spaces (a data space is
+    // already answered by step 1). Non-const: it populates the logically-const
+    // lazy classification and fingerprint caches, and lazily builds the
+    // process-global registry fingerprint index on first use. Called by
+    // ColorConfig via getImpl(), so it lives in the public section.
+    string_view deriveRegistryInteropId(string_view resolved_name);
+
     // Interoperability assertion/bootstrap queries (each triggers the lazy
     // bootstrap, except interopComputed(), which must NOT, so callers can
     // verify that constructing a ColorConfig does no interop work).
@@ -3711,27 +3723,82 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
 {
     if (colorspace.empty())
         return "";
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+
+    // Four-step Color Interop Forum write-side derivation (see the doc comment
+    // in color.h for the full order and the two documented decisions). The first
+    // step to produce an id wins; nothing here runs at construction time, and
+    // step 2's fingerprint engine only wakes on the first query that reaches it.
+
+    std::string resolved;
+    bool resolves_to_real_space = false;
     if (getImpl()->config_ && !disable_ocio) {
-        const char* interop_id = nullptr;
+        resolved = std::string(resolve(colorspace));
+        OCIO::ConstColorSpaceRcPtr c;
         try {
-            OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
-                std::string(resolve(colorspace)).c_str());
-            if (c)
-                interop_id = c->getInteropID();
+            c = getImpl()->config_->getColorSpace(resolved.c_str());
         } catch (...) {
-            interop_id = nullptr;
+            c = nullptr;
         }
-        if (interop_id) {
-            return interop_id;
-        }
-    }
+        if (c) {
+            resolves_to_real_space = true;
+            // Step 1: an author-declared interop_id on the space is
+            // unconditionally authoritative -- it wins over fingerprinting and
+            // over any strict/unknown handling (OCIO 2.5+). A non-empty value is
+            // what "declared" means; an unset attribute (empty string) falls
+            // through to the tiers below rather than short-circuiting to empty.
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+            if (const char* iid = c->getInteropID(); iid && *iid)
+                return iid;
 #endif
-    for (const ColorInteropID& interop : color_interop_ids) {
-        if (equivalent(colorspace, interop.interop_id)) {
-            return interop.interop_id;
+            // Step 1, utility sub-case: a data space with no explicit token
+            // resolves to "data" HERE -- before any fingerprint tier -- never
+            // "unknown" or empty. (isData() is available on all OCIO 2.x.)
+            if (c->isData())
+                return "data";
         }
     }
+
+    // Step 2: definitional equivalence to a built-in registry identity, by
+    // fingerprint. Returns THAT registry identity's id (a process-global-stable
+    // string), not the query's own name. Only meaningful once the query resolves
+    // to a real space to fingerprint.
+    if (resolves_to_real_space) {
+        if (string_view r = getImpl()->deriveRegistryInteropId(resolved);
+            !r.empty())
+            return r;
+    }
+
+    // Step 2.5 (legacy syntactic fallback -- DECISION a): the static CICP /
+    // interop-id table matched by name/alias/flag equivalence. Kept AFTER the
+    // real fingerprint match (so a genuine fingerprint match is always
+    // preferred); retiring it would change get_cicp(), which consults this same
+    // table to map an id back to a CICP tuple. It is never the final-resort
+    // match -- steps 3 and 4 always follow -- so it can never act as a guessed
+    // default. Its literals live in static storage, so the returned view is
+    // stable.
+    for (const ColorInteropID& interop : color_interop_ids) {
+        if (equivalent(colorspace, interop.interop_id))
+            return interop.interop_id;
+    }
+
+    // Step 3 (DECISION b): a named config plus a query that resolves to a real
+    // space yields a config-local id "<config>:local:<space>", both segments
+    // sanitized independently per the CIF grammar. This ALWAYS attempts -- it is
+    // not gated behind an opt-in knob (the string_view overload can gain no such
+    // parameter) -- because its two natural preconditions, a non-empty config
+    // name AND a resolvable query, already keep it from firing on a genuine
+    // miss. The generated std::string is interned via ustring so the returned
+    // view outlives this call (the local literals and OCIO-owned strings the
+    // earlier steps return are already stable).
+    if (resolves_to_real_space) {
+        const char* cfgname = getImpl()->config_->getName();
+        if (cfgname && *cfgname)
+            return ustring(OIIO::pvt::sanitize_id_token(cfgname) + ":local:"
+                           + OIIO::pvt::sanitize_id_token(resolved));
+    }
+
+    // Step 4: nothing identified the space -- return empty, never a guessed
+    // default (a wrong id costs trust in the whole system).
     return "";
 }
 
@@ -4952,6 +5019,39 @@ registry_fingerprint_for_id(const RegistryFingerprintIndex& index,
     return nullptr;
 }
 
+// Reverse of registry_fingerprint_for_id (the write-side direction): given a
+// query space's fingerprint, return the built-in registry identity whose
+// fingerprint matches it within tolerance, walking the index's sorted
+// deterministic order so first-match is stable. The returned view is the
+// registry identity's own interop id -- its interop_id attribute (OCIO >= 2.5,
+// where the registry is the studio config whose space names, e.g. "ACEScg",
+// differ from the CIF ids, e.g. "lin_ap1_scene"), else its name (the embedded
+// config, where name == interop_id). This mirrors registry_fingerprint_for_id's
+// canonicalization. Both strings are owned by the process-global registry
+// config/index, so the view is stable for the life of the process. Empty when
+// nothing matches.
+string_view
+registry_id_for_fingerprint(const RegistryFingerprintIndex& index,
+                            const OIIO::pvt::ColorSpaceFingerprint& query_fp)
+{
+    for (const auto& entry : index.entries) {
+        if (!fingerprints_match(query_fp, entry.second))
+            continue;
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+        if (index.config) {
+            try {
+                if (auto cs = index.config->getColorSpace(entry.first.c_str()))
+                    if (const char* iid = cs->getInteropID(); iid && *iid)
+                        return iid;
+            } catch (...) {
+            }
+        }
+#endif
+        return entry.first;
+    }
+    return {};
+}
+
 }  // namespace
 
 
@@ -5237,6 +5337,31 @@ ColorConfig::Impl::resolve_registry_equivalence(string_view name)
             return cs_name;
     }
     return {};
+}
+
+
+
+string_view
+ColorConfig::Impl::deriveRegistryInteropId(string_view resolved_name)
+{
+    if (resolved_name.empty())
+        return {};
+    // Gate (mirrors oicio's getEqualityId gating and the read-side tier): a data
+    // space is already answered by step 1's utility sub-case; a config-unique
+    // space or one flagged skip-matching is never a fingerprint candidate.
+    const int flags = analysisFlags(resolved_name);
+    if (flags
+        & (CSInfo::is_data | CSInfo::is_unique | CSInfo::should_skip_matching))
+        return {};
+    // Fingerprint the query space through the process-global cached path, then
+    // match it against the built-in registry index. The returned id is the
+    // registry identity's own (process-global-stable) string, not this query's
+    // name. Lazy: this is the first place the write side touches the fingerprint
+    // engine or the registry index.
+    auto fp = fingerprintCached(resolved_name);
+    if (!fp)
+        return {};
+    return registry_id_for_fingerprint(registry_fingerprint_index(), *fp);
 }
 
 
