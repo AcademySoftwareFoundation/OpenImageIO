@@ -490,10 +490,12 @@ public:
     OCIO::ConstConfigRcPtr interopifiedConfig() const;
 
     // Reconcile a color conversion whose local resolution failed, when a
-    // requested name is a registry-known interop identity this config lacks
-    // (decision 3). Routes the foreign endpoint through the built-in interop
-    // identities config via the cross-config chokepoint. Returned-handle /
-    // `errmsg` contract lives at the definition. Never throws.
+    // requested name is a registry-known interop identity this config lacks.
+    // Cross-config reconciliation is deliberately on by default, observable
+    // via debug log, with OCIO strict_parsing as the opt-out. Routes the
+    // foreign endpoint through the built-in interop identities config via the
+    // cross-config chokepoint. Returned-handle / `errmsg` contract lives at
+    // the definition. Never throws.
     ColorProcessorHandle reconcile_cross_config(string_view src, string_view dst,
                                                 std::string& errmsg) const;
 
@@ -2020,10 +2022,12 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
             // Local resolution failed (OCIO threw for a name this config does
             // not define). If a requested name is a registry-known interop
             // identity the config lacks, reconcile the conversion across configs
-            // through the interop bridge (decision 3). This may return a bridged
-            // processor, a lenient pass-through fallback (non-strict parsing), or
-            // nothing -- leaving today's error -- when the feature does not apply
-            // or strict parsing is on.
+            // through the interop bridge. This is deliberately on by default
+            // (observable via debug log), with OCIO strict_parsing as the
+            // opt-out. This may return a bridged processor, a lenient
+            // pass-through fallback (non-strict parsing), or nothing --
+            // leaving today's error -- when the feature does not apply or
+            // strict parsing is on.
             std::string reconciled;
             ColorProcessorHandle bridged
                 = getImpl()->reconcile_cross_config(inputColorSpace,
@@ -2212,10 +2216,12 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
             // Local resolution failed (OCIO threw for an input name this config
             // does not define). If the input is a registry-known interop
             // identity the config lacks, reconcile the display transform across
-            // configs through the interop bridge (decision 3), mirroring the
-            // color-space route. Crucially, on failure this takes the strict-
-            // aware fallback -- it does NOT silently continue with
-            // setSrc(ROLE_SCENE_LINEAR) as the prototype display path did.
+            // configs through the interop bridge -- on by default, observable
+            // via debug log, with OCIO strict_parsing as the opt-out -- mirroring
+            // the color-space route. Crucially, on failure this takes the
+            // strict-aware fallback -- it does NOT silently continue with
+            // setSrc(ROLE_SCENE_LINEAR) as an earlier iteration of this display
+            // path did.
             pending_error = e.what();
             std::string reconciled;
             ColorProcessorHandle bridged
@@ -4717,7 +4723,7 @@ processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
 // Display-view sibling of the cross-config chokepoint: the single wrapper over
 // OCIO's two-config display-view GetProcessorFromConfigs overload. Every
 // cross-config display route funnels through here, so the failure policy lives
-// in one place (as with processor_from_configs). This is the loot's legacy
+// in one place (as with processor_from_configs). This is the cross-config
 // display bridge composition -- a scene-referred source in one config routed to
 // a display/view in another -- which relies on both configs exposing the
 // aces_interchange role OCIO auto-detects (the caller's obligation, satisfied
@@ -4866,13 +4872,14 @@ ColorConfig::Impl::interopifiedConfig() const
 
 
 // Reconcile a color conversion whose local resolution failed. Fires only when
-// a requested name is a registry-known interop identity this config lacks
-// (decision 3); a locally-absent, registry-unknown name is a genuine unknown
-// and is left to the caller's today's-error path (loot asymmetry rule -- never
-// masks a typo). The foreign endpoint is drawn from the built-in interop
-// identities config; the local endpoint from this config's in-memory,
-// repaired ("interopified") copy, which carries the interchange role
-// GetProcessorFromConfigs bridges through.
+// a requested name is a registry-known interop identity this config lacks; a
+// locally-absent, registry-unknown name is a genuine unknown and is left to
+// the caller's today's-error path -- only the foreign endpoint may come from
+// the identities config, a name unknown to both configs is declined (this
+// asymmetry is deliberate: it never masks a typo). The foreign endpoint is
+// drawn from the built-in interop identities config; the local endpoint from
+// this config's in-memory, repaired ("interopified") copy, which carries the
+// interchange role GetProcessorFromConfigs bridges through.
 //
 // Returned-handle / errmsg contract (errmsg is always assigned):
 //   * bridged success   -> non-null handle, errmsg empty.
@@ -4933,6 +4940,25 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
     } catch (...) {
     }
 
+    const std::string foreign_name = src_foreign ? s : d;
+
+    if (strict) {
+        // Strict mode never touches the interopify/repair machinery -- the
+        // membership check above (against the already-built, memoized
+        // identities config) is all that is needed to compose the hard
+        // error, so skip interopifiedConfig()'s repair/bootstrap entirely.
+        errmsg = Strutil::fmt::format(
+            "Could not reconcile color conversion \"{}\" -> \"{}\": OCIO "
+            "strict parsing is enabled. \"{}\" is a registry-known interop "
+            "identity this config does not define; add the aces_interchange "
+            "role (and a matching color space) to \"{}\", or use a color "
+            "space name this config defines.",
+            src, dst, foreign_name, configname());
+        Strutil::debug("OpenImageIO ColorConfig(\"{}\"): {}\n", configname(),
+                       errmsg);
+        return {};
+    }
+
     // Gate on the interoperability state, not name-presence: only bridge when
     // in-memory detection/repair produced a copy that resolves the scene
     // interchange role GetProcessorFromConfigs needs.
@@ -4941,7 +4967,7 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
 
     OCIO::ConstProcessorRcPtr proc;
     std::string ocio_err;
-    if (gate_open && !strict) {
+    if (gate_open) {
         // The repaired copy is a superset of config_, so the local endpoint
         // still resolves there; the foreign endpoint comes from the identities
         // config.
@@ -4977,18 +5003,16 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
         }
     }
 
-    // Reconciliation did not complete: the gate is closed, strict parsing is on,
-    // or the bridge could not build the transform. Compose one complete why +
-    // how-to-fix message (the ColorConfig error string is overwrite-on-set).
-    const std::string foreign_name = src_foreign ? s : d;
+    // Reconciliation did not complete: the gate is closed, or the bridge could
+    // not build the transform. (Strict parsing already returned above.)
+    // Compose one complete why + how-to-fix message (the ColorConfig error
+    // string is overwrite-on-set).
     std::string why;
     if (!gate_open)
         why = Strutil::fmt::format(
             "config \"{}\" is not color-interoperable (no scene interchange "
             "role could be found or repaired)",
             configname());
-    else if (strict)
-        why = "OCIO strict parsing is enabled";
     else
         why = ocio_err.empty() ? "the interop bridge could not build the "
                                  "transform"
@@ -5000,21 +5024,14 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
         "color space name this config defines.",
         src, dst, why, foreign_name, configname());
 
-    if (!strict) {
-        // Lenient parsing: warn (debug) and continue with a pass-through no-op so
-        // the pipeline proceeds. The message is still recorded on the ColorConfig
-        // for callers that surface it.
-        Strutil::debug("OpenImageIO ColorConfig(\"{}\"): {} Continuing with a "
-                       "pass-through (non-strict parsing).\n",
-                       configname(), errmsg);
-        return ColorProcessorHandle(new ColorProcessor_Matrix(Imath::M44f(),
-                                                              false));
-    }
-    // Strict parsing: hard error. Leave the handle empty; errmsg carries the
-    // why + how-to-fix message for the caller's error path.
-    Strutil::debug("OpenImageIO ColorConfig(\"{}\"): {}\n", configname(),
-                   errmsg);
-    return {};
+    // Lenient parsing: warn (debug) and continue with a pass-through no-op so
+    // the pipeline proceeds. The message is still recorded on the ColorConfig
+    // for callers that surface it.
+    Strutil::debug("OpenImageIO ColorConfig(\"{}\"): {} Continuing with a "
+                   "pass-through (non-strict parsing).\n",
+                   configname(), errmsg);
+    return ColorProcessorHandle(new ColorProcessor_Matrix(Imath::M44f(),
+                                                          false));
 }
 
 
@@ -5039,9 +5056,11 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
 //   * declined (input resolves locally, or is a genuine unknown, or feature
 //     N/A) -> null handle, errmsg empty (caller keeps today's OCIO error).
 //
-// ponytail: the cross-config display route does not carry a looks override --
-// looks are config-local and the loot's legacy display bridge has none; a
-// foreign source with looks is out of P5 scope.
+// TODO: the cross-config display route does not carry a looks override --
+// looks are config-local and the cross-config display bridge has none. A
+// foreign source that also needs a looks override is not handled yet; add
+// looks support to this route if/when a caller needs looks applied across
+// configs.
 ColorProcessorHandle
 ColorConfig::Impl::reconcile_cross_config_display(string_view input,
                                                   string_view display,
@@ -5075,6 +5094,23 @@ ColorConfig::Impl::reconcile_cross_config_display(string_view input,
     } catch (...) {
     }
 
+    if (strict) {
+        // Strict mode never touches the interopify/repair machinery -- the
+        // membership check above (against the already-built, memoized
+        // identities config) is all that is needed to compose the hard
+        // error, so skip interopifiedConfig()'s repair/bootstrap entirely.
+        errmsg = Strutil::fmt::format(
+            "Could not reconcile display transform \"{}\" -> display \"{}\" "
+            "view \"{}\": OCIO strict parsing is enabled. \"{}\" is a "
+            "registry-known interop identity this config does not define; "
+            "add the aces_interchange role (and a matching color space) to "
+            "\"{}\", or use a color space name this config defines.",
+            input, display, view, input, configname());
+        Strutil::debug("OpenImageIO ColorConfig(\"{}\"): {}\n", configname(),
+                       errmsg);
+        return {};
+    }
+
     // Gate on the interoperability state, not name-presence: only bridge when
     // in-memory detection/repair produced a copy resolving the scene interchange
     // role the display-view chokepoint needs.
@@ -5083,7 +5119,7 @@ ColorConfig::Impl::reconcile_cross_config_display(string_view input,
 
     OCIO::ConstProcessorRcPtr proc;
     std::string ocio_err;
-    if (gate_open && !strict) {
+    if (gate_open) {
         const OCIO::TransformDirection dir
             = inverse ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD;
 
@@ -5109,17 +5145,16 @@ ColorConfig::Impl::reconcile_cross_config_display(string_view input,
         }
     }
 
-    // Reconciliation did not complete: the gate is closed, strict parsing is on,
-    // or the bridge could not build the transform. Compose one complete why +
-    // how-to-fix message (the ColorConfig error string is overwrite-on-set).
+    // Reconciliation did not complete: the gate is closed, or the bridge could
+    // not build the transform. (Strict parsing already returned above.)
+    // Compose one complete why + how-to-fix message (the ColorConfig error
+    // string is overwrite-on-set).
     std::string why;
     if (!gate_open)
         why = Strutil::fmt::format(
             "config \"{}\" is not color-interoperable (no scene interchange "
             "role could be found or repaired)",
             configname());
-    else if (strict)
-        why = "OCIO strict parsing is enabled";
     else
         why = ocio_err.empty() ? "the interop bridge could not build the "
                                  "transform"
@@ -5131,22 +5166,17 @@ ColorConfig::Impl::reconcile_cross_config_display(string_view input,
         "space) to \"{}\", or use a color space name this config defines.",
         input, display, view, why, input, configname());
 
-    if (!strict) {
-        // Lenient parsing: warn (debug) and continue with a pass-through no-op.
-        // The source is NOT reinterpreted as scene_linear (prototype trap #1) --
-        // the pixels pass through unchanged, and the message is recorded on the
-        // ColorConfig for callers that surface it.
-        Strutil::debug("OpenImageIO ColorConfig(\"{}\"): {} Continuing with a "
-                       "pass-through (non-strict parsing).\n",
-                       configname(), errmsg);
-        return ColorProcessorHandle(new ColorProcessor_Matrix(Imath::M44f(),
-                                                              false));
-    }
-    // Strict parsing: hard error. Leave the handle empty; errmsg carries the
-    // why + how-to-fix message for the caller's error path.
-    Strutil::debug("OpenImageIO ColorConfig(\"{}\"): {}\n", configname(),
-                   errmsg);
-    return {};
+    // Lenient parsing: warn (debug) and continue with a pass-through no-op.
+    // On bridge failure, do NOT fall back to treating the input as
+    // scene_linear -- that silently reinterprets pixels; take the
+    // strict-aware error path instead. Here (non-strict), that means the
+    // pixels pass through unchanged, and the message is recorded on the
+    // ColorConfig for callers that surface it.
+    Strutil::debug("OpenImageIO ColorConfig(\"{}\"): {} Continuing with a "
+                   "pass-through (non-strict parsing).\n",
+                   configname(), errmsg);
+    return ColorProcessorHandle(new ColorProcessor_Matrix(Imath::M44f(),
+                                                          false));
 }
 
 

@@ -34,17 +34,24 @@ else :
     # identity this config never defines). The config is interoperable (it
     # declares an aces_interchange role), so the conversion is bridged through
     # the shared identities and produces a real, non-identity transform.
+    # The actual pixel values depend on which built-in identities config OCIO
+    # linked against provides (see build_interop_identities_config()), which
+    # can shift slightly across OCIO versions -- so check the result as an
+    # image (toleranced idiff), not as an exact-precision printed string.
     command += oiiotool ("--colorconfig src/interop.ocio probe.exr "
                          + "--colorconvert ap0 lin_ap1_scene "
-                         + "-echo \"cross-config convert: {TOP.AVGCOLOR}\"")
+                         + "-echo \"cross-config convert: wrote xconv-cross.exr\" "
+                         + "-o xconv-cross.exr")
 
     # (2) Cross-config display success: the INPUT is the foreign, well-known
     # identity; "disp"/"view1" are local. The foreign source is bridged
-    # through the shared identities into the local display/view.
+    # through the shared identities into the local display/view. Same
+    # version-dependent-precision reasoning as (1): compare as an image.
     command += oiiotool ("--colorconfig src/interop.ocio probe.exr "
                          + "--iscolorspace lin_ap1_scene "
                          + "--ociodisplay disp view1 "
-                         + "-echo \"cross-config display: {TOP.AVGCOLOR}\"")
+                         + "-echo \"cross-config display: wrote xdisp-cross.exr\" "
+                         + "-o xdisp-cross.exr")
 
     # (3) Strict-on hard error: the same conversion as (1), but this config
     # has OCIO strict parsing enabled, which opts out of the bridge and
@@ -66,8 +73,11 @@ else :
     # (5) Untouched local-name conversion: both spaces are defined by this
     # config directly, so none of the cross-config machinery above is
     # involved -- ordinary local resolution behaves exactly as before.
+    # Checked as an image for consistency with (1)/(2), even though this
+    # route doesn't touch OCIO's built-in identities config.
     command += oiiotool ("--colorconfig src/interop.ocio probe.exr "
                          + "--colorconvert ap0 g22 "
-                         + "-echo \"local-only convert: {TOP.AVGCOLOR}\"")
+                         + "-echo \"local-only convert: wrote xconv-local.exr\" "
+                         + "-o xconv-local.exr")
 
-outputs = [ "out.txt" ]
+outputs = [ "xconv-cross.exr", "xdisp-cross.exr", "xconv-local.exr", "out.txt" ]

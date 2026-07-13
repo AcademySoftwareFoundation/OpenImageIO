@@ -748,8 +748,8 @@ colorspaces:
 
 
 
-// Exercise the cross-config conversion route in ColorConfig::createColorProcessor
-// (decision 3): when a requested color space is absent from the current config
+// Exercise the cross-config conversion route in ColorConfig::createColorProcessor:
+// when a requested color space is absent from the current config
 // but is a registry-known interop identity, and the config is color-
 // interoperable (natively or via in-memory repair), the conversion routes
 // through the built-in interop identities config instead of erroring on the
@@ -935,14 +935,14 @@ colorspaces:
 
 
 
-// Exercise the cross-config DISPLAY route in ColorConfig::createDisplayTransform
-// (decision 3, R3): when the INPUT color space is absent from the current config
+// Exercise the cross-config DISPLAY route in ColorConfig::createDisplayTransform:
+// when the INPUT color space is absent from the current config
 // but is a registry-known interop identity, and the config defines the requested
 // display/view, the display transform routes the foreign source through the
 // built-in interop identities config into this config's display/view -- the same
-// strict/lenient/narration contract as the color-space route. The prototype's
-// silent setSrc(ROLE_SCENE_LINEAR) continue-on-failure (trap #1) is replaced by
-// the strict-aware fallback: strict OFF -> pass-through (pixels UNCHANGED, NOT
+// strict/lenient/narration contract as the color-space route. On bridge failure,
+// the input is deliberately NOT reinterpreted as scene_linear; instead the
+// strict-aware fallback applies: strict OFF -> pass-through (pixels UNCHANGED, NOT
 // reinterpreted as scene_linear); strict ON -> hard error.
 static void
 test_cross_config_display()
