@@ -1,0 +1,10 @@
+ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: enc
+  scene_linear: enc
+colorspaces:
+  - !<ColorSpace>
+    name: enc
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}

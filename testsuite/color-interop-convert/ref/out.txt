@@ -1,0 +1,12 @@
+OIIO DEBUG: OpenImageIO ColorConfig("src/interop.ocio"): reconciling color conversion across configs -- source "ap0" (this config) -> destination "ACEScg" (interop identities config)
+cross-config convert: 0.00502671,0.407473,0.727296
+OIIO DEBUG: OpenImageIO ColorConfig("src/interop.ocio"): reconciling display transform across configs -- source "ACEScg" (interop identities config) -> display "disp" view "view1" (this config)
+cross-config display: 0.0727759,0.163357,0.503089
+OIIO DEBUG: OpenImageIO ColorConfig("src/interop-strict.ocio"): Could not reconcile color conversion "ap0" -> "lin_ap1_scene": OCIO strict parsing is enabled. "lin_ap1_scene" is a registry-known interop identity this config does not define; add the aces_interchange role (and a matching color space) to "src/interop-strict.ocio", or use a color space name this config defines.
+oiiotool ERROR: colorconvert : Could not reconcile color conversion "ap0" -> "lin_ap1_scene": OCIO strict parsing is enabled. "lin_ap1_scene" is a registry-known interop identity this config does not define; add the aces_interchange role (and a matching color space) to "src/interop-strict.ocio", or use a color space name this config defines.
+Full command line was:
+> oiiotool --colorconfig src/interop-strict.ocio probe.exr --colorconvert ap0 lin_ap1_scene -echo "strict-on: should not print"
+OIIO DEBUG: OpenImageIO ColorConfig "src/noninterop.ocio" is not color-interoperable: no scene interchange role (aces_interchange) could be found or repaired. Cross-config color conversions and display transforms are unavailable for this config -- OCIO strict parsing will error on them, non-strict parsing will pass them through unchanged. Add the aces_interchange role (and a matching color space) to this config to enable cross-config features.
+OIIO DEBUG: OpenImageIO ColorConfig("src/noninterop.ocio"): Could not reconcile color conversion "enc" -> "lin_ap1_scene": config "src/noninterop.ocio" is not color-interoperable (no scene interchange role could be found or repaired). "lin_ap1_scene" is a registry-known interop identity this config does not define; add the aces_interchange role (and a matching color space) to "src/noninterop.ocio", or use a color space name this config defines. Continuing with a pass-through (non-strict parsing).
+strict-off fallback: 0.18,0.42,0.73
+local-only convert: 0.0229928,0.148305,0.500384
