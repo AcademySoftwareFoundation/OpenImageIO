@@ -5346,7 +5346,7 @@ ColorConfig::Impl::deriveRegistryInteropId(string_view resolved_name)
 {
     if (resolved_name.empty())
         return {};
-    // Gate (mirrors oicio's getEqualityId gating and the read-side tier): a data
+    // Gate (mirrors the read-side equivalence tier eligibility): a data
     // space is already answered by step 1's utility sub-case; a config-unique
     // space or one flagged skip-matching is never a fingerprint candidate.
     const int flags = analysisFlags(resolved_name);

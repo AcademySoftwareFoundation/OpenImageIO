@@ -1250,8 +1250,8 @@ colorspaces:
         // regression vector for step 1 -- an explicit, author-declared
         // interop_id is unconditionally authoritative, beating even a
         // fingerprint match that a same-shaped identity space would
-        // otherwise win at step 2. (oicio's analog of this vector exercises
-        // it across a (strict, explicitUnknown) flag matrix; OIIO's
+        // otherwise win at step 2. (Some implementations exercise this vector
+        // across a (strict, explicitUnknown) flag matrix; OIIO's
         // get_color_interop_id(string_view) takes no such flags -- there is
         // nothing else to vary -- so one config proves the same precedence.)
         // -------------------------------------------------------------
