@@ -27,8 +27,20 @@ using namespace pvt;
 using namespace OIIO::pvt;
 
 
-// store an error message per thread, for a specific ImageInput
-static thread_local tsl::robin_map<uint64_t, std::string> input_error_messages;
+// Store an error message per thread, for a specific ImageInput (keyed by
+// the ImageInput's unique id). Wrapped in a small struct carrying an "alive"
+// flag set false by its own destructor, so that an ImageInput destroyed
+// during thread/program teardown -- after this thread_local has already been
+// destroyed (the static destruction order fiasco) -- can detect that and skip
+// touching the dead map.
+namespace {
+struct InputErrorMessages {
+    tsl::robin_map<uint64_t, std::string> map;
+    bool alive = true;
+    ~InputErrorMessages() { alive = false; }
+};
+}  // namespace
+static thread_local InputErrorMessages input_error_messages;
 static std::atomic_int64_t input_next_id(0);
 
 
@@ -100,10 +112,15 @@ ImageInput::ImageInput()
 
 ImageInput::~ImageInput()
 {
-    // Erase any leftover errors from this thread
-    // TODO: can we clear other threads' errors?
-    // TODO: potentially unsafe due to the static destruction order fiasco
-    // input_error_messages.erase(m_impl->m_id);
+    // Erase any leftover error for this ImageInput so the per-thread map does
+    // not grow without bound when many inputs are opened (e.g. a process that
+    // opens lots of files without checking errors, or a fuzzer). Guard against
+    // the static destruction order fiasco: if the thread_local map has already
+    // been destroyed, its 'alive' flag is false and we must not touch it.
+    // TODO: this only clears the entry if we are destroyed on the same thread
+    // that accumulated the error; cross-thread errors still leak.
+    if (input_error_messages.alive)
+        input_error_messages.map.erase(m_impl->m_id);
 }
 
 
@@ -1348,7 +1365,7 @@ ImageInput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& err_str = input_error_messages[m_impl->m_id];
+    std::string& err_str = input_error_messages.map[m_impl->m_id];
     OIIO_DASSERT(
         err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
@@ -1364,8 +1381,8 @@ ImageInput::append_error(string_view message) const
 bool
 ImageInput::has_error() const
 {
-    auto iter = input_error_messages.find(m_impl->m_id);
-    if (iter == input_error_messages.end())
+    auto iter = input_error_messages.map.find(m_impl->m_id);
+    if (iter == input_error_messages.map.end())
         return false;
     return iter.value().size() > 0;
 }
@@ -1376,11 +1393,11 @@ std::string
 ImageInput::geterror(bool clear) const
 {
     std::string e;
-    auto iter = input_error_messages.find(m_impl->m_id);
-    if (iter != input_error_messages.end()) {
+    auto iter = input_error_messages.map.find(m_impl->m_id);
+    if (iter != input_error_messages.map.end()) {
         e = iter.value();
         if (clear)
-            input_error_messages.erase(iter);
+            input_error_messages.map.erase(iter);
     }
     return e;
 }
