@@ -86,4 +86,17 @@ else :
                          + "-echo \"local-only convert: wrote xconv-local.exr\" "
                          + "-o xconv-local.exr")
 
+    # (6) Strict-off inverse-display fallback: same non-interoperable config
+    # as (4), but the INVERSE --ociodisplay direction. The input is
+    # display-encoded; we ask to invert back to the foreign, well-known
+    # identity "lin_ap1_scene" the config doesn't define. The bridge can't
+    # apply (not interoperable) and strict parsing is off, so it falls back to
+    # a pass-through -- the pixels never leave the "disp"/"view1" display
+    # encoding. The honest tag is therefore that display/view's color space
+    # ("enc"), NOT the "lin_ap1_scene" the inversion was reaching for and
+    # never produced. Like (4), checked as a NAME so it stays version-stable.
+    command += oiiotool ("--colorconfig src/noninterop.ocio probe.exr "
+                         + "--ociodisplay:from=lin_ap1_scene:inverse=1 disp view1 "
+                         + "-echo \"inverse strict-off fallback colorspace tag: {TOP[\\\"oiio:ColorSpace\\\"]}\"")
+
 outputs = [ "xconv-cross.exr", "xdisp-cross.exr", "xconv-local.exr", "out.txt" ]

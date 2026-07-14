@@ -4,6 +4,9 @@ search_path: ""
 roles:
   default: enc
   scene_linear: enc
+displays:
+  disp:
+    - !<View> {name: view1, colorspace: enc}
 colorspaces:
   - !<ColorSpace>
     name: enc

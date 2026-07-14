@@ -3982,23 +3982,33 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
     // Same lenient cross-config pass-through signal as
     // ImageBufAlgo::colorconvert(): a non-null processor with a pending
     // ColorConfig error means reconcile_cross_config_display() fell back to
-    // a no-op (non-strict parsing). No pixels moved, so (in the common,
-    // forward direction) the output must keep documenting the source scene
-    // space instead of claiming the requested display/view.
+    // a no-op (non-strict parsing). No pixels moved, so the output must keep
+    // documenting the space the pixels are actually in -- never the space
+    // the failed conversion was reaching for. Which space that is depends on
+    // direction (handled per-branch below).
     bool lenient_passthrough = colorconfig->has_error();
 
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok) {
-        if (inverse)
-            dst.specmod().set_colorspace(colorconfig->resolve(from));
-        else {
-            if (display.empty() || display == "default")
-                display = colorconfig->getDefaultDisplayName();
-            if (view.empty() || view == "default")
-                view = colorconfig->getDefaultViewName(display,
-                                                       colorconfig->resolve(
-                                                           from));
+        if (display.empty() || display == "default")
+            display = colorconfig->getDefaultDisplayName();
+        if (view.empty() || view == "default")
+            view = colorconfig->getDefaultViewName(display,
+                                                   colorconfig->resolve(from));
+        if (inverse) {
+            // Inverse: pixels land in the scene `from` space -- unless the
+            // conversion fell back to a no-op, in which case they never left
+            // the (display, view) encoding the input arrived in. Tag that
+            // source space, not the `from` we failed to reach (ADR-0018,
+            // mirror of the forward branch's honest source-tag rule).
+            dst.specmod().set_colorspace(
+                lenient_passthrough
+                    ? colorconfig->getDisplayViewColorSpaceName(display, view)
+                    : colorconfig->resolve(from));
+        } else {
+            // Forward: pixels land in the (display, view) space -- unless the
+            // no-op left them in the source scene `from` space.
             dst.specmod().set_colorspace(
                 lenient_passthrough
                     ? colorconfig->resolve(from)
