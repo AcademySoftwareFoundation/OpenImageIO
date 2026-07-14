@@ -120,6 +120,62 @@ test_Rec709_conversion()
 
 
 
+// Exercise the built-in color interop ID <-> CICP table via the public
+// ColorConfig API (the table itself is a private, static array in
+// color_ocio.cpp, so it can only be reached through get_color_interop_id()
+// and get_cicp()).
+static void
+test_color_interop_ids()
+{
+    const ColorConfig& cc = ColorConfig::default_colorconfig();
+
+    // A representative sample of built-in interop IDs should resolve to
+    // themselves (case-insensitively) and, where the table records a CICP
+    // correspondence, get_cicp() should return the expected 4 values.
+    OIIO_CHECK_EQUAL(cc.get_color_interop_id("srgb_rec709_scene"),
+                     "srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(cc.get_color_interop_id("SRGB_REC709_SCENE"),
+                     "srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(cc.get_color_interop_id("lin_ap1_scene"), "lin_ap1_scene");
+    OIIO_CHECK_EQUAL(cc.get_color_interop_id("g24_rec709_display"),
+                     "g24_rec709_display");
+    OIIO_CHECK_EQUAL(cc.get_color_interop_id("data"), "data");
+    OIIO_CHECK_EQUAL(cc.get_color_interop_id("unknown"), "unknown");
+
+    // Unknown names (and the empty string) return an empty interop ID.
+    OIIO_CHECK_EQUAL(cc.get_color_interop_id("not_a_real_interop_id"), "");
+    OIIO_CHECK_EQUAL(cc.get_color_interop_id(""), "");
+
+    // Entries that carry a CICP mapping: primaries (cicp[0]) and transfer
+    // (cicp[1]) round-trip through get_cicp() / get_color_interop_id(cicp).
+    cspan<int> cicp = cc.get_cicp("srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(cicp.size(), 4);
+    if (cicp.size() == 4) {
+        OIIO_CHECK_EQUAL(cicp[0], 1);   // CICPPrimaries::Rec709
+        OIIO_CHECK_EQUAL(cicp[1], 13);  // CICPTransfer::sRGB
+        OIIO_CHECK_EQUAL(cicp[2], 1);   // CICPMatrix::BT709
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id(cicp.data()),
+                         "srgb_rec709_scene");
+    }
+
+    // Entries with no CICP mapping (e.g. AP1/AP0 scene-linear, "data",
+    // "unknown") return an empty span from get_cicp().
+    OIIO_CHECK_EQUAL(cc.get_cicp("lin_ap1_scene").size(), 0);
+    OIIO_CHECK_EQUAL(cc.get_cicp("data").size(), 0);
+    OIIO_CHECK_EQUAL(cc.get_cicp("unknown").size(), 0);
+
+    // get_color_interop_id(cicp) picks the first table match by
+    // (primaries, transfer) alone -- matrix and range are not part of the
+    // lookup key. Scene-referred entries are listed first in the table, so
+    // for CICP tuples shared with a later display-referred entry (e.g.
+    // Rec709/sRGB), the scene-referred interop ID is returned.
+    const int rec709_srgb_cicp[4] = { 1, 13, 1, 1 };
+    OIIO_CHECK_EQUAL(cc.get_color_interop_id(rec709_srgb_cicp),
+                     "srgb_rec709_scene");
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -135,6 +191,7 @@ main(int argc, char* argv[])
 
     test_sRGB_conversion();
     test_Rec709_conversion();
+    test_color_interop_ids();
 
     return unit_test_failures != 0;
 }
