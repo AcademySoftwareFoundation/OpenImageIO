@@ -66,9 +66,15 @@ else :
     # aces_interchange role, nothing to repair), so the bridge cannot apply --
     # but strict parsing is off, so the conversion falls back to a
     # pass-through (pixels unchanged) instead of failing, and narrates why.
+    # The pass-through must not mistag the result with the requested (never
+    # actually reached) destination space -- it should honestly keep
+    # documenting the source space "enc", since no conversion happened. This
+    # is checked as a color space NAME (not a float value), so it stays
+    # stable across OCIO versions.
     command += oiiotool ("--colorconfig src/noninterop.ocio probe.exr "
                          + "--colorconvert enc lin_ap1_scene "
-                         + "-echo \"strict-off fallback: {TOP.AVGCOLOR}\"")
+                         + "-echo \"strict-off fallback: {TOP.AVGCOLOR}\" "
+                         + "-echo \"strict-off fallback colorspace tag: {TOP[\\\"oiio:ColorSpace\\\"]}\"")
 
     # (5) Untouched local-name conversion: both spaces are defined by this
     # config directly, so none of the cross-config machinery above is

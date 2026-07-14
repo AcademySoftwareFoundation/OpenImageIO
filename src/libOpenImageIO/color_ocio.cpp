@@ -3595,12 +3595,22 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
         return false;
     }
 
+    // A non-null processor paired with a pending ColorConfig error means
+    // cross-config reconciliation fell back to a lenient pass-through no-op
+    // (non-strict parsing: the requested spaces couldn't be bridged, but the
+    // pipeline proceeds anyway). No pixels are actually converted in that
+    // case, so the output must keep documenting its true (source) space
+    // rather than claiming the requested destination -- an honest no-op
+    // instead of metadata that asserts a conversion that never happened.
+    bool lenient_passthrough = colorconfig->has_error();
+
     logtime.stop(-1);  // transition to other colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok) {
-        // Coming from a non-color space preserves the original space
+        // Coming from a non-color space, or a lenient pass-through no-op,
+        // preserves the original space
         // DBG("done, setting output colorspace to {}\n", to);
-        if (colorconfig->isData(from))
+        if (colorconfig->isData(from) || lenient_passthrough)
             to = from;
         dst.specmod().set_colorspace(to);
     }
@@ -3969,6 +3979,14 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
         }
     }
 
+    // Same lenient cross-config pass-through signal as
+    // ImageBufAlgo::colorconvert(): a non-null processor with a pending
+    // ColorConfig error means reconcile_cross_config_display() fell back to
+    // a no-op (non-strict parsing). No pixels moved, so (in the common,
+    // forward direction) the output must keep documenting the source scene
+    // space instead of claiming the requested display/view.
+    bool lenient_passthrough = colorconfig->has_error();
+
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok) {
@@ -3982,7 +4000,10 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
                                                        colorconfig->resolve(
                                                            from));
             dst.specmod().set_colorspace(
-                colorconfig->getDisplayViewColorSpaceName(display, view));
+                lenient_passthrough
+                    ? colorconfig->resolve(from)
+                    : colorconfig->getDisplayViewColorSpaceName(display,
+                                                                view));
         }
     }
     return ok;

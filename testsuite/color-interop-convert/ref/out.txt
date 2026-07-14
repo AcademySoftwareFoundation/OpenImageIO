@@ -9,6 +9,7 @@ Full command line was:
 OIIO DEBUG: OpenImageIO ColorConfig "src/noninterop.ocio" is not color-interoperable: no scene interchange role (aces_interchange) could be found or repaired. Cross-config color conversions and display transforms are unavailable for this config -- OCIO strict parsing will error on them, non-strict parsing will pass them through unchanged. Add the aces_interchange role (and a matching color space) to this config to enable cross-config features.
 OIIO DEBUG: OpenImageIO ColorConfig("src/noninterop.ocio"): Could not reconcile color conversion "enc" -> "lin_ap1_scene": config "src/noninterop.ocio" is not color-interoperable (no scene interchange role could be found or repaired). "lin_ap1_scene" is a registry-known interop identity this config does not define; add the aces_interchange role (and a matching color space) to "src/noninterop.ocio", or use a color space name this config defines. Continuing with a pass-through (non-strict parsing).
 strict-off fallback: 0.18,0.42,0.73
+strict-off fallback colorspace tag: enc
 local-only convert: wrote xconv-local.exr
 Comparing "xconv-cross.exr" and "ref/xconv-cross.exr"
 PASS
