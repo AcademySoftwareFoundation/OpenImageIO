@@ -4849,38 +4849,42 @@ ColorConfig::Impl::ensure_interop() const
     if (config_ && !disable_ocio)
         state.interopified = interopify_config(config_);
 
-    // Non-interoperable configs warn exactly once per structural config id
-    // across the process (cross-config color features are otherwise silently
-    // unavailable). This is a WARNING, not an error: it is deliberately never
-    // written to the ColorConfig error string here. That string is a single
-    // overwrite-on-set slot shared per config (see error()/geterror() above),
-    // so setting it at bootstrap -- before any cross-config route is even
-    // attempted -- would make has_error() true for callers who never touch
-    // cross-config features, polluting otherwise-healthy same-config use and
-    // risking a spurious trip of the uncaught-error exit dump. Instead: an
-    // OIIO::debug line (attr/env-gated, never an unconditional stderr print --
-    // R4) plus the same composed message recorded in-memory on this Impl,
-    // available to callers/tests without touching the shared error string.
-    // reconcile_cross_config{,_display} compose their own why+how-to-fix
-    // error text only if/when a cross-config route is actually attempted and
-    // fails (unchanged by this slice). Skip when builtin configs are
-    // disabled -- we didn't actually assess interoperability in that case.
+    // Non-interoperable configs warn. This is a WARNING, not an error: it is
+    // deliberately never written to the ColorConfig error string here. That
+    // string is a single overwrite-on-set slot shared per config (see
+    // error()/geterror() above), so setting it at bootstrap -- before any
+    // cross-config route is even attempted -- would make has_error() true for
+    // callers who never touch cross-config features, polluting otherwise-
+    // healthy same-config use and risking a spurious trip of the uncaught-
+    // error exit dump. Instead: an OIIO::debug line (attr/env-gated, never an
+    // unconditional stderr print -- R4), printed at most once per structural
+    // config id across the process, plus the composed message recorded
+    // in-memory on THIS Impl -- every Impl that finds itself non-
+    // interoperable composes and records its own `warned`/`warning_message`,
+    // regardless of which Impl (if any) won the process-global debug-line
+    // dedup claim below; the dedup only throttles the printed line, it must
+    // not decide whether this Impl's own observable reflects reality (a
+    // second ColorConfig wrapping the same structural config independently
+    // discovers it is non-interoperable and must report that). reconcile_
+    // cross_config{,_display} compose their own why+how-to-fix error text
+    // only if/when a cross-config route is actually attempted and fails
+    // (unchanged by this slice). Skip when builtin configs are disabled --
+    // we didn't actually assess interoperability in that case.
     if (!state.is_interoperable && config_ && !disable_builtin_configs) {
+        state.warning_message = Strutil::fmt::format(
+            "OpenImageIO ColorConfig \"{}\" is not color-interoperable: "
+            "no scene interchange role (aces_interchange) could be found "
+            "or repaired. Cross-config color conversions and display "
+            "transforms are unavailable for this config -- OCIO strict "
+            "parsing will error on them, non-strict parsing will pass "
+            "them through unchanged. Add the aces_interchange role (and "
+            "a matching color space) to this config to enable "
+            "cross-config features.",
+            configname());
+        state.warned            = true;
         const std::string key = get_config_cache_id(config_);
-        if (!key.empty() && note_interop_warning(key)) {
-            state.warning_message = Strutil::fmt::format(
-                "OpenImageIO ColorConfig \"{}\" is not color-interoperable: "
-                "no scene interchange role (aces_interchange) could be found "
-                "or repaired. Cross-config color conversions and display "
-                "transforms are unavailable for this config -- OCIO strict "
-                "parsing will error on them, non-strict parsing will pass "
-                "them through unchanged. Add the aces_interchange role (and "
-                "a matching color space) to this config to enable "
-                "cross-config features.",
-                configname());
+        if (!key.empty() && note_interop_warning(key))
             Strutil::debug("{}\n", state.warning_message);
-            state.warned = true;
-        }
     }
 
     spin_rw_write_lock lock(m_mutex);

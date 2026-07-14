@@ -612,12 +612,16 @@ colorspaces:
         OIIO_CHECK_FALSE(cc.has_error());
 
         // A second ColorConfig over the same (structurally identical) config
-        // does not warn again: the once-per-config-structure guard is
-        // process-global.
+        // independently discovers it is non-interoperable during its OWN
+        // ensure_interop() and reports its OWN `warned` observable
+        // accordingly -- that is decoupled from the process-global guard
+        // that throttles the printed debug line to once per structural
+        // config id (only one of the two Impls "wins" that dedup claim, but
+        // both must observably report having been warned).
         ColorConfig cc2(stripped_path);
         OIIO_CHECK_FALSE(color_config_is_interoperable(cc2));
-        OIIO_CHECK_FALSE(color_config_interop_warned(cc2));
-        // ...yet it still gets its own repaired, cache-off copy.
+        OIIO_CHECK_ASSERT(color_config_interop_warned(cc2));
+        // ...and it still gets its own repaired, cache-off copy.
         OIIO_CHECK_ASSERT(
             color_config_interopified_resolves_scene_interchange(cc2));
     }
@@ -722,6 +726,24 @@ colorspaces:
         if (got.size() == 3)
             for (int c = 0; c < 3; ++c)
                 OIIO_CHECK_EQUAL_THRESH(got[c], expected[c], 1e-6f);
+
+        // Second, INDEPENDENT anchor: a hand-computed value that does not
+        // come from any OCIO/OIIO code path at all (the check above still
+        // only cross-checks two OCIO entry points against each other, both
+        // evaluating the identical "g22" transform -- a bug in how that
+        // transform is applied would agree with itself either way). "g22" is
+        // authored as a from-scene-reference ExponentTransform{2.2}, and OCIO
+        // applies a color space's from-reference transform in its authored
+        // (forward) direction when building the reference-to-space half of a
+        // ref->g22 conversion; the forward exponent op is a plain per-channel
+        // powf(max(0,in), 2.2) (see OpenColorIO's ExponentOpCPU::apply).
+        // Hand-computing that directly, with no config/processor involved:
+        float hand_expected[3];
+        for (int c = 0; c < 3; ++c)
+            hand_expected[c] = powf(probe[c], 2.2f);
+        if (got.size() == 3)
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(got[c], hand_expected[c], 1e-4f);
     }
 
     // --- Missing-role failure: empty result + OCIO role message set on dst ---
