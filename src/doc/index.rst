@@ -77,6 +77,7 @@ OpenImageIO |version|
    :maxdepth: 2
 
    stdmetadata
+   colorinterop
    glossary
 
 
