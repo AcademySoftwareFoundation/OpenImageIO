@@ -2674,8 +2674,7 @@ bool OIIO_API deep_merge (ImageBuf &dst, const ImageBuf &A,
 
 
 /// Return the samples of deep image `src` that are closer than the opaque
-/// frontier of deep image holdout, returning true upon success and false
-/// for any failures. Samples of `src` that are farther than the first
+/// frontier of deep image holdout. Samples of `src` that are farther than the first
 /// opaque sample of holdout (for the corresponding pixel) will not be copied
 /// to `dst`. Image holdout is only used as the depth threshold; no sample
 /// values from holdout are themselves copied to `dst`.
