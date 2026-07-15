@@ -387,6 +387,108 @@ chromaticities_from_ap0_probes(cspan<float> ap0_rgb);
 
 
 // ---------------------------------------------------------------------------
+// Transfer-signature axis -- pure, config-free primitives for the
+// transfer-function axis of color-space search by characterization. A
+// candidate's transfer property is the triple { identity, family, signature }:
+// whether the curve is linear/identity, its reference-state-agnostic family
+// key (from the curve-family normalization above), and, for non-identity
+// curves, a behavioral signature probed on the neutral axis. Matching follows
+// a fixed order -- identity, then family, then signature. The numerical work
+// (normalized slopes, per-encoding slope tolerance, white-gain tie-break) is
+// pure: a caller runs a CPU processor over tf_probe_axis() and hands the
+// outputs here, so nothing in this section needs a live config. For
+// internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// Behavioral transfer-function signature of a color space: channel-averaged
+/// outputs of a fixed set of neutral-axis probes in the encode direction
+/// (linear anchor -> color space), plus the adjacent slopes normalized by the
+/// 0.18->0.50 anchor slope. `encoding` (the effective OCIO encoding) selects
+/// the slope tolerance; `family` is the transfer-family key; `is_linear` is
+/// the measured 64x-ratio linearity verdict.
+struct TransferFunctionSignature {
+    std::vector<double> slopes;  ///< adjacent slopes, 0.18->0.50 normalized
+    std::vector<double> values;  ///< channel-averaged probe outputs
+    std::string encoding;        ///< effective OCIO encoding of the space
+    std::string family;          ///< transfer-family key (see family_token)
+    bool is_linear = false;      ///< measured linearity (64x ratio check)
+};
+
+/// Per-candidate transfer property. "Unknown" -- none of the members carry a
+/// verdict (known() is false) -- makes an include term miss, a `~` term
+/// reject, and a `-` term preserve, in the three-valued axis evaluation.
+struct TransferProperty {
+    bool identity = false;                           ///< linear/identity curve
+    std::string family;                              ///< "" when unidentified
+    std::optional<TransferFunctionSignature> signature;
+
+    bool known() const
+    {
+        return identity || !family.empty() || signature.has_value();
+    }
+};
+
+/// A resolved transfer-function hint: the property a hint term denotes, as one
+/// or more of identity / family / candidate signatures. (The search-term mode
+/// -- include / exclude / inverse -- is layered on separately by the search
+/// core; this struct carries only the resolved value.)
+struct TransferHint {
+    bool identity = false;  ///< hint denotes a linear/identity curve
+    std::string family;     ///< curve-family key ("" when unidentified)
+    std::vector<TransferFunctionSignature> signatures;
+};
+
+/// The fixed neutral-axis probe abscissae the signature is built from: the 10
+/// discriminating points, followed by the (dark, bright) scaled-linearity
+/// pair. A caller pushes each value as R=G=B through a CPU processor in the
+/// encode direction and hands the 12 channel-averaged outputs to
+/// tf_signature_from_probes().
+OIIO_API cspan<double>
+tf_probe_axis();
+
+/// Per-encoding slope tolerance: 0.05 for `log`, 0.1 for `hdr-video`, else
+/// 0.02 (`sdr-video` and default). Wider for log/HDR because those curves
+/// vary more across their slope profiles.
+OIIO_API double
+tf_slope_tolerance(string_view encoding);
+
+/// True when the curve clips superwhite: the last two probe outputs (the 1.0
+/// and 1.1 points) coincide.
+OIIO_API bool
+tf_clips_superwhite(cspan<double> values);
+
+/// Adjacent slopes of a 10-probe run, normalized by the 0.18->0.50 anchor
+/// slope. Empty when `values` is not a full probe run (size 10) or the anchor
+/// slope is degenerate (flat).
+OIIO_API std::vector<double>
+tf_normalized_slopes(cspan<double> values);
+
+/// Build a signature from the 12 channel-averaged outputs of tf_probe_axis()
+/// (10 discriminating probes + dark + bright). `encoding` and `family` are the
+/// caller's to fill afterward (they depend on the source config). nullopt on a
+/// short span or a degenerate (flat) anchor slope.
+OIIO_API std::optional<TransferFunctionSignature>
+tf_signature_from_probes(cspan<double> probe_outputs);
+
+/// Tolerance-compare two probed signatures: per-encoding slope tolerance with
+/// clip masking (index 0 always masked; last index masked when either side
+/// clips superwhite; at least 80% of compared slopes must agree), then a
+/// white-gain tie-break at the 1.0 probe that keeps a headroom-scaled curve
+/// distinct from its unscaled twin.
+OIIO_API bool
+transfer_signatures_match(const TransferFunctionSignature& a,
+                          const TransferFunctionSignature& b);
+
+/// Does a resolved transfer hint match a candidate's transfer property, in
+/// the identity -> family -> signature order: identity-vs-identity wins; else
+/// if both families are known, family equality decides (behavior families beat
+/// signature comparison); else a probed-signature tolerance compare against
+/// any of the hint's signatures. An unknown candidate property never matches.
+OIIO_API bool
+transfer_hint_matches(const TransferHint& hint, const TransferProperty& property);
+
+
+// ---------------------------------------------------------------------------
 // Color-space classification -- how ColorConfig internally classifies a
 // color space for interop matching (the "simple" transform allowlist and
 // related properties). For internal/test use only.

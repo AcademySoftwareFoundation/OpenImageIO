@@ -78,6 +78,7 @@ set (libOpenImageIO_srcs
                           interop_id.cpp
                           curve_family.cpp
                           chromaticity_match.cpp
+                          transfer_signature.cpp
                           maketexture.cpp
                           bluenoise.cpp
                           printinfo.cpp
@@ -287,6 +288,11 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_chromaticity_match ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chromaticity_match_test)
+
+    fancy_add_executable (NAME transfer_signature_test SRC transfer_signature_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_transfer_signature ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/transfer_signature_test)
 
     fancy_add_executable (NAME image_span_test SRC image_span_test.cpp
                           LINK_LIBRARIES OpenImageIO Imath::Imath
