@@ -4718,6 +4718,15 @@ note_interop_warning(const std::string& id)
 // context-aware overload runs, defaulting a missing side to that config's
 // current context. On any OCIO failure the processor is null and `errmsg` is
 // set from the exception -- never thrown across the boundary, never silent.
+//
+// Fast path: when both configs already carry the aces_interchange role (true
+// by construction for the interopified analysis copy + the built-in identities
+// config -- interopifiedResolvesSceneInterchange() is the caller's gate), pass
+// "aces_interchange" explicitly as both interchange names. This skips OCIO's
+// own interchange-role lookup/validation on every call and is materially
+// faster; the role check below (Config::hasRole, not a name heuristic) is what
+// makes it safe to take. Any config missing the role on either side falls
+// through unchanged to the discovery form.
 OCIO::ConstProcessorRcPtr
 processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
                        string_view src_name,
@@ -4733,14 +4742,26 @@ processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
     }
     const std::string src(src_name);
     const std::string dst(dst_name);
+    const bool explicit_interchange
+        = src_config->hasRole(OCIO::ROLE_INTERCHANGE_SCENE)
+          && dst_config->hasRole(OCIO::ROLE_INTERCHANGE_SCENE);
     try {
-        if (!src_context && !dst_context)
+        if (!src_context && !dst_context) {
+            if (explicit_interchange)
+                return OCIO::Config::GetProcessorFromConfigs(
+                    src_config, src.c_str(), OCIO::ROLE_INTERCHANGE_SCENE,
+                    dst_config, dst.c_str(), OCIO::ROLE_INTERCHANGE_SCENE);
             return OCIO::Config::GetProcessorFromConfigs(src_config, src.c_str(),
                                                          dst_config, dst.c_str());
+        }
         OCIO::ConstContextRcPtr sctx = src_context ? src_context
                                                    : src_config->getCurrentContext();
         OCIO::ConstContextRcPtr dctx = dst_context ? dst_context
                                                    : dst_config->getCurrentContext();
+        if (explicit_interchange)
+            return OCIO::Config::GetProcessorFromConfigs(
+                sctx, src_config, src.c_str(), OCIO::ROLE_INTERCHANGE_SCENE,
+                dctx, dst_config, dst.c_str(), OCIO::ROLE_INTERCHANGE_SCENE);
         return OCIO::Config::GetProcessorFromConfigs(sctx, src_config, src.c_str(),
                                                      dctx, dst_config, dst.c_str());
     } catch (OCIO::Exception& e) {
@@ -4768,6 +4789,18 @@ processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
 // semantics changed in OCIO 2.3.1 (#1896) -- a display/view that is itself a
 // data space is a no-op transform on 2.3.1+, whereas 2.3.0 could produce a
 // non-identity result in that case. No workaround here; document only.
+//
+// Fast path: same construction as processor_from_configs above, and the same
+// role -- aces_interchange, not cie_xyz_d65_interchange. Every caller of this
+// helper routes a scene-referred source (the identities config's ACES2065-1
+// identity space) into a display/view, and OCIO picks the interchange role
+// from the SOURCE color space's reference type
+// (Config::GetProcessorFromConfigs, display/view overload), so
+// aces_interchange is what this route actually resolves through today; there
+// is no display/XYZ-referred source in this chokepoint to guarantee
+// cie_xyz_d65_interchange for. If a display-referred source ever routes
+// through here, this fast path must gate on cie_xyz_d65_interchange instead
+// (or fall back) for that case.
 OCIO::ConstProcessorRcPtr
 display_processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
                               string_view src_name,
@@ -4786,15 +4819,29 @@ display_processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
     const std::string src(src_name);
     const std::string disp(display);
     const std::string vw(view);
+    const bool explicit_interchange
+        = src_config->hasRole(OCIO::ROLE_INTERCHANGE_SCENE)
+          && dst_config->hasRole(OCIO::ROLE_INTERCHANGE_SCENE);
     try {
-        if (!src_context && !dst_context)
+        if (!src_context && !dst_context) {
+            if (explicit_interchange)
+                return OCIO::Config::GetProcessorFromConfigs(
+                    src_config, src.c_str(), OCIO::ROLE_INTERCHANGE_SCENE,
+                    dst_config, disp.c_str(), vw.c_str(),
+                    OCIO::ROLE_INTERCHANGE_SCENE, direction);
             return OCIO::Config::GetProcessorFromConfigs(src_config, src.c_str(),
                                                          dst_config, disp.c_str(),
                                                          vw.c_str(), direction);
+        }
         OCIO::ConstContextRcPtr sctx = src_context ? src_context
                                                    : src_config->getCurrentContext();
         OCIO::ConstContextRcPtr dctx = dst_context ? dst_context
                                                    : dst_config->getCurrentContext();
+        if (explicit_interchange)
+            return OCIO::Config::GetProcessorFromConfigs(
+                sctx, src_config, src.c_str(), OCIO::ROLE_INTERCHANGE_SCENE,
+                dctx, dst_config, disp.c_str(), vw.c_str(),
+                OCIO::ROLE_INTERCHANGE_SCENE, direction);
         return OCIO::Config::GetProcessorFromConfigs(sctx, src_config, src.c_str(),
                                                      dctx, dst_config, disp.c_str(),
                                                      vw.c_str(), direction);
