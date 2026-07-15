@@ -17,6 +17,7 @@
 
 
 OIIO_NAMESPACE_BEGIN
+
 // Note: Everything in pvt namespace is expected to be local to the library
 // and does not appear in exported headers that client software will see.
 // Therefore, it should all stay in the current namespace except where
@@ -528,6 +529,149 @@ strip_leftmost_namespace(const std::string& id);
 // color state without a registry lookup: "data", "unknown", "bypass".
 OIIO_API bool
 is_utility_interop_id(const std::string& id);
+
+
+// ---------------------------------------------------------------------------
+// Read-side color-metadata reconciliation -- the one audited precedence
+// cascade that turns the raw color attributes a reader deposited (CICP,
+// ICC blob, chromaticities, gamma, colorInteropID, an ACES-container flag)
+// into a single resolved color space designation, so plugins stop
+// hand-rolling their own precedence. Called once, centrally, in the
+// ImageInput open path after the plugin deposits raw attributes. The
+// resolution engine below is pure (a ColorConfig + these value types); the
+// same engine drives resolve() and its diagnostic explain() trace. For
+// internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// Which local assignments a resolved id is allowed to escape as.
+enum class ColorResolutionScope {
+    Lenient,     ///< a known interop id absent locally may still be returned
+    ConfigOnly,  ///< the result must be a usable local assignment, else unknown
+    ExactState,  ///< additionally bind scene/display referencing state
+};
+
+/// How scene/display candidates are ordered when substitution is allowed.
+enum class ColorStatePreference { Auto, Scene, Display };
+
+/// Whether (and where) OCIO FileRules sit in the cascade. Filenames may
+/// influence resolution only through the two rungs this axis gates.
+enum class ColorFileRules { Off, First, FallbackOnly };
+
+/// Immutable facts a reader read out of the asset. An absent field makes
+/// its rule inapplicable; a present-but-unusable field misses and falls
+/// through. Format-derived facts (png_srgb, aces_image_container) are
+/// deposited by the plugin, never re-derived mid-cascade.
+struct ColorMetadataFacts {
+    bool aces_image_container = false;
+    std::string color_interop_id;
+    std::vector<unsigned char> icc_profile;
+    bool has_cicp    = false;
+    int cicp[4]      = { 0, 0, 0, 0 };
+    bool has_chromaticities = false;
+    float chromaticities[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    bool has_gamma = false;
+    float gamma    = 0.0f;
+    bool png_srgb  = false;
+};
+
+/// Per-call context: filenames touch resolution only here, via the two
+/// FileRules-gated rungs; `format`/`filename` also drive scene-vs-display
+/// source inference; `failover` is tried after everything metadata misses.
+struct ColorCallContext {
+    std::string filename;
+    std::string format;
+    std::string failover;
+};
+
+/// A single locked snapshot of the whole read policy state, taken once per
+/// call. The three typed axes plus the per-signal switches; the grammar,
+/// names and defaults are owned by the color policy attribute spec
+/// (`oiio:colorpolicy:read:*`). Every default reproduces main's behavior.
+struct ColorReadPolicy {
+    ColorResolutionScope scope         = ColorResolutionScope::Lenient;
+    ColorStatePreference state_pref     = ColorStatePreference::Auto;
+    ColorFileRules file_rules           = ColorFileRules::Off;
+    bool ignore_cicp_for_png            = false;
+    bool ignore_sidecar                 = false;
+    /// Whether an all-miss falls back to the config's Default Assignment.
+    /// Off reproduces main (a reader that determined nothing leaves the
+    /// spec's color space untouched); a later named policy turns it on.
+    bool apply_config_default           = false;
+
+    /// Read every `oiio:colorpolicy:read:*` value ONCE, under one lock, from
+    /// the global attribute table, optionally overridden by per-open config
+    /// hints. No mid-call re-reads.
+    static OIIO_API ColorReadPolicy snapshot(const ImageSpec* config_hints
+                                             = nullptr);
+};
+
+/// The 13 cascade rules, in exact tested precedence order (ICC above CICP).
+/// STRICT_PARSING is the terminal miss diagnostic, not a 14th source rule.
+enum class ColorRule {
+    ExplicitAssignment,
+    AcesContainer,
+    FileRulesFirst,
+    ColorInteropID,
+    IccProfile,
+    Cicp,
+    PngSrgb,
+    ChromaticitiesAndGamma,
+    Chromaticities,
+    Gamma,
+    FileRulesFallback,
+    Failover,
+    ConfigDefault,
+    StrictParsing,
+};
+
+/// The outcome of visiting one rule. Inapplicable = the fact was absent.
+enum class ColorRuleOutcome { Matched, Missed, Inapplicable, Invalid };
+
+/// One in-flight trace step, recorded for every rule the engine visits.
+struct ColorResolutionStep {
+    ColorRule rule           = ColorRule::ConfigDefault;
+    ColorRuleOutcome outcome = ColorRuleOutcome::Inapplicable;
+    std::string candidate;
+    std::string resolved;
+    std::string reason;
+};
+
+/// The full trace produced by the engine. `resolved` is the winning color
+/// space (empty if the cascade produced no assignment at all under the
+/// active policy). `registered_synthetic` names the session-synthetic id a
+/// lenient colorimetry/ICC match selected (id grammar only in this layer --
+/// no live endpoint is constructed).
+struct ColorResolutionExplanation {
+    std::string resolved;
+    std::vector<ColorResolutionStep> steps;
+    std::string registered_synthetic;
+    bool used_failover = false;
+    bool used_default  = false;
+
+    /// True iff the last MATCHED step is a genuine metadata source (not
+    /// failover, config-default, or the strict-parsing terminal). This is
+    /// the "did metadata actually decide this?" predicate.
+    OIIO_API bool has_genuine_metadata_match() const;
+};
+
+/// Run the audited cascade against `config` (may be null: rules that need a
+/// config become inapplicable, and interop-id candidates fall back to the
+/// built-in identity registry). Always returns the in-flight trace -- this
+/// IS explain(); resolve() is just `.resolved`. `explicit_assignment`, if
+/// non-empty, is a caller-forced color space that suppresses metadata rules.
+OIIO_API ColorResolutionExplanation
+resolve_color_metadata(const ColorConfig* config,
+                       const std::string& explicit_assignment,
+                       const ColorMetadataFacts& facts,
+                       const ColorCallContext& ctx,
+                       const ColorReadPolicy& policy);
+
+/// The central read-side entry point. Extracts the facts a reader deposited
+/// on `spec`, runs the cascade, and stamps the resolved color space. With
+/// policy at its defaults this is observably identical to the per-plugin
+/// precedence it replaces. Call once in the ImageInput open path.
+OIIO_API void
+reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy);
 
 }  // namespace pvt
 

@@ -704,12 +704,11 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
 
-    // Try to figure out the color space for some unambiguous cases
-    if (spec.get_int_attribute("acesImageContainerFlag") == 1) {
-        spec.set_colorspace("lin_ap0_scene");
-    } else if (auto c = spec.find_attribute("colorInteropID", TypeString)) {
-        spec.set_colorspace(c->get_ustring());
-    }
+    // Hand the raw color attributes the header deposited to the one central
+    // color-metadata reconciler, which applies the audited precedence
+    // cascade (replacing this reader's former inline ACES-flag/colorInteropID
+    // special-casing). With policy at its defaults the result is identical.
+    pvt::reconcile_color_metadata(spec, pvt::ColorReadPolicy::snapshot());
 
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);
