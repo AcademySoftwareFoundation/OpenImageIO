@@ -267,6 +267,7 @@ macro (oiio_add_all_tests)
         set (nanobind_python_test_suffix ".nanobind")
         if (OIIO_BUILD_PYTHON_PYBIND11)
             oiio_add_tests (
+                colorspacesearch
                 docs-examples-python
                 python-colorconfig
                 python-deep

@@ -4529,6 +4529,41 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
     This command was added in OIIO 2.4.6.
 
+.. option:: --colorspacesearch
+
+    Print to the console the names of the color spaces in the active
+    configuration whose derivable characteristics match a partial
+    description, one per line. This lets you ask "which color spaces in this
+    config have the Rec.709 gamut but are not scene-linear?" without knowing
+    the config's naming conventions. Each of the four hint axes is given as a
+    comma-separated list of terms through an appended modifier:
+
+    - `chromaticities=` *terms*, `transfer=` *terms*, `encoding=` *terms*,
+      `state=` *terms* :
+
+      The gamut, transfer-function, encoding, and image-state axes. A term
+      is matched by default; a leading `-` excludes proven matches; a leading
+      `~` keeps only spaces proven to have the opposite property; a backslash
+      escapes a leading operator. A returned space passes every axis that was
+      given. A term may be a color space name or alias, a known color interop
+      ID, or an axis-specific form (a gamut component such as `rec709`, a
+      transfer/curve name, an encoding name, or the image state `scene`,
+      `display`, or `all`).
+
+    - `inactive=` *val*, `contextsensitive=` *val*, `exhaustive=` *val* :
+
+      When nonzero, also consider (respectively) the config's inactive color
+      spaces, its context-sensitive spaces, and complex (non-simple) spaces
+      whose transforms are inspected exhaustively. All default to 0.
+
+    Because a term may not contain a comma or a colon (the latter being
+    :program:`oiiotool`'s own option delimiter), color interop IDs that
+    contain a colon (such as `custom:*` or `icc:*`) cannot be passed through
+    this flag; use the `ColorConfig::find_color_spaces` C++ or Python API for
+    those. Example::
+
+        oiiotool --colorspacesearch:chromaticities=rec709:encoding=-scene-linear
+
 .. option:: --colorconfig <filename>
 
     Instruct :program:`oiiotool` to read an OCIO configuration from a custom

@@ -4048,6 +4048,38 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.1.
 
 
+.. py:method:: find_color_spaces (chromaticities=[], transfer_function=[], encoding=[], image_state=[], include_inactive=False, include_context_sensitive=False, exhaustive=False, context={})
+
+    Return the names of the config's color spaces whose derivable
+    characteristics match a partial description, ordered deterministically.
+    Each of the four hint axes may be passed as a single string or as a
+    sequence of strings; an empty axis is unconstrained, and a returned space
+    passes every non-empty axis. Within an axis a term matches by default, a
+    leading ``-`` excludes proven matches, and a leading ``~`` keeps only
+    spaces proven to have the opposite property (a backslash escapes a leading
+    operator). A term may be a color space name or alias, a known color
+    interop ID, or an axis-specific form (a gamut component such as ``rec709``,
+    a transfer/curve name, an encoding name, or the image state ``scene`` /
+    ``display`` / ``all``). A candidate whose property cannot be derived is
+    treated as *unknown*, never an error; a malformed term, an unresolvable
+    hint, or a hint element that is not a string raises ``ValueError``.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        # Which spaces have the Rec.709 gamut but are not scene-linear?
+        names = colorconfig.find_color_spaces(chromaticities="rec709",
+                                              encoding="-scene-linear")
+
+    The chromaticity derivation is single-hypothesis (D65 + Bradford) and
+    registry-side gamuts come only from a reserved chromaticity table, so a
+    space whose gamut is neither derivable under that hypothesis nor present
+    in the table resolves as unknown. This function was added in OpenImageIO
+    3.2.
+
+
 .. _sec-pythonmiscapi:
 
 Miscellaneous Utilities

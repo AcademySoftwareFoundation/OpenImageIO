@@ -469,6 +469,16 @@ public:
     /// transforms. `context` applies OCIO context-variable overrides scoped to
     /// this call only.
     ///
+    /// Current limitations (each a documented behavior, not a defect):
+    /// probe-derived chromaticities assume a single D65 + Bradford hypothesis,
+    /// so a non-D65 or log-curve space whose gamut is not in the reserved
+    /// chromaticity table may resolve as unknown; registry-side gamuts are
+    /// taken from that reserved table only, so a gamut absent from it (e.g.
+    /// `ciexyzd65`) is not yet resolvable. Interop IDs that contain a colon
+    /// (such as `custom:*` or `icc:*`) are usable as hints through this API but
+    /// not through the `oiiotool --colorspacesearch` flag, whose comma- and
+    /// colon-delimited option syntax cannot carry them.
+    ///
     /// @version 3.1
     OIIO_NODISCARD std::vector<std::string> find_color_spaces(
         cspan<std::string> chromaticities = {},
