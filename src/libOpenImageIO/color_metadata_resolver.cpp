@@ -629,6 +629,38 @@ resolve_color_metadata(const ColorConfig* config, const ImageSpec& spec,
                                   ctx, policy);
 }
 
+std::string
+infer_color_space_from_spec(const ColorConfig* config, const ImageSpec& spec,
+                            const ColorCallContext& ctx,
+                            const ColorReadPolicy& policy)
+{
+    const ColorMetadataFacts facts = color_facts_from_spec(spec);
+    // A usable answer is a config-local name or a registry-known id the
+    // cross-config machinery can construct. A session-synthetic (custom:/
+    // icc:) answer names no constructible space in this round -- live
+    // synthetic endpoints are a later round's story -- so when one wins,
+    // retry under config-only scope, where an unusable signal misses and
+    // falls through to the next rung instead of synthesizing.
+    auto usable = [](const ColorResolutionExplanation& e) {
+        return e.has_genuine_metadata_match()
+               && !Strutil::starts_with(e.resolved, "custom:")
+               && !Strutil::starts_with(e.resolved, "icc:");
+    };
+    ColorResolutionExplanation e = resolve_color_metadata(config, "", facts,
+                                                          ctx, policy);
+    if (usable(e))
+        return e.resolved;
+    if (e.has_genuine_metadata_match()
+        && policy.scope != ColorResolutionScope::ConfigOnly) {
+        ColorReadPolicy retry = policy;
+        retry.scope           = ColorResolutionScope::ConfigOnly;
+        e = resolve_color_metadata(config, "", facts, ctx, retry);
+        if (usable(e))
+            return e.resolved;
+    }
+    return {};
+}
+
 void
 reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy)
 {

@@ -14,6 +14,8 @@
 
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/unittest.h>
 
@@ -199,6 +201,104 @@ test_config_or_registry_failover(const ColorConfig& sparse)
 }
 
 
+// The inference helper: a usable hint answers; a synthetic-only answer
+// (here: chromaticities with no config match) is not usable as an IBA
+// source; a hint blocked by a higher unusable signal (decodable ICC over
+// CICP) degrades to the config-only pass and still answers.
+static void
+test_infer_helper(const ColorConfig& config)
+{
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
+        OIIO_CHECK_EQUAL(infer_color_space_from_spec(&config, spec, {}, {}),
+                         "srgb_rec709_scene");
+    }
+    {
+        // Wide-gamut chromaticities resolve only to a custom: synthetic --
+        // no constructible space, so no inference.
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        const float chroma[8] = { 0.708f, 0.292f, 0.170f, 0.797f,
+                                  0.131f, 0.046f, 0.3127f, 0.3290f };
+        spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), chroma);
+        OIIO_CHECK_EQUAL(infer_color_space_from_spec(&config, spec, {}, {}),
+                         "");
+    }
+    {
+        // Decodable ICC outranks CICP and resolves to an icc: synthetic;
+        // the config-only retry lets ICC miss and CICP answer locally.
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        auto icc = fake_icc_profile();
+        spec.attribute("ICCProfile",
+                       TypeDesc(TypeDesc::UINT8, int(icc.size())), icc.data());
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
+        OIIO_CHECK_EQUAL(infer_color_space_from_spec(&config, spec, {}, {}),
+                         "srgb_rec709_scene");
+    }
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);  // no hints at all
+        OIIO_CHECK_EQUAL(infer_color_space_from_spec(&config, spec, {}, {}),
+                         "");
+    }
+}
+
+
+// IBA wiring: an untagged, CICP-carrying source converts exactly as if the
+// caller had passed the mapped space explicitly; an explicit source always
+// wins over contradictory hints; a hintless untagged source keeps today's
+// scene_linear default.
+static void
+test_iba_inference(const ColorConfig& config)
+{
+    ImageSpec spec(8, 8, 3, TypeFloat);
+    spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
+    ImageBuf src(spec);
+    ImageBufAlgo::fill(src, { 0.5f, 0.25f, 0.75f });
+
+    // Inferred source == explicit source, pixel for pixel.
+    ImageBuf inferred = ImageBufAlgo::colorconvert(src, "", "lin_test_scene",
+                                                   true, "", "", &config);
+    OIIO_CHECK_ASSERT(!inferred.has_error());
+    ImageBuf explicit_src
+        = ImageBufAlgo::colorconvert(src, "srgb_rec709_scene",
+                                     "lin_test_scene", true, "", "", &config);
+    OIIO_CHECK_ASSERT(!explicit_src.has_error());
+    auto cmp = ImageBufAlgo::compare(inferred, explicit_src, 0.0f, 0.0f);
+    OIIO_CHECK_EQUAL(cmp.nfail, 0);
+    OIIO_CHECK_EQUAL(inferred.spec().get_string_attribute("oiio:ColorSpace"),
+                     "lin_test_scene");
+
+    // The conversion was real: it differs from a no-op source.
+    ImageBuf noop = ImageBufAlgo::colorconvert(src, "lin_test_scene",
+                                               "lin_test_scene", true, "", "",
+                                               &config);
+    OIIO_CHECK_ASSERT(!noop.has_error());
+    auto cmp2 = ImageBufAlgo::compare(inferred, noop, 0.0f, 0.0f);
+    OIIO_CHECK_ASSERT(cmp2.nfail > 0);
+
+    // Explicit source wins over the contradictory CICP hint.
+    ImageBuf explicit_wins
+        = ImageBufAlgo::colorconvert(src, "lin_ap1_scene", "lin_test_scene",
+                                     true, "", "", &config);
+    OIIO_CHECK_ASSERT(!explicit_wins.has_error());
+    auto cmp3 = ImageBufAlgo::compare(explicit_wins, explicit_src, 0.0f, 0.0f);
+    OIIO_CHECK_ASSERT(cmp3.nfail > 0);
+
+    // No hints: today's scene_linear default stands (scene_linear ->
+    // lin_test_scene is a no-op in this config).
+    ImageBuf plain_src(ImageSpec(8, 8, 3, TypeFloat));
+    ImageBufAlgo::fill(plain_src, { 0.5f, 0.25f, 0.75f });
+    ImageBuf dflt = ImageBufAlgo::colorconvert(plain_src, "", "lin_test_scene",
+                                               true, "", "", &config);
+    OIIO_CHECK_ASSERT(!dflt.has_error());
+    ImageBuf dflt_explicit
+        = ImageBufAlgo::colorconvert(plain_src, "scene_linear",
+                                     "lin_test_scene", true, "", "", &config);
+    auto cmp4 = ImageBufAlgo::compare(dflt, dflt_explicit, 0.0f, 0.0f);
+    OIIO_CHECK_EQUAL(cmp4.nfail, 0);
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -219,6 +319,8 @@ main(int /*argc*/, char* /*argv*/[])
 
     test_same_hints_same_answer(config);
     test_config_or_registry_failover(sparse);
+    test_infer_helper(config);
+    test_iba_inference(config);
 
     Filesystem::remove(cfgpath);
     Filesystem::remove(sparsepath);

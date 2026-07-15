@@ -3873,18 +3873,37 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
                            int nthreads)
 {
     OIIO::pvt::LoggedTimer logtime("IBA::colorconvert");
+    if (!colorconfig)
+        colorconfig = &ColorConfig::default_colorconfig();
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute("oiio:Colorspace",
                                                "scene_linear");
+        // A fully untagged source (no color space attribute at all): infer
+        // one from the color hints the spec carries (colorInteropID, CICP,
+        // ICC, chromaticities/gamma) before standing on the scene_linear
+        // default. An explicit `from` argument or a tagged source never
+        // reaches this, and a hintless source keeps today's default exactly.
+        if (!src.spec().find_attribute("oiio:ColorSpace", TypeString)) {
+            OIIO::pvt::ColorCallContext ctx;
+            ctx.filename       = std::string(src.name());
+            ctx.format         = std::string(src.file_format_name());
+            std::string hinted = OIIO::pvt::infer_color_space_from_spec(
+                colorconfig, src.spec(), ctx,
+                OIIO::pvt::ColorReadPolicy::snapshot());
+            if (!hinted.empty()) {
+                Strutil::debug("IBA::colorconvert inferred source color "
+                               "space \"{}\" from the input's color "
+                               "metadata\n",
+                               hinted);
+                from = ustring(hinted);
+            }
+        }
     }
     if (from.empty() || from == "unknown" || to.empty() || to == "unknown") {
         dst.errorfmt("Unknown color space name (from=\"{}\", to=\"{}\")", from,
                      to);
         return false;
     }
-
-    if (!colorconfig)
-        colorconfig = &ColorConfig::default_colorconfig();
 
     ColorProcessorHandle processor
         = colorconfig->createColorProcessor(colorconfig->resolve(from),

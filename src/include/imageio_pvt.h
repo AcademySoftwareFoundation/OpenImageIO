@@ -731,6 +731,17 @@ resolve_color_metadata(const ColorConfig* config, const ImageSpec& spec,
                        const ColorCallContext& ctx,
                        const ColorReadPolicy& policy);
 
+/// Infer a usable source color space from the color hints on `spec`, for a
+/// color operation whose caller supplied none: the spec resolve() above,
+/// with session-synthetic answers (custom:/icc:) filtered out -- they name
+/// no constructible color space in this round -- via a config-only retry
+/// that lets an unusable signal miss and the next rung answer. Returns ""
+/// when no hint yields a usable space (the caller keeps its default).
+OIIO_API std::string
+infer_color_space_from_spec(const ColorConfig* config, const ImageSpec& spec,
+                            const ColorCallContext& ctx,
+                            const ColorReadPolicy& policy);
+
 
 // ---------------------------------------------------------------------------
 // Color-policy snapshot primitive -- the single-locked-snapshot mechanism
