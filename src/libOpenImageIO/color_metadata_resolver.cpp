@@ -595,27 +595,52 @@ resolve_color_metadata(const ColorConfig* config,
 void
 reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy)
 {
-    // Deposit the facts this reader historically consulted. EXR's read path
-    // used only the ACES-container flag and colorInteropID; wiring the other
-    // signals (CICP, chromaticities, ...) into resolution is a per-format
-    // behavior change and lands in its own later PR.
+    // Each reader deposits the raw color attributes it read; this central
+    // entry point reproduces the precedence that reader used to hand-roll.
+    // Only the signals a reader historically consulted are wired in -- pulling
+    // a reader's remaining signals into resolution is a per-format behavior
+    // change and lands in its own later PR.
+
+    // The ACES-container flag and colorInteropID: the signals the EXR reader
+    // consulted. When either is present, reproduce its former inline
+    // special-casing (set_colorspace, which also clears now-contradictory
+    // CICP).
     ColorMetadataFacts facts;
     facts.aces_image_container
         = spec.get_int_attribute("acesImageContainerFlag") == 1;
     if (auto c = spec.find_attribute("colorInteropID", TypeString))
         facts.color_interop_id = c->get_ustring().string();
 
-    if (!facts.aces_image_container && facts.color_interop_id.empty())
-        return;  // nothing to reconcile -- leave the spec untouched, as before
+    if (facts.aces_image_container || !facts.color_interop_id.empty()) {
+        ColorCallContext ctx;
+        const auto expl = resolve_color_metadata(nullptr, "", facts, ctx, policy);
+        if (expl.has_genuine_metadata_match())
+            spec.set_colorspace(expl.resolved);
+        else if (!facts.color_interop_id.empty())
+            // A colorInteropID that resolves to nothing is still honored
+            // verbatim (the historical passthrough); a later policy may
+            // tighten this.
+            spec.set_colorspace(facts.color_interop_id);
+        return;
+    }
 
-    ColorCallContext ctx;
-    const auto expl = resolve_color_metadata(nullptr, "", facts, ctx, policy);
-    if (expl.has_genuine_metadata_match())
-        spec.set_colorspace(expl.resolved);
-    else if (!facts.color_interop_id.empty())
-        // A colorInteropID that resolves to nothing is still honored verbatim
-        // (the historical passthrough); a later policy may tighten this.
-        spec.set_colorspace(facts.color_interop_id);
+    // A CICP tuple: the signal the PNG reader consulted, using the interop id
+    // it maps to (via the built-in registry) to override the color space it
+    // had already set from the sRGB/gamma chunks. Route that one signal
+    // through the same cascade. The override is applied with a plain attribute
+    // set -- keeping the CICP source attribute in place -- exactly as the PNG
+    // reader used to do inline.
+    int cicp[4];
+    if (spec.getattribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp)) {
+        ColorMetadataFacts cf;
+        cf.has_cicp = true;
+        for (int i = 0; i < 4; ++i)
+            cf.cicp[i] = cicp[i];
+        ColorCallContext ctx;
+        const auto expl = resolve_color_metadata(nullptr, "", cf, ctx, policy);
+        if (expl.has_genuine_metadata_match())
+            spec.attribute("oiio:ColorSpace", expl.resolved);
+    }
 }
 
 ColorReadPolicy

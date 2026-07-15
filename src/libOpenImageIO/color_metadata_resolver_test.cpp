@@ -278,6 +278,18 @@ test_reconcile_entry_point()
         reconcile_color_metadata(spec, ColorReadPolicy());
         OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"), "");
     }
+    {
+        // A CICP tuple overrides the color space with the interop id it maps
+        // to (Rec.709 primaries + sRGB transfer -> srgb_rec709_scene), and the
+        // CICP source attribute is kept in place.
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        const int cicp[4] = { 1, 13, 0, 1 };
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+        reconcile_color_metadata(spec, ColorReadPolicy());
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                         "srgb_rec709_scene");
+        OIIO_CHECK_EQUAL(spec.find_attribute("CICP") != nullptr, true);
+    }
 }
 
 

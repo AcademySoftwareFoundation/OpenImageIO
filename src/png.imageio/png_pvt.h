@@ -18,6 +18,8 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "imageio_pvt.h"
+
 
 #define OIIO_LIBPNG_VERSION                                    \
     (PNG_LIBPNG_VER_MAJOR * 10000 + PNG_LIBPNG_VER_MINOR * 100 \
@@ -329,10 +331,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
             const int cicp[4] = { pri, trc, mtx, vfr };
             spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::INT, 4), cicp);
-            const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-            string_view interop_id = colorconfig.get_color_interop_id(cicp);
-            if (!interop_id.empty())
-                spec.attribute("oiio:ColorSpace", interop_id);
+            // The CICP -> color-space override is applied centrally below.
         }
     }
 #endif
@@ -355,6 +354,12 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         spec.attribute("oiio:UnassociatedAlpha", (int)1);
 
     // FIXME -- look for an XMP packet in an iTXt chunk.
+
+    // Hand the raw color attributes just deposited to the central color-
+    // metadata reconciler, which applies the audited precedence cascade
+    // (replacing this reader's former inline CICP -> color-space override).
+    // With policy at its defaults the resolved color space is identical.
+    pvt::reconcile_color_metadata(spec, pvt::ColorReadPolicy::snapshot());
 
     return ok;
 }
