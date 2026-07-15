@@ -1,0 +1,22 @@
+ocio_profile_version: 2.1
+roles:
+  default: foo
+  scene_linear: foo
+file_rules:
+  - !<Rule> {name: Default, colorspace: foo}
+colorspaces:
+  - !<ColorSpace>
+    name: foo
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: "-foo"
+    encoding: display-linear
+  - !<ColorSpace>
+    name: "~foo"
+    encoding: log
+  - !<ColorSpace>
+    name: '\foo'
+    encoding: hdr-video
+  - !<ColorSpace>
+    name: all_encoding
+    encoding: all

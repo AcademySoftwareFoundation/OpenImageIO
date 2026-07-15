@@ -10,6 +10,11 @@
 #ifndef OPENIMAGEIO_IMAGEIO_PVT_H
 #define OPENIMAGEIO_IMAGEIO_PVT_H
 
+#include <array>
+#include <map>
+#include <optional>
+#include <utility>
+
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/timer.h>
@@ -312,6 +317,180 @@ interop_identities_config_names();
 
 
 // ---------------------------------------------------------------------------
+// Curve-family normalization -- reduce a transfer-function ("curve") named
+// transform's name to a reference-space-agnostic family so two spaces sharing
+// a transfer curve compare equal regardless of the state suffix the name
+// carries (`_tx` pass-through / bare mirror in current configs; legacy
+// `_scene` / `_display` still supported). Pure, stateless, no OCIO. For
+// internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// Family token for a curve name: strip a leading `crv_`, then strip at most
+/// one trailing state suffix (`_scene`, `_display`, or `_tx`). A name that is
+/// a bare suffix (`"_tx"`) or is empty passes through unchanged. E.g.
+/// `crv_g24_tx`, `crv_g24`, and `crv_g24_display` all yield `g24`.
+OIIO_API std::string
+family_token(string_view name);
+
+/// Like family_token but keeps the `crv_` prefix -- for comparing two matched
+/// catalog names for family equality (`crv_srgb_tx` == `crv_srgb`).
+OIIO_API std::string
+family_name(string_view name);
+
+/// True if `name` is the pass-through variant of a curve family (ends with
+/// `_scene` or `_tx`, and is strictly longer than that suffix).
+OIIO_API bool
+curve_is_passthrough(string_view name);
+
+/// True if `name` is the mirror variant of a curve family: it ends with the
+/// legacy `_display` suffix, OR its `_tx` pass-through twin is present in
+/// `catalog_names` (the current suffixless-mirror convention).
+OIIO_API bool
+curve_is_mirror(string_view name, cspan<std::string> catalog_names);
+
+
+// ---------------------------------------------------------------------------
+// Chromaticity math -- pure, config-free primitives for the chromaticity axis
+// of color-space search by characterization. A Chromaticities is four (x, y)
+// pairs in R, G, B, W order. Rounding is the only place numerical fuzz is
+// absorbed; once coordinates are rounded, equality is coordinate-exact, so
+// callers compare a Chromaticities with plain `==` / std::find (std::array
+// gives that for free -- no dedicated compare helper). For internal/test use
+// only.
+// ---------------------------------------------------------------------------
+
+using Chromaticities = std::array<std::array<double, 2>, 4>;
+
+/// Round a chromaticity coordinate to 6 decimals, then snap to the nearest
+/// coarser 5/4/3/2-digit grid if within 2e-7 (finest grid within tolerance
+/// wins). Absorbs OCIO chromaticity floats like 0.329999998 -> 0.33 so that
+/// downstream equality can be exact.
+OIIO_API double
+round_chromaticity_coord(double value);
+
+/// Reserved (R,G,B,W) primaries for an interop id that names a well-known
+/// gamut, probed as an `_<token>_` substring of the lowered id (a complete
+/// gamut component, not an arbitrary fragment), first match wins. `adobergb`
+/// matches only on the exact id or an `_adobergb_` token. Empty when no
+/// reserved gamut token is present (single-hypothesis / table-only: gamuts
+/// absent from the table, e.g. `ciexyzd65`, are not resolved here).
+OIIO_API std::optional<Chromaticities>
+reserved_chromaticities_for_id(string_view interop_id);
+
+/// Derive chromaticities from the four AP0-anchored RGB probes (pure R, G, B,
+/// W as a flat 12-element span, in that order) that the caller has pushed
+/// through colorspace -> AP0 interchange. Applies the Bradford-adapted
+/// AP0->XYZ(D65) matrix, solves each probe for (x, y) with rounding, and
+/// snaps an equal-energy white to exact (1/3, 1/3). Empty if the span is not
+/// 12 long or a probe is degenerate (non-finite / near-zero sum). Single
+/// hypothesis (D65 + Bradford); the whitepoint/CAT sweep is a follow-on.
+OIIO_API std::optional<Chromaticities>
+chromaticities_from_ap0_probes(cspan<float> ap0_rgb);
+
+
+// ---------------------------------------------------------------------------
+// Transfer-signature axis -- pure, config-free primitives for the
+// transfer-function axis of color-space search by characterization. A
+// candidate's transfer property is the triple { identity, family, signature }:
+// whether the curve is linear/identity, its reference-state-agnostic family
+// key (from the curve-family normalization above), and, for non-identity
+// curves, a behavioral signature probed on the neutral axis. Matching follows
+// a fixed order -- identity, then family, then signature. The numerical work
+// (normalized slopes, per-encoding slope tolerance, white-gain tie-break) is
+// pure: a caller runs a CPU processor over tf_probe_axis() and hands the
+// outputs here, so nothing in this section needs a live config. For
+// internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// Behavioral transfer-function signature of a color space: channel-averaged
+/// outputs of a fixed set of neutral-axis probes in the encode direction
+/// (linear anchor -> color space), plus the adjacent slopes normalized by the
+/// 0.18->0.50 anchor slope. `encoding` (the effective OCIO encoding) selects
+/// the slope tolerance; `family` is the transfer-family key; `is_linear` is
+/// the measured 64x-ratio linearity verdict.
+struct TransferFunctionSignature {
+    std::vector<double> slopes;  ///< adjacent slopes, 0.18->0.50 normalized
+    std::vector<double> values;  ///< channel-averaged probe outputs
+    std::string encoding;        ///< effective OCIO encoding of the space
+    std::string family;          ///< transfer-family key (see family_token)
+    bool is_linear = false;      ///< measured linearity (64x ratio check)
+};
+
+/// Per-candidate transfer property. "Unknown" -- none of the members carry a
+/// verdict (known() is false) -- makes an include term miss, a `~` term
+/// reject, and a `-` term preserve, in the three-valued axis evaluation.
+struct TransferProperty {
+    bool identity = false;                           ///< linear/identity curve
+    std::string family;                              ///< "" when unidentified
+    std::optional<TransferFunctionSignature> signature;
+
+    bool known() const
+    {
+        return identity || !family.empty() || signature.has_value();
+    }
+};
+
+/// A resolved transfer-function hint: the property a hint term denotes, as one
+/// or more of identity / family / candidate signatures. (The search-term mode
+/// -- include / exclude / inverse -- is layered on separately by the search
+/// core; this struct carries only the resolved value.)
+struct TransferHint {
+    bool identity = false;  ///< hint denotes a linear/identity curve
+    std::string family;     ///< curve-family key ("" when unidentified)
+    std::vector<TransferFunctionSignature> signatures;
+};
+
+/// The fixed neutral-axis probe abscissae the signature is built from: the 10
+/// discriminating points, followed by the (dark, bright) scaled-linearity
+/// pair. A caller pushes each value as R=G=B through a CPU processor in the
+/// encode direction and hands the 12 channel-averaged outputs to
+/// tf_signature_from_probes().
+OIIO_API cspan<double>
+tf_probe_axis();
+
+/// Per-encoding slope tolerance: 0.05 for `log`, 0.1 for `hdr-video`, else
+/// 0.02 (`sdr-video` and default). Wider for log/HDR because those curves
+/// vary more across their slope profiles.
+OIIO_API double
+tf_slope_tolerance(string_view encoding);
+
+/// True when the curve clips superwhite: the last two probe outputs (the 1.0
+/// and 1.1 points) coincide.
+OIIO_API bool
+tf_clips_superwhite(cspan<double> values);
+
+/// Adjacent slopes of a 10-probe run, normalized by the 0.18->0.50 anchor
+/// slope. Empty when `values` is not a full probe run (size 10) or the anchor
+/// slope is degenerate (flat).
+OIIO_API std::vector<double>
+tf_normalized_slopes(cspan<double> values);
+
+/// Build a signature from the 12 channel-averaged outputs of tf_probe_axis()
+/// (10 discriminating probes + dark + bright). `encoding` and `family` are the
+/// caller's to fill afterward (they depend on the source config). nullopt on a
+/// short span or a degenerate (flat) anchor slope.
+OIIO_API std::optional<TransferFunctionSignature>
+tf_signature_from_probes(cspan<double> probe_outputs);
+
+/// Tolerance-compare two probed signatures: per-encoding slope tolerance with
+/// clip masking (index 0 always masked; last index masked when either side
+/// clips superwhite; at least 80% of compared slopes must agree), then a
+/// white-gain tie-break at the 1.0 probe that keeps a headroom-scaled curve
+/// distinct from its unscaled twin.
+OIIO_API bool
+transfer_signatures_match(const TransferFunctionSignature& a,
+                          const TransferFunctionSignature& b);
+
+/// Does a resolved transfer hint match a candidate's transfer property, in
+/// the identity -> family -> signature order: identity-vs-identity wins; else
+/// if both families are known, family equality decides (behavior families beat
+/// signature comparison); else a probed-signature tolerance compare against
+/// any of the hint's signatures. An unknown candidate property never matches.
+OIIO_API bool
+transfer_hint_matches(const TransferHint& hint, const TransferProperty& property);
+
+
+// ---------------------------------------------------------------------------
 // Color-space classification -- how ColorConfig internally classifies a
 // color space for interop matching (the "simple" transform allowlist and
 // related properties). For internal/test use only.
@@ -528,6 +707,82 @@ strip_leftmost_namespace(const std::string& id);
 // color state without a registry lookup: "data", "unknown", "bypass".
 OIIO_API bool
 is_utility_interop_id(const std::string& id);
+
+
+// ---------------------------------------------------------------------------
+// Color-space search by characterization -- find a config's color spaces whose
+// derivable characteristics (gamut / transfer curve / encoding / image state)
+// satisfy a set of partial-characterization hints. The two pieces below are
+// the pure, config-free crown of the search: the per-term grammar parse and
+// the three-valued (match / known-different / unknown) axis combination. Both
+// unit-test without a live OCIO config; the config-driving walk that resolves
+// hints and probes candidates lives in color_ocio.cpp (it needs the config).
+// For internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// A search hint term is `include` by default; a leading `-` makes it
+/// `exclude` (subtract proven matches), a leading `~` makes it `inverse`
+/// (select only proven *differences*). A leading `\` escapes an operator so it
+/// is part of the name.
+enum class SearchTermMode { include, exclude, inverse };
+
+/// Split a raw hint term into (mode, value). A backslash escapes exactly `-`,
+/// `~`, or `\` (the operator character becomes part of the value). Throws
+/// std::invalid_argument on a bare operator (`"-"`), a dangling escape
+/// (`"\"`), or an invalid escape (`"\foo"`). An empty input yields an empty
+/// value (the caller skips it).
+OIIO_API std::pair<SearchTermMode, std::string>
+parse_search_term(string_view raw);
+
+/// Three-valued axis combination -- the heart of the search. `modes` and
+/// `term_matches` are parallel (one entry per resolved term on this axis);
+/// `term_matches[i]` is whether term i matches the candidate's property, and
+/// `property_known` is whether the candidate's property could be derived at
+/// all ("unknown" when false). An empty axis accepts everything. Include ∪
+/// inverse select; an exclusion-only axis starts from the full universe;
+/// exclusion always wins last. Inverse selects only *known* differences
+/// (unknown is rejected), while exclusion preserves unknowns -- this is the
+/// `~` vs `-` unknown-propagation split. The four per-axis evaluators in the
+/// search walk all route through this one function.
+OIIO_API bool
+three_valued_axis(cspan<SearchTermMode> modes, cspan<unsigned char> term_matches,
+                  bool property_known);
+
+/// The internal option set for a characterization search. Each of the four
+/// hint axes is a list of grammar terms (empty = that axis is unconstrained).
+/// `include_active` is on by default and has no public counterpart -- the
+/// public API always searches active spaces; only this internal form can turn
+/// them off. `context` is a per-call set of OCIO context variable overrides,
+/// scoped to the one query.
+struct FindColorSpacesOptions {
+    std::vector<std::string> chromaticities;
+    std::vector<std::string> transfer_functions;
+    std::vector<std::string> encodings;
+    std::vector<std::string> image_states;
+    bool include_active            = true;
+    bool include_inactive          = false;
+    bool include_context_sensitive = false;
+    bool exhaustive                = false;
+    // strict limits encoding characterization to explicitly authored
+    // encoding attributes.  The default additionally lets a candidate match
+    // through the encoding of its interop-identity twin — both as the
+    // fallback for an unset attribute and as a second acceptable value
+    // alongside an authored one.  Hint-by-example resolution always reads
+    // the named space's own effective encoding.
+    bool strict = false;
+    std::map<std::string, std::string> context;
+};
+
+/// Find the color spaces in `config` whose derivable characteristics satisfy
+/// every non-empty hint axis of `options`, under the three-valued filter and
+/// the visibility/eligibility gates. Every hint term is resolved up front
+/// (an unresolvable hint throws std::invalid_argument before any candidate is
+/// examined); a candidate whose property cannot be derived is tolerated as
+/// "unknown". Results are returned in a deterministic order,
+/// (context-invariant, active, simple, name). For internal/test use only.
+OIIO_API std::vector<std::string>
+find_color_spaces(const ColorConfig& config,
+                  const FindColorSpacesOptions& options);
 
 }  // namespace pvt
 

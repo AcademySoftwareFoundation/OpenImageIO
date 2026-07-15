@@ -4,10 +4,43 @@
 
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
+#include <map>
 #include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace PyOpenImageIO {
+
+namespace {
+    // Coerce a characterization-search axis argument into the term list the
+    // C++ query expects. Each axis accepts either a single string ("" means
+    // "unconstrained") or a sequence of strings. Anything else (a non-string
+    // element, or a non-sequence like bytes/int) raises ValueError.
+    std::vector<std::string>
+    parse_hint_terms(const py::object& value, const char* axis)
+    {
+        std::vector<std::string> out;
+        if (py::isinstance<py::str>(value)) {
+            std::string s = py::cast<std::string>(value);
+            if (!s.empty())
+                out.push_back(std::move(s));
+            return out;
+        }
+        if (py::isinstance<py::bytes>(value)
+            || py::isinstance<py::bytearray>(value)
+            || !py::isinstance<py::sequence>(value))
+            throw py::value_error(
+                std::string(axis) + " must be a string or a sequence of strings");
+        for (auto item : py::cast<py::sequence>(value)) {
+            if (!py::isinstance<py::str>(item))
+                throw py::value_error(std::string(axis)
+                                      + " sequence entries must all be strings");
+            out.push_back(py::cast<std::string>(item));
+        }
+        return out;
+    }
+}  // namespace
 
 
 // Declare the OIIO ColorConfig class to Python
@@ -191,6 +224,30 @@ declare_colorconfig(py::module& m)
                  }
                  return std::nullopt;
              })
+        .def(
+            "find_color_spaces",
+            [](const ColorConfig& self, const py::object& chromaticities,
+               const py::object& transfer_function, const py::object& encoding,
+               const py::object& image_state, bool include_inactive,
+               bool include_context_sensitive, bool exhaustive, bool strict,
+               const std::map<std::string, std::string>& context_vars) {
+                auto chrom = parse_hint_terms(chromaticities, "chromaticities");
+                auto tf    = parse_hint_terms(transfer_function,
+                                              "transfer_function");
+                auto enc   = parse_hint_terms(encoding, "encoding");
+                auto state = parse_hint_terms(image_state, "image_state");
+                return self.find_color_spaces(chrom, tf, enc, state,
+                                              include_inactive,
+                                              include_context_sensitive,
+                                              exhaustive, strict,
+                                              context_vars);
+            },
+            "chromaticities"_a = "", "transfer_function"_a = "",
+            "encoding"_a = "", "image_state"_a = "", py::kw_only(),
+            "include_inactive"_a = false,
+            "include_context_sensitive"_a = false, "exhaustive"_a = false,
+            "strict"_a = false,
+            "context_vars"_a = std::map<std::string, std::string>())
         .def("configname", &ColorConfig::configname)
         .def_static("default_colorconfig", []() -> const ColorConfig& {
             return ColorConfig::default_colorconfig();
