@@ -11,7 +11,9 @@
 #define OPENIMAGEIO_IMAGEIO_PVT_H
 
 #include <array>
+#include <map>
 #include <optional>
+#include <utility>
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/thread.h>
@@ -705,6 +707,46 @@ strip_leftmost_namespace(const std::string& id);
 // color state without a registry lookup: "data", "unknown", "bypass".
 OIIO_API bool
 is_utility_interop_id(const std::string& id);
+
+
+// ---------------------------------------------------------------------------
+// Color-space search by characterization -- find a config's color spaces whose
+// derivable characteristics (gamut / transfer curve / encoding / image state)
+// satisfy a set of partial-characterization hints. The two pieces below are
+// the pure, config-free crown of the search: the per-term grammar parse and
+// the three-valued (match / known-different / unknown) axis combination. Both
+// unit-test without a live OCIO config; the config-driving walk that resolves
+// hints and probes candidates lives in color_ocio.cpp (it needs the config).
+// For internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// A search hint term is `include` by default; a leading `-` makes it
+/// `exclude` (subtract proven matches), a leading `~` makes it `inverse`
+/// (select only proven *differences*). A leading `\` escapes an operator so it
+/// is part of the name.
+enum class SearchTermMode { include, exclude, inverse };
+
+/// Split a raw hint term into (mode, value). A backslash escapes exactly `-`,
+/// `~`, or `\` (the operator character becomes part of the value). Throws
+/// std::invalid_argument on a bare operator (`"-"`), a dangling escape
+/// (`"\"`), or an invalid escape (`"\foo"`). An empty input yields an empty
+/// value (the caller skips it).
+OIIO_API std::pair<SearchTermMode, std::string>
+parse_search_term(string_view raw);
+
+/// Three-valued axis combination -- the heart of the search. `modes` and
+/// `term_matches` are parallel (one entry per resolved term on this axis);
+/// `term_matches[i]` is whether term i matches the candidate's property, and
+/// `property_known` is whether the candidate's property could be derived at
+/// all ("unknown" when false). An empty axis accepts everything. Include ∪
+/// inverse select; an exclusion-only axis starts from the full universe;
+/// exclusion always wins last. Inverse selects only *known* differences
+/// (unknown is rejected), while exclusion preserves unknowns -- this is the
+/// `~` vs `-` unknown-propagation split. The four per-axis evaluators in the
+/// search walk all route through this one function.
+OIIO_API bool
+three_valued_axis(cspan<SearchTermMode> modes, cspan<unsigned char> term_matches,
+                  bool property_known);
 
 }  // namespace pvt
 
