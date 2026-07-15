@@ -1,0 +1,265 @@
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+// Unit tests for the write-side color-metadata plan (pvt), driven directly
+// through imageio_pvt.h. They exercise the write/suppress/derive/omit marking
+// of each signal, the never-guess omission rule, the provenance suppression
+// rule, and the OpenEXR writer's consumption of the plan.
+
+#include <cstdio>
+#include <fstream>
+#include <string>
+#include <vector>
+
+#include <OpenImageIO/color.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/unittest.h>
+
+#include "imageio_pvt.h"
+
+using namespace OIIO;
+using namespace OIIO::pvt;
+
+
+// The same small config the read-side test uses: its identity spaces carry
+// the interop-id / CICP metadata the derive-path vectors resolve against.
+static std::string
+write_test_config()
+{
+    std::string path = Filesystem::temp_directory_path() + "/oiio_cmp_test.ocio";
+    std::ofstream f(path);
+    f << R"(ocio_profile_version: 2
+environment: {}
+search_path: ""
+roles:
+  default: raw_data
+  scene_linear: lin_ap1_scene
+displays:
+  disp:
+    - !<View> {name: view, colorspace: srgb_rec709_display}
+active_displays: [disp]
+active_views: [view]
+colorspaces:
+  - !<ColorSpace>
+    name: raw_data
+    isdata: true
+    aliases: [data]
+  - !<ColorSpace>
+    name: lin_ap0_scene
+  - !<ColorSpace>
+    name: lin_ap1_scene
+  - !<ColorSpace>
+    name: srgb_rec709_scene
+  - !<ColorSpace>
+    name: srgb_rec709_display
+  - !<ColorSpace>
+    name: g24_rec709_display
+)";
+    f.close();
+    return path;
+}
+
+
+static ColorWriteCaps
+all_caps()
+{
+    ColorWriteCaps c;
+    c.cicp = c.chromaticities = c.gamma = c.icc = c.interop_id = c.mdcv = true;
+    return c;
+}
+
+
+// An author-supplied colorInteropID is emitted verbatim (Write); an
+// unspecified, underivable color space omits (never-guess).
+static void
+test_interop_id_write_and_omit()
+{
+    ColorWritePolicy pol;
+
+    ImageSpec explicit_spec(4, 4, 3, TypeHalf);
+    explicit_spec.attribute("colorInteropID", "lin_adobergb_scene");
+    auto p1 = plan_color_metadata(nullptr, explicit_spec, all_caps(), pol);
+    OIIO_CHECK_EQUAL(int(p1.interop_id.action), int(ColorPlanAction::Write));
+    OIIO_CHECK_EQUAL(p1.interop_id.str, "lin_adobergb_scene");
+
+    ImageSpec blank(4, 4, 3, TypeHalf);
+    blank.attribute("oiio:ColorSpace", "not-a-real-color-space-xyzzy");
+    auto p2 = plan_color_metadata(nullptr, blank, all_caps(), pol);
+    OIIO_CHECK_EQUAL(int(p2.interop_id.action), int(ColorPlanAction::Omit));
+    OIIO_CHECK_ASSERT(!p2.interop_id.emit());
+}
+
+
+// A capable signal under a "never" policy is Suppressed, not Written, even
+// with an author value present.
+static void
+test_never_suppresses()
+{
+    ColorWritePolicy pol;
+    pol.interop_id = ColorSignalPolicy::Never;
+
+    ImageSpec spec(4, 4, 3, TypeHalf);
+    spec.attribute("colorInteropID", "lin_adobergb_scene");
+    auto p = plan_color_metadata(nullptr, spec, all_caps(), pol);
+    OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Suppress));
+    OIIO_CHECK_ASSERT(!p.interop_id.emit());
+}
+
+
+// A signal the format cannot carry stays Omit regardless of the metadata.
+static void
+test_incapable_omits()
+{
+    ColorWritePolicy pol;
+    ColorWriteCaps caps;  // nothing supported
+    ImageSpec spec(4, 4, 3, TypeHalf);
+    spec.attribute("colorInteropID", "lin_adobergb_scene");
+    auto p = plan_color_metadata(nullptr, spec, caps, pol);
+    OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Omit));
+}
+
+
+// Author-supplied chromaticities / gamma are emitted verbatim; without an
+// author value and with no in-tree deriver they omit (never-guess).
+static void
+test_explicit_chroma_and_gamma()
+{
+    ColorWritePolicy pol;
+    const float chrm[8] = { 0.64f, 0.33f, 0.30f,   0.60f,
+                            0.15f, 0.06f, 0.3127f, 0.3290f };
+
+    ImageSpec spec(4, 4, 3, TypeHalf);
+    spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), chrm);
+    spec.attribute("oiio:Gamma", 2.2f);
+    auto p = plan_color_metadata(nullptr, spec, all_caps(), pol);
+    OIIO_CHECK_EQUAL(int(p.chromaticities.action), int(ColorPlanAction::Write));
+    OIIO_CHECK_EQUAL(p.chromaticities.floats.size(), size_t(8));
+    OIIO_CHECK_EQUAL(int(p.gamma.action), int(ColorPlanAction::Write));
+    OIIO_CHECK_EQUAL(p.gamma.gamma, 2.2f);
+
+    ImageSpec bare(4, 4, 3, TypeHalf);
+    auto p2 = plan_color_metadata(nullptr, bare, all_caps(), pol);
+    OIIO_CHECK_EQUAL(int(p2.chromaticities.action), int(ColorPlanAction::Omit));
+    OIIO_CHECK_EQUAL(int(p2.gamma.action), int(ColorPlanAction::Omit));
+}
+
+
+// Name -> interop id and name -> CICP derivation, exercised against the config
+// (branching on what the config can actually resolve, so the vector is
+// deterministic regardless of the config's coverage).
+static void
+test_derivation(const ColorConfig& config)
+{
+    ColorWritePolicy pol;
+    ImageSpec spec(4, 4, 3, TypeHalf);
+    spec.attribute("oiio:ColorSpace", "srgb_rec709_display");
+
+    auto p = plan_color_metadata(&config, spec, all_caps(), pol);
+
+    const std::string want_id(config.get_color_interop_id("srgb_rec709_display"));
+    if (!want_id.empty()) {
+        OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Derive));
+        OIIO_CHECK_EQUAL(p.interop_id.str, want_id);
+    } else {
+        OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Omit));
+    }
+
+    cspan<int> want_cicp = config.get_cicp("srgb_rec709_display");
+    if (want_cicp.size() == 4) {
+        OIIO_CHECK_EQUAL(int(p.cicp.action), int(ColorPlanAction::Derive));
+        OIIO_CHECK_EQUAL(p.cicp.ints.size(), size_t(4));
+    } else {
+        OIIO_CHECK_EQUAL(int(p.cicp.action), int(ColorPlanAction::Omit));
+    }
+}
+
+
+// The provenance write rule: suppress oiio:SourcePath, keep oiio:SourceFormat.
+static void
+test_provenance_rule()
+{
+    ImageSpec spec(4, 4, 3, TypeHalf);
+    auto p = plan_color_metadata(nullptr, spec, all_caps(), ColorWritePolicy());
+    OIIO_CHECK_ASSERT(p.suppress_source_path);
+    OIIO_CHECK_ASSERT(p.keep_source_format);
+}
+
+
+// The OpenEXR writer consumes the plan: an author-supplied id survives a
+// write/read round-trip untouched, and a spec that only names a color space
+// gets exactly the id the plan derives (or none, matching the default config).
+static void
+test_exr_consumption()
+{
+    auto out = ImageOutput::create("exr");
+    if (!out) {
+        Strutil::print("EXR plugin unavailable; skipping consumption round-trip\n");
+        return;
+    }
+    const std::string file = Filesystem::temp_directory_path()
+                             + "/oiio_cmp_roundtrip.exr";
+    std::vector<float> pix(4 * 4 * 3, 0.5f);
+
+    auto write = [&](const ImageSpec& spec) {
+        auto o = ImageOutput::create(file);
+        OIIO_CHECK_ASSERT(o && o->open(file, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+    };
+    auto read_id = [&]() -> std::string {
+        auto in = ImageInput::open(file);
+        if (!in)
+            return "<no-read>";
+        std::string id = in->spec().get_string_attribute("colorInteropID");
+        in->close();
+        return id;
+    };
+
+    // Author value is emitted verbatim.
+    {
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("colorInteropID", "lin_adobergb_scene");
+        write(spec);
+        OIIO_CHECK_EQUAL(read_id(), "lin_adobergb_scene");
+    }
+
+    // A color-space-only spec gets the plan's derived id (default config).
+    {
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("oiio:ColorSpace", "lin_ap0_scene");
+        write(spec);
+        const std::string want(
+            ColorConfig::default_colorconfig().get_color_interop_id(
+                "lin_ap0_scene"));
+        OIIO_CHECK_EQUAL(read_id(), want);
+    }
+
+    Filesystem::remove(file);
+}
+
+
+int
+main(int /*argc*/, char* /*argv*/[])
+{
+    test_interop_id_write_and_omit();
+    test_never_suppresses();
+    test_incapable_omits();
+    test_explicit_chroma_and_gamma();
+    test_provenance_rule();
+    test_exr_consumption();
+
+    const std::string cfgpath = write_test_config();
+    ColorConfig config(cfgpath);
+    if (config.has_error()) {
+        Strutil::print("Could not load test config: {}\n", config.geterror());
+        return 1;
+    }
+    test_derivation(config);
+    Filesystem::remove(cfgpath);
+
+    return unit_test_failures != 0;
+}

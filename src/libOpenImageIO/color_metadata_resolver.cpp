@@ -621,30 +621,15 @@ reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy)
 ColorReadPolicy
 ColorReadPolicy::snapshot(const ImageSpec* config_hints)
 {
-    // One locked read of the whole policy state. Per-open config hints (if
-    // any) win over the global attribute table; both win over the built-in
-    // defaults, which are calibrated to reproduce main.
+    // One locked read of the whole policy state, via the shared snapshot
+    // primitive (the same mechanism the write-side policy uses). Per-open
+    // config hints (if any) win over the global attribute table; both win over
+    // the built-in defaults, which are calibrated to reproduce main.
     ColorReadPolicy p;
-    static std::mutex mtx;
-    std::lock_guard<std::mutex> lock(mtx);
-
-    auto get_string = [&](const char* name) -> std::string {
-        std::string v;
-        if (config_hints) {
-            if (auto a = config_hints->find_attribute(name, TypeString))
-                return a->get_ustring().string();
-        }
-        OIIO::getattribute(name, v);
-        return v;
-    };
-    auto get_int = [&](const char* name, int dflt) -> int {
-        if (config_hints) {
-            if (auto a = config_hints->find_attribute(name, TypeInt))
-                return a->get_int();
-        }
-        int v = dflt;
-        OIIO::getattribute(name, v);
-        return v;
+    ColorPolicySnapshot snap(config_hints);
+    auto get_string = [&](const char* name) { return snap.get_string(name); };
+    auto get_int    = [&](const char* name, int dflt) {
+        return snap.get_int(name, dflt);
     };
 
     const std::string scope = get_string("oiio:colorpolicy:read:scope");

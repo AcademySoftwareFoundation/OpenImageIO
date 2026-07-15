@@ -10,6 +10,8 @@
 #ifndef OPENIMAGEIO_IMAGEIO_PVT_H
 #define OPENIMAGEIO_IMAGEIO_PVT_H
 
+#include <mutex>
+
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/timer.h>
@@ -672,6 +674,125 @@ resolve_color_metadata(const ColorConfig* config,
 /// precedence it replaces. Call once in the ImageInput open path.
 OIIO_API void
 reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy);
+
+
+// ---------------------------------------------------------------------------
+// Color-policy snapshot primitive -- the single-locked-snapshot mechanism
+// shared by the read (reconcile) and write (plan) policy readers. One
+// snapshot holds the shared policy lock for its whole lifetime, so every get
+// below reads one consistent view of the oiio:colorpolicy:* attribute state
+// with no mid-call re-lock (the read/write-back race the design forbids).
+// Per-open / per-write config hints win over the global attribute table. For
+// internal/test use only.
+// ---------------------------------------------------------------------------
+class OIIO_API ColorPolicySnapshot {
+public:
+    explicit ColorPolicySnapshot(const ImageSpec* hints = nullptr);
+    /// String colorpolicy attribute: config hint, else global, else "".
+    std::string get_string(const char* name) const;
+    /// Int colorpolicy attribute: config hint, else global, else `dflt`.
+    int get_int(const char* name, int dflt) const;
+
+private:
+    const ImageSpec* m_hints;
+    std::lock_guard<std::mutex> m_lock;  // held for the snapshot's lifetime
+};
+
+
+// ---------------------------------------------------------------------------
+// Write-side color-metadata plan -- the central derivation writer plugins
+// consume in place of hand-rolled emission. plan_color_metadata() turns the
+// color space designation a spec carries into a per-signal plan: for each
+// signal a format can emit, whether to write an author-supplied value, derive
+// one from the color space, or suppress it. Couldn't-determine OMITS (no
+// breadcrumb strings). Separately owned from the read-side reconciler above --
+// two modules sharing one oiio:colorpolicy:* namespace, deliberately not
+// merged. For internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// What the plan says to do with one signal.
+enum class ColorPlanAction {
+    Omit,      ///< nothing determinable / format can't carry it -- emit nothing
+    Write,     ///< an author-supplied value is present -- emit it verbatim
+    Derive,    ///< OIIO derived the value from the color space -- emit it
+    Suppress,  ///< a policy said "never" -- emit nothing even if determinable
+};
+
+/// One planned signal. Only the carrier the signal uses is populated: `str`
+/// for an interop id, `ints` for a CICP tuple, `floats` for chromaticities,
+/// `gamma` for a scalar. `emit()` is true iff the writer should put bytes down.
+struct ColorPlanField {
+    ColorPlanAction action = ColorPlanAction::Omit;
+    std::string str;
+    std::vector<int> ints;
+    std::vector<float> floats;
+    float gamma = 0.0f;
+    bool emit() const
+    {
+        return action == ColorPlanAction::Write
+               || action == ColorPlanAction::Derive;
+    }
+};
+
+/// Which signals a writer's format can carry. The plan only populates the
+/// signals a writer declares supported; every other signal stays Omit.
+struct ColorWriteCaps {
+    bool cicp           = false;
+    bool chromaticities = false;
+    bool gamma          = false;
+    bool icc            = false;
+    bool interop_id     = false;
+    bool mdcv           = false;
+};
+
+/// The whole write plan -- each signal marked write / suppress / derive / omit.
+/// `suppress_source_path` / `keep_source_format` carry the provenance write
+/// rule: drop `oiio:SourcePath`, keep `oiio:SourceFormat`.
+struct ColorMetadataPlan {
+    ColorPlanField cicp;
+    ColorPlanField chromaticities;
+    ColorPlanField gamma;
+    ColorPlanField icc;
+    ColorPlanField interop_id;
+    ColorPlanField mdcv;
+    bool suppress_source_path = true;
+    bool keep_source_format   = true;
+};
+
+/// Per-signal write switch (spec-owned grammar `oiio:colorpolicy:write:*`).
+enum class ColorSignalPolicy { Auto, Always, Never };
+
+/// A single locked snapshot of the whole write policy state, taken once per
+/// call via the shared ColorPolicySnapshot. Every default reproduces main's
+/// write behavior; the grammar and names are owned by the color policy
+/// attribute spec (`oiio:colorpolicy:write:*`).
+struct ColorWritePolicy {
+    ColorSignalPolicy cicp           = ColorSignalPolicy::Auto;
+    ColorSignalPolicy chromaticities = ColorSignalPolicy::Auto;
+    ColorSignalPolicy gamma          = ColorSignalPolicy::Auto;
+    ColorSignalPolicy icc            = ColorSignalPolicy::Auto;
+    ColorSignalPolicy interop_id     = ColorSignalPolicy::Auto;
+    ColorSignalPolicy mdcv           = ColorSignalPolicy::Auto;
+    std::string custom_namespace_for_generated_ids;
+    bool aces_container_allow_lossless_compression = false;
+    bool cicp_custom_gama                          = false;
+    bool write_narrow_range                        = false;
+    bool write_yuv                                 = false;
+
+    /// Read every `oiio:colorpolicy:write:*` value ONCE, under one lock, from
+    /// the global attribute table, optionally overridden by per-write config
+    /// hints on the output spec. No mid-call re-reads.
+    static OIIO_API ColorWritePolicy snapshot(const ImageSpec* config_hints
+                                              = nullptr);
+};
+
+/// Build the write plan for `spec` under `caps` and `policy`. `config` may be
+/// null, in which case the process default color config is used (matching the
+/// writers' historical name->id / name->CICP derivation). Pure derivation --
+/// never mutates the spec. For internal/test use only.
+OIIO_API ColorMetadataPlan
+plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
+                    const ColorWriteCaps& caps, const ColorWritePolicy& policy);
 
 }  // namespace pvt
 

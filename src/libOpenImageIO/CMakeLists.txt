@@ -77,6 +77,7 @@ set (libOpenImageIO_srcs
                           color_ocio.cpp
                           interop_id.cpp
                           color_metadata_resolver.cpp
+                          color_metadata_plan.cpp
                           maketexture.cpp
                           bluenoise.cpp
                           printinfo.cpp
@@ -228,7 +229,7 @@ if (CMAKE_UNITY_BUILD)
         # ${libOpenImageIO_srcs}
             deepdata.cpp exif.cpp exif-canon.cpp formatspec.cpp imagebuf.cpp
             imageinput.cpp imageio.cpp imageioplugin.cpp imageoutput.cpp
-            iptc.cpp xmp.cpp color_ocio.cpp color_metadata_resolver.cpp maketexture.cpp bluenoise.cpp
+            iptc.cpp xmp.cpp color_ocio.cpp color_metadata_resolver.cpp color_metadata_plan.cpp maketexture.cpp bluenoise.cpp
         PROPERTIES
             UNITY_GROUP oiiolib)
     foreach (plugin_dir ${all_format_plugin_dirs} ../libtexture)
@@ -289,6 +290,13 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_color_metadata_resolver
               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_metadata_resolver_test)
+
+    fancy_add_executable (NAME color_metadata_plan_test
+                          SRC color_metadata_plan_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_color_metadata_plan
+              ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_metadata_plan_test)
 
     fancy_add_executable (NAME imagebuf_test SRC imagebuf_test.cpp
                           LINK_LIBRARIES OpenImageIO

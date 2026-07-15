@@ -23,6 +23,7 @@
 #include <OpenEXR/ImfTiledOutputFile.h>
 
 #include "exr_pvt.h"
+#include "imageio_pvt.h"
 
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
@@ -1027,13 +1028,20 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         }
     }
 
-    // Set color interop ID from colorspace
-    if (spec.get_string_attribute("colorInteropID").empty()) {
-        const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-        string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
-        string_view interop_id = colorconfig.get_color_interop_id(colorspace);
-        if (!interop_id.empty())
-            spec.attribute("colorInteropID", interop_id);
+    // Color metadata: consume the central write plan instead of deriving
+    // inline. EXR carries the color-interop-id string slot; the plan decides
+    // whether to emit an author-supplied id (already on the spec) or one
+    // derived from the color space. Chromaticities/CICP/etc. stay with EXR's
+    // existing (ACES-container) machinery -- generalizing those into the plan
+    // is a follow-on.
+    {
+        pvt::ColorWriteCaps caps;
+        caps.interop_id = true;
+        pvt::ColorMetadataPlan plan
+            = pvt::plan_color_metadata(nullptr, spec, caps,
+                                       pvt::ColorWritePolicy::snapshot(&spec));
+        if (plan.interop_id.action == pvt::ColorPlanAction::Derive)
+            spec.attribute("colorInteropID", plan.interop_id.str);
     }
 
     // Deal with all other params
