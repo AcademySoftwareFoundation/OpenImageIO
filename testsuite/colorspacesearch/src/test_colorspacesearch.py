@@ -39,11 +39,18 @@ try:
 
     esc = oiio.ColorConfig(str(SRC / "search_escapes.ocio"))
     print("")
+    # strict=True throughout: the fixture spaces are identity transforms whose
+    # authored encodings contradict what fingerprinting infers, and this block
+    # tests the term grammar, not twin-encoding inference.
     print("Python find_color_spaces: escape grammar")
-    print(r"  encoding='\-foo'  =", esc.find_color_spaces(encoding=r"\-foo"))
-    print(r"  encoding='\~foo'  =", esc.find_color_spaces(encoding=r"\~foo"))
-    print(r"  encoding='~\~foo' =", esc.find_color_spaces(encoding=r"~\~foo"))
-    print(r"  encoding='\\foo'  =", esc.find_color_spaces(encoding=r"\\foo"))
+    print(r"  encoding='\-foo'  =",
+          esc.find_color_spaces(encoding=r"\-foo", strict=True))
+    print(r"  encoding='\~foo'  =",
+          esc.find_color_spaces(encoding=r"\~foo", strict=True))
+    print(r"  encoding='~\~foo' =",
+          esc.find_color_spaces(encoding=r"~\~foo", strict=True))
+    print(r"  encoding='\\foo'  =",
+          esc.find_color_spaces(encoding=r"\\foo", strict=True))
     for bad in ("\\", r"\foo"):
         try:
             esc.find_color_spaces(encoding=bad)

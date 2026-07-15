@@ -1,5 +1,6 @@
 ocio_profile_version: 2.3
 roles:
+  aces_interchange: reference
   default: reference
   scene_linear: reference
 file_rules:

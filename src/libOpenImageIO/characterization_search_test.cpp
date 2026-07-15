@@ -249,6 +249,56 @@ test_universe_and_visibility()
 }
 
 
+// An untagged, unencoded display space that IS g26_p3d65_display by value
+// (same matrix + gamma as the registry definition): the fingerprint tier of
+// get_color_interop_id derives the identity, and the encoding axis adopts
+// the twin's sdr-cinema outright.
+constexpr const char* kUntaggedTheatricalConfig
+    = R"OCIO(ocio_profile_version: 2.3
+roles:
+  aces_interchange: reference
+  cie_xyz_d65_interchange: xyz
+  default: reference
+  scene_linear: reference
+file_rules:
+  - !<Rule> {name: Default, colorspace: reference}
+display_colorspaces:
+  - !<ColorSpace>
+    name: xyz
+    encoding: display-linear
+  - !<ColorSpace>
+    name: mystery_theatrical
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
+colorspaces:
+  - !<ColorSpace>
+    name: reference
+    encoding: scene-linear
+)OCIO";
+
+
+void
+test_encoding_adopted_via_fingerprint()
+{
+    ScratchDir dir;
+    ColorConfig config = config_from_text(dir, "untagged.ocio",
+                                          kUntaggedTheatricalConfig);
+
+    // No interop_id attribute, no authored encoding: the identity comes from
+    // the fingerprint tier and the encoding is adopted from the twin.
+    pvt::FindColorSpacesOptions opt;
+    opt.encodings = { "sdr-cinema" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
+                      == std::vector<std::string>({ "mystery_theatrical" }));
+
+    // strict: no authored encoding means the property stays unknown.
+    opt.strict = true;
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt).empty());
+}
+
+
 // A space whose authored encoding (sdr-video) disagrees with its
 // interop-identity twin's (g26_p3d65_display -> sdr-cinema): the encoding
 // axis accepts both values unless strict.
@@ -406,8 +456,12 @@ test_escapes_and_sequences()
     // An escaped operator is part of the encoding name literal. Here every
     // space is simple, so the encoding hint selects by its declared encoding;
     // "\-foo" resolves the literal encoding of the space named "-foo"
-    // (display-linear), selecting that space.
+    // (display-linear), selecting that space. The fixture spaces are identity
+    // transforms whose authored encodings contradict what fingerprinting
+    // infers (every one twins lin_ap0_scene); strict isolates the term
+    // grammar under test from twin-encoding inference.
     pvt::FindColorSpacesOptions esc;
+    esc.strict    = true;
     esc.encodings = { "\\-foo" };
     OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, esc)
                       == std::vector<std::string>({ "-foo" }));
@@ -415,6 +469,7 @@ test_escapes_and_sequences()
     // A sequence: include two encodings, then exclude one. foo (scene-linear)
     // survives; -foo (display-linear) is excluded.
     pvt::FindColorSpacesOptions seq;
+    seq.strict    = true;
     seq.encodings = { "scene-linear", "display-linear", "-display-linear" };
     OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, seq)
                       == std::vector<std::string>({ "foo" }));
@@ -627,6 +682,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_parse_search_term();
     test_three_valued_axis();
     test_universe_and_visibility();
+    test_encoding_adopted_via_fingerprint();
     test_encoding_twin_inference_and_strict();
     test_encoding_three_valued_split();
     test_escapes_and_sequences();

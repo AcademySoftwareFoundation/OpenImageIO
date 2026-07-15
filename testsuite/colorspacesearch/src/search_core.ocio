@@ -1,5 +1,6 @@
 ocio_profile_version: 2.1
 roles:
+  aces_interchange: active_simple
   default: active_simple
   scene_linear: active_simple
 file_rules:
