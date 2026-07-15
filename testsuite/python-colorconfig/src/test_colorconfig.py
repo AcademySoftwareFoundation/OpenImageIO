@@ -67,6 +67,10 @@ try:
 
     config = oiio.ColorConfig(str(TEST_CONFIG_PATH))
     print (f"Loaded test OCIO config: {TEST_CONFIG_PATH.name}")
+    # Bindings parity: the enriched resolve() stripped-namespace tier reaches
+    # a real alias through a namespace prefix it has never seen, where it
+    # used to only echo the input back unchanged.
+    print (f"resolve('myapp:g24_rec709'): {config.resolve('myapp:g24_rec709')}")
     display = config.getDefaultDisplayName()
     default_cs = config.getColorSpaceFromFilepath("foo.exr")
     filepath_cs = config.getColorSpaceFromFilepath("foo_lin_ap1.exr")

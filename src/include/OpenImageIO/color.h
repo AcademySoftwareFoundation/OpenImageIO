@@ -415,7 +415,22 @@ public:
 
     /// Turn the name, which could be a color space, an alias, a role, or
     /// an OIIO-understood universal name (like "sRGB") into a canonical
-    /// color space name. If the name is not recognized, return "".
+    /// color space name.
+    ///
+    /// When a direct color space / role / alias lookup does not recognize the
+    /// name, resolve() additionally understands several syntactic forms of a
+    /// Color Interop ID (see the Color Interop Forum recommendation "An ID for
+    /// Color Interop", https://github.com/AcademySoftwareFoundation/ColorInterop/wiki),
+    /// tried in this order:
+    ///   - a namespaced id (e.g. "studio:acescg") is retried with one leading
+    ///     namespace stripped;
+    ///   - a "<config>:local:<space>" id resolves against this config's own
+    ///     color space names/aliases when "<config>" matches this config's name;
+    ///   - an id equal to a color space's explicit `interop_id` attribute, or to
+    ///     it with exactly one side's namespace stripped (OCIO 2.5+);
+    ///   - the utility tokens "data" and "bypass" resolve to a ranked data color
+    ///     space (while "unknown" only matches a literal color space name/alias).
+    /// If none of these recognize the name, the name is returned unchanged.
     OIIO_NODISCARD string_view resolve(string_view name) const;
 
     /// Are the two color space names/aliases/roles equivalent?
