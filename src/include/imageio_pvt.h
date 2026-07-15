@@ -10,6 +10,9 @@
 #ifndef OPENIMAGEIO_IMAGEIO_PVT_H
 #define OPENIMAGEIO_IMAGEIO_PVT_H
 
+#include <array>
+#include <optional>
+
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/timer.h>
@@ -342,6 +345,45 @@ curve_is_passthrough(string_view name);
 /// `catalog_names` (the current suffixless-mirror convention).
 OIIO_API bool
 curve_is_mirror(string_view name, cspan<std::string> catalog_names);
+
+
+// ---------------------------------------------------------------------------
+// Chromaticity math -- pure, config-free primitives for the chromaticity axis
+// of color-space search by characterization. A Chromaticities is four (x, y)
+// pairs in R, G, B, W order. Rounding is the only place numerical fuzz is
+// absorbed; once coordinates are rounded, equality is coordinate-exact, so
+// callers compare a Chromaticities with plain `==` / std::find (std::array
+// gives that for free -- no dedicated compare helper). For internal/test use
+// only.
+// ---------------------------------------------------------------------------
+
+using Chromaticities = std::array<std::array<double, 2>, 4>;
+
+/// Round a chromaticity coordinate to 6 decimals, then snap to the nearest
+/// coarser 5/4/3/2-digit grid if within 2e-7 (finest grid within tolerance
+/// wins). Absorbs OCIO chromaticity floats like 0.329999998 -> 0.33 so that
+/// downstream equality can be exact.
+OIIO_API double
+round_chromaticity_coord(double value);
+
+/// Reserved (R,G,B,W) primaries for an interop id that names a well-known
+/// gamut, probed as an `_<token>_` substring of the lowered id (a complete
+/// gamut component, not an arbitrary fragment), first match wins. `adobergb`
+/// matches only on the exact id or an `_adobergb_` token. Empty when no
+/// reserved gamut token is present (single-hypothesis / table-only: gamuts
+/// absent from the table, e.g. `ciexyzd65`, are not resolved here).
+OIIO_API std::optional<Chromaticities>
+reserved_chromaticities_for_id(string_view interop_id);
+
+/// Derive chromaticities from the four AP0-anchored RGB probes (pure R, G, B,
+/// W as a flat 12-element span, in that order) that the caller has pushed
+/// through colorspace -> AP0 interchange. Applies the Bradford-adapted
+/// AP0->XYZ(D65) matrix, solves each probe for (x, y) with rounding, and
+/// snaps an equal-energy white to exact (1/3, 1/3). Empty if the span is not
+/// 12 long or a probe is degenerate (non-finite / near-zero sum). Single
+/// hypothesis (D65 + Bradford); the whitepoint/CAT sweep is a follow-on.
+OIIO_API std::optional<Chromaticities>
+chromaticities_from_ap0_probes(cspan<float> ap0_rgb);
 
 
 // ---------------------------------------------------------------------------
