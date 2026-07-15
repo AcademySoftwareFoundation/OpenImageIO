@@ -748,6 +748,35 @@ OIIO_API bool
 three_valued_axis(cspan<SearchTermMode> modes, cspan<unsigned char> term_matches,
                   bool property_known);
 
+/// The internal option set for a characterization search. Each of the four
+/// hint axes is a list of grammar terms (empty = that axis is unconstrained).
+/// `include_active` is on by default and has no public counterpart -- the
+/// public API always searches active spaces; only this internal form can turn
+/// them off. `context` is a per-call set of OCIO context variable overrides,
+/// scoped to the one query.
+struct FindColorSpacesOptions {
+    std::vector<std::string> chromaticities;
+    std::vector<std::string> transfer_functions;
+    std::vector<std::string> encodings;
+    std::vector<std::string> image_states;
+    bool include_active            = true;
+    bool include_inactive          = false;
+    bool include_context_sensitive = false;
+    bool exhaustive                = false;
+    std::map<std::string, std::string> context;
+};
+
+/// Find the color spaces in `config` whose derivable characteristics satisfy
+/// every non-empty hint axis of `options`, under the three-valued filter and
+/// the visibility/eligibility gates. Every hint term is resolved up front
+/// (an unresolvable hint throws std::invalid_argument before any candidate is
+/// examined); a candidate whose property cannot be derived is tolerated as
+/// "unknown". Results are returned in a deterministic order,
+/// (context-invariant, active, simple, name). For internal/test use only.
+OIIO_API std::vector<std::string>
+find_color_spaces(const ColorConfig& config,
+                  const FindColorSpacesOptions& options);
+
 }  // namespace pvt
 
 

@@ -12,6 +12,7 @@
 //      resolution, escapes/sequences, and the exhaustive realize-clean +
 //      allowlist gate (which must NOT consult the fingerprint subsystem).
 
+#include <atomic>
 #include <string>
 #include <vector>
 
@@ -149,6 +150,365 @@ test_three_valued_axis()
                      false);
 }
 
+// ---------------------------------------------------------------------------
+// Layer 2: config-driven search over small in-memory OCIO configs.
+// ---------------------------------------------------------------------------
+
+// A tiny scratch directory that cleans itself up, for OCIO config/LUT files.
+struct ScratchDir {
+    std::string path;
+    ScratchDir()
+    {
+        static std::atomic<int> counter { 0 };
+        path = Filesystem::temp_directory_path() + "/oiio_charsearch_"
+               + std::to_string(uintptr_t(this)) + "_"
+               + std::to_string(counter.fetch_add(1));
+        Filesystem::create_directory(path);
+    }
+    ~ScratchDir() { Filesystem::remove_all(path); }
+    std::string write(string_view name, string_view contents) const
+    {
+        std::string p = path + "/" + std::string(name);
+        Filesystem::write_text_file(p, contents);
+        return p;
+    }
+};
+
+
+ColorConfig
+config_from_text(const ScratchDir& dir, string_view name, string_view text)
+{
+    return ColorConfig(dir.write(name, text));
+}
+
+
+// The search-core fixture: an active simple space, an inactive simple space, a
+// display simple space, a matrix space with no declared encoding (its encoding
+// is *unknown*), and a data space (never a candidate).
+constexpr const char* kSearchConfig = R"OCIO(ocio_profile_version: 2.1
+roles:
+  default: active_simple
+  scene_linear: active_simple
+file_rules:
+  - !<Rule> {name: Default, colorspace: active_simple}
+inactive_colorspaces: [inactive_simple]
+colorspaces:
+  - !<ColorSpace>
+    name: active_simple
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: inactive_simple
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: unknown_encoding
+    from_scene_reference: !<MatrixTransform> {matrix: [0.73, 0.02, 0.01, 0, 0.01, 0.91, 0.03, 0, 0.04, 0.02, 1.17, 0, 0, 0, 0, 1]}
+  - !<ColorSpace>
+    name: data_space
+    isdata: true
+display_colorspaces:
+  - !<ColorSpace>
+    name: display_simple
+    encoding: display-linear
+)OCIO";
+
+
+void
+test_universe_and_visibility()
+{
+    ScratchDir dir;
+    ColorConfig config = config_from_text(dir, "search.ocio", kSearchConfig);
+
+    pvt::FindColorSpacesOptions opt;
+    // Default universe: active/display simple spaces + the matrix space; the
+    // data space and inactive space are absent.
+    OIIO_CHECK_ASSERT(
+        pvt::find_color_spaces(config, opt)
+        == std::vector<std::string>({ "active_simple", "display_simple",
+                                      "unknown_encoding" }));
+
+    // include_inactive appends the inactive simple space.
+    opt.include_inactive = true;
+    OIIO_CHECK_ASSERT(
+        pvt::find_color_spaces(config, opt)
+        == std::vector<std::string>({ "active_simple", "display_simple",
+                                      "unknown_encoding", "inactive_simple" }));
+
+    // Active off, inactive on: only the inactive space.
+    opt.include_active = false;
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
+                      == std::vector<std::string>({ "inactive_simple" }));
+
+    // Both off: empty (short-circuit).
+    opt.include_inactive = false;
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt).empty());
+
+    // Determinism: an identical query returns a byte-identical ordered list.
+    pvt::FindColorSpacesOptions again;
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, again)
+                      == pvt::find_color_spaces(config, again));
+}
+
+
+void
+test_encoding_three_valued_split()
+{
+    ScratchDir dir;
+    ColorConfig config = config_from_text(dir, "search.ocio", kSearchConfig);
+
+    // include: only the proven scene-linear space.
+    pvt::FindColorSpacesOptions inc;
+    inc.encodings = { "scene-linear" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, inc)
+                      == std::vector<std::string>({ "active_simple" }));
+
+    // ~ inverse: only the space *proven different* (display_simple). The
+    // unknown-encoding matrix space is REJECTED (its encoding is unknown).
+    pvt::FindColorSpacesOptions inv;
+    inv.encodings = { "~scene-linear" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, inv)
+                      == std::vector<std::string>({ "display_simple" }));
+
+    // - exclude: everything not *proven* scene-linear -- the unknown-encoding
+    //   space is PRESERVED here (the crux of the `~` vs `-` split).
+    pvt::FindColorSpacesOptions exc;
+    exc.encodings = { "-scene-linear" };
+    OIIO_CHECK_ASSERT(
+        pvt::find_color_spaces(config, exc)
+        == std::vector<std::string>({ "display_simple", "unknown_encoding" }));
+
+    // image-state axis: only the display space.
+    pvt::FindColorSpacesOptions disp;
+    disp.image_states = { "display" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, disp)
+                      == std::vector<std::string>({ "display_simple" }));
+
+    // A bogus image-state hint fails fast.
+    pvt::FindColorSpacesOptions bogus;
+    bogus.image_states = { "bogus" };
+    OIIO_CHECK_ASSERT(throws_invalid_argument(
+        [&] { pvt::find_color_spaces(config, bogus); }));
+
+    // A bogus encoding hint fails fast.
+    pvt::FindColorSpacesOptions bad_enc;
+    bad_enc.encodings = { "no_such_encoding" };
+    OIIO_CHECK_ASSERT(throws_invalid_argument(
+        [&] { pvt::find_color_spaces(config, bad_enc); }));
+
+    // A chromaticity hint that is neither a local space, a known id, nor a
+    // complete gamut component fails fast (the incomplete "p3" fragment case).
+    pvt::FindColorSpacesOptions bad_chroma;
+    bad_chroma.chromaticities = { "p3" };
+    OIIO_CHECK_ASSERT(throws_invalid_argument(
+        [&] { pvt::find_color_spaces(config, bad_chroma); }));
+}
+
+
+// Escapes + multi-term sequences: names that literally start with an operator.
+constexpr const char* kEscapedNamesConfig = R"OCIO(ocio_profile_version: 2.1
+roles:
+  default: foo
+  scene_linear: foo
+file_rules:
+  - !<Rule> {name: Default, colorspace: foo}
+colorspaces:
+  - !<ColorSpace>
+    name: foo
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: "-foo"
+    encoding: display-linear
+  - !<ColorSpace>
+    name: "~foo"
+    encoding: log
+)OCIO";
+
+
+void
+test_escapes_and_sequences()
+{
+    ScratchDir dir;
+    ColorConfig config = config_from_text(dir, "escaped.ocio",
+                                          kEscapedNamesConfig);
+
+    // An escaped operator is part of the encoding name literal. Here every
+    // space is simple, so the encoding hint selects by its declared encoding;
+    // "\-foo" resolves the literal encoding of the space named "-foo"
+    // (display-linear), selecting that space.
+    pvt::FindColorSpacesOptions esc;
+    esc.encodings = { "\\-foo" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, esc)
+                      == std::vector<std::string>({ "-foo" }));
+
+    // A sequence: include two encodings, then exclude one. foo (scene-linear)
+    // survives; -foo (display-linear) is excluded.
+    pvt::FindColorSpacesOptions seq;
+    seq.encodings = { "scene-linear", "display-linear", "-display-linear" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, seq)
+                      == std::vector<std::string>({ "foo" }));
+
+    // An invalid escape fails fast.
+    pvt::FindColorSpacesOptions bad;
+    bad.encodings = { "\\foo" };
+    OIIO_CHECK_ASSERT(
+        throws_invalid_argument([&] { pvt::find_color_spaces(config, bad); }));
+}
+
+
+// A non-simple (CDL) space is excluded from the default universe, but may still
+// be *named* as a hint source. A custom curve NamedTransform matches
+// behaviorally by signature.
+constexpr const char* kComplexConfig = R"OCIO(ocio_profile_version: 2.1
+roles:
+  default: reference
+  aces_interchange: reference
+  scene_linear: reference
+file_rules:
+  - !<Rule> {name: Default, colorspace: reference}
+colorspaces:
+  - !<ColorSpace>
+    name: reference
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: complex_space
+    encoding: scene-linear
+    from_scene_reference: !<CDLTransform> {slope: [1, 1, 1], offset: [0, 0, 0], power: [1, 1, 1], saturation: 1}
+)OCIO";
+
+
+void
+test_non_simple_and_hint_source()
+{
+    ScratchDir dir;
+    ColorConfig config = config_from_text(dir, "complex.ocio", kComplexConfig);
+
+    // The CDL space is not in the default universe.
+    const auto names = pvt::find_color_spaces(config, {});
+    OIIO_CHECK_ASSERT(std::find(names.begin(), names.end(), "complex_space")
+                      == names.end());
+
+    // ...but it can be a hint source: its (scene-linear) encoding selects the
+    // reference space. A hint source is not itself a result.
+    pvt::FindColorSpacesOptions hint;
+    hint.encodings = { "complex_space" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, hint)
+                      == std::vector<std::string>({ "reference" }));
+}
+
+
+// The exhaustive realize-clean + allowlist gate: a
+// non-simple, file-backed color space whose realized ops all pass the atomic
+// allowlist is admitted under exhaustive=true -- decided by realizing the
+// processor and inspecting its ops, NOT by the fingerprint subsystem.
+void
+test_exhaustive_realize_clean_gate()
+{
+    ScratchDir dir;
+    // A trivial identity matrix CLF. Unlike .spi1d/.spimtx (which the default
+    // classification already accepts as simple), a .clf file transform is not
+    // simple by default -- so it exercises the exhaustive revisit path -- yet
+    // it is exhaustive-eligible and realizes to an allowlisted matrix op.
+    dir.write("identity.clf", R"(<?xml version="1.0" encoding="UTF-8"?>
+<ProcessList id="id" compCLFversion="3.0">
+  <Matrix inBitDepth="32f" outBitDepth="32f">
+    <Array dim="3 3 3">
+1 0 0
+0 1 0
+0 0 1
+    </Array>
+  </Matrix>
+</ProcessList>
+)");
+    constexpr const char* cfg = R"OCIO(ocio_profile_version: 2.1
+roles:
+  default: reference
+  aces_interchange: reference
+  scene_linear: reference
+file_rules:
+  - !<Rule> {name: Default, colorspace: reference}
+colorspaces:
+  - !<ColorSpace>
+    name: reference
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: clf_backed
+    from_scene_reference: !<FileTransform> {src: identity.clf}
+  - !<ColorSpace>
+    name: cdl_backed
+    from_scene_reference: !<CDLTransform> {slope: [1.1, 1, 1], offset: [0, 0, 0], power: [1, 1, 1], saturation: 1}
+)OCIO";
+    ColorConfig config = config_from_text(dir, "exhaustive.ocio", cfg);
+
+    // Default: the .clf-backed space is not simple, and the CDL space is not
+    // simple, so both are absent.
+    const auto plain = pvt::find_color_spaces(config, {});
+    OIIO_CHECK_ASSERT(std::find(plain.begin(), plain.end(), "clf_backed")
+                      == plain.end());
+    OIIO_CHECK_ASSERT(std::find(plain.begin(), plain.end(), "cdl_backed")
+                      == plain.end());
+
+    // Exhaustive: the .clf-backed space realizes to an allowlisted matrix op
+    // and is admitted; the CDL space is rejected by the allowlist (no
+    // fingerprint consulted). This is the realize-clean + allowlist gate.
+    pvt::FindColorSpacesOptions ex;
+    ex.exhaustive = true;
+    const auto exhaustive = pvt::find_color_spaces(config, ex);
+    OIIO_CHECK_ASSERT(std::find(exhaustive.begin(), exhaustive.end(),
+                                "clf_backed")
+                      != exhaustive.end());
+    OIIO_CHECK_ASSERT(std::find(exhaustive.begin(), exhaustive.end(),
+                                "cdl_backed")
+                      == exhaustive.end());
+}
+
+
+// Transfer axis: identity `~` (proven non-linear) and a custom-curve
+// NamedTransform matched behaviorally by signature.
+constexpr const char* kCustomCurveConfig = R"OCIO(ocio_profile_version: 2.1
+roles:
+  default: reference
+  aces_interchange: reference
+  scene_linear: reference
+file_rules:
+  - !<Rule> {name: Default, colorspace: reference}
+named_transforms:
+  - !<NamedTransform>
+    name: Odd 2.35 - Curve
+    aliases: [odd235_crv]
+    encoding: sdr-video
+    inverse_transform: !<ExponentTransform> {value: 2.35, style: pass_thru, direction: inverse}
+colorspaces:
+  - !<ColorSpace>
+    name: reference
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: odd_encoded
+    encoding: sdr-video
+    from_scene_reference: !<ExponentTransform> {value: 2.35, style: pass_thru, direction: inverse}
+)OCIO";
+
+
+void
+test_transfer_axis()
+{
+    ScratchDir dir;
+    ColorConfig config = config_from_text(dir, "curve.ocio",
+                                          kCustomCurveConfig);
+
+    // A custom-curve NamedTransform with no registry identity matches the
+    // behaviorally equivalent color space by probed signature.
+    pvt::FindColorSpacesOptions curve;
+    curve.transfer_functions = { "Odd 2.35" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, curve)
+                      == std::vector<std::string>({ "odd_encoded" }));
+
+    // ~ inverse against the linear reference: only the *proven non-linear*
+    // space is returned (the reference itself, being linear/identity, drops).
+    pvt::FindColorSpacesOptions inv;
+    inv.transfer_functions = { "~reference" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, inv)
+                      == std::vector<std::string>({ "odd_encoded" }));
+}
+
 }  // namespace
 
 
@@ -157,5 +517,11 @@ main(int /*argc*/, char* /*argv*/[])
 {
     test_parse_search_term();
     test_three_valued_axis();
+    test_universe_and_visibility();
+    test_encoding_three_valued_split();
+    test_escapes_and_sequences();
+    test_non_simple_and_hint_source();
+    test_exhaustive_realize_clean_gate();
+    test_transfer_axis();
     return unit_test_failures;
 }
