@@ -4,17 +4,25 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <memory>
+#include <type_traits>
+#include <vector>
 
 #include <OpenImageIO/half.h>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/thread.h>
+
+#if OIIO_USE_HWY
+#    include "imagebufalgo_hwy_pvt.h"
+#endif
 
 #include "imageio_pvt.h"
 
@@ -1597,6 +1605,2225 @@ divide_by_alpha(ImageBuf& dst, ROI roi, int nthreads)
 }
 
 
+#if OIIO_USE_HWY
+
+struct PushPullBilinearWeights {
+    int index0 = 0;
+    int index1 = 0;
+    float t = 0.0f;
+};
+
+struct PushPullLevel {
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    std::vector<float> pixels;
+};
+
+struct PushPullResizeAxis {
+    int taps = 0;
+    int radius = 0;
+    std::vector<int> index;
+    std::vector<float> weight;
+};
+
+struct PushPullPullTiledView {
+    const float* base = nullptr;
+    float* level1 = nullptr;
+    float* level2 = nullptr;
+    float* level3 = nullptr;
+    float* level4 = nullptr;
+    int basewidth = 0;
+    int baseheight = 0;
+    int level1width = 0;
+    int level2width = 0;
+    int level3width = 0;
+    int level4width = 0;
+    int channels = 0;
+    int levelcount = 0;
+    int tilexbegin = 0;
+    int tilexend = 0;
+    int tileybegin = 0;
+    int tileyend = 0;
+};
+
+struct PushPullPullU16TiledView {
+    const uint16_t* base = nullptr;
+    float* level1 = nullptr;
+    float* level2 = nullptr;
+    float* level3 = nullptr;
+    float* level4 = nullptr;
+    int basewidth = 0;
+    int baseheight = 0;
+    int level1width = 0;
+    int level2width = 0;
+    int level3width = 0;
+    int level4width = 0;
+    int channels = 0;
+    int levelcount = 0;
+    int tilexbegin = 0;
+    int tilexend = 0;
+    int tileybegin = 0;
+    int tileyend = 0;
+};
+
+struct PushPullPullHalfTiledView {
+    const half* base = nullptr;
+    float* level1 = nullptr;
+    float* level2 = nullptr;
+    float* level3 = nullptr;
+    float* level4 = nullptr;
+    int basewidth = 0;
+    int baseheight = 0;
+    int level1width = 0;
+    int level2width = 0;
+    int level3width = 0;
+    int level4width = 0;
+    int channels = 0;
+    int levelcount = 0;
+    int tilexbegin = 0;
+    int tilexend = 0;
+    int tileybegin = 0;
+    int tileyend = 0;
+};
+
+static void
+pushpull_reset_level(PushPullLevel& level, int width, int height, int channels)
+{
+    level.width    = width;
+    level.height   = height;
+    level.channels = channels;
+    level.pixels.assign(static_cast<size_t>(width) * static_cast<size_t>(height)
+                            * static_cast<size_t>(channels),
+                        0.0f);
+}
+
+static uint16_t
+pushpull_float_to_u16(float value)
+{
+    if (!(value > 0.0f))
+        return 0;
+    if (value >= 1.0f)
+        return 65535;
+    return static_cast<uint16_t>(value * 65535.0f + 0.5f);
+}
+
+static uint8_t
+pushpull_float_to_u8(float value)
+{
+    if (!(value > 0.0f))
+        return 0;
+    if (value >= 1.0f)
+        return 255;
+    return static_cast<uint8_t>(value * 255.0f + 0.5f);
+}
+
+static half
+pushpull_float_to_half(float value)
+{
+    if (!std::isfinite(value)) {
+        if (value > 0.0f)
+            value = 65504.0f;
+        else if (value < 0.0f)
+            value = -65504.0f;
+        else
+            value = 0.0f;
+    } else if (value > 65504.0f) {
+        value = 65504.0f;
+    } else if (value < -65504.0f) {
+        value = -65504.0f;
+    }
+    return half(value);
+}
+
+static int
+pushpull_local_down_dim(int localsize, int globalsize)
+{
+    if (globalsize == 1 && localsize > 0)
+        return 1;
+    return localsize / 2;
+}
+
+static bool
+pushpull_same_roi(ROI a, ROI b)
+{
+    return a.xbegin == b.xbegin && a.xend == b.xend && a.ybegin == b.ybegin
+           && a.yend == b.yend && a.zbegin == b.zbegin && a.zend == b.zend
+           && a.chbegin == b.chbegin && a.chend == b.chend;
+}
+
+static bool
+fillholes_pushpull_hwy_supported(const ImageBuf& src, ROI roi)
+{
+    const ImageSpec& spec = src.spec();
+    if (spec.nchannels != 2 && spec.nchannels != 4)
+        return false;
+    if (spec.alpha_channel != spec.nchannels - 1)
+        return false;
+    if (spec.width == 1 && spec.height == 1)
+        return false;
+    if (!pushpull_same_roi(roi, get_roi(spec)))
+        return false;
+    if (src.localpixels() == nullptr || !src.contiguous_scanline())
+        return false;
+    if (!spec.channelformats.empty())
+        return false;
+    if (spec.format != TypeDesc::FLOAT && spec.format != TypeDesc::HALF
+        && spec.format != TypeDesc::UINT16 && spec.format != TypeDesc::UINT8)
+        return false;
+
+    size_t channelbytes = spec.format.size();
+    stride_t pixelbytes = static_cast<stride_t>(channelbytes * spec.nchannels);
+    stride_t rowbytes = static_cast<stride_t>(channelbytes * spec.nchannels
+                                              * spec.width);
+    return src.pixel_stride() == pixelbytes && src.scanline_stride() == rowbytes;
+}
+
+static void
+pushpull_compute_bilinear_resize_weight(PushPullBilinearWeights& dst,
+                                        int finecoord, int finesize,
+                                        int coarsesize)
+{
+    float scale = static_cast<float>(coarsesize) / static_cast<float>(finesize);
+    float coord = (static_cast<float>(finecoord) + 0.5f) * scale - 0.5f;
+    int raw     = static_cast<int>(std::floor(coord));
+    dst.index0  = clamp(raw, 0, coarsesize - 1);
+    dst.index1  = clamp(raw + 1, 0, coarsesize - 1);
+    dst.t       = clamp(coord - static_cast<float>(raw), 0.0f, 1.0f);
+}
+
+static void
+pushpull_prepare_bilinear_resize_weights(
+    std::vector<PushPullBilinearWeights>& xweights,
+    std::vector<PushPullBilinearWeights>& yweights, int finewidth,
+    int fineheight, int coarsewidth, int coarseheight)
+{
+    xweights.resize(static_cast<size_t>(finewidth));
+    yweights.resize(static_cast<size_t>(fineheight));
+    for (int x = 0; x < finewidth; ++x)
+        pushpull_compute_bilinear_resize_weight(xweights[static_cast<size_t>(x)],
+                                                x, finewidth, coarsewidth);
+    for (int y = 0; y < fineheight; ++y)
+        pushpull_compute_bilinear_resize_weight(yweights[static_cast<size_t>(y)],
+                                                y, fineheight, coarseheight);
+}
+
+template<int Channels>
+inline hn::Vec<hn::FixedTag<float, Channels>>
+pushpull_normalize_pulled_pixel(
+    hn::FixedTag<float, Channels> d,
+    hn::Vec<hn::FixedTag<float, Channels>> v)
+{
+    float tmp[Channels];
+    hn::Store(v, d, tmp);
+    float alpha = tmp[Channels - 1];
+    if (alpha != 0.0f) {
+        float inv_alpha = 1.0f / alpha;
+        for (int c = 0; c < Channels; ++c)
+            tmp[c] *= inv_alpha;
+        return hn::Load(d, tmp);
+    }
+    return v;
+}
+
+template<int Channels>
+inline hn::Vec<hn::FixedTag<float, Channels>>
+pushpull_load_u16_pixel(hn::FixedTag<float, Channels> d, const uint16_t* src)
+{
+    float tmp[Channels];
+    for (int c = 0; c < Channels; ++c)
+        tmp[c] = static_cast<float>(src[c]) * (1.0f / 65535.0f);
+    return hn::Load(d, tmp);
+}
+
+template<int Channels>
+inline hn::Vec<hn::FixedTag<float, Channels>>
+pushpull_load_half_pixel(hn::FixedTag<float, Channels> d, const half* src)
+{
+    float tmp[Channels];
+    for (int c = 0; c < Channels; ++c)
+        tmp[c] = static_cast<float>(src[c]);
+    return hn::Load(d, tmp);
+}
+
+template<int Channels>
+static void
+pushpull_pull_global_to_local_and_global(const PushPullPullTiledView& view,
+                                         float* localdst, int localdstwidth,
+                                         int localdstheight, int tilex,
+                                         int tiley)
+{
+    hn::FixedTag<float, Channels> d;
+    auto zero = hn::Zero(d);
+    int dstx0 = tilex / 2;
+    int dsty0 = tiley / 2;
+
+    for (int y = 0; y < localdstheight; ++y) {
+        for (int x = 0; x < localdstwidth; ++x) {
+            int srcx = tilex + x * 2;
+            int srcy = tiley + y * 2;
+            auto sum = zero;
+            int count = 0;
+            for (int yy = 0; yy < 2; ++yy) {
+                int sy = srcy + yy;
+                if (sy >= view.baseheight)
+                    continue;
+                for (int xx = 0; xx < 2; ++xx) {
+                    int sx = srcx + xx;
+                    if (sx >= view.basewidth)
+                        continue;
+                    const float* pixel
+                        = view.base
+                          + (static_cast<size_t>(sy)
+                                 * static_cast<size_t>(view.basewidth)
+                             + static_cast<size_t>(sx))
+                                * static_cast<size_t>(Channels);
+                    sum = hn::Add(sum, hn::Load(d, pixel));
+                    ++count;
+                }
+            }
+            float scale = count > 0 ? 1.0f / static_cast<float>(count) : 0.0f;
+            auto out = pushpull_normalize_pulled_pixel<Channels>(
+                d, hn::Mul(sum, hn::Set(d, scale)));
+            float* local = localdst
+                           + (static_cast<size_t>(y)
+                                  * static_cast<size_t>(localdstwidth)
+                              + static_cast<size_t>(x))
+                                 * static_cast<size_t>(Channels);
+            float* global
+                = view.level1
+                  + (static_cast<size_t>(dsty0 + y)
+                         * static_cast<size_t>(view.level1width)
+                     + static_cast<size_t>(dstx0 + x))
+                        * static_cast<size_t>(Channels);
+            hn::Store(out, d, local);
+            hn::Store(out, d, global);
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_pull_global_u16_to_local_and_global(
+    const PushPullPullU16TiledView& view, float* localdst, int localdstwidth,
+    int localdstheight, int tilex, int tiley)
+{
+    hn::FixedTag<float, Channels> d;
+    auto zero = hn::Zero(d);
+    int dstx0 = tilex / 2;
+    int dsty0 = tiley / 2;
+
+    for (int y = 0; y < localdstheight; ++y) {
+        for (int x = 0; x < localdstwidth; ++x) {
+            int srcx = tilex + x * 2;
+            int srcy = tiley + y * 2;
+            auto sum = zero;
+            int count = 0;
+            for (int yy = 0; yy < 2; ++yy) {
+                int sy = srcy + yy;
+                if (sy >= view.baseheight)
+                    continue;
+                for (int xx = 0; xx < 2; ++xx) {
+                    int sx = srcx + xx;
+                    if (sx >= view.basewidth)
+                        continue;
+                    const uint16_t* pixel
+                        = view.base
+                          + (static_cast<size_t>(sy)
+                                 * static_cast<size_t>(view.basewidth)
+                             + static_cast<size_t>(sx))
+                                * static_cast<size_t>(Channels);
+                    sum = hn::Add(sum, pushpull_load_u16_pixel<Channels>(d, pixel));
+                    ++count;
+                }
+            }
+            float scale = count > 0 ? 1.0f / static_cast<float>(count) : 0.0f;
+            auto out = pushpull_normalize_pulled_pixel<Channels>(
+                d, hn::Mul(sum, hn::Set(d, scale)));
+            float* local = localdst
+                           + (static_cast<size_t>(y)
+                                  * static_cast<size_t>(localdstwidth)
+                              + static_cast<size_t>(x))
+                                 * static_cast<size_t>(Channels);
+            float* global
+                = view.level1
+                  + (static_cast<size_t>(dsty0 + y)
+                         * static_cast<size_t>(view.level1width)
+                     + static_cast<size_t>(dstx0 + x))
+                        * static_cast<size_t>(Channels);
+            hn::Store(out, d, local);
+            hn::Store(out, d, global);
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_pull_global_half_to_local_and_global(
+    const PushPullPullHalfTiledView& view, float* localdst, int localdstwidth,
+    int localdstheight, int tilex, int tiley)
+{
+    hn::FixedTag<float, Channels> d;
+    auto zero = hn::Zero(d);
+    int dstx0 = tilex / 2;
+    int dsty0 = tiley / 2;
+
+    for (int y = 0; y < localdstheight; ++y) {
+        for (int x = 0; x < localdstwidth; ++x) {
+            int srcx = tilex + x * 2;
+            int srcy = tiley + y * 2;
+            auto sum = zero;
+            int count = 0;
+            for (int yy = 0; yy < 2; ++yy) {
+                int sy = srcy + yy;
+                if (sy >= view.baseheight)
+                    continue;
+                for (int xx = 0; xx < 2; ++xx) {
+                    int sx = srcx + xx;
+                    if (sx >= view.basewidth)
+                        continue;
+                    const half* pixel
+                        = view.base
+                          + (static_cast<size_t>(sy)
+                                 * static_cast<size_t>(view.basewidth)
+                             + static_cast<size_t>(sx))
+                                * static_cast<size_t>(Channels);
+                    sum = hn::Add(sum,
+                                  pushpull_load_half_pixel<Channels>(d, pixel));
+                    ++count;
+                }
+            }
+            float scale = count > 0 ? 1.0f / static_cast<float>(count) : 0.0f;
+            auto out = pushpull_normalize_pulled_pixel<Channels>(
+                d, hn::Mul(sum, hn::Set(d, scale)));
+            float* local = localdst
+                           + (static_cast<size_t>(y)
+                                  * static_cast<size_t>(localdstwidth)
+                              + static_cast<size_t>(x))
+                                 * static_cast<size_t>(Channels);
+            float* global
+                = view.level1
+                  + (static_cast<size_t>(dsty0 + y)
+                         * static_cast<size_t>(view.level1width)
+                     + static_cast<size_t>(dstx0 + x))
+                        * static_cast<size_t>(Channels);
+            hn::Store(out, d, local);
+            hn::Store(out, d, global);
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_pull_local_to_local_and_global(const float* localsrc, int localsrcwidth,
+                                        int localsrcheight, float* globaldst,
+                                        int globaldstwidth, float* localdst,
+                                        int localdstwidth, int localdstheight,
+                                        int dstx0, int dsty0)
+{
+    hn::FixedTag<float, Channels> d;
+    auto zero = hn::Zero(d);
+
+    for (int y = 0; y < localdstheight; ++y) {
+        for (int x = 0; x < localdstwidth; ++x) {
+            int srcx = x * 2;
+            int srcy = y * 2;
+            auto sum = zero;
+            int count = 0;
+            for (int yy = 0; yy < 2; ++yy) {
+                int sy = srcy + yy;
+                if (sy >= localsrcheight)
+                    continue;
+                for (int xx = 0; xx < 2; ++xx) {
+                    int sx = srcx + xx;
+                    if (sx >= localsrcwidth)
+                        continue;
+                    const float* pixel
+                        = localsrc
+                          + (static_cast<size_t>(sy)
+                                 * static_cast<size_t>(localsrcwidth)
+                             + static_cast<size_t>(sx))
+                                * static_cast<size_t>(Channels);
+                    sum = hn::Add(sum, hn::Load(d, pixel));
+                    ++count;
+                }
+            }
+            float scale = count > 0 ? 1.0f / static_cast<float>(count) : 0.0f;
+            auto out = pushpull_normalize_pulled_pixel<Channels>(
+                d, hn::Mul(sum, hn::Set(d, scale)));
+            float* local = localdst
+                           + (static_cast<size_t>(y)
+                                  * static_cast<size_t>(localdstwidth)
+                              + static_cast<size_t>(x))
+                                 * static_cast<size_t>(Channels);
+            float* global
+                = globaldst
+                  + (static_cast<size_t>(dsty0 + y)
+                         * static_cast<size_t>(globaldstwidth)
+                     + static_cast<size_t>(dstx0 + x))
+                        * static_cast<size_t>(Channels);
+            hn::Store(out, d, local);
+            hn::Store(out, d, global);
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_pull_tile4(const PushPullPullTiledView& view, int tilex, int tiley)
+{
+    int tilewidth    = std::min(16, view.basewidth - tilex);
+    int tileheight   = std::min(16, view.baseheight - tiley);
+    int level1height = std::max(1, view.baseheight / 2);
+    int level2height = std::max(1, level1height / 2);
+    int level3height = std::max(1, level2height / 2);
+    int l1w = pushpull_local_down_dim(tilewidth, view.basewidth);
+    int l1h = pushpull_local_down_dim(tileheight, view.baseheight);
+    int l2w = pushpull_local_down_dim(l1w, view.level1width);
+    int l2h = pushpull_local_down_dim(l1h, level1height);
+    int l3w = pushpull_local_down_dim(l2w, view.level2width);
+    int l3h = pushpull_local_down_dim(l2h, level2height);
+    int l4w = pushpull_local_down_dim(l3w, view.level3width);
+    int l4h = pushpull_local_down_dim(l3h, level3height);
+    float l1[8 * 8 * Channels] = {};
+    float l2[4 * 4 * Channels] = {};
+    float l3[2 * 2 * Channels] = {};
+    float l4[1 * 1 * Channels] = {};
+
+    if (view.levelcount >= 1)
+        pushpull_pull_global_to_local_and_global<Channels>(
+            view, l1, l1w, l1h, tilex, tiley);
+    if (view.levelcount >= 2)
+        pushpull_pull_local_to_local_and_global<Channels>(
+            l1, l1w, l1h, view.level2, view.level2width, l2, l2w, l2h,
+            tilex / 4, tiley / 4);
+    if (view.levelcount >= 3)
+        pushpull_pull_local_to_local_and_global<Channels>(
+            l2, l2w, l2h, view.level3, view.level3width, l3, l3w, l3h,
+            tilex / 8, tiley / 8);
+    if (view.levelcount >= 4)
+        pushpull_pull_local_to_local_and_global<Channels>(
+            l3, l3w, l3h, view.level4, view.level4width, l4, l4w, l4h,
+            tilex / 16, tiley / 16);
+}
+
+template<int Channels>
+static void
+pushpull_pull_tile4_u16(const PushPullPullU16TiledView& view, int tilex,
+                        int tiley)
+{
+    int tilewidth    = std::min(16, view.basewidth - tilex);
+    int tileheight   = std::min(16, view.baseheight - tiley);
+    int level1height = std::max(1, view.baseheight / 2);
+    int level2height = std::max(1, level1height / 2);
+    int level3height = std::max(1, level2height / 2);
+    int l1w = pushpull_local_down_dim(tilewidth, view.basewidth);
+    int l1h = pushpull_local_down_dim(tileheight, view.baseheight);
+    int l2w = pushpull_local_down_dim(l1w, view.level1width);
+    int l2h = pushpull_local_down_dim(l1h, level1height);
+    int l3w = pushpull_local_down_dim(l2w, view.level2width);
+    int l3h = pushpull_local_down_dim(l2h, level2height);
+    int l4w = pushpull_local_down_dim(l3w, view.level3width);
+    int l4h = pushpull_local_down_dim(l3h, level3height);
+    float l1[8 * 8 * Channels] = {};
+    float l2[4 * 4 * Channels] = {};
+    float l3[2 * 2 * Channels] = {};
+    float l4[1 * 1 * Channels] = {};
+
+    if (view.levelcount >= 1)
+        pushpull_pull_global_u16_to_local_and_global<Channels>(
+            view, l1, l1w, l1h, tilex, tiley);
+    if (view.levelcount >= 2)
+        pushpull_pull_local_to_local_and_global<Channels>(
+            l1, l1w, l1h, view.level2, view.level2width, l2, l2w, l2h,
+            tilex / 4, tiley / 4);
+    if (view.levelcount >= 3)
+        pushpull_pull_local_to_local_and_global<Channels>(
+            l2, l2w, l2h, view.level3, view.level3width, l3, l3w, l3h,
+            tilex / 8, tiley / 8);
+    if (view.levelcount >= 4)
+        pushpull_pull_local_to_local_and_global<Channels>(
+            l3, l3w, l3h, view.level4, view.level4width, l4, l4w, l4h,
+            tilex / 16, tiley / 16);
+}
+
+template<int Channels>
+static void
+pushpull_pull_tile4_half(const PushPullPullHalfTiledView& view, int tilex,
+                         int tiley)
+{
+    int tilewidth    = std::min(16, view.basewidth - tilex);
+    int tileheight   = std::min(16, view.baseheight - tiley);
+    int level1height = std::max(1, view.baseheight / 2);
+    int level2height = std::max(1, level1height / 2);
+    int level3height = std::max(1, level2height / 2);
+    int l1w = pushpull_local_down_dim(tilewidth, view.basewidth);
+    int l1h = pushpull_local_down_dim(tileheight, view.baseheight);
+    int l2w = pushpull_local_down_dim(l1w, view.level1width);
+    int l2h = pushpull_local_down_dim(l1h, level1height);
+    int l3w = pushpull_local_down_dim(l2w, view.level2width);
+    int l3h = pushpull_local_down_dim(l2h, level2height);
+    int l4w = pushpull_local_down_dim(l3w, view.level3width);
+    int l4h = pushpull_local_down_dim(l3h, level3height);
+    float l1[8 * 8 * Channels] = {};
+    float l2[4 * 4 * Channels] = {};
+    float l3[2 * 2 * Channels] = {};
+    float l4[1 * 1 * Channels] = {};
+
+    if (view.levelcount >= 1)
+        pushpull_pull_global_half_to_local_and_global<Channels>(
+            view, l1, l1w, l1h, tilex, tiley);
+    if (view.levelcount >= 2)
+        pushpull_pull_local_to_local_and_global<Channels>(
+            l1, l1w, l1h, view.level2, view.level2width, l2, l2w, l2h,
+            tilex / 4, tiley / 4);
+    if (view.levelcount >= 3)
+        pushpull_pull_local_to_local_and_global<Channels>(
+            l2, l2w, l2h, view.level3, view.level3width, l3, l3w, l3h,
+            tilex / 8, tiley / 8);
+    if (view.levelcount >= 4)
+        pushpull_pull_local_to_local_and_global<Channels>(
+            l3, l3w, l3h, view.level4, view.level4width, l4, l4w, l4h,
+            tilex / 16, tiley / 16);
+}
+
+template<typename View>
+static void
+pushpull_pull_tiled(const View& view)
+{
+    for (int ty = view.tileybegin; ty < view.tileyend; ++ty) {
+        int tiley = ty * 16;
+        for (int tx = view.tilexbegin; tx < view.tilexend; ++tx) {
+            int tilex = tx * 16;
+            if (view.channels == 4) {
+                if constexpr (std::is_same_v<View, PushPullPullTiledView>)
+                    pushpull_pull_tile4<4>(view, tilex, tiley);
+                else if constexpr (std::is_same_v<View, PushPullPullU16TiledView>)
+                    pushpull_pull_tile4_u16<4>(view, tilex, tiley);
+                else
+                    pushpull_pull_tile4_half<4>(view, tilex, tiley);
+            } else {
+                if constexpr (std::is_same_v<View, PushPullPullTiledView>)
+                    pushpull_pull_tile4<2>(view, tilex, tiley);
+                else if constexpr (std::is_same_v<View, PushPullPullU16TiledView>)
+                    pushpull_pull_tile4_u16<2>(view, tilex, tiley);
+                else
+                    pushpull_pull_tile4_half<2>(view, tilex, tiley);
+            }
+        }
+    }
+}
+
+static int
+pushpull_append_pull_levels_from_dimensions(std::vector<PushPullLevel>& pyramid,
+                                            int basewidth, int baseheight,
+                                            int channels)
+{
+    int width      = basewidth;
+    int height     = baseheight;
+    int levelcount = 0;
+    while (levelcount < 4 && (width > 1 || height > 1)) {
+        width  = std::max(1, width / 2);
+        height = std::max(1, height / 2);
+        PushPullLevel level;
+        pushpull_reset_level(level, width, height, channels);
+        pyramid.push_back(std::move(level));
+        ++levelcount;
+    }
+    return levelcount;
+}
+
+static int
+pushpull_append_pull_levels(std::vector<PushPullLevel>& pyramid)
+{
+    const PushPullLevel& base = pyramid.back();
+    return pushpull_append_pull_levels_from_dimensions(pyramid, base.width,
+                                                       base.height,
+                                                       base.channels);
+}
+
+static void
+pushpull_run_pull_group_tiled(std::vector<PushPullLevel>& pyramid, int nthreads)
+{
+    size_t baseindex  = pyramid.size() - 1;
+    int levelcount    = pushpull_append_pull_levels(pyramid);
+    OIIO_DASSERT(levelcount > 0);
+
+    const PushPullLevel& base = pyramid[baseindex];
+    PushPullLevel* level1     = &pyramid[baseindex + 1];
+    PushPullLevel* level2     = levelcount >= 2 ? &pyramid[baseindex + 2] : nullptr;
+    PushPullLevel* level3     = levelcount >= 3 ? &pyramid[baseindex + 3] : nullptr;
+    PushPullLevel* level4     = levelcount >= 4 ? &pyramid[baseindex + 4] : nullptr;
+    int tilecols              = (base.width + 15) / 16;
+    int tilerows              = (base.height + 15) / 16;
+
+    ROI tileroi(0, tilecols, 0, tilerows, 0, 1, 0, base.channels);
+    ImageBufAlgo::parallel_image(tileroi, nthreads, [&](ROI chunk) {
+        PushPullPullTiledView view;
+        view.base        = base.pixels.data();
+        view.level1      = level1->pixels.data();
+        view.level2      = level2 ? level2->pixels.data() : nullptr;
+        view.level3      = level3 ? level3->pixels.data() : nullptr;
+        view.level4      = level4 ? level4->pixels.data() : nullptr;
+        view.basewidth   = base.width;
+        view.baseheight  = base.height;
+        view.level1width = level1->width;
+        view.level2width = level2 ? level2->width : 0;
+        view.level3width = level3 ? level3->width : 0;
+        view.level4width = level4 ? level4->width : 0;
+        view.channels    = base.channels;
+        view.levelcount  = levelcount;
+        view.tilexbegin  = chunk.xbegin;
+        view.tilexend    = chunk.xend;
+        view.tileybegin  = chunk.ybegin;
+        view.tileyend    = chunk.yend;
+        pushpull_pull_tiled(view);
+    });
+}
+
+template<typename SourceT>
+static void
+pushpull_run_pull_group_tiled_from_source(std::vector<PushPullLevel>& pyramid,
+                                          const SourceT* basepixels,
+                                          int basewidth, int baseheight,
+                                          int channels, int nthreads)
+{
+    static_assert(std::is_same_v<SourceT, uint16_t>
+                  || std::is_same_v<SourceT, half>);
+
+    size_t baseindex = pyramid.size();
+    int levelcount = pushpull_append_pull_levels_from_dimensions(
+        pyramid, basewidth, baseheight, channels);
+    OIIO_DASSERT(levelcount > 0);
+
+    PushPullLevel* level1 = &pyramid[baseindex];
+    PushPullLevel* level2 = levelcount >= 2 ? &pyramid[baseindex + 1] : nullptr;
+    PushPullLevel* level3 = levelcount >= 3 ? &pyramid[baseindex + 2] : nullptr;
+    PushPullLevel* level4 = levelcount >= 4 ? &pyramid[baseindex + 3] : nullptr;
+    int tilecols          = (basewidth + 15) / 16;
+    int tilerows          = (baseheight + 15) / 16;
+
+    ROI tileroi(0, tilecols, 0, tilerows, 0, 1, 0, channels);
+    ImageBufAlgo::parallel_image(tileroi, nthreads, [&](ROI chunk) {
+        using View = std::conditional_t<std::is_same_v<SourceT, uint16_t>,
+                                        PushPullPullU16TiledView,
+                                        PushPullPullHalfTiledView>;
+        View view;
+        view.base        = basepixels;
+        view.level1      = level1->pixels.data();
+        view.level2      = level2 ? level2->pixels.data() : nullptr;
+        view.level3      = level3 ? level3->pixels.data() : nullptr;
+        view.level4      = level4 ? level4->pixels.data() : nullptr;
+        view.basewidth   = basewidth;
+        view.baseheight  = baseheight;
+        view.level1width = level1->width;
+        view.level2width = level2 ? level2->width : 0;
+        view.level3width = level3 ? level3->width : 0;
+        view.level4width = level4 ? level4->width : 0;
+        view.channels    = channels;
+        view.levelcount  = levelcount;
+        view.tilexbegin  = chunk.xbegin;
+        view.tilexend    = chunk.xend;
+        view.tileybegin  = chunk.ybegin;
+        view.tileyend    = chunk.yend;
+        pushpull_pull_tiled(view);
+    });
+}
+
+template<int Channels>
+inline hn::Vec<hn::FixedTag<float, Channels>>
+pushpull_sample_bilinear(
+    const PushPullLevel& coarse, hn::FixedTag<float, Channels> d,
+    const PushPullBilinearWeights& xw, const PushPullBilinearWeights& yw)
+{
+    const float* p00
+        = coarse.pixels.data()
+          + (static_cast<size_t>(yw.index0) * static_cast<size_t>(coarse.width)
+             + static_cast<size_t>(xw.index0))
+                * static_cast<size_t>(Channels);
+    const float* p10
+        = coarse.pixels.data()
+          + (static_cast<size_t>(yw.index0) * static_cast<size_t>(coarse.width)
+             + static_cast<size_t>(xw.index1))
+                * static_cast<size_t>(Channels);
+    const float* p01
+        = coarse.pixels.data()
+          + (static_cast<size_t>(yw.index1) * static_cast<size_t>(coarse.width)
+             + static_cast<size_t>(xw.index0))
+                * static_cast<size_t>(Channels);
+    const float* p11
+        = coarse.pixels.data()
+          + (static_cast<size_t>(yw.index1) * static_cast<size_t>(coarse.width)
+             + static_cast<size_t>(xw.index1))
+                * static_cast<size_t>(Channels);
+    auto v00 = hn::Load(d, p00);
+    auto v10 = hn::Load(d, p10);
+    auto v01 = hn::Load(d, p01);
+    auto v11 = hn::Load(d, p11);
+    auto tx  = hn::Set(d, xw.t);
+    auto ty  = hn::Set(d, yw.t);
+    auto top = hn::Add(v00, hn::Mul(hn::Sub(v10, v00), tx));
+    auto bot = hn::Add(v01, hn::Mul(hn::Sub(v11, v01), tx));
+    return hn::Add(top, hn::Mul(hn::Sub(bot, top), ty));
+}
+
+template<int Channels>
+static void
+pushpull_push_rows(const PushPullLevel& fine, const PushPullLevel& coarse,
+                   PushPullLevel& dst,
+                   const std::vector<PushPullBilinearWeights>& xweights,
+                   const std::vector<PushPullBilinearWeights>& yweights,
+                   int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    float eps = 1.0e-6f;
+
+    for (int y = ybegin; y < yend; ++y) {
+        const PushPullBilinearWeights& yw = yweights[static_cast<size_t>(y)];
+        for (int x = 0; x < fine.width; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            const float* finepixel = fine.pixels.data() + base;
+            float* dstpixel        = dst.pixels.data() + base;
+            float alpha            = finepixel[Channels - 1];
+            if (alpha >= 1.0f - eps) {
+                hn::Store(hn::Load(d, finepixel), d, dstpixel);
+                continue;
+            }
+            auto finev = hn::Load(d, finepixel);
+            auto coarsev = pushpull_sample_bilinear<Channels>(
+                coarse, d, xweights[static_cast<size_t>(x)], yw);
+            float missing = clamp(1.0f - alpha, 0.0f, 1.0f);
+            auto out = hn::Add(finev, hn::Mul(coarsev, hn::Set(d, missing)));
+            hn::Store(out, d, dstpixel);
+        }
+    }
+}
+
+static bool
+pushpull_run_push_level(PushPullLevel& dst, const PushPullLevel& fine,
+                        const PushPullLevel& coarse, int nthreads)
+{
+    pushpull_reset_level(dst, fine.width, fine.height, fine.channels);
+
+    std::vector<PushPullBilinearWeights> xweights;
+    std::vector<PushPullBilinearWeights> yweights;
+    pushpull_prepare_bilinear_resize_weights(xweights, yweights, fine.width,
+                                             fine.height, coarse.width,
+                                             coarse.height);
+
+    ROI pushroi(0, fine.width, 0, fine.height, 0, 1, 0, fine.channels);
+    ImageBufAlgo::parallel_image(pushroi, nthreads, [&](ROI roi) {
+        if (fine.channels == 4)
+            pushpull_push_rows<4>(fine, coarse, dst, xweights, yweights,
+                                  roi.ybegin, roi.yend);
+        else
+            pushpull_push_rows<2>(fine, coarse, dst, xweights, yweights,
+                                  roi.ybegin, roi.yend);
+    });
+    return true;
+}
+
+template<int Channels>
+static void
+pushpull_final_rows(const PushPullLevel& fine, const PushPullLevel& coarse,
+                    float* dst,
+                    const std::vector<PushPullBilinearWeights>& xweights,
+                    const std::vector<PushPullBilinearWeights>& yweights,
+                    int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    float eps = 1.0e-6f;
+
+    for (int y = ybegin; y < yend; ++y) {
+        const PushPullBilinearWeights& yw = yweights[static_cast<size_t>(y)];
+        for (int x = 0; x < fine.width; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            const float* finepixel = fine.pixels.data() + base;
+            float* dstpixel        = dst + base;
+            float alpha            = finepixel[Channels - 1];
+            if (alpha >= 1.0f - eps) {
+                for (int c = 0; c < Channels - 1; ++c)
+                    dstpixel[c] = finepixel[c];
+                dstpixel[Channels - 1] = 1.0f;
+                continue;
+            }
+            auto finev = hn::Load(d, finepixel);
+            auto coarsev = pushpull_sample_bilinear<Channels>(
+                coarse, d, xweights[static_cast<size_t>(x)], yw);
+            float missing = clamp(1.0f - alpha, 0.0f, 1.0f);
+            auto filled = hn::Add(finev, hn::Mul(coarsev, hn::Set(d, missing)));
+            float tmp[Channels];
+            hn::Store(filled, d, tmp);
+            float outalpha = tmp[Channels - 1];
+            float invalpha = outalpha > eps ? 1.0f / outalpha : 0.0f;
+            for (int c = 0; c < Channels - 1; ++c)
+                dstpixel[c] = tmp[c] * invalpha;
+            dstpixel[Channels - 1] = outalpha > eps ? 1.0f : 0.0f;
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_final_rows_to_u16(const PushPullLevel& fine,
+                           const PushPullLevel& coarse, uint16_t* dst,
+                           const std::vector<PushPullBilinearWeights>& xweights,
+                           const std::vector<PushPullBilinearWeights>& yweights,
+                           int xbegin, int xend, int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    float eps = 1.0e-6f;
+
+    for (int y = ybegin; y < yend; ++y) {
+        const PushPullBilinearWeights& yw = yweights[static_cast<size_t>(y)];
+        for (int x = xbegin; x < xend; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            const float* finepixel = fine.pixels.data() + base;
+            uint16_t* dstpixel     = dst + base;
+            float alpha            = finepixel[Channels - 1];
+            if (alpha >= 1.0f - eps) {
+                for (int c = 0; c < Channels - 1; ++c)
+                    dstpixel[c] = pushpull_float_to_u16(finepixel[c]);
+                dstpixel[Channels - 1] = 65535;
+                continue;
+            }
+            auto finev = hn::Load(d, finepixel);
+            auto coarsev = pushpull_sample_bilinear<Channels>(
+                coarse, d, xweights[static_cast<size_t>(x)], yw);
+            float missing = clamp(1.0f - alpha, 0.0f, 1.0f);
+            auto filled = hn::Add(finev, hn::Mul(coarsev, hn::Set(d, missing)));
+            float tmp[Channels];
+            hn::Store(filled, d, tmp);
+            float outalpha = tmp[Channels - 1];
+            float invalpha = outalpha > eps ? 1.0f / outalpha : 0.0f;
+            for (int c = 0; c < Channels - 1; ++c)
+                dstpixel[c] = pushpull_float_to_u16(tmp[c] * invalpha);
+            dstpixel[Channels - 1] = outalpha > eps ? 65535 : 0;
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_final_rows_to_u8(const PushPullLevel& fine,
+                          const PushPullLevel& coarse, uint8_t* dst,
+                          const std::vector<PushPullBilinearWeights>& xweights,
+                          const std::vector<PushPullBilinearWeights>& yweights,
+                          int xbegin, int xend, int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    float eps = 1.0e-6f;
+
+    for (int y = ybegin; y < yend; ++y) {
+        const PushPullBilinearWeights& yw = yweights[static_cast<size_t>(y)];
+        for (int x = xbegin; x < xend; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            const float* finepixel = fine.pixels.data() + base;
+            uint8_t* dstpixel      = dst + base;
+            float alpha            = finepixel[Channels - 1];
+            if (alpha >= 1.0f - eps) {
+                for (int c = 0; c < Channels - 1; ++c)
+                    dstpixel[c] = pushpull_float_to_u8(finepixel[c]);
+                dstpixel[Channels - 1] = 255;
+                continue;
+            }
+            auto finev = hn::Load(d, finepixel);
+            auto coarsev = pushpull_sample_bilinear<Channels>(
+                coarse, d, xweights[static_cast<size_t>(x)], yw);
+            float missing = clamp(1.0f - alpha, 0.0f, 1.0f);
+            auto filled = hn::Add(finev, hn::Mul(coarsev, hn::Set(d, missing)));
+            float tmp[Channels];
+            hn::Store(filled, d, tmp);
+            float outalpha = tmp[Channels - 1];
+            float invalpha = outalpha > eps ? 1.0f / outalpha : 0.0f;
+            for (int c = 0; c < Channels - 1; ++c)
+                dstpixel[c] = pushpull_float_to_u8(tmp[c] * invalpha);
+            dstpixel[Channels - 1] = outalpha > eps ? 255 : 0;
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_final_rows_to_half(const PushPullLevel& fine,
+                            const PushPullLevel& coarse, half* dst,
+                            const std::vector<PushPullBilinearWeights>& xweights,
+                            const std::vector<PushPullBilinearWeights>& yweights,
+                            int xbegin, int xend, int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    float eps = 1.0e-6f;
+
+    for (int y = ybegin; y < yend; ++y) {
+        const PushPullBilinearWeights& yw = yweights[static_cast<size_t>(y)];
+        for (int x = xbegin; x < xend; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            const float* finepixel = fine.pixels.data() + base;
+            half* dstpixel         = dst + base;
+            float alpha            = finepixel[Channels - 1];
+            if (alpha >= 1.0f - eps) {
+                for (int c = 0; c < Channels - 1; ++c)
+                    dstpixel[c] = pushpull_float_to_half(finepixel[c]);
+                dstpixel[Channels - 1] = half(1.0f);
+                continue;
+            }
+            auto finev = hn::Load(d, finepixel);
+            auto coarsev = pushpull_sample_bilinear<Channels>(
+                coarse, d, xweights[static_cast<size_t>(x)], yw);
+            float missing = clamp(1.0f - alpha, 0.0f, 1.0f);
+            auto filled = hn::Add(finev, hn::Mul(coarsev, hn::Set(d, missing)));
+            float tmp[Channels];
+            hn::Store(filled, d, tmp);
+            float outalpha = tmp[Channels - 1];
+            float invalpha = outalpha > eps ? 1.0f / outalpha : 0.0f;
+            for (int c = 0; c < Channels - 1; ++c)
+                dstpixel[c] = pushpull_float_to_half(tmp[c] * invalpha);
+            dstpixel[Channels - 1] = outalpha > eps ? half(1.0f) : half(0.0f);
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_final_from_u16_rows(
+    const uint16_t* fine, int finewidth, const PushPullLevel& coarse,
+    uint16_t* dst, const std::vector<PushPullBilinearWeights>& xweights,
+    const std::vector<PushPullBilinearWeights>& yweights, int xbegin, int xend,
+    int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    float eps = 1.0e-6f;
+
+    for (int y = ybegin; y < yend; ++y) {
+        const PushPullBilinearWeights& yw = yweights[static_cast<size_t>(y)];
+        for (int x = xbegin; x < xend; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(finewidth)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            const uint16_t* finepixel = fine + base;
+            uint16_t* dstpixel        = dst + base;
+            uint16_t alpharaw         = finepixel[Channels - 1];
+            if (alpharaw == 65535) {
+                for (int c = 0; c < Channels - 1; ++c)
+                    dstpixel[c] = finepixel[c];
+                dstpixel[Channels - 1] = 65535;
+                continue;
+            }
+            float alpha = static_cast<float>(alpharaw) * (1.0f / 65535.0f);
+            auto finev  = pushpull_load_u16_pixel<Channels>(d, finepixel);
+            auto coarsev = pushpull_sample_bilinear<Channels>(
+                coarse, d, xweights[static_cast<size_t>(x)], yw);
+            float missing = clamp(1.0f - alpha, 0.0f, 1.0f);
+            auto filled = hn::Add(finev, hn::Mul(coarsev, hn::Set(d, missing)));
+            float tmp[Channels];
+            hn::Store(filled, d, tmp);
+            float outalpha = tmp[Channels - 1];
+            float invalpha = outalpha > eps ? 1.0f / outalpha : 0.0f;
+            for (int c = 0; c < Channels - 1; ++c)
+                dstpixel[c] = pushpull_float_to_u16(tmp[c] * invalpha);
+            dstpixel[Channels - 1] = outalpha > eps ? 65535 : 0;
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_final_from_half_rows(
+    const half* fine, int finewidth, const PushPullLevel& coarse, half* dst,
+    const std::vector<PushPullBilinearWeights>& xweights,
+    const std::vector<PushPullBilinearWeights>& yweights, int xbegin, int xend,
+    int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    float eps = 1.0e-6f;
+
+    for (int y = ybegin; y < yend; ++y) {
+        const PushPullBilinearWeights& yw = yweights[static_cast<size_t>(y)];
+        for (int x = xbegin; x < xend; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(finewidth)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            const half* finepixel = fine + base;
+            half* dstpixel        = dst + base;
+            float alpha           = static_cast<float>(finepixel[Channels - 1]);
+            if (alpha >= 1.0f - eps) {
+                for (int c = 0; c < Channels - 1; ++c)
+                    dstpixel[c] = finepixel[c];
+                dstpixel[Channels - 1] = half(1.0f);
+                continue;
+            }
+            auto finev = pushpull_load_half_pixel<Channels>(d, finepixel);
+            auto coarsev = pushpull_sample_bilinear<Channels>(
+                coarse, d, xweights[static_cast<size_t>(x)], yw);
+            float missing = clamp(1.0f - alpha, 0.0f, 1.0f);
+            auto filled = hn::Add(finev, hn::Mul(coarsev, hn::Set(d, missing)));
+            float tmp[Channels];
+            hn::Store(filled, d, tmp);
+            float outalpha = tmp[Channels - 1];
+            float invalpha = outalpha > eps ? 1.0f / outalpha : 0.0f;
+            for (int c = 0; c < Channels - 1; ++c)
+                dstpixel[c] = pushpull_float_to_half(tmp[c] * invalpha);
+            dstpixel[Channels - 1] = outalpha > eps ? half(1.0f) : half(0.0f);
+        }
+    }
+}
+
+static void
+pushpull_final_to_float_buffer(float* dst, const PushPullLevel& fine,
+                               const PushPullLevel& coarse, int nthreads)
+{
+    ROI roi(0, fine.width, 0, fine.height, 0, 1, 0, fine.channels);
+    std::vector<PushPullBilinearWeights> xweights;
+    std::vector<PushPullBilinearWeights> yweights;
+    pushpull_prepare_bilinear_resize_weights(xweights, yweights, fine.width,
+                                             fine.height, coarse.width,
+                                             coarse.height);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (fine.channels == 4)
+            pushpull_final_rows<4>(fine, coarse, dst, xweights, yweights,
+                                   roi.ybegin, roi.yend);
+        else
+            pushpull_final_rows<2>(fine, coarse, dst, xweights, yweights,
+                                   roi.ybegin, roi.yend);
+    });
+}
+
+static void
+pushpull_final_to_u16_buffer(uint16_t* dst, const PushPullLevel& fine,
+                             const PushPullLevel& coarse, int nthreads)
+{
+    ROI roi(0, fine.width, 0, fine.height, 0, 1, 0, fine.channels);
+    std::vector<PushPullBilinearWeights> xweights;
+    std::vector<PushPullBilinearWeights> yweights;
+    pushpull_prepare_bilinear_resize_weights(xweights, yweights, fine.width,
+                                             fine.height, coarse.width,
+                                             coarse.height);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (fine.channels == 4)
+            pushpull_final_rows_to_u16<4>(fine, coarse, dst, xweights,
+                                          yweights, roi.xbegin, roi.xend,
+                                          roi.ybegin, roi.yend);
+        else
+            pushpull_final_rows_to_u16<2>(fine, coarse, dst, xweights,
+                                          yweights, roi.xbegin, roi.xend,
+                                          roi.ybegin, roi.yend);
+    });
+}
+
+static void
+pushpull_final_to_u8_buffer(uint8_t* dst, const PushPullLevel& fine,
+                            const PushPullLevel& coarse, int nthreads)
+{
+    ROI roi(0, fine.width, 0, fine.height, 0, 1, 0, fine.channels);
+    std::vector<PushPullBilinearWeights> xweights;
+    std::vector<PushPullBilinearWeights> yweights;
+    pushpull_prepare_bilinear_resize_weights(xweights, yweights, fine.width,
+                                             fine.height, coarse.width,
+                                             coarse.height);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (fine.channels == 4)
+            pushpull_final_rows_to_u8<4>(fine, coarse, dst, xweights,
+                                         yweights, roi.xbegin, roi.xend,
+                                         roi.ybegin, roi.yend);
+        else
+            pushpull_final_rows_to_u8<2>(fine, coarse, dst, xweights,
+                                         yweights, roi.xbegin, roi.xend,
+                                         roi.ybegin, roi.yend);
+    });
+}
+
+static void
+pushpull_final_to_half_buffer(half* dst, const PushPullLevel& fine,
+                              const PushPullLevel& coarse, int nthreads)
+{
+    ROI roi(0, fine.width, 0, fine.height, 0, 1, 0, fine.channels);
+    std::vector<PushPullBilinearWeights> xweights;
+    std::vector<PushPullBilinearWeights> yweights;
+    pushpull_prepare_bilinear_resize_weights(xweights, yweights, fine.width,
+                                             fine.height, coarse.width,
+                                             coarse.height);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (fine.channels == 4)
+            pushpull_final_rows_to_half<4>(fine, coarse, dst, xweights,
+                                           yweights, roi.xbegin, roi.xend,
+                                           roi.ybegin, roi.yend);
+        else
+            pushpull_final_rows_to_half<2>(fine, coarse, dst, xweights,
+                                           yweights, roi.xbegin, roi.xend,
+                                           roi.ybegin, roi.yend);
+    });
+}
+
+static void
+pushpull_final_from_u16_to_u16_buffer(uint16_t* dst, const uint16_t* fine,
+                                      int finewidth, int fineheight,
+                                      int channels, const PushPullLevel& coarse,
+                                      int nthreads)
+{
+    ROI roi(0, finewidth, 0, fineheight, 0, 1, 0, channels);
+    std::vector<PushPullBilinearWeights> xweights;
+    std::vector<PushPullBilinearWeights> yweights;
+    pushpull_prepare_bilinear_resize_weights(xweights, yweights, finewidth,
+                                             fineheight, coarse.width,
+                                             coarse.height);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (channels == 4)
+            pushpull_final_from_u16_rows<4>(fine, finewidth, coarse, dst,
+                                            xweights, yweights, roi.xbegin,
+                                            roi.xend, roi.ybegin, roi.yend);
+        else
+            pushpull_final_from_u16_rows<2>(fine, finewidth, coarse, dst,
+                                            xweights, yweights, roi.xbegin,
+                                            roi.xend, roi.ybegin, roi.yend);
+    });
+}
+
+static void
+pushpull_final_from_half_to_half_buffer(half* dst, const half* fine,
+                                       int finewidth, int fineheight,
+                                       int channels, const PushPullLevel& coarse,
+                                       int nthreads)
+{
+    ROI roi(0, finewidth, 0, fineheight, 0, 1, 0, channels);
+    std::vector<PushPullBilinearWeights> xweights;
+    std::vector<PushPullBilinearWeights> yweights;
+    pushpull_prepare_bilinear_resize_weights(xweights, yweights, finewidth,
+                                             fineheight, coarse.width,
+                                             coarse.height);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (channels == 4)
+            pushpull_final_from_half_rows<4>(fine, finewidth, coarse, dst,
+                                             xweights, yweights, roi.xbegin,
+                                             roi.xend, roi.ybegin, roi.yend);
+        else
+            pushpull_final_from_half_rows<2>(fine, finewidth, coarse, dst,
+                                             xweights, yweights, roi.xbegin,
+                                             roi.xend, roi.ybegin, roi.yend);
+    });
+}
+
+static bool
+pushpull_reset_local_result(ImageBuf& dst, const ImageBuf& src)
+{
+    ImageSpec spec = src.spec();
+    spec.channelformats.clear();
+    dst.reset(spec);
+    if (dst.localpixels() == nullptr) {
+        dst.errorfmt("fillholes_pushpull HWY could not allocate result pixels");
+        return false;
+    }
+    return true;
+}
+
+static bool
+pushpull_reset_local_result_uint16(ImageBuf& dst, const ImageBuf& src)
+{
+    ImageSpec spec = src.spec();
+    spec.channelformats.clear();
+    spec.set_format(TypeDesc::UINT16);
+    dst.reset(spec);
+    if (dst.localpixels() == nullptr) {
+        dst.errorfmt("fillholes_pushpull HWY could not allocate uint16 result pixels");
+        return false;
+    }
+    return true;
+}
+
+static void
+pushpull_read_top_level_local_float(PushPullLevel& level, const ImageBuf& src)
+{
+    const ImageSpec& spec = src.spec();
+    const float* srcpixels = static_cast<const float*>(src.localpixels());
+    OIIO_DASSERT(srcpixels);
+
+    pushpull_reset_level(level, spec.width, spec.height, spec.nchannels);
+    size_t count = static_cast<size_t>(spec.width) * static_cast<size_t>(spec.height)
+                   * static_cast<size_t>(spec.nchannels);
+    std::copy(srcpixels, srcpixels + count, level.pixels.data());
+}
+
+static bool
+pushpull_default_triangle_width(float& width)
+{
+    string_view name("triangle");
+    for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
+        const FilterDesc& fd(Filter2D::get_filterdesc(i));
+        if (fd.name == name) {
+            width = fd.width;
+            return true;
+        }
+    }
+    return false;
+}
+
+static Filter2D::ref
+pushpull_create_triangle_filter(const PushPullLevel& src,
+                                const PushPullLevel& dst, ImageBuf& errdst)
+{
+    float basewidth = 0.0f;
+    if (!pushpull_default_triangle_width(basewidth)) {
+        errdst.errorfmt("fillholes_pushpull HWY could not create triangle filter");
+        return Filter2D::ref();
+    }
+
+    float xratio = static_cast<float>(dst.width) / static_cast<float>(src.width);
+    float yratio = static_cast<float>(dst.height) / static_cast<float>(src.height);
+    float width  = basewidth * std::max(1.0f, xratio);
+    float height = basewidth * std::max(1.0f, yratio);
+    Filter2D::ref filter(Filter2D::create_shared("triangle", width, height));
+    if (!filter) {
+        errdst.errorfmt("fillholes_pushpull HWY could not create triangle filter");
+    }
+    return filter;
+}
+
+static void
+pushpull_prepare_resize_axis(PushPullResizeAxis& axis, int srcsize,
+                             int dstsize, float ratio,
+                             const Filter2D& filter, bool horizontal)
+{
+    float filterwidth = horizontal ? filter.width() : filter.height();
+    float filterrad   = filterwidth / 2.0f;
+    axis.radius       = static_cast<int>(ceilf(filterrad / ratio));
+    axis.taps         = 2 * axis.radius + 1;
+    axis.index.assign(static_cast<size_t>(dstsize)
+                          * static_cast<size_t>(axis.taps),
+                      0);
+    axis.weight.assign(static_cast<size_t>(dstsize)
+                           * static_cast<size_t>(axis.taps),
+                       0.0f);
+
+    float dstpixelsize = 1.0f / static_cast<float>(dstsize);
+    for (int x = 0; x < dstsize; ++x) {
+        float s     = (static_cast<float>(x) + 0.5f) * dstpixelsize;
+        float srcxf = s * static_cast<float>(srcsize);
+        int srcx    = 0;
+        float frac  = floorfrac(srcxf, &srcx);
+        float total = 0.0f;
+        size_t base = static_cast<size_t>(x) * static_cast<size_t>(axis.taps);
+        for (int i = 0; i < axis.taps; ++i) {
+            float offset = ratio
+                           * (static_cast<float>(i - axis.radius)
+                              - (frac - 0.5f));
+            float w = horizontal ? filter.xfilt(offset) : filter.yfilt(offset);
+            axis.index[base + static_cast<size_t>(i)]
+                = clamp(srcx - axis.radius + i, 0, srcsize - 1);
+            axis.weight[base + static_cast<size_t>(i)] = w;
+            total += w;
+        }
+        if (total != 0.0f) {
+            float invtotal = 1.0f / total;
+            for (int i = 0; i < axis.taps; ++i)
+                axis.weight[base + static_cast<size_t>(i)] *= invtotal;
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_resize_triangle_rows(const PushPullLevel& src, PushPullLevel& dst,
+                              const PushPullResizeAxis& xaxis,
+                              const PushPullResizeAxis& yaxis, int ybegin,
+                              int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    auto zero = hn::Zero(d);
+
+    for (int y = ybegin; y < yend; ++y) {
+        size_t ybase = static_cast<size_t>(y) * static_cast<size_t>(yaxis.taps);
+        for (int x = 0; x < dst.width; ++x) {
+            size_t xbase = static_cast<size_t>(x)
+                           * static_cast<size_t>(xaxis.taps);
+            auto sum = zero;
+            for (int j = 0; j < yaxis.taps; ++j) {
+                float wy = yaxis.weight[ybase + static_cast<size_t>(j)];
+                if (wy == 0.0f)
+                    continue;
+                int sy = yaxis.index[ybase + static_cast<size_t>(j)];
+                const float* srcrow
+                    = src.pixels.data()
+                      + static_cast<size_t>(sy)
+                            * static_cast<size_t>(src.width)
+                            * static_cast<size_t>(Channels);
+                for (int i = 0; i < xaxis.taps; ++i) {
+                    float wx = xaxis.weight[xbase + static_cast<size_t>(i)];
+                    if (wx == 0.0f)
+                        continue;
+                    int sx = xaxis.index[xbase + static_cast<size_t>(i)];
+                    float w = wy * wx;
+                    const float* srcpixel
+                        = srcrow + static_cast<size_t>(sx)
+                                       * static_cast<size_t>(Channels);
+                    sum = hn::Add(sum, hn::Mul(hn::Load(d, srcpixel),
+                                               hn::Set(d, w)));
+                }
+            }
+            float* dstpixel
+                = dst.pixels.data()
+                  + (static_cast<size_t>(y) * static_cast<size_t>(dst.width)
+                     + static_cast<size_t>(x))
+                        * static_cast<size_t>(Channels);
+            hn::Store(sum, d, dstpixel);
+        }
+    }
+}
+
+static bool
+pushpull_resize_triangle_level(PushPullLevel& dst, const PushPullLevel& src,
+                               int width, int height, ImageBuf& errdst,
+                               int nthreads)
+{
+    pushpull_reset_level(dst, width, height, src.channels);
+
+    Filter2D::ref filter = pushpull_create_triangle_filter(src, dst, errdst);
+    if (!filter)
+        return false;
+
+    PushPullResizeAxis xaxis;
+    PushPullResizeAxis yaxis;
+    pushpull_prepare_resize_axis(xaxis, src.width, dst.width,
+                                 static_cast<float>(dst.width)
+                                     / static_cast<float>(src.width),
+                                 *filter, true);
+    pushpull_prepare_resize_axis(yaxis, src.height, dst.height,
+                                 static_cast<float>(dst.height)
+                                     / static_cast<float>(src.height),
+                                 *filter, false);
+
+    ROI roi(0, dst.width, 0, dst.height, 0, 1, 0, dst.channels);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (dst.channels == 4)
+            pushpull_resize_triangle_rows<4>(src, dst, xaxis, yaxis,
+                                             roi.ybegin, roi.yend);
+        else
+            pushpull_resize_triangle_rows<2>(src, dst, xaxis, yaxis,
+                                             roi.ybegin, roi.yend);
+    });
+    return true;
+}
+
+template<int Channels>
+static void
+pushpull_pull_axis_rows(const PushPullLevel& src, PushPullLevel& dst,
+                        const PushPullResizeAxis& xaxis,
+                        const PushPullResizeAxis& yaxis, int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    auto zero = hn::Zero(d);
+
+    for (int y = ybegin; y < yend; ++y) {
+        size_t ybase = static_cast<size_t>(y) * static_cast<size_t>(yaxis.taps);
+        for (int x = 0; x < dst.width; ++x) {
+            size_t xbase = static_cast<size_t>(x)
+                           * static_cast<size_t>(xaxis.taps);
+            auto sum = zero;
+            for (int yy = 0; yy < yaxis.taps; ++yy) {
+                float wy = yaxis.weight[ybase + static_cast<size_t>(yy)];
+                if (wy == 0.0f)
+                    continue;
+                int sy = yaxis.index[ybase + static_cast<size_t>(yy)];
+                const float* srcrow
+                    = src.pixels.data()
+                      + static_cast<size_t>(sy)
+                            * static_cast<size_t>(src.width)
+                            * static_cast<size_t>(Channels);
+                for (int xx = 0; xx < xaxis.taps; ++xx) {
+                    float wx = xaxis.weight[xbase + static_cast<size_t>(xx)];
+                    if (wx == 0.0f)
+                        continue;
+                    int sx = xaxis.index[xbase + static_cast<size_t>(xx)];
+                    float w = wy * wx;
+                    const float* srcpixel
+                        = srcrow + static_cast<size_t>(sx)
+                                       * static_cast<size_t>(Channels);
+                    sum = hn::Add(sum, hn::Mul(hn::Load(d, srcpixel),
+                                               hn::Set(d, w)));
+                }
+            }
+            float* dstpixel
+                = dst.pixels.data()
+                  + (static_cast<size_t>(y) * static_cast<size_t>(dst.width)
+                     + static_cast<size_t>(x))
+                        * static_cast<size_t>(Channels);
+            hn::Store(pushpull_normalize_pulled_pixel<Channels>(d, sum), d,
+                      dstpixel);
+        }
+    }
+}
+
+static bool
+pushpull_run_pull_level_axis(PushPullLevel& dst, const PushPullLevel& src,
+                             ImageBuf& errdst, int nthreads)
+{
+    int width  = std::max(1, src.width / 2);
+    int height = std::max(1, src.height / 2);
+    pushpull_reset_level(dst, width, height, src.channels);
+
+    Filter2D::ref filter = pushpull_create_triangle_filter(src, dst, errdst);
+    if (!filter)
+        return false;
+
+    PushPullResizeAxis xaxis;
+    PushPullResizeAxis yaxis;
+    pushpull_prepare_resize_axis(xaxis, src.width, dst.width,
+                                 static_cast<float>(dst.width)
+                                     / static_cast<float>(src.width),
+                                 *filter, true);
+    pushpull_prepare_resize_axis(yaxis, src.height, dst.height,
+                                 static_cast<float>(dst.height)
+                                     / static_cast<float>(src.height),
+                                 *filter, false);
+
+    ROI roi(0, dst.width, 0, dst.height, 0, 1, 0, dst.channels);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (dst.channels == 4)
+            pushpull_pull_axis_rows<4>(src, dst, xaxis, yaxis, roi.ybegin,
+                                       roi.yend);
+        else
+            pushpull_pull_axis_rows<2>(src, dst, xaxis, yaxis, roi.ybegin,
+                                       roi.yend);
+    });
+    return true;
+}
+
+template<int Channels>
+static void
+pushpull_push_triangle_rows(const PushPullLevel& fine,
+                            const PushPullLevel& coarse, PushPullLevel& dst,
+                            const PushPullResizeAxis& xaxis,
+                            const PushPullResizeAxis& yaxis, int ybegin,
+                            int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    auto zero = hn::Zero(d);
+
+    for (int y = ybegin; y < yend; ++y) {
+        size_t ybase = static_cast<size_t>(y) * static_cast<size_t>(yaxis.taps);
+        for (int x = 0; x < fine.width; ++x) {
+            size_t xbase = static_cast<size_t>(x)
+                           * static_cast<size_t>(xaxis.taps);
+            auto coarsev = zero;
+            for (int yy = 0; yy < yaxis.taps; ++yy) {
+                float wy = yaxis.weight[ybase + static_cast<size_t>(yy)];
+                if (wy == 0.0f)
+                    continue;
+                int sy = yaxis.index[ybase + static_cast<size_t>(yy)];
+                const float* coarserow
+                    = coarse.pixels.data()
+                      + static_cast<size_t>(sy)
+                            * static_cast<size_t>(coarse.width)
+                            * static_cast<size_t>(Channels);
+                for (int xx = 0; xx < xaxis.taps; ++xx) {
+                    float wx = xaxis.weight[xbase + static_cast<size_t>(xx)];
+                    if (wx == 0.0f)
+                        continue;
+                    int sx = xaxis.index[xbase + static_cast<size_t>(xx)];
+                    float w = wy * wx;
+                    const float* coarsepixel
+                        = coarserow + static_cast<size_t>(sx)
+                                          * static_cast<size_t>(Channels);
+                    coarsev = hn::Add(coarsev, hn::Mul(hn::Load(d, coarsepixel),
+                                                       hn::Set(d, w)));
+                }
+            }
+
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            const float* finepixel = fine.pixels.data() + base;
+            float* dstpixel        = dst.pixels.data() + base;
+            float alpha            = clamp(finepixel[Channels - 1], 0.0f, 1.0f);
+            auto finev             = hn::Load(d, finepixel);
+            auto out = hn::Add(finev, hn::Mul(coarsev, hn::Set(d, 1.0f - alpha)));
+            hn::Store(out, d, dstpixel);
+        }
+    }
+}
+
+static bool
+pushpull_run_push_level_triangle(PushPullLevel& dst, const PushPullLevel& fine,
+                                 const PushPullLevel& coarse, ImageBuf& errdst,
+                                 int nthreads)
+{
+    pushpull_reset_level(dst, fine.width, fine.height, fine.channels);
+
+    Filter2D::ref filter = pushpull_create_triangle_filter(coarse, dst, errdst);
+    if (!filter)
+        return false;
+
+    PushPullResizeAxis xaxis;
+    PushPullResizeAxis yaxis;
+    pushpull_prepare_resize_axis(xaxis, coarse.width, dst.width,
+                                 static_cast<float>(dst.width)
+                                     / static_cast<float>(coarse.width),
+                                 *filter, true);
+    pushpull_prepare_resize_axis(yaxis, coarse.height, dst.height,
+                                 static_cast<float>(dst.height)
+                                     / static_cast<float>(coarse.height),
+                                 *filter, false);
+
+    ROI roi(0, dst.width, 0, dst.height, 0, 1, 0, dst.channels);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (dst.channels == 4)
+            pushpull_push_triangle_rows<4>(fine, coarse, dst, xaxis, yaxis,
+                                           roi.ybegin, roi.yend);
+        else
+            pushpull_push_triangle_rows<2>(fine, coarse, dst, xaxis, yaxis,
+                                           roi.ybegin, roi.yend);
+    });
+    return true;
+}
+
+template<int Channels>
+inline hn::Vec<hn::FixedTag<float, Channels>>
+pushpull_sample_triangle(hn::FixedTag<float, Channels> d,
+                         const PushPullLevel& coarse,
+                         const PushPullResizeAxis& xaxis,
+                         const PushPullResizeAxis& yaxis, int x, int y)
+{
+    auto sum     = hn::Zero(d);
+    size_t ybase = static_cast<size_t>(y) * static_cast<size_t>(yaxis.taps);
+    size_t xbase = static_cast<size_t>(x) * static_cast<size_t>(xaxis.taps);
+    for (int yy = 0; yy < yaxis.taps; ++yy) {
+        float wy = yaxis.weight[ybase + static_cast<size_t>(yy)];
+        if (wy == 0.0f)
+            continue;
+        int sy = yaxis.index[ybase + static_cast<size_t>(yy)];
+        const float* coarserow
+            = coarse.pixels.data()
+              + static_cast<size_t>(sy) * static_cast<size_t>(coarse.width)
+                    * static_cast<size_t>(Channels);
+        for (int xx = 0; xx < xaxis.taps; ++xx) {
+            float wx = xaxis.weight[xbase + static_cast<size_t>(xx)];
+            if (wx == 0.0f)
+                continue;
+            int sx = xaxis.index[xbase + static_cast<size_t>(xx)];
+            float w = wy * wx;
+            const float* coarsepixel
+                = coarserow + static_cast<size_t>(sx)
+                                  * static_cast<size_t>(Channels);
+            sum = hn::Add(sum, hn::Mul(hn::Load(d, coarsepixel),
+                                       hn::Set(d, w)));
+        }
+    }
+    return sum;
+}
+
+template<int Channels>
+inline hn::Vec<hn::FixedTag<float, Channels>>
+pushpull_over_triangle_sample(hn::FixedTag<float, Channels> d,
+                              const float* finepixel,
+                              hn::Vec<hn::FixedTag<float, Channels>> coarsev)
+{
+    float alpha = clamp(finepixel[Channels - 1], 0.0f, 1.0f);
+    auto finev  = hn::Load(d, finepixel);
+    return hn::Add(finev, hn::Mul(coarsev, hn::Set(d, 1.0f - alpha)));
+}
+
+template<int Channels>
+static void
+pushpull_final_triangle_rows_float(
+    const PushPullLevel& fine, const PushPullLevel& coarse, float* dst,
+    const PushPullResizeAxis& xaxis, const PushPullResizeAxis& yaxis,
+    int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    for (int y = ybegin; y < yend; ++y) {
+        for (int x = 0; x < fine.width; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            auto coarsev = pushpull_sample_triangle<Channels>(d, coarse, xaxis,
+                                                              yaxis, x, y);
+            auto out = pushpull_over_triangle_sample<Channels>(
+                d, fine.pixels.data() + base, coarsev);
+            hn::Store(out, d, dst + base);
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_final_triangle_rows_u16(
+    const PushPullLevel& fine, const PushPullLevel& coarse, uint16_t* dst,
+    const PushPullResizeAxis& xaxis, const PushPullResizeAxis& yaxis,
+    int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    for (int y = ybegin; y < yend; ++y) {
+        for (int x = 0; x < fine.width; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            auto coarsev = pushpull_sample_triangle<Channels>(d, coarse, xaxis,
+                                                              yaxis, x, y);
+            auto out = pushpull_over_triangle_sample<Channels>(
+                d, fine.pixels.data() + base, coarsev);
+            float tmp[Channels];
+            hn::Store(out, d, tmp);
+            for (int c = 0; c < Channels; ++c)
+                dst[base + static_cast<size_t>(c)] = pushpull_float_to_u16(tmp[c]);
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_final_triangle_rows_u8(
+    const PushPullLevel& fine, const PushPullLevel& coarse, uint8_t* dst,
+    const PushPullResizeAxis& xaxis, const PushPullResizeAxis& yaxis,
+    int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    for (int y = ybegin; y < yend; ++y) {
+        for (int x = 0; x < fine.width; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            auto coarsev = pushpull_sample_triangle<Channels>(d, coarse, xaxis,
+                                                              yaxis, x, y);
+            auto out = pushpull_over_triangle_sample<Channels>(
+                d, fine.pixels.data() + base, coarsev);
+            float tmp[Channels];
+            hn::Store(out, d, tmp);
+            for (int c = 0; c < Channels; ++c)
+                dst[base + static_cast<size_t>(c)] = pushpull_float_to_u8(tmp[c]);
+        }
+    }
+}
+
+template<int Channels>
+static void
+pushpull_final_triangle_rows_half(
+    const PushPullLevel& fine, const PushPullLevel& coarse, half* dst,
+    const PushPullResizeAxis& xaxis, const PushPullResizeAxis& yaxis,
+    int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+    for (int y = ybegin; y < yend; ++y) {
+        for (int x = 0; x < fine.width; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            auto coarsev = pushpull_sample_triangle<Channels>(d, coarse, xaxis,
+                                                              yaxis, x, y);
+            auto out = pushpull_over_triangle_sample<Channels>(
+                d, fine.pixels.data() + base, coarsev);
+            float tmp[Channels];
+            hn::Store(out, d, tmp);
+            for (int c = 0; c < Channels; ++c)
+                dst[base + static_cast<size_t>(c)] = pushpull_float_to_half(tmp[c]);
+        }
+    }
+}
+
+static bool
+pushpull_reset_local_result_format(ImageBuf& dst, const ImageBuf& src,
+                                   TypeDesc format);
+
+static bool
+pushpull_write_triangle_result(ImageBuf& dst, const ImageBuf& src,
+                               const std::vector<PushPullLevel>& pyramid,
+                               TypeDesc resultformat, bool reset_dst,
+                               int nthreads)
+{
+    OIIO_DASSERT(pyramid.size() >= 2);
+
+    if (reset_dst && !pushpull_reset_local_result_format(dst, src, resultformat))
+        return false;
+
+    void* dstpixels = dst.localpixels();
+    if (!dstpixels)
+        return false;
+
+    const PushPullLevel& fine   = pyramid[0];
+    const PushPullLevel& coarse = pyramid[1];
+    Filter2D::ref filter        = pushpull_create_triangle_filter(coarse, fine, dst);
+    if (!filter)
+        return false;
+
+    PushPullResizeAxis xaxis;
+    PushPullResizeAxis yaxis;
+    pushpull_prepare_resize_axis(xaxis, coarse.width, fine.width,
+                                 static_cast<float>(fine.width)
+                                     / static_cast<float>(coarse.width),
+                                 *filter, true);
+    pushpull_prepare_resize_axis(yaxis, coarse.height, fine.height,
+                                 static_cast<float>(fine.height)
+                                     / static_cast<float>(coarse.height),
+                                 *filter, false);
+
+    ROI roi(0, fine.width, 0, fine.height, 0, 1, 0, fine.channels);
+    if (resultformat == TypeDesc::FLOAT) {
+        ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+            if (fine.channels == 4)
+                pushpull_final_triangle_rows_float<4>(
+                    fine, coarse, static_cast<float*>(dstpixels), xaxis, yaxis,
+                    roi.ybegin, roi.yend);
+            else
+                pushpull_final_triangle_rows_float<2>(
+                    fine, coarse, static_cast<float*>(dstpixels), xaxis, yaxis,
+                    roi.ybegin, roi.yend);
+        });
+        return true;
+    }
+    if (resultformat == TypeDesc::UINT16) {
+        ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+            if (fine.channels == 4)
+                pushpull_final_triangle_rows_u16<4>(
+                    fine, coarse, static_cast<uint16_t*>(dstpixels), xaxis,
+                    yaxis, roi.ybegin, roi.yend);
+            else
+                pushpull_final_triangle_rows_u16<2>(
+                    fine, coarse, static_cast<uint16_t*>(dstpixels), xaxis,
+                    yaxis, roi.ybegin, roi.yend);
+        });
+        return true;
+    }
+    if (resultformat == TypeDesc::UINT8) {
+        ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+            if (fine.channels == 4)
+                pushpull_final_triangle_rows_u8<4>(
+                    fine, coarse, static_cast<uint8_t*>(dstpixels), xaxis, yaxis,
+                    roi.ybegin, roi.yend);
+            else
+                pushpull_final_triangle_rows_u8<2>(
+                    fine, coarse, static_cast<uint8_t*>(dstpixels), xaxis, yaxis,
+                    roi.ybegin, roi.yend);
+        });
+        return true;
+    }
+    if (resultformat == TypeDesc::HALF) {
+        ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+            if (fine.channels == 4)
+                pushpull_final_triangle_rows_half<4>(
+                    fine, coarse, static_cast<half*>(dstpixels), xaxis, yaxis,
+                    roi.ybegin, roi.yend);
+            else
+                pushpull_final_triangle_rows_half<2>(
+                    fine, coarse, static_cast<half*>(dstpixels), xaxis, yaxis,
+                    roi.ybegin, roi.yend);
+        });
+        return true;
+    }
+    return false;
+}
+
+template<int Channels>
+static void
+pushpull_divide_alpha_rows(PushPullLevel& level, int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+
+    for (int y = ybegin; y < yend; ++y) {
+        for (int x = 0; x < level.width; ++x) {
+            float* pixel
+                = level.pixels.data()
+                  + (static_cast<size_t>(y) * static_cast<size_t>(level.width)
+                     + static_cast<size_t>(x))
+                        * static_cast<size_t>(Channels);
+            hn::Store(
+                pushpull_normalize_pulled_pixel<Channels>(d, hn::Load(d, pixel)),
+                d, pixel);
+        }
+    }
+}
+
+static void
+pushpull_divide_by_alpha_level(PushPullLevel& level, int nthreads)
+{
+    ROI roi(0, level.width, 0, level.height, 0, 1, 0, level.channels);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (level.channels == 4)
+            pushpull_divide_alpha_rows<4>(level, roi.ybegin, roi.yend);
+        else
+            pushpull_divide_alpha_rows<2>(level, roi.ybegin, roi.yend);
+    });
+}
+
+template<int Channels>
+static void
+pushpull_over_rows(const PushPullLevel& fine, const PushPullLevel& blowup,
+                   PushPullLevel& dst, int ybegin, int yend)
+{
+    hn::FixedTag<float, Channels> d;
+
+    for (int y = ybegin; y < yend; ++y) {
+        for (int x = 0; x < fine.width; ++x) {
+            size_t base = (static_cast<size_t>(y) * static_cast<size_t>(fine.width)
+                           + static_cast<size_t>(x))
+                          * static_cast<size_t>(Channels);
+            const float* finepixel   = fine.pixels.data() + base;
+            const float* blowuppixel = blowup.pixels.data() + base;
+            float* dstpixel          = dst.pixels.data() + base;
+            float alpha              = clamp(finepixel[Channels - 1], 0.0f, 1.0f);
+            float missing            = 1.0f - alpha;
+            auto result = hn::Add(hn::Load(d, finepixel),
+                                  hn::Mul(hn::Load(d, blowuppixel),
+                                          hn::Set(d, missing)));
+            hn::Store(result, d, dstpixel);
+        }
+    }
+}
+
+static bool
+pushpull_run_push_level_exact(PushPullLevel& dst, const PushPullLevel& fine,
+                              const PushPullLevel& coarse, ImageBuf& errdst,
+                              int nthreads)
+{
+    PushPullLevel blowup;
+    if (!pushpull_resize_triangle_level(blowup, coarse, fine.width, fine.height,
+                                        errdst, nthreads))
+        return false;
+
+    pushpull_reset_level(dst, fine.width, fine.height, fine.channels);
+    ROI roi(0, fine.width, 0, fine.height, 0, 1, 0, fine.channels);
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        if (fine.channels == 4)
+            pushpull_over_rows<4>(fine, blowup, dst, roi.ybegin, roi.yend);
+        else
+            pushpull_over_rows<2>(fine, blowup, dst, roi.ybegin, roi.yend);
+    });
+    return true;
+}
+
+static bool
+pushpull_read_canonical_top_level(PushPullLevel& level, const ImageBuf& src,
+                                  ImageBuf& errdst, int nthreads)
+{
+    ImageSpec topspec = src.spec();
+    topspec.set_format(TypeDesc::FLOAT);
+    topspec.full_x      = 0;
+    topspec.full_y      = 0;
+    topspec.full_width  = topspec.width;
+    topspec.full_height = topspec.height;
+    topspec.x           = 0;
+    topspec.y           = 0;
+    topspec.z           = 0;
+    ImageBuf top(topspec);
+
+    if (!ImageBufAlgo::paste(top, -src.spec().x, -src.spec().y, -src.spec().z,
+                             0, src, ROI::All(), nthreads)) {
+        errdst.errorfmt("fillholes_pushpull HWY top copy failed: {}",
+                        top.geterror());
+        return false;
+    }
+
+    pushpull_read_top_level_local_float(level, top);
+    return true;
+}
+
+static bool
+pushpull_make_canonical_top_image(ImageBuf& top, const ImageBuf& src,
+                                  const PushPullLevel& level, ImageBuf& errdst)
+{
+    ImageSpec topspec = src.spec();
+    topspec.set_format(TypeDesc::FLOAT);
+    topspec.full_x      = 0;
+    topspec.full_y      = 0;
+    topspec.full_width  = topspec.width;
+    topspec.full_height = topspec.height;
+    topspec.x           = 0;
+    topspec.y           = 0;
+    topspec.z           = 0;
+    top.reset(topspec);
+    float* pixels = static_cast<float*>(top.localpixels());
+    if (!pixels) {
+        errdst.errorfmt("fillholes_pushpull HWY could not allocate float result");
+        return false;
+    }
+
+    size_t count = static_cast<size_t>(level.width)
+                   * static_cast<size_t>(level.height)
+                   * static_cast<size_t>(level.channels);
+    std::copy(level.pixels.data(), level.pixels.data() + count, pixels);
+    return true;
+}
+
+static bool
+pushpull_reset_local_result_format(ImageBuf& dst, const ImageBuf& src,
+                                   TypeDesc format)
+{
+    ImageSpec spec = src.spec();
+    spec.channelformats.clear();
+    spec.set_format(format);
+    dst.reset(spec);
+    if (dst.localpixels() == nullptr) {
+        dst.errorfmt("fillholes_pushpull HWY could not allocate result pixels");
+        return false;
+    }
+    return true;
+}
+
+static bool
+pushpull_write_canonical_result(ImageBuf& dst, const ImageBuf& src,
+                                const PushPullLevel& level,
+                                TypeDesc resultformat, bool reset_dst,
+                                int nthreads)
+{
+    if (reset_dst && !pushpull_reset_local_result_format(dst, src, resultformat))
+        return false;
+
+    ImageBuf top;
+    if (!pushpull_make_canonical_top_image(top, src, level, dst))
+        return false;
+
+    if (!ImageBufAlgo::paste(dst, src.spec().x, src.spec().y, src.spec().z, 0,
+                             top, ROI::All(), nthreads)) {
+        if (!dst.has_error())
+            dst.errorfmt("fillholes_pushpull HWY result paste failed");
+        return false;
+    }
+    return true;
+}
+
+static bool
+fillholes_pushpull_hwy_fast(ImageBuf& dst, const ImageBuf& src,
+                            TypeDesc resultformat, bool reset_dst,
+                            int nthreads)
+{
+    std::vector<PushPullLevel> pyramid;
+    pyramid.reserve(32);
+    pyramid.emplace_back();
+    if (!pushpull_read_canonical_top_level(pyramid.back(), src, dst, nthreads))
+        return false;
+
+    while (pyramid.back().width > 1 || pyramid.back().height > 1) {
+        PushPullLevel level;
+        const PushPullLevel& prev = pyramid.back();
+        if (!pushpull_run_pull_level_axis(level, prev, dst, nthreads)) {
+            dst.errorfmt("fillholes_pushpull HWY pull failed");
+            return false;
+        }
+        pyramid.push_back(std::move(level));
+    }
+
+    for (int i = static_cast<int>(pyramid.size()) - 2; i >= 1; --i) {
+        PushPullLevel filled;
+        if (!pushpull_run_push_level_triangle(
+                filled, pyramid[static_cast<size_t>(i)],
+                pyramid[static_cast<size_t>(i + 1)], dst, nthreads)) {
+            dst.errorfmt("fillholes_pushpull HWY push failed");
+            return false;
+        }
+        pyramid[static_cast<size_t>(i)].pixels.swap(filled.pixels);
+    }
+
+    if (pushpull_write_triangle_result(dst, src, pyramid, resultformat,
+                                       reset_dst, nthreads))
+        return true;
+
+    PushPullLevel filled;
+    if (!pushpull_run_push_level_triangle(filled, pyramid[0], pyramid[1], dst,
+                                          nthreads)) {
+        dst.errorfmt("fillholes_pushpull HWY final push failed");
+        return false;
+    }
+    return pushpull_write_canonical_result(dst, src, filled, resultformat,
+                                           reset_dst, nthreads);
+}
+
+static bool
+fillholes_pushpull_hwy_canonical(ImageBuf& dst, const ImageBuf& src,
+                                 TypeDesc resultformat, bool reset_dst,
+                                 int nthreads)
+{
+    std::vector<PushPullLevel> pyramid;
+    pyramid.reserve(32);
+    pyramid.emplace_back();
+    if (!pushpull_read_canonical_top_level(pyramid.back(), src, dst, nthreads))
+        return false;
+
+    while (pyramid.back().width > 1 || pyramid.back().height > 1) {
+        const PushPullLevel& prev = pyramid.back();
+        int width                 = std::max(1, prev.width / 2);
+        int height                = std::max(1, prev.height / 2);
+        PushPullLevel small;
+        if (!pushpull_resize_triangle_level(small, prev, width, height, dst,
+                                            nthreads))
+            return false;
+        pushpull_divide_by_alpha_level(small, nthreads);
+        pyramid.push_back(std::move(small));
+    }
+
+    for (int i = static_cast<int>(pyramid.size()) - 2; i >= 0; --i) {
+        PushPullLevel filled;
+        if (!pushpull_run_push_level_exact(filled, pyramid[static_cast<size_t>(i)],
+                                           pyramid[static_cast<size_t>(i + 1)],
+                                           dst, nthreads))
+            return false;
+        pyramid[static_cast<size_t>(i)].pixels.swap(filled.pixels);
+    }
+
+    return pushpull_write_canonical_result(dst, src, pyramid[0], resultformat,
+                                           reset_dst, nthreads);
+}
+
+static bool
+fillholes_pushpull_hwy_float(ImageBuf& dst, const ImageBuf& src, int nthreads)
+{
+    std::vector<PushPullLevel> pyramid;
+    pyramid.reserve(32);
+    pyramid.emplace_back();
+    pushpull_read_top_level_local_float(pyramid.back(), src);
+
+    while (pyramid.back().width > 1 || pyramid.back().height > 1) {
+        pushpull_run_pull_group_tiled(pyramid, nthreads);
+    }
+
+    for (int i = static_cast<int>(pyramid.size()) - 2; i >= 1; --i) {
+        PushPullLevel filled;
+        if (!pushpull_run_push_level(filled, pyramid[static_cast<size_t>(i)],
+                                     pyramid[static_cast<size_t>(i + 1)],
+                                     nthreads)) {
+            dst.errorfmt("fillholes_pushpull HWY push failed");
+            return false;
+        }
+        pyramid[static_cast<size_t>(i)].pixels.swap(filled.pixels);
+    }
+
+    if (!pushpull_reset_local_result(dst, src))
+        return false;
+    float* dstpixels = static_cast<float*>(dst.localpixels());
+    OIIO_DASSERT(pyramid.size() >= 2);
+    pushpull_final_to_float_buffer(dstpixels, pyramid[0], pyramid[1],
+                                   nthreads);
+    return true;
+}
+
+template<typename SourceT>
+static bool
+fillholes_pushpull_hwy_typed(ImageBuf& dst, const ImageBuf& src,
+                             const SourceT* srcpixels,
+                             bool force_uint16_result, int nthreads)
+{
+    static_assert(std::is_same_v<SourceT, uint16_t>
+                  || std::is_same_v<SourceT, half>);
+
+    const ImageSpec& spec = src.spec();
+    std::vector<PushPullLevel> pyramid;
+    pyramid.reserve(31);
+
+    pushpull_run_pull_group_tiled_from_source(
+        pyramid, srcpixels, spec.width, spec.height, spec.nchannels, nthreads);
+
+    OIIO_DASSERT(!pyramid.empty());
+    while (pyramid.back().width > 1 || pyramid.back().height > 1) {
+        pushpull_run_pull_group_tiled(pyramid, nthreads);
+    }
+
+    for (int i = static_cast<int>(pyramid.size()) - 2; i >= 0; --i) {
+        PushPullLevel filled;
+        if (!pushpull_run_push_level(filled, pyramid[static_cast<size_t>(i)],
+                                     pyramid[static_cast<size_t>(i + 1)],
+                                     nthreads)) {
+            dst.errorfmt("fillholes_pushpull HWY push failed");
+            return false;
+        }
+        pyramid[static_cast<size_t>(i)].pixels.swap(filled.pixels);
+    }
+
+    const PushPullLevel& coarse = pyramid[0];
+    if constexpr (std::is_same_v<SourceT, uint16_t>) {
+        bool const reset_ok = force_uint16_result
+                                  ? pushpull_reset_local_result_uint16(dst, src)
+                                  : pushpull_reset_local_result(dst, src);
+        if (!reset_ok)
+            return false;
+
+        uint16_t* dstpixels = static_cast<uint16_t*>(dst.localpixels());
+        pushpull_final_from_u16_to_u16_buffer(
+            dstpixels, srcpixels, spec.width, spec.height, spec.nchannels,
+            coarse, nthreads);
+    } else {
+        if (!pushpull_reset_local_result(dst, src))
+            return false;
+
+        half* dstpixels = static_cast<half*>(dst.localpixels());
+        pushpull_final_from_half_to_half_buffer(
+            dstpixels, srcpixels, spec.width, spec.height, spec.nchannels,
+            coarse, nthreads);
+    }
+
+    return true;
+}
+
+static bool
+fillholes_pushpull_hwy_u16(ImageBuf& dst, const ImageBuf& src, int nthreads)
+{
+    const uint16_t* srcpixels = static_cast<const uint16_t*>(src.localpixels());
+    OIIO_DASSERT(srcpixels);
+
+    return fillholes_pushpull_hwy_typed(dst, src, srcpixels, false, nthreads);
+}
+
+static bool
+fillholes_pushpull_hwy_u8_to_u16(ImageBuf& dst, const ImageBuf& src,
+                                 int nthreads)
+{
+    const ImageSpec& spec = src.spec();
+    const uint8_t* srcpixels = static_cast<const uint8_t*>(src.localpixels());
+    OIIO_DASSERT(srcpixels);
+
+    size_t count = static_cast<size_t>(spec.width) * static_cast<size_t>(spec.height)
+                   * static_cast<size_t>(spec.nchannels);
+    std::vector<uint16_t> promoted(count);
+    for (size_t i = 0; i < count; ++i)
+        promoted[i] = static_cast<uint16_t>(srcpixels[i]) * 257u;
+
+    return fillholes_pushpull_hwy_typed(dst, src, promoted.data(), true,
+                                        nthreads);
+}
+
+static bool
+fillholes_pushpull_hwy_half(ImageBuf& dst, const ImageBuf& src, int nthreads)
+{
+    const half* srcpixels = static_cast<const half*>(src.localpixels());
+    OIIO_DASSERT(srcpixels);
+
+    return fillholes_pushpull_hwy_typed(dst, src, srcpixels, false, nthreads);
+}
+
+static bool
+fillholes_pushpull_hwy_natural(ImageBuf& dst, const ImageBuf& src, int nthreads)
+{
+    if (&dst == &src) {
+        ImageBuf tmp;
+        bool ok = fillholes_pushpull_hwy_natural(tmp, src, nthreads);
+        dst = std::move(tmp);
+        return ok;
+    }
+
+    TypeDesc resultformat = src.spec().format == TypeDesc::UINT8
+                                ? TypeDesc::UINT16
+                                : src.spec().format;
+    return fillholes_pushpull_hwy_fast(dst, src, resultformat, true, nthreads);
+}
+
+static bool
+fillholes_pushpull_hwy(ImageBuf& dst, const ImageBuf& src, int nthreads,
+                       bool preserve_dst_format)
+{
+    if (!preserve_dst_format || &dst == &src)
+        return fillholes_pushpull_hwy_natural(dst, src, nthreads);
+
+    return fillholes_pushpull_hwy_fast(dst, src, dst.spec().format, false,
+                                       nthreads);
+}
+
+#endif  // OIIO_USE_HWY
+
+
 
 bool
 ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
@@ -1607,6 +3834,11 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
                      | IBAprep_NO_SUPPORT_VOLUME);
     if (!IBAprep(roi, &dst, &src, req))
         return false;
+#if OIIO_USE_HWY
+    bool preserve_dst_format = dst.initialized() && &dst != &src;
+    if (OIIO::pvt::enable_hwy && fillholes_pushpull_hwy_supported(src, roi))
+        return fillholes_pushpull_hwy(dst, src, nthreads, preserve_dst_format);
+#endif
     // We generate a bunch of temp images to form an image pyramid.
     // These give us a place to stash them and make sure they are
     // auto-deleted when the function exits.
