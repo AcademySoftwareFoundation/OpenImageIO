@@ -299,6 +299,105 @@ test_iba_inference(const ColorConfig& config)
 }
 
 
+// The scrubber erases a hint only when the resolver proves what it claims
+// (redundant or contradictory either way); indeterminate hints and honored
+// declarations stay.
+static void
+test_scrubber(const ColorConfig& config)
+{
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("oiio:ColorSpace", "lin_test_scene");
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
+        spec.attribute("colorInteropID", "lin_ap1_scene");
+        const float chroma[8] = { 0.64f, 0.33f, 0.30f, 0.60f,
+                                  0.15f, 0.06f, 0.3127f, 0.3290f };
+        spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), chroma);
+        spec.attribute("oiio:Gamma", 2.4f);
+        auto icc = fake_icc_profile();
+        spec.attribute("ICCProfile",
+                       TypeDesc(TypeDesc::UINT8, int(icc.size())), icc.data());
+        scrub_color_metadata(spec, &config, {});
+        // All provable: CICP and CIID resolve, chroma+gamma and the ICC
+        // resolve to their synthetics -- every claim is determinate.
+        OIIO_CHECK_ASSERT(!spec.find_attribute("CICP"));
+        OIIO_CHECK_ASSERT(!spec.find_attribute("colorInteropID"));
+        OIIO_CHECK_ASSERT(!spec.find_attribute("chromaticities"));
+        OIIO_CHECK_ASSERT(!spec.find_attribute("oiio:Gamma"));
+        OIIO_CHECK_ASSERT(!spec.find_attribute("ICCProfile"));
+        // The color space itself is never scrubbed.
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                         "lin_test_scene");
+    }
+    {
+        // Indeterminate claims survive: an unresolvable vendor id, a
+        // garbage (undecodable) ICC blob.
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("oiio:ColorSpace", "lin_test_scene");
+        spec.attribute("colorInteropID", "vendorx_mystery");
+        std::vector<unsigned char> garbage(200, 0x42);
+        spec.attribute("ICCProfile",
+                       TypeDesc(TypeDesc::UINT8, int(garbage.size())),
+                       garbage.data());
+        scrub_color_metadata(spec, &config, {});
+        OIIO_CHECK_ASSERT(spec.find_attribute("colorInteropID"));
+        OIIO_CHECK_ASSERT(spec.find_attribute("ICCProfile"));
+    }
+    {
+        // A deliberate known:* declaration is honored, never scrubbed; a
+        // bare "unknown" claim is contradicted by any definite color space.
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("oiio:ColorSpace", "lin_test_scene");
+        spec.attribute("colorInteropID", "known:unknown");
+        scrub_color_metadata(spec, &config, {});
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("colorInteropID"),
+                         "known:unknown");
+
+        spec.attribute("colorInteropID", "unknown");
+        scrub_color_metadata(spec, &config, {});
+        OIIO_CHECK_ASSERT(!spec.find_attribute("colorInteropID"));
+    }
+    {
+        // No established color space: nothing to judge against, no scrub.
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
+        scrub_color_metadata(spec, &config, {});
+        OIIO_CHECK_ASSERT(spec.find_attribute("CICP"));
+    }
+}
+
+
+// IBA wiring of the scrubber: the inferred-source path scrubs the outgoing
+// spec; the explicit-source path is byte-identical to main (hints kept).
+static void
+test_iba_scrub_wiring(const ColorConfig& config)
+{
+    ImageSpec spec(8, 8, 3, TypeFloat);
+    spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
+    auto icc = fake_icc_profile();
+    spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, int(icc.size())),
+                   icc.data());
+    ImageBuf src(spec);
+    ImageBufAlgo::fill(src, { 0.5f, 0.25f, 0.75f });
+
+    ImageBuf inferred = ImageBufAlgo::colorconvert(src, "", "lin_test_scene",
+                                                   true, "", "", &config);
+    OIIO_CHECK_ASSERT(!inferred.has_error());
+    OIIO_CHECK_EQUAL(inferred.spec().get_string_attribute("oiio:ColorSpace"),
+                     "lin_test_scene");
+    OIIO_CHECK_ASSERT(!inferred.spec().find_attribute("ICCProfile"));
+    OIIO_CHECK_ASSERT(!inferred.spec().find_attribute("CICP"));
+
+    ImageBuf explicit_src
+        = ImageBufAlgo::colorconvert(src, "srgb_rec709_scene",
+                                     "lin_test_scene", true, "", "", &config);
+    OIIO_CHECK_ASSERT(!explicit_src.has_error());
+    // Explicit source: no scrub, stale hints intentionally untouched
+    // (CICP is still cleared by set_colorspace, as on main).
+    OIIO_CHECK_ASSERT(explicit_src.spec().find_attribute("ICCProfile"));
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -321,6 +420,8 @@ main(int /*argc*/, char* /*argv*/[])
     test_config_or_registry_failover(sparse);
     test_infer_helper(config);
     test_iba_inference(config);
+    test_scrubber(config);
+    test_iba_scrub_wiring(config);
 
     Filesystem::remove(cfgpath);
     Filesystem::remove(sparsepath);

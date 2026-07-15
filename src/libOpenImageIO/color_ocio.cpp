@@ -3875,6 +3875,10 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
     OIIO::pvt::LoggedTimer logtime("IBA::colorconvert");
     if (!colorconfig)
         colorconfig = &ColorConfig::default_colorconfig();
+    // One locked snapshot of the read-policy state per call (only populated
+    // and consulted on the inferred-source path below).
+    OIIO::pvt::ColorReadPolicy policy;
+    bool inferred_source = false;
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute("oiio:Colorspace",
                                                "scene_linear");
@@ -3884,18 +3888,19 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
         // default. An explicit `from` argument or a tagged source never
         // reaches this, and a hintless source keeps today's default exactly.
         if (!src.spec().find_attribute("oiio:ColorSpace", TypeString)) {
+            policy = OIIO::pvt::ColorReadPolicy::snapshot();
             OIIO::pvt::ColorCallContext ctx;
             ctx.filename       = std::string(src.name());
             ctx.format         = std::string(src.file_format_name());
             std::string hinted = OIIO::pvt::infer_color_space_from_spec(
-                colorconfig, src.spec(), ctx,
-                OIIO::pvt::ColorReadPolicy::snapshot());
+                colorconfig, src.spec(), ctx, policy);
             if (!hinted.empty()) {
                 Strutil::debug("IBA::colorconvert inferred source color "
                                "space \"{}\" from the input's color "
                                "metadata\n",
                                hinted);
-                from = ustring(hinted);
+                from            = ustring(hinted);
+                inferred_source = true;
             }
         }
     }
@@ -3937,6 +3942,15 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
         if (colorconfig->isData(from) || lenient_passthrough)
             to = from;
         dst.specmod().set_colorspace(to);
+        // Inferred-source hygiene: the hints that named the (pre-conversion)
+        // source now describe a state the output no longer has. Scrub the
+        // ones the resolver proves determinate; leave the rest. Explicit-
+        // source calls are deliberately untouched (identical to main); a
+        // pass-through or data no-op keeps its still-true hints.
+        if (inferred_source && !lenient_passthrough
+            && !colorconfig->isData(from))
+            OIIO::pvt::scrub_color_metadata(dst.specmod(), colorconfig,
+                                            policy);
     }
     return ok;
 }
