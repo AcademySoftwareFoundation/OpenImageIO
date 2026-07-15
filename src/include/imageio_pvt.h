@@ -712,6 +712,25 @@ resolve_color_metadata(const ColorConfig* config,
 OIIO_API void
 reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy);
 
+/// Extract every ColorMetadataFacts signal `spec` carries (ACES container
+/// flag, colorInteropID, ICC profile blob, CICP, chromaticities, gamma).
+/// This is the one spec->facts extraction; reconcile_color_metadata above
+/// still reads its historically-consulted signals itself and can adopt this
+/// when per-format signals are deliberately widened (a per-format behavior
+/// change, its own later PR).
+OIIO_API ColorMetadataFacts
+color_facts_from_spec(const ImageSpec& spec);
+
+/// Spec-aware resolve(): run the audited cascade against the color hints
+/// present on `spec` -- the same engine, entered from the ImageSpec / IBA
+/// side. `config` scopes resolution to that config first, failing over to
+/// the built-in identity registry exactly as the facts overload does (null
+/// = registry-only answers).
+OIIO_API ColorResolutionExplanation
+resolve_color_metadata(const ColorConfig* config, const ImageSpec& spec,
+                       const ColorCallContext& ctx,
+                       const ColorReadPolicy& policy);
+
 
 // ---------------------------------------------------------------------------
 // Color-policy snapshot primitive -- the single-locked-snapshot mechanism

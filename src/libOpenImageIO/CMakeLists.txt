@@ -298,6 +298,13 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
     add_test (unit_color_metadata_plan
               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_metadata_plan_test)
 
+    fancy_add_executable (NAME color_spec_resolve_test
+                          SRC color_spec_resolve_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_color_spec_resolve
+              ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_spec_resolve_test)
+
     fancy_add_executable (NAME imagebuf_test SRC imagebuf_test.cpp
                           LINK_LIBRARIES OpenImageIO
                           FOLDER "Unit Tests" NO_INSTALL)

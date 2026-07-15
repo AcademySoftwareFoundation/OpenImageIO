@@ -592,6 +592,43 @@ resolve_color_metadata(const ColorConfig* config,
     return expl;
 }
 
+ColorMetadataFacts
+color_facts_from_spec(const ImageSpec& spec)
+{
+    ColorMetadataFacts f;
+    f.aces_image_container = spec.get_int_attribute("acesImageContainerFlag")
+                             == 1;
+    if (auto c = spec.find_attribute("colorInteropID", TypeString))
+        f.color_interop_id = c->get_ustring().string();
+    if (auto icc = spec.find_attribute("ICCProfile")) {
+        const auto* d = static_cast<const unsigned char*>(icc->data());
+        f.icc_profile.assign(d, d + icc->datasize());
+    }
+    if (spec.getattribute("CICP", TypeDesc(TypeDesc::INT, 4), f.cicp))
+        f.has_cicp = true;
+    if (spec.getattribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8),
+                          f.chromaticities))
+        f.has_chromaticities = true;
+    float g = spec.get_float_attribute("oiio:Gamma", 0.0f);
+    if (g > 0.0f) {
+        f.has_gamma = true;
+        f.gamma     = g;
+    }
+    // png_srgb has no ImageSpec carrier: the PNG reader folds its sRGB chunk
+    // straight into oiio:ColorSpace. It becomes extractable when a reader
+    // deposits it as an asset-fact attribute (a per-format change, later PR).
+    return f;
+}
+
+ColorResolutionExplanation
+resolve_color_metadata(const ColorConfig* config, const ImageSpec& spec,
+                       const ColorCallContext& ctx,
+                       const ColorReadPolicy& policy)
+{
+    return resolve_color_metadata(config, "", color_facts_from_spec(spec),
+                                  ctx, policy);
+}
+
 void
 reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy)
 {
