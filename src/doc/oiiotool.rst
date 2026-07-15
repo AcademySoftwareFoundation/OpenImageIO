@@ -4573,6 +4573,36 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
+Cross-config color space names
+-------------------------------
+
+If `--colorconvert` (or `--ociodisplay`) names a color space that your
+current OCIO configuration does not define, but the name is one of a small
+set of common, well-known color space identities that OpenImageIO
+recognizes, the conversion is not necessarily a hard error. As long as your
+configuration declares an `aces_interchange` role (directly, or via a scene
+color space OIIO can identify as one of those well-known identities),
+OpenImageIO can relate your configuration to the missing name through that
+shared identity and complete the conversion. The same applies when the
+*source* of an `--ociodisplay` transform is one of those well-known
+identities but your display/view are local. In both cases, nothing about a
+purely local conversion (both endpoints already defined by your
+configuration) is affected.
+
+OCIO's own `strictparsing` configuration setting governs what happens when
+this cannot be done: with strict parsing on, an unresolvable name is a hard
+error exactly as before. With strict parsing off, OpenImageIO instead warns
+and passes the image through unchanged, so a batch job does not stop over
+one unresolved name.
+
+None of this prints anything to the console by default. If a conversion had
+to be routed this way, or fell back to a pass-through, the reason is
+recorded as an error string on the color configuration (surfaced through the
+normal `oiiotool` error path on failure) and narrated on OpenImageIO's debug
+channel (`OPENIMAGEIO_DEBUG=1`). A configuration that cannot be related to
+any well-known identity at all is noted once per configuration on the debug
+channel the first time a cross-config conversion is attempted against it.
+
 .. option:: --tocolorspace <tospace>
 
     Replace the current image with a new image whose pixels are transformed

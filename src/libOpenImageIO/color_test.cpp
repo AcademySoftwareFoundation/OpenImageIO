@@ -590,6 +590,11 @@ colorspaces:
         OIIO_CHECK_FALSE(color_config_is_interoperable(cc));
         OIIO_CHECK_ASSERT(color_config_interop_computed(cc));
         OIIO_CHECK_ASSERT(color_config_interchange_name(cc).empty());
+        // The bootstrap warning is debug-gated + recorded in-memory only --
+        // it must NOT pollute the ColorConfig error string (R4): a
+        // non-interoperable config that nobody has tried to cross-config-
+        // convert with is otherwise perfectly healthy.
+        OIIO_CHECK_FALSE(cc.has_error());
 
         // But the in-memory interopified copy was repaired to resolve one,
         // with the processor cache off -- and the original config is
@@ -603,20 +608,548 @@ colorspaces:
         OIIO_CHECK_ASSERT(color_config_interop_warned(cc));
         OIIO_CHECK_FALSE(color_config_is_interoperable(cc));
         OIIO_CHECK_ASSERT(color_config_interop_warned(cc));
+        // Still no error string, even after two failed bootstrap queries.
+        OIIO_CHECK_FALSE(cc.has_error());
 
         // A second ColorConfig over the same (structurally identical) config
-        // does not warn again: the once-per-config-structure guard is
-        // process-global.
+        // independently discovers it is non-interoperable during its OWN
+        // ensure_interop() and reports its OWN `warned` observable
+        // accordingly -- that is decoupled from the process-global guard
+        // that throttles the printed debug line to once per structural
+        // config id (only one of the two Impls "wins" that dedup claim, but
+        // both must observably report having been warned).
         ColorConfig cc2(stripped_path);
         OIIO_CHECK_FALSE(color_config_is_interoperable(cc2));
-        OIIO_CHECK_FALSE(color_config_interop_warned(cc2));
-        // ...yet it still gets its own repaired, cache-off copy.
+        OIIO_CHECK_ASSERT(color_config_interop_warned(cc2));
+        // ...and it still gets its own repaired, cache-off copy.
         OIIO_CHECK_ASSERT(
             color_config_interopified_resolves_scene_interchange(cc2));
     }
 
     Filesystem::remove(interop_path);
     Filesystem::remove(stripped_path);
+}
+
+
+
+// Exercise the cross-config processor chokepoint (pvt::cross_config_probe, a
+// wrapper over OCIO's two-config GetProcessorFromConfigs): a route bridged
+// between two structurally distinct configs that share the aces_interchange
+// role reproduces the destination config's own transform (probe pixel agrees
+// within 1e-6); a config with no interchange role fails with a null processor
+// and the OCIO role message set on the destination; and a context key/value
+// pair smoke-drives the context-aware overload.
+static void
+test_cross_config_processor()
+{
+    using OIIO::pvt::cross_config_probe;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    // Two-config GetProcessorFromConfigs / the interchange-role machinery needs
+    // OCIO >= 2.3.
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02030000)
+        return;
+
+    // Source config: the scene interchange (aces_interchange -> ref) is the
+    // route's source endpoint.
+    static const char* src_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+)";
+    // Destination config: shares the interchange (ref) and adds a gamma space
+    // reachable from it. Structurally distinct from src (it has g22), so the
+    // route genuinely crosses configs.
+    static const char* dst_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: g22
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+)";
+    // A config with no scene interchange role at all: unbridgeable.
+    static const char* noninterop_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+)";
+
+    std::string src_path = Filesystem::temp_directory_path()
+                           + "/oiio_color_test_xconfig_src.ocio";
+    std::string dst_path = Filesystem::temp_directory_path()
+                           + "/oiio_color_test_xconfig_dst.ocio";
+    std::string non_path = Filesystem::temp_directory_path()
+                           + "/oiio_color_test_xconfig_non.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(src_path, src_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(dst_path, dst_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(non_path, noninterop_yaml));
+
+    ColorConfig src_cc(src_path);
+    ColorConfig dst_cc(dst_path);
+    ColorConfig non_cc(non_path);
+    OIIO_CHECK_ASSERT(!src_cc.has_error());
+    OIIO_CHECK_ASSERT(!dst_cc.has_error());
+    OIIO_CHECK_ASSERT(!non_cc.has_error());
+
+    const float probe[3] = { 0.18f, 0.42f, 0.73f };
+
+    // --- Success: cross-config route equals the destination's own transform --
+    {
+        auto got = cross_config_probe(src_cc, "ref", dst_cc, "g22", probe);
+        OIIO_CHECK_EQUAL(got.size(), size_t(3));
+        OIIO_CHECK_ASSERT(!dst_cc.has_error());
+
+        // Independent reference: the destination config's own ref->g22
+        // processor, applied to the same probe pixel.
+        auto ref = dst_cc.createColorProcessor("ref", "g22");
+        OIIO_CHECK_ASSERT(ref.get() != nullptr);
+        float expected[3] = { probe[0], probe[1], probe[2] };
+        if (ref)
+            ref->apply(expected);
+        if (got.size() == 3)
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(got[c], expected[c], 1e-6f);
+
+        // Second, INDEPENDENT anchor: a hand-computed value that does not
+        // come from any OCIO/OIIO code path at all (the check above still
+        // only cross-checks two OCIO entry points against each other, both
+        // evaluating the identical "g22" transform -- a bug in how that
+        // transform is applied would agree with itself either way). "g22" is
+        // authored as a from-scene-reference ExponentTransform{2.2}, and OCIO
+        // applies a color space's from-reference transform in its authored
+        // (forward) direction when building the reference-to-space half of a
+        // ref->g22 conversion; the forward exponent op is a plain per-channel
+        // powf(max(0,in), 2.2) (see OpenColorIO's ExponentOpCPU::apply).
+        // Hand-computing that directly, with no config/processor involved:
+        float hand_expected[3];
+        for (int c = 0; c < 3; ++c)
+            hand_expected[c] = powf(probe[c], 2.2f);
+        if (got.size() == 3)
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(got[c], hand_expected[c], 1e-4f);
+    }
+
+    // --- Missing-role failure: empty result + OCIO role message set on dst ---
+    {
+        auto got = cross_config_probe(src_cc, "ref", non_cc, "ref", probe);
+        OIIO_CHECK_ASSERT(got.empty());
+        OIIO_CHECK_ASSERT(non_cc.has_error());
+        std::string err = non_cc.geterror();
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "aces_interchange"));
+    }
+
+    // --- Context-aware overload smoke: a key/value pair builds a processor ---
+    {
+        auto got = cross_config_probe(src_cc, "ref", dst_cc, "g22", probe,
+                                      "LUT", "identity");
+        OIIO_CHECK_EQUAL(got.size(), size_t(3));
+        OIIO_CHECK_ASSERT(!dst_cc.has_error());
+    }
+
+    Filesystem::remove(src_path);
+    Filesystem::remove(dst_path);
+    Filesystem::remove(non_path);
+}
+
+
+
+// Exercise the cross-config conversion route in ColorConfig::createColorProcessor:
+// when a requested color space is absent from the current config
+// but is a registry-known interop identity, and the config is color-
+// interoperable (natively or via in-memory repair), the conversion routes
+// through the built-in interop identities config instead of erroring on the
+// name. The gate consults the interoperability state, not bare name-presence;
+// OCIO strict parsing restores today's hard-error behavior; and non-strict
+// parsing falls back to a pass-through so the pipeline continues.
+static void
+test_cross_config_conversion()
+{
+    using OIIO::pvt::identities_route_probe;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    // Two-config GetProcessorFromConfigs / the interchange-role machinery needs
+    // OCIO >= 2.3.
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02030000)
+        return;
+    // The route bridges the local AP0 reference to a registry AP1 (ACEScg)
+    // identity; skip if this build's identities config doesn't carry it.
+    if (!OIIO::pvt::interop_identities_config_resolves("lin_ap1_scene"))
+        return;
+
+    // An interoperable config (aces_interchange -> ap0, a transformless scene
+    // reference) that LACKS the registry-known scene space "lin_ap1_scene".
+    // Non-strict parsing.
+    static const char* interop_yaml = R"(ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: ap0
+  scene_linear: ap0
+  aces_interchange: ap0
+colorspaces:
+  - !<ColorSpace>
+    name: ap0
+)";
+    // Same config, but with OCIO strict parsing enabled.
+    static const char* interop_strict_yaml = R"(ocio_profile_version: 2.1
+strictparsing: true
+search_path: ""
+roles:
+  default: ap0
+  scene_linear: ap0
+  aces_interchange: ap0
+colorspaces:
+  - !<ColorSpace>
+    name: ap0
+)";
+    // A NON-interoperable config: its only color space has a from-reference
+    // transform, so there is no transformless scene reference to anchor a
+    // repair on, and no interchange alias resolves -- the interopified copy
+    // resolves no scene interchange (gate stays closed). Non-strict parsing.
+    static const char* noninterop_yaml = R"(ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: enc
+  scene_linear: enc
+colorspaces:
+  - !<ColorSpace>
+    name: enc
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+)";
+
+    std::string interop_path = Filesystem::temp_directory_path()
+                               + "/oiio_color_test_xconv_interop.ocio";
+    std::string strict_path = Filesystem::temp_directory_path()
+                              + "/oiio_color_test_xconv_strict.ocio";
+    std::string non_path = Filesystem::temp_directory_path()
+                           + "/oiio_color_test_xconv_non.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(interop_path, interop_yaml));
+    OIIO_CHECK_ASSERT(
+        Filesystem::write_text_file(strict_path, interop_strict_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(non_path, noninterop_yaml));
+
+    const float probe[3] = { 0.18f, 0.42f, 0.73f };
+
+    // --- Success: registry-known name absent locally routes via the bridge ----
+    {
+        ColorConfig cc(interop_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+
+        auto handle = cc.createColorProcessor("ap0", "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);
+        // A real AP0->AP1 transform, not a pass-through no-op.
+        if (handle)
+            OIIO_CHECK_FALSE(handle->isNoOp());
+        OIIO_CHECK_FALSE(cc.has_error());
+
+        // The public bridge reproduces the direct chokepoint route against the
+        // identities config (probe-pixel agreement, abs 1e-6/channel).
+        float got[3] = { probe[0], probe[1], probe[2] };
+        if (handle)
+            handle->apply(got);
+        auto ref = identities_route_probe(cc, "ap0", "lin_ap1_scene", probe);
+        OIIO_CHECK_EQUAL(ref.size(), size_t(3));
+        if (ref.size() == 3)
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(got[c], ref[c], 1e-6f);
+    }
+
+    // --- Zero behavior change: a name this config defines still resolves -------
+    {
+        ColorConfig cc(interop_path);
+        auto handle = cc.createColorProcessor("ap0", "ap0");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);  // local no-op, unchanged
+        OIIO_CHECK_FALSE(cc.has_error());
+    }
+
+    // --- Gate respects interop state: a non-interoperable config does not
+    //     bridge a registry-known name (no real cross-config transform) --------
+    {
+        ColorConfig cc(non_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        // Confirm the fixture is non-interoperable and its repair is unusable.
+        // This triggers the lazy bootstrap (and its once-per-config warning).
+        OIIO_CHECK_FALSE(OIIO::pvt::color_config_is_interoperable(cc));
+        OIIO_CHECK_FALSE(
+            OIIO::pvt::color_config_interopified_resolves_scene_interchange(cc));
+        // R4/scope (c): the bootstrap warning never sets the error string --
+        // has_error() stays false until a cross-config route is attempted.
+        OIIO_CHECK_FALSE(cc.has_error());
+
+        auto handle = cc.createColorProcessor("enc", "lin_ap1_scene");
+        // Non-strict parsing: the gate is closed, so no bridge is built; the
+        // route falls back to a pass-through (identity -- pixels unchanged).
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);
+        float passthru[3] = { probe[0], probe[1], probe[2] };
+        if (handle)
+            handle->apply(passthru);
+        for (int c = 0; c < 3; ++c)
+            OIIO_CHECK_EQUAL_THRESH(passthru[c], probe[c], 1e-6f);
+        OIIO_CHECK_ASSERT(cc.has_error());
+        std::string err = cc.geterror();
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "not color-interoperable"));
+
+        // ...and the fallback did NOT reproduce a real bridge route: since the
+        // config resolves no interchange, the direct chokepoint route also
+        // fails to build a processor.
+        auto ref = identities_route_probe(cc, "enc", "lin_ap1_scene", probe);
+        OIIO_CHECK_ASSERT(ref.empty());
+    }
+
+    // --- Strict-off fallback: reconciliation failure continues with a
+    //     pass-through and records a why + how-to-fix message -----------------
+    {
+        ColorConfig cc(non_path);
+        auto handle = cc.createColorProcessor("enc", "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);  // non-null fallback
+        float passthru[3] = { probe[0], probe[1], probe[2] };
+        if (handle)
+            handle->apply(passthru);  // pass-through: pixels unchanged
+        for (int c = 0; c < 3; ++c)
+            OIIO_CHECK_EQUAL_THRESH(passthru[c], probe[c], 1e-6f);
+        OIIO_CHECK_ASSERT(cc.has_error());
+        std::string err = cc.geterror();
+        // Narration recorded on the error string: what failed and how to fix.
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "lin_ap1_scene"));
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "aces_interchange role"));
+    }
+
+    // --- Strict parsing: hard error (today's behavior) with why + how-to-fix --
+    {
+        ColorConfig cc(strict_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        // Even though the config is interoperable (the bridge COULD resolve the
+        // name), strict parsing suppresses the bridge and restores the hard
+        // error.
+        OIIO_CHECK_ASSERT(OIIO::pvt::color_config_is_interoperable(cc));
+
+        auto handle = cc.createColorProcessor("ap0", "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(handle.get() == nullptr);  // hard error, no processor
+        OIIO_CHECK_ASSERT(cc.has_error());
+        std::string err = cc.geterror();
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "strict parsing"));
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "registry-known interop"));
+    }
+
+    Filesystem::remove(interop_path);
+    Filesystem::remove(strict_path);
+    Filesystem::remove(non_path);
+}
+
+
+
+// Exercise the cross-config DISPLAY route in ColorConfig::createDisplayTransform:
+// when the INPUT color space is absent from the current config
+// but is a registry-known interop identity, and the config defines the requested
+// display/view, the display transform routes the foreign source through the
+// built-in interop identities config into this config's display/view -- the same
+// strict/lenient/narration contract as the color-space route. On bridge failure,
+// the input is deliberately NOT reinterpreted as scene_linear; instead the
+// strict-aware fallback applies: strict OFF -> pass-through (pixels UNCHANGED, NOT
+// reinterpreted as scene_linear); strict ON -> hard error.
+static void
+test_cross_config_display()
+{
+    using OIIO::pvt::identities_display_route_probe;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    // The two-config display-view GetProcessorFromConfigs overload needs
+    // OCIO >= 2.3.
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02030000)
+        return;
+    // The route bridges a registry AP1 (ACEScg) identity into the config's
+    // display/view; skip if this build's identities config doesn't carry it.
+    if (!OIIO::pvt::interop_identities_config_resolves("lin_ap1_scene"))
+        return;
+
+    // An interoperable config (aces_interchange -> ap0) that defines a display/
+    // view locally but LACKS the registry-known scene space "lin_ap1_scene".
+    static const char* interop_yaml = R"(ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: ap0
+  scene_linear: ap0
+  aces_interchange: ap0
+displays:
+  disp:
+    - !<View> {name: view1, colorspace: g22}
+colorspaces:
+  - !<ColorSpace>
+    name: ap0
+
+  - !<ColorSpace>
+    name: g22
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+)";
+    // Same config, but with OCIO strict parsing enabled.
+    static const char* strict_yaml = R"(ocio_profile_version: 2.1
+strictparsing: true
+search_path: ""
+roles:
+  default: ap0
+  scene_linear: ap0
+  aces_interchange: ap0
+displays:
+  disp:
+    - !<View> {name: view1, colorspace: g22}
+colorspaces:
+  - !<ColorSpace>
+    name: ap0
+
+  - !<ColorSpace>
+    name: g22
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+)";
+    // A NON-interoperable config that still defines a display/view. Its spaces
+    // are all from-reference (gamma) with no transformless scene reference to
+    // anchor a repair, so the interopified copy resolves no scene interchange
+    // (gate stays closed). The view color space "out" is a REAL transform from
+    // scene_linear, so a scene_linear->display transform is non-identity -- this
+    // is what makes the trap-1 regression assertion meaningful.
+    static const char* non_yaml = R"(ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: enc
+  scene_linear: enc
+displays:
+  disp:
+    - !<View> {name: view1, colorspace: out}
+colorspaces:
+  - !<ColorSpace>
+    name: enc
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+
+  - !<ColorSpace>
+    name: out
+    from_scene_reference: !<ExponentTransform> {value: [3.0, 3.0, 3.0, 1]}
+)";
+
+    std::string interop_path = Filesystem::temp_directory_path()
+                               + "/oiio_color_test_xdisp_interop.ocio";
+    std::string strict_path = Filesystem::temp_directory_path()
+                              + "/oiio_color_test_xdisp_strict.ocio";
+    std::string non_path = Filesystem::temp_directory_path()
+                           + "/oiio_color_test_xdisp_non.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(interop_path, interop_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(strict_path, strict_yaml));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(non_path, non_yaml));
+
+    const float probe[3] = { 0.18f, 0.42f, 0.73f };
+
+    // --- Success: registry-known input absent locally routes via the display
+    //     bridge, reproducing the direct chokepoint route (abs 1e-6/channel) ----
+    {
+        ColorConfig cc(interop_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+
+        auto handle = cc.createDisplayTransform("disp", "view1",
+                                                "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);
+        // A real AP1->display transform, not a pass-through no-op.
+        if (handle)
+            OIIO_CHECK_FALSE(handle->isNoOp());
+        OIIO_CHECK_FALSE(cc.has_error());
+
+        float got[3] = { probe[0], probe[1], probe[2] };
+        if (handle)
+            handle->apply(got);
+        auto ref = identities_display_route_probe(cc, "lin_ap1_scene", "disp",
+                                                  "view1", probe);
+        OIIO_CHECK_EQUAL(ref.size(), size_t(3));
+        if (ref.size() == 3)
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(got[c], ref[c], 1e-6f);
+    }
+
+    // --- Zero behavior change: a local input space resolves as before ---------
+    {
+        ColorConfig cc(interop_path);
+        auto handle = cc.createDisplayTransform("disp", "view1", "ap0");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);
+        OIIO_CHECK_FALSE(cc.has_error());
+    }
+
+    // --- Trap-1 regression, strict OFF: the foreign input is NOT silently
+    //     treated as scene_linear -- the route falls back to a pass-through
+    //     (pixels UNCHANGED) and records a why + how-to-fix message. THIS is the
+    //     test of the slice. --------------------------------------------------
+    {
+        ColorConfig cc(non_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        OIIO_CHECK_FALSE(OIIO::pvt::color_config_is_interoperable(cc));
+        OIIO_CHECK_FALSE(
+            OIIO::pvt::color_config_interopified_resolves_scene_interchange(cc));
+
+        auto handle = cc.createDisplayTransform("disp", "view1",
+                                                "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);  // non-null fallback
+        float passthru[3] = { probe[0], probe[1], probe[2] };
+        if (handle)
+            handle->apply(passthru);
+        // Pixels unchanged: the input was NOT reinterpreted as scene_linear.
+        for (int c = 0; c < 3; ++c)
+            OIIO_CHECK_EQUAL_THRESH(passthru[c], probe[c], 1e-6f);
+        OIIO_CHECK_ASSERT(cc.has_error());
+        std::string err = cc.geterror();
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "not color-interoperable"));
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "display transform"));
+
+        // Prove the pass-through is meaningful, not a coincidental identity: had
+        // the source been reinterpreted as scene_linear (the role space "enc"),
+        // the display transform WOULD have changed the pixels.
+        ColorConfig cc2(non_path);
+        auto trap = cc2.createDisplayTransform("disp", "view1", "enc");
+        OIIO_CHECK_ASSERT(trap.get() != nullptr);
+        float trapped[3] = { probe[0], probe[1], probe[2] };
+        if (trap)
+            trap->apply(trapped);
+        bool trap_changes = false;
+        for (int c = 0; c < 3; ++c)
+            if (std::abs(trapped[c] - probe[c]) > 1e-4f)
+                trap_changes = true;
+        OIIO_CHECK_ASSERT(trap_changes);
+    }
+
+    // --- Trap-1 regression, strict ON: hard error (today's behavior) ----------
+    {
+        ColorConfig cc(strict_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        OIIO_CHECK_ASSERT(OIIO::pvt::color_config_is_interoperable(cc));
+
+        auto handle = cc.createDisplayTransform("disp", "view1",
+                                                "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(handle.get() == nullptr);  // hard error, no processor
+        OIIO_CHECK_ASSERT(cc.has_error());
+        std::string err = cc.geterror();
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "strict parsing"));
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "registry-known interop"));
+    }
+
+    Filesystem::remove(interop_path);
+    Filesystem::remove(strict_path);
+    Filesystem::remove(non_path);
 }
 
 
@@ -1273,6 +1806,9 @@ main(int argc, char* argv[])
     test_color_space_classification();
     test_color_space_fingerprint();
     test_config_interoperability();
+    test_cross_config_processor();
+    test_cross_config_conversion();
+    test_cross_config_display();
     test_color_space_fingerprint_cache();
     test_interop_resolve();
 
